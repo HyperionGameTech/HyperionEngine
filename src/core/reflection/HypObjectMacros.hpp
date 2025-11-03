@@ -4,31 +4,40 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
 template <class T>
-const HypClass* GetClass();
+const Class* GetClass();
+
+template <class T>
+struct GetClassHelper
+{
+    static const Class* Get();
+};
 
 /// Macro for class / struct / enum declaration ///
 
 // clang-format off
 
 #define HYP_BEGIN_STRUCT(cls, _static_index, _num_descendants, parentClass, ...)                                                                \
-    HYP_API extern const HypClass* g_cls##cls;                                                                                                  \
+    HYP_API extern const Class* g_cls##cls;                                                                                                     \
                                                                                                                                                 \
-    static struct HypClassInitializer_##cls                                                                                                     \
+    template <>                                                                                                                                 \
+    static HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                               \
+                                                                                                                                                \
+    static struct ClassInitializer_##cls                                                                                                        \
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
-        using RegistrationType = ::hyperion::HypStructRegistration<Type>;                                                                       \
+        using RegistrationType = ::hyperion::StructRegistration<Type>;                                                                          \
                                                                                                                                                 \
         static RegistrationType s_classRegistration;                                                                                            \
                                                                                                                                                 \
-        HypClassInitializer_##cls ()                                                                                                            \
+        ClassInitializer_##cls ()                                                                                                               \
         {                                                                                                                                       \
         }                                                                                                                                       \
     } g_classInitializer_##cls {};                                                                                                              \
                                                                                                                                                 \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    ClassInitializer_##cls::RegistrationType ClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_STRUCT \
     }                  \
@@ -36,21 +45,24 @@ const HypClass* GetClass();
     };                 \
 
 #define HYP_BEGIN_CLASS(cls, _static_index, _num_descendants, parentClass, ...)                                                                 \
-    HYP_API extern const HypClass* g_cls##cls;                                                                                                  \
+    HYP_API extern const Class* g_cls##cls;                                                                                                     \
                                                                                                                                                 \
-    static struct HypClassInitializer_##cls                                                                                                     \
+    template <>                                                                                                                                 \
+    static HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                               \
+                                                                                                                                                \
+    static struct ClassInitializer_##cls                                                                                                        \
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
-        using RegistrationType = ::hyperion::HypClassRegistration<Type>;                                                                        \
+        using RegistrationType = ::hyperion::ClassRegistration<Type>;                                                                           \
                                                                                                                                                 \
         static RegistrationType s_classRegistration;                                                                                            \
                                                                                                                                                 \
-        HypClassInitializer_##cls ()                                                                                                            \
+        ClassInitializer_##cls ()                                                                                                               \
         {                                                                                                                                       \
         }                                                                                                                                       \
     } g_classInitializer_##cls {};                                                                                                              \
                                                                                                                                                 \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    ClassInitializer_##cls::RegistrationType ClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_CLASS \
     }                 \
@@ -58,21 +70,24 @@ const HypClass* GetClass();
     };                \
 
 #define HYP_BEGIN_ENUM(cls, _static_index, _num_descendants, ...)                                                                               \
-    HYP_API extern const HypClass* g_cls##cls;                                                                                                  \
+    HYP_API extern const Class* g_cls##cls;                                                                                                     \
                                                                                                                                                 \
-    static struct HypClassInitializer_##cls                                                                                                     \
+    template <>                                                                                                                                 \
+    static HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                               \
+                                                                                                                                                \
+    static struct ClassInitializer_##cls                                                                                                        \
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
-        using RegistrationType = ::hyperion::HypEnumRegistration<Type>;                                                                        \
+        using RegistrationType = ::hyperion::EnumRegistration<Type>;                                                                            \
                                                                                                                                                 \
         static RegistrationType s_classRegistration;                                                                                            \
                                                                                                                                                 \
-        HypClassInitializer_##cls ()                                                                                                            \
+        ClassInitializer_##cls ()                                                                                                               \
         {                                                                                                                                       \
         }                                                                                                                                       \
     } g_classInitializer_##cls {};                                                                                                              \
                                                                                                                                                 \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    ClassInitializer_##cls::RegistrationType ClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_ENUM \
     }                \
@@ -85,10 +100,10 @@ const HypClass* GetClass();
 
 #define HYP_OBJECT_BODY(T, ...)                                                  \
 private:                                                                         \
-    friend struct HypClassInitializer_##T;                                       \
+    friend struct ClassInitializer_##T;                                          \
                                                                                  \
 public:                                                                          \
-    struct HypClassInfo                                                          \
+    struct ClassInfo                                                             \
     {                                                                            \
         using Type = T;                                                          \
     };                                                                           \
@@ -98,10 +113,9 @@ public:                                                                         
         return (ObjId<T>)(HypObjectBase::Id());                                  \
     }                                                                            \
                                                                                  \
-    HYP_FORCE_INLINE static const HypClass* Class()                              \
+    HYP_FORCE_INLINE static const Class* StaticClass()                           \
     {                                                                            \
-        static const HypClass* hypClass = GetClass<T>();                         \
-        return hypClass;                                                         \
+        return hyperion::GetClass<T>();                                          \
     }                                                                            \
                                                                                  \
     template <class TOther>                                                      \
@@ -113,22 +127,22 @@ public:                                                                         
         }                                                                        \
         else                                                                     \
         {                                                                        \
-            static const HypClass* otherHypClass = TOther::Class();              \
-            if (!otherHypClass)                                                  \
+            static const Class* otherClass = TOther::StaticClass();              \
+            if (!otherClass)                                                     \
             {                                                                    \
                 return false;                                                    \
             }                                                                    \
-            return hyperion::IsA(otherHypClass, InstanceClass());                \
+            return hyperion::IsA(otherClass, InstanceClass());                   \
         }                                                                        \
     }                                                                            \
                                                                                  \
-    HYP_FORCE_INLINE bool IsA(const HypClass* otherHypClass) const               \
+    HYP_FORCE_INLINE bool IsA(const Class* otherClass) const                     \
     {                                                                            \
-        if (!otherHypClass)                                                      \
+        if (!otherClass)                                                         \
         {                                                                        \
             return false;                                                        \
         }                                                                        \
-        return hyperion::IsA(otherHypClass, InstanceClass());                    \
+        return hyperion::IsA(otherClass, InstanceClass());                       \
     }                                                                            \
                                                                                  \
     HYP_FORCE_INLINE Handle<T> HandleFromThis() const                            \
@@ -150,18 +164,17 @@ public:                                                                         
                                                                                  \
 private:
 
-#define HYP_STRUCT_BODY(T, ...)                          \
-    friend struct HypClassInitializer_##T;               \
-                                                         \
-    struct HypClassInfo                                  \
-    {                                                    \
-        using Type = T;                                  \
-    };                                                   \
-                                                         \
-    HYP_FORCE_INLINE static const HypClass* Class()      \
-    {                                                    \
-        static const HypClass* hypClass = GetClass<T>(); \
-        return hypClass;                                 \
+#define HYP_STRUCT_BODY(T, ...)                        \
+    friend struct ClassInitializer_##T;                \
+                                                       \
+    struct ClassInfo                                   \
+    {                                                  \
+        using Type = T;                                \
+    };                                                 \
+                                                       \
+    HYP_FORCE_INLINE static const Class* StaticClass() \
+    {                                                  \
+        return hyperion::GetClass<T>();                \
     }
 
 } // namespace hyperion

@@ -9,7 +9,7 @@
 
 namespace hyperion {
 
-enum ClassFlags : uint8
+enum AstClassFlags : uint8
 {
     CLASS_FLAG_NONE = 0x0,
     CLASS_FLAG_IS_PROXY = 0x1,
@@ -19,11 +19,7 @@ enum ClassFlags : uint8
     CLASS_FLAG_EXTERN = 0x10
 };
 
-HYP_MAKE_ENUM_FLAGS(ClassFlags);
-
-} // namespace hyperion
-
-namespace hyperion {
+HYP_MAKE_ENUM_FLAGS(AstClassFlags);
 
 class AstClass : public AstExpression
 {
@@ -34,7 +30,7 @@ public:
         const Array<RC<AstVariableDeclaration>>& dataMembers,
         const Array<RC<AstVariableDeclaration>>& functionMembers,
         const Array<RC<AstVariableDeclaration>>& staticMembers,
-        EnumFlags<ClassFlags> classFlags,
+        EnumFlags<AstClassFlags> classFlags,
         const SourceLocation& location);
 
     AstClass(
@@ -43,7 +39,7 @@ public:
         const Array<RC<AstVariableDeclaration>>& dataMembers,
         const Array<RC<AstVariableDeclaration>>& functionMembers,
         const Array<RC<AstVariableDeclaration>>& staticMembers,
-        EnumFlags<ClassFlags> classFlags,
+        EnumFlags<AstClassFlags> classFlags,
         const SourceLocation& location);
 
     virtual ~AstClass() override = default;
@@ -175,7 +171,7 @@ protected:
     Array<RC<AstVariableDeclaration>> m_dataMembers;
     Array<RC<AstVariableDeclaration>> m_functionMembers;
     Array<RC<AstVariableDeclaration>> m_staticMembers;
-    EnumFlags<ClassFlags> m_flags;
+    EnumFlags<AstClassFlags> m_flags;
 
     SymbolType* m_symbolType;
 

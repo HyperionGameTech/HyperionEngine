@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Bone")]
+    [ClassBinding(Name="Bone")]
     public class Bone : Node
     {
         public Bone()

@@ -24,7 +24,7 @@
 #include <core/utilities/Format.hpp>
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorDelegates.hpp>
@@ -37,6 +37,7 @@
 #include <engine/EngineDriver.hpp>
 
 #include <rendering/Mesh.hpp>
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <cstring>
 
@@ -143,7 +144,7 @@ void Node::SetName(Name name)
 #ifdef HYP_EDITOR
     GetEditorDelegates([this](EditorDelegates* editorDelegates)
         {
-            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Name")));
+            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("Name")));
         });
 #endif
 }
@@ -167,7 +168,7 @@ void Node::SetNodeFlags(EnumFlags<NodeFlags> flags)
 #ifdef HYP_EDITOR
     GetEditorDelegates([this](EditorDelegates* editorDelegates)
         {
-            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("NodeFlags")));
+            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("NodeFlags")));
         });
 #endif
 }
@@ -242,7 +243,7 @@ void Node::SetScene(Scene* scene)
 #ifdef HYP_EDITOR
         GetEditorDelegates([this](EditorDelegates* editorDelegates)
             {
-                editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Scene")));
+                editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("Scene")));
             });
 #endif
     }
@@ -594,7 +595,7 @@ Array<Node*> Node::GetDescendantsArray() const
     // add all children to the list
     Array<Node*> descendants;
 
-    typedef void (*CollectFunc)(Array<Node*>& descendants, const Node& target, void* collectFunc);
+    typedef void (*CollectFunc)(Array<Node*> & descendants, const Node& target, void* collectFunc);
 
     CollectFunc collectFunc = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
     {
@@ -679,9 +680,9 @@ void Node::SetEntityAABB(const BoundingBox& aabb)
 #ifdef HYP_EDITOR
     GetEditorDelegates([this](EditorDelegates* editorDelegates)
         {
-            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("EntityAABB")));
-            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("LocalAABB")));
-            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("WorldAABB")));
+            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("EntityAABB")));
+            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("LocalAABB")));
+            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("WorldAABB")));
         });
 #endif
 }
@@ -805,10 +806,10 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
 #ifdef HYP_EDITOR
     GetEditorDelegates([this](EditorDelegates* editorDelegates)
         {
-            editorDelegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalTransform")));
-            editorDelegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldTransform")));
-            editorDelegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalAABB")));
-            editorDelegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldAABB")));
+            editorDelegates->OnNodeUpdate(this, Node::StaticClass()->GetProperty(NAME("LocalTransform")));
+            editorDelegates->OnNodeUpdate(this, Node::StaticClass()->GetProperty(NAME("WorldTransform")));
+            editorDelegates->OnNodeUpdate(this, Node::StaticClass()->GetProperty(NAME("LocalAABB")));
+            editorDelegates->OnNodeUpdate(this, Node::StaticClass()->GetProperty(NAME("WorldAABB")));
         });
 #endif
 }
@@ -857,7 +858,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
     if (ray.TestAABB(worldAabb))
     {
-        if (IsA(Entity::Class()))
+        if (IsA(Entity::StaticClass()))
         {
             ResourceHandle resourceHandle;
             MeshAsset* meshAsset = nullptr;

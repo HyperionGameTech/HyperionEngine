@@ -15,7 +15,7 @@
 
 namespace hyperion {
 
-enum class HypClassAttributeType : uint8
+enum class ClassAttributeType : uint8
 {
     NONE = 0,
     STRING,
@@ -23,47 +23,47 @@ enum class HypClassAttributeType : uint8
     BOOLEAN
 };
 
-struct HypClassAttributeValue final
+struct ClassAttributeValue final
 {
-    static const HypClassAttributeValue empty;
+    static const ClassAttributeValue empty;
 
-    HypClassAttributeValue()
-        : type(HypClassAttributeType::NONE)
+    ClassAttributeValue()
+        : type(ClassAttributeType::NONE)
     {
     }
 
-    HypClassAttributeValue(const String& value)
-        : type(HypClassAttributeType::STRING),
+    ClassAttributeValue(const String& value)
+        : type(ClassAttributeType::STRING),
           value(value)
     {
     }
 
-    HypClassAttributeValue(const char* str)
-        : type(HypClassAttributeType::STRING),
+    ClassAttributeValue(const char* str)
+        : type(ClassAttributeType::STRING),
           value(String(str))
     {
     }
 
-    HypClassAttributeValue(int value)
-        : type(HypClassAttributeType::INT),
+    ClassAttributeValue(int value)
+        : type(ClassAttributeType::INT),
           value(value)
     {
     }
 
-    HypClassAttributeValue(bool value)
-        : type(HypClassAttributeType::BOOLEAN),
+    ClassAttributeValue(bool value)
+        : type(ClassAttributeType::BOOLEAN),
           value(value)
     {
     }
 
-    HypClassAttributeValue(const HypClassAttributeValue& other) = default;
-    HypClassAttributeValue& operator=(const HypClassAttributeValue& other) = default;
-    HypClassAttributeValue(HypClassAttributeValue&& other) noexcept = default;
-    HypClassAttributeValue& operator=(HypClassAttributeValue&& other) noexcept = default;
+    ClassAttributeValue(const ClassAttributeValue& other) = default;
+    ClassAttributeValue& operator=(const ClassAttributeValue& other) = default;
+    ClassAttributeValue(ClassAttributeValue&& other) noexcept = default;
+    ClassAttributeValue& operator=(ClassAttributeValue&& other) noexcept = default;
 
-    ~HypClassAttributeValue() = default;
+    ~ClassAttributeValue() = default;
 
-    HYP_FORCE_INLINE HypClassAttributeType GetType() const
+    HYP_FORCE_INLINE ClassAttributeType GetType() const
     {
         return type;
     }
@@ -83,12 +83,12 @@ struct HypClassAttributeValue final
         return !bool(*this);
     }
 
-    HYP_FORCE_INLINE bool operator==(const HypClassAttributeValue& other) const
+    HYP_FORCE_INLINE bool operator==(const ClassAttributeValue& other) const
     {
         return value == other.value;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const HypClassAttributeValue& other) const
+    HYP_FORCE_INLINE bool operator!=(const ClassAttributeValue& other) const
     {
         return value != other.value;
     }
@@ -134,50 +134,50 @@ struct HypClassAttributeValue final
         return hc;
     }
 
-    HypClassAttributeType type;
+    ClassAttributeType type;
     Variant<String, int, bool> value;
 };
 
-struct HypClassAttribute final
+struct ClassAttribute final
 {
-    HypClassAttribute() = default;
+    ClassAttribute() = default;
 
-    HypClassAttribute(Name name, const HypClassAttributeValue& value)
+    ClassAttribute(Name name, const ClassAttributeValue& value)
         : name(name),
           value(value)
     {
     }
 
-    HypClassAttribute(ANSIStringView name, const HypClassAttributeValue& value)
+    ClassAttribute(ANSIStringView name, const ClassAttributeValue& value)
         : name(CreateNameFromDynamicString(name)),
           value(value)
     {
     }
 
-    HypClassAttribute(const HypClassAttribute& other) = default;
-    HypClassAttribute& operator=(const HypClassAttribute& other) = default;
+    ClassAttribute(const ClassAttribute& other) = default;
+    ClassAttribute& operator=(const ClassAttribute& other) = default;
 
-    HypClassAttribute(HypClassAttribute&& other) noexcept = default;
-    HypClassAttribute& operator=(HypClassAttribute&& other) noexcept = default;
+    ClassAttribute(ClassAttribute&& other) noexcept = default;
+    ClassAttribute& operator=(ClassAttribute&& other) noexcept = default;
 
-    ~HypClassAttribute() = default;
+    ~ClassAttribute() = default;
 
     HYP_FORCE_INLINE Name GetName() const
     {
         return name;
     }
 
-    HYP_FORCE_INLINE const HypClassAttributeValue& GetValue() const
+    HYP_FORCE_INLINE const ClassAttributeValue& GetValue() const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE bool operator==(const HypClassAttribute& other) const
+    HYP_FORCE_INLINE bool operator==(const ClassAttribute& other) const
     {
         return name == other.name && value == other.value;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const HypClassAttribute& other) const
+    HYP_FORCE_INLINE bool operator!=(const ClassAttribute& other) const
     {
         return name != other.name || value != other.value;
     }
@@ -192,47 +192,47 @@ struct HypClassAttribute final
     }
 
     Name name;
-    HypClassAttributeValue value;
+    ClassAttributeValue value;
 };
 
-class HypClassAttributeSet final
+class ClassAttributeSet final
 {
 public:
-    using SetType = HashSet<HypClassAttribute, &HypClassAttribute::name, DynamicNodeAllocator>;
+    using SetType = HashSet<ClassAttribute, &ClassAttribute::name, DynamicNodeAllocator>;
 
     using Iterator = typename SetType::Iterator;
     using ConstIterator = typename SetType::ConstIterator;
 
-    HypClassAttributeSet() = default;
+    ClassAttributeSet() = default;
 
-    HypClassAttributeSet(Span<const HypClassAttribute> attributes)
+    ClassAttributeSet(Span<const ClassAttribute> attributes)
     {
         if (!attributes)
         {
             return;
         }
 
-        for (const HypClassAttribute& attribute : attributes)
+        for (const ClassAttribute& attribute : attributes)
         {
             m_attributes.Insert(attribute);
         }
     }
 
-    HypClassAttributeSet(const SetType& attributes)
+    ClassAttributeSet(const SetType& attributes)
         : m_attributes(attributes)
     {
     }
 
-    HypClassAttributeSet(SetType&& attributes)
+    ClassAttributeSet(SetType&& attributes)
         : m_attributes(std::move(attributes))
     {
     }
 
-    HypClassAttributeSet(const HypClassAttributeSet& other) = default;
-    HypClassAttributeSet& operator=(const HypClassAttributeSet& other) = default;
-    HypClassAttributeSet(HypClassAttributeSet&& other) noexcept = default;
-    HypClassAttributeSet& operator=(HypClassAttributeSet&& other) noexcept = default;
-    ~HypClassAttributeSet() = default;
+    ClassAttributeSet(const ClassAttributeSet& other) = default;
+    ClassAttributeSet& operator=(const ClassAttributeSet& other) = default;
+    ClassAttributeSet(ClassAttributeSet&& other) noexcept = default;
+    ClassAttributeSet& operator=(ClassAttributeSet&& other) noexcept = default;
+    ~ClassAttributeSet() = default;
 
     HYP_FORCE_INLINE bool Any() const
     {
@@ -249,31 +249,31 @@ public:
         return m_attributes.Size();
     }
 
-    HYP_FORCE_INLINE HypClassAttributeValue& operator[](Name name)
+    HYP_FORCE_INLINE ClassAttributeValue& operator[](Name name)
     {
         auto it = m_attributes.FindAs(name);
 
         if (it == m_attributes.End())
         {
-            it = m_attributes.Insert(HypClassAttribute(name, HypClassAttributeValue())).first;
+            it = m_attributes.Insert(ClassAttribute(name, ClassAttributeValue())).first;
         }
 
         return it->value;
     }
 
-    HYP_FORCE_INLINE const HypClassAttributeValue& operator[](WeakName name) const
+    HYP_FORCE_INLINE const ClassAttributeValue& operator[](WeakName name) const
     {
         return Get(name);
     }
 
-    const HypClassAttributeValue& Get(WeakName name) const
+    const ClassAttributeValue& Get(WeakName name) const
     {
-        static const HypClassAttributeValue invalidValue {};
+        static const ClassAttributeValue invalidValue {};
 
         return Get(name, invalidValue);
     }
 
-    const HypClassAttributeValue& Get(WeakName name, const HypClassAttributeValue& defaultValue) const
+    const ClassAttributeValue& Get(WeakName name, const ClassAttributeValue& defaultValue) const
     {
         const auto it = m_attributes.FindAs(name);
 
@@ -285,12 +285,12 @@ public:
         return it->GetValue();
     }
 
-    HYP_FORCE_INLINE void Merge(const HypClassAttributeSet& other)
+    HYP_FORCE_INLINE void Merge(const ClassAttributeSet& other)
     {
         m_attributes.Merge(other.m_attributes);
     }
 
-    HYP_FORCE_INLINE void Merge(HypClassAttributeSet&& other)
+    HYP_FORCE_INLINE void Merge(ClassAttributeSet&& other)
     {
         m_attributes.Merge(std::move(other.m_attributes));
     }

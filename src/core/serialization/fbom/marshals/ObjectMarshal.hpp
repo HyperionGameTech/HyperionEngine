@@ -23,13 +23,13 @@ class HypObjectBase;
 struct HypData;
 
 template <class T>
-class HypClassInstance;
+class ClassInstance;
 
 // Leave implementation empty - stub class
 template <>
-class HypClassInstance<void>;
+class ClassInstance<void>;
 
-using HypClassInstanceStub = HypClassInstance<void>;
+using ClassStub = ClassInstance<void>;
 
 #if !defined(HYPERION_ENGINE) || !HYPERION_ENGINE
 
@@ -56,20 +56,13 @@ extern const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetRe
 
 namespace hyperion::serialization {
 
-class HYP_API HypClassInstanceMarshal : public FBOMMarshalerBase
+class HYP_API ObjectMarshal : public FBOMMarshalerBase
 {
 public:
-    virtual ~HypClassInstanceMarshal() override = default;
+    virtual ~ObjectMarshal() override = default;
 
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType("HypClassInstanceStub");
-    }
-
-    virtual TypeId GetTypeId() const override final
-    {
-        return TypeId::ForType<HypClassInstanceStub>();
-    }
+    virtual FBOMType GetObjectType() const override;
+    virtual TypeId GetTypeId() const override final;
 
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override;
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override;
@@ -78,11 +71,11 @@ protected:
     /*! \brief Deserialize into an existing object.
      *
      *  \param in The FBOMObject to deserialize.
-     *  \param hypClass The HypClass of the instance.
+     *  \param cls The Class of the instance.
      *  \param ref The instance to deserialize into.
      *  \return The result of the deserialization.
      */
-    virtual FBOMResult Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, HypData& target) const;
+    virtual FBOMResult Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const Class* cls, HypData& target) const;
 };
 
 } // namespace hyperion::serialization

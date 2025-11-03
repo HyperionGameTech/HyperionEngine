@@ -77,7 +77,7 @@ namespace Hyperion
         ImageCube
     }
 
-    [HypClassBinding(Name="Texture")]
+    [ClassBinding(Name="Texture")]
     public class Texture : HypObject
     {
         public Texture()

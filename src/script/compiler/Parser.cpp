@@ -2526,22 +2526,22 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
 
 RC<AstClass> Parser::ParseClassDefinition()
 {
-    EnumFlags<ClassFlags> classFlags = ClassFlags::CLASS_FLAG_NONE;
+    EnumFlags<AstClassFlags> classFlags = CLASS_FLAG_NONE;
 
     if (Token externToken = MatchKeyword(Keyword_extern, true))
     {
-        classFlags |= ClassFlags::CLASS_FLAG_EXTERN;
+        classFlags |= CLASS_FLAG_EXTERN;
     }
     else if (Token proxyToken = MatchKeyword(Keyword_proxy, true))
     {
-        classFlags |= ClassFlags::CLASS_FLAG_IS_PROXY;
+        classFlags |= CLASS_FLAG_IS_PROXY;
     }
 
     Token descToken = Token::EMPTY;
 
     if ((descToken = MatchKeyword(Keyword_struct, true)))
     {
-        if (classFlags & ClassFlags::CLASS_FLAG_IS_PROXY)
+        if (classFlags & CLASS_FLAG_IS_PROXY)
         {
             m_compilationUnit->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -2550,7 +2550,7 @@ RC<AstClass> Parser::ParseClassDefinition()
         }
         else
         {
-            classFlags |= ClassFlags::CLASS_FLAG_IS_STRUCT;
+            classFlags |= CLASS_FLAG_IS_STRUCT;
         }
     }
     else
@@ -2572,7 +2572,7 @@ RC<AstClass> Parser::ParseClassDefinition()
 RC<AstClass> Parser::ParseClass(
     bool requireKeyword,
     bool allowIdentifier,
-    EnumFlags<ClassFlags> classFlags,
+    EnumFlags<AstClassFlags> classFlags,
     String typeName)
 {
     const SourceLocation location = CurrentLocation();
@@ -2581,7 +2581,7 @@ RC<AstClass> Parser::ParseClass(
     {
         if (MatchKeyword(Keyword_struct, true))
         {
-            classFlags |= ClassFlags::CLASS_FLAG_IS_STRUCT;
+            classFlags |= CLASS_FLAG_IS_STRUCT;
         }
         else if (!ExpectKeyword(Keyword_class, true))
         {
@@ -2747,8 +2747,8 @@ RC<AstClass> Parser::ParseClass(
             }
 
             assignment = ParseFunctionExpression(
-                false,                                         /* requireKeyword */
-                !(classFlags & ClassFlags::CLASS_FLAG_EXTERN), /* parseBody - extern classes have no body in their methods */
+                false,                             /* requireKeyword */
+                !(classFlags & CLASS_FLAG_EXTERN), /* parseBody - extern classes have no body in their methods */
                 params);
 
             if (assignment == nullptr)
@@ -2763,7 +2763,7 @@ RC<AstClass> Parser::ParseClass(
                 flags,
                 location));
 
-            if (isStatic || (classFlags[ClassFlags::CLASS_FLAG_IS_PROXY])) // <--- all methods for proxy classes are static
+            if (isStatic || (classFlags[CLASS_FLAG_IS_PROXY])) // <--- all methods for proxy classes are static
             {
                 member->ApplyIdentifierFlags(IdentifierFlags::STATIC_MEMBER);
 
@@ -2804,7 +2804,7 @@ RC<AstClass> Parser::ParseClass(
                 break;
             }
 
-            if (classFlags[ClassFlags::CLASS_FLAG_IS_PROXY])
+            if (classFlags[CLASS_FLAG_IS_PROXY])
             {
                 m_compilationUnit->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
@@ -2837,12 +2837,12 @@ RC<AstClass> Parser::ParseClass(
 RC<AstStatement> Parser::ParseEnumDefinition()
 {
     String enumName;
-    EnumFlags<ClassFlags> classFlags = ClassFlags::CLASS_FLAG_IS_ENUM;
+    EnumFlags<AstClassFlags> classFlags = CLASS_FLAG_IS_ENUM;
     const SourceLocation location = CurrentLocation();
 
     if (Token externToken = MatchKeyword(Keyword_extern, true))
     {
-        classFlags |= ClassFlags::CLASS_FLAG_EXTERN;
+        classFlags |= CLASS_FLAG_EXTERN;
     }
 
     if (!ExpectKeyword(Keyword_enum, true))

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="MeshComponent")]
+    [ClassBinding(Name="MeshComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 240, Pack = 16)]
     public unsafe struct MeshComponent : IComponent
     {

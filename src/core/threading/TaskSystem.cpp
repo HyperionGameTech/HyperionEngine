@@ -3,7 +3,7 @@
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/ThreadPool.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

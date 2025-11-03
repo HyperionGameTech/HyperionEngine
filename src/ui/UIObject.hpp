@@ -3,6 +3,10 @@
 #pragma once
 
 #include <core/Defines.hpp>
+#include <core/Types.hpp>
+
+#include <core/math/Color.hpp>
+#include <core/math/BlendVar.hpp>
 
 #include <core/reflection/HypObject.hpp>
 
@@ -16,14 +20,12 @@
 #include <core/utilities/Pair.hpp>
 #include <core/utilities/ForEach.hpp>
 
-#include <scene/Node.hpp>
-#include <scene/Scene.hpp>
+#include <scene/Entity.hpp>
+
 #include <rendering/Material.hpp>
 
-#include <core/math/Color.hpp>
-#include <core/math/BlendVar.hpp>
-
-#include <core/Types.hpp>
+#include <input/Mouse.hpp>
+#include <input/Keyboard.hpp>
 
 namespace hyperion {
 
@@ -35,6 +37,7 @@ class UISubsystem;
 class UIDataSourceBase;
 class UIDataSource;
 class Mesh;
+class Scene;
 
 // Helper function to get the scene from a UIStage
 template <class UIStageType>
@@ -1146,15 +1149,15 @@ public:
     /*! \internal */
     void ForEachChildUIObject_Proc(ProcRef<IterationResult(UIObject*)> proc, bool deep = true) const;
 
-    /*! \brief Spawn a new UIObject with the given HypClass \ref{hypClass}. The object will not be attached to the current UIStage.
+    /*! \brief Spawn a new UIObject with the given Class \ref{cls}. The object will not be attached to the current UIStage.
      *  The object will not be named. To name the object, use the other CreateUIObject overload.
      *
-     *  \param hypClass The HypClass associated with the UIObject type you wish to spawn.
+     *  \param cls The Class associated with the UIObject type you wish to spawn.
      *  \param name The name of the UIObject.
      *  \param position The position of the UI object.
      *  \param size The size of the UI object.
      *  \return A handle to the created UI object. */
-    HYP_NODISCARD Handle<UIObject> CreateUIObject(const HypClass* hypClass, Name name, Vec2i position, UIObjectSize size);
+    HYP_NODISCARD Handle<UIObject> CreateUIObject(const Class* cls, Name name, Vec2i position, UIObjectSize size);
 
     /*! \brief Spawn a new UIObject of type T. The object will not be attached to the current UIStage.
      *
@@ -1293,13 +1296,7 @@ protected:
     HYP_METHOD()
     virtual void Init();
 
-    HYP_FORCE_INLINE void AssertOnOwnerThread() const
-    {
-        if (Scene* scene = GetScene())
-        {
-            Threads::AssertOnThread(scene->GetOwnerThreadId());
-        }
-    }
+    void AssertOnOwnerThread() const;
 
     Handle<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const;
     Handle<UIObject> GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const;

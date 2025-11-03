@@ -18,10 +18,10 @@
 
 namespace hyperion {
 
-class HypClassAttributeSet;
-struct HypClassAttributeValue;
+class ClassAttributeSet;
+struct ClassAttributeValue;
 struct HypData;
-class HypClass;
+class Class;
 
 enum class FBOMDataFlags : uint32;
 
@@ -57,7 +57,7 @@ HYP_MAKE_ENUM_FLAGS(HypMemberFlags);
 
 class IHypMember
 {
-    friend class HypClass;
+    friend class Class;
 
 protected:
     IHypMember()
@@ -86,7 +86,7 @@ public:
         return TypeInfo_GetId(GetTargetTypeInfo());
     }
 
-    HYP_FORCE_INLINE const HypClass* GetOwnerClass() const
+    HYP_FORCE_INLINE const Class* GetOwnerClass() const
     {
         return m_ownerClass;
     }
@@ -107,12 +107,12 @@ public:
     virtual Result Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const = 0;
     virtual Result Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& value) const = 0;
 
-    virtual const HypClassAttributeSet& GetAttributes() const = 0;
-    virtual const HypClassAttributeValue& GetAttribute(WeakName key) const = 0;
-    virtual const HypClassAttributeValue& GetAttribute(WeakName key, const HypClassAttributeValue& defaultValue) const = 0;
+    virtual const ClassAttributeSet& GetAttributes() const = 0;
+    virtual const ClassAttributeValue& GetAttribute(WeakName key) const = 0;
+    virtual const ClassAttributeValue& GetAttribute(WeakName key, const ClassAttributeValue& defaultValue) const = 0;
 
 protected:
-    const HypClass* m_ownerClass;
+    const Class* m_ownerClass;
     EnumFlags<HypMemberFlags> m_flags;
 };
 

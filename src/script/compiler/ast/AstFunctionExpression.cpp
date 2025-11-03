@@ -42,11 +42,11 @@ AstFunctionExpression::AstFunctionExpression(
     const RC<AstBlock>& block,
     const SourceLocation& location)
     : AstFunctionExpression(
-          parameters,
-          returnTypeSpecification,
-          block,
-          /* enableClosure */ true,
-          location)
+        parameters,
+        returnTypeSpecification,
+        block,
+        /* enableClosure */ true,
+        location)
 {
 }
 
@@ -470,7 +470,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 IdentifierFlags::PLACEHOLDER,
                 m_location)) },
             {},
-            ClassFlags::CLASS_FLAG_ANONYMOUS,
+            CLASS_FLAG_ANONYMOUS,
             m_location));
 
         for (const SymbolTypeMember& member : closureObjMembers)

@@ -10,7 +10,7 @@
 
 #include <core/io/BufferedByteReader.hpp>
 
-#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/ClassAttribute.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 
 #include <core/containers/Array.hpp>
@@ -1108,9 +1108,9 @@ void DecompilationUnit::DecodeNext(
                         (*os) << "\t\t\tattr [name(" << attrNameStr << "), type(" << (int)attrType << ")";
                     }
 
-                    switch ((HypClassAttributeType)attrType)
+                    switch ((ClassAttributeType)attrType)
                     {
-                    case HypClassAttributeType::STRING:
+                    case ClassAttributeType::STRING:
                     {
                         uint32 strLen;
                         bs.Read(&strLen);
@@ -1127,7 +1127,7 @@ void DecompilationUnit::DecodeNext(
                         delete[] strData;
                         break;
                     }
-                    case HypClassAttributeType::INT:
+                    case ClassAttributeType::INT:
                     {
                         int32 iValue;
                         bs.Read(&iValue);
@@ -1138,7 +1138,7 @@ void DecompilationUnit::DecodeNext(
                         }
                         break;
                     }
-                    case HypClassAttributeType::BOOLEAN:
+                    case ClassAttributeType::BOOLEAN:
                     {
                         uint8 bValue;
                         bs.Read(&bValue);
@@ -1599,12 +1599,12 @@ void DecompilationUnit::DecodeNext(
             if (FBOMResult err = reader.ReadData(ctx, &br, data))
             {
                 // deserialization failed, just print raw data
-                (*os) << "\t; warning: failed to deserialize binary data: " << err.message << std::endl;
+                (*os) << "\t; warning: failed to deserialize binary data: " << *err.message << std::endl;
             }
             else
             {
                 // write data
-                (*os) << "\t" << data.ToString(/* deep */ true);
+                (*os) << "\t" << *data.ToString(/* deep */ true);
             }
 
             (*os) << ")]" << std::endl;

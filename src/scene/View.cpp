@@ -21,14 +21,16 @@
 #include <scene/components/SkyComponent.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderCollection.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/Mesh.hpp>
+
 #include <rendering/util/SafeDeleter.hpp>
+
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -510,7 +512,7 @@ void View::RemoveScene(Scene* scene)
     m_scenes.Erase(it);
 }
 
-ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
+void View::CollectMeshEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -520,7 +522,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
     {
         HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect entities!", Id().Value());
 
-        return rpl.GetMeshEntities().GetDiff();
+        return;
     }
 
     const ObjId<Camera> cameraId = m_camera->Id();
@@ -843,7 +845,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
         for (Entity* entity : added)
         {
-            AssertDebug(entity->InstanceClass() == Entity::Class());
+            AssertDebug(entity->InstanceClass() == Entity::StaticClass());
 
             auto&& [meshComponent, transformComponent, boundingBoxComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent>(entity);
 
@@ -865,8 +867,6 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.bufferData.userData = reinterpret_cast<EntityShaderData::EntityUserData&>(meshComponent->userData);
         }
     }
-
-    return meshesDiff;
 }
 
 void View::CollectCameras(RenderProxyList& rpl)

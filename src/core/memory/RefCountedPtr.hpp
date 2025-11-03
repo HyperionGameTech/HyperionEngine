@@ -25,10 +25,10 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
-extern HYP_API const HypClass* GetClass(TypeId typeId);
-extern HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
+HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 
 namespace memory {
 
@@ -473,7 +473,7 @@ public:
         const void* ptr = Base::GetVoid();
         const TypeId currentTypeId = Base::GetTypeId();
 
-        return currentTypeId == typeId || IsA(GetClass(typeId), ptr, currentTypeId);
+        return currentTypeId == typeId || IsA(hyperion::GetClass(typeId), ptr, currentTypeId);
     }
 
     template <class U>
@@ -645,7 +645,7 @@ public:
         const void* ptr = Base::GetVoid();
         const TypeId currentTypeId = Base::GetTypeId();
 
-        return std::is_same_v<U, void> || currentTypeId == typeId || IsA(GetClass(typeId), ptr, currentTypeId);
+        return std::is_same_v<U, void> || currentTypeId == typeId || IsA(hyperion::GetClass(typeId), ptr, currentTypeId);
     }
 
     template <class U>

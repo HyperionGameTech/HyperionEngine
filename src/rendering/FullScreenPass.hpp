@@ -10,7 +10,6 @@
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderQueue.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 

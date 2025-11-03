@@ -7,8 +7,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/reflection/HypClassRegistry.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/ClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
 
 namespace hyperion {
 
@@ -54,9 +54,9 @@ bool Assembly::Unload()
             continue;
         }
 
-        if (const HypClass* hypClass = classObject->GetHypClass())
+        if (const Class* cls = classObject->GetClass())
         {
-            hypClass->SetManagedClass(nullptr);
+            cls->SetManagedClass(nullptr);
         }
     }
 
@@ -66,7 +66,7 @@ bool Assembly::Unload()
 #endif
 }
 
-RC<ManagedClass> Assembly::NewClass(const HypClass* hypClass, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags)
+RC<ManagedClass> Assembly::NewClass(const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags)
 {
 #ifdef HYP_DOTNET
     auto it = m_classObjects.Find(typeHash);
@@ -78,11 +78,11 @@ RC<ManagedClass> Assembly::NewClass(const HypClass* hypClass, int32 typeHash, co
         return it->second;
     }
 
-    it = m_classObjects.Insert(typeHash, MakeRefCountedPtr<ManagedClass>(WeakRefCountedPtrFromThis(), typeName, typeSize, typeId, hypClass, parentClass, EnumFlags<ManagedClassFlags>(flags))).first;
+    it = m_classObjects.Insert(typeHash, MakeRefCountedPtr<ManagedClass>(WeakRefCountedPtrFromThis(), typeName, typeSize, typeId, cls, parentClass, EnumFlags<ManagedClassFlags>(flags))).first;
 
-    if (hypClass != nullptr)
+    if (cls != nullptr)
     {
-        hypClass->SetManagedClass(it->second);
+        cls->SetManagedClass(it->second);
     }
 
     return it->second;

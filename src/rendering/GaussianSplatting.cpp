@@ -8,6 +8,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/Renderer.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -434,7 +435,8 @@ void GaussianSplattingInstance::CreateShader()
 
 void GaussianSplattingInstance::CreateGraphicsPipeline()
 {
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -476,7 +478,8 @@ void GaussianSplattingInstance::CreateComputePipelines()
         NAME("GaussianSplatting_UpdateSplats"),
         baseProperties);
 
-    DescriptorTableRef updateSplatsDescriptorTable = g_renderBackend->MakeDescriptorTable(&updateSplatsShader->GetCompiledShader()->GetDescriptorTableDeclaration());
+    DescriptorTableRef updateSplatsDescriptorTable = g_renderBackend->MakeDescriptorTable(
+        updateSplatsShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -503,7 +506,8 @@ void GaussianSplattingInstance::CreateComputePipelines()
         NAME("GaussianSplatting_UpdateDistances"),
         baseProperties);
 
-    DescriptorTableRef updateSplatDistancesDescriptorTable = g_renderBackend->MakeDescriptorTable(&updateSplatDistancesShader->GetCompiledShader()->GetDescriptorTableDeclaration());
+    DescriptorTableRef updateSplatDistancesDescriptorTable = g_renderBackend->MakeDescriptorTable(
+        updateSplatDistancesShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -533,7 +537,8 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
     for (uint32 sortStageIndex = 0; sortStageIndex < SortStage::SORT_STAGE_MAX; sortStageIndex++)
     {
-        DescriptorTableRef sortSplatsDescriptorTable = g_renderBackend->MakeDescriptorTable(&sortSplatsShader->GetCompiledShader()->GetDescriptorTableDeclaration());
+        DescriptorTableRef sortSplatsDescriptorTable = g_renderBackend->MakeDescriptorTable(
+            sortSplatsShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {

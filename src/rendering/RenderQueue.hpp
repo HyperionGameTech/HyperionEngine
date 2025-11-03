@@ -5,13 +5,13 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/rt/RenderRaytracingPipeline.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderFramebuffer.hpp>
 #include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderCommandBuffer.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>
+#include <rendering/Shared.hpp>
 
 // Uncomment to enable trace collection for commands.
 // #define HYP_RHI_COMMAND_STACK_TRACE
@@ -312,105 +312,15 @@ private:
 class BindDescriptorSet final : public CmdBase
 {
 public:
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets = {})
-        : m_descriptorSet(descriptorSet),
-          m_graphicsPipeline(pipeline),
-          m_offsets(offsets),
-          m_pipelineType(0) // 0 = Graphics
-    {
-        AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
-        AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets = {});
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets = {});
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets = {});
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
 
-        m_bindIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
-        AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
-    }
-
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
-        : m_descriptorSet(descriptorSet),
-          m_graphicsPipeline(pipeline),
-          m_offsets(offsets),
-          m_bindIndex(bindIndex),
-          m_pipelineType(0) // 0 = Graphics
-    {
-        AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
-        AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
-        AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
-    }
-
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets = {})
-        : m_descriptorSet(descriptorSet),
-          m_computePipeline(pipeline),
-          m_offsets(offsets),
-          m_pipelineType(1) // 1 = Compute
-    {
-        AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
-        AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
-
-        m_bindIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
-        AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
-    }
-
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
-        : m_descriptorSet(descriptorSet),
-          m_computePipeline(pipeline),
-          m_offsets(offsets),
-          m_bindIndex(bindIndex),
-          m_pipelineType(1) // 1 = Compute
-    {
-        AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
-        AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
-        AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
-    }
-
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets = {})
-        : m_descriptorSet(descriptorSet),
-          m_raytracingPipeline(pipeline),
-          m_offsets(offsets),
-          m_pipelineType(2) // 2 = Raytracing
-    {
-        AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
-        AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
-
-        m_bindIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
-        AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
-    }
-
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
-        : m_descriptorSet(descriptorSet),
-          m_raytracingPipeline(pipeline),
-          m_offsets(offsets),
-          m_bindIndex(bindIndex),
-          m_pipelineType(2) // 2 = Raytracing
-    {
-        AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
-        AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
-        AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
-    }
-
-    HYP_API static void PrepareStatic(CmdBase* cmd, FrameBase* frame);
-
-    static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
-    {
-        BindDescriptorSet* cmdCasted = static_cast<BindDescriptorSet*>(cmd);
-
-        switch (cmdCasted->m_pipelineType)
-        {
-        case 0: // Graphics
-            cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_graphicsPipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
-            break;
-        case 1: // Compute
-            cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_computePipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
-            break;
-        case 2: // Raytracing
-            cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_raytracingPipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
-            break;
-        default:
-            HYP_UNREACHABLE();
-        }
-
-        static_assert(std::is_trivially_destructible_v<BindDescriptorSet>);
-        // cmdCasted->~BindDescriptorSet();
-    }
+    static void PrepareStatic(CmdBase* cmd, FrameBase* frame);
+    static void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer);
 
 private:
     DescriptorSetBase* m_descriptorSet;
@@ -428,60 +338,12 @@ private:
 class BindDescriptorTable final : public CmdBase
 {
 public:
-    BindDescriptorTable(DescriptorTableBase* descriptorTable, GraphicsPipelineBase* graphicsPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
-        : m_descriptorTable(descriptorTable),
-          m_graphicsPipeline(graphicsPipeline),
-          m_offsets(offsets),
-          m_frameIndex(frameIndex),
-          m_pipelineType(0) // 0 = Graphics
-    {
-        AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
-    }
+    BindDescriptorTable(DescriptorTableBase* descriptorTable, GraphicsPipelineBase* graphicsPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
+    BindDescriptorTable(DescriptorTableBase* descriptorTable, ComputePipelineBase* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
+    BindDescriptorTable(DescriptorTableBase* descriptorTable, RaytracingPipelineBase* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
 
-    BindDescriptorTable(DescriptorTableBase* descriptorTable, ComputePipelineBase* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
-        : m_descriptorTable(descriptorTable),
-          m_computePipeline(computePipeline),
-          m_offsets(offsets),
-          m_frameIndex(frameIndex),
-          m_pipelineType(1) // 1 = Compute
-    {
-        AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
-    }
-
-    BindDescriptorTable(DescriptorTableBase* descriptorTable, RaytracingPipelineBase* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
-        : m_descriptorTable(descriptorTable),
-          m_raytracingPipeline(raytracingPipeline),
-          m_offsets(offsets),
-          m_frameIndex(frameIndex),
-          m_pipelineType(2) // 2 = Raytracing
-    {
-        AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
-    }
-
-    HYP_API static void PrepareStatic(CmdBase* cmd, FrameBase* frame);
-
-    static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
-    {
-        BindDescriptorTable* cmdCasted = static_cast<BindDescriptorTable*>(cmd);
-
-        switch (cmdCasted->m_pipelineType)
-        {
-        case 0: // Graphics
-            cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_graphicsPipeline, cmdCasted->m_offsets);
-            break;
-        case 1: // Compute
-            cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_computePipeline, cmdCasted->m_offsets);
-            break;
-        case 2: // Raytracing
-            cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_raytracingPipeline, cmdCasted->m_offsets);
-            break;
-        default:
-            HYP_UNREACHABLE();
-        }
-
-        static_assert(std::is_trivially_destructible_v<BindDescriptorTable>);
-        // cmdCasted->~BindDescriptorTable();
-    }
+    static void PrepareStatic(CmdBase* cmd, FrameBase* frame);
+    static void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer);
 
 private:
     DescriptorTableBase* m_descriptorTable;

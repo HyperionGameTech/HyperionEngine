@@ -12,7 +12,7 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -22,7 +22,7 @@ HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
 extern RenderGlobalState* g_renderGlobalState;
 
-extern HYP_API const char* LookupTypeName(TypeId typeId);
+HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
 {
@@ -223,7 +223,7 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
 
 #ifdef HYP_DEBUG_MODE // Sanity checks
     // type check - cannot be a subclass of Entity, indices would get messed up
-    Assert(entity->InstanceClass() == Entity::Class(), "Cannot push Entity subclass to EntityInstanceBatch: {}", entity->InstanceClass()->GetName());
+    Assert(entity->InstanceClass() == Entity::StaticClass(), "Cannot push Entity subclass to EntityInstanceBatch: {}", entity->InstanceClass()->GetName());
 
     // bounds check
     Assert(numInstances <= meshInstanceData.numInstances);

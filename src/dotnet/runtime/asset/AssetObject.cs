@@ -5,7 +5,7 @@ using Hyperion;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "AssetObjectFlags")]
+    [ClassBinding(Name = "AssetObjectFlags")]
     [Flags]
     public enum AssetObjectFlags : uint
     {
@@ -13,7 +13,7 @@ namespace Hyperion
         Persistent = 0x1
     }
 
-    [HypClassBinding(Name = "AssetObject")]
+    [ClassBinding(Name = "AssetObject")]
     public class AssetObject : HypObject
     {
         public AssetObject()

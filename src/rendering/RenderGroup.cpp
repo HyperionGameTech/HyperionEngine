@@ -15,6 +15,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderBackend.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -144,9 +145,7 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
 
     if (!descriptorTable.IsValid())
     {
-        const DescriptorTableDeclaration& descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-        descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+        descriptorTable = g_renderBackend->MakeDescriptorTable(m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
         descriptorTable->SetDebugName(NAME_FMT("DescriptorTable_{}", m_shader->GetCompiledShader()->GetName()));
 
         // Setup instancing buffers if "Instancing" descriptor set exists

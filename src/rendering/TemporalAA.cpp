@@ -12,6 +12,7 @@
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderFramebuffer.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -145,9 +146,8 @@ void TemporalAA::UpdatePipelineState(FrameBase* frame, const RenderSetup& render
         ShaderRef shader = g_shaderManager->GetOrCreate(NAME("TemporalAA"));
         Assert(shader.IsValid());
 
-        const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+            shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {

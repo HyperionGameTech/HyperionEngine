@@ -113,7 +113,7 @@ protected:
 
 /*! \brief This class manages bindings slots for objects of a given resource type. Subclasses of T are also able to be managed,
  *  So binding an instance of e.g ReflectionProbe can be put into the same group of slots as SkyProbe if given the same allocator instance.
- *  Only static subclasses are supported so using types extended only from managed code will not work. (See HypClass::GetStaticIndex)
+ *  Only static subclasses are supported so using types extended only from managed code will not work. (See Class::GetStaticIndex)
  *  \note This system is not thread safe and should only be used from a single thread at any given time */
 template <class T, auto OnBindingChanged = (void (*)(T*, uint32, uint32)) nullptr>
 class ResourceBinder : public ResourceBinderBase

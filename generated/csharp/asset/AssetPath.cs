@@ -8,32 +8,32 @@ namespace Hyperion
     {
         public static bool IsValid(this AssetPath obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<AssetPath>(), new Name(813969527537621601)).InvokeNative(obj))
+            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<AssetPath>(), new Name(813969527537621601)).InvokeNative(obj))
             {
                 return resultData.ReadBool();
             }
         }
         public static Name GetName(this AssetPath obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<AssetPath>(), new Name(10797569040963027572)).InvokeNative(obj))
+            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<AssetPath>(), new Name(10797569040963027572)).InvokeNative(obj))
             {
                 return resultData.ReadName();
             }
         }
         public static Array GetChain(this AssetPath obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<AssetPath>(), new Name(7956525805045613196)).InvokeNative(obj))
+            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<AssetPath>(), new Name(7956525805045613196)).InvokeNative(obj))
             {
                 return (Array)resultData.GetValue();
             }
         }
         public static void SetChain(this AssetPath obj, Array names)
         {
-            HypObject.GetMethod(HypClass.GetClass<AssetPath>(), new Name(3242834119192683496)).InvokeNative(obj, names);
+            HypObject.GetMethod(Class.GetClass<AssetPath>(), new Name(3242834119192683496)).InvokeNative(obj, names);
         }
         public static string ToString(this AssetPath obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<AssetPath>(), new Name(11688614581569845925)).InvokeNative(obj))
+            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<AssetPath>(), new Name(11688614581569845925)).InvokeNative(obj))
             {
                 return resultData.ReadString();
             }

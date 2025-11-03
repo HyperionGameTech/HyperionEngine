@@ -5,7 +5,7 @@ using Hyperion;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "AssetPackageFlags")]
+    [ClassBinding(Name = "AssetPackageFlags")]
     [Flags]
     public enum AssetPackageFlags : uint
     {
@@ -14,7 +14,7 @@ namespace Hyperion
         Hidden = 0x2
     }
 
-    [HypClassBinding(Name = "AssetPackage")]
+    [ClassBinding(Name = "AssetPackage")]
     public class AssetPackage : HypObject
     {
         private static LogChannel logChannel = LogChannel.ByName("Assset");

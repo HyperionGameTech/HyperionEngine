@@ -12,6 +12,7 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/RenderCollection.hpp>
 
 #include <scene/Light.hpp>
 #include <scene/View.hpp>
@@ -52,9 +53,8 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
     ShaderRef shader = g_shaderManager->GetOrCreate(NAME("CombineShadowMaps"), properties);
     Assert(shader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -87,9 +87,8 @@ static ComputePipelineRef CreateBlurShadowMapPipeline(const GpuImageViewRef& inp
     ShaderRef blurShadowMapShader = g_shaderManager->GetOrCreate(NAME("BlurShadowMap"));
     Assert(blurShadowMapShader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = blurShadowMapShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        blurShadowMapShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     // have to create descriptor sets specifically for compute shader,
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)

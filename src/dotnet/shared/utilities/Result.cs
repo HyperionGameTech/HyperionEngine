@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     // Maps to core/utilities/Result.hpp
-    [HypClassBinding(Name="Result")]
+    [ClassBinding(Name="Result")]
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct Result
     {

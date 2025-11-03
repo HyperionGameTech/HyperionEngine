@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "GenerateLightmapsEditorTask")]
+    [ClassBinding(Name = "GenerateLightmapsEditorTask")]
     public class GenerateLightmapsEditorTask : TickableEditorTask
     {
         public GenerateLightmapsEditorTask()

@@ -15,6 +15,9 @@
 
 #include <engine/EngineMemory.hpp>
 
+#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <core/memory/pool/Pool.hpp>
+
 namespace hyperion {
 
 class EditorDelegates;

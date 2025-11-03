@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="UIDockableContainer")]
+    [ClassBinding(Name="UIDockableContainer")]
     public class UIDockableContainer : UIObject
     {
         public UIDockableContainer() : base()

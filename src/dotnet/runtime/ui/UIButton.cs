@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="UIButton")]
+    [ClassBinding(Name="UIButton")]
     public class UIButton : UIObject
     {
         public UIButton() : base()

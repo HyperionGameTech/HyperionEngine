@@ -34,10 +34,10 @@ HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
 using namespace json;
 
-static const HashMap<String, HypClassDefinitionType> g_hypClassDefinitionTypes = {
-    { "HYP_CLASS", HypClassDefinitionType::CLASS },
-    { "HYP_STRUCT", HypClassDefinitionType::STRUCT },
-    { "HYP_ENUM", HypClassDefinitionType::ENUM }
+static const HashMap<String, ClassDefinitionType> g_classDefinitionTypes = {
+    { "HYP_CLASS", ClassDefinitionType::CLASS },
+    { "HYP_STRUCT", ClassDefinitionType::STRUCT },
+    { "HYP_ENUM", ClassDefinitionType::ENUM }
 };
 
 static const HashMap<String, HypMemberType> g_hypMemberDefinitionTypes = {
@@ -46,14 +46,14 @@ static const HashMap<String, HypMemberType> g_hypMemberDefinitionTypes = {
     { "HYP_PROPERTY", HypMemberType::TYPE_PROPERTY }
 };
 
-const String& HypClassDefinitionTypeToString(HypClassDefinitionType type)
+const String& ClassDefinitionTypeToString(ClassDefinitionType type)
 {
-    auto it = g_hypClassDefinitionTypes.FindIf([type](const Pair<String, HypClassDefinitionType>& pair)
+    auto it = g_classDefinitionTypes.FindIf([type](const Pair<String, ClassDefinitionType>& pair)
         {
             return pair.second == type;
         });
 
-    if (it != g_hypClassDefinitionTypes.End())
+    if (it != g_classDefinitionTypes.End())
     {
         return it->first;
     }
@@ -171,9 +171,9 @@ const String& HypMemberTypeToString(HypMemberType type)
     return String::empty;
 }
 
-static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttributes(const String& attributesString)
+static TResult<Array<Pair<String, ClassAttributeValue>>> BuildClassAttributes(const String& attributesString)
 {
-    Array<Pair<String, HypClassAttributeValue>> results;
+    Array<Pair<String, ClassAttributeValue>> results;
 
     Array<String> attributes;
 
@@ -222,7 +222,7 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
         if (equalsIndex == String::NotFound)
         {
             // No equals sign, so it's a boolean attribute (true)
-            results.PushBack(Pair<String, HypClassAttributeValue> { attribute, HypClassAttributeValue(true) });
+            results.PushBack(Pair<String, ClassAttributeValue> { attribute, ClassAttributeValue(true) });
 
             continue;
         }
@@ -232,11 +232,11 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
 
         if (key.Empty() || value.Empty())
         {
-            return HYP_MAKE_ERROR(Error, "Empty key or value in HypClass attribute");
+            return HYP_MAKE_ERROR(Error, "Empty key or value in Class attribute");
         }
 
-        HypClassAttributeType hypClassAttributeValueType = HypClassAttributeType::NONE;
-        String hypClassAttributeValueString;
+        ClassAttributeType classAttributeValueType = ClassAttributeType::NONE;
+        String classAttributeValueString;
 
         bool isInString = false;
 
@@ -253,7 +253,7 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
             {
                 inQuotes = !inQuotes;
 
-                hypClassAttributeValueType = HypClassAttributeType::STRING;
+                classAttributeValueType = ClassAttributeType::STRING;
 
                 continue;
             }
@@ -274,66 +274,66 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
                 if (!isNumeric)
                 {
                     isNumeric = true;
-                    hypClassAttributeValueType = HypClassAttributeType::INT;
+                    classAttributeValueType = ClassAttributeType::INT;
                 }
             }
 
-            hypClassAttributeValueString.Append(c);
+            classAttributeValueString.Append(c);
         }
 
-        if (hypClassAttributeValueType == HypClassAttributeType::NONE)
+        if (classAttributeValueType == ClassAttributeType::NONE)
         {
-            const String lower = hypClassAttributeValueString.ToLower();
+            const String lower = classAttributeValueString.ToLower();
 
             if (lower == "true" || lower == "false")
             {
-                hypClassAttributeValueType = HypClassAttributeType::BOOLEAN;
+                classAttributeValueType = ClassAttributeType::BOOLEAN;
 
-                hypClassAttributeValueString = lower;
+                classAttributeValueString = lower;
             }
             else
             {
                 // Fallback to string
-                hypClassAttributeValueType = HypClassAttributeType::STRING;
+                classAttributeValueType = ClassAttributeType::STRING;
             }
         }
 
-        switch (hypClassAttributeValueType)
+        switch (classAttributeValueType)
         {
-        case HypClassAttributeType::STRING:
-            results.PushBack(Pair<String, HypClassAttributeValue> { key, HypClassAttributeValue(hypClassAttributeValueString) });
+        case ClassAttributeType::STRING:
+            results.PushBack(Pair<String, ClassAttributeValue> { key, ClassAttributeValue(classAttributeValueString) });
             break;
 
-        case HypClassAttributeType::INT:
+        case ClassAttributeType::INT:
         {
             int valueInt;
 
-            if (!StringUtil::Parse<int>(hypClassAttributeValueString, &valueInt))
+            if (!StringUtil::Parse<int>(classAttributeValueString, &valueInt))
             {
-                return HYP_MAKE_ERROR(Error, "Failed to parse int in HypClass attribute");
+                return HYP_MAKE_ERROR(Error, "Failed to parse int in Class attribute");
             }
 
-            results.PushBack(Pair<String, HypClassAttributeValue> { key, HypClassAttributeValue(valueInt) });
+            results.PushBack(Pair<String, ClassAttributeValue> { key, ClassAttributeValue(valueInt) });
             break;
         }
-        case HypClassAttributeType::BOOLEAN:
+        case ClassAttributeType::BOOLEAN:
         {
             bool valueBool;
 
-            if (hypClassAttributeValueString == "true")
+            if (classAttributeValueString == "true")
             {
                 valueBool = true;
             }
-            else if (hypClassAttributeValueString == "false")
+            else if (classAttributeValueString == "false")
             {
                 valueBool = false;
             }
             else
             {
-                return HYP_MAKE_ERROR(Error, "Failed to parse boolean in HypClass attribute");
+                return HYP_MAKE_ERROR(Error, "Failed to parse boolean in Class attribute");
             }
 
-            results.PushBack(Pair<String, HypClassAttributeValue> { key, HypClassAttributeValue(valueBool) });
+            results.PushBack(Pair<String, ClassAttributeValue> { key, ClassAttributeValue(valueBool) });
 
             break;
         }
@@ -346,7 +346,7 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
 }
 
 template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
-static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMacro(
+static TResult<Pair<E, Array<Pair<String, ClassAttributeValue>>>> ParseHypMacro(
     const HashMap<String, E>& usableMacros,
     const String& line,
     SizeType& outStartIndex,
@@ -362,7 +362,7 @@ static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMac
 
         if (macroStartIndex != String::NotFound)
         {
-            Array<Pair<String, HypClassAttributeValue>> attributes;
+            Array<Pair<String, ClassAttributeValue>> attributes;
 
             outStartIndex = macroStartIndex;
             outEndIndex = outStartIndex + it.first.Length();
@@ -428,7 +428,7 @@ static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMac
                     }
                 }
 
-                auto buildAttributesResult = BuildHypClassAttributes(attributesString);
+                auto buildAttributesResult = BuildClassAttributes(attributesString);
 
                 if (buildAttributesResult.HasError())
                 {
@@ -438,14 +438,14 @@ static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMac
                 attributes = buildAttributesResult.GetValue();
             }
 
-            return Pair<E, Array<Pair<String, HypClassAttributeValue>>> { it.second, attributes };
+            return Pair<E, Array<Pair<String, ClassAttributeValue>>> { it.second, attributes };
         }
     }
 
-    return Pair<E, Array<Pair<String, HypClassAttributeValue>>> { E::NONE, {} };
+    return Pair<E, Array<Pair<String, ClassAttributeValue>>> { E::NONE, {} };
 }
 
-static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const Analyzer& analyzer, Module& mod)
+static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyzer& analyzer, Module& mod)
 {
     if (!mod.GetPath().Exists())
     {
@@ -464,97 +464,97 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
         return HYP_MAKE_ERROR(AnalyzerError, "Failed to open module file", mod.GetPath());
     }
 
-    Array<HypClassDefinition> hypClassDefinitions;
+    Array<ClassDefinition> classDefinitions;
 
     Array<String> lines = reader.ReadAllLines();
 
     for (SizeType i = 0; i < lines.Size(); i++)
     {
-        HypClassDefinition hypClassDefinition;
+        ClassDefinition classDefinition;
 
         SizeType macroStartIndex;
         SizeType macroEndIndex;
 
-        auto parseMacroResult = ParseHypMacro(g_hypClassDefinitionTypes, lines[i], macroStartIndex, macroEndIndex, true);
+        auto parseMacroResult = ParseHypMacro(g_classDefinitionTypes, lines[i], macroStartIndex, macroEndIndex, true);
 
         if (parseMacroResult.HasError())
         {
             return AnalyzerError(parseMacroResult.GetError(), mod.GetPath());
         }
 
-        if (parseMacroResult.GetValue().first == HypClassDefinitionType::NONE)
+        if (parseMacroResult.GetValue().first == ClassDefinitionType::NONE)
         {
             // no match; continue
             continue;
         }
 
-        hypClassDefinition.type = parseMacroResult.GetValue().first;
-        hypClassDefinition.attributes = parseMacroResult.GetValue().second;
-        hypClassDefinition.staticIndex = -1;
+        classDefinition.type = parseMacroResult.GetValue().first;
+        classDefinition.attributes = parseMacroResult.GetValue().second;
+        classDefinition.staticIndex = -1;
 
         const String contentToEnd = String::Join(lines.Slice(i, lines.Size()), '\n');
 
         const SizeType braceIndex = contentToEnd.FindFirstIndex("{");
 
-        hypClassDefinition.source = contentToEnd.Substr(0, braceIndex);
+        classDefinition.source = contentToEnd.Substr(0, braceIndex);
 
-        Optional<String> optClassName = ExtractCXXClassName(hypClassDefinition.source);
+        Optional<String> optClassName = ExtractCXXClassName(classDefinition.source);
         if (!optClassName.HasValue())
         {
-            HYP_LOG(BuildTool, Error, "Failed to extract class name from source: {}", hypClassDefinition.source);
+            HYP_LOG(BuildTool, Error, "Failed to extract class name from source: {}", classDefinition.source);
 
             return HYP_MAKE_ERROR(AnalyzerError, "Failed to extract class name", mod.GetPath());
         }
 
-        hypClassDefinition.name = *optClassName;
-        hypClassDefinition.isCXXClass = IsCXXClassDecl(hypClassDefinition.source);
-        hypClassDefinition.isCXXStruct = !hypClassDefinition.isCXXClass && IsCXXStructDecl(hypClassDefinition.source);
-        hypClassDefinition.isCXXEnumClass = !hypClassDefinition.isCXXClass && !hypClassDefinition.isCXXStruct && IsCXXEnumClassDecl(hypClassDefinition.source);
-        hypClassDefinition.isCXXEnum = !hypClassDefinition.isCXXClass && !hypClassDefinition.isCXXStruct && (hypClassDefinition.isCXXEnumClass || IsCXXEnumDecl(hypClassDefinition.source));
+        classDefinition.name = *optClassName;
+        classDefinition.isCXXClass = IsCXXClassDecl(classDefinition.source);
+        classDefinition.isCXXStruct = !classDefinition.isCXXClass && IsCXXStructDecl(classDefinition.source);
+        classDefinition.isCXXEnumClass = !classDefinition.isCXXClass && !classDefinition.isCXXStruct && IsCXXEnumClassDecl(classDefinition.source);
+        classDefinition.isCXXEnum = !classDefinition.isCXXClass && !classDefinition.isCXXStruct && (classDefinition.isCXXEnumClass || IsCXXEnumDecl(classDefinition.source));
 
-        Array<String> baseClassNames = ExtractCXXBaseClasses(hypClassDefinition.source);
+        Array<String> baseClassNames = ExtractCXXBaseClasses(classDefinition.source);
 
         for (const String& baseClassName : baseClassNames)
         {
-            hypClassDefinition.baseClassNames.PushBack(baseClassName);
+            classDefinition.baseClassNames.PushBack(baseClassName);
         }
 
         if (braceIndex != String::NotFound)
         {
             const String remainingContent = contentToEnd.Substr(braceIndex, contentToEnd.Size());
 
-            ParseInnerContent(remainingContent, hypClassDefinition.source);
+            ParseInnerContent(remainingContent, classDefinition.source);
         }
 
-        AssertDebug(hypClassDefinition.isCXXClass || hypClassDefinition.isCXXStruct || hypClassDefinition.isCXXEnum || hypClassDefinition.isCXXEnumClass,
-            "HypClassDefinition must be a class, struct, enum, or enum class. Got source:\n\t{}", hypClassDefinition.source);
+        AssertDebug(classDefinition.isCXXClass || classDefinition.isCXXStruct || classDefinition.isCXXEnum || classDefinition.isCXXEnumClass,
+            "ClassDefinition must be a class, struct, enum, or enum class. Got source:\n\t{}", classDefinition.source);
 
         // Validate that HYP_CLASS has HYP_OBJECT_BODY and HYP_STRUCT has HYP_STRUCT_BODY
-        if (hypClassDefinition.type == HypClassDefinitionType::CLASS)
+        if (classDefinition.type == ClassDefinitionType::CLASS)
         {
-            if (!hypClassDefinition.isCXXEnum && !hypClassDefinition.isCXXEnumClass)
+            if (!classDefinition.isCXXEnum && !classDefinition.isCXXEnumClass)
             {
-                if (hypClassDefinition.source.FindFirstIndex("HYP_OBJECT_BODY") == String::NotFound)
+                if (classDefinition.source.FindFirstIndex("HYP_OBJECT_BODY") == String::NotFound)
                 {
-                    return HYP_MAKE_ERROR(AnalyzerError, "HYP_CLASS '{}' must contain HYP_OBJECT_BODY(...) in its body", mod.GetPath(), 0, hypClassDefinition.name);
+                    return HYP_MAKE_ERROR(AnalyzerError, "HYP_CLASS '{}' must contain HYP_OBJECT_BODY(...) in its body", mod.GetPath(), 0, classDefinition.name);
                 }
             }
         }
-        else if (hypClassDefinition.type == HypClassDefinitionType::STRUCT)
+        else if (classDefinition.type == ClassDefinitionType::STRUCT)
         {
-            if (!hypClassDefinition.isCXXEnum && !hypClassDefinition.isCXXEnumClass)
+            if (!classDefinition.isCXXEnum && !classDefinition.isCXXEnumClass)
             {
-                if (hypClassDefinition.source.FindFirstIndex("HYP_STRUCT_BODY") == String::NotFound)
+                if (classDefinition.source.FindFirstIndex("HYP_STRUCT_BODY") == String::NotFound)
                 {
-                    return HYP_MAKE_ERROR(AnalyzerError, "HYP_STRUCT '{}' must contain HYP_STRUCT_BODY(...) in its body", mod.GetPath(), 0, hypClassDefinition.name);
+                    return HYP_MAKE_ERROR(AnalyzerError, "HYP_STRUCT '{}' must contain HYP_STRUCT_BODY(...) in its body", mod.GetPath(), 0, classDefinition.name);
                 }
             }
         }
 
-        hypClassDefinitions.PushBack(std::move(hypClassDefinition));
+        classDefinitions.PushBack(std::move(classDefinition));
     }
 
-    return hypClassDefinitions;
+    return classDefinitions;
 }
 
 // Add attributes to allow the runtime to access metadata on the member
@@ -567,7 +567,7 @@ static void AddMetadata(ASTMemberDecl* decl, HypMemberDefinition& result)
 
     if (decl->type && decl->type->IsScriptableDelegate())
     {
-        result.AddAttribute("ScriptableDelegate", HypClassAttributeValue(true));
+        result.AddAttribute("ScriptableDelegate", ClassAttributeValue(true));
     }
 }
 
@@ -631,11 +631,11 @@ static TResult<void, AnalyzerError> CreateParser(const Analyzer& analyzer, const
     return checkErrors();
 }
 
-static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(const Analyzer& analyzer, const Module& mod, const HypClassDefinition& hypClassDefinition)
+static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildClassMembers(const Analyzer& analyzer, const Module& mod, const ClassDefinition& classDefinition)
 {
     Array<HypMemberDefinition> results;
 
-    Array<String> lines = hypClassDefinition.source.Split('\n');
+    Array<String> lines = classDefinition.source.Split('\n');
 
     for (SizeType i = 0; i < lines.Size(); i++)
     {
@@ -700,12 +700,12 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(c
     return results;
 }
 
-static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypEnumMembers(const Analyzer& analyzer, const Module& mod, const HypClassDefinition& hypClassDefinition)
+static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildEnumMembers(const Analyzer& analyzer, const Module& mod, const ClassDefinition& classDefinition)
 {
     Array<HypMemberDefinition> results;
 
     String innerContent;
-    ParseInnerContent(hypClassDefinition.source, innerContent);
+    ParseInnerContent(classDefinition.source, innerContent);
 
     SizeType openingBraceIndex = innerContent.FindFirstIndex('{');
 
@@ -779,38 +779,38 @@ Analyzer::Analyzer()
     // clang-format off
 
     // reserve 'HypObjectBase' class
-    HypClassDefinition& hypClassDefinition = m_builtinHypClasses.Emplace("HypObjectBase", HypClassDefinition { }).first->second;
-    hypClassDefinition.type = HypClassDefinitionType::CLASS;
-    hypClassDefinition.name = "HypObjectBase";
-    hypClassDefinition.staticIndex = 0;
-    hypClassDefinition.isCXXClass = true;
+    ClassDefinition& classDefinition = m_builtinClasses.Emplace("HypObjectBase", ClassDefinition { }).first->second;
+    classDefinition.type = ClassDefinitionType::CLASS;
+    classDefinition.name = "HypObjectBase";
+    classDefinition.staticIndex = 0;
+    classDefinition.isCXXClass = true;
 
     // clang-format on
 }
 
-const HypClassDefinition* Analyzer::FindHypClassDefinition(UTF8StringView className) const
+const ClassDefinition* Analyzer::FindClassDefinition(UTF8StringView className) const
 {
     Mutex::Guard guard(m_mutex);
 
-    return FindHypClassDefinition_Internal(className);
+    return FindClassDefinition_Internal(className);
 }
 
-const HypClassDefinition* Analyzer::FindHypClassDefinition_Internal(UTF8StringView className) const
+const ClassDefinition* Analyzer::FindClassDefinition_Internal(UTF8StringView className) const
 {
-    auto it = m_builtinHypClasses.FindAs(className);
+    auto it = m_builtinClasses.FindAs(className);
 
-    if (it != m_builtinHypClasses.End())
+    if (it != m_builtinClasses.End())
     {
         return &it->second;
     }
 
     for (const UniquePtr<Module>& mod : m_modules)
     {
-        const HypClassDefinition* hypClassDefinition = mod->FindHypClassDefinition(className);
+        const ClassDefinition* classDefinition = mod->FindClassDefinition(className);
 
-        if (hypClassDefinition)
+        if (classDefinition)
         {
-            return hypClassDefinition;
+            return classDefinition;
         }
     }
 
@@ -826,30 +826,30 @@ Module* Analyzer::AddModule(const FilePath& path)
 
 TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
 {
-    auto res = BuildHypClasses(*this, mod);
+    auto res = BuildClasses(*this, mod);
 
     if (res.HasError())
     {
         return res.GetError();
     }
 
-    for (HypClassDefinition& hypClassDefinition : res.GetValue())
+    for (ClassDefinition& classDefinition : res.GetValue())
     {
         TResult<Array<HypMemberDefinition>, AnalyzerError> res = Array<HypMemberDefinition> {};
 
-        switch (hypClassDefinition.type)
+        switch (classDefinition.type)
         {
-        case HypClassDefinitionType::CLASS:
-        case HypClassDefinitionType::STRUCT: // fallthrough
-            res = BuildHypClassMembers(*this, mod, hypClassDefinition);
+        case ClassDefinitionType::CLASS:
+        case ClassDefinitionType::STRUCT: // fallthrough
+            res = BuildClassMembers(*this, mod, classDefinition);
 
             break;
-        case HypClassDefinitionType::ENUM:
-            res = BuildHypEnumMembers(*this, mod, hypClassDefinition);
+        case ClassDefinitionType::ENUM:
+            res = BuildEnumMembers(*this, mod, classDefinition);
 
             break;
         default:
-            return HYP_MAKE_ERROR(AnalyzerError, "Unknown HypClassDefinitionType", mod.GetPath());
+            return HYP_MAKE_ERROR(AnalyzerError, "Unknown ClassDefinitionType", mod.GetPath());
         }
 
         if (res.HasError())
@@ -873,7 +873,7 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
 #if defined(HYP_BUILD_TOOL_FRIENDLY_NAMES) && HYP_BUILD_TOOL_FRIENDLY_NAMES
                 bool preserveCase = true;
 
-                if (hypClassDefinition.type == HypClassDefinitionType::ENUM)
+                if (classDefinition.type == ClassDefinitionType::ENUM)
                 {
                     // ensure ALL_CAPS enum members get converted to PascalCase. don't preserve their casing.
                     preserveCase = false;
@@ -915,37 +915,37 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
             }
         }
 
-        hypClassDefinition.members = std::move(members);
+        classDefinition.members = std::move(members);
 
-        AssertDebug(hypClassDefinition.isCXXClass || hypClassDefinition.isCXXStruct || hypClassDefinition.isCXXEnumClass || hypClassDefinition.isCXXEnum,
-            "HypClassDefinition must be a C++ class, struct, or enum");
+        AssertDebug(classDefinition.isCXXClass || classDefinition.isCXXStruct || classDefinition.isCXXEnumClass || classDefinition.isCXXEnum,
+            "ClassDefinition must be a C++ class, struct, or enum");
 
-        mod.AddHypClassDefinition(std::move(hypClassDefinition));
+        mod.AddClassDefinition(std::move(classDefinition));
     }
 
     return {};
 }
 
-bool Analyzer::HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) const
+bool Analyzer::HasBaseClass(const ClassDefinition& classDefinition, UTF8StringView baseClassName) const
 {
     Mutex::Guard guard(m_mutex);
 
-    Proc<bool(const HypClassDefinition&, UTF8StringView)> performCheck;
+    Proc<bool(const ClassDefinition&, UTF8StringView)> performCheck;
 
-    performCheck = [this, &performCheck](const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) -> bool
+    performCheck = [this, &performCheck](const ClassDefinition& classDefinition, UTF8StringView className) -> bool
     {
-        auto it = hypClassDefinition.baseClassNames.FindAs(baseClassName);
+        auto it = classDefinition.baseClassNames.FindAs(className);
 
-        if (it != hypClassDefinition.baseClassNames.End())
+        if (it != classDefinition.baseClassNames.End())
         {
             return true;
         }
 
-        for (const String& baseClass : hypClassDefinition.baseClassNames)
+        for (const String& baseClassName : classDefinition.baseClassNames)
         {
-            const HypClassDefinition* baseHypClass = FindHypClassDefinition_Internal(baseClass);
+            const ClassDefinition* baseClass = FindClassDefinition_Internal(baseClassName);
 
-            if (baseHypClass && performCheck(*baseHypClass, baseClassName))
+            if (baseClass && performCheck(*baseClass, className))
             {
                 return true;
             }
@@ -954,7 +954,7 @@ bool Analyzer::HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8St
         return false;
     };
 
-    return performCheck(hypClassDefinition, baseClassName);
+    return performCheck(classDefinition, baseClassName);
 }
 
 #pragma endregion Analyzer

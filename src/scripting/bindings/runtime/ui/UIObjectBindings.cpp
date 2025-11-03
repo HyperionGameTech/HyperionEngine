@@ -2,7 +2,7 @@
 
 #include <ui/UIObject.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypData.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -39,34 +39,34 @@ extern "C"
         return nullptr;
     }
 
-    HYP_EXPORT void UIObject_Spawn(UIObject* spawnParent, const HypClass* hypClass, Name* name, Vec2i* position, UIObjectSize* size, HypData* outHypData)
+    HYP_EXPORT void UIObject_Spawn(UIObject* spawnParent, const Class* cls, Name* name, Vec2i* position, UIObjectSize* size, HypData* outHypData)
     {
         Assert(spawnParent != nullptr);
-        Assert(hypClass != nullptr);
+        Assert(cls != nullptr);
         Assert(name != nullptr);
         Assert(position != nullptr);
         Assert(size != nullptr);
         Assert(outHypData != nullptr);
 
-        Handle<UIObject> uiObject = spawnParent->CreateUIObject(hypClass, *name, *position, *size);
+        Handle<UIObject> uiObject = spawnParent->CreateUIObject(cls, *name, *position, *size);
         *outHypData = HypData(std::move(uiObject));
     }
 
-    HYP_EXPORT int8 UIObject_Find(UIObject* parent, const HypClass* hypClass, Name* name, HypData* outHypData)
+    HYP_EXPORT int8 UIObject_Find(UIObject* parent, const Class* cls, Name* name, HypData* outHypData)
     {
         Assert(parent != nullptr);
-        Assert(hypClass != nullptr);
+        Assert(cls != nullptr);
         Assert(name != nullptr);
         Assert(outHypData != nullptr);
 
-        if (!hypClass->IsDerivedFrom(UIObject::Class()))
+        if (!cls->IsDerivedFrom(UIObject::StaticClass()))
         {
             return false;
         }
 
-        Handle<UIObject> uiObject = parent->FindChildUIObject([hypClass, name](UIObject* uiObject)
+        Handle<UIObject> uiObject = parent->FindChildUIObject([cls, name](UIObject* uiObject)
             {
-                return uiObject->IsA(hypClass) && uiObject->GetName() == *name;
+                return uiObject->IsA(cls) && uiObject->GetName() == *name;
             });
 
         if (!uiObject)

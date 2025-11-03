@@ -24,9 +24,9 @@ namespace Hyperion
         {
             obj.GetMethod(new Name(14471740856361554446)).InvokeNative(obj, entity);
         }
-        public static Entity AddTypedEntity(this EntityManager obj, HypClass hypClass)
+        public static Entity AddTypedEntity(this EntityManager obj, Class cls)
         {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(12687623200888330867)).InvokeNative(obj, hypClass))
+            using (HypDataBuffer resultData = obj.GetMethod(new Name(12687623200888330867)).InvokeNative(obj, cls))
             {
                 return resultData.ReadObject<Entity>();
             }

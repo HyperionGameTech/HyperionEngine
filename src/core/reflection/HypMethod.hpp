@@ -3,7 +3,7 @@
 #pragma once
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/ClassAttribute.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 
 #include <core/functional/Proc.hpp>
@@ -22,9 +22,9 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
-extern HYP_API const char* LookupTypeName(TypeId typeId);
+HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 #ifdef HYP_SCRIPT
 enum class Script_FunctionAddress : uint32;
@@ -155,7 +155,7 @@ struct HypMethodHelper<FunctionType, std::enable_if_t<!FunctionTraits<FunctionTy
 class HypMethod final : public IHypMember
 {
 public:
-    HypMethod(Span<const HypClassAttribute> attributes = {})
+    HypMethod(Span<const ClassAttribute> attributes = {})
         : m_name(Name::Invalid()),
           m_returnTypeInfo(&TypeInfo_Void()),
           m_targetTypeInfo(&TypeInfo_Void()),
@@ -168,7 +168,7 @@ public:
     }
 
 #ifdef HYP_SCRIPT
-    HypMethod(Name name, const TypeInfo* returnTypeInfo, const TypeInfo* targetTypeInfo, Script_FunctionAddress scriptAddress, EnumFlags<HypMethodFlags> flags, Span<const HypClassAttribute> attributes = {})
+    HypMethod(Name name, const TypeInfo* returnTypeInfo, const TypeInfo* targetTypeInfo, Script_FunctionAddress scriptAddress, EnumFlags<HypMethodFlags> flags, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_returnTypeInfo(returnTypeInfo),
           m_targetTypeInfo(targetTypeInfo),
@@ -182,7 +182,7 @@ public:
 #endif
 
     template <class ReturnType, class TargetType, class... ArgTypes>
-    HypMethod(Name name, ReturnType (TargetType::*memFn)(ArgTypes...), Span<const HypClassAttribute> attributes = {})
+    HypMethod(Name name, ReturnType (TargetType::*memFn)(ArgTypes...), Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_flags(HypMethodFlags::MEMBER),
           m_attributes(attributes),
@@ -282,7 +282,7 @@ public:
     }
 
     template <class ReturnType, class TargetType, class... ArgTypes>
-    HypMethod(Name name, ReturnType (TargetType::*memFn)(ArgTypes...) const, Span<const HypClassAttribute> attributes = {})
+    HypMethod(Name name, ReturnType (TargetType::*memFn)(ArgTypes...) const, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_flags(HypMethodFlags::MEMBER),
           m_attributes(attributes),
@@ -384,7 +384,7 @@ public:
 
     // Static method or free function
     template <class ReturnType, class... ArgTypes>
-    HypMethod(Name name, ReturnType (*fn)(ArgTypes...), Span<const HypClassAttribute> attributes = {})
+    HypMethod(Name name, ReturnType (*fn)(ArgTypes...), Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_flags(HypMethodFlags::STATIC),
           m_attributes(attributes),
@@ -473,17 +473,17 @@ public:
         return m_deserializeProc(context, Span<HypData>(&target, 1), data);
     }
 
-    virtual const HypClassAttributeSet& GetAttributes() const override
+    virtual const ClassAttributeSet& GetAttributes() const override
     {
         return m_attributes;
     }
 
-    virtual const HypClassAttributeValue& GetAttribute(WeakName key) const override
+    virtual const ClassAttributeValue& GetAttribute(WeakName key) const override
     {
         return m_attributes.Get(key);
     }
 
-    virtual const HypClassAttributeValue& GetAttribute(WeakName key, const HypClassAttributeValue& defaultValue) const override
+    virtual const ClassAttributeValue& GetAttribute(WeakName key, const ClassAttributeValue& defaultValue) const override
     {
         return m_attributes.Get(key, defaultValue);
     }
@@ -542,7 +542,7 @@ private:
     const TypeInfo* m_targetTypeInfo;
     Array<HypMethodParameter> m_params;
     EnumFlags<HypMethodFlags> m_flags;
-    HypClassAttributeSet m_attributes;
+    ClassAttributeSet m_attributes;
 
     Proc<HypData(HypData**, SizeType)> m_proc;
 

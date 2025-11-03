@@ -333,9 +333,4 @@ Quaternion Quaternion::AxisAngles(const Vec3f& axis, float radians)
     return Quaternion(axis, radians);
 }
 
-std::ostream& operator<<(std::ostream& out, const Quaternion& rot) // output
-{
-    out << "[" << rot.x << ", " << rot.y << ", " << rot.z << ", " << rot.w << "]";
-    return out;
-}
 } // namespace hyperion

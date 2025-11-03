@@ -5,7 +5,7 @@ using Hyperion;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "AssetPath")]
+    [ClassBinding(Name = "AssetPath")]
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct AssetPath
     {

@@ -417,168 +417,168 @@ namespace Hyperion
         }
         public static ScriptableDelegate GetOnInitDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(9970556725385668658));
+            HypField field = (HypField)obj.Class.GetField(new Name(9970556725385668658));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnAttachedDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(2201999540845313324));
+            HypField field = (HypField)obj.Class.GetField(new Name(2201999540845313324));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnRemovedDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(9254950492590334836));
+            HypField field = (HypField)obj.Class.GetField(new Name(9254950492590334836));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnChildAttachedDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(2915835324551396766));
+            HypField field = (HypField)obj.Class.GetField(new Name(2915835324551396766));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnChildRemovedDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(13892828449818075666));
+            HypField field = (HypField)obj.Class.GetField(new Name(13892828449818075666));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnMouseDownDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(10114350550185210535));
+            HypField field = (HypField)obj.Class.GetField(new Name(10114350550185210535));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnMouseUpDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(18412231903684743294));
+            HypField field = (HypField)obj.Class.GetField(new Name(18412231903684743294));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnMouseDragDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(8077452482892602857));
+            HypField field = (HypField)obj.Class.GetField(new Name(8077452482892602857));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnMouseHoverDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(14600836827124531819));
+            HypField field = (HypField)obj.Class.GetField(new Name(14600836827124531819));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnMouseLeaveDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(3191862552870896142));
+            HypField field = (HypField)obj.Class.GetField(new Name(3191862552870896142));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnMouseMoveDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(19488794578704722));
+            HypField field = (HypField)obj.Class.GetField(new Name(19488794578704722));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnGainFocusDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(12942469750591690325));
+            HypField field = (HypField)obj.Class.GetField(new Name(12942469750591690325));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnLoseFocusDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(16579253939397247911));
+            HypField field = (HypField)obj.Class.GetField(new Name(16579253939397247911));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnScrollDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(7505864644916986881));
+            HypField field = (HypField)obj.Class.GetField(new Name(7505864644916986881));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnClickDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(7381883987617085928));
+            HypField field = (HypField)obj.Class.GetField(new Name(7381883987617085928));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnRightClickDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(8397635113467844882));
+            HypField field = (HypField)obj.Class.GetField(new Name(8397635113467844882));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnKeyDownDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(2013187471001424155));
+            HypField field = (HypField)obj.Class.GetField(new Name(2013187471001424155));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnKeyUpDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(14587577940705958522));
+            HypField field = (HypField)obj.Class.GetField(new Name(14587577940705958522));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnTextChangeDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(932740583805062339));
+            HypField field = (HypField)obj.Class.GetField(new Name(932740583805062339));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnSizeChangeDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(15768055466531177281));
+            HypField field = (HypField)obj.Class.GetField(new Name(15768055466531177281));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnComputedVisibilityChangeDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(9771668329851875335));
+            HypField field = (HypField)obj.Class.GetField(new Name(9771668329851875335));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnEnabledDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(6744674823338637265));
+            HypField field = (HypField)obj.Class.GetField(new Name(6744674823338637265));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnDisabledDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(15206345668563466168));
+            HypField field = (HypField)obj.Class.GetField(new Name(15206345668563466168));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnValueChangeDelegate(this UIObject obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(12496457551305744769));
+            HypField field = (HypField)obj.Class.GetField(new Name(12496457551305744769));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);

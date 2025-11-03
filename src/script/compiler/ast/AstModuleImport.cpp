@@ -252,27 +252,27 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        std::stringstream triedPathsString;
-        triedPathsString << "[";
+        String triedPathsString;
+        triedPathsString += "[";
 
         for (SizeType i = 0; i < triedPaths.Size(); i++)
         {
-            triedPathsString << '"' << triedPaths[i] << '"';
+            triedPathsString += "\"" + triedPaths[i] + "\"";
 
             if (i != triedPaths.Size() - 1)
             {
-                triedPathsString << ", ";
+                triedPathsString += ", ";
             }
         }
 
-        triedPathsString << "]";
+        triedPathsString += "]";
 
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_could_not_find_module,
             m_location,
             first->GetLeft(),
-            triedPathsString.str()));
+            triedPathsString));
     }
 }
 

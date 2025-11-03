@@ -56,7 +56,8 @@ struct RENDER_COMMAND(AddUIRendererForView)
 {
     WeakHandle<View> viewWeak;
 
-    RENDER_COMMAND(AddUIRendererForView)(const WeakHandle<View>& viewWeak)
+    RENDER_COMMAND(AddUIRendererForView)
+    (const WeakHandle<View>& viewWeak)
         : viewWeak(viewWeak)
     {
     }
@@ -288,7 +289,7 @@ void UISubsystem::Update(float delta)
 
         for (Entity* entity : added)
         {
-            AssertDebug(entity->InstanceClass() == Entity::Class());
+            AssertDebug(entity->InstanceClass() == Entity::StaticClass());
 
             auto&& [meshComponent, transformComponent, boundingBoxComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent>(entity);
             AssertDebug(meshComponent != nullptr);

@@ -19,7 +19,7 @@ namespace Hyperion
         Paused = 3
     }
 
-    [HypClassBinding(Name="AudioSource")]
+    [ClassBinding(Name="AudioSource")]
     public class AudioSource : HypObject
     {
         public AudioSource()

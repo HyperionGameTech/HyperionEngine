@@ -10,7 +10,7 @@
 namespace hyperion {
 
 struct HypData;
-class HypClass;
+class Class;
 
 namespace utilities {
 struct TypeInfo;
@@ -49,17 +49,17 @@ bool HypDataToJSON(
     ToJSONOptions opts = ToJSONOptions {});
 
 /*! \brief Serializes a HypObject instance to a JSONObject.
- *  Only fields and properties of the HypClass are serialized.
+ *  Only fields and properties of the Class are serialized.
  *  Members marked with the "jsonignore" attribute are skipped.
  *  Members marked with the "transient" attribute are skipped if skipTransientProperties is true.
  *  Members with the "jsonpath" attribute are serialized using the specified JSON path.
- *  \param hypClass The HypClass of the object.
+ *  \param cls The Class of the object.
  *  \param target The HypData object to serialize.
  *  \param outJson The output JSONObject.
  *  \return True if serialization was successful, false otherwise.
  */
 bool ObjectToJSON(
-    const HypClass* hypClass,
+    const Class* cls,
     const HypData& target,
     json::JSONObject& outJson,
     ToJSONOptions opts = ToJSONOptions {});
@@ -74,14 +74,14 @@ bool ObjectToJSON(
 bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, HypData& outHypData);
 
 /*! \brief Deserializes a JSONObject to a HypData object.
- *  Only fields and properties of the HypClass are deserialized.
+ *  Only fields and properties of the Class are deserialized.
  *  Members marked with the "jsonignore" attribute are skipped.
  *  Members with the "jsonpath" attribute are deserialized using the specified JSON path.
  *  \param jsonObject The JSONObject to deserialize.
- *  \param targetClass The desired HypClass of the target object. (can be null if target already has a type)
+ *  \param targetClass The desired Class of the target object. (can be null if target already has a type)
  *  \param target The output HypData object.
  *  \return True if deserialization was successful, false otherwise.
  */
-bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetHypClass, HypData& target);
+bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, HypData& target);
 
 } // namespace hyperion

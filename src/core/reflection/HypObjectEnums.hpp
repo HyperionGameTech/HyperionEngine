@@ -3,7 +3,7 @@
 
 namespace hyperion {
 
-enum class HypClassAllocationMethod : uint8
+enum class ClassAllocationMethod : uint8
 {
     INVALID = uint8(-1),
 

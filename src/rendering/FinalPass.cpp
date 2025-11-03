@@ -11,6 +11,7 @@
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderSwapchain.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -139,8 +140,10 @@ void FinalPass::Create()
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     Assert(renderTextureToScreenShader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    const DescriptorTableDeclaration* descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    Assert(descriptorTableDecl != nullptr);
+
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

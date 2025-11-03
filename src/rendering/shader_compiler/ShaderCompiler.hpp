@@ -7,10 +7,15 @@
 
 #include <core/threading/Mutex.hpp>
 
+#include <core/containers/HashSet.hpp>
+#include <core/containers/Array.hpp>
+#include <core/containers/String.hpp>
+
+#include <core/utilities/Variant.hpp>
+
 #include <core/math/Vertex.hpp>
 
 #include <rendering/RenderShader.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
 
 #include <util/ini/INIFile.hpp>
 
@@ -18,6 +23,10 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
+
+struct DescriptorTableDeclaration;
+
+enum DescriptorSlot : uint32;
 
 HYP_ENUM()
 enum ShaderPropertyFlags : uint32
@@ -60,7 +69,7 @@ struct VertexAttributeDefinition
 };
 
 HYP_STRUCT()
-struct ShaderProperty
+struct HYP_API ShaderProperty
 {
     HYP_STRUCT_BODY(ShaderProperty);
 
@@ -819,7 +828,7 @@ struct DescriptorUsage
     HashMap<String, String> params;
 
     DescriptorUsage()
-        : slot(DESCRIPTOR_SLOT_NONE),
+        : slot((DescriptorSlot)0),
           setName(Name::Invalid()),
           flags(DescriptorUsageFlags::NONE)
     {
@@ -1005,7 +1014,7 @@ struct DescriptorUsageSet
     HYP_FIELD()
     FlatSet<DescriptorUsage> elements;
 
-    DescriptorTableDeclaration BuildDescriptorTableDeclaration() const;
+    void BuildDescriptorTableDeclaration(DescriptorTableDeclaration& table) const;
 
     HYP_FORCE_INLINE DescriptorUsage& operator[](SizeType index)
     {
@@ -1147,7 +1156,7 @@ struct ShaderDefinition
 };
 
 HYP_STRUCT()
-struct CompiledShader
+struct HYP_API CompiledShader
 {
     HYP_STRUCT_BODY(CompiledShader);
 
@@ -1155,7 +1164,7 @@ struct CompiledShader
     ShaderDefinition definition;
 
     HYP_FIELD(Property = "DescriptorTableDeclaration", Transient) // built after load, not serialized
-    DescriptorTableDeclaration descriptorTableDeclaration;
+    DescriptorTableDeclaration* descriptorTableDeclaration = nullptr;
 
     HYP_FIELD(Property = "DescriptorUsageSet")
     DescriptorUsageSet descriptorUsageSet;
@@ -1170,6 +1179,16 @@ struct CompiledShader
     HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
     uint64 GetRevisionNumber() const;
     /// ==============================
+
+    CompiledShader() = default;
+
+    CompiledShader(const CompiledShader& other);
+    CompiledShader& operator=(const CompiledShader& other);
+
+    CompiledShader(CompiledShader&& other) noexcept;
+    CompiledShader& operator=(CompiledShader&& other) noexcept;
+
+    ~CompiledShader();
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -1197,7 +1216,7 @@ struct CompiledShader
         return definition;
     }
 
-    HYP_FORCE_INLINE const DescriptorTableDeclaration& GetDescriptorTableDeclaration() const
+    HYP_FORCE_INLINE const DescriptorTableDeclaration* GetDescriptorTableDeclaration() const
     {
         return descriptorTableDeclaration;
     }

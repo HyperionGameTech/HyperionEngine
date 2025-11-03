@@ -13,7 +13,7 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
 class UIStage;
 class UIObject;
@@ -30,7 +30,7 @@ public:
     EditorObjectPropertiesBase& operator=(EditorObjectPropertiesBase&&) noexcept = delete;
     virtual ~EditorObjectPropertiesBase() = default;
 
-    const HypClass* GetClass() const;
+    const Class* GetClass() const;
 
     virtual Handle<UIObject> CreateUIObject(UIObject* parent) const = 0;
 

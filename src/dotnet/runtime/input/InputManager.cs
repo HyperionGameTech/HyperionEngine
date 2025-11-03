@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="InputManager")]
+    [ClassBinding(Name="InputManager")]
     public class InputManager : HypObject
     {
         public InputManager()

@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypStruct.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/Struct.hpp>
 
 #include <core/Name.hpp>
 
@@ -191,19 +191,19 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetArray(HypData* hypData, const HypClass* hypClass, HypData* elements, uint32 size)
+    HYP_EXPORT int8 HypData_SetArray(HypData* hypData, const Class* cls, HypData* elements, uint32 size)
     {
-        if (!hypData || !hypClass || !elements)
+        if (!hypData || !cls || !elements)
         {
             return false;
         }
 
-        if (!hypClass->CanCreateInstance())
+        if (!cls->CanCreateInstance())
         {
             return false;
         }
 
-        return hypClass->CreateInstanceArray(Span<HypData>(elements, elements + size), *hypData, /* allowAbstract */ false);
+        return cls->CreateInstanceArray(Span<HypData>(elements, elements + size), *hypData, /* allowAbstract */ false);
     }
 
     HYP_EXPORT int8 HypData_IsString(const HypData* hypData)
@@ -340,14 +340,14 @@ extern "C"
             return false;
         }
 
-        const HypClass* hypClass = GetClass(hypData->GetTypeId());
+        const Class* cls = GetClass(hypData->GetTypeId());
 
-        if (!hypClass)
+        if (!cls)
         {
             return false;
         }
 
-        if (!hypClass->IsClassType())
+        if (!cls->IsClassType())
         {
             return false;
         }
@@ -360,14 +360,14 @@ extern "C"
 
         dotnet::ObjectReference objectReference;
 
-        if (hypClass->GetManagedObject(hypData->ToRef().GetPointer(), objectReference))
+        if (cls->GetManagedObject(hypData->ToRef().GetPointer(), objectReference))
         {
             *outObjectReference = objectReference;
 
             return true;
         }
 
-        HYP_LOG(Object, Error, "Failed to get managed object for instance of HypClass {}", hypClass->GetName());
+        HYP_LOG(Object, Error, "Failed to get managed object for instance of Class {}", cls->GetName());
 
         return false;
 #else
@@ -375,24 +375,24 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT int8 HypData_SetHypObject(HypData* hypData, const HypClass* hypClass, void* address)
+    HYP_EXPORT int8 HypData_SetHypObject(HypData* hypData, const Class* cls, void* address)
     {
-        if (!hypData || !hypClass || !address)
+        if (!hypData || !cls || !address)
         {
             return false;
         }
 
-        const TypeId typeId = hypClass->GetTypeId();
+        const TypeId typeId = cls->GetTypeId();
 
-        if (hypClass->IsClassType())
+        if (cls->IsClassType())
         {
-            return hypClass->ToHypData(ByteView(reinterpret_cast<ubyte*>(address), hypClass->GetSize()), *hypData);
+            return cls->ToHypData(ByteView(reinterpret_cast<ubyte*>(address), cls->GetSize()), *hypData);
         }
 
         return false;
     }
 
-    HYP_EXPORT int8 HypData_GetHypStruct(const HypData* hypData, dotnet::ObjectReference* outObjectReference)
+    HYP_EXPORT int8 HypData_GetStruct(const HypData* hypData, dotnet::ObjectReference* outObjectReference)
     {
 #ifdef HYP_DOTNET
         if (!hypData || !outObjectReference)
@@ -409,23 +409,23 @@ extern "C"
 
         // @TODO Implement for dynamic struct types
 
-        const HypClass* hypClass = GetClass(hypData->GetTypeId());
+        const Class* cls = GetClass(hypData->GetTypeId());
 
-        if (!hypClass)
+        if (!cls)
         {
             return false;
         }
 
-        if (!hypClass->IsStructType())
+        if (!cls->IsStructType())
         {
             return false;
         }
 
-        if (RC<dotnet::ManagedClass> managedClass = hypClass->GetManagedClass())
+        if (RC<dotnet::ManagedClass> managedClass = cls->GetManagedClass())
         {
             Assert(managedClass->GetMarshalObjectFunction() != nullptr);
 
-            *outObjectReference = managedClass->GetMarshalObjectFunction()(ref.GetPointer(), uint32(hypClass->GetSize()));
+            *outObjectReference = managedClass->GetMarshalObjectFunction()(ref.GetPointer(), uint32(cls->GetSize()));
 
             return true;
         }
@@ -436,31 +436,31 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT int8 HypData_SetHypStruct(HypData* hypData, const HypClass* hypClass, uint32 size, void* objectPtr)
+    HYP_EXPORT int8 HypData_SetStruct(HypData* hypData, const Class* cls, uint32 size, void* objectPtr)
     {
-        if (!hypData || !hypClass || !objectPtr)
+        if (!hypData || !cls || !objectPtr)
         {
             return false;
         }
 
-        if (!hypClass->IsStructType())
+        if (!cls->IsStructType())
         {
-            HYP_LOG(Object, Error, "HypClass {} is not a struct type", hypClass->GetName());
+            HYP_LOG(Object, Error, "Class {} is not a struct type", cls->GetName());
 
             return false;
         }
 
-        const HypStruct* hypStruct = static_cast<const HypStruct*>(hypClass);
+        const Struct* pStruct = static_cast<const Struct*>(cls);
 
-        if (size != hypStruct->GetSize())
+        if (size != pStruct->GetSize())
         {
-            HYP_LOG(Object, Error, "Given a buffer size of {} but HypClass {} has a size of {}",
-                size, hypClass->GetName(), hypStruct->GetSize());
+            HYP_LOG(Object, Error, "Given a buffer size of {} but Class {} has a size of {}",
+                size, cls->GetName(), pStruct->GetSize());
 
             return false;
         }
 
-        return hypStruct->ToHypData(ByteView(reinterpret_cast<ubyte*>(objectPtr), size), *hypData);
+        return pStruct->ToHypData(ByteView(reinterpret_cast<ubyte*>(objectPtr), size), *hypData);
     }
 
     HYP_EXPORT int8 HypData_IsByteBuffer(const HypData* hypData)

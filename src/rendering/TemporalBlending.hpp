@@ -18,6 +18,8 @@ class GBuffer;
 class Texture;
 struct RenderSetup;
 
+enum TextureFormat : uint32;
+
 enum class TemporalBlendTechnique
 {
     TECHNIQUE_0,

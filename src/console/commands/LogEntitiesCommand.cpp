@@ -2,7 +2,7 @@
 
 #include <console/commands/LogEntitiesCommand.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/io/ByteWriter.hpp>
 

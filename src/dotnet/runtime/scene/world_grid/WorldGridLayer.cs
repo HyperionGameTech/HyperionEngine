@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "WorldGridLayerInfo")]
+    [ClassBinding(Name = "WorldGridLayerInfo")]
     [StructLayout(LayoutKind.Explicit, Size = 80, Pack = 16)]
     public struct WorldGridLayerInfo
     {
@@ -32,7 +32,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name = "WorldGridLayer")]
+    [ClassBinding(Name = "WorldGridLayer")]
     public class WorldGridLayer : HypObject
     {
         public WorldGridLayer() : base()

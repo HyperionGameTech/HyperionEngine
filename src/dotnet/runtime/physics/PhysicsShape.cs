@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="PhysicsShape")]
+    [ClassBinding(Name="PhysicsShape")]
     public abstract class PhysicsShape : HypObject
     {
         public PhysicsShape()
@@ -11,7 +11,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="BoxPhysicsShape")]
+    [ClassBinding(Name="BoxPhysicsShape")]
     public class BoxPhysicsShape : PhysicsShape
     {
         public BoxPhysicsShape()
@@ -19,7 +19,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="SpherePhysicsShape")]
+    [ClassBinding(Name="SpherePhysicsShape")]
     public class SpherePhysicsShape : PhysicsShape
     {
         public SpherePhysicsShape()
@@ -27,7 +27,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="PlanePhysicsShape")]
+    [ClassBinding(Name="PlanePhysicsShape")]
     public class PlanePhysicsShape : PhysicsShape
     {
         public PlanePhysicsShape()
@@ -35,7 +35,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="ConvexHullPhysicsShape")]
+    [ClassBinding(Name="ConvexHullPhysicsShape")]
     public class ConvexHullPhysicsShape : PhysicsShape
     {
         public ConvexHullPhysicsShape()

@@ -3,10 +3,10 @@
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMObject.hpp>
-#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
+#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -20,14 +20,14 @@
 
 namespace hyperion::serialization {
 
-class EditorProjectMarshal : public HypClassInstanceMarshal
+class EditorProjectMarshal : public ObjectMarshal
 {
 public:
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
         const EditorProject& editorProject = in.Get<EditorProject>();
 
-        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
+        if (FBOMResult err = ObjectMarshal::Serialize(in, out))
         {
             return err;
         }
@@ -40,7 +40,7 @@ public:
         Handle<EditorProject> editorProject = CreateObject<EditorProject>();
         out = HypData(editorProject);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, EditorProject::Class(), out))
+        if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, EditorProject::StaticClass(), out))
         {
             return err;
         }

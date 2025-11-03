@@ -150,7 +150,7 @@ public:
     RC<AstClass> ParseClass(
         bool requireKeyword = true,
         bool allowIdentifier = true,
-        EnumFlags<ClassFlags> classFlags = ClassFlags::CLASS_FLAG_NONE,
+        EnumFlags<AstClassFlags> classFlags = CLASS_FLAG_NONE,
         String typeName = "<Anonymous Type>");
     RC<AstStatement> ParseEnumDefinition();
     RC<AstImport> ParseImport();

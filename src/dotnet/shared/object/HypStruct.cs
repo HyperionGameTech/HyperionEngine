@@ -4,21 +4,21 @@ using System.Collections.Concurrent;
 
 namespace Hyperion
 {
-    public class HypStructHelpers
+    public class StructHelpers
     {
-        public static bool IsHypStruct(Type type, out HypClass? outHypClass)
+        public static bool IsStruct(Type type, out Class? outClass)
         {
-            outHypClass = null;
+            outClass = null;
 
-            HypClassBinding hypClassBindingAttribute = HypClassBinding.ForType(type);
+            ClassBinding classBindingAttribute = ClassBinding.ForType(type);
 
-            if (hypClassBindingAttribute != null)
+            if (classBindingAttribute != null)
             {
-                HypClass hypClass = hypClassBindingAttribute.GetClass(type);
+                Class cls = classBindingAttribute.GetClass(type);
 
-                if (hypClass.IsValid && hypClass.IsStructType)
+                if (cls.IsValid && cls.IsStructType)
                 {
-                    outHypClass = hypClass;
+                    outClass = cls;
 
                     return true;
                 }
@@ -28,24 +28,24 @@ namespace Hyperion
         }
     }
 
-    public delegate IntPtr CopyDynamicHypStructDelegate(IntPtr ptr);
-    public delegate void DestructDynamicHypStructDelegate(IntPtr ptr);
+    public delegate IntPtr CopyDynamicStructDelegate(IntPtr ptr);
+    public delegate void DestructDynamicStructDelegate(IntPtr ptr);
 
-    public class DynamicHypStruct : IDisposable
+    public class DynamicStruct : IDisposable
     {
-        private static readonly Dictionary<Type, DynamicHypStruct> cache = new Dictionary<Type, DynamicHypStruct>();
+        private static readonly Dictionary<Type, DynamicStruct> cache = new Dictionary<Type, DynamicStruct>();
         private static readonly object cacheLock = new object();
-        private static readonly ConcurrentDictionary<TypeId, DynamicHypStruct> typeIdCache = new ConcurrentDictionary<TypeId, DynamicHypStruct>();
+        private static readonly ConcurrentDictionary<TypeId, DynamicStruct> typeIdCache = new ConcurrentDictionary<TypeId, DynamicStruct>();
         private static readonly object typeIdCacheLock = new object();
 
-        private HypClass hypClass;
+        private Class cls;
         private Type type;
         private GCHandle? copyFunctionHandle;
         private GCHandle? destructFunctionHandle;
-        private bool ownsHypClass;
+        private bool ownsClass;
 
         // Must be a blittable type
-        internal DynamicHypStruct(Type type)
+        internal DynamicStruct(Type type)
         {
             this.type = type;
 
@@ -55,11 +55,11 @@ namespace Hyperion
             {
                 if (typeIdCache.ContainsKey(typeId))
                 {
-                    DynamicHypStruct existingDynamicHypStruct = typeIdCache[typeId];
-                    Assert.Throw(existingDynamicHypStruct.type == type, "TypeId already exists for a different type: " + type.Name + " (hashcode: " + type.GetHashCode() + ") != " + existingDynamicHypStruct.type.Name + " (hashcode: " + existingDynamicHypStruct.type.GetHashCode() + ")");
+                    DynamicStruct existingDynamicStruct = typeIdCache[typeId];
+                    Assert.Throw(existingDynamicStruct.type == type, "TypeId already exists for a different type: " + type.Name + " (hashcode: " + type.GetHashCode() + ") != " + existingDynamicStruct.type.Name + " (hashcode: " + existingDynamicStruct.type.GetHashCode() + ")");
 
-                    hypClass = existingDynamicHypStruct.hypClass;
-                    ownsHypClass = false;
+                    cls = existingDynamicStruct.cls;
+                    ownsClass = false;
 
                     return;
                 }
@@ -68,28 +68,28 @@ namespace Hyperion
                 typeIdCache[typeId] = this;
             }
 
-            CopyDynamicHypStructDelegate copyFunction = GetCopyFunction(type);
+            CopyDynamicStructDelegate copyFunction = GetCopyFunction(type);
             copyFunctionHandle = GCHandle.Alloc(copyFunction);
 
-            DestructDynamicHypStructDelegate destructFunction = GetDestructFunction(type);
+            DestructDynamicStructDelegate destructFunction = GetDestructFunction(type);
             destructFunctionHandle = GCHandle.Alloc(destructFunction);
 
-            Logger.Log(LogType.Debug, "Creating dynamic HypStruct for type: " + type.Name);
+            Logger.Log(LogType.Debug, "Creating dynamic Struct for type: " + type.Name);
 
-            IntPtr hypClassPtr = HypStruct_CreateDynamicHypStruct(
+            IntPtr classPtr = Struct_CreateDynamicStruct(
                 ref typeId,
                 type.Name,
                 (uint)Marshal.SizeOf(type),
                 Marshal.GetFunctionPointerForDelegate(copyFunction),
                 Marshal.GetFunctionPointerForDelegate(destructFunction));
 
-            if (hypClassPtr == IntPtr.Zero)
+            if (classPtr == IntPtr.Zero)
             {
-                throw new Exception("Failed to create dynamic HypStruct");
+                throw new Exception("Failed to create dynamic Struct");
             }
 
-            hypClass = new HypClass(hypClassPtr);
-            ownsHypClass = true;
+            cls = new Class(classPtr);
+            ownsClass = true;
 
             lock (cacheLock)
             {
@@ -97,21 +97,21 @@ namespace Hyperion
             }
         }
 
-        ~DynamicHypStruct()
+        ~DynamicStruct()
         {
-            if (ownsHypClass)
-                HypStruct_DestroyDynamicHypStruct(hypClass.Address);
+            if (ownsClass)
+                Struct_DestroyDynamicStruct(cls.Address);
 
             destructFunctionHandle?.Free();
         }
 
         public void Dispose()
         {
-            if (ownsHypClass)
+            if (ownsClass)
             {
-                HypStruct_DestroyDynamicHypStruct(hypClass.Address);
+                Struct_DestroyDynamicStruct(cls.Address);
 
-                ownsHypClass = false;
+                ownsClass = false;
             }
 
             destructFunctionHandle?.Free();
@@ -120,11 +120,11 @@ namespace Hyperion
             GC.SuppressFinalize(this);
         }
 
-        public HypClass HypClass
+        public Class Class
         {
             get
             {
-                return hypClass;
+                return cls;
             }
         }
 
@@ -139,7 +139,7 @@ namespace Hyperion
         public object? MarshalFromHypData(ref HypDataBuffer buffer)
         {
             TypeId typeId = buffer.TypeId;
-            Assert.Throw(typeId == hypClass.TypeId, "TypeId mismatch: " + typeId + " != " + hypClass.TypeId);
+            Assert.Throw(typeId == cls.TypeId, "TypeId mismatch: " + typeId + " != " + cls.TypeId);
 
             IntPtr hypDataPtr = buffer.Pointer;
 
@@ -151,31 +151,31 @@ namespace Hyperion
             return Marshal.PtrToStructure(hypDataPtr, type);
         }
 
-        public static DynamicHypStruct GetOrCreate<T>()
+        public static DynamicStruct GetOrCreate<T>()
         {
             return GetOrCreate(typeof(T));
         }
 
-        public static DynamicHypStruct GetOrCreate(Type type)
+        public static DynamicStruct GetOrCreate(Type type)
         {
             lock (cacheLock)
             {
-                DynamicHypStruct? dynamicHypStruct;
+                DynamicStruct? dynamicStruct;
 
-                if (!cache.TryGetValue(type, out dynamicHypStruct))
+                if (!cache.TryGetValue(type, out dynamicStruct))
                 {
-                    dynamicHypStruct = new DynamicHypStruct(type);
+                    dynamicStruct = new DynamicStruct(type);
                 }
 
-                return dynamicHypStruct;
+                return dynamicStruct;
             }
         }
 
-        public static bool TryGet(TypeId typeId, out DynamicHypStruct? dynamicHypStruct)
+        public static bool TryGet(TypeId typeId, out DynamicStruct? dynamicStruct)
         {
-            dynamicHypStruct = null;
+            dynamicStruct = null;
 
-            if (typeIdCache.TryGetValue(typeId, out dynamicHypStruct))
+            if (typeIdCache.TryGetValue(typeId, out dynamicStruct))
             {
                 return true;
             }
@@ -183,7 +183,7 @@ namespace Hyperion
             return false;
         }
 
-        private static unsafe DestructDynamicHypStructDelegate GetDestructFunction(Type type)
+        private static unsafe DestructDynamicStructDelegate GetDestructFunction(Type type)
         {
             return (ptr) =>
             {
@@ -197,7 +197,7 @@ namespace Hyperion
             };
         }
 
-        public static unsafe CopyDynamicHypStructDelegate GetCopyFunction(Type type)
+        public static unsafe CopyDynamicStructDelegate GetCopyFunction(Type type)
         {
             return (ptr) =>
             {
@@ -205,7 +205,7 @@ namespace Hyperion
 
                 if (newPtr == IntPtr.Zero)
                 {
-                    throw new Exception("Failed to allocate memory for copy of dynamic HypStruct");
+                    throw new Exception("Failed to allocate memory for copy of dynamic Struct");
                 }
 
                 // Copy memory
@@ -215,15 +215,15 @@ namespace Hyperion
             };
         }
 
-        [DllImport("hyperion", EntryPoint = "HypStruct_CreateDynamicHypStruct")]
-        private static extern IntPtr HypStruct_CreateDynamicHypStruct(
+        [DllImport("hyperion", EntryPoint = "Struct_CreateDynamicStruct")]
+        private static extern IntPtr Struct_CreateDynamicStruct(
             [In] ref TypeId typeId,
             [MarshalAs(UnmanagedType.LPStr)] string typeName,
             uint size,
             IntPtr copyFunction,
             IntPtr destructFunction);
 
-        [DllImport("hyperion", EntryPoint = "HypStruct_DestroyDynamicHypStruct")]
-        private static extern void HypStruct_DestroyDynamicHypStruct([In] IntPtr hypClassPtr);
+        [DllImport("hyperion", EntryPoint = "Struct_DestroyDynamicStruct")]
+        private static extern void Struct_DestroyDynamicStruct([In] IntPtr classPtr);
     }
 }

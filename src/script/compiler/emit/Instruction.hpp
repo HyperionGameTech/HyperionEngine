@@ -11,11 +11,11 @@
 #include <core/containers/String.hpp>
 #include <core/reflection/TypeId.hpp>
 
-#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/ClassAttribute.hpp>
 
 namespace hyperion {
 enum class HypMethodFlags : uint8;
-enum class HypClassFlags : uint8;
+enum class ClassFlags : uint8;
 } // namespace hyperion
 
 namespace hyperion {
@@ -284,7 +284,7 @@ struct ClassTable final : public Buildable
     {
         String name;
         TypeId typeId;
-        HypClassAttributeSet attrs;
+        ClassAttributeSet attrs;
         uint16 stackOffset = UINT16_MAX;
     };
 
@@ -312,7 +312,7 @@ struct ClassTable final : public Buildable
     Array<FieldInfo> fields;
     Array<MethodInfo> methods;
     Array<StaticFieldInfo> staticFields;
-    HypClassFlags flags = (HypClassFlags)0;
+    ClassFlags flags = (ClassFlags)0;
 
     ~ClassTable() override = default;
 };

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypData.hpp>
 
 #include <core/serialization/fbom/FBOMObject.hpp>
@@ -19,24 +19,24 @@ namespace serialization {
 class FBOMLoadContext;
 } // namespace serialization
 
-class HypStruct : public HypClass
+class Struct : public Class
 {
 public:
-    HypStruct(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClass(typeId, name, staticIndex, numDescendants, parentName, attributes, flags, members)
+    Struct(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+        : Class(typeId, name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
     }
 
-    virtual ~HypStruct() override = default;
+    virtual ~Struct() override = default;
 
     virtual bool IsValid() const override
     {
         return true;
     }
 
-    virtual HypClassAllocationMethod GetAllocationMethod() const override
+    virtual ClassAllocationMethod GetAllocationMethod() const override
     {
-        return HypClassAllocationMethod::NONE;
+        return ClassAllocationMethod::NONE;
     }
 
     virtual bool CanCreateInstance() const override = 0;
@@ -58,42 +58,42 @@ protected:
 };
 
 template <class T>
-class HypStructInstance final : public HypStruct
+class StructInstance final : public Struct
 {
 public:
     static_assert(!std::is_base_of_v<HypObjectBase, T>, "Type derives from HypObjectBase; use HYP_CLASS instead.");
 
     using PostLoadCallback = void (*)(T&);
 
-    static HypStructInstance& GetInstance(
+    static StructInstance& GetInstance(
         Name name,
         int staticIndex,
         uint32 numDescendants,
         Name parentName,
-        Span<const HypClassAttribute> attributes,
-        EnumFlags<HypClassFlags> flags,
+        Span<const ClassAttribute> attributes,
+        EnumFlags<ClassFlags> flags,
         Span<HypMember> members)
     {
-        static HypStructInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
+        static StructInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
 
         return s_instance;
     }
 
-    HypStructInstance(
+    StructInstance(
         Name name,
         int staticIndex,
         uint32 numDescendants,
         Name parentName,
-        Span<const HypClassAttribute> attributes,
-        EnumFlags<HypClassFlags> flags,
+        Span<const ClassAttribute> attributes,
+        EnumFlags<ClassFlags> flags,
         Span<HypMember> members)
-        : HypStruct(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
+        : Struct(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
         m_size = sizeof(T);
         m_alignment = alignof(T);
     }
 
-    virtual ~HypStructInstance() override = default;
+    virtual ~StructInstance() override = default;
 
 #ifdef HYP_DOTNET
     virtual bool GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const override
@@ -143,8 +143,8 @@ public:
         HYP_SCOPE;
         HYP_CORE_ASSERT(in.Is<T>());
 
-        const FBOMMarshalerBase* marshal = (GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
-            ? FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
+        const FBOMMarshalerBase* marshal = (GetSerializationMode() & ClassSerializationMode::USE_MARSHAL_CLASS)
+            ? FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ (GetSerializationMode() & ClassSerializationMode::MEMBERWISE))
             : nullptr;
 
         if (marshal)
@@ -157,7 +157,7 @@ public:
             return FBOMResult::FBOM_OK;
         }
 
-        if (GetSerializationMode() & HypClassSerializationMode::BITWISE)
+        if (GetSerializationMode() & ClassSerializationMode::BITWISE)
         {
             if constexpr (std::is_abstract_v<T>)
             {
@@ -188,8 +188,8 @@ public:
             return { FBOMResult::FBOM_ERR, "Cannot deserialize object into struct - type mismatch" };
         }
 
-        const FBOMMarshalerBase* marshal = (GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
-            ? FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
+        const FBOMMarshalerBase* marshal = (GetSerializationMode() & ClassSerializationMode::USE_MARSHAL_CLASS)
+            ? FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ (GetSerializationMode() & ClassSerializationMode::MEMBERWISE))
             : nullptr;
 
         if (marshal)
@@ -202,7 +202,7 @@ public:
             return FBOMResult::FBOM_OK;
         }
 
-        if (GetSerializationMode() & HypClassSerializationMode::BITWISE)
+        if (GetSerializationMode() & ClassSerializationMode::BITWISE)
         {
             if constexpr (std::is_abstract_v<T>)
             {
@@ -235,14 +235,14 @@ protected:
             return;
         }
 
-        const IHypClassCallbackWrapper* callbackWrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeId());
+        const IClassCallbackWrapper* callbackWrapper = ClassCallbackCollection<ClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeId());
 
         if (!callbackWrapper)
         {
             return;
         }
 
-        const HypClassCallbackWrapper<PostLoadCallback>* callbackWrapperCasted = dynamic_cast<const HypClassCallbackWrapper<PostLoadCallback>*>(callbackWrapper);
+        const ClassCallbackWrapper<PostLoadCallback>* callbackWrapperCasted = dynamic_cast<const ClassCallbackWrapper<PostLoadCallback>*>(callbackWrapper);
         HYP_CORE_ASSERT(callbackWrapperCasted != nullptr);
 
         callbackWrapperCasted->GetCallback()(*static_cast<T*>(objectPtr));
@@ -283,23 +283,23 @@ protected:
     }
 };
 
-using DynamicHypStructInstance_CopyFunction = void* (*)(const void*);
-using DynamicHypStructInstance_DestructFunction = void (*)(void*);
+using DynamicStructInstance_CopyFunction = void* (*)(const void*);
+using DynamicStructInstance_DestructFunction = void (*)(void*);
 
-class DynamicHypStructInstance final : public HypStruct
+class DynamicStructInstance final : public Struct
 {
 public:
-    DynamicHypStructInstance(
+    DynamicStructInstance(
         TypeId typeId,
         Name name,
         uint32 size,
-        Span<const HypClassAttribute> attributes,
-        EnumFlags<HypClassFlags> flags,
+        Span<const ClassAttribute> attributes,
+        EnumFlags<ClassFlags> flags,
         Span<HypMember> members,
-        DynamicHypStructInstance_CopyFunction copyFunction,
-        DynamicHypStructInstance_DestructFunction destructFunction);
+        DynamicStructInstance_CopyFunction copyFunction,
+        DynamicStructInstance_DestructFunction destructFunction);
 
-    virtual ~DynamicHypStructInstance() override;
+    virtual ~DynamicStructInstance() override;
 
 #ifdef HYP_DOTNET
     virtual bool GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const override;
@@ -341,8 +341,8 @@ protected:
         return false;
     }
 
-    DynamicHypStructInstance_CopyFunction m_copyFunction;
-    DynamicHypStructInstance_DestructFunction m_destructFunction;
+    DynamicStructInstance_CopyFunction m_copyFunction;
+    DynamicStructInstance_DestructFunction m_destructFunction;
 };
 
 } // namespace hyperion

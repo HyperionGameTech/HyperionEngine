@@ -19,10 +19,10 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
-extern HYP_API const HypClass* GetClass(TypeId typeId);
-extern HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
+HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 
 namespace memory {
 
@@ -275,23 +275,23 @@ public:
     }
 
     /*! \brief Returns true if the held object is of type T.
-     *  If T has a HypClass registered, this function will also return true if the held object is a subclass of T. */
+     *  If T has a Class registered, this function will also return true if the held object is a subclass of T. */
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
         const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
         const void* ptr = GetPointer();
         const TypeId held = GetTypeId();
-        return held == typeId || IsA(GetClass(typeId), ptr, held);
+        return held == typeId || IsA(hyperion::GetClass(typeId), ptr, held);
     }
 
     /*! \brief Returns true if the held object is of type \ref{typeId}.
-     *  If the type with the given Id has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
+     *  If the type with the given Id has a Class registered, this function will also return true if the held object is a subclass of the type. */
     HYP_FORCE_INLINE bool Is(TypeId typeId) const
     {
         const void* ptr = GetPointer();
         const TypeId held = GetTypeId();
-        return held == typeId || IsA(GetClass(typeId), ptr, held);
+        return held == typeId || IsA(hyperion::GetClass(typeId), ptr, held);
     }
 
     /*! \brief Returns the held object as a reference to type T. If the held object is not of type T, an assertion will fail. */

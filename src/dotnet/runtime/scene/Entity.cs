@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Entity")]
+    [ClassBinding(Name="Entity")]
     public class Entity : Node
     {
         public ObjIdBase Id

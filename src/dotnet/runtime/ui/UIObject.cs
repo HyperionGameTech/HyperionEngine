@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name= "ScrollAxis")]
+    [ClassBinding(Name= "ScrollAxis")]
     [Flags]
     public enum ScrollAxis : byte
     {
@@ -14,7 +14,7 @@ namespace Hyperion
         All = Horizontal | Vertical
     }
 
-    [HypClassBinding(Name="UIEventHandlerResult")]
+    [ClassBinding(Name="UIEventHandlerResult")]
     [StructLayout(LayoutKind.Explicit, Size=24, Pack=8)]
     public struct UIEventHandlerResult
     {
@@ -128,7 +128,7 @@ namespace Hyperion
         private static extern IntPtr UIEventHandlerResult_GetFunctionName(ref UIEventHandlerResult result);
     }
 
-    [HypClassBinding(Name="UIObjectAlignment")]
+    [ClassBinding(Name="UIObjectAlignment")]
     public enum UIObjectAlignment : uint
     {
         TopLeft = 0,
@@ -148,7 +148,7 @@ namespace Hyperion
         Default = Pixel
     }
 
-    [HypClassBinding(Name="UIObjectBorderFlags")]
+    [ClassBinding(Name="UIObjectBorderFlags")]
     [Flags]
     public enum UIObjectBorderFlags : uint
     {
@@ -161,7 +161,7 @@ namespace Hyperion
     }
 
 
-    [HypClassBinding(Name="UIObjectAspectRatio")]
+    [ClassBinding(Name="UIObjectAspectRatio")]
     [StructLayout(LayoutKind.Sequential, Size=8)]
     public unsafe struct UIObjectAspectRatio
     {
@@ -199,7 +199,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="UIObjectSize")]
+    [ClassBinding(Name="UIObjectSize")]
     [StructLayout(LayoutKind.Sequential, Size=16)]
     public unsafe struct UIObjectSize
     {
@@ -270,7 +270,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="UIObject")]
+    [ClassBinding(Name="UIObject")]
     public class UIObject : HypObject
     {
         public UIObject()
@@ -295,7 +295,7 @@ namespace Hyperion
         public T Spawn<T>(Name name, Vec2i position, UIObjectSize size) where T : UIObject
         {
             HypDataBuffer hypDataBuffer;
-            UIObject_Spawn(NativeAddress, HypClass.GetClass(typeof(T)).Address, ref name, ref position, ref size, out hypDataBuffer);
+            UIObject_Spawn(NativeAddress, Class.GetClass(typeof(T)).Address, ref name, ref position, ref size, out hypDataBuffer);
 
             UIObject? result = (UIObject?)hypDataBuffer.GetValue();
 
@@ -321,7 +321,7 @@ namespace Hyperion
         {
             HypDataBuffer hypDataBuffer;
 
-            if (!UIObject_Find(NativeAddress, HypClass.GetClass(typeof(UIObject)).Address, ref name, out hypDataBuffer))
+            if (!UIObject_Find(NativeAddress, Class.GetClass(typeof(UIObject)).Address, ref name, out hypDataBuffer))
             {
                 return null;
             }
@@ -337,7 +337,7 @@ namespace Hyperion
         {
             HypDataBuffer hypDataBuffer;
 
-            if (!UIObject_Find(NativeAddress, HypClass.GetClass(typeof(T)).Address, ref name, out hypDataBuffer))
+            if (!UIObject_Find(NativeAddress, Class.GetClass(typeof(T)).Address, ref name, out hypDataBuffer))
             {
                 return null;
             }
@@ -350,10 +350,10 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint="UIObject_Spawn")]
-        private static extern void UIObject_Spawn([In] IntPtr spawnParentPtr, [In] IntPtr hypClassPtr, [In] ref Name name, [In] ref Vec2i position, [In] ref UIObjectSize size, [Out] out HypDataBuffer outHypData);
+        private static extern void UIObject_Spawn([In] IntPtr spawnParentPtr, [In] IntPtr classPtr, [In] ref Name name, [In] ref Vec2i position, [In] ref UIObjectSize size, [Out] out HypDataBuffer outHypData);
 
         [DllImport("hyperion", EntryPoint="UIObject_Find")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool UIObject_Find([In] IntPtr parentPtr, [In] IntPtr hypClassPtr, [In] ref Name name, [Out] out HypDataBuffer outHypData);
+        private static extern bool UIObject_Find([In] IntPtr parentPtr, [In] IntPtr classPtr, [In] ref Name name, [Out] out HypDataBuffer outHypData);
     }
 }

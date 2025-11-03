@@ -6,8 +6,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
 
@@ -31,9 +31,9 @@
 namespace hyperion {
 
 #ifdef HYP_BUILDTOOL
-const HypClass* g_clsHypObjectBase = nullptr;
+const Class* g_clsHypObjectBase = nullptr;
 #else
-HYP_API extern const HypClass* g_clsHypObjectBase;
+HYP_API extern const Class* g_clsHypObjectBase;
 #endif
 
 #pragma region HypObjectInitializerGuardBase
@@ -52,7 +52,7 @@ HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
 
     // Push NONE to prevent our current flags from polluting allocations that happen in the constructor
     PushGlobalContext(HypObjectInitializerContext {
-        .hypClass = ptr.GetClass(),
+        .cls = ptr.GetClass(),
         .flags = HypObjectInitializerFlags::NONE });
 }
 
@@ -65,8 +65,8 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
         return;
     }
 
-    const HypClass* hypClass = ptr.GetClass();
-    AssertDebug(hypClass->UseHandles()); // check is HypObjectBase
+    const Class* cls = ptr.GetClass();
+    AssertDebug(cls->UseHandles()); // check is HypObjectBase
 
     HypObjectBase* target = reinterpret_cast<HypObjectBase*>(ptr.GetPointer());
     AssertDebug(target->GetObjectHeader_Internal()->GetRefCountStrong() == 1);
@@ -75,14 +75,14 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
     AssertDebug(target->GetScriptObjectResource() == nullptr);
 #endif
 
-    if (!(ptr.GetClass()->GetFlags() & HypClassFlags::NO_SCRIPT_BINDINGS))
+    if (!(ptr.GetClass()->GetFlags() & ClassFlags::NO_SCRIPT_BINDINGS))
     {
         HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
 
-        if ((!context || !(context->flags & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) && !hypClass->IsAbstract())
+        if ((!context || !(context->flags & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) && !cls->IsAbstract())
         {
 #ifdef HYP_DOTNET
-            if (RC<dotnet::ManagedClass> managedClass = hypClass->GetManagedClass())
+            if (RC<dotnet::ManagedClass> managedClass = cls->GetManagedClass())
             {
                 ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, managedClass);
 
@@ -116,7 +116,7 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 HypObjectBase* HypObjectHeader::GetObjectPointer(HypObjectHeader* header)
 {
     AssertDebug(header != nullptr);
-    AssertDebug(header->hypClass != nullptr);
+    AssertDebug(header->cls != nullptr);
 
     // get pointer to object
     HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + sizeof(HypObjectHeader));
@@ -127,7 +127,7 @@ HypObjectBase* HypObjectHeader::GetObjectPointer(HypObjectHeader* header)
 void HypObjectHeader::DestructThisObject(HypObjectHeader* header)
 {
     AssertDebug(header != nullptr);
-    AssertDebug(header->hypClass != nullptr);
+    AssertDebug(header->cls != nullptr);
 
     // get pointer to object
     HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + sizeof(HypObjectHeader));
@@ -146,7 +146,7 @@ HypObjectBase::HypObjectBase()
     m_scriptObjectResource = nullptr;
 #endif
 
-#ifndef HYP_BUILDTOOL // If we're building the Build Tool we won't have access to HypClass data
+#ifndef HYP_BUILDTOOL // If we're building the Build Tool we won't have access to Class data
     // get the header by subtracting the offset from this pointer
     m_header = reinterpret_cast<HypObjectHeader*>(UIntPtr(this) - sizeof(HypObjectHeader));
 #endif
@@ -160,20 +160,20 @@ HypObjectBase::~HypObjectBase()
     {
 #ifdef HYP_SCRIPT
         // destruct all dynamic fields
-        if (m_scriptObjectResource->GetScriptLanguage() == SL_HYPSCRIPT && m_header->hypClass->IsDynamic())
+        if (m_scriptObjectResource->GetScriptLanguage() == SL_HYPSCRIPT && m_header->cls->IsDynamic())
         {
-            const HypClass* hypClass = m_header->hypClass;
+            const Class* cls = m_header->cls;
 
             SizeType fieldOffset = sizeof(HypObjectBase);
 
             // `class` field
-            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypClassRef));
-            HypClassRef* classFieldPtr = (HypClassRef*)(UIntPtr(this) + fieldOffset);
-            fieldOffset += sizeof(HypClassRef);
+            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(ClassRef));
+            ClassRef* classFieldPtr = (ClassRef*)(UIntPtr(this) + fieldOffset);
+            fieldOffset += sizeof(ClassRef);
 
-            while (hypClass != nullptr && hypClass->IsDynamic())
+            while (cls != nullptr && cls->IsDynamic())
             {
-                for (HypField* field : hypClass->GetFields())
+                for (HypField* field : cls->GetFields())
                 {
                     // align field offset
                     fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
@@ -184,11 +184,11 @@ HypObjectBase::~HypObjectBase()
                     fieldOffset += sizeof(HypData);
                 }
 
-                hypClass = hypClass->GetParent();
+                cls = cls->GetParent();
             }
 
             // destruct the `class` field last:
-            classFieldPtr->~HypClassRef();
+            classFieldPtr->~ClassRef();
         }
 #endif
 
@@ -198,7 +198,7 @@ HypObjectBase::~HypObjectBase()
 #endif
 }
 
-const HypClass* HypObjectBase::Class()
+const Class* HypObjectBase::StaticClass()
 {
     return g_clsHypObjectBase;
 }

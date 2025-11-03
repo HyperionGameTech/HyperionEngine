@@ -3,7 +3,7 @@
 #pragma once
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/ClassAttribute.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 
 #include <core/Defines.hpp>
@@ -27,12 +27,12 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
 class HypConstant : public IHypMember
 {
 public:
-    HypConstant(Name name, const TypeInfo* typeInfo, uint32 size, Span<const HypClassAttribute> attributes = {})
+    HypConstant(Name name, const TypeInfo* typeInfo, uint32 size, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_typeInfo(typeInfo),
           m_size(size),
@@ -42,7 +42,7 @@ public:
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
-    HypConstant(Name name, ConstantType value, Span<const HypClassAttribute> attributes = {})
+    HypConstant(Name name, ConstantType value, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
@@ -65,7 +65,7 @@ public:
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
-    HypConstant(Name name, const ConstantType* pValue, Span<const HypClassAttribute> attributes = {})
+    HypConstant(Name name, const ConstantType* pValue, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
@@ -157,17 +157,17 @@ public:
         return HYP_MAKE_ERROR(Error, "Constant cannot be deserialized");
     }
 
-    virtual const HypClassAttributeSet& GetAttributes() const override
+    virtual const ClassAttributeSet& GetAttributes() const override
     {
         return m_attributes;
     }
 
-    virtual const HypClassAttributeValue& GetAttribute(WeakName key) const override
+    virtual const ClassAttributeValue& GetAttribute(WeakName key) const override
     {
         return m_attributes.Get(key);
     }
 
-    virtual const HypClassAttributeValue& GetAttribute(WeakName key, const HypClassAttributeValue& defaultValue) const override
+    virtual const ClassAttributeValue& GetAttribute(WeakName key, const ClassAttributeValue& defaultValue) const override
     {
         return m_attributes.Get(key, defaultValue);
     }
@@ -193,7 +193,7 @@ private:
     Name m_name;
     const TypeInfo* m_typeInfo;
     uint32 m_size;
-    HypClassAttributeSet m_attributes;
+    ClassAttributeSet m_attributes;
 
     Proc<HypData()> m_getProc;
     Proc<Result(FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;

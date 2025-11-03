@@ -9,6 +9,7 @@
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderGpuImage.hpp>
+#include <rendering/RenderCollection.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -294,9 +295,8 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
     ShaderRef raytracingShader = g_shaderManager->GetOrCreate(NAME("DDGI"));
     Assert(raytracingShader != nullptr);
 
-    const DescriptorTableDeclaration& descriptorTableDecl = raytracingShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        raytracingShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -331,9 +331,8 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
 
     for (auto& [shader, computePipeline] : computePipelines)
     {
-        const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+            shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {

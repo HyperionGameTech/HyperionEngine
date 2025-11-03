@@ -21,6 +21,10 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
+namespace RenderApi {
+HYP_API extern uint32 GetFrameCounter();
+} // namespace RenderApi
+
 static constexpr int MinResidency = 1;
 static constexpr int MaxResidency = 10;
 
@@ -118,7 +122,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         return;
     }
 
-    AssertDebug(std::is_final_v<Mesh> || mesh->InstanceClass() == Mesh::Class());
+    AssertDebug(std::is_final_v<Mesh> || mesh->InstanceClass() == Mesh::StaticClass());
 
     const uint32 fc = RenderApi::GetFrameCounter();
 

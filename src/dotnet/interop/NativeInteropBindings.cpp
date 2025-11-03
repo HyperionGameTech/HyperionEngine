@@ -15,8 +15,8 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/ManagedObject.hpp>
@@ -35,28 +35,27 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(DotNET);
 } // namespace hyperion
 
-static AttributeSet InternManagedAttributeHolder(ManagedAttributeHolder* managedAttributeHolderPtr)
+static ManagedAttributeSet InternManagedAttributeHolder(ManagedAttributeHolder* managedAttributeHolderPtr)
 {
     if (!managedAttributeHolderPtr)
     {
         return {};
     }
 
-    Array<Attribute> attributes;
+    Array<UniquePtr<ManagedObject>> attributes;
     attributes.Reserve(managedAttributeHolderPtr->managedAttributesSize);
 
     for (uint32 i = 0; i < managedAttributeHolderPtr->managedAttributesSize; i++)
     {
         Assert(managedAttributeHolderPtr->managedAttributesPtr[i].classPtr != nullptr);
 
-        attributes.PushBack(Attribute {
-            MakeUnique<ManagedObject>(
-                managedAttributeHolderPtr->managedAttributesPtr[i].classPtr->RefCountedPtrFromThis(),
-                managedAttributeHolderPtr->managedAttributesPtr[i].objectReference,
-                ObjectFlags::CREATED_FROM_MANAGED) });
+        attributes.PushBack(MakeUnique<ManagedObject>(
+            managedAttributeHolderPtr->managedAttributesPtr[i].classPtr->RefCountedPtrFromThis(),
+            managedAttributeHolderPtr->managedAttributesPtr[i].objectReference,
+            ObjectFlags::CREATED_FROM_MANAGED));
     }
 
-    return AttributeSet(std::move(attributes));
+    return ManagedAttributeSet(std::move(attributes));
 }
 
 extern "C"
@@ -142,7 +141,7 @@ extern "C"
         DotNetSystem::GetInstance().GetGlobalFunctions().addObjectToCacheFunction(ptr, outClass, outObjectReference, weak);
     }
 
-    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assemblyGuid, Assembly* assemblyPtr, const HypClass* hypClass, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags, ManagedClassDesc* outDesc)
+    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assemblyGuid, Assembly* assemblyPtr, const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags, ManagedClassDesc* outDesc)
     {
 #ifdef HYP_DOTNET
         Assert(assemblyGuid != nullptr);
@@ -150,23 +149,23 @@ extern "C"
 
         HYP_LOG(DotNET, Info, "Registering .NET managed class {}", typeName);
 
-        RC<ManagedClass> classObject = assemblyPtr->NewClass(hypClass, typeHash, typeName, typeSize, typeId, parentClass, flags);
+        RC<ManagedClass> classObject = assemblyPtr->NewClass(cls, typeHash, typeName, typeSize, typeId, parentClass, flags);
 
-        if (hypClass != nullptr && hypClass->IsDynamic())
+        if (cls != nullptr && cls->IsDynamic())
         {
-            const DynamicHypClassInstance* dynamicHypClass = static_cast<const DynamicHypClassInstance*>(hypClass);
+            const DynamicClassInstance* dynamicClass = static_cast<const DynamicClassInstance*>(cls);
 
-            if ((classObject->GetFlags() & ManagedClassFlags::ABSTRACT) && !dynamicHypClass->IsAbstract())
+            if ((classObject->GetFlags() & ManagedClassFlags::ABSTRACT) && !dynamicClass->IsAbstract())
             {
-                HYP_LOG(DotNET, Error, "Dynamic HypClass {} is not abstract but the managed class {} is abstract!",
-                    dynamicHypClass->GetName(), classObject->GetName());
+                HYP_LOG(DotNET, Error, "Dynamic Class {} is not abstract but the managed class {} is abstract!",
+                    dynamicClass->GetName(), classObject->GetName());
             }
 
-            DynamicHypClassInstance* dynamicHypClassNonConst = const_cast<DynamicHypClassInstance*>(dynamicHypClass);
-            dynamicHypClassNonConst->SetManagedClass(classObject);
+            DynamicClassInstance* dynamicClassNonConst = const_cast<DynamicClassInstance*>(dynamicClass);
+            dynamicClassNonConst->SetManagedClass(classObject);
 
             // @TODO Implement unregistering of dynamic hyp classes
-            HypClassRegistry::GetInstance().RegisterClass(typeId, dynamicHypClassNonConst);
+            ClassRegistry::GetInstance().RegisterClass(typeId, dynamicClassNonConst);
         }
 
         ManagedClassDesc& desc = *outDesc;
@@ -209,7 +208,7 @@ extern "C"
 
         HYP_LOG(DotNET, Debug, "Setting attributes for managed class '{}'", managedClass->GetName());
 
-        AttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
+        ManagedAttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
 
         managedClass->SetAttributes(std::move(attributes));
     }
@@ -224,7 +223,7 @@ extern "C"
             return;
         }
 
-        AttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
+        ManagedAttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
 
         if (managedClass->HasMethod(methodName))
         {
@@ -247,7 +246,7 @@ extern "C"
             return;
         }
 
-        AttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
+        ManagedAttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
 
         if (managedClass->HasProperty(propertyName))
         {

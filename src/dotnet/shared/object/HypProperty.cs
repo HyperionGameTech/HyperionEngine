@@ -48,7 +48,7 @@ namespace Hyperion
 
             HypDataBuffer resultBuffer;
 
-            if (!HypProperty_InvokeGetter(ptr, hypObject.HypClass.Address, hypObject.NativeAddress, out resultBuffer))
+            if (!HypProperty_InvokeGetter(ptr, hypObject.Class.Address, hypObject.NativeAddress, out resultBuffer))
             {
                 throw new InvalidOperationException("Failed to invoke getter");
             }
@@ -73,7 +73,7 @@ namespace Hyperion
                 throw new ArgumentNullException("value");
             }
 
-            if (!HypProperty_InvokeSetter(ptr, hypObject.HypClass.Address, hypObject.NativeAddress, ref value.Buffer))
+            if (!HypProperty_InvokeSetter(ptr, hypObject.Class.Address, hypObject.NativeAddress, ref value.Buffer))
             {
                 throw new InvalidOperationException("Failed to invoke setter");
             }

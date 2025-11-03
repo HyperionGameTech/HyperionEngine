@@ -10,8 +10,10 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderComputePipeline.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderHelpers.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -321,9 +323,8 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
     ShaderRef objectVisibilityShader = g_shaderManager->GetOrCreate(NAME("ObjectVisibility"));
     Assert(objectVisibilityShader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = objectVisibilityShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        objectVisibilityShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     Assert(batchAllocator != nullptr);
 

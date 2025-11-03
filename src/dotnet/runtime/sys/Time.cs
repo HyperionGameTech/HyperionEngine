@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Time")]
+    [ClassBinding(Name="Time")]
     [StructLayout(LayoutKind.Sequential, Size = 8)]
     public struct Time
     {

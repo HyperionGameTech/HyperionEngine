@@ -8,25 +8,25 @@ namespace Hyperion
     {
         public static string GetPath(this DynamicLibrary obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<DynamicLibrary>(), new Name(6173716281856751808)).InvokeNative(obj))
+            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<DynamicLibrary>(), new Name(6173716281856751808)).InvokeNative(obj))
             {
                 return resultData.ReadString();
             }
         }
         public static void SetPath(this DynamicLibrary obj, string path)
         {
-            HypObject.GetMethod(HypClass.GetClass<DynamicLibrary>(), new Name(9025238366954564132)).InvokeNative(obj, path);
+            HypObject.GetMethod(Class.GetClass<DynamicLibrary>(), new Name(9025238366954564132)).InvokeNative(obj, path);
         }
         public static bool Load(this DynamicLibrary obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<DynamicLibrary>(), new Name(5701818487922657225)).InvokeNative(obj))
+            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<DynamicLibrary>(), new Name(5701818487922657225)).InvokeNative(obj))
             {
                 return resultData.ReadBool();
             }
         }
         public static IntPtr GetFunction(this DynamicLibrary obj, char name)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<DynamicLibrary>(), new Name(15127327493920839063)).InvokeNative(obj, name))
+            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<DynamicLibrary>(), new Name(15127327493920839063)).InvokeNative(obj, name))
             {
                 return resultData.ReadIntPtr();
             }

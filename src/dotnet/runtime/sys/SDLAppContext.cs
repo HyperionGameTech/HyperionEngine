@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="SDLAppContext")]
+    [ClassBinding(Name="SDLAppContext")]
     public class SDLAppContext : AppContextBase
     {
         public SDLAppContext()

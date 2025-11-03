@@ -300,24 +300,24 @@ private:
     {
         return TaskSystem::GetInstance().Enqueue([this]()
             {
-                Array<HypClassDefinition*> hypClassDefinitions;
-                HashMap<String, uint32> hypClassDefinitionIds;
+                Array<ClassDefinition*> classDefinitions;
+                HashMap<String, uint32> classDefinitionIds;
 
-                for (auto& it : m_analyzer.GetBuiltinHypClasses())
+                for (auto& it : m_analyzer.GetBuiltinClasses())
                 {
-                    if (hypClassDefinitionIds.Contains(it.second.name))
+                    if (classDefinitionIds.Contains(it.second.name))
                     {
-                        m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Duplicate HypClassDefinition name found: {}", "<builtin>", 0, it.second.name));
+                        m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Duplicate ClassDefinition name found: {}", "<builtin>", 0, it.second.name));
 
                         continue;
                     }
 
                     Assert(it.second.staticIndex != -1); // builtins should have static indices assigned
 
-                    const uint32 hypClassDefinitionId = uint32(hypClassDefinitions.Size());
+                    const uint32 classDefinitionId = uint32(classDefinitions.Size());
 
-                    hypClassDefinitionIds[it.second.name] = hypClassDefinitionId;
-                    hypClassDefinitions.PushBack(&it.second);
+                    classDefinitionIds[it.second.name] = classDefinitionId;
+                    classDefinitions.PushBack(&it.second);
                 }
 
                 // init ids and add dependency modules
@@ -325,8 +325,8 @@ private:
                 {
                     HashSet<Module*> dependencyModules;
 
-                    Proc<void(const HypClassDefinition& srcClassDef, const ASTType* type)> addDependenciesRecur;
-                    addDependenciesRecur = [&](const HypClassDefinition& srcClassDef, const ASTType* type)
+                    Proc<void(const ClassDefinition& srcClassDef, const ASTType* type)> addDependenciesRecur;
+                    addDependenciesRecur = [&](const ClassDefinition& srcClassDef, const ASTType* type)
                     {
                         if (!type)
                         {
@@ -383,25 +383,25 @@ private:
 
                         if (type->typeName.HasValue())
                         {
-                            const HypClassDefinition* depHypClass = m_analyzer.FindHypClassDefinition(type->typeName->ToString(/* includeNamespace */ false));
+                            const ClassDefinition* depClass = m_analyzer.FindClassDefinition(type->typeName->ToString(/* includeNamespace */ false));
 
-                            if (depHypClass != nullptr && depHypClass->declModule != nullptr && depHypClass->declModule != mod.Get())
+                            if (depClass != nullptr && depClass->declModule != nullptr && depClass->declModule != mod.Get())
                             {
-                                dependencyModules.Insert(depHypClass->declModule);
+                                dependencyModules.Insert(depClass->declModule);
                             }
                         }
                     };
 
-                    for (auto& it : mod->GetHypClasses())
+                    for (auto& it : mod->GetClasses())
                     {
                         for (HypMemberDefinition& definition : it.second.members)
                         {
                             addDependenciesRecur(it.second, definition.cxxType.Get());
                         }
 
-                        if (hypClassDefinitionIds.Contains(it.second.name))
+                        if (classDefinitionIds.Contains(it.second.name))
                         {
-                            m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Duplicate HypClassDefinition name found: {}", mod->GetPath(), 0, it.second.name));
+                            m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Duplicate ClassDefinition name found: {}", mod->GetPath(), 0, it.second.name));
 
                             continue;
                         }
@@ -409,11 +409,11 @@ private:
                         Assert(it.second.staticIndex == -1);
                         Assert(it.second.numDescendants == 0);
 
-                        const uint32 hypClassDefinitionId = uint32(hypClassDefinitions.Size());
+                        const uint32 classDefinitionId = uint32(classDefinitions.Size());
 
-                        hypClassDefinitionIds[it.second.name] = hypClassDefinitionId;
+                        classDefinitionIds[it.second.name] = classDefinitionId;
 
-                        hypClassDefinitions.PushBack(&it.second);
+                        classDefinitions.PushBack(&it.second);
                     }
 
                     if (dependencyModules.Any())
@@ -426,30 +426,30 @@ private:
                 }
 
                 Array<Array<uint32>, DynamicAllocator> derived;
-                derived.Resize(hypClassDefinitions.Size());
+                derived.Resize(classDefinitions.Size());
 
-                for (const HypClassDefinition* hypClassDefinition : hypClassDefinitions)
+                for (const ClassDefinition* classDefinition : classDefinitions)
                 {
-                    const uint32 child = hypClassDefinitionIds.At(hypClassDefinition->name);
+                    const uint32 child = classDefinitionIds.At(classDefinition->name);
 
-                    for (const String& baseClassName : hypClassDefinition->baseClassNames)
+                    for (const String& baseClassName : classDefinition->baseClassNames)
                     {
-                        const auto parentIt = hypClassDefinitionIds.Find(baseClassName);
+                        const auto parentIt = classDefinitionIds.Find(baseClassName);
 
-                        if (parentIt == hypClassDefinitionIds.End())
+                        if (parentIt == classDefinitionIds.End())
                         {
                             continue;
                         }
 
                         const uint32 parent = parentIt->second;
-                        Assert(parent < hypClassDefinitions.Size());
+                        Assert(parent < classDefinitions.Size());
 
                         derived[parent].PushBack(child);
                     }
                 }
 
                 Array<uint32> indeg;
-                indeg.Resize(hypClassDefinitions.Size());
+                indeg.Resize(classDefinitions.Size());
 
                 for (const Array<uint32>& children : derived)
                 {
@@ -470,32 +470,32 @@ private:
                 }
 
                 Array<uint32> stack;
-                stack.Reserve(hypClassDefinitions.Size());
+                stack.Reserve(classDefinitions.Size());
 
                 uint32 nextOut = 1; // 0 is reserved for HypObjectBase
 
                 Proc<void(uint32)> topologicalSort;
                 topologicalSort = [&](uint32 id)
                 {
-                    Assert(id < hypClassDefinitions.Size());
+                    Assert(id < classDefinitions.Size());
 
-                    HypClassDefinition* hypClassDefinition = hypClassDefinitions[id];
+                    ClassDefinition* classDefinition = classDefinitions[id];
 
                     uint32 start = nextOut;
 
                     // skip assignment for builtin HypObjectBase type (0)
-                    const bool isBaseClass = hypClassDefinition->name == "HypObjectBase";
+                    const bool isBaseClass = classDefinition->name == "HypObjectBase";
 
                     if (!isBaseClass)
                     {
-                        hypClassDefinition->staticIndex = int(nextOut++);
+                        classDefinition->staticIndex = int(nextOut++);
                     }
 
                     stack.PushBack(id);
 
                     for (uint32 i : derived[id])
                     {
-                        if (hypClassDefinitions[i]->staticIndex == -1)
+                        if (classDefinitions[i]->staticIndex == -1)
                         {
                             topologicalSort(i);
                         }
@@ -503,11 +503,11 @@ private:
 
                     stack.PopBack();
 
-                    hypClassDefinition->numDescendants = nextOut - start - 1;
+                    classDefinition->numDescendants = nextOut - start - 1;
 
                     if (!isBaseClass)
                     {
-                        hypClassDefinition->staticIndex = int(start + 1);
+                        classDefinition->staticIndex = int(start + 1);
                     }
                 };
 
@@ -538,9 +538,9 @@ private:
         RC<Module> builtinsModule = MakeRefCountedPtr<Module>(FilePath());
 
         // add all builtins to a fake module for generation
-        for (auto& it : m_analyzer.GetBuiltinHypClasses())
+        for (auto& it : m_analyzer.GetBuiltinClasses())
         {
-            builtinsModule->GetHypClasses().Set(it.second.name, it.second);
+            builtinsModule->GetClasses().Set(it.second.name, it.second);
         }
 
         if (m_analyzer.GetCSharpOutputDirectory().Any())
@@ -549,7 +549,7 @@ private:
 
             RC<CSharpModuleGenerator> csharpModuleGenerator = MakeRefCountedPtr<CSharpModuleGenerator>();
 
-            if (builtinsModule->GetHypClasses().Any())
+            if (builtinsModule->GetClasses().Any())
             {
                 // generate builtins first
                 batch->AddTask([this, csharpModuleGenerator, builtinsModule]()
@@ -563,7 +563,7 @@ private:
 
             for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
             {
-                if (mod->GetHypClasses().Empty())
+                if (mod->GetClasses().Empty())
                 {
                     continue;
                 }
@@ -597,7 +597,7 @@ private:
 
             hypscriptModuleWriter.WriteString(*g_hypscriptPreamble);
 
-            if (builtinsModule->GetHypClasses().Any())
+            if (builtinsModule->GetClasses().Any())
             {
                 // generate builtins first
                 if (Result res = hypscriptModuleGenerator->Generate(m_analyzer, *builtinsModule, hypscriptModuleWriter); res.HasError())
@@ -610,7 +610,7 @@ private:
 
             for (Module* mod : sortedModules)
             {
-                if (mod->GetHypClasses().Empty())
+                if (mod->GetClasses().Empty())
                 {
                     continue;
                 }
@@ -637,42 +637,42 @@ private:
 
         RC<CXXModuleGenerator> cxxModuleGenerator = MakeRefCountedPtr<CXXModuleGenerator>();
 
-        // Generate the HypClassDecl header and implementation files (shared by both modes)
+        // Generate the ClassDecl header and implementation files (shared by both modes)
         {
-            FilePath hypClassDeclHeaderPath = m_analyzer.GetCXXOutputDirectory() / "HypClassDecls.inc";
-            FileByteWriter hypClassDeclWriter(hypClassDeclHeaderPath);
+            FilePath classDeclHeaderPath = m_analyzer.GetCXXOutputDirectory() / "ClassDecls.inc";
+            FileByteWriter classDeclWriter(classDeclHeaderPath);
 
-            if (!hypClassDeclWriter.IsOpen())
+            if (!classDeclWriter.IsOpen())
             {
-                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open HypClassDecl header file: {}", {}, -1, hypClassDeclHeaderPath));
+                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open ClassDecl header file: {}", {}, -1, classDeclHeaderPath));
             }
             else
             {
-                if (Result res = cxxModuleGenerator->GenerateHypClassDeclHeader(m_analyzer, hypClassDeclWriter); res.HasError())
+                if (Result res = cxxModuleGenerator->GenerateClassDeclHeader(m_analyzer, classDeclWriter); res.HasError())
                 {
-                    m_analyzer.AddError(AnalyzerError(res.GetError(), hypClassDeclHeaderPath));
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), classDeclHeaderPath));
                 }
 
-                hypClassDeclWriter.Close();
+                classDeclWriter.Close();
             }
         }
 
         {
-            FilePath hypClassDeclImplPath = m_analyzer.GetCXXOutputDirectory() / "HypClassDecls.cpp";
-            FileByteWriter hypClassDeclImplWriter(hypClassDeclImplPath);
+            FilePath classDeclImplPath = m_analyzer.GetCXXOutputDirectory() / "ClassDecls.cpp";
+            FileByteWriter classDeclImplWriter(classDeclImplPath);
 
-            if (!hypClassDeclImplWriter.IsOpen())
+            if (!classDeclImplWriter.IsOpen())
             {
-                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open HypClassDecl implementation file: {}", {}, -1, hypClassDeclImplPath));
+                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open ClassDecl implementation file: {}", {}, -1, classDeclImplPath));
             }
             else
             {
-                if (Result res = cxxModuleGenerator->GenerateHypClassDeclImplementation(m_analyzer, hypClassDeclImplWriter); res.HasError())
+                if (Result res = cxxModuleGenerator->GenerateClassDeclImplementation(m_analyzer, classDeclImplWriter); res.HasError())
                 {
-                    m_analyzer.AddError(AnalyzerError(res.GetError(), hypClassDeclImplPath));
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), classDeclImplPath));
                 }
 
-                hypClassDeclImplWriter.Close();
+                classDeclImplWriter.Close();
             }
         }
 
@@ -684,7 +684,7 @@ private:
 
             for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
             {
-                if (mod->GetHypClasses().Empty())
+                if (mod->GetClasses().Empty())
                 {
                     continue;
                 }
@@ -723,7 +723,7 @@ private:
             }
 
             // Inline mode: generate one small cpp for builtins and per-module .inl files
-            if (builtinsModule->GetHypClasses().Any())
+            if (builtinsModule->GetClasses().Any())
             {
                 FilePath builtinsCppPath = m_analyzer.GetCXXOutputDirectory() / "Builtins.cpp";
                 FileByteWriter builtinsWriter(builtinsCppPath);
@@ -735,7 +735,7 @@ private:
                 else
                 {
                     builtinsWriter.WriteString(GetGeneratedFilePreamble(String::empty));
-                    builtinsWriter.WriteString("#include <core/reflection/HypClassUtils.hpp>\n");
+                    builtinsWriter.WriteString("#include <core/reflection/ClassUtils.hpp>\n");
                     if (Result res = cxxModuleGenerator->Generate(m_analyzer, *builtinsModule, builtinsWriter); res.HasError())
                     {
                         m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
@@ -746,7 +746,7 @@ private:
 
             for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
             {
-                if (mod->GetHypClasses().Empty())
+                if (mod->GetClasses().Empty())
                 {
                     continue;
                 }
@@ -845,7 +845,7 @@ private:
             ++fileIndex;
         };
 
-        if (builtinsModule->GetHypClasses().Any())
+        if (builtinsModule->GetClasses().Any())
         {
             // generate builtins first
             updateFilenameBuffer();
@@ -855,7 +855,7 @@ private:
             cxxModuleWriter->WriteString(GetGeneratedFilePreamble(String::empty));
 
             // add main required header that is shared across all generated modules.
-            cxxModuleWriter->WriteString("#include <core/reflection/HypClassUtils.hpp>\n");
+            cxxModuleWriter->WriteString("#include <core/reflection/ClassUtils.hpp>\n");
 
             if (Result res = cxxModuleGenerator->Generate(m_analyzer, *builtinsModule, *cxxModuleWriter); res.HasError())
             {
@@ -865,7 +865,7 @@ private:
 
         for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
         {
-            if (mod->GetHypClasses().Empty())
+            if (mod->GetClasses().Empty())
             {
                 continue;
             }
@@ -885,7 +885,7 @@ private:
                 cxxModuleWriter->WriteString(GetGeneratedFilePreamble(FilePath::Relative(mod->GetPath(), m_analyzer.GetSourceDirectory())));
 
                 // add main required header that is shared across all generated modules.
-                cxxModuleWriter->WriteString("#include <core/reflection/HypClassUtils.hpp>\n");
+                cxxModuleWriter->WriteString("#include <core/reflection/ClassUtils.hpp>\n");
             }
 
             if (Result res = cxxModuleGenerator->Generate(m_analyzer, *mod, *cxxModuleWriter); res.HasError())
@@ -905,7 +905,7 @@ private:
         {
             for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
             {
-                if (mod->GetHypClasses().Empty())
+                if (mod->GetClasses().Empty())
                 {
                     continue;
                 }
@@ -1382,7 +1382,7 @@ private:
 
         for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
         {
-            if (mod->GetHypClasses().Empty())
+            if (mod->GetClasses().Empty())
             {
                 continue;
             }
@@ -1391,7 +1391,7 @@ private:
             moduleToIndex[mod.Get()] = moduleIndex;
             moduleArray.PushBack(mod.Get());
 
-            for (const auto& classEntry : mod->GetHypClasses())
+            for (const auto& classEntry : mod->GetClasses())
             {
                 classToModule[classEntry.second.name] = mod.Get();
             }
@@ -1416,9 +1416,9 @@ private:
             // Collect all base classes used by this module
             HashSet<Module*> dependencyModules;
 
-            for (const auto& classEntry : currentModule->GetHypClasses())
+            for (const auto& classEntry : currentModule->GetClasses())
             {
-                const HypClassDefinition& classDef = classEntry.second;
+                const ClassDefinition& classDef = classEntry.second;
 
                 for (const String& baseClassName : classDef.baseClassNames)
                 {
@@ -1499,12 +1499,12 @@ private:
     {
         for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
         {
-            for (const Pair<String, HypClassDefinition>& hypClass : mod->GetHypClasses())
+            for (const Pair<String, ClassDefinition>& cls : mod->GetClasses())
             {
-                HYP_LOG(BuildTool, Info, "Class: {} -> {}", hypClass.first, hypClass.second.staticIndex);
+                HYP_LOG(BuildTool, Info, "Class: {} -> {}", cls.first, cls.second.staticIndex);
 
                 // Log out all members
-                for (const HypMemberDefinition& hypMember : hypClass.second.members)
+                for (const HypMemberDefinition& hypMember : cls.second.members)
                 {
                     if (!hypMember.cxxType)
                     {

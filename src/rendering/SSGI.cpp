@@ -10,6 +10,7 @@
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderComputePipeline.hpp>
+#include <rendering/RenderCollection.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -192,8 +193,8 @@ void SSGI::CreateComputePipelines()
     ShaderRef shader = g_shaderManager->GetOrCreate(NAME("SSGI"), shaderProperties);
     Assert(shader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

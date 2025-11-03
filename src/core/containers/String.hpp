@@ -23,6 +23,7 @@
 #include <core/HashCode.hpp>
 
 #include <type_traits>
+#include <cctype>
 
 namespace hyperion {
 
@@ -1465,7 +1466,7 @@ auto String<TStringType>::TrimmedLeft() const -> String
 
     for (startIndex = 0; startIndex < Size(); ++startIndex)
     {
-        if (!std::isspace(Data()[startIndex]))
+        if (!utf::IsWhitespace(Data()[startIndex]))
         {
             break;
         }
@@ -1489,7 +1490,7 @@ auto String<TStringType>::TrimmedRight() const -> String
 
     for (startIndex = Size(); startIndex > 0; --startIndex)
     {
-        if (!std::isspace(Data()[startIndex - 1]))
+        if (!utf::IsWhitespace(Data()[startIndex - 1]))
         {
             break;
         }
@@ -1789,22 +1790,6 @@ template <int TStringType>
 inline containers::String<TStringType> operator+(const typename containers::String<TStringType>::CharType* lhs, const containers::String<TStringType>& rhs)
 {
     return containers::String<TStringType>(lhs) + rhs;
-}
-
-template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, utf::Char8>>>
-std::ostream& operator<<(std::ostream& os, const containers::String<TStringType>& str)
-{
-    os << str.Data();
-
-    return os;
-}
-
-template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, wchar_t>>>
-std::wostream& operator<<(std::wostream& os, const containers::String<TStringType>& str)
-{
-    os << str.Data();
-
-    return os;
 }
 
 } // namespace hyperion

@@ -9,6 +9,7 @@
 #include <rendering/Renderer.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -136,9 +137,8 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
 
     for (uint32 mipLevel = 0; mipLevel < numMipLevels; mipLevel++)
     {
-        const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+            shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
         const uint32 mipWidth = MathUtil::Max(1u, extent.x >> mipLevel);
         const uint32 mipHeight = MathUtil::Max(1u, extent.y >> mipLevel);

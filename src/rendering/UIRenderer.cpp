@@ -39,7 +39,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
-extern HYP_API const char* LookupTypeName(TypeId typeId);
+HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 #pragma region UIRenderCollector
 

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "StreamingVolumeShape")]
+    [ClassBinding(Name = "StreamingVolumeShape")]
     public enum StreamingVolumeShape : uint
     {
         Sphere = 0,
@@ -14,7 +14,7 @@ namespace Hyperion
         Invalid = ~0u
     }
 
-    [HypClassBinding(Name = "StreamingVolumeBase")]
+    [ClassBinding(Name = "StreamingVolumeBase")]
     public abstract class StreamingVolumeBase : HypObject
     {
         public StreamingVolumeBase() : base()
@@ -27,7 +27,7 @@ namespace Hyperion
         public abstract bool ContainsPoint(Vec3f point);
     }
 
-    [HypClassBinding(Name = "StreamingManager")]
+    [ClassBinding(Name = "StreamingManager")]
     public class StreamingManager : HypObject
     {
         public StreamingManager() : base()

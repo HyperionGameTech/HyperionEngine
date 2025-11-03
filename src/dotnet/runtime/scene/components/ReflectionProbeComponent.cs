@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="ReflectionProbeComponent")]
+    [ClassBinding(Name="ReflectionProbeComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 32)]
     public struct ReflectionProbeComponent : IComponent
     {

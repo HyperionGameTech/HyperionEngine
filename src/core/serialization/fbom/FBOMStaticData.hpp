@@ -9,7 +9,6 @@
 #include <core/serialization/fbom/FBOMObject.hpp>
 #include <core/serialization/fbom/FBOMResult.hpp>
 #include <core/serialization/fbom/FBOMType.hpp>
-#include <core/serialization/fbom/FBOMBaseTypes.hpp>
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/FBOMInterfaces.hpp>

@@ -21,7 +21,7 @@ class HypMethod;
 class HypObjectBase;
 struct HypData;
 
-extern "C" HypMethod* HypClass_GetMethod(const HypClass* hypClass, const Name* methodName);
+extern "C" HypMethod* Class_GetMethod(const Class* cls, const Name* methodName);
 
 namespace functional {
 
@@ -105,7 +105,7 @@ public:
 
         const Name name = Name(WeakName(*methodName));
 
-        const HypMethod* method = HypClass_GetMethod(nativeObject->InstanceClass(), &name);
+        const HypMethod* method = Class_GetMethod(nativeObject->InstanceClass(), &name);
         if (!method)
         {
             return false;

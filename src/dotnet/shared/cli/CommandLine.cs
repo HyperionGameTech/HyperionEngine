@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="CommandLineArgumentDefinitions")]
+    [ClassBinding(Name="CommandLineArgumentDefinitions")]
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct CommandLineArgumentDefinitions
     {
@@ -15,7 +15,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="CommandLineArguments")]
+    [ClassBinding(Name="CommandLineArguments")]
     public class CommandLineArguments : HypObject
     {
         public CommandLineArguments()

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "LightmapTextureType")]
+    [ClassBinding(Name = "LightmapTextureType")]
     public enum LightmapTextureType : uint
     {
         Invalid = uint.MaxValue,
@@ -14,7 +14,7 @@ namespace Hyperion
         Count
     }
 
-    [HypClassBinding(Name = "LightmapVolume")]
+    [ClassBinding(Name = "LightmapVolume")]
     public class LightmapVolume : HypObject
     {
         public LightmapVolume()

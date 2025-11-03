@@ -9,8 +9,8 @@
 
 #include <core/utilities/StringView.hpp>
 
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -84,25 +84,25 @@ void ConsoleCommandManager::Shutdown()
 
 int ConsoleCommandManager::FindAndRegisterCommands()
 {
-    const HypClass* parentHypClass = ConsoleCommandBase::Class();
+    const Class* parentClass = ConsoleCommandBase::StaticClass();
 
     Array<Handle<ConsoleCommandBase>> commands;
 
-    HypClassRegistry::GetInstance().ForEachClass([this, parentHypClass, &commands](const HypClass* hypClass)
+    ClassRegistry::GetInstance().ForEachClass([this, parentClass, &commands](const Class* cls)
         {
-            if (hypClass->IsDerivedFrom(parentHypClass))
+            if (cls->IsDerivedFrom(parentClass))
             {
-                if (hypClass->IsAbstract())
+                if (cls->IsAbstract())
                 {
-                    HYP_LOG(Console, Error, "Class '{}' is abstract, cannot register console command", hypClass->GetName());
+                    HYP_LOG(Console, Error, "Class '{}' is abstract, cannot register console command", cls->GetName());
 
                     return IterationResult::CONTINUE;
                 }
 
                 HypData hypData;
-                if (!hypClass->CreateInstance(hypData))
+                if (!cls->CreateInstance(hypData))
                 {
-                    HYP_LOG(Console, Error, "Failed to create instance of class: {}", hypClass->GetName());
+                    HYP_LOG(Console, Error, "Failed to create instance of class: {}", cls->GetName());
 
                     return IterationResult::CONTINUE;
                 }

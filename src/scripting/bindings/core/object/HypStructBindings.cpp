@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypStruct.hpp>
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/Struct.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/Defines.hpp>
 
@@ -15,12 +15,12 @@ HYP_DECLARE_LOG_CHANNEL(Object);
 extern "C"
 {
 
-    HYP_EXPORT HypStruct* HypStruct_CreateDynamicHypStruct(
+    HYP_EXPORT Struct* Struct_CreateDynamicStruct(
         const TypeId* typeId,
         const char* typeName,
         uint32 size,
-        DynamicHypStructInstance_CopyFunction copyFunction,
-        DynamicHypStructInstance_DestructFunction destructFunction)
+        DynamicStructInstance_CopyFunction copyFunction,
+        DynamicStructInstance_DestructFunction destructFunction)
     {
         Assert(typeId != nullptr);
         Assert(typeName != nullptr);
@@ -29,27 +29,27 @@ extern "C"
 
         if (size == 0)
         {
-            HYP_LOG(Object, Error, "Cannot create HypStruct with size 0");
+            HYP_LOG(Object, Error, "Cannot create Struct with size 0");
 
             return nullptr;
         }
 
-        return new DynamicHypStructInstance(
+        return new DynamicStructInstance(
             *typeId,
             CreateNameFromDynamicString(typeName),
             size,
-            Span<const HypClassAttribute>(),
-            HypClassFlags::STRUCT_TYPE | HypClassFlags::DYNAMIC,
+            Span<const ClassAttribute>(),
+            ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,
             Span<HypMember>(),
             copyFunction,
             destructFunction);
     }
 
-    HYP_EXPORT void HypStruct_DestroyDynamicHypStruct(HypStruct* hypStruct)
+    HYP_EXPORT void Struct_DestroyDynamicStruct(Struct* pStruct)
     {
-        Assert(hypStruct != nullptr);
+        Assert(pStruct != nullptr);
 
-        delete hypStruct;
+        delete pStruct;
     }
 
 } // extern "C"

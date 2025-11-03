@@ -51,7 +51,7 @@ class FBOMArray;
 class FBOMData;
 class FBOMMarshalerBase;
 
-class HypClassInstanceMarshal;
+class ObjectMarshal;
 
 struct FBOMVersion
 {
@@ -154,10 +154,10 @@ public:
 
     /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for \ref{T}'s type Id,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:
-     *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
+     *      For classes that have a Class associated, the ObjectMarshal will be used.
      *      Otherwise, no marshal will be used, and this function will return nullptr.
      *  \tparam T The type of the class to get the marshal for
-     *  \param allowFallback If true (default), allows catch all marshal to be used for HypClass types
+     *  \param allowFallback If true (default), allows catch all marshal to be used for Class types
      *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type
      */
     template <class T>
@@ -168,27 +168,27 @@ public:
 
     /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type Id,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:
-     *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
+     *      For classes that have a Class associated, the ObjectMarshal will be used.
      *      Otherwise, no marshal will be used, and this function will return nullptr.
      *  \param typeId The type Id of the class to get the marshal for
-     *  \param allowFallback If true (default), allows catch all marshal to be used for HypClass types
+     *  \param allowFallback If true (default), allows catch all marshal to be used for Class types
      *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type
      */
     FBOMMarshalerBase* GetMarshal(TypeId typeId, bool allowFallback = true) const;
 
     /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type name,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:
-     *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
+     *      For classes that have a Class associated, the ObjectMarshal will be used.
      *      Otherwise, no marshal will be used, and this function will return nullptr.
      *  \param typeName The name of the class to get the marshal for
-     *  \param allowFallback If true (default), allows catch all marshal to be used for HypClass types
+     *  \param allowFallback If true (default), allows catch all marshal to be used for Class types
      *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type (or if the type is a POD type)
      */
     FBOMMarshalerBase* GetMarshal(ANSIStringView typeName, bool allowFallback = true) const;
 
 private:
     TypeMap<Pair<ANSIString, UniquePtr<FBOMMarshalerBase>>> m_marshals;
-    UniquePtr<HypClassInstanceMarshal> m_hypClassInstanceMarshal;
+    UniquePtr<ObjectMarshal> m_ObjectMarshal;
 };
 
 } // namespace serialization

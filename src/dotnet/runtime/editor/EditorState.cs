@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "EditorState")]
+    [ClassBinding(Name = "EditorState")]
     public class EditorState : HypObject
     {
         public EditorState()

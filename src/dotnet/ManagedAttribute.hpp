@@ -12,28 +12,23 @@ namespace hyperion::dotnet {
 class ManagedObject;
 class ManagedClass;
 
-struct Attribute
-{
-    UniquePtr<ManagedObject> object;
-};
-
-class HYP_API AttributeSet
+class HYP_API ManagedAttributeSet
 {
 public:
-    AttributeSet() = default;
+    ManagedAttributeSet() = default;
 
-    AttributeSet(Array<Attribute>&& values);
+    explicit ManagedAttributeSet(Array<UniquePtr<ManagedObject>>&& values);
 
-    AttributeSet(const AttributeSet& other) = delete;
-    AttributeSet& operator=(const AttributeSet& other) = delete;
+    ManagedAttributeSet(const ManagedAttributeSet& other) = delete;
+    ManagedAttributeSet& operator=(const ManagedAttributeSet& other) = delete;
 
-    AttributeSet(AttributeSet&& other) noexcept
+    ManagedAttributeSet(ManagedAttributeSet&& other) noexcept
         : m_values(std::move(other.m_values)),
           m_valuesByName(std::move(other.m_valuesByName))
     {
     }
 
-    AttributeSet& operator=(AttributeSet&& other) noexcept
+    ManagedAttributeSet& operator=(ManagedAttributeSet&& other) noexcept
     {
         if (this != &other)
         {
@@ -44,7 +39,7 @@ public:
         return *this;
     }
 
-    ~AttributeSet() = default;
+    ~ManagedAttributeSet() = default;
 
     HYP_FORCE_INLINE SizeType Size() const
     {
@@ -56,7 +51,7 @@ public:
         return GetAttribute(name) != nullptr;
     }
 
-    HYP_FORCE_INLINE Attribute* GetAttribute(UTF8StringView name) const
+    HYP_FORCE_INLINE ManagedObject* GetAttribute(UTF8StringView name) const
     {
         const auto it = m_valuesByName.FindAs(name);
 
@@ -68,7 +63,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE Attribute* GetAttributeByHash(HashCode hashCode) const
+    HYP_FORCE_INLINE ManagedObject* GetAttributeByHash(HashCode hashCode) const
     {
         const auto it = m_valuesByName.FindByHashCode(hashCode);
 
@@ -81,8 +76,8 @@ public:
     }
 
 private:
-    Array<Attribute> m_values;
-    HashMap<String, Attribute*> m_valuesByName;
+    Array<UniquePtr<ManagedObject>> m_values;
+    HashMap<String, ManagedObject*> m_valuesByName;
 };
 
 } // namespace hyperion::dotnet

@@ -81,7 +81,7 @@ public:
 
     HYP_FORCE_INLINE bool operator==(const Mat4f& other) const
     {
-        return &values[0] == &other.values[0] || !std::memcmp(values, other.values, std::size(values) * sizeof(values[0]));
+        return &values[0] == &other.values[0] || !std::memcmp(values, other.values, sizeof(values));
     }
 
     HYP_FORCE_INLINE bool operator!=(const Mat4f& other) const

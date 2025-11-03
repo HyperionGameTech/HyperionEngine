@@ -13,10 +13,10 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
-extern HYP_API const HypClass* GetClass(TypeId typeId);
-extern HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
+HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 
 namespace memory {
 
@@ -150,27 +150,27 @@ public:
         return m_typeInfo;
     }
 
-    /*! \brief Returns the HypClass of the held object, if one is registered. */
-    const HypClass* GetHypClass() const;
+    /*! \brief Returns the Class of the held object, if one is registered. */
+    const Class* GetClass() const;
 
     /*! \brief Returns true if the held object is of type T.
-     *  If T has a HypClass registered, this function will also return true if the held object is a subclass of T. */
+     *  If T has a Class registered, this function will also return true if the held object is a subclass of T. */
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
         const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        return m_ptr && (thisTypeId == typeId || IsA(GetClass(typeId), m_ptr, thisTypeId));
+        return m_ptr && (thisTypeId == typeId || IsA(hyperion::GetClass(typeId), m_ptr, thisTypeId));
     }
 
     /*! \brief Returns true if the held object is of type \ref{typeId}.
-     *  If the type with the given Id has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
+     *  If the type with the given Id has a Class registered, this function will also return true if the held object is a subclass of the type. */
     HYP_FORCE_INLINE bool Is(TypeId typeId) const
     {
         const TypeId thisTypeId = GetTypeId();
 
-        return m_ptr && (thisTypeId == typeId || IsA(GetClass(typeId), m_ptr, thisTypeId));
+        return m_ptr && (thisTypeId == typeId || IsA(hyperion::GetClass(typeId), m_ptr, thisTypeId));
     }
 
     /*! \brief Resets the current value held in the AnyRef. */
@@ -275,7 +275,7 @@ public:
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
+        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
 
         return *static_cast<NormalizedType<T>*>(m_ptr);
     }
@@ -294,7 +294,7 @@ public:
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        if (m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)))
+        if (m_ptr && (thisTypeId == requestedTypeId || IsA(hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)))
         {
             return static_cast<NormalizedType<T>*>(m_ptr);
         }
@@ -437,7 +437,7 @@ public:
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
+        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
 
         return *static_cast<const NormalizedType<T>*>(m_ptr);
     }
@@ -456,7 +456,7 @@ public:
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        if (m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)))
+        if (m_ptr && (thisTypeId == requestedTypeId || IsA(hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)))
         {
             return static_cast<const NormalizedType<T>*>(m_ptr);
         }

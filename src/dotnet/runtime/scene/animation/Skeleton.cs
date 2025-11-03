@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Skeleton")]
+    [ClassBinding(Name="Skeleton")]
     public class Skeleton : HypObject
     {
         public Skeleton()

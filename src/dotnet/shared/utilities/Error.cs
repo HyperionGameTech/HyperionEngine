@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Error")]
+    [ClassBinding(Name="Error")]
     [StructLayout(LayoutKind.Explicit, Size = 16)]
     public struct Error
     {

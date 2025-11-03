@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "StreamingCellState")]
+    [ClassBinding(Name = "StreamingCellState")]
     public enum StreamingCellState : uint
     {
         Unloaded = 0,
@@ -12,7 +12,7 @@ namespace Hyperion
         Loaded
     }
 
-    [HypClassBinding(Name = "StreamingCellNeighbor")]
+    [ClassBinding(Name = "StreamingCellNeighbor")]
     [StructLayout(LayoutKind.Explicit, Size = 8, Pack = 8)]
     public struct StreamingCellNeighbor
     {
@@ -28,7 +28,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name = "StreamingCellInfo")]
+    [ClassBinding(Name = "StreamingCellInfo")]
     [StructLayout(LayoutKind.Explicit, Size = 80, Pack = 16)]
     public struct StreamingCellInfo
     {
@@ -45,7 +45,7 @@ namespace Hyperion
         BoundingBox bounds;
     }
 
-    [HypClassBinding(Name = "StreamingCell")]
+    [ClassBinding(Name = "StreamingCell")]
     public class StreamingCell : StreamableBase
     {
         public StreamingCell()

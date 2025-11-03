@@ -8,6 +8,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
@@ -15,7 +16,7 @@
 #include <scene/animation/Skeleton.hpp>
 #include <scene/lightmapper/LightmapVolume.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -34,7 +35,7 @@ extern ResourceBinderBase* g_reflectionProbeTextureBinder;
 
 void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
 {
-    AssertDebug(entity->InstanceClass() == Entity::Class(),
+    AssertDebug(entity->InstanceClass() == Entity::StaticClass(),
         "Cannot use Entity subclass as MeshEntity, indices would overlap! Class: {}",
         entity->InstanceClass()->GetName());
 

@@ -13,7 +13,7 @@ namespace Hyperion
         ReadWrite = Read | Write
     }
 
-    [HypClassBinding(Name = "ComponentInfo")]
+    [ClassBinding(Name = "ComponentInfo")]
     [StructLayout(LayoutKind.Sequential, Size = 12, Pack = 4)]
     public struct ComponentInfo
     {
