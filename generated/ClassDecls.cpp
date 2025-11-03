@@ -43,6 +43,7 @@ const Class* g_clsUIListView = nullptr;
 const Class* g_clsUIListViewOrientation = nullptr;
 const Class* g_clsUITextbox = nullptr;
 const Class* g_clsUIButton = nullptr;
+const Class* g_clsUICameraController = nullptr;
 const Class* g_clsScriptCompileStatus = nullptr;
 const Class* g_clsScriptLanguage = nullptr;
 const Class* g_clsScriptData = nullptr;

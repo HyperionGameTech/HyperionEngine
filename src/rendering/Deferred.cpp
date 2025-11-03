@@ -1958,8 +1958,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     const bool useTemporalAa = passData.temporalAa != nullptr && m_rendererConfig.taaEnabled;
 
-    const bool useReflectionProbes = true; /*rpl.GetEnvProbes().GetElements<SkyProbe>().Any()
-         || rpl.GetEnvProbes().GetElements<ReflectionProbe>().Any();*/
+    const bool useReflectionProbes = rpl.GetEnvProbes().GetElements<SkyProbe>().Any()
+        || rpl.GetEnvProbes().GetElements<ReflectionProbe>().Any();
 
     if (useTemporalAa)
     {

@@ -1545,7 +1545,7 @@ void EditorSubsystem::InitViewport()
 
             Vec2u viewportSize = MathUtil::Max(Vec2u(sceneImageObject->GetActualSize()), Vec2u::One());
 
-            view->SetViewport(Viewport { .extent = viewportSize, .position = Vec2i::Zero() });
+            // view->SetViewport(Viewport { .extent = viewportSize, .position = Vec2i::Zero() });
 
             HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewportSize);
 

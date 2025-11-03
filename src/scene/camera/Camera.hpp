@@ -272,7 +272,7 @@ public:
     }
 
     HYP_METHOD()
-    void AddCameraController(const Handle<CameraController>& cameraController);
+    void AddCameraController(const Handle<CameraController>& cameraController, int index = -1);
 
     HYP_METHOD()
     bool RemoveCameraController(const Handle<CameraController>& cameraController);

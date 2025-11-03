@@ -4,14 +4,13 @@
 #include <ui/UIButton.hpp>
 #include <ui/UIText.hpp>
 
+#include <ui/camera/UICameraController.hpp>
+
 #include <asset/Assets.hpp>
 
 #include <util/MeshBuilder.hpp>
 
 #include <scene/World.hpp>
-
-#include <scene/camera/OrthoCamera.hpp>
-#include <scene/camera/PerspectiveCamera.hpp>
 
 #include <scene/EntityManager.hpp>
 
@@ -145,6 +144,47 @@ UIStage::~UIStage()
     }
 }
 
+void UIStage::UpdateCameraControllerStack()
+{
+    HYP_SCOPE;
+    AssertOnOwnerThread();
+
+    if (!m_camera)
+    {
+        return;
+    }
+
+    Handle<UICameraController> currentController;
+
+    int controllerIndex = -1;
+
+    const auto& controllers = m_camera->GetCameraControllers();
+
+    for (int i = 0; i < int(controllers.Size()); i++)
+    {
+        const auto& controller = controllers[i];
+
+        if (controller->IsA<UICameraController>())
+        {
+            currentController = ObjCast<UICameraController>(controller);
+            controllerIndex = i;
+            break;
+        }
+    }
+
+    if (currentController)
+    {
+        m_camera->RemoveCameraController(currentController);
+    }
+
+    Handle<UICameraController> newController = CreateObject<UICameraController>(
+        0.0f, -float(m_surfaceSize.x),
+        0.0f, float(m_surfaceSize.y),
+        float(MinDepth), float(MaxDepth));
+
+    m_camera->AddCameraController(newController, controllerIndex);
+}
+
 void UIStage::SetSurfaceSize(Vec2i surfaceSize)
 {
     HYP_SCOPE;
@@ -152,18 +192,13 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
 
     m_surfaceSize = surfaceSize;
 
-    // if (m_camera.IsValid())
-    //{
-    //     m_camera->SetWidth(surfaceSize.x);
-    //     m_camera->SetHeight(surfaceSize.y);
+    if (m_camera.IsValid())
+    {
+        m_camera->SetWidth(surfaceSize.x);
+        m_camera->SetHeight(surfaceSize.y);
 
-    //    // @FIXME: needs to remove and re-add the camera controller
-
-    //    m_camera->AddCameraController(CreateObject<OrthoCameraController>(
-    //        0.0f, -float(surfaceSize.x),
-    //        0.0f, float(surfaceSize.y),
-    //        float(g_minDepth), float(g_maxDepth)));
-    //}
+        UpdateCameraControllerStack();
+    }
 
     UpdateSize(true);
     UpdatePosition(true);
@@ -264,10 +299,10 @@ void UIStage::Init()
     AssertOnOwnerThread();
 
     m_camera = CreateObject<Camera>();
-    m_camera->AddCameraController(CreateObject<OrthoCameraController>(
+    m_camera->AddCameraController(CreateObject<UICameraController>(
         0.0f, -float(m_surfaceSize.x),
         0.0f, float(m_surfaceSize.y),
-        float(g_minDepth), float(g_maxDepth)));
+        float(MinDepth), float(MaxDepth)));
 
     InitObject(m_camera);
 
@@ -284,10 +319,10 @@ void UIStage::Init()
 
         if (m_camera.IsValid())
         {
-            m_camera->AddCameraController(CreateObject<OrthoCameraController>(
-                0.0f, -float(m_surfaceSize.x),
-                0.0f, float(m_surfaceSize.y),
-                float(g_minDepth), float(g_maxDepth)));
+            m_camera->SetWidth(size.x);
+            m_camera->SetHeight(size.y);
+
+            UpdateCameraControllerStack();
         }
     };
 

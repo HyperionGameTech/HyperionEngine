@@ -371,7 +371,7 @@ void Camera::SetCameraControllers(const Array<Handle<CameraController>>& cameraC
     }
 }
 
-void Camera::AddCameraController(const Handle<CameraController>& cameraController)
+void Camera::AddCameraController(const Handle<CameraController>& cameraController, int index)
 {
     HYP_SCOPE;
 
@@ -393,14 +393,39 @@ void Camera::AddCameraController(const Handle<CameraController>& cameraControlle
         }
     }
 
-    m_cameraControllers.PushBack(cameraController);
+    SizeType realIndex = 0;
+
+    if (index < 0 || index >= int(m_cameraControllers.Size()))
+    {
+        m_cameraControllers.PushBack(cameraController);
+        realIndex = m_cameraControllers.Size() - 1;
+    }
+    else
+    {
+        if (index == 0)
+        {
+            // cannot insert before null camera controller
+            realIndex = 1;
+        }
+        else
+        {
+            realIndex = SizeType(index);
+        }
+
+        m_cameraControllers.Insert(m_cameraControllers.Begin() + realIndex, cameraController);
+    }
 
     if (IsInitCalled())
     {
         InitObject(cameraController);
 
         cameraController->OnAdded(this);
-        cameraController->OnActivated();
+
+        if (realIndex == m_cameraControllers.Size() - 1)
+        {
+            // newly added camera controller is the active one
+            cameraController->OnActivated();
+        }
 
         UpdateMouseLocked();
 

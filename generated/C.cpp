@@ -11,7 +11,7 @@ namespace hyperion {
 
 #pragma region BlendFunction Reflection Data
 
-HYP_BEGIN_STRUCT(BlendFunction, 296, 0, {}, ClassAttribute("serialize", "bitwise"),ClassAttribute("size", 4))
+HYP_BEGIN_STRUCT(BlendFunction, 297, 0, {}, ClassAttribute("serialize", "bitwise"),ClassAttribute("size", 4))
 HYP_END_STRUCT
 
 #pragma endregion BlendFunction Reflection Data
@@ -24,7 +24,7 @@ namespace hyperion {
 
 #pragma region Topology Reflection Data
 
-HYP_BEGIN_ENUM(Topology, 297, 0, {})
+HYP_BEGIN_ENUM(Topology, 298, 0, {})
     HypConstant(NAME(HYP_STR(TOP_TRIANGLES)), Topology::TOP_TRIANGLES),
     HypConstant(NAME(HYP_STR(TOP_TRIANGLE_FAN)), Topology::TOP_TRIANGLE_FAN),
     HypConstant(NAME(HYP_STR(TOP_TRIANGLE_STRIP)), Topology::TOP_TRIANGLE_STRIP),
@@ -41,7 +41,7 @@ namespace hyperion {
 
 #pragma region BlendModeFactor Reflection Data
 
-HYP_BEGIN_ENUM(BlendModeFactor, 298, 0, {})
+HYP_BEGIN_ENUM(BlendModeFactor, 299, 0, {})
     HypConstant(NAME(HYP_STR(BMF_NONE)), BlendModeFactor::BMF_NONE),
     HypConstant(NAME(HYP_STR(BMF_ONE)), BlendModeFactor::BMF_ONE),
     HypConstant(NAME(HYP_STR(BMF_ZERO)), BlendModeFactor::BMF_ZERO),
@@ -65,7 +65,7 @@ namespace hyperion {
 
 #pragma region GpuElemType Reflection Data
 
-HYP_BEGIN_ENUM(GpuElemType, 299, 0, {})
+HYP_BEGIN_ENUM(GpuElemType, 300, 0, {})
     HypConstant(NAME(HYP_STR(GET_UNSIGNED_BYTE)), GpuElemType::GET_UNSIGNED_BYTE),
     HypConstant(NAME(HYP_STR(GET_SIGNED_BYTE)), GpuElemType::GET_SIGNED_BYTE),
     HypConstant(NAME(HYP_STR(GET_UNSIGNED_SHORT)), GpuElemType::GET_UNSIGNED_SHORT),
@@ -85,7 +85,7 @@ namespace hyperion {
 
 #pragma region StencilOp Reflection Data
 
-HYP_BEGIN_ENUM(StencilOp, 300, 0, {})
+HYP_BEGIN_ENUM(StencilOp, 301, 0, {})
     HypConstant(NAME(HYP_STR(SO_KEEP)), StencilOp::SO_KEEP),
     HypConstant(NAME(HYP_STR(SO_ZERO)), StencilOp::SO_ZERO),
     HypConstant(NAME(HYP_STR(SO_REPLACE)), StencilOp::SO_REPLACE),
@@ -102,7 +102,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetElementType Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSetElementType, 301, 0, {})
+HYP_BEGIN_ENUM(DescriptorSetElementType, 302, 0, {})
     HypConstant(NAME(HYP_STR(UNSET)), DescriptorSetElementType::UNSET),
     HypConstant(NAME(HYP_STR(UNIFORM_BUFFER)), DescriptorSetElementType::UNIFORM_BUFFER),
     HypConstant(NAME(HYP_STR(UNIFORM_BUFFER_DYNAMIC)), DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC),
@@ -124,7 +124,7 @@ namespace hyperion {
 
 #pragma region TextureWrapMode Reflection Data
 
-HYP_BEGIN_ENUM(TextureWrapMode, 302, 0, {})
+HYP_BEGIN_ENUM(TextureWrapMode, 303, 0, {})
     HypConstant(NAME(HYP_STR(TWM_CLAMP_TO_EDGE)), TextureWrapMode::TWM_CLAMP_TO_EDGE),
     HypConstant(NAME(HYP_STR(TWM_CLAMP_TO_BORDER)), TextureWrapMode::TWM_CLAMP_TO_BORDER),
     HypConstant(NAME(HYP_STR(TWM_REPEAT)), TextureWrapMode::TWM_REPEAT)
@@ -139,7 +139,7 @@ namespace hyperion {
 
 #pragma region StencilCompareOp Reflection Data
 
-HYP_BEGIN_ENUM(StencilCompareOp, 303, 0, {})
+HYP_BEGIN_ENUM(StencilCompareOp, 304, 0, {})
     HypConstant(NAME(HYP_STR(SCO_ALWAYS)), StencilCompareOp::SCO_ALWAYS),
     HypConstant(NAME(HYP_STR(SCO_NEVER)), StencilCompareOp::SCO_NEVER),
     HypConstant(NAME(HYP_STR(SCO_EQUAL)), StencilCompareOp::SCO_EQUAL),
@@ -155,7 +155,7 @@ namespace hyperion {
 
 #pragma region ImageSupport Reflection Data
 
-HYP_BEGIN_ENUM(ImageSupport, 304, 0, {})
+HYP_BEGIN_ENUM(ImageSupport, 305, 0, {})
     HypConstant(NAME(HYP_STR(IS_SRV)), ImageSupport::IS_SRV),
     HypConstant(NAME(HYP_STR(IS_UAV)), ImageSupport::IS_UAV),
     HypConstant(NAME(HYP_STR(IS_DEPTH)), ImageSupport::IS_DEPTH)
@@ -170,7 +170,7 @@ namespace hyperion {
 
 #pragma region FillMode Reflection Data
 
-HYP_BEGIN_ENUM(FillMode, 305, 0, {})
+HYP_BEGIN_ENUM(FillMode, 306, 0, {})
     HypConstant(NAME(HYP_STR(FM_FILL)), FillMode::FM_FILL),
     HypConstant(NAME(HYP_STR(FM_LINE)), FillMode::FM_LINE)
 HYP_END_ENUM
@@ -184,7 +184,7 @@ namespace hyperion {
 
 #pragma region DefaultImageFormat Reflection Data
 
-HYP_BEGIN_ENUM(DefaultImageFormat, 306, 0, {})
+HYP_BEGIN_ENUM(DefaultImageFormat, 307, 0, {})
     HypConstant(NAME(HYP_STR(DIF_NONE)), DefaultImageFormat::DIF_NONE),
     HypConstant(NAME(HYP_STR(DIF_COLOR)), DefaultImageFormat::DIF_COLOR),
     HypConstant(NAME(HYP_STR(DIF_DEPTH)), DefaultImageFormat::DIF_DEPTH),
@@ -201,7 +201,7 @@ namespace hyperion {
 
 #pragma region TextureType Reflection Data
 
-HYP_BEGIN_ENUM(TextureType, 307, 0, {})
+HYP_BEGIN_ENUM(TextureType, 308, 0, {})
     HypConstant(NAME(HYP_STR(TT_INVALID)), TextureType::TT_INVALID),
     HypConstant(NAME(HYP_STR(TT_TEX2_D)), TextureType::TT_TEX2D),
     HypConstant(NAME(HYP_STR(TT_TEX3_D)), TextureType::TT_TEX3D),
@@ -220,7 +220,7 @@ namespace hyperion {
 
 #pragma region TextureData Reflection Data
 
-HYP_BEGIN_STRUCT(TextureData, 308, 0, {})
+HYP_BEGIN_STRUCT(TextureData, 309, 0, {})
     Field(NAME(HYP_STR(ImageData)), &TextureData::imageData, offsetof(TextureData, imageData), Span<const ClassAttribute> { {ClassAttribute("property", "ImageData"), ClassAttribute("serialize", true), ClassAttribute("compressed", true) } })
 HYP_END_STRUCT
 
@@ -233,7 +233,7 @@ namespace hyperion {
 
 #pragma region TextureBaseFormat Reflection Data
 
-HYP_BEGIN_ENUM(TextureBaseFormat, 309, 0, {})
+HYP_BEGIN_ENUM(TextureBaseFormat, 310, 0, {})
     HypConstant(NAME(HYP_STR(TFB_NONE)), TextureBaseFormat::TFB_NONE),
     HypConstant(NAME(HYP_STR(TFB_R)), TextureBaseFormat::TFB_R),
     HypConstant(NAME(HYP_STR(TFB_RG)), TextureBaseFormat::TFB_RG),
@@ -253,7 +253,7 @@ namespace hyperion {
 
 #pragma region DescriptorTableOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 310, 0, {})
+HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 311, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorTableOffsetMap Reflection Data
@@ -265,7 +265,7 @@ namespace hyperion {
 
 #pragma region StoreOperation Reflection Data
 
-HYP_BEGIN_ENUM(StoreOperation, 311, 0, {})
+HYP_BEGIN_ENUM(StoreOperation, 312, 0, {})
     HypConstant(NAME(HYP_STR(UNDEFINED)), StoreOperation::UNDEFINED),
     HypConstant(NAME(HYP_STR(NONE)), StoreOperation::NONE),
     HypConstant(NAME(HYP_STR(STORE)), StoreOperation::STORE)
@@ -280,7 +280,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 312, 0, {})
+HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 313, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorSetOffsetMap Reflection Data
@@ -292,7 +292,7 @@ namespace hyperion {
 
 #pragma region ImageUsage Reflection Data
 
-HYP_BEGIN_ENUM(ImageUsage, 313, 0, {})
+HYP_BEGIN_ENUM(ImageUsage, 314, 0, {})
     HypConstant(NAME(HYP_STR(IU_NONE)), ImageUsage::IU_NONE),
     HypConstant(NAME(HYP_STR(IU_SAMPLED)), ImageUsage::IU_SAMPLED),
     HypConstant(NAME(HYP_STR(IU_STORAGE)), ImageUsage::IU_STORAGE),
@@ -309,7 +309,7 @@ namespace hyperion {
 
 #pragma region ResourceState Reflection Data
 
-HYP_BEGIN_ENUM(ResourceState, 314, 0, {})
+HYP_BEGIN_ENUM(ResourceState, 315, 0, {})
     HypConstant(NAME(HYP_STR(RS_UNDEFINED)), ResourceState::RS_UNDEFINED),
     HypConstant(NAME(HYP_STR(RS_PRE_INITIALIZED)), ResourceState::RS_PRE_INITIALIZED),
     HypConstant(NAME(HYP_STR(RS_COMMON)), ResourceState::RS_COMMON),
@@ -340,7 +340,7 @@ namespace hyperion {
 
 #pragma region TextureFormat Reflection Data
 
-HYP_BEGIN_ENUM(TextureFormat, 315, 0, {})
+HYP_BEGIN_ENUM(TextureFormat, 316, 0, {})
     HypConstant(NAME(HYP_STR(TF_NONE)), TextureFormat::TF_NONE),
     HypConstant(NAME(HYP_STR(TF_R8)), TextureFormat::TF_R8),
     HypConstant(NAME(HYP_STR(TF_RG8)), TextureFormat::TF_RG8),
@@ -394,7 +394,7 @@ namespace hyperion {
 
 #pragma region FaceCullMode Reflection Data
 
-HYP_BEGIN_ENUM(FaceCullMode, 316, 0, {})
+HYP_BEGIN_ENUM(FaceCullMode, 317, 0, {})
     HypConstant(NAME(HYP_STR(FCM_NONE)), FaceCullMode::FCM_NONE),
     HypConstant(NAME(HYP_STR(FCM_BACK)), FaceCullMode::FCM_BACK),
     HypConstant(NAME(HYP_STR(FCM_FRONT)), FaceCullMode::FCM_FRONT)
@@ -409,7 +409,7 @@ namespace hyperion {
 
 #pragma region StencilFunction Reflection Data
 
-HYP_BEGIN_STRUCT(StencilFunction, 317, 0, {})
+HYP_BEGIN_STRUCT(StencilFunction, 318, 0, {})
     Field(NAME(HYP_STR(PassOp)), &StencilFunction::passOp, offsetof(StencilFunction, passOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(FailOp)), &StencilFunction::failOp, offsetof(StencilFunction, failOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(DepthFailOp)), &StencilFunction::depthFailOp, offsetof(StencilFunction, depthFailOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
@@ -427,7 +427,7 @@ namespace hyperion {
 
 #pragma region TextureDesc Reflection Data
 
-HYP_BEGIN_STRUCT(TextureDesc, 318, 0, {})
+HYP_BEGIN_STRUCT(TextureDesc, 319, 0, {})
     Field(NAME(HYP_STR(Type)), &TextureDesc::type, offsetof(TextureDesc, type), Span<const ClassAttribute> { {ClassAttribute("property", "Type"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Format)), &TextureDesc::format, offsetof(TextureDesc, format), Span<const ClassAttribute> { {ClassAttribute("property", "Format"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Extent)), &TextureDesc::extent, offsetof(TextureDesc, extent), Span<const ClassAttribute> { {ClassAttribute("property", "Extent"), ClassAttribute("serialize", true) } }),
@@ -447,7 +447,7 @@ namespace hyperion {
 
 #pragma region LoadOperation Reflection Data
 
-HYP_BEGIN_ENUM(LoadOperation, 319, 0, {})
+HYP_BEGIN_ENUM(LoadOperation, 320, 0, {})
     HypConstant(NAME(HYP_STR(UNDEFINED)), LoadOperation::UNDEFINED),
     HypConstant(NAME(HYP_STR(NONE)), LoadOperation::NONE),
     HypConstant(NAME(HYP_STR(CLEAR)), LoadOperation::CLEAR),
@@ -463,7 +463,7 @@ namespace hyperion {
 
 #pragma region TextureFilterMode Reflection Data
 
-HYP_BEGIN_ENUM(TextureFilterMode, 320, 0, {})
+HYP_BEGIN_ENUM(TextureFilterMode, 321, 0, {})
     HypConstant(NAME(HYP_STR(TFM_NEAREST)), TextureFilterMode::TFM_NEAREST),
     HypConstant(NAME(HYP_STR(TFM_LINEAR)), TextureFilterMode::TFM_LINEAR),
     HypConstant(NAME(HYP_STR(TFM_NEAREST_LINEAR)), TextureFilterMode::TFM_NEAREST_LINEAR),
@@ -481,7 +481,7 @@ namespace hyperion {
 
 #pragma region RenderPassStage Reflection Data
 
-HYP_BEGIN_ENUM(RenderPassStage, 321, 0, {})
+HYP_BEGIN_ENUM(RenderPassStage, 322, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), RenderPassStage::NONE),
     HypConstant(NAME(HYP_STR(PRESENT)), RenderPassStage::PRESENT),
     HypConstant(NAME(HYP_STR(SHADER)), RenderPassStage::SHADER)
@@ -499,7 +499,7 @@ namespace hyperion {
 
 #pragma region SSGIConfig Reflection Data
 
-HYP_BEGIN_STRUCT(SSGIConfig, 322, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.SSGI"))
+HYP_BEGIN_STRUCT(SSGIConfig, 323, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.SSGI"))
     Field(NAME(HYP_STR(Quality)), &SSGIConfig::quality, offsetof(SSGIConfig, quality), Span<const ClassAttribute> { {ClassAttribute("description", "The quality level of the SSGI effect. 0 = quarter res, 1 = half res") } }),
     Field(NAME(HYP_STR(Extent)), &SSGIConfig::extent, offsetof(SSGIConfig, extent), Span<const ClassAttribute> { {ClassAttribute("jsonignore", true) } })
 HYP_END_STRUCT
@@ -645,7 +645,7 @@ namespace hyperion {
 
 #pragma region RendererConfig Reflection Data
 
-HYP_BEGIN_STRUCT(RendererConfig, 323, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering"))
+HYP_BEGIN_STRUCT(RendererConfig, 324, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering"))
     Field(NAME(HYP_STR(PathTracer)), &RendererConfig::pathTracer, offsetof(RendererConfig, pathTracer), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.PathTracing.Enabled") } }),
     Field(NAME(HYP_STR(RaytracingReflections)), &RendererConfig::raytracingReflections, offsetof(RendererConfig, raytracingReflections), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.Reflections.Enabled") } }),
     Field(NAME(HYP_STR(RaytracingGlobalIllumination)), &RendererConfig::raytracingGlobalIllumination, offsetof(RendererConfig, raytracingGlobalIllumination), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.GI.Enabled") } }),
@@ -711,7 +711,7 @@ namespace hyperion {
 
 #pragma region GpuBufferType Reflection Data
 
-HYP_BEGIN_ENUM(GpuBufferType, 324, 0, {})
+HYP_BEGIN_ENUM(GpuBufferType, 325, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), GpuBufferType::NONE),
     HypConstant(NAME(HYP_STR(MESH_INDEX_BUFFER)), GpuBufferType::MESH_INDEX_BUFFER),
     HypConstant(NAME(HYP_STR(MESH_VERTEX_BUFFER)), GpuBufferType::MESH_VERTEX_BUFFER),
@@ -753,7 +753,7 @@ namespace hyperion {
 
 #pragma region ShaderModuleType Reflection Data
 
-HYP_BEGIN_ENUM(ShaderModuleType, 325, 0, {})
+HYP_BEGIN_ENUM(ShaderModuleType, 326, 0, {})
     HypConstant(NAME(HYP_STR(SMT_UNSET)), ShaderModuleType::SMT_UNSET),
     HypConstant(NAME(HYP_STR(SMT_VERTEX)), ShaderModuleType::SMT_VERTEX),
     HypConstant(NAME(HYP_STR(SMT_FRAGMENT)), ShaderModuleType::SMT_FRAGMENT),
@@ -822,7 +822,7 @@ namespace hyperion {
 
 #pragma region GBufferTargetName Reflection Data
 
-HYP_BEGIN_ENUM(GBufferTargetName, 326, 0, {})
+HYP_BEGIN_ENUM(GBufferTargetName, 327, 0, {})
     HypConstant(NAME(HYP_STR(GTN_ALBEDO)), GBufferTargetName::GTN_ALBEDO),
     HypConstant(NAME(HYP_STR(GTN_NORMALS)), GBufferTargetName::GTN_NORMALS),
     HypConstant(NAME(HYP_STR(GTN_MATERIAL)), GBufferTargetName::GTN_MATERIAL),
@@ -932,7 +932,7 @@ namespace hyperion {
 
 #pragma region SSRRendererConfig Reflection Data
 
-HYP_BEGIN_STRUCT(SSRRendererConfig, 327, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.SSR"))
+HYP_BEGIN_STRUCT(SSRRendererConfig, 328, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.SSR"))
     Field(NAME(HYP_STR(Enabled)), &SSRRendererConfig::enabled, offsetof(SSRRendererConfig, enabled)),
     Field(NAME(HYP_STR(Quality)), &SSRRendererConfig::quality, offsetof(SSRRendererConfig, quality), Span<const ClassAttribute> { {ClassAttribute("description", "The quality level of the SSR effect. 0 = low, 1 = medium, 2 = high") } }),
     Field(NAME(HYP_STR(RoughnessScattering)), &SSRRendererConfig::roughnessScattering, offsetof(SSRRendererConfig, roughnessScattering), Span<const ClassAttribute> { {ClassAttribute("description", "Enables scattering of rays based on the roughness of the surface. May cause artifacts due to temporal instability.") } }),
@@ -971,7 +971,7 @@ namespace hyperion {
 
 #pragma region MeshInstanceData Reflection Data
 
-HYP_BEGIN_STRUCT(MeshInstanceData, 328, 0, {}, ClassAttribute("postload", "MeshInstanceData_OnPostLoad"),ClassAttribute("size", 88))
+HYP_BEGIN_STRUCT(MeshInstanceData, 329, 0, {}, ClassAttribute("postload", "MeshInstanceData_OnPostLoad"),ClassAttribute("size", 88))
     Field(NAME(HYP_STR(NumInstances)), &MeshInstanceData::numInstances, offsetof(MeshInstanceData, numInstances), Span<const ClassAttribute> { {ClassAttribute("property", "NumInstances"), ClassAttribute("serialize", true), ClassAttribute("editor", true), ClassAttribute("description", "The number of instances of this mesh. This is used to determine how many instances to render in a single draw call. If this is set to 1, the mesh will be rendered as a single instance. If this is greater than 1, the mesh will be rendered as multiple instances.") } }),
     Field(NAME(HYP_STR(EnableAutoInstancing)), &MeshInstanceData::enableAutoInstancing, offsetof(MeshInstanceData, enableAutoInstancing), Span<const ClassAttribute> { {ClassAttribute("property", "EnableAutoInstancing"), ClassAttribute("serialize", true), ClassAttribute("editor", true), ClassAttribute("description", "Enable automatic instancing for this mesh instance data. If enabled, the renderer will automatically batch instances of this mesh together for rendering, regardless of the explicitly set number of instances. This can improve performance by reducing draw calls for duplicate meshes, but may consume more GPU memory if instancing is under utilized for this mesh.") } }),
     Field(NAME(HYP_STR(Buffers)), &MeshInstanceData::buffers, offsetof(MeshInstanceData, buffers), Span<const ClassAttribute> { {ClassAttribute("property", "Buffers"), ClassAttribute("serialize", true) } }),
@@ -1013,7 +1013,7 @@ namespace hyperion {
 
 #pragma region MaterialAttributeFlags Reflection Data
 
-HYP_BEGIN_ENUM(MaterialAttributeFlags, 329, 0, {})
+HYP_BEGIN_ENUM(MaterialAttributeFlags, 330, 0, {})
     HypConstant(NAME(HYP_STR(MAF_NONE)), MaterialAttributeFlags::MAF_NONE),
     HypConstant(NAME(HYP_STR(MAF_DEPTH_WRITE)), MaterialAttributeFlags::MAF_DEPTH_WRITE),
     HypConstant(NAME(HYP_STR(MAF_DEPTH_TEST)), MaterialAttributeFlags::MAF_DEPTH_TEST),
@@ -1029,7 +1029,7 @@ namespace hyperion {
 
 #pragma region MaterialAttributes Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialAttributes, 330, 0, {})
+HYP_BEGIN_STRUCT(MaterialAttributes, 331, 0, {})
     Field(NAME(HYP_STR(ShaderDefinition)), &MaterialAttributes::shaderDefinition, offsetof(MaterialAttributes, shaderDefinition), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Bucket)), &MaterialAttributes::bucket, offsetof(MaterialAttributes, bucket), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(FillMode)), &MaterialAttributes::fillMode, offsetof(MaterialAttributes, fillMode), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
@@ -1048,7 +1048,7 @@ namespace hyperion {
 
 #pragma region MeshAttributes Reflection Data
 
-HYP_BEGIN_STRUCT(MeshAttributes, 331, 0, {})
+HYP_BEGIN_STRUCT(MeshAttributes, 332, 0, {})
     Field(NAME(HYP_STR(VertexAttributes)), &MeshAttributes::vertexAttributes, offsetof(MeshAttributes, vertexAttributes), Span<const ClassAttribute> { {ClassAttribute("property", "VertexAttributes"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Topology)), &MeshAttributes::topology, offsetof(MeshAttributes, topology), Span<const ClassAttribute> { {ClassAttribute("property", "Topology"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(IndexBufferElemType)), &MeshAttributes::indexBufferElemType, offsetof(MeshAttributes, indexBufferElemType), Span<const ClassAttribute> { {ClassAttribute("property", "IndexBufferElemType"), ClassAttribute("serialize", true) } })
@@ -1134,7 +1134,7 @@ namespace hyperion {
 
 #pragma region HBAOConfig Reflection Data
 
-HYP_BEGIN_STRUCT(HBAOConfig, 332, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.HBAO"))
+HYP_BEGIN_STRUCT(HBAOConfig, 333, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.HBAO"))
     Field(NAME(HYP_STR(Radius)), &HBAOConfig::radius, offsetof(HBAOConfig, radius)),
     Field(NAME(HYP_STR(Power)), &HBAOConfig::power, offsetof(HBAOConfig, power)),
     Field(NAME(HYP_STR(UseTemporalBlending)), &HBAOConfig::useTemporalBlending, offsetof(HBAOConfig, useTemporalBlending))
@@ -1164,7 +1164,7 @@ namespace hyperion {
 
 #pragma region RenderStatsCountType Reflection Data
 
-HYP_BEGIN_ENUM(RenderStatsCountType, 333, 0, {})
+HYP_BEGIN_ENUM(RenderStatsCountType, 334, 0, {})
     HypConstant(NAME(HYP_STR(ERS_DRAW_CALLS)), RenderStatsCountType::ERS_DRAW_CALLS),
     HypConstant(NAME(HYP_STR(ERS_INSTANCED_DRAW_CALLS)), RenderStatsCountType::ERS_INSTANCED_DRAW_CALLS),
     HypConstant(NAME(HYP_STR(ERS_TRIANGLES)), RenderStatsCountType::ERS_TRIANGLES),
@@ -1189,7 +1189,7 @@ namespace hyperion {
 
 #pragma region RenderStats Reflection Data
 
-HYP_BEGIN_STRUCT(RenderStats, 334, 0, {})
+HYP_BEGIN_STRUCT(RenderStats, 335, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion RenderStats Reflection Data
@@ -1201,7 +1201,7 @@ namespace hyperion {
 
 #pragma region RenderStatsCounts Reflection Data
 
-HYP_BEGIN_STRUCT(RenderStatsCounts, 335, 0, {})
+HYP_BEGIN_STRUCT(RenderStatsCounts, 336, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion RenderStatsCounts Reflection Data
@@ -1264,7 +1264,7 @@ namespace hyperion {
 
 #pragma region MeshFlags Reflection Data
 
-HYP_BEGIN_ENUM(MeshFlags, 336, 0, {})
+HYP_BEGIN_ENUM(MeshFlags, 337, 0, {})
     HypConstant(NAME(HYP_STR(MF_NONE)), MeshFlags::MF_NONE),
     HypConstant(NAME(HYP_STR(MF_VIEW_INDEPENDENT)), MeshFlags::MF_VIEW_INDEPENDENT)
 HYP_END_ENUM
@@ -1281,7 +1281,7 @@ namespace hyperion {
 
 #pragma region MeshRaytracingData Reflection Data
 
-HYP_BEGIN_STRUCT(MeshRaytracingData, 337, 0, {})
+HYP_BEGIN_STRUCT(MeshRaytracingData, 338, 0, {})
     Field(NAME(HYP_STR(Blas)), &MeshRaytracingData::blas, offsetof(MeshRaytracingData, blas), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
 HYP_END_STRUCT
 
@@ -1302,7 +1302,7 @@ namespace hyperion {
 
 #pragma region DescriptorUsage Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorUsage, 338, 0, {})
+HYP_BEGIN_STRUCT(DescriptorUsage, 339, 0, {})
     Field(NAME(HYP_STR(Slot)), &DescriptorUsage::slot, offsetof(DescriptorUsage, slot), Span<const ClassAttribute> { {ClassAttribute("property", "Slot"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(SetName)), &DescriptorUsage::setName, offsetof(DescriptorUsage, setName), Span<const ClassAttribute> { {ClassAttribute("property", "SetName"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(DescriptorName)), &DescriptorUsage::descriptorName, offsetof(DescriptorUsage, descriptorName), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorName"), ClassAttribute("serialize", true) } }),
@@ -1320,7 +1320,7 @@ namespace hyperion {
 
 #pragma region CompiledShader Reflection Data
 
-HYP_BEGIN_STRUCT(CompiledShader, 339, 0, {})
+HYP_BEGIN_STRUCT(CompiledShader, 340, 0, {})
     Field(NAME(HYP_STR(Definition)), &CompiledShader::definition, offsetof(CompiledShader, definition), Span<const ClassAttribute> { {ClassAttribute("property", "Definition") } }),
     Field(NAME(HYP_STR(DescriptorTableDeclaration)), &CompiledShader::descriptorTableDeclaration, offsetof(CompiledShader, descriptorTableDeclaration), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorTableDeclaration"), ClassAttribute("transient", true) } }),
     Field(NAME(HYP_STR(DescriptorUsageSet)), &CompiledShader::descriptorUsageSet, offsetof(CompiledShader, descriptorUsageSet), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorUsageSet") } }),
@@ -1338,7 +1338,7 @@ namespace hyperion {
 
 #pragma region ShaderPropertyFlags Reflection Data
 
-HYP_BEGIN_ENUM(ShaderPropertyFlags, 340, 0, {})
+HYP_BEGIN_ENUM(ShaderPropertyFlags, 341, 0, {})
     HypConstant(NAME(HYP_STR(SPF_NONE)), ShaderPropertyFlags::SPF_NONE),
     HypConstant(NAME(HYP_STR(SPF_VERTEX_ATTRIBUTE)), ShaderPropertyFlags::SPF_VERTEX_ATTRIBUTE),
     HypConstant(NAME(HYP_STR(SPF_PERMUTATION)), ShaderPropertyFlags::SPF_PERMUTATION)
@@ -1353,7 +1353,7 @@ namespace hyperion {
 
 #pragma region ShaderDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(ShaderDefinition, 341, 0, {})
+HYP_BEGIN_STRUCT(ShaderDefinition, 342, 0, {})
     Field(NAME(HYP_STR(Name)), &ShaderDefinition::name, offsetof(ShaderDefinition, name)),
     Field(NAME(HYP_STR(Properties)), &ShaderDefinition::properties, offsetof(ShaderDefinition, properties))
 HYP_END_STRUCT
@@ -1367,7 +1367,7 @@ namespace hyperion {
 
 #pragma region ProcessShaderSourcePhase Reflection Data
 
-HYP_BEGIN_ENUM(ProcessShaderSourcePhase, 342, 0, {})
+HYP_BEGIN_ENUM(ProcessShaderSourcePhase, 343, 0, {})
     HypConstant(NAME(HYP_STR(BEFORE_PREPROCESS)), ProcessShaderSourcePhase::BEFORE_PREPROCESS),
     HypConstant(NAME(HYP_STR(AFTER_PREPROCESS)), ProcessShaderSourcePhase::AFTER_PREPROCESS)
 HYP_END_ENUM
@@ -1381,7 +1381,7 @@ namespace hyperion {
 
 #pragma region ShaderProperties Reflection Data
 
-HYP_BEGIN_STRUCT(ShaderProperties, 343, 0, {})
+HYP_BEGIN_STRUCT(ShaderProperties, 344, 0, {})
     Field(NAME(HYP_STR(Props)), &ShaderProperties::m_props, offsetof(ShaderProperties, m_props)),
     Field(NAME(HYP_STR(RequiredVertexAttributes)), &ShaderProperties::m_requiredVertexAttributes, offsetof(ShaderProperties, m_requiredVertexAttributes)),
     Field(NAME(HYP_STR(OptionalVertexAttributes)), &ShaderProperties::m_optionalVertexAttributes, offsetof(ShaderProperties, m_optionalVertexAttributes))
@@ -1396,7 +1396,7 @@ namespace hyperion {
 
 #pragma region ShaderProperty Reflection Data
 
-HYP_BEGIN_STRUCT(ShaderProperty, 344, 0, {})
+HYP_BEGIN_STRUCT(ShaderProperty, 345, 0, {})
     Field(NAME(HYP_STR(Name)), &ShaderProperty::name, offsetof(ShaderProperty, name)),
     Field(NAME(HYP_STR(Flags)), &ShaderProperty::flags, offsetof(ShaderProperty, flags)),
     Field(NAME(HYP_STR(CurrentValue)), &ShaderProperty::currentValue, offsetof(ShaderProperty, currentValue)),
@@ -1412,7 +1412,7 @@ namespace hyperion {
 
 #pragma region ShaderLanguage Reflection Data
 
-HYP_BEGIN_ENUM(ShaderLanguage, 345, 0, {})
+HYP_BEGIN_ENUM(ShaderLanguage, 346, 0, {})
     HypConstant(NAME(HYP_STR(GLSL)), ShaderLanguage::GLSL),
     HypConstant(NAME(HYP_STR(HLSL)), ShaderLanguage::HLSL)
 HYP_END_ENUM
@@ -1426,7 +1426,7 @@ namespace hyperion {
 
 #pragma region VertexAttributeDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(VertexAttributeDefinition, 346, 0, {})
+HYP_BEGIN_STRUCT(VertexAttributeDefinition, 347, 0, {})
     Field(NAME(HYP_STR(Name)), &VertexAttributeDefinition::name, offsetof(VertexAttributeDefinition, name)),
     Field(NAME(HYP_STR(TypeClass)), &VertexAttributeDefinition::typeClass, offsetof(VertexAttributeDefinition, typeClass)),
     Field(NAME(HYP_STR(Location)), &VertexAttributeDefinition::location, offsetof(VertexAttributeDefinition, location)),
@@ -1442,7 +1442,7 @@ namespace hyperion {
 
 #pragma region CompiledShaderBatch Reflection Data
 
-HYP_BEGIN_STRUCT(CompiledShaderBatch, 347, 0, {})
+HYP_BEGIN_STRUCT(CompiledShaderBatch, 348, 0, {})
     Field(NAME(HYP_STR(CompiledShaders)), &CompiledShaderBatch::compiledShaders, offsetof(CompiledShaderBatch, compiledShaders)),
     Field(NAME(HYP_STR(ErrorMessages)), &CompiledShaderBatch::errorMessages, offsetof(CompiledShaderBatch, errorMessages))
 HYP_END_STRUCT
@@ -1456,7 +1456,7 @@ namespace hyperion {
 
 #pragma region HashedShaderDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(HashedShaderDefinition, 348, 0, {})
+HYP_BEGIN_STRUCT(HashedShaderDefinition, 349, 0, {})
     Field(NAME(HYP_STR(Name)), &HashedShaderDefinition::name, offsetof(HashedShaderDefinition, name)),
     Field(NAME(HYP_STR(PropertySetHash)), &HashedShaderDefinition::propertySetHash, offsetof(HashedShaderDefinition, propertySetHash)),
     Field(NAME(HYP_STR(RequiredVertexAttributes)), &HashedShaderDefinition::requiredVertexAttributes, offsetof(HashedShaderDefinition, requiredVertexAttributes))
@@ -1471,7 +1471,7 @@ namespace hyperion {
 
 #pragma region DescriptorUsageSet Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorUsageSet, 349, 0, {})
+HYP_BEGIN_STRUCT(DescriptorUsageSet, 350, 0, {})
     Field(NAME(HYP_STR(Elements)), &DescriptorUsageSet::elements, offsetof(DescriptorUsageSet, elements))
 HYP_END_STRUCT
 
@@ -1484,7 +1484,7 @@ namespace hyperion {
 
 #pragma region DescriptorUsageFlags Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorUsageFlags, 350, 0, {})
+HYP_BEGIN_ENUM(DescriptorUsageFlags, 351, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), DescriptorUsageFlags::NONE),
     HypConstant(NAME(HYP_STR(DYNAMIC)), DescriptorUsageFlags::DYNAMIC)
 HYP_END_ENUM
@@ -1498,7 +1498,7 @@ namespace hyperion {
 
 #pragma region DescriptorUsageType Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorUsageType, 351, 0, {})
+HYP_BEGIN_STRUCT(DescriptorUsageType, 352, 0, {})
     Field(NAME(HYP_STR(Name)), &DescriptorUsageType::name, offsetof(DescriptorUsageType, name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Size)), &DescriptorUsageType::size, offsetof(DescriptorUsageType, size), Span<const ClassAttribute> { {ClassAttribute("property", "Size"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(FieldNames)), &DescriptorUsageType::fieldNames, offsetof(DescriptorUsageType, fieldNames), Span<const ClassAttribute> { {ClassAttribute("property", "FieldNames"), ClassAttribute("serialize", true) } }),
@@ -1517,7 +1517,7 @@ namespace hyperion {
 
 #pragma region ShadowMapType Reflection Data
 
-HYP_BEGIN_ENUM(ShadowMapType, 352, 0, {})
+HYP_BEGIN_ENUM(ShadowMapType, 353, 0, {})
     HypConstant(NAME(HYP_STR(SMT_DIRECTIONAL)), ShadowMapType::SMT_DIRECTIONAL),
     HypConstant(NAME(HYP_STR(SMT_SPOT)), ShadowMapType::SMT_SPOT),
     HypConstant(NAME(HYP_STR(SMT_OMNI)), ShadowMapType::SMT_OMNI)
@@ -1532,7 +1532,7 @@ namespace hyperion {
 
 #pragma region ShadowMapFilter Reflection Data
 
-HYP_BEGIN_ENUM(ShadowMapFilter, 353, 0, {})
+HYP_BEGIN_ENUM(ShadowMapFilter, 354, 0, {})
     HypConstant(NAME(HYP_STR(SMF_STANDARD)), ShadowMapFilter::SMF_STANDARD),
     HypConstant(NAME(HYP_STR(SMF_PCF)), ShadowMapFilter::SMF_PCF),
     HypConstant(NAME(HYP_STR(SMF_CONTACT_HARDENED)), ShadowMapFilter::SMF_CONTACT_HARDENED),
@@ -1567,7 +1567,7 @@ namespace hyperion {
 
 #pragma region ShadowMapAtlas Reflection Data
 
-HYP_BEGIN_STRUCT(ShadowMapAtlas, 354, 0, {})
+HYP_BEGIN_STRUCT(ShadowMapAtlas, 355, 0, {})
     HypProperty(NAME(HYP_STR(AtlasDimensions)), &ShadowMapAtlas::atlasDimensions),
     HypProperty(NAME(HYP_STR(Elements)), &ShadowMapAtlas::elements),
     HypProperty(NAME(HYP_STR(FreeSpaces)), &ShadowMapAtlas::freeSpaces),
@@ -1583,7 +1583,7 @@ namespace hyperion {
 
 #pragma region ShadowMapAtlasElement Reflection Data
 
-HYP_BEGIN_STRUCT(ShadowMapAtlasElement, 355, 0, {})
+HYP_BEGIN_STRUCT(ShadowMapAtlasElement, 356, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion ShadowMapAtlasElement Reflection Data
@@ -1598,7 +1598,7 @@ namespace hyperion {
 
 #pragma region RaytracingReflectionsConfig Reflection Data
 
-HYP_BEGIN_STRUCT(RaytracingReflectionsConfig, 356, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.RayTracing"))
+HYP_BEGIN_STRUCT(RaytracingReflectionsConfig, 357, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.RayTracing"))
     Field(NAME(HYP_STR(Extent)), &RaytracingReflectionsConfig::extent, offsetof(RaytracingReflectionsConfig, extent), Span<const ClassAttribute> { {ClassAttribute("jsonignore", true) } }),
     Field(NAME(HYP_STR(PathTracing)), &RaytracingReflectionsConfig::pathTracing, offsetof(RaytracingReflectionsConfig, pathTracing), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "PathTracing.Enabled") } })
 HYP_END_STRUCT
@@ -1639,7 +1639,7 @@ namespace hyperion {
 
 #pragma region AccelerationStructureType Reflection Data
 
-HYP_BEGIN_ENUM(AccelerationStructureType, 357, 0, {})
+HYP_BEGIN_ENUM(AccelerationStructureType, 358, 0, {})
     HypConstant(NAME(HYP_STR(BOTTOM_LEVEL)), AccelerationStructureType::BOTTOM_LEVEL),
     HypConstant(NAME(HYP_STR(TOP_LEVEL)), AccelerationStructureType::TOP_LEVEL)
 HYP_END_ENUM
