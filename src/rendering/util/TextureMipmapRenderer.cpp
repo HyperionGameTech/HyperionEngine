@@ -19,15 +19,14 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(RenderTextureMipmapLevels)
-    : RenderCommand
+struct RenderTextureMipmapLevels : RenderCommand
 {
     GpuImageRef m_image;
     GpuImageViewRef m_imageView;
     Array<GpuImageViewRef> m_mipImageViews;
     Array<Handle<FullScreenPass>> m_passes;
 
-    RENDER_COMMAND(RenderTextureMipmapLevels)(
+    RenderTextureMipmapLevels(
         GpuImageRef image,
         GpuImageViewRef imageView,
         Array<GpuImageViewRef> mipImageViews,

@@ -31,10 +31,10 @@ namespace hyperion {
 
 class Class;
 
-class HypField final : public IHypMember
+class Field final : public IHypMember
 {
 public:
-    HypField(const Span<const ClassAttribute>& attributes = {})
+    Field(const Span<const ClassAttribute>& attributes = {})
         : m_name(Name::Invalid()),
           m_typeInfo(&TypeInfo_Void()),
           m_targetTypeInfo(&TypeInfo_Void()),
@@ -45,7 +45,7 @@ public:
     }
 
     /*! \brief Script object (HypObjectBase) overload */
-    HypField(Name name, const TypeInfo* typeInfo, const TypeInfo* targetTypeInfo, uint32 offset, uint32 size, const Span<const ClassAttribute>& attributes = {})
+    Field(Name name, const TypeInfo* typeInfo, const TypeInfo* targetTypeInfo, uint32 offset, uint32 size, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(typeInfo),
           m_targetTypeInfo(targetTypeInfo),
@@ -56,7 +56,7 @@ public:
         HYP_CORE_ASSERT(m_typeInfo != nullptr, "TypeInfo cannot be null");
         HYP_CORE_ASSERT(m_targetTypeInfo != nullptr, "Target TypeInfo cannot be null");
 
-        HYP_CORE_ASSERT(TypeInfo_GetId(*typeInfo) == TypeId::ForType<HypData>(), "HypField must be HypData for script objects");
+        HYP_CORE_ASSERT(TypeInfo_GetId(*typeInfo) == TypeId::ForType<HypData>(), "Field must be HypData for script objects");
 
         m_getProc = [offset](const HypData& targetData) -> HypData
         {
@@ -94,7 +94,7 @@ public:
     }
 
     template <class ThisType, class FieldType>
-    HypField(Name name, FieldType ThisType::*member, uint32 offset, const Span<const ClassAttribute>& attributes = {})
+    Field(Name name, FieldType ThisType::* member, uint32 offset, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<FieldType>()),
           m_targetTypeInfo(&TypeOf<ThisType>()),
@@ -255,13 +255,13 @@ public:
         };
     }
 
-    HypField(const HypField& other) = delete;
-    HypField& operator=(const HypField& other) = delete;
+    Field(const Field& other) = delete;
+    Field& operator=(const Field& other) = delete;
 
-    HypField(HypField&& other) noexcept = default;
-    HypField& operator=(HypField&& other) noexcept = default;
+    Field(Field&& other) noexcept = default;
+    Field& operator=(Field&& other) noexcept = default;
 
-    virtual ~HypField() override = default;
+    virtual ~Field() override = default;
 
     virtual HypMemberType GetMemberType() const override
     {

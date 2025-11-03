@@ -17,24 +17,24 @@ HYP_API const Class* g_clsVec4u = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Vec4f, -1, 0, {})
-    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
-    HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
-    HypField(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
+    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
+    Field(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
+    Field(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec4i, -1, 0, {})
-    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
-    HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
-    HypField(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
+    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
+    Field(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
+    Field(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec4u, -1, 0, {})
-    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
-    HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
-    HypField(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
+    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
+    Field(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
+    Field(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
 // clang-format on

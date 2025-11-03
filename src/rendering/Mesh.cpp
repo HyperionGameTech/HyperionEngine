@@ -297,8 +297,7 @@ void Mesh::UploadGpuData()
         indexBuffer = m_indexBuffer;
     }
 
-    struct RENDER_COMMAND(CopyMeshGpuData)
-        : public RenderCommand
+    struct CopyMeshGpuData : public RenderCommand
     {
         WeakHandle<Mesh> weakMesh;
 
@@ -308,7 +307,7 @@ void Mesh::UploadGpuData()
         GpuBufferRef vertexBuffer;
         GpuBufferRef indexBuffer;
 
-        RENDER_COMMAND(CopyMeshGpuData)(const WeakHandle<Mesh>& weakMesh, Array<float>&& vertices, Array<uint32>&& indices, GpuBufferRef&& vertexBuffer, GpuBufferRef&& indexBuffer)
+        CopyMeshGpuData(const WeakHandle<Mesh>& weakMesh, Array<float>&& vertices, Array<uint32>&& indices, GpuBufferRef&& vertexBuffer, GpuBufferRef&& indexBuffer)
             : weakMesh(weakMesh),
               vertices(std::move(vertices)),
               indices(std::move(indices)),
@@ -317,7 +316,7 @@ void Mesh::UploadGpuData()
         {
         }
 
-        virtual ~RENDER_COMMAND(CopyMeshGpuData)() override = default;
+        virtual ~CopyMeshGpuData() override = default;
 
         virtual RendererResult operator()() override
         {

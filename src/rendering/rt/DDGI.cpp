@@ -40,14 +40,13 @@ static constexpr TextureFormat DdgiDepthFormat = TF_RG16F;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(SetDDGIDescriptors)
-    : RenderCommand
+struct SetDDGIDescriptors : RenderCommand
 {
     FixedArray<GpuBufferRef, NumFramesInFlight> uniformBuffers;
     GpuImageViewRef irradianceImageView;
     GpuImageViewRef depthImageView;
 
-    RENDER_COMMAND(SetDDGIDescriptors)(
+    SetDDGIDescriptors(
         const FixedArray<GpuBufferRef, NumFramesInFlight>& uniformBuffers,
         const GpuImageViewRef& irradianceImageView,
         const GpuImageViewRef& depthImageView)
@@ -57,7 +56,7 @@ struct RENDER_COMMAND(SetDDGIDescriptors)
     {
     }
 
-    virtual ~RENDER_COMMAND(SetDDGIDescriptors)() override = default;
+    virtual ~SetDDGIDescriptors() override = default;
 
     virtual RendererResult operator()() override
     {
@@ -77,14 +76,13 @@ struct RENDER_COMMAND(SetDDGIDescriptors)
     }
 };
 
-struct RENDER_COMMAND(UnsetDDGIDescriptors)
-    : RenderCommand
+struct UnsetDDGIDescriptors : RenderCommand
 {
-    RENDER_COMMAND(UnsetDDGIDescriptors)()
+    UnsetDDGIDescriptors()
     {
     }
 
-    virtual ~RENDER_COMMAND(UnsetDDGIDescriptors)() override = default;
+    virtual ~UnsetDDGIDescriptors() override = default;
 
     virtual RendererResult operator()() override
     {
@@ -105,19 +103,18 @@ struct RENDER_COMMAND(UnsetDDGIDescriptors)
     }
 };
 
-struct RENDER_COMMAND(CreateDDGIRadianceBuffer)
-    : RenderCommand
+struct CreateDDGIRadianceBuffer : RenderCommand
 {
     GpuBufferRef radianceBuffer;
     DDGIInfo gridInfo;
 
-    RENDER_COMMAND(CreateDDGIRadianceBuffer)(const GpuBufferRef& radianceBuffer, const DDGIInfo& gridInfo)
+    CreateDDGIRadianceBuffer(const GpuBufferRef& radianceBuffer, const DDGIInfo& gridInfo)
         : radianceBuffer(radianceBuffer),
           gridInfo(gridInfo)
     {
     }
 
-    virtual ~RENDER_COMMAND(CreateDDGIRadianceBuffer)() override = default;
+    virtual ~CreateDDGIRadianceBuffer() override = default;
 
     virtual RendererResult operator()() override
     {

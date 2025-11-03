@@ -15,18 +15,18 @@ HYP_API const Class* g_clsVec2u = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Vec2f, -1, 0, {})
-    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
+    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec2i, -1, 0, {})
-    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
+    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec2u, -1, 0, {})
-    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
+    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 // clang-format on
 

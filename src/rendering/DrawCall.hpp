@@ -36,10 +36,7 @@ struct alignas(16) EntityInstanceBatch
 {
     uint32 batchIndex;
     uint32 numEntities;
-    uint32 _pad0;
-    uint32 _pad1;
-
-    uint32 indices[MaxEntitiesPerBatch];
+    alignas(16) uint32 indices[MaxEntitiesPerBatch];
     Mat4f transforms[MaxEntitiesPerBatch];
 };
 
@@ -51,9 +48,6 @@ static_assert(sizeof(EntityInstanceBatch) == 4096);
  *  represent the mesh Id and the upper 32 bits represent the material Id. */
 struct DrawCallID
 {
-    static constexpr uint64 meshMask = uint64(0xFFFFFFFF);
-    static constexpr uint64 materialMask = uint64(0xFFFFFFFF) << 32;
-
     uint64 value;
 
     constexpr DrawCallID()

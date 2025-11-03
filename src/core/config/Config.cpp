@@ -6,7 +6,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/HypProperty.hpp>
-#include <core/reflection/HypField.hpp>
+#include <core/reflection/Field.hpp>
 #include <core/reflection/HypConstant.hpp>
 #include <core/reflection/HypDataJSONHelpers.hpp>
 

@@ -6,7 +6,7 @@
 
 #include <core/reflection/HypMethod.hpp>
 #include <core/reflection/HypProperty.hpp>
-#include <core/reflection/HypField.hpp>
+#include <core/reflection/Field.hpp>
 #include <core/reflection/HypConstant.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 
@@ -18,7 +18,7 @@ namespace hyperion {
 
 struct HypMember
 {
-    Variant<HypProperty, HypMethod, HypField, HypConstant> value;
+    Variant<HypProperty, HypMethod, Field, HypConstant> value;
 
     HypMember() = default;
 
@@ -32,7 +32,7 @@ struct HypMember
     {
     }
 
-    HypMember(HypField&& field)
+    HypMember(Field&& field)
         : value(std::move(field))
     {
     }

@@ -17,10 +17,9 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Console);
 
-struct RENDER_COMMAND(DumpRenderCollectors) final : RenderCommand
+struct DumpRenderCollectorsImpl final : RenderCommand
 {
-    RENDER_COMMAND(DumpRenderCollectors)
-    ()
+    DumpRenderCollectorsImpl()
     {
     }
 
@@ -65,7 +64,7 @@ public:
 protected:
     virtual Result Execute_Impl(const CommandLineArguments& args) override
     {
-        PUSH_RENDER_COMMAND(DumpRenderCollectors);
+        PUSH_RENDER_COMMAND(DumpRenderCollectorsImpl);
 
         return {}; // ok
     }

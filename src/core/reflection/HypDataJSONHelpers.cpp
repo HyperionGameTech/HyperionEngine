@@ -6,7 +6,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/HypProperty.hpp>
-#include <core/reflection/HypField.hpp>
+#include <core/reflection/Field.hpp>
 #include <core/reflection/HypConstant.hpp>
 #include <core/reflection/HypMethod.hpp>
 #include <core/reflection/HypData.hpp>
@@ -553,7 +553,7 @@ bool ObjectToJSON(
             }
             case HypMemberType::TYPE_FIELD:
             {
-                const HypField* field = static_cast<const HypField*>(&member);
+                const Field* field = static_cast<const Field*>(&member);
 
                 HypData value = field->Get(target);
 
@@ -687,7 +687,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
         }
         case HypMemberType::TYPE_FIELD:
         {
-            const HypField& field = static_cast<const HypField&>(member);
+            const Field& field = static_cast<const Field&>(member);
             const TypeInfo& typeInfo = field.GetTypeInfo();
 
             HypData hypData;

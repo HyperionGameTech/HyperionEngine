@@ -34,16 +34,14 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(BakeLightmapAtlasTexture)
-    : RenderCommand
+struct BakeLightmapAtlasTexture : RenderCommand
 {
     WeakHandle<LightmapVolume> lightmapVolumeWeak;
     Array<LightmapElement> lightmapElements;
     Array<Handle<Texture>> atlasTextures;
     HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
 
-    RENDER_COMMAND(BakeLightmapAtlasTexture)
-    (
+    BakeLightmapAtlasTexture(
         const WeakHandle<LightmapVolume>& lightmapVolumeWeak,
         const Array<LightmapElement>& lightmapElements,
         Array<Handle<Texture>>&& atlasTextures,
@@ -55,7 +53,7 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
     {
     }
 
-    virtual ~RENDER_COMMAND(BakeLightmapAtlasTexture)() override
+    virtual ~BakeLightmapAtlasTexture() override
     {
         SafeDelete(std::move(atlasTextures));
 

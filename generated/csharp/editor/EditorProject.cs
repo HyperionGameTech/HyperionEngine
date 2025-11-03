@@ -108,22 +108,22 @@ namespace Hyperion
         }
         public static ScriptableDelegate GetOnSceneAddedDelegate(this EditorProject obj)
         {
-            HypField field = (HypField)obj.Class.GetField(new Name(11906862577378825258));
-            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
+            Field field = (Field)obj.Class.GetField(new Name(11906862577378825258));
+            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnSceneRemovedDelegate(this EditorProject obj)
         {
-            HypField field = (HypField)obj.Class.GetField(new Name(3839289914299758604));
-            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
+            Field field = (Field)obj.Class.GetField(new Name(3839289914299758604));
+            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnProjectSavedDelegate(this EditorProject obj)
         {
-            HypField field = (HypField)obj.Class.GetField(new Name(15668658267553117524));
-            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
+            Field field = (Field)obj.Class.GetField(new Name(15668658267553117524));
+            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }

@@ -35,19 +35,18 @@ struct TemporalBlendingUniforms
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(RecreateTemporalBlendingFramebuffer)
-    : RenderCommand
+struct RecreateTemporalBlendingFramebuffer : RenderCommand
 {
     TemporalBlending& temporalBlending;
     Vec2u newSize;
 
-    RENDER_COMMAND(RecreateTemporalBlendingFramebuffer)(TemporalBlending& temporalBlending, const Vec2u& newSize)
+    RecreateTemporalBlendingFramebuffer(TemporalBlending& temporalBlending, const Vec2u& newSize)
         : temporalBlending(temporalBlending),
           newSize(newSize)
     {
     }
 
-    virtual ~RENDER_COMMAND(RecreateTemporalBlendingFramebuffer)() override = default;
+    virtual ~RecreateTemporalBlendingFramebuffer() override = default;
 
     virtual RendererResult operator()() override
     {
@@ -311,7 +310,9 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& renderSetup)
     const Vec3u& extent = activeImage->GetExtent();
 
     const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RB_OPAQUE)
-        .GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent();
+                                             .GetGBufferAttachment(GTN_DEPTH)
+                                             ->GetImage()
+                                             ->GetExtent();
 
     // Copy uniform data to gpu buffer
     TemporalBlendingUniforms uniforms {};

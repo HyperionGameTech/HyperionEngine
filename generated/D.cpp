@@ -69,12 +69,12 @@ namespace hyperion {
 #pragma region LightmapperConfig Reflection Data
 
 HYP_BEGIN_STRUCT(LightmapperConfig, 359, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Lightmapper"))
-    HypField(NAME(HYP_STR(TraceMode)), &LightmapperConfig::traceMode, offsetof(LightmapperConfig, traceMode)),
-    HypField(NAME(HYP_STR(Radiance)), &LightmapperConfig::radiance, offsetof(LightmapperConfig, radiance)),
-    HypField(NAME(HYP_STR(Irradiance)), &LightmapperConfig::irradiance, offsetof(LightmapperConfig, irradiance)),
-    HypField(NAME(HYP_STR(NumSamples)), &LightmapperConfig::numSamples, offsetof(LightmapperConfig, numSamples)),
-    HypField(NAME(HYP_STR(MaxRaysPerFrame)), &LightmapperConfig::maxRaysPerFrame, offsetof(LightmapperConfig, maxRaysPerFrame)),
-    HypField(NAME(HYP_STR(IdealTrianglesPerJob)), &LightmapperConfig::idealTrianglesPerJob, offsetof(LightmapperConfig, idealTrianglesPerJob))
+    Field(NAME(HYP_STR(TraceMode)), &LightmapperConfig::traceMode, offsetof(LightmapperConfig, traceMode)),
+    Field(NAME(HYP_STR(Radiance)), &LightmapperConfig::radiance, offsetof(LightmapperConfig, radiance)),
+    Field(NAME(HYP_STR(Irradiance)), &LightmapperConfig::irradiance, offsetof(LightmapperConfig, irradiance)),
+    Field(NAME(HYP_STR(NumSamples)), &LightmapperConfig::numSamples, offsetof(LightmapperConfig, numSamples)),
+    Field(NAME(HYP_STR(MaxRaysPerFrame)), &LightmapperConfig::maxRaysPerFrame, offsetof(LightmapperConfig, maxRaysPerFrame)),
+    Field(NAME(HYP_STR(IdealTrianglesPerJob)), &LightmapperConfig::idealTrianglesPerJob, offsetof(LightmapperConfig, idealTrianglesPerJob))
 HYP_END_STRUCT
 
 #pragma endregion LightmapperConfig Reflection Data
@@ -499,7 +499,7 @@ namespace hyperion {
 #pragma region DebugDrawerConfig Reflection Data
 
 HYP_BEGIN_STRUCT(DebugDrawerConfig, 363, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.Debug.DebugDrawer"))
-    HypField(NAME(HYP_STR(Enabled)), &DebugDrawerConfig::enabled, offsetof(DebugDrawerConfig, enabled), Span<const ClassAttribute> { {ClassAttribute("description", "Enable or disable the debug drawer.") } })
+    Field(NAME(HYP_STR(Enabled)), &DebugDrawerConfig::enabled, offsetof(DebugDrawerConfig, enabled), Span<const ClassAttribute> { {ClassAttribute("description", "Enable or disable the debug drawer.") } })
 HYP_END_STRUCT
 
 #pragma endregion DebugDrawerConfig Reflection Data
@@ -515,7 +515,7 @@ namespace hyperion {
 #pragma region PhysicsMaterial Reflection Data
 
 HYP_BEGIN_STRUCT(PhysicsMaterial, 364, 0, {})
-    HypField(NAME(HYP_STR(Mass)), &PhysicsMaterial::mass, offsetof(PhysicsMaterial, mass), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("property", "Mass") } })
+    Field(NAME(HYP_STR(Mass)), &PhysicsMaterial::mass, offsetof(PhysicsMaterial, mass), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("property", "Mass") } })
 HYP_END_STRUCT
 
 #pragma endregion PhysicsMaterial Reflection Data
@@ -667,10 +667,10 @@ HYP_BEGIN_CLASS(EnvProbe, 167, 2, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetOrigin)), &EnvProbe::GetOrigin),
     HypMethod(NAME(HYP_STR(SetOrigin)), &EnvProbe::SetOrigin),
     HypMethod(NAME(HYP_STR(GetCamera)), &EnvProbe::GetCamera),
-    HypField(NAME(HYP_STR(Aabb)), &EnvProbe::m_aabb, offsetof(EnvProbe, m_aabb), Span<const ClassAttribute> { {ClassAttribute("property", "AABB") } }),
-    HypField(NAME(HYP_STR(Dimensions)), &EnvProbe::m_dimensions, offsetof(EnvProbe, m_dimensions), Span<const ClassAttribute> { {ClassAttribute("property", "Dimensions") } }),
-    HypField(NAME(HYP_STR(EnvProbeType)), &EnvProbe::m_envProbeType, offsetof(EnvProbe, m_envProbeType), Span<const ClassAttribute> { {ClassAttribute("property", "EnvProbeType") } }),
-    HypField(NAME(HYP_STR(ShData)), &EnvProbe::m_shData, offsetof(EnvProbe, m_shData), Span<const ClassAttribute> { {ClassAttribute("property", "SHData") } })
+    Field(NAME(HYP_STR(Aabb)), &EnvProbe::m_aabb, offsetof(EnvProbe, m_aabb), Span<const ClassAttribute> { {ClassAttribute("property", "AABB") } }),
+    Field(NAME(HYP_STR(Dimensions)), &EnvProbe::m_dimensions, offsetof(EnvProbe, m_dimensions), Span<const ClassAttribute> { {ClassAttribute("property", "Dimensions") } }),
+    Field(NAME(HYP_STR(EnvProbeType)), &EnvProbe::m_envProbeType, offsetof(EnvProbe, m_envProbeType), Span<const ClassAttribute> { {ClassAttribute("property", "EnvProbeType") } }),
+    Field(NAME(HYP_STR(ShData)), &EnvProbe::m_shData, offsetof(EnvProbe, m_shData), Span<const ClassAttribute> { {ClassAttribute("property", "SHData") } })
 HYP_END_CLASS
 
 #pragma endregion EnvProbe Reflection Data
@@ -726,9 +726,9 @@ namespace hyperion {
 #pragma region GameState Reflection Data
 
 HYP_BEGIN_STRUCT(GameState, 368, 0, {})
-    HypField(NAME(HYP_STR(Mode)), &GameState::mode, offsetof(GameState, mode)),
-    HypField(NAME(HYP_STR(DeltaTime)), &GameState::deltaTime, offsetof(GameState, deltaTime)),
-    HypField(NAME(HYP_STR(GameTime)), &GameState::gameTime, offsetof(GameState, gameTime)),
+    Field(NAME(HYP_STR(Mode)), &GameState::mode, offsetof(GameState, mode)),
+    Field(NAME(HYP_STR(DeltaTime)), &GameState::deltaTime, offsetof(GameState, deltaTime)),
+    Field(NAME(HYP_STR(GameTime)), &GameState::gameTime, offsetof(GameState, gameTime)),
     HypMethod(NAME(HYP_STR(IsEditor)), &GameState::IsEditor),
     HypMethod(NAME(HYP_STR(IsSimulating)), &GameState::IsSimulating)
 HYP_END_STRUCT
@@ -783,7 +783,7 @@ HYP_BEGIN_CLASS(World, 147, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetSceneByName)), &World::GetSceneByName),
     HypMethod(NAME(HYP_STR(AddView)), &World::AddView),
     HypMethod(NAME(HYP_STR(RemoveView)), &World::RemoveView),
-    HypField(NAME(HYP_STR(Name)), &World::m_name, offsetof(World, m_name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(Name)), &World::m_name, offsetof(World, m_name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("serialize", true) } })
 HYP_END_CLASS
 
 #pragma endregion World Reflection Data
@@ -854,7 +854,7 @@ namespace hyperion {
 #pragma region TagComponentBase Reflection Data
 
 HYP_BEGIN_STRUCT(TagComponentBase, 373, 0, {}, ClassAttribute("component", true))
-    HypField(NAME(HYP_STR(Value)), &TagComponentBase::value, offsetof(TagComponentBase, value))
+    Field(NAME(HYP_STR(Value)), &TagComponentBase::value, offsetof(TagComponentBase, value))
 HYP_END_STRUCT
 
 #pragma endregion TagComponentBase Reflection Data
@@ -904,9 +904,9 @@ namespace hyperion {
 #pragma region ComponentInfo Reflection Data
 
 HYP_BEGIN_STRUCT(ComponentInfo, 375, 0, {}, ClassAttribute("size", 12))
-    HypField(NAME(HYP_STR(TypeId)), &ComponentInfo::typeId, offsetof(ComponentInfo, typeId)),
-    HypField(NAME(HYP_STR(RwFlags)), &ComponentInfo::rwFlags, offsetof(ComponentInfo, rwFlags)),
-    HypField(NAME(HYP_STR(ReceivesEvents)), &ComponentInfo::receivesEvents, offsetof(ComponentInfo, receivesEvents))
+    Field(NAME(HYP_STR(TypeId)), &ComponentInfo::typeId, offsetof(ComponentInfo, typeId)),
+    Field(NAME(HYP_STR(RwFlags)), &ComponentInfo::rwFlags, offsetof(ComponentInfo, rwFlags)),
+    Field(NAME(HYP_STR(ReceivesEvents)), &ComponentInfo::receivesEvents, offsetof(ComponentInfo, receivesEvents))
 HYP_END_STRUCT
 
 #pragma endregion ComponentInfo Reflection Data
@@ -978,8 +978,8 @@ namespace hyperion {
 #pragma region NodeTag Reflection Data
 
 HYP_BEGIN_STRUCT(NodeTag, 378, 0, {})
-    HypField(NAME(HYP_STR(Name)), &NodeTag::name, offsetof(NodeTag, name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Data)), &NodeTag::data, offsetof(NodeTag, data), Span<const ClassAttribute> { {ClassAttribute("property", "Data"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(Name)), &NodeTag::name, offsetof(NodeTag, name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Data)), &NodeTag::data, offsetof(NodeTag, data), Span<const ClassAttribute> { {ClassAttribute("property", "Data"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion NodeTag Reflection Data
@@ -1042,15 +1042,15 @@ HYP_BEGIN_CLASS(Node, 165, 14, NAME("HypObjectBase"), ClassAttribute("postload",
     HypMethod(NAME(HYP_STR(FindSelfIndex)), &Node::FindSelfIndex),
     HypMethod(NAME(HYP_STR(FindChildByName)), &Node::FindChildByName),
     HypMethod(NAME(HYP_STR(FindChildByUUID)), &Node::FindChildByUUID),
-    HypField(NAME(HYP_STR(Name)), &Node::m_name, offsetof(Node, m_name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("editor", true), ClassAttribute("label", "Name"), ClassAttribute("description", "The name of the node.") } }),
-    HypField(NAME(HYP_STR(ParentNode)), &Node::m_parentNode, offsetof(Node, m_parentNode), Span<const ClassAttribute> { {ClassAttribute("property", "Parent"), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(ChildNodes)), &Node::m_childNodes, offsetof(Node, m_childNodes), Span<const ClassAttribute> { {ClassAttribute("property", "Children"), ClassAttribute("loadorder", -1) } }),
-    HypField(NAME(HYP_STR(LocalTransform)), &Node::m_localTransform, offsetof(Node, m_localTransform), Span<const ClassAttribute> { {ClassAttribute("property", "LocalTransform") } }),
-    HypField(NAME(HYP_STR(WorldTransform)), &Node::m_worldTransform, offsetof(Node, m_worldTransform), Span<const ClassAttribute> { {ClassAttribute("property", "LocalTransform") } }),
-    HypField(NAME(HYP_STR(EntityAabb)), &Node::m_entityAabb, offsetof(Node, m_entityAabb), Span<const ClassAttribute> { {ClassAttribute("property", "Aabb") } }),
-    HypField(NAME(HYP_STR(Scene)), &Node::m_scene, offsetof(Node, m_scene), Span<const ClassAttribute> { {ClassAttribute("property", "Scene"), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(Tags)), &Node::m_tags, offsetof(Node, m_tags), Span<const ClassAttribute> { {ClassAttribute("property", "NodeTags") } }),
-    HypField(NAME(HYP_STR(Uuid)), &Node::m_uuid, offsetof(Node, m_uuid), Span<const ClassAttribute> { {ClassAttribute("property", "Uuid") } })
+    Field(NAME(HYP_STR(Name)), &Node::m_name, offsetof(Node, m_name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("editor", true), ClassAttribute("label", "Name"), ClassAttribute("description", "The name of the node.") } }),
+    Field(NAME(HYP_STR(ParentNode)), &Node::m_parentNode, offsetof(Node, m_parentNode), Span<const ClassAttribute> { {ClassAttribute("property", "Parent"), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(ChildNodes)), &Node::m_childNodes, offsetof(Node, m_childNodes), Span<const ClassAttribute> { {ClassAttribute("property", "Children"), ClassAttribute("loadorder", -1) } }),
+    Field(NAME(HYP_STR(LocalTransform)), &Node::m_localTransform, offsetof(Node, m_localTransform), Span<const ClassAttribute> { {ClassAttribute("property", "LocalTransform") } }),
+    Field(NAME(HYP_STR(WorldTransform)), &Node::m_worldTransform, offsetof(Node, m_worldTransform), Span<const ClassAttribute> { {ClassAttribute("property", "LocalTransform") } }),
+    Field(NAME(HYP_STR(EntityAabb)), &Node::m_entityAabb, offsetof(Node, m_entityAabb), Span<const ClassAttribute> { {ClassAttribute("property", "Aabb") } }),
+    Field(NAME(HYP_STR(Scene)), &Node::m_scene, offsetof(Node, m_scene), Span<const ClassAttribute> { {ClassAttribute("property", "Scene"), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(Tags)), &Node::m_tags, offsetof(Node, m_tags), Span<const ClassAttribute> { {ClassAttribute("property", "NodeTags") } }),
+    Field(NAME(HYP_STR(Uuid)), &Node::m_uuid, offsetof(Node, m_uuid), Span<const ClassAttribute> { {ClassAttribute("property", "Uuid") } })
 HYP_END_CLASS
 
 #pragma endregion Node Reflection Data
@@ -1191,8 +1191,8 @@ HYP_BEGIN_CLASS(Light, 170, 4, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetAABB)), &Light::GetAABB),
     HypMethod(NAME(HYP_STR(GetShadowMapFilter)), &Light::GetShadowMapFilter, Span<const ClassAttribute> { {ClassAttribute("property", "ShadowMapFilter"), ClassAttribute("editor", true), ClassAttribute("transient", true) } }),
     HypMethod(NAME(HYP_STR(SetShadowMapFilter)), &Light::SetShadowMapFilter, Span<const ClassAttribute> { {ClassAttribute("property", "ShadowMapFilter"), ClassAttribute("editor", true), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(Type)), &Light::m_type, offsetof(Light, m_type)),
-    HypField(NAME(HYP_STR(Flags)), &Light::m_flags, offsetof(Light, m_flags), Span<const ClassAttribute> { {ClassAttribute("property", "LightFlags") } })
+    Field(NAME(HYP_STR(Type)), &Light::m_type, offsetof(Light, m_type)),
+    Field(NAME(HYP_STR(Flags)), &Light::m_flags, offsetof(Light, m_flags), Span<const ClassAttribute> { {ClassAttribute("property", "LightFlags") } })
 HYP_END_CLASS
 
 #pragma endregion Light Reflection Data
@@ -1235,10 +1235,10 @@ namespace hyperion {
 #pragma region BVHNode Reflection Data
 
 HYP_BEGIN_STRUCT(BVHNode, 381, 0, {})
-    HypField(NAME(HYP_STR(Aabb)), &BVHNode::aabb, offsetof(BVHNode, aabb), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Children)), &BVHNode::children, offsetof(BVHNode, children), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(TriangleIds)), &BVHNode::triangleIds, offsetof(BVHNode, triangleIds), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Flags)), &BVHNode::flags, offsetof(BVHNode, flags), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(Aabb)), &BVHNode::aabb, offsetof(BVHNode, aabb), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Children)), &BVHNode::children, offsetof(BVHNode, children), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(TriangleIds)), &BVHNode::triangleIds, offsetof(BVHNode, triangleIds), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Flags)), &BVHNode::flags, offsetof(BVHNode, flags), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion BVHNode Reflection Data
@@ -1319,13 +1319,13 @@ HYP_BEGIN_CLASS(Scene, 53, 0, NAME("AssetObject"), ClassAttribute("postload", "S
     HypMethod(NAME(HYP_STR(AddToWorld)), &Scene::AddToWorld),
     HypMethod(NAME(HYP_STR(RemoveFromWorld)), &Scene::RemoveFromWorld),
     HypMethod(NAME(HYP_STR(GetUniqueNodeName)), &Scene::GetUniqueNodeName),
-    HypField(NAME(HYP_STR(SceneFlags)), &Scene::m_sceneFlags, offsetof(Scene, m_sceneFlags), Span<const ClassAttribute> { {ClassAttribute("property", "SceneFlags") } }),
-    HypField(NAME(HYP_STR(Root)), &Scene::m_root, offsetof(Scene, m_root), Span<const ClassAttribute> { {ClassAttribute("property", "Root") } }),
-    HypField(NAME(HYP_STR(OwnerThreadId)), &Scene::m_ownerThreadId, offsetof(Scene, m_ownerThreadId), Span<const ClassAttribute> { {ClassAttribute("property", "OwnerThreadId"), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(World)), &Scene::m_world, offsetof(Scene, m_world), Span<const ClassAttribute> { {ClassAttribute("property", "World"), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(EntityManager)), &Scene::m_entityManager, offsetof(Scene, m_entityManager), Span<const ClassAttribute> { {ClassAttribute("property", "EntityManager"), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(IsAudioListener)), &Scene::m_isAudioListener, offsetof(Scene, m_isAudioListener), Span<const ClassAttribute> { {ClassAttribute("property", "IsAudioListener") } }),
-    HypField(NAME(HYP_STR(PreviousDelta)), &Scene::m_previousDelta, offsetof(Scene, m_previousDelta), Span<const ClassAttribute> { {ClassAttribute("property", "PreviousDelta"), ClassAttribute("transient", true) } })
+    Field(NAME(HYP_STR(SceneFlags)), &Scene::m_sceneFlags, offsetof(Scene, m_sceneFlags), Span<const ClassAttribute> { {ClassAttribute("property", "SceneFlags") } }),
+    Field(NAME(HYP_STR(Root)), &Scene::m_root, offsetof(Scene, m_root), Span<const ClassAttribute> { {ClassAttribute("property", "Root") } }),
+    Field(NAME(HYP_STR(OwnerThreadId)), &Scene::m_ownerThreadId, offsetof(Scene, m_ownerThreadId), Span<const ClassAttribute> { {ClassAttribute("property", "OwnerThreadId"), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(World)), &Scene::m_world, offsetof(Scene, m_world), Span<const ClassAttribute> { {ClassAttribute("property", "World"), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(EntityManager)), &Scene::m_entityManager, offsetof(Scene, m_entityManager), Span<const ClassAttribute> { {ClassAttribute("property", "EntityManager"), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(IsAudioListener)), &Scene::m_isAudioListener, offsetof(Scene, m_isAudioListener), Span<const ClassAttribute> { {ClassAttribute("property", "IsAudioListener") } }),
+    Field(NAME(HYP_STR(PreviousDelta)), &Scene::m_previousDelta, offsetof(Scene, m_previousDelta), Span<const ClassAttribute> { {ClassAttribute("property", "PreviousDelta"), ClassAttribute("transient", true) } })
 HYP_END_CLASS
 
 #pragma endregion Scene Reflection Data
@@ -1366,7 +1366,7 @@ namespace hyperion {
 
 HYP_BEGIN_CLASS(EnvGrid, 175, 1, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetAABB)), &EnvGrid::GetAABB),
-    HypField(NAME(HYP_STR(Aabb)), &EnvGrid::m_aabb, offsetof(EnvGrid, m_aabb), Span<const ClassAttribute> { {ClassAttribute("property", "AABB") } })
+    Field(NAME(HYP_STR(Aabb)), &EnvGrid::m_aabb, offsetof(EnvGrid, m_aabb), Span<const ClassAttribute> { {ClassAttribute("property", "AABB") } })
 HYP_END_CLASS
 
 #pragma endregion EnvGrid Reflection Data
@@ -1564,9 +1564,9 @@ HYP_BEGIN_CLASS(CameraController, 182, 7, NAME("HypObjectBase"), ClassAttribute(
     HypMethod(NAME(HYP_STR(SetNextTranslation)), &CameraController::SetNextTranslation),
     HypMethod(NAME(HYP_STR(SetDirection)), &CameraController::SetDirection),
     HypMethod(NAME(HYP_STR(SetUpVector)), &CameraController::SetUpVector),
-    HypField(NAME(HYP_STR(Camera)), &CameraController::m_camera, offsetof(CameraController, m_camera), Span<const ClassAttribute> { {ClassAttribute("property", "Camera"), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(InputHandler)), &CameraController::m_inputHandler, offsetof(CameraController, m_inputHandler), Span<const ClassAttribute> { {ClassAttribute("property", "InputHandler"), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(ProjectionMode)), &CameraController::m_projectionMode, offsetof(CameraController, m_projectionMode), Span<const ClassAttribute> { {ClassAttribute("property", "ProjectionMode"), ClassAttribute("editor", true) } })
+    Field(NAME(HYP_STR(Camera)), &CameraController::m_camera, offsetof(CameraController, m_camera), Span<const ClassAttribute> { {ClassAttribute("property", "Camera"), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(InputHandler)), &CameraController::m_inputHandler, offsetof(CameraController, m_inputHandler), Span<const ClassAttribute> { {ClassAttribute("property", "InputHandler"), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(ProjectionMode)), &CameraController::m_projectionMode, offsetof(CameraController, m_projectionMode), Span<const ClassAttribute> { {ClassAttribute("property", "ProjectionMode"), ClassAttribute("editor", true) } })
 HYP_END_CLASS
 
 #pragma endregion CameraController Reflection Data
@@ -1634,8 +1634,8 @@ HYP_BEGIN_CLASS(Camera, 177, 0, NAME("Entity"))
     HypMethod(NAME(HYP_STR(TransformNDCToScreen)), &Camera::TransformNDCToScreen),
     HypMethod(NAME(HYP_STR(TransformScreenToWorld)), &Camera::TransformScreenToWorld),
     HypMethod(NAME(HYP_STR(GetPixelSize)), &Camera::GetPixelSize),
-    HypField(NAME(HYP_STR(MatchWindowSizeRatio)), &Camera::m_matchWindowSizeRatio, offsetof(Camera, m_matchWindowSizeRatio), Span<const ClassAttribute> { {ClassAttribute("property", "MatchWindowSizeRatio"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(CameraControllers)), &Camera::m_cameraControllers, offsetof(Camera, m_cameraControllers), Span<const ClassAttribute> { {ClassAttribute("property", "CameraControllers") } }),
+    Field(NAME(HYP_STR(MatchWindowSizeRatio)), &Camera::m_matchWindowSizeRatio, offsetof(Camera, m_matchWindowSizeRatio), Span<const ClassAttribute> { {ClassAttribute("property", "MatchWindowSizeRatio"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(CameraControllers)), &Camera::m_cameraControllers, offsetof(Camera, m_cameraControllers), Span<const ClassAttribute> { {ClassAttribute("property", "CameraControllers") } }),
     HypMethod(NAME(HYP_STR(SetCameraControllers)), &Camera::SetCameraControllers, Span<const ClassAttribute> { {ClassAttribute("property", "CameraControllers") } })
 HYP_END_CLASS
 

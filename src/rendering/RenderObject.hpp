@@ -66,20 +66,20 @@ namespace hyperion {
 template <class RefType, class... Args>
 static inline void DeferCreate(RefType ref, Args&&... args)
 {
-    struct RENDER_COMMAND(CallCreateOnRenderThread) final : RenderCommand
+    struct CallCreateOnRenderThread final : RenderCommand
     {
         using ArgsTuple = Tuple<std::decay_t<Args>...>;
 
         RefType ref;
         ArgsTuple args;
 
-        RENDER_COMMAND(CallCreateOnRenderThread)(RefType&& ref, Args&&... args)
+        CallCreateOnRenderThread(RefType&& ref, Args&&... args)
             : ref(std::move(ref)),
               args(std::forward<Args>(args)...)
         {
         }
 
-        virtual ~RENDER_COMMAND(CallCreateOnRenderThread)() override = default;
+        virtual ~CallCreateOnRenderThread() override = default;
 
         virtual RendererResult operator()() override
         {

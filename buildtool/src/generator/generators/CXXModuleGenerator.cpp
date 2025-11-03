@@ -257,7 +257,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             writer.WriteString("#include <scripting/ScriptObjectResource.hpp>\n");
             writer.WriteString("#include <dotnet/ManagedObject.hpp>\n");
             writer.WriteString("#include <dotnet/ManagedClass.hpp>\n");
-            writer.WriteString("#include <dotnet/Method.hpp>\n");
+            writer.WriteString("#include <dotnet/ManagedMethod.hpp>\n");
         }
 
         writer.WriteString("\nnamespace hyperion {\n\n");
@@ -353,7 +353,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                 }
                 else
                 {
-                    writer.WriteString(HYP_FORMAT("    HypField(NAME(HYP_STR({})), &{}::{}, offsetof({}, {})", member.friendlyName, cls.name, member.name, cls.name, member.name));
+                    writer.WriteString(HYP_FORMAT("    Field(NAME(HYP_STR({})), &{}::{}, offsetof({}, {})", member.friendlyName, cls.name, member.name, cls.name, member.name));
                 }
 
                 if (attributesString.Any())
@@ -459,7 +459,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                         writer.WriteString("{\n");
                         writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
+                        writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
                         writer.WriteString("            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);\n");
                         writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
                         writer.WriteString("\n");
@@ -478,7 +478,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                         writer.WriteString("{\n");
                         writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
+                        writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
                         writer.WriteString("            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);\n");
                         writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
                         writer.WriteString("\n");
@@ -591,7 +591,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
             writer.WriteString("\n");
             addInclude("dotnet/ManagedObject.hpp");
             addInclude("dotnet/ManagedClass.hpp");
-            addInclude("dotnet/Method.hpp");
+            addInclude("dotnet/ManagedMethod.hpp");
         }
 
         writer.WriteString("\nnamespace hyperion {\n\n");
@@ -691,7 +691,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                 }
                 else
                 {
-                    writer.WriteString(HYP_FORMAT("    HypField(NAME(HYP_STR({})), &{}::{}, offsetof({}, {})", member.friendlyName, cls.name, member.name, cls.name, member.name));
+                    writer.WriteString(HYP_FORMAT("    Field(NAME(HYP_STR({})), &{}::{}, offsetof({}, {})", member.friendlyName, cls.name, member.name, cls.name, member.name));
                 }
 
                 if (attributesString.Any())
@@ -797,7 +797,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                         writer.WriteString("{\n");
                         writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
+                        writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
                         writer.WriteString("            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);\n");
                         writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
                         writer.WriteString("\n");
@@ -817,7 +817,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                         writer.WriteString("{\n");
                         writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
+                        writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
                         writer.WriteString("            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);\n");
                         writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
                         writer.WriteString("\n");

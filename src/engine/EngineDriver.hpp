@@ -51,7 +51,7 @@ class EngineDriver final : public HypObjectBase
 {
     HYP_OBJECT_BODY(EngineDriver);
 
-    friend struct RENDER_COMMAND(RecreateSwapchain);
+    friend struct RecreateSwapchain;
 
 public:
     HYP_METHOD()

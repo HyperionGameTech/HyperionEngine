@@ -16,10 +16,6 @@ class GBuffer;
 class Texture;
 struct RenderSetup;
 
-struct RenderCommand_CreateTemporalAADescriptors;
-struct RenderCommand_DestroyTemporalAADescriptorsAndImageOutputs;
-struct RenderCommand_CreateTemporalAAImageOutputs;
-
 class TemporalAA
 {
 public:

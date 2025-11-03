@@ -18,29 +18,29 @@ namespace hyperion::dotnet {
 
 class ManagedObject;
 
-class Property
+class ManagedProperty
 {
 public:
-    Property() = default;
+    ManagedProperty() = default;
 
-    Property(ManagedGuid guid)
+    ManagedProperty(ManagedGuid guid)
         : m_guid(guid)
     {
     }
 
-    Property(ManagedGuid guid, ManagedAttributeSet&& attributes)
+    ManagedProperty(ManagedGuid guid, ManagedAttributeSet&& attributes)
         : m_guid(guid),
           m_attributes(std::move(attributes))
     {
     }
 
-    Property(const Property& other) = delete;
-    Property& operator=(const Property& other) = delete;
+    ManagedProperty(const ManagedProperty& other) = delete;
+    ManagedProperty& operator=(const ManagedProperty& other) = delete;
 
-    Property(Property&& other) noexcept = default;
-    Property& operator=(Property&& other) noexcept = default;
+    ManagedProperty(ManagedProperty&& other) noexcept = default;
+    ManagedProperty& operator=(ManagedProperty&& other) noexcept = default;
 
-    ~Property() = default;
+    ~ManagedProperty() = default;
 
     HYP_FORCE_INLINE ManagedGuid GetGuid() const
     {

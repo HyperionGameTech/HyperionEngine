@@ -209,7 +209,7 @@ HYP_API SizeType GetNumDescendants(TypeId typeId)
 }
 
 #if 0
-HypProperty* MakeHypProperty(const HypField* field)
+HypProperty* MakeHypProperty(const Field* field)
 {
     AssertDebug(field != nullptr);
 
@@ -262,7 +262,7 @@ HypProperty* MakeHypProperty(const HypField* field)
 }
 #endif
 
-HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, const HypMethod* setter)
+HypProperty* MakeHypProperty(const Field* field, const HypMethod* getter, const HypMethod* setter)
 {
     HypProperty* pResult = new HypProperty();
     HypProperty& result = *pResult;
@@ -717,9 +717,9 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
             m_methods.PushBack(pMethod);
             m_methodsByName.Set(pMethod->GetName(), pMethod);
         }
-        else if (member.value.Is<HypField>())
+        else if (member.value.Is<Field>())
         {
-            HypField* pField = new HypField(std::move(member.value.GetUnchecked<HypField>()));
+            Field* pField = new Field(std::move(member.value.GetUnchecked<Field>()));
             pField->m_ownerClass = this;
 
             m_fields.PushBack(pField);
@@ -752,7 +752,7 @@ Class::~Class()
         delete methodPtr;
     }
 
-    for (HypField* fieldPtr : m_fields)
+    for (Field* fieldPtr : m_fields)
     {
         delete fieldPtr;
     }
@@ -901,7 +901,7 @@ void Class::Initialize()
         if (findFieldIt != it.second.End() || findGetterIt != it.second.End() || findSetterIt != it.second.End())
         {
             HypProperty* pProperty = MakeHypProperty(
-                findFieldIt != it.second.End() ? static_cast<HypField*>(*findFieldIt) : nullptr,
+                findFieldIt != it.second.End() ? static_cast<Field*>(*findFieldIt) : nullptr,
                 findGetterIt != it.second.End() ? static_cast<HypMethod*>(*findGetterIt) : nullptr,
                 findSetterIt != it.second.End() ? static_cast<HypMethod*>(*findSetterIt) : nullptr);
 
@@ -958,7 +958,7 @@ IHypMember* Class::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes
 
     if (memberTypes & HypMemberType::TYPE_FIELD)
     {
-        if (HypField* field = GetField(name, /* deep */ false))
+        if (Field* field = GetField(name, /* deep */ false))
         {
             return field;
         }
@@ -1069,7 +1069,7 @@ Array<HypMethod*> Class::GetMethodsInherited() const
     return m_methods;
 }
 
-HypField* Class::GetField(WeakName name, bool deep) const
+Field* Class::GetField(WeakName name, bool deep) const
 {
     const auto it = m_fieldsByName.FindAs(name);
 
@@ -1089,15 +1089,15 @@ HypField* Class::GetField(WeakName name, bool deep) const
     return it->second;
 }
 
-Array<HypField*> Class::GetFieldsInherited() const
+Array<Field*> Class::GetFieldsInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        FlatSet<HypField*> fields { m_fields.Begin(), m_fields.End() };
+        FlatSet<Field*> fields { m_fields.Begin(), m_fields.End() };
 
-        Array<HypField*> inheritedFields = parent->GetFieldsInherited();
+        Array<Field*> inheritedFields = parent->GetFieldsInherited();
 
-        for (HypField* field : inheritedFields)
+        for (Field* field : inheritedFields)
         {
             fields.Insert(field);
         }
@@ -1167,7 +1167,7 @@ void Class::AddMethod(HypMethod* method)
     m_methodsByName[method->GetName()] = method;
 }
 
-void Class::AddField(HypField* field)
+void Class::AddField(Field* field)
 {
     AssertDebug(field != nullptr, "Cannot add null field to Class {}", GetName());
     AssertDebug(m_fieldsByName.Find(field->GetName()) == m_fieldsByName.End(),
@@ -1335,7 +1335,7 @@ DynamicClassInstance::DynamicClassInstance(
     {
         AssertDebug(cls->IsDynamic());
 
-        for (const HypField* field : cls->GetFields())
+        for (const Field* field : cls->GetFields())
         {
             // In dynamic classes for scripts, all fields are stored as HypData
             const SizeType fieldSize = sizeof(HypData);
@@ -1614,7 +1614,7 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
         const DynamicClassInstance* dynamicParentInstance = static_cast<const DynamicClassInstance*>(dynamicParent);
 
         // Init all fields to HypData()
-        for (HypField* field : dynamicParentInstance->GetFields())
+        for (Field* field : dynamicParentInstance->GetFields())
         {
             // align field offset
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
@@ -1630,7 +1630,7 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
     }
 
     // our own class's fields lastly
-    for (HypField* field : GetFields())
+    for (Field* field : GetFields())
     {
         // align field offset
         fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
@@ -1665,7 +1665,7 @@ bool DynamicClassInstance::CreateInstanceArray_Internal(Span<HypData> elements, 
     HYP_NOT_IMPLEMENTED();
 }
 
-void DynamicClassInstance::SetField(uint32 index, HypField* field)
+void DynamicClassInstance::SetField(uint32 index, Field* field)
 {
     AssertDebug(field != nullptr, "Cannot set null field to DynamicClass {}", GetName());
     AssertDebug(!m_fieldsByName.Contains(field->GetName()), "Field with name {} already exists in DynamicClass {}", field->GetName(), GetName());

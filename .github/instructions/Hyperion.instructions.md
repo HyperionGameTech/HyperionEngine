@@ -361,7 +361,7 @@ onValueChanged(42);
   - For debugging code, you can use the convenience macro `HYP_LOG_DEBUG("message: {}", variable);` which logs at the Debug level.
 - Asserts use `Assert(...)` macro which takes a condition and optional formatted message. For debug-only asserts, use `AssertDebug(...)`.
 - For code that should never be reached, use `HYP_UNREACHABLE()` which logs an error and crashes the engine.
-- To interact with the reflection system, use `TypeId::ForType<T>()` to get the TypeId of a type, and `HypClass::GetClass(TypeId)` to get the `HypClass`. Use `HypField` and `HypMethod` to access fields and methods reflectively.
+- To interact with the reflection system, use `TypeId::ForType<T>()` to get the TypeId of a type, and `HypClass::GetClass(TypeId)` to get the `HypClass`. Use `Field` and `HypMethod` to access fields and methods reflectively.
 
 ## Code Generation
 The `generated` directory contains reflection data. Never edit these files directly - they're regenerated from source annotations.

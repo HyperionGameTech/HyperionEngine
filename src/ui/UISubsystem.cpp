@@ -51,13 +51,11 @@ struct alignas(16) UIEntityInstanceBatch : EntityInstanceBatch
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(AddUIRendererForView)
-    : RenderCommand
+struct AddUIRendererForView : RenderCommand
 {
     WeakHandle<View> viewWeak;
 
-    RENDER_COMMAND(AddUIRendererForView)
-    (const WeakHandle<View>& viewWeak)
+    AddUIRendererForView(const WeakHandle<View>& viewWeak)
         : viewWeak(viewWeak)
     {
     }
@@ -81,13 +79,11 @@ struct RENDER_COMMAND(AddUIRendererForView)
     }
 };
 
-struct RENDER_COMMAND(RemoveUIRenderer)
-    : RenderCommand
+struct RemoveUIRenderer : RenderCommand
 {
     UIRenderer* uiRenderer;
 
-    RENDER_COMMAND(RemoveUIRenderer)
-    (UIRenderer* uiRenderer)
+    RemoveUIRenderer(UIRenderer* uiRenderer)
         : uiRenderer(uiRenderer)
     {
     }
@@ -100,18 +96,16 @@ struct RENDER_COMMAND(RemoveUIRenderer)
     }
 };
 
-struct RENDER_COMMAND(SetFinalPassImageView)
-    : RenderCommand
+struct SetFinalPassImageView : RenderCommand
 {
     GpuImageViewRef imageView;
 
-    RENDER_COMMAND(SetFinalPassImageView)
-    (const GpuImageViewRef& imageView)
+    SetFinalPassImageView(const GpuImageViewRef& imageView)
         : imageView(imageView)
     {
     }
 
-    virtual ~RENDER_COMMAND(SetFinalPassImageView)() override = default;
+    virtual ~SetFinalPassImageView() override = default;
 
     virtual RendererResult operator()() override
     {

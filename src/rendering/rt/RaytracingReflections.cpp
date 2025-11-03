@@ -28,10 +28,9 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet)
-    : RenderCommand
+struct UnsetRTRadianceImageInGlobalDescriptorSet : RenderCommand
 {
-    virtual ~RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet)() override = default;
+    virtual ~UnsetRTRadianceImageInGlobalDescriptorSet() override = default;
 
     virtual RendererResult operator()() override
     {

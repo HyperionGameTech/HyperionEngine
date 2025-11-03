@@ -100,7 +100,7 @@ public:
 
             if (dotnet::ManagedClass* classPtr = managedObject->GetClass())
             {
-                if (dotnet::Method* methodPtr = classPtr->GetMethod(m_methodName))
+                if (dotnet::ManagedMethod* methodPtr = classPtr->GetMethod(m_methodName))
                 {
                     if (m_flags & UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE)
                     {
