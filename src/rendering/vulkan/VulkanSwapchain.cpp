@@ -91,6 +91,11 @@ bool VulkanSwapchain::IsCreated() const
     return m_handle != VK_NULL_HANDLE;
 }
 
+void VulkanSwapchain::NextFrame()
+{
+    m_currentFrameIndex = (m_currentFrameIndex + 1) % NumFramesInFlight;
+}
+
 RendererResult VulkanSwapchain::PrepareFrame(bool& outNeedsRecreate)
 {
     static const auto handleFrameResult = [](VkResult result, bool& outNeedsRecreate) -> RendererResult

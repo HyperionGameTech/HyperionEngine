@@ -76,7 +76,7 @@ SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
         {
             ptr->~HypObjectBase();
         }
-            
+
         // this will free the slot if no other weak references remain
         header->DecRefWeak();
     }
@@ -90,7 +90,7 @@ SafeDeleter::SafeDeleter()
     : m_entryLists { nullptr },
       m_tempEntryListCount(0)
 {
-    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    for (uint32 i = 0; i < RingBufferDepth; i++)
     {
         m_entryLists[i] = new SafeDeleter::EntryList<Pool>(g_framePools[i]);
     }
@@ -158,7 +158,7 @@ int SafeDeleter::Iterate(int maxIter)
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    uint32 bufferIndex = RenderApi::GetFrameIndex();
+    uint32 bufferIndex = RenderApi::GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
 
     SafeDeleter::EntryList<Pool>& entryList = *m_entryLists[bufferIndex];
@@ -289,7 +289,7 @@ void SafeDeleter::UpdateEntryListQueue()
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    uint32 bufferIndex = RenderApi::GetFrameIndex();
+    uint32 bufferIndex = RenderApi::GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
 
     SafeDeleter::EntryList<Pool>& currentEntryList = *m_entryLists[bufferIndex];
@@ -390,7 +390,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetCurrentEntryList(Mutex::Guard** ppGu
 
     if (Threads::IsOnThread(g_gameThread | g_renderThread))
     {
-        uint32 bufferIndex = RenderApi::GetFrameIndex();
+        uint32 bufferIndex = RenderApi::GetRingIndex();
         AssertDebug(bufferIndex < m_entryLists.Size());
 
         return *m_entryLists[bufferIndex];
@@ -410,7 +410,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, ui
     //  - desiredIdx == ~0u (not specified) OR
     //  - On render thread and desiredIdx == CURRENT idx
     // we use the CURRENT entry list
-    if (desiredIdx == ~0u || (Threads::IsOnThread(g_renderThread) && desiredIdx == RenderApi::GetFrameIndex()))
+    if (desiredIdx == ~0u || (Threads::IsOnThread(g_renderThread) && desiredIdx == RenderApi::GetRingIndex()))
     {
         return GetCurrentEntryList(ppGuard);
     }

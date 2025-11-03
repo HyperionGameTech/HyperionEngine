@@ -267,17 +267,17 @@ protected:
     // optional raytracing View set by the world
     WeakHandle<View> m_raytracingView;
 
-    RenderProxyList* m_renderProxyLists[NumMultiBuffers];
+    RenderProxyList* m_renderProxyLists[RingBufferDepth];
 
     Viewport m_viewport;
-    Viewport m_viewportBuffered[NumMultiBuffers];
+    Viewport m_viewportBuffered[RingBufferDepth];
 
     // ViewID m_viewId; // unique Id for this view in the current frame
 
     int m_priority;
 
     Handle<Texture> m_readbackTexture;
-    GpuImageBase* m_readbackTextureGpuImages[NumMultiBuffers];
+    GpuImageBase* m_readbackTextureGpuImages[RingBufferDepth];
 
     Optional<RenderableAttributeSet> m_overrideAttributes;
 

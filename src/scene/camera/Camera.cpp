@@ -656,7 +656,7 @@ Vec4f Camera::TransformScreenToWorld(const Vec2f& screen) const
 
 Vec2f Camera::GetPixelSize() const
 {
-    return Vec2f::One() / Vec2f { float(GetWidth()), float(GetHeight()) };
+    return Vec2f::One() / Vec2f(MathUtil::Max(GetDimensions(), Vec2i::One()));
 }
 
 void Camera::Update(float delta)

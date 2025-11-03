@@ -1916,10 +1916,10 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     Assert(rs.IsValid());
     Assert(rs.HasView());
 
-    uint32 globalFrameIndex = RenderApi::GetFrameIndex();
-    if (m_lastFrameData.frameId != globalFrameIndex)
+    uint32 slot = RenderApi::GetRingIndex();
+    if (m_lastFrameData.frameId != slot)
     {
-        m_lastFrameData.frameId = globalFrameIndex;
+        m_lastFrameData.frameId = slot;
         m_lastFrameData.passData.Clear();
     }
 

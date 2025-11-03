@@ -19,10 +19,6 @@
 
 namespace hyperion {
 
-namespace RenderApi {
-extern uint32 GetFrameIndex();
-} // namespace RenderApi
-
 struct VulkanDeviceQueue;
 
 HYP_CLASS(NoScriptBindings)
@@ -43,12 +39,12 @@ public:
 
     HYP_FORCE_INLINE const VulkanFrameRef& GetCurrentFrame() const
     {
-        return m_frames[RenderApi::GetFrameIndex()];
+        return m_frames[m_currentFrameIndex];
     }
 
     HYP_FORCE_INLINE const VulkanCommandBufferRef& GetCurrentCommandBuffer() const
     {
-        return m_commandBuffers[RenderApi::GetFrameIndex()];
+        return m_commandBuffers[m_currentFrameIndex];
     }
 
     HYP_FORCE_INLINE uint32 NumAcquiredImages() const
@@ -57,6 +53,8 @@ public:
     }
 
     virtual bool IsCreated() const override;
+
+    void NextFrame();
 
     RendererResult PrepareFrame(bool& outNeedsRecreate);
     RendererResult PresentFrame(VulkanDeviceQueue* queue) const;
