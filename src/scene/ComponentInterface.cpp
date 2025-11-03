@@ -4,7 +4,7 @@
 
 #include <core/containers/FixedArray.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/reflection/TypeInfo.hpp>
 
@@ -13,21 +13,21 @@
 
 namespace hyperion {
 
-HYP_API bool ComponentInterface_CreateInstance(const HypClass* hypClass, HypData& outHypData)
+HYP_API bool ComponentInterface_CreateInstance(const Class* cls, HypData& outHypData)
 {
-    if (!hypClass || !hypClass->CanCreateInstance())
+    if (!cls || !cls->CanCreateInstance())
     {
         return false;
     }
 
-    return hypClass->CreateInstance(outHypData);
+    return cls->CreateInstance(outHypData);
 }
 
 #pragma region IComponentInterface
 
-const HypClass* IComponentInterface::GetClass() const
+const Class* IComponentInterface::GetClass() const
 {
-    return GetTypeInfo().GetHypClass();
+    return GetTypeInfo().GetClass();
 }
 
 #pragma endregion IComponentInterface

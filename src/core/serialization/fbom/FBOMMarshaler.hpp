@@ -10,13 +10,12 @@
 
 #include <core/serialization/fbom/FBOMType.hpp>
 #include <core/serialization/fbom/FBOMResult.hpp>
-#include <core/serialization/fbom/FBOMBaseTypes.hpp>
 
 #include <core/Constants.hpp>
 
 namespace hyperion {
 struct HypData;
-class HypClass;
+class Class;
 } // namespace hyperion
 
 namespace hyperion::serialization {
@@ -62,39 +61,39 @@ template <class T>
 class FBOMObjectMarshalerBase<T, std::enable_if_t<IsHypObjectV<T>>> : public FBOMMarshalerBase
 {
 public:
-    using HypClassType = typename T::HypClassInfo::Type;
+    using ClassType = typename T::ClassInfo::Type;
 
     virtual ~FBOMObjectMarshalerBase() = default;
 
     virtual FBOMType GetObjectType() const override
     {
-        return FBOMObjectType(TypeNameHelper<HypClassType, true>::value.Data());
+        return FBOMObjectType(TypeNameHelper<ClassType, true>::value.Data());
     }
 
     virtual TypeId GetTypeId() const override final
     {
-        return TypeId::ForType<HypClassType>();
+        return TypeId::ForType<ClassType>();
     }
 
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override final
     {
-        HYP_CORE_ASSERT(in.Is<HypClassType>(), "Cannot serialize - given object is not of expected type");
+        HYP_CORE_ASSERT(in.Is<ClassType>(), "Cannot serialize - given object is not of expected type");
 
-        if (!in.Is<HypClassType>())
+        if (!in.Is<ClassType>())
         {
             return { FBOMResult::FBOM_ERR, "Cannot serialize - given object is not of expected type" };
         }
 
-        return Serialize(in.Get<HypClassType>(), out);
+        return Serialize(in.Get<ClassType>(), out);
     }
 
-    virtual FBOMResult Serialize(const HypClassType& in, FBOMObject& out) const = 0;
+    virtual FBOMResult Serialize(const ClassType& in, FBOMObject& out) const = 0;
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override = 0;
 };
 
-#define HYP_DEFINE_MARSHAL(T, MarshalType)                                                                                         \
-    static ::hyperion::FBOMMarshalerRegistration<typename T::HypClassInfo::Type, MarshalType> HYP_UNIQUE_NAME(marshalRegistration) \
-    {                                                                                                                              \
+#define HYP_DEFINE_MARSHAL(T, MarshalType)                                                                                      \
+    static ::hyperion::FBOMMarshalerRegistration<typename T::ClassInfo::Type, MarshalType> HYP_UNIQUE_NAME(marshalRegistration) \
+    {                                                                                                                           \
     }
 
 } // namespace hyperion::serialization

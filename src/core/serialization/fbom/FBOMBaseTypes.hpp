@@ -17,7 +17,7 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
-class HypClass;
+class Class;
 } // namespace hyperion
 
 namespace hyperion::serialization {
@@ -30,120 +30,73 @@ struct FBOMUnset : FBOMType
     }
 };
 
-struct FBOMUInt8 : FBOMType
+struct HYP_API FBOMUInt8 : FBOMType
 {
-    FBOMUInt8()
-        : FBOMType("u8", 1, TypeId::ForType<uint8>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMUInt8();
 };
 
-struct FBOMUInt16 : FBOMType
+struct HYP_API FBOMUInt16 : FBOMType
 {
-    FBOMUInt16()
-        : FBOMType("u16", 2, TypeId::ForType<uint16>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMUInt16();
 };
 
-struct FBOMUInt32 : FBOMType
+struct HYP_API FBOMUInt32 : FBOMType
 {
-    FBOMUInt32()
-        : FBOMType("u32", 4, TypeId::ForType<uint32>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMUInt32();
 };
 
-struct FBOMUInt64 : FBOMType
+struct HYP_API FBOMUInt64 : FBOMType
 {
-    FBOMUInt64()
-        : FBOMType("u64", 8, TypeId::ForType<uint64>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMUInt64();
 };
 
-struct FBOMInt8 : FBOMType
+struct HYP_API FBOMInt8 : FBOMType
 {
-    FBOMInt8()
-        : FBOMType("i8", 1, TypeId::ForType<int8>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMInt8();
 };
 
-struct FBOMInt16 : FBOMType
+struct HYP_API FBOMInt16 : FBOMType
 {
-    FBOMInt16()
-        : FBOMType("i16", 2, TypeId::ForType<int16>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMInt16();
 };
 
-struct FBOMInt32 : FBOMType
+struct HYP_API FBOMInt32 : FBOMType
 {
-    FBOMInt32()
-        : FBOMType("i32", 4, TypeId::ForType<int32>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMInt32();
 };
 
-struct FBOMInt64 : FBOMType
+struct HYP_API FBOMInt64 : FBOMType
 {
-    FBOMInt64()
-        : FBOMType("i64", 8, TypeId::ForType<int64>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMInt64();
 };
 
-struct FBOMFloat : FBOMType
+struct HYP_API FBOMFloat : FBOMType
 {
-    FBOMFloat()
-        : FBOMType("f32", 4, TypeId::ForType<float>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMFloat();
 };
 
-struct FBOMDouble : FBOMType
+struct HYP_API FBOMDouble : FBOMType
 {
-    FBOMDouble()
-        : FBOMType("f64", 8, TypeId::ForType<double>(), FBOMTypeFlags::NUMERIC)
-    {
-    }
+    FBOMDouble();
 };
 
-struct FBOMChar : FBOMType
+struct HYP_API FBOMChar : FBOMType
 {
-    FBOMChar()
-        : FBOMType("char", 1, TypeId::ForType<char>())
-    {
-    }
+    FBOMChar();
 };
 
-struct FBOMBool : FBOMType
+struct HYP_API FBOMBool : FBOMType
 {
-    FBOMBool()
-        : FBOMType("bool", 1, TypeId::ForType<bool>())
-    {
-    }
+    FBOMBool();
 };
 
-struct FBOMStruct : FBOMType
+struct HYP_API FBOMStruct : FBOMType
 {
     template <class T>
-    static constexpr bool isValidStructType = !std::is_pointer_v<T>
-        && !std::is_reference_v<T>
-        && !std::is_const_v<T>
-        && !std::is_volatile_v<T>
-        && IsPodTypeV<T>;
+    static constexpr bool isValidStructType = !std::is_pointer_v<T> && !std::is_reference_v<T> && !std::is_const_v<T> && !std::is_volatile_v<T> && IsPodTypeV<T>;
 
-    FBOMStruct()
-        : FBOMType("struct", -1, /* no valid native TypeId */ TypeId::Void())
-    {
-    }
-
-    FBOMStruct(const ANSIStringView& typeName, SizeType sz, TypeId typeId)
-        : FBOMType(typeName, sz, typeId, FBOMType("struct", sz, typeId))
-    {
-    }
+    FBOMStruct();
+    FBOMStruct(const ANSIStringView& typeName, SizeType sz, const TypeId& typeId);
 
     template <class T, bool CompileTimeChecked = true>
     FBOMStruct(TypeWrapper<T>, std::bool_constant<CompileTimeChecked> = {})
@@ -159,159 +112,89 @@ struct FBOMStruct : FBOMType
     }
 };
 
-struct FBOMSequence : FBOMType
+struct HYP_API FBOMSequence : FBOMType
 {
-    FBOMSequence()
-        : FBOMType("seq", -1, /* no valid TypeId */ TypeId::Void())
-    {
-    }
-
-    FBOMSequence(const FBOMType& heldType)
-        : FBOMType("seq", -1, /* no valid TypeId */ TypeId::Void())
-    {
-        HYP_CORE_ASSERT(!heldType.IsUnbounded(), "Cannot create sequence of unbounded type");
-    }
-
-    FBOMSequence(const FBOMType& heldType, SizeType count)
-        : FBOMType("seq", heldType.size * count, /* no valid TypeId */ TypeId::Void())
-    {
-        HYP_CORE_ASSERT(!heldType.IsUnbounded(), "Cannot create sequence of unbounded type");
-    }
+    FBOMSequence();
+    FBOMSequence(const FBOMType& heldType);
+    FBOMSequence(const FBOMType& heldType, SizeType count);
 };
 
-struct FBOMByteBuffer : FBOMType
+struct HYP_API FBOMByteBuffer : FBOMType
 {
-    FBOMByteBuffer()
-        : FBOMType("buf", -1, TypeId::ForType<ByteBuffer>())
-    {
-    }
-
-    FBOMByteBuffer(SizeType count)
-        : FBOMType("buf", count, TypeId::ForType<ByteBuffer>())
-    {
-    }
+    FBOMByteBuffer();
+    FBOMByteBuffer(SizeType count);
 };
 
-struct FBOMVec2f : FBOMType
+struct HYP_API FBOMVec2f : FBOMType
 {
-    FBOMVec2f()
-        : FBOMType("vec2f", 8, TypeId::ForType<Vec2f>(), FBOMSequence(FBOMFloat(), 2))
-    {
-    }
+    FBOMVec2f();
 };
 
-struct FBOMVec3f : FBOMType
+struct HYP_API FBOMVec3f : FBOMType
 {
-    FBOMVec3f()
-        : FBOMType("vec3f", 16, TypeId::ForType<Vec3f>(), FBOMSequence(FBOMFloat(), 4 /* 3 + 1 for padding */))
-    {
-    }
+    FBOMVec3f();
 };
 
-struct FBOMVec4f : FBOMType
+struct HYP_API FBOMVec4f : FBOMType
 {
-    FBOMVec4f()
-        : FBOMType("vec4f", 16, TypeId::ForType<Vec4f>(), FBOMSequence(FBOMFloat(), 4))
-    {
-    }
+    FBOMVec4f();
 };
 
-struct FBOMVec2i : FBOMType
+struct HYP_API FBOMVec2i : FBOMType
 {
-    FBOMVec2i()
-        : FBOMType("vec2i", 8, TypeId::ForType<Vec2i>(), FBOMSequence(FBOMInt32(), 2))
-    {
-    }
+    FBOMVec2i();
 };
 
-struct FBOMVec3i : FBOMType
+struct HYP_API FBOMVec3i : FBOMType
 {
-    FBOMVec3i()
-        : FBOMType("vec3i", 16, TypeId::ForType<Vec3i>(), FBOMSequence(FBOMInt32(), 4 /* 3 + 1 for padding */))
-    {
-    }
+    FBOMVec3i();
 };
 
-struct FBOMVec4i : FBOMType
+struct HYP_API FBOMVec4i : FBOMType
 {
-    FBOMVec4i()
-        : FBOMType("vec4i", 16, TypeId::ForType<Vec4i>(), FBOMSequence(FBOMInt32(), 4))
-    {
-    }
+    FBOMVec4i();
 };
 
-struct FBOMVec2u : FBOMType
+struct HYP_API FBOMVec2u : FBOMType
 {
-    FBOMVec2u()
-        : FBOMType("vec2u", 8, TypeId::ForType<Vec2u>(), FBOMSequence(FBOMUInt32(), 2))
-    {
-    }
+    FBOMVec2u();
 };
 
-struct FBOMVec3u : FBOMType
+struct HYP_API FBOMVec3u : FBOMType
 {
-    FBOMVec3u()
-        : FBOMType("vec3u", 16, TypeId::ForType<Vec3u>(), FBOMSequence(FBOMUInt32(), 4 /* 3 + 1 for padding */))
-    {
-    }
+    FBOMVec3u();
 };
 
-struct FBOMVec4u : FBOMType
+struct HYP_API FBOMVec4u : FBOMType
 {
-    FBOMVec4u()
-        : FBOMType("vec4u", 16, TypeId::ForType<Vec4u>(), FBOMSequence(FBOMUInt32(), 4))
-    {
-    }
+    FBOMVec4u();
 };
 
-struct FBOMMat3f : FBOMType
+struct HYP_API FBOMMat3f : FBOMType
 {
-    FBOMMat3f()
-        : FBOMType("mat3f", 48, TypeId::ForType<Mat3f>(), FBOMSequence(FBOMFloat(), 12))
-    {
-    }
+    FBOMMat3f();
 };
 
-struct FBOMMat4f : FBOMType
+struct HYP_API FBOMMat4f : FBOMType
 {
-    FBOMMat4f()
-        : FBOMType("mat4f", 64, TypeId::ForType<Mat4f>(), FBOMSequence(FBOMFloat(), 16))
-    {
-    }
+    FBOMMat4f();
 };
 
-struct FBOMQuat4f : FBOMType
+struct HYP_API FBOMQuat4f : FBOMType
 {
-    FBOMQuat4f()
-        : FBOMType("quat4f", 16, TypeId::ForType<Quaternion>(), FBOMSequence(FBOMFloat(), 4))
-    {
-    }
+    FBOMQuat4f();
 };
 
-struct FBOMString : FBOMType
+struct HYP_API FBOMString : FBOMType
 {
-    FBOMString()
-        : FBOMString(-1)
-    {
-    }
-
-    FBOMString(SizeType length)
-        : FBOMType("string", length, TypeId::ForType<String>())
-    {
-    }
+    FBOMString();
+    FBOMString(SizeType length);
 };
 
-struct FBOMBaseObjectType : FBOMType
+struct HYP_API FBOMBaseObjectType : FBOMType
 {
-    FBOMBaseObjectType()
-        : FBOMType("object", 0, /* no valid TypeId */ TypeId::Void(), FBOMTypeFlags::DEFAULT)
-    {
-    }
-
-    FBOMBaseObjectType(const FBOMType& extends)
-        : FBOMType("object", 0, /* no valid TypeId */ TypeId::Void(), FBOMTypeFlags::DEFAULT, extends)
-    {
-    }
+    FBOMBaseObjectType();
+    FBOMBaseObjectType(const FBOMType& extends);
 };
 
 struct FBOMObjectType : FBOMType
@@ -381,7 +264,7 @@ struct FBOMObjectType : FBOMType
     {
     }
 
-    explicit FBOMObjectType(const HypClass* hypClass);
+    explicit FBOMObjectType(const Class* cls);
 };
 
 struct FBOMPlaceholderType : FBOMType

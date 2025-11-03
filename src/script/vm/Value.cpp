@@ -4,7 +4,7 @@
 #include <script/vm/HashMap.hpp>
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypMethod.hpp>
 
 #include <core/debug/Debug.hpp>
@@ -17,7 +17,7 @@
 
 namespace hyperion {
 
-extern HYP_API const char* LookupTypeName(TypeId typeId);
+HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 extern const char* ScriptApi_GetTypeString(const HypData& data);
 extern String ScriptApi_ValueToString(const HypData& data, int currDepth = 0);

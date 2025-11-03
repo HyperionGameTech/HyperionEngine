@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="EditorSubsystem")]
+    [ClassBinding(Name="EditorSubsystem")]
     public class EditorSubsystem : Subsystem
     {
         public EditorSubsystem()

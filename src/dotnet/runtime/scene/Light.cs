@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "LightType")]
+    [ClassBinding(Name = "LightType")]
     public enum LightType : uint
     {
         Directional = 0,
@@ -12,7 +12,7 @@ namespace Hyperion
         AreaRect = 3
     }
 
-    [HypClassBinding(Name = "LightFlags")]
+    [ClassBinding(Name = "LightFlags")]
     [Flags]
     public enum LightFlags : uint
     {
@@ -26,7 +26,7 @@ namespace Hyperion
         Default = Shadow | ShadowFilterPcf
     }
 
-    [HypClassBinding(Name = "Light")]
+    [ClassBinding(Name = "Light")]
     public class Light : Entity
     {
         public Light()
@@ -39,7 +39,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name = "DirectionalLight")]
+    [ClassBinding(Name = "DirectionalLight")]
     public class DirectionalLight : Light
     {
         public DirectionalLight()
@@ -47,7 +47,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name = "PointLight")]
+    [ClassBinding(Name = "PointLight")]
     public class PointLight : Light
     {
         public PointLight()
@@ -55,7 +55,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name = "SpotLight")]
+    [ClassBinding(Name = "SpotLight")]
     public class SpotLight : Light
     {
         public SpotLight()
@@ -63,7 +63,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name = "AreaRectLight")]
+    [ClassBinding(Name = "AreaRectLight")]
     public class AreaRectLight : Light
     {
         public AreaRectLight()

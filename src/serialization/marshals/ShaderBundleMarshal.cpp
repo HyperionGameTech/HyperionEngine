@@ -1,12 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
+#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <core/reflection/HypData.hpp>
+
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 
@@ -16,12 +18,12 @@ HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
 
 namespace hyperion::serialization {
 
-class CompiledShaderMarshal : public HypClassInstanceMarshal
+class CompiledShaderMarshal : public ObjectMarshal
 {
 public:
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
-        return HypClassInstanceMarshal::Serialize(in, out);
+        return ObjectMarshal::Serialize(in, out);
     }
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
@@ -30,7 +32,7 @@ public:
 
         CompiledShader& compiledShader = out.Get<CompiledShader>();
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, CompiledShader::Class(), out))
+        if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, CompiledShader::StaticClass(), out))
         {
             return err;
         }
@@ -41,7 +43,10 @@ public:
             return { FBOMResult::FBOM_ERR, "Shader out of date" };
         }
 
-        compiledShader.descriptorTableDeclaration = compiledShader.descriptorUsageSet.BuildDescriptorTableDeclaration();
+        AssertDebug(compiledShader.descriptorTableDeclaration == nullptr);
+
+        compiledShader.descriptorTableDeclaration = new DescriptorTableDeclaration;
+        compiledShader.descriptorUsageSet.BuildDescriptorTableDeclaration(*compiledShader.descriptorTableDeclaration);
 
         return { FBOMResult::FBOM_OK };
     }

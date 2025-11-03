@@ -154,8 +154,16 @@ public:
     }
 };
 
+template <class T>
+const TypeId& TypeIdOf()
+{
+    static TypeId s_typeId = TypeId::ForType<T>();
+    return s_typeId;
+}
+
 } // namespace utilities
 
 using utilities::TypeId;
+using utilities::TypeIdOf;
 
 } // namespace hyperion

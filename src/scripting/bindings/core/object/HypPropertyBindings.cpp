@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypProperty.hpp>
 #include <core/reflection/HypObject.hpp>
 #include <core/reflection/HypData.hpp>
@@ -41,7 +41,7 @@ extern "C"
         *outTypeId = property->GetTypeId();
     }
 
-    HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty* property, const HypClass* targetClass, void* targetPtr, HypData* outResult)
+    HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty* property, const Class* targetClass, void* targetPtr, HypData* outResult)
     {
         if (!property || !targetClass || !targetPtr || !outResult)
         {
@@ -60,7 +60,7 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT bool HypProperty_InvokeSetter(const HypProperty* property, const HypClass* targetClass, void* targetPtr, HypData* value)
+    HYP_EXPORT bool HypProperty_InvokeSetter(const HypProperty* property, const Class* targetClass, void* targetPtr, HypData* value)
     {
         if (!property || !targetClass || !targetPtr || !value)
         {

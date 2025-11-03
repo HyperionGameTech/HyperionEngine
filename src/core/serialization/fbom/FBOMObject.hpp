@@ -31,10 +31,10 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 struct HypData;
 
-HYP_API extern TypeId GetTypeIdForClass(const HypClass* hypClass);
+HYP_API extern TypeId GetTypeIdForClass(const Class* cls);
 
 enum class FBOMObjectSerializeFlags : uint32
 {
@@ -304,14 +304,14 @@ public:
         return GetMarshal(TypeId::ForType<T>());
     }
 
-    /*! \brief Returns the associated HypClass for this object type, if applicable.
+    /*! \brief Returns the associated Class for this object type, if applicable.
      *  The type must be registered using the "HYP_CLASS" macro.
      *
      *  If this object's FBOMType has no native TypeId (e.g it is a FBOM-only type like `seq`), or if
-     *  no HypClass has been registered for the type, nullptr will be returned. */
-    HYP_FORCE_INLINE const HypClass* GetHypClass() const
+     *  no Class has been registered for the type, nullptr will be returned. */
+    HYP_FORCE_INLINE const Class* GetClass() const
     {
-        return m_objectType.GetHypClass();
+        return m_objectType.GetClass();
     }
 };
 
@@ -362,15 +362,15 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
 
         ConstAnyRef ref = ConstAnyRef(in);
 
-        /// @TODO: Move Marshal to HypClass.
+        /// @TODO: Move Marshal to Class.
 
         if constexpr (std::is_base_of_v<HypObjectBase, NormalizedType<T>>)
         {
-            const HypClass* instanceClass = in.InstanceClass();
+            const Class* instanceClass = in.InstanceClass();
             HYP_CORE_ASSERT(instanceClass != nullptr);
 
             marshal = FBOMObject::GetMarshal(GetTypeIdForClass(instanceClass));
-            ref = ConstAnyRef(&TypeInfo_ForHypClass(instanceClass), &in);
+            ref = ConstAnyRef(&TypeInfo_ForClass(instanceClass), &in);
         }
         else
         {

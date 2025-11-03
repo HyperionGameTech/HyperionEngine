@@ -13,6 +13,9 @@
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderStats.hpp>
+#include <rendering/RenderableAttributes.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -58,6 +61,14 @@ static RenderableAttributeSet GetRenderableAttributes()
                 .mask = 0x0,
                 .value = 0x1 } });
 }
+
+struct DebugDrawCommand
+{
+    IDebugDrawShape* shape;
+    Mat4f transformMatrix;
+    Color color;
+    RenderableAttributeSet attributes;
+};
 
 #pragma region DebugDrawCommand_Probe
 
@@ -524,11 +535,9 @@ void DebugDrawer::Init()
 
     Assert(m_shader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    m_descriptorTable = g_renderBackend->MakeDescriptorTable(
+        m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
-    AssertDebug(m_descriptorTable == nullptr);
-
-    m_descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
     Assert(m_descriptorTable != nullptr);
 
     const uint32 debugDrawerDescriptorSetIndex = m_descriptorTable->GetDescriptorSetIndex("DebugDrawerDescriptorSet");

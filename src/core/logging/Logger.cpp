@@ -715,7 +715,7 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
     }
     else
     {
-        std::terminate();
+        debug::TerminateProgram();
     }
 
     HYP_UNREACHABLE();

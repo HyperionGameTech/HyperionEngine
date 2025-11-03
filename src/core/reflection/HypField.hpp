@@ -3,7 +3,7 @@
 #pragma once
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/ClassAttribute.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 #include <core/reflection/TypeId.hpp>
 #include <core/reflection/TypeInfoFwd.hpp>
@@ -29,12 +29,12 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
 class HypField final : public IHypMember
 {
 public:
-    HypField(const Span<const HypClassAttribute>& attributes = {})
+    HypField(const Span<const ClassAttribute>& attributes = {})
         : m_name(Name::Invalid()),
           m_typeInfo(&TypeInfo_Void()),
           m_targetTypeInfo(&TypeInfo_Void()),
@@ -45,7 +45,7 @@ public:
     }
 
     /*! \brief Script object (HypObjectBase) overload */
-    HypField(Name name, const TypeInfo* typeInfo, const TypeInfo* targetTypeInfo, uint32 offset, uint32 size, const Span<const HypClassAttribute>& attributes = {})
+    HypField(Name name, const TypeInfo* typeInfo, const TypeInfo* targetTypeInfo, uint32 offset, uint32 size, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(typeInfo),
           m_targetTypeInfo(targetTypeInfo),
@@ -94,7 +94,7 @@ public:
     }
 
     template <class ThisType, class FieldType>
-    HypField(Name name, FieldType ThisType::* member, uint32 offset, const Span<const HypClassAttribute>& attributes = {})
+    HypField(Name name, FieldType ThisType::*member, uint32 offset, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<FieldType>()),
           m_targetTypeInfo(&TypeOf<ThisType>()),
@@ -318,17 +318,17 @@ public:
         return m_deserializeProc(context, target, in);
     }
 
-    virtual const HypClassAttributeSet& GetAttributes() const override
+    virtual const ClassAttributeSet& GetAttributes() const override
     {
         return m_attributes;
     }
 
-    virtual const HypClassAttributeValue& GetAttribute(WeakName key) const override
+    virtual const ClassAttributeValue& GetAttribute(WeakName key) const override
     {
         return m_attributes.Get(key);
     }
 
-    virtual const HypClassAttributeValue& GetAttribute(WeakName key, const HypClassAttributeValue& defaultValue) const override
+    virtual const ClassAttributeValue& GetAttribute(WeakName key, const ClassAttributeValue& defaultValue) const override
     {
         return m_attributes.Get(key, defaultValue);
     }
@@ -372,7 +372,7 @@ private:
     uint32 m_offset;
     uint32 m_size;
 
-    HypClassAttributeSet m_attributes;
+    ClassAttributeSet m_attributes;
 
     Proc<HypData(const HypData&)> m_getProc;
     Proc<void(HypData&, const HypData&)> m_setProc;

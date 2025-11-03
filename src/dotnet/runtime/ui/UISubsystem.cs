@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="UISubsystem")]
+    [ClassBinding(Name="UISubsystem")]
     public class UISubsystem : Subsystem
     {
         public UISubsystem()

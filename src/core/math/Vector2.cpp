@@ -4,14 +4,14 @@
 #include <core/math/Vector4.hpp>
 #include <core/math/MathUtil.hpp>
 
-#include <core/reflection/HypClassUtils.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/ClassUtils.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 namespace hyperion {
 
-HYP_API const HypClass* g_clsVec2f = nullptr;
-HYP_API const HypClass* g_clsVec2i = nullptr;
-HYP_API const HypClass* g_clsVec2u = nullptr;
+HYP_API const Class* g_clsVec2f = nullptr;
+HYP_API const Class* g_clsVec2i = nullptr;
+HYP_API const Class* g_clsVec2u = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Vec2f, -1, 0, {})

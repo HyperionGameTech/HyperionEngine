@@ -8,8 +8,8 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
-#include <ostream>
 #include <cmath>
+#include <cstdio>
 
 namespace hyperion {
 

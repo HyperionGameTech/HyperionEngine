@@ -21,7 +21,7 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 class ScriptObjectResource;
 
 template <class T>
@@ -36,10 +36,10 @@ class ManagedClass;
 } // namespace dotnet
 #endif
 
-HYP_API extern bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
-HYP_API extern bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
+HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
-HYP_API extern TypeId GetTypeIdForClass(const HypClass* hypClass);
+HYP_API extern TypeId GetTypeIdForClass(const Class* cls);
 
 class HYP_API HypObjectBase
 {
@@ -58,7 +58,7 @@ class HYP_API HypObjectBase
     friend bool InitObject(const Handle<T>&);
 
 public:
-    struct HypClassInfo
+    struct ClassInfo
     {
         using Type = HypObjectBase;
     };
@@ -72,17 +72,17 @@ public:
     {
         HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
 
-        return ObjIdBase { GetTypeIdForClass(m_header->hypClass), m_header->index + 1 };
+        return ObjIdBase { GetTypeIdForClass(m_header->cls), m_header->index + 1 };
     }
 
-    static const HypClass* Class();
+    static const Class* StaticClass();
 
-    HYP_FORCE_INLINE const HypClass* InstanceClass() const
+    HYP_FORCE_INLINE const Class* InstanceClass() const
     {
         HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
-        HYP_CORE_ASSERT(m_header->hypClass, "No HypClass defined for type");
+        HYP_CORE_ASSERT(m_header->cls, "No Class defined for type");
 
-        return m_header->hypClass;
+        return m_header->cls;
     }
 
     template <class TOther>
@@ -94,20 +94,20 @@ public:
         }
         else
         {
-            static const HypClass* otherHypClass = TOther::Class();
+            static const Class* otherClass = TOther::StaticClass();
 
-            if (!otherHypClass)
+            if (!otherClass)
             {
                 return false;
             }
 
-            return hyperion::IsA(otherHypClass, InstanceClass());
+            return hyperion::IsA(otherClass, InstanceClass());
         }
     }
 
-    HYP_FORCE_INLINE bool IsA(const HypClass* hypClass) const
+    HYP_FORCE_INLINE bool IsA(const Class* cls) const
     {
-        return hyperion::IsA(hypClass, InstanceClass());
+        return hyperion::IsA(cls, InstanceClass());
     }
 
     HYP_FORCE_INLINE HypObjectHeader* GetObjectHeader_Internal() const

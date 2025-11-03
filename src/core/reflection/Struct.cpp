@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypStruct.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/Struct.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/reflection/TypeInfo.hpp>
 
@@ -12,9 +12,9 @@
 
 namespace hyperion {
 
-#pragma region HypStruct
+#pragma region Struct
 
-bool HypStruct::CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, SizeType size) const
+bool Struct::CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, SizeType size) const
 {
     struct ManagedStructInitializerContext
     {
@@ -25,7 +25,7 @@ bool HypStruct::CreateStructInstance(dotnet::ObjectReference& outObjectReference
     AssertDebug(objectPtr != nullptr);
 
 #ifdef HYP_DOTNET
-    if (dotnet::ManagedClass* managedClass = HypClass::GetManagedClass())
+    if (dotnet::ManagedClass* managedClass = Class::GetManagedClass())
     {
         ManagedStructInitializerContext context;
         context.ptr = objectPtr;
@@ -48,20 +48,20 @@ bool HypStruct::CreateStructInstance(dotnet::ObjectReference& outObjectReference
     return false;
 }
 
-#pragma endregion HypStruct
+#pragma endregion Struct
 
-#pragma region DynamicHypStructInstance
+#pragma region DynamicStructInstance
 
-DynamicHypStructInstance::DynamicHypStructInstance(
+DynamicStructInstance::DynamicStructInstance(
     TypeId typeId,
     Name name,
     uint32 size,
-    Span<const HypClassAttribute> attributes,
-    EnumFlags<HypClassFlags> flags,
+    Span<const ClassAttribute> attributes,
+    EnumFlags<ClassFlags> flags,
     Span<HypMember> members,
-    DynamicHypStructInstance_CopyFunction copyFunction,
-    DynamicHypStructInstance_DestructFunction destructFunction)
-    : HypStruct(typeId, name, -1, 0, Name::Invalid(), attributes, flags, members),
+    DynamicStructInstance_CopyFunction copyFunction,
+    DynamicStructInstance_DestructFunction destructFunction)
+    : Struct(typeId, name, -1, 0, Name::Invalid(), attributes, flags, members),
       m_copyFunction(copyFunction),
       m_destructFunction(destructFunction)
 {
@@ -73,16 +73,16 @@ DynamicHypStructInstance::DynamicHypStructInstance(
     m_alignment = alignof(void*);
 
     // @TODO Register the ManagedClass (dotnet::ManagedClass) for this. We need the assembly.
-    HypClassRegistry::GetInstance().RegisterClass(typeId, this);
+    ClassRegistry::GetInstance().RegisterClass(typeId, this);
 }
 
-DynamicHypStructInstance::~DynamicHypStructInstance()
+DynamicStructInstance::~DynamicStructInstance()
 {
-    HypClassRegistry::GetInstance().UnregisterClass(this);
+    ClassRegistry::GetInstance().UnregisterClass(this);
 }
 
 #ifdef HYP_DOTNET
-bool DynamicHypStructInstance::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
+bool DynamicStructInstance::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
 {
     Assert(objectPtr != nullptr);
 
@@ -96,18 +96,18 @@ bool DynamicHypStructInstance::GetManagedObject(const void* objectPtr, dotnet::O
 }
 #endif
 
-bool DynamicHypStructInstance::ToHypData(ByteView memory, HypData& out) const
+bool DynamicStructInstance::ToHypData(ByteView memory, HypData& out) const
 {
     void* data = Memory::Allocate(m_size);
     Memory::MemCpy(data, memory.Data(), m_size);
 
-    const TypeInfo& typeInfo = TypeInfo::ForHypClass(this);
+    const TypeInfo& typeInfo = TypeInfo::ForClass(this);
 
     out = HypData(Any::FromVoidPointer(&typeInfo, data, m_copyFunction, m_destructFunction));
 
     return true;
 }
 
-#pragma endregion DynamicHypStructInstance
+#pragma endregion DynamicStructInstance
 
 } // namespace hyperion

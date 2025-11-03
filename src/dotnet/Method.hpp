@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <dotnet/Attribute.hpp>
+#include <dotnet/ManagedAttribute.hpp>
 #include <dotnet/Helpers.hpp>
 
 #include <dotnet/Types.hpp>
@@ -29,7 +29,7 @@ public:
     {
     }
 
-    Method(ManagedGuid guid, InvokeMethodFunction invokeFptr, AttributeSet&& attributes)
+    Method(ManagedGuid guid, InvokeMethodFunction invokeFptr, ManagedAttributeSet&& attributes)
         : m_guid(guid),
           m_invokeFptr(invokeFptr),
           m_attributes(std::move(attributes))
@@ -54,7 +54,7 @@ public:
         return m_invokeFptr;
     }
 
-    HYP_FORCE_INLINE const AttributeSet& GetAttributes() const
+    HYP_FORCE_INLINE const ManagedAttributeSet& GetAttributes() const
     {
         return m_attributes;
     }
@@ -67,7 +67,7 @@ public:
 private:
     ManagedGuid m_guid;
     InvokeMethodFunction m_invokeFptr;
-    AttributeSet m_attributes;
+    ManagedAttributeSet m_attributes;
 };
 
 } // namespace hyperion::dotnet

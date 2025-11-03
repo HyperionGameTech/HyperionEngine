@@ -209,12 +209,12 @@ namespace Hyperion
             {
                 HypObject obj = (HypObject)value;
 
-                if (!obj.HypClass.IsReferenceCounted)
-                    throw new Exception("Cannot use HypData_SetHypObject with non reference counted HypClass type from managed code");
+                if (!obj.Class.IsReferenceCounted)
+                    throw new Exception("Cannot use HypData_SetHypObject with non reference counted Class type from managed code");
 
-                if (!HypData_SetHypObject(ref this, obj.HypClass.Address, obj.NativeAddress))
+                if (!HypData_SetHypObject(ref this, obj.Class.Address, obj.NativeAddress))
                 {
-                    throw new InvalidOperationException("Failed to set HypData to HypObject instance for HypClass: " + obj.HypClass.Name);
+                    throw new InvalidOperationException("Failed to set HypData to HypObject instance for Class: " + obj.Class.Name);
                 }
 
                 return;
@@ -316,9 +316,9 @@ namespace Hyperion
                     throw new NotImplementedException("Unsupported enum type to construct HypData: " + type.FullName);
                 }
 
-                HypClass? hypClass = null;
+                Class? cls = null;
 
-                if (HypStructHelpers.IsHypStruct(value.GetType(), out hypClass))
+                if (StructHelpers.IsStruct(value.GetType(), out cls))
                 {
                     unsafe
                     {
@@ -328,9 +328,9 @@ namespace Hyperion
                         {
                             Marshal.StructureToPtr(value, (IntPtr)ptr, false);
 
-                            if (!HypData_SetHypStruct(ref this, ((HypClass)hypClass).Address, (uint)Marshal.SizeOf(value), (IntPtr)ptr))
+                            if (!HypData_SetStruct(ref this, ((Class)cls).Address, (uint)Marshal.SizeOf(value), (IntPtr)ptr))
                             {
-                                throw new InvalidOperationException("Failed to set HypStruct");
+                                throw new InvalidOperationException("Failed to set Struct");
                             }
                         }
 
@@ -342,11 +342,11 @@ namespace Hyperion
             {
                 Array array = (Array)value;
 
-                HypClass? hypClass = HypClass.TryGetClass(type.GetElementType());
+                Class? cls = Class.TryGetClass(type.GetElementType());
 
-                if (hypClass == null)
+                if (cls == null)
                 {
-                    throw new InvalidOperationException("Failed to get HypClass for type: " + type.GetElementType()?.FullName);
+                    throw new InvalidOperationException("Failed to get Class for type: " + type.GetElementType()?.FullName);
                 }
 
                 unsafe
@@ -363,12 +363,12 @@ namespace Hyperion
                     {
                         fixed (HypDataBuffer* ptr = hypDataBufferArray)
                         {
-                            if (!HypData_SetArray(ref this, ((HypClass)hypClass).Address, (IntPtr)ptr, (uint)hypDataBufferArray.Length))
+                            if (!HypData_SetArray(ref this, ((Class)cls).Address, (IntPtr)ptr, (uint)hypDataBufferArray.Length))
                             {
                                 throw new InvalidOperationException("Failed to set array!");
                             }
 
-                            Logger.Log(LogType.Debug, "HypData.SetValue: Set array of type " + ((HypClass)hypClass).Name + " with length " + hypDataBufferArray.Length + " type Id: " + this.TypeId.Value);
+                            Logger.Log(LogType.Debug, "HypData.SetValue: Set array of type " + ((Class)cls).Name + " with length " + hypDataBufferArray.Length + " type Id: " + this.TypeId.Value);
                         }
                     }
                     finally
@@ -533,14 +533,14 @@ namespace Hyperion
                 return value.objectReference.LoadObject();
             }
 
-            if (HypData_GetHypStruct(ref this, out value.objectReference))
+            if (HypData_GetStruct(ref this, out value.objectReference))
             {
                 return value.objectReference.LoadObject();
             }
 
-            if (DynamicHypStruct.TryGet(TypeId, out DynamicHypStruct? dynamicHypStruct))
+            if (DynamicStruct.TryGet(TypeId, out DynamicStruct? dynamicStruct))
             {
-                return dynamicHypStruct.MarshalFromHypData(ref this);
+                return dynamicStruct.MarshalFromHypData(ref this);
             }
 
             throw new NotImplementedException("Unsupported type to get value from HypData. Current TypeId: " + TypeId.Value);
@@ -827,14 +827,14 @@ namespace Hyperion
 
             ObjectReference objectReference;
 
-            if (HypData_GetHypStruct(ref this, out objectReference))
+            if (HypData_GetStruct(ref this, out objectReference))
             {
                 return (T)objectReference.LoadObject();
             }
 
-            if (DynamicHypStruct.TryGet(TypeId, out DynamicHypStruct? dynamicHypStruct))
+            if (DynamicStruct.TryGet(TypeId, out DynamicStruct? dynamicStruct))
             {
-                return (T)dynamicHypStruct.MarshalFromHypData(ref this);
+                return (T)dynamicStruct.MarshalFromHypData(ref this);
             }
 
             throw new NotImplementedException("Unsupported type to get struct from HypData. Current TypeId: " + TypeId.Value);
@@ -958,9 +958,9 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_GetHypObject([In] ref HypDataBuffer hypData, [Out] out ObjectReference outObjectReference);
 
-        [DllImport("hyperion", EntryPoint = "HypData_GetHypStruct")]
+        [DllImport("hyperion", EntryPoint = "HypData_GetStruct")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetHypStruct([In] ref HypDataBuffer hypData, [Out] out ObjectReference outObjectReference);
+        internal static extern bool HypData_GetStruct([In] ref HypDataBuffer hypData, [Out] out ObjectReference outObjectReference);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetByteBuffer")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -1084,7 +1084,7 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypData_SetArray")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetArray([In] ref HypDataBuffer hypData, [In] IntPtr hypClassPtr, [In] IntPtr arrayPtr, uint arraySize);
+        internal static extern bool HypData_SetArray([In] ref HypDataBuffer hypData, [In] IntPtr classPtr, [In] IntPtr arrayPtr, uint arraySize);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetString")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -1100,11 +1100,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypData_SetHypObject")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetHypObject([In] ref HypDataBuffer hypData, [In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
+        internal static extern bool HypData_SetHypObject([In] ref HypDataBuffer hypData, [In] IntPtr classPtr, [In] IntPtr nativeAddress);
 
-        [DllImport("hyperion", EntryPoint = "HypData_SetHypStruct")]
+        [DllImport("hyperion", EntryPoint = "HypData_SetStruct")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetHypStruct([In] ref HypDataBuffer hypData, [In] IntPtr hypClassPtr, uint objectSize, [In] IntPtr objectPtr);
+        internal static extern bool HypData_SetStruct([In] ref HypDataBuffer hypData, [In] IntPtr classPtr, uint objectSize, [In] IntPtr objectPtr);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetByteBuffer")]
         [return: MarshalAs(UnmanagedType.I1)]

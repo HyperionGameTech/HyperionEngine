@@ -2,7 +2,7 @@
 
 #include <rendering/util/ResourceTracker.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -12,9 +12,9 @@
 
 namespace hyperion {
 
-HYP_API const TypeInfo& HypClass_GetTypeInfo(const HypClass& hypClass)
+HYP_API const TypeInfo& Class_GetTypeInfo(const Class& cls)
 {
-    return *hypClass.GetTypeInfo();
+    return *cls.GetTypeInfo();
 }
 
 } // namespace hyperion

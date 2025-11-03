@@ -15,8 +15,8 @@
 
 #include <core/memory/resource/Resource.hpp>
 
-#include <rendering/RenderCollection.hpp>
 #include <rendering/Shared.hpp>
+#include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <core/Constants.hpp>
@@ -30,8 +30,10 @@ class Light;
 class LightmapVolume;
 class EnvGrid;
 class EnvProbe;
+class Texture;
 class GBuffer;
 class EntityBatchAllocatorBase;
+class RenderProxyList;
 
 namespace threading {
 
@@ -252,8 +254,7 @@ protected:
     void CollectLightmapVolumes(RenderProxyList& rpl);
     void CollectEnvGrids(RenderProxyList& rpl);
     void CollectEnvProbes(RenderProxyList& rpl);
-
-    ResourceTrackerDiff CollectMeshEntities(RenderProxyList& rpl);
+    void CollectMeshEntities(RenderProxyList& rpl);
 
     ViewDesc m_viewDesc;
 

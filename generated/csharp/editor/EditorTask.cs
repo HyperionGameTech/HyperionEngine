@@ -37,14 +37,14 @@ namespace Hyperion
         }
         public static ScriptableDelegate GetOnCompleteDelegate(this EditorTaskBase obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(7177359951078883047));
+            HypField field = (HypField)obj.Class.GetField(new Name(7177359951078883047));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnCancelDelegate(this EditorTaskBase obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(9129833424176379786));
+            HypField field = (HypField)obj.Class.GetField(new Name(9129833424176379786));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);

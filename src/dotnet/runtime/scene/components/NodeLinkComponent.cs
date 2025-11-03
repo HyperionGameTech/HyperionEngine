@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="NodeLinkComponent")]
+    [ClassBinding(Name="NodeLinkComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct NodeLinkComponent : IComponent
     {

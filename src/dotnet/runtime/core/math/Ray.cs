@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Ray")]
+    [ClassBinding(Name="Ray")]
     [StructLayout(LayoutKind.Explicit, Size = 32, Pack = 16)]
     public struct Ray
     {

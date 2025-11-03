@@ -11,6 +11,9 @@
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/RenderProxy.hpp>
+#include <rendering/RenderCollection.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -284,9 +287,10 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridPassDat
     AttachmentBase* normalsAttachment = framebuffer->GetAttachment(1);
     AttachmentBase* depthAttachment = framebuffer->GetAttachment(2);
 
-    const DescriptorTableDeclaration& descriptorTableDecl = voxelizeProbeShader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration* descriptorTableDecl = voxelizeProbeShader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    Assert(descriptorTableDecl != nullptr);
 
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -328,7 +332,7 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridPassDat
         ShaderRef generateVoxelGridMipmapsShader = g_shaderManager->GetOrCreate(NAME("VCTGenerateMipmap"));
         Assert(generateVoxelGridMipmapsShader.IsValid());
 
-        const DescriptorTableDeclaration& generateVoxelGridMipmapsDescriptorTableDecl = generateVoxelGridMipmapsShader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        const DescriptorTableDeclaration* generateVoxelGridMipmapsDescriptorTableDecl = generateVoxelGridMipmapsShader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
         const uint32 numVoxelGridMipLevels = envGrid->GetVoxelGridTexture()->GetTextureDesc().NumMipmaps();
         pd.voxelGridMips.Resize(numVoxelGridMipLevels);
@@ -343,7 +347,7 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridPassDat
             DeferCreate(pd.voxelGridMips[mipLevel]);
 
             // create descriptor sets for mip generation.
-            DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&generateVoxelGridMipmapsDescriptorTableDecl);
+            DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(generateVoxelGridMipmapsDescriptorTableDecl);
 
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
@@ -402,13 +406,13 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
         Assert(shader.IsValid());
     }
 
-    const DescriptorTableDeclaration& descriptorTableDecl = shaders[0]->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration* descriptorTableDecl = shaders[0]->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     pd.computeShDescriptorTables.Resize(ShNumLevels);
 
     for (uint32 i = 0; i < ShNumLevels; i++)
     {
-        pd.computeShDescriptorTables[i] = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+        pd.computeShDescriptorTables[i] = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
@@ -486,9 +490,7 @@ void EnvGridRenderer::CreateLightFieldData(LegacyEnvGrid* envGrid, EnvGridPassDa
 
         Assert(shader.IsValid());
 
-        const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
@@ -880,10 +882,13 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
             const uint32 boundIndex = RenderApi::RetrieveResourceBinding(probe);
             Assert(boundIndex != ~0u);
 
+            EnvProbeSphericalHarmonics shData;
+            Memory::MemCpy(shData.values, readbackBuffer.shData, sizeof(readbackBuffer.shData));
+
             // g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
             // Enqueue on game thread, not safe to write on render thread.
-            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData = readbackBuffer.sh]() mutable
+            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData]() mutable
                 {
                     probe->SetSphericalHarmonicsData(shData);
 

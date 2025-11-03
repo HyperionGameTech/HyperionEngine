@@ -24,11 +24,10 @@
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
 
-#include <rendering/Buffers.hpp>
-#include <rendering/RenderCollection.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>
+#include <rendering/RenderableAttributes.hpp>
 #include <rendering/Shared.hpp>
 
 #include <core/Types.hpp>
@@ -37,7 +36,9 @@ namespace hyperion {
 
 class RenderGroup;
 class Mesh;
+class EnvProbe;
 class DebugDrawer;
+struct DebugDrawCommand;
 class DebugDrawCommandList;
 class IDebugDrawShape;
 class UIObject;
@@ -62,14 +63,6 @@ struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
 enum class DebugDrawType : int
 {
     MESH = 0
-};
-
-struct DebugDrawCommand
-{
-    IDebugDrawShape* shape;
-    Mat4f transformMatrix;
-    Color color;
-    RenderableAttributeSet attributes;
 };
 
 struct DebugDrawCommandHeader

@@ -31,23 +31,25 @@ enum class LogType : int
 #define DebugLog(type, ...) \
     debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
 
-extern HYP_API void DebugLog_Write(LogType type, const char* callee, unsigned int line, const char* fmt, ...);
+HYP_API extern void DebugLog_Write(LogType type, const char* callee, unsigned int line, const char* fmt, ...);
 #else
 #define DebugLog(type, ...) \
     debug::DebugLog_Write(type, __VA_ARGS__)
 
-extern HYP_API void DebugLog_Write(LogType type, const char* fmt, ...);
+HYP_API extern void DebugLog_Write(LogType type, const char* fmt, ...);
 #endif
 
-extern HYP_API void DebugLog_FlushOutputStream();
+HYP_API extern void DebugLog_FlushOutputStream();
 
-extern HYP_API void LogStackTrace(int depth = 10);
+HYP_API extern void LogStackTrace(int depth = 10);
 
-extern HYP_API void WriteToStandardError(const char* msg);
+HYP_API extern void WriteToStandardError(const char* msg);
 
-extern HYP_API bool IsDebuggerAttached();
+HYP_API extern bool IsDebuggerAttached();
 
-extern HYP_API void LogAssert(const char* str);
+HYP_API extern void LogAssert(const char* str);
+
+[[noreturn]] HYP_API extern void TerminateProgram();
 
 } // namespace debug
 
@@ -63,11 +65,11 @@ using debug::LogType;
     {                                         \
         debug::WriteToStandardError(&msg[0]); \
         HYP_PRINT_STACK_TRACE();              \
-        std::terminate();                     \
+        debug::TerminateProgram();            \
     }                                         \
     while (0)
 #else
-#define HYP_THROW(msg) std::terminate()
+#define HYP_THROW(msg) debug::TerminateProgram()
 #endif
 #endif
 
@@ -78,7 +80,7 @@ using debug::LogType;
     do                                                                   \
     {                                                                    \
         HYP_THROW("Function not implemented: " HYP_STR(HYP_DEBUG_FUNC)); \
-        std::terminate();                                                \
+        debug::TerminateProgram();                                       \
     }                                                                    \
     while (0)
 #else
@@ -118,7 +120,7 @@ using debug::LogType;
             else                                                                                                  \
             {                                                                                                     \
                 HYP_PRINT_STACK_TRACE();                                                                          \
-                std::terminate();                                                                                 \
+                debug::TerminateProgram();                                                                        \
             }                                                                                                     \
         }                                                                                                         \
     }                                                                                                             \
@@ -148,7 +150,7 @@ using debug::LogType;
             std::snprintf(debug::GetErrorStringBuffer(), 4096, "Assertion failed in Hyperion core library!\n\tCondition: " #cond "\n\tMessage: " __VA_ARGS__); \
             debug::LogAssert(debug::GetErrorStringBuffer());                                                                                                   \
             HYP_PRINT_STACK_TRACE();                                                                                                                           \
-            std::terminate();                                                                                                                                  \
+            debug::TerminateProgram();                                                                                                                         \
         }                                                                                                                                                      \
     }                                                                                                                                                          \
     while (0)
@@ -170,7 +172,7 @@ using debug::LogType;
         Assert(0, "\n\nAn engine crash has been triggered!\n" __VA_ARGS__);                                            \
         debug::DebugLog_FlushOutputStream();                                                                           \
                                                                                                                        \
-        std::terminate();                                                                                              \
+        debug::TerminateProgram();                                                                                     \
     }                                                                                                                  \
     while (0)
 

@@ -7,12 +7,12 @@
 #include <script/vm/Exception.hpp>
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypMember.hpp>
 #include <core/reflection/HypField.hpp>
 #include <core/reflection/HypProperty.hpp>
 #include <core/reflection/HypMethod.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/io/BufferedByteReader.hpp>
 
@@ -27,6 +27,8 @@
 #include <core/Types.hpp>
 
 #include <script/Instructions.hpp>
+
+#include <iostream>
 
 // Enable to disable optimizations in script operations.
 // Makes it easier to debug scripts, but slower.
@@ -488,7 +490,7 @@ namespace hyperion {
 
 using Script_Array = Array<HypData, DynamicAllocator>;
 
-extern const char* LookupTypeName(TypeId typeId);
+extern const char* LookupTypeName(const TypeId& typeId);
 
 using BCRegister = uint8;
 
@@ -890,9 +892,9 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
     }
 #endif
 
-    if (const HypClass* hypClass = GetClass(data.GetTypeId()))
+    if (const Class* cls = GetClass(data.GetTypeId()))
     {
-        const HypMethod* toStringMethod = hypClass->GetMethod("ToString");
+        const HypMethod* toStringMethod = cls->GetMethod("ToString");
 
         if (toStringMethod != nullptr)
         {
@@ -925,7 +927,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
             buf,
             bufSize,
             objectFormatString,
-            hypClass->GetName().LookupString(),
+            cls->GetName().LookupString(),
             data.ToRef().GetPointer());
 
         // if the class name is too long, dynamically allocate a larger buffer
@@ -947,7 +949,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
                 newBuf,
                 newBufSize,
                 objectFormatString,
-                hypClass->GetName().LookupString(),
+                cls->GetName().LookupString(),
                 data.ToRef().GetPointer());
 
             if (n < 0 || static_cast<SizeType>(n) >= newBufSize)
@@ -1297,15 +1299,15 @@ public:
     SCRIPT_INLINE void OpLoadClass(BCRegister reg, uint64 nameHash)
     {
         Name name = Name(NameID(nameHash));
-        const HypClass* hypClass = HypClassRegistry::GetInstance().GetClass(name);
-        if (!hypClass)
+        const Class* cls = ClassRegistry::GetInstance().GetClass(name);
+        if (!cls)
         {
             vm->ThrowException(instance, Script_Exception::ClassNotFoundException(name.LookupString()));
 
             return;
         }
 
-        HypData classValue = ScriptApi_MakeValue(HypData(HypClassRef(hypClass)));
+        HypData classValue = ScriptApi_MakeValue(HypData(ClassRef(cls)));
 
         instance->thread.m_regs[reg] = std::move(classValue);
     }
@@ -1439,20 +1441,20 @@ public:
         HypData& src = *Deref(instance->thread.m_regs[srcReg]);
         HypData& result = instance->thread.m_regs[dstReg];
 
-        const HypClass* hypClass = nullptr;
+        const Class* cls = nullptr;
 
         if (const AnyHandle& object = ScriptApi_GetObject(src))
         {
-            hypClass = object.ptr->InstanceClass();
+            cls = object.ptr->InstanceClass();
         }
         else
         {
-            hypClass = GetClass(src.GetTypeId());
+            cls = GetClass(src.GetTypeId());
         }
 
-        if (hypClass != nullptr)
+        if (cls != nullptr)
         {
-            IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
+            IHypMember* member = cls->GetMember(WeakName(NameID(hash)));
             result = ScriptApi_MakeValue(member != nullptr);
 
             return;
@@ -1465,25 +1467,25 @@ public:
     {
         HypData* pValue = Deref(instance->thread.m_regs[dstReg]);
 
-        const HypClass* hypClass = nullptr;
+        const Class* cls = nullptr;
 
         if (const AnyHandle& object = ScriptApi_GetObject(*pValue))
         {
-            hypClass = object.ptr->InstanceClass();
+            cls = object.ptr->InstanceClass();
         }
         else
         {
-            hypClass = GetClass(pValue->GetTypeId());
+            cls = GetClass(pValue->GetTypeId());
         }
 
-        if (!hypClass)
+        if (!cls)
         {
             vm->ThrowException(instance, Script_Exception::InvalidMemberAccessException(pValue));
 
             return;
         }
 
-        HypField* field = hypClass->GetField(WeakName(NameID(hash)));
+        HypField* field = cls->GetField(WeakName(NameID(hash)));
 
         if (!field)
         {
@@ -1499,36 +1501,36 @@ public:
     {
         HypData& src = *Deref(instance->thread.m_regs[srcReg]);
 
-        const HypClass* hypClass = nullptr;
+        const Class* cls = nullptr;
 
         if (const AnyHandle& object = ScriptApi_GetObject(src))
         {
             // instance member access
-            hypClass = object.ptr->InstanceClass();
+            cls = object.ptr->InstanceClass();
         }
-        else if (HypClassRef* classRef = src.TryGet<HypClassRef>().TryGet())
+        else if (ClassRef* classRef = src.TryGet<ClassRef>().TryGet())
         {
             // static member access on class reference
-            hypClass = *classRef;
+            cls = *classRef;
         }
         // temp special case for arrays
         else if (GenericArrayWrapper* array = src.TryGet<GenericArrayWrapper>().TryGet())
         {
-            hypClass = GetClass(TypeId::ForType<Script_Array>());
+            cls = GetClass(TypeId::ForType<Script_Array>());
         }
         else
         {
-            hypClass = GetClass(src.GetTypeId());
+            cls = GetClass(src.GetTypeId());
         }
 
-        if (!hypClass)
+        if (!cls)
         {
             vm->ThrowException(instance, Script_Exception::InvalidMemberAccessException(&src));
 
             return;
         }
 
-        IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
+        IHypMember* member = cls->GetMember(WeakName(NameID(hash)));
         if (!member)
         {
             vm->ThrowException(instance, Script_Exception::MemberNotFoundException(&src, hash));
@@ -1712,7 +1714,7 @@ public:
         // read value from register
         HypData& classValue = *Deref(instance->thread.m_regs[src]);
 
-        const HypClassRef& classRef = classValue.Get<HypClassRef>();
+        const ClassRef& classRef = classValue.Get<ClassRef>();
         Assert(classRef.IsValid());
 
         HypData hypData;
@@ -1797,13 +1799,13 @@ public:
                 uint16 numAttrs;
                 bs->Read(&numAttrs);
 
-                Array<HypClassAttribute> attrs;
+                Array<ClassAttribute> attrs;
                 attrs.Reserve(numAttrs);
 
                 // Skip attributes for now - read and discard them
                 for (uint16 attrIdx = 0; attrIdx < numAttrs; attrIdx++)
                 {
-                    HypClassAttribute attr;
+                    ClassAttribute attr;
 
                     // Read attribute name
                     uint16 attrNameLen;
@@ -1821,9 +1823,9 @@ public:
                     bs->Read(&attrType);
 
                     // Skip attribute value based on type
-                    switch (HypClassAttributeType(attrType))
+                    switch (ClassAttributeType(attrType))
                     {
-                    case HypClassAttributeType::STRING:
+                    case ClassAttributeType::STRING:
                     {
                         uint32 strLen;
                         bs->Read(&strLen);
@@ -1834,25 +1836,25 @@ public:
 
                         bs->Read(strData.Data(), strLen);
 
-                        attr.value = HypClassAttributeValue(String(strData.Begin(), strData.End()));
+                        attr.value = ClassAttributeValue(String(strData.Begin(), strData.End()));
 
                         break;
                     }
-                    case HypClassAttributeType::INT:
+                    case ClassAttributeType::INT:
                     {
                         int32 iValue;
                         bs->Read(&iValue);
 
-                        attr.value = HypClassAttributeValue(iValue);
+                        attr.value = ClassAttributeValue(iValue);
 
                         break;
                     }
-                    case HypClassAttributeType::BOOLEAN:
+                    case ClassAttributeType::BOOLEAN:
                     {
                         ubyte bValue;
                         bs->Read(&bValue);
 
-                        attr.value = HypClassAttributeValue(bValue != 0);
+                        attr.value = ClassAttributeValue(bValue != 0);
 
                         break;
                     }
@@ -1972,28 +1974,28 @@ public:
         // Read parent class register
         HypData& parentClassValue = instance->thread.m_regs[reg];
 
-        const HypClass* parentClass = nullptr;
+        const Class* parentClass = nullptr;
 
         if (parentClassValue.IsValid())
         {
-            parentClass = parentClassValue.Get<HypClassRef>();
+            parentClass = parentClassValue.Get<ClassRef>();
             Assert(parentClass != nullptr);
         }
 
         // some type needs to be set
-        Assert((flags & (uint8)(HypClassFlags::CLASS_TYPE | HypClassFlags::STRUCT_TYPE | HypClassFlags::ENUM_TYPE)) != 0);
+        Assert((flags & (uint8)(ClassFlags::CLASS_TYPE | ClassFlags::STRUCT_TYPE | ClassFlags::ENUM_TYPE)) != 0);
 
-        DynamicHypClassInstance* newClass = new DynamicHypClassInstance(
+        DynamicClassInstance* newClass = new DynamicClassInstance(
             TypeId(typeIdValue),
             className,
             parentClass,
-            Span<const HypClassAttribute>(), // @TODO
-            (HypClassFlags)flags,
+            Span<const ClassAttribute>(), // @TODO
+            (ClassFlags)flags,
             members.ToSpan());
 
-        HypClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
+        ClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
 
-        HypData classValue = ScriptApi_MakeValue(HypClassRef(newClass));
+        HypData classValue = ScriptApi_MakeValue(ClassRef(newClass));
 
         // promote the class object to tracked gc memory so it doesn't instantly get destroyed
         instance->thread.m_regs[reg] = ScriptApi_MakeTrackedRef(&classValue, vm->GetGC());
@@ -2884,27 +2886,27 @@ public:
 
     SCRIPT_INLINE void OpCastDynamic(BCRegister dst, BCRegister src)
     {
-        // dst register holds HypClassRef object
+        // dst register holds ClassRef object
         HypData& classValue = *Deref(instance->thread.m_regs[dst]);
 
-        const HypClassRef& classRef = classValue.Get<HypClassRef>();
+        const ClassRef& classRef = classValue.Get<ClassRef>();
         Assert(classRef.IsValid());
 
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[src]);
 
-        const HypClass* hypClass = nullptr;
+        const Class* cls = nullptr;
 
         if (const AnyHandle& object = ScriptApi_GetObject(value))
         {
-            hypClass = object.ptr->InstanceClass();
+            cls = object.ptr->InstanceClass();
         }
         else
         {
-            hypClass = GetClass(value.GetTypeId());
+            cls = GetClass(value.GetTypeId());
         }
 
-        if (!hypClass || !hypClass->IsDerivedFrom(classRef))
+        if (!cls || !cls->IsDerivedFrom(classRef))
         {
             vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), classRef->GetName().LookupString()));
 

@@ -4,7 +4,7 @@
 #include <ui/UIObject.hpp>
 
 // for EnumToString
-#include <core/reflection/HypEnum.hpp>
+#include <core/reflection/Enum.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

@@ -31,7 +31,7 @@ class World;
 
 class UIElementFactoryBase;
 
-HYP_API extern const char* LookupTypeName(TypeId typeId);
+HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 class HYP_API UIElementFactoryRegistry
 {
@@ -310,7 +310,7 @@ class HYP_API UIDataSource : public UIDataSourceBase
     }
 
 public:
-    // temp : required for HypClass
+    // temp : required for Class
     UIDataSource()
         : UIDataSourceBase({})
     {

@@ -4,7 +4,7 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypProperty.hpp>
 #include <core/reflection/HypField.hpp>
 #include <core/reflection/HypConstant.hpp>
@@ -55,8 +55,8 @@ ConfigurationTable::ConfigurationTable(const String& configName)
 {
 }
 
-ConfigurationTable::ConfigurationTable(const String& configName, const HypClass* hypClass)
-    : ConfigurationTable(configName, hypClass ? hypClass->GetAttribute(Attributes::g_attrJsonPath).GetString() : String::empty)
+ConfigurationTable::ConfigurationTable(const String& configName, const Class* cls)
+    : ConfigurationTable(configName, cls ? cls->GetAttribute(Attributes::g_attrJsonPath).GetString() : String::empty)
 {
 }
 
@@ -256,11 +256,11 @@ const json::JSONValue& ConfigurationTable::GetSubobject() const
     return *subobject;
 }
 
-const String& ConfigurationTable::GetDefaultConfigName(const HypClass* hypClass)
+const String& ConfigurationTable::GetDefaultConfigName(const Class* cls)
 {
-    if (hypClass)
+    if (cls)
     {
-        if (const HypClassAttributeValue& configNameAttributeValue = hypClass->GetAttribute("configname"))
+        if (const ClassAttributeValue& configNameAttributeValue = cls->GetAttribute("configname"))
         {
             return configNameAttributeValue.GetString();
         }
@@ -301,23 +301,23 @@ void ConfigurationTable::LogErrors(UTF8StringView message) const
     HYP_LOG(Config, Error, "{}", message);
 }
 
-bool ConfigurationTable::SetHypClassFields(const HypClass* hypClass, const void* ptr)
+bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
 {
-    HYP_CORE_ASSERT(hypClass != nullptr);
+    HYP_CORE_ASSERT(cls != nullptr);
     HYP_CORE_ASSERT(ptr != nullptr);
 
-    HypData targetHypData = HypData(AnyRef(&TypeInfo::ForHypClass(hypClass), const_cast<void*>(ptr)));
+    HypData targetHypData = HypData(AnyRef(&TypeInfo::ForClass(cls), const_cast<void*>(ptr)));
 
-    if (!JSONToObject(GetSubobject().AsObject(), hypClass, targetHypData))
+    if (!JSONToObject(GetSubobject().AsObject(), cls, targetHypData))
     {
-        HYP_LOG(Config, Error, "Failed to deserialize JSON to instance of HypClass \"{}\"", hypClass->GetName());
+        HYP_LOG(Config, Error, "Failed to deserialize JSON to instance of Class \"{}\"", cls->GetName());
 
         return false;
     }
 
     json::JSONObject jsonObject;
 
-    if (ObjectToJSON(hypClass, targetHypData, jsonObject))
+    if (ObjectToJSON(cls, targetHypData, jsonObject))
     {
         jsonObject.Merge(GetSubobject().AsObject());
 
@@ -327,7 +327,7 @@ bool ConfigurationTable::SetHypClassFields(const HypClass* hypClass, const void*
     }
     else
     {
-        HYP_LOG(Config, Error, "Failed to serialize HypClass \"{}\" to json", hypClass->GetName());
+        HYP_LOG(Config, Error, "Failed to serialize Class \"{}\" to json", cls->GetName());
 
         return false;
     }

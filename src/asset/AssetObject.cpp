@@ -13,7 +13,7 @@
 #include <core/utilities/GlobalContext.hpp>
 
 #include <core/reflection/HypDataJSONHelpers.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -532,14 +532,14 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Manifest JSON must contain a '$Class' string");
     }
 
-    const HypClass* hypClass = GetClass(classNameValue.AsString());
+    const Class* cls = GetClass(classNameValue.AsString());
 
-    if (!hypClass)
+    if (!cls)
     {
         return HYP_MAKE_ERROR(Error, "Class '{}' not found!", classNameValue.AsString());
     }
 
-    if (!hypClass->IsDerivedFrom(AssetObject::Class()))
+    if (!cls->IsDerivedFrom(AssetObject::StaticClass()))
     {
         return HYP_MAKE_ERROR(Error, "Class '{}' is not derived from AssetObject!", classNameValue.AsString());
     }
@@ -559,7 +559,7 @@ Result AssetObject::Load(
     }
 
     HypData targetData;
-    if (!hypClass->CreateInstance(targetData))
+    if (!cls->CreateInstance(targetData))
     {
         return HYP_MAKE_ERROR(Error, "Failed to create instance of class '{}'", classNameValue.AsString());
     }
@@ -570,7 +570,7 @@ Result AssetObject::Load(
     // remove class property
     jsonObject.Erase("$Class");
 
-    if (!JSONToObject(jsonObject, hypClass, targetData))
+    if (!JSONToObject(jsonObject, cls, targetData))
     {
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }

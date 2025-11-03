@@ -18,7 +18,6 @@
 #include <rendering/CullData.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderQueue.hpp>
 
 namespace hyperion {
 
@@ -40,6 +39,14 @@ class TaskBatch;
 } // namespace threading
 
 using threading::TaskBatch;
+
+namespace memory {
+class Pool;
+} // namespace memory
+
+using memory::Pool;
+
+HYP_API extern Pool* g_renderPool;
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering")
 struct RendererConfig : public ConfigBase<RendererConfig>

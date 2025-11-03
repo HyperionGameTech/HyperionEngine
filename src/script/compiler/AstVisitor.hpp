@@ -2,10 +2,11 @@
 
 #include <script/compiler/AstIterator.hpp>
 #include <script/compiler/ErrorList.hpp>
-#include <script/compiler/CompilerError.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 
 namespace hyperion {
+
+class CompilerError;
 
 class AstVisitor
 {

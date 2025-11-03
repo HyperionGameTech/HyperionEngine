@@ -17,7 +17,7 @@ Mat3f::Mat3f()
 
 Mat3f::Mat3f(const float* v)
 {
-    Memory::MemCpy(&values[0], v, std::size(values) * sizeof(values[0]));
+    Memory::MemCpy(&values[0], v, HYP_ARRAY_SIZE(values) * sizeof(values[0]));
 }
 
 float Mat3f::Determinant() const
@@ -72,7 +72,7 @@ Mat3f Mat3f::operator+(const Mat3f& other) const
 {
     Mat3f result(*this);
 
-    for (int i = 0; i < std::size(values); i++)
+    for (int i = 0; i < HYP_ARRAY_SIZE(values); i++)
     {
         result.values[i] += other.values[i];
     }
@@ -82,7 +82,7 @@ Mat3f Mat3f::operator+(const Mat3f& other) const
 
 Mat3f& Mat3f::operator+=(const Mat3f& other)
 {
-    for (int i = 0; i < std::size(values); i++)
+    for (int i = 0; i < HYP_ARRAY_SIZE(values); i++)
     {
         values[i] += other.values[i];
     }
@@ -118,7 +118,7 @@ Mat3f Mat3f::operator*(float scalar) const
 {
     Mat3f result(*this);
 
-    for (int i = 0; i < std::size(values); i++)
+    for (int i = 0; i < HYP_ARRAY_SIZE(values); i++)
     {
         result.values[i] *= scalar;
     }
@@ -128,7 +128,7 @@ Mat3f Mat3f::operator*(float scalar) const
 
 Mat3f& Mat3f::operator*=(float scalar)
 {
-    for (int i = 0; i < std::size(values); i++)
+    for (int i = 0; i < HYP_ARRAY_SIZE(values); i++)
     {
         values[i] *= scalar;
     }

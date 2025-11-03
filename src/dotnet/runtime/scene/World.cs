@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="World")]
+    [ClassBinding(Name="World")]
     public class World : HypObject
     {
         public World()
@@ -12,14 +12,14 @@ namespace Hyperion
 
         public T? GetSubsystem<T>() where T : Subsystem
         {
-            HypClass? hypClass = HypClass.TryGetClass<T>();
+            Class? cls = Class.TryGetClass<T>();
 
-            if (hypClass == null)
+            if (cls == null)
             {
-                throw new InvalidOperationException($"Type {typeof(T).Name} has no associated HypClass.");
+                throw new InvalidOperationException($"Type {typeof(T).Name} has no associated Class.");
             }
 
-            return this.GetSubsystemByName(hypClass.Value.Name) as T;
+            return this.GetSubsystemByName(cls.Value.Name) as T;
         }
     }
 }

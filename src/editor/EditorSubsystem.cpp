@@ -65,6 +65,10 @@
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <rendering/Texture.hpp>
+#include <rendering/RenderCollection.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
+
 #include <rendering/font/FontAtlas.hpp>
 
 // temp
@@ -74,7 +78,7 @@
 #include <console/ui/ConsoleUI.hpp>
 
 // for EnumToString
-#include <core/reflection/HypEnum.hpp>
+#include <core/reflection/Enum.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -131,8 +135,8 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<HypO
     {
         HypObjectBase* source = *it;
 
-        if (!source->IsA(LightmapVolume::Class())
-            && !source->IsA(EnvProbe::Class()))
+        if (!source->IsA(LightmapVolume::StaticClass())
+            && !source->IsA(EnvProbe::StaticClass()))
         {
             HYP_LOG(Editor, Error, "GenerateLightmapsEditorTask source is not a LightmapVolume or EnvProbe: \"{}\"", source->InstanceClass()->GetName());
             it = m_sources.Erase(it);
@@ -183,11 +187,11 @@ void GenerateLightmapsEditorTask::Process()
     {
         Task<void>* task = nullptr;
 
-        if (source->IsA(LightmapVolume::Class()))
+        if (source->IsA(LightmapVolume::StaticClass()))
         {
             task = lightmapperSubsystem->GenerateLightmaps(ObjCast<LightmapVolume>(source));
         }
-        else if (source->IsA(EnvProbe::Class()))
+        else if (source->IsA(EnvProbe::StaticClass()))
         {
             task = lightmapperSubsystem->GenerateLightmaps(ObjCast<EnvProbe>(source));
         }
@@ -2004,7 +2008,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     //    m_editorDelegates->AddNodeWatcher(
     //        NAME("SceneView"),
     //        node.Get(),
-    //        { Node::Class()->GetProperty(NAME("Name")), 1 },
+    //        { Node::StaticClass()->GetProperty(NAME("Name")), 1 },
     //        [this, listViewWeak = listView.ToWeak()](Node* node, const HypProperty* property)
     //        {
     //            // Update name in list view
@@ -2180,7 +2184,7 @@ void EditorSubsystem::InitDetailView()
     m_editorDelegates->RemoveNodeWatchers("DetailView");
 
     m_delegateHandlers.Remove(&OnFocusedNodeChanged);
-    m_delegateHandlers.Add(OnFocusedNodeChanged.Bind([this, hypClass = Node::Class(), detailsListViewWeak = detailsListView.ToWeak(), outlineListViewWeak = outlineListView.ToWeak()](const Handle<Node>& node, const Handle<Node>& previousNode, bool shouldSelectInOutline)
+    m_delegateHandlers.Add(OnFocusedNodeChanged.Bind([this, cls = Node::StaticClass(), detailsListViewWeak = detailsListView.ToWeak(), outlineListViewWeak = outlineListView.ToWeak()](const Handle<Node>& node, const Handle<Node>& previousNode, bool shouldSelectInOutline)
         {
             m_editorDelegates->RemoveNodeWatchers("DetailView");
 
@@ -2222,7 +2226,7 @@ void EditorSubsystem::InitDetailView()
 
             HashMap<String, HypProperty*> propertiesByName;
 
-            for (auto it = hypClass->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hypClass->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
+            for (auto it = cls->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != cls->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
             {
                 if (HypProperty* property = dynamic_cast<HypProperty*>(&*it))
                 {
@@ -2250,7 +2254,7 @@ void EditorSubsystem::InitDetailView()
                 nodePropertyRef.node = node.ToWeak();
                 nodePropertyRef.property = it.second;
 
-                if (const HypClassAttributeValue& attr = it.second->GetAttribute("label"))
+                if (const ClassAttributeValue& attr = it.second->GetAttribute("label"))
                 {
                     nodePropertyRef.title = attr.GetString();
                 }
@@ -2259,7 +2263,7 @@ void EditorSubsystem::InitDetailView()
                     nodePropertyRef.title = it.first;
                 }
 
-                if (const HypClassAttributeValue& attr = it.second->GetAttribute("description"))
+                if (const ClassAttributeValue& attr = it.second->GetAttribute("description"))
                 {
                     nodePropertyRef.description = attr.GetString();
                 }
@@ -2272,7 +2276,7 @@ void EditorSubsystem::InitDetailView()
                 node,
                 {},
                 Proc<void(Node*, const HypProperty*)> {
-                    [this, hypClass = Node::Class(), detailsListViewWeak](Node* node, const HypProperty* property)
+                    [this, cls = Node::StaticClass(), detailsListViewWeak](Node* node, const HypProperty* property)
                     {
                         HYP_LOG(Editor, Debug, "(detail) Node property changed: {}", property->GetName());
 
@@ -3138,10 +3142,10 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
     // For long running tasks, enqueues the task in the scheduler
     task->Commit();
 
-    // auto CreateTaskUIObject = [](const Handle<UIObject> &parent, const HypClass *taskHypClass) -> Handle<UIObject>
+    // auto CreateTaskUIObject = [](const Handle<UIObject> &parent, const Class *taskClass) -> Handle<UIObject>
     // {
     //     Assert(parent != nullptr);
-    //     Assert(taskHypClass != nullptr);
+    //     Assert(taskClass != nullptr);
 
     //     return parent->CreateUIObject<UIPanel>(Vec2i::Zero(), UIObjectSize({ 400, UIObjectSize::PIXEL }, { 300, UIObjectSize::PIXEL }));
     // };

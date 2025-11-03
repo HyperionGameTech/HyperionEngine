@@ -3,7 +3,7 @@
 #include <asset/AssetLoader.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -13,9 +13,9 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
-HYP_API void OnPostLoad_Impl(const HypClass* hypClass, void* objectPtr)
+HYP_API void OnPostLoad_Impl(const Class* cls, void* objectPtr)
 {
-    hypClass->PostLoad(objectPtr);
+    cls->PostLoad(objectPtr);
 }
 
 #pragma region LoadedAsset
@@ -29,14 +29,14 @@ HYP_API void LoadedAsset::OnPostLoad()
 
     // @TODO: Change to use T::InstanceClass() from TLoadedAsset<T>, as types might not be an exact match
     // @TODO: Walk up class heirarchy, call PostLoad() for each class
-    const HypClass* hypClass = GetClass(value.GetTypeId());
+    const Class* cls = GetClass(value.GetTypeId());
 
-    if (!hypClass)
+    if (!cls)
     {
         return;
     }
 
-    hypClass->PostLoad(value.ToRef().GetPointer());
+    cls->PostLoad(value.ToRef().GetPointer());
 }
 
 #pragma endregion LoadedAsset

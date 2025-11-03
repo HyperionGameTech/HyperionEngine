@@ -16,30 +16,30 @@ Module::Module(const FilePath& path)
 {
 }
 
-Result Module::AddHypClassDefinition(HypClassDefinition&& hypClassDefinition)
+Result Module::AddClassDefinition(ClassDefinition&& classDefinition)
 {
     Mutex::Guard guard(m_mutex);
 
-    auto it = m_hypClasses.Find(hypClassDefinition.name);
+    auto it = m_classes.Find(classDefinition.name);
 
-    if (it != m_hypClasses.End())
+    if (it != m_classes.End())
     {
-        return HYP_MAKE_ERROR(Error, "HypClassDefinition already exists");
+        return HYP_MAKE_ERROR(Error, "ClassDefinition already exists");
     }
 
-    it = m_hypClasses.Insert(hypClassDefinition.name, std::move(hypClassDefinition)).first;
+    it = m_classes.Insert(classDefinition.name, std::move(classDefinition)).first;
     it->second.declModule = this;
 
     return {};
 }
 
-const HypClassDefinition* Module::FindHypClassDefinition(UTF8StringView className) const
+const ClassDefinition* Module::FindClassDefinition(UTF8StringView className) const
 {
     Mutex::Guard guard(m_mutex);
 
-    const auto it = m_hypClasses.Find(className);
+    const auto it = m_classes.Find(className);
 
-    if (it == m_hypClasses.End())
+    if (it == m_classes.End())
     {
         return nullptr;
     }

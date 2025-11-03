@@ -131,11 +131,11 @@ namespace Hyperion
 
         public T? GetValue()
         {
-            HypClass? hypClass = HypClass.GetClass<T>();
+            Class? cls = Class.GetClass<T>();
             
-            if (hypClass == null)
+            if (cls == null)
             {
-                throw new Exception("Type " + typeof(T).Name + " does not have a registered HypClass");
+                throw new Exception("Type " + typeof(T).Name + " does not have a registered Class");
             }
 
             HypDataBuffer hypDataBuffer;

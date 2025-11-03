@@ -11,6 +11,7 @@
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderFramebuffer.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -21,7 +22,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -48,7 +49,8 @@ struct RENDER_COMMAND(RecreateFullScreenPassFramebuffer)
     WeakHandle<FullScreenPass> fullScreenPassWeak;
     Vec2u newSize;
 
-    RENDER_COMMAND(RecreateFullScreenPassFramebuffer)(const WeakHandle<FullScreenPass>& fullScreenPassWeak, Vec2u newSize)
+    RENDER_COMMAND(RecreateFullScreenPassFramebuffer)
+    (const WeakHandle<FullScreenPass>& fullScreenPassWeak, Vec2u newSize)
         : fullScreenPassWeak(fullScreenPassWeak),
           newSize(newSize)
     {
@@ -98,12 +100,12 @@ FullScreenPass::FullScreenPass(
     Vec2u extent,
     GBuffer* gbuffer)
     : FullScreenPass(
-          shader,
-          descriptorTable,
-          FramebufferRef::Null(),
-          imageFormat,
-          extent,
-          gbuffer)
+        shader,
+        descriptorTable,
+        FramebufferRef::Null(),
+        imageFormat,
+        extent,
+        gbuffer)
 {
 }
 
@@ -113,12 +115,12 @@ FullScreenPass::FullScreenPass(
     Vec2u extent,
     GBuffer* gbuffer)
     : FullScreenPass(
-          shader,
-          DescriptorTableRef::Null(),
-          FramebufferRef::Null(),
-          imageFormat,
-          extent,
-          gbuffer)
+        shader,
+        DescriptorTableRef::Null(),
+        FramebufferRef::Null(),
+        imageFormat,
+        extent,
+        gbuffer)
 {
 }
 
@@ -378,8 +380,8 @@ void FullScreenPass::CreatePipeline()
 
     const MeshAttributes meshAttributes {
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 
     const MaterialAttributes materialAttributes {
@@ -471,8 +473,8 @@ void FullScreenPass::CreateRenderTextureToScreenPass()
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"), shaderProperties);
     Assert(renderTextureToScreenShader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -517,8 +519,8 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
     ShaderRef mergeHalfResTexturesShader = g_shaderManager->GetOrCreate(NAME("MergeHalfResTextures"));
     Assert(mergeHalfResTexturesShader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = mergeHalfResTexturesShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        mergeHalfResTexturesShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

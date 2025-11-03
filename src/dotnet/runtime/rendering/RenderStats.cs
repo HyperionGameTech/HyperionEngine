@@ -34,7 +34,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="RenderStats")]
+    [ClassBinding(Name="RenderStats")]
     [StructLayout(LayoutKind.Sequential)]
     public struct RenderStats
     {

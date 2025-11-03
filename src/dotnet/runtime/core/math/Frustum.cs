@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Frustum")]
+    [ClassBinding(Name="Frustum")]
     [StructLayout(LayoutKind.Explicit, Size = 224, Pack = 16)]
     public unsafe struct Frustum
     {

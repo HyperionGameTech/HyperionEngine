@@ -18,9 +18,9 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
-extern HYP_API const HypClass* GetClass(TypeId);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
 
 enum class FBOMTypeFlags : uint8
 {
@@ -121,17 +121,17 @@ public:
         return typeId != TypeId::Void();
     }
 
-    /*! \brief Gets a pointer to the HypClass that corresponds to the native TypeId for this type.
+    /*! \brief Gets a pointer to the Class that corresponds to the native TypeId for this type.
      *  If there is no valid TypeId for this object, or the native type corresponding to the native TypeId for this object
-     *  does not have a corresponding HypClass, nullptr will be returned. */
-    HYP_FORCE_INLINE const HypClass* GetHypClass() const
+     *  does not have a corresponding Class, nullptr will be returned. */
+    HYP_FORCE_INLINE const Class* GetClass() const
     {
         if (!typeId)
         {
             return nullptr;
         }
 
-        return GetClass(typeId);
+        return hyperion::GetClass(typeId);
     }
 
     FBOMResult Visit(FBOMWriter* writer, ByteWriter* out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const

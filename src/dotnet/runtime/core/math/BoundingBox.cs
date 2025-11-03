@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="BoundingBox")]
+    [ClassBinding(Name="BoundingBox")]
     [StructLayout(LayoutKind.Explicit, Size = 32)]
     public struct BoundingBox
     {

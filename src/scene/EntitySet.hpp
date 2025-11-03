@@ -209,8 +209,8 @@ public:
         HypObjectHeader* header = entity->GetObjectHeader_Internal();
         Assert(header != nullptr);
 
-        const HypClass* hypClass = header->hypClass;
-        Assert(hypClass != nullptr);
+        const Class* cls = header->cls;
+        Assert(cls != nullptr);
 
         const auto entityElementIt = m_elements.FindIf([entity](const Element& element)
             {

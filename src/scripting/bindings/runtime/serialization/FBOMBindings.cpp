@@ -99,14 +99,14 @@ extern "C"
         *outTypeId = ptr->GetNativeTypeId();
     }
 
-    HYP_EXPORT const HypClass* FBOMType_GetHypClass(const FBOMType* ptr)
+    HYP_EXPORT const Class* FBOMType_GetClass(const FBOMType* ptr)
     {
         if (!ptr)
         {
             return nullptr;
         }
 
-        return ptr->GetHypClass();
+        return ptr->GetClass();
     }
 
 #pragma endregion FBOMType

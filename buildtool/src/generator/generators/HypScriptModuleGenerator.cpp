@@ -20,11 +20,11 @@ namespace buildtool {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
-static const String s_typeDescriptors[int(HypClassDefinitionType::MAX)] = {
-    "<none>", // HypClassDefinitionType::NONE
-    "class",  // HypClassDefinitionType::CLASS
-    "struct", // HypClassDefinitionType::STRUCT
-    "enum"    // HypClassDefinitionType::ENUM
+static const String s_typeDescriptors[int(ClassDefinitionType::MAX)] = {
+    "<none>", // ClassDefinitionType::NONE
+    "class",  // ClassDefinitionType::CLASS
+    "struct", // ClassDefinitionType::STRUCT
+    "enum"    // ClassDefinitionType::ENUM
 };
 
 FilePath HypScriptModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
@@ -34,9 +34,9 @@ FilePath HypScriptModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, c
     return analyzer.GetHypScriptOutputDirectory() / relativePath.BasePath() / StringUtil::StripExtension(relativePath.Basename()) + ".hyp";
 }
 
-Array<const HypClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically(
+Array<const ClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically(
     const Analyzer& analyzer,
-    const Array<const HypClassDefinition*>& classes,
+    const Array<const ClassDefinition*>& classes,
     const HashMap<String, SizeType>& classNameToIndex) const
 {
     const SizeType numClasses = classes.Size();
@@ -57,7 +57,7 @@ Array<const HypClassDefinition*> HypScriptModuleGenerator::SortClassesTopologica
     // Build dependency graph within this set of classes
     for (SizeType i = 0; i < numClasses; i++)
     {
-        const HypClassDefinition* currentClass = classes[i];
+        const ClassDefinition* currentClass = classes[i];
 
         for (const String& baseClassName : currentClass->baseClassNames)
         {
@@ -109,7 +109,7 @@ Array<const HypClassDefinition*> HypScriptModuleGenerator::SortClassesTopologica
         }
     }
 
-    Array<const HypClassDefinition*> sortedClasses;
+    Array<const ClassDefinition*> sortedClasses;
     sortedClasses.Reserve(result.Size());
 
     for (SizeType index : result)
@@ -123,38 +123,38 @@ Array<const HypClassDefinition*> HypScriptModuleGenerator::SortClassesTopologica
 Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const
 {
     // First, collect all classes that will be generated
-    Array<const HypClassDefinition*> classesToGenerate;
+    Array<const ClassDefinition*> classesToGenerate;
     HashMap<String, SizeType> classNameToIndex;
 
-    for (const Pair<String, HypClassDefinition>& pair : mod.GetHypClasses())
+    for (const Pair<String, ClassDefinition>& pair : mod.GetClasses())
     {
-        const HypClassDefinition& hypClass = pair.second;
+        const ClassDefinition& cls = pair.second;
 
-        if (const HypClassAttributeValue& attr = hypClass.GetAttribute("NoScriptBindings"); attr.GetBool())
+        if (const ClassAttributeValue& attr = cls.GetAttribute("NoScriptBindings"); attr.GetBool())
         {
             continue;
         }
 
         const SizeType index = classesToGenerate.Size();
-        classNameToIndex[hypClass.name] = index;
-        classesToGenerate.PushBack(&hypClass);
+        classNameToIndex[cls.name] = index;
+        classesToGenerate.PushBack(&cls);
     }
 
     // Sort classes topologically within this module
-    Array<const HypClassDefinition*> sortedClasses = SortClassesTopologically(analyzer, classesToGenerate, classNameToIndex);
+    Array<const ClassDefinition*> sortedClasses = SortClassesTopologically(analyzer, classesToGenerate, classNameToIndex);
 
     // Generate classes in sorted order
-    for (const HypClassDefinition* hypClass : sortedClasses)
+    for (const ClassDefinition* cls : sortedClasses)
     {
-        if (hypClass->type == HypClassDefinitionType::CLASS || hypClass->type == HypClassDefinitionType::STRUCT)
+        if (cls->type == ClassDefinitionType::CLASS || cls->type == ClassDefinitionType::STRUCT)
         {
-            HashSet<const HypClassDefinition*> baseClassDefinitions;
+            HashSet<const ClassDefinition*> baseClassDefinitions;
 
-            if (hypClass->baseClassNames.Any())
+            if (cls->baseClassNames.Any())
             {
-                for (const String& baseClassName : hypClass->baseClassNames)
+                for (const String& baseClassName : cls->baseClassNames)
                 {
-                    const HypClassDefinition* baseClassDefinition = analyzer.FindHypClassDefinition(baseClassName);
+                    const ClassDefinition* baseClassDefinition = analyzer.FindClassDefinition(baseClassName);
 
                     if (baseClassDefinition)
                     {
@@ -170,20 +170,20 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
             if (baseClassDefinitions.Any())
             {
-                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(hypClass->type)], hypClass->name, baseClassDefinitions.Front()->name) + " {\n");
+                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(cls->type)], cls->name, baseClassDefinitions.Front()->name) + " {\n");
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(hypClass->type)], hypClass->name) + " {\n");
+                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(cls->type)], cls->name) + " {\n");
             }
 
             HYP_DEFER({ writer.WriteString("}\n"); });
 
-            for (SizeType i = 0; i < hypClass->members.Size(); ++i)
+            for (SizeType i = 0; i < cls->members.Size(); ++i)
             {
-                const HypMemberDefinition& member = hypClass->members[i];
+                const HypMemberDefinition& member = cls->members[i];
 
-                if (const HypClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
+                if (const ClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
                 {
                     // skip generating script bindings for this
                     continue;
@@ -191,7 +191,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
                 String managedName = member.friendlyName;
 
-                if (const HypClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
+                if (const ClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
                 {
                     managedName = attr.GetString();
                 }
@@ -274,31 +274,31 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                 /* @TODO: Delegates, static members */
             }
         }
-        else if (hypClass->type == HypClassDefinitionType::ENUM)
+        else if (cls->type == ClassDefinitionType::ENUM)
         {
-            if (hypClass->baseClassNames.Any()) // underlying type
+            if (cls->baseClassNames.Any()) // underlying type
             {
-                if (hypClass->baseClassNames.Size() > 1)
+                if (cls->baseClassNames.Size() > 1)
                 {
                     return HYP_MAKE_ERROR(Error, "Enum types may only have one underlying type");
                 }
 
-                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(HypClassDefinitionType::ENUM)], hypClass->name, hypClass->baseClassNames[0]) + " {");
+                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(ClassDefinitionType::ENUM)], cls->name, cls->baseClassNames[0]) + " {");
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(HypClassDefinitionType::ENUM)], hypClass->name) + " {");
+                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(ClassDefinitionType::ENUM)], cls->name) + " {");
             }
 
             HYP_DEFER({ writer.WriteString("\n}\n"); });
 
             uint32 enumMemberIndex = 0;
 
-            for (SizeType i = 0; i < hypClass->members.Size(); ++i)
+            for (SizeType i = 0; i < cls->members.Size(); ++i)
             {
-                const HypMemberDefinition& member = hypClass->members[i];
+                const HypMemberDefinition& member = cls->members[i];
 
-                if (const HypClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
+                if (const ClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
                 {
                     // skip generating script bindings for this
                     continue;
@@ -306,7 +306,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
                 String managedName = member.friendlyName;
 
-                if (const HypClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
+                if (const ClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
                 {
                     managedName = attr.GetString();
                 }
@@ -332,7 +332,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
         }
         else
         {
-            return HYP_MAKE_ERROR(Error, "Unknown HypClassDefinitionType");
+            return HYP_MAKE_ERROR(Error, "Unknown ClassDefinitionType");
         }
     }
 

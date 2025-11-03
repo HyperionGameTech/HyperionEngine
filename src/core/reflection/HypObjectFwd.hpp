@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <core/reflection/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/FormatFwd.hpp>
 
@@ -22,8 +21,14 @@ class ManagedClass;
 
 class ScriptObjectResource;
 
-enum class HypClassFlags : uint8;
-enum class HypClassAllocationMethod : uint8;
+namespace utilities {
+struct TypeId;
+} // namespace utilities
+
+using utilities::TypeId;
+
+enum class ClassFlags : uint8;
+enum class ClassAllocationMethod : uint8;
 
 class HypObjectContainerBase;
 class HypObjectBase;
@@ -44,7 +49,7 @@ template <class T>
 struct HypObjectMemory;
 
 template <class T>
-struct HypClassDecl;
+struct ClassDecl;
 
 template <class T, class T2 = void>
 struct IsHypObject;
@@ -58,11 +63,11 @@ struct IsHypObject
 };
 
 template <class T>
-struct IsHypObject<T, std::enable_if_t<ImplementationExistsV<typename T::HypClassInfo::Type>>>
+struct IsHypObject<T, std::enable_if_t<ImplementationExistsV<typename T::ClassInfo::Type>>>
 {
     static constexpr bool value = true;
 
-    using Type = typename T::HypClassInfo::Type;
+    using Type = typename T::ClassInfo::Type;
 };
 
 template <class T>
@@ -81,7 +86,7 @@ HYP_MAKE_ENUM_FLAGS(HypObjectInitializerFlags)
 
 struct HypObjectInitializerContext
 {
-    const HypClass* hypClass = nullptr;
+    const Class* cls = nullptr;
     EnumFlags<HypObjectInitializerFlags> flags = HypObjectInitializerFlags::NONE;
 };
 
@@ -90,26 +95,26 @@ class HypObjectPtr
 public:
     HypObjectPtr()
         : m_ptr(nullptr),
-          m_hypClass(nullptr)
+          m_class(nullptr)
     {
     }
 
     explicit HypObjectPtr(std::nullptr_t)
         : m_ptr(nullptr),
-          m_hypClass(nullptr)
+          m_class(nullptr)
     {
     }
 
-    HypObjectPtr(const HypClass* hypClass, void* ptr)
+    HypObjectPtr(const Class* cls, void* ptr)
         : m_ptr(ptr),
-          m_hypClass(hypClass)
+          m_class(cls)
     {
     }
 
     template <class T, typename = std::enable_if_t<IsHypObjectV<T>>>
     explicit HypObjectPtr(T* ptr)
         : m_ptr(ptr),
-          m_hypClass(T::Class())
+          m_class(T::StaticClass())
     {
     }
 
@@ -121,12 +126,12 @@ public:
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        return m_ptr != nullptr && m_hypClass != nullptr;
+        return m_ptr != nullptr && m_class != nullptr;
     }
 
     HYP_FORCE_INLINE bool operator!() const
     {
-        return !m_ptr || !m_hypClass;
+        return !m_ptr || !m_class;
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -151,12 +156,12 @@ public:
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return m_ptr != nullptr && m_hypClass != nullptr;
+        return m_ptr != nullptr && m_class != nullptr;
     }
 
-    HYP_FORCE_INLINE const HypClass* GetClass() const
+    HYP_FORCE_INLINE const Class* GetClass() const
     {
-        return m_hypClass;
+        return m_class;
     }
 
     HYP_FORCE_INLINE void* GetPointer() const
@@ -172,7 +177,7 @@ public:
 
 private:
     void* m_ptr;
-    const HypClass* m_hypClass;
+    const Class* m_class;
 };
 
 #ifdef HYP_DOTNET
@@ -193,50 +198,50 @@ template <class T>
 struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
 {
     HypObjectInitializerGuard(void* ptr)
-        : HypObjectInitializerGuardBase(HypObjectPtr(T::Class(), ptr))
+        : HypObjectInitializerGuardBase(HypObjectPtr(T::StaticClass(), ptr))
     {
     }
 };
 
-/// HypClassRef - A strong reference to a HypClass.
-/// Reference counting only applies to dynamically created / destroyed HypClass objects (used with scripts).
-struct HypClassRef
+/// ClassRef - A strong reference to a Class.
+/// Reference counting only applies to dynamically created / destroyed Class objects (used with scripts).
+struct ClassRef
 {
-    const HypClass* hypClass;
+    const Class* cls;
 
-    HYP_FORCE_INLINE HypClassRef()
-        : hypClass(nullptr)
+    HYP_FORCE_INLINE ClassRef()
+        : cls(nullptr)
     {
     }
 
-    HYP_API HypClassRef(const HypClass* hypClass, int initialRefCount = 1);
+    HYP_API ClassRef(const Class* cls, int initialRefCount = 1);
 
-    HYP_API HypClassRef(const HypClassRef& other);
-    HYP_API HypClassRef& operator=(const HypClassRef& other);
+    HYP_API ClassRef(const ClassRef& other);
+    HYP_API ClassRef& operator=(const ClassRef& other);
 
-    HYP_API HypClassRef(HypClassRef&& other) noexcept;
-    HYP_API HypClassRef& operator=(HypClassRef&& other) noexcept;
+    HYP_API ClassRef(ClassRef&& other) noexcept;
+    HYP_API ClassRef& operator=(ClassRef&& other) noexcept;
 
-    HYP_API ~HypClassRef();
+    HYP_API ~ClassRef();
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return hypClass != nullptr;
+        return cls != nullptr;
     }
 
-    HYP_FORCE_INLINE const HypClass* operator->() const
+    HYP_FORCE_INLINE const Class* operator->() const
     {
-        return hypClass;
+        return cls;
     }
 
-    HYP_FORCE_INLINE const HypClass& operator*() const
+    HYP_FORCE_INLINE const Class& operator*() const
     {
-        return *hypClass;
+        return *cls;
     }
 
-    HYP_FORCE_INLINE operator const HypClass*() const
+    HYP_FORCE_INLINE operator const Class*() const
     {
-        return hypClass;
+        return cls;
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -244,43 +249,30 @@ struct HypClassRef
         return IsValid();
     }
 
-    HYP_FORCE_INLINE bool operator==(const HypClassRef& other) const
+    HYP_FORCE_INLINE bool operator==(const ClassRef& other) const
     {
-        return hypClass == other.hypClass;
+        return cls == other.cls;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const HypClassRef& other) const
+    HYP_FORCE_INLINE bool operator!=(const ClassRef& other) const
     {
-        return hypClass != other.hypClass;
+        return cls != other.cls;
     }
 
-    HYP_FORCE_INLINE bool operator<(const HypClassRef& other) const
+    HYP_FORCE_INLINE bool operator<(const ClassRef& other) const
     {
-        return hypClass < other.hypClass;
+        return cls < other.cls;
     }
 };
 
 /// Helpers ///
 
-extern HYP_API const HypClass* GetClass(TypeId typeId);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
 
 template <class T>
-const HypClass* GetClass()
+const Class* GetClass()
 {
-    return GetClass(TypeId::ForType<T>());
-}
-
-template <class T, typename = std::enable_if_t<IsHypObjectV<T>>>
-HYP_FORCE_INLINE const HypClass* GetInstanceClass(const T* ptr)
-{
-    if constexpr (std::is_base_of_v<HypObjectBase, T>)
-    {
-        return ptr ? ptr->InstanceClass() : nullptr;
-    }
-    else
-    {
-        return GetClass(TypeId::ForType<typename IsHypObject<T>::Type>());
-    }
+    return GetClassHelper<T>::Get();
 }
 
 /// Casts ///
@@ -367,7 +359,7 @@ static inline const WeakHandle<Other>& ObjCast(const WeakHandle<T>& handle)
         return WeakHandle<Other>::empty;
     }
 
-    if (IsA(TypeInfo_GetClass(*handle.GetTypeInfo()), Other::Class()))
+    if (IsA(TypeInfo_GetClass(*handle.GetTypeInfo()), Other::StaticClass()))
     {
         return reinterpret_cast<const WeakHandle<Other>&>(handle);
     }
@@ -385,7 +377,7 @@ static inline WeakHandle<Other> ObjCast(WeakHandle<T>&& handle)
         return WeakHandle<Other>::empty;
     }
 
-    if (IsA(TypeInfo_GetClass(*handle.GetTypeInfo()), Other::Class()))
+    if (IsA(TypeInfo_GetClass(*handle.GetTypeInfo()), Other::StaticClass()))
     {
         return reinterpret_cast<WeakHandle<Other>&&>(handle);
     }
@@ -395,9 +387,9 @@ static inline WeakHandle<Other> ObjCast(WeakHandle<T>&& handle)
 
 /// IsA() checks ///
 
-// NOTE: These overloads are implemented in HypClass.cpp
-extern HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
-extern HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
+// NOTE: These overloads are implemented in Class.cpp
+HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
 template <class ExpectedType, class InstanceType>
 static inline bool IsA()
@@ -405,16 +397,16 @@ static inline bool IsA()
     static_assert(ImplementationExistsV<ExpectedType>, "Implementation does not exist for the expected type! Ensure proper headers are included.");
     static_assert(ImplementationExistsV<InstanceType>, "Implementation does not exist for the instance type! Ensure proper headers are included.");
 
-    static const HypClass* instanceHypClass = GetClass(TypeId::ForType<InstanceType>());
+    static const Class* s_instanceClass = InstanceType::StaticClass();
 
-    if (!instanceHypClass)
+    if (!s_instanceClass)
     {
         return false;
     }
 
-    static const HypClass* hypClass = GetClass(TypeId::ForType<ExpectedType>());
+    static const Class* s_expectedClass = ExpectedType::StaticClass();
 
-    if (!hypClass)
+    if (!s_expectedClass)
     {
         return false;
     }
@@ -425,27 +417,27 @@ static inline bool IsA()
         return true;
     }
 
-    static const bool cachedCheck = ::hyperion::IsA(hypClass, instanceHypClass);
+    static const bool cachedCheck = ::hyperion::IsA(s_expectedClass, s_instanceClass);
 
-    return cachedCheck || IsA(hypClass, instanceHypClass);
+    return cachedCheck || IsA(s_expectedClass, s_instanceClass);
 }
 
 template <class ExpectedType>
-static inline bool IsA(const HypClass* instanceHypClass)
+static inline bool IsA(const Class* instanceClass)
 {
-    if (!instanceHypClass)
+    if (!instanceClass)
     {
         return false;
     }
 
-    const HypClass* hypClass = GetClass(TypeId::ForType<ExpectedType>());
+    const Class* expectedClass = ExpectedType::StaticClass();
 
-    if (!hypClass)
+    if (!expectedClass)
     {
         return false;
     }
 
-    return IsA(hypClass, instanceHypClass);
+    return IsA(expectedClass, instanceClass);
 }
 
 template <class ExpectedType, class InstanceType>

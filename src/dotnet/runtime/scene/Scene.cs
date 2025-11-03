@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="SceneFlags")]
+    [ClassBinding(Name="SceneFlags")]
     [Flags]
     public enum SceneFlags : uint
     {
@@ -13,7 +13,7 @@ namespace Hyperion
         UI = 0x8
     }
 
-    [HypClassBinding(Name="Scene")]
+    [ClassBinding(Name="Scene")]
     public class Scene : HypObject
     {
         public Scene()

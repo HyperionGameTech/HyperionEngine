@@ -9,36 +9,12 @@
 #include <core/reflection/HypObject.hpp>
 
 #include <rendering/RenderObject.hpp>
+#include <rendering/Shared.hpp>
 #include <rendering/RenderGpuImage.hpp>
 
 #include <core/Types.hpp>
 
 namespace hyperion {
-
-HYP_ENUM()
-enum class RenderPassStage : uint8
-{
-    NONE,
-    PRESENT, /* for presentation on screen */
-    SHADER   /* for use as a sampled texture in a shader */
-};
-
-HYP_ENUM()
-enum class LoadOperation : uint8
-{
-    UNDEFINED,
-    NONE,
-    CLEAR,
-    LOAD
-};
-
-HYP_ENUM()
-enum class StoreOperation : uint8
-{
-    UNDEFINED,
-    NONE,
-    STORE
-};
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class AttachmentBase : public HypObjectBase

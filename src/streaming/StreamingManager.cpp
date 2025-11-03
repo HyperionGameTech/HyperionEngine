@@ -14,7 +14,7 @@
 
 #include <core/containers/Queue.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/math/MathUtil.hpp>
 

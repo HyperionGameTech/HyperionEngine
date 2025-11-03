@@ -3,14 +3,14 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="UIMenuBarDropDirection")]
+    [ClassBinding(Name="UIMenuBarDropDirection")]
     public enum UIMenuBarDropDirection : uint
     {
         Up,
         Down
     }
 
-    [HypClassBinding(Name="UIMenuBar")]
+    [ClassBinding(Name="UIMenuBar")]
     public class UIMenuBar : UIObject
     {
         public UIMenuBar() : base()

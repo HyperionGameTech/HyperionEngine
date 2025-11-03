@@ -29,6 +29,8 @@
 
 #include <HyperionEngine.hpp>
 
+#include <iostream>
+
 namespace hyperion {
 
 enum class LoadAssemblyResult : int32

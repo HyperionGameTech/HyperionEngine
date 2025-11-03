@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 using namespace hyperion;
 
@@ -13,7 +13,7 @@ extern "C"
         Assert(outHypData != nullptr);
         Assert(ptr != nullptr);
 
-        outHypData->Construct(AnyRef(ptr->GetObjectHeader_Internal()->hypClass->GetTypeInfo(), ptr));
+        outHypData->Construct(AnyRef(ptr->GetObjectHeader_Internal()->cls->GetTypeInfo(), ptr));
     }
 
     HYP_EXPORT void Handle_Set(HypData* hypData, HypObjectBase** outPtr)

@@ -285,11 +285,11 @@ namespace Hyperion
             }
         }
 
-        private static object? TryGetHypClassBindingAttribute(Type type)
+        private static object? TryGetClassBindingAttribute(Type type)
         {
             foreach (var attr in type.GetCustomAttributes(false))
             {
-                if (attr.GetType().Name == "HypClassBinding")
+                if (attr.GetType().Name == "ClassBinding")
                 {
                     return attr;
                 }
@@ -340,22 +340,22 @@ namespace Hyperion
             string typeName = type.Name;
             IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
 
-            string? hypClassName = null;
-            IntPtr hypClassPtr = IntPtr.Zero;
+            string? className = null;
+            IntPtr classPtr = IntPtr.Zero;
 
             TypeId typeId = TypeId.ForType(type);
 
             // Use dynamic since we don't know the actual type - it is loaded from another assembly
-            dynamic? hypClassBindingAttribute = TryGetHypClassBindingAttribute(type);
+            dynamic? classBindingAttribute = TryGetClassBindingAttribute(type);
 
-            if (hypClassBindingAttribute != null)
+            if (classBindingAttribute != null)
             {
-                hypClassName = hypClassBindingAttribute.Name;
+                className = classBindingAttribute.Name;
 
-                if (hypClassName == null || hypClassName.Length == 0)
-                    hypClassName = typeName;
+                if (className == null || className.Length == 0)
+                    className = typeName;
 
-                bool isDynamic = hypClassBindingAttribute.IsDynamic;
+                bool isDynamic = classBindingAttribute.IsDynamic;
 
                 if (isDynamic)
                 {
@@ -363,49 +363,49 @@ namespace Hyperion
                     // No need to use GetClass() in C++ to fetch non-core assembly classes, as it would be totally context dependent, anyway.
                     if (isCoreAssembly)
                     {
-                        // Find closest parent class with HypClassBinding attribute
+                        // Find closest parent class with ClassBinding attribute
                         Type? parentType = type.BaseType;
-                        IntPtr parentHypClassPtr = IntPtr.Zero;
+                        IntPtr parentClassPtr = IntPtr.Zero;
 
                         while (parentType != null)
                         {
-                            dynamic? parentHypClassBindingAttribute = TryGetHypClassBindingAttribute(parentType);
+                            dynamic? parentClassBindingAttribute = TryGetClassBindingAttribute(parentType);
 
-                            if (parentHypClassBindingAttribute != null)
+                            if (parentClassBindingAttribute != null)
                             {
                                 // Call the GetClass method
-                                dynamic? parentHypClass = parentHypClassBindingAttribute.GetClass(parentType);
-                                parentHypClassPtr = parentHypClass?.Address ?? IntPtr.Zero;
+                                dynamic? parentClass = parentClassBindingAttribute.GetClass(parentType);
+                                parentClassPtr = parentClass?.Address ?? IntPtr.Zero;
 
-                                if (parentHypClassPtr != IntPtr.Zero)
+                                if (parentClassPtr != IntPtr.Zero)
                                     break;
                             }
 
                             parentType = parentType.BaseType;
                         }
 
-                        if (parentHypClassPtr == IntPtr.Zero)
-                            throw new Exception(string.Format("To create a dynamic HypClass, a parent class must exist with a valid HypClassBinding attribute!"));
+                        if (parentClassPtr == IntPtr.Zero)
+                            throw new Exception(string.Format("To create a dynamic Class, a parent class must exist with a valid ClassBinding attribute!"));
 
                         // @FIXME: Allocated but never deleted. Need to implement deletion and removal from global array on assembly unload.
-                        hypClassPtr = HypClass_CreateDynamicHypClass(ref typeId, (string)hypClassName, parentHypClassPtr);
+                        classPtr = Class_CreateDynamicClass(ref typeId, (string)className, parentClassPtr);
 
-                        if (hypClassPtr == IntPtr.Zero)
-                            throw new Exception(string.Format("Failed to create a dynamic HypClass for type \"{0}\" (TypeId: {1})", type.Name, typeId));
+                        if (classPtr == IntPtr.Zero)
+                            throw new Exception(string.Format("Failed to create a dynamic Class for type \"{0}\" (TypeId: {1})", type.Name, typeId));
                     }
                     else
                     {
-                        // throw new Exception(string.Format("Dynamic HypClass creation is only supported in core assemblies! Cannot create dynamic HypClass for type \"{0}\" (TypeId: {1})", type.Name, typeId));
+                        // throw new Exception(string.Format("Dynamic Class creation is only supported in core assemblies! Cannot create dynamic Class for type \"{0}\" (TypeId: {1})", type.Name, typeId));
                     }
                 }
                 else
                 {
-                    hypClassPtr = HypClass_GetClassByName((string)hypClassName);
+                    classPtr = Class_GetClassByName((string)className);
 
-                    if (hypClassPtr == IntPtr.Zero)
-                        throw new Exception(string.Format("No HypClass found for \"{0}\"", hypClassName));
+                    if (classPtr == IntPtr.Zero)
+                        throw new Exception(string.Format("No Class found for \"{0}\"", className));
 
-                    Logger.Log(LogType.Debug, "Found HypClass for type: {0}, Name: {1}", typeName, hypClassName);
+                    Logger.Log(LogType.Debug, "Found Class for type: {0}, Name: {1}", typeName, className);
                 }
             }
 
@@ -437,7 +437,7 @@ namespace Hyperion
                 managedClassFlags |= ManagedClassFlags.Abstract;
             }
 
-            ManagedClass_Create(ref assemblyGuid, assemblyPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, typeSize, typeId, parentClassObjectPtr, (uint)managedClassFlags, out managedClassDesc);
+            ManagedClass_Create(ref assemblyGuid, assemblyPtr, classPtr, type.GetHashCode(), typeNamePtr, typeSize, typeId, parentClassObjectPtr, (uint)managedClassFlags, out managedClassDesc);
 
             Marshal.FreeHGlobal(typeNamePtr);
 
@@ -525,7 +525,7 @@ namespace Hyperion
             }
 
             // Add new object, free object delegates
-            managedClassDesc.SetNewObjectFunction(assemblyGuid, new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
+            managedClassDesc.SetNewObjectFunction(assemblyGuid, new NewObjectDelegate((bool keepAlive, IntPtr classPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
             {
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
@@ -535,7 +535,7 @@ namespace Hyperion
                 ConstructorInfo? constructorInfo;
                 object[]? parameters = null;
 
-                if (hypClassPtr != IntPtr.Zero)
+                if (classPtr != IntPtr.Zero)
                 {
                     if (nativeAddress == IntPtr.Zero)
                         throw new ArgumentNullException(nameof(nativeAddress));
@@ -545,13 +545,13 @@ namespace Hyperion
                     if (objType == null)
                         throw new InvalidOperationException("Failed to get object type for object of type: " + type.Name);
 
-                    FieldInfo? hypClassPtrField = objType.GetField("_hypClassPtr", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+                    FieldInfo? classPtrField = objType.GetField("_classPtr", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
                     FieldInfo? nativeAddressField = objType.GetField("_nativeAddress", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 
-                    if (hypClassPtrField == null || nativeAddressField == null)
-                        throw new InvalidOperationException("Could not find hypClassPtr or nativeAddress field on class " + type.Name);
+                    if (classPtrField == null || nativeAddressField == null)
+                        throw new InvalidOperationException("Could not find classPtr or nativeAddress field on class " + type.Name);
 
-                    hypClassPtrField.SetValue(obj, hypClassPtr);
+                    classPtrField.SetValue(obj, classPtr);
                     nativeAddressField.SetValue(obj, nativeAddress);
                 }
 
@@ -869,23 +869,23 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, TypeId typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClassDesc outDesc);
+        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr classPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, TypeId typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClassDesc outDesc);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_FindByTypeHash")]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool ManagedClass_FindByTypeHash([In] IntPtr assemblyPtr, int typeHash, [Out] out IntPtr outManagedClassObjectPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
-        private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
+        [DllImport("hyperion", EntryPoint = "Class_GetClassByName")]
+        private static extern IntPtr Class_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetClassByTypeId")]
-        private static extern IntPtr HypClass_GetClassByTypeId([In] ref TypeId typeId);
+        [DllImport("hyperion", EntryPoint = "Class_GetClassByTypeId")]
+        private static extern IntPtr Class_GetClassByTypeId([In] ref TypeId typeId);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetClassForManagedClass")]
-        private static extern IntPtr HypClass_GetClassForManagedClass([In] IntPtr pClass);
+        [DllImport("hyperion", EntryPoint = "Class_GetClassForManagedClass")]
+        private static extern IntPtr Class_GetClassForManagedClass([In] IntPtr pClass);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_CreateDynamicHypClass")]
-        private static extern IntPtr HypClass_CreateDynamicHypClass([In] ref TypeId typeId, [MarshalAs(UnmanagedType.LPStr)] string name, [In] IntPtr parentHypClassClassPtr);
+        [DllImport("hyperion", EntryPoint = "Class_CreateDynamicClass")]
+        private static extern IntPtr Class_CreateDynamicClass([In] ref TypeId typeId, [MarshalAs(UnmanagedType.LPStr)] string name, [In] IntPtr parentClassClassPtr);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
         [return: MarshalAs(UnmanagedType.I1)]

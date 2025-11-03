@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "ScriptCompileStatus")]
+    [ClassBinding(Name = "ScriptCompileStatus")]
     [Flags]
     public enum ScriptCompileStatus : uint
     {
@@ -16,14 +16,14 @@ namespace Hyperion
     }
 
 
-    [HypClassBinding(Name = "ScriptLanguage")]
+    [ClassBinding(Name = "ScriptLanguage")]
     public enum ScriptLanguage : uint
     {
         HypScript = 0,
         CSharp = 1
     }
 
-    [HypClassBinding(Name = "ScriptData")]
+    [ClassBinding(Name = "ScriptData")]
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct ScriptData
     {

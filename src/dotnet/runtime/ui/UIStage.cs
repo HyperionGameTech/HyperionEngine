@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="UIStage")]
+    [ClassBinding(Name="UIStage")]
     public class UIStage : UIObject
     {
         public UIStage() : base()

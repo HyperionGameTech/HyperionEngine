@@ -13,6 +13,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/RenderCollection.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -164,7 +165,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     HYP_DEFER({ rpl.EndRead(); });
 
     // special checks for Sky + caching result based on light position + intensity
-    if (envProbe->IsA(SkyProbe::Class()))
+    if (envProbe->IsA(SkyProbe::StaticClass()))
     {
         if (!renderSetup.light)
         {
@@ -349,9 +350,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     AssertDebug(normalsAttachment != nullptr);
     AssertDebug(momentsAttachment != nullptr);
 
-    const DescriptorTableDeclaration& descriptorTableDecl = convolveProbeShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(convolveProbeShader->GetCompiledShader()->GetDescriptorTableDeclaration());
     descriptorTable->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}", envProbe->Id().Value()));
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -480,14 +479,14 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         }
     }
 
-    const DescriptorTableDeclaration& descriptorTableDecl = firstShader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration* descriptorTableDecl = firstShader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     Array<DescriptorTableRef, FixedAllocator<ShNumLevels>> computeShDescriptorTables;
     computeShDescriptorTables.Resize(ShNumLevels);
 
     for (uint32 i = 0; i < ShNumLevels; i++)
     {
-        computeShDescriptorTables[i] = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+        computeShDescriptorTables[i] = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {

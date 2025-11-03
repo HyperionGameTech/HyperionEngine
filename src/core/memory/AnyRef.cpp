@@ -14,9 +14,9 @@ TypeId AnyRefBase::GetTypeId() const
     return m_typeInfo ? m_typeInfo->id : TypeId::Void();
 }
 
-const HypClass* AnyRefBase::GetHypClass() const
+const Class* AnyRefBase::GetClass() const
 {
-    return m_typeInfo ? m_typeInfo->GetHypClass() : nullptr;
+    return m_typeInfo ? m_typeInfo->GetClass() : nullptr;
 }
 
 } // namespace memory

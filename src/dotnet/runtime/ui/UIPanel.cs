@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="UIPanel")]
+    [ClassBinding(Name="UIPanel")]
     public class UIPanel : UIObject
     {
         public UIPanel() : base()

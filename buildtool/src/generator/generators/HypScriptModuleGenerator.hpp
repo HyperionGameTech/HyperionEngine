@@ -12,7 +12,7 @@
 namespace hyperion {
 namespace buildtool {
 
-struct HypClassDefinition;
+struct ClassDefinition;
 
 class HypScriptModuleGenerator : public GeneratorBase
 {
@@ -28,7 +28,7 @@ public:
     virtual FilePath GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const override;
 
 protected:
-    Array<const HypClassDefinition*> SortClassesTopologically(const Analyzer& analyzer, const Array<const HypClassDefinition*>& classes, const HashMap<String, SizeType>& classNameToIndex) const;
+    Array<const ClassDefinition*> SortClassesTopologically(const Analyzer& analyzer, const Array<const ClassDefinition*>& classes, const HashMap<String, SizeType>& classNameToIndex) const;
 };
 
 } // namespace buildtool

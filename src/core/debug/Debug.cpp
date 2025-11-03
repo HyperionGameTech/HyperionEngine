@@ -141,7 +141,7 @@ void LogAssert(const char* str)
             return;
         }
 
-        std::terminate();
+        TerminateProgram();
 
         return;
     }
@@ -159,6 +159,11 @@ void LogAssert(const char* str)
 #endif
 
     HYP_LOG_DYNAMIC(Core, Fatal, str);
+}
+
+void TerminateProgram()
+{
+    std::terminate();
 }
 
 } // namespace debug

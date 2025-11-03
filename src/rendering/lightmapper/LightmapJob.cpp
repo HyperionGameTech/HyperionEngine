@@ -1,7 +1,5 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <exception> // for std::terminate
-
 #include <rendering/lightmapper/LightmapJob.hpp>
 #include <rendering/lightmapper/Lightmapper.hpp>
 #include <rendering/lightmapper/LightmapPathTraceCpu.hpp>

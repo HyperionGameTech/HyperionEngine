@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="EditorDebugOverlayBase")]
+    [ClassBinding(Name="EditorDebugOverlayBase")]
     public abstract class EditorDebugOverlayBase : HypObject
     {
         public EditorDebugOverlayBase()

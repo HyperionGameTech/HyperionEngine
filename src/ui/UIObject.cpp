@@ -20,13 +20,15 @@
 
 #include <rendering/Mesh.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
+
 #include <core/threading/Threads.hpp>
 
 #include <core/containers/Queue.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -219,7 +221,7 @@ void UIObject::Init()
 
     SetReady(true);
 
-    if (InstanceClass() != Class())
+    if (InstanceClass() != StaticClass())
     {
         // just in case it was overridden by derived classes,
         // set m_acceptsFocus to the value returned by AcceptsFocus()
@@ -988,7 +990,7 @@ void UIObject::Focus()
     // Note: Calling `SetFocusedObject` between `SetFocusState` and `OnGainFocus` is intentional
     // as `SetFocusedObject` calls `Blur()` on any previously focused object (which may include a parent of this object)
     // Some UI object types may need to know if any child object is focused when handling `OnLoseFocus`
-    m_stage->SetFocusedObject(HandleFromThis());
+    m_stage->SetFocusedObject(MakeStrongRef(this));
 
     OnGainFocus(MouseEvent {});
 }
@@ -3027,21 +3029,21 @@ void UIObject::SetDataSource_Internal(UIDataSourceBase* dataSource)
     }
 }
 
-Handle<UIObject> UIObject::CreateUIObject(const HypClass* hypClass, Name name, Vec2i position, UIObjectSize size)
+Handle<UIObject> UIObject::CreateUIObject(const Class* cls, Name name, Vec2i position, UIObjectSize size)
 {
     HYP_SCOPE;
 
-    if (!hypClass)
+    if (!cls)
     {
         return Handle<UIObject>::empty;
     }
 
-    Assert(hypClass->IsDerivedFrom(UIObject::Class()), "Cannot spawn instance of class that is not a subclass of UIObject");
+    Assert(cls->IsDerivedFrom(UIObject::StaticClass()), "Cannot spawn instance of class that is not a subclass of UIObject");
 
     AssertOnOwnerThread();
 
     HypData uiObjectHypData;
-    if (!hypClass->CreateInstance(uiObjectHypData))
+    if (!cls->CreateInstance(uiObjectHypData))
     {
         return Handle<UIObject>::empty;
     }
@@ -3053,7 +3055,7 @@ Handle<UIObject> UIObject::CreateUIObject(const HypClass* hypClass, Name name, V
 
     if (!name.IsValid())
     {
-        name = hypClass->GetName();
+        name = cls->GetName();
     }
 
     Handle<Entity> entity = CreateObject<Entity>();
@@ -3075,6 +3077,14 @@ Handle<UIObject> UIObject::CreateUIObject(const HypClass* hypClass, Name name, V
     InitObject(uiObject);
 
     return uiObject;
+}
+
+void UIObject::AssertOnOwnerThread() const
+{
+    if (Scene* scene = GetScene())
+    {
+        Threads::AssertOnThread(scene->GetOwnerThreadId());
+    }
 }
 
 #pragma endregion UIObject

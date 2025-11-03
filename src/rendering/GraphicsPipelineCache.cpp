@@ -5,6 +5,7 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderMemory.hpp>
@@ -326,13 +327,13 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
     {
         table = descriptorTable;
         descriptorTableDecl = table->GetDeclaration();
-
-        Assert(descriptorTableDecl != nullptr);
     }
     else
     {
-        descriptorTableDecl = &shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     }
+
+    Assert(descriptorTableDecl != nullptr);
 
     GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(
         shader,

@@ -6,8 +6,10 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/HypData.hpp>
+
+#include <sstream>
 
 namespace hyperion::serialization {
 
@@ -214,7 +216,7 @@ String FBOMObject::ToString(bool deep) const
 {
     std::stringstream ss;
 
-    ss << m_objectType.ToString();
+    ss << *m_objectType.ToString();
     ss << " { properties: { ";
     for (auto& prop : properties)
     {
@@ -222,7 +224,7 @@ String FBOMObject::ToString(bool deep) const
         ss << ": ";
         if (deep)
         {
-            ss << prop.second.ToString(deep);
+            ss << *prop.second.ToString(deep);
         }
         else
         {
@@ -237,7 +239,7 @@ String FBOMObject::ToString(bool deep) const
     {
         for (const FBOMObject& child : m_children)
         {
-            ss << child.ToString(deep);
+            ss << *child.ToString(deep);
         }
     }
     else

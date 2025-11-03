@@ -9,7 +9,7 @@ namespace Hyperion
         Simulating = 1
     }
 
-    [HypClassBinding(Name="GameState")]
+    [ClassBinding(Name="GameState")]
     [StructLayout(LayoutKind.Sequential)]
     public struct GameState
     {

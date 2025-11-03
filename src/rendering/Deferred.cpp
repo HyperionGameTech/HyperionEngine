@@ -27,6 +27,7 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderSwapchain.hpp>
+#include <rendering/RenderCollection.hpp>
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 #include <rendering/rt/MeshBlasBuilder.hpp>
 #include <rendering/rt/RaytracingReflections.hpp>
@@ -305,9 +306,8 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
     ShaderRef shader = g_shaderManager->GetOrCreate(NAME("DeferredDirect"), shaderProperties);
     Assert(shader != nullptr);
 
-    const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -705,9 +705,9 @@ void EnvGridPass::CreatePipeline()
         ShaderRef shader = g_shaderManager->GetOrCreate(NAME("ApplyEnvGrid"), it.second);
         Assert(shader.IsValid());
 
-        const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+            shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
         DeferCreate(descriptorTable);
 
         GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
@@ -909,9 +909,9 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
         ShaderRef shader = g_shaderManager->GetOrCreate(NAME("ApplyReflectionProbe"), it.second);
         Assert(shader.IsValid());
 
-        const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+            shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
         DeferCreate(descriptorTable);
 
         GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
@@ -942,8 +942,8 @@ void ReflectionsPass::CreateSSRRenderer()
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
     Assert(renderTextureToScreenShader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -1328,9 +1328,10 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPass
 
     Assert(inputImageView.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration* descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    Assert(descriptorTableDecl != nullptr);
 
-    DescriptorSetDeclaration* decl = descriptorTableDecl.FindDescriptorSetDeclaration("RenderTextureToScreenDescriptorSet");
+    DescriptorSetDeclaration* decl = descriptorTableDecl->FindDescriptorSetDeclaration("RenderTextureToScreenDescriptorSet");
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };
@@ -1460,8 +1461,8 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& passD
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     Assert(renderTextureToScreenShader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

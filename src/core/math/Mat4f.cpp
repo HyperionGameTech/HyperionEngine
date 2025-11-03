@@ -370,7 +370,7 @@ Mat4f Mat4f::operator+(const Mat4f& other) const
 
 Mat4f& Mat4f::operator+=(const Mat4f& other)
 {
-    for (int i = 0; i < std::size(values); i++)
+    for (int i = 0; i < HYP_ARRAY_SIZE(values); i++)
     {
         values[i] += other.values[i];
     }

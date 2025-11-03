@@ -1,4 +1,4 @@
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <rendering/util/ResourceBinder.hpp>
 #include <rendering/RenderGlobalState.hpp>

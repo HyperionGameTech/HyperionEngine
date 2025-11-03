@@ -32,14 +32,14 @@ ManagedObject* ManagedClass::NewObject()
     return new ManagedObject(RefCountedPtrFromThis(), objectReference);
 }
 
-ManagedObject* ManagedClass::NewObject(const HypClass* hypClass, void* pOwner)
+ManagedObject* ManagedClass::NewObject(const Class* cls, void* pOwner)
 {
-    Assert(hypClass != nullptr);
+    Assert(cls != nullptr);
     Assert(pOwner != nullptr);
 
     Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
-    ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, hypClass, pOwner, nullptr, nullptr);
+    ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, cls, pOwner, nullptr, nullptr);
 
     return new ManagedObject(RefCountedPtrFromThis(), objectReference);
 }

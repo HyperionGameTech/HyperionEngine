@@ -14,8 +14,8 @@
 #include <core/utilities/Format.hpp>
 #include <core/reflection/TypeInfo.hpp>
 
-#include <core/reflection/HypClassRegistry.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/ClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypData.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -444,18 +444,18 @@ Handle<Entity> EntityManager::AddBasicEntity()
     return entity;
 }
 
-Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hypClass)
+Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_ownerThreadId);
 
-    Assert(hypClass != nullptr, "HypClass must not be null");
-    Assert(hypClass->IsDerivedFrom(Entity::Class()), "HypClass must be a subclass of Entity");
+    Assert(cls != nullptr, "Class must not be null");
+    Assert(cls->IsDerivedFrom(Entity::StaticClass()), "Class must be a subclass of Entity");
 
     HypData data;
-    if (!hypClass->CreateInstance(data))
+    if (!cls->CreateInstance(data))
     {
-        HYP_LOG(Entity, Error, "Failed to create instance of class {}", hypClass->GetName());
+        HYP_LOG(Entity, Error, "Failed to create instance of class {}", cls->GetName());
 
         return Handle<Entity>::empty;
     }
@@ -464,7 +464,7 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hypClass)
 
     if (!entity.IsValid())
     {
-        HYP_LOG(Entity, Error, "Failed to create instance of class {}: data does not contain a valid Entity handle", hypClass->GetName());
+        HYP_LOG(Entity, Error, "Failed to create instance of class {}: data does not contain a valid Entity handle", cls->GetName());
 
         return Handle<Entity>::empty;
     }
@@ -487,9 +487,9 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hypClass)
 
     AddTag<EntityTag::TYPE_ID>(entity);
 
-    while (hypClass != nullptr && hypClass != Entity::Class())
+    while (cls != nullptr && cls != Entity::StaticClass())
     {
-        EntityTag entityTypeTag = MakeEntityTypeTag(hypClass->GetTypeId());
+        EntityTag entityTypeTag = MakeEntityTypeTag(cls->GetTypeId());
         AssertDebug(uint64(entityTypeTag) & uint64(EntityTag::TYPE_ID));
 
         const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entityTypeTag);
@@ -497,7 +497,7 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hypClass)
 
         AddTag(entity, entityTypeTag);
 
-        hypClass = hypClass->GetParent();
+        cls = cls->GetParent();
     }
 
     if (entity->m_entityInitInfo.initialTags.Any())
@@ -554,11 +554,11 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 
     AddTag<EntityTag::TYPE_ID>(entity);
 
-    const HypClass* hypClass = entity->InstanceClass();
+    const Class* cls = entity->InstanceClass();
 
-    while (hypClass != nullptr && hypClass != Entity::Class())
+    while (cls != nullptr && cls != Entity::StaticClass())
     {
-        EntityTag entityTypeTag = MakeEntityTypeTag(hypClass->GetTypeId());
+        EntityTag entityTypeTag = MakeEntityTypeTag(cls->GetTypeId());
         AssertDebug(uint64(entityTypeTag) & uint64(EntityTag::TYPE_ID));
 
         const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entityTypeTag);
@@ -566,7 +566,7 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 
         AddTag(entity, entityTypeTag);
 
-        hypClass = hypClass->GetParent();
+        cls = cls->GetParent();
     }
 
     if (entity->m_entityInitInfo.receivesUpdate)
@@ -1460,7 +1460,7 @@ bool EntityManager::IsEntityInitializedForSystem(SystemBase* system, const Entit
     return it->second.FindAs(entity) != it->second.End();
 }
 
-void EntityManager::GetSystemClasses(Array<const HypClass*>& outClasses) const
+void EntityManager::GetSystemClasses(Array<const Class*>& outClasses) const
 {
     HYP_NOT_IMPLEMENTED();
 }

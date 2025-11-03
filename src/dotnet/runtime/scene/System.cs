@@ -7,7 +7,7 @@ namespace Hyperion
     /// <summary>
     /// Represents a C++ system in the scene. To create a custom system, derive from ScriptableSystem instead of this class.
     /// </summary>
-    [HypClassBinding(Name = "SystemBase")]
+    [ClassBinding(Name = "SystemBase")]
     public class SystemBase : HypObject
     {
         internal SystemBase()
@@ -15,7 +15,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name = "ScriptableSystem")]
+    [ClassBinding(Name = "ScriptableSystem")]
     public abstract class ScriptableSystem : SystemBase
     {
         public ScriptableSystem()

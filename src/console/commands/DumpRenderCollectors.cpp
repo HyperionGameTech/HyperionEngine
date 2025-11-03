@@ -1,7 +1,7 @@
 
 #include <console/ConsoleCommand.hpp>
 
-#include <core/reflection/HypClassUtils.hpp>
+#include <core/reflection/ClassUtils.hpp>
 
 #include <core/threading/Task.hpp>
 
@@ -19,7 +19,8 @@ HYP_DECLARE_LOG_CHANNEL(Console);
 
 struct RENDER_COMMAND(DumpRenderCollectors) final : RenderCommand
 {
-    RENDER_COMMAND(DumpRenderCollectors)()
+    RENDER_COMMAND(DumpRenderCollectors)
+    ()
     {
     }
 
@@ -70,9 +71,9 @@ protected:
     }
 };
 
-HYP_API const HypClass* g_clsDumpRenderCollectors = nullptr;
+HYP_API const Class* g_clsDumpRenderCollectors = nullptr;
 
-HYP_BEGIN_CLASS(DumpRenderCollectors, -1, 0, NAME("ConsoleCommandBase"), HypClassAttribute("command", "dumprendercollectors"))
+HYP_BEGIN_CLASS(DumpRenderCollectors, -1, 0, NAME("ConsoleCommandBase"), ClassAttribute("command", "dumprendercollectors"))
 HYP_END_CLASS
 
 } // namespace hyperion

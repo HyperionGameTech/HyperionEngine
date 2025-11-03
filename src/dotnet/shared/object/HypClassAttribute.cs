@@ -3,11 +3,11 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public struct HypClassAttribute
+    public struct ClassAttribute
     {
         private IntPtr ptr;
 
-        internal HypClassAttribute(IntPtr ptr)
+        internal ClassAttribute(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -29,7 +29,7 @@ namespace Hyperion
                     return string.Empty;
                 }
 
-                return Marshal.PtrToStringAnsi(HypClassAttribute_GetName(ptr));
+                return Marshal.PtrToStringAnsi(ClassAttribute_GetName(ptr));
             }
         }
 
@@ -40,7 +40,7 @@ namespace Hyperion
                 return string.Empty;
             }
 
-            return Marshal.PtrToStringAnsi(HypClassAttribute_GetString(ptr));
+            return Marshal.PtrToStringAnsi(ClassAttribute_GetString(ptr));
         }
 
         public bool GetBool()
@@ -50,7 +50,7 @@ namespace Hyperion
                 return false;
             }
 
-            return HypClassAttribute_GetBool(ptr);
+            return ClassAttribute_GetBool(ptr);
         }
 
         public int GetInt()
@@ -60,20 +60,20 @@ namespace Hyperion
                 return 0;
             }
 
-            return HypClassAttribute_GetInt(ptr);
+            return ClassAttribute_GetInt(ptr);
         }
         
-        [DllImport("hyperion", EntryPoint = "HypClassAttribute_GetName")]
-        private static extern IntPtr HypClassAttribute_GetName([In] IntPtr hypClassAttributePtr);
+        [DllImport("hyperion", EntryPoint = "ClassAttribute_GetName")]
+        private static extern IntPtr ClassAttribute_GetName([In] IntPtr classAttributePtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClassAttribute_GetString")]
-        private static extern IntPtr HypClassAttribute_GetString([In] IntPtr hypClassAttributePtr);
+        [DllImport("hyperion", EntryPoint = "ClassAttribute_GetString")]
+        private static extern IntPtr ClassAttribute_GetString([In] IntPtr classAttributePtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClassAttribute_GetBool")]
+        [DllImport("hyperion", EntryPoint = "ClassAttribute_GetBool")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool HypClassAttribute_GetBool([In] IntPtr hypClassAttributePtr);
+        private static extern bool ClassAttribute_GetBool([In] IntPtr classAttributePtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClassAttribute_GetInt")]
-        private static extern int HypClassAttribute_GetInt([In] IntPtr hypClassAttributePtr);
+        [DllImport("hyperion", EntryPoint = "ClassAttribute_GetInt")]
+        private static extern int ClassAttribute_GetInt([In] IntPtr classAttributePtr);
     }
 }

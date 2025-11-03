@@ -39,7 +39,7 @@ enum class EntityTag : uint64;
 template <EntityTag Tag>
 struct TagComponent;
 
-extern HYP_API bool ComponentInterface_CreateInstance(const HypClass* hypClass, HypData& outHypData);
+extern HYP_API bool ComponentInterface_CreateInstance(const Class* cls, HypData& outHypData);
 
 enum class ComponentInterfaceFlags : uint32
 {
@@ -58,7 +58,7 @@ class HYP_API IComponentInterface
 public:
     virtual ~IComponentInterface() = default;
 
-    const HypClass* GetClass() const;
+    const Class* GetClass() const;
 
     virtual const TypeInfo& GetTypeInfo() const = 0;
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const = 0;

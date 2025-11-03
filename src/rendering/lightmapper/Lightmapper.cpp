@@ -20,6 +20,8 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Renderer.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
+
 #include <asset/TextureAsset.hpp>
 
 #include <scene/BVH.hpp>
@@ -41,7 +43,7 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/TaskThread.hpp>
@@ -367,7 +369,7 @@ void LightmapperBase::Build()
 
     for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
-        if (entity->InstanceClass() != Entity::Class())
+        if (entity->InstanceClass() != Entity::StaticClass())
         {
             // skip non-Entity instances (we only want Entities with MeshComponent)
             continue;
@@ -650,7 +652,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 
 #pragma endregion Lightmapper < LightmapVolume>
 
-#pragma region Lightmapper<EnvProbe>
+#pragma region Lightmapper < EnvProbe>
 
 Lightmapper<EnvProbe>::Lightmapper(LightmapperConfig&& config, const Handle<EnvProbe>& envProbe)
     : LightmapperBase(std::move(config), MakeStrongRef(envProbe->GetScene()), envProbe->GetAABB()),
@@ -673,6 +675,5 @@ void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
 
     // @TODO
 }
-
 
 } // namespace hyperion

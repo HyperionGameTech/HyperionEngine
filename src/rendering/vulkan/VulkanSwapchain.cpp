@@ -13,7 +13,7 @@
 #include <core/debug/Debug.hpp>
 
 // for EnumToString
-#include <core/reflection/HypEnum.hpp>
+#include <core/reflection/Enum.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

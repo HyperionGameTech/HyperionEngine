@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/HypObject.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
@@ -24,20 +24,20 @@ extern "C"
 
     struct HypObjectInitializer
     {
-        const HypClass* hypClass;
+        const Class* cls;
         void* nativeAddress;
     };
 
 #pragma region HypObject
 
-    HYP_EXPORT void HypObject_Initialize(const HypClass* hypClass, dotnet::ManagedClass* pClass, dotnet::ObjectReference* objectReference, void** outInstancePtr)
+    HYP_EXPORT void HypObject_Initialize(const Class* cls, dotnet::ManagedClass* pClass, dotnet::ObjectReference* objectReference, void** outInstancePtr)
     {
-        Assert(hypClass != nullptr);
+        Assert(cls != nullptr);
         Assert(pClass != nullptr);
         Assert(objectReference != nullptr);
         Assert(outInstancePtr != nullptr);
 
-        Assert(hypClass->UseHandles());
+        Assert(cls->UseHandles());
 
 #ifdef HYP_DOTNET
         HypObjectPtr ptr;
@@ -46,16 +46,16 @@ extern "C"
 
         {
             // Suppress default managed object creation
-            GlobalContextScope scope(HypObjectInitializerContext { hypClass, HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
+            GlobalContextScope scope(HypObjectInitializerContext { cls, HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
             HypData value;
 
             // Set allowAbstract to true so we can use classes marked as `Abstract=true`.
             // allowing the managed class to override methods of an abstract class
-            bool success = hypClass->CreateInstance(value, /* allowAbstract */ true);
-            Assert(success, "Failed to create instance of HypClass '%s'", hypClass->GetName().LookupString());
+            bool success = cls->CreateInstance(value, /* allowAbstract */ true);
+            Assert(success, "Failed to create instance of Class '%s'", cls->GetName().LookupString());
 
-            ptr = HypObjectPtr(hypClass, value.ToRef().GetPointer());
+            ptr = HypObjectPtr(cls, value.ToRef().GetPointer());
 
             // Ref counts are kept as 1 for Handle<T> and RC<T>, managed side is responsible for decrementing the ref count
             ptr.IncRef();
@@ -79,31 +79,31 @@ extern "C"
         /// NOTE: CREATED_FROM_MANAGED is set to true here, so we don't set keep alive to true
     }
 
-    HYP_EXPORT uint32 HypObject_GetRefCountStrong(const HypClass* hypClass, void* nativeAddress)
+    HYP_EXPORT uint32 HypObject_GetRefCountStrong(const Class* cls, void* nativeAddress)
     {
-        Assert(hypClass != nullptr);
+        Assert(cls != nullptr);
         Assert(nativeAddress != nullptr);
 
-        HypObjectPtr hypObjectPtr = HypObjectPtr(hypClass, nativeAddress);
+        HypObjectPtr hypObjectPtr = HypObjectPtr(cls, nativeAddress);
 
         return hypObjectPtr.GetRefCountStrong();
     }
 
-    HYP_EXPORT void HypObject_IncRef(const HypClass* hypClass, void* nativeAddress, int8 isWeak)
+    HYP_EXPORT void HypObject_IncRef(const Class* cls, void* nativeAddress, int8 isWeak)
     {
-        Assert(hypClass != nullptr);
+        Assert(cls != nullptr);
         Assert(nativeAddress != nullptr);
 
-        HypObjectPtr hypObjectPtr = HypObjectPtr(hypClass, nativeAddress);
+        HypObjectPtr hypObjectPtr = HypObjectPtr(cls, nativeAddress);
         hypObjectPtr.IncRef(isWeak);
     }
 
-    HYP_EXPORT void HypObject_DecRef(const HypClass* hypClass, void* nativeAddress, int8 isWeak)
+    HYP_EXPORT void HypObject_DecRef(const Class* cls, void* nativeAddress, int8 isWeak)
     {
-        Assert(hypClass != nullptr);
+        Assert(cls != nullptr);
         Assert(nativeAddress != nullptr);
 
-        HypObjectPtr hypObjectPtr = HypObjectPtr(hypClass, nativeAddress);
+        HypObjectPtr hypObjectPtr = HypObjectPtr(cls, nativeAddress);
         hypObjectPtr.DecRef(isWeak);
     }
 

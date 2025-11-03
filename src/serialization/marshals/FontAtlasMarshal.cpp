@@ -4,7 +4,7 @@
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypProperty.hpp>
 #include <core/reflection/HypData.hpp>
 

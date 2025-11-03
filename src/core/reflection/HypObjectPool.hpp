@@ -34,7 +34,7 @@ class HypObjectContainer;
 class HypObjectContainerBase;
 
 struct HypObjectHeader;
-class HypClass;
+class Class;
 
 HYP_API extern void ReleaseHypObject(HypObjectHeader* header);
 
@@ -64,9 +64,9 @@ public:
         return m_typeId;
     }
 
-    HYP_FORCE_INLINE const HypClass* GetHypClass() const
+    HYP_FORCE_INLINE const Class* GetClass() const
     {
-        return m_hypClass;
+        return m_class;
     }
 
     virtual HypObjectHeader* GetObjectHeader(uint32 index, LockGuard& outGuard) = 0;
@@ -82,7 +82,7 @@ protected:
         PF_FREE = 0x4
     };
 
-    HypObjectContainerBase(TypeId typeId, const HypClass* hypClass);
+    HypObjectContainerBase(TypeId typeId, const Class* cls);
 
     /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
@@ -91,20 +91,20 @@ protected:
     HYP_API static void LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard, int flags);
 
     TypeId m_typeId;
-    const HypClass* m_hypClass;
+    const Class* m_class;
     IdGenerator m_idGenerator;
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
 struct HypObjectHeader
 {
-    const HypClass* hypClass;
+    const Class* cls;
     uint32 index;
     volatile int32 refCountStrong;
     volatile int32 refCountWeak;
 
     HypObjectHeader()
-        : hypClass(nullptr),
+        : cls(nullptr),
           index(~0u),
           refCountStrong(0),
           refCountWeak(0)
@@ -234,8 +234,8 @@ template <class T>
 class HypObjectContainer final : public HypObjectContainerBase
 {
 public:
-    HypObjectContainer(const HypClass* hypClass)
-        : HypObjectContainerBase(TypeId::ForType<T>(), hypClass)
+    HypObjectContainer(const Class* cls)
+        : HypObjectContainerBase(TypeId::ForType<T>(), cls)
     {
     }
 
@@ -305,7 +305,7 @@ public:
 
         HypObjectHeader* header = reinterpret_cast<HypObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
         header->index = m_idGenerator.Next() - 1;
-        header->hypClass = m_hypClass;
+        header->cls = m_class;
         header->refCountStrong = 1;
         header->refCountWeak = 0;
 
@@ -381,17 +381,17 @@ public:
 
         HYP_API HypObjectContainerBase& GetOrCreate(
             TypeId typeId,
-            const HypClass* hypClass,
-            HypObjectContainerBase* (*createFn)(const HypClass* hypClass));
+            const Class* cls,
+            HypObjectContainerBase* (*createFn)(const Class* cls));
 
         template <class T>
-        HypObjectContainer<T>& GetOrCreate(const HypClass* hypClass)
+        HypObjectContainer<T>& GetOrCreate(const Class* cls)
         {
             // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
             static HypObjectContainer<T>& s_container = static_cast<HypObjectContainer<T>&>(GetOrCreate(
-                TypeId::ForType<T>(), hypClass, +[](const HypClass* hypClass) -> HypObjectContainerBase*
+                TypeId::ForType<T>(), cls, +[](const Class* cls) -> HypObjectContainerBase*
                 {
-                    return new HypObjectContainer<T>(hypClass);
+                    return new HypObjectContainer<T>(cls);
                 }));
 
             return s_container;

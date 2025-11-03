@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Mat4f")]
+    [ClassBinding(Name="Mat4f")]
     [StructLayout(LayoutKind.Explicit, Size = 64, Pack = 16)]
     public struct Mat4f
     {

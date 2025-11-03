@@ -7,7 +7,7 @@ using System.Reflection;
 namespace Hyperion
 {
     [Flags]
-    public enum HypClassFlags : uint
+    public enum ClassFlags : uint
     {
         None = 0x0,
         ClassType = 0x1,
@@ -18,7 +18,7 @@ namespace Hyperion
         Dynamic = 0x20
     }
 
-    public enum HypClassAllocationMethod : byte
+    public enum ClassAllocationMethod : byte
     {
         Invalid = 0xFF,
 
@@ -26,15 +26,15 @@ namespace Hyperion
         Handle = 1
     }
 
-    public struct HypClass
+    public struct Class
     {
-        public static readonly HypClass Invalid = new HypClass(IntPtr.Zero);
-        private static readonly ConcurrentDictionary<string, HypClass> hypClassTypeNameCache = new ConcurrentDictionary<string, HypClass>();
-        private static readonly ConcurrentDictionary<Type, HypClass> hypClassTypeObjectCache = new ConcurrentDictionary<Type, HypClass>();
+        public static readonly Class Invalid = new Class(IntPtr.Zero);
+        private static readonly ConcurrentDictionary<string, Class> classTypeNameCache = new ConcurrentDictionary<string, Class>();
+        private static readonly ConcurrentDictionary<Type, Class> classTypeObjectCache = new ConcurrentDictionary<Type, Class>();
 
         private IntPtr ptr;
 
-        public HypClass(IntPtr ptr)
+        public Class(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -64,7 +64,7 @@ namespace Hyperion
             get
             {
                 Name name;
-                HypClass_GetName(ptr, out name);
+                Class_GetName(ptr, out name);
                 return name;
             }
         }
@@ -74,7 +74,7 @@ namespace Hyperion
             get
             {
                 TypeId typeId;
-                HypClass_GetTypeId(ptr, out typeId);
+                Class_GetTypeId(ptr, out typeId);
                 return typeId;
             }
         }
@@ -84,7 +84,7 @@ namespace Hyperion
             get
             {
                 TypeInfo typeInfo;
-                HypClass_GetTypeInfo(ptr, out typeInfo);
+                Class_GetTypeInfo(ptr, out typeInfo);
                 return typeInfo;
             }
         }
@@ -93,15 +93,15 @@ namespace Hyperion
         {
             get
             {
-                return HypClass_GetSize(ptr);
+                return Class_GetSize(ptr);
             }
         }
 
-        public HypClassFlags Flags
+        public ClassFlags Flags
         {
             get
             {
-                return (HypClassFlags)HypClass_GetFlags(ptr);
+                return (ClassFlags)Class_GetFlags(ptr);
             }
         }
 
@@ -109,7 +109,7 @@ namespace Hyperion
         {
             get
             {
-                return (Flags & HypClassFlags.ClassType) != 0;
+                return (Flags & ClassFlags.ClassType) != 0;
             }
         }
 
@@ -117,7 +117,7 @@ namespace Hyperion
         {
             get
             {
-                return (Flags & HypClassFlags.StructType) != 0;
+                return (Flags & ClassFlags.StructType) != 0;
             }
         }
 
@@ -125,7 +125,7 @@ namespace Hyperion
         {
             get
             {
-                return (Flags & HypClassFlags.EnumType) != 0;
+                return (Flags & ClassFlags.EnumType) != 0;
             }
         }
 
@@ -133,7 +133,7 @@ namespace Hyperion
         {
             get
             {
-                return (Flags & HypClassFlags.Abstract) != 0;
+                return (Flags & ClassFlags.Abstract) != 0;
             }
         }
 
@@ -141,7 +141,7 @@ namespace Hyperion
         {
             get
             {
-                return (Flags & HypClassFlags.PODType) != 0;
+                return (Flags & ClassFlags.PODType) != 0;
             }
         }
 
@@ -149,15 +149,15 @@ namespace Hyperion
         {
             get
             {
-                return (Flags & HypClassFlags.Dynamic) != 0;
+                return (Flags & ClassFlags.Dynamic) != 0;
             }
         }
 
-        public HypClassAllocationMethod AllocationMethod
+        public ClassAllocationMethod AllocationMethod
         {
             get
             {
-                return (HypClassAllocationMethod)HypClass_GetAllocationMethod(ptr);
+                return (ClassAllocationMethod)Class_GetAllocationMethod(ptr);
             }
         }
 
@@ -165,9 +165,9 @@ namespace Hyperion
         {
             get
             {
-                HypClassAllocationMethod allocationMethod = AllocationMethod;
+                ClassAllocationMethod allocationMethod = AllocationMethod;
 
-                if (allocationMethod == HypClassAllocationMethod.Handle)
+                if (allocationMethod == ClassAllocationMethod.Handle)
                 {
                     return true;
                 }
@@ -176,16 +176,16 @@ namespace Hyperion
             }
         }
 
-        public HypClassAttribute? GetAttribute(string name)
+        public ClassAttribute? GetAttribute(string name)
         {
-            IntPtr attributePtr = HypClass_GetAttribute(ptr, name);
+            IntPtr attributePtr = Class_GetAttribute(ptr, name);
 
             if (attributePtr == IntPtr.Zero)
             {
                 return null;
             }
 
-            return new HypClassAttribute(attributePtr);
+            return new ClassAttribute(attributePtr);
         }
 
         public IEnumerable<HypProperty> Properties
@@ -193,7 +193,7 @@ namespace Hyperion
             get
             {
                 IntPtr propertiesPtr;
-                uint count = HypClass_GetProperties(ptr, out propertiesPtr);
+                uint count = Class_GetProperties(ptr, out propertiesPtr);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -205,7 +205,7 @@ namespace Hyperion
 
         public HypProperty? GetProperty(Name name)
         {
-            IntPtr propertyPtr = HypClass_GetProperty(ptr, ref name);
+            IntPtr propertyPtr = Class_GetProperty(ptr, ref name);
 
             if (propertyPtr == IntPtr.Zero)
             {
@@ -220,7 +220,7 @@ namespace Hyperion
             get
             {
                 IntPtr methodsPtr;
-                uint count = HypClass_GetMethods(ptr, out methodsPtr);
+                uint count = Class_GetMethods(ptr, out methodsPtr);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -232,7 +232,7 @@ namespace Hyperion
 
         public HypMethod? GetMethod(Name name)
         {
-            IntPtr methodPtr = HypClass_GetMethod(ptr, ref name);
+            IntPtr methodPtr = Class_GetMethod(ptr, ref name);
 
             if (methodPtr == IntPtr.Zero)
             {
@@ -247,7 +247,7 @@ namespace Hyperion
             get
             {
                 IntPtr fieldsPtr;
-                uint count = HypClass_GetFields(ptr, out fieldsPtr);
+                uint count = Class_GetFields(ptr, out fieldsPtr);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -259,7 +259,7 @@ namespace Hyperion
 
         public HypField? GetField(Name name)
         {
-            IntPtr fieldPtr = HypClass_GetField(ptr, ref name);
+            IntPtr fieldPtr = Class_GetField(ptr, ref name);
 
             if (fieldPtr == IntPtr.Zero)
             {
@@ -274,7 +274,7 @@ namespace Hyperion
             get
             {
                 IntPtr constantsPtr;
-                uint count = HypClass_GetConstants(ptr, out constantsPtr);
+                uint count = Class_GetConstants(ptr, out constantsPtr);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -286,7 +286,7 @@ namespace Hyperion
 
         public HypConstant? GetConstant(Name name)
         {
-            IntPtr constantPtr = HypClass_GetConstant(ptr, ref name);
+            IntPtr constantPtr = Class_GetConstant(ptr, ref name);
 
             if (constantPtr == IntPtr.Zero)
             {
@@ -300,7 +300,7 @@ namespace Hyperion
         {
             if (!IsValid)
             {
-                throw new Exception("Invalid HypClass");
+                throw new Exception("Invalid Class");
             }
 
             if (IsStructType)
@@ -326,10 +326,10 @@ namespace Hyperion
             }
             else
             {
-                throw new Exception("Invalid HypClass type");
+                throw new Exception("Invalid Class type");
             }
 
-            HypClassAttribute? sizeAttribute = this.GetAttribute("size");
+            ClassAttribute? sizeAttribute = this.GetAttribute("size");
 
             if (sizeAttribute != null)
             {
@@ -337,91 +337,91 @@ namespace Hyperion
 
                 if (size != Marshal.SizeOf(type))
                 {
-                    throw new Exception($"Struct size mismatch: HypClass struct size ({size}) does not match C# struct size ({Marshal.SizeOf(type)})");
+                    throw new Exception($"Struct size mismatch: Class struct size ({size}) does not match C# struct size ({Marshal.SizeOf(type)})");
                 }
             }
 
-            // Validate that all fields from the struct are present in the HypClass
+            // Validate that all fields from the struct are present in the Class
             foreach (FieldInfo field in type.GetFields())
             {
                 HypField? hypField = this.GetField(new Name(field.Name));
 
                 if (hypField == null)
                 {
-                    throw new Exception($"Field {field.Name} not found in HypClass");
+                    throw new Exception($"Field {field.Name} not found in Class");
                 }
 
                 if ((int)hypField.Value.Offset != Marshal.OffsetOf(type, field.Name).ToInt32())
                 {
-                    throw new Exception($"Field {field.Name} offset mismatch: HypClass offset ({hypField.Value.Offset}) does not match C# offset ({Marshal.OffsetOf(type, field.Name).ToInt32()})");
+                    throw new Exception($"Field {field.Name} offset mismatch: Class offset ({hypField.Value.Offset}) does not match C# offset ({Marshal.OffsetOf(type, field.Name).ToInt32()})");
                 }
             }
         }
 
-        public static bool operator==(HypClass a, HypClass b)
+        public static bool operator==(Class a, Class b)
         {
             return a.ptr == b.ptr;
         }
 
-        public static bool operator!=(HypClass a, HypClass b)
+        public static bool operator!=(Class a, Class b)
         {
             return a.ptr != b.ptr;
         }
 
-        public static HypClass? GetClass(string name)
+        public static Class? GetClass(string name)
         {
-            HypClass? hypClass = null;
+            Class? cls = null;
 
-            if (hypClassTypeNameCache.TryGetValue(name, out HypClass foundHypClass))
+            if (classTypeNameCache.TryGetValue(name, out Class foundClass))
             {
-                hypClass = foundHypClass;
+                cls = foundClass;
             }
             else
             {
-                IntPtr ptr = HypClass_GetClassByName(name);
+                IntPtr ptr = Class_GetClassByName(name);
 
                 if (ptr != IntPtr.Zero)
                 {
-                    hypClass = new HypClass(ptr);
-                    hypClassTypeNameCache[name] = hypClass.Value;
+                    cls = new Class(ptr);
+                    classTypeNameCache[name] = cls.Value;
                 }
             }
 
-            return hypClass;
+            return cls;
         }
 
-        public static HypClass GetClass<T>()
+        public static Class GetClass<T>()
         {
             return GetClass(typeof(T));
         }
 
-        public static HypClass GetClass(Type type)
+        public static Class GetClass(Type type)
         {
-            HypClass? hypClass = TryGetClass(type);
+            Class? cls = TryGetClass(type);
 
-            if (hypClass == null)
+            if (cls == null)
             {
-                throw new Exception("Failed to get HypClass for type " + type.Name);
+                throw new Exception("Failed to get Class for type " + type.Name);
             }
 
-            return (HypClass)hypClass;
+            return (Class)cls;
         }
 
-        public static HypClass? TryGetClass<T>()
+        public static Class? TryGetClass<T>()
         {
             return TryGetClass(typeof(T));
         }
 
-        public static HypClass? TryGetClass(Type type)
+        public static Class? TryGetClass(Type type)
         {
-            if (hypClassTypeObjectCache.TryGetValue(type, out HypClass foundHypClass))
-                return foundHypClass;
+            if (classTypeObjectCache.TryGetValue(type, out Class foundClass))
+                return foundClass;
 
             Type? currentType = type;
 
             while (true)
             {
-                Attribute? attribute = Attribute.GetCustomAttribute((Type)currentType, typeof(HypClassBinding));
+                Attribute? attribute = Attribute.GetCustomAttribute((Type)currentType, typeof(ClassBinding));
 
                 if (attribute != null)
                     break;
@@ -440,7 +440,7 @@ namespace Hyperion
                 strongHandle = GCHandle.ToIntPtr(GCHandle.Alloc(assembly, GCHandleType.Normal))
             };
 
-            IntPtr hypClassPtr = IntPtr.Zero;
+            IntPtr classPtr = IntPtr.Zero;
 
             unsafe
             {
@@ -452,71 +452,71 @@ namespace Hyperion
                 if (assemblyPtr == null)
                     return null;
 
-                hypClassPtr = HypClass_GetClassByTypeHash((IntPtr)assemblyPtr, currentType.GetHashCode());
+                classPtr = Class_GetClassByTypeHash((IntPtr)assemblyPtr, currentType.GetHashCode());
             }
 
-            if (hypClassPtr == IntPtr.Zero)
+            if (classPtr == IntPtr.Zero)
                 return null;
 
-            HypClass hypClass = new HypClass(hypClassPtr);
+            Class cls = new Class(classPtr);
 
-            hypClassTypeObjectCache[type] = hypClass;
+            classTypeObjectCache[type] = cls;
 
-            return hypClass;
+            return cls;
         }
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_GetAssemblyPointer")]
         private static extern unsafe void NativeInterop_GetAssemblyPointer([In] void* assemblyObjectReferencePtr, [Out] void* outAssemblyPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
-        private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
+        [DllImport("hyperion", EntryPoint = "Class_GetClassByName")]
+        private static extern IntPtr Class_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetClassByTypeHash")]
-        private static extern IntPtr HypClass_GetClassByTypeHash([In] IntPtr assemblyPtr, int typeHash);
+        [DllImport("hyperion", EntryPoint = "Class_GetClassByTypeHash")]
+        private static extern IntPtr Class_GetClassByTypeHash([In] IntPtr assemblyPtr, int typeHash);
         
-        [DllImport("hyperion", EntryPoint = "HypClass_GetName")]
-        private static extern void HypClass_GetName([In] IntPtr hypClassPtr, [Out] out Name name);
+        [DllImport("hyperion", EntryPoint = "Class_GetName")]
+        private static extern void Class_GetName([In] IntPtr classPtr, [Out] out Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetTypeId")]
-        private static extern void HypClass_GetTypeId([In] IntPtr hypClassPtr, [Out] out TypeId typeId);
+        [DllImport("hyperion", EntryPoint = "Class_GetTypeId")]
+        private static extern void Class_GetTypeId([In] IntPtr classPtr, [Out] out TypeId typeId);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetTypeInfo")]
-        private static extern void HypClass_GetTypeInfo([In] IntPtr hypClassPtr, [Out] out TypeInfo typeInfo);
+        [DllImport("hyperion", EntryPoint = "Class_GetTypeInfo")]
+        private static extern void Class_GetTypeInfo([In] IntPtr classPtr, [Out] out TypeInfo typeInfo);
         
-        [DllImport("hyperion", EntryPoint = "HypClass_GetSize")]
-        private static extern uint HypClass_GetSize([In] IntPtr hypClassPtr);
+        [DllImport("hyperion", EntryPoint = "Class_GetSize")]
+        private static extern uint Class_GetSize([In] IntPtr classPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetFlags")]
-        private static extern uint HypClass_GetFlags([In] IntPtr hypClassPtr);
+        [DllImport("hyperion", EntryPoint = "Class_GetFlags")]
+        private static extern uint Class_GetFlags([In] IntPtr classPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetAllocationMethod")]
-        private static extern byte HypClass_GetAllocationMethod([In] IntPtr hypClassPtr);
+        [DllImport("hyperion", EntryPoint = "Class_GetAllocationMethod")]
+        private static extern byte Class_GetAllocationMethod([In] IntPtr classPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetAttribute")]
-        private static extern IntPtr HypClass_GetAttribute([In] IntPtr hypClassPtr, [MarshalAs(UnmanagedType.LPStr)] string name);
+        [DllImport("hyperion", EntryPoint = "Class_GetAttribute")]
+        private static extern IntPtr Class_GetAttribute([In] IntPtr classPtr, [MarshalAs(UnmanagedType.LPStr)] string name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetProperties")]
-        private static extern uint HypClass_GetProperties([In] IntPtr hypClassPtr, [Out] out IntPtr outPropertiesPtr);
+        [DllImport("hyperion", EntryPoint = "Class_GetProperties")]
+        private static extern uint Class_GetProperties([In] IntPtr classPtr, [Out] out IntPtr outPropertiesPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetProperty")]
-        private static extern IntPtr HypClass_GetProperty([In] IntPtr hypClassPtr, [In] ref Name name);
+        [DllImport("hyperion", EntryPoint = "Class_GetProperty")]
+        private static extern IntPtr Class_GetProperty([In] IntPtr classPtr, [In] ref Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetMethods")]
-        private static extern uint HypClass_GetMethods([In] IntPtr hypClassPtr, [Out] out IntPtr outMethodsPtr);
+        [DllImport("hyperion", EntryPoint = "Class_GetMethods")]
+        private static extern uint Class_GetMethods([In] IntPtr classPtr, [Out] out IntPtr outMethodsPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetMethod")]
-        private static extern IntPtr HypClass_GetMethod([In] IntPtr hypClassPtr, [In] ref Name name);
+        [DllImport("hyperion", EntryPoint = "Class_GetMethod")]
+        private static extern IntPtr Class_GetMethod([In] IntPtr classPtr, [In] ref Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetFields")]
-        private static extern uint HypClass_GetFields([In] IntPtr hypClassPtr, [Out] out IntPtr outFieldsPtr);
+        [DllImport("hyperion", EntryPoint = "Class_GetFields")]
+        private static extern uint Class_GetFields([In] IntPtr classPtr, [Out] out IntPtr outFieldsPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetField")]
-        private static extern IntPtr HypClass_GetField([In] IntPtr hypClassPtr, [In] ref Name name);
+        [DllImport("hyperion", EntryPoint = "Class_GetField")]
+        private static extern IntPtr Class_GetField([In] IntPtr classPtr, [In] ref Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetConstants")]
-        private static extern uint HypClass_GetConstants([In] IntPtr hypClassPtr, [Out] out IntPtr outConstantsPtr);
+        [DllImport("hyperion", EntryPoint = "Class_GetConstants")]
+        private static extern uint Class_GetConstants([In] IntPtr classPtr, [Out] out IntPtr outConstantsPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetConstant")]
-        private static extern IntPtr HypClass_GetConstant([In] IntPtr hypClassPtr, [In] ref Name name);
+        [DllImport("hyperion", EntryPoint = "Class_GetConstant")]
+        private static extern IntPtr Class_GetConstant([In] IntPtr classPtr, [In] ref Name name);
     }
 }

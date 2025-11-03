@@ -6,7 +6,7 @@ namespace Hyperion
 {
     using ComponentId = uint;
 
-    [HypClassBinding(Name = "EntityManager")]
+    [ClassBinding(Name = "EntityManager")]
     public class EntityManager : HypObject
     {
         public EntityManager()
@@ -20,7 +20,7 @@ namespace Hyperion
 
         public T AddEntity<T>() where T : Entity
         {
-            HypClass hypClass = HypClass.GetClass<T>();
+            Class cls = Class.GetClass<T>();
 
             unsafe
             {
@@ -28,7 +28,7 @@ namespace Hyperion
 
                 try
                 {
-                    if (!EntityManager_AddTypedEntity(NativeAddress, hypClass.Address, &hypDataBuffer))
+                    if (!EntityManager_AddTypedEntity(NativeAddress, cls.Address, &hypDataBuffer))
                     {
                         throw new Exception("Failed to add entity of type " + typeof(T).Name);
                     }
@@ -46,31 +46,31 @@ namespace Hyperion
 
         public bool HasComponent<T>(Entity entity) where T : struct, IComponent
         {
-            HypClass componentHypClass = HypClass.GetClass(typeof(T));
+            Class componentClass = Class.GetClass(typeof(T));
             
-            return EntityManager_HasComponent(NativeAddress, componentHypClass.TypeId, entity.NativeAddress);
+            return EntityManager_HasComponent(NativeAddress, componentClass.TypeId, entity.NativeAddress);
         }
 
         public void AddComponent<T>(Entity entity, T component) where T : struct, IComponent
         {
-            HypClass componentHypClass = HypClass.GetClass(typeof(T));
+            Class componentClass = Class.GetClass(typeof(T));
 
-            if (componentHypClass.Size != Marshal.SizeOf(component))
+            if (componentClass.Size != Marshal.SizeOf(component))
             {
-                throw new Exception("Component size mismatch: " + componentHypClass.Size + " != " + Marshal.SizeOf(component));
+                throw new Exception("Component size mismatch: " + componentClass.Size + " != " + Marshal.SizeOf(component));
             }
 
-            AddComponent<T>(entity, componentHypClass, ref component);
+            AddComponent<T>(entity, componentClass, ref component);
         }
 
-        private unsafe void AddComponent<T>(Entity entity, HypClass componentHypClass, ref T component) where T : struct, IComponent
+        private unsafe void AddComponent<T>(Entity entity, Class componentClass, ref T component) where T : struct, IComponent
         {
             // fixed (void* componentPtr = &component)
             // {
             //     HypDataBuffer hypDataBuffer = new HypDataBuffer();
             //     hypDataBuffer.SetValue((IntPtr)componentPtr);
 
-            //     EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeId, &hypDataBuffer);
+            //     EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentClass.TypeId, &hypDataBuffer);
 
             //     hypDataBuffer.Dispose();
             // }
@@ -78,16 +78,16 @@ namespace Hyperion
             HypDataBuffer hypDataBuffer = new HypDataBuffer();
             hypDataBuffer.SetValue(component);
 
-            EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeId, &hypDataBuffer);
+            EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentClass.TypeId, &hypDataBuffer);
 
             hypDataBuffer.Dispose();
         }
 
         public ref T GetComponent<T>(Entity entity) where T : struct, IComponent
         {
-            HypClass componentHypClass = HypClass.GetClass(typeof(T));
+            Class componentClass = Class.GetClass(typeof(T));
 
-            IntPtr componentPtr = EntityManager_GetComponent(NativeAddress, componentHypClass.TypeId, entity.NativeAddress);
+            IntPtr componentPtr = EntityManager_GetComponent(NativeAddress, componentClass.TypeId, entity.NativeAddress);
 
             if (componentPtr == IntPtr.Zero)
             {
@@ -112,6 +112,6 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddTypedEntity")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static unsafe extern bool EntityManager_AddTypedEntity(IntPtr entityManagerPtr, IntPtr hypClassAddress, [Out] HypDataBuffer* outHypDataBufferPtr);
+        private static unsafe extern bool EntityManager_AddTypedEntity(IntPtr entityManagerPtr, IntPtr classAddress, [Out] HypDataBuffer* outHypDataBufferPtr);
     }
 }

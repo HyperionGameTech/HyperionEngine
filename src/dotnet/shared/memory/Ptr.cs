@@ -31,11 +31,11 @@ namespace Hyperion
 
         public T? GetValue()
         {
-            HypClass? hypClass = HypClass.GetClass<T>();
+            Class? cls = Class.GetClass<T>();
             
-            if (hypClass == null)
+            if (cls == null)
             {
-                throw new Exception("Type " + typeof(T).Name + " does not have a registered HypClass");
+                throw new Exception("Type " + typeof(T).Name + " does not have a registered Class");
             }
 
             if (ptr == IntPtr.Zero)
@@ -44,7 +44,7 @@ namespace Hyperion
             }
 
             HypDataBuffer hypDataBuffer;
-            PtrNativeBindings.Ptr_Get(((HypClass)hypClass).TypeInfo.Address, ptr, out hypDataBuffer);
+            PtrNativeBindings.Ptr_Get(((Class)cls).TypeInfo.Address, ptr, out hypDataBuffer);
 
             T? value = (T?)hypDataBuffer.GetValue();
 

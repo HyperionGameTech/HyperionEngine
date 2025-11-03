@@ -2,7 +2,7 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
+#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <core/reflection/HypData.hpp>
 
@@ -17,12 +17,12 @@
 
 namespace hyperion::serialization {
 
-class AssetRegistryMarshal : public HypClassInstanceMarshal
+class AssetRegistryMarshal : public ObjectMarshal
 {
 public:
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
-        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
+        if (FBOMResult err = ObjectMarshal::Serialize(in, out))
         {
             return err;
         }
@@ -50,7 +50,7 @@ public:
         Handle<AssetRegistry> assetRegistry = CreateObject<AssetRegistry>();
         out = HypData(assetRegistry);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, AssetRegistry::Class(), out))
+        if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, AssetRegistry::StaticClass(), out))
         {
             return err;
         }

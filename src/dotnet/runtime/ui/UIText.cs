@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="UIText")]
+    [ClassBinding(Name="UIText")]
     public class UIText : UIObject
     {
         public UIText() : base()

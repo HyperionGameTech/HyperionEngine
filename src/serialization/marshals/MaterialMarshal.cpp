@@ -2,7 +2,7 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
+#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <core/reflection/HypData.hpp>
 
@@ -20,12 +20,12 @@
 
 namespace hyperion::serialization {
 
-class MaterialMarshal : public HypClassInstanceMarshal
+class MaterialMarshal : public ObjectMarshal
 {
 public:
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
-        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
+        if (FBOMResult err = ObjectMarshal::Serialize(in, out))
         {
             return err;
         }
@@ -212,7 +212,7 @@ public:
         Handle<Material> material = CreateObject<Material>();
         HypData materialData = HypData(material);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, Material::Class(), materialData))
+        if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, Material::StaticClass(), materialData))
         {
             HYP_LOG_TEMP("Error deserializing Material instance: {}", err.message);
             HYP_BREAKPOINT;

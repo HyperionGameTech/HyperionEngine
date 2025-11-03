@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="EnvProbeType")]
+    [ClassBinding(Name="EnvProbeType")]
     public enum EnvProbeType : uint
     {
         Invalid = ~0u,
@@ -13,7 +13,7 @@ namespace Hyperion
         Ambient = 3
     }
 
-    [HypClassBinding(Name="EnvProbe")]
+    [ClassBinding(Name="EnvProbe")]
     public class EnvProbe : Entity
     {
         public EnvProbe()
@@ -21,7 +21,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="ReflectionProbe")]
+    [ClassBinding(Name="ReflectionProbe")]
     public class ReflectionProbe : EnvProbe
     {
         public ReflectionProbe()
@@ -29,7 +29,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="SkyProbe")]
+    [ClassBinding(Name="SkyProbe")]
     public class SkyProbe : EnvProbe
     {
         public SkyProbe()

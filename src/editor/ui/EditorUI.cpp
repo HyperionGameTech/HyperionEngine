@@ -4,7 +4,7 @@
 
 #include <ui/UIDataSource.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -18,7 +18,7 @@ HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(TypeId typeId)
 
     if (!factory)
     {
-        if (const HypClass* hypClass = GetClass(typeId))
+        if (const Class* cls = GetClass(typeId))
         {
             factory = UIElementFactoryRegistry::GetInstance().GetFactory(TypeId::ForType<HypData>());
         }

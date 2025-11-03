@@ -11,7 +11,7 @@
 #include <core/Types.hpp>
 
 #include <cmath>
-#include <iostream>
+#include <cstdio>
 
 namespace hyperion {
 

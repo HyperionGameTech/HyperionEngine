@@ -3,7 +3,6 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 
 namespace hyperion {
 
@@ -35,10 +34,30 @@ using TChar = char;
 
 // declare custom pointer-sized types so they don't get defined as long / unsigned long etc.
 
-using UIntPtr = std::conditional_t<sizeof(void*) == 4, uint32, uint64>;
-using IntPtr = std::conditional_t<sizeof(void*) == 4, int32, int64>;
+template <SizeType Size, bool Signed>
+struct PointerSizedTypeHelper;
 
-static_assert(sizeof(UIntPtr) == sizeof(void*), "UIntPtr is not pointer-sized!");
-static_assert(sizeof(IntPtr) == sizeof(void*), "IntPtr is not pointer-sized!");
+template <> struct PointerSizedTypeHelper<4, true>
+{
+	using Type = int32;
+};
+
+template <> struct PointerSizedTypeHelper<4, false>
+{
+	using Type = uint32;
+};
+
+template <> struct PointerSizedTypeHelper<8, true>
+{
+	using Type = int64;
+};
+
+template <> struct PointerSizedTypeHelper<8, false>
+{
+	using Type = uint64;
+};
+
+using UIntPtr = typename PointerSizedTypeHelper<sizeof(void*), false>::Type;
+using IntPtr = typename PointerSizedTypeHelper<sizeof(void*), true>::Type;
 
 } // namespace hyperion

@@ -1,10 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
+#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 #include <core/serialization/fbom/FBOMLoadContext.hpp>
 
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypStruct.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/Struct.hpp>
 #include <core/reflection/HypProperty.hpp>
 #include <core/reflection/HypField.hpp>
 #include <core/reflection/HypMethod.hpp>
@@ -39,12 +39,12 @@ struct LoadAssetsFromReferencesContext
 };
 
 static void CollectAssetReferenceMembers(
-    const HypClass* hypClass,
+    const Class* cls,
     Array<Pair<const IHypMember*, const IHypMember*>>& outMembers)
 {
     HashSet<Name> usedMemberNames;
 
-    for (IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
+    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
     {
         if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute(Attributes::g_attrProperty).IsValid())
         {
@@ -56,28 +56,28 @@ static void CollectAssetReferenceMembers(
         {
             if (usedMemberNames.Contains(member.GetName()))
             {
-                HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' is shadows another member with the same name, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName());
+                HYP_LOG(Serialization, Warning, "Member '{}' of Class '{}' is shadows another member with the same name, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName());
 
                 continue;
             }
 
             const IHypMember* pTargetMember = nullptr;
 
-            if (const HypClassAttributeValue& targetAttr = member.GetAttribute(s_nameResolveAsset))
+            if (const ClassAttributeValue& targetAttr = member.GetAttribute(s_nameResolveAsset))
             {
                 // Get the target member
-                pTargetMember = hypClass->GetMember(*targetAttr.GetString(), HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
+                pTargetMember = cls->GetMember(*targetAttr.GetString(), HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
 
                 if (!pTargetMember)
                 {
-                    HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' has 'ResolveAsset' attribute set to '{}', but no such member was found in the HypClass, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName(), *targetAttr.GetString());
+                    HYP_LOG(Serialization, Warning, "Member '{}' of Class '{}' has 'ResolveAsset' attribute set to '{}', but no such member was found in the Class, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName(), *targetAttr.GetString());
 
                     continue;
                 }
 
                 if (pTargetMember->IsDelegate())
                 {
-                    HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' has 'ResolveAsset' attribute set to '{}', but that member is a delegate, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName(), *targetAttr.GetString());
+                    HYP_LOG(Serialization, Warning, "Member '{}' of Class '{}' has 'ResolveAsset' attribute set to '{}', but that member is a delegate, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName(), *targetAttr.GetString());
 
                     continue;
                 }
@@ -89,32 +89,42 @@ static void CollectAssetReferenceMembers(
     }
 }
 
-FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
+FBOMType ObjectMarshal::GetObjectType() const
+{
+    return FBOMObjectType("ClassStub");
+}
+
+TypeId ObjectMarshal::GetTypeId() const
+{
+    return TypeId::ForType<ClassStub>();
+}
+
+FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 {
     if (!in.HasValue())
     {
         return { FBOMResult::FBOM_ERR, "Attempting to serialize null object" };
     }
 
-    const HypClass* hypClass = GetClass(in.GetTypeId());
+    const Class* cls = GetClass(in.GetTypeId());
 
-    if (!hypClass)
+    if (!cls)
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", LookupTypeName(in.GetTypeId())) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using ObjectMarshal, TypeId {} has no associated Class", LookupTypeName(in.GetTypeId())) };
     }
 
-    if (hypClass->IsClassType())
+    if (cls->IsClassType())
     {
         // Get instance class if object is a HypObject
-        const HypClass* instanceClass = static_cast<const HypObjectBase*>(in.GetPointer())->InstanceClass();
+        const Class* instanceClass = static_cast<const HypObjectBase*>(in.GetPointer())->InstanceClass();
         Assert(instanceClass != nullptr);
 
-        hypClass = instanceClass;
+        cls = instanceClass;
     }
 
-    if (!hypClass->CanSerialize())
+    if (!cls->CanSerialize())
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", LookupTypeName(in.GetTypeId())) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using ObjectMarshal, TypeId {} has no associated Class", LookupTypeName(in.GetTypeId())) };
     }
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
@@ -123,11 +133,11 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
     AssetReference assetReference;
     bool isAssetObject = false;
 
-    if (hypClass->IsDerivedFrom(AssetReference::Class()))
+    if (cls->IsDerivedFrom(AssetReference::StaticClass()))
     {
         assetReference = in.Get<AssetReference>();
     }
-    else if (hypClass->IsDerivedFrom(AssetObject::Class()))
+    else if (cls->IsDerivedFrom(AssetObject::StaticClass()))
     {
         // Serialize AssetObject deriving classes by their asset reference if we're saving an Editor project.
         const AssetObject& assetObject = in.Get<AssetObject>();
@@ -165,37 +175,37 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
     assetReference = AssetReference();
 #endif
 
-    const HypClassAttributeValue& serializeAttribute = hypClass->GetAttribute(Attributes::g_attrSerialize);
+    const ClassAttributeValue& serializeAttribute = cls->GetAttribute(Attributes::g_attrSerialize);
 
     if (!serializeAttribute.GetBool(true))
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with HypClass '{}', HypClass has attribute \"serialize\"=false", hypClass->GetName()) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with Class '{}', Class has attribute \"serialize\"=false", cls->GetName()) };
     }
 
-    HYP_NAMED_SCOPE_FMT("Serializing object with HypClass '{}'", hypClass->GetName());
+    HYP_NAMED_SCOPE_FMT("Serializing object with Class '{}'", cls->GetName());
 
-    if (hypClass->GetSerializationMode() & HypClassSerializationMode::BITWISE)
+    if (cls->GetSerializationMode() & ClassSerializationMode::BITWISE)
     {
-        if (!hypClass->IsStructType())
+        if (!cls->IsStructType())
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with HypClass '{}', HypClass has attribute \"serialize\"=\"bitwise\" but is not a struct type", hypClass->GetName()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with Class '{}', Class has attribute \"serialize\"=\"bitwise\" but is not a struct type", cls->GetName()) };
         }
 
-        const HypStruct* hypStruct = static_cast<const HypStruct*>(hypClass);
+        const Struct* pStruct = static_cast<const Struct*>(cls);
 
-        if (FBOMResult err = hypStruct->SerializeStruct(in, out))
+        if (FBOMResult err = pStruct->SerializeStruct(in, out))
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with HypClass '{}': {}", hypClass->GetName(), err.message) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with Class '{}': {}", cls->GetName(), err.message) };
         }
 
         return { FBOMResult::FBOM_OK };
     }
 
-    const TypeInfo& typeInfo = TypeInfo::ForHypClass(hypClass);
+    const TypeInfo& typeInfo = TypeInfo::ForClass(cls);
 
     HypData targetData { AnyRef(&typeInfo, const_cast<void*>(in.GetPointer())) };
 
-    out = FBOMObject(FBOMObjectType(hypClass));
+    out = FBOMObject(FBOMObjectType(cls));
 
     HashSet<Name> serializedMembers;
 
@@ -204,7 +214,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
     { // collect asset reference members
         Array<Pair<const IHypMember*, const IHypMember*>> assetReferenceMembers;
-        CollectAssetReferenceMembers(hypClass, assetReferenceMembers);
+        CollectAssetReferenceMembers(cls, assetReferenceMembers);
 
         for (const auto& pair : assetReferenceMembers)
         {
@@ -218,12 +228,12 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
     }
 
     {
-        HYP_NAMED_SCOPE_FMT("Serializing properties for HypClass '{}'", hypClass->GetName());
+        HYP_NAMED_SCOPE_FMT("Serializing properties for Class '{}'", cls->GetName());
 
         // Save AssetObject as AssetReferences for nested fields / objects.
         GlobalContextScope contextScope { SaveAssetsAsReferencesContext {} };
 
-        for (IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
+        for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
         {
             if (member.IsDelegate())
             {
@@ -255,7 +265,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
             if (!serializedMembers.Insert(member.GetName()).second)
             {
-                HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' shadows another member with the same name, skipping serialization", member.GetName(), hypClass->GetName());
+                HYP_LOG(Serialization, Warning, "Member '{}' of Class '{}' shadows another member with the same name, skipping serialization", member.GetName(), cls->GetName());
                 continue;
             }
 
@@ -264,13 +274,13 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
                 flags |= FBOMDataFlags::COMPRESSED;
             }
 
-            HYP_NAMED_SCOPE_FMT("Serializing member '{}' for HypClass '{}'", member.GetName(), hypClass->GetName());
+            HYP_NAMED_SCOPE_FMT("Serializing member '{}' for Class '{}'", member.GetName(), cls->GetName());
 
             FBOMData data;
 
             if (Result serializeResult = member.Serialize(Span<HypData>(&targetData, 1), data, flags); serializeResult.HasError())
             {
-                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to serialize member '{}' of HypClass '{}': {}", member.GetName(), hypClass->GetName(), serializeResult.GetError().GetMessage()) };
+                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to serialize member '{}' of Class '{}': {}", member.GetName(), cls->GetName(), serializeResult.GetError().GetMessage()) };
             }
 
             out.SetProperty(member.GetName().LookupString(), std::move(data));
@@ -280,39 +290,39 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
     return { FBOMResult::FBOM_OK };
 }
 
-FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const
+FBOMResult ObjectMarshal::Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const
 {
-    const HypClass* hypClass = in.GetHypClass();
+    const Class* cls = in.GetClass();
 
-    if (!hypClass)
+    if (!cls)
     {
         HYP_BREAKPOINT;
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeId: {}) has no associated HypClass", in.GetType().name, in.GetType().GetNativeTypeId().Value()) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using ObjectMarshal, serialized data with type '{}' (TypeId: {}) has no associated Class", in.GetType().name, in.GetType().GetNativeTypeId().Value()) };
     }
 
-    if (!hypClass->CreateInstance(out))
+    if (!cls->CreateInstance(out))
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, HypClass '{}' instance creation failed", hypClass->GetName()) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using ObjectMarshal, Class '{}' instance creation failed", cls->GetName()) };
     }
 
-    if (hypClass->GetSerializationMode() & HypClassSerializationMode::BITWISE)
+    if (cls->GetSerializationMode() & ClassSerializationMode::BITWISE)
     {
-        if (!hypClass->IsStructType())
+        if (!cls->IsStructType())
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with HypClass '{}', HypClass has attribute \"serialize\"=\"bitwise\" but is not a struct type", hypClass->GetName()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with Class '{}', Class has attribute \"serialize\"=\"bitwise\" but is not a struct type", cls->GetName()) };
         }
 
-        const HypStruct* hypStruct = static_cast<const HypStruct*>(hypClass);
+        const Struct* pStruct = static_cast<const Struct*>(cls);
 
-        return hypStruct->DeserializeStruct(context, in, out);
+        return pStruct->DeserializeStruct(context, in, out);
     }
 
-    return Deserialize_Internal(context, in, hypClass, out);
+    return Deserialize_Internal(context, in, cls, out);
 }
 
-FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, HypData& target) const
+FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const Class* cls, HypData& target) const
 {
-    Assert(hypClass != nullptr);
+    Assert(cls != nullptr);
     Assert(target.IsValid());
 
     HashSet<const IHypMember*> assetReferenceTargetMembersMap;
@@ -320,7 +330,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
     { // collect asset reference members
         Array<Pair<const IHypMember*, const IHypMember*>> assetReferenceMembers;
-        CollectAssetReferenceMembers(hypClass, assetReferenceMembers);
+        CollectAssetReferenceMembers(cls, assetReferenceMembers);
 
         for (const auto& pair : assetReferenceMembers)
         {
@@ -334,13 +344,13 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
     }
 
     {
-        HYP_NAMED_SCOPE_FMT("Deserializing properties for HypClass '{}'", hypClass->GetName());
+        HYP_NAMED_SCOPE_FMT("Deserializing properties for Class '{}'", cls->GetName());
 
         GlobalContextScope contextScope { LoadAssetsFromReferencesContext {} };
 
         for (const KeyValuePair<ANSIString, FBOMData>& it : in.GetProperties())
         {
-            if (const IHypMember* pMember = hypClass->GetMember(it.first, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
+            if (const IHypMember* pMember = cls->GetMember(it.first, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
             {
                 if (pMember->IsDelegate())
                 {
@@ -359,27 +369,27 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
                 if (!pMember->CanDeserialize())
                 {
-                    HYP_NAMED_SCOPE_FMT("Deserializing member '{}' on object, skipping setter for HypClass '{}'", pMember->GetName(), hypClass->GetName());
+                    HYP_NAMED_SCOPE_FMT("Deserializing member '{}' on object, skipping setter for Class '{}'", pMember->GetName(), cls->GetName());
 
-                    HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' is not deserializable, skipping", pMember->GetName(), hypClass->GetName());
+                    HYP_LOG(Serialization, Warning, "Member '{}' of Class '{}' is not deserializable, skipping", pMember->GetName(), cls->GetName());
 
                     continue;
                 }
 
                 if (Result deserializeResult = pMember->Deserialize(context, target, it.second); deserializeResult.HasError())
                 {
-                    return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}': {}", pMember->GetName(), hypClass->GetName(), deserializeResult.GetError().GetMessage()) };
+                    return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of Class '{}': {}", pMember->GetName(), cls->GetName(), deserializeResult.GetError().GetMessage()) };
                 }
             }
             else
             {
-                HYP_LOG(Serialization, Warning, "No member named '{}' found in HypClass '{}', skipping", it.first, hypClass->GetName());
+                HYP_LOG(Serialization, Warning, "No member named '{}' found in Class '{}', skipping", it.first, cls->GetName());
             }
         }
     }
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.GetTypeInfo()->GetHypClass() == AssetReference::Class())
+    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.GetTypeInfo()->GetClass() == AssetReference::StaticClass())
     {
         // resolve asset reference to asset object
         AssetReference& assetReference = target.Get<AssetReference>();
@@ -398,7 +408,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
     }
 #endif
 
-    hypClass->PostLoad(target.ToRef().GetPointer());
+    cls->PostLoad(target.ToRef().GetPointer());
 
     return { FBOMResult::FBOM_OK };
 }
