@@ -9,6 +9,7 @@
 #include <core/Util.hpp>
 
 #include <core/serialization/fbom/FBOMType.hpp>
+#include <core/serialization/fbom/FBOMBaseTypes.hpp>
 #include <core/serialization/fbom/FBOMResult.hpp>
 
 #include <core/Constants.hpp>

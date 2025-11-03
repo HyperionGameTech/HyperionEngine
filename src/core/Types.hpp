@@ -24,7 +24,7 @@ static_assert(sizeof(float32) == 4, "Expected float to be 32-bit!");
 using float64 = double;
 static_assert(sizeof(float64) == 8, "Expected double to be 64-bit!");
 
-using SizeType = size_t;
+using SizeType = decltype(sizeof(int));
 
 #ifdef HYP_WINDOWS
 using TChar = wchar_t;

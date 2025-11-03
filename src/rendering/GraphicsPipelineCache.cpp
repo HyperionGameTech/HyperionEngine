@@ -10,6 +10,9 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderMemory.hpp>
 
+// For CompiledShader
+#include <rendering/shader_compiler/ShaderCompiler.hpp>
+
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <core/threading/Threads.hpp>
@@ -25,9 +28,6 @@
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
-
-// For CompiledShader
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
 
 #include <engine/EngineGlobals.hpp>
 
@@ -463,8 +463,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
         if ((*pPipeline)->MatchesSignature(shader, descriptorTableDecl, Map(framebuffers, [](const FramebufferRef& framebuffer)
                                                                             {
                                                                                 return static_cast<const FramebufferBase*>(framebuffer.Get());
-                                                                            }),
-                attributes))
+                                                                            }), attributes))
         {
             HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
 

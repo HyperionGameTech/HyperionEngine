@@ -168,12 +168,12 @@ struct HypData
 
     union
     {
+#ifdef HYP_SCRIPT
         struct alignas(8)
         {
-#ifdef HYP_SCRIPT
             GCIndex scriptGcIndex; // HypScript only - index into the pool of tracked objects
-#endif
         };
+#endif
 
         uint64 num;
     } extData;

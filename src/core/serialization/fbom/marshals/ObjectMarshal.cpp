@@ -296,7 +296,6 @@ FBOMResult ObjectMarshal::Deserialize(FBOMLoadContext& context, const FBOMObject
 
     if (!cls)
     {
-        HYP_BREAKPOINT;
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using ObjectMarshal, serialized data with type '{}' (TypeId: {}) has no associated Class", in.GetType().name, in.GetType().GetNativeTypeId().Value()) };
     }
 

@@ -214,7 +214,7 @@ public:
 
     VariantBase& operator=(VariantBase&& other) noexcept
     {
-        if (std::addressof(other) == this)
+        if (this == &other)
         {
             return *this;
         }
@@ -281,7 +281,7 @@ public:
         const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
-        const bool constructResult = copyConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), std::addressof(value));
+        const bool constructResult = copyConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
 
         if (HYP_UNLIKELY(!constructResult))
         {
@@ -298,7 +298,7 @@ public:
         const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
-        const bool constructResult = moveConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), std::addressof(value));
+        const bool constructResult = moveConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
 
         if (HYP_UNLIKELY(!constructResult))
         {
@@ -561,12 +561,12 @@ protected:
 
         HYP_FORCE_INLINE constexpr void* GetPointer()
         {
-            return std::addressof(dataBuffer[0]);
+            return &dataBuffer[0];
         }
 
         HYP_FORCE_INLINE constexpr const void* GetPointer() const
         {
-            return std::addressof(dataBuffer[0]);
+            return &dataBuffer[0];
         }
     } m_storage;
 
@@ -630,7 +630,7 @@ public:
 
     VariantHolder& operator=(const VariantHolder& other)
     {
-        if (std::addressof(other) == this)
+        if (this == &other)
         {
             return *this;
         }

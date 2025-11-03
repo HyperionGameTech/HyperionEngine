@@ -20,6 +20,8 @@
 
 #include <core/threading/AtomicVar.hpp>
 
+#include <climits>
+
 namespace hyperion {
 
 HYP_API extern ANSIStringView GetCurrentThreadName();

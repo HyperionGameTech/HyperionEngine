@@ -94,8 +94,7 @@ struct EnumMapIterator
 
     HYP_FORCE_INLINE bool operator==(const EnumMapIterator& other) const
     {
-        return index == other.index
-            && std::addressof(ref) == std::addressof(other.ref);
+        return index == other.index && (&ref == &other.ref);
     }
 
     HYP_FORCE_INLINE bool operator!=(const EnumMapIterator& other) const

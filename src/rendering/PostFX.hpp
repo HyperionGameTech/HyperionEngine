@@ -12,7 +12,7 @@
 
 #include <core/Types.hpp>
 
-#include <utility>
+#include <climits>
 
 namespace hyperion {
 

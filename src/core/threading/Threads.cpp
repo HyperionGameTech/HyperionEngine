@@ -13,6 +13,10 @@
 #include <immintrin.h>
 #endif
 
+#ifdef HYP_UNIX
+#include <unistd.h>
+#endif
+
 namespace hyperion {
 
 HYP_API const StaticThreadId g_mainThread = StaticThreadId(NAME("Main"));

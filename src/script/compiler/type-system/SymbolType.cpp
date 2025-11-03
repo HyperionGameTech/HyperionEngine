@@ -305,7 +305,7 @@ void SymbolType::SetStaticMembers(Array<SymbolTypeMember>&& staticMembers)
 
 bool SymbolType::TypeEqual(const SymbolType& other) const
 {
-    if (std::addressof(other) == this)
+    if (this == &other)
     {
         return true;
     }
@@ -1551,7 +1551,7 @@ const SymbolType* SymbolType::TypePromotion(const SymbolType* lptr, const Symbol
 
 void SymbolType::Assign(const SymbolType& other)
 {
-    if (std::addressof(other) == this)
+    if (this == &other)
     {
         return;
     }

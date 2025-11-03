@@ -64,7 +64,7 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
 
     JSONSubscriptWrapper& operator=(const JSONSubscriptWrapper& other)
     {
-        if (std::addressof(*this) == std::addressof(other))
+        if (this == &other)
         {
             return *this;
         }
@@ -82,7 +82,7 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
 
     JSONSubscriptWrapper& operator=(JSONSubscriptWrapper&& other) noexcept
     {
-        if (std::addressof(*this) == std::addressof(other))
+        if (this == &other)
         {
             return *this;
         }
@@ -167,7 +167,7 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
 
     JSONSubscriptWrapper& operator=(const JSONSubscriptWrapper& other)
     {
-        if (std::addressof(*this) == std::addressof(other))
+        if (this == &other)
         {
             return *this;
         }
@@ -185,7 +185,7 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
 
     JSONSubscriptWrapper& operator=(JSONSubscriptWrapper&& other) noexcept
     {
-        if (std::addressof(*this) == std::addressof(other))
+        if (this == &other)
         {
             return *this;
         }
@@ -785,7 +785,7 @@ public:
      */
     JSONObject& MergeDeep(const JSONObject& other)
     {
-        if (this == std::addressof(other))
+        if (this == &other)
         {
             return *this;
         }
