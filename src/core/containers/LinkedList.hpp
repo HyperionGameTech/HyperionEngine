@@ -365,7 +365,7 @@ public:
     [[nodiscard]]
     bool operator==(const Array<T, OtherNumInlineBytes> &other) const
     {
-        if (std::addressof(other) == this) {
+        if (this == &other) {
             return true;
         }
 
@@ -446,7 +446,7 @@ LinkedList<T, AllocatorType>::LinkedList(LinkedList<T, AllocatorType>&& other) n
 template <class T, class AllocatorType>
 LinkedList<T, AllocatorType>& LinkedList<T, AllocatorType>::operator=(const LinkedList<T, AllocatorType>& other)
 {
-    if (std::addressof(other) == this)
+    if (this == &other)
     {
         return *this;
     }
@@ -468,7 +468,7 @@ LinkedList<T, AllocatorType>& LinkedList<T, AllocatorType>::operator=(const Link
 template <class T, class AllocatorType>
 LinkedList<T, AllocatorType>& LinkedList<T, AllocatorType>::operator=(LinkedList<T, AllocatorType>&& other) noexcept
 {
-    if (std::addressof(other) == this)
+    if (this == &other)
     {
         return *this;
     }

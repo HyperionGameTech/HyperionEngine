@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <cstring>
 #include <cstdlib>
+#include <cstddef>
 
 #ifdef HYP_WINDOWS
 #define _CRT_SECURE_NO_WARNINGS 1

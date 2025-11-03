@@ -1090,7 +1090,7 @@ auto String<TStringType>::operator=(const CharType* str) -> String&
 template <int TStringType>
 auto String<TStringType>::operator=(const String& other) -> String&
 {
-    if (this == std::addressof(other))
+    if (this == &other)
     {
         return *this;
     }
@@ -1104,7 +1104,7 @@ auto String<TStringType>::operator=(const String& other) -> String&
 template <int TStringType>
 auto String<TStringType>::operator=(String&& other) noexcept -> String&
 {
-    if (this == std::addressof(other))
+    if (this == &other)
     {
         return *this;
     }
@@ -1172,7 +1172,7 @@ auto String<TStringType>::operator+=(CharType ch) -> String&
 template <int TStringType>
 bool String<TStringType>::operator==(const String& other) const
 {
-    if (this == std::addressof(other))
+    if (this == &other)
     {
         return true;
     }

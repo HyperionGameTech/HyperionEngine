@@ -10,6 +10,8 @@
 
 #include <core/Types.hpp>
 
+#include <climits>
+
 namespace hyperion {
 namespace containers {
 

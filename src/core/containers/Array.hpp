@@ -573,7 +573,7 @@ public:
     template <class OtherAllocatorType>
     HYP_FORCE_INLINE bool operator==(const Array<T, OtherAllocatorType>& other) const
     {
-        if (std::addressof(other) == this)
+        if (this == &other)
         {
             return true;
         }
@@ -607,7 +607,7 @@ public:
     template <class OtherAllocatorType>
     HYP_FORCE_INLINE bool operator!=(const Array<T, OtherAllocatorType>& other) const
     {
-        if (std::addressof(other) == this)
+        if (this == &other)
         {
             return false;
         }
@@ -803,7 +803,7 @@ Array<T, AllocatorType>::~Array()
 template <class T, class AllocatorType>
 auto Array<T, AllocatorType>::operator=(const Array& other) -> Array&
 {
-    if (this == std::addressof(other))
+    if (this == &other)
     {
         return *this;
     }
@@ -824,7 +824,7 @@ auto Array<T, AllocatorType>::operator=(const Array& other) -> Array&
 template <class T, class AllocatorType>
 auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
 {
-    if (this == std::addressof(other))
+    if (this == &other)
     {
         return *this;
     }

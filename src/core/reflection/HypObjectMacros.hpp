@@ -23,7 +23,7 @@ struct GetClassHelper
     HYP_API extern const Class* g_cls##cls;                                                                                                     \
                                                                                                                                                 \
     template <>                                                                                                                                 \
-    static HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                               \
+    HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
     static struct ClassInitializer_##cls                                                                                                        \
     {                                                                                                                                           \
@@ -48,7 +48,7 @@ struct GetClassHelper
     HYP_API extern const Class* g_cls##cls;                                                                                                     \
                                                                                                                                                 \
     template <>                                                                                                                                 \
-    static HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                               \
+    HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
     static struct ClassInitializer_##cls                                                                                                        \
     {                                                                                                                                           \
@@ -73,7 +73,7 @@ struct GetClassHelper
     HYP_API extern const Class* g_cls##cls;                                                                                                     \
                                                                                                                                                 \
     template <>                                                                                                                                 \
-    static HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                               \
+    HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
     static struct ClassInitializer_##cls                                                                                                        \
     {                                                                                                                                           \

@@ -16,6 +16,10 @@
 
 #include <core/Types.hpp>
 
+#ifdef HYP_DOTNET
+#include <dotnet/ManagedClass.hpp>
+#endif
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);

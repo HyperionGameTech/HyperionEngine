@@ -177,7 +177,7 @@ struct Formatter<StringType, ObjId<T>>
 {
     auto operator()(const ObjId<T>& value) const
     {
-        return LookupTypeName(value.GetTypeId()) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
+        return StringType(LookupTypeName(value.GetTypeId())) + "#" + Formatter<StringType, uint32> {}(value.Value());
     }
 };
 
@@ -186,7 +186,7 @@ struct Formatter<StringType, ObjIdBase>
 {
     auto operator()(const ObjIdBase& value) const
     {
-        return LookupTypeName(value.GetTypeId()) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
+        return StringType(LookupTypeName(value.GetTypeId())) + "#" + Formatter<StringType, uint32> {}(value.Value());
     }
 };
 

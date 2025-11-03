@@ -57,7 +57,7 @@ struct EntitySetIterator
 
     HYP_FORCE_INLINE bool operator==(const EntitySetIterator& other) const
     {
-        return std::addressof(set) == std::addressof(other.set) && index == other.index;
+        return (&set == &other.set) && index == other.index;
     }
 
     HYP_FORCE_INLINE bool operator!=(const EntitySetIterator& other) const

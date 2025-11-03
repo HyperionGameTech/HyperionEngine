@@ -195,7 +195,7 @@ public:
 
     FileByteWriter& operator=(FileByteWriter&& other) noexcept
     {
-        if (std::addressof(other) == this)
+        if (this == &other)
         {
             return *this;
         }
