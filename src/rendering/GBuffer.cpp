@@ -107,7 +107,7 @@ void GBuffer::Create()
     }
 
     HYP_LOG(Rendering, Debug, "Creating GBuffer with resolution {}", m_extent);
-    
+
     for (const FramebufferRef& framebuffer : m_framebuffers)
     {
         HYP_GFX_ASSERT(framebuffer->Create());
@@ -126,11 +126,13 @@ void GBuffer::Resize(Vec2u extent)
         return;
     }
 
+    HYP_LOG(Rendering, Debug, "Resizing GBuffer from {}x{} to {}x{}", m_extent.x, m_extent.y, extent.x, extent.y);
+
     m_extent = extent;
 
-    for (GBufferTarget& it : m_buckets)
+    for (GBufferTarget& target : m_buckets)
     {
-        it.SetFramebuffer(nullptr);
+        target.SetFramebuffer(nullptr);
     }
 
     SafeDelete(std::move(m_framebuffers));
@@ -154,33 +156,33 @@ void GBuffer::CreateBucketFramebuffers()
 
     m_framebuffers.Clear();
 
-    for (GBufferTarget& it : m_buckets)
+    for (GBufferTarget& target : m_buckets)
     {
-        const RenderBucket rb = it.GetBucket();
+        const RenderBucket rb = target.GetBucket();
 
         switch (rb)
         {
         case RB_OPAQUE:
-            it.m_framebuffer = CreateFramebuffer(nullptr, m_extent, rb);
+            target.m_framebuffer = CreateFramebuffer(nullptr, m_extent, rb);
             break;
         case RB_LIGHTMAP:
-            it.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
+            target.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
             break;
         case RB_TRANSLUCENT:
-            it.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
+            target.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
             break;
         case RB_SKYBOX:
-            it.m_framebuffer = GetBucket(RB_TRANSLUCENT).m_framebuffer;
+            target.m_framebuffer = GetBucket(RB_TRANSLUCENT).m_framebuffer;
             break;
         case RB_DEBUG:
-            it.m_framebuffer = GetBucket(RB_TRANSLUCENT).m_framebuffer;
+            target.m_framebuffer = GetBucket(RB_TRANSLUCENT).m_framebuffer;
             break;
         default:
             HYP_UNREACHABLE();
             break;
         }
 
-        Assert(it.m_framebuffer != nullptr);
+        Assert(target.m_framebuffer != nullptr);
     }
 }
 

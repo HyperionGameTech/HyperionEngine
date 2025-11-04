@@ -194,7 +194,7 @@ private:
     Array<Handle<View>, SceneAllocator> m_views;
 
     // Views, buffered so the render thread can safely read from it
-    Array<Array<View*>, FixedAllocator<NumMultiBuffers>> m_viewsPerFrame;
+    Array<Array<View*>, FixedAllocator<RingBufferDepth>> m_viewsPerFrame;
 
     View* m_raytracingView;
 

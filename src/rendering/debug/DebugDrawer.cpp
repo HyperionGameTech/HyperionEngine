@@ -428,11 +428,11 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4>& points, const C
 
 #pragma region DebugDrawer
 
-static FixedArray<ByteBuffer, NumMultiBuffers> CreateDebugDrawBuffers()
+static FixedArray<ByteBuffer, RingBufferDepth> CreateDebugDrawBuffers()
 {
-    ValueStorage<FixedArray<ByteBuffer, NumMultiBuffers>> buffersStorage;
+    ValueStorage<FixedArray<ByteBuffer, RingBufferDepth>> buffersStorage;
 
-    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    for (uint32 i = 0; i < RingBufferDepth; i++)
     {
         new (buffersStorage.GetPointer()->Data() + i) ByteBuffer;
     }
@@ -481,7 +481,7 @@ DebugDrawer::~DebugDrawer()
                 Threads::AssertOnThread(g_renderThread);
 
                 DebugDrawBufferDeleter* del = reinterpret_cast<DebugDrawBufferDeleter*>(ptr);
-                AssertDebug(del->idx == RenderApi::GetFrameIndex());
+                AssertDebug(del->idx == RenderApi::GetRingIndex());
 
                 DebugDrawBufferDeleterPayload* payload = del->payload;
                 AssertDebug(payload != nullptr);
@@ -561,7 +561,7 @@ void DebugDrawer::Update(float delta)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    const uint32 idx = RenderApi::GetFrameIndex();
+    const uint32 idx = RenderApi::GetRingIndex();
 
     if (m_commandLists[idx].Empty())
     {
@@ -650,7 +650,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         return;
     }
 
-    const uint32 idx = RenderApi::GetFrameIndex();
+    const uint32 idx = RenderApi::GetRingIndex();
 
     if (!IsEnabled() || m_headers[idx].Empty())
     {
@@ -661,6 +661,8 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
     }
 
     Assert(renderSetup.HasView());
+
+    const Viewport& viewport = renderSetup.view->GetViewport();
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
@@ -822,7 +824,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
                 // new graphics pipeline, commit current draws then bind new pipeline to keep adding draws
                 commitCurrentDraws();
 
-                frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+                frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
 
                 frame->renderQueue << BindDescriptorTable(
                     m_descriptorTable,
@@ -852,7 +854,7 @@ void DebugDrawer::ClearCommands(uint32 idx)
     AssertDebug(idx < m_commandLists.Size());
 
     // would cause issues if we try to free from pool being used by wrong thread..
-    Assert(idx == RenderApi::GetFrameIndex());
+    Assert(idx == RenderApi::GetRingIndex());
 
     for (DebugDrawCommandHeader& header : m_headers[idx])
     {
@@ -891,7 +893,7 @@ DebugDrawCommandList& DebugDrawer::CreateCommandList()
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 
-    const uint32 idx = RenderApi::GetFrameIndex();
+    const uint32 idx = RenderApi::GetRingIndex();
 
     return m_commandLists[idx].EmplaceBack(this);
 }

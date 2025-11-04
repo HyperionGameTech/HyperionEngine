@@ -156,10 +156,9 @@ vec3 LinearToPQ(vec3 color, float peakNits)
 {
     // Map scene linear HDR (0..peakNits) to [0..1] PQ
     vec3 L = clamp(color / peakNits, 0.0, 1.0) * 10000.0; // normalize to 10000 nits max
-    vec3 num   = vec3(ST2084_c1) + vec3(ST2084_c2) * pow(L, vec3(ST2084_m1));
+    vec3 num = vec3(ST2084_c1) + vec3(ST2084_c2) * pow(L, vec3(ST2084_m1));
     vec3 denom = vec3(1.0) + vec3(ST2084_c3) * pow(L, vec3(ST2084_m1));
     return pow(num / denom, vec3(ST2084_m2));
 }
-
 
 #endif

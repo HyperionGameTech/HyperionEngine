@@ -72,6 +72,8 @@ enum class ViewFlags : uint32
     // enable flags
     RAYTRACING = 0x100000, //!< Does this View contain raytracing data (acceleration structures)? (Raytracing must be enabled in the global config and must have RT hardware support)
 
+    MATCH_CAMERA_DIMENSIONS = 0x200000, //!< If set, the Viewport dimensions will always match the associated Camera's dimensions.
+
     DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };
 
@@ -101,6 +103,7 @@ struct ViewDesc
     Array<Scene*> scenes;
     Camera* camera = nullptr;
     int priority = 0;
+    float resolutionScale = 1.0f;
     Optional<RenderableAttributeSet> overrideAttributes;
     EntityBatchAllocatorBase* batchAllocator = nullptr;
     TextureFormat readbackTextureFormat = TF_R10G10B10A2; //!< If ENABLE_READBACK is set, the format of the texture we copy the output to.
@@ -267,17 +270,17 @@ protected:
     // optional raytracing View set by the world
     WeakHandle<View> m_raytracingView;
 
-    RenderProxyList* m_renderProxyLists[NumMultiBuffers];
+    RenderProxyList* m_renderProxyLists[RingBufferDepth];
 
     Viewport m_viewport;
-    Viewport m_viewportBuffered[NumMultiBuffers];
+    Viewport m_viewportBuffered[RingBufferDepth];
 
     // ViewID m_viewId; // unique Id for this view in the current frame
 
     int m_priority;
 
     Handle<Texture> m_readbackTexture;
-    GpuImageBase* m_readbackTextureGpuImages[NumMultiBuffers];
+    GpuImageBase* m_readbackTextureGpuImages[RingBufferDepth];
 
     Optional<RenderableAttributeSet> m_overrideAttributes;
 

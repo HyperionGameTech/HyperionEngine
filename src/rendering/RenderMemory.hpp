@@ -12,7 +12,7 @@
 namespace hyperion {
 
 namespace RenderApi {
-HYP_API extern uint32 GetFrameIndex();
+HYP_API extern uint32 GetRingIndex();
 } // namespace RenderApi
 
 HYP_API extern Pool* GetCurrentFramePool();

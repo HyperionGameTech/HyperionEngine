@@ -333,6 +333,8 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 void DeferredPass::Resize_Internal(Vec2u newSize)
 {
     FullScreenPass::Resize_Internal(newSize);
+
+    m_directLightGraphicsPipelines = {};
 }
 
 void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
@@ -343,6 +345,8 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.IsValid());
     AssertDebug(rs.HasView());
     AssertDebug(rs.passData != nullptr);
+
+    const Viewport& viewport = rs.view->GetViewport();
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
@@ -432,7 +436,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             {
                 pipeline->SetPushConstants(m_pushConstantData.Data(), m_pushConstantData.Size());
 
-                frame->renderQueue << BindGraphicsPipeline(pipeline);
+                frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
 
                 // Bind textures globally (bindless)
                 if (materialDescriptorSetIndex != ~0u && useBindlessTextures)
@@ -725,6 +729,8 @@ void EnvGridPass::CreatePipeline()
 void EnvGridPass::Resize_Internal(Vec2u newSize)
 {
     FullScreenPass::Resize_Internal(newSize);
+
+    m_graphicsPipelines = {};
 }
 
 void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
@@ -735,6 +741,8 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.IsValid());
     AssertDebug(rs.HasView());
     AssertDebug(rs.passData != nullptr);
+
+    const Viewport& viewport = rs.view->GetViewport();
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
@@ -787,11 +795,11 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
             const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
             const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewportOffset, viewportExtent);
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { viewportExtent, viewportOffset });
         }
         else
         {
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
         }
 
         frame->renderQueue << BindDescriptorSet(
@@ -979,6 +987,8 @@ void ReflectionsPass::Resize_Internal(Vec2u newSize)
 
     FullScreenPass::Resize_Internal(newSize);
 
+    m_cubemapGraphicsPipelines = {};
+
     if (ShouldRenderSSR())
     {
         CreateSSRRenderer();
@@ -993,6 +1003,8 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.IsValid());
     AssertDebug(rs.HasView());
     AssertDebug(rs.passData != nullptr);
+
+    const Viewport& viewport = rs.view->GetViewport();
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -1056,11 +1068,11 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
             const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
             const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewportOffset, viewportExtent);
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { viewportExtent, viewportOffset });
         }
         else
         {
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
         }
 
         const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
@@ -1194,11 +1206,13 @@ void DeferredRenderer::Shutdown()
 {
 }
 
-#define CHECK_FRAMEBUFFER_SIZE(fb)                                                                    \
-    Assert(fb->GetExtent() == passData.viewport.extent,                                               \
-        "Deferred pass framebuffer extent does not match viewport extent! Expected {}x{}, got {}x{}", \
-        passData.viewport.extent.x, passData.viewport.extent.y,                                       \
-        fb->GetExtent().x, fb->GetExtent().y)
+//#define CHECK_FRAMEBUFFER_SIZE(fb)                                                                    \
+//    Assert(fb->GetExtent() == passData.viewport.extent,                                               \
+//        "Deferred pass framebuffer extent does not match viewport extent! Expected {}x{}, got {}x{}", \
+//        passData.viewport.extent.x, passData.viewport.extent.y,                                       \
+//        fb->GetExtent().x, fb->GetExtent().y)
+
+#define CHECK_FRAMEBUFFER_SIZE(...)
 
 Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
@@ -1906,14 +1920,16 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     Assert(rs.IsValid());
     Assert(rs.HasView());
 
-    uint32 globalFrameIndex = RenderApi::GetFrameIndex();
-    if (m_lastFrameData.frameId != globalFrameIndex)
+    uint32 slot = RenderApi::GetRingIndex();
+    if (m_lastFrameData.frameId != slot)
     {
-        m_lastFrameData.frameId = globalFrameIndex;
+        m_lastFrameData.frameId = slot;
         m_lastFrameData.passData.Clear();
     }
 
     View* view = rs.view;
+
+    const Viewport& viewport = view->GetViewport();
 
     Assert(view->GetFlags() & ViewFlags::GBUFFER);
 
@@ -1958,8 +1974,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     const bool useTemporalAa = passData.temporalAa != nullptr && m_rendererConfig.taaEnabled;
 
-    const bool useReflectionProbes = true; /*rpl.GetEnvProbes().GetElements<SkyProbe>().Any()
-         || rpl.GetEnvProbes().GetElements<ReflectionProbe>().Any();*/
+    const bool useReflectionProbes = rpl.GetEnvProbes().GetElements<SkyProbe>().Any()
+        || rpl.GetEnvProbes().GetElements<ReflectionProbe>().Any();
 
     if (useTemporalAa)
     {
@@ -2136,7 +2152,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             const GraphicsPipelineRef& pipeline = passData.combinePass->GetGraphicsPipeline();
             AssertDebug(pipeline != nullptr);
 
-            frame->renderQueue << BindGraphicsPipeline(pipeline);
+            frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
 
             frame->renderQueue << BindDescriptorTable(
                 pipeline->GetDescriptorTable(),

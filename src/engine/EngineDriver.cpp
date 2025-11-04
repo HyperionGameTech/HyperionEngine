@@ -300,7 +300,7 @@ const Handle<World>& EngineDriver::GetCurrentWorld() const
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 
-    return m_currentWorldBuffered[RenderApi::GetFrameIndex()];
+    return m_currentWorldBuffered[RenderApi::GetRingIndex()];
 }
 
 void EngineDriver::SetCurrentWorld(const Handle<World>& world)
@@ -310,12 +310,12 @@ void EngineDriver::SetCurrentWorld(const Handle<World>& world)
 
     if (!world)
     {
-        m_currentWorldBuffered[RenderApi::GetFrameIndex()] = m_defaultWorld;
+        m_currentWorldBuffered[RenderApi::GetRingIndex()] = m_defaultWorld;
 
         return;
     }
 
-    m_currentWorldBuffered[RenderApi::GetFrameIndex()] = world;
+    m_currentWorldBuffered[RenderApi::GetRingIndex()] = world;
 }
 
 bool EngineDriver::IsRenderLoopActive() const
@@ -403,11 +403,11 @@ void EngineDriver::FinalizeStop()
     // loop until all deletions are done
 
     // clang-format off
-    FixedArray<int, NumMultiBuffers> counts {};
+    FixedArray<int, RingBufferDepth> counts {};
     
     do
     {
-        for (uint32 i = 0; i < NumMultiBuffers; i++)
+        for (uint32 i = 0; i < RingBufferDepth; i++)
         {
             counts[i] = g_safeDeleter->ForceDeleteAll(i);
         }
@@ -429,7 +429,7 @@ HYP_API void EngineDriver::RenderNextFrame()
 
     PreFrameUpdate(frame);
 
-    const Handle<World>& currentWorld = m_currentWorldBuffered[RenderApi::GetFrameIndex()];
+    const Handle<World>& currentWorld = m_currentWorldBuffered[RenderApi::GetRingIndex()];
 
     if (currentWorld && currentWorld->IsReady())
     {

@@ -272,7 +272,7 @@ public:
     }
 
     HYP_METHOD()
-    void AddCameraController(const Handle<CameraController>& cameraController);
+    void AddCameraController(const Handle<CameraController>& cameraController, int index = -1);
 
     HYP_METHOD()
     bool RemoveCameraController(const Handle<CameraController>& cameraController);
@@ -312,30 +312,6 @@ public:
         UpdateViewProjectionMatrix();
     }
 
-    HYP_METHOD(Property = "Width", Editor = true)
-    HYP_FORCE_INLINE int GetWidth() const
-    {
-        return m_width;
-    }
-
-    HYP_METHOD(Property = "Width", Editor = true)
-    HYP_FORCE_INLINE void SetWidth(int width)
-    {
-        m_width = width;
-    }
-
-    HYP_METHOD(Property = "Height", Editor = true)
-    HYP_FORCE_INLINE int GetHeight() const
-    {
-        return m_height;
-    }
-
-    HYP_METHOD(Property = "Height", Editor = true)
-    HYP_FORCE_INLINE void SetHeight(int height)
-    {
-        m_height = height;
-    }
-
     HYP_METHOD(Property = "Dimensions")
     HYP_FORCE_INLINE Vec2i GetDimensions() const
     {
@@ -347,6 +323,8 @@ public:
     {
         m_width = dimensions.x;
         m_height = dimensions.y;
+
+        UpdateProjectionMatrix();
     }
 
     HYP_METHOD(Property = "Near", Editor = true)

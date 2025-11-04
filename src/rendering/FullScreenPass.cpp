@@ -287,6 +287,12 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
     AssertDebug(newSize.Volume() != 0, "Cannot resize FullScreenPass to zero size!");
 
     newSize = MathUtil::Max(newSize, Vec2u::One());
+
+    HYP_LOG(Rendering, Debug, "Resizing FullScreenPass {} from {} to {}",
+        Id().Value(),
+        m_extent,
+        newSize);
+
     m_extent = newSize;
 
     if (!m_framebuffer.IsValid())
@@ -322,11 +328,19 @@ void FullScreenPass::CreateFramebuffer()
 {
     HYP_SCOPE;
 
-    if (m_framebuffer.IsValid())
+    if (m_framebuffer != nullptr)
     {
-        DeferCreate(m_framebuffer);
+        // already created; check if size matches
 
-        return;
+        if (m_framebuffer->GetExtent() == m_extent)
+        {
+            // already created with correct extent
+            DeferCreate(m_framebuffer);
+
+            return;
+        }
+
+        SafeDelete(std::move(m_framebuffer));
     }
 
     Assert(m_extent.Volume() != 0);
@@ -388,14 +402,15 @@ void FullScreenPass::CreatePipeline()
         .flags = MAF_NONE
     };
 
-    CreatePipeline(RenderableAttributeSet(
-        meshAttributes,
-        materialAttributes));
+    CreatePipeline(RenderableAttributeSet(meshAttributes, materialAttributes));
 }
 
 void FullScreenPass::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
 {
     HYP_SCOPE;
+
+    Assert(m_shader != nullptr);
+    Assert(m_framebuffer != nullptr);
 
     m_graphicsPipelineCacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
         m_shader,
@@ -556,21 +571,20 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
 
     Assert(m_renderTextureToScreenPass != nullptr);
 
+    const GraphicsPipelineRef& graphicsPipeline = m_renderTextureToScreenPass->GetGraphicsPipeline();
+
     if (ShouldRenderHalfRes())
     {
         const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
         // render previous frame's result to screen
-        frame->renderQueue << BindGraphicsPipeline(
-            m_renderTextureToScreenPass->GetGraphicsPipeline(),
-            viewportOffset,
-            viewportExtent);
+        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { viewportExtent, viewportOffset });
     }
     else
     {
         // render previous frame's result to screen
-        frame->renderQueue << BindGraphicsPipeline(m_renderTextureToScreenPass->GetGraphicsPipeline());
+        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { m_framebuffer->GetExtent() });
     }
 
     frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
@@ -666,14 +680,18 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
         const Vec2i viewportOffset = (Vec2i(framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(framebuffer->GetExtent().x / 2, framebuffer->GetExtent().y);
 
-        frame->renderQueue << BindGraphicsPipeline(
-            graphicsPipeline,
-            viewportOffset,
-            viewportExtent);
+        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { viewportExtent, viewportOffset });
     }
     else
     {
-        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+        if (renderSetup.view != nullptr)
+        {
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, renderSetup.view->GetViewport());
+        }
+        else
+        {
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
+        }
     }
 
     if (renderSetup.view != nullptr && renderSetup.view->GetCamera() != nullptr)
@@ -724,14 +742,11 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
         const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-        frame->renderQueue << BindGraphicsPipeline(
-            graphicsPipeline,
-            viewportOffset,
-            viewportExtent);
+        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { viewportExtent, viewportOffset });
     }
     else
     {
-        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, renderSetup.view->GetViewport());
     }
 }
 

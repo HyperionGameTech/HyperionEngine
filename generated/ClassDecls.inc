@@ -340,6 +340,7 @@ HYP_API extern const Class* g_clsTranslateEditorManipulationWidget;
 HYP_API extern const Class* g_clsTriangle;
 HYP_API extern const Class* g_clsTypeId;
 HYP_API extern const Class* g_clsUIButton;
+HYP_API extern const Class* g_clsUICameraController;
 HYP_API extern const Class* g_clsUIComponent;
 HYP_API extern const Class* g_clsUIDataSource;
 HYP_API extern const Class* g_clsUIDataSourceBase;

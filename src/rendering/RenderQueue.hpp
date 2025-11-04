@@ -224,18 +224,25 @@ class BindGraphicsPipeline final : public CmdBase
 {
 public:
 #ifdef HYP_DEBUG_MODE
+    HYP_API BindGraphicsPipeline(GraphicsPipelineBase* pipeline, const Viewport& viewport);
     HYP_API BindGraphicsPipeline(GraphicsPipelineBase* pipeline, Vec2i viewportOffset, Vec2u viewportExtent);
     HYP_API BindGraphicsPipeline(GraphicsPipelineBase* pipeline);
 #else
-    BindGraphicsPipeline(GraphicsPipelineBase* pipeline, Vec2i viewportOffset, Vec2u viewportExtent)
+    BindGraphicsPipeline(GraphicsPipelineBase* pipeline, const Viewport& viewport)
         : m_pipeline(pipeline),
-          m_viewportOffset(viewportOffset),
-          m_viewportExtent(viewportExtent)
+          m_viewport(viewport)
+    {
+    }
+    
+    BindGraphicsPipeline(GraphicsPipelineBase* pipeline, Vec2i viewportOffset, Vec2u viewportExtent);
+        : m_pipeline(pipeline),
+          m_viewport(Viewport { viewportExtent, viewportOffset })
     {
     }
 
     BindGraphicsPipeline(GraphicsPipelineBase* pipeline)
-        : m_pipeline(pipeline)
+        : m_pipeline(pipeline),
+          m_viewport()
     {
     }
 #endif
@@ -246,9 +253,9 @@ public:
     {
         BindGraphicsPipeline* cmdCasted = static_cast<BindGraphicsPipeline*>(cmd);
 
-        if (cmdCasted->m_viewportOffset != Vec2i(0, 0) || cmdCasted->m_viewportExtent != Vec2u(0, 0))
+        if (cmdCasted->m_viewport.position != Vec2i(0, 0) || cmdCasted->m_viewport.extent != Vec2u(0, 0))
         {
-            cmdCasted->m_pipeline->Bind(commandBuffer, cmdCasted->m_viewportOffset, cmdCasted->m_viewportExtent);
+            cmdCasted->m_pipeline->Bind(commandBuffer, cmdCasted->m_viewport.position, cmdCasted->m_viewport.extent);
         }
         else
         {
@@ -261,8 +268,7 @@ public:
 
 private:
     GraphicsPipelineBase* m_pipeline;
-    Vec2i m_viewportOffset;
-    Vec2u m_viewportExtent;
+    Viewport m_viewport;
 };
 
 class BindComputePipeline final : public CmdBase

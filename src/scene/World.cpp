@@ -50,7 +50,7 @@ World::World()
 {
     // set m_viewsPerFrame to initial size. It uses fixed allocator so it won't dynamically allocate any memory anyway
     m_viewsPerFrame.Resize(m_viewsPerFrame.Capacity());
-    AssertDebug(m_viewsPerFrame.Size() == NumMultiBuffers);
+    AssertDebug(m_viewsPerFrame.Size() == RingBufferDepth);
 }
 
 World::~World()
@@ -265,14 +265,14 @@ void World::Update(float delta)
 
     AssertReady();
 
-    const uint32 currentFrameIndex = RenderApi::GetFrameIndex();
+    const uint32 slot = RenderApi::GetRingIndex();
 
     // set buffered Views for current frame index
-    m_viewsPerFrame[currentFrameIndex].Resize(m_views.Size());
+    m_viewsPerFrame[slot].Resize(m_views.Size());
 
     for (SizeType i = 0; i < m_views.Size(); i++)
     {
-        m_viewsPerFrame[currentFrameIndex][i] = m_views[i].Get();
+        m_viewsPerFrame[slot][i] = m_views[i].Get();
     }
 
     Array<View*> processViews;
@@ -807,7 +807,7 @@ Span<View* const> World::GetViews() const
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | g_gameThread);
 
-    return m_viewsPerFrame[RenderApi::GetFrameIndex()].ToSpan();
+    return m_viewsPerFrame[RenderApi::GetRingIndex()].ToSpan();
 }
 
 RenderStats* World::GetRenderStats() const
