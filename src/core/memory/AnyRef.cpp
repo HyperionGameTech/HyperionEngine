@@ -3,7 +3,6 @@
 #include <core/memory/AnyRef.hpp>
 
 #include <core/reflection/HypData.hpp>
-
 #include <core/reflection/TypeInfo.hpp>
 
 namespace hyperion {

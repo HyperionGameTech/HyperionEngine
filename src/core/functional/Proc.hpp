@@ -15,6 +15,7 @@
 
 #include <type_traits>
 #include <cstddef>
+#include <memory>
 
 namespace hyperion {
 namespace functional {

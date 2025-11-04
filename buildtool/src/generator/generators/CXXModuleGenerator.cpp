@@ -24,13 +24,13 @@ namespace buildtool {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
-static const HashMap<ClassDefinitionType, String> g_startMacroNames = {
+static const HashMap<ClassDefinitionType, String> s_startMacroNames = {
     { ClassDefinitionType::CLASS, "HYP_BEGIN_CLASS" },
     { ClassDefinitionType::STRUCT, "HYP_BEGIN_STRUCT" },
     { ClassDefinitionType::ENUM, "HYP_BEGIN_ENUM" }
 };
 
-static const HashMap<ClassDefinitionType, String> g_endMacroNames = {
+static const HashMap<ClassDefinitionType, String> s_endMacroNames = {
     { ClassDefinitionType::CLASS, "HYP_END_CLASS" },
     { ClassDefinitionType::STRUCT, "HYP_END_STRUCT" },
     { ClassDefinitionType::ENUM, "HYP_END_ENUM" }
@@ -274,7 +274,10 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             classAttributes.PushBack(HYP_FORMAT("ClassAttribute(\"{}\", {})", name.ToLower(), value.ToString()));
         }
 
-        writer.WriteString(HYP_FORMAT("{}({}, {}, {}", g_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
+        writer.WriteString("#ifdef HYP_DEBUG_MODE\n");
+        writer.WriteString("HYP_DISABLE_OPTIMIZATION;\n");
+        writer.WriteString("#endif\n\n");
+        writer.WriteString(HYP_FORMAT("{}({}, {}, {}", s_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
 
         HashSet<const ClassDefinition*> baseClassDefinitions;
 
@@ -406,7 +409,11 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             writer.WriteString("\n");
         }
 
-        writer.WriteString(HYP_FORMAT("{}\n\n", g_endMacroNames.At(cls.type)));
+        writer.WriteString(HYP_FORMAT("{}\n\n", s_endMacroNames.At(cls.type)));
+
+        writer.WriteString("#ifdef HYP_DEBUG_MODE\n");
+        writer.WriteString("HYP_ENABLE_OPTIMIZATION;\n");
+        writer.WriteString("#endif\n\n");
 
         writer.WriteString(HYP_FORMAT("#pragma endregion {} Reflection Data\n\n", cls.name));
 
@@ -608,7 +615,11 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
             classAttributes.PushBack(HYP_FORMAT("ClassAttribute(\"{}\", {})", name.ToLower(), value.ToString()));
         }
 
-        writer.WriteString(HYP_FORMAT("{}({}, {}, {}", g_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
+        writer.WriteString("#ifdef HYP_DEBUG_MODE\n");
+        writer.WriteString("HYP_DISABLE_OPTIMIZATION;\n");
+        writer.WriteString("#endif\n\n");
+
+        writer.WriteString(HYP_FORMAT("{}({}, {}, {}", s_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
 
         HashSet<const ClassDefinition*> baseClassDefinitions;
 
@@ -744,7 +755,11 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
             writer.WriteString("\n");
         }
 
-        writer.WriteString(HYP_FORMAT("{}\n\n", g_endMacroNames.At(cls.type)));
+        writer.WriteString(HYP_FORMAT("{}\n\n", s_endMacroNames.At(cls.type)));
+
+        writer.WriteString("#ifdef HYP_DEBUG_MODE\n");
+        writer.WriteString("HYP_ENABLE_OPTIMIZATION;\n");
+        writer.WriteString("#endif\n\n");
 
         writer.WriteString(HYP_FORMAT("#pragma endregion {} Reflection Data\n\n", cls.name));
 

@@ -699,43 +699,62 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
     // initialize properties containers
     for (HypMember& member : members)
     {
-        if (member.value.Is<HypProperty>())
+        Assert(member.internal != nullptr);
+
+        switch (member.internal->GetMemberType())
         {
-            HypProperty* pProperty = new HypProperty(std::move(member.value.GetUnchecked<HypProperty>()));
+        case HypMemberType::TYPE_PROPERTY:
+        {
+            HypProperty* pProperty = static_cast<HypProperty*>(member.internal);
+            member.internal = nullptr;
+
             pProperty->m_ownerClass = this;
             pProperty->m_getter.typeInfo.targetTypeInfo = m_typeInfo;
             pProperty->m_setter.typeInfo.targetTypeInfo = m_typeInfo;
 
             m_properties.PushBack(pProperty);
             m_propertiesByName.Set(pProperty->GetName(), pProperty);
+
+            break;
         }
-        else if (member.value.Is<HypMethod>())
+        case HypMemberType::TYPE_METHOD:
         {
-            HypMethod* pMethod = new HypMethod(std::move(member.value.GetUnchecked<HypMethod>()));
+            HypMethod* pMethod = static_cast<HypMethod*>(member.internal);
+            member.internal = nullptr;
+
             pMethod->m_ownerClass = this;
 
             m_methods.PushBack(pMethod);
             m_methodsByName.Set(pMethod->GetName(), pMethod);
+
+            break;
         }
-        else if (member.value.Is<Field>())
+        case HypMemberType::TYPE_FIELD:
         {
-            Field* pField = new Field(std::move(member.value.GetUnchecked<Field>()));
+            Field* pField = static_cast<Field*>(member.internal);
+            member.internal = nullptr;
+
             pField->m_ownerClass = this;
 
             m_fields.PushBack(pField);
             m_fieldsByName.Set(pField->GetName(), pField);
+
+            break;
         }
-        else if (member.value.Is<HypConstant>())
+        case HypMemberType::TYPE_CONSTANT:
         {
-            HypConstant* pConstant = new HypConstant(std::move(member.value.GetUnchecked<HypConstant>()));
+            HypConstant* pConstant = static_cast<HypConstant*>(member.internal);
+            member.internal = nullptr;
+
             pConstant->m_ownerClass = this;
 
             m_constants.PushBack(pConstant);
             m_constantsByName.Set(pConstant->GetName(), pConstant);
+
+            break;
         }
-        else
-        {
-            HYP_FAIL("Invalid member");
+        default:
+            HYP_UNREACHABLE();
         }
     }
 }
