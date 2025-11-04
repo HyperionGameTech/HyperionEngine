@@ -801,7 +801,7 @@ private:
             return task;
         }
 
-        static constexpr uint32 idealCxxModuleFileSize = JumboBuildEnabled ? JumboBuildIdealFileSize : 1;
+        static constexpr uint32 IdealCxxModuleFileSize = JumboBuildEnabled ? JumboBuildIdealFileSize : 1;
 
         uint32 fileIndex = 0;
         char filenameBuffer[256] = {};
@@ -870,7 +870,7 @@ private:
                 continue;
             }
 
-            if (!cxxModuleWriter || cxxModuleWriter->Position() >= idealCxxModuleFileSize)
+            if (!cxxModuleWriter || cxxModuleWriter->Position() >= IdealCxxModuleFileSize)
             {
                 if (cxxModuleWriter)
                 {

@@ -433,9 +433,10 @@ if(NOT HYP_NO_DOTNET)
     endif()
 endif()
 
-function(collect_sources_and_modules dir out_sources out_modules)
+function(collect_sources_and_modules dir out_sources out_modules out_pch_headers)
     set(local_sources "")
     set(local_modules "")
+    set(local_pch_headers "")
 
     # if the directory is system/platform/<platform not equal to HYP_PLATFORM_NAME>, skip it
     if(${dir} MATCHES "src/system/platform/.*" AND NOT ${dir} MATCHES "src/system/platform/${HYP_PLATFORM_NAME_LOWER}")
@@ -461,6 +462,10 @@ function(collect_sources_and_modules dir out_sources out_modules)
 
         source_group("hyperion-${subdir_basename} Library Code" FILES ${local_sources})
 
+        if (EXISTS "${dir}/${subdir_basename}Pch.hpp")
+            list(APPEND local_pch_headers "${dir}/${subdir_basename}Pch.hpp")
+        endif()
+
         return()
     endif()
 
@@ -471,23 +476,27 @@ function(collect_sources_and_modules dir out_sources out_modules)
     file(GLOB children LIST_DIRECTORIES true "${dir}/*")
     foreach(child ${children})
         if(IS_DIRECTORY "${child}")
-            collect_sources_and_modules("${child}" child_sources child_modules)
+            collect_sources_and_modules("${child}" child_sources child_modules child_pch_headers)
             list(APPEND local_sources ${child_sources})
             list(APPEND local_modules ${child_modules})
+            list(APPEND local_pch_headers ${child_pch_headers})
         endif()
     endforeach()
 
     set(${out_sources} "${local_sources}" PARENT_SCOPE)
     set(${out_modules} "${local_modules}" PARENT_SCOPE)
+    set(${out_pch_headers} "${local_pch_headers}" PARENT_SCOPE)
 endfunction()
 
 set(SUB_LIBRARIES "")
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES SUB_LIBRARIES)
+set(SUB_PCH_HEADERS "")
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES SUB_LIBRARIES SUB_PCH_HEADERS)
 source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${SOURCES})
 
 set(THIRD_PARTY_SOURCES "")
 set(THIRD_PARTY_LIBRARIES "")
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES THIRD_PARTY_LIBRARIES)
+set(THIRD_PARTY_PCH_HEADERS "")
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES THIRD_PARTY_LIBRARIES THIRD_PARTY_PCH_HEADERS)
 source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES})
 
 file(GLOB_RECURSE PLATFORM_FILES "src/system/platform/**/*")
@@ -1183,6 +1192,7 @@ else()
 endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
+target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH_HEADERS})
 
 # force include for MSVC
 if(MSVC)
@@ -1194,6 +1204,12 @@ endif()
 remove_definitions(-DHYP_BUILD_LIBRARY)
 
 add_subdirectory(samples)
+
+# PCHs
+set(HYP_PCH_HEADERS
+    "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
+    ${SUB_PCH_HEADERS}
+)
 
 # if .vscode/launch.json does not exist, create it
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/.vscode/launch.json")

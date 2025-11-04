@@ -12,14 +12,14 @@ namespace hyperion {
 #pragma region EditorTaskBase Reflection Data
 
 HYP_BEGIN_CLASS(EditorTaskBase, 202, 3, NAME("HypObjectBase"), ClassAttribute("abstract", true))
-HypMethod(NAME(HYP_STR(IsCommitted)), &EditorTaskBase::IsCommitted),
+    HypMethod(NAME(HYP_STR(IsCommitted)), &EditorTaskBase::IsCommitted),
     HypMethod(NAME(HYP_STR(Cancel)), &EditorTaskBase::Cancel),
     HypMethod(NAME(HYP_STR(IsCompleted)), &EditorTaskBase::IsCompleted),
     HypMethod(NAME(HYP_STR(Process)), &EditorTaskBase::Process),
     HypMethod(NAME(HYP_STR(Commit)), &EditorTaskBase::Commit),
-    Field(NAME(HYP_STR(OnComplete)), &EditorTaskBase::OnComplete, offsetof(EditorTaskBase, OnComplete), Span<const ClassAttribute> { { ClassAttribute("scriptabledelegate", true) } }),
-    Field(NAME(HYP_STR(OnCancel)), &EditorTaskBase::OnCancel, offsetof(EditorTaskBase, OnCancel), Span<const ClassAttribute> { { ClassAttribute("scriptabledelegate", true) } })
-        HYP_END_CLASS
+    Field(NAME(HYP_STR(OnComplete)), &EditorTaskBase::OnComplete, offsetof(EditorTaskBase, OnComplete), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnCancel)), &EditorTaskBase::OnCancel, offsetof(EditorTaskBase, OnCancel), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } })
+HYP_END_CLASS
 
 #pragma endregion EditorTaskBase Reflection Data
 
@@ -35,13 +35,13 @@ namespace hyperion {
 
 #pragma region LongRunningEditorTask Reflection Data
 
-HYP_BEGIN_CLASS(LongRunningEditorTask, 203, 0, NAME("EditorTaskBase"), ClassAttribute("abstract", true), ClassAttribute("description", "A task that runs on a Task thread and has Process called one time only"))
-HypMethod(NAME(HYP_STR(IsCommitted)), &LongRunningEditorTask::IsCommitted),
-    HypMethod(NAME(HYP_STR(Cancel)), &LongRunningEditorTask::Cancel, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(IsCompleted)), &LongRunningEditorTask::IsCompleted, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(Process)), &LongRunningEditorTask::Process, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
+HYP_BEGIN_CLASS(LongRunningEditorTask, 203, 0, NAME("EditorTaskBase"), ClassAttribute("abstract", true),ClassAttribute("description", "A task that runs on a Task thread and has Process called one time only"))
+    HypMethod(NAME(HYP_STR(IsCommitted)), &LongRunningEditorTask::IsCommitted),
+    HypMethod(NAME(HYP_STR(Cancel)), &LongRunningEditorTask::Cancel, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(IsCompleted)), &LongRunningEditorTask::IsCompleted, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(Process)), &LongRunningEditorTask::Process, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(Commit)), &LongRunningEditorTask::Commit)
-        HYP_END_CLASS
+HYP_END_CLASS
 
 #pragma endregion LongRunningEditorTask Reflection Data
 
@@ -49,13 +49,11 @@ HypMethod(NAME(HYP_STR(IsCommitted)), &LongRunningEditorTask::IsCommitted),
 
 void LongRunningEditorTask::Cancel()
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Cancel");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -66,13 +64,11 @@ void LongRunningEditorTask::Cancel()
 }
 bool LongRunningEditorTask::IsCompleted() const
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("IsCompleted");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -82,13 +78,11 @@ bool LongRunningEditorTask::IsCompleted() const
 }
 void LongRunningEditorTask::Process()
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Process");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -100,18 +94,20 @@ void LongRunningEditorTask::Process()
 #pragma endregion LongRunningEditorTask Scriptable Methods
 } // namespace hyperion
 
+
+
 namespace hyperion {
 
 #pragma region TickableEditorTask Reflection Data
 
-HYP_BEGIN_CLASS(TickableEditorTask, 204, 1, NAME("EditorTaskBase"), ClassAttribute("abstract", true), ClassAttribute("description", "A task that runs on the game thread and is has Process called every tick"))
-HypMethod(NAME(HYP_STR(IsCommitted)), &TickableEditorTask::IsCommitted),
-    HypMethod(NAME(HYP_STR(Cancel)), &TickableEditorTask::Cancel, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(IsCompleted)), &TickableEditorTask::IsCompleted, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(Process)), &TickableEditorTask::Process, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
+HYP_BEGIN_CLASS(TickableEditorTask, 204, 1, NAME("EditorTaskBase"), ClassAttribute("abstract", true),ClassAttribute("description", "A task that runs on the game thread and is has Process called every tick"))
+    HypMethod(NAME(HYP_STR(IsCommitted)), &TickableEditorTask::IsCommitted),
+    HypMethod(NAME(HYP_STR(Cancel)), &TickableEditorTask::Cancel, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(IsCompleted)), &TickableEditorTask::IsCompleted, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(Process)), &TickableEditorTask::Process, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(Commit)), &TickableEditorTask::Commit),
-    HypMethod(NAME(HYP_STR(Tick)), &TickableEditorTask::Tick, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } })
-        HYP_END_CLASS
+    HypMethod(NAME(HYP_STR(Tick)), &TickableEditorTask::Tick, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
+HYP_END_CLASS
 
 #pragma endregion TickableEditorTask Reflection Data
 
@@ -119,13 +115,11 @@ HypMethod(NAME(HYP_STR(IsCommitted)), &TickableEditorTask::IsCommitted),
 
 void TickableEditorTask::Cancel()
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Cancel");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -136,13 +130,11 @@ void TickableEditorTask::Cancel()
 }
 bool TickableEditorTask::IsCompleted() const
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("IsCompleted");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -152,13 +144,11 @@ bool TickableEditorTask::IsCompleted() const
 }
 void TickableEditorTask::Process()
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Process");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -169,13 +159,11 @@ void TickableEditorTask::Process()
 }
 void TickableEditorTask::Tick(float delta)
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Tick");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, delta);
             return;
@@ -214,6 +202,7 @@ HYP_END_CLASS
 #include <scene/World.hpp>
 #include <core/math/BoundingBox.hpp>
 
+
 namespace hyperion {
 
 #pragma region NullEditorManipulationWidget Reflection Data
@@ -224,6 +213,7 @@ HYP_END_CLASS
 #pragma endregion NullEditorManipulationWidget Reflection Data
 
 } // namespace hyperion
+
 
 namespace hyperion {
 
@@ -236,12 +226,13 @@ HYP_END_CLASS
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region EditorSubsystem Reflection Data
 
 HYP_BEGIN_CLASS(EditorSubsystem, 164, 0, NAME("Subsystem"))
-HypMethod(NAME(HYP_STR(GetCurrentProject)), &EditorSubsystem::GetCurrentProject),
+    HypMethod(NAME(HYP_STR(GetCurrentProject)), &EditorSubsystem::GetCurrentProject),
     HypMethod(NAME(HYP_STR(GetActiveScene)), &EditorSubsystem::GetActiveScene),
     HypMethod(NAME(HYP_STR(NewProject)), &EditorSubsystem::NewProject),
     HypMethod(NAME(HYP_STR(OpenProject)), &EditorSubsystem::OpenProject),
@@ -252,22 +243,23 @@ HypMethod(NAME(HYP_STR(GetCurrentProject)), &EditorSubsystem::GetCurrentProject)
     HypMethod(NAME(HYP_STR(AddDebugOverlay)), &EditorSubsystem::AddDebugOverlay),
     HypMethod(NAME(HYP_STR(RemoveDebugOverlay)), &EditorSubsystem::RemoveDebugOverlay),
     HypMethod(NAME(HYP_STR(GetFocusedNode)), &EditorSubsystem::GetFocusedNode),
-    Field(NAME(HYP_STR(OnFocusedNodeChanged)), &EditorSubsystem::OnFocusedNodeChanged, offsetof(EditorSubsystem, OnFocusedNodeChanged), Span<const ClassAttribute> { { ClassAttribute("scriptabledelegate", true) } }),
-    Field(NAME(HYP_STR(OnProjectClosing)), &EditorSubsystem::OnProjectClosing, offsetof(EditorSubsystem, OnProjectClosing), Span<const ClassAttribute> { { ClassAttribute("scriptabledelegate", true) } }),
-    Field(NAME(HYP_STR(OnProjectOpened)), &EditorSubsystem::OnProjectOpened, offsetof(EditorSubsystem, OnProjectOpened), Span<const ClassAttribute> { { ClassAttribute("scriptabledelegate", true) } }),
-    Field(NAME(HYP_STR(OnActiveSceneChanged)), &EditorSubsystem::OnActiveSceneChanged, offsetof(EditorSubsystem, OnActiveSceneChanged), Span<const ClassAttribute> { { ClassAttribute("scriptabledelegate", true) } })
-        HYP_END_CLASS
+    Field(NAME(HYP_STR(OnFocusedNodeChanged)), &EditorSubsystem::OnFocusedNodeChanged, offsetof(EditorSubsystem, OnFocusedNodeChanged), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnProjectClosing)), &EditorSubsystem::OnProjectClosing, offsetof(EditorSubsystem, OnProjectClosing), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnProjectOpened)), &EditorSubsystem::OnProjectOpened, offsetof(EditorSubsystem, OnProjectOpened), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnActiveSceneChanged)), &EditorSubsystem::OnActiveSceneChanged, offsetof(EditorSubsystem, OnActiveSceneChanged), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } })
+HYP_END_CLASS
 
 #pragma endregion EditorSubsystem Reflection Data
 
 } // namespace hyperion
+
 
 namespace hyperion {
 
 #pragma region GenerateLightmapsEditorTask Reflection Data
 
 HYP_BEGIN_CLASS(GenerateLightmapsEditorTask, 205, 0, NAME("TickableEditorTask"))
-HypMethod(NAME(HYP_STR(GetWorld)), &GenerateLightmapsEditorTask::GetWorld),
+    HypMethod(NAME(HYP_STR(GetWorld)), &GenerateLightmapsEditorTask::GetWorld),
     HypMethod(NAME(HYP_STR(SetWorld)), &GenerateLightmapsEditorTask::SetWorld),
     HypMethod(NAME(HYP_STR(GetScene)), &GenerateLightmapsEditorTask::GetScene),
     HypMethod(NAME(HYP_STR(SetScene)), &GenerateLightmapsEditorTask::SetScene),
@@ -277,11 +269,12 @@ HypMethod(NAME(HYP_STR(GetWorld)), &GenerateLightmapsEditorTask::GetWorld),
     HypMethod(NAME(HYP_STR(Cancel)), &GenerateLightmapsEditorTask::Cancel),
     HypMethod(NAME(HYP_STR(IsCompleted)), &GenerateLightmapsEditorTask::IsCompleted),
     HypMethod(NAME(HYP_STR(Tick)), &GenerateLightmapsEditorTask::Tick)
-        HYP_END_CLASS
+HYP_END_CLASS
 
 #pragma endregion GenerateLightmapsEditorTask Reflection Data
 
 } // namespace hyperion
+
 
 namespace hyperion {
 
@@ -308,22 +301,20 @@ namespace hyperion {
 #pragma region EditorPropertyPanelBase Reflection Data
 
 HYP_BEGIN_CLASS(EditorPropertyPanelBase, 18, 1, NAME("UIPanel"), ClassAttribute("abstract", true))
-HypMethod(NAME(HYP_STR(Build)), &EditorPropertyPanelBase::Build, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } })
-    HYP_END_CLASS
+    HypMethod(NAME(HYP_STR(Build)), &EditorPropertyPanelBase::Build, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
+HYP_END_CLASS
 
 #pragma endregion EditorPropertyPanelBase Reflection Data
 
 #pragma region EditorPropertyPanelBase Scriptable Methods
 
-void EditorPropertyPanelBase::Build(const HypData& hypData, const HypProperty* property)
+void EditorPropertyPanelBase::Build(const HypData & hypData, const HypProperty * property)
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Build");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, hypData, property);
             return;
@@ -365,6 +356,7 @@ HYP_END_CLASS
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region StatOverlay Reflection Data
@@ -382,6 +374,7 @@ HYP_END_CLASS
 #include <ui/UIObject.hpp>
 #include <core/NameInternal.hpp>
 
+
 namespace hyperion {
 
 #pragma region TextureEditorDebugOverlay Reflection Data
@@ -392,6 +385,7 @@ HYP_END_CLASS
 #pragma endregion TextureEditorDebugOverlay Reflection Data
 
 } // namespace hyperion
+
 
 namespace hyperion {
 
@@ -415,17 +409,17 @@ namespace hyperion {
 #pragma region EditorDebugOverlayBase Reflection Data
 
 HYP_BEGIN_CLASS(EditorDebugOverlayBase, 209, 4, NAME("HypObjectBase"), ClassAttribute("abstract", true))
-HypMethod(NAME(HYP_STR(GetUIObject)), &EditorDebugOverlayBase::GetUIObject),
-    HypMethod(NAME(HYP_STR(GetPlacement)), &EditorDebugOverlayBase::GetPlacement, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(Update)), &EditorDebugOverlayBase::Update, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(CreateUIObject)), &EditorDebugOverlayBase::CreateUIObject, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(GetName)), &EditorDebugOverlayBase::GetName, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(IsEnabled)), &EditorDebugOverlayBase::IsEnabled, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(GetUIObject)), &EditorDebugOverlayBase::GetUIObject),
+    HypMethod(NAME(HYP_STR(GetPlacement)), &EditorDebugOverlayBase::GetPlacement, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(Update)), &EditorDebugOverlayBase::Update, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(CreateUIObject)), &EditorDebugOverlayBase::CreateUIObject, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(GetName)), &EditorDebugOverlayBase::GetName, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(IsEnabled)), &EditorDebugOverlayBase::IsEnabled, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(GetPlacement_Impl)), &EditorDebugOverlayBase::GetPlacement_Impl),
     HypMethod(NAME(HYP_STR(Update_Impl)), &EditorDebugOverlayBase::Update_Impl),
     HypMethod(NAME(HYP_STR(GetName_Impl)), &EditorDebugOverlayBase::GetName_Impl),
     HypMethod(NAME(HYP_STR(IsEnabled_Impl)), &EditorDebugOverlayBase::IsEnabled_Impl)
-        HYP_END_CLASS
+HYP_END_CLASS
 
 #pragma endregion EditorDebugOverlayBase Reflection Data
 
@@ -433,13 +427,11 @@ HypMethod(NAME(HYP_STR(GetUIObject)), &EditorDebugOverlayBase::GetUIObject),
 
 int EditorDebugOverlayBase::GetPlacement() const
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("GetPlacement");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<int>(method_ptr);
         }
@@ -449,13 +441,11 @@ int EditorDebugOverlayBase::GetPlacement() const
 }
 void EditorDebugOverlayBase::Update(float delta)
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Update");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, delta);
             return;
@@ -464,15 +454,13 @@ void EditorDebugOverlayBase::Update(float delta)
 
     Update_Impl(delta);
 }
-Handle<UIObject> EditorDebugOverlayBase::CreateUIObject(UIObject* spawnParent)
+Handle<UIObject> EditorDebugOverlayBase::CreateUIObject(UIObject * spawnParent)
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("CreateUIObject");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Handle<UIObject>>(method_ptr, spawnParent);
         }
@@ -482,13 +470,11 @@ Handle<UIObject> EditorDebugOverlayBase::CreateUIObject(UIObject* spawnParent)
 }
 Name EditorDebugOverlayBase::GetName() const
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("GetName");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Name>(method_ptr);
         }
@@ -498,13 +484,11 @@ Name EditorDebugOverlayBase::GetName() const
 }
 bool EditorDebugOverlayBase::IsEnabled() const
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("IsEnabled");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -524,12 +508,13 @@ bool EditorDebugOverlayBase::IsEnabled() const
 #include <ui/UIObject.hpp>
 #include <input/Mouse.hpp>
 
+
 namespace hyperion {
 
 #pragma region EditorMain Reflection Data
 
 HYP_BEGIN_CLASS(EditorMain, 214, 0, NAME("HypObjectBase"), ClassAttribute("noscriptbindings", true))
-HypMethod(NAME(HYP_STR(BeforeAdded)), &EditorMain::BeforeAdded),
+    HypMethod(NAME(HYP_STR(BeforeAdded)), &EditorMain::BeforeAdded),
     HypMethod(NAME(HYP_STR(OnAdded)), &EditorMain::OnAdded),
     HypMethod(NAME(HYP_STR(OpenProjectClicked)), &EditorMain::OpenProjectClicked),
     HypMethod(NAME(HYP_STR(SaveClicked)), &EditorMain::SaveClicked),
@@ -545,7 +530,7 @@ HypMethod(NAME(HYP_STR(BeforeAdded)), &EditorMain::BeforeAdded),
     HypMethod(NAME(HYP_STR(AddLightmapVolume)), &EditorMain::AddLightmapVolume),
     HypMethod(NAME(HYP_STR(AddNode)), &EditorMain::AddNode),
     HypMethod(NAME(HYP_STR(AddEntity)), &EditorMain::AddEntity)
-        HYP_END_CLASS
+HYP_END_CLASS
 
 #pragma endregion EditorMain Reflection Data
 
@@ -568,22 +553,20 @@ namespace hyperion {
 #pragma region ConsoleCommandBase Reflection Data
 
 HYP_BEGIN_CLASS(ConsoleCommandBase, 215, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true))
-HypMethod(NAME(HYP_STR(Execute)), &ConsoleCommandBase::Execute, Span<const ClassAttribute> { { ClassAttribute("scriptable", true) } })
-    HYP_END_CLASS
+    HypMethod(NAME(HYP_STR(Execute)), &ConsoleCommandBase::Execute, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
+HYP_END_CLASS
 
 #pragma endregion ConsoleCommandBase Reflection Data
 
 #pragma region ConsoleCommandBase Scriptable Methods
 
-Result ConsoleCommandBase::Execute(const CommandLineArguments& args)
+Result ConsoleCommandBase::Execute(const CommandLineArguments & args)
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Execute");
-        if (dotnet::ManagedMethod* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Result>(method_ptr, args);
         }
@@ -623,3 +606,4 @@ HYP_END_CLASS
 #pragma endregion LogEntitiesCommand Reflection Data
 
 } // namespace hyperion
+
