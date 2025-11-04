@@ -141,7 +141,7 @@ void ForEachEnumMember(Function&& function)
 
     bool stopIteration = false;
 
-    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_CONSTANT))
+    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_STATIC_FIELD))
     {
         // If the function sets stopIteration to true, stop iteration
         function(member.GetName(), static_cast<EnumType>(GetEnumMemberValue(member).Get<EnumUnderlyingType>()), &stopIteration);
@@ -170,7 +170,7 @@ String EnumToString(EnumType value)
         return String::empty;
     }
 
-    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_CONSTANT))
+    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_STATIC_FIELD))
     {
         // If the function sets stopIteration to true, stop iteration
         if (static_cast<EnumType>(GetEnumMemberValue(member).Get<EnumUnderlyingType>()) == value)
@@ -200,7 +200,7 @@ EnumType EnumValue(WeakName memberName, EnumType errorValue = EnumType())
         return errorValue;
     }
 
-    if (IHypMember* pMember = cls->GetMember(memberName, HypMemberType::TYPE_CONSTANT))
+    if (IHypMember* pMember = cls->GetMember(memberName, HypMemberType::TYPE_STATIC_FIELD))
     {
         return static_cast<EnumType>(GetEnumMemberValue(*pMember).Get<EnumUnderlyingType>());
     }

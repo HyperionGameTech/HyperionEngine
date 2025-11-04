@@ -29,10 +29,10 @@ namespace hyperion {
 
 class Class;
 
-class HypConstant : public IHypMember
+class StaticField : public IHypMember
 {
 public:
-    HypConstant(Name name, const TypeInfo* typeInfo, uint32 size, Span<const ClassAttribute> attributes = {})
+    StaticField(Name name, const TypeInfo* typeInfo, uint32 size, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_typeInfo(typeInfo),
           m_size(size),
@@ -42,7 +42,7 @@ public:
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
-    HypConstant(Name name, ConstantType value, Span<const ClassAttribute> attributes = {})
+    StaticField(Name name, ConstantType value, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
@@ -65,7 +65,7 @@ public:
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
-    HypConstant(Name name, const ConstantType* pValue, Span<const ClassAttribute> attributes = {})
+    StaticField(Name name, const ConstantType* pValue, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
@@ -89,17 +89,17 @@ public:
         };
     }
 
-    HypConstant(const HypConstant& other) = delete;
-    HypConstant& operator=(const HypConstant& other) = delete;
+    StaticField(const StaticField& other) = delete;
+    StaticField& operator=(const StaticField& other) = delete;
 
-    HypConstant(HypConstant&& other) noexcept = default;
-    HypConstant& operator=(HypConstant&& other) noexcept = default;
+    StaticField(StaticField&& other) noexcept = default;
+    StaticField& operator=(StaticField&& other) noexcept = default;
 
-    virtual ~HypConstant() override = default;
+    virtual ~StaticField() override = default;
 
     virtual HypMemberType GetMemberType() const override
     {
-        return HypMemberType::TYPE_CONSTANT;
+        return HypMemberType::TYPE_STATIC_FIELD;
     }
 
     virtual Name GetName() const override
@@ -141,12 +141,12 @@ public:
     {
         if (!CanSerialize())
         {
-            return HYP_MAKE_ERROR(Error, "Constant '{}' cannot be serialized", m_name);
+            return HYP_MAKE_ERROR(Error, "Static field '{}' cannot be serialized", m_name);
         }
 
         if (args.Size() != 0)
         {
-            return HYP_MAKE_ERROR(Error, "Expected zero arguments to serialize constant, got {}", args.Size());
+            return HYP_MAKE_ERROR(Error, "Expected zero arguments to serialize static field, got {}", args.Size());
         }
 
         return m_serializeProc(out, flags);
@@ -154,7 +154,7 @@ public:
 
     virtual Result Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& data) const override
     {
-        return HYP_MAKE_ERROR(Error, "Constant cannot be deserialized");
+        return HYP_MAKE_ERROR(Error, "Static field cannot be deserialized");
     }
 
     virtual const ClassAttributeSet& GetAttributes() const override

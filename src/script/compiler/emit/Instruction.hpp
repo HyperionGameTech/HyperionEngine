@@ -14,7 +14,7 @@
 #include <core/reflection/ClassAttribute.hpp>
 
 namespace hyperion {
-enum class HypMethodFlags : uint8;
+enum class MethodFlags : uint8;
 enum class ClassFlags : uint8;
 } // namespace hyperion
 
@@ -298,7 +298,7 @@ struct ClassTable final : public Buildable
     struct MethodInfo : MemberInfo
     {
         TypeId targetTypeId;
-        HypMethodFlags flags = (HypMethodFlags)0;
+        MethodFlags flags = (MethodFlags)0;
     };
 
     struct StaticFieldInfo : MemberInfo

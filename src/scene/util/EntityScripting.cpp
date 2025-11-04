@@ -23,7 +23,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
@@ -110,7 +110,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         Handle<HypObjectBase> nativeObject = data->nativeObject.Lock();
         AssertDebug(nativeObject != nullptr);
 
-        if (const HypMethod* method = nativeObject->InstanceClass()->GetMethod(methodName))
+        if (const Method* method = nativeObject->InstanceClass()->GetMethod(methodName))
         {
             if constexpr (!std::is_void_v<ReturnType>)
             {

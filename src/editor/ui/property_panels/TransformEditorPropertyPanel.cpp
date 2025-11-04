@@ -3,7 +3,7 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 #include <core/reflection/HypData.hpp>
 
 #include <scene/Node.hpp>
@@ -25,7 +25,7 @@ TransformEditorPropertyPanel::TransformEditorPropertyPanel()
 
 TransformEditorPropertyPanel::~TransformEditorPropertyPanel() = default;
 
-void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const HypProperty* property)
+void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const Property* property)
 {
     HYP_NAMED_SCOPE("TransformEditorPropertyPanel::Build");
 

@@ -1049,7 +1049,7 @@ void DecompilationUnit::DecodeNext(
 
                 switch (memberType)
                 {
-                case (uint8)HypMemberType::TYPE_CONSTANT:
+                case (uint8)HypMemberType::TYPE_STATIC_FIELD:
                     memberTypeStr = "static_field";
                     break;
                 case (uint8)HypMemberType::TYPE_PROPERTY:
@@ -1168,7 +1168,7 @@ void DecompilationUnit::DecodeNext(
                 // Read member-type-specific data
                 switch ((HypMemberType)memberType)
                 {
-                case HypMemberType::TYPE_CONSTANT:
+                case HypMemberType::TYPE_STATIC_FIELD:
                 {
                     uint32 valueSize;
                     bs.Read(&valueSize);

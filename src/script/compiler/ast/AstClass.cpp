@@ -30,7 +30,7 @@
 #include <core/reflection/HypObject.hpp>
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 
 #include <core/containers/HashMap.hpp>
 
@@ -75,13 +75,13 @@ AstClass::AstClass(
     EnumFlags<AstClassFlags> flags,
     const SourceLocation& location)
     : AstClass(
-        name,
-        RC<AstTypeSpecifier>(),
-        dataMembers,
-        functionMembers,
-        staticMembers,
-        flags,
-        location)
+          name,
+          RC<AstTypeSpecifier>(),
+          dataMembers,
+          functionMembers,
+          staticMembers,
+          flags,
+          location)
 {
     m_baseType = baseType;
 }
@@ -644,12 +644,12 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         if (decl->GetIdentifierFlags() & IdentifierFlags::STATIC_MEMBER)
         {
             // static method
-            methodInfo.flags = HypMethodFlags::STATIC;
+            methodInfo.flags = MethodFlags::STATIC;
         }
         else
         {
             // instance method
-            methodInfo.flags = HypMethodFlags::MEMBER;
+            methodInfo.flags = MethodFlags::MEMBER;
         }
 
         chunk->Append(decl->Build(visitor, mod));

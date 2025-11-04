@@ -20,7 +20,7 @@ namespace hyperion {
 
 struct AnyHandle;
 struct HypData;
-struct HypMethod;
+struct Method;
 
 enum class Script_FunctionAddress : uint32;
 
@@ -148,7 +148,7 @@ struct alignas(8) Script_VMData
             uint8 m_flags;
         } func;
 
-        HypMethod* nativeFunc;
+        Method* nativeFunc;
 
         struct
         {

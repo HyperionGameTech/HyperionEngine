@@ -2011,7 +2011,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     //        NAME("SceneView"),
     //        node.Get(),
     //        { Node::StaticClass()->GetProperty(NAME("Name")), 1 },
-    //        [this, listViewWeak = listView.ToWeak()](Node* node, const HypProperty* property)
+    //        [this, listViewWeak = listView.ToWeak()](Node* node, const Property* property)
     //        {
     //            // Update name in list view
     //            if (node->GetNodeFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
@@ -2226,11 +2226,11 @@ void EditorSubsystem::InitDetailView()
 
             UIDataSourceBase* dataSource = detailsListView->GetDataSource();
 
-            HashMap<String, HypProperty*> propertiesByName;
+            HashMap<String, Property*> propertiesByName;
 
             for (auto it = cls->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != cls->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
             {
-                if (HypProperty* property = dynamic_cast<HypProperty*>(&*it))
+                if (Property* property = dynamic_cast<Property*>(&*it))
                 {
                     if (!property->GetAttribute(Attributes::g_attrEditor))
                     {
@@ -2277,8 +2277,8 @@ void EditorSubsystem::InitDetailView()
                 NAME("DetailView"),
                 node,
                 {},
-                Proc<void(Node*, const HypProperty*)> {
-                    [this, cls = Node::StaticClass(), detailsListViewWeak](Node* node, const HypProperty* property)
+                Proc<void(Node*, const Property*)> {
+                    [this, cls = Node::StaticClass(), detailsListViewWeak](Node* node, const Property* property)
                     {
                         HYP_LOG(Editor, Debug, "(detail) Node property changed: {}", property->GetName());
 

@@ -17,7 +17,7 @@ public:
     TransformEditorPropertyPanel();
     virtual ~TransformEditorPropertyPanel() override;
 
-    virtual void Build_Impl(const HypData& hypData, const HypProperty* property) override;
+    virtual void Build_Impl(const HypData& hypData, const Property* property) override;
 };
 
 } // namespace hyperion

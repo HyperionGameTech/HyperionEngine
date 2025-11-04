@@ -14,14 +14,14 @@
 namespace hyperion {
 
 class Node;
-class HypProperty;
+class Property;
 
 struct EditorNodePropertyRef
 {
     String title;
     Optional<String> description;
     WeakHandle<Node> node;
-    HypProperty* property = nullptr;
+    Property* property = nullptr;
 };
 
 class UIElementFactoryBase;

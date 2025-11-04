@@ -5,7 +5,7 @@
 
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 
 #include <core/debug/Debug.hpp>
 

@@ -35,9 +35,9 @@ class HypObjectBase;
 struct HypObjectHeader;
 class IHypMember;
 class Field;
-class HypMethod;
-class HypConstant;
-class HypProperty;
+class Method;
+class StaticField;
+class Property;
 
 template <class T>
 struct Handle;

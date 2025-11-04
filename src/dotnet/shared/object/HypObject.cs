@@ -136,7 +136,7 @@ namespace Hyperion
             }
         }
 
-        public HypProperty GetProperty(Name name)
+        public Property GetProperty(Name name)
         {
             if (_classPtr == IntPtr.Zero)
             {
@@ -149,7 +149,7 @@ namespace Hyperion
             {
                 string propertiesString = "";
 
-                foreach (HypProperty property in Class.Properties)
+                foreach (Property property in Class.Properties)
                 {
                     propertiesString += property.Name + ", ";
                 }
@@ -157,10 +157,10 @@ namespace Hyperion
                 throw new Exception("Failed to get property \"" + name + "\" from Class \"" + Class.Name + "\". Available properties: " + propertiesString);
             }
 
-            return new HypProperty(propertyPtr);
+            return new Property(propertyPtr);
         }
 
-        public HypMethod GetMethod(Name name)
+        public Method GetMethod(Name name)
         {
             if (_classPtr == IntPtr.Zero)
             {
@@ -174,10 +174,10 @@ namespace Hyperion
                 throw new Exception("Failed to get method \"" + name + "\" from Class \"" + Class.Name + "\"");
             }
 
-            return new HypMethod(methodPtr);
+            return new Method(methodPtr);
         }
 
-        public static HypMethod GetMethod(Class cls, Name name)
+        public static Method GetMethod(Class cls, Name name)
         {
             IntPtr methodPtr = Class_GetMethod(cls.Address, ref name);
 
@@ -186,7 +186,7 @@ namespace Hyperion
                 throw new Exception("Failed to get method \"" + name + "\" from Class \"" + cls.Name + "\"");
             }
 
-            return new HypMethod(methodPtr);
+            return new Method(methodPtr);
         }
 
         public T? InvokeNativeMethod<T>(Name name, object[]? args = null)
@@ -196,7 +196,7 @@ namespace Hyperion
                 throw new Exception("Class pointer is null");
             }
 
-            HypMethod method = GetMethod(name);
+            Method method = GetMethod(name);
 
             using (HypDataBuffer resultData = method.InvokeNativeWithThis(this, args))
             {
@@ -213,7 +213,7 @@ namespace Hyperion
 
             Logger.Log(LogType.Debug, $"Invoking native method {name} on {this}");
 
-            HypMethod method = GetMethod(name);
+            Method method = GetMethod(name);
 
             using (HypDataBuffer resultData = method.InvokeNativeWithThis(this, args))
             {

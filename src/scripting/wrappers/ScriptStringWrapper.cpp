@@ -14,11 +14,11 @@ HYP_API const Class* g_clsScript_String = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Script_String, -1, 0, {})
-    HypMethod(NAME("operator+"), +[](const Script_String& a, const Script_String& b) -> Script_String
+    Method(NAME("operator+"), +[](const Script_String& a, const Script_String& b) -> Script_String
         {
             return a + b;
         }),
-    HypMethod(NAME("Length"), +[](const Script_String& str) -> uint64
+    Method(NAME("Length"), +[](const Script_String& str) -> uint64
         {
             return str.Length();
         })

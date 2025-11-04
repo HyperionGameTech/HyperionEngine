@@ -20,7 +20,7 @@
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 
 #include <core/io/ByteWriter.hpp>
 #include <core/io/BufferedByteReader.hpp>
@@ -2647,7 +2647,7 @@ void AssetRegistry::RegisterAssetsRecursively(
             {
             case HypMemberType::TYPE_PROPERTY:
             {
-                const HypProperty* property = static_cast<const HypProperty*>(&member);
+                const Property* property = static_cast<const Property*>(&member);
                 memberData = property->Get(current);
             }
             break;

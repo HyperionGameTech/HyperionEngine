@@ -4,10 +4,10 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypMethod.hpp>
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Method.hpp>
+#include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/HypConstant.hpp>
+#include <core/reflection/StaticField.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 
 #include <core/reflection/TypeId.hpp>
@@ -25,13 +25,13 @@ struct HypMember
     {
     }
 
-    HypMember(HypProperty&& property)
-        : internal(new HypProperty(std::move(property)))
+    HypMember(Property&& property)
+        : internal(new Property(std::move(property)))
     {
     }
 
-    HypMember(HypMethod&& method)
-        : internal(new HypMethod(std::move(method)))
+    HypMember(Method&& method)
+        : internal(new Method(std::move(method)))
     {
     }
 
@@ -40,8 +40,8 @@ struct HypMember
     {
     }
 
-    HypMember(HypConstant&& field)
-        : internal(new HypConstant(std::move(field)))
+    HypMember(StaticField&& field)
+        : internal(new StaticField(std::move(field)))
     {
     }
 

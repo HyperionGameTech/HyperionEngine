@@ -352,7 +352,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                         return HYP_MAKE_ERROR(Error, "Static fields must be const or constexpr");
                     }
 
-                    writer.WriteString(HYP_FORMAT("    HypConstant(NAME(HYP_STR({})), &{}::{}", member.friendlyName, cls.name, member.name));
+                    writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), &{}::{}", member.friendlyName, cls.name, member.name));
                 }
                 else
                 {
@@ -368,7 +368,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             }
             else if (member.type == HypMemberType::TYPE_METHOD)
             {
-                writer.WriteString(HYP_FORMAT("    HypMethod(NAME(HYP_STR({})), &{}::{}", member.name, cls.name, member.name));
+                writer.WriteString(HYP_FORMAT("    Method(NAME(HYP_STR({})), &{}::{}", member.name, cls.name, member.name));
 
                 if (attributesString.Any())
                 {
@@ -394,11 +394,11 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                     }
                 }
 
-                writer.WriteString(HYP_FORMAT("    HypProperty(NAME(HYP_STR({})){})", member.name, propertyArgsString.Any() ? ", " + propertyArgsString : ""));
+                writer.WriteString(HYP_FORMAT("    Property(NAME(HYP_STR({})){})", member.name, propertyArgsString.Any() ? ", " + propertyArgsString : ""));
             }
-            else if (member.type == HypMemberType::TYPE_CONSTANT)
+            else if (member.type == HypMemberType::TYPE_STATIC_FIELD)
             {
-                writer.WriteString(HYP_FORMAT("    HypConstant(NAME(HYP_STR({})), {}::{})", member.friendlyName, cls.name, member.name));
+                writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), {}::{})", member.friendlyName, cls.name, member.name));
             }
 
             if (i != cls.members.Size() - 1)
@@ -698,7 +698,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                         return HYP_MAKE_ERROR(Error, "Static fields must be const or constexpr");
                     }
 
-                    writer.WriteString(HYP_FORMAT("    HypConstant(NAME(HYP_STR({})), &{}::{}", member.friendlyName, cls.name, member.name));
+                    writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), &{}::{}", member.friendlyName, cls.name, member.name));
                 }
                 else
                 {
@@ -714,7 +714,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
             }
             else if (member.type == HypMemberType::TYPE_METHOD)
             {
-                writer.WriteString(HYP_FORMAT("    HypMethod(NAME(HYP_STR({})), &{}::{}", member.name, cls.name, member.name));
+                writer.WriteString(HYP_FORMAT("    Method(NAME(HYP_STR({})), &{}::{}", member.name, cls.name, member.name));
 
                 if (attributesString.Any())
                 {
@@ -740,11 +740,11 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                     }
                 }
 
-                writer.WriteString(HYP_FORMAT("    HypProperty(NAME(HYP_STR({})){})", member.name, propertyArgsString.Any() ? ", " + propertyArgsString : ""));
+                writer.WriteString(HYP_FORMAT("    Property(NAME(HYP_STR({})){})", member.name, propertyArgsString.Any() ? ", " + propertyArgsString : ""));
             }
-            else if (member.type == HypMemberType::TYPE_CONSTANT)
+            else if (member.type == HypMemberType::TYPE_STATIC_FIELD)
             {
-                writer.WriteString(HYP_FORMAT("    HypConstant(NAME(HYP_STR({})), {}::{})", member.friendlyName, cls.name, member.name));
+                writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), {}::{})", member.friendlyName, cls.name, member.name));
             }
 
             if (i != cls.members.Size() - 1)

@@ -22,7 +22,7 @@ EditorDelegates::EditorDelegates()
 {
 }
 
-void EditorDelegates::AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const HypProperty> propertiesToWatch, Proc<void(Node*, const HypProperty*)>&& proc)
+void EditorDelegates::AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const Property> propertiesToWatch, Proc<void(Node*, const Property*)>&& proc)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
@@ -33,7 +33,7 @@ void EditorDelegates::AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const
     nodeWatcher.rootNode = MakeWeakRef(rootNode);
     nodeWatcher.OnChange.BindThreaded(std::move(proc), g_gameThread).Detach();
 
-    for (const HypProperty& property : propertiesToWatch)
+    for (const Property& property : propertiesToWatch)
     {
         nodeWatcher.propertiesToWatch.Insert(&property);
     }
@@ -84,7 +84,7 @@ int EditorDelegates::RemoveNodeWatchers(WeakName watcherKey)
     return numRemoved;
 }
 
-void EditorDelegates::OnNodeUpdate(Node* node, const HypProperty* property)
+void EditorDelegates::OnNodeUpdate(Node* node, const Property* property)
 {
     Assert(node != nullptr);
     Assert(property != nullptr);

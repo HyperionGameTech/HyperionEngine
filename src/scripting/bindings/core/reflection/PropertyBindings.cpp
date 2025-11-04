@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 #include <core/reflection/HypObject.hpp>
 #include <core/reflection/HypData.hpp>
 
@@ -21,7 +21,7 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void HypProperty_GetName(const HypProperty* property, Name* outName)
+    HYP_EXPORT void Property_GetName(const Property* property, Name* outName)
     {
         if (!property || !outName)
         {
@@ -31,7 +31,7 @@ extern "C"
         *outName = property->GetName();
     }
 
-    HYP_EXPORT void HypProperty_GetTypeId(const HypProperty* property, TypeId* outTypeId)
+    HYP_EXPORT void Property_GetTypeId(const Property* property, TypeId* outTypeId)
     {
         if (!property || !outTypeId)
         {
@@ -41,7 +41,7 @@ extern "C"
         *outTypeId = property->GetTypeId();
     }
 
-    HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty* property, const Class* targetClass, void* targetPtr, HypData* outResult)
+    HYP_EXPORT bool Property_InvokeGetter(const Property* property, const Class* targetClass, void* targetPtr, HypData* outResult)
     {
         if (!property || !targetClass || !targetPtr || !outResult)
         {
@@ -60,7 +60,7 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT bool HypProperty_InvokeSetter(const HypProperty* property, const Class* targetClass, void* targetPtr, HypData* value)
+    HYP_EXPORT bool Property_InvokeSetter(const Property* property, const Class* targetClass, void* targetPtr, HypData* value)
     {
         if (!property || !targetClass || !targetPtr || !value)
         {

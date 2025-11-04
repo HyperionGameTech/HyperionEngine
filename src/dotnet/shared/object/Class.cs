@@ -188,7 +188,7 @@ namespace Hyperion
             return new ClassAttribute(attributePtr);
         }
 
-        public IEnumerable<HypProperty> Properties
+        public IEnumerable<Property> Properties
         {
             get
             {
@@ -198,12 +198,12 @@ namespace Hyperion
                 for (int i = 0; i < count; i++)
                 {
                     IntPtr propertyPtr = Marshal.ReadIntPtr(propertiesPtr, i * IntPtr.Size);
-                    yield return new HypProperty(propertyPtr);
+                    yield return new Property(propertyPtr);
                 }
             }
         }
 
-        public HypProperty? GetProperty(Name name)
+        public Property? GetProperty(Name name)
         {
             IntPtr propertyPtr = Class_GetProperty(ptr, ref name);
 
@@ -212,10 +212,10 @@ namespace Hyperion
                 return null;
             }
 
-            return new HypProperty(propertyPtr);
+            return new Property(propertyPtr);
         }
 
-        public IEnumerable<HypMethod> Methods
+        public IEnumerable<Method> Methods
         {
             get
             {
@@ -225,12 +225,12 @@ namespace Hyperion
                 for (int i = 0; i < count; i++)
                 {
                     IntPtr methodPtr = Marshal.ReadIntPtr(methodsPtr, i * IntPtr.Size);
-                    yield return new HypMethod(methodPtr);
+                    yield return new Method(methodPtr);
                 }
             }
         }
 
-        public HypMethod? GetMethod(Name name)
+        public Method? GetMethod(Name name)
         {
             IntPtr methodPtr = Class_GetMethod(ptr, ref name);
 
@@ -239,7 +239,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new HypMethod(methodPtr);
+            return new Method(methodPtr);
         }
 
         public IEnumerable<Field> Fields
@@ -269,31 +269,31 @@ namespace Hyperion
             return new Field(fieldPtr);
         }
 
-        public IEnumerable<HypConstant> Constants
+        public IEnumerable<StaticField> Constants
         {
             get
             {
                 IntPtr constantsPtr;
-                uint count = Class_GetConstants(ptr, out constantsPtr);
+                uint count = Class_GetStaticFields(ptr, out constantsPtr);
 
                 for (int i = 0; i < count; i++)
                 {
                     IntPtr constantPtr = Marshal.ReadIntPtr(constantsPtr, i * IntPtr.Size);
-                    yield return new HypConstant(constantPtr);
+                    yield return new StaticField(constantPtr);
                 }
             }
         }
 
-        public HypConstant? GetConstant(Name name)
+        public StaticField? GetStaticField(Name name)
         {
-            IntPtr constantPtr = Class_GetConstant(ptr, ref name);
+            IntPtr constantPtr = Class_GetStaticField(ptr, ref name);
 
             if (constantPtr == IntPtr.Zero)
             {
                 return null;
             }
 
-            return new HypConstant(constantPtr);
+            return new StaticField(constantPtr);
         }
 
         public void ValidateType(Type type)
@@ -513,10 +513,10 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "Class_GetField")]
         private static extern IntPtr Class_GetField([In] IntPtr classPtr, [In] ref Name name);
 
-        [DllImport("hyperion", EntryPoint = "Class_GetConstants")]
-        private static extern uint Class_GetConstants([In] IntPtr classPtr, [Out] out IntPtr outConstantsPtr);
+        [DllImport("hyperion", EntryPoint = "Class_GetStaticFields")]
+        private static extern uint Class_GetStaticFields([In] IntPtr classPtr, [Out] out IntPtr outConstantsPtr);
 
-        [DllImport("hyperion", EntryPoint = "Class_GetConstant")]
-        private static extern IntPtr Class_GetConstant([In] IntPtr classPtr, [In] ref Name name);
+        [DllImport("hyperion", EntryPoint = "Class_GetStaticField")]
+        private static extern IntPtr Class_GetStaticField([In] IntPtr classPtr, [In] ref Name name);
     }
 }

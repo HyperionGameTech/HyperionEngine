@@ -17,11 +17,11 @@
 
 namespace hyperion {
 
-class HypMethod;
+class Method;
 class HypObjectBase;
 struct HypData;
 
-extern "C" HypMethod* Class_GetMethod(const Class* cls, const Name* methodName);
+extern "C" Method* Class_GetMethod(const Class* cls, const Name* methodName);
 
 namespace functional {
 
@@ -43,7 +43,7 @@ public:
 class ScriptableDelegateHelper
 {
 public:
-    static void InvokeHypMethod_Internal(HypData* outReturnHypData, const HypMethod* method, const Handle<HypObjectBase>& target, Span<HypData> argsHypData);
+    static void InvokeMethod_Internal(HypData* outReturnHypData, const Method* method, const Handle<HypObjectBase>& target, Span<HypData> argsHypData);
 
     template <class HypDataType, class ReturnType, class... Args>
     static bool InvokeScriptObjectMethod(ScriptObjectResource* scriptObjectResource, const String& methodName, ReturnType* outReturn, Args&&... args)
@@ -105,17 +105,17 @@ public:
 
         const Name name = Name(WeakName(*methodName));
 
-        const HypMethod* method = Class_GetMethod(nativeObject->InstanceClass(), &name);
+        const Method* method = Class_GetMethod(nativeObject->InstanceClass(), &name);
         if (!method)
         {
             return false;
         }
 
-        return InvokeHypMethod<HypData, ReturnType>(method, nativeObject, outReturn, std::forward<Args>(args)...);
+        return InvokeMethod<HypData, ReturnType>(method, nativeObject, outReturn, std::forward<Args>(args)...);
     }
 
     template <class HypDataType, class ReturnType, class... Args>
-    static bool InvokeHypMethod(const HypMethod* method, const Handle<HypObjectBase>& target, ReturnType* outReturn, Args&&... args)
+    static bool InvokeMethod(const Method* method, const Handle<HypObjectBase>& target, ReturnType* outReturn, Args&&... args)
     {
         if (!target || !method)
         {
@@ -126,14 +126,14 @@ public:
 
         if constexpr (std::is_void_v<ReturnType>)
         {
-            InvokeHypMethod_Internal(nullptr, method, target, argsHypData);
+            InvokeMethod_Internal(nullptr, method, target, argsHypData);
         }
         else
         {
             HYP_CORE_ASSERT(outReturn != nullptr);
 
             HypDataType result;
-            InvokeHypMethod_Internal(&result, method, target, argsHypData);
+            InvokeMethod_Internal(&result, method, target, argsHypData);
 
             new (outReturn) ReturnType(result.template Get<ReturnType>());
         }

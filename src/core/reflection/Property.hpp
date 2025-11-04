@@ -30,10 +30,10 @@ namespace hyperion {
 
 class Class;
 
-class HypMethod;
+class Method;
 class Field;
 
-struct HypPropertyTypeInfo
+struct PropertyTypeInfo
 {
     const TypeInfo* targetTypeInfo = &TypeInfo_Void();
     const TypeInfo* valueTypeInfo = &TypeInfo_Void(); // for getter or setter: getter is param type, setter is return type
@@ -48,16 +48,16 @@ constexpr TypeId GetUnwrappedSerializationTypeId()
     return TypeId::ForType<UnwrappedSerializationType<T>>();
 }
 
-struct HypPropertyGetter
+struct PropertyGetter
 {
     Proc<HypData(const HypData& target)> getProc;
     Proc<Result(const HypData& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags)> serializeProc;
-    HypPropertyTypeInfo typeInfo;
+    PropertyTypeInfo typeInfo;
 
-    HypPropertyGetter() = default;
+    PropertyGetter() = default;
 
     template <class ReturnType, class TargetType>
-    HypPropertyGetter(ReturnType (TargetType::*memFn)())
+    PropertyGetter(ReturnType (TargetType::*memFn)())
         : getProc([memFn](const HypData& target) -> HypData
               {
                   return HypData((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)());
@@ -77,7 +77,7 @@ struct HypPropertyGetter
     }
 
     template <class ReturnType, class TargetType>
-    HypPropertyGetter(ReturnType (TargetType::*memFn)() const)
+    PropertyGetter(ReturnType (TargetType::*memFn)() const)
         : getProc([memFn](const HypData& target) -> HypData
               {
                   return HypData((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)());
@@ -96,7 +96,7 @@ struct HypPropertyGetter
     }
 
     template <class ReturnType, class TargetType>
-    HypPropertyGetter(ReturnType (*fnptr)(const TargetType*))
+    PropertyGetter(ReturnType (*fnptr)(const TargetType*))
         : getProc([fnptr](const HypData& target) -> HypData
               {
                   return HypData(fnptr(static_cast<const TargetType*>(target.ToRef().GetPointer())));
@@ -116,7 +116,7 @@ struct HypPropertyGetter
 
     // Special getter that takes no target. Used for Enums
     template <class ReturnType>
-    HypPropertyGetter(ReturnType (*fnptr)(void))
+    PropertyGetter(ReturnType (*fnptr)(void))
         : getProc([fnptr](const HypData& target) -> HypData
               {
                   return HypData(fnptr());
@@ -135,7 +135,7 @@ struct HypPropertyGetter
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
-    explicit HypPropertyGetter(ValueType TargetType::* member)
+    explicit PropertyGetter(ValueType TargetType::* member)
         : getProc([member](const HypData& target) -> HypData
               {
                   return HypData(static_cast<const TargetType*>(target.ToRef().GetPointer())->*member);
@@ -192,16 +192,16 @@ struct HypPropertyGetter
     }
 };
 
-struct HypPropertySetter
+struct PropertySetter
 {
     Proc<void(HypData&, const HypData&)> setProc;
     Proc<Result(FBOMLoadContext&, HypData&, const FBOMData&)> deserializeProc;
-    HypPropertyTypeInfo typeInfo;
+    PropertyTypeInfo typeInfo;
 
-    HypPropertySetter() = default;
+    PropertySetter() = default;
 
     template <class ReturnType, class TargetType, class ValueType>
-    HypPropertySetter(ReturnType (TargetType::*memFn)(ValueType))
+    PropertySetter(ReturnType (TargetType::*memFn)(ValueType))
         : setProc([memFn](HypData& target, const HypData& value) -> void
               {
                   if (value.IsNull())
@@ -238,7 +238,7 @@ struct HypPropertySetter
     }
 
     template <class ReturnType, class TargetType, class ValueType>
-    HypPropertySetter(ReturnType (*fnptr)(TargetType*, const ValueType&))
+    PropertySetter(ReturnType (*fnptr)(TargetType*, const ValueType&))
         : setProc([fnptr](HypData& target, const HypData& value) -> void
               {
                   if (value.IsNull())
@@ -275,7 +275,7 @@ struct HypPropertySetter
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
-    HypPropertySetter(ValueType TargetType::* member)
+    PropertySetter(ValueType TargetType::* member)
         : setProc([member](HypData& target, const HypData& value) -> void
               {
                   if (value.IsNull())
@@ -350,19 +350,19 @@ struct HypPropertySetter
     }
 };
 
-class HypProperty final : public IHypMember
+class Property final : public IHypMember
 {
 public:
     friend class Class;
-    friend HypProperty* MakeHypProperty(const Field* field, const HypMethod* getter, const HypMethod* setter);
+    friend Property* MakeProperty(const Field* field, const Method* getter, const Method* setter);
 
-    HypProperty()
+    Property()
         : m_typeInfo(&TypeInfo_Void()),
           m_originalMember(nullptr)
     {
     }
 
-    HypProperty(Name name, const Span<const ClassAttribute>& attributes = {})
+    Property(Name name, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(&TypeInfo_Void()),
           m_attributes(attributes),
@@ -370,7 +370,7 @@ public:
     {
     }
 
-    HypProperty(Name name, const TypeInfo* typeInfo, const Span<const ClassAttribute>& attributes = {})
+    Property(Name name, const TypeInfo* typeInfo, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(typeInfo),
           m_attributes(attributes),
@@ -379,7 +379,7 @@ public:
         HYP_CORE_ASSERT(m_typeInfo != nullptr);
     }
 
-    HypProperty(Name name, HypPropertyGetter&& getter, const Span<const ClassAttribute>& attributes = {})
+    Property(Name name, PropertyGetter&& getter, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(getter.typeInfo.valueTypeInfo),
           m_attributes(attributes),
@@ -389,7 +389,7 @@ public:
         HYP_CORE_ASSERT(m_typeInfo != nullptr);
     }
 
-    HypProperty(Name name, HypPropertyGetter&& getter, HypPropertySetter&& setter, const Span<const ClassAttribute>& attributes = {})
+    Property(Name name, PropertyGetter&& getter, PropertySetter&& setter, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(getter.typeInfo.valueTypeInfo),
           m_attributes(attributes),
@@ -402,24 +402,24 @@ public:
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
-    HypProperty(Name name, ValueType TargetType::* member, const Span<const ClassAttribute>& attributes = {})
+    Property(Name name, ValueType TargetType::* member, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_attributes(attributes),
-          m_getter(HypPropertyGetter(member)),
-          m_setter(HypPropertySetter(member)),
+          m_getter(PropertyGetter(member)),
+          m_setter(PropertySetter(member)),
           m_originalMember(nullptr)
     {
         m_typeInfo = m_getter.typeInfo.valueTypeInfo;
         HYP_CORE_ASSERT(m_typeInfo != nullptr);
     }
 
-    HypProperty(const HypProperty& other) = delete;
-    HypProperty& operator=(const HypProperty& other) = delete;
+    Property(const Property& other) = delete;
+    Property& operator=(const Property& other) = delete;
 
-    HypProperty(HypProperty&& other) noexcept = default;
-    HypProperty& operator=(HypProperty&& other) noexcept = default;
+    Property(Property&& other) noexcept = default;
+    Property& operator=(Property&& other) noexcept = default;
 
-    virtual ~HypProperty() override = default;
+    virtual ~Property() override = default;
 
     virtual HypMemberType GetMemberType() const override
     {
@@ -539,8 +539,8 @@ private:
 
     ClassAttributeSet m_attributes;
 
-    HypPropertyGetter m_getter;
-    HypPropertySetter m_setter;
+    PropertyGetter m_getter;
+    PropertySetter m_setter;
 
     // Set when this property is synthesized from a field or method
     const IHypMember* m_originalMember;

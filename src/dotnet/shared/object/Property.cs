@@ -3,13 +3,13 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public struct HypProperty
+    public struct Property
     {
-        public static readonly HypProperty Invalid = new HypProperty(IntPtr.Zero);
+        public static readonly Property Invalid = new Property(IntPtr.Zero);
 
         internal IntPtr ptr;
 
-        internal HypProperty(IntPtr ptr)
+        internal Property(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -19,7 +19,7 @@ namespace Hyperion
             get
             {
                 Name name = new Name(0);
-                HypProperty_GetName(ptr, out name);
+                Property_GetName(ptr, out name);
                 return name;
             }
         }
@@ -29,7 +29,7 @@ namespace Hyperion
             get
             {
                 TypeId typeId;
-                HypProperty_GetTypeId(ptr, out typeId);
+                Property_GetTypeId(ptr, out typeId);
                 return typeId;
             }
         }
@@ -48,7 +48,7 @@ namespace Hyperion
 
             HypDataBuffer resultBuffer;
 
-            if (!HypProperty_InvokeGetter(ptr, hypObject.Class.Address, hypObject.NativeAddress, out resultBuffer))
+            if (!Property_InvokeGetter(ptr, hypObject.Class.Address, hypObject.NativeAddress, out resultBuffer))
             {
                 throw new InvalidOperationException("Failed to invoke getter");
             }
@@ -73,24 +73,24 @@ namespace Hyperion
                 throw new ArgumentNullException("value");
             }
 
-            if (!HypProperty_InvokeSetter(ptr, hypObject.Class.Address, hypObject.NativeAddress, ref value.Buffer))
+            if (!Property_InvokeSetter(ptr, hypObject.Class.Address, hypObject.NativeAddress, ref value.Buffer))
             {
                 throw new InvalidOperationException("Failed to invoke setter");
             }
         }
         
-        [DllImport("hyperion", EntryPoint = "HypProperty_GetName")]
-        private static extern void HypProperty_GetName([In] IntPtr propertyPtr, [Out] out Name name);
+        [DllImport("hyperion", EntryPoint = "Property_GetName")]
+        private static extern void Property_GetName([In] IntPtr propertyPtr, [Out] out Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypProperty_GetTypeId")]
-        private static extern void HypProperty_GetTypeId([In] IntPtr propertyPtr, [Out] out TypeId typeId);
+        [DllImport("hyperion", EntryPoint = "Property_GetTypeId")]
+        private static extern void Property_GetTypeId([In] IntPtr propertyPtr, [Out] out TypeId typeId);
 
-        [DllImport("hyperion", EntryPoint = "HypProperty_InvokeGetter")]
+        [DllImport("hyperion", EntryPoint = "Property_InvokeGetter")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool HypProperty_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out HypDataBuffer outResult);
+        private static extern bool Property_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out HypDataBuffer outResult);
 
-        [DllImport("hyperion", EntryPoint = "HypProperty_InvokeSetter")]
+        [DllImport("hyperion", EntryPoint = "Property_InvokeSetter")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool HypProperty_InvokeSetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [In] ref HypDataBuffer value);
+        private static extern bool Property_InvokeSetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [In] ref HypDataBuffer value);
     }
 }

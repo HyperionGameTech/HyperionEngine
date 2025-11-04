@@ -2,9 +2,9 @@
 
 #include <core/HashCode.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/HypMethod.hpp>
-#include <core/reflection/HypConstant.hpp>
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Method.hpp>
+#include <core/reflection/StaticField.hpp>
+#include <core/reflection/Property.hpp>
 #include <core/reflection/ClassAttribute.hpp>
 
 #include <iostream>
@@ -412,7 +412,7 @@ void CodeGenerator::Visit(ClassTable* node)
                     Assert(methodInfo.stackOffset != UINT16_MAX, "Method stack offset not set");
                     m_ibs.Put(reinterpret_cast<const ubyte*>(&methodInfo.stackOffset), sizeof(methodInfo.stackOffset));
                 }
-                else if (memberType == HypMemberType::TYPE_CONSTANT)
+                else if (memberType == HypMemberType::TYPE_STATIC_FIELD)
                 {
                     const ClassTable::StaticFieldInfo& staticFieldInfo = static_cast<const ClassTable::StaticFieldInfo&>(member);
 
@@ -427,7 +427,7 @@ void CodeGenerator::Visit(ClassTable* node)
         }
     };
 
-    writeMembers(node->staticFields, HypMemberType::TYPE_CONSTANT);
+    writeMembers(node->staticFields, HypMemberType::TYPE_STATIC_FIELD);
     writeMembers(node->fields, HypMemberType::TYPE_FIELD);
     writeMembers(node->methods, HypMemberType::TYPE_METHOD);
 

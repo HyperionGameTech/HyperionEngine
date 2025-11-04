@@ -27,7 +27,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -37,7 +37,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData& targetData, const HypProperty* property)
+static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData& targetData, const Property* property)
 {
     Assert(spawnParent != nullptr);
     Assert(property != nullptr);
@@ -163,11 +163,11 @@ public:
 
         Handle<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-        HashMap<String, HypProperty*> propertiesByName;
+        HashMap<String, Property*> propertiesByName;
 
         for (auto it = cls->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != cls->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
         {
-            if (HypProperty* property = dynamic_cast<HypProperty*>(&*it))
+            if (Property* property = dynamic_cast<Property*>(&*it))
             {
                 if (!property->GetAttribute(Attributes::g_attrEditor))
                 {
@@ -190,7 +190,7 @@ public:
         for (auto& it : propertiesByName)
         {
             const String& propertyName = it.first;
-            const HypProperty* property = it.second;
+            const Property* property = it.second;
 
             Handle<UIGridRow> row = grid->AddRow();
             Handle<UIGridColumn> column = row->AddColumn();

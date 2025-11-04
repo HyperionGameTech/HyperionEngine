@@ -736,7 +736,7 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildEnumMembers(const
             do
             {
                 HypMemberDefinition hypMemberDefinition;
-                hypMemberDefinition.type = HypMemberType::TYPE_CONSTANT;
+                hypMemberDefinition.type = HypMemberType::TYPE_STATIC_FIELD;
 
                 memberDecl = parser.ParseEnumMemberDecl(nullptr);
 
@@ -865,7 +865,7 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
         {
             switch (definition.type)
             {
-            case HypMemberType::TYPE_CONSTANT:
+            case HypMemberType::TYPE_STATIC_FIELD:
             case HypMemberType::TYPE_FIELD: // fallthrough
             {
 
@@ -891,7 +891,7 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                     nameWithoutPrefix = nameWithoutPrefix.Substr(2);
                 }
 
-                if (definition.type == HypMemberType::TYPE_CONSTANT)
+                if (definition.type == HypMemberType::TYPE_STATIC_FIELD)
                 {
                     definition.friendlyName = StringUtil::ToSnakeCase(nameWithoutPrefix).ToUpper();
                 }

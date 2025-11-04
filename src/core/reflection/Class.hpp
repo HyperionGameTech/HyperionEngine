@@ -29,10 +29,10 @@ class IResource;
 class HypObjectContainerBase;
 
 struct HypMember;
-class HypProperty;
-class HypMethod;
+class Property;
+class Method;
 class Field;
-class HypConstant;
+class StaticField;
 class Class;
 class Struct;
 
@@ -114,7 +114,7 @@ class ClassMemberIterator
 {
     enum class Phase
     {
-        ITERATE_CONSTANTS,
+        ITERATE_STATIC_FIELDS,
         ITERATE_PROPERTIES,
         ITERATE_METHODS,
         ITERATE_FIELDS,
@@ -129,7 +129,7 @@ class ClassMemberIterator
         {
             if (phase == Phase::MAX)
             {
-                return Phase::ITERATE_CONSTANTS;
+                return Phase::ITERATE_STATIC_FIELDS;
             }
 
             return static_cast<Phase>(static_cast<int>(phase) + 1);
@@ -139,8 +139,8 @@ class ClassMemberIterator
         {
             switch (nextPhase)
             {
-            case Phase::ITERATE_CONSTANTS:
-                return allowedTypes & HypMemberType::TYPE_CONSTANT;
+            case Phase::ITERATE_STATIC_FIELDS:
+                return allowedTypes & HypMemberType::TYPE_STATIC_FIELD;
             case Phase::ITERATE_PROPERTIES:
                 return allowedTypes & HypMemberType::TYPE_PROPERTY;
             case Phase::ITERATE_METHODS:
@@ -540,7 +540,7 @@ public:
             this,
             HypMemberType::TYPE_METHOD
                 | HypMemberType::TYPE_FIELD
-                | HypMemberType::TYPE_CONSTANT
+                | HypMemberType::TYPE_STATIC_FIELD
                 | (includeProperties ? HypMemberType::TYPE_PROPERTY : HypMemberType::NONE),
             deep
         };
@@ -548,23 +548,23 @@ public:
 
     IHypMember* GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes = HypMemberType::ALL, bool deep = true) const;
 
-    HypProperty* GetProperty(WeakName name, bool deep = true) const;
+    Property* GetProperty(WeakName name, bool deep = true) const;
 
-    HYP_FORCE_INLINE const Array<HypProperty*>& GetProperties() const
+    HYP_FORCE_INLINE const Array<Property*>& GetProperties() const
     {
         return m_properties;
     }
 
-    Array<HypProperty*> GetPropertiesInherited() const;
+    Array<Property*> GetPropertiesInherited() const;
 
-    HypMethod* GetMethod(WeakName name, bool deep = true) const;
+    Method* GetMethod(WeakName name, bool deep = true) const;
 
-    HYP_FORCE_INLINE const Array<HypMethod*>& GetMethods() const
+    HYP_FORCE_INLINE const Array<Method*>& GetMethods() const
     {
         return m_methods;
     }
 
-    Array<HypMethod*> GetMethodsInherited() const;
+    Array<Method*> GetMethodsInherited() const;
 
     Field* GetField(WeakName name, bool deep = true) const;
 
@@ -575,14 +575,14 @@ public:
 
     Array<Field*> GetFieldsInherited() const;
 
-    HypConstant* GetConstant(WeakName name, bool deep = true) const;
+    StaticField* GetStaticField(WeakName name, bool deep = true) const;
 
-    HYP_FORCE_INLINE const Array<HypConstant*>& GetConstants() const
+    HYP_FORCE_INLINE const Array<StaticField*>& GetStaticFields() const
     {
-        return m_constants;
+        return m_staticFields;
     }
 
-    Array<HypConstant*> GetConstantsInherited() const;
+    Array<StaticField*> GetStaticFieldsInherited() const;
 
 #ifdef HYP_DOTNET
     HYP_FORCE_INLINE RC<dotnet::ManagedClass> GetManagedClass() const
@@ -661,10 +661,10 @@ protected:
         return false;
     }
 
-    void AddProperty(HypProperty* property);
-    void AddMethod(HypMethod* method);
+    void AddProperty(Property* property);
+    void AddMethod(Method* method);
     void AddField(Field* field);
-    void AddConstant(HypConstant* constant);
+    void AddStaticField(StaticField* staticField);
 
     TypeId m_typeId;
     const TypeInfo* m_typeInfo;
@@ -679,17 +679,17 @@ protected:
     SizeType m_size;
     SizeType m_alignment;
 
-    Array<HypProperty*> m_properties;
-    HashMap<Name, HypProperty*> m_propertiesByName;
+    Array<Property*> m_properties;
+    HashMap<Name, Property*> m_propertiesByName;
 
-    Array<HypMethod*> m_methods;
-    HashMap<Name, HypMethod*> m_methodsByName;
+    Array<Method*> m_methods;
+    HashMap<Name, Method*> m_methodsByName;
 
     Array<Field*> m_fields;
     HashMap<Name, Field*> m_fieldsByName;
 
-    Array<HypConstant*> m_constants;
-    HashMap<Name, HypConstant*> m_constantsByName;
+    Array<StaticField*> m_staticFields;
+    HashMap<Name, StaticField*> m_staticFieldsByName;
 
     EnumFlags<ClassSerializationMode> m_serializationMode;
 
@@ -943,15 +943,15 @@ public:
 
     virtual bool ToHypData(ByteView memory, HypData& outHypData) const override;
 
-    using Class::AddConstant;
     using Class::AddField;
     using Class::AddMethod;
     using Class::AddProperty;
+    using Class::AddStaticField;
 
     void SetField(uint32 index, Field* field);
-    void SetMethod(uint32 index, HypMethod* method);
-    void SetProperty(uint32 index, HypProperty* property);
-    void SetConstant(uint32 index, HypConstant* constant);
+    void SetMethod(uint32 index, Method* method);
+    void SetProperty(uint32 index, Property* property);
+    void SetConstant(uint32 index, StaticField* staticField);
 
     void AddRef();
     void Release();

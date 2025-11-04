@@ -17,26 +17,26 @@ HYP_API const Class* g_clsScript_Array = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Script_Array, -1, 0, {})
-    HypMethod(NAME("Size"), &Type::Size),
-    HypMethod(NAME("PushBack"), +[](Script_Array& array, const HypData& arg) -> AnyRef
+    Method(NAME("Size"), &Type::Size),
+    Method(NAME("PushBack"), +[](Script_Array& array, const HypData& arg) -> AnyRef
         {
             return AnyRef(array.PushBack(arg));
         }),
-    HypMethod(NAME("PopBack"), +[](Script_Array& array) -> HypData
+    Method(NAME("PopBack"), +[](Script_Array& array) -> HypData
         {
             Assert(!array.Empty());
             return array.PopBack();
         }),
-    HypMethod(NAME("Clear"), &Script_Array::Clear),
-    HypMethod(NAME("Resize"), &Script_Array::Resize),
-    HypMethod(NAME("Reserve"), &Script_Array::Reserve),
-    HypMethod(NAME("Empty"), &Script_Array::Empty),
-    HypMethod(NAME("Front"), +[](Script_Array& array) -> AnyRef
+    Method(NAME("Clear"), &Script_Array::Clear),
+    Method(NAME("Resize"), &Script_Array::Resize),
+    Method(NAME("Reserve"), &Script_Array::Reserve),
+    Method(NAME("Empty"), &Script_Array::Empty),
+    Method(NAME("Front"), +[](Script_Array& array) -> AnyRef
         {
             Assert(!array.Empty());
             return AnyRef(array.Front());
         }),
-    HypMethod(NAME("Back"), +[](Script_Array& array) -> AnyRef
+    Method(NAME("Back"), +[](Script_Array& array) -> AnyRef
         {
             Assert(!array.Empty());
             return AnyRef(array.Back());

@@ -39,7 +39,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/HypDataJSONHelpers.hpp>
 
@@ -698,16 +698,16 @@ public:
                     }
                     case HypMemberType::TYPE_PROPERTY:
                     {
-                        const HypProperty* hypProperty = static_cast<const HypProperty*>(&member);
+                        const Property* property = static_cast<const Property*>(&member);
 
-                        if (!hypProperty->CanSet())
+                        if (!property->CanSet())
                         {
                             HYP_LOG(Assets, Error, "Cannot set Class property: {}", member.GetName());
 
                             return false;
                         }
 
-                        hypProperty->Set(targetValue, data);
+                        property->Set(targetValue, data);
 
                         return true;
                     }

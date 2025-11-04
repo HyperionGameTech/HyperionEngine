@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 
 #include <core/functional/ScriptableDelegate.hpp>
 
@@ -26,7 +26,7 @@ HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObje
     }
 }
 
-void ScriptableDelegateHelper::InvokeHypMethod_Internal(HypData* outReturnHypData, const HypMethod* method, const Handle<HypObjectBase>& target, Span<HypData> argsHypData)
+void ScriptableDelegateHelper::InvokeMethod_Internal(HypData* outReturnHypData, const Method* method, const Handle<HypObjectBase>& target, Span<HypData> argsHypData)
 {
     HYP_CORE_ASSERT(method != nullptr, "Method cannot be null");
 

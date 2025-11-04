@@ -311,7 +311,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     managedName = attr.GetString();
                 }
 
-                if (member.type != HypMemberType::TYPE_CONSTANT)
+                if (member.type != HypMemberType::TYPE_STATIC_FIELD)
                 {
                     return HYP_MAKE_ERROR(Error, "Only static members allowed in enum types");
                 }

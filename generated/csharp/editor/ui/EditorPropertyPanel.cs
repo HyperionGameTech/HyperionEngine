@@ -6,7 +6,7 @@ namespace Hyperion
 {
     public static class EditorPropertyPanelBaseExtensions
     {
-        public static void Build(this EditorPropertyPanelBase obj, HypData hypData, HypProperty property)
+        public static void Build(this EditorPropertyPanelBase obj, HypData hypData, Property property)
         {
             obj.GetMethod(new Name(4603803933282576995)).InvokeNative(obj, hypData, property);
         }

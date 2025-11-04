@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [StructLayout(LayoutKind.Sequential, Size = 4)]
-    public struct HypMethodParameter
+    public struct MethodParameter
     {
         private TypeId typeId;
 
@@ -18,20 +18,20 @@ namespace Hyperion
     }
 
     [Flags]
-    public enum HypMethodFlags : byte
+    public enum MethodFlags : byte
     {
         None = 0x0,
         Static = 0x1,
         Member = 0x2
     }
 
-    public struct HypMethod
+    public struct Method
     {
-        public static readonly HypMethod Invalid = new HypMethod(IntPtr.Zero);
+        public static readonly Method Invalid = new Method(IntPtr.Zero);
 
         internal IntPtr ptr;
 
-        internal HypMethod(IntPtr ptr)
+        internal Method(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -41,7 +41,7 @@ namespace Hyperion
             get
             {
                 Name name;
-                HypMethod_GetName(ptr, out name);
+                Method_GetName(ptr, out name);
                 return name;
             }
         }
@@ -51,31 +51,31 @@ namespace Hyperion
             get
             {
                 TypeId returnTypeId;
-                HypMethod_GetReturnTypeId(ptr, out returnTypeId);
+                Method_GetReturnTypeId(ptr, out returnTypeId);
                 return returnTypeId;
             }
         }
 
-        public IEnumerable<HypMethodParameter> Parameters
+        public IEnumerable<MethodParameter> Parameters
         {
             get
             {
                 IntPtr paramsPtr;
-                uint count = HypMethod_GetParameters(ptr, out paramsPtr);
+                uint count = Method_GetParameters(ptr, out paramsPtr);
 
                 for (int i = 0; i < count; i++)
                 {
-                    HypMethodParameter param = Marshal.PtrToStructure<HypMethodParameter>(paramsPtr + i * Marshal.SizeOf<HypMethodParameter>());
+                    MethodParameter param = Marshal.PtrToStructure<MethodParameter>(paramsPtr + i * Marshal.SizeOf<MethodParameter>());
                     yield return param;
                 }
             }
         }
 
-        public HypMethodFlags Flags
+        public MethodFlags Flags
         {
             get
             {
-                return (HypMethodFlags)HypMethod_GetFlags(ptr);
+                return (MethodFlags)Method_GetFlags(ptr);
             }
         }
 
@@ -83,7 +83,7 @@ namespace Hyperion
         {
             get
             {
-                return (Flags & HypMethodFlags.Static) != 0;
+                return (Flags & MethodFlags.Static) != 0;
             }
         }
 
@@ -91,7 +91,7 @@ namespace Hyperion
         {
             get
             {
-                return (Flags & HypMethodFlags.Member) != 0;
+                return (Flags & MethodFlags.Member) != 0;
             }
         }
 
@@ -112,7 +112,7 @@ namespace Hyperion
             }
 
             IntPtr paramsPtr;
-            uint numParams = HypMethod_GetParameters(ptr, out paramsPtr);
+            uint numParams = Method_GetParameters(ptr, out paramsPtr);
 
             if (numArgs != numParams)
             {
@@ -145,7 +145,7 @@ namespace Hyperion
             {
                 fixed (HypDataBuffer* argsPtr = hypDataArgsBuffers)
                 {
-                    bool result = HypMethod_Invoke(ptr, (IntPtr)argsPtr, numArgs, out resultBuffer);
+                    bool result = Method_Invoke(ptr, (IntPtr)argsPtr, numArgs, out resultBuffer);
 
                     for (int i = 0; i < numArgs; i++)
                         hypDataArgsBuffers[i].Dispose();
@@ -187,7 +187,7 @@ namespace Hyperion
             }
 
             IntPtr paramsPtr;
-            uint numParams = HypMethod_GetParameters(ptr, out paramsPtr);
+            uint numParams = Method_GetParameters(ptr, out paramsPtr);
 
             if (numArgs != numParams)
             {
@@ -225,7 +225,7 @@ namespace Hyperion
             {
                 fixed (HypDataBuffer* argsPtr = hypDataArgsBuffers)
                 {
-                    bool result = HypMethod_Invoke(ptr, (IntPtr)argsPtr, numArgs, out resultBuffer);
+                    bool result = Method_Invoke(ptr, (IntPtr)argsPtr, numArgs, out resultBuffer);
 
                     for (int i = 0; i < numArgs; i++)
                         hypDataArgsBuffers[i].Dispose();
@@ -243,20 +243,20 @@ namespace Hyperion
             return HypData.FromBuffer(InvokeNative(args));
         }
         
-        [DllImport("hyperion", EntryPoint = "HypMethod_GetName")]
-        private static extern void HypMethod_GetName([In] IntPtr methodPtr, [Out] out Name name);
+        [DllImport("hyperion", EntryPoint = "Method_GetName")]
+        private static extern void Method_GetName([In] IntPtr methodPtr, [Out] out Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypMethod_GetReturnTypeId")]
-        private static extern void HypMethod_GetReturnTypeId([In] IntPtr methodPtr, [Out] out TypeId returnTypeId);
+        [DllImport("hyperion", EntryPoint = "Method_GetReturnTypeId")]
+        private static extern void Method_GetReturnTypeId([In] IntPtr methodPtr, [Out] out TypeId returnTypeId);
 
-        [DllImport("hyperion", EntryPoint = "HypMethod_GetParameters")]
-        private static extern uint HypMethod_GetParameters([In] IntPtr methodPtr, [Out] out IntPtr outParamsPtr);
+        [DllImport("hyperion", EntryPoint = "Method_GetParameters")]
+        private static extern uint Method_GetParameters([In] IntPtr methodPtr, [Out] out IntPtr outParamsPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypMethod_GetFlags")]
-        private static extern byte HypMethod_GetFlags([In] IntPtr methodPtr);
+        [DllImport("hyperion", EntryPoint = "Method_GetFlags")]
+        private static extern byte Method_GetFlags([In] IntPtr methodPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypMethod_Invoke")]
+        [DllImport("hyperion", EntryPoint = "Method_Invoke")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern unsafe bool HypMethod_Invoke([In] IntPtr methodPtr, [In] IntPtr argsPtr, uint numArgs, [Out] out HypDataBuffer outResult);
+        private static extern unsafe bool Method_Invoke([In] IntPtr methodPtr, [In] IntPtr argsPtr, uint numArgs, [Out] out HypDataBuffer outResult);
     }
 }

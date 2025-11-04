@@ -10,8 +10,8 @@
 #include <core/reflection/Class.hpp>
 #include <core/reflection/HypMember.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/HypProperty.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Property.hpp>
+#include <core/reflection/Method.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
 #include <core/io/BufferedByteReader.hpp>
@@ -894,7 +894,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
     if (const Class* cls = GetClass(data.GetTypeId()))
     {
-        const HypMethod* toStringMethod = cls->GetMethod("ToString");
+        const Method* toStringMethod = cls->GetMethod("ToString");
 
         if (toStringMethod != nullptr)
         {
@@ -1544,15 +1544,15 @@ public:
 
             instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(field->Get(src));
         }
-        else if (member->GetMemberType() == HypMemberType::TYPE_CONSTANT)
+        else if (member->GetMemberType() == HypMemberType::TYPE_STATIC_FIELD)
         {
-            HypConstant* constant = static_cast<HypConstant*>(member);
+            StaticField* staticField = static_cast<StaticField*>(member);
 
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(constant->Get());
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(staticField->Get());
         }
         else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
         {
-            HypMethod* method = static_cast<HypMethod*>(member);
+            Method* method = static_cast<Method*>(member);
 
             Script_VMData vmData;
 
@@ -1871,7 +1871,7 @@ public:
 
                 switch (memberType)
                 {
-                case HypMemberType::TYPE_CONSTANT:
+                case HypMemberType::TYPE_STATIC_FIELD:
                 {
                     // static field
 
@@ -1879,7 +1879,7 @@ public:
                     bs->Read(&size);
 
                     // Create constant
-                    members.PushBack(HypMember(HypConstant(
+                    members.PushBack(HypMember(StaticField(
                         CreateNameFromDynamicString(memberNameStr),
                         &TypeInfo::ForType<HypData>(), // TypeId(memberTypeIdValue),
                         size,
@@ -1932,7 +1932,7 @@ public:
                     Script_FunctionAddress functionAddress = funcVmData->func.m_addr;
                     Assert(functionAddress != INVALID_FUNCTION_ADDRESS);
 
-                    HypMethod method(
+                    Method method(
                         CreateNameFromDynamicString(memberNameStr),
                         &TypeInfo::ForType<HypData>(),       // TypeId(memberTypeIdValue),
                         &TypeInfo::ForType<HypObjectBase>(), // TypeId(targetTypeIdValue),
@@ -1942,7 +1942,7 @@ public:
 
                     uint8 nargs = funcVmData->func.m_nargs;
 
-                    if (flags & (uint8)HypMethodFlags::VARIADIC)
+                    if (flags & (uint8)MethodFlags::VARIADIC)
                     {
                         AssertDebug(nargs > 0);
 
@@ -1953,7 +1953,7 @@ public:
 
                     for (uint8 j = 0; j < nargs; j++)
                     {
-                        method.GetParameters().PushBack(HypMethodParameter { &TypeInfo::ForType<HypData>() });
+                        method.GetParameters().PushBack(MethodParameter { &TypeInfo::ForType<HypData>() });
                     }
 
                     members.PushBack(HypMember(std::move(method)));
@@ -3997,12 +3997,12 @@ void Script_Interpreter::Invoke(Script_Instance* instance, HypData&& value, uint
         Script_VMData* vmData = GetVMData(deref);
         Assert(vmData != nullptr && vmData->type == Script_VMData::FUNCTION);
 
-        if ((vmData->func.m_flags & (uint8)HypMethodFlags::VARIADIC) && nargs < vmData->func.m_nargs - 1)
+        if ((vmData->func.m_flags & (uint8)MethodFlags::VARIADIC) && nargs < vmData->func.m_nargs - 1)
         {
             // if variadic, make sure the arg count is /at least/ what is required
             ThrowException(instance, Script_Exception::InvalidArgsException(vmData->func.m_nargs, nargs, true));
         }
-        else if (!(vmData->func.m_flags & (uint8)HypMethodFlags::VARIADIC) && vmData->func.m_nargs != nargs)
+        else if (!(vmData->func.m_flags & (uint8)MethodFlags::VARIADIC) && vmData->func.m_nargs != nargs)
         {
             ThrowException(instance, Script_Exception::InvalidArgsException(vmData->func.m_nargs, nargs));
         }
@@ -4013,7 +4013,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, HypData&& value, uint
             previousAddr.call.varargsPush = 0;
             previousAddr.call.returnAddress = (Script_FunctionAddress)bs->Position();
 
-            if (vmData->func.m_flags & (uint8)HypMethodFlags::VARIADIC)
+            if (vmData->func.m_flags & (uint8)MethodFlags::VARIADIC)
             {
                 // for each argument that is over the expected size, we must pop it from
                 // the stack and add it to a new array.

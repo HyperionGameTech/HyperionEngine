@@ -11,6 +11,6 @@ namespace Hyperion
         {
         }
 
-        public abstract void Build(object target, HypProperty property);
+        public abstract void Build(object target, Property property);
     }
 }

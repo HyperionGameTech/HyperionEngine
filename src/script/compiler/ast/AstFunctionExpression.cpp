@@ -26,7 +26,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -42,11 +42,11 @@ AstFunctionExpression::AstFunctionExpression(
     const RC<AstBlock>& block,
     const SourceLocation& location)
     : AstFunctionExpression(
-        parameters,
-        returnTypeSpecification,
-        block,
-        /* enableClosure */ true,
-        location)
+          parameters,
+          returnTypeSpecification,
+          block,
+          /* enableClosure */ true,
+          location)
 {
 }
 
@@ -623,14 +623,14 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
 
     Assert(m_parameters.Size() + (m_isClosure ? 1 : 0) <= MathUtil::MaxSafeValue<uint8>());
 
-    EnumFlags<HypMethodFlags> methodFlags = HypMethodFlags::NONE;
+    EnumFlags<MethodFlags> methodFlags = MethodFlags::NONE;
 
     if (variadicParam)
     {
         const RC<AstParameter>& last = m_parameters.Back();
         Assert(last != nullptr);
 
-        methodFlags |= HypMethodFlags::VARIADIC;
+        methodFlags |= MethodFlags::VARIADIC;
 
         // chunk->Append(variadicParam->Build(visitor, mod));
     }

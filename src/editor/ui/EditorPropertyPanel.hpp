@@ -8,7 +8,7 @@
 
 namespace hyperion {
 
-class HypProperty;
+class Property;
 
 HYP_CLASS(Abstract)
 class HYP_API EditorPropertyPanelBase : public UIPanel
@@ -24,12 +24,12 @@ public:
     virtual ~EditorPropertyPanelBase() override;
 
     HYP_METHOD(Scriptable)
-    void Build(const HypData& hypData, const HypProperty* property);
+    void Build(const HypData& hypData, const Property* property);
 
 protected:
     virtual void Init() override;
 
-    virtual void Build_Impl(const HypData& hypData, const HypProperty* property)
+    virtual void Build_Impl(const HypData& hypData, const Property* property)
     {
         HYP_PURE_VIRTUAL();
     }

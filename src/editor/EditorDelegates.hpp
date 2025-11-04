@@ -16,7 +16,7 @@
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Scheduler.hpp>
 
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 
 #include <core/math/Transform.hpp>
 
@@ -26,27 +26,27 @@ namespace hyperion {
 
 class Node;
 class IHypMember;
-class HypProperty;
+class Property;
 
 struct NodeWatcher
 {
     WeakHandle<Node> rootNode;
-    FlatSet<const HypProperty*> propertiesToWatch;
-    Delegate<void, Node*, const HypProperty*> OnChange;
+    FlatSet<const Property*> propertiesToWatch;
+    Delegate<void, Node*, const Property*> OnChange;
 };
 
 class EditorDelegates
 {
     struct SuppressedNode
     {
-        FlatSet<const HypProperty*> propertiesToSuppress;
+        FlatSet<const Property*> propertiesToSuppress;
         int suppressAllCounter = 0;
     };
 
 public:
     struct SuppressUpdatesScope
     {
-        SuppressUpdatesScope(EditorDelegates& editorDelegates, Node* node, const FlatSet<const HypProperty*>& propertiesToSuppress = {})
+        SuppressUpdatesScope(EditorDelegates& editorDelegates, Node* node, const FlatSet<const Property*>& propertiesToSuppress = {})
             : editorDelegates(editorDelegates),
               node(node)
         {
@@ -59,7 +59,7 @@ public:
             }
             else
             {
-                for (const HypProperty* property : propertiesToSuppress)
+                for (const Property* property : propertiesToSuppress)
                 {
                     if (!suppressedNode.propertiesToSuppress.Contains(property))
                     {
@@ -78,7 +78,7 @@ public:
                 --suppressedNode.suppressAllCounter;
             }
 
-            for (const HypProperty* property : propertiesToSuppress)
+            for (const Property* property : propertiesToSuppress)
             {
                 suppressedNode.propertiesToSuppress.Erase(property);
             }
@@ -91,7 +91,7 @@ public:
 
         EditorDelegates& editorDelegates;
         Node* node = nullptr;
-        FlatSet<const HypProperty*> propertiesToSuppress;
+        FlatSet<const Property*> propertiesToSuppress;
         bool suppressAll = false;
     };
 
@@ -103,11 +103,11 @@ public:
     ~EditorDelegates() = default;
 
     /*! \brief Receive events and changes to any node that is a descendant of the given \ref{rootNode}. */
-    HYP_API void AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const HypProperty> propertiesToWatch, Proc<void(Node*, const HypProperty*)>&& proc);
+    HYP_API void AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const Property> propertiesToWatch, Proc<void(Node*, const Property*)>&& proc);
     HYP_API int RemoveNodeWatcher(WeakName watcherKey, Node* rootNode);
     HYP_API int RemoveNodeWatchers(WeakName watcherKey);
 
-    HYP_API void OnNodeUpdate(Node* node, const HypProperty* property);
+    HYP_API void OnNodeUpdate(Node* node, const Property* property);
 
     HYP_API void Update();
 

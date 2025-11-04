@@ -21,7 +21,7 @@
 #include <script/vm/Interpreter.hpp>
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 #include <core/reflection/ClassRegistry.hpp>
@@ -337,7 +337,7 @@ bool HypScript::GetMember(Script_Instance* instance, const HypData& targetValue,
 
     if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
     {
-        HypMethod* method = static_cast<HypMethod*>(member);
+        Method* method = static_cast<Method*>(member);
 
         Script_VMData vmData;
 

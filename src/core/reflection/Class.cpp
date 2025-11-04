@@ -4,7 +4,7 @@
 #include <core/reflection/Enum.hpp>
 #include <core/reflection/HypMember.hpp>
 #include <core/reflection/HypObject.hpp>
-#include <core/reflection/HypConstant.hpp>
+#include <core/reflection/StaticField.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
 #include <core/utilities/Format.hpp>
@@ -209,7 +209,7 @@ HYP_API SizeType GetNumDescendants(TypeId typeId)
 }
 
 #if 0
-HypProperty* MakeHypProperty(const Field* field)
+Property* MakeProperty(const Field* field)
 {
     AssertDebug(field != nullptr);
 
@@ -224,15 +224,15 @@ HypProperty* MakeHypProperty(const Field* field)
         propertyName = field->GetName();
     }
 
-    HypProperty* pResult = new HypProperty();
-    HypProperty& result = *pResult;
+    Property* pResult = new Property();
+    Property& result = *pResult;
 
     result.m_name = propertyName;
     result.m_typeId = field->GetTypeId();
     result.m_attributes = field->GetAttributes();
     result.m_ownerClass = field->GetOwnerClass();
 
-    result.m_getter = HypPropertyGetter();
+    result.m_getter = PropertyGetter();
     result.m_getter.typeInfo.targetTypeId = field->GetTargetTypeId();
     result.m_getter.typeInfo.valueTypeId = field->GetTypeId();
     result.m_getter.getProc = [field](const HypData& target) -> HypData
@@ -244,7 +244,7 @@ HypProperty* MakeHypProperty(const Field* field)
         return field->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, out, flags);
     };
 
-    result.m_setter = HypPropertySetter();
+    result.m_setter = PropertySetter();
     result.m_setter.typeInfo.targetTypeId = field->GetTargetTypeId();
     result.m_setter.typeInfo.valueTypeId = field->GetTypeId();
     result.m_setter.setProc = [field](HypData& target, const HypData& value) -> void
@@ -262,10 +262,10 @@ HypProperty* MakeHypProperty(const Field* field)
 }
 #endif
 
-HypProperty* MakeHypProperty(const Field* field, const HypMethod* getter, const HypMethod* setter)
+Property* MakeProperty(const Field* field, const Method* getter, const Method* setter)
 {
-    HypProperty* pResult = new HypProperty();
-    HypProperty& result = *pResult;
+    Property* pResult = new Property();
+    Property& result = *pResult;
 
     Optional<String> propertyAttributeOpt;
 
@@ -362,7 +362,7 @@ HypProperty* MakeHypProperty(const Field* field, const HypMethod* getter, const 
 
     if (hasGetter)
     {
-        result.m_getter = HypPropertyGetter();
+        result.m_getter = PropertyGetter();
         result.m_getter.typeInfo.targetTypeInfo = targetTypeInfo;
         result.m_getter.typeInfo.valueTypeInfo = typeInfo;
         result.m_getter.getProc = [getter](const HypData& target) -> HypData
@@ -378,7 +378,7 @@ HypProperty* MakeHypProperty(const Field* field, const HypMethod* getter, const 
     }
     else if (field != nullptr)
     {
-        result.m_getter = HypPropertyGetter();
+        result.m_getter = PropertyGetter();
         result.m_getter.typeInfo.targetTypeInfo = targetTypeInfo;
         result.m_getter.typeInfo.valueTypeInfo = typeInfo;
         result.m_getter.getProc = [field](const HypData& target) -> HypData
@@ -403,7 +403,7 @@ HypProperty* MakeHypProperty(const Field* field, const HypMethod* getter, const 
 
     if (hasSetter)
     {
-        result.m_setter = HypPropertySetter();
+        result.m_setter = PropertySetter();
         result.m_setter.typeInfo.targetTypeInfo = targetTypeInfo;
         result.m_setter.typeInfo.valueTypeInfo = setter->GetParameters()[0].typeInfo;
         result.m_setter.setProc = [setter](HypData& target, const HypData& value) -> void
@@ -427,7 +427,7 @@ HypProperty* MakeHypProperty(const Field* field, const HypMethod* getter, const 
     }
     else if (field != nullptr)
     {
-        result.m_setter = HypPropertySetter();
+        result.m_setter = PropertySetter();
         result.m_setter.typeInfo.targetTypeInfo = targetTypeInfo;
         result.m_setter.typeInfo.valueTypeInfo = typeInfo;
         result.m_setter.setProc = [field](HypData& target, const HypData& value) -> void
@@ -579,10 +579,10 @@ void ClassMemberIterator::Advance()
 
     switch (m_phase)
     {
-    case Phase::ITERATE_CONSTANTS:
-        if ((m_memberTypes & HypMemberType::TYPE_CONSTANT) && m_currentIndex < m_target->GetConstants().Size())
+    case Phase::ITERATE_STATIC_FIELDS:
+        if ((m_memberTypes & HypMemberType::TYPE_STATIC_FIELD) && m_currentIndex < m_target->GetStaticFields().Size())
         {
-            m_currentValue = m_target->GetConstants()[m_currentIndex++];
+            m_currentValue = m_target->GetStaticFields()[m_currentIndex++];
         }
         else
         {
@@ -705,51 +705,51 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
         {
         case HypMemberType::TYPE_PROPERTY:
         {
-            HypProperty* pProperty = static_cast<HypProperty*>(member.internal);
+            Property* property = static_cast<Property*>(member.internal);
             member.internal = nullptr;
 
-            pProperty->m_ownerClass = this;
-            pProperty->m_getter.typeInfo.targetTypeInfo = m_typeInfo;
-            pProperty->m_setter.typeInfo.targetTypeInfo = m_typeInfo;
+            property->m_ownerClass = this;
+            property->m_getter.typeInfo.targetTypeInfo = m_typeInfo;
+            property->m_setter.typeInfo.targetTypeInfo = m_typeInfo;
 
-            m_properties.PushBack(pProperty);
-            m_propertiesByName.Set(pProperty->GetName(), pProperty);
+            m_properties.PushBack(property);
+            m_propertiesByName.Set(property->GetName(), property);
 
             break;
         }
         case HypMemberType::TYPE_METHOD:
         {
-            HypMethod* pMethod = static_cast<HypMethod*>(member.internal);
+            Method* method = static_cast<Method*>(member.internal);
             member.internal = nullptr;
 
-            pMethod->m_ownerClass = this;
+            method->m_ownerClass = this;
 
-            m_methods.PushBack(pMethod);
-            m_methodsByName.Set(pMethod->GetName(), pMethod);
+            m_methods.PushBack(method);
+            m_methodsByName.Set(method->GetName(), method);
 
             break;
         }
         case HypMemberType::TYPE_FIELD:
         {
-            Field* pField = static_cast<Field*>(member.internal);
+            Field* field = static_cast<Field*>(member.internal);
             member.internal = nullptr;
 
-            pField->m_ownerClass = this;
+            field->m_ownerClass = this;
 
-            m_fields.PushBack(pField);
-            m_fieldsByName.Set(pField->GetName(), pField);
+            m_fields.PushBack(field);
+            m_fieldsByName.Set(field->GetName(), field);
 
             break;
         }
-        case HypMemberType::TYPE_CONSTANT:
+        case HypMemberType::TYPE_STATIC_FIELD:
         {
-            HypConstant* pConstant = static_cast<HypConstant*>(member.internal);
+            StaticField* staticField = static_cast<StaticField*>(member.internal);
             member.internal = nullptr;
 
-            pConstant->m_ownerClass = this;
+            staticField->m_ownerClass = this;
 
-            m_constants.PushBack(pConstant);
-            m_constantsByName.Set(pConstant->GetName(), pConstant);
+            m_staticFields.PushBack(staticField);
+            m_staticFieldsByName.Set(staticField->GetName(), staticField);
 
             break;
         }
@@ -761,12 +761,12 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
 
 Class::~Class()
 {
-    for (HypProperty* propertyPtr : m_properties)
+    for (Property* propertyPtr : m_properties)
     {
         delete propertyPtr;
     }
 
-    for (HypMethod* methodPtr : m_methods)
+    for (Method* methodPtr : m_methods)
     {
         delete methodPtr;
     }
@@ -776,7 +776,7 @@ Class::~Class()
         delete fieldPtr;
     }
 
-    for (HypConstant* constantPtr : m_constants)
+    for (StaticField* constantPtr : m_staticFields)
     {
         delete constantPtr;
     }
@@ -908,27 +908,27 @@ void Class::Initialize()
         const auto findGetterIt = it.second.FindIf([](IHypMember* member)
             {
                 return member->GetMemberType() == HypMemberType::TYPE_METHOD
-                    && static_cast<HypMethod*>(member)->GetParameters().Size() == 1;
+                    && static_cast<Method*>(member)->GetParameters().Size() == 1;
             });
 
         const auto findSetterIt = it.second.FindIf([](IHypMember* member)
             {
                 return member->GetMemberType() == HypMemberType::TYPE_METHOD
-                    && static_cast<HypMethod*>(member)->GetParameters().Size() == 2;
+                    && static_cast<Method*>(member)->GetParameters().Size() == 2;
             });
 
         if (findFieldIt != it.second.End() || findGetterIt != it.second.End() || findSetterIt != it.second.End())
         {
-            HypProperty* pProperty = MakeHypProperty(
+            Property* property = MakeProperty(
                 findFieldIt != it.second.End() ? static_cast<Field*>(*findFieldIt) : nullptr,
-                findGetterIt != it.second.End() ? static_cast<HypMethod*>(*findGetterIt) : nullptr,
-                findSetterIt != it.second.End() ? static_cast<HypMethod*>(*findSetterIt) : nullptr);
+                findGetterIt != it.second.End() ? static_cast<Method*>(*findGetterIt) : nullptr,
+                findSetterIt != it.second.End() ? static_cast<Method*>(*findSetterIt) : nullptr);
 
-            AssertDebug(pProperty->m_ownerClass && pProperty->m_ownerClass->IsBaseOf(this));
-            AssertDebug(!GetProperty(pProperty->GetName(), /* deep */ false), "Property with name \"{}\" already exists in class \"{}\"", *pProperty->GetName(), *GetName());
+            AssertDebug(property->m_ownerClass && property->m_ownerClass->IsBaseOf(this));
+            AssertDebug(!GetProperty(property->GetName(), /* deep */ false), "Property with name \"{}\" already exists in class \"{}\"", *property->GetName(), *GetName());
 
-            m_properties.PushBack(pProperty);
-            m_propertiesByName.Set(pProperty->GetName(), pProperty);
+            m_properties.PushBack(property);
+            m_propertiesByName.Set(property->GetName(), property);
 
             continue;
         }
@@ -969,7 +969,7 @@ IHypMember* Class::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes
 {
     if (memberTypes & HypMemberType::TYPE_PROPERTY)
     {
-        if (HypProperty* property = GetProperty(name, /* deep */ false))
+        if (Property* property = GetProperty(name, /* deep */ false))
         {
             return property;
         }
@@ -985,17 +985,17 @@ IHypMember* Class::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes
 
     if (memberTypes & HypMemberType::TYPE_METHOD)
     {
-        if (HypMethod* method = GetMethod(name, /* deep */ false))
+        if (Method* method = GetMethod(name, /* deep */ false))
         {
             return method;
         }
     }
 
-    if (memberTypes & HypMemberType::TYPE_CONSTANT)
+    if (memberTypes & HypMemberType::TYPE_STATIC_FIELD)
     {
-        if (HypConstant* constant = GetConstant(name, /* deep */ false))
+        if (StaticField* staticField = GetStaticField(name, /* deep */ false))
         {
-            return constant;
+            return staticField;
         }
     }
 
@@ -1010,7 +1010,7 @@ IHypMember* Class::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes
     return nullptr;
 }
 
-HypProperty* Class::GetProperty(WeakName name, bool deep) const
+Property* Class::GetProperty(WeakName name, bool deep) const
 {
     const auto it = m_propertiesByName.FindAs(name);
 
@@ -1030,15 +1030,15 @@ HypProperty* Class::GetProperty(WeakName name, bool deep) const
     return it->second;
 }
 
-Array<HypProperty*> Class::GetPropertiesInherited() const
+Array<Property*> Class::GetPropertiesInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        FlatSet<HypProperty*> properties { GetProperties().Begin(), GetProperties().End() };
+        FlatSet<Property*> properties { GetProperties().Begin(), GetProperties().End() };
 
-        Array<HypProperty*> inheritedProperties = parent->GetPropertiesInherited();
+        Array<Property*> inheritedProperties = parent->GetPropertiesInherited();
 
-        for (HypProperty* property : inheritedProperties)
+        for (Property* property : inheritedProperties)
         {
             properties.Insert(property);
         }
@@ -1049,7 +1049,7 @@ Array<HypProperty*> Class::GetPropertiesInherited() const
     return m_properties;
 }
 
-HypMethod* Class::GetMethod(WeakName name, bool deep) const
+Method* Class::GetMethod(WeakName name, bool deep) const
 {
     const auto it = m_methodsByName.FindAs(name);
 
@@ -1069,15 +1069,15 @@ HypMethod* Class::GetMethod(WeakName name, bool deep) const
     return it->second;
 }
 
-Array<HypMethod*> Class::GetMethodsInherited() const
+Array<Method*> Class::GetMethodsInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        FlatSet<HypMethod*> methods { m_methods.Begin(), m_methods.End() };
+        FlatSet<Method*> methods { m_methods.Begin(), m_methods.End() };
 
-        Array<HypMethod*> inheritedMethods = parent->GetMethodsInherited();
+        Array<Method*> inheritedMethods = parent->GetMethodsInherited();
 
-        for (HypMethod* method : inheritedMethods)
+        for (Method* method : inheritedMethods)
         {
             methods.Insert(method);
         }
@@ -1127,17 +1127,17 @@ Array<Field*> Class::GetFieldsInherited() const
     return m_fields;
 }
 
-HypConstant* Class::GetConstant(WeakName name, bool deep) const
+StaticField* Class::GetStaticField(WeakName name, bool deep) const
 {
-    const auto it = m_constantsByName.FindAs(name);
+    const auto it = m_staticFieldsByName.FindAs(name);
 
-    if (it == m_constantsByName.End())
+    if (it == m_staticFieldsByName.End())
     {
         if (deep)
         {
             if (const Class* parent = GetParent())
             {
-                return parent->GetConstant(name);
+                return parent->GetStaticField(name);
             }
         }
 
@@ -1147,26 +1147,26 @@ HypConstant* Class::GetConstant(WeakName name, bool deep) const
     return it->second;
 }
 
-Array<HypConstant*> Class::GetConstantsInherited() const
+Array<StaticField*> Class::GetStaticFieldsInherited() const
 {
     if (const Class* parent = GetParent())
     {
-        FlatSet<HypConstant*> constants { m_constants.Begin(), m_constants.End() };
+        FlatSet<StaticField*> staticFields { m_staticFields.Begin(), m_staticFields.End() };
 
-        Array<HypConstant*> inheritedConstants = parent->GetConstantsInherited();
+        Array<StaticField*> inheritedConstants = parent->GetStaticFieldsInherited();
 
-        for (HypConstant* constant : inheritedConstants)
+        for (StaticField* staticField : inheritedConstants)
         {
-            constants.Insert(constant);
+            staticFields.Insert(staticField);
         }
 
-        return constants.ToArray();
+        return staticFields.ToArray();
     }
 
-    return m_constants;
+    return m_staticFields;
 }
 
-void Class::AddProperty(HypProperty* property)
+void Class::AddProperty(Property* property)
 {
     AssertDebug(property != nullptr, "Cannot add null property to Class {}", GetName());
     AssertDebug(m_propertiesByName.Find(property->GetName()) == m_propertiesByName.End(),
@@ -1176,7 +1176,7 @@ void Class::AddProperty(HypProperty* property)
     m_propertiesByName[property->GetName()] = property;
 }
 
-void Class::AddMethod(HypMethod* method)
+void Class::AddMethod(Method* method)
 {
     AssertDebug(method != nullptr, "Cannot add null method to Class {}", GetName());
     AssertDebug(m_methodsByName.Find(method->GetName()) == m_methodsByName.End(),
@@ -1196,14 +1196,14 @@ void Class::AddField(Field* field)
     m_fieldsByName[field->GetName()] = field;
 }
 
-void Class::AddConstant(HypConstant* constant)
+void Class::AddStaticField(StaticField* staticField)
 {
-    AssertDebug(constant != nullptr, "Cannot add null constant to Class {}", GetName());
-    AssertDebug(m_constantsByName.Find(constant->GetName()) == m_constantsByName.End(),
-        "Constant with name {} already exists in Class {}", constant->GetName(), GetName());
+    AssertDebug(staticField != nullptr, "Cannot add null static field to Class {}", GetName());
+    AssertDebug(m_staticFieldsByName.Find(staticField->GetName()) == m_staticFieldsByName.End(),
+        "Static field with name {} already exists in Class {}", staticField->GetName(), GetName());
 
-    m_constants.PushBack(constant);
-    m_constantsByName[constant->GetName()] = constant;
+    m_staticFields.PushBack(staticField);
+    m_staticFieldsByName[staticField->GetName()] = staticField;
 }
 
 bool Class::IsDerivedFrom(const Class* other) const
@@ -1698,7 +1698,7 @@ void DynamicClassInstance::SetField(uint32 index, Field* field)
     m_fieldsByName[field->GetName()] = field;
 }
 
-void DynamicClassInstance::SetMethod(uint32 index, HypMethod* method)
+void DynamicClassInstance::SetMethod(uint32 index, Method* method)
 {
     AssertDebug(method != nullptr, "Cannot set null method to DynamicClass {}", GetName());
     AssertDebug(!m_methodsByName.Contains(method->GetName()), "Method with name {} already exists in DynamicClass {}", method->GetName(), GetName());
@@ -1712,7 +1712,7 @@ void DynamicClassInstance::SetMethod(uint32 index, HypMethod* method)
     m_methodsByName[method->GetName()] = method;
 }
 
-void DynamicClassInstance::SetProperty(uint32 index, HypProperty* property)
+void DynamicClassInstance::SetProperty(uint32 index, Property* property)
 {
     AssertDebug(property != nullptr, "Cannot set null property to DynamicClass {}", GetName());
     AssertDebug(!m_propertiesByName.Contains(property->GetName()), "Property with name {} already exists in DynamicClass {}", property->GetName(), GetName());
@@ -1726,18 +1726,18 @@ void DynamicClassInstance::SetProperty(uint32 index, HypProperty* property)
     m_propertiesByName[property->GetName()] = property;
 }
 
-void DynamicClassInstance::SetConstant(uint32 index, HypConstant* constant)
+void DynamicClassInstance::SetConstant(uint32 index, StaticField* staticField)
 {
-    AssertDebug(constant != nullptr, "Cannot set null constant to DynamicClass {}", GetName());
-    AssertDebug(!m_constantsByName.Contains(constant->GetName()), "Constant with name {} already exists in DynamicClass {}", constant->GetName(), GetName());
+    AssertDebug(staticField != nullptr, "Cannot set null static field to DynamicClass {}", GetName());
+    AssertDebug(!m_staticFieldsByName.Contains(staticField->GetName()), "Static field with name {} already exists in DynamicClass {}", staticField->GetName(), GetName());
 
-    if (index >= m_constants.Size())
+    if (index >= m_staticFields.Size())
     {
-        m_constants.Resize(index + 1);
+        m_staticFields.Resize(index + 1);
     }
 
-    m_constants[index] = constant;
-    m_constantsByName[constant->GetName()] = constant;
+    m_staticFields[index] = staticField;
+    m_staticFieldsByName[staticField->GetName()] = staticField;
 }
 
 void DynamicClassInstance::AddRef()

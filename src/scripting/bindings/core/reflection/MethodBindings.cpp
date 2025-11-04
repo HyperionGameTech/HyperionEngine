@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/HypObject.hpp>
 #include <core/reflection/HypData.hpp>
@@ -20,7 +20,7 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void HypMethod_GetName(const HypMethod* method, Name* outName)
+    HYP_EXPORT void Method_GetName(const Method* method, Name* outName)
     {
         if (!method || !outName)
         {
@@ -30,7 +30,7 @@ extern "C"
         *outName = method->GetName();
     }
 
-    HYP_EXPORT void HypMethod_GetReturnTypeId(const HypMethod* method, TypeId* outReturnTypeId)
+    HYP_EXPORT void Method_GetReturnTypeId(const Method* method, TypeId* outReturnTypeId)
     {
         if (!method || !outReturnTypeId)
         {
@@ -40,7 +40,7 @@ extern "C"
         *outReturnTypeId = method->GetTypeId();
     }
 
-    HYP_EXPORT uint32 HypMethod_GetParameters(const HypMethod* method, const HypMethodParameter** outParams)
+    HYP_EXPORT uint32 Method_GetParameters(const Method* method, const MethodParameter** outParams)
     {
         if (!method || !outParams)
         {
@@ -57,17 +57,17 @@ extern "C"
         return (uint32)method->GetParameters().Size();
     }
 
-    HYP_EXPORT ubyte HypMethod_GetFlags(const HypMethod* method)
+    HYP_EXPORT ubyte Method_GetFlags(const Method* method)
     {
         if (!method)
         {
-            return ubyte(HypMethodFlags::NONE);
+            return ubyte(MethodFlags::NONE);
         }
 
         return ubyte(method->GetFlags());
     }
 
-    HYP_EXPORT bool HypMethod_Invoke(const HypMethod* method, HypData* args, uint32 numArgs, HypData* outResult)
+    HYP_EXPORT bool Method_Invoke(const Method* method, HypData* args, uint32 numArgs, HypData* outResult)
     {
         if (!method || !outResult)
         {

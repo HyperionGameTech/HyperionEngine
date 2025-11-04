@@ -5,7 +5,7 @@
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 #include <core/reflection/HypData.hpp>
 
 #include <core/utilities/Format.hpp>

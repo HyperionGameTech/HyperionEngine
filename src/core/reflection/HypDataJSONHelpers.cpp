@@ -5,10 +5,10 @@
 #include <core/json/JSON.hpp>
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/HypConstant.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/StaticField.hpp>
+#include <core/reflection/Method.hpp>
 #include <core/reflection/HypData.hpp>
 
 #include <core/containers/Array.hpp>
@@ -439,7 +439,7 @@ bool ObjectToJSON(
     while (cls != nullptr)
     {
         // look for signature void ToJSON(JSONValue& out)
-        if (const HypMethod* toJsonMethod = cls->GetMethod("ToJSON", /* deep */ false))
+        if (const Method* toJsonMethod = cls->GetMethod("ToJSON", /* deep */ false))
         {
             if (toJsonMethod->GetParameters().Size() != 2
                 || toJsonMethod->GetTypeId() != TypeId::Void()
@@ -511,7 +511,7 @@ bool ObjectToJSON(
             {
             case HypMemberType::TYPE_PROPERTY:
             {
-                const HypProperty* property = static_cast<const HypProperty*>(&member);
+                const Property* property = static_cast<const Property*>(&member);
 
                 HypData value = property->Get(target);
 
@@ -595,33 +595,33 @@ bool ObjectToJSON(
 
                 break;
             }
-            case HypMemberType::TYPE_CONSTANT:
+            case HypMemberType::TYPE_STATIC_FIELD:
             {
-                const HypConstant* constant = static_cast<const HypConstant*>(&member);
+                const StaticField* staticField = static_cast<const StaticField*>(&member);
 
-                HypData value = constant->Get();
+                HypData value = staticField->Get();
 
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && constant->GetTypeInfo().GetClass() != GetClass(value.GetTypeId()))
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && staticField->GetTypeInfo().GetClass() != GetClass(value.GetTypeId()))
                 {
                     newOpts.writeClassNames = true;
                 }
 
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(constant->Get(), jsonValue, newOpts))
+                if (!HypDataToJSON(staticField->Get(), jsonValue, newOpts))
                 {
-                    HYP_LOG(Core, Warning, "Failed to serialize constant \"{}\" of Class \"{}\" to json",
+                    HYP_LOG(Core, Warning, "Failed to serialize static field \"{}\" of Class \"{}\" to json",
                         member.GetName(), cls->GetName());
 
                     continue;
                 }
 
-                String path = *constant->GetName();
+                String path = *staticField->GetName();
 
-                if (const ClassAttributeValue& pathAttribute = constant->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
+                if (const ClassAttributeValue& pathAttribute = staticField->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
                 {
                     path = pathAttribute.GetString();
 
@@ -668,7 +668,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
         {
         case HypMemberType::TYPE_PROPERTY:
         {
-            const HypProperty& property = static_cast<const HypProperty&>(member);
+            const Property& property = static_cast<const Property&>(member);
             const TypeInfo& typeInfo = property.GetTypeInfo();
 
             HypData hypData;

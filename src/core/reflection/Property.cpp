@@ -1,15 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
 #include <core/reflection/TypeInfo.hpp>
 
 namespace hyperion {
 
-const Class* HypProperty::GetClass() const
+const Class* Property::GetClass() const
 {
     if (!m_typeInfo)
     {

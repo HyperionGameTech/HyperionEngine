@@ -5,9 +5,9 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Struct.hpp>
-#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 #include <core/reflection/HypObjectBase.hpp>
 
 #include <core/utilities/Format.hpp>

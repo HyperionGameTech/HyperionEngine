@@ -4,7 +4,7 @@
 #include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/HypObject.hpp>
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/Method.hpp>
 
 #include <core/logging/LogChannels.hpp>
 
@@ -171,7 +171,7 @@ extern "C"
         return (uint32)cls->GetProperties().Size();
     }
 
-    HYP_EXPORT HypProperty* Class_GetProperty(const Class* cls, const Name* name)
+    HYP_EXPORT Property* Class_GetProperty(const Class* cls, const Name* name)
     {
         if (!cls || !name)
         {
@@ -198,7 +198,7 @@ extern "C"
         return (uint32)cls->GetMethods().Size();
     }
 
-    HYP_EXPORT HypMethod* Class_GetMethod(const Class* cls, const Name* name)
+    HYP_EXPORT Method* Class_GetMethod(const Class* cls, const Name* name)
     {
         // #ifndef HYP_MSVC
         if (!cls || !name)
@@ -239,31 +239,31 @@ extern "C"
         return (uint32)cls->GetFields().Size();
     }
 
-    HYP_EXPORT HypConstant* Class_GetConstant(const Class* cls, const Name* name)
+    HYP_EXPORT StaticField* Class_GetStaticField(const Class* cls, const Name* name)
     {
         if (!cls || !name)
         {
             return nullptr;
         }
 
-        return cls->GetConstant(*name);
+        return cls->GetStaticField(*name);
     }
 
-    HYP_EXPORT uint32 Class_GetConstants(const Class* cls, const void** outConstants)
+    HYP_EXPORT uint32 Class_GetStaticFields(const Class* cls, const void** outConstants)
     {
         if (!cls || !outConstants)
         {
             return 0;
         }
 
-        if (cls->GetConstants().Empty())
+        if (cls->GetStaticFields().Empty())
         {
             return 0;
         }
 
-        *outConstants = cls->GetConstants().Begin();
+        *outConstants = cls->GetStaticFields().Begin();
 
-        return (uint32)cls->GetConstants().Size();
+        return (uint32)cls->GetStaticFields().Size();
     }
 
     HYP_EXPORT Class* Class_CreateDynamicClass(const TypeId* typeId, const char* name, const Class* parentClass)
