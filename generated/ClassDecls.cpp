@@ -3,10 +3,16 @@
  */
 
 #include <core/reflection/Class.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 namespace hyperion {
 
-#include <ClassDecls.inc>
+#pragma region Builtins
+
+#pragma endregion Builtins
+
+#pragma region Defining g_clsXXX globals
+
 const Class* g_clsHypObjectBase = nullptr;
 const Class* g_clsUIGridColumn = nullptr;
 const Class* g_clsUIGridRow = nullptr;
@@ -425,4 +431,1697 @@ const Class* g_clsEditorMain = nullptr;
 const Class* g_clsConsoleCommandBase = nullptr;
 const Class* g_clsConsoleUI = nullptr;
 const Class* g_clsLogEntitiesCommand = nullptr;
+
+#pragma endregion Defining g_clsXXX globals
+
+
+#pragma region Forward declarations
+
+class HypObjectBase;
+class UIGridColumn;
+class UIGridRow;
+class UIGrid;
+class UISpacer;
+class UIPanel;
+class UIMenuBarDropDirection;
+class UIMenuItem;
+class UIMenuBar;
+class UIStage;
+class UIDockableItem;
+class UIDockableContainer;
+class UIImage;
+class UISubsystem;
+class UIWindow;
+class UIDataSource;
+class UIElementFactoryBase;
+class UIDataSourceBase;
+class UIText;
+class UIObject;
+struct UIObjectSize;
+struct UIObjectAspectRatio;
+class UIObjectUpdateSizeFlags;
+class UIObjectAlignment;
+struct UIEventHandlerResult;
+class UIObjectBorderFlags;
+class UIObjectUpdateType;
+class UIObjectFocusState;
+enum ScrollAxis : uint8;
+class UITab;
+class UITabView;
+class UIListViewItem;
+class UIListView;
+class UIListViewOrientation;
+class UITextbox;
+class UIButton;
+class UICameraController;
+enum ScriptCompileStatus : uint32;
+enum ScriptLanguage : uint32;
+struct ScriptData;
+struct WeakName;
+struct Name;
+struct HashCode;
+struct CommandLineArgumentDefinitions;
+class CommandLineArguments;
+class CommandLineArgumentType;
+struct Vertex;
+struct VertexAttributeSet;
+class Mat3f;
+struct Transform;
+class Mat4f;
+struct Triangle;
+struct Quaternion;
+struct BoundingSphere;
+enum RayTestFlags : uint32;
+struct Ray;
+struct Frustum;
+class Color;
+struct BoundingBox;
+class Time;
+struct Uuid;
+class Error;
+class Result;
+class DynamicLibrary;
+class Logger;
+class LogChannel;
+struct TypeId;
+struct BoneDesc;
+class SkeletonAsset;
+struct SkeletonData;
+struct SkeletonDesc;
+class AssetLoaderBase;
+class TextureAsset;
+class ScriptAsset;
+enum AssetPackageFlags : uint32;
+class AssetPackage;
+class AssetRegistry;
+class AssetReference;
+class AssetObject;
+enum AssetObjectFlags : uint32;
+struct AssetPath;
+struct MeshData;
+class MeshAsset;
+struct MeshDesc;
+class AssetChangeType;
+struct AssetLoaderDefinition;
+class AssetManager;
+class AssetCollector;
+class WAVAudioLoader;
+class OgreXMLSkeletonLoader;
+class UILoader;
+class PLYModelLoader;
+class FBOMModelLoader;
+class OBJModelLoader;
+class FBXModelLoader;
+class OgreXMLModelLoader;
+class FontAtlasLoader;
+class FontFaceLoader;
+class TextureLoader;
+class MTLMaterialLoader;
+class JSONLoader;
+struct OctantId;
+class KeyCode;
+struct KeyboardEvent;
+class InputManager;
+class MouseButtonState;
+struct MouseEvent;
+enum MouseButtonKey : uint32;
+class InputHandlerBase;
+class NullInputHandler;
+class Game;
+class StreamableBase;
+struct StreamableKey;
+struct StreamingCellNeighbor;
+struct StreamingCellInfo;
+class StreamingCell;
+class StreamingCellState;
+class StreamingManager;
+class StreamingVolumeShape;
+class StreamingVolumeBase;
+class SDLAppContext;
+class AppContextBase;
+class SDLApplicationWindow;
+class Win32ApplicationWindow;
+class ApplicationWindow;
+class Win32AppContext;
+class AudioSource;
+class AudioSourceFormat;
+class AudioSourceState;
+enum GlobalRenderBuffer : uint8;
+enum GlobalRendererType : uint32;
+class FramebufferBase;
+enum RenderBucket : uint32;
+struct DescriptorTableDeclaration;
+class DescriptorTableBase;
+struct DescriptorDeclaration;
+struct DescriptorSetDeclaration;
+class DescriptorSetBase;
+class DescriptorSetDeclarationFlags;
+enum DescriptorSlot : uint32;
+struct DescriptorSetLayoutElement;
+class Material;
+class MaterialTextureKey;
+class MaterialGroup;
+struct MaterialParameterValue;
+class MaterialParameters;
+enum MaterialParameterKey : uint64;
+enum MaterialParameterType : uint32;
+class MaterialTextures;
+struct MaterialParameter;
+struct BlendFunction;
+enum Topology : uint32;
+enum BlendModeFactor : uint32;
+enum GpuElemType : uint32;
+enum StencilOp : uint8;
+class DescriptorSetElementType;
+enum TextureWrapMode : uint32;
+enum StencilCompareOp : uint8;
+enum ImageSupport : uint8;
+enum FillMode : uint32;
+enum DefaultImageFormat : uint8;
+enum TextureType : uint32;
+struct TextureData;
+enum TextureBaseFormat : uint32;
+struct DescriptorTableOffsetMap;
+class StoreOperation;
+struct DescriptorSetOffsetMap;
+enum ImageUsage : uint32;
+enum ResourceState : uint32;
+enum TextureFormat : uint32;
+enum FaceCullMode : uint32;
+struct StencilFunction;
+struct TextureDesc;
+class LoadOperation;
+enum TextureFilterMode : uint32;
+class RenderPassStage;
+struct SSGIConfig;
+class ComputePipelineBase;
+class TonemapPass;
+class LightmapPass;
+class RaytracingPassData;
+class DeferredPassData;
+class ReflectionsPass;
+class DeferredPass;
+class EnvGridPass;
+class SwapchainBase;
+class PassData;
+struct RendererConfig;
+class GaussianSplattingInstance;
+class GaussianSplatting;
+class AttachmentBase;
+class GpuBufferType;
+class GpuBufferBase;
+enum ShaderModuleType : uint32;
+class ShaderBase;
+class UIPassData;
+class GBuffer;
+enum GBufferTargetName : uint32;
+class PostFXPass;
+class RenderGroup;
+class DeviceBase;
+class GraphicsPipelineBase;
+class ParticleSpawner;
+class ParticleSystem;
+struct SSRRendererConfig;
+class CommandBufferBase;
+struct MeshInstanceData;
+class SamplerBase;
+enum MaterialAttributeFlags : uint32;
+struct MaterialAttributes;
+struct MeshAttributes;
+class FrameBase;
+class Texture;
+class GpuImageViewBase;
+class GpuImageBase;
+struct HBAOConfig;
+class HBAO;
+enum RenderStatsCountType : uint32;
+struct RenderStats;
+struct RenderStatsCounts;
+class FullScreenPass;
+class Mesh;
+enum MeshFlags : uint32;
+struct MeshRaytracingData;
+struct DescriptorUsage;
+struct CompiledShader;
+enum ShaderPropertyFlags : uint32;
+struct ShaderDefinition;
+class ProcessShaderSourcePhase;
+class ShaderProperties;
+struct ShaderProperty;
+class ShaderLanguage;
+struct VertexAttributeDefinition;
+struct CompiledShaderBatch;
+struct HashedShaderDefinition;
+struct DescriptorUsageSet;
+class DescriptorUsageFlags;
+struct DescriptorUsageType;
+enum ShadowMapType : uint32;
+enum ShadowMapFilter : uint32;
+class ShadowPassData;
+struct ShadowMapAtlas;
+struct ShadowMapAtlasElement;
+struct RaytracingReflectionsConfig;
+class TLASBase;
+class BLASBase;
+class AccelerationStructureType;
+class RaytracingPipelineBase;
+class EnvGridPassData;
+class LightmapperSubsystem;
+class LightmapperBase;
+class LightmapShadingType;
+struct LightmapperConfig;
+class LightmapTraceMode;
+class EnvProbePassData;
+class VulkanDescriptorTable;
+class VulkanDescriptorSet;
+class VulkanSampler;
+class VulkanSwapchain;
+class VulkanGpuImage;
+class VulkanGpuBuffer;
+class VulkanDevice;
+class VulkanShader;
+class VulkanFence;
+class VulkanDeviceQueueType;
+class VulkanCommandBuffer;
+class VulkanFramebuffer;
+class VulkanFrame;
+class VulkanGpuImageView;
+class VulkanGraphicsPipeline;
+class VulkanAttachment;
+class VulkanRenderPass;
+class VulkanComputePipeline;
+class VulkanBLAS;
+class VulkanAccelerationGeometry;
+class VulkanTLAS;
+class VulkanRaytracingPipeline;
+class SkydomeRenderer;
+class FontAtlas;
+struct FontAtlasTextureSet;
+class DebugDrawer;
+struct DebugDrawerConfig;
+struct PhysicsMaterial;
+class PhysicsShapeType;
+class RigidBody;
+class SpherePhysicsShape;
+class ConvexHullPhysicsShape;
+class BoxPhysicsShape;
+class PhysicsShape;
+class PlanePhysicsShape;
+enum EnvProbeType : uint32;
+class EnvProbe;
+class ReflectionProbe;
+class SkyProbe;
+struct EnvProbeSphericalHarmonics;
+struct GameState;
+class GameStateMode;
+class World;
+struct VisibilityState;
+struct VisibilityStateSnapshot;
+class EntityTag;
+struct TagComponentBase;
+class SystemBase;
+class ComponentRWFlags;
+struct ComponentInfo;
+class Subsystem;
+enum NodeFlags : uint32;
+class NodeTagSet;
+struct NodeTag;
+class Node;
+class DirectionalLight;
+enum LightFlags : uint32;
+class AreaRectLight;
+enum LightType : uint32;
+class SpotLight;
+class PointLight;
+class Light;
+class View;
+struct BVHNode;
+enum BvhFlags : uint32;
+class EntityManager;
+class Scene;
+class SceneFlags;
+class EnvGrid;
+class LegacyEnvGrid;
+class Entity;
+class PerspectiveCameraController;
+class CameraTrackController;
+class FirstPersonCameraInputHandler;
+class FirstPersonCameraControllerMode;
+class FirstPersonCameraController;
+class FollowCameraController;
+class OrthoCameraController;
+class CameraProjectionMode;
+class CameraFlags;
+class CameraController;
+class Camera;
+class NullCameraController;
+class CameraStreamingVolume;
+class AnimationTrack;
+class Animation;
+struct Keyframe;
+class Skeleton;
+class Bone;
+struct LightmapElement;
+struct LightmapVolumeAtlas;
+class LightmapVolume;
+enum LightmapTextureType : uint32;
+struct MeshComponent;
+class VisibilityStateFlags;
+struct VisibilityStateComponent;
+struct BoundingBoxComponent;
+struct TransformComponent;
+class ScriptComponentFlags;
+struct ScriptComponent;
+struct UIComponent;
+struct AnimationComponent;
+struct AnimationPlaybackState;
+class AnimationLoopMode;
+class AnimationPlaybackStatus;
+struct SkyComponent;
+enum AudioLoopMode : uint8;
+struct AudioComponent;
+class AudioComponentFlags;
+enum AudioPlaybackStatus : uint8;
+struct AudioPlaybackState;
+struct LightmapVolumeComponent;
+struct NodeLinkComponent;
+struct RigidBodyComponent;
+class RigidBodyComponentFlags;
+struct ReflectionProbeComponent;
+class WorldAABBUpdaterSystem;
+class PhysicsSystem;
+class SkySystem;
+class VisibilityStateUpdaterSystem;
+class AudioSystem;
+class EntityRenderProxySystem_Mesh;
+class EntityMeshDirtyStateSystem;
+class ScriptableSystem;
+class ScriptSystem;
+class LightmapSystem;
+class AnimationSystem;
+struct WorldGridLayerInfo;
+class WorldGridLayer;
+class WorldGrid;
+class TerrainStreamingCell;
+class TerrainWorldGridLayer;
+enum EnginePoolName : int;
+class EngineDriver;
+class EditorActionStack;
+class EditorActionStackState;
+class EditorCameraInputHandler;
+class EditorCameraControllerMode;
+class EditorCameraController;
+class EditorState;
+class EditorProject;
+class EditorActionBase;
+class FunctionalEditorAction;
+class EditorTaskBase;
+class LongRunningEditorTask;
+class TickableEditorTask;
+class HyperionEditor;
+class NullEditorManipulationWidget;
+class TranslateEditorManipulationWidget;
+class EditorSubsystem;
+class GenerateLightmapsEditorTask;
+class EditorManipulationWidgetBase;
+class EditorPropertyPanelBase;
+class TransformEditorPropertyPanel;
+class FpsCounter;
+class StatOverlay;
+class TextureEditorDebugOverlay;
+class TextEditorDebugOverlay;
+class EditorDebugOverlayBase;
+class EditorMain;
+class ConsoleCommandBase;
+class ConsoleUI;
+class LogEntitiesCommand;
+
+#pragma endregion Forward declarations
+
+
+HYP_API void InitializeClassDeclarations()
+{
+    static Array<ClassRegistrationBase*> s_classRegs;
+
+    if (!s_classRegs.Empty())
+    {
+        return; // already initialized
+    }
+
+    static TClassStaticInit<HypObjectBase> s_classInit_HypObjectBase;
+    s_classRegs.PushBack(s_classInit_HypObjectBase.GetClassRegistration());
+
+    static TClassStaticInit<UIGridColumn> s_classInit_UIGridColumn;
+    s_classRegs.PushBack(s_classInit_UIGridColumn.GetClassRegistration());
+
+    static TClassStaticInit<UIGridRow> s_classInit_UIGridRow;
+    s_classRegs.PushBack(s_classInit_UIGridRow.GetClassRegistration());
+
+    static TClassStaticInit<UIGrid> s_classInit_UIGrid;
+    s_classRegs.PushBack(s_classInit_UIGrid.GetClassRegistration());
+
+    static TClassStaticInit<UISpacer> s_classInit_UISpacer;
+    s_classRegs.PushBack(s_classInit_UISpacer.GetClassRegistration());
+
+    static TClassStaticInit<UIPanel> s_classInit_UIPanel;
+    s_classRegs.PushBack(s_classInit_UIPanel.GetClassRegistration());
+
+    static TClassStaticInit<UIMenuBarDropDirection> s_classInit_UIMenuBarDropDirection;
+    s_classRegs.PushBack(s_classInit_UIMenuBarDropDirection.GetClassRegistration());
+
+    static TClassStaticInit<UIMenuItem> s_classInit_UIMenuItem;
+    s_classRegs.PushBack(s_classInit_UIMenuItem.GetClassRegistration());
+
+    static TClassStaticInit<UIMenuBar> s_classInit_UIMenuBar;
+    s_classRegs.PushBack(s_classInit_UIMenuBar.GetClassRegistration());
+
+    static TClassStaticInit<UIStage> s_classInit_UIStage;
+    s_classRegs.PushBack(s_classInit_UIStage.GetClassRegistration());
+
+    static TClassStaticInit<UIDockableItem> s_classInit_UIDockableItem;
+    s_classRegs.PushBack(s_classInit_UIDockableItem.GetClassRegistration());
+
+    static TClassStaticInit<UIDockableContainer> s_classInit_UIDockableContainer;
+    s_classRegs.PushBack(s_classInit_UIDockableContainer.GetClassRegistration());
+
+    static TClassStaticInit<UIImage> s_classInit_UIImage;
+    s_classRegs.PushBack(s_classInit_UIImage.GetClassRegistration());
+
+    static TClassStaticInit<UISubsystem> s_classInit_UISubsystem;
+    s_classRegs.PushBack(s_classInit_UISubsystem.GetClassRegistration());
+
+    static TClassStaticInit<UIWindow> s_classInit_UIWindow;
+    s_classRegs.PushBack(s_classInit_UIWindow.GetClassRegistration());
+
+    static TClassStaticInit<UIDataSource> s_classInit_UIDataSource;
+    s_classRegs.PushBack(s_classInit_UIDataSource.GetClassRegistration());
+
+    static TClassStaticInit<UIElementFactoryBase> s_classInit_UIElementFactoryBase;
+    s_classRegs.PushBack(s_classInit_UIElementFactoryBase.GetClassRegistration());
+
+    static TClassStaticInit<UIDataSourceBase> s_classInit_UIDataSourceBase;
+    s_classRegs.PushBack(s_classInit_UIDataSourceBase.GetClassRegistration());
+
+    static TClassStaticInit<UIText> s_classInit_UIText;
+    s_classRegs.PushBack(s_classInit_UIText.GetClassRegistration());
+
+    static TClassStaticInit<UIObject> s_classInit_UIObject;
+    s_classRegs.PushBack(s_classInit_UIObject.GetClassRegistration());
+
+    static TClassStaticInit<UIObjectSize> s_classInit_UIObjectSize;
+    s_classRegs.PushBack(s_classInit_UIObjectSize.GetClassRegistration());
+
+    static TClassStaticInit<UIObjectAspectRatio> s_classInit_UIObjectAspectRatio;
+    s_classRegs.PushBack(s_classInit_UIObjectAspectRatio.GetClassRegistration());
+
+    static TClassStaticInit<UIObjectUpdateSizeFlags> s_classInit_UIObjectUpdateSizeFlags;
+    s_classRegs.PushBack(s_classInit_UIObjectUpdateSizeFlags.GetClassRegistration());
+
+    static TClassStaticInit<UIObjectAlignment> s_classInit_UIObjectAlignment;
+    s_classRegs.PushBack(s_classInit_UIObjectAlignment.GetClassRegistration());
+
+    static TClassStaticInit<UIEventHandlerResult> s_classInit_UIEventHandlerResult;
+    s_classRegs.PushBack(s_classInit_UIEventHandlerResult.GetClassRegistration());
+
+    static TClassStaticInit<UIObjectBorderFlags> s_classInit_UIObjectBorderFlags;
+    s_classRegs.PushBack(s_classInit_UIObjectBorderFlags.GetClassRegistration());
+
+    static TClassStaticInit<UIObjectUpdateType> s_classInit_UIObjectUpdateType;
+    s_classRegs.PushBack(s_classInit_UIObjectUpdateType.GetClassRegistration());
+
+    static TClassStaticInit<UIObjectFocusState> s_classInit_UIObjectFocusState;
+    s_classRegs.PushBack(s_classInit_UIObjectFocusState.GetClassRegistration());
+
+    static TClassStaticInit<ScrollAxis> s_classInit_ScrollAxis;
+    s_classRegs.PushBack(s_classInit_ScrollAxis.GetClassRegistration());
+
+    static TClassStaticInit<UITab> s_classInit_UITab;
+    s_classRegs.PushBack(s_classInit_UITab.GetClassRegistration());
+
+    static TClassStaticInit<UITabView> s_classInit_UITabView;
+    s_classRegs.PushBack(s_classInit_UITabView.GetClassRegistration());
+
+    static TClassStaticInit<UIListViewItem> s_classInit_UIListViewItem;
+    s_classRegs.PushBack(s_classInit_UIListViewItem.GetClassRegistration());
+
+    static TClassStaticInit<UIListView> s_classInit_UIListView;
+    s_classRegs.PushBack(s_classInit_UIListView.GetClassRegistration());
+
+    static TClassStaticInit<UIListViewOrientation> s_classInit_UIListViewOrientation;
+    s_classRegs.PushBack(s_classInit_UIListViewOrientation.GetClassRegistration());
+
+    static TClassStaticInit<UITextbox> s_classInit_UITextbox;
+    s_classRegs.PushBack(s_classInit_UITextbox.GetClassRegistration());
+
+    static TClassStaticInit<UIButton> s_classInit_UIButton;
+    s_classRegs.PushBack(s_classInit_UIButton.GetClassRegistration());
+
+    static TClassStaticInit<UICameraController> s_classInit_UICameraController;
+    s_classRegs.PushBack(s_classInit_UICameraController.GetClassRegistration());
+
+    static TClassStaticInit<ScriptCompileStatus> s_classInit_ScriptCompileStatus;
+    s_classRegs.PushBack(s_classInit_ScriptCompileStatus.GetClassRegistration());
+
+    static TClassStaticInit<ScriptLanguage> s_classInit_ScriptLanguage;
+    s_classRegs.PushBack(s_classInit_ScriptLanguage.GetClassRegistration());
+
+    static TClassStaticInit<ScriptData> s_classInit_ScriptData;
+    s_classRegs.PushBack(s_classInit_ScriptData.GetClassRegistration());
+
+    static TClassStaticInit<WeakName> s_classInit_WeakName;
+    s_classRegs.PushBack(s_classInit_WeakName.GetClassRegistration());
+
+    static TClassStaticInit<Name> s_classInit_Name;
+    s_classRegs.PushBack(s_classInit_Name.GetClassRegistration());
+
+    static TClassStaticInit<HashCode> s_classInit_HashCode;
+    s_classRegs.PushBack(s_classInit_HashCode.GetClassRegistration());
+
+    static TClassStaticInit<CommandLineArgumentDefinitions> s_classInit_CommandLineArgumentDefinitions;
+    s_classRegs.PushBack(s_classInit_CommandLineArgumentDefinitions.GetClassRegistration());
+
+    static TClassStaticInit<CommandLineArguments> s_classInit_CommandLineArguments;
+    s_classRegs.PushBack(s_classInit_CommandLineArguments.GetClassRegistration());
+
+    static TClassStaticInit<CommandLineArgumentType> s_classInit_CommandLineArgumentType;
+    s_classRegs.PushBack(s_classInit_CommandLineArgumentType.GetClassRegistration());
+
+    static TClassStaticInit<Vertex> s_classInit_Vertex;
+    s_classRegs.PushBack(s_classInit_Vertex.GetClassRegistration());
+
+    static TClassStaticInit<VertexAttributeSet> s_classInit_VertexAttributeSet;
+    s_classRegs.PushBack(s_classInit_VertexAttributeSet.GetClassRegistration());
+
+    static TClassStaticInit<Mat3f> s_classInit_Mat3f;
+    s_classRegs.PushBack(s_classInit_Mat3f.GetClassRegistration());
+
+    static TClassStaticInit<Transform> s_classInit_Transform;
+    s_classRegs.PushBack(s_classInit_Transform.GetClassRegistration());
+
+    static TClassStaticInit<Mat4f> s_classInit_Mat4f;
+    s_classRegs.PushBack(s_classInit_Mat4f.GetClassRegistration());
+
+    static TClassStaticInit<Triangle> s_classInit_Triangle;
+    s_classRegs.PushBack(s_classInit_Triangle.GetClassRegistration());
+
+    static TClassStaticInit<Quaternion> s_classInit_Quaternion;
+    s_classRegs.PushBack(s_classInit_Quaternion.GetClassRegistration());
+
+    static TClassStaticInit<BoundingSphere> s_classInit_BoundingSphere;
+    s_classRegs.PushBack(s_classInit_BoundingSphere.GetClassRegistration());
+
+    static TClassStaticInit<RayTestFlags> s_classInit_RayTestFlags;
+    s_classRegs.PushBack(s_classInit_RayTestFlags.GetClassRegistration());
+
+    static TClassStaticInit<Ray> s_classInit_Ray;
+    s_classRegs.PushBack(s_classInit_Ray.GetClassRegistration());
+
+    static TClassStaticInit<Frustum> s_classInit_Frustum;
+    s_classRegs.PushBack(s_classInit_Frustum.GetClassRegistration());
+
+    static TClassStaticInit<Color> s_classInit_Color;
+    s_classRegs.PushBack(s_classInit_Color.GetClassRegistration());
+
+    static TClassStaticInit<BoundingBox> s_classInit_BoundingBox;
+    s_classRegs.PushBack(s_classInit_BoundingBox.GetClassRegistration());
+
+    static TClassStaticInit<Time> s_classInit_Time;
+    s_classRegs.PushBack(s_classInit_Time.GetClassRegistration());
+
+    static TClassStaticInit<Uuid> s_classInit_Uuid;
+    s_classRegs.PushBack(s_classInit_Uuid.GetClassRegistration());
+
+    static TClassStaticInit<Error> s_classInit_Error;
+    s_classRegs.PushBack(s_classInit_Error.GetClassRegistration());
+
+    static TClassStaticInit<Result> s_classInit_Result;
+    s_classRegs.PushBack(s_classInit_Result.GetClassRegistration());
+
+    static TClassStaticInit<DynamicLibrary> s_classInit_DynamicLibrary;
+    s_classRegs.PushBack(s_classInit_DynamicLibrary.GetClassRegistration());
+
+    static TClassStaticInit<Logger> s_classInit_Logger;
+    s_classRegs.PushBack(s_classInit_Logger.GetClassRegistration());
+
+    static TClassStaticInit<LogChannel> s_classInit_LogChannel;
+    s_classRegs.PushBack(s_classInit_LogChannel.GetClassRegistration());
+
+    static TClassStaticInit<TypeId> s_classInit_TypeId;
+    s_classRegs.PushBack(s_classInit_TypeId.GetClassRegistration());
+
+    static TClassStaticInit<BoneDesc> s_classInit_BoneDesc;
+    s_classRegs.PushBack(s_classInit_BoneDesc.GetClassRegistration());
+
+    static TClassStaticInit<SkeletonAsset> s_classInit_SkeletonAsset;
+    s_classRegs.PushBack(s_classInit_SkeletonAsset.GetClassRegistration());
+
+    static TClassStaticInit<SkeletonData> s_classInit_SkeletonData;
+    s_classRegs.PushBack(s_classInit_SkeletonData.GetClassRegistration());
+
+    static TClassStaticInit<SkeletonDesc> s_classInit_SkeletonDesc;
+    s_classRegs.PushBack(s_classInit_SkeletonDesc.GetClassRegistration());
+
+    static TClassStaticInit<AssetLoaderBase> s_classInit_AssetLoaderBase;
+    s_classRegs.PushBack(s_classInit_AssetLoaderBase.GetClassRegistration());
+
+    static TClassStaticInit<TextureAsset> s_classInit_TextureAsset;
+    s_classRegs.PushBack(s_classInit_TextureAsset.GetClassRegistration());
+
+    static TClassStaticInit<ScriptAsset> s_classInit_ScriptAsset;
+    s_classRegs.PushBack(s_classInit_ScriptAsset.GetClassRegistration());
+
+    static TClassStaticInit<AssetPackageFlags> s_classInit_AssetPackageFlags;
+    s_classRegs.PushBack(s_classInit_AssetPackageFlags.GetClassRegistration());
+
+    static TClassStaticInit<AssetPackage> s_classInit_AssetPackage;
+    s_classRegs.PushBack(s_classInit_AssetPackage.GetClassRegistration());
+
+    static TClassStaticInit<AssetRegistry> s_classInit_AssetRegistry;
+    s_classRegs.PushBack(s_classInit_AssetRegistry.GetClassRegistration());
+
+    static TClassStaticInit<AssetReference> s_classInit_AssetReference;
+    s_classRegs.PushBack(s_classInit_AssetReference.GetClassRegistration());
+
+    static TClassStaticInit<AssetObject> s_classInit_AssetObject;
+    s_classRegs.PushBack(s_classInit_AssetObject.GetClassRegistration());
+
+    static TClassStaticInit<AssetObjectFlags> s_classInit_AssetObjectFlags;
+    s_classRegs.PushBack(s_classInit_AssetObjectFlags.GetClassRegistration());
+
+    static TClassStaticInit<AssetPath> s_classInit_AssetPath;
+    s_classRegs.PushBack(s_classInit_AssetPath.GetClassRegistration());
+
+    static TClassStaticInit<MeshData> s_classInit_MeshData;
+    s_classRegs.PushBack(s_classInit_MeshData.GetClassRegistration());
+
+    static TClassStaticInit<MeshAsset> s_classInit_MeshAsset;
+    s_classRegs.PushBack(s_classInit_MeshAsset.GetClassRegistration());
+
+    static TClassStaticInit<MeshDesc> s_classInit_MeshDesc;
+    s_classRegs.PushBack(s_classInit_MeshDesc.GetClassRegistration());
+
+    static TClassStaticInit<AssetChangeType> s_classInit_AssetChangeType;
+    s_classRegs.PushBack(s_classInit_AssetChangeType.GetClassRegistration());
+
+    static TClassStaticInit<AssetLoaderDefinition> s_classInit_AssetLoaderDefinition;
+    s_classRegs.PushBack(s_classInit_AssetLoaderDefinition.GetClassRegistration());
+
+    static TClassStaticInit<AssetManager> s_classInit_AssetManager;
+    s_classRegs.PushBack(s_classInit_AssetManager.GetClassRegistration());
+
+    static TClassStaticInit<AssetCollector> s_classInit_AssetCollector;
+    s_classRegs.PushBack(s_classInit_AssetCollector.GetClassRegistration());
+
+    static TClassStaticInit<WAVAudioLoader> s_classInit_WAVAudioLoader;
+    s_classRegs.PushBack(s_classInit_WAVAudioLoader.GetClassRegistration());
+
+    static TClassStaticInit<OgreXMLSkeletonLoader> s_classInit_OgreXMLSkeletonLoader;
+    s_classRegs.PushBack(s_classInit_OgreXMLSkeletonLoader.GetClassRegistration());
+
+    static TClassStaticInit<UILoader> s_classInit_UILoader;
+    s_classRegs.PushBack(s_classInit_UILoader.GetClassRegistration());
+
+    static TClassStaticInit<PLYModelLoader> s_classInit_PLYModelLoader;
+    s_classRegs.PushBack(s_classInit_PLYModelLoader.GetClassRegistration());
+
+    static TClassStaticInit<FBOMModelLoader> s_classInit_FBOMModelLoader;
+    s_classRegs.PushBack(s_classInit_FBOMModelLoader.GetClassRegistration());
+
+    static TClassStaticInit<OBJModelLoader> s_classInit_OBJModelLoader;
+    s_classRegs.PushBack(s_classInit_OBJModelLoader.GetClassRegistration());
+
+    static TClassStaticInit<FBXModelLoader> s_classInit_FBXModelLoader;
+    s_classRegs.PushBack(s_classInit_FBXModelLoader.GetClassRegistration());
+
+    static TClassStaticInit<OgreXMLModelLoader> s_classInit_OgreXMLModelLoader;
+    s_classRegs.PushBack(s_classInit_OgreXMLModelLoader.GetClassRegistration());
+
+    static TClassStaticInit<FontAtlasLoader> s_classInit_FontAtlasLoader;
+    s_classRegs.PushBack(s_classInit_FontAtlasLoader.GetClassRegistration());
+
+    static TClassStaticInit<FontFaceLoader> s_classInit_FontFaceLoader;
+    s_classRegs.PushBack(s_classInit_FontFaceLoader.GetClassRegistration());
+
+    static TClassStaticInit<TextureLoader> s_classInit_TextureLoader;
+    s_classRegs.PushBack(s_classInit_TextureLoader.GetClassRegistration());
+
+    static TClassStaticInit<MTLMaterialLoader> s_classInit_MTLMaterialLoader;
+    s_classRegs.PushBack(s_classInit_MTLMaterialLoader.GetClassRegistration());
+
+    static TClassStaticInit<JSONLoader> s_classInit_JSONLoader;
+    s_classRegs.PushBack(s_classInit_JSONLoader.GetClassRegistration());
+
+    static TClassStaticInit<OctantId> s_classInit_OctantId;
+    s_classRegs.PushBack(s_classInit_OctantId.GetClassRegistration());
+
+    static TClassStaticInit<KeyCode> s_classInit_KeyCode;
+    s_classRegs.PushBack(s_classInit_KeyCode.GetClassRegistration());
+
+    static TClassStaticInit<KeyboardEvent> s_classInit_KeyboardEvent;
+    s_classRegs.PushBack(s_classInit_KeyboardEvent.GetClassRegistration());
+
+    static TClassStaticInit<InputManager> s_classInit_InputManager;
+    s_classRegs.PushBack(s_classInit_InputManager.GetClassRegistration());
+
+    static TClassStaticInit<MouseButtonState> s_classInit_MouseButtonState;
+    s_classRegs.PushBack(s_classInit_MouseButtonState.GetClassRegistration());
+
+    static TClassStaticInit<MouseEvent> s_classInit_MouseEvent;
+    s_classRegs.PushBack(s_classInit_MouseEvent.GetClassRegistration());
+
+    static TClassStaticInit<MouseButtonKey> s_classInit_MouseButtonKey;
+    s_classRegs.PushBack(s_classInit_MouseButtonKey.GetClassRegistration());
+
+    static TClassStaticInit<InputHandlerBase> s_classInit_InputHandlerBase;
+    s_classRegs.PushBack(s_classInit_InputHandlerBase.GetClassRegistration());
+
+    static TClassStaticInit<NullInputHandler> s_classInit_NullInputHandler;
+    s_classRegs.PushBack(s_classInit_NullInputHandler.GetClassRegistration());
+
+    static TClassStaticInit<Game> s_classInit_Game;
+    s_classRegs.PushBack(s_classInit_Game.GetClassRegistration());
+
+    static TClassStaticInit<StreamableBase> s_classInit_StreamableBase;
+    s_classRegs.PushBack(s_classInit_StreamableBase.GetClassRegistration());
+
+    static TClassStaticInit<StreamableKey> s_classInit_StreamableKey;
+    s_classRegs.PushBack(s_classInit_StreamableKey.GetClassRegistration());
+
+    static TClassStaticInit<StreamingCellNeighbor> s_classInit_StreamingCellNeighbor;
+    s_classRegs.PushBack(s_classInit_StreamingCellNeighbor.GetClassRegistration());
+
+    static TClassStaticInit<StreamingCellInfo> s_classInit_StreamingCellInfo;
+    s_classRegs.PushBack(s_classInit_StreamingCellInfo.GetClassRegistration());
+
+    static TClassStaticInit<StreamingCell> s_classInit_StreamingCell;
+    s_classRegs.PushBack(s_classInit_StreamingCell.GetClassRegistration());
+
+    static TClassStaticInit<StreamingCellState> s_classInit_StreamingCellState;
+    s_classRegs.PushBack(s_classInit_StreamingCellState.GetClassRegistration());
+
+    static TClassStaticInit<StreamingManager> s_classInit_StreamingManager;
+    s_classRegs.PushBack(s_classInit_StreamingManager.GetClassRegistration());
+
+    static TClassStaticInit<StreamingVolumeShape> s_classInit_StreamingVolumeShape;
+    s_classRegs.PushBack(s_classInit_StreamingVolumeShape.GetClassRegistration());
+
+    static TClassStaticInit<StreamingVolumeBase> s_classInit_StreamingVolumeBase;
+    s_classRegs.PushBack(s_classInit_StreamingVolumeBase.GetClassRegistration());
+
+    static TClassStaticInit<SDLAppContext> s_classInit_SDLAppContext;
+    s_classRegs.PushBack(s_classInit_SDLAppContext.GetClassRegistration());
+
+    static TClassStaticInit<AppContextBase> s_classInit_AppContextBase;
+    s_classRegs.PushBack(s_classInit_AppContextBase.GetClassRegistration());
+
+    static TClassStaticInit<SDLApplicationWindow> s_classInit_SDLApplicationWindow;
+    s_classRegs.PushBack(s_classInit_SDLApplicationWindow.GetClassRegistration());
+
+    static TClassStaticInit<Win32ApplicationWindow> s_classInit_Win32ApplicationWindow;
+    s_classRegs.PushBack(s_classInit_Win32ApplicationWindow.GetClassRegistration());
+
+    static TClassStaticInit<ApplicationWindow> s_classInit_ApplicationWindow;
+    s_classRegs.PushBack(s_classInit_ApplicationWindow.GetClassRegistration());
+
+    static TClassStaticInit<Win32AppContext> s_classInit_Win32AppContext;
+    s_classRegs.PushBack(s_classInit_Win32AppContext.GetClassRegistration());
+
+    static TClassStaticInit<AudioSource> s_classInit_AudioSource;
+    s_classRegs.PushBack(s_classInit_AudioSource.GetClassRegistration());
+
+    static TClassStaticInit<AudioSourceFormat> s_classInit_AudioSourceFormat;
+    s_classRegs.PushBack(s_classInit_AudioSourceFormat.GetClassRegistration());
+
+    static TClassStaticInit<AudioSourceState> s_classInit_AudioSourceState;
+    s_classRegs.PushBack(s_classInit_AudioSourceState.GetClassRegistration());
+
+    static TClassStaticInit<GlobalRenderBuffer> s_classInit_GlobalRenderBuffer;
+    s_classRegs.PushBack(s_classInit_GlobalRenderBuffer.GetClassRegistration());
+
+    static TClassStaticInit<GlobalRendererType> s_classInit_GlobalRendererType;
+    s_classRegs.PushBack(s_classInit_GlobalRendererType.GetClassRegistration());
+
+    static TClassStaticInit<FramebufferBase> s_classInit_FramebufferBase;
+    s_classRegs.PushBack(s_classInit_FramebufferBase.GetClassRegistration());
+
+    static TClassStaticInit<RenderBucket> s_classInit_RenderBucket;
+    s_classRegs.PushBack(s_classInit_RenderBucket.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorTableDeclaration> s_classInit_DescriptorTableDeclaration;
+    s_classRegs.PushBack(s_classInit_DescriptorTableDeclaration.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorTableBase> s_classInit_DescriptorTableBase;
+    s_classRegs.PushBack(s_classInit_DescriptorTableBase.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorDeclaration> s_classInit_DescriptorDeclaration;
+    s_classRegs.PushBack(s_classInit_DescriptorDeclaration.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorSetDeclaration> s_classInit_DescriptorSetDeclaration;
+    s_classRegs.PushBack(s_classInit_DescriptorSetDeclaration.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorSetBase> s_classInit_DescriptorSetBase;
+    s_classRegs.PushBack(s_classInit_DescriptorSetBase.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorSetDeclarationFlags> s_classInit_DescriptorSetDeclarationFlags;
+    s_classRegs.PushBack(s_classInit_DescriptorSetDeclarationFlags.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorSlot> s_classInit_DescriptorSlot;
+    s_classRegs.PushBack(s_classInit_DescriptorSlot.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorSetLayoutElement> s_classInit_DescriptorSetLayoutElement;
+    s_classRegs.PushBack(s_classInit_DescriptorSetLayoutElement.GetClassRegistration());
+
+    static TClassStaticInit<Material> s_classInit_Material;
+    s_classRegs.PushBack(s_classInit_Material.GetClassRegistration());
+
+    static TClassStaticInit<MaterialTextureKey> s_classInit_MaterialTextureKey;
+    s_classRegs.PushBack(s_classInit_MaterialTextureKey.GetClassRegistration());
+
+    static TClassStaticInit<MaterialGroup> s_classInit_MaterialGroup;
+    s_classRegs.PushBack(s_classInit_MaterialGroup.GetClassRegistration());
+
+    static TClassStaticInit<MaterialParameterValue> s_classInit_MaterialParameterValue;
+    s_classRegs.PushBack(s_classInit_MaterialParameterValue.GetClassRegistration());
+
+    static TClassStaticInit<MaterialParameters> s_classInit_MaterialParameters;
+    s_classRegs.PushBack(s_classInit_MaterialParameters.GetClassRegistration());
+
+    static TClassStaticInit<MaterialParameterKey> s_classInit_MaterialParameterKey;
+    s_classRegs.PushBack(s_classInit_MaterialParameterKey.GetClassRegistration());
+
+    static TClassStaticInit<MaterialParameterType> s_classInit_MaterialParameterType;
+    s_classRegs.PushBack(s_classInit_MaterialParameterType.GetClassRegistration());
+
+    static TClassStaticInit<MaterialTextures> s_classInit_MaterialTextures;
+    s_classRegs.PushBack(s_classInit_MaterialTextures.GetClassRegistration());
+
+    static TClassStaticInit<MaterialParameter> s_classInit_MaterialParameter;
+    s_classRegs.PushBack(s_classInit_MaterialParameter.GetClassRegistration());
+
+    static TClassStaticInit<BlendFunction> s_classInit_BlendFunction;
+    s_classRegs.PushBack(s_classInit_BlendFunction.GetClassRegistration());
+
+    static TClassStaticInit<Topology> s_classInit_Topology;
+    s_classRegs.PushBack(s_classInit_Topology.GetClassRegistration());
+
+    static TClassStaticInit<BlendModeFactor> s_classInit_BlendModeFactor;
+    s_classRegs.PushBack(s_classInit_BlendModeFactor.GetClassRegistration());
+
+    static TClassStaticInit<GpuElemType> s_classInit_GpuElemType;
+    s_classRegs.PushBack(s_classInit_GpuElemType.GetClassRegistration());
+
+    static TClassStaticInit<StencilOp> s_classInit_StencilOp;
+    s_classRegs.PushBack(s_classInit_StencilOp.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorSetElementType> s_classInit_DescriptorSetElementType;
+    s_classRegs.PushBack(s_classInit_DescriptorSetElementType.GetClassRegistration());
+
+    static TClassStaticInit<TextureWrapMode> s_classInit_TextureWrapMode;
+    s_classRegs.PushBack(s_classInit_TextureWrapMode.GetClassRegistration());
+
+    static TClassStaticInit<StencilCompareOp> s_classInit_StencilCompareOp;
+    s_classRegs.PushBack(s_classInit_StencilCompareOp.GetClassRegistration());
+
+    static TClassStaticInit<ImageSupport> s_classInit_ImageSupport;
+    s_classRegs.PushBack(s_classInit_ImageSupport.GetClassRegistration());
+
+    static TClassStaticInit<FillMode> s_classInit_FillMode;
+    s_classRegs.PushBack(s_classInit_FillMode.GetClassRegistration());
+
+    static TClassStaticInit<DefaultImageFormat> s_classInit_DefaultImageFormat;
+    s_classRegs.PushBack(s_classInit_DefaultImageFormat.GetClassRegistration());
+
+    static TClassStaticInit<TextureType> s_classInit_TextureType;
+    s_classRegs.PushBack(s_classInit_TextureType.GetClassRegistration());
+
+    static TClassStaticInit<TextureData> s_classInit_TextureData;
+    s_classRegs.PushBack(s_classInit_TextureData.GetClassRegistration());
+
+    static TClassStaticInit<TextureBaseFormat> s_classInit_TextureBaseFormat;
+    s_classRegs.PushBack(s_classInit_TextureBaseFormat.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorTableOffsetMap> s_classInit_DescriptorTableOffsetMap;
+    s_classRegs.PushBack(s_classInit_DescriptorTableOffsetMap.GetClassRegistration());
+
+    static TClassStaticInit<StoreOperation> s_classInit_StoreOperation;
+    s_classRegs.PushBack(s_classInit_StoreOperation.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorSetOffsetMap> s_classInit_DescriptorSetOffsetMap;
+    s_classRegs.PushBack(s_classInit_DescriptorSetOffsetMap.GetClassRegistration());
+
+    static TClassStaticInit<ImageUsage> s_classInit_ImageUsage;
+    s_classRegs.PushBack(s_classInit_ImageUsage.GetClassRegistration());
+
+    static TClassStaticInit<ResourceState> s_classInit_ResourceState;
+    s_classRegs.PushBack(s_classInit_ResourceState.GetClassRegistration());
+
+    static TClassStaticInit<TextureFormat> s_classInit_TextureFormat;
+    s_classRegs.PushBack(s_classInit_TextureFormat.GetClassRegistration());
+
+    static TClassStaticInit<FaceCullMode> s_classInit_FaceCullMode;
+    s_classRegs.PushBack(s_classInit_FaceCullMode.GetClassRegistration());
+
+    static TClassStaticInit<StencilFunction> s_classInit_StencilFunction;
+    s_classRegs.PushBack(s_classInit_StencilFunction.GetClassRegistration());
+
+    static TClassStaticInit<TextureDesc> s_classInit_TextureDesc;
+    s_classRegs.PushBack(s_classInit_TextureDesc.GetClassRegistration());
+
+    static TClassStaticInit<LoadOperation> s_classInit_LoadOperation;
+    s_classRegs.PushBack(s_classInit_LoadOperation.GetClassRegistration());
+
+    static TClassStaticInit<TextureFilterMode> s_classInit_TextureFilterMode;
+    s_classRegs.PushBack(s_classInit_TextureFilterMode.GetClassRegistration());
+
+    static TClassStaticInit<RenderPassStage> s_classInit_RenderPassStage;
+    s_classRegs.PushBack(s_classInit_RenderPassStage.GetClassRegistration());
+
+    static TClassStaticInit<SSGIConfig> s_classInit_SSGIConfig;
+    s_classRegs.PushBack(s_classInit_SSGIConfig.GetClassRegistration());
+
+    static TClassStaticInit<ComputePipelineBase> s_classInit_ComputePipelineBase;
+    s_classRegs.PushBack(s_classInit_ComputePipelineBase.GetClassRegistration());
+
+    static TClassStaticInit<TonemapPass> s_classInit_TonemapPass;
+    s_classRegs.PushBack(s_classInit_TonemapPass.GetClassRegistration());
+
+    static TClassStaticInit<LightmapPass> s_classInit_LightmapPass;
+    s_classRegs.PushBack(s_classInit_LightmapPass.GetClassRegistration());
+
+    static TClassStaticInit<RaytracingPassData> s_classInit_RaytracingPassData;
+    s_classRegs.PushBack(s_classInit_RaytracingPassData.GetClassRegistration());
+
+    static TClassStaticInit<DeferredPassData> s_classInit_DeferredPassData;
+    s_classRegs.PushBack(s_classInit_DeferredPassData.GetClassRegistration());
+
+    static TClassStaticInit<ReflectionsPass> s_classInit_ReflectionsPass;
+    s_classRegs.PushBack(s_classInit_ReflectionsPass.GetClassRegistration());
+
+    static TClassStaticInit<DeferredPass> s_classInit_DeferredPass;
+    s_classRegs.PushBack(s_classInit_DeferredPass.GetClassRegistration());
+
+    static TClassStaticInit<EnvGridPass> s_classInit_EnvGridPass;
+    s_classRegs.PushBack(s_classInit_EnvGridPass.GetClassRegistration());
+
+    static TClassStaticInit<SwapchainBase> s_classInit_SwapchainBase;
+    s_classRegs.PushBack(s_classInit_SwapchainBase.GetClassRegistration());
+
+    static TClassStaticInit<PassData> s_classInit_PassData;
+    s_classRegs.PushBack(s_classInit_PassData.GetClassRegistration());
+
+    static TClassStaticInit<RendererConfig> s_classInit_RendererConfig;
+    s_classRegs.PushBack(s_classInit_RendererConfig.GetClassRegistration());
+
+    static TClassStaticInit<GaussianSplattingInstance> s_classInit_GaussianSplattingInstance;
+    s_classRegs.PushBack(s_classInit_GaussianSplattingInstance.GetClassRegistration());
+
+    static TClassStaticInit<GaussianSplatting> s_classInit_GaussianSplatting;
+    s_classRegs.PushBack(s_classInit_GaussianSplatting.GetClassRegistration());
+
+    static TClassStaticInit<AttachmentBase> s_classInit_AttachmentBase;
+    s_classRegs.PushBack(s_classInit_AttachmentBase.GetClassRegistration());
+
+    static TClassStaticInit<GpuBufferType> s_classInit_GpuBufferType;
+    s_classRegs.PushBack(s_classInit_GpuBufferType.GetClassRegistration());
+
+    static TClassStaticInit<GpuBufferBase> s_classInit_GpuBufferBase;
+    s_classRegs.PushBack(s_classInit_GpuBufferBase.GetClassRegistration());
+
+    static TClassStaticInit<ShaderModuleType> s_classInit_ShaderModuleType;
+    s_classRegs.PushBack(s_classInit_ShaderModuleType.GetClassRegistration());
+
+    static TClassStaticInit<ShaderBase> s_classInit_ShaderBase;
+    s_classRegs.PushBack(s_classInit_ShaderBase.GetClassRegistration());
+
+    static TClassStaticInit<UIPassData> s_classInit_UIPassData;
+    s_classRegs.PushBack(s_classInit_UIPassData.GetClassRegistration());
+
+    static TClassStaticInit<GBuffer> s_classInit_GBuffer;
+    s_classRegs.PushBack(s_classInit_GBuffer.GetClassRegistration());
+
+    static TClassStaticInit<GBufferTargetName> s_classInit_GBufferTargetName;
+    s_classRegs.PushBack(s_classInit_GBufferTargetName.GetClassRegistration());
+
+    static TClassStaticInit<PostFXPass> s_classInit_PostFXPass;
+    s_classRegs.PushBack(s_classInit_PostFXPass.GetClassRegistration());
+
+    static TClassStaticInit<RenderGroup> s_classInit_RenderGroup;
+    s_classRegs.PushBack(s_classInit_RenderGroup.GetClassRegistration());
+
+    static TClassStaticInit<DeviceBase> s_classInit_DeviceBase;
+    s_classRegs.PushBack(s_classInit_DeviceBase.GetClassRegistration());
+
+    static TClassStaticInit<GraphicsPipelineBase> s_classInit_GraphicsPipelineBase;
+    s_classRegs.PushBack(s_classInit_GraphicsPipelineBase.GetClassRegistration());
+
+    static TClassStaticInit<ParticleSpawner> s_classInit_ParticleSpawner;
+    s_classRegs.PushBack(s_classInit_ParticleSpawner.GetClassRegistration());
+
+    static TClassStaticInit<ParticleSystem> s_classInit_ParticleSystem;
+    s_classRegs.PushBack(s_classInit_ParticleSystem.GetClassRegistration());
+
+    static TClassStaticInit<SSRRendererConfig> s_classInit_SSRRendererConfig;
+    s_classRegs.PushBack(s_classInit_SSRRendererConfig.GetClassRegistration());
+
+    static TClassStaticInit<CommandBufferBase> s_classInit_CommandBufferBase;
+    s_classRegs.PushBack(s_classInit_CommandBufferBase.GetClassRegistration());
+
+    static TClassStaticInit<MeshInstanceData> s_classInit_MeshInstanceData;
+    s_classRegs.PushBack(s_classInit_MeshInstanceData.GetClassRegistration());
+
+    static TClassStaticInit<SamplerBase> s_classInit_SamplerBase;
+    s_classRegs.PushBack(s_classInit_SamplerBase.GetClassRegistration());
+
+    static TClassStaticInit<MaterialAttributeFlags> s_classInit_MaterialAttributeFlags;
+    s_classRegs.PushBack(s_classInit_MaterialAttributeFlags.GetClassRegistration());
+
+    static TClassStaticInit<MaterialAttributes> s_classInit_MaterialAttributes;
+    s_classRegs.PushBack(s_classInit_MaterialAttributes.GetClassRegistration());
+
+    static TClassStaticInit<MeshAttributes> s_classInit_MeshAttributes;
+    s_classRegs.PushBack(s_classInit_MeshAttributes.GetClassRegistration());
+
+    static TClassStaticInit<FrameBase> s_classInit_FrameBase;
+    s_classRegs.PushBack(s_classInit_FrameBase.GetClassRegistration());
+
+    static TClassStaticInit<Texture> s_classInit_Texture;
+    s_classRegs.PushBack(s_classInit_Texture.GetClassRegistration());
+
+    static TClassStaticInit<GpuImageViewBase> s_classInit_GpuImageViewBase;
+    s_classRegs.PushBack(s_classInit_GpuImageViewBase.GetClassRegistration());
+
+    static TClassStaticInit<GpuImageBase> s_classInit_GpuImageBase;
+    s_classRegs.PushBack(s_classInit_GpuImageBase.GetClassRegistration());
+
+    static TClassStaticInit<HBAOConfig> s_classInit_HBAOConfig;
+    s_classRegs.PushBack(s_classInit_HBAOConfig.GetClassRegistration());
+
+    static TClassStaticInit<HBAO> s_classInit_HBAO;
+    s_classRegs.PushBack(s_classInit_HBAO.GetClassRegistration());
+
+    static TClassStaticInit<RenderStatsCountType> s_classInit_RenderStatsCountType;
+    s_classRegs.PushBack(s_classInit_RenderStatsCountType.GetClassRegistration());
+
+    static TClassStaticInit<RenderStats> s_classInit_RenderStats;
+    s_classRegs.PushBack(s_classInit_RenderStats.GetClassRegistration());
+
+    static TClassStaticInit<RenderStatsCounts> s_classInit_RenderStatsCounts;
+    s_classRegs.PushBack(s_classInit_RenderStatsCounts.GetClassRegistration());
+
+    static TClassStaticInit<FullScreenPass> s_classInit_FullScreenPass;
+    s_classRegs.PushBack(s_classInit_FullScreenPass.GetClassRegistration());
+
+    static TClassStaticInit<Mesh> s_classInit_Mesh;
+    s_classRegs.PushBack(s_classInit_Mesh.GetClassRegistration());
+
+    static TClassStaticInit<MeshFlags> s_classInit_MeshFlags;
+    s_classRegs.PushBack(s_classInit_MeshFlags.GetClassRegistration());
+
+    static TClassStaticInit<MeshRaytracingData> s_classInit_MeshRaytracingData;
+    s_classRegs.PushBack(s_classInit_MeshRaytracingData.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorUsage> s_classInit_DescriptorUsage;
+    s_classRegs.PushBack(s_classInit_DescriptorUsage.GetClassRegistration());
+
+    static TClassStaticInit<CompiledShader> s_classInit_CompiledShader;
+    s_classRegs.PushBack(s_classInit_CompiledShader.GetClassRegistration());
+
+    static TClassStaticInit<ShaderPropertyFlags> s_classInit_ShaderPropertyFlags;
+    s_classRegs.PushBack(s_classInit_ShaderPropertyFlags.GetClassRegistration());
+
+    static TClassStaticInit<ShaderDefinition> s_classInit_ShaderDefinition;
+    s_classRegs.PushBack(s_classInit_ShaderDefinition.GetClassRegistration());
+
+    static TClassStaticInit<ProcessShaderSourcePhase> s_classInit_ProcessShaderSourcePhase;
+    s_classRegs.PushBack(s_classInit_ProcessShaderSourcePhase.GetClassRegistration());
+
+    static TClassStaticInit<ShaderProperties> s_classInit_ShaderProperties;
+    s_classRegs.PushBack(s_classInit_ShaderProperties.GetClassRegistration());
+
+    static TClassStaticInit<ShaderProperty> s_classInit_ShaderProperty;
+    s_classRegs.PushBack(s_classInit_ShaderProperty.GetClassRegistration());
+
+    static TClassStaticInit<ShaderLanguage> s_classInit_ShaderLanguage;
+    s_classRegs.PushBack(s_classInit_ShaderLanguage.GetClassRegistration());
+
+    static TClassStaticInit<VertexAttributeDefinition> s_classInit_VertexAttributeDefinition;
+    s_classRegs.PushBack(s_classInit_VertexAttributeDefinition.GetClassRegistration());
+
+    static TClassStaticInit<CompiledShaderBatch> s_classInit_CompiledShaderBatch;
+    s_classRegs.PushBack(s_classInit_CompiledShaderBatch.GetClassRegistration());
+
+    static TClassStaticInit<HashedShaderDefinition> s_classInit_HashedShaderDefinition;
+    s_classRegs.PushBack(s_classInit_HashedShaderDefinition.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorUsageSet> s_classInit_DescriptorUsageSet;
+    s_classRegs.PushBack(s_classInit_DescriptorUsageSet.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorUsageFlags> s_classInit_DescriptorUsageFlags;
+    s_classRegs.PushBack(s_classInit_DescriptorUsageFlags.GetClassRegistration());
+
+    static TClassStaticInit<DescriptorUsageType> s_classInit_DescriptorUsageType;
+    s_classRegs.PushBack(s_classInit_DescriptorUsageType.GetClassRegistration());
+
+    static TClassStaticInit<ShadowMapType> s_classInit_ShadowMapType;
+    s_classRegs.PushBack(s_classInit_ShadowMapType.GetClassRegistration());
+
+    static TClassStaticInit<ShadowMapFilter> s_classInit_ShadowMapFilter;
+    s_classRegs.PushBack(s_classInit_ShadowMapFilter.GetClassRegistration());
+
+    static TClassStaticInit<ShadowPassData> s_classInit_ShadowPassData;
+    s_classRegs.PushBack(s_classInit_ShadowPassData.GetClassRegistration());
+
+    static TClassStaticInit<ShadowMapAtlas> s_classInit_ShadowMapAtlas;
+    s_classRegs.PushBack(s_classInit_ShadowMapAtlas.GetClassRegistration());
+
+    static TClassStaticInit<ShadowMapAtlasElement> s_classInit_ShadowMapAtlasElement;
+    s_classRegs.PushBack(s_classInit_ShadowMapAtlasElement.GetClassRegistration());
+
+    static TClassStaticInit<RaytracingReflectionsConfig> s_classInit_RaytracingReflectionsConfig;
+    s_classRegs.PushBack(s_classInit_RaytracingReflectionsConfig.GetClassRegistration());
+
+    static TClassStaticInit<TLASBase> s_classInit_TLASBase;
+    s_classRegs.PushBack(s_classInit_TLASBase.GetClassRegistration());
+
+    static TClassStaticInit<BLASBase> s_classInit_BLASBase;
+    s_classRegs.PushBack(s_classInit_BLASBase.GetClassRegistration());
+
+    static TClassStaticInit<AccelerationStructureType> s_classInit_AccelerationStructureType;
+    s_classRegs.PushBack(s_classInit_AccelerationStructureType.GetClassRegistration());
+
+    static TClassStaticInit<RaytracingPipelineBase> s_classInit_RaytracingPipelineBase;
+    s_classRegs.PushBack(s_classInit_RaytracingPipelineBase.GetClassRegistration());
+
+    static TClassStaticInit<EnvGridPassData> s_classInit_EnvGridPassData;
+    s_classRegs.PushBack(s_classInit_EnvGridPassData.GetClassRegistration());
+
+    static TClassStaticInit<LightmapperSubsystem> s_classInit_LightmapperSubsystem;
+    s_classRegs.PushBack(s_classInit_LightmapperSubsystem.GetClassRegistration());
+
+    static TClassStaticInit<LightmapperBase> s_classInit_LightmapperBase;
+    s_classRegs.PushBack(s_classInit_LightmapperBase.GetClassRegistration());
+
+    static TClassStaticInit<LightmapShadingType> s_classInit_LightmapShadingType;
+    s_classRegs.PushBack(s_classInit_LightmapShadingType.GetClassRegistration());
+
+    static TClassStaticInit<LightmapperConfig> s_classInit_LightmapperConfig;
+    s_classRegs.PushBack(s_classInit_LightmapperConfig.GetClassRegistration());
+
+    static TClassStaticInit<LightmapTraceMode> s_classInit_LightmapTraceMode;
+    s_classRegs.PushBack(s_classInit_LightmapTraceMode.GetClassRegistration());
+
+    static TClassStaticInit<EnvProbePassData> s_classInit_EnvProbePassData;
+    s_classRegs.PushBack(s_classInit_EnvProbePassData.GetClassRegistration());
+
+    static TClassStaticInit<VulkanDescriptorTable> s_classInit_VulkanDescriptorTable;
+    s_classRegs.PushBack(s_classInit_VulkanDescriptorTable.GetClassRegistration());
+
+    static TClassStaticInit<VulkanDescriptorSet> s_classInit_VulkanDescriptorSet;
+    s_classRegs.PushBack(s_classInit_VulkanDescriptorSet.GetClassRegistration());
+
+    static TClassStaticInit<VulkanSampler> s_classInit_VulkanSampler;
+    s_classRegs.PushBack(s_classInit_VulkanSampler.GetClassRegistration());
+
+    static TClassStaticInit<VulkanSwapchain> s_classInit_VulkanSwapchain;
+    s_classRegs.PushBack(s_classInit_VulkanSwapchain.GetClassRegistration());
+
+    static TClassStaticInit<VulkanGpuImage> s_classInit_VulkanGpuImage;
+    s_classRegs.PushBack(s_classInit_VulkanGpuImage.GetClassRegistration());
+
+    static TClassStaticInit<VulkanGpuBuffer> s_classInit_VulkanGpuBuffer;
+    s_classRegs.PushBack(s_classInit_VulkanGpuBuffer.GetClassRegistration());
+
+    static TClassStaticInit<VulkanDevice> s_classInit_VulkanDevice;
+    s_classRegs.PushBack(s_classInit_VulkanDevice.GetClassRegistration());
+
+    static TClassStaticInit<VulkanShader> s_classInit_VulkanShader;
+    s_classRegs.PushBack(s_classInit_VulkanShader.GetClassRegistration());
+
+    static TClassStaticInit<VulkanFence> s_classInit_VulkanFence;
+    s_classRegs.PushBack(s_classInit_VulkanFence.GetClassRegistration());
+
+    static TClassStaticInit<VulkanDeviceQueueType> s_classInit_VulkanDeviceQueueType;
+    s_classRegs.PushBack(s_classInit_VulkanDeviceQueueType.GetClassRegistration());
+
+    static TClassStaticInit<VulkanCommandBuffer> s_classInit_VulkanCommandBuffer;
+    s_classRegs.PushBack(s_classInit_VulkanCommandBuffer.GetClassRegistration());
+
+    static TClassStaticInit<VulkanFramebuffer> s_classInit_VulkanFramebuffer;
+    s_classRegs.PushBack(s_classInit_VulkanFramebuffer.GetClassRegistration());
+
+    static TClassStaticInit<VulkanFrame> s_classInit_VulkanFrame;
+    s_classRegs.PushBack(s_classInit_VulkanFrame.GetClassRegistration());
+
+    static TClassStaticInit<VulkanGpuImageView> s_classInit_VulkanGpuImageView;
+    s_classRegs.PushBack(s_classInit_VulkanGpuImageView.GetClassRegistration());
+
+    static TClassStaticInit<VulkanGraphicsPipeline> s_classInit_VulkanGraphicsPipeline;
+    s_classRegs.PushBack(s_classInit_VulkanGraphicsPipeline.GetClassRegistration());
+
+    static TClassStaticInit<VulkanAttachment> s_classInit_VulkanAttachment;
+    s_classRegs.PushBack(s_classInit_VulkanAttachment.GetClassRegistration());
+
+    static TClassStaticInit<VulkanRenderPass> s_classInit_VulkanRenderPass;
+    s_classRegs.PushBack(s_classInit_VulkanRenderPass.GetClassRegistration());
+
+    static TClassStaticInit<VulkanComputePipeline> s_classInit_VulkanComputePipeline;
+    s_classRegs.PushBack(s_classInit_VulkanComputePipeline.GetClassRegistration());
+
+    static TClassStaticInit<VulkanBLAS> s_classInit_VulkanBLAS;
+    s_classRegs.PushBack(s_classInit_VulkanBLAS.GetClassRegistration());
+
+    static TClassStaticInit<VulkanAccelerationGeometry> s_classInit_VulkanAccelerationGeometry;
+    s_classRegs.PushBack(s_classInit_VulkanAccelerationGeometry.GetClassRegistration());
+
+    static TClassStaticInit<VulkanTLAS> s_classInit_VulkanTLAS;
+    s_classRegs.PushBack(s_classInit_VulkanTLAS.GetClassRegistration());
+
+    static TClassStaticInit<VulkanRaytracingPipeline> s_classInit_VulkanRaytracingPipeline;
+    s_classRegs.PushBack(s_classInit_VulkanRaytracingPipeline.GetClassRegistration());
+
+    static TClassStaticInit<SkydomeRenderer> s_classInit_SkydomeRenderer;
+    s_classRegs.PushBack(s_classInit_SkydomeRenderer.GetClassRegistration());
+
+    static TClassStaticInit<FontAtlas> s_classInit_FontAtlas;
+    s_classRegs.PushBack(s_classInit_FontAtlas.GetClassRegistration());
+
+    static TClassStaticInit<FontAtlasTextureSet> s_classInit_FontAtlasTextureSet;
+    s_classRegs.PushBack(s_classInit_FontAtlasTextureSet.GetClassRegistration());
+
+    static TClassStaticInit<DebugDrawer> s_classInit_DebugDrawer;
+    s_classRegs.PushBack(s_classInit_DebugDrawer.GetClassRegistration());
+
+    static TClassStaticInit<DebugDrawerConfig> s_classInit_DebugDrawerConfig;
+    s_classRegs.PushBack(s_classInit_DebugDrawerConfig.GetClassRegistration());
+
+    static TClassStaticInit<PhysicsMaterial> s_classInit_PhysicsMaterial;
+    s_classRegs.PushBack(s_classInit_PhysicsMaterial.GetClassRegistration());
+
+    static TClassStaticInit<PhysicsShapeType> s_classInit_PhysicsShapeType;
+    s_classRegs.PushBack(s_classInit_PhysicsShapeType.GetClassRegistration());
+
+    static TClassStaticInit<RigidBody> s_classInit_RigidBody;
+    s_classRegs.PushBack(s_classInit_RigidBody.GetClassRegistration());
+
+    static TClassStaticInit<SpherePhysicsShape> s_classInit_SpherePhysicsShape;
+    s_classRegs.PushBack(s_classInit_SpherePhysicsShape.GetClassRegistration());
+
+    static TClassStaticInit<ConvexHullPhysicsShape> s_classInit_ConvexHullPhysicsShape;
+    s_classRegs.PushBack(s_classInit_ConvexHullPhysicsShape.GetClassRegistration());
+
+    static TClassStaticInit<BoxPhysicsShape> s_classInit_BoxPhysicsShape;
+    s_classRegs.PushBack(s_classInit_BoxPhysicsShape.GetClassRegistration());
+
+    static TClassStaticInit<PhysicsShape> s_classInit_PhysicsShape;
+    s_classRegs.PushBack(s_classInit_PhysicsShape.GetClassRegistration());
+
+    static TClassStaticInit<PlanePhysicsShape> s_classInit_PlanePhysicsShape;
+    s_classRegs.PushBack(s_classInit_PlanePhysicsShape.GetClassRegistration());
+
+    static TClassStaticInit<EnvProbeType> s_classInit_EnvProbeType;
+    s_classRegs.PushBack(s_classInit_EnvProbeType.GetClassRegistration());
+
+    static TClassStaticInit<EnvProbe> s_classInit_EnvProbe;
+    s_classRegs.PushBack(s_classInit_EnvProbe.GetClassRegistration());
+
+    static TClassStaticInit<ReflectionProbe> s_classInit_ReflectionProbe;
+    s_classRegs.PushBack(s_classInit_ReflectionProbe.GetClassRegistration());
+
+    static TClassStaticInit<SkyProbe> s_classInit_SkyProbe;
+    s_classRegs.PushBack(s_classInit_SkyProbe.GetClassRegistration());
+
+    static TClassStaticInit<EnvProbeSphericalHarmonics> s_classInit_EnvProbeSphericalHarmonics;
+    s_classRegs.PushBack(s_classInit_EnvProbeSphericalHarmonics.GetClassRegistration());
+
+    static TClassStaticInit<GameState> s_classInit_GameState;
+    s_classRegs.PushBack(s_classInit_GameState.GetClassRegistration());
+
+    static TClassStaticInit<GameStateMode> s_classInit_GameStateMode;
+    s_classRegs.PushBack(s_classInit_GameStateMode.GetClassRegistration());
+
+    static TClassStaticInit<World> s_classInit_World;
+    s_classRegs.PushBack(s_classInit_World.GetClassRegistration());
+
+    static TClassStaticInit<VisibilityState> s_classInit_VisibilityState;
+    s_classRegs.PushBack(s_classInit_VisibilityState.GetClassRegistration());
+
+    static TClassStaticInit<VisibilityStateSnapshot> s_classInit_VisibilityStateSnapshot;
+    s_classRegs.PushBack(s_classInit_VisibilityStateSnapshot.GetClassRegistration());
+
+    static TClassStaticInit<EntityTag> s_classInit_EntityTag;
+    s_classRegs.PushBack(s_classInit_EntityTag.GetClassRegistration());
+
+    static TClassStaticInit<TagComponentBase> s_classInit_TagComponentBase;
+    s_classRegs.PushBack(s_classInit_TagComponentBase.GetClassRegistration());
+
+    static TClassStaticInit<SystemBase> s_classInit_SystemBase;
+    s_classRegs.PushBack(s_classInit_SystemBase.GetClassRegistration());
+
+    static TClassStaticInit<ComponentRWFlags> s_classInit_ComponentRWFlags;
+    s_classRegs.PushBack(s_classInit_ComponentRWFlags.GetClassRegistration());
+
+    static TClassStaticInit<ComponentInfo> s_classInit_ComponentInfo;
+    s_classRegs.PushBack(s_classInit_ComponentInfo.GetClassRegistration());
+
+    static TClassStaticInit<Subsystem> s_classInit_Subsystem;
+    s_classRegs.PushBack(s_classInit_Subsystem.GetClassRegistration());
+
+    static TClassStaticInit<NodeFlags> s_classInit_NodeFlags;
+    s_classRegs.PushBack(s_classInit_NodeFlags.GetClassRegistration());
+
+    static TClassStaticInit<NodeTagSet> s_classInit_NodeTagSet;
+    s_classRegs.PushBack(s_classInit_NodeTagSet.GetClassRegistration());
+
+    static TClassStaticInit<NodeTag> s_classInit_NodeTag;
+    s_classRegs.PushBack(s_classInit_NodeTag.GetClassRegistration());
+
+    static TClassStaticInit<Node> s_classInit_Node;
+    s_classRegs.PushBack(s_classInit_Node.GetClassRegistration());
+
+    static TClassStaticInit<DirectionalLight> s_classInit_DirectionalLight;
+    s_classRegs.PushBack(s_classInit_DirectionalLight.GetClassRegistration());
+
+    static TClassStaticInit<LightFlags> s_classInit_LightFlags;
+    s_classRegs.PushBack(s_classInit_LightFlags.GetClassRegistration());
+
+    static TClassStaticInit<AreaRectLight> s_classInit_AreaRectLight;
+    s_classRegs.PushBack(s_classInit_AreaRectLight.GetClassRegistration());
+
+    static TClassStaticInit<LightType> s_classInit_LightType;
+    s_classRegs.PushBack(s_classInit_LightType.GetClassRegistration());
+
+    static TClassStaticInit<SpotLight> s_classInit_SpotLight;
+    s_classRegs.PushBack(s_classInit_SpotLight.GetClassRegistration());
+
+    static TClassStaticInit<PointLight> s_classInit_PointLight;
+    s_classRegs.PushBack(s_classInit_PointLight.GetClassRegistration());
+
+    static TClassStaticInit<Light> s_classInit_Light;
+    s_classRegs.PushBack(s_classInit_Light.GetClassRegistration());
+
+    static TClassStaticInit<View> s_classInit_View;
+    s_classRegs.PushBack(s_classInit_View.GetClassRegistration());
+
+    static TClassStaticInit<BVHNode> s_classInit_BVHNode;
+    s_classRegs.PushBack(s_classInit_BVHNode.GetClassRegistration());
+
+    static TClassStaticInit<BvhFlags> s_classInit_BvhFlags;
+    s_classRegs.PushBack(s_classInit_BvhFlags.GetClassRegistration());
+
+    static TClassStaticInit<EntityManager> s_classInit_EntityManager;
+    s_classRegs.PushBack(s_classInit_EntityManager.GetClassRegistration());
+
+    static TClassStaticInit<Scene> s_classInit_Scene;
+    s_classRegs.PushBack(s_classInit_Scene.GetClassRegistration());
+
+    static TClassStaticInit<SceneFlags> s_classInit_SceneFlags;
+    s_classRegs.PushBack(s_classInit_SceneFlags.GetClassRegistration());
+
+    static TClassStaticInit<EnvGrid> s_classInit_EnvGrid;
+    s_classRegs.PushBack(s_classInit_EnvGrid.GetClassRegistration());
+
+    static TClassStaticInit<LegacyEnvGrid> s_classInit_LegacyEnvGrid;
+    s_classRegs.PushBack(s_classInit_LegacyEnvGrid.GetClassRegistration());
+
+    static TClassStaticInit<Entity> s_classInit_Entity;
+    s_classRegs.PushBack(s_classInit_Entity.GetClassRegistration());
+
+    static TClassStaticInit<PerspectiveCameraController> s_classInit_PerspectiveCameraController;
+    s_classRegs.PushBack(s_classInit_PerspectiveCameraController.GetClassRegistration());
+
+    static TClassStaticInit<CameraTrackController> s_classInit_CameraTrackController;
+    s_classRegs.PushBack(s_classInit_CameraTrackController.GetClassRegistration());
+
+    static TClassStaticInit<FirstPersonCameraInputHandler> s_classInit_FirstPersonCameraInputHandler;
+    s_classRegs.PushBack(s_classInit_FirstPersonCameraInputHandler.GetClassRegistration());
+
+    static TClassStaticInit<FirstPersonCameraControllerMode> s_classInit_FirstPersonCameraControllerMode;
+    s_classRegs.PushBack(s_classInit_FirstPersonCameraControllerMode.GetClassRegistration());
+
+    static TClassStaticInit<FirstPersonCameraController> s_classInit_FirstPersonCameraController;
+    s_classRegs.PushBack(s_classInit_FirstPersonCameraController.GetClassRegistration());
+
+    static TClassStaticInit<FollowCameraController> s_classInit_FollowCameraController;
+    s_classRegs.PushBack(s_classInit_FollowCameraController.GetClassRegistration());
+
+    static TClassStaticInit<OrthoCameraController> s_classInit_OrthoCameraController;
+    s_classRegs.PushBack(s_classInit_OrthoCameraController.GetClassRegistration());
+
+    static TClassStaticInit<CameraProjectionMode> s_classInit_CameraProjectionMode;
+    s_classRegs.PushBack(s_classInit_CameraProjectionMode.GetClassRegistration());
+
+    static TClassStaticInit<CameraFlags> s_classInit_CameraFlags;
+    s_classRegs.PushBack(s_classInit_CameraFlags.GetClassRegistration());
+
+    static TClassStaticInit<CameraController> s_classInit_CameraController;
+    s_classRegs.PushBack(s_classInit_CameraController.GetClassRegistration());
+
+    static TClassStaticInit<Camera> s_classInit_Camera;
+    s_classRegs.PushBack(s_classInit_Camera.GetClassRegistration());
+
+    static TClassStaticInit<NullCameraController> s_classInit_NullCameraController;
+    s_classRegs.PushBack(s_classInit_NullCameraController.GetClassRegistration());
+
+    static TClassStaticInit<CameraStreamingVolume> s_classInit_CameraStreamingVolume;
+    s_classRegs.PushBack(s_classInit_CameraStreamingVolume.GetClassRegistration());
+
+    static TClassStaticInit<AnimationTrack> s_classInit_AnimationTrack;
+    s_classRegs.PushBack(s_classInit_AnimationTrack.GetClassRegistration());
+
+    static TClassStaticInit<Animation> s_classInit_Animation;
+    s_classRegs.PushBack(s_classInit_Animation.GetClassRegistration());
+
+    static TClassStaticInit<Keyframe> s_classInit_Keyframe;
+    s_classRegs.PushBack(s_classInit_Keyframe.GetClassRegistration());
+
+    static TClassStaticInit<Skeleton> s_classInit_Skeleton;
+    s_classRegs.PushBack(s_classInit_Skeleton.GetClassRegistration());
+
+    static TClassStaticInit<Bone> s_classInit_Bone;
+    s_classRegs.PushBack(s_classInit_Bone.GetClassRegistration());
+
+    static TClassStaticInit<LightmapElement> s_classInit_LightmapElement;
+    s_classRegs.PushBack(s_classInit_LightmapElement.GetClassRegistration());
+
+    static TClassStaticInit<LightmapVolumeAtlas> s_classInit_LightmapVolumeAtlas;
+    s_classRegs.PushBack(s_classInit_LightmapVolumeAtlas.GetClassRegistration());
+
+    static TClassStaticInit<LightmapVolume> s_classInit_LightmapVolume;
+    s_classRegs.PushBack(s_classInit_LightmapVolume.GetClassRegistration());
+
+    static TClassStaticInit<LightmapTextureType> s_classInit_LightmapTextureType;
+    s_classRegs.PushBack(s_classInit_LightmapTextureType.GetClassRegistration());
+
+    static TClassStaticInit<MeshComponent> s_classInit_MeshComponent;
+    s_classRegs.PushBack(s_classInit_MeshComponent.GetClassRegistration());
+
+    static TClassStaticInit<VisibilityStateFlags> s_classInit_VisibilityStateFlags;
+    s_classRegs.PushBack(s_classInit_VisibilityStateFlags.GetClassRegistration());
+
+    static TClassStaticInit<VisibilityStateComponent> s_classInit_VisibilityStateComponent;
+    s_classRegs.PushBack(s_classInit_VisibilityStateComponent.GetClassRegistration());
+
+    static TClassStaticInit<BoundingBoxComponent> s_classInit_BoundingBoxComponent;
+    s_classRegs.PushBack(s_classInit_BoundingBoxComponent.GetClassRegistration());
+
+    static TClassStaticInit<TransformComponent> s_classInit_TransformComponent;
+    s_classRegs.PushBack(s_classInit_TransformComponent.GetClassRegistration());
+
+    static TClassStaticInit<ScriptComponentFlags> s_classInit_ScriptComponentFlags;
+    s_classRegs.PushBack(s_classInit_ScriptComponentFlags.GetClassRegistration());
+
+    static TClassStaticInit<ScriptComponent> s_classInit_ScriptComponent;
+    s_classRegs.PushBack(s_classInit_ScriptComponent.GetClassRegistration());
+
+    static TClassStaticInit<UIComponent> s_classInit_UIComponent;
+    s_classRegs.PushBack(s_classInit_UIComponent.GetClassRegistration());
+
+    static TClassStaticInit<AnimationComponent> s_classInit_AnimationComponent;
+    s_classRegs.PushBack(s_classInit_AnimationComponent.GetClassRegistration());
+
+    static TClassStaticInit<AnimationPlaybackState> s_classInit_AnimationPlaybackState;
+    s_classRegs.PushBack(s_classInit_AnimationPlaybackState.GetClassRegistration());
+
+    static TClassStaticInit<AnimationLoopMode> s_classInit_AnimationLoopMode;
+    s_classRegs.PushBack(s_classInit_AnimationLoopMode.GetClassRegistration());
+
+    static TClassStaticInit<AnimationPlaybackStatus> s_classInit_AnimationPlaybackStatus;
+    s_classRegs.PushBack(s_classInit_AnimationPlaybackStatus.GetClassRegistration());
+
+    static TClassStaticInit<SkyComponent> s_classInit_SkyComponent;
+    s_classRegs.PushBack(s_classInit_SkyComponent.GetClassRegistration());
+
+    static TClassStaticInit<AudioLoopMode> s_classInit_AudioLoopMode;
+    s_classRegs.PushBack(s_classInit_AudioLoopMode.GetClassRegistration());
+
+    static TClassStaticInit<AudioComponent> s_classInit_AudioComponent;
+    s_classRegs.PushBack(s_classInit_AudioComponent.GetClassRegistration());
+
+    static TClassStaticInit<AudioComponentFlags> s_classInit_AudioComponentFlags;
+    s_classRegs.PushBack(s_classInit_AudioComponentFlags.GetClassRegistration());
+
+    static TClassStaticInit<AudioPlaybackStatus> s_classInit_AudioPlaybackStatus;
+    s_classRegs.PushBack(s_classInit_AudioPlaybackStatus.GetClassRegistration());
+
+    static TClassStaticInit<AudioPlaybackState> s_classInit_AudioPlaybackState;
+    s_classRegs.PushBack(s_classInit_AudioPlaybackState.GetClassRegistration());
+
+    static TClassStaticInit<LightmapVolumeComponent> s_classInit_LightmapVolumeComponent;
+    s_classRegs.PushBack(s_classInit_LightmapVolumeComponent.GetClassRegistration());
+
+    static TClassStaticInit<NodeLinkComponent> s_classInit_NodeLinkComponent;
+    s_classRegs.PushBack(s_classInit_NodeLinkComponent.GetClassRegistration());
+
+    static TClassStaticInit<RigidBodyComponent> s_classInit_RigidBodyComponent;
+    s_classRegs.PushBack(s_classInit_RigidBodyComponent.GetClassRegistration());
+
+    static TClassStaticInit<RigidBodyComponentFlags> s_classInit_RigidBodyComponentFlags;
+    s_classRegs.PushBack(s_classInit_RigidBodyComponentFlags.GetClassRegistration());
+
+    static TClassStaticInit<ReflectionProbeComponent> s_classInit_ReflectionProbeComponent;
+    s_classRegs.PushBack(s_classInit_ReflectionProbeComponent.GetClassRegistration());
+
+    static TClassStaticInit<WorldAABBUpdaterSystem> s_classInit_WorldAABBUpdaterSystem;
+    s_classRegs.PushBack(s_classInit_WorldAABBUpdaterSystem.GetClassRegistration());
+
+    static TClassStaticInit<PhysicsSystem> s_classInit_PhysicsSystem;
+    s_classRegs.PushBack(s_classInit_PhysicsSystem.GetClassRegistration());
+
+    static TClassStaticInit<SkySystem> s_classInit_SkySystem;
+    s_classRegs.PushBack(s_classInit_SkySystem.GetClassRegistration());
+
+    static TClassStaticInit<VisibilityStateUpdaterSystem> s_classInit_VisibilityStateUpdaterSystem;
+    s_classRegs.PushBack(s_classInit_VisibilityStateUpdaterSystem.GetClassRegistration());
+
+    static TClassStaticInit<AudioSystem> s_classInit_AudioSystem;
+    s_classRegs.PushBack(s_classInit_AudioSystem.GetClassRegistration());
+
+    static TClassStaticInit<EntityRenderProxySystem_Mesh> s_classInit_EntityRenderProxySystem_Mesh;
+    s_classRegs.PushBack(s_classInit_EntityRenderProxySystem_Mesh.GetClassRegistration());
+
+    static TClassStaticInit<EntityMeshDirtyStateSystem> s_classInit_EntityMeshDirtyStateSystem;
+    s_classRegs.PushBack(s_classInit_EntityMeshDirtyStateSystem.GetClassRegistration());
+
+    static TClassStaticInit<ScriptableSystem> s_classInit_ScriptableSystem;
+    s_classRegs.PushBack(s_classInit_ScriptableSystem.GetClassRegistration());
+
+    static TClassStaticInit<ScriptSystem> s_classInit_ScriptSystem;
+    s_classRegs.PushBack(s_classInit_ScriptSystem.GetClassRegistration());
+
+    static TClassStaticInit<LightmapSystem> s_classInit_LightmapSystem;
+    s_classRegs.PushBack(s_classInit_LightmapSystem.GetClassRegistration());
+
+    static TClassStaticInit<AnimationSystem> s_classInit_AnimationSystem;
+    s_classRegs.PushBack(s_classInit_AnimationSystem.GetClassRegistration());
+
+    static TClassStaticInit<WorldGridLayerInfo> s_classInit_WorldGridLayerInfo;
+    s_classRegs.PushBack(s_classInit_WorldGridLayerInfo.GetClassRegistration());
+
+    static TClassStaticInit<WorldGridLayer> s_classInit_WorldGridLayer;
+    s_classRegs.PushBack(s_classInit_WorldGridLayer.GetClassRegistration());
+
+    static TClassStaticInit<WorldGrid> s_classInit_WorldGrid;
+    s_classRegs.PushBack(s_classInit_WorldGrid.GetClassRegistration());
+
+    static TClassStaticInit<TerrainStreamingCell> s_classInit_TerrainStreamingCell;
+    s_classRegs.PushBack(s_classInit_TerrainStreamingCell.GetClassRegistration());
+
+    static TClassStaticInit<TerrainWorldGridLayer> s_classInit_TerrainWorldGridLayer;
+    s_classRegs.PushBack(s_classInit_TerrainWorldGridLayer.GetClassRegistration());
+
+    static TClassStaticInit<EnginePoolName> s_classInit_EnginePoolName;
+    s_classRegs.PushBack(s_classInit_EnginePoolName.GetClassRegistration());
+
+    static TClassStaticInit<EngineDriver> s_classInit_EngineDriver;
+    s_classRegs.PushBack(s_classInit_EngineDriver.GetClassRegistration());
+
+    static TClassStaticInit<EditorActionStack> s_classInit_EditorActionStack;
+    s_classRegs.PushBack(s_classInit_EditorActionStack.GetClassRegistration());
+
+    static TClassStaticInit<EditorActionStackState> s_classInit_EditorActionStackState;
+    s_classRegs.PushBack(s_classInit_EditorActionStackState.GetClassRegistration());
+
+    static TClassStaticInit<EditorCameraInputHandler> s_classInit_EditorCameraInputHandler;
+    s_classRegs.PushBack(s_classInit_EditorCameraInputHandler.GetClassRegistration());
+
+    static TClassStaticInit<EditorCameraControllerMode> s_classInit_EditorCameraControllerMode;
+    s_classRegs.PushBack(s_classInit_EditorCameraControllerMode.GetClassRegistration());
+
+    static TClassStaticInit<EditorCameraController> s_classInit_EditorCameraController;
+    s_classRegs.PushBack(s_classInit_EditorCameraController.GetClassRegistration());
+
+    static TClassStaticInit<EditorState> s_classInit_EditorState;
+    s_classRegs.PushBack(s_classInit_EditorState.GetClassRegistration());
+
+    static TClassStaticInit<EditorProject> s_classInit_EditorProject;
+    s_classRegs.PushBack(s_classInit_EditorProject.GetClassRegistration());
+
+    static TClassStaticInit<EditorActionBase> s_classInit_EditorActionBase;
+    s_classRegs.PushBack(s_classInit_EditorActionBase.GetClassRegistration());
+
+    static TClassStaticInit<FunctionalEditorAction> s_classInit_FunctionalEditorAction;
+    s_classRegs.PushBack(s_classInit_FunctionalEditorAction.GetClassRegistration());
+
+    static TClassStaticInit<EditorTaskBase> s_classInit_EditorTaskBase;
+    s_classRegs.PushBack(s_classInit_EditorTaskBase.GetClassRegistration());
+
+    static TClassStaticInit<LongRunningEditorTask> s_classInit_LongRunningEditorTask;
+    s_classRegs.PushBack(s_classInit_LongRunningEditorTask.GetClassRegistration());
+
+    static TClassStaticInit<TickableEditorTask> s_classInit_TickableEditorTask;
+    s_classRegs.PushBack(s_classInit_TickableEditorTask.GetClassRegistration());
+
+    static TClassStaticInit<HyperionEditor> s_classInit_HyperionEditor;
+    s_classRegs.PushBack(s_classInit_HyperionEditor.GetClassRegistration());
+
+    static TClassStaticInit<NullEditorManipulationWidget> s_classInit_NullEditorManipulationWidget;
+    s_classRegs.PushBack(s_classInit_NullEditorManipulationWidget.GetClassRegistration());
+
+    static TClassStaticInit<TranslateEditorManipulationWidget> s_classInit_TranslateEditorManipulationWidget;
+    s_classRegs.PushBack(s_classInit_TranslateEditorManipulationWidget.GetClassRegistration());
+
+    static TClassStaticInit<EditorSubsystem> s_classInit_EditorSubsystem;
+    s_classRegs.PushBack(s_classInit_EditorSubsystem.GetClassRegistration());
+
+    static TClassStaticInit<GenerateLightmapsEditorTask> s_classInit_GenerateLightmapsEditorTask;
+    s_classRegs.PushBack(s_classInit_GenerateLightmapsEditorTask.GetClassRegistration());
+
+    static TClassStaticInit<EditorManipulationWidgetBase> s_classInit_EditorManipulationWidgetBase;
+    s_classRegs.PushBack(s_classInit_EditorManipulationWidgetBase.GetClassRegistration());
+
+    static TClassStaticInit<EditorPropertyPanelBase> s_classInit_EditorPropertyPanelBase;
+    s_classRegs.PushBack(s_classInit_EditorPropertyPanelBase.GetClassRegistration());
+
+    static TClassStaticInit<TransformEditorPropertyPanel> s_classInit_TransformEditorPropertyPanel;
+    s_classRegs.PushBack(s_classInit_TransformEditorPropertyPanel.GetClassRegistration());
+
+    static TClassStaticInit<FpsCounter> s_classInit_FpsCounter;
+    s_classRegs.PushBack(s_classInit_FpsCounter.GetClassRegistration());
+
+    static TClassStaticInit<StatOverlay> s_classInit_StatOverlay;
+    s_classRegs.PushBack(s_classInit_StatOverlay.GetClassRegistration());
+
+    static TClassStaticInit<TextureEditorDebugOverlay> s_classInit_TextureEditorDebugOverlay;
+    s_classRegs.PushBack(s_classInit_TextureEditorDebugOverlay.GetClassRegistration());
+
+    static TClassStaticInit<TextEditorDebugOverlay> s_classInit_TextEditorDebugOverlay;
+    s_classRegs.PushBack(s_classInit_TextEditorDebugOverlay.GetClassRegistration());
+
+    static TClassStaticInit<EditorDebugOverlayBase> s_classInit_EditorDebugOverlayBase;
+    s_classRegs.PushBack(s_classInit_EditorDebugOverlayBase.GetClassRegistration());
+
+    static TClassStaticInit<EditorMain> s_classInit_EditorMain;
+    s_classRegs.PushBack(s_classInit_EditorMain.GetClassRegistration());
+
+    static TClassStaticInit<ConsoleCommandBase> s_classInit_ConsoleCommandBase;
+    s_classRegs.PushBack(s_classInit_ConsoleCommandBase.GetClassRegistration());
+
+    static TClassStaticInit<ConsoleUI> s_classInit_ConsoleUI;
+    s_classRegs.PushBack(s_classInit_ConsoleUI.GetClassRegistration());
+
+    static TClassStaticInit<LogEntitiesCommand> s_classInit_LogEntitiesCommand;
+    s_classRegs.PushBack(s_classInit_LogEntitiesCommand.GetClassRegistration());
+
+}
+
 } // namespace hyperion

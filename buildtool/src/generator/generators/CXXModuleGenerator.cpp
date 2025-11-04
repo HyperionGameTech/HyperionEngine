@@ -161,10 +161,10 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
 Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analyzer, ByteWriter& writer) const
 {
     writer.WriteString(GetGeneratedFilePreamble(String::empty));
-    writer.WriteString("#include <core/reflection/Class.hpp>\n\n");
+    writer.WriteString("#include <core/reflection/Class.hpp>\n");
+    writer.WriteString("#include <core/reflection/HypObjectMacros.hpp>\n\n");
 
     writer.WriteString("namespace hyperion {\n\n");
-    writer.WriteString("#include <ClassDecls.inc>\n");
 
     // Collect all Class definitions from builtins and modules
     struct ClassInfo
@@ -175,6 +175,8 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
     Array<ClassInfo> allClasses;
     HashSet<String> processedNames;
+
+    writer.WriteString("#pragma region Builtins\n\n");
 
     // Add builtins
     for (const auto& it : analyzer.GetBuiltinClasses())
@@ -203,20 +205,83 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         }
     }
 
+    writer.WriteString("#pragma endregion Builtins\n\n");
+
+    writer.WriteString("#pragma region Defining g_clsXXX globals\n\n");
+
     for (const ClassInfo& classInfo : allClasses)
     {
         const ClassDefinition& cls = *classInfo.definition;
 
         writer.WriteString(HYP_FORMAT("const Class* g_cls{} = nullptr;\n", cls.name));
-        // writer.WriteString(HYP_FORMAT("const Class** ClassDecl<{}>::s_pClass = nullptr;\n\n", cls.name));
-        // writer.WriteString(HYP_FORMAT("static struct ClassDeclInitializer_{}\n", cls.name));
-        // writer.WriteString("{\n");
-        // writer.WriteString(HYP_FORMAT("    ClassDeclInitializer_{}()\n", cls.name));
-        // writer.WriteString("    {\n");
-        // writer.WriteString(HYP_FORMAT("        ClassDecl<{}>::s_pClass = &g_cls{};\n", cls.name, cls.name));
-        // writer.WriteString("    }\n");
-        // writer.WriteString("} " + HYP_FORMAT(" g_classDeclInitializer_{};\n\n", cls.name));
     }
+
+    writer.WriteString("\n#pragma endregion Defining g_clsXXX globals\n\n");
+
+    // build forward decls
+    writer.WriteString("\n#pragma region Forward declarations\n\n");
+
+    for (const ClassInfo& classInfo : allClasses)
+    {
+        const ClassDefinition& cls = *classInfo.definition;
+
+        if (classInfo.definition->isCXXClass)
+        {
+            writer.WriteString(HYP_FORMAT("class {};\n", cls.name));
+        }
+        else if (classInfo.definition->isCXXStruct)
+        {
+            writer.WriteString(HYP_FORMAT("struct {};\n", cls.name));
+        }
+        else if (classInfo.definition->isCXXEnumClass)
+        {
+            if (classInfo.definition->baseClassNames.Any())
+            {
+                writer.WriteString(HYP_FORMAT("enum class {} : {};\n", cls.name, classInfo.definition->baseClassNames.Front()));
+            }
+            else
+            {
+                writer.WriteString(HYP_FORMAT("enum class {};\n", cls.name));
+            }
+        }
+        else if (classInfo.definition->isCXXEnum)
+        {
+            if (classInfo.definition->baseClassNames.Any())
+            {
+                writer.WriteString(HYP_FORMAT("enum {} : {};\n", cls.name, classInfo.definition->baseClassNames.Front()));
+            }
+            else
+            {
+                writer.WriteString(HYP_FORMAT("enum {};\n", cls.name));
+            }
+        }
+        else
+        {
+            HYP_LOG(BuildTool, Error, "Unknown C++ type for class '{}', cannot generate forward declaration", cls.name);
+
+            return HYP_MAKE_ERROR(Error, "Unknown C++ type for class '{}'", cls.name);
+        }
+    }
+
+    writer.WriteString("\n#pragma endregion Forward declarations\n\n");
+
+    // now we need to add a method to be called that initializes all g_clsXXX variables (TClassStaticInit specializations)
+    writer.WriteString("\nHYP_API void InitializeClassDeclarations()\n{\n");
+    writer.WriteString("    static Array<ClassRegistrationBase*> s_classRegs;\n\n");
+    writer.WriteString("    if (!s_classRegs.Empty())\n");
+    writer.WriteString("    {\n");
+    writer.WriteString("        return; // already initialized\n");
+    writer.WriteString("    }\n\n");
+
+    for (const ClassInfo& classInfo : allClasses)
+    {
+        const ClassDefinition& cls = *classInfo.definition;
+
+        writer.WriteString(HYP_FORMAT("    static TClassStaticInit<{}> s_classInit_{};\n", cls.name, cls.name));
+        writer.WriteString(HYP_FORMAT("    s_classRegs.PushBack(s_classInit_{}.GetClassRegistration());\n\n", cls.name));
+    }
+
+    writer.WriteString("}\n\n");
 
     writer.WriteString("} // namespace hyperion\n");
 

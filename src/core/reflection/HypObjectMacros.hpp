@@ -15,6 +15,38 @@ struct GetClassHelper
     static const Class* Get();
 };
 
+class ClassRegistrationBase;
+
+template <class T>
+class TClassStaticInit final
+{
+public:
+    TClassStaticInit(); // leave undefined to cause linker error if not specialized
+
+    TClassStaticInit(const TClassStaticInit& other) = delete;
+    TClassStaticInit& operator=(const TClassStaticInit& other) = delete;
+
+    TClassStaticInit(TClassStaticInit&& other) noexcept = delete;
+    TClassStaticInit& operator=(TClassStaticInit&& other) noexcept = delete;
+
+    ~TClassStaticInit()
+    {
+        if (m_registration != nullptr)
+        {
+            delete m_registration;
+            m_registration = nullptr;
+        }
+    }
+
+    ClassRegistrationBase* GetClassRegistration()
+    {
+        return m_registration;
+    }
+
+protected:
+    ClassRegistrationBase* m_registration;
+};
+
 /// Macro for class / struct / enum declaration ///
 
 // clang-format off
@@ -25,24 +57,14 @@ struct GetClassHelper
     template <>                                                                                                                                 \
     HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
-    static struct ClassInitializer_##cls                                                                                                        \
+    template <>                                                                                                                                 \
+    TClassStaticInit<cls>::TClassStaticInit()                                                                                                   \
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
-        using RegistrationType = ::hyperion::StructRegistration<Type>;                                                                          \
                                                                                                                                                 \
-        static RegistrationType s_classRegistration;                                                                                            \
-                                                                                                                                                \
-        ClassInitializer_##cls ()                                                                                                               \
-        {                                                                                                                                       \
-        }                                                                                                                                       \
-    } g_classInitializer_##cls {};                                                                                                              \
-                                                                                                                                                \
-    ClassInitializer_##cls::RegistrationType ClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+        m_registration = new ::hyperion::StructRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
-#define HYP_END_STRUCT \
-    }                  \
-    }                  \
-    };                 \
+#define HYP_END_STRUCT } } }; }
 
 #define HYP_BEGIN_CLASS(cls, _static_index, _num_descendants, parentClass, ...)                                                                 \
     HYP_API extern const Class* g_cls##cls;                                                                                                     \
@@ -50,24 +72,14 @@ struct GetClassHelper
     template <>                                                                                                                                 \
     HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
-    static struct ClassInitializer_##cls                                                                                                        \
+    template <>                                                                                                                                 \
+    TClassStaticInit<cls>::TClassStaticInit()                                                                                                   \
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
-        using RegistrationType = ::hyperion::ClassRegistration<Type>;                                                                           \
                                                                                                                                                 \
-        static RegistrationType s_classRegistration;                                                                                            \
-                                                                                                                                                \
-        ClassInitializer_##cls ()                                                                                                               \
-        {                                                                                                                                       \
-        }                                                                                                                                       \
-    } g_classInitializer_##cls {};                                                                                                              \
-                                                                                                                                                \
-    ClassInitializer_##cls::RegistrationType ClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+        m_registration = new ::hyperion::ClassRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
-#define HYP_END_CLASS \
-    }                 \
-    }                 \
-    };                \
+#define HYP_END_CLASS } } }; }
 
 #define HYP_BEGIN_ENUM(cls, _static_index, _num_descendants, ...)                                                                               \
     HYP_API extern const Class* g_cls##cls;                                                                                                     \
@@ -75,24 +87,14 @@ struct GetClassHelper
     template <>                                                                                                                                 \
     HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
-    static struct ClassInitializer_##cls                                                                                                        \
+    template <>                                                                                                                                 \
+    TClassStaticInit<cls>::TClassStaticInit()                                                                                                   \
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
-        using RegistrationType = ::hyperion::EnumRegistration<Type>;                                                                            \
                                                                                                                                                 \
-        static RegistrationType s_classRegistration;                                                                                            \
-                                                                                                                                                \
-        ClassInitializer_##cls ()                                                                                                               \
-        {                                                                                                                                       \
-        }                                                                                                                                       \
-    } g_classInitializer_##cls {};                                                                                                              \
-                                                                                                                                                \
-    ClassInitializer_##cls::RegistrationType ClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+        m_registration = new ::hyperion::EnumRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
-#define HYP_END_ENUM \
-    }                \
-    }                \
-    };
+#define HYP_END_ENUM } } }; }
 
 // clang-format on
 
@@ -100,7 +102,8 @@ struct GetClassHelper
 
 #define HYP_OBJECT_BODY(T, ...)                                                  \
 private:                                                                         \
-    friend struct ClassInitializer_##T;                                          \
+    template <class TStaticInitType>                                             \
+    friend class TClassStaticInit;                                               \
                                                                                  \
 public:                                                                          \
     struct ClassInfo                                                             \
@@ -165,7 +168,8 @@ public:                                                                         
 private:
 
 #define HYP_STRUCT_BODY(T, ...)                        \
-    friend struct ClassInitializer_##T;                \
+    template <class TStaticInitType>                   \
+    friend class TClassStaticInit;                     \
                                                        \
     struct ClassInfo                                   \
     {                                                  \
