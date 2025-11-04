@@ -1196,8 +1196,7 @@ void EditorSubsystem::OnAddedToWorld()
     m_camera = CreateObject<Camera>();
     m_camera->AddCameraController(CreateObject<EditorCameraController>());
     m_camera->SetName(NAME("EditorCamera"));
-    // m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
-    m_camera->SetFOV(70.0f);
+    m_camera->SetFOV(60.0f);
     m_camera->SetNear(0.1f);
     m_camera->SetFar(3000.0f);
     InitObject(m_camera);
@@ -1529,7 +1528,7 @@ void EditorSubsystem::InitViewport()
     m_views.PushBack(view);
 
     m_delegateHandlers.Remove(&sceneImageObject->OnSizeChange);
-    m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak(), viewWeak = view.ToWeak(), cameraWeak = m_camera.ToWeak()]()
+    m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak(), cameraWeak = m_camera.ToWeak()]()
         {
             Handle<UIObject> sceneImageObject = sceneImageObjectWeak.Lock();
             if (!sceneImageObject)
@@ -1538,22 +1537,15 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::ERR;
             }
 
-            // Handle<Camera> camera = cameraWeak.Lock();
-            // if (!camera)
-            // {
-            //     HYP_LOG(Editor, Warning, "Camera is no longer valid!");
-            //     return UIEventHandlerResult::ERR;
-            // }
-
-            Handle<View> view = viewWeak.Lock();
-            if (!view)
+            Handle<Camera> camera = cameraWeak.Lock();
+            if (!camera)
             {
                 HYP_LOG(Editor, Warning, "Camera is no longer valid!");
                 return UIEventHandlerResult::ERR;
             }
 
             Vec2i viewportSize = MathUtil::Max(sceneImageObject->GetActualSize(), Vec2i::One());
-            view->SetViewport(Viewport { .extent = Vec2u(viewportSize), .position = Vec2i::Zero() });
+            camera->SetDimensions(viewportSize);
 
             HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewportSize);
 
