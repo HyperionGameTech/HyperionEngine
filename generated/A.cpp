@@ -8,16 +8,8 @@ namespace hyperion {
 
 #pragma region HypObjectBase Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(HypObjectBase, 0, 214, {})
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion HypObjectBase Reflection Data
 
@@ -31,18 +23,10 @@ namespace hyperion {
 
 #pragma region UIGridColumn Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIGridColumn, 8, 0, NAME("UIPanel"))
     Method(NAME(HYP_STR(GetColumnSize)), &UIGridColumn::GetColumnSize, Span<const ClassAttribute> { {ClassAttribute("property", "ColumnSize"), ClassAttribute("xmlattribute", "colsize") } }),
     Method(NAME(HYP_STR(SetColumnSize)), &UIGridColumn::SetColumnSize, Span<const ClassAttribute> { {ClassAttribute("property", "ColumnSize"), ClassAttribute("xmlattribute", "colsize") } })
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIGridColumn Reflection Data
 
@@ -53,16 +37,8 @@ namespace hyperion {
 
 #pragma region UIGridRow Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIGridRow, 9, 0, NAME("UIPanel"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIGridRow Reflection Data
 
@@ -73,20 +49,12 @@ namespace hyperion {
 
 #pragma region UIGrid Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIGrid, 10, 0, NAME("UIPanel"))
     Method(NAME(HYP_STR(GetNumColumns)), &UIGrid::GetNumColumns, Span<const ClassAttribute> { {ClassAttribute("property", "NumColumns") } }),
     Method(NAME(HYP_STR(SetNumColumns)), &UIGrid::SetNumColumns, Span<const ClassAttribute> { {ClassAttribute("property", "NumColumns"), ClassAttribute("xmlattribute", "cols") } }),
     Method(NAME(HYP_STR(GetNumRows)), &UIGrid::GetNumRows, Span<const ClassAttribute> { {ClassAttribute("property", "NumRows") } }),
     Method(NAME(HYP_STR(SetNumRows)), &UIGrid::SetNumRows, Span<const ClassAttribute> { {ClassAttribute("property", "NumRows"), ClassAttribute("xmlattribute", "rows") } })
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIGrid Reflection Data
 
@@ -100,16 +68,8 @@ namespace hyperion {
 
 #pragma region UISpacer Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UISpacer, 6, 0, NAME("UIObject"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UISpacer Reflection Data
 
@@ -125,19 +85,11 @@ namespace hyperion {
 
 #pragma region UIPanel Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIPanel, 7, 12, NAME("UIObject"))
     Method(NAME(HYP_STR(IsHorizontalScrollEnabled)), &UIPanel::IsHorizontalScrollEnabled),
     Method(NAME(HYP_STR(IsVerticalScrollEnabled)), &UIPanel::IsVerticalScrollEnabled),
     Method(NAME(HYP_STR(SetIsScrollEnabled)), &UIPanel::SetIsScrollEnabled)
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIPanel Reflection Data
 
@@ -153,18 +105,10 @@ namespace hyperion {
 
 #pragma region UIMenuBarDropDirection Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(UIMenuBarDropDirection, 217, 0, {})
     StaticField(NAME(HYP_STR(DOWN)), UIMenuBarDropDirection::DOWN),
     StaticField(NAME(HYP_STR(UP)), UIMenuBarDropDirection::UP)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIMenuBarDropDirection Reflection Data
 
@@ -175,16 +119,8 @@ namespace hyperion {
 
 #pragma region UIMenuItem Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIMenuItem, 20, 0, NAME("UIObject"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIMenuItem Reflection Data
 
@@ -195,10 +131,6 @@ namespace hyperion {
 
 #pragma region UIMenuBar Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIMenuBar, 11, 0, NAME("UIPanel"))
     Method(NAME(HYP_STR(GetDropDirection)), &UIMenuBar::GetDropDirection, Span<const ClassAttribute> { {ClassAttribute("property", "DropDirection"), ClassAttribute("xmlattribute", "direction") } }),
     Method(NAME(HYP_STR(SetDropDirection)), &UIMenuBar::SetDropDirection, Span<const ClassAttribute> { {ClassAttribute("property", "DropDirection"), ClassAttribute("xmlattribute", "direction") } }),
@@ -208,10 +140,6 @@ HYP_BEGIN_CLASS(UIMenuBar, 11, 0, NAME("UIPanel"))
     Method(NAME(HYP_STR(GetMenuItemIndex)), &UIMenuBar::GetMenuItemIndex),
     Method(NAME(HYP_STR(RemoveMenuItem)), &UIMenuBar::RemoveMenuItem)
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIMenuBar Reflection Data
 
@@ -228,10 +156,6 @@ namespace hyperion {
 
 #pragma region UIStage Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIStage, 21, 0, NAME("UIObject"))
     Method(NAME(HYP_STR(GetSurfaceSize)), &UIStage::GetSurfaceSize),
     Method(NAME(HYP_STR(SetSurfaceSize)), &UIStage::SetSurfaceSize),
@@ -239,10 +163,6 @@ HYP_BEGIN_CLASS(UIStage, 21, 0, NAME("UIObject"))
     Method(NAME(HYP_STR(SetScene)), &UIStage::SetScene),
     Method(NAME(HYP_STR(GetCamera)), &UIStage::GetCamera)
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIStage Reflection Data
 
@@ -256,16 +176,8 @@ namespace hyperion {
 
 #pragma region UIDockableItem Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIDockableItem, 12, 0, NAME("UIPanel"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIDockableItem Reflection Data
 
@@ -276,16 +188,8 @@ namespace hyperion {
 
 #pragma region UIDockableContainer Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIDockableContainer, 13, 0, NAME("UIPanel"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIDockableContainer Reflection Data
 
@@ -299,16 +203,8 @@ namespace hyperion {
 
 #pragma region UIImage Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIImage, 22, 0, NAME("UIObject"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIImage Reflection Data
 
@@ -322,16 +218,8 @@ namespace hyperion {
 
 #pragma region UISubsystem Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UISubsystem, 161, 0, NAME("Subsystem"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UISubsystem Reflection Data
 
@@ -345,16 +233,8 @@ namespace hyperion {
 
 #pragma region UIWindow Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIWindow, 14, 0, NAME("UIPanel"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIWindow Reflection Data
 
@@ -371,18 +251,10 @@ namespace hyperion {
 
 #pragma region UIDataSource Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIDataSource, 4, 0, NAME("UIDataSourceBase"))
     Method(NAME(HYP_STR(Size)), &UIDataSource::Size),
     Method(NAME(HYP_STR(Clear)), &UIDataSource::Clear)
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIDataSource Reflection Data
 
@@ -398,19 +270,11 @@ namespace hyperion {
 
 #pragma region UIElementFactoryBase Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIElementFactoryBase, 2, 0, NAME("HypObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(GetElementTypeId)), &UIElementFactoryBase::GetElementTypeId, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(CreateUIObject)), &UIElementFactoryBase::CreateUIObject, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(UpdateUIObject)), &UIElementFactoryBase::UpdateUIObject, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIElementFactoryBase Reflection Data
 
@@ -467,18 +331,10 @@ namespace hyperion {
 
 #pragma region UIDataSourceBase Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIDataSourceBase, 3, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(Size)), &UIDataSourceBase::Size),
     Method(NAME(HYP_STR(Clear)), &UIDataSourceBase::Clear)
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIDataSourceBase Reflection Data
 
@@ -492,17 +348,9 @@ namespace hyperion {
 
 #pragma region UIText Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIText, 23, 0, NAME("UIObject"))
     Method(NAME(HYP_STR(GetCharacterOffset)), &UIText::GetCharacterOffset)
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIText Reflection Data
 
@@ -526,10 +374,6 @@ HYP_ENABLE_OPTIMIZATION;
 namespace hyperion {
 
 #pragma region UIObject Reflection Data
-
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
 
 HYP_BEGIN_CLASS(UIObject, 5, 22, NAME("HypObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(GetEntity)), &UIObject::GetEntity),
@@ -629,10 +473,6 @@ HYP_BEGIN_CLASS(UIObject, 5, 22, NAME("HypObjectBase"), ClassAttribute("abstract
     Method(NAME(HYP_STR(Init)), &UIObject::Init)
 HYP_END_CLASS
 
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
-
 #pragma endregion UIObject Reflection Data
 
 } // namespace hyperion
@@ -642,18 +482,10 @@ namespace hyperion {
 
 #pragma region UIObjectSize Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(UIObjectSize, 218, 0, {})
     Field(NAME(HYP_STR(Flags)), &UIObjectSize::flags, offsetof(UIObjectSize, flags)),
     Field(NAME(HYP_STR(Value)), &UIObjectSize::value, offsetof(UIObjectSize, value))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIObjectSize Reflection Data
 
@@ -664,18 +496,10 @@ namespace hyperion {
 
 #pragma region UIObjectAspectRatio Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(UIObjectAspectRatio, 219, 0, {})
     Field(NAME(HYP_STR(X)), &UIObjectAspectRatio::x, offsetof(UIObjectAspectRatio, x)),
     Field(NAME(HYP_STR(Y)), &UIObjectAspectRatio::y, offsetof(UIObjectAspectRatio, y))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIObjectAspectRatio Reflection Data
 
@@ -686,10 +510,6 @@ namespace hyperion {
 
 #pragma region UIObjectUpdateSizeFlags Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(UIObjectUpdateSizeFlags, 220, 0, {})
     StaticField(NAME(HYP_STR(NONE)), UIObjectUpdateSizeFlags::NONE),
     StaticField(NAME(HYP_STR(MAX_SIZE)), UIObjectUpdateSizeFlags::MAX_SIZE),
@@ -697,10 +517,6 @@ HYP_BEGIN_ENUM(UIObjectUpdateSizeFlags, 220, 0, {})
     StaticField(NAME(HYP_STR(OUTER_SIZE)), UIObjectUpdateSizeFlags::OUTER_SIZE),
     StaticField(NAME(HYP_STR(DEFAULT)), UIObjectUpdateSizeFlags::DEFAULT)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIObjectUpdateSizeFlags Reflection Data
 
@@ -711,10 +527,6 @@ namespace hyperion {
 
 #pragma region UIObjectAlignment Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(UIObjectAlignment, 221, 0, {})
     StaticField(NAME(HYP_STR(TOP_LEFT)), UIObjectAlignment::TOP_LEFT),
     StaticField(NAME(HYP_STR(TOP_RIGHT)), UIObjectAlignment::TOP_RIGHT),
@@ -722,10 +534,6 @@ HYP_BEGIN_ENUM(UIObjectAlignment, 221, 0, {})
     StaticField(NAME(HYP_STR(BOTTOM_LEFT)), UIObjectAlignment::BOTTOM_LEFT),
     StaticField(NAME(HYP_STR(BOTTOM_RIGHT)), UIObjectAlignment::BOTTOM_RIGHT)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIObjectAlignment Reflection Data
 
@@ -736,16 +544,8 @@ namespace hyperion {
 
 #pragma region UIEventHandlerResult Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(UIEventHandlerResult, 222, 0, {}, ClassAttribute("size", 24))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIEventHandlerResult Reflection Data
 
@@ -757,10 +557,6 @@ namespace hyperion {
 
 #pragma region UIObjectBorderFlags Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(UIObjectBorderFlags, 223, 0, {})
     StaticField(NAME(HYP_STR(NONE)), UIObjectBorderFlags::NONE),
     StaticField(NAME(HYP_STR(TOP)), UIObjectBorderFlags::TOP),
@@ -770,10 +566,6 @@ HYP_BEGIN_ENUM(UIObjectBorderFlags, 223, 0, {})
     StaticField(NAME(HYP_STR(ALL)), UIObjectBorderFlags::ALL)
 HYP_END_ENUM
 
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
-
 #pragma endregion UIObjectBorderFlags Reflection Data
 
 } // namespace hyperion
@@ -782,10 +574,6 @@ HYP_ENABLE_OPTIMIZATION;
 namespace hyperion {
 
 #pragma region UIObjectUpdateType Reflection Data
-
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
 
 HYP_BEGIN_ENUM(UIObjectUpdateType, 224, 0, {})
     StaticField(NAME(HYP_STR(NONE)), UIObjectUpdateType::NONE),
@@ -807,10 +595,6 @@ HYP_BEGIN_ENUM(UIObjectUpdateType, 224, 0, {})
     StaticField(NAME(HYP_STR(UPDATE_CHILDREN_ALL)), UIObjectUpdateType::UPDATE_CHILDREN_ALL)
 HYP_END_ENUM
 
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
-
 #pragma endregion UIObjectUpdateType Reflection Data
 
 } // namespace hyperion
@@ -820,10 +604,6 @@ namespace hyperion {
 
 #pragma region UIObjectFocusState Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(UIObjectFocusState, 225, 0, {})
     StaticField(NAME(HYP_STR(NONE)), UIObjectFocusState::NONE),
     StaticField(NAME(HYP_STR(HOVER)), UIObjectFocusState::HOVER),
@@ -831,10 +611,6 @@ HYP_BEGIN_ENUM(UIObjectFocusState, 225, 0, {})
     StaticField(NAME(HYP_STR(TOGGLED)), UIObjectFocusState::TOGGLED),
     StaticField(NAME(HYP_STR(FOCUSED)), UIObjectFocusState::FOCUSED)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIObjectFocusState Reflection Data
 
@@ -845,20 +621,12 @@ namespace hyperion {
 
 #pragma region ScrollAxis Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(ScrollAxis, 226, 0, {})
     StaticField(NAME(HYP_STR(SA_NONE)), ScrollAxis::SA_NONE),
     StaticField(NAME(HYP_STR(SA_HORIZONTAL)), ScrollAxis::SA_HORIZONTAL),
     StaticField(NAME(HYP_STR(SA_VERTICAL)), ScrollAxis::SA_VERTICAL),
     StaticField(NAME(HYP_STR(SA_ALL)), ScrollAxis::SA_ALL)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion ScrollAxis Reflection Data
 
@@ -872,16 +640,8 @@ namespace hyperion {
 
 #pragma region UITab Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UITab, 24, 0, NAME("UIObject"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UITab Reflection Data
 
@@ -892,16 +652,8 @@ namespace hyperion {
 
 #pragma region UITabView Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UITabView, 15, 0, NAME("UIPanel"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UITabView Reflection Data
 
@@ -915,16 +667,8 @@ namespace hyperion {
 
 #pragma region UIListViewItem Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIListViewItem, 25, 0, NAME("UIObject"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIListViewItem Reflection Data
 
@@ -935,10 +679,6 @@ namespace hyperion {
 
 #pragma region UIListView Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIListView, 16, 0, NAME("UIPanel"))
     Method(NAME(HYP_STR(SetSelectedItem)), &UIListView::SetSelectedItem),
     Method(NAME(HYP_STR(GetSelectedItemIndex)), &UIListView::GetSelectedItemIndex),
@@ -946,10 +686,6 @@ HYP_BEGIN_CLASS(UIListView, 16, 0, NAME("UIPanel"))
     Method(NAME(HYP_STR(GetOrientation)), &UIListView::GetOrientation, Span<const ClassAttribute> { {ClassAttribute("property", "Orientation") } }),
     Method(NAME(HYP_STR(SetOrientation)), &UIListView::SetOrientation, Span<const ClassAttribute> { {ClassAttribute("property", "Orientation") } })
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIListView Reflection Data
 
@@ -960,18 +696,10 @@ namespace hyperion {
 
 #pragma region UIListViewOrientation Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(UIListViewOrientation, 227, 0, {})
     StaticField(NAME(HYP_STR(VERTICAL)), UIListViewOrientation::VERTICAL),
     StaticField(NAME(HYP_STR(HORIZONTAL)), UIListViewOrientation::HORIZONTAL)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIListViewOrientation Reflection Data
 
@@ -987,20 +715,12 @@ namespace hyperion {
 
 #pragma region UITextbox Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UITextbox, 17, 0, NAME("UIPanel"))
     Method(NAME(HYP_STR(GetPlaceholder)), &UITextbox::GetPlaceholder, Span<const ClassAttribute> { {ClassAttribute("property", "Placeholder"), ClassAttribute("xmlattribute", "placeholder") } }),
     Method(NAME(HYP_STR(SetPlaceholder)), &UITextbox::SetPlaceholder, Span<const ClassAttribute> { {ClassAttribute("property", "Placeholder"), ClassAttribute("xmlattribute", "placeholder") } }),
     Method(NAME(HYP_STR(GetPlaceholderTextColor)), &UITextbox::GetPlaceholderTextColor),
     Field(NAME(HYP_STR(ClearOnSubmit)), &UITextbox::clearOnSubmit, offsetof(UITextbox, clearOnSubmit))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UITextbox Reflection Data
 
@@ -1014,16 +734,8 @@ namespace hyperion {
 
 #pragma region UIButton Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UIButton, 26, 0, NAME("UIObject"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UIButton Reflection Data
 
@@ -1037,16 +749,8 @@ namespace hyperion {
 
 #pragma region UICameraController Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(UICameraController, 189, 0, NAME("OrthoCameraController"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion UICameraController Reflection Data
 
@@ -1060,10 +764,6 @@ namespace hyperion {
 
 #pragma region ScriptCompileStatus Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(ScriptCompileStatus, 228, 0, {})
     StaticField(NAME(HYP_STR(SCS_UNINITIALIZED)), ScriptCompileStatus::SCS_UNINITIALIZED),
     StaticField(NAME(HYP_STR(SCS_COMPILED)), ScriptCompileStatus::SCS_COMPILED),
@@ -1071,10 +771,6 @@ HYP_BEGIN_ENUM(ScriptCompileStatus, 228, 0, {})
     StaticField(NAME(HYP_STR(SCS_PROCESSING)), ScriptCompileStatus::SCS_PROCESSING),
     StaticField(NAME(HYP_STR(SCS_ERRORED)), ScriptCompileStatus::SCS_ERRORED)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion ScriptCompileStatus Reflection Data
 
@@ -1085,20 +781,12 @@ namespace hyperion {
 
 #pragma region ScriptLanguage Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(ScriptLanguage, 229, 0, {})
     StaticField(NAME(HYP_STR(SL_INVALID)), ScriptLanguage::SL_INVALID),
     StaticField(NAME(HYP_STR(SL_NATIVE)), ScriptLanguage::SL_NATIVE),
     StaticField(NAME(HYP_STR(SL_HYPSCRIPT)), ScriptLanguage::SL_HYPSCRIPT),
     StaticField(NAME(HYP_STR(SL_CSHARP)), ScriptLanguage::SL_CSHARP)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion ScriptLanguage Reflection Data
 
@@ -1115,10 +803,6 @@ namespace hyperion {
 
 #pragma region ScriptData Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(ScriptData, 230, 0, {})
     Field(NAME(HYP_STR(Uuid)), &ScriptData::uuid, offsetof(ScriptData, uuid), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Language)), &ScriptData::language, offsetof(ScriptData, language), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
@@ -1129,10 +813,6 @@ HYP_BEGIN_STRUCT(ScriptData, 230, 0, {})
     Field(NAME(HYP_STR(HotReloadVersion)), &ScriptData::hotReloadVersion, offsetof(ScriptData, hotReloadVersion), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(LastModifiedTimestamp)), &ScriptData::lastModifiedTimestamp, offsetof(ScriptData, lastModifiedTimestamp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion ScriptData Reflection Data
 
@@ -1146,17 +826,9 @@ namespace hyperion {
 
 #pragma region WeakName Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(WeakName, 231, 0, {})
     Method(NAME(HYP_STR(ToString)), &WeakName::ToString, Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion WeakName Reflection Data
 
@@ -1167,17 +839,9 @@ namespace hyperion {
 
 #pragma region Name Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Name, 232, 0, {})
     Method(NAME(HYP_STR(ToString)), &Name::ToString, Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Name Reflection Data
 
@@ -1191,16 +855,8 @@ namespace hyperion {
 
 #pragma region HashCode Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(HashCode, 233, 0, {})
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion HashCode Reflection Data
 
@@ -1214,16 +870,8 @@ namespace hyperion {
 
 #pragma region CommandLineArgumentDefinitions Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(CommandLineArgumentDefinitions, 234, 0, {}, ClassAttribute("size", 8))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion CommandLineArgumentDefinitions Reflection Data
 
@@ -1235,16 +883,8 @@ namespace hyperion {
 
 #pragma region CommandLineArguments Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(CommandLineArguments, 235, 0, {})
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion CommandLineArguments Reflection Data
 
@@ -1255,10 +895,6 @@ namespace hyperion {
 
 #pragma region CommandLineArgumentType Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(CommandLineArgumentType, 236, 0, {})
     StaticField(NAME(HYP_STR(STRING)), CommandLineArgumentType::STRING),
     StaticField(NAME(HYP_STR(INTEGER)), CommandLineArgumentType::INTEGER),
@@ -1266,10 +902,6 @@ HYP_BEGIN_ENUM(CommandLineArgumentType, 236, 0, {})
     StaticField(NAME(HYP_STR(BOOLEAN)), CommandLineArgumentType::BOOLEAN),
     StaticField(NAME(HYP_STR(ENUM)), CommandLineArgumentType::ENUM)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion CommandLineArgumentType Reflection Data
 
@@ -1282,10 +914,6 @@ HYP_ENABLE_OPTIMIZATION;
 namespace hyperion {
 
 #pragma region Vertex Reflection Data
-
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
 
 HYP_BEGIN_STRUCT(Vertex, 237, 0, {}, ClassAttribute("size", 128),ClassAttribute("serialize", "bitwise"))
     Field(NAME(HYP_STR(Position)), &Vertex::position, offsetof(Vertex, position), Span<const ClassAttribute> { {ClassAttribute("property", "Position"), ClassAttribute("serialize", true) } }),
@@ -1300,10 +928,6 @@ HYP_BEGIN_STRUCT(Vertex, 237, 0, {}, ClassAttribute("size", 128),ClassAttribute(
     Field(NAME(HYP_STR(NumWeights)), &Vertex::numWeights, offsetof(Vertex, numWeights), Span<const ClassAttribute> { {ClassAttribute("property", "NumWeights"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
-
 #pragma endregion Vertex Reflection Data
 
 static_assert(sizeof(Vertex) == 128, "Expected sizeof(Vertex) to be 128 bytes");
@@ -1314,17 +938,9 @@ namespace hyperion {
 
 #pragma region VertexAttributeSet Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(VertexAttributeSet, 238, 0, {}, ClassAttribute("serialize", "bitwise"))
     Field(NAME(HYP_STR(FlagMask)), &VertexAttributeSet::flagMask, offsetof(VertexAttributeSet, flagMask))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion VertexAttributeSet Reflection Data
 
@@ -1338,16 +954,8 @@ namespace hyperion {
 
 #pragma region Mat3f Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Mat3f, 239, 0, {}, ClassAttribute("size", 48))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Mat3f Reflection Data
 
@@ -1365,20 +973,12 @@ namespace hyperion {
 
 #pragma region Transform Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Transform, 240, 0, {}, ClassAttribute("size", 112),ClassAttribute("serialize", "bitwise"))
     Field(NAME(HYP_STR(Translation)), &Transform::translation, offsetof(Transform, translation)),
     Field(NAME(HYP_STR(Scale)), &Transform::scale, offsetof(Transform, scale)),
     Field(NAME(HYP_STR(Rotation)), &Transform::rotation, offsetof(Transform, rotation)),
     Field(NAME(HYP_STR(Matrix)), &Transform::matrix, offsetof(Transform, matrix), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Transform Reflection Data
 
@@ -1393,16 +993,8 @@ namespace hyperion {
 
 #pragma region Mat4f Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Mat4f, 241, 0, {}, ClassAttribute("size", 64))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Mat4f Reflection Data
 
@@ -1419,17 +1011,9 @@ namespace hyperion {
 
 #pragma region Triangle Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Triangle, 242, 0, {}, ClassAttribute("serialize", "bitwise"))
     Field(NAME(HYP_STR(Points)), &Triangle::points, offsetof(Triangle, points))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Triangle Reflection Data
 
@@ -1443,20 +1027,12 @@ namespace hyperion {
 
 #pragma region Quaternion Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Quaternion, 243, 0, {}, ClassAttribute("size", 16))
     Field(NAME(HYP_STR(X)), &Quaternion::x, offsetof(Quaternion, x)),
     Field(NAME(HYP_STR(Y)), &Quaternion::y, offsetof(Quaternion, y)),
     Field(NAME(HYP_STR(Z)), &Quaternion::z, offsetof(Quaternion, z)),
     Field(NAME(HYP_STR(W)), &Quaternion::w, offsetof(Quaternion, w))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Quaternion Reflection Data
 
@@ -1471,18 +1047,10 @@ namespace hyperion {
 
 #pragma region BoundingSphere Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(BoundingSphere, 244, 0, {}, ClassAttribute("size", 32))
     Field(NAME(HYP_STR(Center)), &BoundingSphere::center, offsetof(BoundingSphere, center), Span<const ClassAttribute> { {ClassAttribute("property", "Center"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Radius)), &BoundingSphere::radius, offsetof(BoundingSphere, radius), Span<const ClassAttribute> { {ClassAttribute("property", "Radius"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion BoundingSphere Reflection Data
 
@@ -1497,20 +1065,12 @@ namespace hyperion {
 
 #pragma region RayTestFlags Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(RayTestFlags, 245, 0, {})
     StaticField(NAME(HYP_STR(RTF_NONE)), RayTestFlags::RTF_NONE),
     StaticField(NAME(HYP_STR(RTF_USE_BVH)), RayTestFlags::RTF_USE_BVH),
     StaticField(NAME(HYP_STR(RTF_EDITOR_PICK)), RayTestFlags::RTF_EDITOR_PICK),
     StaticField(NAME(HYP_STR(RTF_MAX)), RayTestFlags::RTF_MAX)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion RayTestFlags Reflection Data
 
@@ -1521,18 +1081,10 @@ namespace hyperion {
 
 #pragma region Ray Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Ray, 246, 0, {}, ClassAttribute("size", 32),ClassAttribute("serialize", "bitwise"))
     Field(NAME(HYP_STR(Position)), &Ray::position, offsetof(Ray, position), Span<const ClassAttribute> { {ClassAttribute("property", "Position") } }),
     Field(NAME(HYP_STR(Direction)), &Ray::direction, offsetof(Ray, direction), Span<const ClassAttribute> { {ClassAttribute("property", "Direction") } })
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Ray Reflection Data
 
@@ -1547,18 +1099,10 @@ namespace hyperion {
 
 #pragma region Frustum Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Frustum, 247, 0, {}, ClassAttribute("size", 224),ClassAttribute("serialize", "bitwise"))
     Field(NAME(HYP_STR(Planes)), &Frustum::planes, offsetof(Frustum, planes)),
     Field(NAME(HYP_STR(Corners)), &Frustum::corners, offsetof(Frustum, corners))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Frustum Reflection Data
 
@@ -1573,10 +1117,6 @@ namespace hyperion {
 
 #pragma region Color Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Color, 248, 0, {})
     Method(NAME(HYP_STR(GetRed)), &Color::GetRed, Span<const ClassAttribute> { {ClassAttribute("property", "Red"), ClassAttribute("serialize", true) } }),
     Method(NAME(HYP_STR(SetRed)), &Color::SetRed, Span<const ClassAttribute> { {ClassAttribute("property", "Red"), ClassAttribute("serialize", true) } }),
@@ -1587,10 +1127,6 @@ HYP_BEGIN_STRUCT(Color, 248, 0, {})
     Method(NAME(HYP_STR(GetAlpha)), &Color::GetAlpha, Span<const ClassAttribute> { {ClassAttribute("property", "Alpha"), ClassAttribute("serialize", true) } }),
     Method(NAME(HYP_STR(SetAlpha)), &Color::SetAlpha, Span<const ClassAttribute> { {ClassAttribute("property", "Alpha"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Color Reflection Data
 
@@ -1604,18 +1140,10 @@ namespace hyperion {
 
 #pragma region BoundingBox Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(BoundingBox, 249, 0, {}, ClassAttribute("size", 32))
     Field(NAME(HYP_STR(Min)), &BoundingBox::min, offsetof(BoundingBox, min), Span<const ClassAttribute> { {ClassAttribute("property", "Min"), ClassAttribute("serialize", true), ClassAttribute("editor", true) } }),
     Field(NAME(HYP_STR(Max)), &BoundingBox::max, offsetof(BoundingBox, max), Span<const ClassAttribute> { {ClassAttribute("property", "Max"), ClassAttribute("serialize", true), ClassAttribute("editor", true) } })
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion BoundingBox Reflection Data
 
@@ -1630,16 +1158,8 @@ namespace hyperion {
 
 #pragma region Time Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Time, 250, 0, {}, ClassAttribute("serialize", "bitwise"))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Time Reflection Data
 
@@ -1653,19 +1173,11 @@ namespace hyperion {
 
 #pragma region Uuid Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Uuid, 251, 0, {}, ClassAttribute("serialize", "bitwise"))
     Field(NAME(HYP_STR(Data0)), &Uuid::data0, offsetof(Uuid, data0), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("property", "Data0") } }),
     Field(NAME(HYP_STR(Data1)), &Uuid::data1, offsetof(Uuid, data1), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("property", "Data1") } }),
     Method(NAME(HYP_STR(ToString)), &Uuid::ToString)
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Uuid Reflection Data
 
@@ -1679,16 +1191,8 @@ namespace hyperion {
 
 #pragma region Error Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Error, 252, 0, {}, ClassAttribute("size", 16))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Error Reflection Data
 
@@ -1700,19 +1204,11 @@ namespace hyperion {
 
 #pragma region Result Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(Result, 253, 0, {}, ClassAttribute("size", 8))
     Method(NAME(HYP_STR(HasValue)), &Result::HasValue),
     Method(NAME(HYP_STR(HasError)), &Result::HasError),
     Method(NAME(HYP_STR(GetError)), &Result::GetError)
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Result Reflection Data
 
@@ -1727,20 +1223,12 @@ namespace hyperion {
 
 #pragma region DynamicLibrary Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(DynamicLibrary, 254, 0, {}, ClassAttribute("size", 8))
     Method(NAME(HYP_STR(GetPath)), &DynamicLibrary::GetPath),
     Method(NAME(HYP_STR(SetPath)), &DynamicLibrary::SetPath),
     Method(NAME(HYP_STR(Load)), &DynamicLibrary::Load),
     Method(NAME(HYP_STR(GetFunction)), &DynamicLibrary::GetFunction)
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion DynamicLibrary Reflection Data
 
@@ -1757,16 +1245,8 @@ namespace hyperion {
 
 #pragma region Logger Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(Logger, 28, 0, NAME("HypObjectBase"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion Logger Reflection Data
 
@@ -1777,20 +1257,12 @@ namespace hyperion {
 
 #pragma region LogChannel Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(LogChannel, 255, 0, {})
     Field(NAME(HYP_STR(Id)), &LogChannel::id, offsetof(LogChannel, id)),
     Field(NAME(HYP_STR(Name)), &LogChannel::name, offsetof(LogChannel, name)),
     Field(NAME(HYP_STR(ParentChannel)), &LogChannel::parentChannel, offsetof(LogChannel, parentChannel)),
     Field(NAME(HYP_STR(MaskBitset)), &LogChannel::maskBitset, offsetof(LogChannel, maskBitset), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion LogChannel Reflection Data
 
@@ -1804,16 +1276,8 @@ namespace hyperion {
 
 #pragma region TypeId Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(TypeId, 256, 0, {})
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion TypeId Reflection Data
 
@@ -1831,19 +1295,11 @@ namespace hyperion {
 
 #pragma region BoneDesc Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(BoneDesc, 257, 0, {})
     Field(NAME(HYP_STR(Name)), &BoneDesc::name, offsetof(BoneDesc, name)),
     Field(NAME(HYP_STR(BindingTransform)), &BoneDesc::bindingTransform, offsetof(BoneDesc, bindingTransform)),
     Field(NAME(HYP_STR(ParentName)), &BoneDesc::parentName, offsetof(BoneDesc, parentName))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion BoneDesc Reflection Data
 
@@ -1854,17 +1310,9 @@ namespace hyperion {
 
 #pragma region SkeletonAsset Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(SkeletonAsset, 46, 0, NAME("AssetObject"))
     Field(NAME(HYP_STR(SkeletonDesc)), &SkeletonAsset::m_skeletonDesc, offsetof(SkeletonAsset, m_skeletonDesc), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion SkeletonAsset Reflection Data
 
@@ -1875,17 +1323,9 @@ namespace hyperion {
 
 #pragma region SkeletonData Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(SkeletonData, 258, 0, {})
     Field(NAME(HYP_STR(Animations)), &SkeletonData::animations, offsetof(SkeletonData, animations))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion SkeletonData Reflection Data
 
@@ -1896,18 +1336,10 @@ namespace hyperion {
 
 #pragma region SkeletonDesc Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_STRUCT(SkeletonDesc, 259, 0, {})
     Field(NAME(HYP_STR(Bones)), &SkeletonDesc::bones, offsetof(SkeletonDesc, bones)),
     Field(NAME(HYP_STR(AnimationNames)), &SkeletonDesc::animationNames, offsetof(SkeletonDesc, animationNames))
 HYP_END_STRUCT
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion SkeletonDesc Reflection Data
 
@@ -1921,16 +1353,8 @@ namespace hyperion {
 
 #pragma region AssetLoaderBase Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(AssetLoaderBase, 29, 13, NAME("HypObjectBase"), ClassAttribute("abstract", true))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion AssetLoaderBase Reflection Data
 
@@ -1946,17 +1370,9 @@ namespace hyperion {
 
 #pragma region TextureAsset Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(TextureAsset, 47, 0, NAME("AssetObject"))
     Field(NAME(HYP_STR(TextureDesc)), &TextureAsset::m_textureDesc, offsetof(TextureAsset, m_textureDesc), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion TextureAsset Reflection Data
 
@@ -1970,16 +1386,8 @@ namespace hyperion {
 
 #pragma region ScriptAsset Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_CLASS(ScriptAsset, 48, 0, NAME("AssetObject"))
 HYP_END_CLASS
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion ScriptAsset Reflection Data
 
@@ -1998,19 +1406,11 @@ namespace hyperion {
 
 #pragma region AssetPackageFlags Reflection Data
 
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
-
 HYP_BEGIN_ENUM(AssetPackageFlags, 260, 0, {})
     StaticField(NAME(HYP_STR(APF_NONE)), AssetPackageFlags::APF_NONE),
     StaticField(NAME(HYP_STR(APF_TRANSIENT)), AssetPackageFlags::APF_TRANSIENT),
     StaticField(NAME(HYP_STR(APF_HIDDEN)), AssetPackageFlags::APF_HIDDEN)
 HYP_END_ENUM
-
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
 
 #pragma endregion AssetPackageFlags Reflection Data
 
@@ -2020,10 +1420,6 @@ HYP_ENABLE_OPTIMIZATION;
 namespace hyperion {
 
 #pragma region AssetPackage Reflection Data
-
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
 
 HYP_BEGIN_CLASS(AssetPackage, 43, 0, NAME("HypObjectBase"))
     Method(NAME(HYP_STR(GetUUID)), &AssetPackage::GetUUID),
@@ -2054,10 +1450,6 @@ HYP_BEGIN_CLASS(AssetPackage, 43, 0, NAME("HypObjectBase"))
     Field(NAME(HYP_STR(Dependencies)), &AssetPackage::m_dependencies, offsetof(AssetPackage, m_dependencies), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
 HYP_END_CLASS
 
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
-
 #pragma endregion AssetPackage Reflection Data
 
 } // namespace hyperion
@@ -2066,10 +1458,6 @@ HYP_ENABLE_OPTIMIZATION;
 namespace hyperion {
 
 #pragma region AssetRegistry Reflection Data
-
-#ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
-#endif
 
 HYP_BEGIN_CLASS(AssetRegistry, 44, 0, NAME("HypObjectBase"))
     Method(NAME(HYP_STR(GetRootPath)), &AssetRegistry::GetRootPath),
@@ -2082,11 +1470,167 @@ HYP_BEGIN_CLASS(AssetRegistry, 44, 0, NAME("HypObjectBase"))
     Field(NAME(HYP_STR(RootPath)), &AssetRegistry::m_rootPath, offsetof(AssetRegistry, m_rootPath), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
 HYP_END_CLASS
 
-#ifdef HYP_DEBUG_MODE
-HYP_ENABLE_OPTIMIZATION;
-#endif
-
 #pragma endregion AssetRegistry Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: asset/AssetReference.hpp */
+
+#include <asset/AssetReference.hpp>
+#include <asset/AssetPath.hpp>
+
+
+namespace hyperion {
+
+#pragma region AssetReference Reflection Data
+
+HYP_BEGIN_STRUCT(AssetReference, 261, 0, {}, ClassAttribute("size", 16))
+    Method(NAME(HYP_STR(GetAssetPath)), &AssetReference::GetAssetPath, Span<const ClassAttribute> { {ClassAttribute("property", "AssetPath"), ClassAttribute("serialize", true) } }),
+    Method(NAME(HYP_STR(SetAssetPath)), &AssetReference::SetAssetPath, Span<const ClassAttribute> { {ClassAttribute("property", "AssetPath"), ClassAttribute("serialize", true) } })
+HYP_END_STRUCT
+
+#pragma endregion AssetReference Reflection Data
+
+static_assert(sizeof(AssetReference) == 16, "Expected sizeof(AssetReference) to be 16 bytes");
+} // namespace hyperion
+
+/* Generated from: asset/AssetObject.hpp */
+
+#include <asset/AssetObject.hpp>
+#include <core/utilities/Uuid.hpp>
+#include <core/NameInternal.hpp>
+#include <core/utilities/Result.hpp>
+#include <asset/AssetRegistry.hpp>
+#include <asset/AssetPath.hpp>
+
+
+namespace hyperion {
+
+#pragma region AssetObject Reflection Data
+
+HYP_BEGIN_CLASS(AssetObject, 45, 9, NAME("HypObjectBase"), ClassAttribute("abstract", true))
+    Method(NAME(HYP_STR(GetUUID)), &AssetObject::GetUUID),
+    Method(NAME(HYP_STR(GetName)), &AssetObject::GetName),
+    Method(NAME(HYP_STR(Rename)), &AssetObject::Rename),
+    Method(NAME(HYP_STR(GetFriendlyName)), &AssetObject::GetFriendlyName, Span<const ClassAttribute> { {ClassAttribute("property", "FriendlyName") } }),
+    Method(NAME(HYP_STR(SetFriendlyName)), &AssetObject::SetFriendlyName, Span<const ClassAttribute> { {ClassAttribute("property", "FriendlyName") } }),
+    Method(NAME(HYP_STR(GetOriginalFilepath)), &AssetObject::GetOriginalFilepath),
+    Method(NAME(HYP_STR(SetOriginalFilepath)), &AssetObject::SetOriginalFilepath),
+    Method(NAME(HYP_STR(GetPackage)), &AssetObject::GetPackage),
+    Method(NAME(HYP_STR(GetPath)), &AssetObject::GetPath),
+    Method(NAME(HYP_STR(IsRegistered)), &AssetObject::IsRegistered),
+    Method(NAME(HYP_STR(GetAssetFlags)), &AssetObject::GetAssetFlags),
+    Method(NAME(HYP_STR(SetAssetFlags)), &AssetObject::SetAssetFlags),
+    Method(NAME(HYP_STR(IsPersistentlyLoaded)), &AssetObject::IsPersistentlyLoaded),
+    Method(NAME(HYP_STR(SetIsPersistentlyLoaded)), &AssetObject::SetIsPersistentlyLoaded),
+    Method(NAME(HYP_STR(IsTransient)), &AssetObject::IsTransient),
+    Method(NAME(HYP_STR(SetIsTransient)), &AssetObject::SetIsTransient),
+    Method(NAME(HYP_STR(SetIsTransientByProxy)), &AssetObject::SetIsTransientByProxy),
+    Method(NAME(HYP_STR(IsLoaded)), &AssetObject::IsLoaded),
+    Method(NAME(HYP_STR(Save)), &AssetObject::Save),
+    Field(NAME(HYP_STR(Uuid)), &AssetObject::m_uuid, offsetof(AssetObject, m_uuid)),
+    Field(NAME(HYP_STR(Name)), &AssetObject::m_name, offsetof(AssetObject, m_name)),
+    Field(NAME(HYP_STR(FriendlyName)), &AssetObject::m_friendlyName, offsetof(AssetObject, m_friendlyName), Span<const ClassAttribute> { {ClassAttribute("property", "FriendlyName") } }),
+    Field(NAME(HYP_STR(Flags)), &AssetObject::m_flags, offsetof(AssetObject, m_flags)),
+    Field(NAME(HYP_STR(OriginalFilepath)), &AssetObject::m_originalFilepath, offsetof(AssetObject, m_originalFilepath)),
+    Field(NAME(HYP_STR(Package)), &AssetObject::m_package, offsetof(AssetObject, m_package), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(Resource)), &AssetObject::m_resource, offsetof(AssetObject, m_resource), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(AssetPath)), &AssetObject::m_assetPath, offsetof(AssetObject, m_assetPath), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(ManifestPath)), &AssetObject::m_manifestPath, offsetof(AssetObject, m_manifestPath), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(Pool)), &AssetObject::m_pool, offsetof(AssetObject, m_pool), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(PersistentResource)), &AssetObject::m_persistentResource, offsetof(AssetObject, m_persistentResource), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } })
+HYP_END_CLASS
+
+#pragma endregion AssetObject Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AssetObjectFlags Reflection Data
+
+HYP_BEGIN_ENUM(AssetObjectFlags, 262, 0, {})
+    StaticField(NAME(HYP_STR(AOF_NONE)), AssetObjectFlags::AOF_NONE),
+    StaticField(NAME(HYP_STR(AOF_PERSISTENT)), AssetObjectFlags::AOF_PERSISTENT),
+    StaticField(NAME(HYP_STR(AOF_TRANSIENT)), AssetObjectFlags::AOF_TRANSIENT),
+    StaticField(NAME(HYP_STR(AOF_TRANSIENT_BY_PROXY)), AssetObjectFlags::AOF_TRANSIENT_BY_PROXY)
+HYP_END_ENUM
+
+#pragma endregion AssetObjectFlags Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: asset/AssetPath.hpp */
+
+#include <asset/AssetPath.hpp>
+#include <core/NameInternal.hpp>
+
+
+namespace hyperion {
+
+#pragma region AssetPath Reflection Data
+
+HYP_BEGIN_STRUCT(AssetPath, 263, 0, {}, ClassAttribute("size", 8))
+    Property(NAME(HYP_STR(Value)), &AssetPath::ToString, &AssetPath::Set),
+    Field(NAME(HYP_STR(Chain)), &AssetPath::chain, offsetof(AssetPath, chain), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
+    Method(NAME(HYP_STR(IsValid)), &AssetPath::IsValid),
+    Method(NAME(HYP_STR(GetName)), &AssetPath::GetName),
+    Method(NAME(HYP_STR(GetChain)), &AssetPath::GetChain),
+    Method(NAME(HYP_STR(SetChain)), &AssetPath::SetChain),
+    Method(NAME(HYP_STR(ToString)), &AssetPath::ToString)
+HYP_END_STRUCT
+
+#pragma endregion AssetPath Reflection Data
+
+static_assert(sizeof(AssetPath) == 8, "Expected sizeof(AssetPath) to be 8 bytes");
+} // namespace hyperion
+
+/* Generated from: asset/MeshAsset.hpp */
+
+#include <asset/MeshAsset.hpp>
+#include <core/math/Vertex.hpp>
+#include <rendering/RenderableAttributes.hpp>
+
+
+namespace hyperion {
+
+#pragma region MeshData Reflection Data
+
+HYP_BEGIN_STRUCT(MeshData, 264, 0, {})
+    Field(NAME(HYP_STR(VertexData)), &MeshData::vertexData, offsetof(MeshData, vertexData), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("compressed", true) } }),
+    Field(NAME(HYP_STR(IndexData)), &MeshData::indexData, offsetof(MeshData, indexData), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("compressed", true) } })
+HYP_END_STRUCT
+
+#pragma endregion MeshData Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region MeshAsset Reflection Data
+
+HYP_BEGIN_CLASS(MeshAsset, 49, 0, NAME("AssetObject"))
+    Field(NAME(HYP_STR(MeshDesc)), &MeshAsset::m_meshDesc, offsetof(MeshAsset, m_meshDesc), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
+HYP_END_CLASS
+
+#pragma endregion MeshAsset Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region MeshDesc Reflection Data
+
+HYP_BEGIN_STRUCT(MeshDesc, 265, 0, {})
+    Field(NAME(HYP_STR(MeshAttributes)), &MeshDesc::meshAttributes, offsetof(MeshDesc, meshAttributes), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(NumVertices)), &MeshDesc::numVertices, offsetof(MeshDesc, numVertices), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(NumIndices)), &MeshDesc::numIndices, offsetof(MeshDesc, numIndices), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
+HYP_END_STRUCT
+
+#pragma endregion MeshDesc Reflection Data
 
 } // namespace hyperion
 

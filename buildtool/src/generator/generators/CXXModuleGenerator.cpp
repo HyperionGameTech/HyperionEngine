@@ -24,6 +24,8 @@ namespace buildtool {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
+static constexpr bool AddIncludesForDependencies = true;
+
 static const HashMap<ClassDefinitionType, String> s_startMacroNames = {
     { ClassDefinitionType::CLASS, "HYP_BEGIN_CLASS" },
     { ClassDefinitionType::STRUCT, "HYP_BEGIN_STRUCT" },
@@ -393,9 +395,6 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             classAttributes.PushBack(HYP_FORMAT("ClassAttribute(\"{}\", {})", name.ToLower(), value.ToString()));
         }
 
-        writer.WriteString("#ifdef HYP_DEBUG_MODE\n");
-        writer.WriteString("HYP_DISABLE_OPTIMIZATION;\n");
-        writer.WriteString("#endif\n\n");
         writer.WriteString(HYP_FORMAT("{}({}, {}, {}", s_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
 
         HashSet<const ClassDefinition*> baseClassDefinitions;
@@ -529,10 +528,6 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         }
 
         writer.WriteString(HYP_FORMAT("{}\n\n", s_endMacroNames.At(cls.type)));
-
-        writer.WriteString("#ifdef HYP_DEBUG_MODE\n");
-        writer.WriteString("HYP_ENABLE_OPTIMIZATION;\n");
-        writer.WriteString("#endif\n\n");
 
         writer.WriteString(HYP_FORMAT("#pragma endregion {} Reflection Data\n\n", cls.name));
 
@@ -671,23 +666,26 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         addInclude(relativePath);
     }
 
-    if (mod.GetDependencyModules().Any())
+    if constexpr (AddIncludesForDependencies)
     {
-        for (Module* dependencyModule : mod.GetDependencyModules())
+        if (mod.GetDependencyModules().Any())
         {
-            Assert(dependencyModule != nullptr);
-
-            if (!dependencyModule->GetPath().Any())
+            for (Module* dependencyModule : mod.GetDependencyModules())
             {
-                HYP_LOG(BuildTool, Error, "Dependency module has no path! Skipping include.");
+                Assert(dependencyModule != nullptr);
 
-                continue;
+                if (!dependencyModule->GetPath().Any())
+                {
+                    HYP_LOG(BuildTool, Error, "Dependency module has no path! Skipping include.");
+
+                    continue;
+                }
+
+                addInclude(FilePath::Relative(dependencyModule->GetPath(), analyzer.GetSourceDirectory()));
             }
 
-            addInclude(FilePath::Relative(dependencyModule->GetPath(), analyzer.GetSourceDirectory()));
+            writer.WriteString("\n");
         }
-
-        writer.WriteString("\n");
     }
 
     for (const Pair<String, ClassDefinition>& pair : mod.GetClasses())
@@ -733,10 +731,6 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
             classAttributes.PushBack(HYP_FORMAT("ClassAttribute(\"{}\", {})", name.ToLower(), value.ToString()));
         }
-
-        writer.WriteString("#ifdef HYP_DEBUG_MODE\n");
-        writer.WriteString("HYP_DISABLE_OPTIMIZATION;\n");
-        writer.WriteString("#endif\n\n");
 
         writer.WriteString(HYP_FORMAT("{}({}, {}, {}", s_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
 
@@ -875,10 +869,6 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         }
 
         writer.WriteString(HYP_FORMAT("{}\n\n", s_endMacroNames.At(cls.type)));
-
-        writer.WriteString("#ifdef HYP_DEBUG_MODE\n");
-        writer.WriteString("HYP_ENABLE_OPTIMIZATION;\n");
-        writer.WriteString("#endif\n\n");
 
         writer.WriteString(HYP_FORMAT("#pragma endregion {} Reflection Data\n\n", cls.name));
 

@@ -130,7 +130,7 @@ public:
     }
 
 protected:
-    static const String& GetDefaultConfigName(const Class* cls);
+    static UTF8StringView GetDefaultConfigName(const Class* cls);
 
     FilePath GetFilePath() const;
 
@@ -191,7 +191,7 @@ public:
 
     static Derived FromConfig()
     {
-        if (const String& configName = GetDefaultConfigName(GetDerivedClass()); configName.Any())
+        if (UTF8StringView configName = GetDefaultConfigName(GetDerivedClass()); configName.Length() > 0)
         {
             return FromConfig(configName);
         }

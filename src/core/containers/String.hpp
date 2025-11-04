@@ -248,7 +248,7 @@ public:
         return Base::Data();
     }
 
-    HYP_FORCE_INLINE operator utilities::StringView<TStringType>() const
+    HYP_FORCE_INLINE operator utilities::StringView<TStringType>() const& // <-- to prevent binding to temporary
     {
         if (Base::Begin() == Base::End())
         {

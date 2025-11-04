@@ -2230,7 +2230,7 @@ void EditorSubsystem::InitDetailView()
 
             for (auto it = cls->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != cls->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
             {
-                if (Property* property = dynamic_cast<Property*>(&*it))
+                if (Property* property = static_cast<Property*>(&*it))
                 {
                     if (!property->GetAttribute(Attributes::g_attrEditor))
                     {

@@ -167,7 +167,7 @@ public:
 
         for (auto it = cls->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != cls->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
         {
-            if (Property* property = dynamic_cast<Property*>(&*it))
+            if (Property* property = static_cast<Property*>(&*it))
             {
                 if (!property->GetAttribute(Attributes::g_attrEditor))
                 {
@@ -602,7 +602,7 @@ public:
     {
         static const String invalidNodeName = "<Invalid>";
 
-        if (UIText* text = dynamic_cast<UIText*>(uiObject))
+        if (UIText* text = ObjCast<UIText>(uiObject))
         {
             if (Handle<Node> node = value.Lock())
             {
@@ -646,7 +646,7 @@ public:
     {
         static const String invalidSceneName = "<Invalid>";
 
-        if (UIText* text = dynamic_cast<UIText*>(uiObject))
+        if (UIText* text = ObjCast<UIText>(uiObject))
         {
             if (Handle<Scene> scene = value.Lock())
             {

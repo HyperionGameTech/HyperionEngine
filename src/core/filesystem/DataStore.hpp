@@ -53,8 +53,7 @@ public:
                 return AllocateResource<DataStoreType>(prefix);
             });
 
-        DataStoreType* ptrCasted = dynamic_cast<DataStoreType*>(ptr);
-        HYP_CORE_ASSERT(ptrCasted != nullptr);
+        DataStoreType* ptrCasted = static_cast<DataStoreType*>(ptr);
 
         return *ptrCasted;
     }

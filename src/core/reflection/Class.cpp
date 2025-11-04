@@ -822,7 +822,8 @@ void Class::Initialize()
         {
             m_serializationMode = ClassSerializationMode::NONE;
 
-            const String stringValue = serializeAttribute.GetString().ToLower();
+            String stringValue = serializeAttribute.GetString();
+            stringValue = stringValue.ToLower();
 
             if (stringValue == "bitwise")
             {

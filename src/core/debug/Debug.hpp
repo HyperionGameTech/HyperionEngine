@@ -142,17 +142,17 @@ using debug::LogType;
 // Assert used for internal Hyperion libraries. Uses a simple printf-style format string, rather than the internal Hyperion formatting library.
 // Opt to use this macro over AssertDebug() and Assert() to not pollute dependency on including logging headers.
 // These assertions are stripped from released builds.
-#define HYP_CORE_ASSERT(cond, ...)                                                                                                                             \
-    do                                                                                                                                                         \
-    {                                                                                                                                                          \
-        if (HYP_UNLIKELY(!(cond)))                                                                                                                             \
-        {                                                                                                                                                      \
-            std::snprintf(debug::GetErrorStringBuffer(), 4096, "Assertion failed in Hyperion core library!\n\tCondition: " #cond "\n\tMessage: " __VA_ARGS__); \
-            debug::LogAssert(debug::GetErrorStringBuffer());                                                                                                   \
-            HYP_PRINT_STACK_TRACE();                                                                                                                           \
-            debug::TerminateProgram();                                                                                                                         \
-        }                                                                                                                                                      \
-    }                                                                                                                                                          \
+#define HYP_CORE_ASSERT(cond, ...)                                                                 \
+    do                                                                                             \
+    {                                                                                              \
+        if (HYP_UNLIKELY(!(cond)))                                                                 \
+        {                                                                                          \
+            std::snprintf(debug::GetErrorStringBuffer(), 4096, #cond "\n\tMessage: " __VA_ARGS__); \
+            debug::LogAssert(debug::GetErrorStringBuffer());                                       \
+            HYP_PRINT_STACK_TRACE();                                                               \
+            debug::TerminateProgram();                                                             \
+        }                                                                                          \
+    }                                                                                              \
     while (0)
 #else
 #define HYP_CORE_ASSERT(...) (void)(__VA_ARGS__)
@@ -165,15 +165,15 @@ using debug::LogType;
 #define HYP_PRINT_STACK_TRACE()
 #endif
 
-#define HYP_FAIL(...)                                                                                                  \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        HYP_PRINT_STACK_TRACE();                                                                                       \
-        Assert(0, "\n\nAn engine crash has been triggered!\n" __VA_ARGS__);                                            \
-        debug::DebugLog_FlushOutputStream();                                                                           \
-                                                                                                                       \
-        debug::TerminateProgram();                                                                                     \
-    }                                                                                                                  \
+#define HYP_FAIL(...)                                                       \
+    do                                                                      \
+    {                                                                       \
+        HYP_PRINT_STACK_TRACE();                                            \
+        Assert(0, "\n\nAn engine crash has been triggered!\n" __VA_ARGS__); \
+        debug::DebugLog_FlushOutputStream();                                \
+                                                                            \
+        debug::TerminateProgram();                                          \
+    }                                                                       \
     while (0)
 
 // Add to the body of virtual methods that should be overridden.

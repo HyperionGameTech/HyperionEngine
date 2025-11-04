@@ -12,83 +12,81 @@ namespace hyperion {
 
 const ClassAttributeValue ClassAttributeValue::empty = ClassAttributeValue();
 
-bool ClassAttributeValue::IsString() const
+UTF8StringView ClassAttributeValue::GetString() const
 {
-    return value.Is<String>();
+    if (!IsString() || !strValue)
+    {
+        return UTF8StringView();
+    }
+
+    return UTF8StringView(strValue);
 }
 
-const String& ClassAttributeValue::GetString(const String& defaultValue) const
+UTF8StringView ClassAttributeValue::GetString(UTF8StringView defaultValue) const
 {
-    if (!IsString())
+    if (!IsString() || !strValue)
     {
         return defaultValue;
     }
 
-    return value.Get<String>();
-}
-
-bool ClassAttributeValue::IsBool() const
-{
-    return value.Is<bool>();
+    return UTF8StringView(strValue);
 }
 
 bool ClassAttributeValue::GetBool(bool defaultValue) const
 {
-    if (!value.HasValue())
+    if (!IsValid())
     {
         return defaultValue;
     }
 
-    if (const bool* boolPtr = value.TryGet<bool>())
+    if (IsBool())
     {
-        return *boolPtr;
+        return bValue;
     }
 
-    if (const String* stringPtr = value.TryGet<String>())
+    if (IsInt())
     {
-        return !stringPtr->Empty();
+        return iValue != 0;
     }
 
-    if (const int* intPtr = value.TryGet<int>())
+    if (IsString())
     {
-        return *intPtr != 0;
+        return strValue && Memory::StrLen(strValue) > 0;
     }
 
     return defaultValue;
 }
 
-bool ClassAttributeValue::IsInt() const
-{
-    return value.Is<int>();
-}
-
 int ClassAttributeValue::GetInt(int defaultValue) const
 {
-    if (!value.HasValue())
+    if (!IsValid())
     {
         return defaultValue;
     }
 
-    if (const int* intPtr = value.TryGet<int>())
+    if (IsInt())
     {
-        return *intPtr;
+        return iValue;
     }
 
-    if (const String* stringPtr = value.TryGet<String>())
+    if (IsString())
     {
-        int intValue;
-
-        if (StringUtil::Parse(*stringPtr, &intValue))
+        if (strValue)
         {
-            return intValue;
+            int intValue;
+
+            if (StringUtil::Parse(strValue, &intValue))
+            {
+                return intValue;
+            }
         }
 
         return defaultValue;
     }
 
-    if (const bool* boolPtr = value.TryGet<bool>())
+    if (IsBool())
     {
-        return *boolPtr != false;
+        return bValue ? 1 : 0;
     }
 
     return defaultValue;
@@ -96,17 +94,22 @@ int ClassAttributeValue::GetInt(int defaultValue) const
 
 String ClassAttributeValue::ToString() const
 {
-    json::JSONValue jsonValue;
-
-    if (value.HasValue())
+    if (IsValid())
     {
-        Visit(value, [&jsonValue](auto&& v)
-            {
-                jsonValue = json::JSONValue(v);
-            });
+        switch (type)
+        {
+        case ClassAttributeType::STRING:
+            return HYP_FORMAT("\"{}\"", strValue ? strValue : "");
+        case ClassAttributeType::INT:
+            return HYP_FORMAT("{}", iValue);
+        case ClassAttributeType::BOOLEAN:
+            return bValue ? "true" : "false";
+        default:
+            break;
+        }
     }
 
-    return jsonValue.ToString(true);
+    return "<invalid>";
 }
 
 #pragma endregion ClassAttributeValue

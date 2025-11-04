@@ -56,7 +56,7 @@ ConfigurationTable::ConfigurationTable(const String& configName)
 }
 
 ConfigurationTable::ConfigurationTable(const String& configName, const Class* cls)
-    : ConfigurationTable(configName, cls ? cls->GetAttribute(Attributes::g_attrJsonPath).GetString() : String::empty)
+    : ConfigurationTable(configName, cls ? cls->GetAttribute(Attributes::g_attrJsonPath).GetString() : UTF8StringView())
 {
 }
 
@@ -256,7 +256,7 @@ const json::JSONValue& ConfigurationTable::GetSubobject() const
     return *subobject;
 }
 
-const String& ConfigurationTable::GetDefaultConfigName(const Class* cls)
+UTF8StringView ConfigurationTable::GetDefaultConfigName(const Class* cls)
 {
     if (cls)
     {
@@ -266,7 +266,7 @@ const String& ConfigurationTable::GetDefaultConfigName(const Class* cls)
         }
     }
 
-    return String::empty;
+    return {};
 }
 
 void ConfigurationTable::AddError(const Error& error)

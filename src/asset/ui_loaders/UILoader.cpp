@@ -725,7 +725,7 @@ public:
                         {
                             if (const ClassAttributeValue& attr = it.GetAttribute("xmlattribute"); attr.IsValid())
                             {
-                                return attr.GetString().ToLower() == attributeNameLower;
+                                return String(attr.GetString()).ToLower() == attributeNameLower;
                             }
 
                             return false;
