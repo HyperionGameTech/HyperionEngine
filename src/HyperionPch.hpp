@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef __cplusplus
+
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 #include <core/Name.hpp>
@@ -39,3 +41,5 @@
 
 #include <core/reflection/TypeId.hpp>
 #include <core/reflection/HypData.hpp>
+
+#endif

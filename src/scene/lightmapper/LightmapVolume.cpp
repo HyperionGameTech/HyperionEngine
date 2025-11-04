@@ -26,11 +26,17 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <core/threading/Threads.hpp>
+#include <core/threading/TaskSystem.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 namespace hyperion {
+
+static constexpr TextureFormat LightmapAtlasFormats[LTT_MAX] = {
+    TF_RGBA8, // LTT_RADIANCE
+    TF_RGBA8  // LTT_IRRADIANCE
+};
 
 #pragma region Render commands
 
@@ -128,62 +134,63 @@ struct BakeLightmapAtlasTexture : RenderCommand
                 renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_SHADER_RESOURCE);
             }
         }
+        
+        // Readback each texture and update its CPU side data for saving
+        
+        for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LTT_MAX); textureTypeIndex++)
+        {
+            if (!atlasTextures[textureTypeIndex])
+            {
+                continue;
+            }
 
-#if 0
-        // DEBUGGING: Save each atlas texture to a file for debugging purposes
-        currentFrame->OnFrameEnd
-            .Bind([atlasTextures = atlasTextures](FrameBase* frame)
-                                    {
-                                        HYP_LOG(Lightmap, Debug, "Saving atlas textures to disk for debugging");
+            const Handle<Texture>& atlasTexture = atlasTextures[textureTypeIndex];
+            Assert(atlasTexture.IsValid() && atlasTexture->IsReady());
 
-                                        for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LTT_MAX); textureTypeIndex++)
-                                        {
-                                            if (!atlasTextures[textureTypeIndex])
-                                            {
-                                                continue;
-                                            }
+            atlasTexture->EnqueueReadback([
+                assetPath = atlasTexture->GetAssetReference().GetAssetPath(),
+                textureDesc = atlasTexture->GetTextureDesc(),
+                textureTypeIndex](ByteBuffer&& byteBuffer) mutable
+                {
+                    if (byteBuffer.Empty())
+                    {
+                        HYP_LOG(Lightmap, Warning, "Atlas texture data is empty, skipping save");
 
-                                            const Handle<Texture>& atlasTexture = atlasTextures[textureTypeIndex];
-                                            Assert(atlasTexture.IsValid() && atlasTexture->IsReady());
+                        return;
+                    }
 
-                                            atlasTexture->EnqueueReadback([atlasTextureWeak = atlasTexture.ToWeak(), textureTypeIndex](ByteBuffer&& byteBuffer) mutable
-                                                {
-                                                    Handle<Texture> atlasTexture = atlasTextureWeak.Lock();
-                                                    if (!atlasTexture)
-                                                    {
-                                                        HYP_LOG(Lightmap, Error, "Atlas texture {} was not alive after GPU image readback!", atlasTextureWeak.Id());
+                    TaskSystem::GetInstance().Enqueue([=, byteBuffer = std::move(byteBuffer)]()
+                        {
+                            // replace the previous asset with a new one containing the updated data
 
-                                                        return;
-                                                    }
+                            Handle<TextureAsset> newTextureAsset = CreateObject<TextureAsset>(
+                                assetPath.GetName(),
+                                textureDesc,
+                                TextureData { std::move(byteBuffer) });
 
-                                                    if (byteBuffer.Empty())
-                                                    {
-                                                        HYP_LOG(Lightmap, Warning, "Atlas texture {} is empty, skipping save", atlasTexture->GetName());
+                            g_assetManager->GetAssetRegistry()->RegisterAsset(assetPath.GetPackagePath(), newTextureAsset, /* replaceIfExists */ true);
+                        },
+                        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+                        TaskEnqueueFlags::FIRE_AND_FORGET);
 
-                                                        return;
-                                                    }
+                    /*typename LightmapData<LightmapVolume>::BitmapType bitmap(atlasTexture->GetExtent().x, atlasTexture->GetExtent().y);
+                    bitmap.SetPixels(std::move(byteBuffer));
 
-                                                    typename LightmapData<LightmapVolume>::BitmapType bitmap(atlasTexture->GetExtent().x, atlasTexture->GetExtent().y);
-                                                    bitmap.SetPixels(std::move(byteBuffer));
+                    const String filename = HYP_FORMAT("lightmap_atlas_texture_{}_{}.bmp",
+                        atlasTexture->GetName(),
+                        uint32(LightmapTextureType(textureTypeIndex)));
 
-                                                    const String filename = HYP_FORMAT("lightmap_atlas_texture_{}_{}.bmp",
-                                                        atlasTexture->GetName(),
-                                                        uint32(LightmapTextureType(textureTypeIndex)));
+                    HYP_LOG(Lightmap, Debug, "Writing atlas texture {} to file {}", atlasTexture->GetName(), filename);
 
-                                                    HYP_LOG(Lightmap, Debug, "Writing atlas texture {} to file {}", atlasTexture->GetName(), filename);
+                    FileByteWriter fileByteWriter { filename };
+                    bool res = bitmap.Write(&fileByteWriter);
 
-                                                    FileByteWriter fileByteWriter { filename };
-                                                    bool res = bitmap.Write(&fileByteWriter);
-
-                                                    if (!res)
-                                                    {
-                                                        HYP_LOG(Lightmap, Error, "Failed to write atlas texture {} to file", atlasTexture->GetName());
-                                                    }
-                                                });
-                                        }
-                                    })
-            .Detach();
-#endif
+                    if (!res)
+                    {
+                        HYP_LOG(Lightmap, Error, "Failed to write atlas texture {} to file", atlasTexture->GetName());
+                    }*/
+                });
+        }
 
         return {};
     }
@@ -409,21 +416,13 @@ void LightmapVolume::UpdateAtlasTextures(
 
     LightmapVolumeAtlas& atlas = m_atlases[atlasIndex];
 
-    // Calculate the size of the atlas texture in bytes
-    constexpr TextureFormat AtlasTextureFormat = TF_RGBA8;
-    constexpr uint32 BytesPerPixel = BytesPerComponent(AtlasTextureFormat) * NumComponents(AtlasTextureFormat);
-
-    const SizeType atlasWidth = atlas.atlasDimensions.x;
-    const SizeType atlasHeight = atlas.atlasDimensions.y;
-    const SizeType atlasDataSize = atlasWidth * atlasHeight * BytesPerPixel;
-
     Handle<Texture>& radianceTexture = m_radianceAtlasTextures[atlasIndex];
     if (!radianceTexture)
     {
         radianceTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
-                AtlasTextureFormat,
+                LightmapAtlasFormats[LTT_RADIANCE],
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
@@ -445,7 +444,7 @@ void LightmapVolume::UpdateAtlasTextures(
         irradianceTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
-                AtlasTextureFormat,
+                LightmapAtlasFormats[LTT_IRRADIANCE],
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,

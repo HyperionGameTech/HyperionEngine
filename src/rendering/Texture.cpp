@@ -504,7 +504,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
                   stagingBuffer = std::move(stagingBuffer),
                   callback = std::move(callback)](...) mutable
             {
-                TByteBuffer<RenderAllocator> byteBuffer;
+                ByteBuffer byteBuffer;
                 byteBuffer.SetSize(stagingBuffer->Size());
 
                 HYP_LOG_TEMP("Reading {} bytes from staging buffer", byteBuffer.Size());

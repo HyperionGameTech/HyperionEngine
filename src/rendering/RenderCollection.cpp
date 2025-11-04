@@ -413,8 +413,7 @@ RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool 
       useRefCounting(useRefCounting),
       viewport(Viewport { Vec2u::One(), Vec2i::Zero() }),
       priority(0),
-      resourceTrackers {},
-      releaseRefsFunctions {}
+      resourceTrackers {}
 {
     AssertDebug(pAllocator != nullptr);
 
@@ -445,10 +444,10 @@ RenderProxyList::~RenderProxyList()
             }
         });
 
-    HYP_LOG(Rendering, Debug, "RenderProxyList destroyed with {} render proxies still in it", numRenderProxies);
     AssertDebug(numRenderProxies == 0 || !debugIsSynced,
-        "RenderProxyList destroyed with render proxies still in it!\n"
-        "This could cause danglng pointers as the RenderGlobalState copies the pointers (see SyncDependencies() in RenderGlobalState.cpp)");
+        "RenderProxyList destroyed with {} render proxies still in it!\n"
+        "This could cause danglng pointers as the RenderGlobalState copies the pointers (see SyncDependencies() in RenderGlobalState.cpp)",
+        numRenderProxies);
 #endif
 
     // Have to dec refs on all objects we hold a strong reference to.
@@ -457,13 +456,6 @@ RenderProxyList::~RenderProxyList()
     {
         ResourceTrackerBase<AllocatorType>* resourceTracker = resourceTrackers[i];
         AssertDebug(resourceTracker != nullptr);
-
-        if (useRefCounting)
-        {
-            // Release all strong references to tracked elements
-            AssertDebug(releaseRefsFunctions[i] != nullptr);
-            releaseRefsFunctions[i](resourceTracker);
-        }
 
         delete resourceTracker;
     }

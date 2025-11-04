@@ -210,6 +210,9 @@ struct HYP_API AssetPath
     HYP_METHOD()
     void SetChain(const Array<Name>& names);
 
+    HYP_METHOD()
+    String GetPackagePath() const;
+
     static String MakeRelativePath(const AssetPath& from, const AssetPath& to);
     static AssetPath FromRelativePath(const AssetPath& from, const String& relativePath);
 

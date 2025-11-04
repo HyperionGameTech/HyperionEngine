@@ -149,6 +149,34 @@ void AssetPath::SetChain(const Array<Name>& names)
     chain[names.Size()] = Name::Invalid();
 }
 
+String AssetPath::GetPackagePath() const
+{
+    HYP_SCOPE;
+
+    if (!chain)
+    {
+        return String::empty;
+    }
+
+    String result;
+
+    Name* curr = chain;
+
+    while (curr->IsValid())
+    {
+        if (chain != curr)
+        {
+            result.Append("/");
+        }
+
+        result.Append(**curr);
+
+        ++curr;
+    }
+
+    return result;
+}
+
 String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
 {
     HYP_SCOPE;

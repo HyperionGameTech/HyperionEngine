@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <commdlg.h>
+#include <cderr.h>
 
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/Result.hpp>

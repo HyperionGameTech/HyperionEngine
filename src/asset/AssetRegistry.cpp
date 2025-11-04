@@ -386,7 +386,9 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
     }
 }
 
-Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
+Task<Result> AssetPackage::AddAssetObject(
+    const Handle<AssetObject>& assetObject,
+    bool replaceIfExists)
 {
     HYP_SCOPE;
 
@@ -412,7 +414,7 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
         HYP_LOG(Assets, Warning, "AssetObject '{}' already belongs to another package!", assetObject->GetName());
     }
 
-    auto impl = [this, assetObject = MakeStrongRef(assetObject)]() -> Result
+    auto impl = [this, assetObject = MakeStrongRef(assetObject), replaceIfExists]() -> Result
     {
         assetObject->m_package = WeakHandleFromThis();
         assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
@@ -454,16 +456,33 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
 
             if (existingAssetObjectIt != m_assetObjects.End())
             {
-                if (*existingAssetObjectIt != assetObject)
+                if (replaceIfExists)
+                {
+                    // replace mode; fine
+                    // just notify we're removing the previous asset object + adding the new one
+
+                    Handle<AssetObject> prevAssetObject = std::move(*existingAssetObjectIt);
+
+                    OnAssetObjectRemoved(prevAssetObject, true);
+
+                    Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+                    while (parentPackage.IsValid())
+                    {
+                        parentPackage->OnAssetObjectAdded(prevAssetObject, false);
+                        parentPackage = parentPackage->GetParentPackage().Lock();
+                    }
+                    *existingAssetObjectIt = assetObject;
+                }
+                else if (*existingAssetObjectIt != assetObject)
                 {
                     return HYP_MAKE_ERROR(Error, "AssetObject with name '{}' already exists in package '{}'", assetObject->GetName(), m_name);
                 }
-
-                // already exists and is the same object; fine
-                return {};
             }
-
-            m_assetObjects.Insert({ assetObject });
+            else
+            {
+                m_assetObjects.Insert({ assetObject });
+            }
         }
 
         MarkDirty();
@@ -2427,7 +2446,11 @@ Name AssetRegistry::GetUniqueAssetName(const UTF8StringView& packagePath, Name b
     return package->GetUniqueAssetName(baseName);
 }
 
-Task<Result> AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject)
+Task<Result> AssetRegistry::RegisterAsset(
+    const UTF8StringView& path,
+    const Handle<AssetObject>& assetObject,
+    bool replaceIfExists,
+    bool createUniqueName)
 {
     HYP_SCOPE;
     AssertReady();
@@ -2442,36 +2465,46 @@ Task<Result> AssetRegistry::RegisterAsset(const UTF8StringView& path, const Hand
 
     Task<Result> future;
 
-    PostTask([this, pathString = String(path), assetObject = MakeStrongRef(assetObject)]() mutable -> Result
+    PostTask([this, pathString = String(path), assetObject = MakeStrongRef(assetObject), replaceIfExists, createUniqueName]() mutable -> Result
         {
-            Array<String> pathStringSplit = pathString.Split('/', '\\');
-
-            pathString = String::Join(pathStringSplit, '/');
+            // replace slashes + remove duplicate slashes in one go
+            pathString = String::Join(pathString.Split('/', '\\'), '/');
 
             AssetRegistryPathType pathType = AssetRegistryPathType::PACKAGE;
 
-            Handle<AssetPackage> assetPackage;
+            String assetName;
+            Handle<AssetPackage> assetPackage = GetPackageFromPath_Internal(pathString, pathType, /* createIfNotExist */ true, assetName);
 
+            if (pathType == AssetRegistryPathType::ASSET)
             {
-                String assetName;
-                assetPackage = GetPackageFromPath_Internal(pathString, pathType, /* createIfNotExist */ true, assetName);
+                const Name baseName = assetName.Any() ? CreateNameFromDynamicString(assetName) : NAME("Unnamed");
 
-                if (pathType == AssetRegistryPathType::ASSET)
+                if (createUniqueName)
                 {
-                    const Name baseName = assetName.Any() ? CreateNameFromDynamicString(assetName) : NAME("Unnamed");
-
                     assetObject->m_name = assetPackage->GetUniqueAssetName(baseName);
+                }
+                else
+                {
+                    // have to check if name already exists
+                    if (assetPackage->HasAssetWithName(baseName))
+                    {
+                        if (!replaceIfExists)
+                        {
+                            return HYP_MAKE_ERROR(Error, "Asset with name '{}' already exists in package '{}'", baseName, assetPackage->BuildPackagePath());
+                        }
+                    }
+
+                    assetObject->m_name = baseName;
                 }
             }
 
-            return assetPackage->AddAssetObject(assetObject).Await();
+            return assetPackage->AddAssetObject(assetObject, replaceIfExists).Await();
         },
         &future);
 
     return future;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void AssetRegistry::RegisterAssetsRecursively(
     const UTF8StringView& packagePath,
     const HypData& target,
@@ -2694,7 +2727,6 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     iterate(rootPackage, target);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 Handle<AssetObject> AssetRegistry::GetAssetFromPath(const UTF8StringView& path) const
 {

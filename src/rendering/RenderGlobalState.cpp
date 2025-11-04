@@ -76,7 +76,7 @@ namespace hyperion {
 static_assert(NumMultiBuffers <= MinSafeDeleteCycles,
     "NumMultiBuffers must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
 
-static constexpr uint32 MaxFramesBeforeDiscard = 60; // number of frames before ViewData is discarded if not written to
+static constexpr uint32 MaxFramesBeforeDiscard = 10; // number of frames before ViewData is discarded if not written to
 
 // must be greater than or equal to MinSafeDeleteCycles so that
 // we can ensure no active views hold pointers to deleted objects.
@@ -494,13 +494,71 @@ public:
 #pragma endregion ResourceContainer
 
 // Render thread owned View data
-struct ViewData
+class ViewData final
 {
+public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     View* view = nullptr;
     RenderProxyList rplRender { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
     RenderCollector renderCollector;
     uint32 framesSinceUsed = 0;
-    uint32 numRefs = 0; // number of ViewFrameData holding refs to this
+
+    ViewData() = default;
+
+    ViewData(const ViewData& other) = delete;
+    ViewData& operator=(const ViewData& other) = delete;
+
+    ViewData(ViewData&& other) noexcept = delete;
+    ViewData& operator=(ViewData&& other) noexcept = delete;
+
+    ~ViewData()
+    {
+        // on destruct, release all strong refs still by this instance
+        if (view && m_numRefs > 0)
+        {
+            while (m_numRefs > 0)
+            {
+                view->GetObjectHeader_Internal()->DecRefStrong();
+            }
+        }
+    }
+
+    void AddRef()
+    {
+        AssertDebug(view != nullptr);
+        view->GetObjectHeader_Internal()->IncRefStrong();
+
+        ++m_numRefs;
+    }
+
+    void Release(bool* outIsDestroyed = nullptr)
+    {
+        AssertDebug(m_numRefs > 0);
+
+        AssertDebug(view != nullptr);
+        view->GetObjectHeader_Internal()->DecRefStrong();
+
+        if (--m_numRefs == 0)
+        {
+            if (outIsDestroyed)
+            {
+                *outIsDestroyed = true;
+            }
+
+            delete this;
+
+            return;
+        }
+
+        if (outIsDestroyed)
+        {
+            *outIsDestroyed = false;
+        }
+    }
+
+private:
+    uint32 m_numRefs = 0; // number of ViewFrameData holding refs to this
 };
 
 // Data for views that is buffered over multiple frames
@@ -538,7 +596,7 @@ static ViewData* GetViewData(View* view)
     {
         HYP_LOG(Rendering, Debug, "Allocating new ViewData for View {}", view->Id());
 
-        ViewData* vd = PoolNew<ViewData>(*g_renderPool);
+        ViewData* vd = new ViewData;
         vd->view = view;
 
         if (view->GetViewDesc().batchAllocator != nullptr)
@@ -827,7 +885,7 @@ void Shutdown()
             continue;
         }
 
-        PoolDelete(*g_renderPool, vd);
+        delete vd;
     }
 
     s_viewData.Clear();
@@ -1061,7 +1119,7 @@ void BeginFrame_RenderThread()
         if (!vfd.viewData)
         {
             vfd.viewData = GetViewData(vfd.view);
-            ++vfd.viewData->numRefs;
+            vfd.viewData->AddRef();
         }
 
         vfd.rplShared->BeginRead();
@@ -1218,32 +1276,27 @@ void EndFrame_RenderThread()
         vd.renderCollector.RemoveEmptyRenderGroups();
 
         // Clear out data for views that haven't been written to for a while
-        if (++vd.framesSinceUsed == MaxFramesBeforeDiscard)
+        if (++vd.framesSinceUsed >= MaxFramesBeforeDiscard)
         {
-            HYP_LOG(Rendering, Debug, "Discarding ViewData for view {} after {} frames",
-                view->Id(), MaxFramesBeforeDiscard);
-
-            // Decrement ref count on the ViewData,
-            // if we hit zero there are no more ViewFrameData holding refs to the ViewData so we delete it
-            AssertDebug(vd.numRefs > 0);
-
-            if ((--vd.numRefs) == 0)
-            {
-                auto viewDataIt = s_viewData.Find(view);
-                AssertDebug(viewDataIt != s_viewData.End() && viewDataIt->second == &vd);
-
-                s_viewData.Erase(viewDataIt);
-
-                PoolDelete(*g_renderPool, &vd);
-            }
+            HYP_LOG(Rendering, Debug, "Discarding render side data for View {} after {} frames", view->Id(), MaxFramesBeforeDiscard);
 
 #ifdef HYP_DEBUG_MODE
             vfd.rplShared->debugIsSynced = false;
 #endif
 
             PoolDelete(*g_framePools[slot], &vfd);
-
             it = frameData.viewFrameData.Erase(it);
+
+            bool destroyed = false;
+            vd.Release(&destroyed);
+
+            if (destroyed)
+            {
+                auto viewDataIt = s_viewData.Find(view);
+                AssertDebug(viewDataIt != s_viewData.End() && viewDataIt->second == &vd);
+
+                s_viewData.Erase(viewDataIt);
+            }
 
             continue;
         }
@@ -1288,18 +1341,17 @@ void EndFrame_RenderThread()
             }
 
             // Swap refcount owner over to the Handle
-            AnyHandle resource { rd.resource };
+            Handle<HypObjectBase> ref = MakeStrongRef(rd.resource);
             subtypeData.data.EraseAt(i);
 
             if (subtypeData.hasProxyData)
             {
-                AssertDebug(subtypeData.proxies.HasIndex(i), "Proxy missing for resource {}", resource.Id());
+                AssertDebug(subtypeData.proxies.HasIndex(i), "Proxy missing for resource {}", ref.Id());
 
                 IRenderProxy* pProxy = subtypeData.proxies.Get(i);
                 AssertDebug(pProxy != nullptr);
 
-                HYP_LOG(Rendering, Debug, "Deleting render proxy for resource id {} at index {} for frame {}",
-                    resource.Id(), i, slot);
+                HYP_LOG(Rendering, Debug, "Deleting render proxy for resource id {} at index {} for frame {}", ref.Id(), i, slot);
 
                 subtypeData.proxies.EraseAt(i);
             }
@@ -1309,7 +1361,7 @@ void EndFrame_RenderThread()
             //            {
             //                g_safeDeleter->SafeDelete(std::move(resource));
             //            }
-            resource.Reset();
+            ref.Reset();
         }
 
         subtypeData.indicesPendingDelete.Clear();

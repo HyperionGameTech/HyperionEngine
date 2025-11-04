@@ -21,7 +21,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebugInfo" CACHE STRING "Configurations to build" FORCE)
 set(CMAKE_TRY_COMPILE_CONFIGURATION "Release" CACHE STRING "Configuration to use for try_compile" FORCE)
 
-project(${BUILD_NAME} CXX C)
+project(${BUILD_NAME} LANGUAGES CXX)
 
 # set HYP_PLATFORM_NAME
 if(NOT DEFINED HYP_PLATFORM_NAME)
@@ -50,7 +50,6 @@ set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_B
 set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
 enable_language(CXX)
-enable_language(C)
 
 if(APPLE)
     enable_language(OBJCXX)
@@ -1192,24 +1191,24 @@ else()
 endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
+
+### PCHs
+set(HYP_PCH_HEADERS
+    "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
+    ${SUB_PCH_HEADERS}
+)
+
 target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH_HEADERS})
 
 # force include for MSVC
 if(MSVC)
     target_compile_options(${BUILD_NAME} PRIVATE /FI"${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp")
-elseif(__clang__ OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(${BUILD_NAME} PRIVATE -include "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp")
 endif()
+### /PCHs
 
 remove_definitions(-DHYP_BUILD_LIBRARY)
 
 add_subdirectory(samples)
-
-# PCHs
-set(HYP_PCH_HEADERS
-    "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
-    ${SUB_PCH_HEADERS}
-)
 
 # if .vscode/launch.json does not exist, create it
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/.vscode/launch.json")

@@ -108,7 +108,12 @@ static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList&
         Mesh* mesh = meshProxy->mesh;
         Material* material = meshProxy->material;
 
-        if (!mesh || !material)
+        if (!mesh || !mesh->IsReady())
+        {
+            continue;
+        }
+
+        if (!material || !material->IsReady())
         {
             continue;
         }

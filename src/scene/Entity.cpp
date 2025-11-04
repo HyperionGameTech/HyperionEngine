@@ -50,14 +50,15 @@ Entity::Entity(Name name)
 
 Entity::~Entity()
 {
-    m_scene = nullptr;
-    m_world = nullptr;
+    HYP_DEFER({ m_world = nullptr; });
 
     EntityManager* entityManager = GetEntityManager();
     if (entityManager == nullptr)
     {
         return;
     }
+
+    AssertDebug(entityManager->GetWorld() == nullptr, "Entity should be destroyed only while attached to non-World EntityManager");
 
     if (Threads::IsOnThread(entityManager->GetOwnerThreadId()))
     {
