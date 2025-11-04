@@ -64,6 +64,228 @@ Array<String> ExtractCXXBaseClasses(const String& line)
     return results;
 }
 
+Array<String> ExtractCXXNamespacePath(const String& source)
+{
+    Array<String> namespacePath;               // Accumulated path of active namespaces
+    Array<uint32> blockNamespaceSegmentCounts; // Stack of counts per '{' indicating how many namespace segments to pop on '}'
+
+    // Track parsing state to ignore strings and comments
+    int isInComment = 0; // 0 = none, 1 = line, 2 = block
+    bool isInString = false;
+    bool isEscaped = false;
+
+    UTF8StringView sv = source;
+
+    for (auto it = sv.Begin(); it != sv.End(); ++it)
+    {
+        const utf::Char32 ch = *it;
+
+        if (ch == 0)
+        {
+            break;
+        }
+
+        // Handle escape inside string
+        if (isEscaped)
+        {
+            isEscaped = false;
+            continue;
+        }
+
+        // String/comment handling
+        if (ch == '\\')
+        {
+            if (isInString)
+            {
+                isEscaped = true;
+            }
+            continue;
+        }
+
+        if (ch == '"' && isInComment == 0)
+        {
+            isInString = !isInString;
+            continue;
+        }
+
+        if (!isInString)
+        {
+            if (isInComment == 1) // line comment
+            {
+                if (ch == '\n')
+                {
+                    isInComment = 0;
+                }
+                continue;
+            }
+            else if (isInComment == 2) // block comment
+            {
+                if (it + 1 != sv.End() && ch == '*' && *(it + 1) == '/')
+                {
+                    isInComment = 0;
+                    ++it; // consume '/'
+                }
+                continue;
+            }
+
+            // Entering a comment?
+            if (it + 1 != sv.End() && ch == '/')
+            {
+                const utf::Char32 next = *(it + 1);
+                if (next == '/')
+                {
+                    isInComment = 1; // line comment
+                    ++it;            // consume second '/'
+                    continue;
+                }
+                if (next == '*')
+                {
+                    isInComment = 2; // block comment
+                    ++it;            // consume '*'
+                    continue;
+                }
+            }
+
+            // Detect 'namespace' keyword (ensure word boundaries)
+            if (ch == 'n')
+            {
+                // Ensure we have at least 9 characters remaining and exact match
+                auto ns_end_it = it + 9;
+                if (ns_end_it <= sv.End() && sv.Substr(it, ns_end_it) == UTF8StringView("namespace"))
+                {
+                    // Check preceding and following boundaries to avoid matching within identifiers
+                    bool valid_prefix = true; // Can't reliably look behind with this iterator type; allow and rely on '{' check below
+
+                    bool valid_suffix = true;
+                    if (ns_end_it != sv.End())
+                    {
+                        utf::Char32 after = *ns_end_it;
+                        if (std::isalnum(after) || after == '_')
+                        {
+                            valid_suffix = false;
+                        }
+                    }
+
+                    if (valid_prefix && valid_suffix)
+                    {
+                        // Advance iterator to the character after 'namespace'
+                        it = ns_end_it;
+
+                        // Skip whitespace
+                        while (it != sv.End() && std::isspace(*it))
+                        {
+                            ++it;
+                        }
+
+                        // Handle anonymous namespace: 'namespace { '
+                        if (it != sv.End() && *it == '{')
+                        {
+                            // Anonymous namespace does not contribute to named path, but must track brace for proper popping
+                            blockNamespaceSegmentCounts.PushBack(0);
+                            // consume '{'
+                            continue;
+                        }
+
+                        // Parse qualified name: foo::bar
+                        Array<String> segments;
+                        String current;
+
+                        while (it != sv.End())
+                        {
+                            const utf::Char32 c = *it;
+                            if (std::isalnum(c) || c == '_')
+                            {
+                                current.Append(c);
+                                ++it;
+                                continue;
+                            }
+                            // scope resolution '::'
+                            if (c == ':' && (it + 1) != sv.End() && *(it + 1) == ':')
+                            {
+                                if (!current.Empty())
+                                {
+                                    segments.PushBack(current);
+                                    current.Clear();
+                                }
+                                it += 2; // consume '::'
+                                continue;
+                            }
+                            break;
+                        }
+
+                        if (!current.Empty())
+                        {
+                            segments.PushBack(current);
+                            current.Clear();
+                        }
+
+                        // Skip whitespace after name
+                        while (it != sv.End() && std::isspace(*it))
+                        {
+                            ++it;
+                        }
+
+                        // Namespace alias: namespace foo = bar::baz; -> ignore
+                        if (it != sv.End() && *it == '=')
+                        {
+                            // Fast-forward to ';'
+                            while (it != sv.End() && *it != ';')
+                            {
+                                ++it;
+                            }
+                            continue;
+                        }
+
+                        // Only open a namespace when followed by '{'
+                        if (it != sv.End() && *it == '{')
+                        {
+                            // Push all parsed segments
+                            for (const String& seg : segments)
+                            {
+                                if (!seg.Empty())
+                                {
+                                    namespacePath.PushBack(seg);
+                                }
+                            }
+
+                            blockNamespaceSegmentCounts.PushBack(uint32(segments.Size()));
+
+                            // Do not push another generic block for this '{' since we've accounted for it
+                            continue;
+                        }
+
+                        // Forward declaration like 'namespace foo::bar;' -> no-op
+                        continue;
+                    }
+                }
+            }
+
+            // Generic brace handling for non-namespace blocks
+            if (ch == '{')
+            {
+                // Entered a non-namespace block; push 0 so that '}' pops nothing from namespace path
+                blockNamespaceSegmentCounts.PushBack(0);
+                continue;
+            }
+
+            if (ch == '}')
+            {
+                if (!blockNamespaceSegmentCounts.Empty())
+                {
+                    const uint32 seg_count = blockNamespaceSegmentCounts.PopBack();
+                    for (uint32 n = 0; n < seg_count && !namespacePath.Empty(); ++n)
+                    {
+                        namespacePath.PopBack();
+                    }
+                }
+                continue;
+            }
+        }
+    }
+
+    return namespacePath;
+}
+
 bool IsCXXClassDecl(const String& line)
 {
     static const std::regex s_pattern(

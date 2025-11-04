@@ -14,6 +14,10 @@ namespace buildtool {
 Optional<String> ExtractCXXClassName(const String& line);
 Array<String> ExtractCXXBaseClasses(const String& line);
 
+/// \brief Extracts the C++ namespace for the given source code. (built up)
+/// Parses 'namespace foo::bar' as well as nested 'namespace foo { namespace bar { ... } }' constructs.
+Array<String> ExtractCXXNamespacePath(const String& source);
+
 bool IsCXXClassDecl(const String& line);
 bool IsCXXStructDecl(const String& line);
 bool IsCXXEnumDecl(const String& line);

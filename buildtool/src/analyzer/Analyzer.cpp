@@ -488,6 +488,9 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
             continue;
         }
 
+        // look back to build the namespace for the class
+        classDefinition.namespaceParts = ExtractCXXNamespacePath(String::Join(lines.Slice(0, i + 1), '\n'));
+
         classDefinition.type = parseMacroResult.GetValue().first;
         classDefinition.attributes = parseMacroResult.GetValue().second;
         classDefinition.staticIndex = -1;
@@ -784,6 +787,7 @@ Analyzer::Analyzer()
     classDefinition.name = "HypObjectBase";
     classDefinition.staticIndex = 0;
     classDefinition.isCXXClass = true;
+    classDefinition.namespaceParts = Array<String> { "hyperion" };
 
     // clang-format on
 }

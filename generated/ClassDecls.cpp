@@ -434,7 +434,6 @@ const Class* g_clsLogEntitiesCommand = nullptr;
 
 #pragma endregion Defining g_clsXXX globals
 
-
 #pragma region Forward declarations
 
 class HypObjectBase;
@@ -480,8 +479,8 @@ struct ScriptData;
 struct WeakName;
 struct Name;
 struct HashCode;
-struct CommandLineArgumentDefinitions;
-class CommandLineArguments;
+namespace cli { struct CommandLineArgumentDefinitions; }
+namespace cli { class CommandLineArguments; }
 class CommandLineArgumentType;
 struct Vertex;
 struct VertexAttributeSet;
@@ -496,14 +495,14 @@ struct Ray;
 struct Frustum;
 class Color;
 struct BoundingBox;
-class Time;
-struct Uuid;
-class Error;
-class Result;
+namespace utilities { class Time; }
+namespace utilities { struct Uuid; }
+namespace utilities { class Error; }
+namespace utilities { class Result; }
 class DynamicLibrary;
-class Logger;
-class LogChannel;
-struct TypeId;
+namespace logging { class Logger; }
+namespace logging { class LogChannel; }
+namespace utilities { struct TypeId; }
 struct BoneDesc;
 class SkeletonAsset;
 struct SkeletonData;
@@ -557,12 +556,12 @@ class StreamingCellState;
 class StreamingManager;
 class StreamingVolumeShape;
 class StreamingVolumeBase;
-class SDLAppContext;
-class AppContextBase;
-class SDLApplicationWindow;
-class Win32ApplicationWindow;
-class ApplicationWindow;
-class Win32AppContext;
+namespace sys { class SDLAppContext; }
+namespace sys { class AppContextBase; }
+namespace sys { class SDLApplicationWindow; }
+namespace sys { class Win32ApplicationWindow; }
+namespace sys { class ApplicationWindow; }
+namespace sys { class Win32AppContext; }
 class AudioSource;
 class AudioSourceFormat;
 class AudioSourceState;
@@ -838,7 +837,7 @@ class FunctionalEditorAction;
 class EditorTaskBase;
 class LongRunningEditorTask;
 class TickableEditorTask;
-class HyperionEditor;
+namespace editor { class HyperionEditor; }
 class NullEditorManipulationWidget;
 class TranslateEditorManipulationWidget;
 class EditorSubsystem;
@@ -997,10 +996,10 @@ HYP_API void InitializeClassDeclarations()
     static TClassStaticInit<HashCode> s_classInit_HashCode;
     s_classRegs.PushBack(s_classInit_HashCode.GetClassRegistration());
 
-    static TClassStaticInit<CommandLineArgumentDefinitions> s_classInit_CommandLineArgumentDefinitions;
+    static TClassStaticInit<cli::CommandLineArgumentDefinitions> s_classInit_CommandLineArgumentDefinitions;
     s_classRegs.PushBack(s_classInit_CommandLineArgumentDefinitions.GetClassRegistration());
 
-    static TClassStaticInit<CommandLineArguments> s_classInit_CommandLineArguments;
+    static TClassStaticInit<cli::CommandLineArguments> s_classInit_CommandLineArguments;
     s_classRegs.PushBack(s_classInit_CommandLineArguments.GetClassRegistration());
 
     static TClassStaticInit<CommandLineArgumentType> s_classInit_CommandLineArgumentType;
@@ -1045,28 +1044,28 @@ HYP_API void InitializeClassDeclarations()
     static TClassStaticInit<BoundingBox> s_classInit_BoundingBox;
     s_classRegs.PushBack(s_classInit_BoundingBox.GetClassRegistration());
 
-    static TClassStaticInit<Time> s_classInit_Time;
+    static TClassStaticInit<utilities::Time> s_classInit_Time;
     s_classRegs.PushBack(s_classInit_Time.GetClassRegistration());
 
-    static TClassStaticInit<Uuid> s_classInit_Uuid;
+    static TClassStaticInit<utilities::Uuid> s_classInit_Uuid;
     s_classRegs.PushBack(s_classInit_Uuid.GetClassRegistration());
 
-    static TClassStaticInit<Error> s_classInit_Error;
+    static TClassStaticInit<utilities::Error> s_classInit_Error;
     s_classRegs.PushBack(s_classInit_Error.GetClassRegistration());
 
-    static TClassStaticInit<Result> s_classInit_Result;
+    static TClassStaticInit<utilities::Result> s_classInit_Result;
     s_classRegs.PushBack(s_classInit_Result.GetClassRegistration());
 
     static TClassStaticInit<DynamicLibrary> s_classInit_DynamicLibrary;
     s_classRegs.PushBack(s_classInit_DynamicLibrary.GetClassRegistration());
 
-    static TClassStaticInit<Logger> s_classInit_Logger;
+    static TClassStaticInit<logging::Logger> s_classInit_Logger;
     s_classRegs.PushBack(s_classInit_Logger.GetClassRegistration());
 
-    static TClassStaticInit<LogChannel> s_classInit_LogChannel;
+    static TClassStaticInit<logging::LogChannel> s_classInit_LogChannel;
     s_classRegs.PushBack(s_classInit_LogChannel.GetClassRegistration());
 
-    static TClassStaticInit<TypeId> s_classInit_TypeId;
+    static TClassStaticInit<utilities::TypeId> s_classInit_TypeId;
     s_classRegs.PushBack(s_classInit_TypeId.GetClassRegistration());
 
     static TClassStaticInit<BoneDesc> s_classInit_BoneDesc;
@@ -1228,22 +1227,22 @@ HYP_API void InitializeClassDeclarations()
     static TClassStaticInit<StreamingVolumeBase> s_classInit_StreamingVolumeBase;
     s_classRegs.PushBack(s_classInit_StreamingVolumeBase.GetClassRegistration());
 
-    static TClassStaticInit<SDLAppContext> s_classInit_SDLAppContext;
+    static TClassStaticInit<sys::SDLAppContext> s_classInit_SDLAppContext;
     s_classRegs.PushBack(s_classInit_SDLAppContext.GetClassRegistration());
 
-    static TClassStaticInit<AppContextBase> s_classInit_AppContextBase;
+    static TClassStaticInit<sys::AppContextBase> s_classInit_AppContextBase;
     s_classRegs.PushBack(s_classInit_AppContextBase.GetClassRegistration());
 
-    static TClassStaticInit<SDLApplicationWindow> s_classInit_SDLApplicationWindow;
+    static TClassStaticInit<sys::SDLApplicationWindow> s_classInit_SDLApplicationWindow;
     s_classRegs.PushBack(s_classInit_SDLApplicationWindow.GetClassRegistration());
 
-    static TClassStaticInit<Win32ApplicationWindow> s_classInit_Win32ApplicationWindow;
+    static TClassStaticInit<sys::Win32ApplicationWindow> s_classInit_Win32ApplicationWindow;
     s_classRegs.PushBack(s_classInit_Win32ApplicationWindow.GetClassRegistration());
 
-    static TClassStaticInit<ApplicationWindow> s_classInit_ApplicationWindow;
+    static TClassStaticInit<sys::ApplicationWindow> s_classInit_ApplicationWindow;
     s_classRegs.PushBack(s_classInit_ApplicationWindow.GetClassRegistration());
 
-    static TClassStaticInit<Win32AppContext> s_classInit_Win32AppContext;
+    static TClassStaticInit<sys::Win32AppContext> s_classInit_Win32AppContext;
     s_classRegs.PushBack(s_classInit_Win32AppContext.GetClassRegistration());
 
     static TClassStaticInit<AudioSource> s_classInit_AudioSource;
@@ -2071,7 +2070,7 @@ HYP_API void InitializeClassDeclarations()
     static TClassStaticInit<TickableEditorTask> s_classInit_TickableEditorTask;
     s_classRegs.PushBack(s_classInit_TickableEditorTask.GetClassRegistration());
 
-    static TClassStaticInit<HyperionEditor> s_classInit_HyperionEditor;
+    static TClassStaticInit<editor::HyperionEditor> s_classInit_HyperionEditor;
     s_classRegs.PushBack(s_classInit_HyperionEditor.GetClassRegistration());
 
     static TClassStaticInit<NullEditorManipulationWidget> s_classInit_NullEditorManipulationWidget;

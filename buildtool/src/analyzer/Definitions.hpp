@@ -89,6 +89,7 @@ struct ClassDefinition
     Array<Pair<String, ClassAttributeValue>> attributes;
     Array<String> baseClassNames;
     Array<HypMemberDefinition> members;
+    Array<String> namespaceParts;
     String source;
     Module* declModule = nullptr;
 

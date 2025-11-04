@@ -522,6 +522,27 @@ public:
         return StringView(m_begin + firstByteIndex, m_begin + lastByteIndex, newLength);
     }
 
+    constexpr StringView Substr(ConstIterator first, ConstIterator last) const
+    {
+        if (first.ptr < m_begin || last.ptr > m_end || first.ptr > last.ptr)
+        {
+            return StringView();
+        }
+
+        SizeType newLength = 0;
+
+        if constexpr (isUtf8)
+        {
+            newLength = utf::StringLength(first.ptr, last.ptr);
+        }
+        else
+        {
+            newLength = SizeType(last.ptr - first.ptr);
+        }
+
+        return StringView(first.ptr, last.ptr, newLength);
+    }
+
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         return HashCode(::hyperion::FNV1::DoHashString(m_begin, m_end));

@@ -22,11 +22,6 @@ namespace hyperion {
 
 HYP_API const Class* g_hypObjectBaseClass = nullptr;
 
-#ifndef HYP_BUILDTOOL
-// defined in ClassDecls.cpp
-HYP_API extern void InitializeClassDeclarations();
-#endif
-
 #pragma region ClassRegistry
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
@@ -332,11 +327,6 @@ void ClassRegistry::Initialize()
 
     HYP_CORE_ASSERT(!m_isInitialized);
     m_isInitialized = true;
-
-#ifndef HYP_BUILDTOOL
-    // load generated class declarations
-    InitializeClassDeclarations();
-#endif
 
     auto hypObjectBaseClassIt = m_classesByTypeId.FindIf([](auto&& item)
         {

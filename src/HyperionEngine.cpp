@@ -104,6 +104,9 @@ HYP_API Pool* GetCurrentFramePool()
     return g_framePools[RenderApi::GetRingIndex()];
 }
 
+// defined in ClassDecls.cpp
+HYP_API extern void InitializeClassDeclarations();
+
 #pragma endregion Memory Pools
 
 Handle<EngineDriver> g_engineDriver;
@@ -165,6 +168,9 @@ HYP_API const FilePath& GetResourceDirectory()
 HYP_API bool InitializeEngine(int argc, char** argv)
 {
     Threads::SetCurrentThreadId(g_mainThread);
+
+    // load generated class declarations
+    InitializeClassDeclarations();
 
     g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
     g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);

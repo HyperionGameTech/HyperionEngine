@@ -61,7 +61,6 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     struct ClassInfo
     {
         const ClassDefinition* definition;
-        String namespacePath;
     };
 
     Array<ClassInfo> allClasses;
@@ -75,7 +74,7 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
         }
 
         processedNames.Insert(it.second.name);
-        allClasses.PushBack({ &it.second, "hyperion" });
+        allClasses.PushBack({ &it.second });
     }
 
     for (const UniquePtr<Module>& mod : analyzer.GetModules())
@@ -88,7 +87,7 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
             }
 
             processedNames.Insert(pair.second.name);
-            allClasses.PushBack({ &pair.second, "hyperion" });
+            allClasses.PushBack({ &pair.second });
         }
     }
 
@@ -170,7 +169,6 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     struct ClassInfo
     {
         const ClassDefinition* definition;
-        String namespacePath;
     };
 
     Array<ClassInfo> allClasses;
@@ -187,7 +185,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         }
 
         processedNames.Insert(it.second.name);
-        allClasses.PushBack({ &it.second, "hyperion" });
+        allClasses.PushBack({ &it.second });
     }
 
     // Add module classes
@@ -201,7 +199,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
             }
 
             processedNames.Insert(pair.second.name);
-            allClasses.PushBack({ &pair.second, "hyperion" });
+            allClasses.PushBack({ &pair.second });
         }
     }
 
@@ -219,40 +217,65 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     writer.WriteString("\n#pragma endregion Defining g_clsXXX globals\n\n");
 
     // build forward decls
-    writer.WriteString("\n#pragma region Forward declarations\n\n");
+    writer.WriteString("#pragma region Forward declarations\n\n");
 
     for (const ClassInfo& classInfo : allClasses)
     {
         const ClassDefinition& cls = *classInfo.definition;
 
+        if (cls.namespaceParts.Empty() || cls.namespaceParts[0] != "hyperion")
+        {
+            return HYP_MAKE_ERROR(Error, "Class '{}' is not in the 'hyperion' namespace", cls.name);
+        }
+
+        Array<String> namespaceParts = cls.namespaceParts;
+        namespaceParts.PopFront(); // remove 'hyperion'
+
+        if (namespaceParts.Any())
+        {
+            writer.WriteString("namespace ");
+
+            for (size_t i = 0; i < namespaceParts.Size(); i++)
+            {
+                writer.WriteString(namespaceParts[i]);
+
+                if (i + 1 < namespaceParts.Size())
+                {
+                    writer.WriteString("::");
+                }
+            }
+
+            writer.WriteString(" { ");
+        }
+
         if (classInfo.definition->isCXXClass)
         {
-            writer.WriteString(HYP_FORMAT("class {};\n", cls.name));
+            writer.WriteString(HYP_FORMAT("class {};", cls.name));
         }
         else if (classInfo.definition->isCXXStruct)
         {
-            writer.WriteString(HYP_FORMAT("struct {};\n", cls.name));
+            writer.WriteString(HYP_FORMAT("struct {};", cls.name));
         }
         else if (classInfo.definition->isCXXEnumClass)
         {
             if (classInfo.definition->baseClassNames.Any())
             {
-                writer.WriteString(HYP_FORMAT("enum class {} : {};\n", cls.name, classInfo.definition->baseClassNames.Front()));
+                writer.WriteString(HYP_FORMAT("enum class {} : {};", cls.name, classInfo.definition->baseClassNames.Front()));
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("enum class {};\n", cls.name));
+                writer.WriteString(HYP_FORMAT("enum class {};", cls.name));
             }
         }
         else if (classInfo.definition->isCXXEnum)
         {
             if (classInfo.definition->baseClassNames.Any())
             {
-                writer.WriteString(HYP_FORMAT("enum {} : {};\n", cls.name, classInfo.definition->baseClassNames.Front()));
+                writer.WriteString(HYP_FORMAT("enum {} : {};", cls.name, classInfo.definition->baseClassNames.Front()));
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("enum {};\n", cls.name));
+                writer.WriteString(HYP_FORMAT("enum {};", cls.name));
             }
         }
         else
@@ -261,6 +284,9 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
             return HYP_MAKE_ERROR(Error, "Unknown C++ type for class '{}'", cls.name);
         }
+
+        // close namespace
+        writer.WriteString(namespaceParts.Any() ? " }\n" : "\n");
     }
 
     writer.WriteString("\n#pragma endregion Forward declarations\n\n");
@@ -277,7 +303,35 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     {
         const ClassDefinition& cls = *classInfo.definition;
 
-        writer.WriteString(HYP_FORMAT("    static TClassStaticInit<{}> s_classInit_{};\n", cls.name, cls.name));
+        // Build a namespace-qualified name for the template parameter. The file is inside
+        // `namespace hyperion { ... }`, so drop the leading 'hyperion' component when present
+        // to produce e.g. `gfx::Mesh` instead of `hyperion::gfx::Mesh`.
+        String qualifiedName;
+
+        if (cls.namespaceParts.Any() && cls.namespaceParts[0] == "hyperion")
+        {
+            Array<String> ns = cls.namespaceParts;
+            ns.PopFront();
+
+            if (ns.Any())
+            {
+                qualifiedName = String::Join(ns, "::") + "::" + cls.name;
+            }
+            else
+            {
+                qualifiedName = cls.name;
+            }
+        }
+        else if (cls.namespaceParts.Any())
+        {
+            qualifiedName = String::Join(cls.namespaceParts, "::") + "::" + cls.name;
+        }
+        else
+        {
+            qualifiedName = cls.name;
+        }
+
+        writer.WriteString(HYP_FORMAT("    static TClassStaticInit<{}> s_classInit_{};\n", qualifiedName, cls.name));
         writer.WriteString(HYP_FORMAT("    s_classRegs.PushBack(s_classInit_{}.GetClassRegistration());\n\n", cls.name));
     }
 
