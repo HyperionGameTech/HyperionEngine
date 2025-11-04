@@ -82,7 +82,7 @@ static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024;
 
 HYP_API Pool* g_objectPool;
 HYP_API Pool* g_renderPool;
-HYP_API Pool* g_framePools[NumMultiBuffers];
+HYP_API Pool* g_framePools[RingBufferDepth];
 HYP_API Pool* g_scenePool;
 HYP_API Pool* g_taskPool;
 HYP_API Pool* g_resourcePool;
@@ -101,9 +101,7 @@ Pool* const* g_enginePools[EPN_MAX] = {
 
 HYP_API Pool* GetCurrentFramePool()
 {
-    const uint32 currentFrameIndex = RenderApi::GetFrameIndex();
-
-    return g_framePools[currentFrameIndex];
+    return g_framePools[RenderApi::GetRingIndex()];
 }
 
 #pragma endregion Memory Pools
@@ -171,7 +169,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
     g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
 
-    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    for (uint32 i = 0; i < RingBufferDepth; i++)
     {
         g_framePools[i] = new Pool(FramePoolBlockSize, PF_NONE);
     }
@@ -362,7 +360,7 @@ HYP_API void DestroyEngine()
     delete g_assetPool;
     g_assetPool = nullptr;
 
-    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    for (uint32 i = 0; i < RingBufferDepth; i++)
     {
         delete g_framePools[i];
         g_framePools[i] = nullptr;

@@ -979,10 +979,10 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
 String ScriptApi_ValueToString(const HypData& data, int currDepth)
 {
-    static const int s_maxDepth = 3;
+    static constexpr int MaxDepth = 3;
 
     Script_String result("<error>");
-    if (ScriptApi_StringifyData(data, result, s_maxDepth, currDepth))
+    if (ScriptApi_StringifyData(data, result, MaxDepth, currDepth))
     {
         return result;
     }

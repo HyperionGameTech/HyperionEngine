@@ -148,6 +148,8 @@ void UISubsystem::Init()
         {
             PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
 
+            HYP_LOG_TEMP("UISubsystem: window resized to {}", windowSize);
+
             Handle<UISubsystem> subsystem = weakThis.Lock();
 
             if (!subsystem)
@@ -166,17 +168,17 @@ void UISubsystem::Init()
         },
         g_gameThread);
 
-    const Vec2u surfaceSize = Vec2u(m_uiStage->GetSurfaceSize());
-    HYP_LOG(UI, Debug, "UISubsystem: surface size is {}", surfaceSize);
+    const Vec2u windowSize = Vec2u(g_appContext->GetMainWindow()->GetDimensions());
+    const Vec2u windowSize2 = windowSize * 2;
 
     ViewOutputTargetDesc outputTargetDesc {
-        .extent = surfaceSize * 2,
+        .extent = windowSize2,
         .attachments = { { TF_RGBA16F }, { g_renderBackend->GetDefaultFormat(DIF_DEPTH) } }
     };
 
     ViewDesc viewDesc {
-        .flags = ViewFlags::DEFAULT & ~ViewFlags::ALL_WORLD_SCENES,
-        .viewport = Viewport { .extent = surfaceSize, .position = Vec2i::Zero() },
+        .flags = ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS),
+        .viewport = Viewport { .extent = windowSize2, .position = Vec2i::Zero() },
         .outputTargetDesc = outputTargetDesc,
         .scenes = { m_uiStage->GetScene() },
         .camera = m_uiStage->GetCamera(),

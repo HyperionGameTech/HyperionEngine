@@ -48,7 +48,7 @@
 namespace hyperion {
 
 HYP_API extern Pool* g_scenePool;
-HYP_API extern Pool* g_framePools[NumMultiBuffers];
+HYP_API extern Pool* g_framePools[RingBufferDepth];
 
 #pragma region ViewOutputTarget
 
@@ -299,13 +299,33 @@ void View::UpdateViewport()
     Threads::AssertOnThread(g_gameThread);
     AssertReady();
 
-    const uint32 idx = RenderApi::GetFrameIndex();
+    const uint32 slot = RenderApi::GetRingIndex();
 
-    m_viewportBuffered[idx] = m_viewport;
+    if ((m_flags & ViewFlags::MATCH_CAMERA_DIMENSIONS))
+    {
+        if (m_camera != nullptr)
+        {
+            const Vec2u newExtent = MathUtil::Max(Vec2u(m_camera->GetDimensions()), Vec2u::One());
+
+            if (m_viewport.extent != newExtent)
+            {
+                HYP_LOG(Scene, Debug, "Matching viewport extent to Camera dimensions: {} -> {}", m_viewport.extent, newExtent);
+            }
+
+            m_viewport.extent = newExtent;
+        }
+        else
+        {
+            m_viewport.extent = Vec2u::One();
+        }
+    }
+
+    Viewport& viewportBuffered = m_viewportBuffered[slot];
+    viewportBuffered = m_viewport;
 
     if (m_readbackTexture)
     {
-        m_readbackTextureGpuImages[idx] = m_readbackTexture->GetGpuImage();
+        m_readbackTextureGpuImages[slot] = m_readbackTexture->GetGpuImage();
     }
 }
 
@@ -394,7 +414,7 @@ const Viewport& View::GetViewport() const
 
     AssertReady();
 
-    return m_viewportBuffered[RenderApi::GetFrameIndex()];
+    return m_viewportBuffered[RenderApi::GetRingIndex()];
 }
 
 void View::SetViewport(const Viewport& viewport)
@@ -402,18 +422,28 @@ void View::SetViewport(const Viewport& viewport)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
+    if (viewport == m_viewport)
+    {
+        return;
+    }
+
+    const Vec2u prevExtent = m_viewport.extent;
+
     m_viewport = viewport;
 
     if (IsInitCalled())
     {
-        if (m_flags & ViewFlags::ENABLE_READBACK)
+        if (prevExtent != m_viewport.extent && (m_flags & ViewFlags::ENABLE_READBACK))
         {
+            HYP_LOG(Scene, Debug, "View viewport extent changed from {} to {}, recreating readback texture",
+                prevExtent, m_viewport.extent);
+
             m_readbackTexture.Reset();
 
             CreateReadbackTexture();
         }
 
-        m_viewportBuffered[RenderApi::GetFrameIndex()] = viewport;
+        m_viewportBuffered[RenderApi::GetRingIndex()] = viewport;
     }
 }
 
@@ -422,7 +452,7 @@ GpuImageBase* View::GetReadbackTextureGpuImage() const
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 
-    return m_readbackTextureGpuImages[RenderApi::GetFrameIndex()];
+    return m_readbackTextureGpuImages[RenderApi::GetRingIndex()];
 }
 
 void View::CreateReadbackTexture()

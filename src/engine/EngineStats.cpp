@@ -269,7 +269,7 @@ static TByteBuffer<Pool> CreateSamplesBuffer()
 
 struct EngineStatsRecorderImpl
 {
-    EngineStatsSnapshot snapshots[NumMultiBuffers];
+    EngineStatsSnapshot snapshots[RingBufferDepth];
 
     TByteBuffer<Pool> statsBuffer;
 
@@ -301,13 +301,13 @@ EngineStatsRecorder::EngineStatsRecorder()
 EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot()
 {
     Threads::AssertOnThread(g_renderThread | g_gameThread);
-    return m_impl->snapshots[RenderApi::GetFrameIndex()];
+    return m_impl->snapshots[RenderApi::GetRingIndex()];
 }
 
 const EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot() const
 {
     Threads::AssertOnThread(g_renderThread | g_gameThread);
-    return m_impl->snapshots[RenderApi::GetFrameIndex()];
+    return m_impl->snapshots[RenderApi::GetRingIndex()];
 }
 
 void EngineStatsRecorder::SetSampleData(int statId, uint32 sampleIdx, double value)
@@ -412,7 +412,7 @@ void EngineStatsRecorder::Advance()
         m_impl->deltaAccum = 0.0;
     }
 
-    EngineStatsSnapshot& snapshot = m_impl->snapshots[RenderApi::GetFrameIndex()];
+    EngineStatsSnapshot& snapshot = m_impl->snapshots[RenderApi::GetRingIndex()];
 
     const double msPerFrame = m_impl->counter.delta * 1000.0;
 

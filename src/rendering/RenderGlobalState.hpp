@@ -61,10 +61,9 @@ extern ResourceBinderBase* g_skeletonBinder;
 void Init();
 void Shutdown();
 
-/*! \brief Get the current frame index for the current thread (can be called from the game or render threads).
- *  This is the index of the frame that is currently being processed.
+/*! \brief Get the current ring buffer index for the current thread (can be called from the game or render threads).
  *  \note This is thread-safe only if called from the game or render thread. Other threads should not call this function. */
-HYP_API uint32 GetFrameIndex();
+HYP_API uint32 GetRingIndex();
 
 /*! \brief Get the global frame counter value that is incremented every frame.
  *  This is used to track the number of frames that have been rendered.

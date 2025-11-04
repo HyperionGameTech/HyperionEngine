@@ -62,6 +62,11 @@ static RendererResult HandleNextFrame(
 #pragma region Swapchain
 
 VulkanSwapchain::VulkanSwapchain()
+    : m_handle(VK_NULL_HANDLE),
+      m_surface(VK_NULL_HANDLE),
+      m_surfaceFormat(),
+      m_presentMode(),
+      m_supportDetails()
 {
 }
 
@@ -214,7 +219,7 @@ RendererResult VulkanSwapchain::Create()
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = m_presentMode;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    createInfo.oldSwapchain = m_handle; // gets set when recreating
 
     VULKAN_CHECK_MSG(
         vkCreateSwapchainKHR(GetRenderBackend()->GetDevice()->GetDevice(), &createInfo, nullptr, &m_handle),
@@ -247,18 +252,18 @@ RendererResult VulkanSwapchain::Create()
 
     VulkanDeviceQueue* queue = &GetRenderBackend()->GetDevice()->GetGraphicsQueue();
 
-    for (uint32 i = 0; i < m_frames.Size(); i++)
+    for (uint32 frameIndex = 0; frameIndex < uint32(m_frames.Size()); frameIndex++)
     {
+        VulkanFrameRef& frame = m_frames[frameIndex];
+        VulkanCommandBufferRef& commandBuffer = m_commandBuffers[frameIndex];
+
         VkCommandPool pool = queue->commandPools[0];
         HYP_GFX_ASSERT(pool != VK_NULL_HANDLE);
 
-        m_commandBuffers[i] = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        m_frames[i] = CreateObject<VulkanFrame>(i);
+        commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        frame = CreateObject<VulkanFrame>(frameIndex);
 
-        VulkanCommandBufferRef& commandBuffer = m_commandBuffers[i];
         HYP_GFX_CHECK(commandBuffer->Create(pool));
-
-        VulkanFrameRef& frame = m_frames[i];
         HYP_GFX_CHECK(frame->Create());
     }
 

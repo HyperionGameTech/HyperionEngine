@@ -1196,7 +1196,7 @@ void EditorSubsystem::OnAddedToWorld()
     m_camera = CreateObject<Camera>();
     m_camera->AddCameraController(CreateObject<EditorCameraController>());
     m_camera->SetName(NAME("EditorCamera"));
-    m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
+    // m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
     m_camera->SetFOV(70.0f);
     m_camera->SetNear(0.1f);
     m_camera->SetFar(3000.0f);
@@ -1316,7 +1316,7 @@ void EditorSubsystem::Update(float delta)
             continue; // skip non-primary views
         }
 
-        for (Mesh* mesh : view->GetRenderProxyList(RenderApi::GetFrameIndex())->GetMeshes())
+        for (Mesh* mesh : view->GetRenderProxyList(RenderApi::GetRingIndex())->GetMeshes())
         {
             pickRpl.GetMeshes().Track(mesh->Id(), mesh);
         }
@@ -1509,8 +1509,10 @@ void EditorSubsystem::InitViewport()
         }));
 
     Vec2u viewportSize = MathUtil::Max(Vec2u(sceneImageObject->GetActualSize()), Vec2u::One());
+    m_camera->SetDimensions(Vec2i(viewportSize));
+
     ViewDesc viewDesc {
-        .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::ENABLE_READBACK,
+        .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::ENABLE_READBACK | ViewFlags::MATCH_CAMERA_DIMENSIONS,
         .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
         .outputTargetDesc = { .extent = viewportSize },
         .camera = m_camera,
@@ -1527,7 +1529,7 @@ void EditorSubsystem::InitViewport()
     m_views.PushBack(view);
 
     m_delegateHandlers.Remove(&sceneImageObject->OnSizeChange);
-    m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak(), viewWeak = view.ToWeak()]()
+    m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak(), viewWeak = view.ToWeak(), cameraWeak = m_camera.ToWeak()]()
         {
             Handle<UIObject> sceneImageObject = sceneImageObjectWeak.Lock();
             if (!sceneImageObject)
@@ -1536,21 +1538,29 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::ERR;
             }
 
+            // Handle<Camera> camera = cameraWeak.Lock();
+            // if (!camera)
+            // {
+            //     HYP_LOG(Editor, Warning, "Camera is no longer valid!");
+            //     return UIEventHandlerResult::ERR;
+            // }
+
             Handle<View> view = viewWeak.Lock();
             if (!view)
             {
-                HYP_LOG(Editor, Warning, "View is no longer valid!");
+                HYP_LOG(Editor, Warning, "Camera is no longer valid!");
                 return UIEventHandlerResult::ERR;
             }
 
-            Vec2u viewportSize = MathUtil::Max(Vec2u(sceneImageObject->GetActualSize()), Vec2u::One());
-
-            view->SetViewport(Viewport { .extent = viewportSize, .position = Vec2i::Zero() });
+            Vec2i viewportSize = MathUtil::Max(sceneImageObject->GetActualSize(), Vec2i::One());
+            view->SetViewport(Viewport { .extent = Vec2u(viewportSize), .position = Vec2i::Zero() });
 
             HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewportSize);
 
             return UIEventHandlerResult::OK;
         }));
+
+    m_camera->SetDimensions(Vec2i(viewportSize));
 
     Handle<UIImage> uiImage = ObjCast<UIImage>(sceneImageObject);
     Assert(uiImage.IsValid());

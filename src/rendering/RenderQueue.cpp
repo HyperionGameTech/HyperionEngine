@@ -59,9 +59,9 @@ void RenderQueue::Execute(CommandBufferBase* commandBuffer)
 
 BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets)
     : m_descriptorSet(descriptorSet),
-        m_graphicsPipeline(pipeline),
-        m_offsets(offsets),
-        m_pipelineType(0) // 0 = Graphics
+      m_graphicsPipeline(pipeline),
+      m_offsets(offsets),
+      m_pipelineType(0) // 0 = Graphics
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -72,10 +72,10 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsP
 
 BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
     : m_descriptorSet(descriptorSet),
-        m_graphicsPipeline(pipeline),
-        m_offsets(offsets),
-        m_bindIndex(bindIndex),
-        m_pipelineType(0) // 0 = Graphics
+      m_graphicsPipeline(pipeline),
+      m_offsets(offsets),
+      m_bindIndex(bindIndex),
+      m_pipelineType(0) // 0 = Graphics
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -84,9 +84,9 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsP
 
 BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets)
     : m_descriptorSet(descriptorSet),
-        m_computePipeline(pipeline),
-        m_offsets(offsets),
-        m_pipelineType(1) // 1 = Compute
+      m_computePipeline(pipeline),
+      m_offsets(offsets),
+      m_pipelineType(1) // 1 = Compute
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -97,10 +97,10 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePi
 
 BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
     : m_descriptorSet(descriptorSet),
-        m_computePipeline(pipeline),
-        m_offsets(offsets),
-        m_bindIndex(bindIndex),
-        m_pipelineType(1) // 1 = Compute
+      m_computePipeline(pipeline),
+      m_offsets(offsets),
+      m_bindIndex(bindIndex),
+      m_pipelineType(1) // 1 = Compute
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -109,9 +109,9 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePi
 
 BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets)
     : m_descriptorSet(descriptorSet),
-        m_raytracingPipeline(pipeline),
-        m_offsets(offsets),
-        m_pipelineType(2) // 2 = Raytracing
+      m_raytracingPipeline(pipeline),
+      m_offsets(offsets),
+      m_pipelineType(2) // 2 = Raytracing
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -122,10 +122,10 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, Raytracin
 
 BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
     : m_descriptorSet(descriptorSet),
-        m_raytracingPipeline(pipeline),
-        m_offsets(offsets),
-        m_bindIndex(bindIndex),
-        m_pipelineType(2) // 2 = Raytracing
+      m_raytracingPipeline(pipeline),
+      m_offsets(offsets),
+      m_bindIndex(bindIndex),
+      m_pipelineType(2) // 2 = Raytracing
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -170,30 +170,30 @@ void BindDescriptorSet::InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuf
 
 BindDescriptorTable::BindDescriptorTable(DescriptorTableBase* descriptorTable, GraphicsPipelineBase* graphicsPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
     : m_descriptorTable(descriptorTable),
-        m_graphicsPipeline(graphicsPipeline),
-        m_offsets(offsets),
-        m_frameIndex(frameIndex),
-        m_pipelineType(0) // 0 = Graphics
+      m_graphicsPipeline(graphicsPipeline),
+      m_offsets(offsets),
+      m_frameIndex(frameIndex),
+      m_pipelineType(0) // 0 = Graphics
 {
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
 
 BindDescriptorTable::BindDescriptorTable(DescriptorTableBase* descriptorTable, ComputePipelineBase* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
     : m_descriptorTable(descriptorTable),
-        m_computePipeline(computePipeline),
-        m_offsets(offsets),
-        m_frameIndex(frameIndex),
-        m_pipelineType(1) // 1 = Compute
+      m_computePipeline(computePipeline),
+      m_offsets(offsets),
+      m_frameIndex(frameIndex),
+      m_pipelineType(1) // 1 = Compute
 {
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
 
 BindDescriptorTable::BindDescriptorTable(DescriptorTableBase* descriptorTable, RaytracingPipelineBase* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
     : m_descriptorTable(descriptorTable),
-        m_raytracingPipeline(raytracingPipeline),
-        m_offsets(offsets),
-        m_frameIndex(frameIndex),
-        m_pipelineType(2) // 2 = Raytracing
+      m_raytracingPipeline(raytracingPipeline),
+      m_offsets(offsets),
+      m_frameIndex(frameIndex),
+      m_pipelineType(2) // 2 = Raytracing
 {
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
@@ -298,16 +298,23 @@ void EndFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
 
 #ifdef HYP_DEBUG_MODE
 
+BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipelineBase* pipeline, const Viewport& viewport)
+    : m_pipeline(pipeline),
+      m_viewport(viewport)
+{
+    Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
+}
+
 BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipelineBase* pipeline, Vec2i viewportOffset, Vec2u viewportExtent)
     : m_pipeline(pipeline),
-      m_viewportOffset(viewportOffset),
-      m_viewportExtent(viewportExtent)
+      m_viewport(Viewport { viewportExtent, viewportOffset })
 {
     Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
 }
 
 BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipelineBase* pipeline)
-    : m_pipeline(pipeline)
+    : m_pipeline(pipeline),
+      m_viewport()
 {
     Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
 }

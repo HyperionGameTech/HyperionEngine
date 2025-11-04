@@ -93,8 +93,8 @@ public:
     friend class UIObject;
 
     // The minimum and maximum depth values for the UI scene for layering
-    static const int g_minDepth = -10000;
-    static const int g_maxDepth = 10000;
+    static constexpr int MinDepth = -10000;
+    static constexpr int MaxDepth = 10000;
 
     UIStage();
     UIStage(ThreadId ownerThreadId);
@@ -195,6 +195,8 @@ private:
 
     /*! \brief To be called internally from UIObject only */
     void SetFocusedObject(const Handle<UIObject>& uiObject);
+
+    void UpdateCameraControllerStack();
 
     Handle<UIObject> GetUIObjectForEntity(const Entity* entity) const;
 

@@ -917,7 +917,7 @@ void UIObject::SetDepth(int depth)
 {
     HYP_SCOPE;
 
-    m_depth = MathUtil::Clamp(depth, UIStage::g_minDepth, UIStage::g_maxDepth + 1);
+    m_depth = MathUtil::Clamp(depth, UIStage::MinDepth, UIStage::MaxDepth + 1);
 
     UpdateComputedDepth();
 }

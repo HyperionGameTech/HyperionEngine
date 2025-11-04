@@ -1184,6 +1184,13 @@ endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
+# force include for MSVC
+if(MSVC)
+    target_compile_options(${BUILD_NAME} PRIVATE /FI"${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp")
+elseif(__clang__ OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(${BUILD_NAME} PRIVATE -include "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp")
+endif()
+
 remove_definitions(-DHYP_BUILD_LIBRARY)
 
 add_subdirectory(samples)
