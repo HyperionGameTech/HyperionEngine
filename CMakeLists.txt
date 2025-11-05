@@ -21,7 +21,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebugInfo" CACHE STRING "Configurations to build" FORCE)
 set(CMAKE_TRY_COMPILE_CONFIGURATION "Release" CACHE STRING "Configuration to use for try_compile" FORCE)
 
-project(${BUILD_NAME} CXX C)
+project(${BUILD_NAME} LANGUAGES CXX)
 
 # set HYP_PLATFORM_NAME
 if(NOT DEFINED HYP_PLATFORM_NAME)
@@ -803,16 +803,15 @@ source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTIO
 if(HYP_DEBUG_MODE)
     # make sure generated sources are compiled without debug info - they are large and slow down debug builds
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        foreach(GEN_SOURCE ${REFLECTION_GENERATED_SOURCES})
-            message(STATUS "Setting no debug info for generated source: ${GEN_SOURCE}")
-
-            set_source_files_properties(${GEN_SOURCE} PROPERTIES COMPILE_FLAGS "-g0")
-        endforeach()
+        set_source_files_properties(${REFLECTION_GENERATED_SOURCES} PROPERTIES COMPILE_FLAGS "-g0")
     endif()
 endif()
 
 set(SOURCES ${SOURCES} ${REFLECTION_GENERATED_SOURCES})
 set(SOURCES ${SOURCES} ${THIRD_PARTY_SOURCES})
+
+# disable precompiled headers for third-party sources
+set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
 

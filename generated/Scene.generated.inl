@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Scene Reflection Data
 
-HYP_BEGIN_CLASS(Scene, 53, 0, NAME("AssetObject"), ClassAttribute("postload", "Scene_OnPostLoad"))
+HYP_BEGIN_CLASS(Scene, 24, 0, NAME("AssetObject"), ClassAttribute("postload", "Scene_OnPostLoad"))
     Method(NAME(HYP_STR(GetPrimaryCamera)), &Scene::GetPrimaryCamera),
     Method(NAME(HYP_STR(GetSceneFlags)), &Scene::GetSceneFlags),
     Method(NAME(HYP_STR(SetSceneFlags)), &Scene::SetSceneFlags),
@@ -42,7 +42,7 @@ namespace hyperion {
 
 #pragma region SceneFlags Reflection Data
 
-HYP_BEGIN_ENUM(SceneFlags, 384, 0, {})
+HYP_BEGIN_ENUM(SceneFlags, 365, 0, {})
     StaticField(NAME(HYP_STR(NONE)), SceneFlags::NONE),
     StaticField(NAME(HYP_STR(FOREGROUND)), SceneFlags::FOREGROUND),
     StaticField(NAME(HYP_STR(DETACHED)), SceneFlags::DETACHED),
