@@ -1021,19 +1021,19 @@ private:
         // - Otherwise, before the first 'namespace' encountered at depth 0
         // - Never insert while within a preprocessor conditional block
 
-        auto isPPIf = [](const WideString& s)
+        auto isPPIf = [](const String& s)
         {
-            return s.StartsWith(L"#if") || s.StartsWith(L"#ifdef") || s.StartsWith(L"#ifndef");
+            return s.StartsWith("#if") || s.StartsWith("#ifdef") || s.StartsWith("#ifndef");
         };
 
-        auto isPPEndif = [](const WideString& s)
+        auto isPPEndif = [](const String& s)
         {
-            return s.StartsWith(L"#endif");
+            return s.StartsWith("#endif");
         };
 
-        auto isPPElseElif = [](const WideString& s)
+        auto isPPElseElif = [](const String& s)
         {
-            return s.StartsWith(L"#else") || s.StartsWith(L"#elif");
+            return s.StartsWith("#else") || s.StartsWith("#elif");
         };
 
         // Scan to find insertion point:
@@ -1057,8 +1057,8 @@ private:
 
         for (SizeType i = 0; i < lines.Size(); ++i)
         {
-            const WideString raw = lines[i].ToWide();
-            const WideString line = raw.Trimmed();
+            const String& raw = lines[i];
+            const String line = raw.Trimmed();
 
             // Update preprocessor depth at start of line
             if (line[0] == '#')
@@ -1081,7 +1081,7 @@ private:
             }
 
             // Record last top-level include
-            if (preprocessorDepth == 0 && braceDepth == 0 && line.StartsWith(L"#include"))
+            if (preprocessorDepth == 0 && braceDepth == 0 && line.StartsWith("#include"))
             {
                 lastTopInclude = i;
             }
@@ -1095,7 +1095,7 @@ private:
 
                 for (SizeType k = 0; k < raw.Size(); ++k)
                 {
-                    const wchar_t c = raw[k];
+                    const char c = raw[k];
 
                     // Handle line comment start
                     if (!inBlockComment && !inLineComment && k + 1 < raw.Size() && raw[k] == '/' && raw[k + 1] == '/')
@@ -1133,7 +1133,7 @@ private:
                     if (braceDepth == 0 && firstTopNamespace == SizeType(-1))
                     {
                         // Cheap check: use trimmed line to determine namespace start
-                        if (line.StartsWith(L"namespace"))
+                        if (line.StartsWith("namespace"))
                         {
                             firstTopNamespace = i;
                         }
