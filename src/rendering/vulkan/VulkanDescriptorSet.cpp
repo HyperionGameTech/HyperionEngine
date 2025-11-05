@@ -167,7 +167,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
 
             break;
         case DescriptorSetElementType::TLAS:
-            PrefillElements<TLASRef>(name, element.count);
+            PrefillElements<GpuTlasRef>(name, element.count);
 
             break;
         default:
@@ -340,7 +340,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 descriptorElementInfo.index = index;
                 descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
 
-                const TLASRef& ref = value.Get<TLASRef>();
+                const GpuTlasRef& ref = value.Get<GpuTlasRef>();
                 HYP_GFX_ASSERT(ref.IsValid(), "Invalid TLAS reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);

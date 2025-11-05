@@ -3,24 +3,24 @@
 
 namespace hyperion {
 
-#pragma region TLASBase Reflection Data
+#pragma region GpuTlasBase Reflection Data
 
-HYP_BEGIN_CLASS(TLASBase, 129, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(GpuTlasBase, 129, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
-#pragma endregion TLASBase Reflection Data
+#pragma endregion GpuTlasBase Reflection Data
 
 } // namespace hyperion
 
 
 namespace hyperion {
 
-#pragma region BLASBase Reflection Data
+#pragma region GpuBlasBase Reflection Data
 
-HYP_BEGIN_CLASS(BLASBase, 131, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(GpuBlasBase, 131, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
-#pragma endregion BLASBase Reflection Data
+#pragma endregion GpuBlasBase Reflection Data
 
 } // namespace hyperion
 

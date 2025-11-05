@@ -14,7 +14,7 @@ class Material;
 class HYP_API MeshBlasBuilder
 {
 public:
-    static BLASRef Build(Mesh* mesh, Material* material = nullptr);
+    static GpuBlasRef Build(Mesh* mesh, Material* material = nullptr);
 };
 
 } // namespace hyperion

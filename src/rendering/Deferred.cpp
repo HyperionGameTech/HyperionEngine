@@ -1539,15 +1539,15 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
     defaultMesh->SetFlags(MF_VIEW_INDEPENDENT);
     InitObject(defaultMesh);
 
-    BLASRef blas = MeshBlasBuilder::Build(defaultMesh);
+    GpuBlasRef blas = MeshBlasBuilder::Build(defaultMesh);
     HYP_GFX_ASSERT(blas->Create());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        TLASRef& tlas = passData.raytracingTlases[frameIndex];
+        GpuTlasRef& tlas = passData.raytracingTlases[frameIndex];
 
         tlas = g_renderBackend->MakeTLAS();
-        tlas->AddBLAS(blas);
+        tlas->AddGpuBlas(blas);
 
         HYP_GFX_ASSERT(tlas->Create());
     }
@@ -2070,7 +2070,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             const Handle<RaytracingPassData>& raytracingPassData = ObjCast<RaytracingPassData>(FetchViewPassData(raytracingView));
             Assert(raytracingPassData != nullptr);
 
-            const TLASRef& tlas = raytracingPassData->raytracingTlases[frameIndex];
+            const GpuTlasRef& tlas = raytracingPassData->raytracingTlases[frameIndex];
 
             if (tlas && tlas->IsCreated())
             {
@@ -2249,7 +2249,7 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
 
     if (!pd->raytracingTlases[currentFrameIndex])
     {
-        for (TLASRef& tlas : pd->raytracingTlases)
+        for (GpuTlasRef& tlas : pd->raytracingTlases)
         {
             tlas = g_renderBackend->MakeTLAS();
         }
@@ -2264,9 +2264,10 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
         RenderProxyMesh* meshProxy = rpl.GetMeshEntities().GetProxy(entity->Id());
         Assert(meshProxy != nullptr);
 
-        AssertDebug(meshProxy->mesh != nullptr);
+        AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
+        AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
 
-        BLASRef& blas = meshProxy->raytracingData.blas;
+        GpuBlasRef& blas = meshProxy->raytracingData.blas;
 
         const bool materialsDiffer = blas != nullptr
             && blas->GetMaterial() != meshProxy->material;
@@ -2277,7 +2278,7 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
             {
                 for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
                 {
-                    pd->raytracingTlases[frameIndex]->RemoveBLAS(blas);
+                    pd->raytracingTlases[frameIndex]->RemoveGpuBlas(blas);
                 }
 
                 SafeDelete(std::move(blas));
@@ -2301,11 +2302,11 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
             blas->SetTransform(meshProxy->bufferData.modelMatrix);
         }
 
-        if (!pd->raytracingTlases[currentFrameIndex]->HasBLAS(blas))
+        if (!pd->raytracingTlases[currentFrameIndex]->HasGpuBlas(blas))
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                pd->raytracingTlases[frameIndex]->AddBLAS(meshProxy->raytracingData.blas);
+                pd->raytracingTlases[frameIndex]->AddGpuBlas(meshProxy->raytracingData.blas);
             }
 
             hasBlas = true;
@@ -2316,7 +2317,7 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
     {
         if (hasBlas)
         {
-            for (TLASRef& tlas : pd->raytracingTlases)
+            for (GpuTlasRef& tlas : pd->raytracingTlases)
             {
                 HYP_GFX_ASSERT(tlas->Create());
             }

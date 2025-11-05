@@ -956,7 +956,7 @@ ShaderRef VulkanRenderBackend::MakeShader(const RC<CompiledShader>& compiledShad
     return CreateObject<VulkanShader>(compiledShader);
 }
 
-BLASRef VulkanRenderBackend::MakeBLAS(
+GpuBlasRef VulkanRenderBackend::MakeGpuBlas(
     const GpuBufferRef& packedVerticesBuffer,
     const GpuBufferRef& packedIndicesBuffer,
     uint32 numVertices,
@@ -964,7 +964,7 @@ BLASRef VulkanRenderBackend::MakeBLAS(
     const Handle<Material>& material,
     const Mat4f& transform)
 {
-    return CreateObject<VulkanBLAS>(
+    return CreateObject<VulkanGpuBlas>(
         VulkanGpuBufferRef(packedVerticesBuffer),
         VulkanGpuBufferRef(packedIndicesBuffer),
         numVertices,
@@ -973,9 +973,9 @@ BLASRef VulkanRenderBackend::MakeBLAS(
         transform);
 }
 
-TLASRef VulkanRenderBackend::MakeTLAS()
+GpuTlasRef VulkanRenderBackend::MakeTLAS()
 {
-    return CreateObject<VulkanTLAS>();
+    return CreateObject<VulkanGpuTlas>();
 }
 
 const GpuImageViewRef& VulkanRenderBackend::GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex, uint32 numMips, uint32 faceIndex, uint32 numFaces)

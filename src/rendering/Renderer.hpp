@@ -25,8 +25,6 @@ class Light;
 class EnvProbe;
 class EnvGrid;
 struct CullData;
-struct DrawCall;
-struct InstancedDrawCall;
 class PassData;
 class RendererBase;
 class RenderGroup;

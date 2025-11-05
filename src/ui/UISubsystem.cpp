@@ -284,10 +284,10 @@ void UISubsystem::Update(float delta)
 
     if (meshesDiff.NeedsUpdate())
     {
-        Array<Entity*> added;
-        rpl.GetMeshEntities().GetAdded(added, /* includeChanged */ true);
+        Array<Entity*> entities;
+        rpl.GetMeshEntities().GetAdded(entities, /* includeChanged */ true);
 
-        for (Entity* entity : added)
+        for (Entity* entity : entities)
         {
             AssertDebug(entity->InstanceClass() == Entity::StaticClass());
 

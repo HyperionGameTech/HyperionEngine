@@ -165,7 +165,12 @@ if(MSVC)
     endif()
 else()
     if(HYP_DEBUG_MODE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g1 -Wno-undefined-internal")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}
+            -O1
+            -g
+            -Werror=return-type
+            -Werror=non-virtual-dtor
+            -Werror=address")
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
     endif()

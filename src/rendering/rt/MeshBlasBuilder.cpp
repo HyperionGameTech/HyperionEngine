@@ -27,7 +27,7 @@ namespace hyperion {
 
 struct BuildMeshBlas : public RenderCommand
 {
-    BLASRef blas;
+    GpuBlasRef blas;
     Array<PackedVertex> packedVertices;
     Array<uint32> packedIndices;
     Handle<Material> material;
@@ -37,7 +37,7 @@ struct BuildMeshBlas : public RenderCommand
     GpuBufferRef verticesStagingBuffer;
     GpuBufferRef indicesStagingBuffer;
 
-    BuildMeshBlas(BLASRef& blas, Array<PackedVertex>&& packedVertices, Array<uint32>&& packedIndices, const Handle<Material>& material)
+    BuildMeshBlas(GpuBlasRef& blas, Array<PackedVertex>&& packedVertices, Array<uint32>&& packedIndices, const Handle<Material>& material)
         : packedVertices(std::move(packedVertices)),
           packedIndices(std::move(packedIndices)),
           material(material)
@@ -48,7 +48,7 @@ struct BuildMeshBlas : public RenderCommand
         packedVerticesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::RT_MESH_VERTEX_BUFFER, packedVerticesSize);
         packedIndicesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::RT_MESH_INDEX_BUFFER, packedIndicesSize);
 
-        blas = g_renderBackend->MakeBLAS(
+        blas = g_renderBackend->MakeGpuBlas(
             packedVerticesBuffer,
             packedIndicesBuffer,
             uint32(this->packedVertices.Size()),
@@ -76,13 +76,13 @@ struct BuildMeshBlas : public RenderCommand
         HYP_GFX_CHECK(packedIndicesBuffer->Create());
 
         verticesStagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedVerticesSize);
-        verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_V_BLAS_{}", blas->GetDebugName()));
+        verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_V_GpuBlas_{}", blas->GetDebugName()));
         HYP_GFX_CHECK(verticesStagingBuffer->Create());
         verticesStagingBuffer->Memset(packedVerticesSize, 0); // zero out
         verticesStagingBuffer->Copy(packedVertices.Size() * sizeof(PackedVertex), packedVertices.Data());
 
         indicesStagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
-        verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_I_BLAS_{}", blas->GetDebugName()));
+        verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_I_GpuBlas_{}", blas->GetDebugName()));
         HYP_GFX_CHECK(indicesStagingBuffer->Create());
         indicesStagingBuffer->Memset(packedIndicesSize, 0); // zero out
         indicesStagingBuffer->Copy(packedIndices.Size() * sizeof(uint32), packedIndices.Data());
@@ -107,7 +107,7 @@ struct BuildMeshBlas : public RenderCommand
     }
 };
 
-BLASRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
+GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
 {
     if (!mesh)
     {
@@ -137,7 +137,7 @@ BLASRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
         Assert(packedIndices[i] < packedVertices.Size());
     }
 
-    BLASRef blas;
+    GpuBlasRef blas;
     PUSH_RENDER_COMMAND(BuildMeshBlas, blas, std::move(packedVertices), std::move(packedIndices), MakeStrongRef(material));
     blas->SetDebugName(NAME_FMT("MeshBlas_{}", mesh->GetName()));
 

@@ -3,12 +3,12 @@
 
 namespace hyperion {
 
-#pragma region VulkanBLAS Reflection Data
+#pragma region VulkanGpuBlas Reflection Data
 
-HYP_BEGIN_CLASS(VulkanBLAS, 132, 0, NAME("BLASBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(VulkanGpuBlas, 132, 0, NAME("GpuBlasBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
-#pragma endregion VulkanBLAS Reflection Data
+#pragma endregion VulkanGpuBlas Reflection Data
 
 } // namespace hyperion
 
@@ -27,12 +27,12 @@ HYP_END_CLASS
 
 namespace hyperion {
 
-#pragma region VulkanTLAS Reflection Data
+#pragma region VulkanGpuTlas Reflection Data
 
-HYP_BEGIN_CLASS(VulkanTLAS, 130, 0, NAME("TLASBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(VulkanGpuTlas, 130, 0, NAME("GpuTlasBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
-#pragma endregion VulkanTLAS Reflection Data
+#pragma endregion VulkanGpuTlas Reflection Data
 
 } // namespace hyperion
 

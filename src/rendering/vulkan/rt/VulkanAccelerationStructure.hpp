@@ -30,8 +30,8 @@ class HYP_API VulkanAccelerationGeometry final : public HypObjectBase
     HYP_OBJECT_BODY(VulkanAccelerationGeometry);
 
 public:
-    friend class VulkanTLAS;
-    friend class VulkanBLAS;
+    friend class VulkanGpuTlas;
+    friend class VulkanGpuBlas;
 
     VulkanAccelerationGeometry(
         const GpuBufferRef& packedVerticesBuffer,
@@ -200,21 +200,21 @@ using VulkanAccelerationStructureRef = Handle<VulkanAccelerationStructureBase>;
 using VulkanAccelerationStructureWeakRef = WeakHandle<VulkanAccelerationStructureBase>;
 
 HYP_CLASS(NoScriptBindings)
-class VulkanBLAS final : public BLASBase, public VulkanAccelerationStructureBase
+class VulkanGpuBlas final : public GpuBlasBase, public VulkanAccelerationStructureBase
 {
-    HYP_OBJECT_BODY(VulkanBLAS);
+    HYP_OBJECT_BODY(VulkanGpuBlas);
 
 public:
-    friend class VulkanTLAS;
+    friend class VulkanGpuTlas;
 
-    VulkanBLAS(
+    VulkanGpuBlas(
         const GpuBufferRef& packedVerticesBuffer,
         const GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
         const Mat4f& transform);
-    virtual ~VulkanBLAS() override;
+    virtual ~VulkanGpuBlas() override;
 
     virtual bool IsCreated() const override;
 
@@ -260,19 +260,19 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class VulkanTLAS final : public TLASBase, public VulkanAccelerationStructureBase
+class VulkanGpuTlas final : public GpuTlasBase, public VulkanAccelerationStructureBase
 {
-    HYP_OBJECT_BODY(VulkanTLAS);
+    HYP_OBJECT_BODY(VulkanGpuTlas);
 
 public:
-    VulkanTLAS();
-    virtual ~VulkanTLAS() override;
+    VulkanGpuTlas();
+    virtual ~VulkanGpuTlas() override;
 
     virtual bool IsCreated() const override;
 
-    virtual void AddBLAS(const BLASRef& blas) override;
-    virtual void RemoveBLAS(const BLASRef& blas) override;
-    virtual bool HasBLAS(const BLASRef& blas) override;
+    virtual void AddGpuBlas(const GpuBlasRef& blas) override;
+    virtual void RemoveGpuBlas(const GpuBlasRef& blas) override;
+    virtual bool HasGpuBlas(const GpuBlasRef& blas) override;
 
     virtual RendererResult Create() override;
 
@@ -298,7 +298,7 @@ private:
     RendererResult BuildMeshDescriptionsBuffer();
     RendererResult BuildMeshDescriptionsBuffer(uint32 first, uint32 last);
 
-    Array<VulkanBLASRef> m_blas;
+    Array<VulkanGpuBlasRef> m_blas;
     GpuBufferRef m_instancesBuffer;
 };
 

@@ -833,6 +833,8 @@ public:
 
     HashCode GetHashCode() const;
 
+    bool m_debugIsDestroyed = false;
+
 private:
     void Init() override;
 

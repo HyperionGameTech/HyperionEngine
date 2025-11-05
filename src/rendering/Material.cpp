@@ -107,6 +107,9 @@ Material::Material(
 
 Material::~Material()
 {
+    HYP_LOG(Material, Debug, "Destroying Material with ID {} (name: {}) on thread: {}", Id(), GetName(),
+        Threads::CurrentThreadId().GetName());
+    m_debugIsDestroyed = true;
     SetReady(false);
 
     for (SizeType i = 0; i < m_textures.Size(); i++)

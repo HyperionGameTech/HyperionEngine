@@ -102,11 +102,20 @@ struct HypObjectHeader
     volatile int32 refCountStrong;
     volatile int32 refCountWeak;
 
+    union
+    {
+#ifdef HYP_DEBUG_MODE
+        bool wasSafeDeleted;
+#endif
+        uint32 flags;
+    };
+
     HypObjectHeader()
         : cls(nullptr),
           index(~0u),
           refCountStrong(0),
-          refCountWeak(0)
+          refCountWeak(0),
+          flags(0)
     {
     }
 
@@ -276,6 +285,7 @@ public:
         header->cls = m_class;
         header->refCountStrong = 1;
         header->refCountWeak = 0;
+        header->flags = 0;
 
         m_headers.Emplace(header->index, header);
 

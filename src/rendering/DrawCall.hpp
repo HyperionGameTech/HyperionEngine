@@ -206,7 +206,7 @@ struct InstancedDrawCallStorage
 class EntityBatchAllocatorBase
 {
 public:
-    ~EntityBatchAllocatorBase() = default;
+    virtual ~EntityBatchAllocatorBase() = default;
 
     HYP_FORCE_INLINE SizeType GetStructSize() const
     {

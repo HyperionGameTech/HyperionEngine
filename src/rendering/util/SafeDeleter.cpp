@@ -76,6 +76,10 @@ SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
 
         if (AtomicAdd(&header->refCountStrong, 0) == 0)
         {
+#ifdef HYP_DEBUG_MODE
+            header->wasSafeDeleted = true;
+#endif
+
             ptr->~HypObjectBase();
         }
 

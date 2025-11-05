@@ -50,14 +50,6 @@ HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 
-#define HYP_DEBUG_EXTRA_MESH_ASSERTIONS 0
-
-#ifndef HYP_DEBUG_MODE
-#ifdef HYP_DEBUG_EXTRA_MESH_ASSERTIONS
-#undef HYP_DEBUG_EXTRA_MESH_ASSERTIONS
-#endif
-#endif
-
 // DrawCallCollectionMapping::~DrawCallCollectionMapping()
 //{
 //     Threads::AssertOnThread(g_renderThread);
@@ -972,27 +964,6 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
             AssertDebug(renderGroup.IsValid());
 
             const DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
-
-#if defined(HYP_DEBUG_EXTRA_MESH_ASSERTIONS) && HYP_DEBUG_EXTRA_MESH_ASSERTIONS
-            static const auto doDrawCallAssertions = [](const DrawCallBase& drawCall)
-            {
-                Assert(drawCall.mesh && drawCall.mesh->IsReady());
-                Assert(drawCall.mesh->gpuUploadFence.IsSignaled(), "Mesh with ID {} (name: {}, asset path: {}) not uploaded to gpu!",
-                    drawCall.mesh->Id(), drawCall.mesh->GetName(), drawCall.mesh->GetAssetReference().GetAssetPath().ToString());
-
-                Assert(drawCall.material && drawCall.material->IsReady());
-                Assert(RenderApi::RetrieveResourceBinding(drawCall.material) != ~0u);
-            };
-
-            for (const DrawCall& drawCall : drawCallCollection.drawCalls)
-            {
-                doDrawCallAssertions(drawCall);
-            }
-            for (const InstancedDrawCall& drawCall : drawCallCollection.instancedDrawCalls)
-            {
-                doDrawCallAssertions(drawCall);
-            }
-#endif
 
             IndirectRenderer* indirectRenderer = mapping.indirectRenderer;
 

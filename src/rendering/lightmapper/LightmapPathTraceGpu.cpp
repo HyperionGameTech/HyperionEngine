@@ -219,7 +219,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
 
         AssertDebug(meshProxy->mesh != nullptr);
 
-        BLASRef blas = MeshBlasBuilder::Build(meshProxy->mesh, meshProxy->material);
+        GpuBlasRef blas = MeshBlasBuilder::Build(meshProxy->mesh, meshProxy->material);
         Assert(blas != nullptr);
 
         blas->SetTransform(meshProxy->bufferData.modelMatrix);
@@ -235,9 +235,9 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
             HYP_GFX_ASSERT(blas->Create());
         }
 
-        if (!m_tlas->HasBLAS(blas))
+        if (!m_tlas->HasGpuBlas(blas))
         {
-            m_tlas->AddBLAS(blas);
+            m_tlas->AddGpuBlas(blas);
 
             hasBlas = true;
         }
@@ -411,7 +411,7 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
 
     if (!m_tlas->IsCreated())
     {
-        // no BLAS to process if TLAS not created
+        // no GpuBlas to process if TLAS not created
         return;
     }
 

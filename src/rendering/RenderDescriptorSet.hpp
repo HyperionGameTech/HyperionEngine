@@ -134,7 +134,7 @@ struct DescriptorSetElementTypeInfo<SamplerBase>
 };
 
 template <>
-struct DescriptorSetElementTypeInfo<TLASBase>
+struct DescriptorSetElementTypeInfo<GpuTlasBase>
 {
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
 };
@@ -554,7 +554,7 @@ private:
 
 struct DescriptorSetElement
 {
-    using ValueType = Variant<GpuBufferRef, GpuImageViewRef, SamplerRef, TLASRef>;
+    using ValueType = Variant<GpuBufferRef, GpuImageViewRef, SamplerRef, GpuTlasRef>;
 
     FlatMap<uint32, ValueType> values;
     Range<uint32> dirtyRange {};
@@ -645,8 +645,8 @@ public:
     void SetElement(WeakName name, uint32 index, const SamplerRef& ref);
     void SetElement(WeakName name, const SamplerRef& ref);
 
-    void SetElement(WeakName name, uint32 index, const TLASRef& ref);
-    void SetElement(WeakName name, const TLASRef& ref);
+    void SetElement(WeakName name, uint32 index, const GpuTlasRef& ref);
+    void SetElement(WeakName name, const GpuTlasRef& ref);
 
     virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
@@ -714,7 +714,7 @@ protected:
 
             AssertDebug(mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
         }
-        else if constexpr (std::is_base_of_v<TLASBase, T>)
+        else if constexpr (std::is_base_of_v<GpuTlasBase, T>)
         {
             static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
 

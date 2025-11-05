@@ -60,7 +60,7 @@ private:
 
     RC<GpuLightmapperReadyNotification> m_readyNotification;
 
-    TLASRef m_tlas;
+    GpuTlasRef m_tlas;
 
     RaytracingPipelineRef m_raytracingPipeline;
 };

@@ -109,14 +109,14 @@ public:
 
     virtual ShaderRef MakeShader(const RC<CompiledShader>& compiledShader) = 0;
 
-    virtual BLASRef MakeBLAS(
+    virtual GpuBlasRef MakeGpuBlas(
         const GpuBufferRef& packedVerticesBuffer,
         const GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
         const Mat4f& transform) = 0;
-    virtual TLASRef MakeTLAS() = 0;
+    virtual GpuTlasRef MakeTLAS() = 0;
 
     virtual const GpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 faceIndex = 0, uint32 numFaces = ~0u) = 0;
 

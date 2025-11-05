@@ -89,11 +89,11 @@ static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttr
     return attributes;
 }
 
-static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList& rpl, const Array<Pair<ObjId<Entity>, int>>& proxyDepths, const Optional<RenderableAttributeSet>& overrideAttributes)
+static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList& rpl, const Array<Pair<ObjId<Entity>, int>>& meshEntityOrdering, const Optional<RenderableAttributeSet>& overrideAttributes)
 {
     renderCollector.Clear(/* freeMemory */ false);
 
-    for (const Pair<ObjId<Entity>, int>& pair : proxyDepths)
+    for (const Pair<ObjId<Entity>, int>& pair : meshEntityOrdering)
     {
         RenderProxyMesh* meshProxy = rpl.GetMeshEntities().GetProxy(pair.first);
         AssertDebug(meshProxy != nullptr);
@@ -157,8 +157,10 @@ static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList&
             InitObject(rg);
         }
 
-        AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
-        AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
+        AssertDebug(meshProxy->mesh->IsReady(), "Mesh not ready: {} on frame: {}", meshProxy->mesh->Id(), RenderApi::GetRingIndex());
+        AssertDebug(!meshProxy->material->m_debugIsDestroyed, "WTF???: Material {} destroyed while updating on frame: {}, was safe deleted ? {}", meshProxy->material->Id(), RenderApi::GetRingIndex(),
+                        int(meshProxy->material->GetObjectHeader_Internal()->wasSafeDeleted));
+        AssertDebug(meshProxy->material->IsReady(), "Material not ready: {} on frame: {}", meshProxy->material->Id(), RenderApi::GetRingIndex());
 
         mapping.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);
     }
@@ -278,16 +280,6 @@ void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(m_view);
     rpl.BeginRead();
-
-    // RenderCollector& renderCollector = RenderApi::GetRenderCollector(m_view);
-
-    if (pd->viewport != m_view->GetViewport())
-    {
-        /// @TODO: Implement me!
-
-        // HYP_LOG(UI, Warning, "UIRenderer: Viewport size changed from {} to {}, resizing view pass data",
-        //     pd->viewport.extent, m_view->GetViewport().extent);
-    }
 
     // Don't include UI rendering in global render stats
     SuppressRenderStatsScope suppressRenderStatsScope;

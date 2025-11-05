@@ -43,6 +43,8 @@ void EntityRenderProxySystem_Mesh::OnEntityAdded(Entity* entity)
     {
         HYP_LOG(Entity, Warning, "Mesh or material not valid for Entity {}!", entity->GetName());
 
+        HYP_BREAKPOINT_DEBUG_MODE;
+
         return;
     }
 
@@ -73,7 +75,7 @@ void EntityRenderProxySystem_Mesh::Process(float delta)
     {
         HYP_NAMED_SCOPE_FMT("Update draw data for Entity: {}", entity->GetName());
 
-        if (!meshComponent.mesh.IsValid() || !meshComponent.material.IsValid())
+        if (!meshComponent.mesh || !meshComponent.material)
         {
             HYP_LOG_ONCE(Entity, Warning, "Mesh or material not valid for Entity: {}", entity->GetName());
 

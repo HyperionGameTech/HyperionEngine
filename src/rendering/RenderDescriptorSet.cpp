@@ -269,12 +269,12 @@ void DescriptorSetBase::SetElement(WeakName name, const SamplerRef& ref)
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, uint32 index, const TLASRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, uint32 index, const GpuTlasRef& ref)
 {
-    SetElementT<TLASBase>(name, index, ref);
+    SetElementT<GpuTlasBase>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, const TLASRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, const GpuTlasRef& ref)
 {
     SetElement(name, 0, ref);
 }

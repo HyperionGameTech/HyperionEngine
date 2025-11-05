@@ -84,7 +84,7 @@ void RaytracingReflections::UpdatePipelineState(FrameBase* frame, const RenderSe
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
 
-    const auto setDescriptorElements = [this, pd](DescriptorSetBase* descriptorSet, const TLASRef& tlas, uint32 frameIndex)
+    const auto setDescriptorElements = [this, pd](DescriptorSetBase* descriptorSet, const GpuTlasRef& tlas, uint32 frameIndex)
     {
         Assert(tlas != nullptr);
 

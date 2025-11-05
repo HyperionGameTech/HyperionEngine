@@ -45,17 +45,17 @@ enum AccelerationStructureFlagBits : AccelerationStructureFlags
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class TLASBase : public HypObjectBase
+class GpuTlasBase : public HypObjectBase
 {
-    HYP_OBJECT_BODY(TLASBase);
+    HYP_OBJECT_BODY(GpuTlasBase);
 
 public:
-    TLASBase()
+    GpuTlasBase()
         : m_meshDescriptionsBuffer(GpuBufferRef::Null())
     {
     }
 
-    virtual ~TLASBase() override
+    virtual ~GpuTlasBase() override
     {
         SafeDelete(std::move(m_meshDescriptionsBuffer));
     }
@@ -82,9 +82,9 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    virtual void AddBLAS(const BLASRef& blas) = 0;
-    virtual void RemoveBLAS(const BLASRef& blas) = 0;
-    virtual bool HasBLAS(const BLASRef& blas) = 0;
+    virtual void AddGpuBlas(const GpuBlasRef& blas) = 0;
+    virtual void RemoveGpuBlas(const GpuBlasRef& blas) = 0;
+    virtual bool HasGpuBlas(const GpuBlasRef& blas) = 0;
 
     virtual RendererResult Create() = 0;
 
@@ -97,18 +97,18 @@ protected:
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class BLASBase : public HypObjectBase
+class GpuBlasBase : public HypObjectBase
 {
-    HYP_OBJECT_BODY(BLASBase);
+    HYP_OBJECT_BODY(GpuBlasBase);
 
 protected:
-    BLASBase()
+    GpuBlasBase()
         : m_materialBinding(0)
     {
     }
 
 public:
-    virtual ~BLASBase() override = default;
+    virtual ~GpuBlasBase() override = default;
 
     Name GetDebugName() const
     {
