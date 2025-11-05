@@ -4,10 +4,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/reflection/TypeId.hpp>
-
-#include <core/Types.hpp>
-
 using namespace hyperion;
 
 extern "C"

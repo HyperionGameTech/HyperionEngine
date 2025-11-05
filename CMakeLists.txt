@@ -1202,24 +1202,28 @@ else()
 endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
-target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH_HEADERS})
-
-# force include for MSVC
-if(MSVC)
-    target_compile_options(${BUILD_NAME} PRIVATE /FI"${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp")
-elseif(__clang__ OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(${BUILD_NAME} PRIVATE -include "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp")
-endif()
-
-remove_definitions(-DHYP_BUILD_LIBRARY)
-
-add_subdirectory(samples)
 
 # PCHs
 set(HYP_PCH_HEADERS
     "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
     ${SUB_PCH_HEADERS}
 )
+
+target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH_HEADERS})
+
+# if XCode: set the PCH file for the target
+if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
+    set_target_properties(${BUILD_NAME} PROPERTIES
+        XCODE_ATTRIBUTE_GCC_PRECOMPILE_PREFIX_HEADER "YES"
+        XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
+    )
+endif()
+
+# /PCHs
+
+remove_definitions(-DHYP_BUILD_LIBRARY)
+
+add_subdirectory(samples)
 
 # if .vscode/launch.json does not exist, create it
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/.vscode/launch.json")

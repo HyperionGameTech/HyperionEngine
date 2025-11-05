@@ -7,8 +7,6 @@
 
 #include <core/functional/ScriptableDelegate.hpp>
 
-#include <core/Types.hpp>
-
 using namespace hyperion;
 
 #ifdef HYP_DOTNET

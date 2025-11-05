@@ -8,8 +8,6 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Property.hpp>
-#include <core/reflection/HypData.hpp>
-
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/LogChannels.hpp>

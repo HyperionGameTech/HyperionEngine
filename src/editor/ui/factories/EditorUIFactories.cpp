@@ -27,12 +27,9 @@
 #include <core/threading/Task.hpp>
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypData.hpp>
 #include <core/reflection/Property.hpp>
 
 #include <core/logging/Logger.hpp>
-
-#include <core/Defines.hpp>
 
 namespace hyperion {
 

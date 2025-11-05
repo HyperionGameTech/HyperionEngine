@@ -8,8 +8,6 @@
 #include <scene/Scene.hpp>
 #include <scene/SceneOctree.hpp>
 
-#include <core/containers/HashSet.hpp>
-
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 

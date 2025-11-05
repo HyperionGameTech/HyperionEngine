@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <core/reflection/TypeId.hpp>
 #include <core/reflection/TypeInfoFwd.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>

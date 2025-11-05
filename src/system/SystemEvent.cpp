@@ -1,8 +1,6 @@
 #include <HyperionPch.hpp>
 
 #include <system/SystemEvent.hpp>
-#include <core/containers/Bitset.hpp>
-
 namespace hyperion {
 namespace sys {
 

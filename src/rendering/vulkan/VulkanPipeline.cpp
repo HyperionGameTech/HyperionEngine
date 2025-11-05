@@ -6,8 +6,6 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 
-#include <core/containers/FlatSet.hpp>
-
 #include <core/memory/Memory.hpp>
 
 #include <core/debug/Debug.hpp>

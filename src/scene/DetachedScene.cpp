@@ -5,8 +5,6 @@
 #include <scene/DetachedScene.hpp>
 #include <scene/Scene.hpp>
 
-#include <core/containers/HashMap.hpp>
-
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/threading/util/ThreadId.hpp>

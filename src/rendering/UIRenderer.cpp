@@ -157,6 +157,9 @@ static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList&
             InitObject(rg);
         }
 
+        AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
+        AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
+
         mapping.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);
     }
 }

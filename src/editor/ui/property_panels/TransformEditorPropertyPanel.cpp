@@ -5,8 +5,6 @@
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/reflection/Property.hpp>
-#include <core/reflection/HypData.hpp>
-
 #include <scene/Node.hpp>
 
 #include <ui/UIGrid.hpp>

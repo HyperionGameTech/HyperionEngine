@@ -4,8 +4,6 @@
 
 #include <core/reflection/ObjId.hpp>
 #include <core/reflection/TypeInfoFwd.hpp>
-#include <core/reflection/TypeId.hpp>
-
 #include <core/Defines.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
@@ -342,7 +340,7 @@ public:
     const ElementArrayType& GetElements(TypeId typeId) const
     {
         static const ElementArrayType s_emptyArray {};
-        
+
         if (typeId == TypeIdOf<typename IdType::ObjectType>())
         {
             return baseImpl.elements;

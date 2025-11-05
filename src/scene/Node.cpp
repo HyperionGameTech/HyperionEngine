@@ -25,7 +25,6 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
 
 #ifdef HYP_EDITOR

@@ -21,8 +21,6 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 
-#include <core/containers/HashMap.hpp>
-
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/Logger.hpp>

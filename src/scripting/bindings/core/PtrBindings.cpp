@@ -3,11 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypData.hpp>
-
 #include <core/reflection/TypeInfoFwd.hpp>
-
-#include <core/Types.hpp>
 
 using namespace hyperion;
 

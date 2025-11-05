@@ -14,8 +14,6 @@
 #include <core/threading/TaskThread.hpp>
 #include <core/threading/TaskSystem.hpp>
 
-#include <core/containers/Queue.hpp>
-
 #include <core/reflection/Class.hpp>
 
 #include <core/math/MathUtil.hpp>

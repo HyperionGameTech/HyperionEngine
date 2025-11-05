@@ -6,9 +6,6 @@
 
 #include <core/Name.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
-
 #include <type_traits>
 
 using namespace hyperion;

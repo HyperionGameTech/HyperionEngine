@@ -22,8 +22,6 @@
 #include <core/math/MathUtil.hpp>
 #include <core/math/Transform.hpp>
 
-#include <core/Defines.hpp>
-
 #include <cstring>
 
 #include <VulkanGraphicsPipeline.generated.inl>

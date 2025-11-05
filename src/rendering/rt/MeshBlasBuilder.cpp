@@ -19,8 +19,6 @@
 
 #include <core/reflection/Handle.hpp>
 
-#include <core/containers/Array.hpp>
-
 #include <core/memory/resource/Resource.hpp>
 
 #include <engine/EngineGlobals.hpp>

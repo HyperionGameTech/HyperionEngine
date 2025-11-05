@@ -5,8 +5,6 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/Types.hpp>
-
 using namespace hyperion;
 
 namespace hyperion {

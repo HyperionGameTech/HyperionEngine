@@ -4,8 +4,6 @@
 
 #include <core/threading/TaskSystem.hpp>
 
-#include <core/Types.hpp>
-
 #include <type_traits>
 
 using namespace hyperion;

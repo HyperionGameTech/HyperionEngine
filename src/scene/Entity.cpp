@@ -23,8 +23,6 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderProxy.hpp>
 
-#include <core/reflection/HypData.hpp>
-
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 

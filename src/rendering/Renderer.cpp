@@ -14,8 +14,6 @@
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/Threads.hpp>
 
-#include <core/Defines.hpp>
-
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 

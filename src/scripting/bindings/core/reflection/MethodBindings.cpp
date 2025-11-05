@@ -6,16 +6,12 @@
 #include <core/reflection/Method.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/HypObject.hpp>
-#include <core/reflection/HypData.hpp>
-
 #include <core/Name.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
 #include <dotnet/ManagedObject.hpp>
-
-#include <core/Types.hpp>
 
 using namespace hyperion;
 

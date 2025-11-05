@@ -7,8 +7,6 @@
 
 #include <scene/Scene.hpp>
 
-#include <core/containers/HashSet.hpp>
-
 #include <core/logging/Logger.hpp>
 
 #include <WorldAABBUpdaterSystem.generated.inl>

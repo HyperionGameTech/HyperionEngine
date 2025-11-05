@@ -4,8 +4,6 @@
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 
-#include <core/Defines.hpp>
-
 #include <core/filesystem/FsUtil.hpp>
 
 #include <core/json/JSON.hpp>
@@ -13,10 +11,6 @@
 #include <core/utilities/ByteUtil.hpp>
 #include <core/utilities/ForEach.hpp>
 #include <core/utilities/Time.hpp>
-
-#include <core/reflection/HypData.hpp>
-
-#include <core/containers/Stack.hpp>
 
 #include <core/functional/Proc.hpp>
 

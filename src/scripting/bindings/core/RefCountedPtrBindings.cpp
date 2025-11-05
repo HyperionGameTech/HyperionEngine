@@ -5,11 +5,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypData.hpp>
-
 #include <core/debug/Debug.hpp>
-
-#include <core/Types.hpp>
 
 using namespace hyperion;
 

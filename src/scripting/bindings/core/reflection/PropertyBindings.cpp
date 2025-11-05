@@ -5,8 +5,6 @@
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Property.hpp>
 #include <core/reflection/HypObject.hpp>
-#include <core/reflection/HypData.hpp>
-
 #include <core/Name.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -15,8 +13,6 @@
 #include <dotnet/ManagedObject.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
-
-#include <core/Types.hpp>
 
 using namespace hyperion;
 

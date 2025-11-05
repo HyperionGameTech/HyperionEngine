@@ -2,7 +2,6 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Struct.hpp>
 
@@ -15,8 +14,6 @@
 #include <dotnet/ManagedClass.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
-
-#include <core/Types.hpp>
 
 using namespace hyperion;
 

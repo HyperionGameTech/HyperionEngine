@@ -6,8 +6,6 @@
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
-#include <core/reflection/HypData.hpp>
-
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/Logger.hpp>

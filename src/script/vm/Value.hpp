@@ -1,6 +1,5 @@
 #pragma once
 
-#include <core/reflection/TypeId.hpp>
 #include <core/containers/String.hpp>
 #include <core/memory/Any.hpp>
 #include <core/memory/UniquePtr.hpp>

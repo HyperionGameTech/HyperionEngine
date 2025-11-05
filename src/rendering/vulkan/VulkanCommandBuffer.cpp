@@ -16,8 +16,6 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/rt/RenderRaytracingPipeline.hpp>
 
-#include <core/Types.hpp>
-
 #include <VulkanCommandBuffer.generated.inl>
 
 namespace hyperion {

@@ -4,10 +4,6 @@
 
 #include <editor/EditorPickCache.hpp>
 
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/FlatSet.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/HashSet.hpp>
 #include <core/containers/SparsePagedArray.hpp>
 
 #include <rendering/RenderCollection.hpp>

@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <core/reflection/TypeId.hpp>
 #include <core/utilities/Optional.hpp>
 
 #include <core/containers/String.hpp>

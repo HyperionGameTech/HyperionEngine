@@ -9,8 +9,6 @@
 
 #include <core/memory/Memory.hpp>
 #include <core/containers/String.hpp>
-#include <core/reflection/TypeId.hpp>
-
 #include <core/reflection/ClassAttribute.hpp>
 
 namespace hyperion {

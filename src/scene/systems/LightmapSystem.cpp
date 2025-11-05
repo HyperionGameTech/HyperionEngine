@@ -7,8 +7,6 @@
 
 #include <scene/lightmapper/LightmapVolume.hpp>
 
-#include <core/containers/Array.hpp>
-
 #include <core/logging/Logger.hpp>
 
 #include <LightmapSystem.generated.inl>

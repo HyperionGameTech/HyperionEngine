@@ -4,7 +4,6 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/TypeId.hpp>
 #include <core/utilities/ByteUtil.hpp>
 
 #include <core/Types.hpp>

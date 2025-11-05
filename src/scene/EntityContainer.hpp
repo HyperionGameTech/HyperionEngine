@@ -11,8 +11,6 @@
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/Spinlock.hpp>
 
-#include <core/reflection/TypeId.hpp>
-
 #include <core/reflection/ObjId.hpp>
 #include <core/reflection/Handle.hpp>
 

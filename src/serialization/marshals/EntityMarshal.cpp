@@ -10,11 +10,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Property.hpp>
-#include <core/reflection/HypData.hpp>
-
 #include <core/utilities/Format.hpp>
-
-#include <core/containers/HashSet.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

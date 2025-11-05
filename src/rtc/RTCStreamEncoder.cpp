@@ -11,8 +11,6 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/containers/Queue.hpp>
-
 #include <mutex>
 
 #ifdef HYP_GSTREAMER

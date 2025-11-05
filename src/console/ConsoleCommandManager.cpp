@@ -7,8 +7,6 @@
 
 #include <core/threading/Mutex.hpp>
 
-#include <core/containers/HashSet.hpp>
-
 #include <core/utilities/StringView.hpp>
 
 #include <core/reflection/Class.hpp>

@@ -4,8 +4,6 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 
-#include <core/reflection/HypData.hpp>
-
 #include <rendering/ShaderManager.hpp>
 
 namespace hyperion::serialization {

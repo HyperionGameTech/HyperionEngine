@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <core/reflection/TypeId.hpp>
-
 #include <core/memory/UniquePtr.hpp>
 
 namespace hyperion {

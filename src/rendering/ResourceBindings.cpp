@@ -22,8 +22,6 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/Defines.hpp>
-
 #include <engine/EngineGlobals.hpp>
 
 #include <rendering/util/ResourceBinder.hpp>

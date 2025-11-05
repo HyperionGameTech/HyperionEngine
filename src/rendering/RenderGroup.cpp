@@ -38,13 +38,9 @@
 #include <core/profiling/ProfileScope.hpp>
 #include <core/profiling/PerformanceClock.hpp>
 
-#include <core/Defines.hpp>
-
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
-
-#include <core/Constants.hpp>
 
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>

@@ -3,8 +3,6 @@
 #include <HyperionPch.hpp>
 #include <rtc/RTCServerThread.hpp>
 
-#include <core/containers/Queue.hpp>
-
 namespace hyperion {
 
 RTCServerThread::RTCServerThread()

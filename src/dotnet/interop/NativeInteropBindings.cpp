@@ -2,14 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/Types.hpp>
-#include <core/Defines.hpp>
-
 #include <core/threading/Mutex.hpp>
-
-#include <core/containers/HashMap.hpp>
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 

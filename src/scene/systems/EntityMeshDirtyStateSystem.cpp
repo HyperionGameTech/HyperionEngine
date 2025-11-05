@@ -11,8 +11,6 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
-#include <core/containers/HashSet.hpp>
-
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 

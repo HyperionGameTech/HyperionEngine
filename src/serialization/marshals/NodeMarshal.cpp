@@ -7,7 +7,6 @@
 #include <core/serialization/fbom/FBOMObject.hpp>
 #include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
-#include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
 
 #include <core/logging/LogChannels.hpp>

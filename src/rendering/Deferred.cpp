@@ -2,8 +2,6 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/Defines.hpp>
-
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>

@@ -9,8 +9,6 @@
 #include <core/math/Vector4.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
-#include <core/reflection/TypeId.hpp>
-
 namespace hyperion {
 
 class Class;

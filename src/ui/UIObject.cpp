@@ -26,8 +26,6 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/containers/Queue.hpp>
-
 #include <core/utilities/DeferredScope.hpp>
 
 #include <core/reflection/Class.hpp>

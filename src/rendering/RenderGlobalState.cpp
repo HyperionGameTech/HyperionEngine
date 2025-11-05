@@ -43,8 +43,6 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <core/containers/LinkedList.hpp>
-#include <core/containers/HashMap.hpp>
 #include <core/containers/SparsePagedArray.hpp>
 
 #include <core/threading/Semaphore.hpp>

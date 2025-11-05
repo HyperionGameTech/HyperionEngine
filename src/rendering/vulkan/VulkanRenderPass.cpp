@@ -10,8 +10,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/containers/HashSet.hpp>
-
 #include <VulkanRenderPass.generated.inl>
 
 namespace hyperion {

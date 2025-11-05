@@ -7,8 +7,6 @@
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/utilities/Optional.hpp>
-#include <core/reflection/TypeId.hpp>
-
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/AnyRef.hpp>
 #include <core/memory/MemoryPool.hpp>

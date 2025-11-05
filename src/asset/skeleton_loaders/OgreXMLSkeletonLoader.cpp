@@ -14,11 +14,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/containers/Stack.hpp>
-
 #include <core/utilities/StringUtil.hpp>
-
-#include <core/Types.hpp>
 
 #include <util/xml/SAXParser.hpp>
 

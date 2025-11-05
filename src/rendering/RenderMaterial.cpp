@@ -23,7 +23,6 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
-#include <core/Types.hpp>
 
 namespace hyperion {
 

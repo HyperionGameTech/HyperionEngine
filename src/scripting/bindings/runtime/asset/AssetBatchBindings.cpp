@@ -7,8 +7,6 @@
 
 #include <dotnet/runtime/asset/AssetMapBindings.hpp>
 
-#include <core/Types.hpp>
-
 using namespace hyperion;
 
 extern "C"

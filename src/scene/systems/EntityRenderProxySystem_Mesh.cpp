@@ -16,8 +16,6 @@
 
 #include <rendering/RenderCommand.hpp>
 
-#include <core/containers/HashSet.hpp>
-
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/Logger.hpp>

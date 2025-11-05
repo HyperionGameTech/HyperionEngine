@@ -35,12 +35,7 @@
 
 #include <core/json/JSON.hpp>
 
-#include <core/containers/Stack.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/String.hpp>
-
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypData.hpp>
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/HypDataJSONHelpers.hpp>

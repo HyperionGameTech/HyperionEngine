@@ -32,7 +32,6 @@
 #include <core/profiling/ProfileScope.hpp>
 
 #include <engine/EngineGlobals.hpp>
-#include <core/Types.hpp>
 
 #include <util/MeshBuilder.hpp>
 

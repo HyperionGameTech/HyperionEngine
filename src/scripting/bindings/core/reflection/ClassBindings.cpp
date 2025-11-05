@@ -5,7 +5,6 @@
 #include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/HypObject.hpp>
-#include <core/reflection/HypData.hpp>
 #include <core/reflection/Method.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -19,8 +18,6 @@
 #include <dotnet/interop/ManagedGuid.hpp>
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
-
-#include <core/Types.hpp>
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 #include <scripting/ScriptObjectResource.hpp>

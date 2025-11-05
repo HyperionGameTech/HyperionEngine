@@ -8,8 +8,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/reflection/HypData.hpp>
-
 #include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>

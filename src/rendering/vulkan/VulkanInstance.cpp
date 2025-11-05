@@ -16,8 +16,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/containers/Array.hpp>
-
 #include <core/utilities/Span.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -25,13 +23,9 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/Defines.hpp>
-
 #include <system/AppContext.hpp>
 
 #include <system/vma/VmaUsage.hpp>
-
-#include <core/Types.hpp>
 
 #include <engine/EngineGlobals.hpp>
 
@@ -464,7 +458,7 @@ RendererResult VulkanInstance::RecreateSwapchain()
     m_swapchain->m_surface = m_surface;
     m_swapchain->m_handle = prevSwapchain->m_handle;
     HYP_GFX_CHECK(m_swapchain->Create());
-    
+
     SafeDelete(std::move(prevSwapchain));
 
     HYPERION_RETURN_OK;

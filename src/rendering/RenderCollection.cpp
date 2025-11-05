@@ -33,8 +33,6 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <core/containers/Array.hpp>
-
 #include <core/threading/Threads.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -1123,6 +1121,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             RenderProxyMesh* meshProxy = prevMapping.meshProxies.Get(idx);
             AssertDebug(meshProxy != nullptr);
+
+            AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
+            AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
 
             RenderableAttributeSet newAttributes = GetRenderableAttributesForProxy(*meshProxy, overrideAttributes);
             UpdateRenderableAttributesDynamic(meshProxy, newAttributes);

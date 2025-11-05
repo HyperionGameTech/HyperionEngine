@@ -16,7 +16,6 @@
 #include <core/threading/Scheduler.hpp>
 
 #include <core/reflection/HypDataJSONHelpers.hpp>
-#include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/Property.hpp>

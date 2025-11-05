@@ -12,8 +12,6 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/Defines.hpp>
-
 #include <system/AppContext.hpp>
 #include <system/SystemEvent.hpp>
 

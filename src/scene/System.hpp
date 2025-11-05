@@ -7,8 +7,6 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/HashSet.hpp>
 
-#include <core/reflection/TypeId.hpp>
-
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/functional/Delegate.hpp>

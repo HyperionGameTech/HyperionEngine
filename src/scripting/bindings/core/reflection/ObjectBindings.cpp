@@ -13,8 +13,6 @@
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
 
-#include <core/Types.hpp>
-
 #ifdef HYP_DOTNET
 #include <scripting/ScriptObjectResource.hpp>
 #endif

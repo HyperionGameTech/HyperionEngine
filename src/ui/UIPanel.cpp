@@ -6,8 +6,6 @@
 #include <ui/UIStage.hpp>
 #include <ui/UIButton.hpp>
 
-#include <core/containers/Bitset.hpp>
-
 #include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>

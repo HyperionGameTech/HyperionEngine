@@ -4,8 +4,6 @@
 
 #include <asset/Assets.hpp>
 
-#include <core/reflection/HypData.hpp>
-
 using namespace hyperion;
 
 extern "C"

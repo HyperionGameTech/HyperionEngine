@@ -15,8 +15,6 @@
 #include <core/logging/Logger.hpp>
 
 #include <core/debug/Debug.hpp>
-#include <core/Defines.hpp>
-
 #include <VulkanDevice.generated.inl>
 
 namespace hyperion {

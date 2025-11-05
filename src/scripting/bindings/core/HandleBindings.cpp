@@ -2,7 +2,6 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
 
 using namespace hyperion;

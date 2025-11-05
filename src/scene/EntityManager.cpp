@@ -18,8 +18,6 @@
 
 #include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypData.hpp>
-
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 

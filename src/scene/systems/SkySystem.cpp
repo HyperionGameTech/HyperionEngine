@@ -17,8 +17,6 @@
 
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 
-#include <core/containers/HashSet.hpp>
-
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 

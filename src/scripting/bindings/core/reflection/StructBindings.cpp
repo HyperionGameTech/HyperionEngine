@@ -6,8 +6,6 @@
 #include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
-#include <core/Defines.hpp>
-
 #include <core/logging/Logger.hpp>
 
 namespace hyperion {

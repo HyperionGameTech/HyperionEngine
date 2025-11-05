@@ -4,7 +4,6 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/Array.hpp>
 
-#include <core/reflection/HypData.hpp>
 #include <core/reflection/ClassUtils.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 

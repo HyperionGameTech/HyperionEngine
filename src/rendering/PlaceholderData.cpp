@@ -17,7 +17,6 @@
 #include <util/img/Bitmap.hpp>
 
 #include <engine/EngineGlobals.hpp>
-#include <core/Types.hpp>
 
 namespace hyperion {
 
@@ -35,10 +34,7 @@ HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer
         {
             const bool isColor = ((x / 16) % 2) == ((y / 16) % 2);
 
-            bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f,
-                                    0.0f,
-                                    isColor ? 1.0f : 0.0f,
-                                    1.0f });
+            bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f, 0.0f, isColor ? 1.0f : 0.0f, 1.0f });
         }
     }
 
@@ -67,10 +63,7 @@ HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuff
         {
             const bool isColor = ((x / 16) % 2) == ((y / 16) % 2);
 
-            bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f,
-                                    0.0f,
-                                    isColor ? 1.0f : 0.0f,
-                                    1.0f });
+            bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f, 0.0f, isColor ? 1.0f : 0.0f, 1.0f });
         }
     }
 

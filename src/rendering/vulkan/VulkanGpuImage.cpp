@@ -17,8 +17,6 @@
 
 #include <util/img/ImageUtil.hpp>
 
-#include <core/containers/Array.hpp>
-
 #include <core/utilities/Pair.hpp>
 
 #include <core/functional/Proc.hpp>
