@@ -20,6 +20,8 @@
 
 #include <engine/EngineGlobals.hpp>
 
+#include <GBuffer.generated.inl>
+
 namespace hyperion {
 
 #pragma region GBuffer

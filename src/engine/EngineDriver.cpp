@@ -66,18 +66,12 @@
 
 #define HYP_LOG_FRAMES_PER_SECOND
 
+#include <EngineDriver.generated.inl>
+
 namespace hyperion {
 
 class RenderThread;
 static RenderThread* g_renderThreadInstance = nullptr;
-
-static struct GlobalDescriptorSetsDeclarations
-{
-    GlobalDescriptorSetsDeclarations()
-    {
-#include <rendering/inl/DescriptorSets.inl>
-    }
-} g_globalDescriptorSetsDeclarations;
 
 void HandleSignal(int signum);
 
@@ -454,5 +448,13 @@ void EngineDriver::PreFrameUpdate(FrameBase* frame)
 }
 
 #pragma endregion EngineDriver
+
+static struct GlobalDescriptorSetsDeclarations
+{
+    GlobalDescriptorSetsDeclarations()
+    {
+#include <rendering/inl/DescriptorSets.inl>
+    }
+} s_globalDescriptorSetsDeclarations;
 
 } // namespace hyperion

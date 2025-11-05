@@ -44,6 +44,8 @@
 #include <zlib.h>
 #endif
 
+#include <FBXModelLoader.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

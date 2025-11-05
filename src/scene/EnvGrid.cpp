@@ -30,6 +30,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <EnvGrid.generated.inl>
+
 namespace hyperion {
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();

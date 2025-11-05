@@ -14,6 +14,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <HyperionEngine.hpp>
 
+#include <EditorState.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);

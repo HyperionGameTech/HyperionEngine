@@ -30,6 +30,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <OBJModelLoader.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
@@ -316,7 +318,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         String materialLibraryPath = String(FileSystem::RelativePath(
             (String(StringUtil::BasePath(model.filepath.Data()).c_str()) + "/" + model.materialLibrary).Data(),
             FileSystem::CurrentPath())
-                                                .c_str());
+                .c_str());
 
         if (!materialLibraryPath.EndsWith(".mtl"))
         {

@@ -36,6 +36,8 @@
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
 
+#include <Scene.generated.inl>
+
 namespace hyperion {
 
 void Scene_OnPostLoad(Scene& scene)

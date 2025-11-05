@@ -4,6 +4,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <FollowCamera.generated.inl>
+
 namespace hyperion {
 
 FollowCameraController::FollowCameraController(const Vector3& target, const Vector3& offset)

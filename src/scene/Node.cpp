@@ -41,6 +41,8 @@
 
 #include <cstring>
 
+#include <Node.generated.inl>
+
 namespace hyperion {
 
 #ifdef HYP_EDITOR
@@ -595,7 +597,7 @@ Array<Node*> Node::GetDescendantsArray() const
     // add all children to the list
     Array<Node*> descendants;
 
-    typedef void (*CollectFunc)(Array<Node*> & descendants, const Node& target, void* collectFunc);
+    typedef void (*CollectFunc)(Array<Node*>& descendants, const Node& target, void* collectFunc);
 
     CollectFunc collectFunc = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
     {

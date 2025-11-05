@@ -1,0 +1,52 @@
+#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ClassUtils.hpp>
+
+namespace hyperion {
+
+#pragma region MaterialAttributeFlags Reflection Data
+
+HYP_BEGIN_ENUM(MaterialAttributeFlags, 330, 0, {})
+    StaticField(NAME(HYP_STR(MAF_NONE)), MaterialAttributeFlags::MAF_NONE),
+    StaticField(NAME(HYP_STR(MAF_DEPTH_WRITE)), MaterialAttributeFlags::MAF_DEPTH_WRITE),
+    StaticField(NAME(HYP_STR(MAF_DEPTH_TEST)), MaterialAttributeFlags::MAF_DEPTH_TEST),
+    StaticField(NAME(HYP_STR(MAF_ALPHA_DISCARD)), MaterialAttributeFlags::MAF_ALPHA_DISCARD)
+HYP_END_ENUM
+
+#pragma endregion MaterialAttributeFlags Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region MaterialAttributes Reflection Data
+
+HYP_BEGIN_STRUCT(MaterialAttributes, 331, 0, {})
+    Field(NAME(HYP_STR(ShaderDefinition)), &MaterialAttributes::shaderDefinition, offsetof(MaterialAttributes, shaderDefinition), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Bucket)), &MaterialAttributes::bucket, offsetof(MaterialAttributes, bucket), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(FillMode)), &MaterialAttributes::fillMode, offsetof(MaterialAttributes, fillMode), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(BlendFunction)), &MaterialAttributes::blendFunction, offsetof(MaterialAttributes, blendFunction), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(CullFaces)), &MaterialAttributes::cullFaces, offsetof(MaterialAttributes, cullFaces), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Flags)), &MaterialAttributes::flags, offsetof(MaterialAttributes, flags), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(StencilFunction)), &MaterialAttributes::stencilFunction, offsetof(MaterialAttributes, stencilFunction), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
+HYP_END_STRUCT
+
+#pragma endregion MaterialAttributes Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region MeshAttributes Reflection Data
+
+HYP_BEGIN_STRUCT(MeshAttributes, 332, 0, {})
+    Field(NAME(HYP_STR(VertexAttributes)), &MeshAttributes::vertexAttributes, offsetof(MeshAttributes, vertexAttributes), Span<const ClassAttribute> { {ClassAttribute("property", "VertexAttributes"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Topology)), &MeshAttributes::topology, offsetof(MeshAttributes, topology), Span<const ClassAttribute> { {ClassAttribute("property", "Topology"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(IndexBufferElemType)), &MeshAttributes::indexBufferElemType, offsetof(MeshAttributes, indexBufferElemType), Span<const ClassAttribute> { {ClassAttribute("property", "IndexBufferElemType"), ClassAttribute("serialize", true) } })
+HYP_END_STRUCT
+
+#pragma endregion MeshAttributes Reflection Data
+
+} // namespace hyperion
+

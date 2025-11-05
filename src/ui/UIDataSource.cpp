@@ -3,6 +3,8 @@
 #include <ui/UIDataSource.hpp>
 #include <ui/UIObject.hpp>
 
+#include <UIDataSource.generated.inl>
+
 namespace hyperion {
 
 HYP_API extern const Class* GetClass(const TypeId& typeId);

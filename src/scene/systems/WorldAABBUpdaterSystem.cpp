@@ -9,6 +9,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <WorldAABBUpdaterSystem.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Entity);
@@ -21,7 +23,7 @@ void WorldAABBUpdaterSystem::OnEntityAdded(Entity* entity)
     {
         GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE>(entity);
     }
-    
+
     GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity);
 }
 
@@ -37,7 +39,7 @@ void WorldAABBUpdaterSystem::Process(float delta)
     for (auto [entity, boundingBoxComponent, transformComponent, _] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, TagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos()))
     {
         const bool wasWorldAabbChanged = ProcessEntity(entity, boundingBoxComponent, transformComponent);
-        
+
         updatedEntities[MakeWeakRef(entity)] = wasWorldAabbChanged;
     }
 
@@ -48,7 +50,7 @@ void WorldAABBUpdaterSystem::Process(float delta)
                 for (const auto& [entityWeak, wasWorldAabbChanged] : updatedEntities)
                 {
                     Entity* entity = entityWeak.GetUnsafe(); // don't use ptr so it's fine to use GetUnsafe()
-                    
+
                     if (wasWorldAabbChanged)
                     {
                         GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE>(entity);
@@ -76,7 +78,7 @@ bool WorldAABBUpdaterSystem::ProcessEntity(Entity* entity, BoundingBoxComponent&
             worldAabb = worldAabb.Union(transformComponent.transform.GetMatrix() * corner);
         }
     }
-    
+
     if (prevWorldAabb == worldAabb)
     {
         // no change

@@ -943,6 +943,8 @@ private:
         const FilePath baseDir = headerPath.BasePath();
 
         const FilePath cxxPath = baseDir / (stem + ".cpp");
+
+        // Foo.generated.cpp file creation
         if (!cxxPath.Exists() || cxxPath.IsDirectory())
         {
             // No implementation file exists in src; create a small generated .cpp that includes the header and the .inl
@@ -1005,7 +1007,7 @@ private:
 
         Array<String> lines = reader.ReadAllLines();
 
-        for (String& line : lines)
+        for (const String& line : lines)
         {
             if (line.Contains(includeLine))
             {
@@ -1019,32 +1021,47 @@ private:
         // - Otherwise, before the first 'namespace' encountered at depth 0
         // - Never insert while within a preprocessor conditional block
 
-        auto isPPIf = [](const String& s)
+        auto isPPIf = [](const WideString& s)
         {
-            return s.StartsWith("#if") || s.StartsWith("#ifdef") || s.StartsWith("#ifndef");
+            return s.StartsWith(L"#if") || s.StartsWith(L"#ifdef") || s.StartsWith(L"#ifndef");
         };
 
-        auto isPPEndif = [](const String& s)
+        auto isPPEndif = [](const WideString& s)
         {
-            return s.StartsWith("#endif");
+            return s.StartsWith(L"#endif");
         };
 
-        auto isPPElseElif = [](const String& s)
+        auto isPPElseElif = [](const WideString& s)
         {
-            return s.StartsWith("#else") || s.StartsWith("#elif");
+            return s.StartsWith(L"#else") || s.StartsWith(L"#elif");
         };
 
-        SizeType lastIncludeAtDepth0 = SizeType(-1);
-        SizeType firstNamespaceAtDepth0 = SizeType(-1);
-        SizeType firstNonPPAtDepth0 = SizeType(-1);
+        // Scan to find insertion point:
+        // - Track preprocessor depth and brace depth
+        // - Remember the last top-level (#if depth==0, braceDepth==0) include line
+        // - Remember the first top-level brace line, namespace line, and non-PP code line
+
+        // da rules:
+        //   If a last top-level include exists: insert before the earliest of
+        //   (first top-level brace/namespace/other code) that occurs AFTER that include.
+        //   Otherwise: insert before the first top-level brace, else namespace, else first code; fallback to end.
+
+        SizeType lastTopInclude = SizeType(-1);
+        SizeType firstTopNamespace = SizeType(-1);
+        SizeType firstTopBraceLine = SizeType(-1);
+        SizeType firstTopNonPPCode = SizeType(-1);
+
         int preprocessorDepth = 0;
+        int braceDepth = 0;
+        bool inBlockComment = false;
 
         for (SizeType i = 0; i < lines.Size(); ++i)
         {
-            const String line = lines[i].Trimmed();
+            const WideString raw = lines[i].ToWide();
+            const WideString line = raw.Trimmed();
 
-            // preprocessor depth
-            if (line.StartsWith("#"))
+            // Update preprocessor depth at start of line
+            if (line[0] == '#')
             {
                 if (isPPIf(line))
                 {
@@ -1063,56 +1080,283 @@ private:
                 }
             }
 
-            // Record last include at depth 0
-            if (preprocessorDepth == 0 && line.StartsWith("#include"))
+            // Record last top-level include
+            if (preprocessorDepth == 0 && braceDepth == 0 && line.StartsWith(L"#include"))
             {
-                lastIncludeAtDepth0 = i;
+                lastTopInclude = i;
             }
 
-            // Record first non-preprocessor, non-empty line at depth 0
-            if (preprocessorDepth == 0 && line.Any() && !line.StartsWith("#") && firstNonPPAtDepth0 == SizeType(-1))
+            if (preprocessorDepth == 0)
             {
-                firstNonPPAtDepth0 = i;
+                // Walk characters to (a) update braceDepth while ignoring comments, and
+                // (b) detect whether this line has any non-comment, non-PP code at top level.
+                bool lineHasCode = false;
+                bool inLineComment = false;
 
-                if (line.StartsWith("namespace") && firstNamespaceAtDepth0 == SizeType(-1))
+                for (SizeType k = 0; k < raw.Size(); ++k)
                 {
-                    firstNamespaceAtDepth0 = i;
-                    break; // don't insert within namespace; earlier is better
+                    const wchar_t c = raw[k];
+
+                    // Handle line comment start
+                    if (!inBlockComment && !inLineComment && k + 1 < raw.Size() && raw[k] == '/' && raw[k + 1] == '/')
+                    {
+                        inLineComment = true;
+
+                        break; // rest of line is comment
+                    }
+
+                    // Handle block comment transitions
+                    if (!inLineComment && k + 1 < raw.Size())
+                    {
+                        if (!inBlockComment && raw[k] == '/' && raw[k + 1] == '*')
+                        {
+                            inBlockComment = true;
+                            ++k; // skip '*'
+
+                            continue;
+                        }
+                        else if (inBlockComment && raw[k] == '*' && raw[k + 1] == '/')
+                        {
+                            inBlockComment = false;
+                            ++k; // skip '/'
+
+                            continue;
+                        }
+                    }
+
+                    if (inBlockComment || inLineComment)
+                    {
+                        continue;
+                    }
+
+                    // Detect first top-level namespace token
+                    if (braceDepth == 0 && firstTopNamespace == SizeType(-1))
+                    {
+                        // Cheap check: use trimmed line to determine namespace start
+                        if (line.StartsWith(L"namespace"))
+                        {
+                            firstTopNamespace = i;
+                        }
+                    }
+
+                    // Update brace depth, recording first top-level '{' location
+                    if (raw[k] == '{')
+                    {
+                        if (braceDepth == 0 && firstTopBraceLine == SizeType(-1))
+                        {
+                            firstTopBraceLine = i;
+                        }
+
+                        ++braceDepth;
+
+                        continue;
+                    }
+                    if (raw[k] == '}')
+                    {
+                        if (braceDepth > 0)
+                        {
+                            --braceDepth;
+                        }
+
+                        continue;
+                    }
+
+                    // Non-PP, non-comment, non-whitespace code at top-level
+                    if (braceDepth == 0 && firstTopNonPPCode == SizeType(-1) && c != ' ' && c != '\t' && line[0] != '#')
+                    {
+                        lineHasCode = true;
+                        // don't break; continue scanning to keep braceDepth correct
+                    }
+                }
+
+                if (braceDepth == 0 && firstTopNonPPCode == SizeType(-1) && lineHasCode)
+                {
+                    firstTopNonPPCode = i;
+                }
+            }
+            else
+            {
+                // Even inside PP blocks, keep braceDepth roughly in sync to avoid drift
+                bool inLineComment = false;
+
+                for (SizeType k = 0; k < raw.Size(); ++k)
+                {
+                    // basic comment skipping
+                    if (!inBlockComment && !inLineComment && k + 1 < raw.Size() && raw[k] == '/' && raw[k + 1] == '/')
+                    {
+                        inLineComment = true;
+                        break;
+                    }
+                    if (!inLineComment && k + 1 < raw.Size())
+                    {
+                        if (!inBlockComment && raw[k] == '/' && raw[k + 1] == '*')
+                        {
+                            inBlockComment = true;
+                            ++k;
+                            continue;
+                        }
+                        if (inBlockComment && raw[k] == '*' && raw[k + 1] == '/')
+                        {
+                            inBlockComment = false;
+                            ++k;
+                            continue;
+                        }
+                    }
+
+                    if (inBlockComment || inLineComment)
+                    {
+                        continue;
+                    }
+
+                    if (raw[k] == '{')
+                    {
+                        ++braceDepth;
+                    }
+                    else if (raw[k] == '}')
+                    {
+                        if (braceDepth > 0)
+                        {
+                            --braceDepth;
+                        }
+                    }
                 }
             }
         }
 
+        // Only insert if we have at least one top-level include; otherwise, do not inject into the source file.
+        if (lastTopInclude == SizeType(-1))
+        {
+            return {}; // respect "after last include" rule; do nothing if no includes
+        }
+
         SizeType insertIndex = SizeType(-1);
 
-        if (lastIncludeAtDepth0 != SizeType(-1))
+        if (lastTopInclude != SizeType(-1))
         {
-            insertIndex = lastIncludeAtDepth0 + 1;
+            auto checkGuardIndex = [lastTopInclude](SizeType idx, SizeType& outIdx) -> bool
+            {
+                if (idx != SizeType(-1) && idx > lastTopInclude)
+                {
+                    if (outIdx == SizeType(-1) || idx < outIdx)
+                    {
+                        outIdx = idx;
+
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+
+            // Choose the earliest top-level construct AFTER the last include
+            SizeType guardIndex = SizeType(-1);
+
+            (void)(checkGuardIndex(firstTopBraceLine, guardIndex)
+                || checkGuardIndex(firstTopNamespace, guardIndex)
+                || checkGuardIndex(firstTopNonPPCode, guardIndex));
+
+            insertIndex = (guardIndex != SizeType(-1)) ? guardIndex : (lastTopInclude + 1);
         }
-        else if (firstNamespaceAtDepth0 != SizeType(-1))
+        else if (firstTopBraceLine != SizeType(-1))
         {
-            insertIndex = firstNamespaceAtDepth0; // before namespace
+            insertIndex = firstTopBraceLine; // before first top-level brace
         }
-        else if (firstNonPPAtDepth0 != SizeType(-1))
+        else if (firstTopNamespace != SizeType(-1))
         {
-            insertIndex = firstNonPPAtDepth0; // before first code at depth 0
+            insertIndex = firstTopNamespace; // before first top-level namespace
+        }
+        else if (firstTopNonPPCode != SizeType(-1))
+        {
+            insertIndex = firstTopNonPPCode; // before first top-level code
         }
         else
         {
-            // Fallback: append at end (should be depth 0 by now)
+            // Fallback: append at end
             insertIndex = lines.Size();
         }
 
-        if (insertIndex <= 0)
+        // Normalize spacing: exactly one blank line above and below the inserted include line.
+        // First, ensure the insertIndex is within [0, lines.Size()].
+        if (insertIndex == SizeType(-1))
         {
-            lines.Insert(lines.Begin(), includeLine);
+            insertIndex = 0;
         }
-        else if (insertIndex >= lines.Size())
+
+        if (insertIndex > lines.Size())
         {
-            lines.PushBack(includeLine);
+            insertIndex = lines.Size();
         }
-        else
+
+        // Collapse/ensure one blank line above
+        SizeType aboveCount = 0;
+        for (SizeType i = insertIndex; i > 0;)
         {
-            lines.Insert(lines.Begin() + insertIndex, includeLine);
+            const SizeType j = i - 1;
+
+            if (lines[j].Trimmed().Empty())
+            {
+                ++aboveCount;
+                i = j;
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (aboveCount == 0)
+        {
+            lines.Insert(lines.Begin() + insertIndex, String::empty);
+            ++insertIndex; // include goes after the blank we just inserted
+        }
+        else if (aboveCount > 1)
+        {
+            // remove extra blanks leaving exactly one
+            SizeType toRemove = aboveCount - 1;
+
+            while (toRemove-- > 0)
+            {
+                lines.Erase(lines.Begin() + (insertIndex - 1));
+                --insertIndex;
+            }
+        }
+
+        // Insert the include line
+        lines.Insert(lines.Begin() + insertIndex, includeLine);
+
+        // Ensure exactly one blank line below
+        SizeType belowIdx = insertIndex + 1;
+        SizeType belowCount = 0;
+        for (SizeType i = belowIdx; i < lines.Size(); ++i)
+        {
+            if (lines[i].Trimmed().Empty())
+            {
+                ++belowCount;
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (belowCount == 0)
+        {
+            lines.Insert(lines.Begin() + (insertIndex + 1), String::empty);
+        }
+        else if (belowCount > 1)
+        {
+            // remove extras beyond one
+            SizeType removeFrom = insertIndex + 2; // keep the first blank directly after include
+            SizeType removeEnd = removeFrom + (belowCount - 1);
+
+            if (removeEnd > lines.Size())
+            {
+                removeEnd = lines.Size();
+            }
+
+            while (removeFrom < removeEnd)
+            {
+                lines.Erase(lines.Begin() + removeFrom);
+                --removeEnd;
+            }
         }
 
         // Write back to file
@@ -1184,8 +1428,7 @@ private:
                 // Before removing just the include line, check whether it's the only content in a simple
                 // preprocessor block like:
                 //   #ifndef HYP_BUILDTOOL
-                //   #include <Foo.generated.inl>
-                //   #endif
+                //                   //   #endif
                 // If so, remove the entire block.
 
                 // Build stack of #if.../#endif pairs for this snapshot of lines
@@ -1579,7 +1822,7 @@ int main(int argc, char** argv)
     definitions.Add("ExcludeDirectories", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("ExcludeFiles", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"));
-    definitions.Add("CXXMode", "", "C++ code generation mode (Cpp or Inl)", CommandLineArgumentFlags::NONE, Array<String> { "Cpp", "Inl" }, String("Cpp"));
+    definitions.Add("CXXMode", "", "C++ code generation mode (Cpp or Inl)", CommandLineArgumentFlags::NONE, Array<String> { "Cpp", "Inl" }, String("Inl"));
 
     CommandLineParser commandLineParser { &definitions };
 

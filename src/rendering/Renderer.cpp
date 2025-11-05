@@ -22,6 +22,8 @@
 
 #include <engine/EngineGlobals.hpp>
 
+#include <Renderer.generated.inl>
+
 namespace hyperion {
 
 const RenderSetup& NullRenderSetup()

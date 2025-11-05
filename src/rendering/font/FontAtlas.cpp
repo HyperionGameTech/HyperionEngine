@@ -23,6 +23,8 @@
 
 #include <engine/EngineGlobals.hpp>
 
+#include <FontAtlas.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Font);

@@ -46,6 +46,8 @@
 
 #endif
 
+#include <ParticleSystem.generated.inl>
+
 namespace hyperion {
 
 #pragma region Render commands

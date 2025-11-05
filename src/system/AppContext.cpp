@@ -26,6 +26,8 @@
 
 #endif
 
+#include <AppContext.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);

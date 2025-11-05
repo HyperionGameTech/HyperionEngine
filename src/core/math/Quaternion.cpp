@@ -5,6 +5,10 @@
 
 #include <float.h>
 
+#ifndef HYP_BUILDTOOL
+#include <Quaternion.generated.inl>
+#endif
+
 namespace hyperion {
 
 Quaternion::Quaternion()

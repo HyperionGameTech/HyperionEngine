@@ -8,6 +8,8 @@
 
 #include <scene/BVH.hpp>
 
+#include <MeshAsset.generated.inl>
+
 namespace hyperion {
 
 BoundingBox MeshData::CalculateAABB() const

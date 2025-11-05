@@ -49,6 +49,8 @@
 
 #endif
 
+#include <RenderGroup.generated.inl>
+
 namespace hyperion {
 
 // #define HYP_MATERIAL_DEBUG 1

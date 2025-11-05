@@ -9,6 +9,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <UIWindow.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
@@ -52,49 +54,49 @@ void UIWindow::Init()
 
         m_titleBar->OnMouseDown
             .Bind([this](const MouseEvent& event)
-            {
-                if (m_windowFlags & UIWindowFlags::ALLOW_DRAG)
                 {
-                    m_mouseDragStart = event.absolutePosition;
+                    if (m_windowFlags & UIWindowFlags::ALLOW_DRAG)
+                    {
+                        m_mouseDragStart = event.absolutePosition;
 
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
+                        return UIEventHandlerResult::STOP_BUBBLING;
+                    }
 
-                return UIEventHandlerResult::OK;
-            })
+                    return UIEventHandlerResult::OK;
+                })
             .Detach();
 
         m_titleBar->OnMouseUp
             .Bind([this](const MouseEvent& event)
-            {
-                if (m_windowFlags & UIWindowFlags::ALLOW_DRAG)
                 {
-                    m_mouseDragStart.Unset();
+                    if (m_windowFlags & UIWindowFlags::ALLOW_DRAG)
+                    {
+                        m_mouseDragStart.Unset();
 
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
+                        return UIEventHandlerResult::STOP_BUBBLING;
+                    }
 
-                return UIEventHandlerResult::OK;
-            })
+                    return UIEventHandlerResult::OK;
+                })
             .Detach();
 
         m_titleBar->OnMouseDrag.Bind([this](const MouseEvent& event)
-                                    {
-                                        if (m_windowFlags & UIWindowFlags::ALLOW_DRAG)
-                                        {
-                                            if (m_mouseDragStart.HasValue())
-                                            {
-                                                Vec2i delta = event.absolutePosition - *m_mouseDragStart;
-                                                SetPosition(GetPosition() + delta);
+                                   {
+                                       if (m_windowFlags & UIWindowFlags::ALLOW_DRAG)
+                                       {
+                                           if (m_mouseDragStart.HasValue())
+                                           {
+                                               Vec2i delta = event.absolutePosition - *m_mouseDragStart;
+                                               SetPosition(GetPosition() + delta);
 
-                                                m_mouseDragStart = event.absolutePosition;
-                                            }
+                                               m_mouseDragStart = event.absolutePosition;
+                                           }
 
-                                            return UIEventHandlerResult::STOP_BUBBLING;
-                                        }
+                                           return UIEventHandlerResult::STOP_BUBBLING;
+                                       }
 
-                                        return UIEventHandlerResult::OK;
-                                    })
+                                       return UIEventHandlerResult::OK;
+                                   })
             .Detach();
 
         if (m_windowFlags & UIWindowFlags::TITLE_BAR)

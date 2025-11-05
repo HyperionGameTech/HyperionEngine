@@ -12,6 +12,8 @@
 
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 
+#include <VulkanFence.generated.inl>
+
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

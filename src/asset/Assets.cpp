@@ -42,6 +42,8 @@
 #include <engine/EngineDriver.hpp>
 #include <HyperionEngine.hpp>
 
+#include <Assets.generated.inl>
+
 namespace hyperion {
 
 class Skeleton;
@@ -344,9 +346,9 @@ const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& p
 void AssetManager::Init()
 {
     HYP_SCOPE;
-    
+
     HypObjectBase::Init();
-    
+
     RegisterDefaultLoaders();
 
     m_assetRegistry = CreateObject<AssetRegistry>();

@@ -22,6 +22,8 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <LightmapperSubsystem.generated.inl>
+
 namespace hyperion {
 
 #pragma region LightmapperSubsystem
@@ -111,7 +113,6 @@ Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<LightmapVolume>
 {
     return GenerateLightmaps_Internal(volume);
 }
-
 
 Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<EnvProbe>& envProbe)
 {

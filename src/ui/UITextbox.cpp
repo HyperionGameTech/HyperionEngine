@@ -8,6 +8,8 @@
 #include <core/utilities/Format.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <UITextbox.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
@@ -318,7 +320,7 @@ void UITextbox::SubmitTextChange()
         OnTextChange(text);
 
         m_prevText = text;
-        
+
         if (clearOnSubmit)
         {
             SetText_Internal("");

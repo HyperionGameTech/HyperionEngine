@@ -46,6 +46,8 @@
 
 // #define HYP_GAUSSIAN_SPLATTING_CPU_SORT
 
+#include <GaussianSplatting.generated.inl>
+
 namespace hyperion {
 
 enum BitonicSortStage : uint32

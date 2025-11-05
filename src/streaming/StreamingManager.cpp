@@ -32,6 +32,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <StreamingManager.generated.inl>
+
 namespace hyperion {
 
 #pragma region Helpers

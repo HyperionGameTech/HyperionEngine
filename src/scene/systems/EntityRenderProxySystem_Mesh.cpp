@@ -25,6 +25,8 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <EntityRenderProxySystem_Mesh.generated.inl>
+
 namespace hyperion {
 
 void EntityRenderProxySystem_Mesh::OnEntityAdded(Entity* entity)

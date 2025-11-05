@@ -4,6 +4,10 @@
 
 #include <core/memory/Memory.hpp>
 
+#ifndef HYP_BUILDTOOL
+#include <Mat3f.generated.inl>
+#endif
+
 namespace hyperion {
 
 Mat3f::Mat3f()

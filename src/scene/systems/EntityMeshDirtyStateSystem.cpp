@@ -14,6 +14,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <EntityMeshDirtyStateSystem.generated.inl>
+
 namespace hyperion {
 
 void EntityMeshDirtyStateSystem::OnEntityAdded(Entity* entity)

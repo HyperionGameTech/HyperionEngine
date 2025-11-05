@@ -295,11 +295,6 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
     // now we need to add a method to be called that initializes all g_clsXXX variables (TClassStaticInit specializations)
     writer.WriteString("\nHYP_API void InitializeClassDeclarations()\n{\n");
-    writer.WriteString("    static Array<ClassRegistrationBase*> s_classRegs;\n\n");
-    writer.WriteString("    if (!s_classRegs.Empty())\n");
-    writer.WriteString("    {\n");
-    writer.WriteString("        return; // already initialized\n");
-    writer.WriteString("    }\n\n");
 
     for (const ClassInfo& classInfo : allClasses)
     {
@@ -333,8 +328,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
             qualifiedName = cls.name;
         }
 
-        writer.WriteString(HYP_FORMAT("    static TClassStaticInit<{}> s_classInit_{};\n", qualifiedName, cls.name));
-        writer.WriteString(HYP_FORMAT("    s_classRegs.PushBack(s_classInit_{}.GetClassRegistration());\n\n", cls.name));
+        writer.WriteString(HYP_FORMAT("    static TClassStaticInit<{}> s_classInit{};\n", qualifiedName, cls.name));
     }
 
     writer.WriteString("}\n\n");

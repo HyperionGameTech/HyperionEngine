@@ -29,6 +29,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <EditorMain.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
@@ -428,7 +430,6 @@ UIEventHandlerResult EditorMain::RebuildLightmaps(const MouseEvent& event)
         return UIEventHandlerResult::OK;
     }
 
-
     Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(sources);
     InitObject(generateLightmapsTask);
 
@@ -703,7 +704,7 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
 
     // @TODO: Allow building a bounding box in editor before starting the task.
     BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
-    
+
     Handle<LightmapVolume> lightmapVolume = CreateObject<LightmapVolume>(lightmapVolumeAabb);
     lightmapVolume->SetName(Name::Unique("LightmapVolume"));
     InitObject(lightmapVolume);

@@ -18,6 +18,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <Material.generated.inl>
+
 namespace hyperion {
 
 static const ShaderDefinition s_defaultShaderDefinition {
@@ -135,7 +137,7 @@ void Material::Init()
     }
 
     m_mutationState |= DataMutationState::DIRTY;
-    
+
     AssetObject::Init();
 
     SetReady(true);

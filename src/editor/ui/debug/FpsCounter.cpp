@@ -16,6 +16,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <FpsCounter.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
@@ -145,7 +147,7 @@ void FpsCounter::Update_Impl(float delta)
     {
         // Display average FPS for smoother reading, with instantaneous ms/frame
         const int avgFps = int(snapshot[StatIdFps].avg);
-        
+
         m_fpsTextElement->SetText(HYP_FORMAT(
             "{} fps, {} ms/frame (avg: {}, min: {}, max: {})",
             avgFps,

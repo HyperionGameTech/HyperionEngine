@@ -71,6 +71,8 @@
 
 #include <semaphore>
 
+#include <RenderGlobalState.generated.inl>
+
 namespace hyperion {
 
 static_assert(RingBufferDepth <= MinSafeDeleteCycles,

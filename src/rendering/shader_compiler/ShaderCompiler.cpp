@@ -63,6 +63,8 @@
 
 #endif
 
+#include <ShaderCompiler.generated.inl>
+
 namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);

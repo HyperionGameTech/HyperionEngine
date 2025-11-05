@@ -99,9 +99,9 @@ String ClassAttributeValue::ToString() const
         switch (type)
         {
         case ClassAttributeType::STRING:
-            return HYP_FORMAT("\"{}\"", strValue ? strValue : "");
+            return "\"" + String(GetString()) + "\"";
         case ClassAttributeType::INT:
-            return HYP_FORMAT("{}", iValue);
+            return String::ToString(iValue);
         case ClassAttributeType::BOOLEAN:
             return bValue ? "true" : "false";
         default:

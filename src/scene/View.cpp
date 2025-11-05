@@ -45,6 +45,8 @@
 // #define HYP_DISABLE_VISIBILITY_CHECK
 // #define HYP_VISIBILITY_CHECK_DEBUG
 
+#include <View.generated.inl>
+
 namespace hyperion {
 
 HYP_API extern Pool* g_scenePool;

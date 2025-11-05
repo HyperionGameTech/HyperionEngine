@@ -10,6 +10,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <AudioSystem.generated.inl>
+
 namespace hyperion {
 
 void AudioSystem::OnEntityAdded(Entity* entity)

@@ -34,6 +34,8 @@
 
 #endif
 
+#include <ScriptSystem.generated.inl>
+
 namespace hyperion {
 
 constexpr bool g_enableScriptReloading = true;

@@ -26,6 +26,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <Camera.generated.inl>
+
 namespace hyperion {
 
 class Camera;
