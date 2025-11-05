@@ -12,7 +12,7 @@
 
 #include <core/containers/TypeMap.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/Types.hpp>
 

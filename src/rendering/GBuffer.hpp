@@ -10,7 +10,7 @@
 
 #include <core/functional/Delegate.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <rendering/RenderBucket.hpp>
 

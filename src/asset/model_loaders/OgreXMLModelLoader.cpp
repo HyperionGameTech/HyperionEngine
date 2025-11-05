@@ -18,7 +18,6 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 
-#include <core/logging/Logger.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
@@ -271,7 +270,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
     if (!model.skeletonName.Empty())
     {
-        const String skeletonPath((StringUtil::BasePath(model.filepath.Data()).c_str() + String("/") + model.skeletonName + ".xml").Data());
+        const String skeletonPath = StringUtil::BasePath(model.filepath) + "/" + model.skeletonName + ".xml";
 
         auto skeletonAsset = state.assetManager->Load<Skeleton>(skeletonPath);
 

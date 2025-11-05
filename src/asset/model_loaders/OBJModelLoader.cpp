@@ -23,7 +23,6 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/logging/Logger.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 
@@ -316,7 +315,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
     if (LoadMaterials && !model.materialLibrary.Empty())
     {
         String materialLibraryPath = String(FileSystem::RelativePath(
-            (String(StringUtil::BasePath(model.filepath.Data()).c_str()) + "/" + model.materialLibrary).Data(),
+            (StringUtil::BasePath(model.filepath) + "/" + model.materialLibrary).Data(),
             FileSystem::CurrentPath())
                 .c_str());
 

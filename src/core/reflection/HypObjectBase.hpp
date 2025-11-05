@@ -2,20 +2,14 @@
 
 #pragma once
 
-#include <core/Name.hpp>
 #include <core/Defines.hpp>
+#include <core/Types.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
-#include <core/reflection/HypObjectEnums.hpp>
 #include <core/reflection/ObjId.hpp>
-#include <core/reflection/HypObjectPool.hpp>
-
-#include <core/utilities/GlobalContext.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <type_traits>
 
@@ -23,12 +17,19 @@ namespace hyperion {
 
 class Class;
 class ScriptObjectResource;
+struct HypObjectHeader;
 
 template <class T>
 struct Handle;
 
 template <class T>
 struct WeakHandle;
+
+namespace utilities {
+struct TypeId;
+} // namespace utilities
+
+using utilities::TypeId;
 
 #ifdef HYP_DOTNET
 namespace dotnet {
@@ -38,8 +39,6 @@ class ManagedClass;
 
 HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
-
-HYP_API extern TypeId GetTypeIdForClass(const Class* cls);
 
 class HYP_API HypObjectBase
 {
@@ -68,22 +67,10 @@ public:
 
     virtual ~HypObjectBase();
 
-    HYP_FORCE_INLINE ObjIdBase Id() const
-    {
-        HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
-
-        return ObjIdBase { GetTypeIdForClass(m_header->cls), m_header->index + 1 };
-    }
+    ObjIdBase Id() const;
 
     static const Class* StaticClass();
-
-    HYP_FORCE_INLINE const Class* InstanceClass() const
-    {
-        HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
-        HYP_CORE_ASSERT(m_header->cls, "No Class defined for type");
-
-        return m_header->cls;
-    }
+    const Class* InstanceClass() const;
 
     template <class TOther>
     HYP_FORCE_INLINE bool IsA() const

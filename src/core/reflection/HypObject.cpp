@@ -198,9 +198,24 @@ HypObjectBase::~HypObjectBase()
 #endif
 }
 
+ObjIdBase HypObjectBase::Id() const
+{
+    HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
+
+    return ObjIdBase { m_header->cls->GetTypeId(), m_header->index + 1 };
+}
+
 const Class* HypObjectBase::StaticClass()
 {
     return g_clsHypObjectBase;
+}
+
+const Class* HypObjectBase::InstanceClass() const
+{
+    HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
+    HYP_CORE_ASSERT(m_header->cls, "No Class defined for type");
+
+    return m_header->cls;
 }
 
 #ifdef HYP_DOTNET

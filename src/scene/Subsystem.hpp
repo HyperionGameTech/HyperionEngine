@@ -5,7 +5,7 @@
 #include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -49,8 +49,8 @@ public:
     {
     }
     virtual void Update(float delta) = 0;
-    virtual void OnSceneAttached(const Handle<Scene>& scene) { };
-    virtual void OnSceneDetached(Scene* scene) { };
+    virtual void OnSceneAttached(const Handle<Scene>& scene) {};
+    virtual void OnSceneDetached(Scene* scene) {};
 
 protected:
     virtual void Init() override

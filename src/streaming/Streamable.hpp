@@ -10,7 +10,7 @@
 
 #include <core/utilities/Uuid.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/HashCode.hpp>
 

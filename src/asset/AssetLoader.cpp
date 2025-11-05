@@ -5,8 +5,6 @@
 
 #include <core/reflection/Class.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <core/profiling/ProfileScope.hpp>
 
 #include <AssetLoader.generated.inl>

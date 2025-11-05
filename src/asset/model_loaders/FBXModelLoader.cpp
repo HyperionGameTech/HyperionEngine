@@ -32,7 +32,6 @@
 
 #include <core/memory/Memory.hpp>
 
-#include <core/logging/Logger.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>

@@ -8,7 +8,7 @@
 #include <core/math/Color.hpp>
 #include <core/math/BlendVar.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>

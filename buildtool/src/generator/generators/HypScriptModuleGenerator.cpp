@@ -10,6 +10,7 @@
 #include <core/Name.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
+#include <core/utilities/StringUtil.hpp>
 
 #include <core/logging/Logger.hpp>
 

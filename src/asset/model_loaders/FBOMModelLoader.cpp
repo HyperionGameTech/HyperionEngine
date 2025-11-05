@@ -10,7 +10,6 @@
 
 #include <core/reflection/HypData.hpp>
 
-#include <core/logging/Logger.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 

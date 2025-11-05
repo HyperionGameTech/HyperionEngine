@@ -7,7 +7,7 @@
 
 #include <core/math/Vector2.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/Pimpl.hpp>

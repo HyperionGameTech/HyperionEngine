@@ -7,7 +7,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/Bitset.hpp>

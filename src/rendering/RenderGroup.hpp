@@ -3,7 +3,7 @@
 #pragma once
 
 #include <core/reflection/ObjId.hpp>
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 

@@ -9,6 +9,8 @@
 
 #include <core/Name.hpp>
 
+#include <core/utilities/StringUtil.hpp>
+
 #include <core/io/ByteWriter.hpp>
 
 #include <util/ParseUtil.hpp>

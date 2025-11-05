@@ -5,9 +5,6 @@
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <core/utilities/Format.hpp>
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>

@@ -2,12 +2,7 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/Bitset.hpp>
-#include <core/containers/SparsePagedArray.hpp>
 #include <core/containers/LinkedList.hpp>
-#include <core/containers/HashSet.hpp>
-#include <core/containers/SortedArray.hpp>
 
 #include <core/threading/util/ThreadId.hpp>
 
@@ -25,11 +20,10 @@
 
 namespace hyperion {
 
-// Pool-specific flags (inherits from AllocatorFlags)
 enum PoolFlags : uint32
 {
     PF_NONE = AF_NONE,
-    PF_THREAD_SAFE = AF_THREAD_SAFE, //!< pool is thread-safe
+    PF_THREAD_SAFE = AF_THREAD_SAFE
 };
 
 HYP_MAKE_ENUM_FLAGS(PoolFlags);

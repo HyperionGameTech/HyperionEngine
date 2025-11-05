@@ -6,7 +6,7 @@
 #include <core/Types.hpp>
 
 #include <core/reflection/Handle.hpp>
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 

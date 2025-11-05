@@ -8,6 +8,7 @@
 #include <core/io/BufferedByteReader.hpp>
 
 #include <core/utilities/Format.hpp>
+#include <core/utilities/StringUtil.hpp>
 
 #include <core/reflection/HypData.hpp>
 
@@ -359,7 +360,7 @@ FBOMResult FBOMReader::LoadFromFile(const String& path, FBOMObject& out)
     // Include our root dir as part of the path
     if (m_config.basePath.Empty())
     {
-        m_config.basePath = FileSystem::RelativePath(StringUtil::BasePath(path.Data()), FileSystem::CurrentPath()).c_str();
+        m_config.basePath = FileSystem::RelativePath(StringUtil::BasePath(path).Data(), FileSystem::CurrentPath()).c_str();
     }
 
     FilePath readPath = FilePath(path);

@@ -8,6 +8,7 @@
 #include <core/reflection/ClassRegistry.hpp>
 
 #include <core/utilities/Format.hpp>
+#include <core/utilities/GlobalContext.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

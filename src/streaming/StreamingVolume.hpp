@@ -10,7 +10,7 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/BoundingSphere.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/threading/Semaphore.hpp>
 

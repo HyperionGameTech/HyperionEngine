@@ -12,7 +12,7 @@
 
 #include <core/functional/Delegate.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/Defines.hpp>
 

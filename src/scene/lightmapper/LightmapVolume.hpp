@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/math/BoundingBox.hpp>
 

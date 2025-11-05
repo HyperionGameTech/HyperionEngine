@@ -9,9 +9,10 @@
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Animation.hpp>
 
-#include <core/logging/Logger.hpp>
 
 #include <core/containers/Stack.hpp>
+
+#include <core/utilities/StringUtil.hpp>
 
 #include <core/Types.hpp>
 

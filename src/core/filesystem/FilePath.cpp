@@ -2,6 +2,8 @@
 #include <core/filesystem/FilePath.hpp>
 #include <core/filesystem/FsUtil.hpp>
 
+#include <core/utilities/StringUtil.hpp>
+
 #include <core/io/BufferedByteReader.hpp>
 
 #include <filesystem>
@@ -121,12 +123,12 @@ Time FilePath::LastModifiedTimestamp() const
 
 String FilePath::Basename() const
 {
-    return String(StringUtil::Basename(Data()).c_str());
+    return StringUtil::Basename(*this);
 }
 
 FilePath FilePath::BasePath() const
 {
-    return FilePath(StringUtil::BasePath(Data()).c_str());
+    return FilePath(StringUtil::BasePath(*this));
 }
 
 hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInDirectory() const

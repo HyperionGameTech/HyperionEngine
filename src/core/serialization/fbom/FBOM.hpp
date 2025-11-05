@@ -188,7 +188,7 @@ public:
 
 private:
     TypeMap<Pair<ANSIString, UniquePtr<FBOMMarshalerBase>>> m_marshals;
-    UniquePtr<ObjectMarshal> m_ObjectMarshal;
+    UniquePtr<ObjectMarshal> m_objectMarshal;
 };
 
 } // namespace serialization

@@ -3,12 +3,9 @@
 #pragma once
 
 #include <core/Defines.hpp>
-#include <core/utilities/StringUtil.hpp>
 
 #include <string>
 #include <cstring>
-#include <array>
-#include <mutex>
 
 namespace hyperion {
 
@@ -17,6 +14,8 @@ class BufferedReader;
 namespace filesystem {
 
 class FilePath;
+
+/// @TODO: Refactor FsUtil to use FilePath instead of std::string
 
 class FileSystem
 {

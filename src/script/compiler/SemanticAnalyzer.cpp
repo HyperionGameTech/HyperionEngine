@@ -8,6 +8,8 @@
 
 #include <core/debug/Debug.hpp>
 
+#include <core/containers/Stack.hpp>
+
 #include <core/utilities/Format.hpp>
 #include <core/utilities/DeferredScope.hpp>
 

@@ -6,7 +6,7 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>

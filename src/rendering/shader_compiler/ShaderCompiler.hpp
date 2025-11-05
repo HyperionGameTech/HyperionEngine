@@ -12,6 +12,7 @@
 #include <core/containers/String.hpp>
 
 #include <core/utilities/Variant.hpp>
+#include <core/utilities/StringUtil.hpp>
 
 #include <core/math/Vertex.hpp>
 

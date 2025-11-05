@@ -5,7 +5,7 @@
 #include <ui/UIObject.hpp>
 #include <ui/UIUpdateManager.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/functional/Delegate.hpp>
 

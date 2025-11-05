@@ -14,7 +14,7 @@
 #include <core/utilities/ForEach.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -282,8 +282,8 @@ public:
     void AddDependency(const AssetPath& dependency);
 
     /*! \brief For transient packages, removes any asset objects and subpackages that are
-    *   no longer referenced outside of the package itself.
-    *   \param outShouldDestroy If provided, will be set to true if the package is now empty and should be destroyed.
+     *   no longer referenced outside of the package itself.
+     *   \param outShouldDestroy If provided, will be set to true if the package is now empty and should be destroyed.
      */
     void Prune(bool* outShouldDestroy = nullptr);
 

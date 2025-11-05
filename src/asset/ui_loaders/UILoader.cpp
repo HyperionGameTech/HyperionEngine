@@ -45,7 +45,6 @@
 
 #include <core/functional/Delegate.hpp>
 
-#include <core/logging/Logger.hpp>
 
 #include <core/Name.hpp>
 

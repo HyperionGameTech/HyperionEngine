@@ -3,6 +3,8 @@
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/FBOMWriter.hpp>
 
+#include <sstream>
+
 namespace hyperion::serialization {
 
 FBOMArray::FBOMArray() = default;

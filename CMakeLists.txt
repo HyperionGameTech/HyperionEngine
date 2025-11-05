@@ -50,7 +50,6 @@ set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_B
 set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
 enable_language(CXX)
-enable_language(C)
 
 if(APPLE)
     enable_language(OBJCXX)

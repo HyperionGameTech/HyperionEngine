@@ -596,7 +596,6 @@ struct TypeInfo
 
             TypeInfo result;
             result.id = typeId;
-            result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<NormalizedT, false>::value>());
             result.size = uint16(sizeof(NormalizedT));
             result.alignment = uint16(alignof(NormalizedT));
             result.flags = TypeInfoFlags::NONE;

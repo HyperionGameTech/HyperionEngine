@@ -6,7 +6,7 @@
 
 #include <core/containers/Bitset.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 

@@ -11,7 +11,7 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/functional/Proc.hpp>
 

@@ -9,7 +9,7 @@
 
 #include <core/memory/AnyRef.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/math/Mat4f.hpp>
 

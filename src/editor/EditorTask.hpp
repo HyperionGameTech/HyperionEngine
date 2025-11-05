@@ -14,7 +14,7 @@
 
 #include <core/memory/Pimpl.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <util/GameCounter.hpp>
 #include <core/Types.hpp>

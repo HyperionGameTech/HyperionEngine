@@ -2,7 +2,6 @@
 
 #include <asset/AssetPath.hpp>
 
-#include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

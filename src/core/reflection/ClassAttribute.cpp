@@ -4,6 +4,8 @@
 
 #include <core/utilities/StringUtil.hpp>
 
+#include <core/utilities/Format.hpp>
+
 #include <core/json/JSON.hpp>
 
 namespace hyperion {

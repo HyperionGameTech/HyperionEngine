@@ -4,7 +4,7 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/math/Vector3.hpp>
 #include <core/math/BoundingBox.hpp>

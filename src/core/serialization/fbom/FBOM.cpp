@@ -15,7 +15,7 @@
 
 namespace hyperion::serialization {
 
-static const bool g_marshalParentClasses = true;
+static constexpr bool MarshalParentClasses = true;
 
 FBOM& FBOM::GetInstance()
 {
@@ -25,7 +25,7 @@ FBOM& FBOM::GetInstance()
 }
 
 FBOM::FBOM()
-    : m_ObjectMarshal(MakeUnique<ObjectMarshal>())
+    : m_objectMarshal(MakeUnique<ObjectMarshal>())
 {
 }
 
@@ -76,7 +76,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(TypeId typeId, bool allowFallback) const
     }
 
     // Find marshal for parent classes
-    if (g_marshalParentClasses)
+    if (MarshalParentClasses)
     {
         const Class* parentClass = cls->GetParent();
 
@@ -100,8 +100,8 @@ FBOMMarshalerBase* FBOM::GetMarshal(TypeId typeId, bool allowFallback) const
     if (allowFallback && (cls->GetSerializationMode() & (ClassSerializationMode::MEMBERWISE | ClassSerializationMode::BITWISE)))
     {
         // If the type has a Class defined, then use the default Class instance marshal
-        AssertDebug(m_ObjectMarshal != nullptr);
-        return m_ObjectMarshal.Get();
+        AssertDebug(m_objectMarshal != nullptr);
+        return m_objectMarshal.Get();
     }
 
     return nullptr;
@@ -158,7 +158,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(ANSIStringView typeName, bool allowFallback)
     }
 
     // Find marshal for parent classes
-    if (g_marshalParentClasses)
+    if (MarshalParentClasses)
     {
         const Class* parentClass = cls->GetParent();
 
@@ -178,8 +178,8 @@ FBOMMarshalerBase* FBOM::GetMarshal(ANSIStringView typeName, bool allowFallback)
 
     if (allowFallback && (cls->GetSerializationMode() & (ClassSerializationMode::MEMBERWISE | ClassSerializationMode::BITWISE)))
     {
-        AssertDebug(m_ObjectMarshal != nullptr);
-        return m_ObjectMarshal.Get();
+        AssertDebug(m_objectMarshal != nullptr);
+        return m_objectMarshal.Get();
     }
 
     return nullptr;

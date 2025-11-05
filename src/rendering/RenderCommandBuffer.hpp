@@ -5,7 +5,7 @@
 #include <rendering/RenderDevice.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/Defines.hpp>
 

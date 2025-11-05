@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/reflection/ObjId.hpp>
-#include <core/Util.hpp>
 #include <core/Defines.hpp>
 
+#include <core/reflection/ObjId.hpp>
 #include <core/reflection/HypObjectFwd.hpp>
+
+#include <core/containers/SparsePagedArray.hpp>
 
 #include <core/utilities/IdGenerator.hpp>
 
 #include <core/threading/Mutex.hpp>
-#include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Spinlock.hpp>
 
@@ -241,44 +241,13 @@ public:
 
     HypObjectContainer(const HypObjectContainer& other) = delete;
     HypObjectContainer& operator=(const HypObjectContainer& other) = delete;
+
     HypObjectContainer(HypObjectContainer&& other) noexcept = delete;
     HypObjectContainer& operator=(HypObjectContainer&& other) noexcept = delete;
 
     virtual ~HypObjectContainer() override
     {
-        Array<HypObjectHeader*> headers;
-
-        Pool* pool = GetPool();
-
-        {
-            LockGuard guard;
-            LockPoolOrThreadAssert(pool, guard, PF_NONE);
-
-            for (auto& header : m_headers)
-            {
-                headers.PushBack(header);
-            }
-        }
-
-        // destruct all allocated elements
-        for (HypObjectHeader* header : headers)
-        {
-            HYP_CORE_ASSERT(header != nullptr);
-
-            HypObjectHeader::DestructThisObject(header);
-        }
-
-        LockGuard guard;
-        LockPoolOrThreadAssert(pool, guard, PF_WRITER | PF_FREE);
-
-        /// @FIXME: This is not safe if the destructor of T tries to allocate more objects from the pool during
-        // its destruction
-
-        // Free all allocated elements
-        for (HypObjectHeader* header : headers)
-        {
-            pool->Free(header);
-        }
+        HYP_CORE_ASSERT(m_headers.Empty(), "Destroying HypObjectContainer with live objects!");
     }
 
     HYP_NODISCARD HypObjectHeader* Allocate(SizeType size)
@@ -363,7 +332,7 @@ class HypObjectPool
 public:
     class ContainerMap
     {
-        // Maps type Id to object container
+        // Maps TypeId to object container
         // Use a linked list so that references are never invalidated.
         LinkedList<Pair<TypeId, HypObjectContainerBase*>> m_map;
         Mutex m_mutex;

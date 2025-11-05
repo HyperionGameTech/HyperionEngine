@@ -24,7 +24,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/ForEach.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/profiling/PerformanceClock.hpp>
 

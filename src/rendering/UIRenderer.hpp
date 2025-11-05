@@ -8,7 +8,7 @@
 
 #include <core/memory/resource/Resource.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <rendering/Renderer.hpp>
 #include <rendering/RenderCollection.hpp>

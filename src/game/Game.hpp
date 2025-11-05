@@ -2,11 +2,10 @@
 
 #pragma once
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/Defines.hpp>
-
 
 namespace hyperion {
 

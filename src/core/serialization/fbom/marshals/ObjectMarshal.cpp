@@ -9,9 +9,9 @@
 #include <core/reflection/Field.hpp>
 #include <core/reflection/Method.hpp>
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/utilities/Format.hpp>
-#include <core/reflection/TypeInfo.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -230,8 +230,10 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
     {
         HYP_NAMED_SCOPE_FMT("Serializing properties for Class '{}'", cls->GetName());
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
         // Save AssetObject as AssetReferences for nested fields / objects.
         GlobalContextScope contextScope { SaveAssetsAsReferencesContext {} };
+#endif
 
         for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
         {
@@ -345,7 +347,9 @@ FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const F
     {
         HYP_NAMED_SCOPE_FMT("Deserializing properties for Class '{}'", cls->GetName());
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
         GlobalContextScope contextScope { LoadAssetsFromReferencesContext {} };
+#endif
 
         for (const KeyValuePair<ANSIString, FBOMData>& it : in.GetProperties())
         {

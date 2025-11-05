@@ -4,7 +4,7 @@
 
 #include <scene/System.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 namespace hyperion {
 

@@ -10,7 +10,7 @@
 
 #include <core/reflection/Handle.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/functional/Delegate.hpp>
 

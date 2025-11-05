@@ -12,7 +12,7 @@
 
 #include <core/utilities/Pair.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/math/Vector3.hpp>
 

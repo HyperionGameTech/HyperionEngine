@@ -404,7 +404,9 @@ bool HypDataToJSON(
 
         json::JSONObject jsonObject;
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
         GlobalContextScope contextScope { SaveAssetsAsReferencesContext() };
+#endif
 
         if (!ObjectToJSON(cls, value, jsonObject, opts))
         {

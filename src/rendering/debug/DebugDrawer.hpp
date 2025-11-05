@@ -11,7 +11,7 @@
 #include <core/threading/Mutex.hpp>
 
 #include <core/reflection/Handle.hpp>
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
