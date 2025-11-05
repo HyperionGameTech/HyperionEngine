@@ -14,7 +14,7 @@
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
-#include <core/Traits.hpp>
+#include <core/utilities/FunctionTraits.hpp>
 
 #include <core/serialization/Serialization.hpp>
 

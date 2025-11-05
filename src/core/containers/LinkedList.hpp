@@ -15,7 +15,7 @@
 #include <core/debug/Debug.hpp>
 
 #include <core/HashCode.hpp>
-#include <core/Traits.hpp>
+#include <core/utilities/Traits.hpp>
 #include <core/Types.hpp>
 
 namespace hyperion {

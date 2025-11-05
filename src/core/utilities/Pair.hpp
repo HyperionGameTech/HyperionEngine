@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/Traits.hpp>
+#include <core/utilities/Traits.hpp>
 
 #include <core/Types.hpp>
 #include <core/Constants.hpp>

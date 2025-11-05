@@ -19,8 +19,7 @@
 #include <core/math/MathUtil.hpp>
 
 #include <core/Defines.hpp>
-#include <core/Traits.hpp>
-
+#include <core/utilities/FunctionTraits.hpp>
 #include <core/Types.hpp>
 
 #include <thread>

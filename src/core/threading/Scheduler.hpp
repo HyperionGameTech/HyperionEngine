@@ -15,7 +15,7 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/Threads.hpp>
 
-#include <core/Traits.hpp>
+#include <core/utilities/FunctionTraits.hpp>
 #include <core/Defines.hpp>
 
 #include <core/Types.hpp>

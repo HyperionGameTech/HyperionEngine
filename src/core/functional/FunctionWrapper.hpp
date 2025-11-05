@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/Traits.hpp>
+#include <core/utilities/FunctionTraits.hpp>
 
 namespace hyperion {
 namespace functional {

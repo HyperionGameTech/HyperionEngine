@@ -4,7 +4,7 @@
 
 #include <util/UTF8.hpp>
 
-#include <core/Traits.hpp>
+#include <core/utilities/Traits.hpp>
 #include <core/Types.hpp>
 
 namespace hyperion {

@@ -11,7 +11,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/Traits.hpp>
+#include <core/utilities/Traits.hpp>
 #include <core/Types.hpp>
 #include <core/Constants.hpp>
 #include <core/Util.hpp>

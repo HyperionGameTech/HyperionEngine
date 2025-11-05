@@ -11,7 +11,7 @@
 
 #include <core/memory/allocator/Allocator.hpp>
 
-#include <core/Traits.hpp>
+#include <core/utilities/Traits.hpp>
 #include <core/HashCode.hpp>
 
 namespace hyperion {

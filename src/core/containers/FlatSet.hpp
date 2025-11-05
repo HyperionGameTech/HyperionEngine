@@ -7,7 +7,7 @@
 
 #include <core/utilities/Pair.hpp>
 
-#include <core/Traits.hpp>
+#include <core/utilities/Traits.hpp>
 #include <core/Defines.hpp>
 
 namespace hyperion {

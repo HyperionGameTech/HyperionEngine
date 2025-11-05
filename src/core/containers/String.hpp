@@ -16,7 +16,7 @@
 #include <core/memory/Memory.hpp>
 
 #include <core/Defines.hpp>
-#include <core/Traits.hpp>
+#include <core/utilities/Traits.hpp>
 
 #include <core/Types.hpp>
 #include <core/Constants.hpp>

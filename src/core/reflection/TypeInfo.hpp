@@ -11,7 +11,7 @@
 
 #include <core/Name.hpp>
 #include <core/Types.hpp>
-#include <core/Traits.hpp>
+#include <core/utilities/Traits.hpp>
 #include <core/HashCode.hpp>
 
 #include <core/containers/FixedArray.hpp>
