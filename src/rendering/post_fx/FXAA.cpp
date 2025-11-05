@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <rendering/post_fx/FXAA.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PostFX.hpp>

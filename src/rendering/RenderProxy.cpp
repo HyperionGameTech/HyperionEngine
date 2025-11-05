@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/util/SafeDeleter.hpp>
 

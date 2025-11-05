@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <asset/model_loaders/OBJModelLoader.hpp>
 #include <asset/Assets.hpp>
 #include <asset/AssetObject.hpp>

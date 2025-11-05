@@ -1,5 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <scene/world_grid/WorldGridLayer.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 

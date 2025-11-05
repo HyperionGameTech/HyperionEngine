@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <dotnet/runtime/asset/AssetMapBindings.hpp>
 
 #include <scene/Node.hpp>

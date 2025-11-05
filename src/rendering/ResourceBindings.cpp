@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/env_grid/EnvGridRenderer.hpp>

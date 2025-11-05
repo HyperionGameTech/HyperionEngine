@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #include <scripting/ScriptObjectResource.hpp>
 #include <scripting/Script.hpp>
 

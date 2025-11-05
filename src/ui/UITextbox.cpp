@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <ui/UITextbox.hpp>
 
 #include <input/InputManager.hpp>

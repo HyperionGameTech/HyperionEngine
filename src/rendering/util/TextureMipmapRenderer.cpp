@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #include <rendering/util/TextureMipmapRenderer.hpp>
 
 #include <rendering/RenderCommand.hpp>

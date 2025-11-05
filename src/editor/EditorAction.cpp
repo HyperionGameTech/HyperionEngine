@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <editor/EditorAction.hpp>
 #include <editor/EditorProject.hpp>
 #include <editor/EditorSubsystem.hpp>

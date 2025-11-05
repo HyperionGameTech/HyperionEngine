@@ -1,5 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <rendering/rt/MeshBlasBuilder.hpp>
 #include <rendering/rt/RenderAccelerationStructure.hpp>
 

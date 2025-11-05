@@ -1,4 +1,3 @@
-
 #include <console/ConsoleCommand.hpp>
 
 #include <core/reflection/ClassUtils.hpp>
@@ -44,3 +43,6 @@ HYP_BEGIN_CLASS(LogMemoryPools, -1, 0, NAME("ConsoleCommandBase"), ClassAttribut
 HYP_END_CLASS
 
 } // namespace hyperion
+
+
+#include <HyperionPch.hpp>

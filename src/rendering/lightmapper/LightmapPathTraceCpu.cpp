@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #include <rendering/lightmapper/LightmapPathTraceCpu.hpp>
 #include <rendering/lightmapper/LightmapAccelerationStructure.hpp>
 

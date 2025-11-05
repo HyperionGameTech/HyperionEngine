@@ -1,5 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <rendering/util/ResourceTracker.hpp>
 
 #include <core/reflection/Class.hpp>

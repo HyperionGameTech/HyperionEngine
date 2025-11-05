@@ -1,5 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <rendering/lightmapper/Lightmapper.hpp>
 #include <rendering/lightmapper/LightmapJob.hpp>
 #include <rendering/lightmapper/LightmapPathTraceCpu.hpp>

@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <asset/audio_loaders/WAVAudioLoader.hpp>
 #include <audio/AudioSource.hpp>
 

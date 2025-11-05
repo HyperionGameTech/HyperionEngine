@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <core/reflection/StaticField.hpp>
 
 #include <core/Name.hpp>

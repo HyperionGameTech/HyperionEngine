@@ -1,3 +1,5 @@
+#include <HyperionPch.hpp>
+
 #include <windows.h>
 #include <commdlg.h>
 #include <cderr.h>

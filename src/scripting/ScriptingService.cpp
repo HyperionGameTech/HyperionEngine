@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #include <scripting/ScriptingService.hpp>
 
 #include <core/logging/Logger.hpp>

@@ -1,5 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <asset/MeshAsset.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>

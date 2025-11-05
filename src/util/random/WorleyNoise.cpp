@@ -1,3 +1,5 @@
+#include <HyperionPch.hpp>
+
 #include <util/random/WorleyNoise.hpp>
 
 #include <algorithm>

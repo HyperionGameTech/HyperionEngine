@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 
 #include <core/Defines.hpp>

@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #include <core/reflection/Class.hpp>
 
 #include <rendering/util/ResourceBinder.hpp>

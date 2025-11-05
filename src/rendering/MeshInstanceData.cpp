@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #include <rendering/MeshInstanceData.hpp>
 
 #include <core/math/MathUtil.hpp>

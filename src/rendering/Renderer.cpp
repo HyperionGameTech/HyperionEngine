@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #include <rendering/Renderer.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>

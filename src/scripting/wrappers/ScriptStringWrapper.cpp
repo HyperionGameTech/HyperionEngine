@@ -1,3 +1,4 @@
+#include <HyperionPch.hpp>
 #ifdef HYP_SCRIPT
 
 #include <script/vm/Value.hpp>

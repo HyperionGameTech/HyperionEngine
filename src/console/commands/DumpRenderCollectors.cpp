@@ -1,4 +1,3 @@
-
 #include <console/ConsoleCommand.hpp>
 
 #include <core/reflection/ClassUtils.hpp>
@@ -76,3 +75,6 @@ HYP_BEGIN_CLASS(DumpRenderCollectors, -1, 0, NAME("ConsoleCommandBase"), ClassAt
 HYP_END_CLASS
 
 } // namespace hyperion
+
+
+#include <HyperionPch.hpp>

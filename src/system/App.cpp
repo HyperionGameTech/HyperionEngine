@@ -1,3 +1,5 @@
+#include <HyperionPch.hpp>
+
 #include <system/App.hpp>
 #include <system/AppContext.hpp>
 #include <system/SystemEvent.hpp>

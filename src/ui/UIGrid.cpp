@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <ui/UIGrid.hpp>
 #include <ui/UIText.hpp>
 #include <ui/UIDataSource.hpp>

@@ -1,5 +1,7 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGlobalState.hpp>

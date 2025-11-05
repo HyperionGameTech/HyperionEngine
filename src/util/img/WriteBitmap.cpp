@@ -1,3 +1,5 @@
+#include <HyperionPch.hpp>
+
 #include <util/img/WriteBitmap.hpp>
 
 #include <core/io/ByteWriter.hpp>
@@ -65,7 +67,7 @@ bool WriteBitmap::Write(
 
     CreateBitmapFileHeader(height, stride, fileHeader);
     byteWriter->Write(fileHeader, FileHeaderSize);
-    
+
     unsigned char infoHeader[] = {
         0, 0, 0, 0, /// header size
         0, 0, 0, 0, /// image width

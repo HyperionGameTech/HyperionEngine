@@ -1,4 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#include <HyperionPch.hpp>
 #include <rtc/RTCServerThread.hpp>
 
 #include <core/containers/Queue.hpp>

@@ -1,5 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <editor/ui/debug/FpsCounter.hpp>
 
 #include <ui/UIListView.hpp>
