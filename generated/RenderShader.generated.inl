@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region ShaderModuleType Reflection Data
 
-HYP_BEGIN_ENUM(ShaderModuleType, 292, 0, {})
+HYP_BEGIN_ENUM(ShaderModuleType, 326, 0, {})
     StaticField(NAME(HYP_STR(SMT_UNSET)), ShaderModuleType::SMT_UNSET),
     StaticField(NAME(HYP_STR(SMT_VERTEX)), ShaderModuleType::SMT_VERTEX),
     StaticField(NAME(HYP_STR(SMT_FRAGMENT)), ShaderModuleType::SMT_FRAGMENT),
@@ -32,7 +32,7 @@ namespace hyperion {
 
 #pragma region ShaderBase Reflection Data
 
-HYP_BEGIN_CLASS(ShaderBase, 114, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(ShaderBase, 101, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion ShaderBase Reflection Data

@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
 #include <core/Types.hpp>
+
+#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <ui/UIObject.hpp>
 

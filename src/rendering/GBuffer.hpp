@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/Constants.hpp>
+#include <core/Types.hpp>
 
 #include <core/containers/FixedArray.hpp>
 
@@ -11,13 +12,11 @@
 #include <core/functional/Delegate.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <rendering/RenderBucket.hpp>
-
 #include <rendering/RenderGpuImage.hpp>
 #include <rendering/Shared.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 

@@ -8,8 +8,8 @@
 #include <core/Defines.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
-#include <core/containers/FlatMap.hpp>
 #include <core/containers/Bitset.hpp>
 #include <core/containers/LinkedList.hpp>
 

@@ -9,7 +9,7 @@
 
 #include <core/config/Config.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 

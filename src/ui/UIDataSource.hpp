@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/Defines.hpp>
+#include <core/Util.hpp>
 
 #include <core/containers/Forest.hpp>
 
@@ -13,14 +14,11 @@
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/DeferredScope.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
-
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/HypObjectBase.hpp>
-
-#include <core/Util.hpp>
+#include <core/reflection/Handle.hpp>
 
 namespace hyperion {
 

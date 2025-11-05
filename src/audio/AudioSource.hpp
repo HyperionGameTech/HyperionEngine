@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/math/Vector3.hpp>
 

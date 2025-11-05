@@ -28,6 +28,8 @@
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/TaskThread.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
 #include <core/utilities/Format.hpp>
 

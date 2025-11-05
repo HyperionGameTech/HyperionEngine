@@ -2,19 +2,16 @@
 
 #pragma once
 
+#include <core/Types.hpp>
+#include <core/Name.hpp>
+
 #include <scene/animation/Keyframe.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
-
 #include <core/reflection/HypObjectBase.hpp>
-
 #include <core/reflection/Handle.hpp>
-#include <core/Name.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 

@@ -2,13 +2,12 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
-
 #include <rendering/RenderObject.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Subsystem.hpp>
+
 #include <scene/camera/Camera.hpp>
 
 namespace hyperion {

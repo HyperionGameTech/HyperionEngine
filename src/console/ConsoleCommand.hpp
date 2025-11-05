@@ -5,8 +5,7 @@
 #include <core/Defines.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
-
-#include <core/memory/RefCountedPtr.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/utilities/Result.hpp>
 

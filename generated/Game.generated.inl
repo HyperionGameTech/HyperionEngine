@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Game Reflection Data
 
-HYP_BEGIN_CLASS(Game, 53, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(Game, 62, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(GetWorld)), &Game::GetWorld)
 HYP_END_CLASS
 

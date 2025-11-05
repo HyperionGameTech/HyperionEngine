@@ -18,6 +18,8 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>

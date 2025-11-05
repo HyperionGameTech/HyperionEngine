@@ -24,6 +24,9 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <core/functional/Proc.hpp>
 
 #include <core/compression/Archive.hpp>
@@ -31,7 +34,6 @@
 #include <core/filesystem/FsUtil.hpp>
 
 #include <core/memory/Memory.hpp>
-
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>

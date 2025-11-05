@@ -2,13 +2,7 @@
 
 #pragma once
 
-#include <core/functional/Delegate.hpp>
-
-#include <core/memory/RefCountedPtr.hpp>
-
 #include <core/memory/resource/Resource.hpp>
-
-#include <core/reflection/HypObjectBase.hpp>
 
 #include <rendering/Renderer.hpp>
 #include <rendering/RenderCollection.hpp>

@@ -8,6 +8,8 @@
 
 #include <rendering/Texture.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 

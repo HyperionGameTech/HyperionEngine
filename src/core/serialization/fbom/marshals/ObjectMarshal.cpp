@@ -8,7 +8,7 @@
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/Method.hpp>
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/HypObject.hpp>
 #include <core/reflection/TypeInfo.hpp>
 
 #include <core/utilities/Format.hpp>

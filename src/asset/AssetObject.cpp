@@ -25,6 +25,9 @@
 
 #include <core/json/JSON.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <system/MessageBox.hpp>
 
 #include <engine/EngineGlobals.hpp>

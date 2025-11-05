@@ -10,6 +10,7 @@
 
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/functional/Proc.hpp>
 

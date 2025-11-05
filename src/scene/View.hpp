@@ -2,14 +2,15 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/Constants.hpp>
+#include <core/Types.hpp>
 
+#include <core/reflection/HypObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/math/Ray.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Variant.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -18,9 +19,6 @@
 #include <rendering/Shared.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>
-
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
 
 namespace hyperion {
 

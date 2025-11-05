@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include <ui/UIObject.hpp>
-#include <ui/UIUpdateManager.hpp>
+#include <core/HashCode.hpp>
+#include <core/Types.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -20,11 +21,11 @@
 
 #include <rendering/Shared.hpp>
 
+#include <ui/UIObject.hpp>
+#include <ui/UIUpdateManager.hpp>
+
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>
-
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
 
 namespace hyperion {
 namespace sys {

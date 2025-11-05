@@ -2,16 +2,11 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
+#include <core/HashCode.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
-
-#include <core/memory/RefCountedPtr.hpp>
-
-#include <core/utilities/StringView.hpp>
-
-#include <core/HashCode.hpp>
+#include <core/reflection/Handle.hpp>
 
 namespace hyperion {
 

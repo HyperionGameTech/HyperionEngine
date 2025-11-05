@@ -6,9 +6,8 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
-
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/functional/Delegate.hpp>
 #include <core/functional/ScriptableDelegate.hpp>

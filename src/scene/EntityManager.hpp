@@ -25,11 +25,10 @@
 #include <core/utilities/ForEach.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
-
-#include <core/profiling/PerformanceClock.hpp>
-
 #include <core/reflection/Handle.hpp>
 #include <core/reflection/ObjId.hpp>
+
+#include <core/profiling/PerformanceClock.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/EntitySet.hpp>

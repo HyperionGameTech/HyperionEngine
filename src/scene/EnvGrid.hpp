@@ -2,13 +2,9 @@
 
 #pragma once
 
+#include <core/HashCode.hpp>
+
 #include <core/config/Config.hpp>
-
-#include <core/containers/Bitset.hpp>
-
-#include <core/reflection/HypObjectBase.hpp>
-
-#include <core/threading/AtomicVar.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
@@ -17,8 +13,6 @@
 #include <scene/Entity.hpp>
 
 #include <rendering/RenderCommand.hpp>
-
-#include <core/HashCode.hpp>
 
 namespace hyperion {
 

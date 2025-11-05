@@ -4,12 +4,13 @@
 
 #include <asset/AssetPath.hpp>
 
+#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
+
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/Result.hpp>
 
 #include <core/filesystem/FilePath.hpp>
-
-#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/memory/resource/Resource.hpp>
 

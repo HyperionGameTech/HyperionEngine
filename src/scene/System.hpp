@@ -2,19 +2,19 @@
 
 #pragma once
 
+#include <core/Defines.hpp>
+
 #include <core/containers/Array.hpp>
 #include <core/containers/HashSet.hpp>
 
 #include <core/reflection/TypeId.hpp>
-#include <core/utilities/Tuple.hpp>
-#include <core/utilities/StringView.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/functional/Delegate.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
-
-#include <core/Defines.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <scene/ComponentContainer.hpp>
 

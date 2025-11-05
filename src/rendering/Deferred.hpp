@@ -7,12 +7,14 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <rendering/rt/RaytracingReflections.hpp>
 #include <rendering/TemporalAA.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
 
+#include <rendering/rt/RaytracingReflections.hpp>
+
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <scene/Light.hpp> // For LightType
 

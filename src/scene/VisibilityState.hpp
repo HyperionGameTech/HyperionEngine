@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include <core/reflection/HypObjectMacros.hpp>
 #include <core/reflection/ObjId.hpp>
-#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/containers/Array.hpp>
 

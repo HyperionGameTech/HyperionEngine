@@ -2,9 +2,8 @@
 
 #pragma once
 
+#include <core/reflection/HypObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
-
-#include <core/reflection/HypObjectFwd.hpp>
 
 #include <core/config/Config.hpp>
 

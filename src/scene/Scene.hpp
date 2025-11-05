@@ -2,25 +2,23 @@
 
 #pragma once
 
-#include <scene/Node.hpp>
-#include <scene/Entity.hpp>
-#include <scene/SceneOctree.hpp>
-#include <scene/camera/Camera.hpp>
-
 #include <core/Name.hpp>
+#include <core/Types.hpp>
+
+#include <core/math/Color.hpp>
 
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/DataMutationState.hpp>
 
 #include <core/logging/LoggerFwd.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <scene/Node.hpp>
+#include <scene/Entity.hpp>
+#include <scene/SceneOctree.hpp>
+
+#include <scene/camera/Camera.hpp>
 
 #include <rendering/RenderObject.hpp>
-
-#include <core/math/Color.hpp>
-
-#include <core/Types.hpp>
 
 #include <asset/AssetObject.hpp>
 

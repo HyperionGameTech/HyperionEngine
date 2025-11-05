@@ -9,7 +9,7 @@ namespace hyperion {
 
 #pragma region EditorActionBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorActionBase, 34, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorActionBase, 200, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(GetName)), &EditorActionBase::GetName, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(Execute)), &EditorActionBase::Execute, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(Revert)), &EditorActionBase::Revert, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
@@ -71,7 +71,7 @@ namespace hyperion {
 
 #pragma region FunctionalEditorAction Reflection Data
 
-HYP_BEGIN_CLASS(FunctionalEditorAction, 35, 0, NAME("EditorActionBase"))
+HYP_BEGIN_CLASS(FunctionalEditorAction, 201, 0, NAME("EditorActionBase"))
     Method(NAME(HYP_STR(GetName)), &FunctionalEditorAction::GetName),
     Method(NAME(HYP_STR(Execute)), &FunctionalEditorAction::Execute),
     Method(NAME(HYP_STR(Revert)), &FunctionalEditorAction::Revert)

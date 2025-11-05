@@ -21,7 +21,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebugInfo" CACHE STRING "Configurations to build" FORCE)
 set(CMAKE_TRY_COMPILE_CONFIGURATION "Release" CACHE STRING "Configuration to use for try_compile" FORCE)
 
-project(${BUILD_NAME} LANGUAGES CXX)
+project(${BUILD_NAME} CXX)
 
 # set HYP_PLATFORM_NAME
 if(NOT DEFINED HYP_PLATFORM_NAME)
@@ -50,6 +50,7 @@ set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_B
 set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
 enable_language(CXX)
+enable_language(C)
 
 if(APPLE)
     enable_language(OBJCXX)

@@ -9,8 +9,6 @@
 
 #include <core/memory/AnyRef.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
-
 #include <core/math/Mat4f.hpp>
 
 #include <scene/Node.hpp>

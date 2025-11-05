@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include <core/Defines.hpp>
+#include <core/Types.hpp>
+
 #include <editor/EditorAction.hpp>
 
 #include <core/containers/Array.hpp>
@@ -9,15 +12,10 @@
 
 #include <core/functional/ScriptableDelegate.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
-
-#include <core/Defines.hpp>
-
-#include <core/Types.hpp>
+#include <core/reflection/Handle.hpp>
 
 namespace hyperion {
 

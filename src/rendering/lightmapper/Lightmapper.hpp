@@ -10,9 +10,9 @@
 #include <core/threading/Semaphore.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/utilities/Span.hpp>
-#include <core/utilities/Uuid.hpp>
 #include <core/utilities/Result.hpp>
 
 #include <core/math/BoundingBox.hpp>

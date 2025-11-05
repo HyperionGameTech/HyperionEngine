@@ -2,21 +2,19 @@
 
 #pragma once
 
+#include <core/HashCode.hpp>
+
 #include <core/containers/Bitset.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
-
 #include <core/math/BoundingBox.hpp>
 
 #include <scene/Entity.hpp>
 
 #include <rendering/RenderCommand.hpp>
-
-#include <core/HashCode.hpp>
 
 namespace hyperion {
 

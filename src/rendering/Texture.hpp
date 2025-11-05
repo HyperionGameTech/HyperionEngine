@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <core/Types.hpp>
+
 #include <asset/AssetReference.hpp>
 #include <asset/AssetObject.hpp>
 
@@ -12,11 +14,7 @@
 
 #include <core/utilities/Pair.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
-
 #include <core/math/Vector3.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 

@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
-
 #include <core/utilities/Pair.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
@@ -18,7 +16,6 @@
 #include <scene/BVH.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
-
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
 

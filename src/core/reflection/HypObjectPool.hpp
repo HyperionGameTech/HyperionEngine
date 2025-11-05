@@ -3,6 +3,8 @@
 #pragma once
 
 #include <core/Defines.hpp>
+#include <core/Constants.hpp>
+#include <core/Types.hpp>
 
 #include <core/reflection/ObjId.hpp>
 #include <core/reflection/HypObjectFwd.hpp>
@@ -19,9 +21,6 @@
 
 #include <core/memory/Memory.hpp>
 #include <core/memory/pool/Pool.hpp>
-
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
 
 #include <type_traits>
 

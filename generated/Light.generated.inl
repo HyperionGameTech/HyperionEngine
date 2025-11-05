@@ -7,7 +7,7 @@ namespace hyperion {
 
 #pragma region DirectionalLight Reflection Data
 
-HYP_BEGIN_CLASS(DirectionalLight, 139, 0, NAME("Light"))
+HYP_BEGIN_CLASS(DirectionalLight, 171, 0, NAME("Light"))
     Method(NAME(HYP_STR(GetDirection)), &DirectionalLight::GetDirection),
     Method(NAME(HYP_STR(SetDirection)), &DirectionalLight::SetDirection)
 HYP_END_CLASS
@@ -22,7 +22,7 @@ namespace hyperion {
 
 #pragma region LightFlags Reflection Data
 
-HYP_BEGIN_ENUM(LightFlags, 360, 0, {})
+HYP_BEGIN_ENUM(LightFlags, 380, 0, {})
     StaticField(NAME(HYP_STR(LF_NONE)), LightFlags::LF_NONE),
     StaticField(NAME(HYP_STR(LF_SHADOW)), LightFlags::LF_SHADOW),
     StaticField(NAME(HYP_STR(LF_SHADOW_PCF)), LightFlags::LF_SHADOW_PCF),
@@ -43,7 +43,7 @@ namespace hyperion {
 
 #pragma region AreaRectLight Reflection Data
 
-HYP_BEGIN_CLASS(AreaRectLight, 140, 0, NAME("Light"))
+HYP_BEGIN_CLASS(AreaRectLight, 172, 0, NAME("Light"))
 HYP_END_CLASS
 
 #pragma endregion AreaRectLight Reflection Data
@@ -56,7 +56,7 @@ namespace hyperion {
 
 #pragma region LightType Reflection Data
 
-HYP_BEGIN_ENUM(LightType, 361, 0, {})
+HYP_BEGIN_ENUM(LightType, 381, 0, {})
     StaticField(NAME(HYP_STR(LT_INVALID)), LightType::LT_INVALID),
     StaticField(NAME(HYP_STR(LT_DIRECTIONAL)), LightType::LT_DIRECTIONAL),
     StaticField(NAME(HYP_STR(LT_POINT)), LightType::LT_POINT),
@@ -76,7 +76,7 @@ namespace hyperion {
 
 #pragma region SpotLight Reflection Data
 
-HYP_BEGIN_CLASS(SpotLight, 141, 0, NAME("Light"))
+HYP_BEGIN_CLASS(SpotLight, 173, 0, NAME("Light"))
 HYP_END_CLASS
 
 #pragma endregion SpotLight Reflection Data
@@ -91,7 +91,7 @@ namespace hyperion {
 
 #pragma region PointLight Reflection Data
 
-HYP_BEGIN_CLASS(PointLight, 142, 0, NAME("Light"))
+HYP_BEGIN_CLASS(PointLight, 174, 0, NAME("Light"))
 HYP_END_CLASS
 
 #pragma endregion PointLight Reflection Data
@@ -106,7 +106,7 @@ namespace hyperion {
 
 #pragma region Light Reflection Data
 
-HYP_BEGIN_CLASS(Light, 138, 4, NAME("Entity"))
+HYP_BEGIN_CLASS(Light, 170, 4, NAME("Entity"))
     Method(NAME(HYP_STR(GetLightType)), &Light::GetLightType),
     Method(NAME(HYP_STR(GetLightFlags)), &Light::GetLightFlags),
     Method(NAME(HYP_STR(SetLightFlags)), &Light::SetLightFlags),

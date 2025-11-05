@@ -2,13 +2,9 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
-
-#include <core/containers/Bitset.hpp>
+#include <core/Types.hpp>
 
 #include <core/utilities/DataMutationState.hpp>
-
-#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/math/Color.hpp>
 #include <core/math/Vector3.hpp>
@@ -17,8 +13,6 @@
 #include <core/math/BoundingSphere.hpp>
 
 #include <scene/Entity.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 

@@ -3,14 +3,14 @@
 #pragma once
 
 #include <core/Defines.hpp>
+#include <core/HashCode.hpp>
+#include <core/Types.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
-
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
 
 namespace hyperion {
 

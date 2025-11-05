@@ -4,6 +4,9 @@
 
 #include <asset/AssetPath.hpp>
 
+#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
+
 #include <core/filesystem/FilePath.hpp>
 
 #include <core/containers/HashMap.hpp>
@@ -13,8 +16,6 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/ForEach.hpp>
 #include <core/utilities/Result.hpp>
-
-#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/functional/Delegate.hpp>
 

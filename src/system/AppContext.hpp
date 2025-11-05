@@ -1,17 +1,16 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #pragma once
+
 #ifdef HYP_SDL
 #include <SDL2/SDL_vulkan.h>
 #include <SDL2/SDL.h>
 #endif
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <core/Defines.hpp>
+#include <core/Types.hpp>
 
 #include <core/functional/Delegate.hpp>
-
-#include <core/filesystem/FilePath.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
@@ -20,14 +19,10 @@
 #include <core/config/Config.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
-
-#include <core/Defines.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <input/Mouse.hpp>
 #include <input/InputManager.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 

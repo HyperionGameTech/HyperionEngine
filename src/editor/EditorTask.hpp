@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <core/Types.hpp>
 #include <core/Name.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
@@ -15,9 +16,9 @@
 #include <core/memory/Pimpl.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <util/GameCounter.hpp>
-#include <core/Types.hpp>
 
 namespace hyperion {
 

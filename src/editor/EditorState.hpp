@@ -4,8 +4,8 @@
 
 #include <editor/EditorPickCache.hpp>
 
-#include <core/reflection/Handle.hpp>
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/threading/Mutex.hpp>
 

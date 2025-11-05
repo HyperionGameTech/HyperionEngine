@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Color Reflection Data
 
-HYP_BEGIN_STRUCT(Color, 240, 0, {})
+HYP_BEGIN_STRUCT(Color, 248, 0, {})
     Method(NAME(HYP_STR(GetRed)), &Color::GetRed, Span<const ClassAttribute> { {ClassAttribute("property", "Red"), ClassAttribute("serialize", true) } }),
     Method(NAME(HYP_STR(SetRed)), &Color::SetRed, Span<const ClassAttribute> { {ClassAttribute("property", "Red"), ClassAttribute("serialize", true) } }),
     Method(NAME(HYP_STR(GetGreen)), &Color::GetGreen, Span<const ClassAttribute> { {ClassAttribute("property", "Green"), ClassAttribute("serialize", true) } }),

@@ -2,19 +2,15 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/Types.hpp>
 
 #include <core/math/BoundingBox.hpp>
 
 #include <core/utilities/Uuid.hpp>
 
-#include <core/reflection/Handle.hpp>
-
 #include <scene/Entity.hpp>
 
 #include <util/AtlasPacker.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 

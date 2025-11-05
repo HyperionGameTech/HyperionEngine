@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
-
 #include <ui/UIPanel.hpp>
 
 namespace hyperion {

@@ -2,16 +2,17 @@
 
 #pragma once
 
+#include <core/Defines.hpp>
+
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
 
 #include <core/math/Vertex.hpp>
-
-#include <core/Defines.hpp>
 
 namespace hyperion {
 

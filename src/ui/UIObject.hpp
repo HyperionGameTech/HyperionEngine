@@ -9,6 +9,7 @@
 #include <core/math/BlendVar.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>

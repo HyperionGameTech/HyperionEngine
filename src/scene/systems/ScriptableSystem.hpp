@@ -4,8 +4,6 @@
 
 #include <scene/System.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
-
 namespace hyperion {
 
 /*! \brief A base type for Systems in C# to derive to implement system behavior. */

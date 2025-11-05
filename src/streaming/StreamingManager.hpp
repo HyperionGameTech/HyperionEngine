@@ -2,16 +2,14 @@
 
 #pragma once
 
-#include <streaming/Streamable.hpp>
-
-#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
+
+#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
 #include <core/containers/Array.hpp>
-
-#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -20,6 +18,8 @@
 #include <core/utilities/Uuid.hpp>
 
 #include <core/logging/LoggerFwd.hpp>
+
+#include <streaming/Streamable.hpp>
 
 namespace hyperion {
 

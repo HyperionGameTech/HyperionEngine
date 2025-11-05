@@ -6,6 +6,7 @@
 #include <rendering/RenderGpuBuffer.hpp>
 
 #include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/Defines.hpp>
 

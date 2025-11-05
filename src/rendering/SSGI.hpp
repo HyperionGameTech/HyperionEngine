@@ -4,12 +4,11 @@
 
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/FullScreenPass.hpp>
-
 #include <rendering/RenderObject.hpp>
 
 #include <core/config/Config.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 

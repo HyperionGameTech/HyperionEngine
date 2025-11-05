@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
+
+#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
 
 #include <core/math/BoundingBox.hpp>
 #include <core/math/BoundingSphere.hpp>
-
-#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/threading/Semaphore.hpp>
 

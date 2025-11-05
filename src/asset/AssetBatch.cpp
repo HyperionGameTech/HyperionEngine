@@ -7,6 +7,9 @@
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 
 #include <engine/EngineDriver.hpp>
