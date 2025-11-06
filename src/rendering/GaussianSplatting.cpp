@@ -565,7 +565,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 }
 
 GaussianSplatting::GaussianSplatting()
-    : HypObjectBase()
+    : ObjectBase()
 {
 }
 

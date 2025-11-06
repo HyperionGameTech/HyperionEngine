@@ -12,7 +12,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class FramebufferBase : public HypObjectBase
+class FramebufferBase : public ObjectBase
 {
     HYP_OBJECT_BODY(FramebufferBase);
 

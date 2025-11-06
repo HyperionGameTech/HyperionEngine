@@ -625,7 +625,7 @@ public:
                     {
                         const Field& field = static_cast<const Field&>(*memberIt);
 
-                        const UIntPtr fieldAddress = UIntPtr(static_cast<HypObjectBase*>(uiObject.Get())) + UIntPtr(field.GetOffset());
+                        const UIntPtr fieldAddress = UIntPtr(static_cast<ObjectBase*>(uiObject.Get())) + UIntPtr(field.GetOffset());
 
                         IScriptableDelegate* scriptableDelegate = reinterpret_cast<IScriptableDelegate*>(fieldAddress);
 
@@ -853,7 +853,7 @@ public:
                     HypData result;
                     if (cls->CreateInstance(result))
                     {
-                        if (HypObjectBase* scriptObject = result.Get<HypObjectBase*>())
+                        if (ObjectBase* scriptObject = result.Get<ObjectBase*>())
                         {
                             scriptComponent.nativeObject = MakeStrongRef(scriptObject);
 

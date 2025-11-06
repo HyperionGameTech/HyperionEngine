@@ -14,7 +14,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 namespace hyperion {
@@ -30,7 +30,7 @@ enum class EditorActionStackState : uint32
 HYP_MAKE_ENUM_FLAGS(EditorActionStackState)
 
 HYP_CLASS()
-class HYP_API EditorActionStack : public HypObjectBase
+class HYP_API EditorActionStack : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorActionStack);
 

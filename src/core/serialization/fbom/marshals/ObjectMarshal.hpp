@@ -19,7 +19,7 @@
 
 namespace hyperion {
 
-class HypObjectBase;
+class ObjectBase;
 struct HypData;
 
 template <class T>

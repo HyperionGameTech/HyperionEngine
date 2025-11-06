@@ -61,7 +61,7 @@ template <class T>
 class StructInstance final : public Struct
 {
 public:
-    static_assert(!std::is_base_of_v<HypObjectBase, T>, "Type derives from HypObjectBase; use HYP_CLASS instead.");
+    static_assert(!std::is_base_of_v<ObjectBase, T>, "Type derives from ObjectBase; use HYP_CLASS instead.");
 
     using PostLoadCallback = void (*)(T&);
 

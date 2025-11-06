@@ -27,7 +27,7 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/Object.hpp>
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Method.hpp>
@@ -616,7 +616,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         ClassTable::StaticFieldInfo staticFieldInfo {};
         staticFieldInfo.name = decl->GetName();
         staticFieldInfo.typeId = TypeId::ForType<HypData>();
-        staticFieldInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
+        staticFieldInfo.targetTypeId = TypeId::ForType<ObjectBase>();
 
         chunk->Append(decl->Build(visitor, mod));
 
@@ -638,7 +638,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         ClassTable::MethodInfo methodInfo {};
         methodInfo.name = decl->GetName();
         methodInfo.typeId = TypeId::ForType<HypData>();
-        methodInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
+        methodInfo.targetTypeId = TypeId::ForType<ObjectBase>();
 
         // flags will be combined with the function's other flags (e.g VARIDIC) with the member is created during execution
         if (decl->GetIdentifierFlags() & IdentifierFlags::STATIC_MEMBER)
@@ -662,7 +662,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
     Array<ClassTable::FieldInfo> fields;
 
-    SizeType fieldOffset = sizeof(HypObjectBase); // start after base object
+    SizeType fieldOffset = sizeof(ObjectBase); // start after base object
 
     // reserve space for `class` field to hold reference to the class this object is an instance of
     fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(ClassRef));
@@ -704,7 +704,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
             ClassTable::FieldInfo fieldInfo {};
             fieldInfo.name = member.GetName();
             fieldInfo.typeId = TypeId::ForType<HypData>();
-            fieldInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
+            fieldInfo.targetTypeId = TypeId::ForType<ObjectBase>();
             fieldInfo.offset = uint32(fieldOffset);
             fieldInfo.size = uint32(sizeof(HypData));
 

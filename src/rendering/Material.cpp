@@ -426,7 +426,7 @@ HashCode Material::GetHashCode() const
 #pragma region MaterialGroup
 
 MaterialGroup::MaterialGroup()
-    : HypObjectBase()
+    : ObjectBase()
 {
 }
 

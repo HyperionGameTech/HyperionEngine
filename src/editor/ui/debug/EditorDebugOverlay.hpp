@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/math/Color.hpp>
@@ -18,7 +18,7 @@ class UIStage;
 class Texture;
 
 HYP_CLASS(Abstract)
-class HYP_API EditorDebugOverlayBase : public HypObjectBase
+class HYP_API EditorDebugOverlayBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorDebugOverlayBase);
 

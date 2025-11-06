@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region DynamicLibrary Reflection Data
 
-HYP_BEGIN_STRUCT(DynamicLibrary, 236, 0, {}, ClassAttribute("size", 8))
+HYP_BEGIN_STRUCT(DynamicLibrary, 254, 0, {}, ClassAttribute("size", 8))
     Method(NAME(HYP_STR(GetPath)), &DynamicLibrary::GetPath),
     Method(NAME(HYP_STR(SetPath)), &DynamicLibrary::SetPath),
     Method(NAME(HYP_STR(Load)), &DynamicLibrary::Load),

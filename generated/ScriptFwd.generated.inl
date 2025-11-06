@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region ScriptCompileStatus Reflection Data
 
-HYP_BEGIN_ENUM(ScriptCompileStatus, 400, 0, {})
+HYP_BEGIN_ENUM(ScriptCompileStatus, 228, 0, {})
     StaticField(NAME(HYP_STR(SCS_UNINITIALIZED)), ScriptCompileStatus::SCS_UNINITIALIZED),
     StaticField(NAME(HYP_STR(SCS_COMPILED)), ScriptCompileStatus::SCS_COMPILED),
     StaticField(NAME(HYP_STR(SCS_DIRTY)), ScriptCompileStatus::SCS_DIRTY),
@@ -22,7 +22,7 @@ namespace hyperion {
 
 #pragma region ScriptLanguage Reflection Data
 
-HYP_BEGIN_ENUM(ScriptLanguage, 401, 0, {})
+HYP_BEGIN_ENUM(ScriptLanguage, 229, 0, {})
     StaticField(NAME(HYP_STR(SL_INVALID)), ScriptLanguage::SL_INVALID),
     StaticField(NAME(HYP_STR(SL_NATIVE)), ScriptLanguage::SL_NATIVE),
     StaticField(NAME(HYP_STR(SL_HYPSCRIPT)), ScriptLanguage::SL_HYPSCRIPT),

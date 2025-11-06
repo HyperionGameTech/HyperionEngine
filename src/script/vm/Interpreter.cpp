@@ -1902,8 +1902,8 @@ public:
                     // Create field
                     members.PushBack(HypMember(Field(
                         CreateNameFromDynamicString(memberNameStr),
-                        &TypeInfo::ForType<HypData>(),       // TypeId(memberTypeIdValue),
-                        &TypeInfo::ForType<HypObjectBase>(), // TypeId(targetTypeIdValue),
+                        &TypeInfo::ForType<HypData>(),    // TypeId(memberTypeIdValue),
+                        &TypeInfo::ForType<ObjectBase>(), // TypeId(targetTypeIdValue),
                         offset,
                         size,
                         attrs.ToSpan())));
@@ -1934,8 +1934,8 @@ public:
 
                     Method method(
                         CreateNameFromDynamicString(memberNameStr),
-                        &TypeInfo::ForType<HypData>(),       // TypeId(memberTypeIdValue),
-                        &TypeInfo::ForType<HypObjectBase>(), // TypeId(targetTypeIdValue),
+                        &TypeInfo::ForType<HypData>(),    // TypeId(memberTypeIdValue),
+                        &TypeInfo::ForType<ObjectBase>(), // TypeId(targetTypeIdValue),
                         functionAddress,
                         funcVmData->func.m_flags | flags, // combine flags
                         attrs.ToSpan());

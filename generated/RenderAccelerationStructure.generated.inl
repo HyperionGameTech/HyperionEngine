@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region GpuTlasBase Reflection Data
 
-HYP_BEGIN_CLASS(GpuTlasBase, 121, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(GpuTlasBase, 129, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion GpuTlasBase Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region GpuBlasBase Reflection Data
 
-HYP_BEGIN_CLASS(GpuBlasBase, 123, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(GpuBlasBase, 131, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion GpuBlasBase Reflection Data
@@ -29,7 +29,7 @@ namespace hyperion {
 
 #pragma region AccelerationStructureType Reflection Data
 
-HYP_BEGIN_ENUM(AccelerationStructureType, 330, 0, {})
+HYP_BEGIN_ENUM(AccelerationStructureType, 358, 0, {})
     StaticField(NAME(HYP_STR(BOTTOM_LEVEL)), AccelerationStructureType::BOTTOM_LEVEL),
     StaticField(NAME(HYP_STR(TOP_LEVEL)), AccelerationStructureType::TOP_LEVEL)
 HYP_END_ENUM

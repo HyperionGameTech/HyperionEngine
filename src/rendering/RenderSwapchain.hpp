@@ -14,7 +14,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class SwapchainBase : public HypObjectBase
+class SwapchainBase : public ObjectBase
 {
     HYP_OBJECT_BODY(SwapchainBase);
 

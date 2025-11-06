@@ -18,7 +18,7 @@
 namespace hyperion {
 
 class Method;
-class HypObjectBase;
+class ObjectBase;
 struct HypData;
 
 extern "C" Method* Class_GetMethod(const Class* cls, const Name* methodName);
@@ -43,7 +43,7 @@ public:
 class ScriptableDelegateHelper
 {
 public:
-    static void InvokeMethod_Internal(HypData* outReturnHypData, const Method* method, const Handle<HypObjectBase>& target, Span<HypData> argsHypData);
+    static void InvokeMethod_Internal(HypData* outReturnHypData, const Method* method, const Handle<ObjectBase>& target, Span<HypData> argsHypData);
 
     template <class HypDataType, class ReturnType, class... Args>
     static bool InvokeScriptObjectMethod(ScriptObjectResource* scriptObjectResource, const String& methodName, ReturnType* outReturn, Args&&... args)
@@ -97,7 +97,7 @@ public:
             return false;
         }
 
-        Handle<HypObjectBase> nativeObject = nativeData->nativeObject.Lock();
+        Handle<ObjectBase> nativeObject = nativeData->nativeObject.Lock();
         if (!nativeObject)
         {
             return false;
@@ -115,7 +115,7 @@ public:
     }
 
     template <class HypDataType, class ReturnType, class... Args>
-    static bool InvokeMethod(const Method* method, const Handle<HypObjectBase>& target, ReturnType* outReturn, Args&&... args)
+    static bool InvokeMethod(const Method* method, const Handle<ObjectBase>& target, ReturnType* outReturn, Args&&... args)
     {
         if (!target || !method)
         {

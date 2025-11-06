@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region SkydomeRenderer Reflection Data
 
-HYP_BEGIN_CLASS(SkydomeRenderer, 149, 0, NAME("Subsystem"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(SkydomeRenderer, 163, 0, NAME("Subsystem"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion SkydomeRenderer Reflection Data

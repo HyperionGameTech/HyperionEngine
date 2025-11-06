@@ -8,7 +8,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class RaytracingPipelineBase : public HypObjectBase
+class RaytracingPipelineBase : public ObjectBase
 {
     HYP_OBJECT_BODY(RaytracingPipelineBase);
 

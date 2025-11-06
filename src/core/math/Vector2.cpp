@@ -19,15 +19,21 @@ HYP_BEGIN_STRUCT(Vec2f, -1, 0, {})
     Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 
+HYP_REGISTER_STATIC_CLASS(Vec2f);
+
 HYP_BEGIN_STRUCT(Vec2i, -1, 0, {})
     Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 
+HYP_REGISTER_STATIC_CLASS(Vec2i);
+
 HYP_BEGIN_STRUCT(Vec2u, -1, 0, {})
     Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
+
+HYP_REGISTER_STATIC_CLASS(Vec2u);
 // clang-format on
 
 namespace math {

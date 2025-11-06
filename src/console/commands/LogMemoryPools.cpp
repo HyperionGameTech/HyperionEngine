@@ -42,7 +42,8 @@ HYP_API const Class* g_clsLogMemoryPools = nullptr;
 HYP_BEGIN_CLASS(LogMemoryPools, -1, 0, NAME("ConsoleCommandBase"), ClassAttribute("command", "logmemorypools"))
 HYP_END_CLASS
 
-} // namespace hyperion
+HYP_REGISTER_STATIC_CLASS(LogMemoryPools);
 
+} // namespace hyperion
 
 #include <HyperionPch.hpp>

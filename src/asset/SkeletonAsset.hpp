@@ -4,7 +4,7 @@
 
 #include <asset/AssetObject.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/containers/Array.hpp>
 

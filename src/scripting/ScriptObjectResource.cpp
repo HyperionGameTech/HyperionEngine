@@ -4,7 +4,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/Object.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -26,7 +26,7 @@ HYP_DECLARE_LOG_CHANNEL(Object);
 
 ScriptObjectResource::ScriptObjectResource() = default;
 
-ScriptObjectResource::ScriptObjectResource(const Handle<HypObjectBase>& nativeObject)
+ScriptObjectResource::ScriptObjectResource(const Handle<ObjectBase>& nativeObject)
 {
     ScriptObjectData_Native& data = m_scriptObjectData.Emplace<ScriptObjectData_Native>();
     data.nativeObject = nativeObject;
@@ -41,12 +41,12 @@ ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, con
 #endif
 }
 
-ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::ManagedClass>& managedClass)
+ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::ManagedClass>& managedClass)
     : ScriptObjectResource(ptr, managedClass, {}, ObjectFlags::NONE)
 {
 }
 
-ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
+ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
     : m_ptr(ptr)
 {
 #ifdef HYP_DOTNET
@@ -56,7 +56,7 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, dotnet::ManagedObje
 #endif
 }
 
-ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
+ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
     : m_ptr(ptr)
 {
 #ifdef HYP_DOTNET
@@ -231,9 +231,9 @@ void ScriptObjectResource::Destroy()
 
 #ifdef HYP_DOTNET
 
-#pragma region HypObject Extensions for.NET
+#pragma region Object Extensions for.NET
 
-HYP_API void HypObject_IncScriptObjectRef(HypObjectBase* ptr)
+HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr)
 {
     AssertDebug(ptr->GetObjectHeader_Internal()->GetRefCountStrong() > 1);
 
@@ -244,7 +244,7 @@ HYP_API void HypObject_IncScriptObjectRef(HypObjectBase* ptr)
     }
 }
 
-HYP_API void HypObject_DecScriptObjectRef(HypObjectBase* ptr)
+HYP_API void Object_DecScriptObjectRef(ObjectBase* ptr)
 {
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
         scriptObjectResource && scriptObjectResource->GetScriptLanguage() == SL_CSHARP)
@@ -253,7 +253,7 @@ HYP_API void HypObject_DecScriptObjectRef(HypObjectBase* ptr)
     }
 }
 
-#pragma endregion // HypObject Extensions for .NET
+#pragma endregion // Object Extensions for .NET
 
 #endif
 

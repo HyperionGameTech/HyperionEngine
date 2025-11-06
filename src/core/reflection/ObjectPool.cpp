@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypObjectPool.hpp>
+#include <core/reflection/ObjectPool.hpp>
 #include <core/reflection/Class.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -12,20 +12,20 @@
 
 namespace hyperion {
 
-HYP_API void ReleaseHypObject(HypObjectHeader* header)
+HYP_API void ReleaseObject(ObjectHeader* header)
 {
     AssertDebug(header != nullptr);
 
     const Class* cls = header->cls;
     AssertDebug(cls != nullptr);
 
-    HypObjectContainerBase* container = cls->GetObjectContainer();
-    AssertDebug(container != nullptr, "Class has no HypObjectContainer");
+    ObjectContainerBase* container = cls->GetObjectContainer();
+    AssertDebug(container != nullptr, "Class has no ObjectContainer");
 
     cls->GetObjectContainer()->Release(header);
 }
 
-HypObjectPool::ContainerMap::~ContainerMap()
+ObjectPool::ContainerMap::~ContainerMap()
 {
     for (auto& it : m_map)
     {
@@ -37,14 +37,14 @@ HypObjectPool::ContainerMap::~ContainerMap()
     }
 }
 
-HypObjectPool::ContainerMap& HypObjectPool::GetObjectContainerMap()
+ObjectPool::ContainerMap& ObjectPool::GetObjectContainerMap()
 {
-    static HypObjectPool::ContainerMap s_objectContainerMap;
+    static ObjectPool::ContainerMap s_objectContainerMap;
 
     return s_objectContainerMap;
 }
 
-HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, const Class* cls, HypObjectContainerBase* (*createFn)(const Class* cls))
+ObjectContainerBase& ObjectPool::ContainerMap::GetOrCreate(TypeId typeId, const Class* cls, ObjectContainerBase* (*createFn)(const Class* cls))
 {
     AssertDebug(cls != nullptr);
     AssertDebug(cls->GetTypeId() != TypeId::Void());
@@ -69,7 +69,7 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, 
         return *it->second;
     }
 
-    HypObjectContainerBase* container = createFn(cls);
+    ObjectContainerBase* container = createFn(cls);
     AssertDebug(container != nullptr);
 
     container->m_typeId = typeId;
@@ -78,7 +78,7 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, 
     return *m_map.EmplaceBack(typeId, container).second;
 }
 
-HypObjectContainerBase& HypObjectPool::ContainerMap::Get(TypeId typeId)
+ObjectContainerBase& ObjectPool::ContainerMap::Get(TypeId typeId)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -97,7 +97,7 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::Get(TypeId typeId)
     return *it->second;
 }
 
-HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(TypeId typeId)
+ObjectContainerBase* ObjectPool::ContainerMap::TryGet(TypeId typeId)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -146,21 +146,21 @@ static Pool* GetPoolForClass(const Class* cls)
     return GetPool();
 }
 
-#pragma region HypObjectContainerBase
+#pragma region ObjectContainerBase
 
-HypObjectContainerBase::HypObjectContainerBase(TypeId typeId, const Class* cls)
+ObjectContainerBase::ObjectContainerBase(TypeId typeId, const Class* cls)
     : m_typeId(typeId),
       m_class(cls)
 {
     HYP_CORE_ASSERT(typeId != TypeId::Void());
 }
 
-Pool* HypObjectContainerBase::GetPool() const
+Pool* ObjectContainerBase::GetPool() const
 {
     return GetPoolForClass(m_class);
 }
 
-void HypObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard, int flags)
+void ObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard, int flags)
 {
     HYP_CORE_ASSERT(pool != nullptr);
 
@@ -186,10 +186,10 @@ void HypObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGu
             EngineMemory_GetPoolThreadId(poolName).GetName());
     }*/
 
-    // Threads::AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "HypObject can only be created/destroyed from its owning pool thread");
+    // Threads::AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "Object can only be created/destroyed from its owning pool thread");
 #endif
 }
 
-#pragma endregion HypObjectContainerBase
+#pragma endregion ObjectContainerBase
 
 } // namespace hyperion

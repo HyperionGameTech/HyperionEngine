@@ -4,7 +4,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/utilities/Result.hpp>
@@ -14,7 +14,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract)
-class HYP_API ConsoleCommandBase : public HypObjectBase
+class HYP_API ConsoleCommandBase : public ObjectBase
 {
     HYP_OBJECT_BODY(ConsoleCommandBase);
 

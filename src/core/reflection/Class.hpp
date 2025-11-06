@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectFwd.hpp>
-#include <core/reflection/HypObjectEnums.hpp>
+#include <core/reflection/ObjectFwd.hpp>
+#include <core/reflection/ObjectEnums.hpp>
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 #include <core/reflection/ClassAttribute.hpp>
@@ -26,7 +26,7 @@ struct ObjectReference;
 } // namespace dotnet
 
 class IResource;
-class HypObjectContainerBase;
+class ObjectContainerBase;
 
 struct HypMember;
 class Property;
@@ -330,8 +330,8 @@ class HYP_API Class
 {
 public:
     friend struct ClassRegistrationBase;
-    friend class HypObjectPool;
-    friend class HypObjectContainerBase;
+    friend class ObjectPool;
+    friend class ObjectContainerBase;
 
     Class(
         TypeId typeId,
@@ -356,7 +356,7 @@ public:
         return false;
     }
 
-    HYP_FORCE_INLINE HypObjectContainerBase* GetObjectContainer() const
+    HYP_FORCE_INLINE ObjectContainerBase* GetObjectContainer() const
     {
         return m_objectContainer;
     }
@@ -693,7 +693,7 @@ protected:
 
     EnumFlags<ClassSerializationMode> m_serializationMode;
 
-    HypObjectContainerBase* m_objectContainer;
+    ObjectContainerBase* m_objectContainer;
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     EnginePoolName m_enginePoolName;
@@ -737,7 +737,7 @@ public:
         m_size = sizeof(T);
         m_alignment = alignof(T);
 
-        m_objectContainer = &HypObjectPool::GetObjectContainerMap().GetOrCreate<T>(this);
+        m_objectContainer = &ObjectPool::GetObjectContainerMap().GetOrCreate<T>(this);
     }
 
     virtual ~ClassInstance() = default;
@@ -749,7 +749,7 @@ public:
 
     virtual ClassAllocationMethod GetAllocationMethod() const override
     {
-        if constexpr (std::is_base_of_v<HypObjectBase, T>)
+        if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
             return ClassAllocationMethod::HANDLE;
         }
@@ -782,7 +782,7 @@ public:
 
         if (UseHandles())
         {
-            if constexpr (std::is_base_of_v<HypObjectBase, T>)
+            if constexpr (std::is_base_of_v<ObjectBase, T>)
             {
                 outHypData = HypData(AnyHandle(ptr));
             }
@@ -828,7 +828,7 @@ protected:
     {
         if constexpr (std::is_default_constructible_v<T>)
         {
-            if constexpr (std::is_base_of_v<HypObjectBase, T>)
+            if constexpr (std::is_base_of_v<ObjectBase, T>)
             {
                 out = HypData(CreateObject<T>());
 
@@ -853,7 +853,7 @@ protected:
 
     virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
     {
-        if constexpr (std::is_base_of_v<HypObjectBase, T>)
+        if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
             Array<Handle<T>> array;
             array.Reserve(elements.Size());

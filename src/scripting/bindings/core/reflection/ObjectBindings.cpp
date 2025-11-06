@@ -4,11 +4,11 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/Object.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/reflection/HypObjectPool.hpp>
+#include <core/reflection/ObjectPool.hpp>
 
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
@@ -22,15 +22,15 @@ using namespace hyperion;
 extern "C"
 {
 
-    struct HypObjectInitializer
+    struct ObjectInitializer
     {
         const Class* cls;
         void* nativeAddress;
     };
 
-#pragma region HypObject
+#pragma region Object
 
-    HYP_EXPORT void HypObject_Initialize(const Class* cls, dotnet::ManagedClass* pClass, dotnet::ObjectReference* objectReference, void** outInstancePtr)
+    HYP_EXPORT void Object_Initialize(const Class* cls, dotnet::ManagedClass* pClass, dotnet::ObjectReference* objectReference, void** outInstancePtr)
     {
         Assert(cls != nullptr);
         Assert(pClass != nullptr);
@@ -40,13 +40,13 @@ extern "C"
         Assert(cls->UseHandles());
 
 #ifdef HYP_DOTNET
-        HypObjectPtr ptr;
+        TypedObjPtr ptr;
 
         *outInstancePtr = nullptr;
 
         {
             // Suppress default managed object creation
-            GlobalContextScope scope(HypObjectInitializerContext { cls, HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
+            GlobalContextScope scope(ObjectInitializerContext { cls, ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
             HypData value;
 
@@ -55,7 +55,7 @@ extern "C"
             bool success = cls->CreateInstance(value, /* allowAbstract */ true);
             Assert(success, "Failed to create instance of Class '%s'", cls->GetName().LookupString());
 
-            ptr = HypObjectPtr(cls, value.ToRef().GetPointer());
+            ptr = TypedObjPtr(cls, value.ToRef().GetPointer());
 
             // Ref counts are kept as 1 for Handle<T> and RC<T>, managed side is responsible for decrementing the ref count
             ptr.IncRef();
@@ -71,7 +71,7 @@ extern "C"
             *objectReference,
             ObjectFlags::CREATED_FROM_MANAGED);
 
-        HypObjectBase* target = reinterpret_cast<HypObjectBase*>(ptr.GetPointer());
+        ObjectBase* target = reinterpret_cast<ObjectBase*>(ptr.GetPointer());
 
         target->SetScriptObjectResource(scriptObjectResource);
 #endif
@@ -79,34 +79,34 @@ extern "C"
         /// NOTE: CREATED_FROM_MANAGED is set to true here, so we don't set keep alive to true
     }
 
-    HYP_EXPORT uint32 HypObject_GetRefCountStrong(const Class* cls, void* nativeAddress)
+    HYP_EXPORT uint32 Object_GetRefCountStrong(const Class* cls, void* nativeAddress)
     {
         Assert(cls != nullptr);
         Assert(nativeAddress != nullptr);
 
-        HypObjectPtr hypObjectPtr = HypObjectPtr(cls, nativeAddress);
+        TypedObjPtr ptr = TypedObjPtr(cls, nativeAddress);
 
-        return hypObjectPtr.GetRefCountStrong();
+        return ptr.GetRefCountStrong();
     }
 
-    HYP_EXPORT void HypObject_IncRef(const Class* cls, void* nativeAddress, int8 isWeak)
+    HYP_EXPORT void Object_IncRef(const Class* cls, void* nativeAddress, int8 isWeak)
     {
         Assert(cls != nullptr);
         Assert(nativeAddress != nullptr);
 
-        HypObjectPtr hypObjectPtr = HypObjectPtr(cls, nativeAddress);
-        hypObjectPtr.IncRef(isWeak);
+        TypedObjPtr ptr = TypedObjPtr(cls, nativeAddress);
+        ptr.IncRef(isWeak);
     }
 
-    HYP_EXPORT void HypObject_DecRef(const Class* cls, void* nativeAddress, int8 isWeak)
+    HYP_EXPORT void Object_DecRef(const Class* cls, void* nativeAddress, int8 isWeak)
     {
         Assert(cls != nullptr);
         Assert(nativeAddress != nullptr);
 
-        HypObjectPtr hypObjectPtr = HypObjectPtr(cls, nativeAddress);
-        hypObjectPtr.DecRef(isWeak);
+        TypedObjPtr ptr = TypedObjPtr(cls, nativeAddress);
+        ptr.DecRef(isWeak);
     }
 
-#pragma endregion HypObject
+#pragma endregion Object
 
 } // extern "C"

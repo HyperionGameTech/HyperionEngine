@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypObjectPool.hpp>
+#include <core/reflection/ObjectPool.hpp>
 
 #include <core/threading/Mutex.hpp>
 

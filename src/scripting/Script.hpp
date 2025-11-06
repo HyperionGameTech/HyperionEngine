@@ -10,7 +10,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/UniquePtr.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/filesystem/FilePath.hpp>
 

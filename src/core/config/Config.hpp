@@ -20,7 +20,7 @@
 #include <core/threading/Mutex.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/json/JSON.hpp>
 

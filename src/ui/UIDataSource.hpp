@@ -17,7 +17,7 @@
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 namespace hyperion {
@@ -70,7 +70,7 @@ private:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API UIElementFactoryBase : public HypObjectBase
+class HYP_API UIElementFactoryBase : public ObjectBase
 {
     HYP_OBJECT_BODY(UIElementFactoryBase);
 
@@ -232,7 +232,7 @@ private:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API UIDataSourceBase : public HypObjectBase
+class HYP_API UIDataSourceBase : public ObjectBase
 {
     HYP_OBJECT_BODY(UIDataSourceBase);
 

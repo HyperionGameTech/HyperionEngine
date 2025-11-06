@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region WorldGrid Reflection Data
 
-HYP_BEGIN_CLASS(WorldGrid, 176, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(WorldGrid, 195, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetWorld)), &WorldGrid::GetWorld),
     Method(NAME(HYP_STR(AddLayer)), &WorldGrid::AddLayer),
     Method(NAME(HYP_STR(RemoveLayer)), &WorldGrid::RemoveLayer),

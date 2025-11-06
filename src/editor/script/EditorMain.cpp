@@ -410,7 +410,7 @@ UIEventHandlerResult EditorMain::RebuildLightmaps(const MouseEvent& event)
 
     // @TODO : Allow selection of scene(s) and volume(s) to generate for?
 
-    Array<Handle<HypObjectBase>> sources;
+    Array<Handle<ObjectBase>> sources;
 
     // Generate EnvProbes and LightmapVolumes in the scene
     auto collectEntitiesOfType = [&]<class T>(TypeWrapper<T>)

@@ -26,7 +26,7 @@ HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObje
     }
 }
 
-void ScriptableDelegateHelper::InvokeMethod_Internal(HypData* outReturnHypData, const Method* method, const Handle<HypObjectBase>& target, Span<HypData> argsHypData)
+void ScriptableDelegateHelper::InvokeMethod_Internal(HypData* outReturnHypData, const Method* method, const Handle<ObjectBase>& target, Span<HypData> argsHypData)
 {
     HYP_CORE_ASSERT(method != nullptr, "Method cannot be null");
 

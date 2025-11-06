@@ -27,7 +27,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "StreamableBase")]
-    public abstract class StreamableBase : HypObject
+    public abstract class StreamableBase : ObjectBase
     {
         public StreamableBase() : base()
         {

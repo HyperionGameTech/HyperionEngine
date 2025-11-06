@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/config/Config.hpp>
@@ -241,7 +241,7 @@ protected:
 /*! \brief Data and passes used for rendering a View in the Deferred Renderer. */
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API PassData : public HypObjectBase
+class HYP_API PassData : public ObjectBase
 {
     HYP_OBJECT_BODY(PassData);
 

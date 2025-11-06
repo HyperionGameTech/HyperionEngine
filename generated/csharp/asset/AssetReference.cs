@@ -8,14 +8,14 @@ namespace Hyperion
     {
         public static AssetPath GetAssetPath(this AssetReference obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<AssetReference>(), new Name(14691597253395709946)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<AssetReference>(), new Name(14691597253395709946)).InvokeNative(obj))
             {
                 return resultData.ReadStruct<AssetPath>();
             }
         }
         public static void SetAssetPath(this AssetReference obj, AssetPath assetPath)
         {
-            HypObject.GetMethod(Class.GetClass<AssetReference>(), new Name(11812016182349567078)).InvokeNative(obj, assetPath);
+            ObjectBase.GetMethod(Class.GetClass<AssetReference>(), new Name(11812016182349567078)).InvokeNative(obj, assetPath);
         }
     }
 }

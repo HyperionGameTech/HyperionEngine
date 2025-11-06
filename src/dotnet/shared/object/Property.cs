@@ -33,22 +33,22 @@ namespace Hyperion
                 return typeId;
             }
         }
-        
-        public HypData Get(HypObject hypObject)
+
+        public HypData Get(ObjectBase obj)
         {
             if (ptr == IntPtr.Zero)
             {
                 throw new InvalidOperationException("Cannot invoke getter: Invalid property");
             }
 
-            if (!hypObject.IsValid)
+            if (!obj.IsValid)
             {
                 throw new InvalidOperationException("Cannot invoke getter: Invalid target object");
             }
 
             HypDataBuffer resultBuffer;
 
-            if (!Property_InvokeGetter(ptr, hypObject.Class.Address, hypObject.NativeAddress, out resultBuffer))
+            if (!Property_InvokeGetter(ptr, obj.Class.Address, obj.NativeAddress, out resultBuffer))
             {
                 throw new InvalidOperationException("Failed to invoke getter");
             }
@@ -56,14 +56,14 @@ namespace Hyperion
             return HypData.FromBuffer(resultBuffer);
         }
 
-        public void Set(HypObject hypObject, HypData value)
+        public void Set(ObjectBase obj, HypData value)
         {
             if (ptr == IntPtr.Zero)
             {
                 throw new InvalidOperationException("Cannot invoke setter: Invalid property");
             }
 
-            if (!hypObject.IsValid)
+            if (!obj.IsValid)
             {
                 throw new InvalidOperationException("Cannot invoke setter: Invalid target object");
             }
@@ -73,12 +73,12 @@ namespace Hyperion
                 throw new ArgumentNullException("value");
             }
 
-            if (!Property_InvokeSetter(ptr, hypObject.Class.Address, hypObject.NativeAddress, ref value.Buffer))
+            if (!Property_InvokeSetter(ptr, obj.Class.Address, obj.NativeAddress, ref value.Buffer))
             {
                 throw new InvalidOperationException("Failed to invoke setter");
             }
         }
-        
+
         [DllImport("hyperion", EntryPoint = "Property_GetName")]
         private static extern void Property_GetName([In] IntPtr propertyPtr, [Out] out Name name);
 

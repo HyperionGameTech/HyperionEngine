@@ -97,7 +97,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             { "ObjId", { "ObjIdBase", "ReadId" } },
             { "Name", { "Name", "ReadName" } },
             { "WeakName", { "Name", "ReadName" } },
-            { "HypObjectBase", { "HypObject" } }, // Base object class - C# uses HypObject.
+            { "ObjectBase", { "Object" } }, // Base object class - C# uses Object.
             { "AnyHandle", { "object" } },
             { "AnyRef", { "object" } },
             { "ConstAnyRef", { "object" } }
@@ -148,7 +148,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             return HYP_MAKE_ERROR(Error, "Template type is unable to be mapped to a C# type");
         }
 
-        // Find a Class with the same name. HypObjects (classes deriving HypObject.cs) and structs with ClassBinding
+        // Find a Class with the same name. Objects (classes deriving Object.cs) and structs with ClassBinding
         // attribute can use custom overloads to try and get a specific method for reading the value.
         const ClassDefinition* definition = analyzer.FindClassDefinition(typeNameString);
 
@@ -259,7 +259,7 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
             { "ANSIStringView", { "string" } },
             { "FilePath", { "string" } },
             { "Name", { "Name" } },
-            { "HypObjectBase", { "object" } },
+            { "ObjectBase", { "object" } },
             { "AnyHandle", g_hypscriptAnyTypeMapping },
             { "AnyRef", g_hypscriptAnyTypeMapping },
             { "ConstAnyRef", g_hypscriptAnyTypeMapping }
@@ -324,7 +324,7 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
             return HYP_MAKE_ERROR(Error, "Template type is unable to be mapped to a HypScript type");
         }
 
-        // Find a Class with the same name. HypObjects (classes deriving HypObject.cs) and structs with ClassBinding
+        // Find a Class with the same name. Objects (classes deriving Object.cs) and structs with ClassBinding
         // attribute can use custom overloads to try and get a specific method for reading the value.
         const ClassDefinition* definition = analyzer.FindClassDefinition(typeNameString);
 

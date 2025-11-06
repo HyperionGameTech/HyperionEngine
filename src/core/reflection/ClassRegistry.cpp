@@ -330,10 +330,10 @@ void ClassRegistry::Initialize()
 
     auto hypObjectBaseClassIt = m_classesByTypeId.FindIf([](auto&& item)
         {
-            return item.second->GetName() == "HypObjectBase";
+            return item.second->GetName() == "ObjectBase";
         });
 
-    HYP_CORE_ASSERT(hypObjectBaseClassIt != m_classesByTypeId.End(), "HypObjectBase class not registered");
+    HYP_CORE_ASSERT(hypObjectBaseClassIt != m_classesByTypeId.End(), "ObjectBase class not registered");
 
     g_hypObjectBaseClass = hypObjectBaseClassIt->second;
 

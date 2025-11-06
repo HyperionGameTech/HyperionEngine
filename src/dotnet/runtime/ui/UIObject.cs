@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name= "ScrollAxis")]
+    [ClassBinding(Name = "ScrollAxis")]
     [Flags]
     public enum ScrollAxis : byte
     {
@@ -14,8 +14,8 @@ namespace Hyperion
         All = Horizontal | Vertical
     }
 
-    [ClassBinding(Name="UIEventHandlerResult")]
-    [StructLayout(LayoutKind.Explicit, Size=24, Pack=8)]
+    [ClassBinding(Name = "UIEventHandlerResult")]
+    [StructLayout(LayoutKind.Explicit, Size = 24, Pack = 8)]
     public struct UIEventHandlerResult
     {
         public static readonly UIEventHandlerResult Error = new UIEventHandlerResult(0x1u << 31);
@@ -54,7 +54,7 @@ namespace Hyperion
                 {
                     return string.Empty;
                 }
-                
+
                 IntPtr stringPtr = UIEventHandlerResult_GetMessage(ref this);
 
                 if (stringPtr == IntPtr.Zero)
@@ -74,7 +74,7 @@ namespace Hyperion
                 {
                     return string.Empty;
                 }
-                
+
                 IntPtr stringPtr = UIEventHandlerResult_GetFunctionName(ref this);
 
                 if (stringPtr == IntPtr.Zero)
@@ -121,14 +121,14 @@ namespace Hyperion
             return false;
         }
 
-        [DllImport("hyperion", EntryPoint="UIEventHandlerResult_GetMessage")]
+        [DllImport("hyperion", EntryPoint = "UIEventHandlerResult_GetMessage")]
         private static extern IntPtr UIEventHandlerResult_GetMessage(ref UIEventHandlerResult result);
 
-        [DllImport("hyperion", EntryPoint="UIEventHandlerResult_GetFunctionName")]
+        [DllImport("hyperion", EntryPoint = "UIEventHandlerResult_GetFunctionName")]
         private static extern IntPtr UIEventHandlerResult_GetFunctionName(ref UIEventHandlerResult result);
     }
 
-    [ClassBinding(Name="UIObjectAlignment")]
+    [ClassBinding(Name = "UIObjectAlignment")]
     public enum UIObjectAlignment : uint
     {
         TopLeft = 0,
@@ -148,7 +148,7 @@ namespace Hyperion
         Default = Pixel
     }
 
-    [ClassBinding(Name="UIObjectBorderFlags")]
+    [ClassBinding(Name = "UIObjectBorderFlags")]
     [Flags]
     public enum UIObjectBorderFlags : uint
     {
@@ -161,8 +161,8 @@ namespace Hyperion
     }
 
 
-    [ClassBinding(Name="UIObjectAspectRatio")]
-    [StructLayout(LayoutKind.Sequential, Size=8)]
+    [ClassBinding(Name = "UIObjectAspectRatio")]
+    [StructLayout(LayoutKind.Sequential, Size = 8)]
     public unsafe struct UIObjectAspectRatio
     {
         private float x = 1.0f;
@@ -199,8 +199,8 @@ namespace Hyperion
         }
     }
 
-    [ClassBinding(Name="UIObjectSize")]
-    [StructLayout(LayoutKind.Sequential, Size=16)]
+    [ClassBinding(Name = "UIObjectSize")]
+    [StructLayout(LayoutKind.Sequential, Size = 16)]
     public unsafe struct UIObjectSize
     {
         public static readonly UIObjectSizeFlags Auto = UIObjectSizeFlags.Auto;
@@ -270,8 +270,8 @@ namespace Hyperion
         }
     }
 
-    [ClassBinding(Name="UIObject")]
-    public class UIObject : HypObject
+    [ClassBinding(Name = "UIObject")]
+    public class UIObject : ObjectBase
     {
         public UIObject()
         {
@@ -305,7 +305,7 @@ namespace Hyperion
             {
                 throw new InvalidOperationException("Failed to spawn UIObject");
             }
-            
+
             // cast to T
             T? castedResult = result as T;
 
@@ -349,10 +349,10 @@ namespace Hyperion
             return result;
         }
 
-        [DllImport("hyperion", EntryPoint="UIObject_Spawn")]
+        [DllImport("hyperion", EntryPoint = "UIObject_Spawn")]
         private static extern void UIObject_Spawn([In] IntPtr spawnParentPtr, [In] IntPtr classPtr, [In] ref Name name, [In] ref Vec2i position, [In] ref UIObjectSize size, [Out] out HypDataBuffer outHypData);
 
-        [DllImport("hyperion", EntryPoint="UIObject_Find")]
+        [DllImport("hyperion", EntryPoint = "UIObject_Find")]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool UIObject_Find([In] IntPtr parentPtr, [In] IntPtr classPtr, [In] ref Name name, [Out] out HypDataBuffer outHypData);
     }

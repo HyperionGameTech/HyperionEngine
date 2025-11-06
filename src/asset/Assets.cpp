@@ -349,7 +349,7 @@ void AssetManager::Init()
 {
     HYP_SCOPE;
 
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     RegisterDefaultLoaders();
 

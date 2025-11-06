@@ -5,7 +5,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/FormatFwd.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Constants.hpp>
@@ -30,9 +30,9 @@ using utilities::TypeId;
 enum class ClassFlags : uint8;
 enum class ClassAllocationMethod : uint8;
 
-class HypObjectContainerBase;
-class HypObjectBase;
-struct HypObjectHeader;
+class ObjectContainerBase;
+class ObjectBase;
+struct ObjectHeader;
 class IHypMember;
 class Field;
 class Method;
@@ -46,24 +46,21 @@ template <class T>
 struct WeakHandle;
 
 template <class T>
-struct HypObjectMemory;
-
-template <class T>
 struct ClassDecl;
 
 template <class T, class T2 = void>
-struct IsHypObject;
+struct IsObject;
 
 template <class T, class T2>
-struct IsHypObject
+struct IsObject
 {
-    static_assert(ImplementationExistsV<T>, "Cannot use IsHypObject with undefined type!");
+    static_assert(ImplementationExistsV<T>, "Cannot use IsObject with undefined type!");
 
     static constexpr bool value = false;
 };
 
 template <class T>
-struct IsHypObject<T, std::enable_if_t<ImplementationExistsV<typename T::ClassInfo::Type>>>
+struct IsObject<T, std::enable_if_t<ImplementationExistsV<typename T::ClassInfo::Type>>>
 {
     static constexpr bool value = true;
 
@@ -71,58 +68,58 @@ struct IsHypObject<T, std::enable_if_t<ImplementationExistsV<typename T::ClassIn
 };
 
 template <class T>
-constexpr bool IsHypObjectV = IsHypObject<T>::value;
+constexpr bool IsObjectV = IsObject<T>::value;
 
 template <class T>
-using IsHypObject_t = typename IsHypObject<T>::Type;
+using IsObject_t = typename IsObject<T>::Type;
 
-enum class HypObjectInitializerFlags : uint32
+enum class ObjectInitializerFlags : uint32
 {
     NONE = 0x0,
     SUPPRESS_MANAGED_OBJECT_CREATION = 0x1
 };
 
-HYP_MAKE_ENUM_FLAGS(HypObjectInitializerFlags)
+HYP_MAKE_ENUM_FLAGS(ObjectInitializerFlags)
 
-struct HypObjectInitializerContext
+struct ObjectInitializerContext
 {
     const Class* cls = nullptr;
-    EnumFlags<HypObjectInitializerFlags> flags = HypObjectInitializerFlags::NONE;
+    EnumFlags<ObjectInitializerFlags> flags = ObjectInitializerFlags::NONE;
 };
 
-class HypObjectPtr
+class TypedObjPtr
 {
 public:
-    HypObjectPtr()
+    TypedObjPtr()
         : m_ptr(nullptr),
           m_class(nullptr)
     {
     }
 
-    explicit HypObjectPtr(std::nullptr_t)
+    explicit TypedObjPtr(std::nullptr_t)
         : m_ptr(nullptr),
           m_class(nullptr)
     {
     }
 
-    HypObjectPtr(const Class* cls, void* ptr)
+    TypedObjPtr(const Class* cls, void* ptr)
         : m_ptr(ptr),
           m_class(cls)
     {
     }
 
-    template <class T, typename = std::enable_if_t<IsHypObjectV<T>>>
-    explicit HypObjectPtr(T* ptr)
+    template <class T, typename = std::enable_if_t<IsObjectV<T>>>
+    explicit TypedObjPtr(T* ptr)
         : m_ptr(ptr),
           m_class(T::StaticClass())
     {
     }
 
-    HypObjectPtr(const HypObjectPtr& other) = default;
-    HypObjectPtr& operator=(const HypObjectPtr& other) = default;
-    HypObjectPtr(HypObjectPtr&& other) noexcept = default;
-    HypObjectPtr& operator=(HypObjectPtr&& other) noexcept = default;
-    ~HypObjectPtr() = default;
+    TypedObjPtr(const TypedObjPtr& other) = default;
+    TypedObjPtr& operator=(const TypedObjPtr& other) = default;
+    TypedObjPtr(TypedObjPtr&& other) noexcept = default;
+    TypedObjPtr& operator=(TypedObjPtr&& other) noexcept = default;
+    ~TypedObjPtr() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -144,12 +141,12 @@ public:
         return m_ptr != nullptr;
     }
 
-    HYP_FORCE_INLINE bool operator==(const HypObjectPtr& other) const
+    HYP_FORCE_INLINE bool operator==(const TypedObjPtr& other) const
     {
         return m_ptr == other.m_ptr;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const HypObjectPtr& other) const
+    HYP_FORCE_INLINE bool operator!=(const TypedObjPtr& other) const
     {
         return m_ptr != other.m_ptr;
     }
@@ -181,24 +178,24 @@ private:
 };
 
 #ifdef HYP_DOTNET
-HYP_API void HypObject_IncScriptObjectRef(HypObjectBase* ptr);
-HYP_API void HypObject_DecScriptObjectRef(HypObjectBase* ptr);
+HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr);
+HYP_API void Object_DecScriptObjectRef(ObjectBase* ptr);
 #endif
 
-struct HypObjectInitializerGuardBase
+struct ObjectInitializerGuardBase
 {
-    HYP_API HypObjectInitializerGuardBase(HypObjectPtr ptr);
-    HYP_API ~HypObjectInitializerGuardBase();
+    HYP_API ObjectInitializerGuardBase(TypedObjPtr ptr);
+    HYP_API ~ObjectInitializerGuardBase();
 
-    HypObjectPtr ptr;
+    TypedObjPtr ptr;
     uint32 count;
 };
 
 template <class T>
-struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
+struct ObjectInitializerGuard : ObjectInitializerGuardBase
 {
-    HypObjectInitializerGuard(void* ptr)
-        : HypObjectInitializerGuardBase(HypObjectPtr(T::StaticClass(), ptr))
+    ObjectInitializerGuard(void* ptr)
+        : ObjectInitializerGuardBase(TypedObjPtr(T::StaticClass(), ptr))
     {
     }
 };

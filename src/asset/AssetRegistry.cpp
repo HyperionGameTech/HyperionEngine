@@ -187,7 +187,7 @@ void AssetPackage::Init()
 {
     HYP_SCOPE;
 
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     Handle<AssetRegistry> registry = m_registry.Lock();
     Assert(registry.IsValid());
@@ -1322,7 +1322,7 @@ void AssetRegistry::Init()
 {
     HYP_SCOPE;
 
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     SetReady(true);
 
@@ -2491,7 +2491,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     /// @TODO: Change to a Stack, recursion could get impressively deep.
 
-    HashSet<const HypObjectBase*> visited; // to avoid infinite recursion
+    HashSet<const ObjectBase*> visited; // to avoid infinite recursion
 
     Proc<void(const Handle<AssetPackage>&, const HypData&)> iterate;
     iterate = [&](const Handle<AssetPackage>& inPackage, const HypData& current) -> void
@@ -2504,7 +2504,7 @@ void AssetRegistry::RegisterAssetsRecursively(
         }
 
         {
-            HypObjectBase* pObject = current.TryGet<HypObjectBase*>().GetOr(nullptr);
+            ObjectBase* pObject = current.TryGet<ObjectBase*>().GetOr(nullptr);
             if (pObject && !visited.Insert(pObject).second)
             {
                 HYP_LOG_TEMP("Already visited {} with ID {}, skipping to avoid infinite recursion",

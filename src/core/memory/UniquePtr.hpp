@@ -9,7 +9,7 @@
 #include <core/memory/Memory.hpp>
 #include <core/memory/Any.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/Types.hpp>
 #include <core/Constants.hpp>

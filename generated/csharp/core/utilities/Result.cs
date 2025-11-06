@@ -8,21 +8,21 @@ namespace Hyperion
     {
         public static bool HasValue(this Result obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Result>(), new Name(2718856274453070336)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Result>(), new Name(2718856274453070336)).InvokeNative(obj))
             {
                 return resultData.ReadBool();
             }
         }
         public static bool HasError(this Result obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Result>(), new Name(3775826641619110123)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Result>(), new Name(3775826641619110123)).InvokeNative(obj))
             {
                 return resultData.ReadBool();
             }
         }
         public static Error GetError(this Result obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Result>(), new Name(11782191407540393991)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Result>(), new Name(11782191407540393991)).InvokeNative(obj))
             {
                 return resultData.ReadStruct<Error>();
             }

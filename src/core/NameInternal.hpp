@@ -7,7 +7,7 @@
 
 #include <core/reflection/TypeId.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/HashCode.hpp>
 

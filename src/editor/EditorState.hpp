@@ -4,7 +4,7 @@
 
 #include <editor/EditorPickCache.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/threading/Mutex.hpp>
@@ -18,7 +18,7 @@ namespace hyperion {
 class EditorProject;
 
 HYP_CLASS()
-class HYP_API EditorState : public HypObjectBase
+class HYP_API EditorState : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorState);
 

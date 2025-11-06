@@ -30,7 +30,7 @@ namespace Hyperion
         [FieldOffset(0)]
         [MarshalAs(UnmanagedType.U2)]
         public ushort valueU16;
-        
+
         [FieldOffset(0)]
         [MarshalAs(UnmanagedType.U4)]
         public uint valueU32;
@@ -63,7 +63,7 @@ namespace Hyperion
         [FieldOffset(0)]
         [MarshalAs(UnmanagedType.I8)]
         public IntPtr valueIntPtr;
-        
+
         [FieldOffset(0)]
         public ObjectReference objectReference;
     }
@@ -205,16 +205,16 @@ namespace Hyperion
                 return;
             }
 
-            if (value is HypObject)
+            if (value is ObjectBase)
             {
-                HypObject obj = (HypObject)value;
+                ObjectBase obj = (ObjectBase)value;
 
                 if (!obj.Class.IsReferenceCounted)
-                    throw new Exception("Cannot use HypData_SetHypObject with non reference counted Class type from managed code");
+                    throw new Exception("Cannot use HypData_SetObject with non reference counted Class type from managed code");
 
-                if (!HypData_SetHypObject(ref this, obj.Class.Address, obj.NativeAddress))
+                if (!HypData_SetObject(ref this, obj.Class.Address, obj.NativeAddress))
                 {
-                    throw new InvalidOperationException("Failed to set HypData to HypObject instance for Class: " + obj.Class.Name);
+                    throw new InvalidOperationException("Failed to set HypData to ObjectBase instance for Class: " + obj.Class.Name);
                 }
 
                 return;
@@ -230,7 +230,7 @@ namespace Hyperion
                 if (!HypData_SetString(ref this, stringPtr))
                 {
                     Marshal.FreeCoTaskMem(stringPtr);
-                    
+
                     throw new InvalidOperationException("Failed to set string");
                 }
 
@@ -528,7 +528,7 @@ namespace Hyperion
                 return buffer;
             }
 
-            if (HypData_GetHypObject(ref this, out value.objectReference))
+            if (HypData_GetObject(ref this, out value.objectReference))
             {
                 return value.objectReference.LoadObject();
             }
@@ -801,7 +801,7 @@ namespace Hyperion
             throw new InvalidOperationException("Failed to get Id from HypData");
         }
 
-        public T? ReadObject<T>() where T : HypObject
+        public T? ReadObject<T>() where T : ObjectBase
         {
             if (IsNull)
             {
@@ -810,12 +810,12 @@ namespace Hyperion
 
             ObjectReference objectReference;
 
-            if (HypData_GetHypObject(ref this, out objectReference))
+            if (HypData_GetObject(ref this, out objectReference))
             {
                 return (T?)objectReference.LoadObject();
             }
 
-            throw new InvalidOperationException("Failed to get HypObject from HypData");
+            throw new InvalidOperationException("Failed to get ObjectBase from HypData");
         }
 
         public T ReadStruct<T>() where T : struct
@@ -954,9 +954,9 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_GetName([In] ref HypDataBuffer hypData, [Out] out Name outNameValue);
 
-        [DllImport("hyperion", EntryPoint = "HypData_GetHypObject")]
+        [DllImport("hyperion", EntryPoint = "HypData_GetObject")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetHypObject([In] ref HypDataBuffer hypData, [Out] out ObjectReference outObjectReference);
+        internal static extern bool HypData_GetObject([In] ref HypDataBuffer hypData, [Out] out ObjectReference outObjectReference);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetStruct")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -1098,9 +1098,9 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_SetName([In] ref HypDataBuffer hypData, Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypData_SetHypObject")]
+        [DllImport("hyperion", EntryPoint = "HypData_SetObject")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetHypObject([In] ref HypDataBuffer hypData, [In] IntPtr classPtr, [In] IntPtr nativeAddress);
+        internal static extern bool HypData_SetObject([In] ref HypDataBuffer hypData, [In] IntPtr classPtr, [In] IntPtr nativeAddress);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetStruct")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -1137,7 +1137,7 @@ namespace Hyperion
 
             return hypData;
         }
-        
+
         public void Dispose()
         {
             if (!_disposed)

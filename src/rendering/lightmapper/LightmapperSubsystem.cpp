@@ -65,7 +65,7 @@ void LightmapperSubsystem::Update(float delta)
         }
     }
 
-    Array<HypObjectBase*> lightmappersToRemove;
+    Array<ObjectBase*> lightmappersToRemove;
 
     for (auto& it : m_lightmappers)
     {
@@ -77,7 +77,7 @@ void LightmapperSubsystem::Update(float delta)
         }
     }
 
-    for (HypObjectBase* obj : lightmappersToRemove)
+    for (ObjectBase* obj : lightmappersToRemove)
     {
         m_lightmappers.Erase(obj);
 

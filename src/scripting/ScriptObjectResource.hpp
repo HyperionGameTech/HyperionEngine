@@ -6,7 +6,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/memory/resource/Resource.hpp>
 #include <core/memory/RefCountedPtr.hpp>
@@ -57,7 +57,7 @@ struct ScriptObjectData_Native final
 {
     static constexpr ScriptLanguage Language = SL_NATIVE;
 
-    WeakHandle<HypObjectBase> nativeObject;
+    WeakHandle<ObjectBase> nativeObject;
 };
 
 class HYP_API ScriptObjectResource final : public ResourceBase
@@ -65,12 +65,12 @@ class HYP_API ScriptObjectResource final : public ResourceBase
 public:
     ScriptObjectResource();
 
-    explicit ScriptObjectResource(const Handle<HypObjectBase>& nativeObject);
+    explicit ScriptObjectResource(const Handle<ObjectBase>& nativeObject);
 
     ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
-    ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::ManagedClass>& managedClass);
-    ScriptObjectResource(HypObjectPtr ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
-    ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
+    ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(TypedObjPtr ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
     ScriptObjectResource(Script_Instance* hypScriptInstance, HypData&& hypScriptValue);
@@ -137,7 +137,7 @@ protected:
     virtual void Initialize() override final;
     virtual void Destroy() override final;
 
-    HypObjectPtr m_ptr;
+    TypedObjPtr m_ptr;
 
     mutable Variant<
 #ifdef HYP_DOTNET

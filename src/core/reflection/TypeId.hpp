@@ -6,7 +6,7 @@
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 namespace hyperion {
 namespace utilities {

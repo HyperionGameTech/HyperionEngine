@@ -5,12 +5,12 @@ using System.Collections.Concurrent;
 
 namespace Hyperion
 {
-    public class HypObject : IDisposable
+    public class ObjectBase : IDisposable
     {
         public IntPtr _classPtr;
         public IntPtr _nativeAddress;
 
-        protected HypObject()
+        protected ObjectBase()
         {
             bool initiatedFromManagedSide = _nativeAddress == IntPtr.Zero;
 
@@ -31,7 +31,7 @@ namespace Hyperion
                 }
 
                 // Need to add this to managed object cache,
-                // pass to CreateInstance() so the HypObject in C++ knows not to create another of this..
+                // pass to CreateInstance() so the ObjectBase in C++ knows not to create another of this..
                 GCHandle gcHandle = GCHandle.Alloc(this, GCHandleType.Normal);
 
                 ObjectWrapper objectWrapper = new ObjectWrapper { obj = this };
@@ -61,8 +61,8 @@ namespace Hyperion
 #endif
 
                     _classPtr = cls.Address;
-                    
-                    HypObject_Initialize(_classPtr, pClass, ref objectReference, out _nativeAddress);
+
+                    Object_Initialize(_classPtr, pClass, ref objectReference, out _nativeAddress);
                 }
 
                 gcHandle.Free();
@@ -75,18 +75,18 @@ namespace Hyperion
                 if (_nativeAddress == IntPtr.Zero)
                     throw new Exception("Native address is null - object is not correctly initialized");
 
-                HypObject_IncRef(_classPtr, _nativeAddress, false);
+                Object_IncRef(_classPtr, _nativeAddress, false);
             }
-            
-            Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+
+            Logger.Log(LogType.Debug, "Created ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
-        ~HypObject()
+        ~ObjectBase()
         {
-            Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+            Logger.Log(LogType.Debug, "Destroying ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
 
             if (IsValid && Class.IsReferenceCounted)
-                HypObject_DecRef(_classPtr, _nativeAddress, false);
+                Object_DecRef(_classPtr, _nativeAddress, false);
         }
 
         public void Dispose()
@@ -96,12 +96,12 @@ namespace Hyperion
                 if (Class.IsReferenceCounted)
                 {
 #if DEBUG
-                    Assert.Throw(HypObject_GetRefCountStrong(_classPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
+                    Assert.Throw(Object_GetRefCountStrong(_classPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
 #endif
 
-                    HypObject_DecRef(_classPtr, _nativeAddress, false);
+                    Object_DecRef(_classPtr, _nativeAddress, false);
 
-                    Logger.Log(LogType.Debug, "Disposed HypObject of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+                    Logger.Log(LogType.Debug, "Disposed ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
                 }
 
                 GC.SuppressFinalize(this);
@@ -252,26 +252,26 @@ namespace Hyperion
                     throw new Exception("Native address is null");
                 }
 
-                return HypObject_GetRefCountStrong(_classPtr, _nativeAddress);
+                return Object_GetRefCountStrong(_classPtr, _nativeAddress);
             }
         }
 
         public override string ToString()
         {
-            return $"[HypObject: {Class.Name}, Address: 0x{(long)NativeAddress:X}]";
+            return $"[ObjectBase: {Class.Name}, Address: 0x{(long)NativeAddress:X}]";
         }
-        
-        [DllImport("hyperion", EntryPoint = "HypObject_Initialize")]
-        private static extern void HypObject_Initialize([In] IntPtr classPtr, [In] IntPtr pClass, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
 
-        [DllImport("hyperion", EntryPoint = "HypObject_GetRefCountStrong")]
-        private static extern uint HypObject_GetRefCountStrong([In] IntPtr classPtr, [In] IntPtr nativeAddress);
+        [DllImport("hyperion", EntryPoint = "Object_Initialize")]
+        private static extern void Object_Initialize([In] IntPtr classPtr, [In] IntPtr pClass, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
 
-        [DllImport("hyperion", EntryPoint = "HypObject_IncRef")]
-        private static extern void HypObject_IncRef([In] IntPtr classPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
+        [DllImport("hyperion", EntryPoint = "Object_GetRefCountStrong")]
+        private static extern uint Object_GetRefCountStrong([In] IntPtr classPtr, [In] IntPtr nativeAddress);
 
-        [DllImport("hyperion", EntryPoint = "HypObject_DecRef")]
-        private static extern void HypObject_DecRef([In] IntPtr classPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
+        [DllImport("hyperion", EntryPoint = "Object_IncRef")]
+        private static extern void Object_IncRef([In] IntPtr classPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
+
+        [DllImport("hyperion", EntryPoint = "Object_DecRef")]
+        private static extern void Object_DecRef([In] IntPtr classPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
 
         [DllImport("hyperion", EntryPoint = "Class_GetProperty")]
         private static extern IntPtr Class_GetProperty([In] IntPtr classPtr, [In] ref Name name);

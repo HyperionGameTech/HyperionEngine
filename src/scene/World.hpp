@@ -6,7 +6,7 @@
 #include <scene/Subsystem.hpp>
 #include <scene/GameState.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/functional/Delegate.hpp>
@@ -33,7 +33,7 @@ class TaskBatch;
 using threading::TaskBatch;
 
 HYP_CLASS()
-class HYP_API World final : public HypObjectBase
+class HYP_API World final : public ObjectBase
 {
     HYP_OBJECT_BODY(World);
 

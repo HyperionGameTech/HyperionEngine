@@ -20,7 +20,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class FrameBase : public HypObjectBase
+class FrameBase : public ObjectBase
 {
     HYP_OBJECT_BODY(FrameBase);
 

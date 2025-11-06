@@ -6,12 +6,12 @@
 
 namespace hyperion {
 
-#pragma region HypObjectBase Reflection Data
+#pragma region ObjectBase Reflection Data
 
-HYP_BEGIN_CLASS(HypObjectBase, 0, 214, {})
+HYP_BEGIN_CLASS(ObjectBase, 0, 214, {})
 HYP_END_CLASS
 
-#pragma endregion HypObjectBase Reflection Data
+#pragma endregion ObjectBase Reflection Data
 
 } // namespace hyperion
 

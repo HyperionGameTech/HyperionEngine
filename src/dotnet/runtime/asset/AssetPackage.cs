@@ -15,7 +15,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "AssetPackage")]
-    public class AssetPackage : HypObject
+    public class AssetPackage : ObjectBase
     {
         private static LogChannel logChannel = LogChannel.ByName("Assset");
 

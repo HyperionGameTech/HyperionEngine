@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Game")]
-    public abstract class Game : HypObject
+    [ClassBinding(Name = "Game")]
+    public abstract class Game : ObjectBase
     {
         private World? world;
         private InputManager? inputManager;

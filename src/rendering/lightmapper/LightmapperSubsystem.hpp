@@ -51,8 +51,8 @@ private:
     Task<void>* GenerateLightmaps_Internal(const Handle<T>& source, Args&&... args);
 
     // Map source to lightmapper instance
-    HashMap<HypObjectBase*, Handle<LightmapperBase>> m_lightmappers;
-    HashMap<HypObjectBase*, Task<void>*> m_activeTasks;
+    HashMap<ObjectBase*, Handle<LightmapperBase>> m_lightmappers;
+    HashMap<ObjectBase*, Task<void>*> m_activeTasks;
     LinkedList<Task<void>> m_tasks;
 };
 

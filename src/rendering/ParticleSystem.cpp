@@ -284,7 +284,7 @@ void ParticleSpawner::CreateComputePipelines()
 #pragma region ParticleSystem
 
 ParticleSystem::ParticleSystem()
-    : HypObjectBase(),
+    : ObjectBase(),
       m_particleSpawners(g_renderThread),
       m_counter(0u)
 {

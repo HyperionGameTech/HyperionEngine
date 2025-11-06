@@ -5,7 +5,7 @@
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
@@ -26,7 +26,7 @@ struct RenderSetup;
 enum class RenderPassStage : uint8;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API FullScreenPass : public HypObjectBase
+class HYP_API FullScreenPass : public ObjectBase
 {
     HYP_OBJECT_BODY(FullScreenPass);
 

@@ -254,7 +254,7 @@ static inline SubtypeResourceBindings& ResourceBinding_GetSubtypeBindings(const 
     return *bindings;
 }
 
-static void ResourceBinding_Assign(HypObjectBase* resource, uint32 binding)
+static void ResourceBinding_Assign(ObjectBase* resource, uint32 binding)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -281,7 +281,7 @@ static void ResourceBinding_Assign(HypObjectBase* resource, uint32 binding)
     bindings.bindingIndices.Emplace(resourceId.ToIndex(), binding);
 }
 
-static uint32 ResourceBinding_Retrieve(const HypObjectBase* resource)
+static uint32 ResourceBinding_Retrieve(const ObjectBase* resource)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -308,10 +308,10 @@ static uint32 ResourceBinding_Retrieve(const HypObjectBase* resource)
 
 struct ResourceData final
 {
-    HypObjectBase* resource;
+    ObjectBase* resource;
     uint32 useCount;
 
-    ResourceData(HypObjectBase* resource)
+    ResourceData(ObjectBase* resource)
         : resource(resource),
           useCount(0)
     {
@@ -923,7 +923,7 @@ Array<Pair<View*, RenderCollector*>> GetAllRenderCollectors()
     return result;
 }
 
-IRenderProxy* GetRenderProxy(const HypObjectBase* resource)
+IRenderProxy* GetRenderProxy(const ObjectBase* resource)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -951,7 +951,7 @@ IRenderProxy* GetRenderProxy(const HypObjectBase* resource)
     return pProxy;
 }
 
-void UpdateGpuData(const HypObjectBase* resource)
+void UpdateGpuData(const ObjectBase* resource)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -985,7 +985,7 @@ void UpdateGpuData(const HypObjectBase* resource)
     subtypeData.indicesPendingUpdate.Set(idx, false);
 }
 
-void AssignResourceBinding(HypObjectBase* resource, uint32 binding)
+void AssignResourceBinding(ObjectBase* resource, uint32 binding)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -993,7 +993,7 @@ void AssignResourceBinding(HypObjectBase* resource, uint32 binding)
     ResourceBinding_Assign(resource, binding);
 }
 
-uint32 RetrieveResourceBinding(const HypObjectBase* resource)
+uint32 RetrieveResourceBinding(const ObjectBase* resource)
 {
     HYP_SCOPE;
     // FIXME: Add better check to ensure it is from a render task thread.
@@ -1177,7 +1177,7 @@ void BeginFrame_RenderThread()
                     continue;
                 }
 
-                HypObjectBase* resource = subtypeData.data.Get(i).resource;
+                ObjectBase* resource = subtypeData.data.Get(i).resource;
 
                 AssertDebug(subtypeData.hasProxyData);
                 AssertDebug(subtypeData.writeBufferDataFn != nullptr);

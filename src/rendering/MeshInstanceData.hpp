@@ -9,7 +9,7 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Mat4f.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 namespace hyperion {
 

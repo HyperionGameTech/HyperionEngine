@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="EditorActionStackState")]
+    [ClassBinding(Name = "EditorActionStackState")]
     [Flags]
     public enum EditorActionStackState : uint
     {
@@ -12,8 +12,8 @@ namespace Hyperion
         CanRedo = 0x2
     }
 
-    [ClassBinding(Name="EditorActionBase")]
-    public abstract class EditorActionBase : HypObject
+    [ClassBinding(Name = "EditorActionBase")]
+    public abstract class EditorActionBase : ObjectBase
     {
         public EditorActionBase()
         {
@@ -27,7 +27,7 @@ namespace Hyperion
     /// <summary>
     /// C++ only - Use EditorAction instead
     /// </summary>
-    [ClassBinding(Name="FunctionalEditorAction")]
+    [ClassBinding(Name = "FunctionalEditorAction")]
     public class FunctionalEditorAction : EditorActionBase
     {
         public override Name GetName()

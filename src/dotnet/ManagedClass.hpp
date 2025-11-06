@@ -63,7 +63,7 @@ public:
      *  until the object is released via \ref{ManagedClass::~ManagedClass}.
      *  If false, only a weak GCHandle will be created.
      *
-     *  If cls is provided (not nullptr), the object is constructed as a HypObject instance (must derive HypObject class).
+     *  If cls is provided (not nullptr), the object is constructed as a Object instance (must derive Object class).
      *  In this case, nativeObjectPtr must also be provided.
      *  Both cls and nativeObjectPtr can be nullptr. */
     using InitializeObjectCallbackFunction = void (*)(void* ctx, void* dst, uint32 dstSize);

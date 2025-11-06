@@ -4,7 +4,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
@@ -32,7 +32,7 @@ enum class StreamingVolumeShape : uint32
 };
 
 HYP_CLASS(Abstract)
-class HYP_API StreamingVolumeBase : public HypObjectBase
+class HYP_API StreamingVolumeBase : public ObjectBase
 {
     HYP_OBJECT_BODY(StreamingVolumeBase);
 

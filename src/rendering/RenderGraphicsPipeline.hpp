@@ -7,7 +7,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
@@ -20,7 +20,7 @@ class RenderableAttributeSet;
 struct DescriptorTableDeclaration;
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class GraphicsPipelineBase : public HypObjectBase
+class GraphicsPipelineBase : public ObjectBase
 {
     HYP_OBJECT_BODY(GraphicsPipelineBase);
 

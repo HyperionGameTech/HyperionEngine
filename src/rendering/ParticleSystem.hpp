@@ -6,7 +6,7 @@
 
 #include <core/containers/ThreadSafeContainer.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/math/Vector3.hpp>
@@ -36,7 +36,7 @@ struct ParticleSpawnerParams
 };
 
 HYP_CLASS()
-class HYP_API ParticleSpawner final : public HypObjectBase
+class HYP_API ParticleSpawner final : public ObjectBase
 {
     HYP_OBJECT_BODY(ParticleSpawner);
 
@@ -96,7 +96,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API ParticleSystem : public HypObjectBase
+class HYP_API ParticleSystem : public ObjectBase
 {
     HYP_OBJECT_BODY(ParticleSystem);
 

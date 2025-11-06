@@ -1,4 +1,4 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 #include <scripting/ScriptObjectResource.hpp>
 #include <dotnet/ManagedObject.hpp>
@@ -9,7 +9,7 @@ namespace hyperion {
 
 #pragma region ScriptableSystem Reflection Data
 
-HYP_BEGIN_CLASS(ScriptableSystem, 158, 0, NAME("SystemBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(ScriptableSystem, 156, 0, NAME("SystemBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(AllowParallelExecution)), &ScriptableSystem::AllowParallelExecution, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(RequiresGameThread)), &ScriptableSystem::RequiresGameThread, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(AllowUpdate)), &ScriptableSystem::AllowUpdate, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),

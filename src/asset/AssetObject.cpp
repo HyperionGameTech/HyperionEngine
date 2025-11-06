@@ -263,7 +263,7 @@ AssetObject::~AssetObject()
 void AssetObject::Init()
 {
     HYP_SCOPE;
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     if (m_resource && !m_resource->IsNull())
     {

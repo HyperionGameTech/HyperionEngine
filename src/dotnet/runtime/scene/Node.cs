@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [Flags]
-    [ClassBinding(Name="NodeFlags")]
+    [ClassBinding(Name = "NodeFlags")]
     public enum NodeFlags : uint
     {
         None = 0x0,
@@ -15,14 +15,14 @@ namespace Hyperion
         IgnoreParentTransform = IgnoreParentTranslation | IgnoreParentScale | IgnoreParentRotation,
 
         ExcludeFromParentAABB = 0x8,
-        
+
         Transient = 0x100, // Set if the node should not be serialized.
 
         HideInSceneOutline = 0x1000 // Should this node be hidden in the editor's outline window?
     }
 
-    [ClassBinding(Name="Node")]
-    public class Node : HypObject
+    [ClassBinding(Name = "Node")]
+    public class Node : ObjectBase
     {
         public Node()
         {

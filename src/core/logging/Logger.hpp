@@ -13,7 +13,7 @@
 #include <core/memory/Pimpl.hpp>
 
 #include <core/reflection/Handle.hpp>
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/containers/String.hpp>
 #include <core/containers/Bitset.hpp>
@@ -208,7 +208,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Logger : public HypObjectBase
+class HYP_API Logger : public ObjectBase
 {
     HYP_OBJECT_BODY(Logger);
 

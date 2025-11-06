@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region ScriptData Reflection Data
 
-HYP_BEGIN_STRUCT(ScriptData, 399, 0, {})
+HYP_BEGIN_STRUCT(ScriptData, 230, 0, {})
     Field(NAME(HYP_STR(Uuid)), &ScriptData::uuid, offsetof(ScriptData, uuid), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Language)), &ScriptData::language, offsetof(ScriptData, language), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Path)), &ScriptData::path, offsetof(ScriptData, path), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ObjId.hpp>
 
 #include <core/containers/Array.hpp>

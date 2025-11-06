@@ -6,7 +6,7 @@
 
 #include <core/reflection/ObjId.hpp>
 #include <core/reflection/Handle.hpp>
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 #include <core/reflection/HypDataArray.hpp>
 
 #include <core/containers/Array.hpp>
@@ -154,7 +154,7 @@ struct HypData
         || std::is_same_v<T, ClassRef>
 
         /*! Handle<T> gets stored as AnyHandle, which holds TypeId for conversion */
-        || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, AnyHandle> || std::is_base_of_v<HypObjectBase, T>
+        || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, AnyHandle> || std::is_base_of_v<ObjectBase, T>
 
         /*! RC<T> gets stored as RC<void> and can be converted back */
         || std::is_base_of_v<typename RC<void>::RefCountedPtrBase, T>
@@ -1214,15 +1214,15 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
     }
 };
 
-/// HypObjects can be stored inline via AnyHandle like Handle<T>, and converted to/from Handle<T>
+/// Objects can be stored inline via AnyHandle like Handle<T>, and converted to/from Handle<T>
 
 template <class T>
-struct HypDataHelperDecl<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>>
+struct HypDataHelperDecl<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>> : HypDataHelper<Handle<T>>
+struct HypDataHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> : HypDataHelper<Handle<T>>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3673,7 +3673,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !Imple
 
     HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
     {
-        if constexpr (std::is_base_of_v<HypObjectBase, T>)
+        if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
             return value.Is<T>();
         }
@@ -3705,7 +3705,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !Imple
 
     HYP_FORCE_INLINE T& Get(const AnyHandle& value) const
     {
-        if constexpr (std::is_base_of_v<HypObjectBase, T>)
+        if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
             AssertDebug(value.IsValid() && value.Is<T>());
 

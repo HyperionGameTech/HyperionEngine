@@ -4,7 +4,7 @@
 
 #include <asset/AssetPath.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/utilities/Uuid.hpp>
@@ -176,7 +176,7 @@ enum AssetObjectFlags : uint32
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
 
 HYP_CLASS(Abstract)
-class HYP_API AssetObject : public HypObjectBase
+class HYP_API AssetObject : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetObject);
 

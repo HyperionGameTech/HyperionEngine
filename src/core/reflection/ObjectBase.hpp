@@ -17,7 +17,7 @@ namespace hyperion {
 
 class Class;
 class ScriptObjectResource;
-struct HypObjectHeader;
+struct ObjectHeader;
 
 template <class T>
 struct Handle;
@@ -34,13 +34,14 @@ using utilities::TypeId;
 #ifdef HYP_DOTNET
 namespace dotnet {
 class ManagedClass;
+class ManagedObject;
 } // namespace dotnet
 #endif
 
 HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
-class HYP_API HypObjectBase
+class HYP_API ObjectBase
 {
     template <class T>
     friend struct Handle;
@@ -59,13 +60,13 @@ class HYP_API HypObjectBase
 public:
     struct ClassInfo
     {
-        using Type = HypObjectBase;
+        using Type = ObjectBase;
     };
 
     /*! \internal */
-    HypObjectBase();
+    ObjectBase();
 
-    virtual ~HypObjectBase();
+    virtual ~ObjectBase();
 
     ObjIdBase Id() const;
 
@@ -75,7 +76,7 @@ public:
     template <class TOther>
     HYP_FORCE_INLINE bool IsA() const
     {
-        if constexpr (std::is_same_v<HypObjectBase, TOther>)
+        if constexpr (std::is_same_v<ObjectBase, TOther>)
         {
             return true;
         }
@@ -97,7 +98,7 @@ public:
         return hyperion::IsA(cls, InstanceClass());
     }
 
-    HYP_FORCE_INLINE HypObjectHeader* GetObjectHeader_Internal() const
+    HYP_FORCE_INLINE ObjectHeader* GetObjectHeader_Internal() const
     {
         return m_header;
     }
@@ -138,15 +139,15 @@ protected:
         INIT_STATE_READY = 0x2
     };
 
-    HypObjectBase(const HypObjectBase& other) = delete;
-    HypObjectBase& operator=(const HypObjectBase& other) = delete;
+    ObjectBase(const ObjectBase& other) = delete;
+    ObjectBase& operator=(const ObjectBase& other) = delete;
 
-    HypObjectBase(HypObjectBase&& other) noexcept
+    ObjectBase(ObjectBase&& other) noexcept
         : m_initState(other.m_initState.Exchange(INIT_STATE_UNINITIALIZED, MemoryOrder::ACQUIRE_RELEASE))
     {
     }
 
-    HypObjectBase& operator=(HypObjectBase&& other) noexcept
+    ObjectBase& operator=(ObjectBase&& other) noexcept
     {
         if (this == &other)
         {
@@ -187,7 +188,7 @@ protected:
     }
 
     // Pointer to the header of the object, holding container, index and ref counts. Must be the first member.
-    HypObjectHeader* m_header;
+    ObjectHeader* m_header;
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
     ScriptObjectResource* m_scriptObjectResource;

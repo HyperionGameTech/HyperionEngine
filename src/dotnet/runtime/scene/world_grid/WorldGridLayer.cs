@@ -33,7 +33,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "WorldGridLayer")]
-    public class WorldGridLayer : HypObject
+    public class WorldGridLayer : ObjectBase
     {
         public WorldGridLayer() : base()
         {

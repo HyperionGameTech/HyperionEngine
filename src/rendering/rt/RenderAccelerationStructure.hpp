@@ -45,7 +45,7 @@ enum AccelerationStructureFlagBits : AccelerationStructureFlags
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class GpuTlasBase : public HypObjectBase
+class GpuTlasBase : public ObjectBase
 {
     HYP_OBJECT_BODY(GpuTlasBase);
 
@@ -97,7 +97,7 @@ protected:
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class GpuBlasBase : public HypObjectBase
+class GpuBlasBase : public ObjectBase
 {
     HYP_OBJECT_BODY(GpuBlasBase);
 

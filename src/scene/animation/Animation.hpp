@@ -10,7 +10,7 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 namespace hyperion {
@@ -19,7 +19,7 @@ class Bone;
 class Skeleton;
 
 HYP_CLASS()
-class HYP_API AnimationTrack final : public HypObjectBase
+class HYP_API AnimationTrack final : public ObjectBase
 {
     HYP_OBJECT_BODY(AnimationTrack);
 
@@ -79,7 +79,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Animation final : public HypObjectBase
+class HYP_API Animation final : public ObjectBase
 {
     HYP_OBJECT_BODY(Animation);
 

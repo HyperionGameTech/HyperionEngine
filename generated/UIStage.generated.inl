@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region UIStage Reflection Data
 
-HYP_BEGIN_CLASS(UIStage, 214, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIStage, 21, 0, NAME("UIObject"))
     Method(NAME(HYP_STR(GetSurfaceSize)), &UIStage::GetSurfaceSize),
     Method(NAME(HYP_STR(SetSurfaceSize)), &UIStage::SetSurfaceSize),
     Method(NAME(HYP_STR(GetScene)), &UIStage::GetScene),

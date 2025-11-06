@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="WorldGrid")]
-    public class WorldGrid : HypObject
+    [ClassBinding(Name = "WorldGrid")]
+    public class WorldGrid : ObjectBase
     {
     }
 }

@@ -23,8 +23,8 @@ HYP_API SafeDeleter* GetSafeDeleterInstance()
     return g_safeDeleter;
 }
 
-#pragma region SafeDeleterEntry < HypObjectBase*>
-SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, ConstructFromHandleTag)
+#pragma region SafeDeleterEntry < ObjectBase*>
+SafeDeleterEntry<ObjectBase*>::SafeDeleterEntry(ObjectBase* ptr, ConstructFromHandleTag)
     : ptr(ptr)
 {
     if (ptr)
@@ -35,7 +35,7 @@ SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, Construct
 #else
         const bool hasExtraRef = false;
 #endif
-        HypObjectHeader* header = ptr->GetObjectHeader_Internal();
+        ObjectHeader* header = ptr->GetObjectHeader_Internal();
 
         int32 currentCount = AtomicIncrement(&header->refCountStrong);
         AssertDebug(currentCount > 1); // should have another ref from input
@@ -48,7 +48,7 @@ SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, Construct
 #ifdef HYP_DOTNET
                 if (hasExtraRef)
                 {
-                    HypObject_DecScriptObjectRef(ptr);
+                    Object_DecScriptObjectRef(ptr);
                 }
 #endif
 
@@ -58,12 +58,12 @@ SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, Construct
     }
 }
 
-SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
+SafeDeleterEntry<ObjectBase*>::~SafeDeleterEntry()
 {
     // call destructor if no more strong references
     if (ptr)
     {
-        HypObjectHeader* header = ptr->GetObjectHeader_Internal();
+        ObjectHeader* header = ptr->GetObjectHeader_Internal();
 
         /// @NOTE: Objects with C# scripts that haven't been GC'd here wouldn't get deleted.
         /// However, we incremented the strong ref count in the constructor to prevent deletion until this point.
@@ -74,7 +74,7 @@ SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
             // we increment weak reference to prevent weak refs to this from causing Release() upon calling their destructors.
             header->IncRefWeak();
 
-            ptr->~HypObjectBase();
+            ptr->~ObjectBase();
 
 #ifdef HYP_DEBUG_MODE
             header->wasSafeDeleted = true;
@@ -85,7 +85,7 @@ SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
     }
 }
 
-#pragma region SafeDeleterEntry < HypObjectBase*>
+#pragma region SafeDeleterEntry < ObjectBase*>
 
 #pragma region SafeDeleter
 

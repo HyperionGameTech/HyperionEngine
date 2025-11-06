@@ -24,7 +24,7 @@ RigidBody::RigidBody(const PhysicsMaterial& physicsMaterial)
 }
 
 RigidBody::RigidBody(const Handle<PhysicsShape>& shape, const PhysicsMaterial& physicsMaterial)
-    : HypObjectBase(),
+    : ObjectBase(),
       m_shape(shape),
       m_physicsMaterial(physicsMaterial),
       m_isKinematic(true)

@@ -8,14 +8,14 @@ namespace Hyperion
     {
         public static bool IsEditor(this GameState obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<GameState>(), new Name(11649884982726521032)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<GameState>(), new Name(11649884982726521032)).InvokeNative(obj))
             {
                 return resultData.ReadBool();
             }
         }
         public static bool IsSimulating(this GameState obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<GameState>(), new Name(13189833649112293320)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<GameState>(), new Name(13189833649112293320)).InvokeNative(obj))
             {
                 return resultData.ReadBool();
             }

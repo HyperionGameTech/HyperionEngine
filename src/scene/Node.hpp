@@ -15,7 +15,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/Variant.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/Name.hpp>
@@ -298,7 +298,7 @@ public:
 };
 
 HYP_CLASS(PostLoad = "Node_OnPostLoad")
-class HYP_API Node : public HypObjectBase
+class HYP_API Node : public ObjectBase
 {
     friend class Scene;
     friend class Entity;

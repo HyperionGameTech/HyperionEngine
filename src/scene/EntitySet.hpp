@@ -203,10 +203,10 @@ public:
         Assert(entity != nullptr);
 
         // fine to access these following Entity fields, even if the entity is destructed
-        // - the HypObjectHeader will still be valid until the entry is freed from the pool.
+        // - the ObjectHeader will still be valid until the entry is freed from the pool.
         // we just need a weak reference to the entity to exist.
         // (this is only called from Entity::~Entity() where we do that).
-        HypObjectHeader* header = entity->GetObjectHeader_Internal();
+        ObjectHeader* header = entity->GetObjectHeader_Internal();
         Assert(header != nullptr);
 
         const Class* cls = header->cls;
@@ -214,7 +214,7 @@ public:
 
         const auto entityElementIt = m_elements.FindIf([entity](const Element& element)
             {
-                return static_cast<HypObjectBase*>(element.template GetElement<0>()) == entity;
+                return static_cast<ObjectBase*>(element.template GetElement<0>()) == entity;
             });
 
         if (entityElementIt != m_elements.End())

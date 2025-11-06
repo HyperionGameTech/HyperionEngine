@@ -164,7 +164,7 @@ public:
 
     /*! \brief Allocates memory for an object of type T, constructs it in-place using the given arguments, and constructs a Context object, passing in the address of the allocated memory before the construction of T.
      *  \tparam T The type of the object to allocate and construct.
-     *  \tparam Context The context type that will be constructed before T is constructed. Useful for setting data on the allocated memory before the object is constructed. (e.g. HypObjectInitializerGuard). This is an internal feature and should not be used by users of the API.
+     *  \tparam Context The context type that will be constructed before T is constructed. Useful for setting data on the allocated memory before the object is constructed. (e.g. ObjectInitializerGuard). This is an internal feature and should not be used by users of the API.
      *  \tparam Args The types of the arguments to pass to the constructor of T.
      *  \returns A pointer to the newly allocated and constructed object of type T. */
     template <class T, class Context, class... Args>

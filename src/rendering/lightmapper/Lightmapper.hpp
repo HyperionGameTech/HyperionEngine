@@ -9,7 +9,7 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/Semaphore.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/utilities/Span.hpp>
@@ -180,7 +180,7 @@ public:
     }
 
     virtual void Create() = 0;
-    virtual void PrepareJob(LightmapJobBase* job) {};
+    virtual void PrepareJob(LightmapJobBase* job) { };
     virtual void UpdateRays(Span<const LightmapRay> rays) = 0;
     virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits) = 0;
     virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
@@ -190,7 +190,7 @@ protected:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API LightmapperBase : public HypObjectBase
+class HYP_API LightmapperBase : public ObjectBase
 {
     HYP_OBJECT_BODY(LightmapperBase);
 

@@ -223,8 +223,8 @@ namespace Hyperion
         DepthMap = 0x2000
     }
 
-    [ClassBinding(Name="Material")]
-    public class Material : HypObject
+    [ClassBinding(Name = "Material")]
+    public class Material : ObjectBase
     {
         public Material()
         {

@@ -18,7 +18,7 @@
 
 #include <core/config/Config.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <input/Mouse.hpp>
@@ -64,7 +64,7 @@ struct WindowOptions
 };
 
 HYP_CLASS(Abstract)
-class HYP_API ApplicationWindow : public HypObjectBase
+class HYP_API ApplicationWindow : public ObjectBase
 {
     HYP_OBJECT_BODY(ApplicationWindow);
 
@@ -137,7 +137,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API AppContextBase : public HypObjectBase
+class HYP_API AppContextBase : public ObjectBase
 {
     HYP_OBJECT_BODY(AppContextBase);
 

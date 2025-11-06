@@ -4,7 +4,7 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/math/Vector3.hpp>
@@ -40,7 +40,7 @@ struct GaussianSplattingModelData
 };
 
 HYP_CLASS()
-class HYP_API GaussianSplattingInstance final : public HypObjectBase
+class HYP_API GaussianSplattingInstance final : public ObjectBase
 {
     HYP_OBJECT_BODY(GaussianSplattingInstance);
 
@@ -117,7 +117,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API GaussianSplatting final : public HypObjectBase
+class HYP_API GaussianSplatting final : public ObjectBase
 {
     HYP_OBJECT_BODY(GaussianSplatting);
 

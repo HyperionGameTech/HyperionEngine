@@ -324,7 +324,7 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT int8 HypData_GetHypObject(const HypData* hypData, dotnet::ObjectReference* outObjectReference)
+    HYP_EXPORT int8 HypData_GetObject(const HypData* hypData, dotnet::ObjectReference* outObjectReference)
     {
 #ifdef HYP_DOTNET
         if (!hypData || !outObjectReference)
@@ -334,7 +334,7 @@ extern "C"
 
         if (hypData->IsNull())
         {
-            HYP_LOG(Object, Error, "Cannot get HypObject from null HypData");
+            HYP_LOG(Object, Error, "Cannot get Object from null HypData");
 
             return false;
         }
@@ -374,7 +374,7 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT int8 HypData_SetHypObject(HypData* hypData, const Class* cls, void* address)
+    HYP_EXPORT int8 HypData_SetObject(HypData* hypData, const Class* cls, void* address)
     {
         if (!hypData || !cls || !address)
         {

@@ -8,7 +8,7 @@
 
 #include <core/Types.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/functional/Delegate.hpp>
@@ -46,7 +46,7 @@ struct EngineDelegates
 };
 
 HYP_CLASS()
-class EngineDriver final : public HypObjectBase
+class EngineDriver final : public ObjectBase
 {
     HYP_OBJECT_BODY(EngineDriver);
 

@@ -8,7 +8,7 @@
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/Method.hpp>
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/Object.hpp>
 #include <core/reflection/TypeInfo.hpp>
 
 #include <core/utilities/Format.hpp>
@@ -115,8 +115,8 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 
     if (cls->IsClassType())
     {
-        // Get instance class if object is a HypObject
-        const Class* instanceClass = static_cast<const HypObjectBase*>(in.GetPointer())->InstanceClass();
+        // Get instance class if object is a Object
+        const Class* instanceClass = static_cast<const ObjectBase*>(in.GetPointer())->InstanceClass();
         Assert(instanceClass != nullptr);
 
         cls = instanceClass;

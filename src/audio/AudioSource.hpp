@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/math/Vector3.hpp>
@@ -30,7 +30,7 @@ enum class AudioSourceState : uint32
 };
 
 HYP_CLASS()
-class AudioSource final : public HypObjectBase
+class AudioSource final : public ObjectBase
 {
     HYP_OBJECT_BODY(AudioSource);
 

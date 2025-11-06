@@ -59,7 +59,7 @@ struct FBOMMarshalerRegistration : FBOMMarshalerRegistrationBase
 };
 
 template <class T>
-class FBOMObjectMarshalerBase<T, std::enable_if_t<IsHypObjectV<T>>> : public FBOMMarshalerBase
+class FBOMObjectMarshalerBase<T, std::enable_if_t<IsObjectV<T>>> : public FBOMMarshalerBase
 {
 public:
     using ClassType = typename T::ClassInfo::Type;

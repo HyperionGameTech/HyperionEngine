@@ -14,7 +14,7 @@ class Node;
 template <class T>
 struct SerializationWrapper
 {
-    using Type = std::conditional_t<std::is_base_of_v<HypObjectBase, T>, Handle<T>, T>;
+    using Type = std::conditional_t<std::is_base_of_v<ObjectBase, T>, Handle<T>, T>;
 };
 
 template <class T>

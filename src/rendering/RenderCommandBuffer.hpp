@@ -5,7 +5,7 @@
 #include <rendering/RenderDevice.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/Defines.hpp>
@@ -13,7 +13,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class CommandBufferBase : public HypObjectBase
+class CommandBufferBase : public ObjectBase
 {
     HYP_OBJECT_BODY(CommandBufferBase);
 

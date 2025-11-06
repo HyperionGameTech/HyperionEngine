@@ -12,7 +12,7 @@
 #include <core/containers/ArrayMap.hpp>
 #include <core/containers/FixedArray.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/utilities/Range.hpp>
 
@@ -49,10 +49,10 @@ enum class DescriptorSetDeclarationFlags : uint8
 HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
 
 class IRenderProxy;
-class HypObjectBase;
+class ObjectBase;
 
 namespace RenderApi {
-uint32 RetrieveResourceBinding(const HypObjectBase* resource);
+uint32 RetrieveResourceBinding(const ObjectBase* resource);
 } // namespace RenderApi
 
 template <class T>
@@ -67,7 +67,7 @@ struct ShaderDataOffset
     {
     }
 
-    explicit ShaderDataOffset(const HypObjectBase* resource, uint32 indexIfNull = InvalidIndex)
+    explicit ShaderDataOffset(const ObjectBase* resource, uint32 indexIfNull = InvalidIndex)
         : index(indexIfNull)
     {
         if (uint32 idx = RenderApi::RetrieveResourceBinding(resource); idx != ~0u)
@@ -587,7 +587,7 @@ struct DescriptorSetElement
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class DescriptorSetBase : public HypObjectBase
+class DescriptorSetBase : public ObjectBase
 {
     HYP_OBJECT_BODY(DescriptorSetBase);
 
@@ -819,7 +819,7 @@ protected:
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class DescriptorTableBase : public HypObjectBase
+class DescriptorTableBase : public ObjectBase
 {
     HYP_OBJECT_BODY(DescriptorTableBase);
 

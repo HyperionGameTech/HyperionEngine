@@ -472,7 +472,7 @@ private:
                 Array<uint32> stack;
                 stack.Reserve(classDefinitions.Size());
 
-                uint32 nextOut = 1; // 0 is reserved for HypObjectBase
+                uint32 nextOut = 1; // 0 is reserved for ObjectBase
 
                 Proc<void(uint32)> topologicalSort;
                 topologicalSort = [&](uint32 id)
@@ -483,8 +483,8 @@ private:
 
                     uint32 start = nextOut;
 
-                    // skip assignment for builtin HypObjectBase type (0)
-                    const bool isBaseClass = classDefinition->name == "HypObjectBase";
+                    // skip assignment for builtin ObjectBase type (0)
+                    const bool isBaseClass = classDefinition->name == "ObjectBase";
 
                     if (!isBaseClass)
                     {

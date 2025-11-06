@@ -15,7 +15,7 @@
 #include <core/math/Extent.hpp>
 #include <core/math/Vector2.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
@@ -420,10 +420,26 @@ static inline constexpr bool FormatSupportsBlending(TextureFormat fmt)
 template <SizeType Size>
 struct SizedUInt;
 
-template <> struct SizedUInt<1> { using Type = uint8; };
-template <> struct SizedUInt<2> { using Type = uint16; };
-template <> struct SizedUInt<4> { using Type = uint32; };
-template <> struct SizedUInt<8> { using Type = uint64; };
+template <>
+struct SizedUInt<1>
+{
+    using Type = uint8;
+};
+template <>
+struct SizedUInt<2>
+{
+    using Type = uint16;
+};
+template <>
+struct SizedUInt<4>
+{
+    using Type = uint32;
+};
+template <>
+struct SizedUInt<8>
+{
+    using Type = uint64;
+};
 
 template <SizeType Size>
 using SizedUIntT = typename SizedUInt<Size>::Type;

@@ -9,7 +9,7 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void Handle_Get(HypObjectBase* ptr, ValueStorage<HypData>* outHypData)
+    HYP_EXPORT void Handle_Get(ObjectBase* ptr, ValueStorage<HypData>* outHypData)
     {
         Assert(outHypData != nullptr);
         Assert(ptr != nullptr);
@@ -17,7 +17,7 @@ extern "C"
         outHypData->Construct(AnyRef(ptr->GetObjectHeader_Internal()->cls->GetTypeInfo(), ptr));
     }
 
-    HYP_EXPORT void Handle_Set(HypData* hypData, HypObjectBase** outPtr)
+    HYP_EXPORT void Handle_Set(HypData* hypData, ObjectBase** outPtr)
     {
         Assert(outPtr != nullptr);
 
@@ -38,7 +38,7 @@ extern "C"
         *outPtr = nullptr;
     }
 
-    HYP_EXPORT void Handle_Destruct(HypObjectBase* ptr)
+    HYP_EXPORT void Handle_Destruct(ObjectBase* ptr)
     {
         if (ptr != nullptr)
         {
@@ -46,11 +46,11 @@ extern "C"
         }
     }
 
-    HYP_EXPORT uint8 WeakHandle_Lock(HypObjectBase* ptr)
+    HYP_EXPORT uint8 WeakHandle_Lock(ObjectBase* ptr)
     {
         Assert(ptr != nullptr);
 
-        HypObjectHeader* header = ptr->GetObjectHeader_Internal();
+        ObjectHeader* header = ptr->GetObjectHeader_Internal();
         AssertDebug(header != nullptr);
 
         if (!header->TryIncRefStrong())
@@ -61,7 +61,7 @@ extern "C"
         return 1;
     }
 
-    HYP_EXPORT void WeakHandle_Set(HypData* hypData, HypObjectBase** outPtr)
+    HYP_EXPORT void WeakHandle_Set(HypData* hypData, ObjectBase** outPtr)
     {
         Assert(outPtr != nullptr);
 
@@ -84,7 +84,7 @@ extern "C"
         *outPtr = nullptr;
     }
 
-    HYP_EXPORT void WeakHandle_Destruct(HypObjectBase* ptr)
+    HYP_EXPORT void WeakHandle_Destruct(ObjectBase* ptr)
     {
         if (ptr != nullptr)
         {

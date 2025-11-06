@@ -9,7 +9,7 @@
 
 #include <core/utilities/Uuid.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/HashCode.hpp>
@@ -46,7 +46,7 @@ struct StreamableKey
 };
 
 HYP_CLASS(Abstract)
-class HYP_API StreamableBase : public HypObjectBase
+class HYP_API StreamableBase : public ObjectBase
 {
     HYP_OBJECT_BODY(StreamableBase);
 

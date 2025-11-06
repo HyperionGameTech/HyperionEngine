@@ -15,7 +15,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "LightmapVolume")]
-    public class LightmapVolume : HypObject
+    public class LightmapVolume : ObjectBase
     {
         public LightmapVolume()
         {

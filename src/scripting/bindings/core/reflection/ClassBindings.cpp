@@ -4,7 +4,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/Object.hpp>
 #include <core/reflection/Method.hpp>
 
 #include <core/logging/LogChannels.hpp>

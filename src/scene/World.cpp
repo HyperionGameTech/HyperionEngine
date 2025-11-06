@@ -46,7 +46,7 @@ extern const GlobalConfig& CoreApi_GetGlobalConfig();
 #define HYP_WORLD_ASYNC_VIEW_COLLECTION
 
 World::World()
-    : HypObjectBase(),
+    : ObjectBase(),
       m_name(Name::Unique("World")),
       m_worldGrid(CreateObject<WorldGrid>(this)),
       m_raytracingView(nullptr),
@@ -219,7 +219,7 @@ void World::Init()
 
     m_physicsWorld.Init();
 
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     SetReady(true);
 }

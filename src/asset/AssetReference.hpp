@@ -4,7 +4,7 @@
 
 #include <asset/AssetPath.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/utilities/Variant.hpp>

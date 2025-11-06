@@ -15,7 +15,7 @@
 
 #include <core/memory/Pimpl.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <util/GameCounter.hpp>
@@ -26,7 +26,7 @@ class UIObject;
 class EditorTaskThread;
 
 HYP_CLASS(Abstract)
-class EditorTaskBase : public HypObjectBase
+class EditorTaskBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorTaskBase);
 

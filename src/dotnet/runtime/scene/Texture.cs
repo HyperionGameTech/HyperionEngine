@@ -48,12 +48,12 @@ namespace Hyperion
         RG8_SRGB,
         RGB8_SRGB,
         RGBA8_SRGB,
-        
+
         B8_SRGB,
         BG8_SRGB,
         BGR8_SRGB,
         BGRA8_SRGB,
-        
+
         DEPTH, /* begin depth */
 
         DEPTH_16 = DEPTH,
@@ -77,8 +77,8 @@ namespace Hyperion
         ImageCube
     }
 
-    [ClassBinding(Name="Texture")]
-    public class Texture : HypObject
+    [ClassBinding(Name = "Texture")]
+    public class Texture : ObjectBase
     {
         public Texture()
         {

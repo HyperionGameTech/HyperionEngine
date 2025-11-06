@@ -8,7 +8,7 @@ namespace Hyperion
     {
         public static Keyframe Blend(this Keyframe obj, Keyframe to, float blend)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Keyframe>(), new Name(9343664163801395928)).InvokeNative(obj, to, blend))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Keyframe>(), new Name(9343664163801395928)).InvokeNative(obj, to, blend))
             {
                 return resultData.ReadStruct<Keyframe>();
             }

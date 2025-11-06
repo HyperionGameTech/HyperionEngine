@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="ApplicationWindow")]
-    public class ApplicationWindow : HypObject
+    [ClassBinding(Name = "ApplicationWindow")]
+    public class ApplicationWindow : ObjectBase
     {
         public ApplicationWindow()
         {

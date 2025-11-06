@@ -203,7 +203,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                 {
                     if (cls.type == ClassDefinitionType::STRUCT)
                     {
-                        writer.WriteString(HYP_FORMAT("            HypObject.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{});\n",
+                        writer.WriteString(HYP_FORMAT("            ObjectBase.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{});\n",
                             cls.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                     }
                     else if (cls.type == ClassDefinitionType::CLASS)
@@ -220,7 +220,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                 {
                     if (cls.type == ClassDefinitionType::STRUCT)
                     {
-                        writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{}))\n",
+                        writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{}))\n",
                             cls.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                         writer.WriteString("            {\n");
 

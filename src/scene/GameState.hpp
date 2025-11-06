@@ -5,7 +5,7 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 namespace hyperion {
 

@@ -11,7 +11,7 @@
 
 #include <core/functional/Delegate.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <scene/ComponentContainer.hpp>
@@ -48,7 +48,7 @@ public:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API SystemBase : public HypObjectBase
+class HYP_API SystemBase : public ObjectBase
 {
     HYP_OBJECT_BODY(SystemBase);
 

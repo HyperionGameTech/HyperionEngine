@@ -5,7 +5,7 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
@@ -33,7 +33,7 @@ enum class PhysicsShapeType : uint32
 };
 
 HYP_CLASS(Abstract)
-class PhysicsShape : public HypObjectBase
+class PhysicsShape : public ObjectBase
 {
     HYP_OBJECT_BODY(PhysicsShape);
 
@@ -180,7 +180,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API RigidBody final : public HypObjectBase
+class HYP_API RigidBody final : public ObjectBase
 {
     HYP_OBJECT_BODY(RigidBody);
 

@@ -109,7 +109,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         auto* data = sor->GetScriptObjectData_Native();
         Assert(data != nullptr);
 
-        Handle<HypObjectBase> nativeObject = data->nativeObject.Lock();
+        Handle<ObjectBase> nativeObject = data->nativeObject.Lock();
         AssertDebug(nativeObject != nullptr);
 
         if (const Method* method = nativeObject->InstanceClass()->GetMethod(methodName))

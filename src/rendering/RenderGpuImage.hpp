@@ -19,7 +19,7 @@ namespace hyperion {
 enum ShaderModuleType : uint32;
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class GpuImageBase : public HypObjectBase
+class GpuImageBase : public ObjectBase
 {
     HYP_OBJECT_BODY(GpuImageBase);
 

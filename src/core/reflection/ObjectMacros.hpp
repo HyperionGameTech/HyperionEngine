@@ -113,7 +113,7 @@ public:                                                                         
                                                                                  \
     HYP_FORCE_INLINE ObjId<T> Id() const                                         \
     {                                                                            \
-        return (ObjId<T>)(HypObjectBase::Id());                                  \
+        return (ObjId<T>)(ObjectBase::Id());                                     \
     }                                                                            \
                                                                                  \
     HYP_FORCE_INLINE static const Class* StaticClass()                           \
@@ -180,5 +180,7 @@ private:
     {                                                  \
         return hyperion::GetClass<T>();                \
     }
+
+#define HYP_REGISTER_STATIC_CLASS(T) static TClassStaticInit<T> s_classInit##T;
 
 } // namespace hyperion

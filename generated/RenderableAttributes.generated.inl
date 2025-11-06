@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region MaterialAttributeFlags Reflection Data
 
-HYP_BEGIN_ENUM(MaterialAttributeFlags, 277, 0, {})
+HYP_BEGIN_ENUM(MaterialAttributeFlags, 330, 0, {})
     StaticField(NAME(HYP_STR(MAF_NONE)), MaterialAttributeFlags::MAF_NONE),
     StaticField(NAME(HYP_STR(MAF_DEPTH_WRITE)), MaterialAttributeFlags::MAF_DEPTH_WRITE),
     StaticField(NAME(HYP_STR(MAF_DEPTH_TEST)), MaterialAttributeFlags::MAF_DEPTH_TEST),
@@ -21,7 +21,7 @@ namespace hyperion {
 
 #pragma region MaterialAttributes Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialAttributes, 278, 0, {})
+HYP_BEGIN_STRUCT(MaterialAttributes, 331, 0, {})
     Field(NAME(HYP_STR(ShaderDefinition)), &MaterialAttributes::shaderDefinition, offsetof(MaterialAttributes, shaderDefinition), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Bucket)), &MaterialAttributes::bucket, offsetof(MaterialAttributes, bucket), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(FillMode)), &MaterialAttributes::fillMode, offsetof(MaterialAttributes, fillMode), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
@@ -40,7 +40,7 @@ namespace hyperion {
 
 #pragma region MeshAttributes Reflection Data
 
-HYP_BEGIN_STRUCT(MeshAttributes, 279, 0, {})
+HYP_BEGIN_STRUCT(MeshAttributes, 332, 0, {})
     Field(NAME(HYP_STR(VertexAttributes)), &MeshAttributes::vertexAttributes, offsetof(MeshAttributes, vertexAttributes), Span<const ClassAttribute> { {ClassAttribute("property", "VertexAttributes"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Topology)), &MeshAttributes::topology, offsetof(MeshAttributes, topology), Span<const ClassAttribute> { {ClassAttribute("property", "Topology"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(IndexBufferElemType)), &MeshAttributes::indexBufferElemType, offsetof(MeshAttributes, indexBufferElemType), Span<const ClassAttribute> { {ClassAttribute("property", "IndexBufferElemType"), ClassAttribute("serialize", true) } })

@@ -7,7 +7,7 @@
 
 #include <core/math/Vector2.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/memory/Pimpl.hpp>
@@ -17,7 +17,7 @@ namespace hyperion {
 struct InputState;
 
 HYP_CLASS(Abstract)
-class HYP_API InputHandlerBase : public HypObjectBase
+class HYP_API InputHandlerBase : public ObjectBase
 {
     HYP_OBJECT_BODY(InputHandlerBase);
 

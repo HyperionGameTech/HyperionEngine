@@ -9,7 +9,7 @@
 #include <core/reflection/Handle.hpp>
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/functional/Proc.hpp>
@@ -81,7 +81,7 @@ struct LoadedAsset
         {
             return value.Get<RC<T>>();
         }
-        else if constexpr (std::is_base_of_v<HypObjectBase, T>)
+        else if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
             return value.Get<Handle<T>>();
         }
@@ -98,7 +98,7 @@ struct LoadedAsset
         {
             return std::move(value).Get<RC<T>>();
         }
-        else if constexpr (std::is_base_of_v<HypObjectBase, T>)
+        else if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
             return std::move(value).Get<Handle<T>>();
         }
@@ -164,7 +164,7 @@ template <class T>
 using TAssetLoadResult = TResult<TLoadedAsset<T>, AssetLoadError>;
 
 HYP_CLASS(Abstract)
-class HYP_API AssetLoaderBase : public HypObjectBase
+class HYP_API AssetLoaderBase : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetLoaderBase);
 

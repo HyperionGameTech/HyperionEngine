@@ -23,6 +23,8 @@ HYP_BEGIN_STRUCT(Vec4f, -1, 0, {})
     Field(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
+HYP_REGISTER_STATIC_CLASS(Vec4f);
+
 HYP_BEGIN_STRUCT(Vec4i, -1, 0, {})
     Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
@@ -30,12 +32,16 @@ HYP_BEGIN_STRUCT(Vec4i, -1, 0, {})
     Field(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
+HYP_REGISTER_STATIC_CLASS(Vec4i);
+
 HYP_BEGIN_STRUCT(Vec4u, -1, 0, {})
     Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     Field(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
     Field(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
+
+HYP_REGISTER_STATIC_CLASS(Vec4u);
 
 // clang-format on
 

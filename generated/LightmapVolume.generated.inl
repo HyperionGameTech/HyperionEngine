@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region LightmapElement Reflection Data
 
-HYP_BEGIN_STRUCT(LightmapElement, 395, 0, {}, ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_STRUCT(LightmapElement, 389, 0, {}, ClassAttribute("noscriptbindings", true))
     Field(NAME(HYP_STR(Id)), &LightmapElement::id, offsetof(LightmapElement, id), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(OffsetUv)), &LightmapElement::offsetUv, offsetof(LightmapElement, offsetUv), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(OffsetCoords)), &LightmapElement::offsetCoords, offsetof(LightmapElement, offsetCoords), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
@@ -23,7 +23,7 @@ namespace hyperion {
 
 #pragma region LightmapVolumeAtlas Reflection Data
 
-HYP_BEGIN_STRUCT(LightmapVolumeAtlas, 396, 0, {})
+HYP_BEGIN_STRUCT(LightmapVolumeAtlas, 390, 0, {})
     Property(NAME(HYP_STR(AtlasDimensions)), &LightmapVolumeAtlas::atlasDimensions),
     Property(NAME(HYP_STR(Elements)), &LightmapVolumeAtlas::elements),
     Property(NAME(HYP_STR(FreeSpaces)), &LightmapVolumeAtlas::freeSpaces)
@@ -40,7 +40,7 @@ namespace hyperion {
 
 #pragma region LightmapVolume Reflection Data
 
-HYP_BEGIN_CLASS(LightmapVolume, 144, 0, NAME("Entity"))
+HYP_BEGIN_CLASS(LightmapVolume, 178, 0, NAME("Entity"))
     Method(NAME(HYP_STR(GetUUID)), &LightmapVolume::GetUUID, Span<const ClassAttribute> { {ClassAttribute("property", "UUID") } }),
     Method(NAME(HYP_STR(GetAtlasTexture)), &LightmapVolume::GetAtlasTexture),
     Field(NAME(HYP_STR(Uuid)), &LightmapVolume::m_uuid, offsetof(LightmapVolume, m_uuid), Span<const ClassAttribute> { {ClassAttribute("property", "UUID") } }),
@@ -59,7 +59,7 @@ namespace hyperion {
 
 #pragma region LightmapTextureType Reflection Data
 
-HYP_BEGIN_ENUM(LightmapTextureType, 397, 0, {})
+HYP_BEGIN_ENUM(LightmapTextureType, 391, 0, {})
     StaticField(NAME(HYP_STR(LTT_INVALID)), LightmapTextureType::LTT_INVALID),
     StaticField(NAME(HYP_STR(LTT_RADIANCE)), LightmapTextureType::LTT_RADIANCE),
     StaticField(NAME(HYP_STR(LTT_IRRADIANCE)), LightmapTextureType::LTT_IRRADIANCE),

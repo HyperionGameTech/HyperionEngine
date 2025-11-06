@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Topology")]
+    [ClassBinding(Name = "Topology")]
     public enum Topology : uint
     {
         Triangles = 0,
@@ -15,7 +15,7 @@ namespace Hyperion
         Points
     }
 
-    [ClassBinding(Name="MeshFlags")]
+    [ClassBinding(Name = "MeshFlags")]
     [Flags]
     public enum MeshFlags : uint
     {
@@ -23,8 +23,8 @@ namespace Hyperion
         ViewIndependent = 0x1,
     }
 
-    [ClassBinding(Name="Mesh")]
-    public class Mesh : HypObject
+    [ClassBinding(Name = "Mesh")]
+    public class Mesh : ObjectBase
     {
         public Mesh()
         {

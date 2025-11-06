@@ -45,7 +45,7 @@ enum BufferIDMask : uint64
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class GpuBufferBase : public HypObjectBase
+class GpuBufferBase : public ObjectBase
 {
     HYP_OBJECT_BODY(GpuBufferBase);
 

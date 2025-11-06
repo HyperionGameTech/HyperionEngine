@@ -6,7 +6,7 @@
 
 #include <util/GameCounter.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/Types.hpp>
 

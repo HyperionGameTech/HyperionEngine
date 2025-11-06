@@ -9,7 +9,7 @@
 
 #include <core/functional/Proc.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 namespace hyperion {
@@ -18,7 +18,7 @@ class EditorSubsystem;
 class EditorProject;
 
 HYP_CLASS(Abstract)
-class EditorActionBase : public HypObjectBase
+class EditorActionBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorActionBase);
 

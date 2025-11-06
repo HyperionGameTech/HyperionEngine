@@ -48,7 +48,7 @@ bool HypDataToJSON(
     json::JSONValue& outJson,
     ToJSONOptions opts = ToJSONOptions {});
 
-/*! \brief Serializes a HypObject instance to a JSONObject.
+/*! \brief Serializes a Object instance to a JSONObject.
  *  Only fields and properties of the Class are serialized.
  *  Members marked with the "jsonignore" attribute are skipped.
  *  Members marked with the "transient" attribute are skipped if skipTransientProperties is true.

@@ -61,13 +61,13 @@ extern EngineStatCounter<uint32> g_statRenderGroups;
 #pragma region RenderGroup
 
 RenderGroup::RenderGroup()
-    : HypObjectBase(),
+    : ObjectBase(),
       m_flags(RenderGroupFlags::NONE)
 {
 }
 
 RenderGroup::RenderGroup(const ShaderRef& shader, const RenderableAttributeSet& renderableAttributes, EnumFlags<RenderGroupFlags> flags)
-    : HypObjectBase(),
+    : ObjectBase(),
       m_flags(flags),
       m_shader(shader),
       m_renderableAttributes(renderableAttributes)
@@ -75,7 +75,7 @@ RenderGroup::RenderGroup(const ShaderRef& shader, const RenderableAttributeSet& 
 }
 
 RenderGroup::RenderGroup(const ShaderRef& shader, const RenderableAttributeSet& renderableAttributes, const DescriptorTableRef& descriptorTable, EnumFlags<RenderGroupFlags> flags)
-    : HypObjectBase(),
+    : ObjectBase(),
       m_flags(flags),
       m_shader(shader),
       m_descriptorTable(descriptorTable),
@@ -107,7 +107,7 @@ void RenderGroup::Init()
 {
     HYP_SCOPE;
 
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     // If parallel rendering is globally disabled, disable it for this RenderGroup
     if (!g_renderBackend->GetRenderConfig().parallelRendering)

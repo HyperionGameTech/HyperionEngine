@@ -6,7 +6,7 @@
 #include <core/Constants.hpp>
 
 #include <core/reflection/ObjId.hpp>
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
@@ -48,7 +48,7 @@ HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
 struct ParallelRenderingState;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API RenderGroup final : public HypObjectBase
+class HYP_API RenderGroup final : public ObjectBase
 {
     HYP_OBJECT_BODY(RenderGroup);
 

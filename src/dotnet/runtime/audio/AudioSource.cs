@@ -19,8 +19,8 @@ namespace Hyperion
         Paused = 3
     }
 
-    [ClassBinding(Name="AudioSource")]
-    public class AudioSource : HypObject
+    [ClassBinding(Name = "AudioSource")]
+    public class AudioSource : ObjectBase
     {
         public AudioSource()
         {

@@ -5,7 +5,7 @@
 #include <core/Defines.hpp>
 #include <core/HashCode.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 namespace hyperion {
@@ -14,7 +14,7 @@ class Scene;
 class World;
 
 HYP_CLASS(Abstract)
-class HYP_API Subsystem : public HypObjectBase
+class HYP_API Subsystem : public ObjectBase
 {
     HYP_OBJECT_BODY(Subsystem);
 
@@ -44,8 +44,8 @@ public:
     {
     }
     virtual void Update(float delta) = 0;
-    virtual void OnSceneAttached(const Handle<Scene>& scene) {};
-    virtual void OnSceneDetached(Scene* scene) {};
+    virtual void OnSceneAttached(const Handle<Scene>& scene) { };
+    virtual void OnSceneDetached(Scene* scene) { };
 
 protected:
     virtual void Init() override

@@ -8,7 +8,7 @@
 
 #include <core/config/Config.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 

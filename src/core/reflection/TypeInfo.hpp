@@ -17,7 +17,7 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/String.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <type_traits>
 

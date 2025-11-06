@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="View")]
-    public class View : HypObject
+    [ClassBinding(Name = "View")]
+    public class View : ObjectBase
     {
         public View()
         {

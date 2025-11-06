@@ -44,7 +44,7 @@ public:
     {
     }
 
-    /*! \brief Script object (HypObjectBase) overload */
+    /*! \brief Script object (ObjectBase) overload */
     Field(Name name, const TypeInfo* typeInfo, const TypeInfo* targetTypeInfo, uint32 offset, uint32 size, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(typeInfo),

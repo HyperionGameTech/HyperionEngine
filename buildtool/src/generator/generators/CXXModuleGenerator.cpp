@@ -163,7 +163,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 {
     writer.WriteString(GetGeneratedFilePreamble(String::empty));
     writer.WriteString("#include <core/reflection/Class.hpp>\n");
-    writer.WriteString("#include <core/reflection/HypObjectMacros.hpp>\n\n");
+    writer.WriteString("#include <core/reflection/ObjectMacros.hpp>\n\n");
 
     writer.WriteString("namespace hyperion {\n\n");
 
@@ -342,7 +342,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 {
     // the including .cpp should provide includes for dependencies
     // so we don't add them here
-    writer.WriteString("#include <core/reflection/HypObjectMacros.hpp>\n");
+    writer.WriteString("#include <core/reflection/ObjectMacros.hpp>\n");
     writer.WriteString("#include <core/reflection/ClassUtils.hpp>\n");
 
     for (const Pair<String, ClassDefinition>& pair : mod.GetClasses())

@@ -23,7 +23,7 @@
 #include <core/math/Quaternion.hpp>
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <scene/ComponentFactory.hpp>
 #include <scene/ComponentContainer.hpp>

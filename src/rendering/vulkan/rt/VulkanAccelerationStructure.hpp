@@ -25,7 +25,7 @@ class Entity;
 class Material;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API VulkanAccelerationGeometry final : public HypObjectBase
+class HYP_API VulkanAccelerationGeometry final : public ObjectBase
 {
     HYP_OBJECT_BODY(VulkanAccelerationGeometry);
 

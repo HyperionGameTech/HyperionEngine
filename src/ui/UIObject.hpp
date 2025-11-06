@@ -8,7 +8,7 @@
 #include <core/math/Color.hpp>
 #include <core/math/BlendVar.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
@@ -519,7 +519,7 @@ struct UIObjectSpawnContext
 #pragma region UIObject
 
 HYP_CLASS(Abstract)
-class HYP_API UIObject : public HypObjectBase
+class HYP_API UIObject : public ObjectBase
 {
     HYP_OBJECT_BODY(UIObject);
 

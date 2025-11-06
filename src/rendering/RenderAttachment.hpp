@@ -7,7 +7,7 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <rendering/RenderObject.hpp>
@@ -17,7 +17,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class AttachmentBase : public HypObjectBase
+class AttachmentBase : public ObjectBase
 {
     HYP_OBJECT_BODY(AttachmentBase);
 

@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="RigidBody")]
-    public class RigidBody : HypObject
+    [ClassBinding(Name = "RigidBody")]
+    public class RigidBody : ObjectBase
     {
         public RigidBody()
         {

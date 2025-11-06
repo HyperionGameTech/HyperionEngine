@@ -168,6 +168,8 @@ else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}
             -O1
             -g
+            -gno-embed-source
+            -gsplit-dwarf=split -gz=zlib
             -Werror=return-type
             -Werror=non-virtual-dtor
             -Werror=address")

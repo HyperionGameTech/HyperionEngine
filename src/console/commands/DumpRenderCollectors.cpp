@@ -74,7 +74,8 @@ HYP_API const Class* g_clsDumpRenderCollectors = nullptr;
 HYP_BEGIN_CLASS(DumpRenderCollectors, -1, 0, NAME("ConsoleCommandBase"), ClassAttribute("command", "dumprendercollectors"))
 HYP_END_CLASS
 
-} // namespace hyperion
+HYP_REGISTER_STATIC_CLASS(DumpRenderCollectors);
 
+} // namespace hyperion
 
 #include <HyperionPch.hpp>

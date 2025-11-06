@@ -4,7 +4,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
@@ -35,7 +35,7 @@ class StreamingNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT
 };
 
 HYP_CLASS()
-class HYP_API StreamingManager final : public HypObjectBase
+class HYP_API StreamingManager final : public ObjectBase
 {
     HYP_OBJECT_BODY(StreamingManager);
 

@@ -73,7 +73,7 @@ static inline bool IsRaytracingShaderModule(ShaderModuleType type)
 }
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class ShaderBase : public HypObjectBase
+class ShaderBase : public ObjectBase
 {
     HYP_OBJECT_BODY(ShaderBase);
 

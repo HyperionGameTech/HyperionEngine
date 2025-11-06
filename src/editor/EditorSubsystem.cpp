@@ -127,17 +127,17 @@ Handle<UIObject> RunningEditorTask::CreateUIObject(UIStage* uiStage) const
 #pragma region GenerateLightmapsEditorTask
 
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume)
-    : GenerateLightmapsEditorTask(Array<Handle<HypObjectBase>> { { ObjCast<HypObjectBase>(volume) } })
+    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { ObjCast<ObjectBase>(volume) } })
 {
 }
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<HypObjectBase>>& sources)
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<ObjectBase>>& sources)
     : TickableEditorTask(),
       m_sources(sources)
 {
     for (auto it = m_sources.Begin(); it != m_sources.End();)
     {
-        HypObjectBase* source = *it;
+        ObjectBase* source = *it;
 
         if (!source->IsA(LightmapVolume::StaticClass())
             && !source->IsA(EnvProbe::StaticClass()))
@@ -187,7 +187,7 @@ void GenerateLightmapsEditorTask::Process()
         lightmapperSubsystem = m_world->AddSubsystem<LightmapperSubsystem>();
     }
 
-    for (const Handle<HypObjectBase>& source : m_sources)
+    for (const Handle<ObjectBase>& source : m_sources)
     {
         Task<void>* task = nullptr;
 

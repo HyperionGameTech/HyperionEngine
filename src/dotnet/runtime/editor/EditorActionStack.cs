@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="EditorActionStack")]
-    public class EditorActionStack : HypObject
+    [ClassBinding(Name = "EditorActionStack")]
+    public class EditorActionStack : ObjectBase
     {
         public EditorActionStack()
         {

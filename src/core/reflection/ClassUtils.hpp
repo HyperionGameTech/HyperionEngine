@@ -7,7 +7,7 @@
 #include <core/reflection/Enum.hpp>
 #include <core/reflection/HypMember.hpp>
 #include <core/reflection/TypeInfo.hpp>
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/FormatFwd.hpp>

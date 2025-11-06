@@ -4,7 +4,7 @@
 
 #include <asset/AssetObject.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/math/Vertex.hpp>
 #include <core/math/BoundingBox.hpp>

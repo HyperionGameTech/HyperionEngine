@@ -3,8 +3,8 @@
 #pragma once
 
 #include <core/reflection/ObjId.hpp>
-#include <core/reflection/HypObjectPool.hpp>
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectPool.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/memory/AnyRef.hpp>
@@ -26,12 +26,12 @@ struct HandleBase
 };
 
 HYP_API extern TypeId GetTypeIdForClass(const Class* cls);
-HYP_API extern HypObjectContainerBase* GetObjectContainerForClass(const Class* cls);
+HYP_API extern ObjectContainerBase* GetObjectContainerForClass(const Class* cls);
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 /*! \brief A Handle is a strong reference to an object allocated in the Object Pool. All Handles are reference counted and will automatically
  *  release the object when the last reference is destroyed.
- *  \tparam T The type of object that the handle is referencing. Must be a subclass of HypObjectBase.
+ *  \tparam T The type of object that the handle is referencing. Must be a subclass of ObjectBase.
  */
 template <class T>
 struct Handle final : HandleBase
@@ -49,7 +49,7 @@ struct Handle final : HandleBase
         return nullHandle;
     }
 
-    HypObjectBase* ptr;
+    ObjectBase* ptr;
 
     Handle()
         : ptr(nullptr)
@@ -68,18 +68,18 @@ struct Handle final : HandleBase
     {
         if (id.IsValid())
         {
-            HypObjectContainerBase* container = GetObjectContainerForClass(GetClass(id.GetTypeId()));
+            ObjectContainerBase* container = GetObjectContainerForClass(GetClass(id.GetTypeId()));
 
             // This really shouldn't happen unless we're doing something wrong.
             // We shouldn't have an Id for a type that doesn't have a container.
             HYP_CORE_ASSERT(container != nullptr);
 
-            HypObjectContainerBase::LockGuard guard;
+            ObjectContainerBase::LockGuard guard;
 
-            HypObjectHeader* header = container->GetObjectHeader(id.ToIndex(), guard);
+            ObjectHeader* header = container->GetObjectHeader(id.ToIndex(), guard);
             HYP_CORE_ASSERT(header != nullptr);
 
-            ptr = HypObjectHeader::GetObjectPointer(header);
+            ptr = ObjectHeader::GetObjectPointer(header);
             HYP_CORE_ASSERT(ptr != nullptr);
 
             // If strong count == 1 after incrementing, the object has already been destructed and it is invalid to create a strong reference
@@ -335,7 +335,7 @@ struct Handle final : HandleBase
         return Id().GetHashCode();
     }
 
-    static Handle FromPointer(HypObjectBase* ptr)
+    static Handle FromPointer(ObjectBase* ptr)
     {
         if (ptr)
         {
@@ -371,7 +371,7 @@ struct WeakHandle final
         return nullHandle;
     }
 
-    HypObjectBase* ptr;
+    ObjectBase* ptr;
 
     WeakHandle()
         : ptr(nullptr)
@@ -390,18 +390,18 @@ struct WeakHandle final
     {
         if (id.IsValid())
         {
-            HypObjectContainerBase* container = GetObjectContainerForClass(GetClass(id.GetTypeId()));
+            ObjectContainerBase* container = GetObjectContainerForClass(GetClass(id.GetTypeId()));
 
             // This really shouldn't happen unless we're doing something wrong.
             // We shouldn't have an Id for a type that doesn't have a container.
             HYP_CORE_ASSERT(container != nullptr);
 
-            HypObjectContainerBase::LockGuard guard;
+            ObjectContainerBase::LockGuard guard;
 
-            HypObjectHeader* header = container->GetObjectHeader(id.ToIndex(), guard);
+            ObjectHeader* header = container->GetObjectHeader(id.ToIndex(), guard);
             HYP_CORE_ASSERT(header != nullptr);
 
-            ptr = HypObjectHeader::GetObjectPointer(header);
+            ptr = ObjectHeader::GetObjectPointer(header);
             HYP_CORE_ASSERT(ptr != nullptr);
 
             header->IncRefWeak();
@@ -695,12 +695,12 @@ struct WeakHandle final
 
 /*! \brief A dynamic Handle type. Type is stored at runtime instead of compile time.
  *  An AnyHandle is able to be punned to a Handle<T> permitted that T is the actual type of the held object
- *  \todo Deprecate in favour of Handle<HypObjectBase>. */
+ *  \todo Deprecate in favour of Handle<ObjectBase>. */
 struct AnyHandle final
 {
     using IdType = ObjIdBase;
 
-    HypObjectBase* ptr;
+    ObjectBase* ptr;
     TypeId typeId;
 
 public:
@@ -712,12 +712,12 @@ public:
     {
     }
 
-    HYP_API explicit AnyHandle(HypObjectBase* hypObjectPtr);
-    HYP_API AnyHandle(const Class* cls, HypObjectBase* ptr);
+    HYP_API explicit AnyHandle(ObjectBase* obj);
+    HYP_API AnyHandle(const Class* cls, ObjectBase* ptr);
 
-    template <class T, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, T> && !std::is_same_v<HypObjectBase, T>>>
+    template <class T, typename = std::enable_if_t<std::is_base_of_v<ObjectBase, T> && !std::is_same_v<ObjectBase, T>>>
     explicit AnyHandle(T* ptr)
-        : ptr(static_cast<HypObjectBase*>(ptr)),
+        : ptr(static_cast<ObjectBase*>(ptr)),
           typeId(this->ptr != nullptr ? GetTypeIdForClass(this->ptr->m_header->cls) : TypeId::ForType<T>())
     {
         if (IsValid())
@@ -831,7 +831,7 @@ public:
         return ptr != nullptr;
     }
 
-    HYP_FORCE_INLINE HypObjectBase* Get() const
+    HYP_FORCE_INLINE ObjectBase* Get() const
     {
         return ptr;
     }
@@ -875,7 +875,7 @@ public:
         }
 
         // This is "safe" because the typeId is checked above
-        // It is hacky, but we ensure that the structs are the same size and the pointer to HypObjectHeader is the first member
+        // It is hacky, but we ensure that the structs are the same size and the pointer to ObjectHeader is the first member
         return reinterpret_cast<const Handle<T>&>(*this);
     }
 
@@ -890,7 +890,7 @@ public:
         }
 
         // This is "safe" because the typeId is checked above
-        // It is hacky, but we ensure that the structs are the same size and the pointer to HypObjectHeader is the first member
+        // It is hacky, but we ensure that the structs are the same size and the pointer to ObjectHeader is the first member
         return reinterpret_cast<Handle<T>&&>(std::move(*this));
     }
 
@@ -920,15 +920,15 @@ const WeakHandle<T> WeakHandle<T>::empty = {};
 template <class T, class... Args>
 inline Handle<T> CreateObject(Args&&... args)
 {
-    auto* container = reinterpret_cast<HypObjectContainer<typename T::ClassInfo::Type>*>(GetObjectContainerForClass(T::StaticClass()));
+    auto* container = reinterpret_cast<ObjectContainer<typename T::ClassInfo::Type>*>(GetObjectContainerForClass(T::StaticClass()));
     HYP_CORE_ASSERT(container != nullptr, "Container for type not initialized!");
 
-    HypObjectHeader* header = container->Allocate(sizeof(T));
+    ObjectHeader* header = container->Allocate(sizeof(T));
 
-    HypObjectBase* ptr = HypObjectHeader::GetObjectPointer(header);
+    ObjectBase* ptr = ObjectHeader::GetObjectPointer(header);
 
     {
-        HypObjectInitializerGuard<T> guard(ptr);
+        ObjectInitializerGuard<T> guard(ptr);
         new (ptr) T(std::forward<Args>(args)...);
     }
 
@@ -946,9 +946,9 @@ inline bool InitObject(const Handle<T>& handle)
     {
         static_assert(ImplementationExistsV<T>, "Cannot initialize an incomplete type. Make sure the type is fully defined before calling InitObject.");
     }
-    else if constexpr (!std::is_base_of_v<HypObjectBase, T>)
+    else if constexpr (!std::is_base_of_v<ObjectBase, T>)
     {
-        static_assert(std::is_base_of_v<HypObjectBase, T>, "Cannot initialize a type that does not derive from HypObjectBase.");
+        static_assert(std::is_base_of_v<ObjectBase, T>, "Cannot initialize a type that does not derive from ObjectBase.");
     }
 
     if (!handle)
@@ -956,9 +956,9 @@ inline bool InitObject(const Handle<T>& handle)
         return false;
     }
 
-    HypObjectBase* basePtr = static_cast<HypObjectBase*>(handle.Get());
+    ObjectBase* basePtr = static_cast<ObjectBase*>(handle.Get());
 
-    if (basePtr->m_initState.BitOr(HypObjectBase::INIT_STATE_INIT_CALLED, MemoryOrder::ACQUIRE_RELEASE) & HypObjectBase::INIT_STATE_INIT_CALLED)
+    if (basePtr->m_initState.BitOr(ObjectBase::INIT_STATE_INIT_CALLED, MemoryOrder::ACQUIRE_RELEASE) & ObjectBase::INIT_STATE_INIT_CALLED)
     {
         // Already initialized
         return true;
@@ -971,49 +971,49 @@ inline bool InitObject(const Handle<T>& handle)
     return true;
 }
 
-template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<HypObjectBase, T>>>
+template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<ObjectBase, T>>>
 static inline Handle<T> MakeStrongRef(const Handle<T>& handle)
 {
     return handle;
 }
 
-template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<HypObjectBase, T>>>
+template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<ObjectBase, T>>>
 static inline Handle<T> MakeStrongRef(const WeakHandle<T>& weakHandle)
 {
     return weakHandle.Lock();
 }
 
-template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<HypObjectBase, T>>>
+template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<ObjectBase, T>>>
 static inline Handle<T> MakeStrongRef(T* ptr)
 {
     return Handle<T>::FromPointer(ptr);
 }
 
-template <class T, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>>
+template <class T, typename = std::enable_if_t<std::is_base_of_v<ObjectBase, T>>>
 static inline Handle<T> MakeStrongRef(const T* ptr)
 {
     return Handle<T>::FromPointer(const_cast<T*>(ptr));
 }
 
-template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<HypObjectBase, T>>>
+template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<ObjectBase, T>>>
 static inline WeakHandle<T> MakeWeakRef(const WeakHandle<T>& weakHandle)
 {
     return weakHandle;
 }
 
-template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<HypObjectBase, T>>>
+template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<ObjectBase, T>>>
 static inline WeakHandle<T> MakeWeakRef(const Handle<T>& handle)
 {
     return WeakHandle<T>(handle);
 }
 
-template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<HypObjectBase, T>>>
+template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<ObjectBase, T>>>
 static inline WeakHandle<T> MakeWeakRef(T* ptr)
 {
     return WeakHandle<T>::FromPointer(ptr);
 }
 
-template <class T, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>>
+template <class T, typename = std::enable_if_t<std::is_base_of_v<ObjectBase, T>>>
 static inline WeakHandle<T> MakeWeakRef(const T* ptr)
 {
     return WeakHandle<T>::FromPointer(const_cast<T*>(ptr));

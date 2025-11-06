@@ -1,4 +1,4 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 #include <scripting/ScriptObjectResource.hpp>
 #include <dotnet/ManagedObject.hpp>
@@ -9,7 +9,7 @@ namespace hyperion {
 
 #pragma region EditorPropertyPanelBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorPropertyPanelBase, 201, 1, NAME("UIPanel"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorPropertyPanelBase, 18, 1, NAME("UIPanel"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(Build)), &EditorPropertyPanelBase::Build, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
 HYP_END_CLASS
 

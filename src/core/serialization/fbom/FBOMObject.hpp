@@ -364,7 +364,7 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
 
         /// @TODO: Move Marshal to Class.
 
-        if constexpr (std::is_base_of_v<HypObjectBase, NormalizedType<T>>)
+        if constexpr (std::is_base_of_v<ObjectBase, NormalizedType<T>>)
         {
             const Class* instanceClass = in.InstanceClass();
             HYP_CORE_ASSERT(instanceClass != nullptr);

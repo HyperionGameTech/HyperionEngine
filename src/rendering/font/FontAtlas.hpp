@@ -4,7 +4,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
@@ -46,7 +46,7 @@ struct HYP_API FontAtlasTextureSet
 };
 
 HYP_CLASS()
-class FontAtlas : public HypObjectBase
+class FontAtlas : public ObjectBase
 {
     HYP_OBJECT_BODY(FontAtlas);
 

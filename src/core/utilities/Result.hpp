@@ -12,7 +12,7 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/Types.hpp>
 

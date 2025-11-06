@@ -14,7 +14,7 @@
 #include <core/utilities/Span.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>

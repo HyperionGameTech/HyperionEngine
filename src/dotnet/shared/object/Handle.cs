@@ -26,7 +26,7 @@ namespace Hyperion
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 8)]
-    public struct Handle<T> : IDisposable where T : HypObject
+    public struct Handle<T> : IDisposable where T : ObjectBase
     {
         public static readonly Handle<T> Empty = new Handle<T>();
 
@@ -46,7 +46,7 @@ namespace Hyperion
             }
 
             Class? cls = Class.GetClass<T>();
-            
+
             if (cls == null)
             {
                 throw new Exception("Type " + typeof(T).Name + " does not have a registered Class");
@@ -104,7 +104,7 @@ namespace Hyperion
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 8)]
-    public struct WeakHandle<T> : IDisposable where T : HypObject
+    public struct WeakHandle<T> : IDisposable where T : ObjectBase
     {
         public static readonly WeakHandle<T> Empty = new WeakHandle<T>();
 

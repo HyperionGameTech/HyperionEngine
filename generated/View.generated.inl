@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region View Reflection Data
 
-HYP_BEGIN_CLASS(View, 163, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(View, 180, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetScenes)), &View::GetScenes),
     Method(NAME(HYP_STR(AddScene)), &View::AddScene),
     Method(NAME(HYP_STR(RemoveScene)), &View::RemoveScene),

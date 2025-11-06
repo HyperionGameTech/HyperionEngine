@@ -6,13 +6,13 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class ComputePipelineBase : public HypObjectBase
+class ComputePipelineBase : public ObjectBase
 {
     HYP_OBJECT_BODY(ComputePipelineBase);
 

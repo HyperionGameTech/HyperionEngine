@@ -55,14 +55,18 @@ private:
     struct IteratorBase
     {
         std::conditional_t<IsConst, const CharType*, CharType*> ptr;
+        std::conditional_t<IsConst, const CharType*, CharType*> end;
 
-        constexpr IteratorBase(std::conditional_t<IsConst, const CharType*, CharType*> ptr)
-            : ptr(ptr)
+        constexpr IteratorBase(std::conditional_t<IsConst, const CharType*, CharType*> ptr, std::conditional_t<IsConst, const CharType*, CharType*> end = nullptr)
+            : ptr(ptr),
+              end(end)
         {
         }
 
         HYP_FORCE_INLINE WidestCharType operator*() const
         {
+            HYP_CORE_ASSERT(!end || ptr < end, "Dereferencing invalid iterator");
+
             if constexpr (isUtf8)
             {
                 return utf::Char8to32(ptr);
@@ -75,6 +79,11 @@ private:
 
         HYP_FORCE_INLINE IteratorBase& operator++()
         {
+            if (end && ptr >= end)
+            {
+                return *this;
+            }
+
             if constexpr (isUtf8)
             {
                 SizeType codepoints;
@@ -92,16 +101,21 @@ private:
 
         HYP_FORCE_INLINE IteratorBase operator++(int) const
         {
+            if (end && ptr >= end)
+            {
+                return *this;
+            }
+
             if constexpr (isUtf8)
             {
                 SizeType codepoints;
                 utf::Char8to32(ptr, sizeof(utf::Char32), codepoints);
 
-                return { ptr + codepoints };
+                return { ptr + codepoints, end };
             }
             else
             {
-                return { ptr + 1 };
+                return { ptr + 1, end };
             }
         }
 
@@ -113,6 +127,11 @@ private:
 
                 for (SizeType i = 0; i < n; i++)
                 {
+                    if (end && it.ptr >= it.end)
+                    {
+                        break;
+                    }
+
                     SizeType codepoints;
                     utf::Char8to32(it.ptr, sizeof(utf::Char32), codepoints);
 
@@ -123,7 +142,12 @@ private:
             }
             else
             {
-                return { ptr + n };
+                if (end && ptr >= end)
+                {
+                    return *this;
+                }
+
+                return { ptr + n, end };
             }
         }
 
@@ -133,6 +157,11 @@ private:
             {
                 for (SizeType i = 0; i < n; i++)
                 {
+                    if (end && ptr >= end)
+                    {
+                        break;
+                    }
+
                     SizeType codepoints;
                     utf::Char8to32(ptr, sizeof(utf::Char32), codepoints);
 
@@ -141,6 +170,11 @@ private:
             }
             else
             {
+                if (end && ptr >= end)
+                {
+                    return *this;
+                }
+
                 ptr += n;
             }
 
@@ -548,7 +582,25 @@ public:
         return HashCode(::hyperion::FNV1::DoHashString(m_begin, m_end));
     }
 
-    HYP_DEF_STL_BEGIN_END(m_begin, m_end)
+    HYP_NODISCARD constexpr Iterator Begin() const
+    {
+        return Iterator(m_begin, m_end);
+    }
+
+    HYP_NODISCARD constexpr Iterator End() const
+    {
+        return Iterator(m_end, m_end);
+    }
+
+    HYP_NODISCARD constexpr ConstIterator begin() const
+    {
+        return ConstIterator(m_begin, m_end);
+    }
+
+    HYP_NODISCARD constexpr ConstIterator end() const
+    {
+        return ConstIterator(m_end, m_end);
+    }
 
 protected:
     constexpr StringView StrStr(const StringView& other) const

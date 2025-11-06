@@ -87,12 +87,12 @@ public:
     virtual void Initialize() = 0;
 
     // Mark the object to be considered to be a bound resource for the current frame
-    virtual void Consider(HypObjectBase* object) = 0;
+    virtual void Consider(ObjectBase* object) = 0;
 
     // Remove the object from being considered to be bound
-    virtual void Deconsider(HypObjectBase* object) = 0;
+    virtual void Deconsider(ObjectBase* object) = 0;
 
-    virtual uint32 GetBindingForObject(HypObjectBase* object) const = 0;
+    virtual uint32 GetBindingForObject(ObjectBase* object) const = 0;
 
     // Assign / remove bindings for resources (call after all Consider()/Deconsider() calls)
     virtual void ApplyUpdates() = 0;
@@ -153,7 +153,7 @@ class ResourceBinder : public ResourceBinderBase
             AssertDebug(bindings.Empty());
         }
 
-        void Consider(ResourceBindingAllocatorBase* allocator, HypObjectBase* object)
+        void Consider(ResourceBindingAllocatorBase* allocator, ObjectBase* object)
         {
             ObjIdBase id = object->Id();
 
@@ -167,7 +167,7 @@ class ResourceBinder : public ResourceBinderBase
             currentFrameIds.Set(id.ToIndex(), true);
         }
 
-        void Deconsider(ResourceBindingAllocatorBase* allocator, HypObjectBase* object)
+        void Deconsider(ResourceBindingAllocatorBase* allocator, ObjectBase* object)
         {
             ObjIdBase id = object->Id();
 
@@ -318,7 +318,7 @@ public:
         m_subclassImpls.Resize(numDescendants);
     }
 
-    virtual void Consider(HypObjectBase* object) override
+    virtual void Consider(ObjectBase* object) override
     {
         if (!object)
         {
@@ -350,7 +350,7 @@ public:
         impl.Consider(m_bindingAllocator, object);
     }
 
-    virtual void Deconsider(HypObjectBase* object) override
+    virtual void Deconsider(ObjectBase* object) override
     {
         AssertDebug(object != nullptr);
 
@@ -379,7 +379,7 @@ public:
         }
     }
 
-    virtual uint32 GetBindingForObject(HypObjectBase* object) const override
+    virtual uint32 GetBindingForObject(ObjectBase* object) const override
     {
         AssertDebug(object != nullptr);
 

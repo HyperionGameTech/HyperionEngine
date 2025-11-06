@@ -7,7 +7,7 @@ namespace Hyperion
     using ComponentId = uint;
 
     [ClassBinding(Name = "EntityManager")]
-    public class EntityManager : HypObject
+    public class EntityManager : ObjectBase
     {
         public EntityManager()
         {
@@ -47,7 +47,7 @@ namespace Hyperion
         public bool HasComponent<T>(Entity entity) where T : struct, IComponent
         {
             Class componentClass = Class.GetClass(typeof(T));
-            
+
             return EntityManager_HasComponent(NativeAddress, componentClass.TypeId, entity.NativeAddress);
         }
 

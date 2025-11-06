@@ -6,7 +6,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/math/Vector2.hpp>
@@ -52,7 +52,7 @@ struct WorldGridLayerInfo
 };
 
 HYP_CLASS()
-class HYP_API WorldGridLayer : public HypObjectBase
+class HYP_API WorldGridLayer : public ObjectBase
 {
     HYP_OBJECT_BODY(WorldGridLayer);
 

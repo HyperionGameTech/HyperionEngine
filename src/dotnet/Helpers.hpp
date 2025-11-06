@@ -3,7 +3,7 @@
 
 #include <core/containers/String.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 #include <core/reflection/HypData.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>

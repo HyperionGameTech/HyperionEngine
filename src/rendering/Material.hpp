@@ -13,7 +13,7 @@
 
 #include <core/threading/Mutex.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/math/Color.hpp>
 
@@ -854,7 +854,7 @@ private:
 };
 
 HYP_CLASS()
-class MaterialGroup final : public HypObjectBase
+class MaterialGroup final : public ObjectBase
 {
     HYP_OBJECT_BODY(MaterialGroup);
 

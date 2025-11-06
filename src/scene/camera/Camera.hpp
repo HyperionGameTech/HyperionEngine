@@ -91,7 +91,7 @@ struct CameraCommand
 class Camera;
 
 HYP_CLASS(Abstract)
-class HYP_API CameraController : public HypObjectBase
+class HYP_API CameraController : public ObjectBase
 {
     friend class Camera;
 

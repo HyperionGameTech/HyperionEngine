@@ -5,7 +5,7 @@
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/math/Ray.hpp>
@@ -134,7 +134,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API View final : public HypObjectBase
+class HYP_API View final : public ObjectBase
 {
     HYP_OBJECT_BODY(View);
 

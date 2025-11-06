@@ -11,7 +11,7 @@
 
 #include <core/functional/Delegate.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <rendering/RenderBucket.hpp>
@@ -39,7 +39,7 @@ enum GBufferTargetName : uint32
 static_assert(GTN_MAX == NumGbufferTargets, "GTN_MAX does not match NumGbufferTargets");
 
 HYP_CLASS(NoScriptBindings)
-class GBuffer : public HypObjectBase
+class GBuffer : public ObjectBase
 {
     HYP_OBJECT_BODY(GBuffer);
 

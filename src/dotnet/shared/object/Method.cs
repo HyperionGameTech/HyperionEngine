@@ -95,7 +95,7 @@ namespace Hyperion
             }
         }
 
-        public HypDataBuffer InvokeNativeWithThis(HypObject thisObject, object[]? args = null)
+        public HypDataBuffer InvokeNativeWithThis(ObjectBase thisObject, object[]? args = null)
         {
             if (ptr == IntPtr.Zero)
             {
@@ -122,7 +122,7 @@ namespace Hyperion
             bool shouldStackAlloc = numArgs * Marshal.SizeOf<HypDataBuffer>() < 1024;
 
             Span<HypDataBuffer> hypDataArgsBuffers = (shouldStackAlloc ? stackalloc HypDataBuffer[(int)numArgs] : new HypDataBuffer[(int)numArgs]);
-            
+
             int argIndex = 0;
 
             HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
@@ -167,7 +167,7 @@ namespace Hyperion
 
             uint numArgs = (uint)args.Length;
 
-            HypObject? thisObject = null;
+            ObjectBase? thisObject = null;
 
             bool isMemberFunction = IsMemberFunction;
 
@@ -178,7 +178,7 @@ namespace Hyperion
                     throw new InvalidOperationException("Cannot invoke method: Method is a member function but no thisObject was provided");
                 }
 
-                thisObject = args[0] as HypObject;
+                thisObject = args[0] as ObjectBase;
 
                 if (thisObject == null)
                 {
@@ -199,7 +199,7 @@ namespace Hyperion
             Span<HypDataBuffer> hypDataArgsBuffers = numArgs > 0
                 ? (shouldStackAlloc ? stackalloc HypDataBuffer[(int)numArgs] : new HypDataBuffer[(int)numArgs])
                 : Span<HypDataBuffer>.Empty;
-            
+
             if (numArgs > 0)
             {
                 int argIndex = 0;
@@ -242,7 +242,7 @@ namespace Hyperion
         {
             return HypData.FromBuffer(InvokeNative(args));
         }
-        
+
         [DllImport("hyperion", EntryPoint = "Method_GetName")]
         private static extern void Method_GetName([In] IntPtr methodPtr, [Out] out Name name);
 

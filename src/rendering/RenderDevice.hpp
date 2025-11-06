@@ -4,13 +4,13 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class DeviceBase : public HypObjectBase
+class DeviceBase : public ObjectBase
 {
     HYP_OBJECT_BODY(DeviceBase);
 

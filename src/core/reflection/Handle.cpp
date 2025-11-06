@@ -15,7 +15,7 @@ HYP_API TypeId GetTypeIdForClass(const Class* cls)
     return cls->GetTypeId();
 }
 
-HYP_API HypObjectContainerBase* GetObjectContainerForClass(const Class* cls)
+HYP_API ObjectContainerBase* GetObjectContainerForClass(const Class* cls)
 {
     if (!cls)
     {
@@ -29,9 +29,9 @@ HYP_API HypObjectContainerBase* GetObjectContainerForClass(const Class* cls)
 
 const AnyHandle AnyHandle::empty = {};
 
-AnyHandle::AnyHandle(HypObjectBase* hypObjectPtr)
-    : ptr(hypObjectPtr),
-      typeId(hypObjectPtr ? hypObjectPtr->m_header->cls->GetTypeId() : TypeId::Void())
+AnyHandle::AnyHandle(ObjectBase* obj)
+    : ptr(obj),
+      typeId(obj ? obj->m_header->cls->GetTypeId() : TypeId::Void())
 {
     if (IsValid())
     {
@@ -44,7 +44,7 @@ AnyHandle::AnyHandle(HypObjectBase* hypObjectPtr)
     }
 }
 
-AnyHandle::AnyHandle(const Class* cls, HypObjectBase* ptr)
+AnyHandle::AnyHandle(const Class* cls, ObjectBase* ptr)
     : ptr(ptr),
       typeId(cls ? cls->GetTypeId() : TypeId::Void())
 {

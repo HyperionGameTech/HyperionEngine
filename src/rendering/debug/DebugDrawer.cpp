@@ -520,7 +520,7 @@ void DebugDrawer::Init()
 {
     HYP_SCOPE;
 
-    HypObjectBase::Init();
+    ObjectBase::Init();
     SetReady(true);
 
     Assert(!m_isInitialized.Get(MemoryOrder::ACQUIRE));

@@ -13,7 +13,7 @@
 
 #include <rendering/rt/RaytracingReflections.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <scene/Light.hpp> // For LightType

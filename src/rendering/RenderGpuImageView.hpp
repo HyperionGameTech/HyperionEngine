@@ -9,7 +9,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class GpuImageViewBase : public HypObjectBase
+class GpuImageViewBase : public ObjectBase
 {
     HYP_OBJECT_BODY(GpuImageViewBase);
 
@@ -20,7 +20,7 @@ public:
     {
         return m_debugName;
     }
-    
+
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;

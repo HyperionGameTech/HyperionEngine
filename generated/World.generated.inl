@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region World Reflection Data
 
-HYP_BEGIN_CLASS(World, 164, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(World, 147, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetName)), &World::GetName),
     Method(NAME(HYP_STR(SetName)), &World::SetName),
     Method(NAME(HYP_STR(GetRenderStats)), &World::GetRenderStats),

@@ -7,7 +7,7 @@
 
 #include <core/utilities/FormatFwd.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/HashCode.hpp>
 

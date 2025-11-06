@@ -15,7 +15,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "StreamingVolumeBase")]
-    public abstract class StreamingVolumeBase : HypObject
+    public abstract class StreamingVolumeBase : ObjectBase
     {
         public StreamingVolumeBase() : base()
         {
@@ -28,7 +28,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "StreamingManager")]
-    public class StreamingManager : HypObject
+    public class StreamingManager : ObjectBase
     {
         public StreamingManager() : base()
         {

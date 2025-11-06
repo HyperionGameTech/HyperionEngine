@@ -3,12 +3,12 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="EditorTaskBase")]
-    public abstract class EditorTaskBase : HypObject
+    [ClassBinding(Name = "EditorTaskBase")]
+    public abstract class EditorTaskBase : ObjectBase
     {
     }
 
-    [ClassBinding(Name="TickableEditorTask")]
+    [ClassBinding(Name = "TickableEditorTask")]
     public abstract class TickableEditorTask : EditorTaskBase
     {
         public TickableEditorTask()
@@ -21,7 +21,7 @@ namespace Hyperion
         public abstract void Process();
     }
 
-    [ClassBinding(Name="LongRunningEditorTask")]
+    [ClassBinding(Name = "LongRunningEditorTask")]
     public abstract class LongRunningEditorTask : EditorTaskBase
     {
         public LongRunningEditorTask()

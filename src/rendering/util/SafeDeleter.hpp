@@ -36,7 +36,7 @@ template <class T>
 class SafeDeleterEntry;
 
 template <>
-class SafeDeleterEntry<HypObjectBase*>
+class SafeDeleterEntry<ObjectBase*>
 {
 public:
     enum ConstructFromHandleTag
@@ -44,7 +44,7 @@ public:
         CONSTRUCT_FROM_HANDLE
     };
 
-    HYP_API SafeDeleterEntry(HypObjectBase* ptr, ConstructFromHandleTag);
+    HYP_API SafeDeleterEntry(ObjectBase* ptr, ConstructFromHandleTag);
 
     SafeDeleterEntry(const SafeDeleterEntry&) = delete;
     SafeDeleterEntry& operator=(const SafeDeleterEntry&) = delete;
@@ -69,15 +69,15 @@ public:
     HYP_API ~SafeDeleterEntry();
 
 protected:
-    HypObjectBase* ptr;
+    ObjectBase* ptr;
 };
 
 template <class T>
-class SafeDeleterEntry<Handle<T>> final : public SafeDeleterEntry<HypObjectBase*>
+class SafeDeleterEntry<Handle<T>> final : public SafeDeleterEntry<ObjectBase*>
 {
 public:
     SafeDeleterEntry(Handle<T>&& handle)
-        : SafeDeleterEntry<HypObjectBase*>(handle.ptr, CONSTRUCT_FROM_HANDLE)
+        : SafeDeleterEntry<ObjectBase*>(handle.ptr, CONSTRUCT_FROM_HANDLE)
     {
         handle.ptr = nullptr; // unset so DecRefStrong() doesn't get called on Handle destruction.
     }

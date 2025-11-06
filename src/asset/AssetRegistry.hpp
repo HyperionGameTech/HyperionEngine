@@ -4,7 +4,7 @@
 
 #include <asset/AssetPath.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/filesystem/FilePath.hpp>
@@ -106,7 +106,7 @@ private:
 using AssetPackageValidationResult = TResult<void, AssetPackageValidationError>;
 
 HYP_CLASS()
-class HYP_API AssetPackage final : public HypObjectBase
+class HYP_API AssetPackage final : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetPackage);
 
@@ -343,7 +343,7 @@ enum class AssetRegistryPathType : uint8
 };
 
 HYP_CLASS()
-class HYP_API AssetRegistry final : public HypObjectBase
+class HYP_API AssetRegistry final : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetRegistry);
 

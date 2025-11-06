@@ -5,7 +5,7 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/Mutex.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/math/Vector2.hpp>
 #include <core/math/BoundingBox.hpp>

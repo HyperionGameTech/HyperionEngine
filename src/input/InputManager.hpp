@@ -7,7 +7,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/containers/Bitset.hpp>
@@ -70,7 +70,7 @@ private:
 };
 
 HYP_CLASS()
-class InputManager : public HypObjectBase
+class InputManager : public ObjectBase
 {
     HYP_OBJECT_BODY(InputManager);
 

@@ -15,8 +15,8 @@ namespace Hyperion
 
     internal delegate void HandleAssetResultDelegate(IntPtr assetPtr);
 
-    [ClassBinding(Name="AssetCollector")]
-    public class AssetCollector : HypObject
+    [ClassBinding(Name = "AssetCollector")]
+    public class AssetCollector : ObjectBase
     {
         private static readonly LogChannel logChannel = LogChannel.ByName("Assets");
 
@@ -78,7 +78,7 @@ namespace Hyperion
             {
                 FileAttributes attributes = File.GetAttributes(path);
 
-                return (attributes & FileAttributes.Hidden) == FileAttributes.Hidden || 
+                return (attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
                     (attributes & FileAttributes.System) == FileAttributes.System;
             }
             catch (FileNotFoundException)
@@ -130,19 +130,19 @@ namespace Hyperion
             this.NotifyAssetChanged(e.OldFullPath, AssetChangeType.Renamed);
         }
     }
-    
-    [ClassBinding(Name="AssetManager")]
-    public class AssetManager : HypObject
+
+    [ClassBinding(Name = "AssetManager")]
+    public class AssetManager : ObjectBase
     {
         private static AssetManager? instance = null;
-        
+
         public static AssetManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass(typeof(AssetManager)), new Name("GetInstance", weak: true)).InvokeNative())
+                    using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass(typeof(AssetManager)), new Name("GetInstance", weak: true)).InvokeNative())
                     {
                         instance = (AssetManager)resultData.GetValue();
                     }
@@ -194,7 +194,7 @@ namespace Hyperion
                 throw new Exception("Failed to get loader definition for path: " + path + ", cannot load asset!");
 
             var completionSource = new TaskCompletionSource<LoadedAsset<T>>();
-            
+
             AssetManager_LoadAsync(NativeAddress, Marshal.GetFunctionPointerForDelegate(new HandleAssetResultDelegate((assetPtr) =>
             {
                 if (assetPtr == IntPtr.Zero)

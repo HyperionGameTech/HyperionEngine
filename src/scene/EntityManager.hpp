@@ -24,7 +24,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/ForEach.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 #include <core/reflection/ObjId.hpp>
 
@@ -250,7 +250,7 @@ private:
 class EntityManager;
 /*! \brief The EntityManager is responsible for managing Entities, their components, and Systems within a Scene. */
 HYP_CLASS()
-class HYP_API EntityManager final : public HypObjectBase
+class HYP_API EntityManager final : public ObjectBase
 {
     HYP_OBJECT_BODY(EntityManager);
 

@@ -782,10 +782,10 @@ Analyzer::Analyzer()
 {
     // clang-format off
 
-    // reserve 'HypObjectBase' class
-    ClassDefinition& classDefinition = m_builtinClasses.Emplace("HypObjectBase", ClassDefinition { }).first->second;
+    // reserve 'ObjectBase' class
+    ClassDefinition& classDefinition = m_builtinClasses.Emplace("ObjectBase", ClassDefinition { }).first->second;
     classDefinition.type = ClassDefinitionType::CLASS;
-    classDefinition.name = "HypObjectBase";
+    classDefinition.name = "ObjectBase";
     classDefinition.staticIndex = 0;
     classDefinition.isCXXClass = true;
     classDefinition.namespaceParts = Array<String> { "hyperion" };

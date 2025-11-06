@@ -14,7 +14,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "AssetObject")]
-    public class AssetObject : HypObject
+    public class AssetObject : ObjectBase
     {
         public AssetObject()
         {

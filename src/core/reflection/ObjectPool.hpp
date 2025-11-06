@@ -7,7 +7,7 @@
 #include <core/Types.hpp>
 
 #include <core/reflection/ObjId.hpp>
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
 
@@ -28,18 +28,18 @@
 namespace hyperion {
 
 template <class T>
-class HypObjectContainer;
+class ObjectContainer;
 
-class HypObjectContainerBase;
+class ObjectContainerBase;
 
-struct HypObjectHeader;
+struct ObjectHeader;
 class Class;
 
-HYP_API extern void ReleaseHypObject(HypObjectHeader* header);
+HYP_API extern void ReleaseObject(ObjectHeader* header);
 
-class HypObjectContainerBase
+class ObjectContainerBase
 {
-    friend class HypObjectPool;
+    friend class ObjectPool;
 
 public:
     struct LockGuard
@@ -56,7 +56,7 @@ public:
         }
     };
 
-    virtual ~HypObjectContainerBase() = default;
+    virtual ~ObjectContainerBase() = default;
 
     HYP_FORCE_INLINE const TypeId& GetObjectTypeId() const
     {
@@ -68,9 +68,9 @@ public:
         return m_class;
     }
 
-    virtual HypObjectHeader* GetObjectHeader(uint32 index, LockGuard& outGuard) = 0;
+    virtual ObjectHeader* GetObjectHeader(uint32 index, LockGuard& outGuard) = 0;
 
-    virtual void Release(HypObjectHeader* header) = 0;
+    virtual void Release(ObjectHeader* header) = 0;
 
 protected:
     enum PoolFlags : uint8
@@ -81,7 +81,7 @@ protected:
         PF_FREE = 0x4
     };
 
-    HypObjectContainerBase(TypeId typeId, const Class* cls);
+    ObjectContainerBase(TypeId typeId, const Class* cls);
 
     /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
@@ -95,7 +95,7 @@ protected:
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
-struct HypObjectHeader
+struct ObjectHeader
 {
     const Class* cls;
     uint32 index;
@@ -110,7 +110,7 @@ struct HypObjectHeader
         uint32 flags;
     };
 
-    HypObjectHeader()
+    ObjectHeader()
         : cls(nullptr),
           index(~0u),
           refCountStrong(0),
@@ -119,11 +119,11 @@ struct HypObjectHeader
     {
     }
 
-    HypObjectHeader(const HypObjectHeader&) = delete;
-    HypObjectHeader& operator=(const HypObjectHeader&) = delete;
-    HypObjectHeader(HypObjectHeader&&) noexcept = delete;
-    HypObjectHeader& operator=(HypObjectHeader&&) noexcept = delete;
-    ~HypObjectHeader() = default;
+    ObjectHeader(const ObjectHeader&) = delete;
+    ObjectHeader& operator=(const ObjectHeader&) = delete;
+    ObjectHeader(ObjectHeader&&) noexcept = delete;
+    ObjectHeader& operator=(ObjectHeader&&) noexcept = delete;
+    ~ObjectHeader() = default;
 
     HYP_FORCE_INLINE bool IsNull() const
     {
@@ -150,7 +150,7 @@ struct HypObjectHeader
             {
 #ifdef HYP_DOTNET
                 // if count was added successfully (and now, greater than 1), we can acquire the lock for the managed object
-                HypObject_IncScriptObjectRef(GetObjectPointer(this));
+                Object_IncScriptObjectRef(GetObjectPointer(this));
 #endif
 
                 return true;
@@ -168,7 +168,7 @@ struct HypObjectHeader
 #ifdef HYP_DOTNET
         if (count > 1)
         {
-            HypObject_IncScriptObjectRef(GetObjectPointer(this));
+            Object_IncScriptObjectRef(GetObjectPointer(this));
         }
 #endif
 
@@ -189,13 +189,13 @@ struct HypObjectHeader
             // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause the item to be removed from the pool
             AtomicIncrement(&refCountWeak);
 
-            // call virtual destructor of HypObjectBase
+            // call virtual destructor of ObjectBase
             DestructThisObject(this);
 
             if (AtomicDecrement(&refCountWeak) == 0)
             {
                 // Free the slot for this
-                ReleaseHypObject(this);
+                ReleaseObject(this);
             }
 
             return 0;
@@ -206,7 +206,7 @@ struct HypObjectHeader
 #ifdef HYP_DOTNET
         if (count > 1)
         {
-            HypObject_DecScriptObjectRef(GetObjectPointer(this));
+            Object_DecScriptObjectRef(GetObjectPointer(this));
         }
 #endif
 
@@ -222,7 +222,7 @@ struct HypObjectHeader
             if (AtomicAdd(&refCountStrong, 0) == 0)
             {
                 // Free the slot for this
-                ReleaseHypObject(this);
+                ReleaseObject(this);
             }
 
             return 0;
@@ -234,31 +234,31 @@ struct HypObjectHeader
     }
 
     //! Get the pointer to the actual object that this header is for. Header must be non-null
-    static HYP_API HypObjectBase* GetObjectPointer(HypObjectHeader* header);
-    static HYP_API void DestructThisObject(HypObjectHeader* header);
+    static HYP_API ObjectBase* GetObjectPointer(ObjectHeader* header);
+    static HYP_API void DestructThisObject(ObjectHeader* header);
 };
 
 template <class T>
-class HypObjectContainer final : public HypObjectContainerBase
+class ObjectContainer final : public ObjectContainerBase
 {
 public:
-    HypObjectContainer(const Class* cls)
-        : HypObjectContainerBase(TypeId::ForType<T>(), cls)
+    ObjectContainer(const Class* cls)
+        : ObjectContainerBase(TypeId::ForType<T>(), cls)
     {
     }
 
-    HypObjectContainer(const HypObjectContainer& other) = delete;
-    HypObjectContainer& operator=(const HypObjectContainer& other) = delete;
+    ObjectContainer(const ObjectContainer& other) = delete;
+    ObjectContainer& operator=(const ObjectContainer& other) = delete;
 
-    HypObjectContainer(HypObjectContainer&& other) noexcept = delete;
-    HypObjectContainer& operator=(HypObjectContainer&& other) noexcept = delete;
+    ObjectContainer(ObjectContainer&& other) noexcept = delete;
+    ObjectContainer& operator=(ObjectContainer&& other) noexcept = delete;
 
-    virtual ~HypObjectContainer() override
+    virtual ~ObjectContainer() override
     {
-        HYP_CORE_ASSERT(m_headers.Empty(), "Destroying HypObjectContainer with live objects!");
+        HYP_CORE_ASSERT(m_headers.Empty(), "Destroying ObjectContainer with live objects!");
     }
 
-    HYP_NODISCARD HypObjectHeader* Allocate(SizeType size)
+    HYP_NODISCARD ObjectHeader* Allocate(SizeType size)
     {
         static constexpr uint32 MaxObjectAlignment = 16;
 
@@ -268,7 +268,7 @@ public:
         AssertDebug(size >= sizeof(T));
 
         // allocation would be the header size + object size, aligned to the object alignment
-        const SizeType totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(HypObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
+        const SizeType totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
 
         Pool* pool = GetPool();
 
@@ -278,9 +278,9 @@ public:
         void* mem = pool->Allocate(totalSize, MaxObjectAlignment);
 
         // header needs to have padding in front of it so we can get the header from the object pointer
-        constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(HypObjectHeader), MaxObjectAlignment) - sizeof(HypObjectHeader);
+        constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) - sizeof(ObjectHeader);
 
-        HypObjectHeader* header = reinterpret_cast<HypObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
+        ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
         header->index = m_idGenerator.Next() - 1;
         header->cls = m_class;
         header->refCountStrong = 1;
@@ -292,7 +292,7 @@ public:
         return header;
     }
 
-    virtual HypObjectHeader* GetObjectHeader(uint32 index, LockGuard& outGuard) override
+    virtual ObjectHeader* GetObjectHeader(uint32 index, LockGuard& outGuard) override
     {
         if (index == ~0u)
         {
@@ -310,7 +310,7 @@ public:
         return m_headers[index];
     }
 
-    virtual void Release(HypObjectHeader* header) override
+    virtual void Release(ObjectHeader* header) override
     {
         HYP_CORE_ASSERT(header != nullptr);
 
@@ -324,7 +324,7 @@ public:
 
         m_idGenerator.ReleaseId(index + 1);
 
-        constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(HypObjectHeader), 16) - sizeof(HypObjectHeader);
+        constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), 16) - sizeof(ObjectHeader);
 
         void* mem = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(header) - HeaderOffset);
         pool->Free(mem);
@@ -333,17 +333,17 @@ public:
     }
 
 private:
-    SparsePagedArray<HypObjectHeader*, 1024> m_headers;
+    SparsePagedArray<ObjectHeader*, 1024> m_headers;
 };
 
-class HypObjectPool
+class ObjectPool
 {
 public:
     class ContainerMap
     {
         // Maps TypeId to object container
         // Use a linked list so that references are never invalidated.
-        LinkedList<Pair<TypeId, HypObjectContainerBase*>> m_map;
+        LinkedList<Pair<TypeId, ObjectContainerBase*>> m_map;
         Mutex m_mutex;
 
     public:
@@ -354,22 +354,22 @@ public:
         ContainerMap& operator=(ContainerMap&&) noexcept = delete;
         HYP_API ~ContainerMap();
 
-        HYP_API HypObjectContainerBase& Get(TypeId typeId);
-        HYP_API HypObjectContainerBase* TryGet(TypeId typeId);
+        HYP_API ObjectContainerBase& Get(TypeId typeId);
+        HYP_API ObjectContainerBase* TryGet(TypeId typeId);
 
-        HYP_API HypObjectContainerBase& GetOrCreate(
+        HYP_API ObjectContainerBase& GetOrCreate(
             TypeId typeId,
             const Class* cls,
-            HypObjectContainerBase* (*createFn)(const Class* cls));
+            ObjectContainerBase* (*createFn)(const Class* cls));
 
         template <class T>
-        HypObjectContainer<T>& GetOrCreate(const Class* cls)
+        ObjectContainer<T>& GetOrCreate(const Class* cls)
         {
             // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
-            static HypObjectContainer<T>& s_container = static_cast<HypObjectContainer<T>&>(GetOrCreate(
-                TypeId::ForType<T>(), cls, +[](const Class* cls) -> HypObjectContainerBase*
+            static ObjectContainer<T>& s_container = static_cast<ObjectContainer<T>&>(GetOrCreate(
+                TypeId::ForType<T>(), cls, +[](const Class* cls) -> ObjectContainerBase*
                 {
-                    return new HypObjectContainer<T>(cls);
+                    return new ObjectContainer<T>(cls);
                 }));
 
             return s_container;

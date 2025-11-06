@@ -97,7 +97,7 @@ public:
 
     explicit GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume);
 
-    explicit GenerateLightmapsEditorTask(const Array<Handle<HypObjectBase>>& sources);
+    explicit GenerateLightmapsEditorTask(const Array<Handle<ObjectBase>>& sources);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
@@ -148,7 +148,7 @@ public:
     virtual void Tick(float delta) override;
 
 private:
-    Array<Handle<HypObjectBase>> m_sources;
+    Array<Handle<ObjectBase>> m_sources;
     Handle<World> m_world;
     Handle<Scene> m_scene;
     BoundingBox m_aabb;
@@ -166,7 +166,7 @@ enum class EditorManipulationMode
 
 /*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
 HYP_CLASS(Abstract)
-class HYP_API EditorManipulationWidgetBase : public HypObjectBase
+class HYP_API EditorManipulationWidgetBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorManipulationWidgetBase);
 

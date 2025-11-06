@@ -10,7 +10,7 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
 
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/config/Config.hpp>
 
@@ -233,7 +233,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API DebugDrawer final : public HypObjectBase
+class HYP_API DebugDrawer final : public ObjectBase
 {
     HYP_OBJECT_BODY(DebugDrawer);
 

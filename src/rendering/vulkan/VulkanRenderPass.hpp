@@ -24,7 +24,7 @@ enum RenderPassMode
 };
 
 HYP_CLASS(NoScriptBindings)
-class VulkanRenderPass final : public HypObjectBase
+class VulkanRenderPass final : public ObjectBase
 {
     HYP_OBJECT_BODY(VulkanRenderPass);
 

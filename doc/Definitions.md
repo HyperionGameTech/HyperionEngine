@@ -6,22 +6,22 @@ This document provides definitions and explanations for various terms and concep
 
 ## General Concepts
 
-### HypObject
-A `HypObject` is an object that leverages Hyperion's object system, enabling features such as RTTI, reference counting, reflection, implicit serialization. It assigns each object with a unique ID at runtime, which can be used to identify and reference the object throughout the engine.
+### Object
+A `Object` is an object that leverages Hyperion's object system, enabling features such as RTTI, reference counting, reflection, implicit serialization. It assigns each object with a unique ID at runtime, which can be used to identify and reference the object throughout the engine.
 
-> Note: The ID of a HypObject is not persistent across runs, meaning it is only valid for the lifetime of the application.
+> Note: The ID of a Object is not persistent across runs, meaning it is only valid for the lifetime of the application.
 
 ### HypClass
 A `HypClass` is a class that is registered with the engine's reflection system. It allows the engine to introspect the class and registered its registered methods and fields.
 
-All HypClasses must derive from `HypObjectBase`. To register a class, you need to define it with the `HYP_CLASS()` macro at the top of the class definition. Additionally, the body of the class should include a `HYP_OBJECT_BODY(TheTypeName)` macro invocation to define the class's metadata. To register individual fields and methods, you can use the `HYP_FIELD()` and `HYP_METHOD()` macros respectively.
+All HypClasses must derive from `ObjectBase`. To register a class, you need to define it with the `HYP_CLASS()` macro at the top of the class definition. Additionally, the body of the class should include a `HYP_OBJECT_BODY(TheTypeName)` macro invocation to define the class's metadata. To register individual fields and methods, you can use the `HYP_FIELD()` and `HYP_METHOD()` macros respectively.
 
 > Note: After creating a new `HypClass`, you must run the build tool to generate the necessary reflection data. This is done by running the `RunHypBuildTool` script (or just reconfiguring CMake), which will parse the class definitions and generate the required metadata.
 
-Subclasses of `HypObjectBase` must place a `HYP_CLASS()` macro invocation at the top of the class definition, as well as a `HYP_OBJECT_BODY(TheTypeName)` macro invocation to define the class's metadata.
+Subclasses of `ObjectBase` must place a `HYP_CLASS()` macro invocation at the top of the class definition, as well as a `HYP_OBJECT_BODY(TheTypeName)` macro invocation to define the class's metadata.
 
 ### Handle
-A [`Handle`](../src/core/reflection/Handle.hpp) is a strong reference to a `HypObject`. Handles are used for resources like textures, meshes, and other assets that need to be released once they are no longer needed. Also see `WeakHandle` to use a weak reference to a `HypObject` rather than a strong reference.
+A [`Handle`](../src/core/reflection/Handle.hpp) is a strong reference to a `Object`. Handles are used for resources like textures, meshes, and other assets that need to be released once they are no longer needed. Also see `WeakHandle` to use a weak reference to a `Object` rather than a strong reference.
 
 To create a new `Handle`, use `CreateObject<T>()` where `T` is the type of the object you want to create. This will return a `Handle<T>` that can be used to access the object. The object will be automatically destroyed when the last handle to it is released.
 

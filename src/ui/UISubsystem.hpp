@@ -4,7 +4,7 @@
 
 #include <scene/Subsystem.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/functional/Delegate.hpp>

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/Defines.hpp>
@@ -20,7 +20,7 @@ class SystemEvent;
 using sys::SystemEvent;
 
 HYP_CLASS(Abstract)
-class HYP_API Game : public HypObjectBase
+class HYP_API Game : public ObjectBase
 {
     friend class GameThread;
     friend class EngineDriver;

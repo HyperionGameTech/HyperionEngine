@@ -27,7 +27,7 @@ void AnimationTrack::Init()
 {
     HYP_SCOPE;
 
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     SetReady(true);
 }
@@ -97,7 +97,7 @@ void Animation::Init()
 {
     HYP_SCOPE;
 
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     for (const Handle<AnimationTrack>& track : m_tracks)
     {

@@ -65,19 +65,19 @@ namespace Hyperion
             return string.Format("ObjIdBase(TypeId: {0}, Value: {0})", typeIdValue, value);
         }
 
-        public static bool operator==(ObjIdBase a, ObjIdBase b)
+        public static bool operator ==(ObjIdBase a, ObjIdBase b)
         {
             return a.typeIdValue == b.typeIdValue && a.value == b.value;
         }
 
-        public static bool operator!=(ObjIdBase a, ObjIdBase b)
+        public static bool operator !=(ObjIdBase a, ObjIdBase b)
         {
             return a.typeIdValue != b.typeIdValue || a.value != b.value;
         }
     }
 
     // [StructLayout(LayoutKind.Sequential, Size = 4)]
-    // public struct ObjId<T> where T : HypObject
+    // public struct ObjId<T> where T : ObjectBase
     // {
     //     public static readonly ObjId<T> Invalid = new ObjId<T>(0);
 

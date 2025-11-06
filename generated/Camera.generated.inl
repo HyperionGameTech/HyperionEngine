@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region CameraProjectionMode Reflection Data
 
-HYP_BEGIN_ENUM(CameraProjectionMode, 369, 0, {})
+HYP_BEGIN_ENUM(CameraProjectionMode, 386, 0, {})
     StaticField(NAME(HYP_STR(NONE)), CameraProjectionMode::NONE),
     StaticField(NAME(HYP_STR(PERSPECTIVE)), CameraProjectionMode::PERSPECTIVE),
     StaticField(NAME(HYP_STR(ORTHOGRAPHIC)), CameraProjectionMode::ORTHOGRAPHIC)
@@ -20,7 +20,7 @@ namespace hyperion {
 
 #pragma region CameraFlags Reflection Data
 
-HYP_BEGIN_ENUM(CameraFlags, 370, 0, {})
+HYP_BEGIN_ENUM(CameraFlags, 387, 0, {})
     StaticField(NAME(HYP_STR(NONE)), CameraFlags::NONE),
     StaticField(NAME(HYP_STR(MATCH_WINDOW_SIZE)), CameraFlags::MATCH_WINDOW_SIZE)
 HYP_END_ENUM
@@ -34,7 +34,7 @@ namespace hyperion {
 
 #pragma region CameraController Reflection Data
 
-HYP_BEGIN_CLASS(CameraController, 167, 8, NAME("HypObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(CameraController, 182, 8, NAME("ObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(GetInputHandler)), &CameraController::GetInputHandler, Span<const ClassAttribute> { {ClassAttribute("property", "InputHandler") } }),
     Method(NAME(HYP_STR(SetInputHandler)), &CameraController::SetInputHandler, Span<const ClassAttribute> { {ClassAttribute("property", "InputHandler") } }),
     Method(NAME(HYP_STR(GetCamera)), &CameraController::GetCamera, Span<const ClassAttribute> { {ClassAttribute("property", "Camera") } }),
@@ -61,7 +61,7 @@ namespace hyperion {
 
 #pragma region Camera Reflection Data
 
-HYP_BEGIN_CLASS(Camera, 143, 0, NAME("Entity"))
+HYP_BEGIN_CLASS(Camera, 177, 0, NAME("Entity"))
     Method(NAME(HYP_STR(GetCameraFlags)), &Camera::GetCameraFlags, Span<const ClassAttribute> { {ClassAttribute("property", "Flags"), ClassAttribute("editor", true) } }),
     Method(NAME(HYP_STR(SetCameraFlags)), &Camera::SetCameraFlags, Span<const ClassAttribute> { {ClassAttribute("property", "Flags"), ClassAttribute("editor", true) } }),
     Method(NAME(HYP_STR(GetCameraControllers)), &Camera::GetCameraControllers, Span<const ClassAttribute> { {ClassAttribute("property", "CameraControllers") } }),
@@ -126,7 +126,7 @@ namespace hyperion {
 
 #pragma region NullCameraController Reflection Data
 
-HYP_BEGIN_CLASS(NullCameraController, 168, 0, NAME("CameraController"))
+HYP_BEGIN_CLASS(NullCameraController, 190, 0, NAME("CameraController"))
 HYP_END_CLASS
 
 #pragma endregion NullCameraController Reflection Data

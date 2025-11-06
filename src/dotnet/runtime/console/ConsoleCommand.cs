@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="ConsoleCommandBase")]
-    public abstract class ConsoleCommandBase : HypObject
+    [ClassBinding(Name = "ConsoleCommandBase")]
+    public abstract class ConsoleCommandBase : ObjectBase
     {
         public ConsoleCommandBase()
         {

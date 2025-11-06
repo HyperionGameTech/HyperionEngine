@@ -3,7 +3,7 @@
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Enum.hpp>
 #include <core/reflection/HypMember.hpp>
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/Object.hpp>
 #include <core/reflection/StaticField.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
@@ -110,12 +110,12 @@ HYP_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId)
             return uint32(otherClass->GetStaticIndex() - cls->GetStaticIndex()) <= cls->GetNumDescendants();
         }
 
-        if (otherClass->UseHandles()) // check is HypObjectBase
+        if (otherClass->UseHandles()) // check is ObjectBase
         {
-            // since we got the Class we can assume ptr is a HypObjectBase or derived type.
-            // this could get iffy with multiple inheritance so it's best we disallow MI for HypObjects.
-            const HypObjectBase* hypObjectBase = reinterpret_cast<const HypObjectBase*>(ptr);
-            otherClass = hypObjectBase->InstanceClass();
+            // since we got the Class we can assume ptr is a ObjectBase or derived type.
+            // this could get iffy with multiple inheritance so it's best we disallow MI for Objects.
+            const ObjectBase* casted = reinterpret_cast<const ObjectBase*>(ptr);
+            otherClass = casted->InstanceClass();
         }
     }
 
@@ -1280,12 +1280,12 @@ bool Class::IsBaseOf(const Class* other) const
 
 bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
 {
-    if (!UseHandles()) // check is HypObjectBase
+    if (!UseHandles()) // check is ObjectBase
     {
         return false;
     }
 
-    const HypObjectBase* target = reinterpret_cast<const HypObjectBase*>(objectPtr);
+    const ObjectBase* target = reinterpret_cast<const ObjectBase*>(objectPtr);
 
     if (!target)
     {
@@ -1349,8 +1349,8 @@ DynamicClassInstance::DynamicClassInstance(
 
     m_parent = parentClass;
 
-    SizeType dynamicSize = sizeof(HypObjectBase);
-    SizeType dynamicAlignment = alignof(HypObjectBase);
+    SizeType dynamicSize = sizeof(ObjectBase);
+    SizeType dynamicAlignment = alignof(ObjectBase);
 
     auto calculateDynamicClassSize = [](const Class* cls, SizeType& dynamicSize, SizeType& dynamicAlignment)
     {
@@ -1405,13 +1405,13 @@ DynamicClassInstance::DynamicClassInstance(
 
     calculateDynamicClassSize(this, dynamicSize, dynamicAlignment);
 
-    // if no fields, we must at least be the size of HypObjectBase
-    m_size = MathUtil::Max(sizeof(HypObjectBase), dynamicSize);
-    m_alignment = MathUtil::Max(alignof(HypObjectBase), dynamicAlignment);
+    // if no fields, we must at least be the size of ObjectBase
+    m_size = MathUtil::Max(sizeof(ObjectBase), dynamicSize);
+    m_alignment = MathUtil::Max(alignof(ObjectBase), dynamicAlignment);
 
-    m_objectContainer = &HypObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const Class* thisClass) -> HypObjectContainerBase*
+    m_objectContainer = &ObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const Class* thisClass) -> ObjectContainerBase*
         {
-            return new HypObjectContainer<HypObjectBase>(thisClass);
+            return new ObjectContainer<ObjectBase>(thisClass);
         });
 }
 #endif
@@ -1455,9 +1455,9 @@ TypeId DynamicClassInstance::GetUnderlyingTypeId() const
 bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
 {
     Assert(m_parent != nullptr);
-    Assert(m_parent->UseHandles(), "Must be HypObjectBase type to call GetManagedObject");
+    Assert(m_parent->UseHandles(), "Must be ObjectBase type to call GetManagedObject");
 
-    HypObjectBase* target = reinterpret_cast<HypObjectBase*>(const_cast<void*>(objectPtr));
+    ObjectBase* target = reinterpret_cast<ObjectBase*>(const_cast<void*>(objectPtr));
     Assert(target != nullptr);
 
     if (target->GetScriptObjectResource() == nullptr)
@@ -1527,7 +1527,7 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
         Assert(m_parent != nullptr);
 
         // suppress default managed object creation - we will create it ourselves
-        GlobalContextScope scope(HypObjectInitializerContext { this, HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
+        GlobalContextScope scope(ObjectInitializerContext { this, ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
         {
             HypData value;
@@ -1554,10 +1554,10 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
 
         AssertDebug(m_parent->UseHandles());
 
-        HypObjectBase* target = reinterpret_cast<HypObjectBase*>(out.ToRef().GetPointer());
+        ObjectBase* target = reinterpret_cast<ObjectBase*>(out.ToRef().GetPointer());
         Assert(target != nullptr);
 
-        ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, target), managedClass);
+        ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(TypedObjPtr(this, target), managedClass);
         AssertDebug(scriptObjectResource != nullptr);
 
         // keep it alive
@@ -1578,7 +1578,7 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
     HypData obj; // @TODO
 
     // get or create new container for dynamic type
-    HypObjectContainer<HypObjectBase>* container = static_cast<HypObjectContainer<HypObjectBase>*>(GetObjectContainer());
+    ObjectContainer<ObjectBase>* container = static_cast<ObjectContainer<ObjectBase>*>(GetObjectContainer());
     Assert(container != nullptr);
     Assert(container->GetObjectTypeId() == m_typeId);
 
@@ -1606,17 +1606,17 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
         }
     }
 
-    PushGlobalContext(HypObjectInitializerContext { .cls = this, .flags = HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
+    PushGlobalContext(ObjectInitializerContext { .cls = this, .flags = ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
-    HypObjectHeader* header = container->Allocate(m_size);
+    ObjectHeader* header = container->Allocate(m_size);
     header->cls = this;
 
-    HypObjectBase* ptr = HypObjectHeader::GetObjectPointer(header);
-    new (ptr) HypObjectBase();
+    ObjectBase* ptr = ObjectHeader::GetObjectPointer(header);
+    new (ptr) ObjectBase();
 
     // where to start writing fields
     SizeType fieldOffset = (topParent != nullptr && !topParent->IsDynamic() ? topParent->GetSize() : 0)
-        + sizeof(HypObjectBase);
+        + sizeof(ObjectBase);
 
     // add 'class' field
     fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(ClassRef));
@@ -1668,12 +1668,12 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
     Assert(scriptObjectResource != nullptr);
     ptr->SetScriptObjectResource(scriptObjectResource);
 
-    Handle<HypObjectBase> handle;
-    handle.ptr = static_cast<HypObjectBase*>(ptr);
+    Handle<ObjectBase> handle;
+    handle.ptr = static_cast<ObjectBase*>(ptr);
 
     out = HypData(std::move(handle));
 
-    PopGlobalContext<HypObjectInitializerContext>();
+    PopGlobalContext<ObjectInitializerContext>();
 
     return true;
 #endif

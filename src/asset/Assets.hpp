@@ -5,7 +5,7 @@
 #include <asset/AssetLoader.hpp>
 
 #include <core/reflection/Handle.hpp>
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/ObjectFwd.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -97,7 +97,7 @@ enum class AssetChangeType : uint32
 };
 
 HYP_CLASS()
-class AssetCollector final : public HypObjectBase
+class AssetCollector final : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetCollector);
 
@@ -165,7 +165,7 @@ private:
 class AssetManagerThreadPool;
 
 HYP_CLASS()
-class AssetManager final : public HypObjectBase
+class AssetManager final : public ObjectBase
 {
     friend class AssetBatch;
     friend class AssetLoaderBase;

@@ -8,56 +8,56 @@ namespace Hyperion
     {
         public static float GetRed(this Color obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Color>(), new Name(13490616459454516158)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Color>(), new Name(13490616459454516158)).InvokeNative(obj))
             {
                 return resultData.ReadFloat();
             }
         }
         public static Color SetRed(this Color obj, float red)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Color>(), new Name(14291316213948725730)).InvokeNative(obj, red))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Color>(), new Name(14291316213948725730)).InvokeNative(obj, red))
             {
                 return resultData.ReadStruct<Color>();
             }
         }
         public static float GetGreen(this Color obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Color>(), new Name(12335140997203377966)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Color>(), new Name(12335140997203377966)).InvokeNative(obj))
             {
                 return resultData.ReadFloat();
             }
         }
         public static Color SetGreen(this Color obj, float green)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Color>(), new Name(4577246700432160866)).InvokeNative(obj, green))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Color>(), new Name(4577246700432160866)).InvokeNative(obj, green))
             {
                 return resultData.ReadStruct<Color>();
             }
         }
         public static float GetBlue(this Color obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Color>(), new Name(757414762203912595)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Color>(), new Name(757414762203912595)).InvokeNative(obj))
             {
                 return resultData.ReadFloat();
             }
         }
         public static Color SetBlue(this Color obj, float blue)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Color>(), new Name(3417497508615694007)).InvokeNative(obj, blue))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Color>(), new Name(3417497508615694007)).InvokeNative(obj, blue))
             {
                 return resultData.ReadStruct<Color>();
             }
         }
         public static float GetAlpha(this Color obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Color>(), new Name(13054592874764045737)).InvokeNative(obj))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Color>(), new Name(13054592874764045737)).InvokeNative(obj))
             {
                 return resultData.ReadFloat();
             }
         }
         public static Color SetAlpha(this Color obj, float alpha)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Color>(), new Name(9884045203155375877)).InvokeNative(obj, alpha))
+            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<Color>(), new Name(9884045203155375877)).InvokeNative(obj, alpha))
             {
                 return resultData.ReadStruct<Color>();
             }

@@ -6,7 +6,7 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/functional/Delegate.hpp>
@@ -28,7 +28,7 @@ class EditorActionStack;
 class EditorSubsystem;
 
 HYP_CLASS()
-class HYP_API EditorProject final : public HypObjectBase
+class HYP_API EditorProject final : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorProject);
 

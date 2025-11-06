@@ -48,7 +48,7 @@ struct ScriptComponent
     ScriptObjectResource* scriptObjectResource = nullptr;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    Handle<HypObjectBase> nativeObject;
+    Handle<ObjectBase> nativeObject;
 
     HYP_FIELD(Transient)
     EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;

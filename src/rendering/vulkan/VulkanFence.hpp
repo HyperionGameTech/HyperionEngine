@@ -9,7 +9,7 @@
 namespace hyperion {
 
 HYP_CLASS(NoScriptBindings)
-class VulkanFence final : public HypObjectBase
+class VulkanFence final : public ObjectBase
 {
     HYP_OBJECT_BODY(VulkanFence);
 

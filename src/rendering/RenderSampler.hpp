@@ -10,7 +10,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class SamplerBase : public HypObjectBase
+class SamplerBase : public ObjectBase
 {
     HYP_OBJECT_BODY(SamplerBase);
 

@@ -72,7 +72,7 @@ void WorldGrid::Init()
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     // Add a default layer if none are provided
     if (m_layers.Empty())

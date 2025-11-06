@@ -5,7 +5,7 @@
 #include <core/Name.hpp>
 
 #include <core/reflection/Handle.hpp>
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 

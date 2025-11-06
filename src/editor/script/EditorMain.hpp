@@ -4,7 +4,7 @@
 
 #include <core/Types.hpp>
 
-#include <core/reflection/HypObjectBase.hpp>
+#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <ui/UIObject.hpp>
@@ -16,7 +16,7 @@ class Scene;
 class EditorProject;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API EditorMain : public HypObjectBase
+class HYP_API EditorMain : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorMain);
 

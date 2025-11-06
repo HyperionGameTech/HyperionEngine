@@ -810,7 +810,7 @@ void StreamingManager::Stop()
 
 void StreamingManager::Init()
 {
-    HypObjectBase::Init();
+    ObjectBase::Init();
 
     SetReady(true);
 }

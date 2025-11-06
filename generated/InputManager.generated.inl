@@ -1,11 +1,11 @@
-#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 #include <core/reflection/ClassUtils.hpp>
 
 namespace hyperion {
 
 #pragma region InputManager Reflection Data
 
-HYP_BEGIN_CLASS(InputManager, 59, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(InputManager, 57, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(IsMouseLocked)), &InputManager::IsMouseLocked),
     Method(NAME(HYP_STR(PushMouseLockState)), &InputManager::PushMouseLockState),
     Method(NAME(HYP_STR(PopMouseLockState)), &InputManager::PopMouseLockState),

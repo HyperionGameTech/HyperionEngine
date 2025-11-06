@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypObject.hpp>
-#include <core/reflection/HypObjectPool.hpp>
+#include <core/reflection/Object.hpp>
+#include <core/reflection/ObjectPool.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -31,14 +31,14 @@
 namespace hyperion {
 
 #ifdef HYP_BUILDTOOL
-const Class* g_clsHypObjectBase = nullptr;
+const Class* g_clsObjectBase = nullptr;
 #else
-HYP_API extern const Class* g_clsHypObjectBase;
+HYP_API extern const Class* g_clsObjectBase;
 #endif
 
-#pragma region HypObjectInitializerGuardBase
+#pragma region ObjectInitializerGuardBase
 
-HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
+ObjectInitializerGuardBase::ObjectInitializerGuardBase(TypedObjPtr ptr)
     : ptr(ptr)
 {
     AssertDebug(ptr.IsValid());
@@ -47,18 +47,18 @@ HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
 
     AssertDebug(ptr.GetClass()->UseHandles());
 
-    HypObjectBase* target = reinterpret_cast<HypObjectBase*>(ptr.GetPointer());
-    AssertDebug(target != nullptr, "HypObjectInitializerGuardBase: HypObjectPtr is not valid!");
+    ObjectBase* target = reinterpret_cast<ObjectBase*>(ptr.GetPointer());
+    AssertDebug(target != nullptr, "ObjectInitializerGuardBase: TypedObjPtr is not valid!");
 
     // Push NONE to prevent our current flags from polluting allocations that happen in the constructor
-    PushGlobalContext(HypObjectInitializerContext {
+    PushGlobalContext(ObjectInitializerContext {
         .cls = ptr.GetClass(),
-        .flags = HypObjectInitializerFlags::NONE });
+        .flags = ObjectInitializerFlags::NONE });
 }
 
-HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
+ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
 {
-    PopGlobalContext<HypObjectInitializerContext>();
+    PopGlobalContext<ObjectInitializerContext>();
 
     if (!ptr.IsValid())
     {
@@ -66,9 +66,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
     }
 
     const Class* cls = ptr.GetClass();
-    AssertDebug(cls->UseHandles()); // check is HypObjectBase
+    AssertDebug(cls->UseHandles()); // check is ObjectBase
 
-    HypObjectBase* target = reinterpret_cast<HypObjectBase*>(ptr.GetPointer());
+    ObjectBase* target = reinterpret_cast<ObjectBase*>(ptr.GetPointer());
     AssertDebug(target->GetObjectHeader_Internal()->GetRefCountStrong() == 1);
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
@@ -77,9 +77,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
     if (!(ptr.GetClass()->GetFlags() & ClassFlags::NO_SCRIPT_BINDINGS))
     {
-        HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
+        ObjectInitializerContext* context = GetGlobalContext<ObjectInitializerContext>();
 
-        if ((!context || !(context->flags & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) && !cls->IsAbstract())
+        if ((!context || !(context->flags & ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) && !cls->IsAbstract())
         {
 #ifdef HYP_DOTNET
             if (RC<dotnet::ManagedClass> managedClass = cls->GetManagedClass())
@@ -109,37 +109,37 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
     }
 }
 
-#pragma endregion HypObjectInitializerGuardBase
+#pragma endregion ObjectInitializerGuardBase
 
-#pragma region HypObjectHeader
+#pragma region ObjectHeader
 
-HypObjectBase* HypObjectHeader::GetObjectPointer(HypObjectHeader* header)
+ObjectBase* ObjectHeader::GetObjectPointer(ObjectHeader* header)
 {
     AssertDebug(header != nullptr);
     AssertDebug(header->cls != nullptr);
 
     // get pointer to object
-    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + sizeof(HypObjectHeader));
+    ObjectBase* ptr = reinterpret_cast<ObjectBase*>(reinterpret_cast<UIntPtr>(header) + sizeof(ObjectHeader));
 
     return ptr;
 }
 
-void HypObjectHeader::DestructThisObject(HypObjectHeader* header)
+void ObjectHeader::DestructThisObject(ObjectHeader* header)
 {
     AssertDebug(header != nullptr);
     AssertDebug(header->cls != nullptr);
 
     // get pointer to object
-    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + sizeof(HypObjectHeader));
+    ObjectBase* ptr = reinterpret_cast<ObjectBase*>(reinterpret_cast<UIntPtr>(header) + sizeof(ObjectHeader));
 
-    ptr->~HypObjectBase();
+    ptr->~ObjectBase();
 }
 
-#pragma endregion HypObjectHeader
+#pragma endregion ObjectHeader
 
-#pragma region HypObjectBase
+#pragma region ObjectBase
 
-HypObjectBase::HypObjectBase()
+ObjectBase::ObjectBase()
     : m_initState(INIT_STATE_UNINITIALIZED)
 {
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
@@ -148,11 +148,11 @@ HypObjectBase::HypObjectBase()
 
 #ifndef HYP_BUILDTOOL // If we're building the Build Tool we won't have access to Class data
     // get the header by subtracting the offset from this pointer
-    m_header = reinterpret_cast<HypObjectHeader*>(UIntPtr(this) - sizeof(HypObjectHeader));
+    m_header = reinterpret_cast<ObjectHeader*>(UIntPtr(this) - sizeof(ObjectHeader));
 #endif
 }
 
-HypObjectBase::~HypObjectBase()
+ObjectBase::~ObjectBase()
 {
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 
@@ -164,7 +164,7 @@ HypObjectBase::~HypObjectBase()
         {
             const Class* cls = m_header->cls;
 
-            SizeType fieldOffset = sizeof(HypObjectBase);
+            SizeType fieldOffset = sizeof(ObjectBase);
 
             // `class` field
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(ClassRef));
@@ -198,93 +198,93 @@ HypObjectBase::~HypObjectBase()
 #endif
 }
 
-ObjIdBase HypObjectBase::Id() const
+ObjIdBase ObjectBase::Id() const
 {
-    HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
+    HYP_CORE_ASSERT(m_header, "Invalid Object!");
 
     return ObjIdBase { m_header->cls->GetTypeId(), m_header->index + 1 };
 }
 
-const Class* HypObjectBase::StaticClass()
+const Class* ObjectBase::StaticClass()
 {
-    return g_clsHypObjectBase;
+    return g_clsObjectBase;
 }
 
-const Class* HypObjectBase::InstanceClass() const
+const Class* ObjectBase::InstanceClass() const
 {
-    HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
+    HYP_CORE_ASSERT(m_header, "Invalid Object!");
     HYP_CORE_ASSERT(m_header->cls, "No Class defined for type");
 
     return m_header->cls;
 }
 
 #ifdef HYP_DOTNET
-dotnet::ManagedObject* HypObjectBase::GetManagedObject() const
+dotnet::ManagedObject* ObjectBase::GetManagedObject() const
 {
     return m_scriptObjectResource ? m_scriptObjectResource->GetManagedObject() : nullptr;
 }
 #endif
 
-#pragma endregion HypObjectBase
+#pragma endregion ObjectBase
 
-#pragma region HypObjectPtr
+#pragma region TypedObjPtr
 
-HYP_API uint32 HypObjectPtr::GetRefCountStrong() const
+HYP_API uint32 TypedObjPtr::GetRefCountStrong() const
 {
     if (!IsValid())
     {
         return 0;
     }
 
-    HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
+    ObjectBase* casted = reinterpret_cast<ObjectBase*>(m_ptr);
 
-    return hypObjectBase->GetObjectHeader_Internal()->GetRefCountStrong();
+    return casted->GetObjectHeader_Internal()->GetRefCountStrong();
 }
 
-HYP_API uint32 HypObjectPtr::GetRefCountWeak() const
+HYP_API uint32 TypedObjPtr::GetRefCountWeak() const
 {
     if (!IsValid())
     {
         return 0;
     }
 
-    HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
+    ObjectBase* casted = reinterpret_cast<ObjectBase*>(m_ptr);
 
-    return hypObjectBase->GetObjectHeader_Internal()->GetRefCountWeak();
+    return casted->GetObjectHeader_Internal()->GetRefCountWeak();
 }
 
-HYP_API void HypObjectPtr::IncRef(bool weak)
+HYP_API void TypedObjPtr::IncRef(bool weak)
 {
     AssertDebug(IsValid());
 
-    HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
+    ObjectBase* casted = reinterpret_cast<ObjectBase*>(m_ptr);
 
     if (weak)
     {
-        hypObjectBase->GetObjectHeader_Internal()->IncRefWeak();
+        casted->GetObjectHeader_Internal()->IncRefWeak();
     }
     else
     {
-        hypObjectBase->GetObjectHeader_Internal()->IncRefStrong();
+        casted->GetObjectHeader_Internal()->IncRefStrong();
     }
 }
 
-HYP_API void HypObjectPtr::DecRef(bool weak)
+HYP_API void TypedObjPtr::DecRef(bool weak)
 {
     AssertDebug(IsValid());
 
-    HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
+    ObjectBase* casted = reinterpret_cast<ObjectBase*>(m_ptr);
 
     if (weak)
     {
-        hypObjectBase->GetObjectHeader_Internal()->DecRefWeak();
+        casted->GetObjectHeader_Internal()->DecRefWeak();
     }
     else
     {
-        hypObjectBase->GetObjectHeader_Internal()->DecRefStrong();
+        casted->GetObjectHeader_Internal()->DecRefStrong();
     }
 }
 
-#pragma endregion HypObjectPtr
+#pragma endregion TypedObjPtr
 
 } // namespace hyperion
