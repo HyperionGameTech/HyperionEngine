@@ -259,14 +259,14 @@ public:
     // copy from temp entry list to game thread / render thread queue
     void UpdateEntryListQueue();
 
+    /*! \brief Allocate storage for a safe deleter of type T. The instance will need to be constructed using placement new by the caller.
+        \param ppGuard Pointer-to-pointer of a mutex guard that will be set if locking is required. The caller is responsible for deleting the guard if set. */
     template <class T>
-    SafeDeleterEntry<T>* Alloc()
+    SafeDeleterEntry<T>* Alloc(Mutex::Guard** ppGuard)
     {
         EntryHeader header;
 
-        Mutex::Guard* pGuard;
-        EntryListBase& list = GetCurrentEntryList(&pGuard);
-        HYP_DEFER({ if (pGuard) delete pGuard; });
+        EntryListBase& list = GetCurrentEntryList(ppGuard);
 
         SafeDeleterEntry<T>* ptr = reinterpret_cast<SafeDeleterEntry<T>*>(list.Alloc(sizeof(SafeDeleterEntry<T>), alignof(SafeDeleterEntry<T>), header));
 
@@ -303,17 +303,18 @@ public:
     }
 
     /*! \brief Allocate storage for custom deleter of type T. The instance will need to be constructed using placement new by the caller.
-     *  Allows for an optional frame index for the deleter to be called on. If ~0u, will be called on the next frame. */
+     *  Allows for an optional frame index for the deleter to be called on. If ~0u, will be called on the next frame.
+     * \param destructFn Function pointer to the destructor function for T.
+     * \param ppGuard Pointer-to-pointer of a mutex guard that will be set if locking is required. The caller is responsible for deleting the guard if set
+     *  \param desiredIdx Desired frame index to delete on, or ~0u for next frame. */
     template <class T>
-    T* AllocCustom(void (*destructFn)(void*), uint32 desiredIdx = ~0u)
+    T* AllocCustom(void (*destructFn)(void*), Mutex::Guard** ppGuard, uint32 desiredIdx = ~0u)
     {
         static_assert(IsPodTypeV<T>, "T must be a POD type");
 
         EntryHeader header;
 
-        Mutex::Guard* pGuard;
-        EntryListBase& list = GetEntryList(&pGuard, desiredIdx);
-        HYP_DEFER({ if (pGuard) delete pGuard; });
+        EntryListBase& list = GetEntryList(ppGuard, desiredIdx);
 
         T* ptr = reinterpret_cast<T*>(list.Alloc(sizeof(T), alignof(T), header));
 
@@ -355,8 +356,14 @@ extern HYP_API SafeDeleter* GetSafeDeleterInstance();
 template <class T>
 static inline void SafeDelete(T&& value)
 {
-    SafeDeleterEntry<T>* ptr = GetSafeDeleterInstance()->Alloc<T>();
+    Mutex::Guard* pGuard = nullptr;
+    SafeDeleterEntry<T>* ptr = GetSafeDeleterInstance()->Alloc<T>(&pGuard);
     new (ptr) SafeDeleterEntry<T>(std::forward<T>(value));
+
+    if (pGuard) // if locking was needed then we can delete the guard now to unlock.
+    {
+        delete pGuard;
+    }
 }
 
 /*! \see SafeDelete(T&& value) */

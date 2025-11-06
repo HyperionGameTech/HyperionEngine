@@ -579,6 +579,9 @@ static inline void DeleteOnRenderThread(Func&& function)
 
     using Payload = Proc<void()>;
 
+    Mutex::Guard* pGuard = nullptr;
+    HYP_DEFER({ if (pGuard) delete pGuard; });
+
     Payload** ppPayload = GetSafeDeleterInstance()->AllocCustom<Payload*>([](void* ptr)
         {
             Threads::AssertOnThread(g_renderThread);
@@ -589,7 +592,8 @@ static inline void DeleteOnRenderThread(Func&& function)
             (*pPayload)();
 
             delete pPayload;
-        });
+        },
+        &pGuard);
 
     *ppPayload = new Payload(std::forward<Func>(function));
 }

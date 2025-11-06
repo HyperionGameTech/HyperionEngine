@@ -479,6 +479,9 @@ DebugDrawer::~DebugDrawer()
             DebugDrawBufferDeleterPayload* payload;
         };
 
+        Mutex::Guard* pGuard = nullptr;
+        HYP_DEFER({ if (pGuard) delete pGuard; });
+
         // safely destroy the buffer data on the correct frame
         DebugDrawBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<DebugDrawBufferDeleter>([](void* ptr)
             {
@@ -501,6 +504,7 @@ DebugDrawer::~DebugDrawer()
 
                 delete del->payload;
             },
+            &pGuard,
             /* desiredIdx */ i);
 
         deleter->idx = i;
