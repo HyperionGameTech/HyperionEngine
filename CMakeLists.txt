@@ -165,14 +165,7 @@ if(MSVC)
     endif()
 else()
     if(HYP_DEBUG_MODE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}
-            -O1
-            -g
-            -gno-embed-source
-            -gsplit-dwarf=split -gz=zlib
-            -Werror=return-type
-            -Werror=non-virtual-dtor
-            -Werror=address")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -gno-embed-source -gsplit-dwarf=split -gz=zlib -Werror=return-type -Werror=non-virtual-dtor -Werror=address")
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
     endif()
@@ -315,36 +308,44 @@ endif()
 if (RENDERING_BACKEND STREQUAL "WebGPU")
     add_definitions(-DHYP_WEBGPU=1)
 
-    # Build WebGPU as external project
-    ExternalProject_Add(webgpu_external
-        SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/webgpu
-        CMAKE_ARGS
-            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-            -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/webgpu_install
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        BUILD_ALWAYS FALSE
-        INSTALL_COMMAND ""
-        EXCLUDE_FROM_ALL TRUE
-    )
-
-    # Create imported target for WebGPU
-    ExternalProject_Get_Property(webgpu_external BINARY_DIR)
-    
-    add_library(webgpu STATIC IMPORTED)
-    add_dependencies(webgpu webgpu_external)
-    
-    if(WIN32)
-        set_target_properties(webgpu PROPERTIES
-            IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/webgpu.lib
+    # Build WebGPU as external project (only for VS and Xcode)
+    if(MSVC OR CMAKE_GENERATOR STREQUAL "Xcode")
+        ExternalProject_Add(webgpu_external
+            SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/webgpu
+            CMAKE_ARGS
+                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/webgpu_install
+                -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+            BUILD_ALWAYS FALSE
+            INSTALL_COMMAND ""
+            EXCLUDE_FROM_ALL TRUE
         )
+
+        # Create imported target for WebGPU
+        ExternalProject_Get_Property(webgpu_external BINARY_DIR)
+        
+        add_library(webgpu STATIC IMPORTED)
+        add_dependencies(webgpu webgpu_external)
+        
+        if(WIN32)
+            set_target_properties(webgpu PROPERTIES
+                IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/webgpu.lib
+            )
+        else()
+            set_target_properties(webgpu PROPERTIES
+                IMPORTED_LOCATION ${BINARY_DIR}/libwebgpu.a
+            )
+        endif()
+
+        include_directories(submodules/webgpu/include)
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} webgpu)
     else()
-        set_target_properties(webgpu PROPERTIES
-            IMPORTED_LOCATION ${BINARY_DIR}/libwebgpu.a
-        )
+        # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
+        add_subdirectory(submodules/webgpu EXCLUDE_FROM_ALL)
+        
+        include_directories(submodules/webgpu/include)
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} webgpu)
     endif()
-
-    include_directories(submodules/webgpu/include)
-    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} webgpu)
 
     message(STATUS "Using experimental WebGPU rendering backend")
 elseif (RENDERING_BACKEND STREQUAL "Vulkan")
@@ -550,151 +551,190 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
         add_definitions(-DHYP_GLSLANG=1)
         add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
 
-        # Build glslang as external project to avoid cluttering solution
-        ExternalProject_Add(glslang_external
-            SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/glslang
-            CMAKE_ARGS
-                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/glslang_install
-                -DGLSLANG_ENABLE_INSTALL=OFF
-                -DGLSLANG_ENABLE_INSTALL_DEFAULT=OFF
-                -DGLSLANG_TESTS=OFF
-                -DENABLE_GLSLANG_BINARIES=OFF
-                -DENABLE_SPVREMAPPER=OFF
-                -DENABLE_SPIRV=ON
-                -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-                -DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1
-            BUILD_ALWAYS FALSE
-            INSTALL_COMMAND ""
-            EXCLUDE_FROM_ALL TRUE
-        )
+        # Build glslang as external project to avoid cluttering solution (only for VS and Xcode)
+        if(MSVC OR CMAKE_GENERATOR STREQUAL "Xcode")
+            ExternalProject_Add(glslang_external
+                SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/glslang
+                CMAKE_ARGS
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/glslang_install
+                    -DGLSLANG_ENABLE_INSTALL=OFF
+                    -DGLSLANG_ENABLE_INSTALL_DEFAULT=OFF
+                    -DGLSLANG_TESTS=OFF
+                    -DENABLE_GLSLANG_BINARIES=OFF
+                    -DENABLE_SPVREMAPPER=OFF
+                    -DENABLE_SPIRV=ON
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+                    -DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1
+                BUILD_ALWAYS FALSE
+                INSTALL_COMMAND ""
+                EXCLUDE_FROM_ALL TRUE
+            )
 
-        # Create imported targets for all the libraries we need
-        ExternalProject_Get_Property(glslang_external BINARY_DIR)
-        
-        add_library(glslang STATIC IMPORTED)
-        add_library(SPIRV STATIC IMPORTED)
-        add_library(glslang-default-resource-limits STATIC IMPORTED)
-        add_library(SPIRV-Tools STATIC IMPORTED)
-        add_library(SPIRV-Tools-opt STATIC IMPORTED)
-        add_library(MachineIndependent STATIC IMPORTED)
-        add_library(GenericCodeGen STATIC IMPORTED)
-        add_library(OSDependent STATIC IMPORTED)
-        
-        add_dependencies(glslang glslang_external)
-        add_dependencies(SPIRV glslang_external)
-        add_dependencies(glslang-default-resource-limits glslang_external)
-        add_dependencies(SPIRV-Tools glslang_external)
-        add_dependencies(SPIRV-Tools-opt glslang_external)
-        add_dependencies(MachineIndependent glslang_external)
-        add_dependencies(GenericCodeGen glslang_external)
-        add_dependencies(OSDependent glslang_external)
-        
-        # Set the imported library locations
-        if(WIN32)
-            set_target_properties(glslang PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/glslang.lib
-            )
-            set_target_properties(SPIRV PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/SPIRV/${CMAKE_BUILD_TYPE}/SPIRV.lib
-            )
-            set_target_properties(glslang-default-resource-limits PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/glslang-default-resource-limits.lib
-            )
-            set_target_properties(SPIRV-Tools PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/${CMAKE_BUILD_TYPE}/SPIRV-Tools.lib
-            )
-            set_target_properties(SPIRV-Tools-opt PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/opt/${CMAKE_BUILD_TYPE}/SPIRV-Tools-opt.lib
-            )
-            set_target_properties(MachineIndependent PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/MachineIndependent.lib
-            )
-            set_target_properties(GenericCodeGen PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/GenericCodeGen.lib
-            )
-            set_target_properties(OSDependent PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/OSDependent/Windows/${CMAKE_BUILD_TYPE}/OSDependent.lib
+            # Create imported targets for all the libraries we need
+            ExternalProject_Get_Property(glslang_external BINARY_DIR)
+            
+            add_library(glslang STATIC IMPORTED)
+            add_library(SPIRV STATIC IMPORTED)
+            add_library(glslang-default-resource-limits STATIC IMPORTED)
+            add_library(SPIRV-Tools STATIC IMPORTED)
+            add_library(SPIRV-Tools-opt STATIC IMPORTED)
+            add_library(MachineIndependent STATIC IMPORTED)
+            add_library(GenericCodeGen STATIC IMPORTED)
+            add_library(OSDependent STATIC IMPORTED)
+            
+            add_dependencies(glslang glslang_external)
+            add_dependencies(SPIRV glslang_external)
+            add_dependencies(glslang-default-resource-limits glslang_external)
+            add_dependencies(SPIRV-Tools glslang_external)
+            add_dependencies(SPIRV-Tools-opt glslang_external)
+            add_dependencies(MachineIndependent glslang_external)
+            add_dependencies(GenericCodeGen glslang_external)
+            add_dependencies(OSDependent glslang_external)
+            
+            # Set the imported library locations
+            if(WIN32)
+                set_target_properties(glslang PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/glslang.lib
+                )
+                set_target_properties(SPIRV PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/SPIRV/${CMAKE_BUILD_TYPE}/SPIRV.lib
+                )
+                set_target_properties(glslang-default-resource-limits PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/glslang-default-resource-limits.lib
+                )
+                set_target_properties(SPIRV-Tools PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/${CMAKE_BUILD_TYPE}/SPIRV-Tools.lib
+                )
+                set_target_properties(SPIRV-Tools-opt PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/opt/${CMAKE_BUILD_TYPE}/SPIRV-Tools-opt.lib
+                )
+                set_target_properties(MachineIndependent PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/MachineIndependent.lib
+                )
+                set_target_properties(GenericCodeGen PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/GenericCodeGen.lib
+                )
+                set_target_properties(OSDependent PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/OSDependent/Windows/${CMAKE_BUILD_TYPE}/OSDependent.lib
+                )
+            else()
+                set_target_properties(glslang PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libglslang.a
+                )
+                set_target_properties(SPIRV PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/SPIRV/${CMAKE_BUILD_TYPE}/libSPIRV.a
+                )
+                set_target_properties(glslang-default-resource-limits PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libglslang-default-resource-limits.a
+                )
+                set_target_properties(SPIRV-Tools PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/${CMAKE_BUILD_TYPE}/libSPIRV-Tools.a
+                )
+                set_target_properties(SPIRV-Tools-opt PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/opt/${CMAKE_BUILD_TYPE}/libSPIRV-Tools-opt.a
+                )
+                set_target_properties(MachineIndependent PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libMachineIndependent.a
+                )
+                set_target_properties(GenericCodeGen PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libGenericCodeGen.a
+                )
+                set_target_properties(OSDependent PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/OSDependent/Unix/${CMAKE_BUILD_TYPE}/libOSDependent.a
+                )
+            endif()
+
+            include_directories(BEFORE submodules/glslang)
+
+            set(COMMON_LIBRARIES
+                ${COMMON_LIBRARIES}
+                glslang
+                SPIRV
+                glslang-default-resource-limits
+                SPIRV-Tools
+                SPIRV-Tools-opt
+                MachineIndependent
+                GenericCodeGen
+                OSDependent
             )
         else()
-            set_target_properties(glslang PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libglslang.a
-            )
-            set_target_properties(SPIRV PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/SPIRV/${CMAKE_BUILD_TYPE}/libSPIRV.a
-            )
-            set_target_properties(glslang-default-resource-limits PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libglslang-default-resource-limits.a
-            )
-            set_target_properties(SPIRV-Tools PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/${CMAKE_BUILD_TYPE}/libSPIRV-Tools.a
-            )
-            set_target_properties(SPIRV-Tools-opt PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/opt/${CMAKE_BUILD_TYPE}/libSPIRV-Tools-opt.a
-            )
-            set_target_properties(MachineIndependent PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libMachineIndependent.a
-            )
-            set_target_properties(GenericCodeGen PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libGenericCodeGen.a
-            )
-            set_target_properties(OSDependent PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/OSDependent/Unix/${CMAKE_BUILD_TYPE}/libOSDependent.a
+            # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
+            set(GLSLANG_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+            set(GLSLANG_ENABLE_INSTALL_DEFAULT OFF CACHE BOOL "" FORCE)
+            set(GLSLANG_TESTS OFF CACHE BOOL "" FORCE)
+            set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "" FORCE)
+            set(ENABLE_SPVREMAPPER OFF CACHE BOOL "" FORCE)
+            set(ENABLE_SPIRV ON CACHE BOOL "" FORCE)
+            set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+            
+            add_subdirectory(submodules/glslang EXCLUDE_FROM_ALL)
+            
+            include_directories(BEFORE submodules/glslang)
+
+            set(COMMON_LIBRARIES
+                ${COMMON_LIBRARIES}
+                glslang
+                SPIRV
+                glslang-default-resource-limits
+                SPIRV-Tools
+                SPIRV-Tools-opt
+                MachineIndependent
+                GenericCodeGen
+                OSDependent
             )
         endif()
-
-        include_directories(BEFORE submodules/glslang)
-
-        set(COMMON_LIBRARIES
-            ${COMMON_LIBRARIES}
-            glslang
-            SPIRV
-            glslang-default-resource-limits
-            SPIRV-Tools
-            SPIRV-Tools-opt
-            MachineIndependent
-            GenericCodeGen
-            OSDependent
-        )
     endif()
 
     if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/libdatachannel/CMakeLists.txt")
         add_definitions(-DHYP_LIBDATACHANNEL=1)
 
-        # Build libdatachannel as external project
-        ExternalProject_Add(libdatachannel_external
-            SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/libdatachannel
-            CMAKE_ARGS
-                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libdatachannel_install
-                -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-            BUILD_ALWAYS FALSE
-            INSTALL_COMMAND ""
-            EXCLUDE_FROM_ALL TRUE
-        )
+        # Build libdatachannel as external project (only for VS and Xcode)
+        if(MSVC OR CMAKE_GENERATOR STREQUAL "Xcode")
+            ExternalProject_Add(libdatachannel_external
+                SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/libdatachannel
+                CMAKE_ARGS
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libdatachannel_install
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+                BUILD_ALWAYS FALSE
+                INSTALL_COMMAND ""
+                EXCLUDE_FROM_ALL TRUE
+            )
 
-        # Create imported target
-        ExternalProject_Get_Property(libdatachannel_external BINARY_DIR)
-        
-        add_library(datachannel-static STATIC IMPORTED)
-        add_dependencies(datachannel-static libdatachannel_external)
-        
-        if(WIN32)
-            set_target_properties(datachannel-static PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/datachannel-static.lib
+            # Create imported target
+            ExternalProject_Get_Property(libdatachannel_external BINARY_DIR)
+            
+            add_library(datachannel-static STATIC IMPORTED)
+            add_dependencies(datachannel-static libdatachannel_external)
+            
+            if(WIN32)
+                set_target_properties(datachannel-static PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/datachannel-static.lib
+                )
+            else()
+                set_target_properties(datachannel-static PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/libdatachannel-static.a
+                )
+            endif()
+
+            include_directories(submodules/libdatachannel/include)
+
+            set(COMMON_LIBRARIES
+                ${COMMON_LIBRARIES}
+                datachannel-static
             )
         else()
-            set_target_properties(datachannel-static PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/libdatachannel-static.a
+            # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
+            add_subdirectory(submodules/libdatachannel EXCLUDE_FROM_ALL)
+
+            include_directories(submodules/libdatachannel/include)
+
+            set(COMMON_LIBRARIES
+                ${COMMON_LIBRARIES}
+                datachannel-static
             )
         endif()
-
-        include_directories(submodules/libdatachannel/include)
-
-        set(COMMON_LIBRARIES
-            ${COMMON_LIBRARIES}
-            datachannel-static
-        )
     endif()
 endif()
 
