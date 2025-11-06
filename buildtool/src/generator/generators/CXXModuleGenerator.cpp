@@ -655,7 +655,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
     {
         FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
 
-        writer.WriteString(HYP_FORMAT("/* Generated from: {} */\n\n", relativePath));
+        writer.WriteString(HYP_FORMAT("/* Generated from: {} */\n\n", relativePath).ReplaceAll("\\", "/"));
 
         addInclude(relativePath);
     }

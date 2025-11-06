@@ -22,6 +22,7 @@
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 
+#include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <rendering/env_probe/EnvProbeRenderer.hpp>

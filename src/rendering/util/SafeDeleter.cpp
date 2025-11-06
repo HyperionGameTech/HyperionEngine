@@ -67,12 +67,11 @@ SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, Construct
 
 SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
 {
-    // call destructor if no more strong references
+    // call destructor if we had the last strong reference
+
     if (ptr)
     {
         HypObjectHeader* header = ptr->GetObjectHeader_Internal();
-        AssertDebug(header != nullptr); // weird bug?
-        AssertDebug(AtomicAdd(&header->refCountWeak, 0) > 0);
 
         if (AtomicAdd(&header->refCountStrong, 0) == 0)
         {

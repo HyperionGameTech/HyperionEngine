@@ -510,9 +510,10 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
         }
 
         classDefinition.name = *optClassName;
-        classDefinition.isCXXClass = IsCXXClassDecl(classDefinition.source);
+        // check enum class first so we don't parse it as a class due to the class keyword
+        classDefinition.isCXXEnumClass = IsCXXEnumClassDecl(classDefinition.source);
+        classDefinition.isCXXClass = !classDefinition.isCXXEnumClass && IsCXXClassDecl(classDefinition.source);
         classDefinition.isCXXStruct = !classDefinition.isCXXClass && IsCXXStructDecl(classDefinition.source);
-        classDefinition.isCXXEnumClass = !classDefinition.isCXXClass && !classDefinition.isCXXStruct && IsCXXEnumClassDecl(classDefinition.source);
         classDefinition.isCXXEnum = !classDefinition.isCXXClass && !classDefinition.isCXXStruct && (classDefinition.isCXXEnumClass || IsCXXEnumDecl(classDefinition.source));
 
         Array<String> baseClassNames = ExtractCXXBaseClasses(classDefinition.source);

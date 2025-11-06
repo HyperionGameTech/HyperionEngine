@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region FirstPersonCameraInputHandler Reflection Data
 
-HYP_BEGIN_CLASS(FirstPersonCameraInputHandler, 60, 0, NAME("InputHandlerBase"))
+HYP_BEGIN_CLASS(FirstPersonCameraInputHandler, 58, 0, NAME("InputHandlerBase"))
 HYP_END_CLASS
 
 #pragma endregion FirstPersonCameraInputHandler Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region FirstPersonCameraControllerMode Reflection Data
 
-HYP_BEGIN_ENUM(FirstPersonCameraControllerMode, 385, 0, {})
+HYP_BEGIN_ENUM(FirstPersonCameraControllerMode, 371, 0, {})
     StaticField(NAME(HYP_STR(MOUSE_LOCKED)), FirstPersonCameraControllerMode::MOUSE_LOCKED),
     StaticField(NAME(HYP_STR(MOUSE_FREE)), FirstPersonCameraControllerMode::MOUSE_FREE)
 HYP_END_ENUM
@@ -31,7 +31,7 @@ namespace hyperion {
 
 #pragma region FirstPersonCameraController Reflection Data
 
-HYP_BEGIN_CLASS(FirstPersonCameraController, 185, 1, NAME("PerspectiveCameraController"))
+HYP_BEGIN_CLASS(FirstPersonCameraController, 173, 1, NAME("PerspectiveCameraController"))
     Method(NAME(HYP_STR(GetMode)), &FirstPersonCameraController::GetMode, Span<const ClassAttribute> { {ClassAttribute("property", "Mode"), ClassAttribute("transient", true) } }),
     Method(NAME(HYP_STR(SetMode)), &FirstPersonCameraController::SetMode, Span<const ClassAttribute> { {ClassAttribute("property", "Mode"), ClassAttribute("transient", true) } }),
     Method(NAME(HYP_STR(IsMouseLockAllowed)), &FirstPersonCameraController::IsMouseLockAllowed)

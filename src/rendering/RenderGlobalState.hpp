@@ -12,8 +12,6 @@
 #include <rendering/RenderShader.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 
-#include <rendering/util/ResourceTracker.hpp>
-
 namespace hyperion {
 
 class Entity;

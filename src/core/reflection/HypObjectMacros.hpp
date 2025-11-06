@@ -18,7 +18,7 @@ struct GetClassHelper
 class ClassRegistrationBase;
 
 template <class T>
-class TClassStaticInit final
+class HYP_API TClassStaticInit final
 {
 public:
     TClassStaticInit(); // leave undefined to cause linker error if not specialized
