@@ -24,7 +24,6 @@ HYP_API SafeDeleter* GetSafeDeleterInstance()
 }
 
 #pragma region SafeDeleterEntry < HypObjectBase*>
-
 SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, ConstructFromHandleTag)
     : ptr(ptr)
 {
@@ -38,16 +37,12 @@ SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, Construct
 #endif
         HypObjectHeader* header = ptr->GetObjectHeader_Internal();
 
-        // ADD weak ref, so no other releases of weak references when our strong count is zero triggers a Release()
-        header->IncRefWeak();
+        int32 currentCount = AtomicIncrement(&header->refCountStrong);
+        AssertDebug(currentCount > 1); // should have another ref from input
 
-        int32 count = AtomicAdd(&header->refCountStrong, 0);
-
-        // manually decrease strong refcount by 1
-        // ternary is here due to the fact that the c# object would have an extra ref.
-        while (count != (hasExtraRef ? 1 : 0))
+        while (currentCount != 1 + (hasExtraRef ? 1 : 0))
         {
-            if (AtomicCompareExchange(&header->refCountStrong, count, count - 1))
+            if (AtomicCompareExchange(&header->refCountStrong, currentCount, currentCount - 1))
             {
 
 #ifdef HYP_DOTNET
@@ -60,30 +55,33 @@ SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, Construct
                 break;
             }
         }
-
-        AssertDebug(AtomicAdd(&header->refCountWeak, 0) > 0);
     }
 }
 
 SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
 {
-    // call destructor if we had the last strong reference
-
+    // call destructor if no more strong references
     if (ptr)
     {
         HypObjectHeader* header = ptr->GetObjectHeader_Internal();
 
-        if (AtomicAdd(&header->refCountStrong, 0) == 0)
+        /// @NOTE: Objects with C# scripts that haven't been GC'd here wouldn't get deleted.
+        /// However, we incremented the strong ref count in the constructor to prevent deletion until this point.
+        /// So the object would've been kept alive long enough to be safe to use during rendering.
+        /// When the .NET GC runs, it will decrement the strong ref count and delete the object immediately if it reaches 0.
+        if (AtomicDecrement(&header->refCountStrong) == 0)
         {
+            // we increment weak reference to prevent weak refs to this from causing Release() upon calling their destructors.
+            header->IncRefWeak();
+
+            ptr->~HypObjectBase();
+
 #ifdef HYP_DEBUG_MODE
             header->wasSafeDeleted = true;
 #endif
-
-            ptr->~HypObjectBase();
+            // this will free the slot if no other weak references remain
+            header->DecRefWeak();
         }
-
-        // this will free the slot if no other weak references remain
-        header->DecRefWeak();
     }
 }
 
@@ -178,7 +176,7 @@ int SafeDeleter::Iterate(int maxIter)
     {
         EntryHeader header = *it;
 
-        if ((frameCounter - header.fc) < MinSafeDeleteCycles)
+        if ((int64(frameCounter) - int64(header.fc)) < MinSafeDeleteCycles)
         {
             ++it;
             continue; // skip this entry, it will be processed again next frame

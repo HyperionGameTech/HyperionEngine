@@ -168,18 +168,10 @@ UIObject::UIObject()
 UIObject::~UIObject()
 {
     SafeDelete(std::move(m_childUiObjects));
-
-    if (m_node)
-        SafeDelete(std::move(m_node));
-
-    if (m_dataSource)
-        SafeDelete(std::move(m_dataSource));
-
-    if (m_verticalScrollbar)
-        SafeDelete(std::move(m_verticalScrollbar));
-
-    if (m_horizontalScrollbar)
-        SafeDelete(std::move(m_horizontalScrollbar));
+    SafeDelete(std::move(m_node));
+    SafeDelete(std::move(m_dataSource));
+    SafeDelete(std::move(m_verticalScrollbar));
+    SafeDelete(std::move(m_horizontalScrollbar));
 
     OnInit.RemoveAllDetached();
     OnAttached.RemoveAllDetached();

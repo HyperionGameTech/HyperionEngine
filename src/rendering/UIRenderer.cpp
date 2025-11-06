@@ -89,7 +89,7 @@ static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttr
     return attributes;
 }
 
-static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList& rpl, const Array<Pair<ObjId<Entity>, int>>& meshEntityOrdering, const Optional<RenderableAttributeSet>& overrideAttributes)
+static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderProxyList& rpl, const Array<Pair<ObjId<Entity>, int>>& meshEntityOrdering, const Optional<RenderableAttributeSet>& overrideAttributes)
 {
     renderCollector.Clear(/* freeMemory */ false);
 
@@ -156,11 +156,6 @@ static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList&
 
             InitObject(rg);
         }
-
-        AssertDebug(meshProxy->mesh->IsReady(), "Mesh not ready: {} on frame: {}", meshProxy->mesh->Id(), RenderApi::GetRingIndex());
-        AssertDebug(!meshProxy->material->m_debugIsDestroyed, "WTF???: Material {} destroyed while updating on frame: {}, was safe deleted ? {}", meshProxy->material->Id(), RenderApi::GetRingIndex(),
-                        int(meshProxy->material->GetObjectHeader_Internal()->wasSafeDeleted));
-        AssertDebug(meshProxy->material->IsReady(), "Material not ready: {} on frame: {}", meshProxy->material->Id(), RenderApi::GetRingIndex());
 
         mapping.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);
     }
@@ -287,8 +282,7 @@ void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
     const ViewOutputTarget& outputTarget = m_view->GetOutputTarget();
     Assert(outputTarget.IsValid());
 
-    // renderCollector.BuildRenderGroups(m_view, rpl);
-    ::hyperion::BuildRenderGroups(renderCollector, rpl, rpl.meshEntityOrdering, {});
+    BuildRenderGroupsOrdered(renderCollector, rpl, rpl.meshEntityOrdering, {});
 
     rpl.EndRead();
 

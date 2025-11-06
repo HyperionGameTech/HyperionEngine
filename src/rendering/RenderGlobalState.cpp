@@ -1290,29 +1290,20 @@ void EndFrame_RenderThread()
                 ++ppResourceBinder;
             }
 
-            // Swap refcount owner over to the Handle
-            AnyHandle resource { rd.resource };
             subtypeData.data.EraseAt(i);
 
             if (subtypeData.hasProxyData)
             {
-                AssertDebug(subtypeData.proxies.HasIndex(i), "Proxy missing for resource {}", resource.Id());
+                AssertDebug(subtypeData.proxies.HasIndex(i), "Proxy missing for resource {}", rd.resource->Id());
 
                 IRenderProxy* pProxy = subtypeData.proxies.Get(i);
                 AssertDebug(pProxy != nullptr);
 
                 HYP_LOG(Rendering, Debug, "Deleting render proxy for resource id {} at index {} for frame {}",
-                    resource.Id(), i, slot);
+                    rd.resource->Id(), i, slot);
 
                 subtypeData.proxies.EraseAt(i);
             }
-
-            // safely release all the held resources:
-            //            if (resource.IsValid())
-            //            {
-            //                g_safeDeleter->SafeDelete(std::move(resource));
-            //            }
-            resource.Reset();
         }
 
         subtypeData.indicesPendingDelete.Clear();

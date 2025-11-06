@@ -96,20 +96,9 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
 
 MeshComponent::~MeshComponent()
 {
-    if (mesh)
-    {
-        SafeDelete(std::move(mesh));
-    }
-
-    if (material)
-    {
-        SafeDelete(std::move(material));
-    }
-
-    if (skeleton)
-    {
-        SafeDelete(std::move(skeleton));
-    }
+    SafeDelete(std::move(mesh));
+    SafeDelete(std::move(material));
+    SafeDelete(std::move(skeleton));
 }
 
 } // namespace hyperion
