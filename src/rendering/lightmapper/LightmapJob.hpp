@@ -39,13 +39,15 @@ struct LightmapJobParams
 {
     LightmapperConfig* config;
 
+    LightmapShadingType shadingType;
+
+    ILightmapRenderer* renderer;
+
     Handle<Scene> scene;
     Handle<View> view;
 
     Span<LightmapSubElement> subElementsView;
     HashMap<Handle<Entity>, LightmapSubElement*>* subElementsByEntity;
-
-    Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
 };
 
 class HYP_API LightmapJobBase
@@ -119,7 +121,7 @@ public:
      *  \param rays The rays that were traced.
      *  \param hits The hits to integrate.
      */
-    virtual void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType);
+    virtual void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits);
 
     /*! \brief Gather next rays to be traced.
      *  \param maxRayHits The maximum number of rays to gather.
