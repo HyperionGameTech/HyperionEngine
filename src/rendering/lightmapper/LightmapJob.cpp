@@ -326,6 +326,9 @@ void LightmapJobBase::Process()
 
     AssertDebug(lightmapRenderers[0] != nullptr);
 
+    // @TODO: Radiance map won't need as many samples as irradiance due to having less variance in directions,
+    // we should separate LightmapJob to be per- shading type, so the radiance one can finish earlier.
+
     for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
     {
         AssertDebug(lightmapRenderer != nullptr);
