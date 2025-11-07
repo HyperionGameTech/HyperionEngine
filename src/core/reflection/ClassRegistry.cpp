@@ -134,7 +134,7 @@ const Class* ClassRegistry::GetClass(TypeId typeId) const
     return it->second;
 }
 
-const Class* ClassRegistry::GetClass(WeakName typeName) const
+const Class* ClassRegistry::GetClass(StringHash typeName) const
 {
     HYP_SCOPE;
 
@@ -177,7 +177,7 @@ const Class* ClassRegistry::GetEnum(TypeId typeId) const
     return cls;
 }
 
-const Class* ClassRegistry::GetEnum(WeakName typeName) const
+const Class* ClassRegistry::GetEnum(StringHash typeName) const
 {
     HYP_SCOPE;
 

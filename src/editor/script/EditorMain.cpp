@@ -252,7 +252,7 @@ UIEventHandlerResult EditorMain::UpdateUndoMenuItem()
         return UIEventHandlerResult::ERR;
     }
 
-    Handle<UIObject> undoMenuItemObject = uiSubsystem->GetUIStage()->FindChildUIObject(CreateWeakNameFromDynamicString("Undo_MenuItem"), true);
+    Handle<UIObject> undoMenuItemObject = uiSubsystem->GetUIStage()->FindChildUIObject(CreateStringHashFromDynamicString("Undo_MenuItem"), true);
     if (!undoMenuItemObject.IsValid())
     {
         HYP_LOG(Editor, Error, "Undo menu item not found");
@@ -324,7 +324,7 @@ UIEventHandlerResult EditorMain::UpdateRedoMenuItem()
         return UIEventHandlerResult::ERR;
     }
 
-    Handle<UIObject> redoMenuItemObject = uiSubsystem->GetUIStage()->FindChildUIObject(CreateWeakNameFromDynamicString("Redo_MenuItem"), true);
+    Handle<UIObject> redoMenuItemObject = uiSubsystem->GetUIStage()->FindChildUIObject(CreateStringHashFromDynamicString("Redo_MenuItem"), true);
     if (!redoMenuItemObject.IsValid())
     {
         HYP_LOG(Editor, Error, "Redo menu item not found");

@@ -272,9 +272,9 @@ struct DescriptorSetDeclaration
 
     /*! \brief Calculate a flat index for a Descriptor that is part of this set.
         Returns -1 if not found */
-    uint32 CalculateFlatIndex(DescriptorSlot slot, WeakName name) const;
+    uint32 CalculateFlatIndex(DescriptorSlot slot, StringHash name) const;
 
-    DescriptorDeclaration* FindDescriptorDeclaration(WeakName name) const;
+    DescriptorDeclaration* FindDescriptorDeclaration(StringHash name) const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -304,13 +304,13 @@ struct DescriptorTableDeclaration
     HYP_FIELD(Property = "Elements", Serialize = true)
     Array<DescriptorSetDeclaration> elements;
 
-    DescriptorSetDeclaration* FindDescriptorSetDeclaration(WeakName name) const;
+    DescriptorSetDeclaration* FindDescriptorSetDeclaration(StringHash name) const;
     DescriptorSetDeclaration* AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration);
 
     /*! \brief Get the index of a descriptor set in the table
         \param name The name of the descriptor set
         \return The index of the descriptor set in the table, or -1 if not found */
-    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(WeakName name) const
+    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(StringHash name) const
     {
         for (const auto& it : elements)
         {
@@ -507,7 +507,7 @@ public:
         m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count, size });
     }
 
-    HYP_FORCE_INLINE const DescriptorSetLayoutElement* GetElement(WeakName name) const
+    HYP_FORCE_INLINE const DescriptorSetLayoutElement* GetElement(StringHash name) const
     {
         const auto it = m_elements.FindAs(name);
 
@@ -633,20 +633,20 @@ public:
     virtual void Update(bool force = false) = 0;
     virtual DescriptorSetRef Clone() const = 0;
 
-    bool HasElement(WeakName name) const;
+    bool HasElement(StringHash name) const;
 
-    void SetElement(WeakName name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref);
-    void SetElement(WeakName name, uint32 index, const GpuBufferRef& ref);
-    void SetElement(WeakName name, const GpuBufferRef& ref);
+    void SetElement(StringHash name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref);
+    void SetElement(StringHash name, uint32 index, const GpuBufferRef& ref);
+    void SetElement(StringHash name, const GpuBufferRef& ref);
 
-    void SetElement(WeakName name, uint32 index, const GpuImageViewRef& ref);
-    void SetElement(WeakName name, const GpuImageViewRef& ref);
+    void SetElement(StringHash name, uint32 index, const GpuImageViewRef& ref);
+    void SetElement(StringHash name, const GpuImageViewRef& ref);
 
-    void SetElement(WeakName name, uint32 index, const SamplerRef& ref);
-    void SetElement(WeakName name, const SamplerRef& ref);
+    void SetElement(StringHash name, uint32 index, const SamplerRef& ref);
+    void SetElement(StringHash name, const SamplerRef& ref);
 
-    void SetElement(WeakName name, uint32 index, const GpuTlasRef& ref);
-    void SetElement(WeakName name, const GpuTlasRef& ref);
+    void SetElement(StringHash name, uint32 index, const GpuTlasRef& ref);
+    void SetElement(StringHash name, const GpuTlasRef& ref);
 
     virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
@@ -662,7 +662,7 @@ protected:
     }
 
     template <class T>
-    DescriptorSetElement& SetElementT(WeakName name, uint32 index, const Handle<T>& ref)
+    DescriptorSetElement& SetElementT(StringHash name, uint32 index, const Handle<T>& ref)
     {
         const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
         AssertDebug(layoutElement != nullptr, "Invalid element: No item with name {} found", Name(name));
@@ -861,7 +861,7 @@ public:
         \param name The name of the descriptor set
         \param frameIndex The index of the frame for the descriptor set
         \return The descriptor set, or an unset reference if not found */
-    HYP_FORCE_INLINE const DescriptorSetRef& GetDescriptorSet(WeakName name, uint32 frameIndex) const
+    HYP_FORCE_INLINE const DescriptorSetRef& GetDescriptorSet(StringHash name, uint32 frameIndex) const
     {
         for (const DescriptorSetRef& set : m_sets[frameIndex])
         {
@@ -895,7 +895,7 @@ public:
     /*! \brief Get the index of a descriptor set in the table
         \param name The name of the descriptor set
         \return The index of the descriptor set in the table, or -1 if not found */
-    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(WeakName name) const
+    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(StringHash name) const
     {
         return m_decl ? m_decl->GetDescriptorSetIndex(name) : ~0u;
     }

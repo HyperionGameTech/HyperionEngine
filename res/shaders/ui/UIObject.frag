@@ -17,6 +17,8 @@ layout(location = 5) out uint gbuffer_mask;
 
 #define INSTANCING
 
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
 #include "../include/defines.inc"
 #include "../include/shared.inc"
 #include "../include/gbuffer.inc"
@@ -24,6 +26,8 @@ layout(location = 5) out uint gbuffer_mask;
 #include "../include/object.inc"
 #include "../include/UIObject.glsl"
 #include "../include/scene.inc"
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 // clang-format off
 
@@ -64,10 +68,10 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBu
 #endif
 
 #ifdef TEXTURED
-#ifndef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform texture2D textures[HYP_MAX_BOUND_TEXTURES];
-#else
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
 HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
+#else
+HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
 #endif
 #endif
 
@@ -85,12 +89,9 @@ void main()
     vec4 ui_color = CURRENT_MATERIAL.albedo;
 
 #ifdef TEXTURED
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map))
-    {
-        vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map, v_texcoord0);
+    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, v_texcoord0);
 
-        ui_color *= albedo_texture;
-    }
+    ui_color *= albedo_texture;
 #endif
 
     // rounded corners

@@ -44,8 +44,8 @@ class AssetObject;
 struct HypData;
 class ByteWriter;
 
-extern WeakName AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
-extern WeakName AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
+extern StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
+extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
 
 using AssetPackageSet = HashSet<Handle<AssetPackage>, &AssetPackage_KeyByFunction>;
 
@@ -236,7 +236,7 @@ public:
     Task<Result> AddAssetObject(const Handle<AssetObject>& assetObject);
     Task<Result> RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
-    Handle<AssetObject> GetAssetObject(WeakName assetName) const;
+    Handle<AssetObject> GetAssetObject(StringHash assetName) const;
 
     /*! \brief Merges the contents of another package into this one.
      *  Transfers ownership of all asset objects and subpackages from the source package

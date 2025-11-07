@@ -29,31 +29,12 @@ HYP_BEGIN_ENUM(MaterialTextureKey, 290, 0, {})
     StaticField(NAME(HYP_STR(NONE)), MaterialTextureKey::NONE),
     StaticField(NAME(HYP_STR(ALBEDO_MAP)), MaterialTextureKey::ALBEDO_MAP),
     StaticField(NAME(HYP_STR(NORMAL_MAP)), MaterialTextureKey::NORMAL_MAP),
-    StaticField(NAME(HYP_STR(AO_MAP)), MaterialTextureKey::AO_MAP),
     StaticField(NAME(HYP_STR(PARALLAX_MAP)), MaterialTextureKey::PARALLAX_MAP),
     StaticField(NAME(HYP_STR(METALNESS_MAP)), MaterialTextureKey::METALNESS_MAP),
     StaticField(NAME(HYP_STR(ROUGHNESS_MAP)), MaterialTextureKey::ROUGHNESS_MAP),
+    StaticField(NAME(HYP_STR(AO_MAP)), MaterialTextureKey::AO_MAP),
     StaticField(NAME(HYP_STR(RADIANCE_MAP)), MaterialTextureKey::RADIANCE_MAP),
-    StaticField(NAME(HYP_STR(IRRADIANCE_MAP)), MaterialTextureKey::IRRADIANCE_MAP),
-    StaticField(NAME(HYP_STR(RESERVED0)), MaterialTextureKey::RESERVED0),
-    StaticField(NAME(HYP_STR(RESERVED1)), MaterialTextureKey::RESERVED1),
-    StaticField(NAME(HYP_STR(RESERVED2)), MaterialTextureKey::RESERVED2),
-    StaticField(NAME(HYP_STR(RESERVED3)), MaterialTextureKey::RESERVED3),
-    StaticField(NAME(HYP_STR(RESERVED4)), MaterialTextureKey::RESERVED4),
-    StaticField(NAME(HYP_STR(RESERVED5)), MaterialTextureKey::RESERVED5),
-    StaticField(NAME(HYP_STR(SPLAT_MAP)), MaterialTextureKey::SPLAT_MAP),
-    StaticField(NAME(HYP_STR(BASE_TERRAIN_COLOR_MAP)), MaterialTextureKey::BASE_TERRAIN_COLOR_MAP),
-    StaticField(NAME(HYP_STR(BASE_TERRAIN_NORMAL_MAP)), MaterialTextureKey::BASE_TERRAIN_NORMAL_MAP),
-    StaticField(NAME(HYP_STR(BASE_TERRAIN_AO_MAP)), MaterialTextureKey::BASE_TERRAIN_AO_MAP),
-    StaticField(NAME(HYP_STR(BASE_TERRAIN_PARALLAX_MAP)), MaterialTextureKey::BASE_TERRAIN_PARALLAX_MAP),
-    StaticField(NAME(HYP_STR(TERRAIN_LEVEL1_COLOR_MAP)), MaterialTextureKey::TERRAIN_LEVEL1_COLOR_MAP),
-    StaticField(NAME(HYP_STR(TERRAIN_LEVEL1_NORMAL_MAP)), MaterialTextureKey::TERRAIN_LEVEL1_NORMAL_MAP),
-    StaticField(NAME(HYP_STR(TERRAIN_LEVEL1_AO_MAP)), MaterialTextureKey::TERRAIN_LEVEL1_AO_MAP),
-    StaticField(NAME(HYP_STR(TERRAIN_LEVEL1_PARALLAX_MAP)), MaterialTextureKey::TERRAIN_LEVEL1_PARALLAX_MAP),
-    StaticField(NAME(HYP_STR(TERRAIN_LEVEL2_COLOR_MAP)), MaterialTextureKey::TERRAIN_LEVEL2_COLOR_MAP),
-    StaticField(NAME(HYP_STR(TERRAIN_LEVEL2_NORMAL_MAP)), MaterialTextureKey::TERRAIN_LEVEL2_NORMAL_MAP),
-    StaticField(NAME(HYP_STR(TERRAIN_LEVEL2_AO_MAP)), MaterialTextureKey::TERRAIN_LEVEL2_AO_MAP),
-    StaticField(NAME(HYP_STR(TERRAIN_LEVEL2_PARALLAX_MAP)), MaterialTextureKey::TERRAIN_LEVEL2_PARALLAX_MAP)
+    StaticField(NAME(HYP_STR(IRRADIANCE_MAP)), MaterialTextureKey::IRRADIANCE_MAP)
 HYP_END_ENUM
 
 #pragma endregion MaterialTextureKey Reflection Data

@@ -42,7 +42,7 @@ static inline VulkanRenderBackend* GetRenderBackend()
 #ifdef HYP_DEBUG_MODE
 static inline void ValidateDynamicOffset(
     uint32 offset,
-    const WeakName& dynamicElementName,
+    const StringHash& dynamicElementName,
     const DescriptorSetLayoutElement* layoutElement,
     const DescriptorSetElement* element)
 {
@@ -98,7 +98,7 @@ static inline void PopulateDynamicOffsets(
 
     for (SizeType i = 0; i < layout.GetDynamicElements().Size(); i++)
     {
-        const WeakName dynamicElementName = layout.GetDynamicElements()[i];
+        const StringHash dynamicElementName = layout.GetDynamicElements()[i];
 
         int idx = -1;
 

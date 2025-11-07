@@ -89,7 +89,7 @@ public:
      *  \param typeName The name of the type to get the Class instance for.
      *  \return The Class instance for the given type, or nullptr if the type is not registered.
      */
-    const Class* GetClass(WeakName typeName) const;
+    const Class* GetClass(StringHash typeName) const;
 
     /*! \brief Get an enum Class instance associated with the given type.
      *
@@ -116,7 +116,7 @@ public:
      *  \param typeId The type to get the Class instance for.
      *  \return The Class instance for the given type, or nullptr if the type is not registered or is not an enum type
      */
-    const Class* GetEnum(WeakName typeName) const;
+    const Class* GetEnum(StringHash typeName) const;
 
     void RegisterClass(TypeId typeId, Class* cls);
 

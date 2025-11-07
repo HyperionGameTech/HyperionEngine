@@ -51,7 +51,7 @@ extern "C"
         }
     }
 
-    HYP_EXPORT const LogChannel* Logger_FindLogChannel(WeakName* name)
+    HYP_EXPORT const LogChannel* Logger_FindLogChannel(StringHash* name)
     {
         if (!name)
         {

@@ -31,6 +31,15 @@ static const ShaderDefinition s_defaultShaderDefinition {
 
 #pragma region Material
 
+const Array<Name> Material::s_textureNames = {
+    NAME("AlbedoMap"),
+    NAME("NormalMap"),
+    NAME("ParallaxMap"),
+    NAME("MetalnessMap"),
+    NAME("RoughnessMap"),
+    NAME("AoMap")
+};
+
 const MaterialParameters& Material::DefaultParameters()
 {
     static const MaterialParameters s_defaultParameters {
@@ -379,7 +388,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 
         const Handle<Texture>& texture = m_textures.AtIndex(slot);
 
-        if (texture.IsValid())
+        if (texture != nullptr)
         {
             const uint32 idx = uint32(proxy->boundTextures.Size());
             proxy->boundTextures.PushBack(texture);
@@ -409,9 +418,11 @@ void Material::UpdateAttributesTextureMask()
 
     for (uint32 i = 0; i < uint32(m_textures.Size()); i++)
     {
-        if (m_textures.AtIndex(i))
+        if (m_textures.AtIndex(i) != nullptr)
         {
             m_attributes.textureMask |= (1u << i);
+
+            HYP_LOG(Material, Debug, "Material {} has texture at slot {} : {}", GetName(), i, m_textures.AtIndex(i)->GetName());
         }
     }
 }

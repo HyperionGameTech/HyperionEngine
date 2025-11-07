@@ -20,14 +20,10 @@ uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
 #include "include/object.inc"
 #include "include/material.inc"
 #include "include/shared.inc"
 #include "include/packing.inc"
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef INSTANCING
 
@@ -66,27 +62,18 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBu
 #endif
 #endif
 
-#ifndef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform texture2D textures[HYP_MAX_BOUND_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
-#endif
-
 void main()
 {
     // if (bool(GET_OBJECT_BUCKET(object) & OBJECT_MASK_SKY)) {
     //     discard;
     // }
 
-#ifdef ALPHA_DISCARD
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map))
-    {
-        vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map, v_texcoord0);
+#if defined(ALPHA_DISCARD) && HAS_ALBEDO_MAP
+    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, v_texcoord0);
 
-        if (albedo_texture.a < MATERIAL_ALPHA_DISCARD)
-        {
-            discard;
-        }
+    if (albedo_texture.a < MATERIAL_ALPHA_DISCARD)
+    {
+        discard;
     }
 #endif
 

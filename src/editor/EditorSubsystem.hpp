@@ -425,7 +425,7 @@ public:
     void AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debugOverlay);
 
     HYP_METHOD()
-    bool RemoveDebugOverlay(WeakName name);
+    bool RemoveDebugOverlay(StringHash name);
 
     HYP_METHOD()
     Handle<Node> GetFocusedNode() const;

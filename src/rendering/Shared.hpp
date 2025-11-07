@@ -1080,7 +1080,7 @@ struct DescriptorSetOffsetMap
 
     static constexpr uint32 MaxOffsets = 8;
 
-    WeakName keys[MaxOffsets];
+    StringHash keys[MaxOffsets];
     uint32 values[MaxOffsets];
     uint32 count;
 
@@ -1120,7 +1120,7 @@ struct DescriptorSetOffsetMap
         }
     }
 
-    HYP_FORCE_INLINE void Add(WeakName key, uint32 value)
+    HYP_FORCE_INLINE void Add(StringHash key, uint32 value)
     {
         uint32 idx = count++;
         AssertDebug(idx < MaxOffsets, "too many offsets!");
@@ -1137,7 +1137,7 @@ struct DescriptorTableOffsetMap
 
     static constexpr uint32 MaxSets = 4;
 
-    WeakName setNames[MaxSets];
+    StringHash setNames[MaxSets];
     DescriptorSetOffsetMap setOffsets[MaxSets];
     uint32 count;
 
@@ -1177,7 +1177,7 @@ struct DescriptorTableOffsetMap
         }
     }
 
-    HYP_FORCE_INLINE DescriptorSetOffsetMap& Add(WeakName setName)
+    HYP_FORCE_INLINE DescriptorSetOffsetMap& Add(StringHash setName)
     {
         uint32 idx = count++;
         AssertDebug(idx < MaxSets, "too many offsets!");

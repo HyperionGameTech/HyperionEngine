@@ -80,10 +80,10 @@ HYP_API extern const Class* g_hypObjectBaseClass;
 #pragma region Helpers
 
 HYP_API const Class* GetClass(const TypeId& typeId);
-HYP_API const Class* GetClass(WeakName typeName);
+HYP_API const Class* GetClass(StringHash typeName);
 
 HYP_API const Class* GetEnum(const TypeId& typeId);
-HYP_API const Class* GetEnum(WeakName typeName);
+HYP_API const Class* GetEnum(StringHash typeName);
 
 HYP_API SizeType GetNumDescendants(TypeId typeId);
 
@@ -489,24 +489,24 @@ public:
         return m_attributes;
     }
 
-    HYP_FORCE_INLINE const ClassAttributeValue& GetAttribute(WeakName key) const
+    HYP_FORCE_INLINE const ClassAttributeValue& GetAttribute(StringHash key) const
     {
         return m_attributes[key];
     }
 
-    HYP_FORCE_INLINE const ClassAttributeValue& GetAttribute(WeakName key, const ClassAttributeValue& defaultValue) const
+    HYP_FORCE_INLINE const ClassAttributeValue& GetAttribute(StringHash key, const ClassAttributeValue& defaultValue) const
     {
         return m_attributes.Get(key, defaultValue);
     }
 
-    HYP_FORCE_INLINE const ClassAttributeValue& GetAttributeDeep(WeakName key) const
+    HYP_FORCE_INLINE const ClassAttributeValue& GetAttributeDeep(StringHash key) const
     {
         static const ClassAttributeValue s_invalidValue {};
 
         return GetAttributeDeep(key, s_invalidValue);
     }
 
-    const ClassAttributeValue& GetAttributeDeep(WeakName key, const ClassAttributeValue& defaultValue) const
+    const ClassAttributeValue& GetAttributeDeep(StringHash key, const ClassAttributeValue& defaultValue) const
     {
         const Class* cls = this;
 
@@ -546,9 +546,9 @@ public:
         };
     }
 
-    IHypMember* GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes = HypMemberType::ALL, bool deep = true) const;
+    IHypMember* GetMember(StringHash name, EnumFlags<HypMemberType> memberTypes = HypMemberType::ALL, bool deep = true) const;
 
-    Property* GetProperty(WeakName name, bool deep = true) const;
+    Property* GetProperty(StringHash name, bool deep = true) const;
 
     HYP_FORCE_INLINE const Array<Property*>& GetProperties() const
     {
@@ -557,7 +557,7 @@ public:
 
     Array<Property*> GetPropertiesInherited() const;
 
-    Method* GetMethod(WeakName name, bool deep = true) const;
+    Method* GetMethod(StringHash name, bool deep = true) const;
 
     HYP_FORCE_INLINE const Array<Method*>& GetMethods() const
     {
@@ -566,7 +566,7 @@ public:
 
     Array<Method*> GetMethodsInherited() const;
 
-    Field* GetField(WeakName name, bool deep = true) const;
+    Field* GetField(StringHash name, bool deep = true) const;
 
     HYP_FORCE_INLINE const Array<Field*>& GetFields() const
     {
@@ -575,7 +575,7 @@ public:
 
     Array<Field*> GetFieldsInherited() const;
 
-    StaticField* GetStaticField(WeakName name, bool deep = true) const;
+    StaticField* GetStaticField(StringHash name, bool deep = true) const;
 
     HYP_FORCE_INLINE const Array<StaticField*>& GetStaticFields() const
     {

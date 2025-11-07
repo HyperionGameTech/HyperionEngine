@@ -61,9 +61,10 @@ void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
         m_fallbackMaterialDescriptorSets[frameIndex] = g_renderBackend->MakeDescriptorSet(layout);
         m_fallbackMaterialDescriptorSets[frameIndex]->SetDebugName(NAME_FMT("MaterialDescriptorSet_INVALID_{}", frameIndex));
 
-        for (uint32 textureIndex = 0; textureIndex < MaxBoundTextures; textureIndex++)
+        // set dummy placeholder textures for each material
+        for (Name textureName : Material::s_textureNames)
         {
-            m_fallbackMaterialDescriptorSets[frameIndex]->SetElement("Textures", textureIndex, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+            m_fallbackMaterialDescriptorSets[frameIndex]->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
         }
 
         DeferCreate(m_fallbackMaterialDescriptorSets[frameIndex]);
@@ -127,9 +128,10 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
         descriptorSet->SetDebugName(NAME_FMT("MaterialDescriptorSet_{}_{}", boundIndex, frameIndex));
 #endif
 
-        for (uint32 textureIndex = 0; textureIndex < MaxBoundTextures; textureIndex++)
+        // set dummy placeholder textures for each material
+        for (Name textureName : Material::s_textureNames)
         {
-            descriptorSet->SetElement("Textures", textureIndex, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+            descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
         }
 
         descriptorSets[frameIndex] = std::move(descriptorSet);
@@ -181,31 +183,35 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
         descriptorSet->SetDebugName(NAME_FMT("MaterialDescriptorSet_{}_{}", boundIndex, frameIndex));
 #endif
 
-        // set initial placeholder elements that will get overridden
-        for (uint32 i = 0; i < MaxBoundTextures; i++)
-        {
-            descriptorSet->SetElement("Textures", i, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
-        }
-
         for (uint32 slot = 0; slot < uint32(textureIndirectIndices.Size()); slot++)
         {
+            if (slot >= Material::s_textureNames.Size())
+            {
+                break;
+            }
+
+            Name textureName = Material::s_textureNames[slot];
+
             const uint32 textureIndex = textureIndirectIndices[slot];
 
-            if (textureIndex == ~0u)
+            if (textureIndex != ~0u)
             {
-                continue;
+                AssertDebug(textureIndex < textures.Size(),
+                    "Texture index %u is out of bounds of textures array size %llu",
+                    textureIndex, textures.Size());
+
+                const Handle<Texture>& texture = textures[textureIndex];
+
+                if (texture != nullptr)
+                {
+                    descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(texture));
+
+                    continue;
+                }
             }
 
-            AssertDebug(textureIndex < textures.Size(),
-                "Texture index %u is out of bounds of textures array size %llu",
-                textureIndex, textures.Size());
-
-            const Handle<Texture>& texture = textures[textureIndex];
-
-            if (texture.IsValid())
-            {
-                descriptorSet->SetElement("Textures", textureIndex, g_renderBackend->GetTextureImageView(texture));
-            }
+            // set placeholder texture
+            descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
         }
 
         descriptorSets[frameIndex] = std::move(descriptorSet);

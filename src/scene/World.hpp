@@ -109,7 +109,7 @@ public:
     Subsystem* GetSubsystem(TypeId typeId) const;
 
     HYP_METHOD()
-    Subsystem* GetSubsystemByName(WeakName name) const;
+    Subsystem* GetSubsystemByName(StringHash name) const;
 
     HYP_METHOD()
     bool RemoveSubsystem(Subsystem* subsystem);

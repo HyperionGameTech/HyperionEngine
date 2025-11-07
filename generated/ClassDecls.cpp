@@ -53,8 +53,8 @@ const Class* g_clsUICameraController = nullptr;
 const Class* g_clsScriptCompileStatus = nullptr;
 const Class* g_clsScriptLanguage = nullptr;
 const Class* g_clsScriptData = nullptr;
-const Class* g_clsWeakName = nullptr;
 const Class* g_clsName = nullptr;
+const Class* g_clsStringHash = nullptr;
 const Class* g_clsHashCode = nullptr;
 const Class* g_clsCommandLineArgumentDefinitions = nullptr;
 const Class* g_clsCommandLineArguments = nullptr;
@@ -476,8 +476,8 @@ class UICameraController;
 enum ScriptCompileStatus : uint32;
 enum ScriptLanguage : uint32;
 struct ScriptData;
-struct WeakName;
 struct Name;
+struct StringHash;
 struct HashCode;
 namespace cli { struct CommandLineArgumentDefinitions; }
 namespace cli { class CommandLineArguments; }
@@ -900,8 +900,8 @@ HYP_API void InitializeClassDeclarations()
     static TClassStaticInit<ScriptCompileStatus> s_classInitScriptCompileStatus;
     static TClassStaticInit<ScriptLanguage> s_classInitScriptLanguage;
     static TClassStaticInit<ScriptData> s_classInitScriptData;
-    static TClassStaticInit<WeakName> s_classInitWeakName;
     static TClassStaticInit<Name> s_classInitName;
+    static TClassStaticInit<StringHash> s_classInitStringHash;
     static TClassStaticInit<HashCode> s_classInitHashCode;
     static TClassStaticInit<cli::CommandLineArgumentDefinitions> s_classInitCommandLineArgumentDefinitions;
     static TClassStaticInit<cli::CommandLineArguments> s_classInitCommandLineArguments;

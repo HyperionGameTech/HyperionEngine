@@ -269,14 +269,14 @@ String Name::ToString() const
 
 #pragma endregion Name
 
-#pragma region WeakName
+#pragma region StringHash
 
-String WeakName::ToString() const
+String StringHash::ToString() const
 {
     return Name(hashCode).ToString();
 }
 
-#pragma endregion WeakName
+#pragma endregion StringHash
 
 Name CreateNameFromDynamicString(const ANSIString& str)
 {
@@ -285,9 +285,9 @@ Name CreateNameFromDynamicString(const ANSIString& str)
     return Name(nameRegistration.id);
 }
 
-WeakName CreateWeakNameFromDynamicString(const ANSIStringView& str)
+StringHash CreateStringHashFromDynamicString(const ANSIStringView& str)
 {
-    return WeakName(NameRegistration::GenerateID(str));
+    return StringHash(NameRegistration::GenerateID(str));
 }
 
 #pragma region NameRegistration

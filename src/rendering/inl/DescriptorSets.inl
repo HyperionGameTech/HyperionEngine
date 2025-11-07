@@ -50,5 +50,13 @@ HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DeferredIndirectResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DepthPyramidResult, 1);
 
+// bindless: shared global array of textures
 HYP_DESCRIPTOR_SRV_COND(Material, Textures, MaxBindlessResources, g_renderBackend->GetRenderConfig().bindlessTextures);
-HYP_DESCRIPTOR_SRV_COND(Material, Textures, MaxBoundTextures, !g_renderBackend->GetRenderConfig().bindlessTextures);
+
+// non-bindless: individual texture descriptors
+HYP_DESCRIPTOR_SRV_COND(Material, AlbedoMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
+HYP_DESCRIPTOR_SRV_COND(Material, NormalMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
+HYP_DESCRIPTOR_SRV_COND(Material, ParallaxMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
+HYP_DESCRIPTOR_SRV_COND(Material, MetalnessMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
+HYP_DESCRIPTOR_SRV_COND(Material, RoughnessMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
+HYP_DESCRIPTOR_SRV_COND(Material, AoMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);

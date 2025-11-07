@@ -20,7 +20,7 @@ layout(location = 1) out vec4 output_normals;
 #ifdef WRITE_MOMENTS
 layout(location = 2) out vec2 output_moments;
 #endif // WRITE_MOMENTS
-#else // WRITE_NORMALS
+#else  // WRITE_NORMALS
 #ifdef WRITE_MOMENTS
 layout(location = 1) out vec2 output_moments;
 #endif // WRITE_MOMENTS
@@ -31,7 +31,6 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/scene.inc"
 #include "include/shared.inc"
 #include "include/material.inc"
@@ -46,8 +45,6 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
 HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef INSTANCING
 
@@ -91,12 +88,6 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBu
 #endif
 #endif
 
-#ifndef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform texture2D textures[HYP_MAX_BOUND_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
-#endif
-
 void main()
 {
     vec3 V = normalize(v_camera_position - v_position);
@@ -107,9 +98,9 @@ void main()
 
     vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map))
+    if (HAS_TEXTURE(CURRENT_MATERIAL, AlbedoMap))
     {
-        vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map, texcoord);
+        vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
 
         if (albedo_texture.a < 0.2)
         {

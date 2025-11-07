@@ -914,7 +914,7 @@ public:
         return *this;
     }
 
-    HYP_FORCE_INLINE bool Remove(WeakName name)
+    HYP_FORCE_INLINE bool Remove(StringHash name)
     {
         auto it = HashMap::FindAs(name);
 
@@ -975,17 +975,17 @@ public:
         return int(delegateHandlers.Size());
     }
 
-    HYP_FORCE_INLINE Iterator Find(WeakName name)
+    HYP_FORCE_INLINE Iterator Find(StringHash name)
     {
         return HashMap::FindAs(name);
     }
 
-    HYP_FORCE_INLINE ConstIterator Find(WeakName name) const
+    HYP_FORCE_INLINE ConstIterator Find(StringHash name) const
     {
         return HashMap::FindAs(name);
     }
 
-    HYP_FORCE_INLINE bool Contains(WeakName name) const
+    HYP_FORCE_INLINE bool Contains(StringHash name) const
     {
         return HashMap::FindAs(name) != HashMap::End();
     }

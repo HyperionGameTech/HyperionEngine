@@ -20,7 +20,7 @@ class NameRegistry;
 HYP_API extern Name CreateNameFromDynamicString(const ANSIString& str);
 
 /*! \brief Creates a Name from a dynamic string. Does not add it to the registry. */
-HYP_API extern WeakName CreateWeakNameFromDynamicString(const ANSIStringView& str);
+HYP_API extern StringHash CreateStringHashFromDynamicString(const ANSIStringView& str);
 
 HYP_API extern Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, bool lock);
 
@@ -107,7 +107,7 @@ struct Formatter<StringType, Name>
 Name operator "" _n(const char *, SizeType);
 
 // Name (weak) string literal conversion
-constexpr WeakName operator "" _nw(const char *, SizeType);
+constexpr StringHash operator "" _nw(const char *, SizeType);
 #endif
 
 #if defined(HYP_COMPILE_TIME_NAME_HASHING) && HYP_COMPILE_TIME_NAME_HASHING

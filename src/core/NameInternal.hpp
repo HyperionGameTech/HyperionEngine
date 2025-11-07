@@ -18,7 +18,7 @@ class NameRegistry;
 using NameID = uint64;
 
 struct Name;
-struct WeakName;
+struct StringHash;
 
 template <auto StaticStringType>
 struct HashedName;
@@ -49,17 +49,17 @@ struct Name
     HYP_STRUCT_BODY(Name);
 
     friend constexpr bool operator==(const Name& lhs, const Name& rhs);
-    friend constexpr bool operator==(const Name& lhs, const WeakName& rhs);
+    friend constexpr bool operator==(const Name& lhs, const StringHash& rhs);
     friend constexpr bool operator!=(const Name& lhs, const Name& rhs);
-    friend constexpr bool operator!=(const Name& lhs, const WeakName& rhs);
+    friend constexpr bool operator!=(const Name& lhs, const StringHash& rhs);
     friend constexpr bool operator<(const Name& lhs, const Name& rhs);
-    friend constexpr bool operator<(const Name& lhs, const WeakName& rhs);
+    friend constexpr bool operator<(const Name& lhs, const StringHash& rhs);
     friend constexpr bool operator<=(const Name& lhs, const Name& rhs);
-    friend constexpr bool operator<=(const Name& lhs, const WeakName& rhs);
+    friend constexpr bool operator<=(const Name& lhs, const StringHash& rhs);
     friend constexpr bool operator>(const Name& lhs, const Name& rhs);
-    friend constexpr bool operator>(const Name& lhs, const WeakName& rhs);
+    friend constexpr bool operator>(const Name& lhs, const StringHash& rhs);
     friend constexpr bool operator>=(const Name& lhs, const Name& rhs);
-    friend constexpr bool operator>=(const Name& lhs, const WeakName& rhs);
+    friend constexpr bool operator>=(const Name& lhs, const StringHash& rhs);
 
     static NameRegistry* s_registry;
 
@@ -131,74 +131,74 @@ struct Name
 };
 
 HYP_STRUCT()
-struct WeakName
+struct StringHash
 {
-    HYP_STRUCT_BODY(WeakName);
+    HYP_STRUCT_BODY(StringHash);
 
-    friend constexpr bool operator==(const WeakName& lhs, const WeakName& rhs);
-    friend constexpr bool operator==(const WeakName& lhs, const Name& rhs);
-    friend constexpr bool operator!=(const WeakName& lhs, const WeakName& rhs);
-    friend constexpr bool operator!=(const WeakName& lhs, const Name& rhs);
-    friend constexpr bool operator<(const WeakName& lhs, const WeakName& rhs);
-    friend constexpr bool operator<(const WeakName& lhs, const Name& rhs);
-    friend constexpr bool operator<=(const WeakName& lhs, const WeakName& rhs);
-    friend constexpr bool operator<=(const WeakName& lhs, const Name& rhs);
-    friend constexpr bool operator>(const WeakName& lhs, const WeakName& rhs);
-    friend constexpr bool operator>(const WeakName& lhs, const Name& rhs);
-    friend constexpr bool operator>=(const WeakName& lhs, const WeakName& rhs);
-    friend constexpr bool operator>=(const WeakName& lhs, const Name& rhs);
+    friend constexpr bool operator==(const StringHash& lhs, const StringHash& rhs);
+    friend constexpr bool operator==(const StringHash& lhs, const Name& rhs);
+    friend constexpr bool operator!=(const StringHash& lhs, const StringHash& rhs);
+    friend constexpr bool operator!=(const StringHash& lhs, const Name& rhs);
+    friend constexpr bool operator<(const StringHash& lhs, const StringHash& rhs);
+    friend constexpr bool operator<(const StringHash& lhs, const Name& rhs);
+    friend constexpr bool operator<=(const StringHash& lhs, const StringHash& rhs);
+    friend constexpr bool operator<=(const StringHash& lhs, const Name& rhs);
+    friend constexpr bool operator>(const StringHash& lhs, const StringHash& rhs);
+    friend constexpr bool operator>(const StringHash& lhs, const Name& rhs);
+    friend constexpr bool operator>=(const StringHash& lhs, const StringHash& rhs);
+    friend constexpr bool operator>=(const StringHash& lhs, const Name& rhs);
 
     HashCode::ValueType hashCode;
 
-    constexpr WeakName()
+    constexpr StringHash()
         : hashCode(0)
     {
     }
 
-    constexpr explicit WeakName(NameID id)
+    constexpr explicit StringHash(NameID id)
         : hashCode(id)
     {
     }
 
     template <SizeType Sz>
-    constexpr WeakName(const char (&str)[Sz])
+    constexpr StringHash(const char (&str)[Sz])
         : hashCode(HashCode::GetHashCode(str).Value())
     {
     }
 
-    constexpr WeakName(const char* str)
+    constexpr StringHash(const char* str)
         : hashCode(HashCode::GetHashCode(str).Value())
     {
     }
 
     template <int StringType, typename = std::enable_if_t<std::is_same_v<typename StringView<StringType>::CharType, char>>>
-    constexpr WeakName(const StringView<StringType>& str)
+    constexpr StringHash(const StringView<StringType>& str)
         : hashCode(HashCode::GetHashCode(str).Value())
     {
     }
 
     template <int StringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<StringType>::CharType, char>>>
-    constexpr WeakName(const containers::String<StringType>& str)
+    constexpr StringHash(const containers::String<StringType>& str)
         : hashCode(HashCode::GetHashCode(str).Value())
     {
     }
 
-    constexpr WeakName(const Name& name)
+    constexpr StringHash(const Name& name)
         : hashCode(name.hashCode)
     {
     }
 
-    constexpr WeakName& operator=(const Name& name)
+    constexpr StringHash& operator=(const Name& name)
     {
         hashCode = name.hashCode;
 
         return *this;
     }
 
-    constexpr WeakName(const WeakName& other) = default;
-    constexpr WeakName& operator=(const WeakName& other) = default;
-    constexpr WeakName(WeakName&& other) noexcept = default;
-    constexpr WeakName& operator=(WeakName&& other) noexcept = default;
+    constexpr StringHash(const StringHash& other) = default;
+    constexpr StringHash& operator=(const StringHash& other) = default;
+    constexpr StringHash(StringHash&& other) noexcept = default;
+    constexpr StringHash& operator=(StringHash&& other) noexcept = default;
 
     HYP_FORCE_INLINE constexpr NameID Id() const
     {
@@ -233,9 +233,9 @@ struct WeakName
         return HashCode(HashCode::ValueType(hashCode));
     }
 
-    HYP_FORCE_INLINE static constexpr WeakName Invalid()
+    HYP_FORCE_INLINE static constexpr StringHash Invalid()
     {
-        return WeakName {};
+        return StringHash {};
     };
 
     HYP_METHOD(NoScriptBindings)
@@ -247,7 +247,7 @@ constexpr bool operator==(const Name& lhs, const Name& rhs)
     return lhs.hashCode == rhs.hashCode;
 }
 
-constexpr bool operator==(const Name& lhs, const WeakName& rhs)
+constexpr bool operator==(const Name& lhs, const StringHash& rhs)
 {
     return lhs.hashCode == rhs.hashCode;
 }
@@ -257,7 +257,7 @@ constexpr bool operator!=(const Name& lhs, const Name& rhs)
     return lhs.hashCode != rhs.hashCode;
 }
 
-constexpr bool operator!=(const Name& lhs, const WeakName& rhs)
+constexpr bool operator!=(const Name& lhs, const StringHash& rhs)
 {
     return lhs.hashCode != rhs.hashCode;
 }
@@ -267,7 +267,7 @@ constexpr bool operator<(const Name& lhs, const Name& rhs)
     return lhs.hashCode < rhs.hashCode;
 }
 
-constexpr bool operator<(const Name& lhs, const WeakName& rhs)
+constexpr bool operator<(const Name& lhs, const StringHash& rhs)
 {
     return lhs.hashCode < rhs.hashCode;
 }
@@ -277,7 +277,7 @@ constexpr bool operator<=(const Name& lhs, const Name& rhs)
     return lhs.hashCode <= rhs.hashCode;
 }
 
-constexpr bool operator<=(const Name& lhs, const WeakName& rhs)
+constexpr bool operator<=(const Name& lhs, const StringHash& rhs)
 {
     return lhs.hashCode <= rhs.hashCode;
 }
@@ -287,7 +287,7 @@ constexpr bool operator>(const Name& lhs, const Name& rhs)
     return lhs.hashCode > rhs.hashCode;
 }
 
-constexpr bool operator>(const Name& lhs, const WeakName& rhs)
+constexpr bool operator>(const Name& lhs, const StringHash& rhs)
 {
     return lhs.hashCode > rhs.hashCode;
 }
@@ -297,67 +297,67 @@ constexpr bool operator>=(const Name& lhs, const Name& rhs)
     return lhs.hashCode >= rhs.hashCode;
 }
 
-constexpr bool operator>=(const Name& lhs, const WeakName& rhs)
+constexpr bool operator>=(const Name& lhs, const StringHash& rhs)
 {
     return lhs.hashCode >= rhs.hashCode;
 }
 
-constexpr bool operator==(const WeakName& lhs, const WeakName& rhs)
+constexpr bool operator==(const StringHash& lhs, const StringHash& rhs)
 {
     return lhs.hashCode == rhs.hashCode;
 }
 
-constexpr bool operator==(const WeakName& lhs, const Name& rhs)
+constexpr bool operator==(const StringHash& lhs, const Name& rhs)
 {
     return lhs.hashCode == rhs.hashCode;
 }
 
-constexpr bool operator!=(const WeakName& lhs, const WeakName& rhs)
+constexpr bool operator!=(const StringHash& lhs, const StringHash& rhs)
 {
     return lhs.hashCode != rhs.hashCode;
 }
 
-constexpr bool operator!=(const WeakName& lhs, const Name& rhs)
+constexpr bool operator!=(const StringHash& lhs, const Name& rhs)
 {
     return lhs.hashCode != rhs.hashCode;
 }
 
-constexpr bool operator<(const WeakName& lhs, const WeakName& rhs)
+constexpr bool operator<(const StringHash& lhs, const StringHash& rhs)
 {
     return lhs.hashCode < rhs.hashCode;
 }
 
-constexpr bool operator<(const WeakName& lhs, const Name& rhs)
+constexpr bool operator<(const StringHash& lhs, const Name& rhs)
 {
     return lhs.hashCode < rhs.hashCode;
 }
 
-constexpr bool operator<=(const WeakName& lhs, const WeakName& rhs)
+constexpr bool operator<=(const StringHash& lhs, const StringHash& rhs)
 {
     return lhs.hashCode <= rhs.hashCode;
 }
 
-constexpr bool operator<=(const WeakName& lhs, const Name& rhs)
+constexpr bool operator<=(const StringHash& lhs, const Name& rhs)
 {
     return lhs.hashCode <= rhs.hashCode;
 }
 
-constexpr bool operator>(const WeakName& lhs, const WeakName& rhs)
+constexpr bool operator>(const StringHash& lhs, const StringHash& rhs)
 {
     return lhs.hashCode > rhs.hashCode;
 }
 
-constexpr bool operator>(const WeakName& lhs, const Name& rhs)
+constexpr bool operator>(const StringHash& lhs, const Name& rhs)
 {
     return lhs.hashCode > rhs.hashCode;
 }
 
-constexpr bool operator>=(const WeakName& lhs, const WeakName& rhs)
+constexpr bool operator>=(const StringHash& lhs, const StringHash& rhs)
 {
     return lhs.hashCode >= rhs.hashCode;
 }
 
-constexpr bool operator>=(const WeakName& lhs, const Name& rhs)
+constexpr bool operator>=(const StringHash& lhs, const Name& rhs)
 {
     return lhs.hashCode >= rhs.hashCode;
 }

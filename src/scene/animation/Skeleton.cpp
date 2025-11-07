@@ -81,7 +81,7 @@ void Skeleton::Init()
     SetReady(true);
 }
 
-Bone* Skeleton::FindBone(WeakName name) const
+Bone* Skeleton::FindBone(StringHash name) const
 {
     HYP_SCOPE;
 
@@ -118,7 +118,7 @@ Bone* Skeleton::FindBone(WeakName name) const
     return nullptr;
 }
 
-uint32 Skeleton::FindBoneIndex(WeakName name) const
+uint32 Skeleton::FindBoneIndex(StringHash name) const
 {
     HYP_SCOPE;
 

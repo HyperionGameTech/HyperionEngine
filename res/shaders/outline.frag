@@ -16,16 +16,10 @@ layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec2 gbuffer_material;
 
-#define PARALLAX_ENABLED 1
-
 #include "include/scene.inc"
 #include "include/material.inc"
 #include "include/object.inc"
 #include "include/packing.inc"
-
-#if PARALLAX_ENABLED
-#include "include/parallax.inc"
-#endif
 
 void main()
 {

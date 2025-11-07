@@ -129,16 +129,22 @@ ParallelRenderingState::~ParallelRenderingState()
 namespace GeometryPass {
 
 namespace PropNames {
+
 static const Name s_nameInstancing = NAME("INSTANCING");
-static const Name s_nameLighting = NAME("LIGHTING");
+static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameDeferred = NAME("DEFERRED");
 static const Name s_nameForward = NAME("FORWARD");
 static const Name s_nameLightmapped = NAME("LIGHTMAPPED");
 static const Name s_nameAlphaDiscard = NAME("ALPHA_DISCARD");
 static const Name s_nameSkinning = NAME("SKINNING");
+
 static const Name s_nameHasAlbedoMap = NAME("HAS_ALBEDO_MAP");
 static const Name s_nameHasNormalMap = NAME("HAS_NORMAL_MAP");
-static const Name s_nameHasMaterialMap = NAME("HAS_MATERIAL_MAP");
+static const Name s_nameHasParallaxMap = NAME("HAS_PARALLAX_MAP");
+static const Name s_nameHasMetalnessMap = NAME("HAS_METALNESS_MAP");
+static const Name s_nameHasRoughnessMap = NAME("HAS_ROUGHNESS_MAP");
+static const Name s_nameHasAoMap = NAME("HAS_AO_MAP");
+
 } // namespace PropNames
 
 static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
@@ -150,10 +156,29 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     Material* material = proxy.material;
     AssertDebug(material != nullptr);
 
-    static const ShaderProperty s_propLightingDeferred = ShaderProperty(Name(PropNames::s_nameLighting), Name(PropNames::s_nameDeferred));
-    static const ShaderProperty s_propLightingForward = ShaderProperty(Name(PropNames::s_nameLighting), Name(PropNames::s_nameForward));
-    static const ShaderProperty s_propLightingLightmapped = ShaderProperty(Name(PropNames::s_nameLighting), Name(PropNames::s_nameLightmapped));
+    // shading mode
+    static const ShaderProperty s_propShadingTypeDeferredDeferred = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameDeferred));
+    static const ShaderProperty s_propShadingTypeDeferredForward = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameForward));
+    static const ShaderProperty s_propShadingTypeDeferredLightmapped = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameLightmapped));
 
+    // textures
+    static const ShaderProperty s_propHasAlbedoMap = ShaderProperty(PropNames::s_nameHasAlbedoMap);
+    static const ShaderProperty s_propHasNormalMap = ShaderProperty(PropNames::s_nameHasNormalMap);
+    static const ShaderProperty s_propHasParallaxMap = ShaderProperty(PropNames::s_nameHasParallaxMap);
+    static const ShaderProperty s_propHasMetalnessMap = ShaderProperty(PropNames::s_nameHasMetalnessMap);
+    static const ShaderProperty s_propHasRoughnessMap = ShaderProperty(PropNames::s_nameHasRoughnessMap);
+    static const ShaderProperty s_propHasAoMap = ShaderProperty(PropNames::s_nameHasAoMap);
+
+    static const Pair<MaterialTextureKey, ShaderProperty> s_textureProperties[] = {
+        { MaterialTextureKey::ALBEDO_MAP, ShaderProperty(PropNames::s_nameHasAlbedoMap) },
+        { MaterialTextureKey::NORMAL_MAP, ShaderProperty(PropNames::s_nameHasNormalMap) },
+        { MaterialTextureKey::PARALLAX_MAP, ShaderProperty(PropNames::s_nameHasParallaxMap) },
+        { MaterialTextureKey::METALNESS_MAP, ShaderProperty(PropNames::s_nameHasMetalnessMap) },
+        { MaterialTextureKey::ROUGHNESS_MAP, ShaderProperty(PropNames::s_nameHasRoughnessMap) },
+        { MaterialTextureKey::AO_MAP, ShaderProperty(PropNames::s_nameHasAoMap) }
+    };
+
+    // set base attributes from mesh and material
     attributes = RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() };
 
     if (overrideAttributes)
@@ -166,10 +191,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         const ShaderDefinition& shaderDefinition = overrideAttributes->GetShaderDefinition().IsValid()
             ? overrideAttributes->GetShaderDefinition()
             : attributes.GetShaderDefinition();
-
-#ifdef HYP_DEBUG_MODE
-        Assert(shaderDefinition.IsValid());
-#endif
 
         // Check for varying vertex attributes on the override shader compared to the entity's vertex
         // attributes. If there is not a match, we should switch to a version of the override shader that
@@ -190,8 +211,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         attributes.SetMaterialAttributes(newMaterialAttributes);
     }
 
-    AssertDebug(attributes.GetMeshAttributes().vertexAttributes != 0);
-
     const bool hasInstancing = proxy.instanceData.enableAutoInstancing || proxy.instanceData.numInstances > 1;
     const bool hasForwardLighting = attributes.GetMaterialAttributes().bucket == RB_TRANSLUCENT;
     const bool hasLightmaps = attributes.GetMaterialAttributes().bucket == RB_LIGHTMAP;
@@ -199,8 +218,11 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     const bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
     const bool hasSkinning = proxy.skeleton != nullptr && proxy.skeleton->GetRootBone() != nullptr;
 
-    bool shaderDefinitionChanged = false;
+    const ShaderDefinition& currentShaderDefinition = attributes.GetShaderDefinition();
+    const ShaderProperties& currentProperties = currentShaderDefinition.GetProperties();
+
     ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
+    bool shaderDefinitionChanged = false;
 
     if (hasInstancing != shaderDefinition.GetProperties().Has(PropNames::s_nameInstancing))
     {
@@ -209,55 +231,49 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     }
 
     {
-        auto lightingIt = shaderDefinition.GetProperties().Find(WeakName(PropNames::s_nameLighting));
+        auto shadingTypeIt = currentProperties.Find(PropNames::s_nameShadingType);
 
-        if (hasDeferredLighting != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode.value == PropNames::s_nameDeferred.hashCode))
+        if (hasDeferredLighting != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode.value == PropNames::s_nameDeferred.hashCode))
         {
-            shaderDefinition.GetProperties().Set(s_propLightingDeferred, hasDeferredLighting);
+            shaderDefinition.GetProperties().Set(s_propShadingTypeDeferredDeferred, hasDeferredLighting);
             shaderDefinitionChanged = true;
         }
 
-        if (hasForwardLighting != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode.value == PropNames::s_nameForward.hashCode))
+        if (hasForwardLighting != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode.value == PropNames::s_nameForward.hashCode))
         {
-            shaderDefinition.GetProperties().Set(s_propLightingForward, hasForwardLighting);
+            shaderDefinition.GetProperties().Set(s_propShadingTypeDeferredForward, hasForwardLighting);
             shaderDefinitionChanged = true;
         }
 
-        if (hasLightmaps != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode.value == PropNames::s_nameLightmapped.hashCode))
+        if (hasLightmaps != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode.value == PropNames::s_nameLightmapped.hashCode))
         {
-            shaderDefinition.GetProperties().Set(s_propLightingLightmapped, hasLightmaps);
+            shaderDefinition.GetProperties().Set(s_propShadingTypeDeferredLightmapped, hasLightmaps);
             shaderDefinitionChanged = true;
         }
     }
 
-    if (hasAlphaDiscard != shaderDefinition.GetProperties().Has(PropNames::s_nameAlphaDiscard))
+    if (hasAlphaDiscard != currentProperties.Has(PropNames::s_nameAlphaDiscard))
     {
         shaderDefinition.GetProperties().Set(PropNames::s_nameAlphaDiscard, hasAlphaDiscard);
         shaderDefinitionChanged = true;
     }
 
-    if (hasSkinning != shaderDefinition.GetProperties().Has(PropNames::s_nameSkinning))
+    if (hasSkinning != currentProperties.Has(PropNames::s_nameSkinning))
     {
         shaderDefinition.GetProperties().Set(PropNames::s_nameSkinning, hasSkinning);
         shaderDefinitionChanged = true;
     }
 
-    if (bool(attributes.GetMaterialAttributes().textureMask & uint32(MaterialTextureKey::ALBEDO_MAP)) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasAlbedoMap))
+    // update shader properties to reflect texture presence based on texture mask
+    for (const auto& [textureKey, property] : s_textureProperties)
     {
-        shaderDefinition.GetProperties().Set(
-            PropNames::s_nameHasAlbedoMap,
-            bool(attributes.GetMaterialAttributes().textureMask & uint32(MaterialTextureKey::ALBEDO_MAP)));
+        const bool presence = bool(attributes.GetMaterialAttributes().textureMask & uint32(textureKey));
 
-        shaderDefinitionChanged = true;
-    }
-
-    if (bool(attributes.GetMaterialAttributes().textureMask & uint32(MaterialTextureKey::NORMAL_MAP)) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasNormalMap))
-    {
-        shaderDefinition.GetProperties().Set(
-            PropNames::s_nameHasNormalMap,
-            bool(attributes.GetMaterialAttributes().textureMask & uint32(MaterialTextureKey::NORMAL_MAP)));
-
-        shaderDefinitionChanged = true;
+        if (presence != currentProperties.Has(property))
+        {
+            shaderDefinition.GetProperties().Set(property, presence);
+            shaderDefinitionChanged = true;
+        }
     }
 
     if (shaderDefinitionChanged)

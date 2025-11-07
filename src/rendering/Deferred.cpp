@@ -173,15 +173,15 @@ static void GetDeferredShaderProperties(
 
     if (s_renderConfig.raytracing && pathTracing)
     {
-        outShaderProperties.Set(NAME("PATHTRACER"));
+        outShaderProperties.Set(ShaderProperty(NAME("PATHTRACER")));
     }
     else if (debugReflections)
     {
-        outShaderProperties.Set(NAME("DEBUG_REFLECTIONS"));
+        outShaderProperties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
     }
     else if (debugIrradiance)
     {
-        outShaderProperties.Set(NAME("DEBUG_IRRADIANCE"));
+        outShaderProperties.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
     }
 
     if (lightType != LT_INVALID)

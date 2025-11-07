@@ -1646,17 +1646,15 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
         for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
         {
             globalDescriptorTable->GetDescriptorSet("Material", frameIndex)
-                ->SetElement("Textures", textureIndex,
-                    g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+                ->SetElement("Textures", textureIndex, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
         }
     }
     else
     {
-        for (uint32 textureIndex = 0; textureIndex < MaxBoundTextures; textureIndex++)
+        for (Name textureName : Material::s_textureNames)
         {
             globalDescriptorTable->GetDescriptorSet("Material", frameIndex)
-                ->SetElement("Textures", textureIndex,
-                    g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+                ->SetElement(textureName, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
         }
     }
 }

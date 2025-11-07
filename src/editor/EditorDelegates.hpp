@@ -104,8 +104,8 @@ public:
 
     /*! \brief Receive events and changes to any node that is a descendant of the given \ref{rootNode}. */
     HYP_API void AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const Property> propertiesToWatch, Proc<void(Node*, const Property*)>&& proc);
-    HYP_API int RemoveNodeWatcher(WeakName watcherKey, Node* rootNode);
-    HYP_API int RemoveNodeWatchers(WeakName watcherKey);
+    HYP_API int RemoveNodeWatcher(StringHash watcherKey, Node* rootNode);
+    HYP_API int RemoveNodeWatchers(StringHash watcherKey);
 
     HYP_API void OnNodeUpdate(Node* node, const Property* property);
 

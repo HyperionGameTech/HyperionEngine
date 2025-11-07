@@ -485,12 +485,12 @@ public:
         return m_attributes;
     }
 
-    virtual const ClassAttributeValue& GetAttribute(WeakName key) const override
+    virtual const ClassAttributeValue& GetAttribute(StringHash key) const override
     {
         return m_attributes.Get(key);
     }
 
-    virtual const ClassAttributeValue& GetAttribute(WeakName key, const ClassAttributeValue& defaultValue) const override
+    virtual const ClassAttributeValue& GetAttribute(StringHash key, const ClassAttributeValue& defaultValue) const override
     {
         return m_attributes.Get(key, defaultValue);
     }

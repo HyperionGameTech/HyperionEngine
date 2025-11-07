@@ -1454,7 +1454,7 @@ public:
 
         if (cls != nullptr)
         {
-            IHypMember* member = cls->GetMember(WeakName(NameID(hash)));
+            IHypMember* member = cls->GetMember(StringHash(NameID(hash)));
             result = ScriptApi_MakeValue(member != nullptr);
 
             return;
@@ -1485,7 +1485,7 @@ public:
             return;
         }
 
-        Field* field = cls->GetField(WeakName(NameID(hash)));
+        Field* field = cls->GetField(StringHash(NameID(hash)));
 
         if (!field)
         {
@@ -1530,7 +1530,7 @@ public:
             return;
         }
 
-        IHypMember* member = cls->GetMember(WeakName(NameID(hash)));
+        IHypMember* member = cls->GetMember(StringHash(NameID(hash)));
         if (!member)
         {
             vm->ThrowException(instance, Script_Exception::MemberNotFoundException(&src, hash));

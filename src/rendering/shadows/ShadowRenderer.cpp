@@ -51,7 +51,7 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
 
     if (filterMode == SMF_VSM)
     {
-        properties.Set(NAME("VSM"));
+        properties.Set(ShaderProperty(NAME("VSM")));
     }
 
     ShaderRef shader = g_shaderManager->GetOrCreate(NAME("CombineShadowMaps"), properties);

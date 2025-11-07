@@ -15,7 +15,7 @@
 namespace hyperion {
 #pragma region DescriptorSetDeclaration
 
-DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(WeakName name) const
+DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(StringHash name) const
 {
     for (uint32 slotIndex = 0; slotIndex < DESCRIPTOR_SLOT_MAX; slotIndex++)
     {
@@ -31,7 +31,7 @@ DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(WeakN
     return nullptr;
 }
 
-uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, WeakName name) const
+uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringHash name) const
 {
     HYP_GFX_ASSERT(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
 
@@ -60,7 +60,7 @@ uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, WeakNam
     return ~0u;
 }
 
-DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(WeakName name) const
+DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(StringHash name) const
 {
     for (const DescriptorSetDeclaration& decl : elements)
     {
@@ -229,52 +229,52 @@ DescriptorSetBase::~DescriptorSetBase()
     }
 }
 
-bool DescriptorSetBase::HasElement(WeakName name) const
+bool DescriptorSetBase::HasElement(StringHash name) const
 {
     return m_elements.FindAs(name) != m_elements.End();
 }
 
-void DescriptorSetBase::SetElement(WeakName name, uint32 index, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, const GpuBufferRef& ref)
 {
     SetElementT<GpuBufferBase>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref)
 {
     SetElementT<GpuBufferBase>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, const GpuBufferRef& ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, uint32 index, const GpuImageViewRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, const GpuImageViewRef& ref)
 {
     SetElementT<GpuImageViewBase>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, const GpuImageViewRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, const GpuImageViewRef& ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, uint32 index, const SamplerRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, const SamplerRef& ref)
 {
     SetElementT<SamplerBase>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, const SamplerRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, const SamplerRef& ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, uint32 index, const GpuTlasRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, const GpuTlasRef& ref)
 {
     SetElementT<GpuTlasBase>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(WeakName name, const GpuTlasRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, const GpuTlasRef& ref)
 {
     SetElement(name, 0, ref);
 }

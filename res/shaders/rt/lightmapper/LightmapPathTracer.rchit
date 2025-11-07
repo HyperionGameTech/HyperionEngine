@@ -200,24 +200,24 @@ void main()
 
     material_color = material.albedo;
 
-    if (HAS_TEXTURE(material, MATERIAL_TEXTURE_ALBEDO_map)) {
-        vec4 albedo_texture = SAMPLE_TEXTURE(material, MATERIAL_TEXTURE_ALBEDO_map, vec2(texcoord.x, 1.0 - texcoord.y));
+    if (HAS_TEXTURE(material, RoughnessMap)) {
+        vec4 albedo_texture = SAMPLE_TEXTURE(material, AlbedoMap, vec2(texcoord.x, 1.0 - texcoord.y));
 
         material_color *= albedo_texture;
     }
 
     float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
 
-    if (HAS_TEXTURE(material, MATERIAL_TEXTURE_METALNESS_MAP)) {
-        float metalness_sample = SAMPLE_TEXTURE(material, MATERIAL_TEXTURE_METALNESS_MAP, vec2(texcoord.x, 1.0 - texcoord.y)).r;
+    if (HAS_TEXTURE(material, MetalnessMap)) {
+        float metalness_sample = SAMPLE_TEXTURE(material, MetalnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
 
         metalness = metalness_sample;
     }
 
     float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
 
-    if (HAS_TEXTURE(material, MATERIAL_TEXTURE_ROUGHNESS_MAP)) {
-        float roughness_sample = SAMPLE_TEXTURE(material, MATERIAL_TEXTURE_ROUGHNESS_MAP, vec2(texcoord.x, 1.0 - texcoord.y)).r;
+    if (HAS_TEXTURE(material, RoughnessMap)) {
+        float roughness_sample = SAMPLE_TEXTURE(material, RoughnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
 
         roughness = roughness_sample;
     }

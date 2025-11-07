@@ -125,7 +125,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_NODISCARD Handle<Node> FindNodeByName(WeakName name) const;
+    HYP_NODISCARD Handle<Node> FindNodeByName(StringHash name) const;
 
     HYP_METHOD(Property = "Root", Editor = true)
     HYP_FORCE_INLINE const Handle<Node>& GetRoot() const

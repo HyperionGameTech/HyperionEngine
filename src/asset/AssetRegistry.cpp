@@ -48,7 +48,7 @@ static constexpr bool UseSingleThread = false;
 
 extern HYP_API const FilePath& GetResourceDirectory();
 
-WeakName AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage)
+StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage)
 {
     if (!assetPackage.IsValid())
     {
@@ -58,7 +58,7 @@ WeakName AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage)
     return assetPackage->GetName();
 }
 
-WeakName AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject)
+StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject)
 {
     if (!assetObject.IsValid())
     {
@@ -119,7 +119,7 @@ static Name GetUniqueName(Name baseName, T&& elements)
     String str = *baseName;
 
     int counter = 0;
-    while (elements.FindAs(WeakName(*str)) != elements.End())
+    while (elements.FindAs(StringHash(*str)) != elements.End())
     {
         counter++;
 
@@ -588,7 +588,7 @@ Task<Result> AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObj
     return future;
 }
 
-Handle<AssetObject> AssetPackage::GetAssetObject(WeakName assetName) const
+Handle<AssetObject> AssetPackage::GetAssetObject(StringHash assetName) const
 {
     if (!assetName.IsValid())
     {

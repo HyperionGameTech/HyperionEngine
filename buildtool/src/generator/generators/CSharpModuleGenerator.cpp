@@ -204,12 +204,12 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                     if (cls.type == ClassDefinitionType::STRUCT)
                     {
                         writer.WriteString(HYP_FORMAT("            ObjectBase.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{});\n",
-                            cls.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
+                            cls.name, uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                     }
                     else if (cls.type == ClassDefinitionType::CLASS)
                     {
                         writer.WriteString(HYP_FORMAT("            obj.GetMethod(new Name({})).InvokeNative(obj{});\n",
-                            uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
+                            uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                     }
                     else
                     {
@@ -221,7 +221,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                     if (cls.type == ClassDefinitionType::STRUCT)
                     {
                         writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{}))\n",
-                            cls.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
+                            cls.name, uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                         writer.WriteString("            {\n");
 
                         if (returnTypeMapping.getValueOverload.HasValue())
@@ -238,7 +238,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                     else if (cls.type == ClassDefinitionType::CLASS)
                     {
                         writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = obj.GetMethod(new Name({})).InvokeNative(obj{}))\n",
-                            uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
+                            uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                         writer.WriteString("            {\n");
 
                         if (returnTypeMapping.getValueOverload.HasValue())
@@ -271,7 +271,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                 writer.WriteString(HYP_FORMAT("        public static ScriptableDelegate Get{}Delegate(this {} obj)\n", managedName, cls.name));
                 writer.WriteString("        {\n");
 
-                writer.WriteString(HYP_FORMAT("            Field field = (Field)obj.Class.GetField(new Name({}));\n", uint64(CreateWeakNameFromDynamicString(member.friendlyName.Data()))));
+                writer.WriteString(HYP_FORMAT("            Field field = (Field)obj.Class.GetField(new Name({}));\n", uint64(CreateStringHashFromDynamicString(member.friendlyName.Data()))));
                 writer.WriteString("            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);\n\n");
                 writer.WriteString("            return new ScriptableDelegate(obj, fieldAddress);\n");
 

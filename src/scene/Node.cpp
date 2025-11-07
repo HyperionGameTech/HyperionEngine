@@ -154,7 +154,7 @@ void Node::SetName(Name name)
 
 bool Node::HasName() const
 {
-    static constexpr WeakName unnamed("<unnamed>");
+    static constexpr StringHash unnamed("<unnamed>");
 
     return m_name.IsValid() && m_name != unnamed;
 }
@@ -565,31 +565,31 @@ Node::NodeList::ConstIterator Node::FindChild(const Node* node) const
 
 Node::NodeList::Iterator Node::FindChild(const char* name)
 {
-    const WeakName weakName { name };
+    const StringHash stringHash { name };
 
-    return m_childNodes.FindIf([weakName](const auto& it)
+    return m_childNodes.FindIf([stringHash](const auto& it)
         {
             if (!it.IsValid())
             {
                 return false;
             }
 
-            return it->GetName() == weakName;
+            return it->GetName() == stringHash;
         });
 }
 
 Node::NodeList::ConstIterator Node::FindChild(const char* name) const
 {
-    const WeakName weakName { name };
+    const StringHash stringHash { name };
 
-    return m_childNodes.FindIf([weakName](const auto& it)
+    return m_childNodes.FindIf([stringHash](const auto& it)
         {
             if (!it.IsValid())
             {
                 return false;
             }
 
-            return it->GetName() == weakName;
+            return it->GetName() == stringHash;
         });
 }
 
@@ -986,7 +986,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
     return hasEntityHit;
 }
 
-Handle<Node> Node::FindChildByName(WeakName name) const
+Handle<Node> Node::FindChildByName(StringHash name) const
 {
     // breadth-first search
     Queue<const Node*> queue;
@@ -1051,14 +1051,14 @@ void Node::AddTag(NodeTag&& value)
     m_tags.Add(std::move(value));
 }
 
-bool Node::RemoveTag(WeakName key)
+bool Node::RemoveTag(StringHash key)
 {
     HYP_SCOPE;
 
     return m_tags.Remove(key);
 }
 
-const NodeTag& Node::GetTag(WeakName key) const
+const NodeTag& Node::GetTag(StringHash key) const
 {
     HYP_SCOPE;
 
@@ -1069,7 +1069,7 @@ const NodeTag& Node::GetTag(WeakName key) const
     return pTag != nullptr ? *pTag : emptyTag;
 }
 
-bool Node::HasTag(WeakName key) const
+bool Node::HasTag(StringHash key) const
 {
     HYP_SCOPE;
 

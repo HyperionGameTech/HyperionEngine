@@ -540,7 +540,7 @@ ILoggerOutputStream* Logger::GetOutputStream() const
     return m_impl->m_outputStream;
 }
 
-const LogChannel* Logger::FindLogChannel(WeakName name) const
+const LogChannel* Logger::FindLogChannel(StringHash name) const
 {
     for (LogChannel* channel : m_impl->m_logChannels)
     {

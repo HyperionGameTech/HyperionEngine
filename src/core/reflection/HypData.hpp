@@ -1868,7 +1868,7 @@ struct HypDataHelper<FilePath> : HypDataHelper<String>
     }
 };
 
-/// Name and WeakName - stored as String value
+/// Name and StringHash - stored as String value
 
 template <>
 struct HypDataHelperDecl<Name>
@@ -1888,7 +1888,7 @@ struct HypDataHelper<Name>
 
         return true;
     }
-    
+
     HYP_FORCE_INLINE constexpr Name& Get(Name& value) const
     {
         return value;
@@ -1929,27 +1929,27 @@ struct HypDataHelper<Name>
 };
 
 template <>
-struct HypDataHelperDecl<WeakName>
+struct HypDataHelperDecl<StringHash>
 {
 };
 
 template <>
-struct HypDataHelper<WeakName>
+struct HypDataHelper<StringHash>
 {
     using StorageType = Name;
     using ConvertibleFrom = Tuple<Name>;
 
-    HYP_FORCE_INLINE constexpr bool Is(const WeakName&) const
+    HYP_FORCE_INLINE constexpr bool Is(const StringHash&) const
     {
         return true;
     }
 
-    HYP_FORCE_INLINE constexpr WeakName& Get(WeakName& value) const
+    HYP_FORCE_INLINE constexpr StringHash& Get(StringHash& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE constexpr const WeakName& Get(const WeakName& value) const
+    HYP_FORCE_INLINE constexpr const StringHash& Get(const StringHash& value) const
     {
         return value;
     }
@@ -1959,22 +1959,22 @@ struct HypDataHelper<WeakName>
         return true;
     }
 
-    HYP_FORCE_INLINE WeakName& Get(Name& value) const
+    HYP_FORCE_INLINE StringHash& Get(Name& value) const
     {
-        return *reinterpret_cast<WeakName*>(&value);
+        return *reinterpret_cast<StringHash*>(&value);
     }
 
-    HYP_FORCE_INLINE const WeakName& Get(const Name& value) const
+    HYP_FORCE_INLINE const StringHash& Get(const Name& value) const
     {
-        return *reinterpret_cast<const WeakName*>(&value);
+        return *reinterpret_cast<const StringHash*>(&value);
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, const WeakName& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, const StringHash& value) const
     {
         hypData.Set_Internal(*reinterpret_cast<const Name*>(&value));
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(const WeakName& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    HYP_FORCE_INLINE static FBOMResult Serialize(const StringHash& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         return HypDataHelper<Name>::Serialize(*reinterpret_cast<const Name*>(&value), outData, flags);
     }
@@ -1988,7 +1988,7 @@ struct HypDataHelper<WeakName>
             return err;
         }
 
-        out = HypData(WeakName(nameData.Get<Name>()));
+        out = HypData(StringHash(nameData.Get<Name>()));
 
         return { FBOMResult::FBOM_OK };
     }

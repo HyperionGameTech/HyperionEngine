@@ -3,26 +3,26 @@
 
 namespace hyperion {
 
-#pragma region WeakName Reflection Data
+#pragma region Name Reflection Data
 
-HYP_BEGIN_STRUCT(WeakName, 231, 0, {})
-    Method(NAME(HYP_STR(ToString)), &WeakName::ToString, Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
+HYP_BEGIN_STRUCT(Name, 231, 0, {})
+    Method(NAME(HYP_STR(ToString)), &Name::ToString, Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
 HYP_END_STRUCT
 
-#pragma endregion WeakName Reflection Data
+#pragma endregion Name Reflection Data
 
 } // namespace hyperion
 
 
 namespace hyperion {
 
-#pragma region Name Reflection Data
+#pragma region StringHash Reflection Data
 
-HYP_BEGIN_STRUCT(Name, 232, 0, {})
-    Method(NAME(HYP_STR(ToString)), &Name::ToString, Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
+HYP_BEGIN_STRUCT(StringHash, 232, 0, {})
+    Method(NAME(HYP_STR(ToString)), &StringHash::ToString, Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
 HYP_END_STRUCT
 
-#pragma endregion Name Reflection Data
+#pragma endregion StringHash Reflection Data
 
 } // namespace hyperion
 

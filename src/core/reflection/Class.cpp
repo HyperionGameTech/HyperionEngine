@@ -66,7 +66,7 @@ HYP_API const Class* GetClass(const TypeId& typeId)
     return ClassRegistry::GetInstance().GetClass(typeId);
 }
 
-HYP_API const Class* GetClass(WeakName typeName)
+HYP_API const Class* GetClass(StringHash typeName)
 {
     return ClassRegistry::GetInstance().GetClass(typeName);
 }
@@ -76,7 +76,7 @@ HYP_API const Class* GetEnum(const TypeId& typeId)
     return ClassRegistry::GetInstance().GetEnum(typeId);
 }
 
-HYP_API const Class* GetEnum(WeakName typeName)
+HYP_API const Class* GetEnum(StringHash typeName)
 {
     return ClassRegistry::GetInstance().GetEnum(typeName);
 }
@@ -486,7 +486,7 @@ static void InitFormattedStringMap(void* mem)
     ADD_TYPE_NAME(UTF32String);
     ADD_TYPE_NAME(WideString);
     ADD_TYPE_NAME(Name);
-    ADD_TYPE_NAME(WeakName);
+    ADD_TYPE_NAME(StringHash);
     ADD_TYPE_NAME(TypeId);
     ADD_TYPE_NAME(HashCode);
     ADD_TYPE_NAME(void*);
@@ -675,7 +675,7 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
 
     // @NOTE: Can't reliably use the Attributes namespace values, as they might noe be
     // initialized yet by the time this constructor is called (static init order fiasco)
-    static const ArrayMap<WeakName, ClassFlags> s_attributeToFlags = {
+    static const ArrayMap<StringHash, ClassFlags> s_attributeToFlags = {
         { "abstract", ClassFlags::ABSTRACT },
         { "noscriptbindings", ClassFlags::NO_SCRIPT_BINDINGS }
     };
@@ -967,7 +967,7 @@ bool Class::CanSerialize() const
     return false;
 }
 
-IHypMember* Class::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes, bool deep) const
+IHypMember* Class::GetMember(StringHash name, EnumFlags<HypMemberType> memberTypes, bool deep) const
 {
     if (memberTypes & HypMemberType::TYPE_PROPERTY)
     {
@@ -1012,7 +1012,7 @@ IHypMember* Class::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes
     return nullptr;
 }
 
-Property* Class::GetProperty(WeakName name, bool deep) const
+Property* Class::GetProperty(StringHash name, bool deep) const
 {
     const auto it = m_propertiesByName.FindAs(name);
 
@@ -1051,7 +1051,7 @@ Array<Property*> Class::GetPropertiesInherited() const
     return m_properties;
 }
 
-Method* Class::GetMethod(WeakName name, bool deep) const
+Method* Class::GetMethod(StringHash name, bool deep) const
 {
     const auto it = m_methodsByName.FindAs(name);
 
@@ -1090,7 +1090,7 @@ Array<Method*> Class::GetMethodsInherited() const
     return m_methods;
 }
 
-Field* Class::GetField(WeakName name, bool deep) const
+Field* Class::GetField(StringHash name, bool deep) const
 {
     const auto it = m_fieldsByName.FindAs(name);
 
@@ -1129,7 +1129,7 @@ Array<Field*> Class::GetFieldsInherited() const
     return m_fields;
 }
 
-StaticField* Class::GetStaticField(WeakName name, bool deep) const
+StaticField* Class::GetStaticField(StringHash name, bool deep) const
 {
     const auto it = m_staticFieldsByName.FindAs(name);
 

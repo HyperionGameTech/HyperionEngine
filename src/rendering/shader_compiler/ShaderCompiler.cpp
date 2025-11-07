@@ -65,7 +65,7 @@ namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
-static constexpr bool ShouldCompileMissingVariants = true;
+static constexpr bool ShouldCompileMissingVariants = false;
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
@@ -123,7 +123,7 @@ static String BuildPreamble(const ShaderProperties& properties)
     // instantiated at this point in time. before compiling the shader, they
     // should have all been made Required.
 
-    HashSet<WeakName> definedNames;
+    HashSet<StringHash> definedNames;
 
     for (const ShaderProperty& property : properties.GetPropertySet())
     {
@@ -132,7 +132,7 @@ static String BuildPreamble(const ShaderProperties& properties)
             continue;
         }
 
-        if (definedNames.Contains(WeakName(property.name)))
+        if (definedNames.Contains(StringHash(property.name)))
         {
             HYP_LOG(ShaderCompiler,
                 Warning,
@@ -144,7 +144,7 @@ static String BuildPreamble(const ShaderProperties& properties)
             continue;
         }
 
-        definedNames.Insert(WeakName(property.name));
+        definedNames.Insert(StringHash(property.name));
 
         // property has a value -- if integral or float, use that value
         if (property.HasValue())
@@ -953,7 +953,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
         Assert(type != nullptr);
 
         DescriptorUsage* descriptorUsage = descriptorUsages.Find(
-            CreateWeakNameFromDynamicString(uniformBlock.name.data()));
+            CreateStringHashFromDynamicString(uniformBlock.name.data()));
 
         if (descriptorUsage != nullptr)
         {
@@ -1307,6 +1307,9 @@ HashCode ShaderProperty::GetHashCode() const
         hc.Add(GetValueString().GetHashCode());
     }
 
+    // @NOTE: enum values aren't part of the hash code in order to allow
+    // changing selecting shader via name / value hash
+
     return hc;
 }
 
@@ -1645,10 +1648,11 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
                                     })
         != batch.compiledShaders.End();
 
-    if (missingVariants.Any() || !requestedFound)
+    if ((ShouldCompileMissingVariants && missingVariants.Any()) || !requestedFound)
     {
         String missingVariantsString;
 
+        if (ShouldCompileMissingVariants)
         {
             SizeType index = 0;
 
@@ -1681,17 +1685,8 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         // clear the batch if properties requested are missing.
         batch = CompiledShaderBatch {};
 
-        if (ShouldCompileMissingVariants && CanCompileShaders())
+        if (CanCompileShaders())
         {
-            HYP_LOG(
-                ShaderCompiler, Info,
-                "Compiled shader is missing properties. Attempting to compile with "
-                "the missing properties.\nRequested:\n\t{} "
-                "({})\n\nMissing:\n\t{}\n\nFound:\n{}",
-                requestedProperties.ToString(), (requestedFound ? "found" : "not found"),
-                missingVariantsString,
-                allPropertiesString);
-
             return CompileBundle(bundle, requestedProperties, batch);
         }
 
@@ -2510,7 +2505,7 @@ bool ShaderCompiler::CompileBundle(
 
         const auto mergeAdditionalVersion = [](ShaderProperties& target, const ShaderProperty& additional) -> Result
         {
-            auto targetIt = target.Find(WeakName(additional.name));
+            auto targetIt = target.Find(StringHash(additional.name));
 
             if (additional.IsPermutable())
             {

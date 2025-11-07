@@ -4,6 +4,7 @@
 #include "shared.inc"
 #include "brdf.inc"
 #include "scene.inc"
+#include "material.inc"
 
 const float lut_size = 64.0;
 const float lut_scale = (lut_size - 1.0) / lut_size;
@@ -41,9 +42,11 @@ bool RayPlaneIntersect(in Ray ray, vec4 plane, out float t)
     return t > 0.0;
 }
 
+#ifdef LIGHT_TYPE_AREA_RECT
 vec4 SampleRectLightTexture(in Light light, in vec3 pts[4])
 {
-    if (light.material_index == ~0u || !HAS_TEXTURE(materials[light.material_index], MATERIAL_TEXTURE_ALBEDO_map)) {
+    if (light.material_index == ~0u || !HAS_TEXTURE(materials[light.material_index], AlbedoMap))
+    {
         return vec4(1.0);
     }
 
@@ -73,8 +76,8 @@ vec4 SampleRectLightTexture(in Light light, in vec3 pts[4])
     float lod_b = ceil(lod);
     float t = lod - lod_a;
 
-    vec4 tex_a = Texture2DLod(HYP_SAMPLER_LINEAR, GET_TEXTURE(materials[light.material_index], MATERIAL_TEXTURE_ALBEDO_map), uv, lod_a);
-    vec4 tex_b = Texture2DLod(HYP_SAMPLER_LINEAR, GET_TEXTURE(materials[light.material_index], MATERIAL_TEXTURE_ALBEDO_map), uv, lod_b);
+    vec4 tex_a = Texture2DLod(HYP_SAMPLER_LINEAR, GET_TEXTURE(materials[light.material_index], AlbedoMap), uv, lod_a);
+    vec4 tex_b = Texture2DLod(HYP_SAMPLER_LINEAR, GET_TEXTURE(materials[light.material_index], AlbedoMap), uv, lod_b);
 
     return mix(tex_a, tex_b, t);
 }
@@ -143,5 +146,7 @@ vec4 CalculateAreaLightRadiance(in Light light, in mat3 Minv, in vec3 pts[4], in
 
     return vec4(sum) * sampled_texture;
 }
+
+#endif
 
 #endif

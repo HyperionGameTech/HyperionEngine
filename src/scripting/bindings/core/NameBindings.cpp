@@ -32,7 +32,7 @@ extern "C"
 
         if (weak)
         {
-            *outName = Name(CreateWeakNameFromDynamicString(str).hashCode);
+            *outName = Name(CreateStringHashFromDynamicString(str).hashCode);
         }
         else
         {

@@ -34,39 +34,14 @@ enum class MaterialTextureKey : uint64
 {
     NONE = 0,
 
-    ALBEDO_MAP = 1 << 0,
-    NORMAL_MAP = 1 << 1,
-    AO_MAP = 1 << 2,
-    PARALLAX_MAP = 1 << 3,
-    METALNESS_MAP = 1 << 4,
-    ROUGHNESS_MAP = 1 << 5,
-    RADIANCE_MAP = 1 << 6,
-    IRRADIANCE_MAP = 1 << 7,
-    RESERVED0 = 1 << 8,
-    RESERVED1 = 1 << 9,
-    RESERVED2 = 1 << 10,
-    RESERVED3 = 1 << 11,
-    RESERVED4 = 1 << 12,
-    RESERVED5 = 1 << 13,
-
-    // terrain
-
-    SPLAT_MAP = 1 << 14,
-
-    BASE_TERRAIN_COLOR_MAP = 1 << 15,
-    BASE_TERRAIN_NORMAL_MAP = 1 << 16,
-    BASE_TERRAIN_AO_MAP = 1 << 17,
-    BASE_TERRAIN_PARALLAX_MAP = 1 << 18,
-
-    TERRAIN_LEVEL1_COLOR_MAP = 1 << 19,
-    TERRAIN_LEVEL1_NORMAL_MAP = 1 << 20,
-    TERRAIN_LEVEL1_AO_MAP = 1 << 21,
-    TERRAIN_LEVEL1_PARALLAX_MAP = 1 << 22,
-
-    TERRAIN_LEVEL2_COLOR_MAP = 1 << 23,
-    TERRAIN_LEVEL2_NORMAL_MAP = 1 << 24,
-    TERRAIN_LEVEL2_AO_MAP = 1 << 25,
-    TERRAIN_LEVEL2_PARALLAX_MAP = 1 << 26
+    ALBEDO_MAP = 0x1,
+    NORMAL_MAP = 0x2,
+    PARALLAX_MAP = 0x4,
+    METALNESS_MAP = 0x8,
+    ROUGHNESS_MAP = 0x10,
+    AO_MAP = 0x20,
+    RADIANCE_MAP = 0x40, // to be removed
+    IRRADIANCE_MAP = 0x80  // to be removed
 };
 
 HYP_ENUM()
@@ -526,6 +501,8 @@ class HYP_API Material final : public AssetObject
     HYP_OBJECT_BODY(Material);
 
 public:
+    static const Array<Name> s_textureNames;
+
     enum State
     {
         MATERIAL_STATE_CLEAN,

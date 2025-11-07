@@ -93,12 +93,6 @@ HYP_DESCRIPTOR_SSBO(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
     Material materials[HYP_MAX_MATERIALS];
 };
 
-#ifndef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform texture2D textures[HYP_MAX_BOUND_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
-#endif
-
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL (materials[object.material_index])
 #endif

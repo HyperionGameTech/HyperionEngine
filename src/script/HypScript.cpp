@@ -319,7 +319,7 @@ bool HypScript::GetMember(Script_Instance* instance, const HypData& targetValue,
     const Class* cls = object.ptr->InstanceClass();
     Assert(cls != nullptr);
 
-    IHypMember* member = cls->GetMember(WeakName(memberName));
+    IHypMember* member = cls->GetMember(StringHash(memberName));
 
     if (!member)
     {
@@ -381,7 +381,7 @@ bool HypScript::SetField(HypData& targetValue, const char* memberName, HypData&&
     const Class* cls = object.ptr->InstanceClass();
     Assert(cls != nullptr);
 
-    Field* field = cls->GetField(WeakName(memberName));
+    Field* field = cls->GetField(StringHash(memberName));
 
     if (!field)
     {

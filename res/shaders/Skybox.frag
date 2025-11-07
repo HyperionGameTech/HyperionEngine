@@ -19,25 +19,24 @@ layout(location = 5) out vec4 gbuffer_ws_normals;
 
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler texture_sampler;
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
 #include "include/gbuffer.inc"
 #include "include/object.inc"
-#include "include/material.inc"
 #include "include/packing.inc"
 
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS 1 // don't want to define AlbedoMap as a 2D texture
+#include "include/material.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+HYP_DESCRIPTOR_SRV(Material, Textures) uniform textureCube textures[];
+#else
+HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform textureCube AlbedoMap;
+#endif
 
 HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
 {
     Object objects[];
 };
-
-#ifndef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform textureCube cubemap_textures[HYP_MAX_BOUND_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform textureCube cubemap_textures[];
-#endif
 
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
 HYP_DESCRIPTOR_SSBO(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
@@ -65,7 +64,7 @@ void main()
     vec3 normal = normalize(v_normal);
 
 #if defined(HYP_MATERIAL_CUBEMAP_TEXTURES) && HYP_MATERIAL_CUBEMAP_TEXTURES
-    gbuffer_albedo = vec4(SAMPLE_TEXTURE_CUBE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map, v_position).rgb, 1.0);
+    gbuffer_albedo = vec4(SAMPLE_TEXTURE_CUBE(CURRENT_MATERIAL, AlbedoMap, v_position).rgb, 1.0);
 #else
     gbuffer_albedo = vec4(0.0);
 #endif

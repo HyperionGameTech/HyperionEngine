@@ -37,9 +37,9 @@ extern "C"
             return nullptr;
         }
 
-        const WeakName weakName(name);
+        const StringHash stringHash(name);
 
-        return ClassRegistry::GetInstance().GetClass(weakName);
+        return ClassRegistry::GetInstance().GetClass(stringHash);
     }
 
     HYP_EXPORT const Class* Class_GetClassByTypeId(const TypeId* typeId)

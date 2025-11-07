@@ -96,7 +96,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             { "ByteBuffer", { "byte[]", "ReadByteBuffer" } },
             { "ObjId", { "ObjIdBase", "ReadId" } },
             { "Name", { "Name", "ReadName" } },
-            { "WeakName", { "Name", "ReadName" } },
+            { "StringHash", { "Name", "ReadName" } },
             { "ObjectBase", { "Object" } }, // Base object class - C# uses Object.
             { "AnyHandle", { "object" } },
             { "AnyRef", { "object" } },

@@ -50,13 +50,13 @@ public:
      *  \param name The name of the bone to look up.
      *  \returns The bone with the given name, or nullptr if it could not be found.
      */
-    Bone* FindBone(WeakName name) const;
+    Bone* FindBone(StringHash name) const;
 
     /*! \brief Look up the index in the skeleton of a bone with the given name/tag. If no root bone was set,
      *  or the bone could not be found, -1 is returned. Otherwise, the index is returned.
      *  \param name The name of the bone to look up.
      *  \returns The index of the bone with the given name, or -1 if it could not be found. */
-    uint32 FindBoneIndex(WeakName name) const;
+    uint32 FindBoneIndex(StringHash name) const;
 
     /*! \brief Get the root Bone of this skeleton, which all nested Bones fall under.
      *  If no root bone was set on this Skeleton, nullptr is returned

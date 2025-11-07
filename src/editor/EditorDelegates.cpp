@@ -41,7 +41,7 @@ void EditorDelegates::AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const
     }
 }
 
-int EditorDelegates::RemoveNodeWatcher(WeakName watcherKey, Node* rootNode)
+int EditorDelegates::RemoveNodeWatcher(StringHash watcherKey, Node* rootNode)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
@@ -62,7 +62,7 @@ int EditorDelegates::RemoveNodeWatcher(WeakName watcherKey, Node* rootNode)
     return numRemoved;
 }
 
-int EditorDelegates::RemoveNodeWatchers(WeakName watcherKey)
+int EditorDelegates::RemoveNodeWatchers(StringHash watcherKey)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);

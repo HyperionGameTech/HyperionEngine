@@ -981,7 +981,7 @@ public:
      *  \param name The Name of the child UIObject to find.
      *  \param deep If true, search all descendants. If false, only search immediate children.
      *  \return The child UIObject with the specified Name, or nullptr if no child UIObject with the specified Name was found. */
-    Handle<UIObject> FindChildUIObject(WeakName name, bool deep = true) const;
+    Handle<UIObject> FindChildUIObject(StringHash name, bool deep = true) const;
 
     /*! \brief Find a child UIObject by predicate. Checks descendants using breadth-first search. If multiple children match the predicate, the first one found is returned.
      *  If no child UIObject matches the predicate, nullptr is returned.
@@ -1046,10 +1046,10 @@ public:
     BoundingBox GetWorldAABB() const;
     BoundingBox GetLocalAABB() const;
 
-    const NodeTag& GetNodeTag(WeakName key) const;
+    const NodeTag& GetNodeTag(StringHash key) const;
     void SetNodeTag(NodeTag&& tag);
-    bool HasNodeTag(WeakName key) const;
-    bool RemoveNodeTag(WeakName key);
+    bool HasNodeTag(StringHash key) const;
+    bool RemoveNodeTag(StringHash key);
 
     /*! \brief The default event handler result which is combined with the results of bound event handlers, if the result is equal to OK.
      *  E.g UIButton could return OK if the button was clicked, and the default event handler result could be set to STOP_BUBBLING so that the event does not propagate to objects behind it. */

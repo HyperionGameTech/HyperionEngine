@@ -124,8 +124,6 @@ void ReflectionProbeRenderer::Initialize()
     HYP_SCOPE;
 
     EnvProbeRenderer::Initialize();
-
-    CreateShader();
 }
 
 void ReflectionProbeRenderer::Shutdown()
@@ -133,21 +131,6 @@ void ReflectionProbeRenderer::Shutdown()
     HYP_SCOPE;
 
     EnvProbeRenderer::Shutdown();
-
-    SafeDelete(std::move(m_shader));
-}
-
-void ReflectionProbeRenderer::CreateShader()
-{
-    HYP_SCOPE;
-
-    AssertDebug(!m_shader.IsValid());
-
-    m_shader = g_shaderManager->GetOrCreate(
-        NAME("RenderToCubemap"),
-        ShaderProperties(staticMeshVertexAttributes, { NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") }));
-
-    Assert(m_shader.IsValid());
 }
 
 void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
@@ -297,7 +280,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     if (!envProbe->IsSkyProbe())
     {
-        shaderProperties.Set(NAME("LIGHTING"));
+        shaderProperties.Set(ShaderProperty(NAME("LIGHTING")));
     }
 
     ShaderRef convolveProbeShader = g_shaderManager->GetOrCreate(NAME("ConvolveProbe"), shaderProperties);
@@ -453,7 +436,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     if (!envProbe->IsSkyProbe())
     {
-        shaderProperties.Set(NAME("LIGHTING"));
+        shaderProperties.Set(ShaderProperty(NAME("LIGHTING")));
     }
 
     enum

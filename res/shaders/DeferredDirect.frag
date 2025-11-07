@@ -10,7 +10,6 @@ layout(location = 1) in vec2 v_texcoord0;
 layout(location = 0) out vec4 output_color;
 
 #define HYP_DEFERRED_NO_ENV_GRID
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
 HYP_DESCRIPTOR_SRV(View, GBufferTextures, count = 7) uniform texture2D gbuffer_textures[NUM_GBUFFER_TEXTURES];
@@ -42,6 +41,7 @@ HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
 HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS 1
 #include "include/shared.inc"
 #include "include/gbuffer.inc"
 #include "include/material.inc"
@@ -86,7 +86,13 @@ HYP_DESCRIPTOR_SSBO(DeferredDirectDescriptorSet, MaterialsBuffer) readonly buffe
     Material materials[];
 };
 
+#ifdef LIGHT_TYPE_AREA_RECT // material texture bindings used for textured rectangular area light
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
 HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
+#else
+HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
+#endif
+#endif
 
 #include "include/LightSampling.glsl"
 

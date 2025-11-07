@@ -3283,7 +3283,7 @@ void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debu
     HYP_LOG_TEMP("Added debug overlay: {}", debugOverlay->GetName());
 }
 
-bool EditorSubsystem::RemoveDebugOverlay(WeakName name)
+bool EditorSubsystem::RemoveDebugOverlay(StringHash name)
 {
     HYP_SCOPE;
 

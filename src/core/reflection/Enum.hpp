@@ -189,7 +189,7 @@ String EnumToString(EnumType value)
  *  \param errorValue The value to return if the member is not found.
  */
 template <class EnumType, typename = std::enable_if_t<std::is_enum_v<EnumType>>>
-EnumType EnumValue(WeakName memberName, EnumType errorValue = EnumType())
+EnumType EnumValue(StringHash memberName, EnumType errorValue = EnumType())
 {
     using EnumUnderlyingType = std::underlying_type_t<EnumType>;
 

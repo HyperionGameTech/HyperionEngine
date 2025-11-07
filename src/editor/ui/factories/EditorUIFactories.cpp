@@ -1125,7 +1125,7 @@ public:
         // Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory(value.property->GetTypeId());
         // Assert(factory != nullptr);
 
-        // Handle<UIPanel> content = uiObject->FindChildUIObject(WeakName("PropertyPanel_Content")).Cast<UIPanel>();
+        // Handle<UIPanel> content = uiObject->FindChildUIObject(StringHash("PropertyPanel_Content")).Cast<UIPanel>();
         // Assert(content != nullptr);
 
         // content->RemoveAllChildUIObjects();

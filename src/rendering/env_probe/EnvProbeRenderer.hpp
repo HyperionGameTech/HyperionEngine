@@ -77,14 +77,10 @@ public:
     virtual void Shutdown() override;
 
 protected:
-    void CreateShader();
-
     virtual void RenderProbe(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe) override;
 
     void ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
     void ComputeSH(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
-
-    ShaderRef m_shader;
 };
 
 } // namespace hyperion

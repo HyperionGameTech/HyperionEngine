@@ -232,7 +232,7 @@ public:
 
     void RegisterChannel(LogChannel* channel);
 
-    const LogChannel* FindLogChannel(WeakName name) const;
+    const LogChannel* FindLogChannel(StringHash name) const;
 
     DynamicLogChannelHandle CreateDynamicLogChannel(Name name, LogChannel* parentChannel = nullptr);
     DynamicLogChannelHandle CreateDynamicLogChannel(LogChannel& channel);

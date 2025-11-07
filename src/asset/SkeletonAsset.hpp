@@ -45,7 +45,7 @@ struct SkeletonDesc
     HYP_FIELD()
     Array<Name> animationNames;
 
-    bool GetAnimationIndex(WeakName name, uint32* outIndex) const
+    bool GetAnimationIndex(StringHash name, uint32* outIndex) const
     {
         const auto it = animationNames.FindAs(name);
 

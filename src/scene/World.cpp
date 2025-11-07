@@ -487,7 +487,7 @@ Subsystem* World::GetSubsystem(TypeId typeId) const
     return it->second.Get();
 }
 
-Subsystem* World::GetSubsystemByName(WeakName name) const
+Subsystem* World::GetSubsystemByName(StringHash name) const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);

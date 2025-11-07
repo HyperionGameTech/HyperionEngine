@@ -126,7 +126,7 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
 
         for (EngineStatBase* stat : currentGroup->stats)
         {
-            if (stat->name == WeakName(curr))
+            if (stat->name == StringHash(curr))
             {
                 currentStat = stat;
                 found = true;
@@ -215,7 +215,7 @@ EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineS
 
         for (EngineStatBase* stat : currentGroup->stats)
         {
-            if (stat->name == WeakName(curr))
+            if (stat->name == StringHash(curr))
             {
                 foundStat = stat;
                 break;

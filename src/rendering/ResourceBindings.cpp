@@ -270,8 +270,8 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 {
     Threads::AssertOnThread(g_renderThread);
 
-    static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
-    static const bool isBindlessSupported = renderConfig.bindlessTextures;
+    static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
+    static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
 
     AssertDebug(material != nullptr);
 
@@ -279,7 +279,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
     /// @TODO: Needs to notify that mesh descriptions buffer needs to be updated for ray tracing.
 
-    if (!isBindlessSupported)
+    if (!s_isBindlessSupported)
     {
         if (prev != ~0u)
         {
@@ -303,10 +303,10 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
 void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
 {
-    static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
-    static const bool isBindlessSupported = renderConfig.bindlessTextures;
+    static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
+    static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
 
-    if (isBindlessSupported)
+    if (s_isBindlessSupported)
     {
         if (next != ~0u)
         {

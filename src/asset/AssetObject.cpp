@@ -58,7 +58,7 @@ static Name GetUniqueName(Name baseName, T&& elements)
     String str = *baseName;
 
     int counter = 0;
-    while (elements.FindAs(WeakName(*str)) != elements.End())
+    while (elements.FindAs(StringHash(*str)) != elements.End())
     {
         counter++;
 

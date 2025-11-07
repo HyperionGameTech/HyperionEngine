@@ -31,9 +31,6 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-#define PARALLAX_ENABLED 1
 #define HAS_REFRACTION 1
 
 #include "include/scene.inc"
@@ -77,8 +74,6 @@ HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCube
 #include "deferred/DeferredLighting.glsl"
 #include "include/shadows.inc"
 #endif
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
@@ -127,16 +122,6 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBu
 #endif
 #endif
 
-#ifndef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform texture2D textures[HYP_MAX_BOUND_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
-#endif
-
-#if PARALLAX_ENABLED
-#include "include/parallax.inc"
-#endif
-
 void main()
 {
     vec3 view_vector = normalize(v_camera_position - v_position);
@@ -158,28 +143,15 @@ void main()
 
     vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
 
-#if 0 // PARALLAX_ENABLED
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_PARALLAX_MAP)) {
-        vec2 parallax_texcoord = ParallaxMappedTexCoords(
-            CURRENT_MATERIAL.parallax_height,
-            texcoord,
-            normalize(tangent_view)
-        );
-        
-        texcoord = parallax_texcoord;
-    }
+#if HAS_ALBEDO_MA
+    vec4 albedo_texture = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, AlbedoMap, v_position, normal);
+
+    // if (albedo_texture.a < MATERIAL_ALPHA_DISCARD) {
+    //     discard;
+    // }
+
+    gbuffer_albedo = vec4(albedo_texture.rgb, 1.0);
 #endif
-
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map))
-    {
-        vec4 albedo_texture = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map, v_position, normal);
-
-        // if (albedo_texture.a < MATERIAL_ALPHA_DISCARD) {
-        //     discard;
-        // }
-
-        gbuffer_albedo = vec4(albedo_texture.rgb, 1.0);
-    }
 
     // temp grass color
     // gbuffer_albedo.rgb = vec3(0.5, 0.8, 0.35) * 0.15;
@@ -191,24 +163,21 @@ void main()
 
     vec4 normals_texture = vec4(0.0);
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_NORMAL_MAP))
-    {
-        normals_texture = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, MATERIAL_TEXTURE_NORMAL_MAP, v_position, normal) * 2.0 - 1.0;
-        normal = normalize(v_tbn_matrix * normals_texture.rgb);
-    }
+#if HAS_NORMAL_MAP
+    normals_texture = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, NormalMap, v_position, normal) * 2.0 - 1.0;
+    normal = normalize(v_tbn_matrix * normals_texture.rgb);
+#endif
 
     // if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP)) {
     //     float metalness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP, texcoord).r;
 
     //     metalness = metalness_sample;//mix(metalness, metalness_sample, metalness_sample);
     // }
+#if HAS_ROUGHNESS_MAP
+    float roughness_sample = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, RoughnessMap, v_position, normal).r;
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ROUGHNESS_MAP))
-    {
-        float roughness_sample = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, MATERIAL_TEXTURE_ROUGHNESS_MAP, v_position, normal).r;
-
-        roughness = roughness_sample; // mix(roughness, roughness_sample, roughness_sample);
-    }
+    roughness = roughness_sample; // mix(roughness, roughness_sample, roughness_sample);
+#endif
 
     // if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP)) {
     //     ao = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP, texcoord).r;

@@ -441,19 +441,19 @@ public:
         return it->value;
     }
 
-    HYP_FORCE_INLINE const ClassAttributeValue& operator[](WeakName name) const
+    HYP_FORCE_INLINE const ClassAttributeValue& operator[](StringHash name) const
     {
         return Get(name);
     }
 
-    const ClassAttributeValue& Get(WeakName name) const
+    const ClassAttributeValue& Get(StringHash name) const
     {
         static const ClassAttributeValue invalidValue {};
 
         return Get(name, invalidValue);
     }
 
-    const ClassAttributeValue& Get(WeakName name, const ClassAttributeValue& defaultValue) const
+    const ClassAttributeValue& Get(StringHash name, const ClassAttributeValue& defaultValue) const
     {
         const auto it = m_attributes.FindAs(name);
 
@@ -475,12 +475,12 @@ public:
         m_attributes.Merge(std::move(other.m_attributes));
     }
 
-    HYP_FORCE_INLINE Iterator Find(WeakName name)
+    HYP_FORCE_INLINE Iterator Find(StringHash name)
     {
         return m_attributes.FindAs(name);
     }
 
-    HYP_FORCE_INLINE ConstIterator Find(WeakName name) const
+    HYP_FORCE_INLINE ConstIterator Find(StringHash name) const
     {
         return m_attributes.FindAs(name);
     }

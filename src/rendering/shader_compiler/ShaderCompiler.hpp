@@ -96,7 +96,7 @@ struct ShaderProperty
     {
     }
 
-    ShaderProperty(Name name, ShaderPropertyFlags flags = SPF_NONE)
+    explicit ShaderProperty(Name name, ShaderPropertyFlags flags = SPF_NONE)
         : name(name),
           flags(flags)
     {
@@ -185,6 +185,18 @@ struct ShaderProperty
     {
         return name != other.name;
     }
+
+    // HYP_FORCE_INLINE bool operator==(const ShaderProperty& other) const
+    // {
+    //     return cachedHashCode == other.cachedHashCode
+    //         // enum values are not included in hash code
+    //         && (!IsValueGroup() || enumValues == other.enumValues);
+    // }
+
+    // HYP_FORCE_INLINE bool operator!=(const ShaderProperty& other) const
+    // {
+    //     return !(*this == other);
+    // }
 
     HYP_FORCE_INLINE bool operator<(const ShaderProperty& other) const
     {
@@ -349,20 +361,34 @@ public:
         return m_props.Find(property);
     }
 
-    HYP_FORCE_INLINE Iterator Find(WeakName name)
-    {
-        return m_props.FindIf([name](const ShaderProperty& other)
-            {
-                return other.name == name;
-            });
-    }
-
     HYP_FORCE_INLINE ConstIterator Find(const ShaderProperty& property) const
     {
         return const_cast<ShaderProperties*>(this)->Find(property);
     }
 
-    HYP_FORCE_INLINE ConstIterator Find(WeakName name) const
+    Iterator Find(StringHash name)
+    {
+        const HashCode hashCode = name.GetHashCode();
+
+        auto firstResultIt = m_props.FindByHashCode(hashCode);
+        if (firstResultIt != m_props.End())
+        {
+            return firstResultIt;
+        }
+
+        // Do a full search if not found by hash code match (e.g. ShaderProperty has a value assigned)
+        for (auto it = m_props.Begin(); it != m_props.End(); ++it)
+        {
+            if (it->name == name)
+            {
+                return it;
+            }
+        }
+
+        return m_props.End();
+    }
+
+    HYP_FORCE_INLINE ConstIterator Find(StringHash name) const
     {
         return const_cast<ShaderProperties*>(this)->Find(name);
     }
@@ -387,20 +413,25 @@ public:
         return m_optionalVertexAttributes.Has(vertexAttribute);
     }
 
-    HYP_FORCE_INLINE bool Has(WeakName name) const
+    HYP_FORCE_INLINE bool Has(const ShaderProperty& property) const
     {
-        return m_props.FindByHashCode(name.GetHashCode()) != m_props.End();
+        return Find(property) != m_props.End();
+    }
+
+    HYP_FORCE_INLINE bool Has(StringHash name) const
+    {
+        return Find(name) != m_props.End();
     }
 
     HYP_API ShaderProperties& Set(const ShaderProperty& property, bool enabled = true);
 
-    HYP_FORCE_INLINE ShaderProperties& Set(Name name, bool enabled, ShaderPropertyFlags flags = SPF_NONE)
+    HYP_FORCE_INLINE ShaderProperties& Set(Name name, bool enabled = true, ShaderPropertyFlags flags = SPF_NONE)
     {
         return Set(ShaderProperty(name, flags), enabled);
     }
 
     /*! \brief Applies \ref{other} properties onto this set */
-    HYP_FORCE_INLINE void Merge(const ShaderProperties& other)
+    void Merge(const ShaderProperties& other)
     {
         for (const ShaderProperty& property : other.m_props)
         {
@@ -413,7 +444,7 @@ public:
         m_needsHashCodeRecalculation = true;
     }
 
-    HYP_FORCE_INLINE static ShaderProperties Merge(const ShaderProperties& a, const ShaderProperties& b)
+    static ShaderProperties Merge(const ShaderProperties& a, const ShaderProperties& b)
     {
         ShaderProperties result(a);
         result.Merge(b);
@@ -541,7 +572,7 @@ public:
 
     HYP_API String ToString() const;
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         if (m_needsHashCodeRecalculation)
         {
@@ -553,7 +584,7 @@ public:
         return m_cachedHashCode;
     }
 
-    HYP_FORCE_INLINE HashCode GetPropertySetHashCode() const
+    HashCode GetPropertySetHashCode() const
     {
         if (m_needsHashCodeRecalculation)
         {
@@ -730,7 +761,7 @@ struct DescriptorUsageType
         return { fieldNames[index], fieldTypes[index] };
     }
 
-    HYP_FORCE_INLINE Optional<Pair<Name, DescriptorUsageType&>> FindField(WeakName fieldName)
+    HYP_FORCE_INLINE Optional<Pair<Name, DescriptorUsageType&>> FindField(StringHash fieldName)
     {
         for (SizeType i = 0; i < fieldNames.Size(); i++)
         {
@@ -743,7 +774,7 @@ struct DescriptorUsageType
         return {};
     }
 
-    HYP_FORCE_INLINE Optional<Pair<Name, const DescriptorUsageType&>> FindField(WeakName fieldName) const
+    HYP_FORCE_INLINE Optional<Pair<Name, const DescriptorUsageType&>> FindField(StringHash fieldName) const
     {
         for (SizeType i = 0; i < fieldNames.Size(); i++)
         {
@@ -1049,7 +1080,7 @@ struct DescriptorUsageSet
         elements.Insert(descriptorUsage);
     }
 
-    HYP_FORCE_INLINE DescriptorUsage* Find(WeakName descriptorName)
+    HYP_FORCE_INLINE DescriptorUsage* Find(StringHash descriptorName)
     {
         auto it = elements.FindIf([descriptorName](const DescriptorUsage& descriptorUsage)
             {
@@ -1064,7 +1095,7 @@ struct DescriptorUsageSet
         return it;
     }
 
-    HYP_FORCE_INLINE const DescriptorUsage* Find(WeakName descriptorName) const
+    HYP_FORCE_INLINE const DescriptorUsage* Find(StringHash descriptorName) const
     {
         return const_cast<const DescriptorUsageSet*>(this)->Find(descriptorName);
     }
@@ -1366,8 +1397,6 @@ void MergeGlobalShaderProperties(ShaderProperties& out);
 
 class ShaderCompiler
 {
-    static constexpr SizeType maxPermutations = 2048; // temporalily increased, until some properties are "always enabled"
-
     struct ProcessError
     {
         String errorMessage;

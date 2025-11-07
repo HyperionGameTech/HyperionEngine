@@ -34,9 +34,6 @@ uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-#define PARALLAX_ENABLED 1
 #define HAS_REFRACTION 1
 
 #include "include/scene.inc"
@@ -80,13 +77,11 @@ HYP_DESCRIPTOR_SSBO(Global, LightmapVolumesBuffer) readonly buffer LightmapVolum
     LightmapVolume lightmap_volumes[];
 };
 
-#ifdef LIGHTING_FORWARD
+#ifdef SHADING_TYPE_FORWARD
 #include "include/brdf.inc"
 #include "deferred/DeferredLighting.glsl"
 #include "include/shadows.inc"
 #endif
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
@@ -133,13 +128,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBu
 #endif
 #endif
 
-#ifndef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform texture2D textures[HYP_MAX_BOUND_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
-#endif
-
-#if PARALLAX_ENABLED
+#if HAS_PARALLAX_MAP
 #include "include/parallax.inc"
 #endif
 
@@ -166,20 +155,17 @@ void main()
 
     vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
 
-#if PARALLAX_ENABLED
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_PARALLAX_MAP))
-    {
-        vec2 parallax_texcoord = ParallaxMappedTexCoords(
-            CURRENT_MATERIAL.parallax_height,
-            texcoord,
-            normalize(tangent_view));
+#if HAS_PARALLAX_MAP
+    vec2 parallax_texcoord = ParallaxMappedTexCoords(
+        CURRENT_MATERIAL.parallax_height,
+        texcoord,
+        normalize(tangent_view));
 
-        texcoord = parallax_texcoord;
-    }
+    texcoord = parallax_texcoord;
 #endif
 
 #if HAS_ALBEDO_MAP
-    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map, texcoord);
+    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
 
 #ifdef ALPHA_DISCARD
     if (albedo_texture.a < alpha_threshold)
@@ -196,7 +182,7 @@ void main()
     vec4 normals_texture = vec4(0.0);
 
 #if HAS_NORMAL_MAP
-    normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_NORMAL_MAP, texcoord) * 2.0 - 1.0;
+    normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
     normals_texture.xy *= normal_map_intensity;
     normals_texture.xyz = normalize(normals_texture.xyz);
 
@@ -204,7 +190,7 @@ void main()
     N = normalize(N);
 #endif
 
-#if LIGHTING_FORWARD
+#if SHADING_TYPE_FORWARD
     {
         const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
         const vec3 F0 = CalculateF0(gbuffer_albedo.rgb, metalness);
@@ -326,45 +312,43 @@ void main()
     }
 #endif
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP))
-    {
-        float metalness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP, texcoord).r;
+#if HAS_METALNESS_MAP
+    float metalness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;
 
-        metalness = metalness_sample;
-    }
+    metalness = metalness_sample;
+#endif
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ROUGHNESS_MAP))
-    {
-        float roughness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ROUGHNESS_MAP, texcoord).r;
+#if HAS_ROUGHNESS_MAP
+    float roughness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord).r;
 
-        roughness = roughness_sample;
-    }
+    roughness = roughness_sample;
+#endif
 
 #if DEBUG_REFLECTIONS
     roughness = 0.01;
 #endif
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP))
-    {
-        ao = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP, texcoord).r;
-    }
+#if HAS_AO_MAP
+    ao = SAMPLE_TEXTURE(CURRENT_MATERIAL, AoMap, texcoord).r;
+#endif
 
     vec2 velocity = vec2(((v_position_ndc.xy / v_position_ndc.w) * 0.5 + 0.5) - ((v_previous_position_ndc.xy / v_previous_position_ndc.w) * 0.5 + 0.5));
 
     uint mask = v_object_mask;
 
-#if LIGHTING_LIGHTMAPPED
-    vec4 lm_irradiance = vec4(0.0);
-    vec4 lm_radiance = vec4(0.0);
+//  FIXME! Sampling should be done in ApplyLightmap.frag
+// #if SHADING_TYPE_LIGHTMAPPED
+//     vec4 lm_irradiance = vec4(0.0);
+//     vec4 lm_radiance = vec4(0.0);
 
-    mask |= (OBJECT_MASK_LIGHTMAP_IRRADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP)));
-    mask |= (OBJECT_MASK_LIGHTMAP_RADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP)));
+//     mask |= (OBJECT_MASK_LIGHTMAP_IRRADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP)));
+//     mask |= (OBJECT_MASK_LIGHTMAP_RADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP)));
 
-    lm_irradiance = mix(lm_irradiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_IRRADIANCE)));
-    lm_radiance = mix(lm_radiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_RADIANCE)));
+//     lm_irradiance = mix(lm_irradiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_IRRADIANCE)));
+//     lm_radiance = mix(lm_radiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_RADIANCE)));
 
-    gbuffer_albedo_lightmap = (lm_irradiance + lm_radiance) * float(bool(mask & OBJECT_MASK_LIGHTMAP));
-#endif
+//     gbuffer_albedo_lightmap = (lm_irradiance + lm_radiance) * float(bool(mask & OBJECT_MASK_LIGHTMAP));
+// #endif
 
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;

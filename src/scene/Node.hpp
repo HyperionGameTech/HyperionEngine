@@ -200,12 +200,12 @@ public:
     NodeTagSet(NodeTagSet&& other) noexcept = default;
     NodeTagSet& operator=(NodeTagSet&& other) noexcept = default;
 
-    HYP_FORCE_INLINE bool Has(WeakName name) const
+    HYP_FORCE_INLINE bool Has(StringHash name) const
     {
         return Base::Contains(Name(name));
     }
 
-    HYP_FORCE_INLINE const NodeTag* Get(WeakName name) const
+    HYP_FORCE_INLINE const NodeTag* Get(StringHash name) const
     {
         const auto it = Base::Find(Name(name));
 
@@ -270,7 +270,7 @@ public:
         return &(*it);
     }
 
-    bool Remove(WeakName name)
+    bool Remove(StringHash name)
     {
         return Base::Erase(Name(name));
     }
@@ -871,7 +871,7 @@ public:
 
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()
-    Handle<Node> FindChildByName(WeakName name) const;
+    Handle<Node> FindChildByName(StringHash name) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with the given Uuid is found. */
     HYP_METHOD()
@@ -894,17 +894,17 @@ public:
     /*! \brief Remove a tag from this Node.
      *  \param key The key the tag
      *  \returns Whether the tag with the given key was successfully removed or not */
-    bool RemoveTag(WeakName key);
+    bool RemoveTag(StringHash key);
 
     /*! \brief Get a tag from this Node.
      *  \param key The key the tag
      *  \returns The tag with the given key. If the tag does not exist, an empty NodeTag is returned */
-    const NodeTag& GetTag(WeakName key) const;
+    const NodeTag& GetTag(StringHash key) const;
 
     /*! \brief Check if this Node has a tag with the given name.
      *  \param key The key the tag
      *  \returns True if the tag exists, false otherwise. */
-    bool HasTag(WeakName key) const;
+    bool HasTag(StringHash key) const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

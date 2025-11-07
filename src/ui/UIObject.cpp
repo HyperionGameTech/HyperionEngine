@@ -1681,7 +1681,7 @@ Handle<UIObject> UIObject::DetachFromParent()
     return strongThis;
 }
 
-Handle<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
+Handle<UIObject> UIObject::FindChildUIObject(StringHash name, bool deep) const
 {
     HYP_SCOPE;
 
@@ -2642,7 +2642,7 @@ void UIObject::SetNodeProxy(Handle<Node> node)
     }
 }
 
-const NodeTag& UIObject::GetNodeTag(WeakName key) const
+const NodeTag& UIObject::GetNodeTag(StringHash key) const
 {
     static const NodeTag emptyTag {};
 
@@ -2662,7 +2662,7 @@ void UIObject::SetNodeTag(NodeTag&& tag)
     }
 }
 
-bool UIObject::HasNodeTag(WeakName key) const
+bool UIObject::HasNodeTag(StringHash key) const
 {
     if (m_node.IsValid())
     {
@@ -2672,7 +2672,7 @@ bool UIObject::HasNodeTag(WeakName key) const
     return false;
 }
 
-bool UIObject::RemoveNodeTag(WeakName key)
+bool UIObject::RemoveNodeTag(StringHash key)
 {
     if (m_node.IsValid())
     {

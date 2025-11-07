@@ -483,7 +483,7 @@ void FullScreenPass::CreateRenderTextureToScreenPass()
 
     if (ShouldRenderHalfRes())
     {
-        shaderProperties.Set(NAME("HALFRES"));
+        shaderProperties.Set(ShaderProperty(NAME("HALFRES")));
     }
 
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"), shaderProperties);
