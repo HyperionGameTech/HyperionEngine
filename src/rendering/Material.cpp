@@ -103,7 +103,7 @@ Material::Material(
       m_mutationState(DataMutationState::CLEAN),
       m_renderProxyVersion(0)
 {
-    UpdateStaticTextureMask();
+    UpdateAttributesTextureMask();
 }
 
 Material::~Material()
@@ -245,7 +245,7 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
 
     m_textures[key] = texture;
 
-    UpdateStaticTextureMask();
+    UpdateAttributesTextureMask();
 
     if (IsInitCalled())
     {
@@ -289,7 +289,7 @@ void Material::SetTextures(const MaterialTextures& textures)
 
     m_textures = textures;
 
-    UpdateStaticTextureMask();
+    UpdateAttributesTextureMask();
 
     if (IsInitCalled())
     {
@@ -403,25 +403,17 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     }
 }
 
-void Material::UpdateStaticTextureMask()
+void Material::UpdateAttributesTextureMask()
 {
-    m_attributes.staticTextureMask = 0;
+    m_attributes.textureMask = 0;
 
-    if (m_textures.Has(MaterialTextureKey::ALBEDO_MAP))
+    for (uint32 i = 0; i < uint32(m_textures.Size()); i++)
     {
-        m_attributes.staticTextureMask |= MaterialAttributes::ST_ALBEDO;
+        if (m_textures.AtIndex(i))
+        {
+            m_attributes.textureMask |= (1u << i);
+        }
     }
-
-    if (m_textures.Has(MaterialTextureKey::NORMAL_MAP))
-    {
-        m_attributes.staticTextureMask |= MaterialAttributes::ST_NORMAL;
-    }
-
-    // TODO
-    /*if (m_textures.Has(MaterialTextureKey::ROUGHNESS_MAP) || m_textures.Has(MaterialTextureKey::METALNESS_MAP) || m_textures.Has(MaterialTextureKey::AO_MAP))
-    {
-        m_attributes.staticTextureMask |= MaterialAttributes::ST_MATERIAL;
-    }*/
 }
 
 HashCode Material::GetHashCode() const

@@ -131,7 +131,7 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
 
         const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-        attributes.SetDrawableLayer(pair.second);
+        attributes.SetLayerIndex(pair.second);
 
         DrawCallCollectionMapping& mapping = renderCollector.mappingsByBucket[rb][attributes];
         Handle<RenderGroup>& rg = mapping.renderGroup;
@@ -197,7 +197,7 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
 
         std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
             {
-                return lhs->first.GetDrawableLayer() < rhs->first.GetDrawableLayer();
+                return lhs->first.GetLayerIndex() < rhs->first.GetLayerIndex();
             });
     }
 

@@ -29,7 +29,7 @@ HYP_BEGIN_STRUCT(MaterialAttributes, 331, 0, {})
     Field(NAME(HYP_STR(CullFaces)), &MaterialAttributes::cullFaces, offsetof(MaterialAttributes, cullFaces)),
     Field(NAME(HYP_STR(Flags)), &MaterialAttributes::flags, offsetof(MaterialAttributes, flags)),
     Field(NAME(HYP_STR(StencilFunction)), &MaterialAttributes::stencilFunction, offsetof(MaterialAttributes, stencilFunction)),
-    Field(NAME(HYP_STR(StaticTextureMask)), &MaterialAttributes::staticTextureMask, offsetof(MaterialAttributes, staticTextureMask), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
+    Field(NAME(HYP_STR(TextureMask)), &MaterialAttributes::textureMask, offsetof(MaterialAttributes, textureMask), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
 HYP_END_STRUCT
 
 #pragma endregion MaterialAttributes Reflection Data
@@ -42,9 +42,9 @@ namespace hyperion {
 #pragma region MeshAttributes Reflection Data
 
 HYP_BEGIN_STRUCT(MeshAttributes, 332, 0, {})
-    Field(NAME(HYP_STR(VertexAttributes)), &MeshAttributes::vertexAttributes, offsetof(MeshAttributes, vertexAttributes), Span<const ClassAttribute> { {ClassAttribute("property", "VertexAttributes"), ClassAttribute("serialize", true) } }),
-    Field(NAME(HYP_STR(Topology)), &MeshAttributes::topology, offsetof(MeshAttributes, topology), Span<const ClassAttribute> { {ClassAttribute("property", "Topology"), ClassAttribute("serialize", true) } }),
-    Field(NAME(HYP_STR(IndexBufferElemType)), &MeshAttributes::indexBufferElemType, offsetof(MeshAttributes, indexBufferElemType), Span<const ClassAttribute> { {ClassAttribute("property", "IndexBufferElemType"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(VertexAttributes)), &MeshAttributes::vertexAttributes, offsetof(MeshAttributes, vertexAttributes), Span<const ClassAttribute> { {ClassAttribute("property", "VertexAttributes") } }),
+    Field(NAME(HYP_STR(Topology)), &MeshAttributes::topology, offsetof(MeshAttributes, topology), Span<const ClassAttribute> { {ClassAttribute("property", "Topology") } }),
+    Field(NAME(HYP_STR(IndexBufferElemType)), &MeshAttributes::indexBufferElemType, offsetof(MeshAttributes, indexBufferElemType), Span<const ClassAttribute> { {ClassAttribute("property", "IndexBufferElemType") } })
 HYP_END_STRUCT
 
 #pragma endregion MeshAttributes Reflection Data

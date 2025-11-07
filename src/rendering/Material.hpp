@@ -841,8 +841,8 @@ public:
 private:
     void Init() override;
 
-    // set the static texture mask in MaterialAttributes based on currently set textures
-    void UpdateStaticTextureMask();
+    // set the texture mask in MaterialAttributes based on currently set textures
+    void UpdateAttributesTextureMask();
 
     HYP_FIELD()
     MaterialParameters m_parameters;

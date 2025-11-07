@@ -60,6 +60,7 @@ HYP_API extern TArena<RenderAllocator>* g_renderArena; // Arena for scene-relate
 HYP_API extern TArena<SceneAllocator>* g_sceneArena;   // Arena for scene-related temporary allocations during the frame (game thread only)
 HYP_API extern TArena<StreamingAllocator>* g_streamingArena;
 
+using RenderTempAllocator = AllocatorInstance<TArena<RenderAllocator>, &g_renderArena>;
 using SceneTempAllocator = AllocatorInstance<TArena<SceneAllocator>, &g_sceneArena>;
 using StreamingTempAllocator = AllocatorInstance<TArena<StreamingAllocator>, &g_streamingArena>;
 

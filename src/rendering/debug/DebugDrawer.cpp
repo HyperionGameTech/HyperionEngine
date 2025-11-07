@@ -747,7 +747,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
     {
         HashCode attributesHashCode;
         GraphicsPipelineRef graphicsPipeline;
-        uint32 drawableLayer = ~0u;
+        uint32 layerIndex = ~0u;
     } previousState;
 
     SizeType shaderDataOffset = 0;
@@ -821,7 +821,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
             if (!graphicsPipeline.IsValid() || previousState.attributesHashCode != drawCommand->attributes.GetHashCode())
             {
-                graphicsPipeline = FetchGraphicsPipeline(drawCommand->attributes, ++previousState.drawableLayer, renderSetup.passData);
+                graphicsPipeline = FetchGraphicsPipeline(drawCommand->attributes, ++previousState.layerIndex, renderSetup.passData);
                 previousState.attributesHashCode = drawCommand->attributes.GetHashCode();
 
                 isNewGraphicsPipeline = true;
@@ -906,14 +906,14 @@ DebugDrawCommandList& DebugDrawer::CreateCommandList()
     return m_commandLists[idx].EmplaceBack(this);
 }
 
-GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 drawableLayer, PassData* passData)
+GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 layerIndex, PassData* passData)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
     AssertDebug(passData != nullptr);
 
-    attributes.SetDrawableLayer(drawableLayer);
+    attributes.SetLayerIndex(layerIndex);
 
     auto it = m_graphicsPipelines.Find(attributes);
 

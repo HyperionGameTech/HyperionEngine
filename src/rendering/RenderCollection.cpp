@@ -43,6 +43,7 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
+#include <engine/EngineMemory.hpp>
 
 namespace hyperion {
 
@@ -241,21 +242,21 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         shaderDefinitionChanged = true;
     }
 
-    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_ALBEDO) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasAlbedoMap))
+    if (bool(attributes.GetMaterialAttributes().textureMask & uint32(MaterialTextureKey::ALBEDO_MAP)) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasAlbedoMap))
     {
-        shaderDefinition.GetProperties().Set(PropNames::s_nameHasAlbedoMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_ALBEDO));
+        shaderDefinition.GetProperties().Set(
+            PropNames::s_nameHasAlbedoMap,
+            bool(attributes.GetMaterialAttributes().textureMask & uint32(MaterialTextureKey::ALBEDO_MAP)));
+
         shaderDefinitionChanged = true;
     }
 
-    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_NORMAL) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasNormalMap))
+    if (bool(attributes.GetMaterialAttributes().textureMask & uint32(MaterialTextureKey::NORMAL_MAP)) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasNormalMap))
     {
-        shaderDefinition.GetProperties().Set(PropNames::s_nameHasNormalMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_NORMAL));
-        shaderDefinitionChanged = true;
-    }
+        shaderDefinition.GetProperties().Set(
+            PropNames::s_nameHasNormalMap,
+            bool(attributes.GetMaterialAttributes().textureMask & uint32(MaterialTextureKey::NORMAL_MAP)));
 
-    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_MATERIAL) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasMaterialMap))
-    {
-        shaderDefinition.GetProperties().Set(PropNames::s_nameHasMaterialMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_MATERIAL));
         shaderDefinitionChanged = true;
     }
 
@@ -1068,8 +1069,6 @@ uint32 RenderCollector::NumRenderGroups() const
     return count;
 }
 
-using RenderTempAllocator = AllocatorInstance<TArena<RenderAllocator>, &g_renderArena>;
-
 void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxyList)
 {
     HYP_SCOPE;
@@ -1086,7 +1085,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         return;
     }
 
-    Array<ObjId<Entity>> changedIds;
+    Array<ObjId<Entity>, RenderTempAllocator> changedIds;
     renderProxyList.GetMeshEntities().GetChanged(changedIds);
 
     if (changedIds.Any())
@@ -1263,7 +1262,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
     // std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
     //     {
-    //         return int(lhs->first.GetDrawableLayer()) < int(rhs->first.GetDrawableLayer());
+    //         return int(lhs->first.GetLayerIndex()) < int(rhs->first.GetLayerIndex());
     //     });
 
     for (IteratorType it : iterators)

@@ -34,14 +34,6 @@ struct MaterialAttributes
 {
     HYP_STRUCT_BODY(MaterialAttributes);
 
-    // textures that trigger selection of specialized shader permutations when set
-    enum StaticTexture : uint32
-    {
-        ST_ALBEDO = 0x1,        //!< Albedo / diffuse texture
-        ST_NORMAL = 0x2,        //!< Normal map texture
-        ST_MATERIAL = 0x4,      //!< Material quantized data texture (Roughness, Metallic, AO) (NOT YET SUPPORTED)
-    };
-
     HYP_FIELD()
     ShaderDefinition shaderDefinition;
 
@@ -64,7 +56,7 @@ struct MaterialAttributes
     StencilFunction stencilFunction;
 
     HYP_FIELD(Transient)
-    uint32 staticTextureMask = 0;
+    uint32 textureMask = 0;
 
     HYP_FORCE_INLINE bool operator==(const MaterialAttributes& other) const
     {
@@ -75,7 +67,7 @@ struct MaterialAttributes
             && cullFaces == other.cullFaces
             && flags == other.flags
             && stencilFunction == other.stencilFunction
-            && staticTextureMask == other.staticTextureMask;
+            && textureMask == other.textureMask;
     }
 
     HYP_FORCE_INLINE bool operator!=(const MaterialAttributes& other) const
@@ -87,7 +79,7 @@ struct MaterialAttributes
             || cullFaces != other.cullFaces
             || flags != other.flags
             || stencilFunction != other.stencilFunction
-            || staticTextureMask != other.staticTextureMask;
+            || textureMask != other.textureMask;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -100,7 +92,7 @@ struct MaterialAttributes
         hc.Add(cullFaces);
         hc.Add(flags);
         hc.Add(stencilFunction);
-        hc.Add(staticTextureMask);
+        hc.Add(textureMask);
 
         return hc;
     }
@@ -111,13 +103,13 @@ struct MeshAttributes
 {
     HYP_STRUCT_BODY(MeshAttributes);
 
-    HYP_FIELD(Property = "VertexAttributes", Serialize = true)
+    HYP_FIELD(Property = "VertexAttributes")
     VertexAttributeSet vertexAttributes = staticMeshVertexAttributes;
 
-    HYP_FIELD(Property = "Topology", Serialize = true)
+    HYP_FIELD(Property = "Topology")
     Topology topology = TOP_TRIANGLES;
 
-    HYP_FIELD(Property = "IndexBufferElemType", Serialize)
+    HYP_FIELD(Property = "IndexBufferElemType")
     GpuElemType indexBufferElemType = GET_UNSIGNED_INT;
 
     HYP_FORCE_INLINE bool operator==(const MeshAttributes& other) const
@@ -142,26 +134,26 @@ class RenderableAttributeSet
 {
     MeshAttributes m_meshAttributes;
     MaterialAttributes m_materialAttributes;
-    uint32 m_overrideFlags;
-    uint32 m_drawableLayer;
+    uint32 m_layerIndex;
 
     mutable HashCode m_cachedHashCode;
     mutable bool m_needsHashCodeRecalculation;
 
 public:
-    RenderableAttributeSet(const MeshAttributes& meshAttributes = {}, const MaterialAttributes& materialAttributes = {}, uint32 overrideFlags = 0)
+    RenderableAttributeSet(const MeshAttributes& meshAttributes = {}, const MaterialAttributes& materialAttributes = {})
         : m_meshAttributes(meshAttributes),
           m_materialAttributes(materialAttributes),
-          m_overrideFlags(overrideFlags),
-          m_drawableLayer(0),
+          m_layerIndex(0),
           m_needsHashCodeRecalculation(true)
     {
     }
 
     RenderableAttributeSet(const RenderableAttributeSet& other) = default;
     RenderableAttributeSet& operator=(const RenderableAttributeSet& other) = default;
+
     RenderableAttributeSet(RenderableAttributeSet&& other) noexcept = default;
     RenderableAttributeSet& operator=(RenderableAttributeSet&& other) noexcept = default;
+
     ~RenderableAttributeSet() = default;
 
     HYP_FORCE_INLINE bool operator==(const RenderableAttributeSet& other) const
@@ -222,35 +214,19 @@ public:
         m_needsHashCodeRecalculation = true;
     }
 
-    HYP_FORCE_INLINE uint32 GetOverrideFlags() const
+    HYP_FORCE_INLINE uint32 GetLayerIndex() const
     {
-        return m_overrideFlags;
+        return m_layerIndex;
     }
 
-    HYP_FORCE_INLINE void SetOverrideFlags(uint32 overrideFlags)
+    HYP_FORCE_INLINE void SetLayerIndex(uint32 layerIndex)
     {
-        if (m_overrideFlags == overrideFlags)
+        if (m_layerIndex == layerIndex)
         {
             return;
         }
 
-        m_overrideFlags = overrideFlags;
-        m_needsHashCodeRecalculation = true;
-    }
-
-    HYP_FORCE_INLINE uint32 GetDrawableLayer() const
-    {
-        return m_drawableLayer;
-    }
-
-    HYP_FORCE_INLINE void SetDrawableLayer(uint32 drawableLayer)
-    {
-        if (m_drawableLayer == drawableLayer)
-        {
-            return;
-        }
-
-        m_drawableLayer = drawableLayer;
+        m_layerIndex = layerIndex;
         m_needsHashCodeRecalculation = true;
     }
 
@@ -272,8 +248,7 @@ private:
         HashCode hc;
         hc.Add(m_meshAttributes.GetHashCode());
         hc.Add(m_materialAttributes.GetHashCode());
-        hc.Add(m_overrideFlags);
-        hc.Add(m_drawableLayer);
+        hc.Add(m_layerIndex);
 
         m_cachedHashCode = hc;
     }

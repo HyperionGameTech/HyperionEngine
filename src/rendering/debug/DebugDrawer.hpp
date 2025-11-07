@@ -264,7 +264,7 @@ private:
     AtomicVar<bool> m_isInitialized;
 
 private:
-    GraphicsPipelineRef FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 drawableLayer, PassData* passData);
+    GraphicsPipelineRef FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 layerIndex, PassData* passData);
 
     void ClearCommands(uint32 idx);
 
