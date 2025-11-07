@@ -3626,6 +3626,8 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         }
 
         int foundTypeIndex = Variant<Types...>::invalidTypeIndex;
+        /// TODO: Foreach over tuple types, check HypData Is() result. Cant just use GetNativeTypeId() == 
+        // because in the case of Name, its stored as an ANSIString, so the type ids wont match
 
         for (int typeIndex = 0; typeIndex < sizeof...(Types); typeIndex++)
         {

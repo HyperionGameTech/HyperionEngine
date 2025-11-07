@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region RaytracingPipelineBase Reflection Data
 
-HYP_BEGIN_CLASS(RaytracingPipelineBase, 133, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(RaytracingPipelineBase, 125, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion RaytracingPipelineBase Reflection Data

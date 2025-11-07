@@ -180,70 +180,77 @@ static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxyM
 }
 
 static const Name s_nameInstancing = NAME("INSTANCING");
-static const Name s_nameForwardLighting = NAME("FORWARD_LIGHTING");
+static const Name s_nameLighting = NAME("LIGHTING");
+static const Name s_nameForward = NAME("FORWARD");
+static const Name s_nameLightmapped = NAME("LIGHTMAPPED");
 static const Name s_nameAlphaDiscard = NAME("ALPHA_DISCARD");
 static const Name s_nameSkinning = NAME("SKINNING");
+static const Name s_nameHasAlbedoMap = NAME("HAS_ALBEDO_MAP");
+static const Name s_nameHasNormalMap = NAME("HAS_NORMAL_MAP");
+static const Name s_nameHasMaterialMap = NAME("HAS_MATERIAL_MAP");
 
 static void UpdateRenderableAttributesDynamic(const RenderProxyMesh* proxy, RenderableAttributeSet& attributes)
 {
     HYP_SCOPE;
 
-    union
-    {
-        struct
-        {
-            bool hasInstancing : 1;
-            bool hasForwardLighting : 1;
-            bool hasAlphaDiscard : 1;
-            bool hasSkinning : 1;
-        };
+    static const ShaderProperty s_propLightingForward = ShaderProperty(s_nameLighting, s_nameForward);
+    static const ShaderProperty s_propLightingLightmapped = ShaderProperty(s_nameLighting, s_nameLightmapped);
 
-        uint64 overridden;
-    };
-
-    overridden = 0;
-
-    hasInstancing = proxy->instanceData.enableAutoInstancing || proxy->instanceData.numInstances > 1;
-    hasForwardLighting = attributes.GetMaterialAttributes().bucket == RB_TRANSLUCENT;
-    hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
-    hasSkinning = proxy->skeleton != nullptr && proxy->skeleton->GetRootBone() != nullptr;
-
-    //    // temp testing
-    //    MaterialAttributes materialAttributes = attributes.GetMaterialAttributes();
-    //    materialAttributes.stencilFunction.mask = 0xFFu;
-    //    materialAttributes.stencilFunction.value = 0x1u;
-    //    attributes.SetMaterialAttributes(materialAttributes);
-    //    overridden = 1;
-
-    if (!overridden)
-    {
-        return;
-    }
+    bool hasInstancing = proxy->instanceData.enableAutoInstancing || proxy->instanceData.numInstances > 1;
+    bool hasForwardLighting = attributes.GetMaterialAttributes().bucket == RB_TRANSLUCENT;
+    bool hasLightmaps = attributes.GetMaterialAttributes().bucket == RB_LIGHTMAP;
+    bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
+    bool hasSkinning = proxy->skeleton != nullptr && proxy->skeleton->GetRootBone() != nullptr;
 
     bool shaderDefinitionChanged = false;
     ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
 
-    if (hasInstancing && !shaderDefinition.GetProperties().Has(s_nameInstancing))
+    if (hasInstancing != shaderDefinition.GetProperties().Has(s_nameInstancing))
     {
-        shaderDefinition.GetProperties().Set(s_nameInstancing);
+        shaderDefinition.GetProperties().Set(s_nameInstancing, hasInstancing);
         shaderDefinitionChanged = true;
     }
 
-    if (hasForwardLighting && !shaderDefinition.GetProperties().Has(s_nameForwardLighting))
+    auto lightingIt = shaderDefinition.GetProperties().Find(WeakName(s_nameLighting));
+    if (hasForwardLighting != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode == s_nameForward.GetHashCode()))
     {
-        shaderDefinition.GetProperties().Set(s_nameForwardLighting);
+        shaderDefinition.GetProperties().Set(s_propLightingForward, hasForwardLighting);
         shaderDefinitionChanged = true;
     }
 
-    if (hasAlphaDiscard && !shaderDefinition.GetProperties().Has(s_nameAlphaDiscard))
+    if (hasLightmaps != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode == s_propLightingLightmapped.GetHashCode()))
     {
-        shaderDefinition.GetProperties().Set(s_nameAlphaDiscard);
+        shaderDefinition.GetProperties().Set(s_propLightingLightmapped, hasLightmaps);
         shaderDefinitionChanged = true;
     }
 
-    if (hasSkinning && !shaderDefinition.GetProperties().Has(s_nameSkinning))
+    if (hasAlphaDiscard != shaderDefinition.GetProperties().Has(s_nameAlphaDiscard))
     {
-        shaderDefinition.GetProperties().Set(s_nameSkinning);
+        shaderDefinition.GetProperties().Set(s_nameAlphaDiscard, hasAlphaDiscard);
+        shaderDefinitionChanged = true;
+    }
+
+    if (hasSkinning != shaderDefinition.GetProperties().Has(s_nameSkinning))
+    {
+        shaderDefinition.GetProperties().Set(s_nameSkinning, hasSkinning);
+        shaderDefinitionChanged = true;
+    }
+
+    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_ALBEDO) != shaderDefinition.GetProperties().Has(s_nameHasAlbedoMap))
+    {
+        shaderDefinition.GetProperties().Set(s_nameHasAlbedoMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_ALBEDO));
+        shaderDefinitionChanged = true;
+    }
+
+    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_NORMAL) != shaderDefinition.GetProperties().Has(s_nameHasNormalMap))
+    {
+        shaderDefinition.GetProperties().Set(s_nameHasNormalMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_NORMAL));
+        shaderDefinitionChanged = true;
+    }
+
+    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_MATERIAL) != shaderDefinition.GetProperties().Has(s_nameHasMaterialMap))
+    {
+        shaderDefinition.GetProperties().Set(s_nameHasMaterialMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_MATERIAL));
         shaderDefinitionChanged = true;
     }
 

@@ -467,10 +467,10 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     };
 
     FixedArray<Pair<ShaderRef, ComputePipelineRef>, MODE_MAX> pipelines = {
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), String("CLEAR")) } })), ComputePipelineRef::Null() },
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), String("BUILD_COEFFICIENTS")) } })), ComputePipelineRef::Null() },
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), String("REDUCE")) } })), ComputePipelineRef::Null() },
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), String("FINALIZE")) } })), ComputePipelineRef::Null() }
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), NAME("CLEAR")) } })), ComputePipelineRef::Null() },
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), NAME("BUILD_COEFFICIENTS")) } })), ComputePipelineRef::Null() },
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), NAME("REDUCE")) } })), ComputePipelineRef::Null() },
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), NAME("FINALIZE")) } })), ComputePipelineRef::Null() }
     };
 
     ShaderRef firstShader;

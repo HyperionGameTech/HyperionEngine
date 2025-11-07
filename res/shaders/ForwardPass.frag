@@ -178,39 +178,33 @@ void main()
     }
 #endif
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map))
-    {
-        vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map, texcoord);
+#if HAS_ALBEDO_MAP
+    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_ALBEDO_map, texcoord);
 
 #ifdef ALPHA_DISCARD
-        if (albedo_texture.a < alpha_threshold)
-        {
-            discard;
-        }
+    if (albedo_texture.a < alpha_threshold)
+    {
+        discard;
+    }
 #endif
 
-        gbuffer_albedo *= albedo_texture;
-    }
+    gbuffer_albedo *= albedo_texture;
+#endif
 
     gbuffer_albedo.a = max(gbuffer_albedo.a, 0.005);
 
     vec4 normals_texture = vec4(0.0);
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_NORMAL_MAP))
-    {
-        normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_NORMAL_MAP, texcoord) * 2.0 - 1.0;
-        normals_texture.xy *= normal_map_intensity;
-        normals_texture.xyz = normalize(normals_texture.xyz);
+#if HAS_NORMAL_MAP
+    normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_NORMAL_MAP, texcoord) * 2.0 - 1.0;
+    normals_texture.xy *= normal_map_intensity;
+    normals_texture.xyz = normalize(normals_texture.xyz);
 
-        N = v_tbn_matrix * normals_texture.xyz;
-        N = normalize(N);
+    N = v_tbn_matrix * normals_texture.xyz;
+    N = normalize(N);
+#endif
 
-        // normals_texture.xy = (2.0 * (vec2(1.0) - SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_NORMAL_MAP, texcoord).rg) - 1.0);
-        // normals_texture.z = sqrt(1.0 - dot(normals_texture.xy, normals_texture.xy));
-        // N = ((normalize(v_tangent) * normals_texture.x) + (normalize(v_bitangent) * normals_texture.y) + (N * normals_texture.z));
-    }
-
-#if defined(FORWARD_LIGHTING) && !defined(UNLIT)
+#if LIGHTING_FORWARD
     {
         const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
         const vec3 F0 = CalculateF0(gbuffer_albedo.rgb, metalness);
@@ -359,6 +353,7 @@ void main()
 
     uint mask = v_object_mask;
 
+#if LIGHTING_LIGHTMAPPED
     vec4 lm_irradiance = vec4(0.0);
     vec4 lm_radiance = vec4(0.0);
 
@@ -369,6 +364,7 @@ void main()
     lm_radiance = mix(lm_radiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_RADIANCE)));
 
     gbuffer_albedo_lightmap = (lm_irradiance + lm_radiance) * float(bool(mask & OBJECT_MASK_LIGHTMAP));
+#endif
 
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;

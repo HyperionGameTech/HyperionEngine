@@ -103,6 +103,7 @@ Material::Material(
       m_mutationState(DataMutationState::CLEAN),
       m_renderProxyVersion(0)
 {
+    UpdateStaticTextureMask();
 }
 
 Material::~Material()
@@ -124,18 +125,11 @@ void Material::Init()
 {
     HYP_SCOPE;
 
-    FlatMap<MaterialTextureKey, Handle<Texture>> textures;
-
     for (SizeType i = 0; i < m_textures.Size(); i++)
     {
         Pair<MaterialTextureKey, Handle<Texture>&> keyValue = m_textures.KeyValueAt(i);
 
-        if (keyValue.second)
-        {
-            InitObject(keyValue.second);
-
-            textures.Set(keyValue.first, keyValue.second);
-        }
+        InitObject(keyValue.second);
     }
 
     m_mutationState |= DataMutationState::DIRTY;
@@ -251,6 +245,8 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
 
     m_textures[key] = texture;
 
+    UpdateStaticTextureMask();
+
     if (IsInitCalled())
     {
         InitObject(texture);
@@ -292,6 +288,8 @@ void Material::SetTextures(const MaterialTextures& textures)
     }
 
     m_textures = textures;
+
+    UpdateStaticTextureMask();
 
     if (IsInitCalled())
     {
@@ -369,45 +367,61 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 
     proxy->boundTextures.Clear();
 
-    // unset all bound texture indices
-    for (uint32 i = 0; i < MaxBoundTextures; ++i)
-    {
-        proxy->boundTextureIndices[i] = ~0u;
-    }
+    // unset all bound texture indices (~0u)
+    Memory::MemSet(&proxy->boundTextureIndices[0], 0xFF, sizeof(proxy->boundTextureIndices));
 
-    for (SizeType textureIndex = 0; textureIndex < m_textures.Size(); textureIndex++)
+    for (uint32 slot = 0; slot < uint32(m_textures.Size()); slot++)
     {
         if (remainingTextureSlots == 0)
         {
             break;
         }
 
-        const Handle<Texture>& texture = m_textures.AtIndex(textureIndex);
+        const Handle<Texture>& texture = m_textures.AtIndex(slot);
 
         if (texture.IsValid())
         {
-            AssertDebug(textureIndex < MaxBoundTextures);
-
             const uint32 idx = uint32(proxy->boundTextures.Size());
             proxy->boundTextures.PushBack(texture);
 
             if (useBindlessTextures)
             {
-                textureIndicesU32[textureIndex] = texture.Id().ToIndex();
+                textureIndicesU32[slot] = texture.Id().ToIndex();
             }
             else
             {
-                textureIndicesU32[textureIndex] = idx;
+                textureIndicesU32[slot] = idx;
             }
 
             // enable this slot for the texture
-            bufferData.textureUsage |= (1u << int(textureIndex));
+            bufferData.textureUsage |= (1u << slot);
 
-            proxy->boundTextureIndices[textureIndex] = idx;
+            proxy->boundTextureIndices[slot] = idx;
 
             --remainingTextureSlots;
         }
     }
+}
+
+void Material::UpdateStaticTextureMask()
+{
+    m_attributes.staticTextureMask = 0;
+
+    if (m_textures.Has(MaterialTextureKey::ALBEDO_MAP))
+    {
+        m_attributes.staticTextureMask |= MaterialAttributes::ST_ALBEDO;
+    }
+
+    if (m_textures.Has(MaterialTextureKey::NORMAL_MAP))
+    {
+        m_attributes.staticTextureMask |= MaterialAttributes::ST_NORMAL;
+    }
+
+    // TODO
+    /*if (m_textures.Has(MaterialTextureKey::ROUGHNESS_MAP) || m_textures.Has(MaterialTextureKey::METALNESS_MAP) || m_textures.Has(MaterialTextureKey::AO_MAP))
+    {
+        m_attributes.staticTextureMask |= MaterialAttributes::ST_MATERIAL;
+    }*/
 }
 
 HashCode Material::GetHashCode() const

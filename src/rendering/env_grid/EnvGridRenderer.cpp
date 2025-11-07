@@ -283,8 +283,8 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridPassDat
 
     // Create shader, descriptor sets for voxelizing probes
 
-    ShaderRef voxelizeProbeShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { ShaderProperty(NAME("MODE"), String("VOXELIZE")) } });
-    ShaderRef offsetVoxelGridShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { ShaderProperty(NAME("MODE"), String("OFFSET")) } });
+    ShaderRef voxelizeProbeShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { ShaderProperty(NAME("MODE"), NAME("VOXELIZE")) } });
+    ShaderRef offsetVoxelGridShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { ShaderProperty(NAME("MODE"), NAME("OFFSET")) } });
     ShaderRef clearVoxelsShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_ClearProbeVoxels"));
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
@@ -399,10 +399,10 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
     }
 
     FixedArray<ShaderRef, 4> shaders = {
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING")), ShaderProperty(NAME("MODE"), String("CLEAR")) } }),
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING")), ShaderProperty(NAME("MODE"), String("BUILD_COEFFICIENTS")) } }),
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING")), ShaderProperty(NAME("MODE"), String("REDUCE")) } }),
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING")), ShaderProperty(NAME("MODE"), String("FINALIZE")) } })
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING")), ShaderProperty(NAME("MODE"), NAME("CLEAR")) } }),
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING")), ShaderProperty(NAME("MODE"), NAME("BUILD_COEFFICIENTS")) } }),
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING")), ShaderProperty(NAME("MODE"), NAME("REDUCE")) } }),
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING")), ShaderProperty(NAME("MODE"), NAME("FINALIZE")) } })
     };
 
     for (const ShaderRef& shader : shaders)

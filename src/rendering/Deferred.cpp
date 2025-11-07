@@ -90,10 +90,10 @@ static_assert(sizeof(s_ltcBrdf) == 64 * 64 * 4 * 2, "Invalid LTC BRDF size");
 
 // Maps individual light types to per-light specific properties.
 static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties {
-    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), String("DIRECTIONAL")) } },
-    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), String("POINT")) } },
-    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), String("SPOT")) } },
-    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), String("AREA_RECT")) } }
+    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("DIRECTIONAL")) } },
+    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("POINT")) } },
+    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("SPOT")) } },
+    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT")) } }
 };
 
 static const FixedArray<Name, GTN_MAX> s_gbufferTextureNames {
@@ -540,11 +540,11 @@ void TonemapPass::CreatePipeline()
 
     if (g_renderBackend->GetSwapchain()->IsPqHdr())
     {
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("PQ_HDR")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("PQ_HDR")));
     }
     else
     {
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("SDR")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
     }
 
     m_shader = g_shaderManager->GetOrCreate(NAME("Tonemap"), shaderProperties);
@@ -701,9 +701,9 @@ void EnvGridPass::CreatePipeline()
     }
 
     static const FixedArray<Pair<EnvGridApplyMode, ShaderProperties>, EGAM_MAX> s_applyEnvGridPasses = {
-        Pair<EnvGridApplyMode, ShaderProperties> { EGAM_SH, ShaderProperties { { ShaderProperty(NAME("MODE"), String("IRRADIANCE")), ShaderProperty(NAME("IRRADIANCE_MODE"), String("SH")) } } },
-        Pair<EnvGridApplyMode, ShaderProperties> { EGAM_VOXEL, ShaderProperties { { ShaderProperty(NAME("MODE"), String("IRRADIANCE")), ShaderProperty(NAME("IRRADIANCE_MODE"), String("VOXEL")) } } },
-        Pair<EnvGridApplyMode, ShaderProperties> { EGAM_LIGHT_FIELD, ShaderProperties { { ShaderProperty(NAME("MODE"), String("IRRADIANCE")), ShaderProperty(NAME("IRRADIANCE_MODE"), String("LIGHT_FIELD")) } } }
+        Pair<EnvGridApplyMode, ShaderProperties> { EGAM_SH, ShaderProperties { { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")), ShaderProperty(NAME("IRRADIANCE_MODE"), NAME("SH")) } } },
+        Pair<EnvGridApplyMode, ShaderProperties> { EGAM_VOXEL, ShaderProperties { { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")), ShaderProperty(NAME("IRRADIANCE_MODE"), NAME("VOXEL")) } } },
+        Pair<EnvGridApplyMode, ShaderProperties> { EGAM_LIGHT_FIELD, ShaderProperties { { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")), ShaderProperty(NAME("IRRADIANCE_MODE"), NAME("LIGHT_FIELD")) } } }
     };
 
     for (const auto& it : s_applyEnvGridPasses)

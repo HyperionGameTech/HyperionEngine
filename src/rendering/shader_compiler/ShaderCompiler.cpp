@@ -149,10 +149,10 @@ static String BuildPreamble(const ShaderProperties& properties)
         // property has a value -- if integral or float, use that value
         if (property.HasValue())
         {
-            if (property.currentValue.Is<String>())
+            if (property.currentValue.Is<Name>())
             {
-                // string values are defined as ENUM_VALUE=1
-                preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.Get<String>());
+                // string values are defined as KEY_VALUE = 1
+                preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.Get<Name>());
             }
             else
             {
@@ -1280,8 +1280,7 @@ static bool LoadBatchFromFile(
         return false;
     }
 
-    Optional<CompiledShaderBatch&> compiledShaderBatchOpt =
-        value.TryGet<CompiledShaderBatch>();
+    Optional<CompiledShaderBatch&> compiledShaderBatchOpt = value.TryGet<CompiledShaderBatch>();
 
     if (!compiledShaderBatchOpt.HasValue())
     {
@@ -1501,7 +1500,7 @@ void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section,
                         {
                             HYP_LOG(ShaderCompiler, Warning,
                                 "Empty shader property value for property {}",
-                                *element.name);
+                                element.name);
 
                             continue;
                         }
@@ -1518,7 +1517,7 @@ void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section,
                                 {
                                     HYP_LOG(ShaderCompiler, Warning,
                                         "Failed to parse shader property value {} as float for property {}",
-                                        subElement, *element.name);
+                                        subElement, element.name);
 
                                     continue;
                                 }
@@ -1533,7 +1532,7 @@ void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section,
                                 {
                                     HYP_LOG(ShaderCompiler, Warning,
                                         "Failed to parse shader property value {} as integer for property {}",
-                                        subElement, *element.name);
+                                        subElement, element.name);
 
                                     continue;
                                 }
@@ -1544,7 +1543,7 @@ void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section,
                         else
                         {
                             // string value
-                            value = subElement;
+                            value = CreateNameFromDynamicString(subElement);
                         }
 
                         AssertDebug(value.IsValid());
@@ -1713,7 +1712,7 @@ bool ShaderCompiler::LoadOrCompileBatch(
     {
         HYP_LOG(ShaderCompiler, Warning,
             "Not compiled with shader compilation support... Shaders may become out of date.\n"
-            "If any .hypshader files are missing, they will not be compiled on the fly.");
+            "If any shader bundle files are missing, they will not be compiled on the fly.");
     }
 
     if (!m_definitions || !m_definitions->IsValid())
@@ -1770,7 +1769,7 @@ bool ShaderCompiler::LoadOrCompileBatch(
         return LoadBatchFromFile(outputFilePath, batch);
     };
 
-    const FilePath outputFilePath = GetResourceDirectory() / "data/compiled_shaders" / nameString + ".hypshader";
+    const FilePath outputFilePath = GetResourceDirectory() / "data/compiled_shaders" / nameString + ".shaderbundle";
 
     if (outputFilePath.Exists())
     {
@@ -2833,7 +2832,7 @@ bool ShaderCompiler::CompileBundle(
         return false;
     }
 
-    const FilePath finalOutputPath = GetResourceDirectory() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";
+    const FilePath finalOutputPath = GetResourceDirectory() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".shaderbundle";
 
     FileByteWriter byteWriter(finalOutputPath.Data());
 

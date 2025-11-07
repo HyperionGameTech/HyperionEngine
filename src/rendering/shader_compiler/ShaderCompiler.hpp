@@ -74,7 +74,7 @@ struct ShaderProperty
 {
     HYP_STRUCT_BODY(ShaderProperty);
 
-    using Value = Variant<String, int, float>;
+    using Value = Variant<Name, int, float>;
 
     HYP_FIELD()
     Name name;
@@ -88,6 +88,9 @@ struct ShaderProperty
     HYP_FIELD()
     Array<Value> enumValues;
 
+    HYP_FIELD(Transient)
+    HashCode cachedHashCode;
+
     ShaderProperty()
         : flags(SPF_NONE)
     {
@@ -97,6 +100,7 @@ struct ShaderProperty
         : name(name),
           flags(flags)
     {
+        cachedHashCode = GetHashCode();
     }
 
     ShaderProperty(Name name, const Value& currentValue, ShaderPropertyFlags flags = SPF_NONE)
@@ -104,20 +108,23 @@ struct ShaderProperty
           flags(flags),
           currentValue(currentValue)
     {
+        cachedHashCode = GetHashCode();
     }
 
     explicit ShaderProperty(VertexAttribute::Type vertexAttribute)
         : name(CreateNameFromDynamicString(ANSIString("HYP_ATTRIBUTE_") + VertexAttribute::mapping.Get(vertexAttribute).name)),
           flags(SPF_VERTEX_ATTRIBUTE),
-          currentValue(Value(String(VertexAttribute::mapping.Get(vertexAttribute).name)))
+          currentValue(Value(CreateNameFromDynamicString(VertexAttribute::mapping.Get(vertexAttribute).name)))
     {
+        cachedHashCode = GetHashCode();
     }
 
     ShaderProperty(const ShaderProperty& other)
         : name(other.name),
           flags(other.flags),
           currentValue(other.currentValue),
-          enumValues(other.enumValues)
+          enumValues(other.enumValues),
+          cachedHashCode(other.cachedHashCode)
     {
     }
 
@@ -132,6 +139,7 @@ struct ShaderProperty
         flags = other.flags;
         currentValue = other.currentValue;
         enumValues = other.enumValues;
+        cachedHashCode = other.cachedHashCode;
 
         return *this;
     }
@@ -140,10 +148,12 @@ struct ShaderProperty
         : name(other.name),
           flags(other.flags),
           currentValue(std::move(other.currentValue)),
-          enumValues(std::move(other.enumValues))
+          enumValues(std::move(other.enumValues)),
+          cachedHashCode(other.cachedHashCode)
     {
         other.name = Name();
         other.flags = SPF_NONE;
+        other.cachedHashCode = HashCode();
     }
 
     ShaderProperty& operator=(ShaderProperty&& other) noexcept
@@ -157,9 +167,11 @@ struct ShaderProperty
         flags = other.flags;
         currentValue = std::move(other.currentValue);
         enumValues = std::move(other.enumValues);
+        cachedHashCode = other.cachedHashCode;
 
         other.name = Name();
         other.flags = SPF_NONE;
+        other.cachedHashCode = HashCode();
 
         return *this;
     }
@@ -172,16 +184,6 @@ struct ShaderProperty
     HYP_FORCE_INLINE bool operator!=(const ShaderProperty& other) const
     {
         return name != other.name;
-    }
-
-    HYP_FORCE_INLINE bool operator==(const String& str) const
-    {
-        return name == str;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const String& str) const
-    {
-        return name != str;
     }
 
     HYP_FORCE_INLINE bool operator<(const ShaderProperty& other) const

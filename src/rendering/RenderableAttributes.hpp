@@ -34,26 +34,37 @@ struct MaterialAttributes
 {
     HYP_STRUCT_BODY(MaterialAttributes);
 
-    HYP_FIELD(Serialize)
+    // textures that trigger selection of specialized shader permutations when set
+    enum StaticTexture : uint32
+    {
+        ST_ALBEDO = 0x1,        //!< Albedo / diffuse texture
+        ST_NORMAL = 0x2,        //!< Normal map texture
+        ST_MATERIAL = 0x4,      //!< Material quantized data texture (Roughness, Metallic, AO) (NOT YET SUPPORTED)
+    };
+
+    HYP_FIELD()
     ShaderDefinition shaderDefinition;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     RenderBucket bucket = RB_OPAQUE;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     FillMode fillMode = FM_FILL;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     BlendFunction blendFunction = BlendFunction::None();
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     FaceCullMode cullFaces = FCM_BACK;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     EnumFlags<MaterialAttributeFlags> flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     StencilFunction stencilFunction;
+
+    HYP_FIELD(Transient)
+    uint32 staticTextureMask = 0;
 
     HYP_FORCE_INLINE bool operator==(const MaterialAttributes& other) const
     {
@@ -63,7 +74,8 @@ struct MaterialAttributes
             && blendFunction == other.blendFunction
             && cullFaces == other.cullFaces
             && flags == other.flags
-            && stencilFunction == other.stencilFunction;
+            && stencilFunction == other.stencilFunction
+            && staticTextureMask == other.staticTextureMask;
     }
 
     HYP_FORCE_INLINE bool operator!=(const MaterialAttributes& other) const
@@ -74,7 +86,8 @@ struct MaterialAttributes
             || blendFunction != other.blendFunction
             || cullFaces != other.cullFaces
             || flags != other.flags
-            || stencilFunction != other.stencilFunction;
+            || stencilFunction != other.stencilFunction
+            || staticTextureMask != other.staticTextureMask;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -87,6 +100,7 @@ struct MaterialAttributes
         hc.Add(cullFaces);
         hc.Add(flags);
         hc.Add(stencilFunction);
+        hc.Add(staticTextureMask);
 
         return hc;
     }

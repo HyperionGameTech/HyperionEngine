@@ -474,6 +474,11 @@ public:
         return m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key)];
     }
 
+    HYP_FORCE_INLINE bool Has(MaterialTextureKey key) const
+    {
+        return bool(m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key)]);
+    }
+
     HYP_FORCE_INLINE Handle<Texture>& AtIndex(SizeType index)
     {
         return m_values[index];
@@ -835,6 +840,9 @@ public:
 
 private:
     void Init() override;
+
+    // set the static texture mask in MaterialAttributes based on currently set textures
+    void UpdateStaticTextureMask();
 
     HYP_FIELD()
     MaterialParameters m_parameters;
