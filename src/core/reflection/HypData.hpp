@@ -1888,7 +1888,7 @@ struct HypDataHelper<Name>
 
         return true;
     }
-
+    
     HYP_FORCE_INLINE constexpr Name& Get(Name& value) const
     {
         return value;
@@ -1908,21 +1908,21 @@ struct HypDataHelper<Name>
     {
         HYP_SCOPE;
 
-        outData = FBOMData::FromString(ANSIString(value.LookupString()));
+        outData = FBOMData::FromName(value);
 
         return FBOMResult::FBOM_OK;
     }
 
     HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
     {
-        ANSIString str;
+        Name name;
 
-        if (FBOMResult err = data.ReadString(str))
+        if (FBOMResult err = data.ReadName(&name))
         {
             return err;
         }
 
-        out = HypData(CreateNameFromDynamicString(str));
+        out = HypData(name);
 
         return { FBOMResult::FBOM_OK };
     }
@@ -3626,21 +3626,46 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         }
 
         int foundTypeIndex = Variant<Types...>::invalidTypeIndex;
-        /// TODO: Foreach over tuple types, check HypData Is() result. Cant just use GetNativeTypeId() == 
-        // because in the case of Name, its stored as an ANSIString, so the type ids wont match
+        int currTypeIndex = 0;
 
-        for (int typeIndex = 0; typeIndex < sizeof...(Types); typeIndex++)
-        {
-            TypeId typeId = Variant<Types...>::typeIds[typeIndex + 1]; // first element is void type id
-
-            if (data.GetType().GetNativeTypeId() == typeId
-                || IsA(GetClass(data.GetType().GetNativeTypeId()), GetClass(typeId)))
+        StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
             {
-                foundTypeIndex = typeIndex;
+                if (foundTypeIndex != Variant<Types...>::invalidTypeIndex)
+                {
+                    // already found
+                    return;
+                }
 
-                break;
-            }
-        }
+                // check if same TypeIds, or if a HypDataHelper for T has ConvertibleFrom that is the same type id
+                if (data.GetType().GetNativeTypeId() == TypeId::ForType<T>())
+                {
+                    foundTypeIndex = currTypeIndex;
+                    return;
+                }
+
+                // Also check any types listed in HypDataHelper<T>::ConvertibleFrom
+                bool matchedConvertible = false;
+                StaticForEach<typename HypDataHelper<T>::ConvertibleFrom>([&]<class FromT>(TypeWrapper<FromT>)
+                    {
+                        if (matchedConvertible || foundTypeIndex != Variant<Types...>::invalidTypeIndex)
+                        {
+                            return;
+                        }
+
+                        if (data.GetType().GetNativeTypeId() == TypeId::ForType<FromT>())
+                        {
+                            foundTypeIndex = currTypeIndex;
+                            matchedConvertible = true;
+                        }
+                    });
+
+                if (matchedConvertible)
+                {
+                    return;
+                }
+
+                currTypeIndex++;
+            });
 
         if (foundTypeIndex == Variant<Types...>::invalidTypeIndex)
         {

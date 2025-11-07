@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region PassData Reflection Data
 
-HYP_BEGIN_CLASS(PassData, 92, 6, NAME("ObjectBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(PassData, 88, 6, NAME("ObjectBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion PassData Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region RendererConfig Reflection Data
 
-HYP_BEGIN_STRUCT(RendererConfig, 287, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering"))
+HYP_BEGIN_STRUCT(RendererConfig, 324, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering"))
     Field(NAME(HYP_STR(PathTracer)), &RendererConfig::pathTracer, offsetof(RendererConfig, pathTracer), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.PathTracing.Enabled") } }),
     Field(NAME(HYP_STR(RaytracingReflections)), &RendererConfig::raytracingReflections, offsetof(RendererConfig, raytracingReflections), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.Reflections.Enabled") } }),
     Field(NAME(HYP_STR(RaytracingGlobalIllumination)), &RendererConfig::raytracingGlobalIllumination, offsetof(RendererConfig, raytracingGlobalIllumination), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.GI.Enabled") } }),

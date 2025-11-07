@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region GlobalRenderBuffer Reflection Data
 
-HYP_BEGIN_ENUM(GlobalRenderBuffer, 288, 0, {})
+HYP_BEGIN_ENUM(GlobalRenderBuffer, 281, 0, {})
     StaticField(NAME(HYP_STR(GRB_INVALID)), GlobalRenderBuffer::GRB_INVALID),
     StaticField(NAME(HYP_STR(GRB_WORLDS)), GlobalRenderBuffer::GRB_WORLDS),
     StaticField(NAME(HYP_STR(GRB_CAMERAS)), GlobalRenderBuffer::GRB_CAMERAS),
@@ -28,7 +28,7 @@ namespace hyperion {
 
 #pragma region GlobalRendererType Reflection Data
 
-HYP_BEGIN_ENUM(GlobalRendererType, 289, 0, {})
+HYP_BEGIN_ENUM(GlobalRendererType, 282, 0, {})
     StaticField(NAME(HYP_STR(GRT_NONE)), GlobalRendererType::GRT_NONE),
     StaticField(NAME(HYP_STR(GRT_ENV_PROBE)), GlobalRendererType::GRT_ENV_PROBE),
     StaticField(NAME(HYP_STR(GRT_ENV_GRID)), GlobalRendererType::GRT_ENV_GRID),

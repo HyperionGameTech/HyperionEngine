@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region TerrainStreamingCell Reflection Data
 
-HYP_BEGIN_CLASS(TerrainStreamingCell, 181, 0, NAME("StreamingCell"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(TerrainStreamingCell, 66, 0, NAME("StreamingCell"), ClassAttribute("noscriptbindings", true))
     Method(NAME(HYP_STR(OnStreamStart_Impl)), &TerrainStreamingCell::OnStreamStart_Impl),
     Method(NAME(HYP_STR(OnLoaded_Impl)), &TerrainStreamingCell::OnLoaded_Impl),
     Method(NAME(HYP_STR(OnRemoved_Impl)), &TerrainStreamingCell::OnRemoved_Impl)
@@ -20,7 +20,7 @@ namespace hyperion {
 
 #pragma region TerrainWorldGridLayer Reflection Data
 
-HYP_BEGIN_CLASS(TerrainWorldGridLayer, 178, 0, NAME("WorldGridLayer"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(TerrainWorldGridLayer, 194, 0, NAME("WorldGridLayer"), ClassAttribute("noscriptbindings", true))
     Method(NAME(HYP_STR(GetScene)), &TerrainWorldGridLayer::GetScene),
     Method(NAME(HYP_STR(Init)), &TerrainWorldGridLayer::Init),
     Method(NAME(HYP_STR(OnAdded_Impl)), &TerrainWorldGridLayer::OnAdded_Impl),

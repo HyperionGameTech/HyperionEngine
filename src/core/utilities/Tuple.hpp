@@ -1,4 +1,5 @@
 #pragma once
+
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 

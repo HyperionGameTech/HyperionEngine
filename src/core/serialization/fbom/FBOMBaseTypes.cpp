@@ -174,6 +174,16 @@ FBOMString::FBOMString(SizeType length)
 {
 }
 
+FBOMName::FBOMName()
+    : FBOMName(-1)
+{
+}
+
+FBOMName::FBOMName(SizeType length)
+    : FBOMType("name", length, TypeId::ForType<Name>())
+{
+}
+
 FBOMBaseObjectType::FBOMBaseObjectType()
     : FBOMType("object", 0, /* no valid TypeId */ TypeId::Void(), FBOMTypeFlags::DEFAULT)
 {
@@ -186,11 +196,11 @@ FBOMBaseObjectType::FBOMBaseObjectType(const FBOMType& extends)
 
 FBOMObjectType::FBOMObjectType(const Class* cls)
     : FBOMType(
-        cls->GetName().LookupString(),
-        SizeType(-1),
-        cls->GetTypeId(),
-        FBOMTypeFlags::CONTAINER,
-        cls->GetParent() ? FBOMObjectType(cls->GetParent()) : FBOMBaseObjectType())
+          cls->GetName().LookupString(),
+          SizeType(-1),
+          cls->GetTypeId(),
+          FBOMTypeFlags::CONTAINER,
+          cls->GetParent() ? FBOMType(FBOMObjectType(cls->GetParent())) : FBOMType(FBOMBaseObjectType()))
 {
 }
 

@@ -125,20 +125,35 @@ ParallelRenderingState::~ParallelRenderingState()
 
 #pragma region RenderProxyList
 
-static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxyMesh& proxy, const RenderableAttributeSet* overrideAttributes = nullptr)
+namespace GeometryPass {
+
+namespace PropNames {
+static const Name s_nameInstancing = NAME("INSTANCING");
+static const Name s_nameLighting = NAME("LIGHTING");
+static const Name s_nameDeferred = NAME("DEFERRED");
+static const Name s_nameForward = NAME("FORWARD");
+static const Name s_nameLightmapped = NAME("LIGHTMAPPED");
+static const Name s_nameAlphaDiscard = NAME("ALPHA_DISCARD");
+static const Name s_nameSkinning = NAME("SKINNING");
+static const Name s_nameHasAlbedoMap = NAME("HAS_ALBEDO_MAP");
+static const Name s_nameHasNormalMap = NAME("HAS_NORMAL_MAP");
+static const Name s_nameHasMaterialMap = NAME("HAS_MATERIAL_MAP");
+} // namespace PropNames
+
+static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
 {
     HYP_SCOPE;
-
     Mesh* mesh = proxy.mesh;
     AssertDebug(mesh != nullptr);
 
     Material* material = proxy.material;
     AssertDebug(material != nullptr);
 
-    RenderableAttributeSet attributes {
-        mesh->GetMeshAttributes(),
-        material->GetRenderAttributes()
-    };
+    static const ShaderProperty s_propLightingDeferred = ShaderProperty(Name(PropNames::s_nameLighting), Name(PropNames::s_nameDeferred));
+    static const ShaderProperty s_propLightingForward = ShaderProperty(Name(PropNames::s_nameLighting), Name(PropNames::s_nameForward));
+    static const ShaderProperty s_propLightingLightmapped = ShaderProperty(Name(PropNames::s_nameLighting), Name(PropNames::s_nameLightmapped));
+
+    attributes = RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() };
 
     if (overrideAttributes)
     {
@@ -176,81 +191,71 @@ static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxyM
 
     AssertDebug(attributes.GetMeshAttributes().vertexAttributes != 0);
 
-    return attributes;
-}
-
-static const Name s_nameInstancing = NAME("INSTANCING");
-static const Name s_nameLighting = NAME("LIGHTING");
-static const Name s_nameForward = NAME("FORWARD");
-static const Name s_nameLightmapped = NAME("LIGHTMAPPED");
-static const Name s_nameAlphaDiscard = NAME("ALPHA_DISCARD");
-static const Name s_nameSkinning = NAME("SKINNING");
-static const Name s_nameHasAlbedoMap = NAME("HAS_ALBEDO_MAP");
-static const Name s_nameHasNormalMap = NAME("HAS_NORMAL_MAP");
-static const Name s_nameHasMaterialMap = NAME("HAS_MATERIAL_MAP");
-
-static void UpdateRenderableAttributesDynamic(const RenderProxyMesh* proxy, RenderableAttributeSet& attributes)
-{
-    HYP_SCOPE;
-
-    static const ShaderProperty s_propLightingForward = ShaderProperty(s_nameLighting, s_nameForward);
-    static const ShaderProperty s_propLightingLightmapped = ShaderProperty(s_nameLighting, s_nameLightmapped);
-
-    bool hasInstancing = proxy->instanceData.enableAutoInstancing || proxy->instanceData.numInstances > 1;
-    bool hasForwardLighting = attributes.GetMaterialAttributes().bucket == RB_TRANSLUCENT;
-    bool hasLightmaps = attributes.GetMaterialAttributes().bucket == RB_LIGHTMAP;
-    bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
-    bool hasSkinning = proxy->skeleton != nullptr && proxy->skeleton->GetRootBone() != nullptr;
+    const bool hasInstancing = proxy.instanceData.enableAutoInstancing || proxy.instanceData.numInstances > 1;
+    const bool hasForwardLighting = attributes.GetMaterialAttributes().bucket == RB_TRANSLUCENT;
+    const bool hasLightmaps = attributes.GetMaterialAttributes().bucket == RB_LIGHTMAP;
+    const bool hasDeferredLighting = !hasForwardLighting && !hasLightmaps;
+    const bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
+    const bool hasSkinning = proxy.skeleton != nullptr && proxy.skeleton->GetRootBone() != nullptr;
 
     bool shaderDefinitionChanged = false;
     ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
 
-    if (hasInstancing != shaderDefinition.GetProperties().Has(s_nameInstancing))
+    if (hasInstancing != shaderDefinition.GetProperties().Has(PropNames::s_nameInstancing))
     {
-        shaderDefinition.GetProperties().Set(s_nameInstancing, hasInstancing);
+        shaderDefinition.GetProperties().Set(PropNames::s_nameInstancing, hasInstancing);
         shaderDefinitionChanged = true;
     }
 
-    auto lightingIt = shaderDefinition.GetProperties().Find(WeakName(s_nameLighting));
-    if (hasForwardLighting != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode == s_nameForward.GetHashCode()))
     {
-        shaderDefinition.GetProperties().Set(s_propLightingForward, hasForwardLighting);
+        auto lightingIt = shaderDefinition.GetProperties().Find(WeakName(PropNames::s_nameLighting));
+
+        if (hasDeferredLighting != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode.value == PropNames::s_nameDeferred.hashCode))
+        {
+            shaderDefinition.GetProperties().Set(s_propLightingDeferred, hasDeferredLighting);
+            shaderDefinitionChanged = true;
+        }
+
+        if (hasForwardLighting != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode.value == PropNames::s_nameForward.hashCode))
+        {
+            shaderDefinition.GetProperties().Set(s_propLightingForward, hasForwardLighting);
+            shaderDefinitionChanged = true;
+        }
+
+        if (hasLightmaps != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode.value == PropNames::s_nameLightmapped.hashCode))
+        {
+            shaderDefinition.GetProperties().Set(s_propLightingLightmapped, hasLightmaps);
+            shaderDefinitionChanged = true;
+        }
+    }
+
+    if (hasAlphaDiscard != shaderDefinition.GetProperties().Has(PropNames::s_nameAlphaDiscard))
+    {
+        shaderDefinition.GetProperties().Set(PropNames::s_nameAlphaDiscard, hasAlphaDiscard);
         shaderDefinitionChanged = true;
     }
 
-    if (hasLightmaps != (lightingIt != shaderDefinition.GetProperties().End() && lightingIt->cachedHashCode == s_propLightingLightmapped.GetHashCode()))
+    if (hasSkinning != shaderDefinition.GetProperties().Has(PropNames::s_nameSkinning))
     {
-        shaderDefinition.GetProperties().Set(s_propLightingLightmapped, hasLightmaps);
+        shaderDefinition.GetProperties().Set(PropNames::s_nameSkinning, hasSkinning);
         shaderDefinitionChanged = true;
     }
 
-    if (hasAlphaDiscard != shaderDefinition.GetProperties().Has(s_nameAlphaDiscard))
+    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_ALBEDO) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasAlbedoMap))
     {
-        shaderDefinition.GetProperties().Set(s_nameAlphaDiscard, hasAlphaDiscard);
+        shaderDefinition.GetProperties().Set(PropNames::s_nameHasAlbedoMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_ALBEDO));
         shaderDefinitionChanged = true;
     }
 
-    if (hasSkinning != shaderDefinition.GetProperties().Has(s_nameSkinning))
+    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_NORMAL) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasNormalMap))
     {
-        shaderDefinition.GetProperties().Set(s_nameSkinning, hasSkinning);
+        shaderDefinition.GetProperties().Set(PropNames::s_nameHasNormalMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_NORMAL));
         shaderDefinitionChanged = true;
     }
 
-    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_ALBEDO) != shaderDefinition.GetProperties().Has(s_nameHasAlbedoMap))
+    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_MATERIAL) != shaderDefinition.GetProperties().Has(PropNames::s_nameHasMaterialMap))
     {
-        shaderDefinition.GetProperties().Set(s_nameHasAlbedoMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_ALBEDO));
-        shaderDefinitionChanged = true;
-    }
-
-    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_NORMAL) != shaderDefinition.GetProperties().Has(s_nameHasNormalMap))
-    {
-        shaderDefinition.GetProperties().Set(s_nameHasNormalMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_NORMAL));
-        shaderDefinitionChanged = true;
-    }
-
-    if (bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_MATERIAL) != shaderDefinition.GetProperties().Has(s_nameHasMaterialMap))
-    {
-        shaderDefinition.GetProperties().Set(s_nameHasMaterialMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_MATERIAL));
+        shaderDefinition.GetProperties().Set(PropNames::s_nameHasMaterialMap, bool(attributes.GetMaterialAttributes().staticTextureMask & MaterialAttributes::ST_MATERIAL));
         shaderDefinitionChanged = true;
     }
 
@@ -260,6 +265,8 @@ static void UpdateRenderableAttributesDynamic(const RenderProxyMesh* proxy, Rend
         attributes.SetShaderDefinition(shaderDefinition);
     }
 }
+
+} // namespace GeometryPass
 
 static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, DrawCallCollectionMapping& mapping, const RenderableAttributeSet& attributes)
 {
@@ -668,6 +675,7 @@ RenderCollector::~RenderCollector()
     parallelRenderingStateTail = nullptr;
 }
 
+#ifdef HYP_DEBUG_MODE
 SizeType RenderCollector::NumDrawCallsCollected() const
 {
     SizeType numDrawCalls = 0;
@@ -685,6 +693,7 @@ SizeType RenderCollector::NumDrawCallsCollected() const
 
     return numDrawCalls;
 }
+#endif
 
 void RenderCollector::Clear(bool freeMemory)
 {
@@ -1059,6 +1068,8 @@ uint32 RenderCollector::NumRenderGroups() const
     return count;
 }
 
+using RenderTempAllocator = AllocatorInstance<TArena<RenderAllocator>, &g_renderArena>;
+
 void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxyList)
 {
     HYP_SCOPE;
@@ -1104,11 +1115,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             RenderProxyMesh* meshProxy = prevMapping.meshProxies.Get(idx);
             AssertDebug(meshProxy != nullptr);
 
-            AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
-            AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
-
-            RenderableAttributeSet newAttributes = GetRenderableAttributesForProxy(*meshProxy, overrideAttributes);
-            UpdateRenderableAttributesDynamic(meshProxy, newAttributes);
+            RenderableAttributeSet newAttributes;
+            GeometryPass::BuildAttributes(*meshProxy, newAttributes, overrideAttributes);
 
             AssertDebug(newAttributes.GetMeshAttributes().vertexAttributes != 0);
 
@@ -1138,10 +1146,10 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         }
     }
 
-    Array<ObjId<Entity>> removed;
+    Array<ObjId<Entity>, RenderTempAllocator> removed;
     renderProxyList.GetMeshEntities().GetRemoved(removed, false /* includeChanged */);
 
-    Array<ObjId<Entity>> added;
+    Array<ObjId<Entity>, RenderTempAllocator> added;
     renderProxyList.GetMeshEntities().GetAdded(added, false /* includeChanged */);
 
     if (removed.Any())
@@ -1195,12 +1203,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);
             AssertDebug(meshProxy != nullptr);
 
-            AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr,
-                "Entity {} is missing a mesh or material on its MeshProxy! Mesh: {}, Material: {}",
-                id, (void*)meshProxy->mesh, (void*)meshProxy->material);
-
-            RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*meshProxy, overrideAttributes);
-            UpdateRenderableAttributesDynamic(meshProxy, attributes);
+            RenderableAttributeSet attributes;
+            GeometryPass::BuildAttributes(*meshProxy, attributes, overrideAttributes);
 
             // Add proxy to group
             DrawCallCollectionMapping& mapping = mappingsByBucket[attributes.GetMaterialAttributes().bucket][attributes];

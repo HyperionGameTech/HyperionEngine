@@ -186,7 +186,7 @@ public:
         uint32 textureIndex = 0;
 
         ShaderRef shader = g_shaderManager->GetOrCreate(
-            NAME("Forward"),
+            NAME("GeometryPass"),
             ShaderProperties(staticMeshVertexAttributes));
 
         attributes.shaderDefinition = shader->GetCompiledShader()->GetDefinition();

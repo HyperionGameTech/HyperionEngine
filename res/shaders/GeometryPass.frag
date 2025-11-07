@@ -80,7 +80,7 @@ HYP_DESCRIPTOR_SSBO(Global, LightmapVolumesBuffer) readonly buffer LightmapVolum
     LightmapVolume lightmap_volumes[];
 };
 
-#ifdef FORWARD_LIGHTING
+#ifdef LIGHTING_FORWARD
 #include "include/brdf.inc"
 #include "deferred/DeferredLighting.glsl"
 #include "include/shadows.inc"

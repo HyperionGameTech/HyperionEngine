@@ -122,7 +122,7 @@ struct HYP_API FBOMSequence : FBOMType
 struct HYP_API FBOMByteBuffer : FBOMType
 {
     FBOMByteBuffer();
-    FBOMByteBuffer(SizeType count);
+    explicit FBOMByteBuffer(SizeType count);
 };
 
 struct HYP_API FBOMVec2f : FBOMType
@@ -188,18 +188,24 @@ struct HYP_API FBOMQuat4f : FBOMType
 struct HYP_API FBOMString : FBOMType
 {
     FBOMString();
-    FBOMString(SizeType length);
+    explicit FBOMString(SizeType length);
+};
+
+struct HYP_API FBOMName : FBOMType
+{
+    FBOMName();
+    explicit FBOMName(SizeType length);
 };
 
 struct HYP_API FBOMBaseObjectType : FBOMType
 {
     FBOMBaseObjectType();
-    FBOMBaseObjectType(const FBOMType& extends);
+    explicit FBOMBaseObjectType(const FBOMType& extends);
 };
 
 struct FBOMObjectType : FBOMType
 {
-    FBOMObjectType(const ANSIStringView& name)
+    explicit FBOMObjectType(const ANSIStringView& name)
         : FBOMType(name, 0, /* no valid TypeId */ TypeId::Void(), FBOMTypeFlags::CONTAINER, FBOMBaseObjectType())
     {
     }
@@ -282,7 +288,7 @@ struct FBOMArrayType : FBOMType
     {
     }
 
-    FBOMArrayType(const FBOMType& extends)
+    explicit FBOMArrayType(const FBOMType& extends)
         : FBOMType("array", 0, /* no valid TypeId */ TypeId::Void(), FBOMTypeFlags::DEFAULT, extends)
     {
     }

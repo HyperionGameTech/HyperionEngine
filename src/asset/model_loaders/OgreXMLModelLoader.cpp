@@ -333,7 +333,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         MaterialAttributes materialAttributes {};
         materialAttributes.shaderDefinition = ShaderDefinition {
-            NAME("Forward"),
+            NAME("GeometryPass"),
             ShaderProperties(mesh->GetVertexAttributes())
         };
 

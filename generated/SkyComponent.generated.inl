@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region SkyComponent Reflection Data
 
-HYP_BEGIN_STRUCT(SkyComponent, 390, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Sky Component"),ClassAttribute("description", "Controls the rendering of a dynamic skydome."),ClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(SkyComponent, 404, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Sky Component"),ClassAttribute("description", "Controls the rendering of a dynamic skydome."),ClassAttribute("editor", true))
     Field(NAME(HYP_STR(Subsystem)), &SkyComponent::subsystem, offsetof(SkyComponent, subsystem), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } })
 HYP_END_STRUCT
 

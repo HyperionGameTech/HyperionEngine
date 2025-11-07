@@ -314,14 +314,14 @@ public:
         FBOM_ASSERT(IsString(), "Type mismatch (expected String)");
 
         const SizeType totalSize = TotalSize();
-        char* ch = new char[totalSize + 1];
 
-        ReadBytes(totalSize, ch);
-        ch[totalSize] = '\0';
+        Array<char, InlineAllocator<256>> tempBuffer;
+        tempBuffer.ResizeUninitialized(totalSize + 1);
 
-        str = ch;
+        ReadBytes(totalSize, tempBuffer.Data());
+        tempBuffer[totalSize] = '\0';
 
-        delete[] ch;
+        str = tempBuffer.Data();
 
         FBOM_RETURN_OK;
     }
@@ -459,20 +459,34 @@ public:
 #pragma region Name
     HYP_FORCE_INLINE bool IsName() const
     {
-        return IsStruct<Name>();
+        return m_type.IsOrExtends(FBOMName());
     }
 
     HYP_FORCE_INLINE FBOMResult ReadName(Name* out) const
     {
-        return ReadStruct<Name>(out);
+        FBOM_ASSERT(IsName(), "Type mismatch (expected String)");
+
+        HYP_CORE_ASSERT(out != nullptr);
+
+        const SizeType totalSize = TotalSize();
+
+        Array<char, InlineAllocator<256>> tempBuffer;
+        tempBuffer.ResizeUninitialized(totalSize + 1);
+
+        ReadBytes(totalSize, tempBuffer.Data());
+        tempBuffer[totalSize] = '\0';
+
+        *out = CreateNameFromDynamicString(tempBuffer.Data());
+
+        FBOM_RETURN_OK;
     }
 
     HYP_FORCE_INLINE static FBOMData FromName(Name name)
     {
-        FBOMData data(FBOMStruct::Create<Name>());
-        data.SetBytes(sizeof(Name), &name);
+        const char* str = name.LookupString();
+        const SizeType len = str ? Memory::StrLen(str) : 0;
 
-        return data;
+        return FBOMData(FBOMName(), ByteBuffer(len, str));
     }
 
 #pragma endregion Name

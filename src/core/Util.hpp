@@ -487,4 +487,83 @@ struct FirstOf
     using Type = T;
 };
 
+#pragma region StaticForEach
+
+// Helper for static foreach over tuple types - no instance version
+template <class FunctionType, class... Types, SizeType... Indices>
+constexpr void StaticForEach_TypesOnly_Impl(FunctionType&& function, hyperion::utilities::TupleIndices<Indices...>)
+{
+    (function(TypeWrapper<Types> {}), ...);
+}
+
+// Helper for static foreach over tuple types - with instance version
+template <class FunctionType, class... Types, SizeType... Indices>
+constexpr void StaticForEach_WithInstance_Impl(FunctionType&& function, Tuple<Types...>& tuple, hyperion::utilities::TupleIndices<Indices...>)
+{
+    (function(TypeWrapper<Types> {}, tuple.template GetElement<Indices>()), ...);
+}
+
+template <class FunctionType, class... Types, SizeType... Indices>
+constexpr void StaticForEach_WithInstance_Impl(FunctionType&& function, const Tuple<Types...>& tuple, hyperion::utilities::TupleIndices<Indices...>)
+{
+    (function(TypeWrapper<Types> {}, tuple.template GetElement<Indices>()), ...);
+}
+
+// Helper struct to enable specialization for tuple types
+template <class TupleType>
+struct StaticForEach_Helper;
+
+// Empty tuple specialization - does nothing (prevents empty fold errors)
+template <>
+struct StaticForEach_Helper<Tuple<>>
+{
+    template <class FunctionType>
+    static constexpr void Call(FunctionType&&)
+    { /* no-op */
+    }
+};
+
+template <class... Types>
+struct StaticForEach_Helper<Tuple<Types...>>
+{
+    template <class FunctionType>
+    static constexpr void Call(FunctionType&& function)
+    {
+        StaticForEach_TypesOnly_Impl<FunctionType, Types...>(
+            std::forward<FunctionType>(function),
+            typename hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type {});
+    }
+};
+
+// Static foreach over tuple types without an instance
+// Calls function with TypeWrapper<T> for each type in the tuple
+// Usage: StaticForEach<Tuple<int, float, double>>(function)
+template <class TupleType, class FunctionType>
+constexpr void StaticForEach(FunctionType&& function)
+{
+    StaticForEach_Helper<TupleType>::Call(std::forward<FunctionType>(function));
+}
+
+// Static foreach over tuple types with an instance
+// Calls function with TypeWrapper<T> and the element at index N for each type in the tuple
+template <class FunctionType, class... Types>
+constexpr void StaticForEach(FunctionType&& function, Tuple<Types...>& tuple)
+{
+    return StaticForEach_WithInstance_Impl(
+        std::forward<FunctionType>(function),
+        tuple,
+        typename hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type {});
+}
+
+template <class FunctionType, class... Types>
+constexpr void StaticForEach(FunctionType&& function, const Tuple<Types...>& tuple)
+{
+    return StaticForEach_WithInstance_Impl(
+        std::forward<FunctionType>(function),
+        tuple,
+        typename hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type {});
+}
+
+#pragma endregion StaticForEach
+
 } // namespace hyperion

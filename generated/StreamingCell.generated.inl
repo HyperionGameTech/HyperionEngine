@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region StreamingCellNeighbor Reflection Data
 
-HYP_BEGIN_STRUCT(StreamingCellNeighbor, 403, 0, {})
+HYP_BEGIN_STRUCT(StreamingCellNeighbor, 275, 0, {})
     Field(NAME(HYP_STR(Coord)), &StreamingCellNeighbor::coord, offsetof(StreamingCellNeighbor, coord), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("property", "Coord") } })
 HYP_END_STRUCT
 
@@ -18,7 +18,7 @@ namespace hyperion {
 
 #pragma region StreamingCellInfo Reflection Data
 
-HYP_BEGIN_STRUCT(StreamingCellInfo, 404, 0, {}, ClassAttribute("size", 80))
+HYP_BEGIN_STRUCT(StreamingCellInfo, 276, 0, {}, ClassAttribute("size", 80))
     Field(NAME(HYP_STR(Coord)), &StreamingCellInfo::coord, offsetof(StreamingCellInfo, coord), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("property", "Coord") } }),
     Field(NAME(HYP_STR(Extent)), &StreamingCellInfo::extent, offsetof(StreamingCellInfo, extent), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("property", "Extent") } }),
     Field(NAME(HYP_STR(Scale)), &StreamingCellInfo::scale, offsetof(StreamingCellInfo, scale), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("property", "Scale") } }),
@@ -39,7 +39,7 @@ namespace hyperion {
 
 #pragma region StreamingCell Reflection Data
 
-HYP_BEGIN_CLASS(StreamingCell, 180, 1, NAME("StreamableBase"))
+HYP_BEGIN_CLASS(StreamingCell, 65, 1, NAME("StreamableBase"))
     Method(NAME(HYP_STR(GetPatchInfo)), &StreamingCell::GetPatchInfo),
     Method(NAME(HYP_STR(Update)), &StreamingCell::Update, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(GetBoundingBox_Impl)), &StreamingCell::GetBoundingBox_Impl),
@@ -73,7 +73,7 @@ namespace hyperion {
 
 #pragma region StreamingCellState Reflection Data
 
-HYP_BEGIN_ENUM(StreamingCellState, 405, 0, {})
+HYP_BEGIN_ENUM(StreamingCellState, 277, 0, {})
     StaticField(NAME(HYP_STR(INVALID)), StreamingCellState::INVALID),
     StaticField(NAME(HYP_STR(UNLOADED)), StreamingCellState::UNLOADED),
     StaticField(NAME(HYP_STR(UNLOADING)), StreamingCellState::UNLOADING),

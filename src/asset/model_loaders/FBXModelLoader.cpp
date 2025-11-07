@@ -1511,16 +1511,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 MaterialAttributes materialAttributes {};
                 materialAttributes.shaderDefinition = ShaderDefinition {
-                    NAME("Forward"),
+                    NAME("GeometryPass"),
                     ShaderProperties(mesh->GetVertexAttributes())
                 };
 
                 Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(
                     CreateNameFromDynamicString(fbxNode.name),
-                    { .shaderDefinition = ShaderDefinition {
-                          NAME("Forward"),
-                          ShaderProperties(mesh->GetVertexAttributes()) },
-                        .bucket = RB_OPAQUE },
+                    { ShaderDefinition { NAME("GeometryPass"), ShaderProperties(mesh->GetVertexAttributes()) }, RB_OPAQUE },
                     { { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { MATERIAL_KEY_ROUGHNESS, 0.65f }, { MATERIAL_KEY_METALNESS, 0.0f } });
 
                 Scene* scene = GetDetachedSceneForCurrentThread();

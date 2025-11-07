@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Texture Reflection Data
 
-HYP_BEGIN_CLASS(Texture, 23, 0, NAME("AssetObject"))
+HYP_BEGIN_CLASS(Texture, 51, 0, NAME("AssetObject"))
     Method(NAME(HYP_STR(Rename)), &Texture::Rename),
     Method(NAME(HYP_STR(GetAssetReference)), &Texture::GetAssetReference, Span<const ClassAttribute> { {ClassAttribute("property", "AssetReference") } }),
     Method(NAME(HYP_STR(SetAssetReference)), &Texture::SetAssetReference, Span<const ClassAttribute> { {ClassAttribute("property", "AssetReference") } }),

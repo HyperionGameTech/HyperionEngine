@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AttachmentBase Reflection Data
 
-HYP_BEGIN_CLASS(AttachmentBase, 80, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(AttachmentBase, 97, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion AttachmentBase Reflection Data

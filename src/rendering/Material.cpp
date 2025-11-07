@@ -25,7 +25,7 @@
 namespace hyperion {
 
 static const ShaderDefinition s_defaultShaderDefinition {
-    NAME("Forward"),
+    NAME("GeometryPass"),
     ShaderProperties(staticMeshVertexAttributes)
 };
 

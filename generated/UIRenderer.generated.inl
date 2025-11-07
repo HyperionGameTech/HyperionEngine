@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region UIPassData Reflection Data
 
-HYP_BEGIN_CLASS(UIPassData, 95, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(UIPassData, 91, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion UIPassData Reflection Data

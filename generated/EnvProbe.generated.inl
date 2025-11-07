@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EnvProbeType Reflection Data
 
-HYP_BEGIN_ENUM(EnvProbeType, 356, 0, {})
+HYP_BEGIN_ENUM(EnvProbeType, 367, 0, {})
     StaticField(NAME(HYP_STR(EPT_INVALID)), EnvProbeType::EPT_INVALID),
     StaticField(NAME(HYP_STR(EPT_SKY)), EnvProbeType::EPT_SKY),
     StaticField(NAME(HYP_STR(EPT_REFLECTION)), EnvProbeType::EPT_REFLECTION),
@@ -25,7 +25,7 @@ namespace hyperion {
 
 #pragma region EnvProbe Reflection Data
 
-HYP_BEGIN_CLASS(EnvProbe, 135, 2, NAME("Entity"))
+HYP_BEGIN_CLASS(EnvProbe, 167, 2, NAME("Entity"))
     Method(NAME(HYP_STR(GetEnvProbeType)), &EnvProbe::GetEnvProbeType),
     Method(NAME(HYP_STR(IsReflectionProbe)), &EnvProbe::IsReflectionProbe),
     Method(NAME(HYP_STR(IsSkyProbe)), &EnvProbe::IsSkyProbe),
@@ -55,7 +55,7 @@ namespace hyperion {
 
 #pragma region ReflectionProbe Reflection Data
 
-HYP_BEGIN_CLASS(ReflectionProbe, 136, 0, NAME("EnvProbe"))
+HYP_BEGIN_CLASS(ReflectionProbe, 168, 0, NAME("EnvProbe"))
 HYP_END_CLASS
 
 #pragma endregion ReflectionProbe Reflection Data
@@ -70,7 +70,7 @@ namespace hyperion {
 
 #pragma region SkyProbe Reflection Data
 
-HYP_BEGIN_CLASS(SkyProbe, 137, 0, NAME("EnvProbe"))
+HYP_BEGIN_CLASS(SkyProbe, 169, 0, NAME("EnvProbe"))
     Method(NAME(HYP_STR(GetSkyboxCubemap)), &SkyProbe::GetSkyboxCubemap)
 HYP_END_CLASS
 
@@ -84,7 +84,7 @@ namespace hyperion {
 
 #pragma region EnvProbeSphericalHarmonics Reflection Data
 
-HYP_BEGIN_STRUCT(EnvProbeSphericalHarmonics, 357, 0, {}, ClassAttribute("serialize", "bitwise"))
+HYP_BEGIN_STRUCT(EnvProbeSphericalHarmonics, 368, 0, {}, ClassAttribute("serialize", "bitwise"))
 HYP_END_STRUCT
 
 #pragma endregion EnvProbeSphericalHarmonics Reflection Data

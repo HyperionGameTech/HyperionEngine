@@ -72,7 +72,7 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
 HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
-#ifdef FORWARD_LIGHTING
+#ifdef LIGHTING_FORWARD
 #include "include/brdf.inc"
 #include "deferred/DeferredLighting.glsl"
 #include "include/shadows.inc"
