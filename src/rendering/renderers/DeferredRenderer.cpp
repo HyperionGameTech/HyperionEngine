@@ -64,8 +64,6 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 
-#include <Deferred.generated.inl>
-
 #include <DeferredRenderer.generated.inl>
 
 namespace hyperion {
@@ -100,14 +98,14 @@ static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties 
     ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT")) } }
 };
 
-static const FixedArray<Name, GTN_MAX> s_gbufferTextureNames {
-    NAME("GBufferAlbedoTexture"),
-    NAME("GBufferNormalsTexture"),
-    NAME("GBufferMaterialTexture"),
-    NAME("GBufferLightmapTexture"),
-    NAME("GBufferVelocityTexture"),
-    NAME("GBufferWSNormalsTexture"),
-    NAME("GBufferTranslucentTexture")
+static constexpr StringHash GBufferTextureNames[] = {
+    StringHash("GBufferAlbedoTexture"),
+    StringHash("GBufferNormalsTexture"),
+    StringHash("GBufferMaterialTexture"),
+    StringHash("GBufferLightmapTexture"),
+    StringHash("GBufferVelocityTexture"),
+    StringHash("GBufferWSNormalsTexture"),
+    StringHash("GBufferTranslucentTexture")
 };
 
 static EngineStatTimer s_deferredPassTimer("Rendering/Deferred/DeferredPass");
@@ -197,7 +195,7 @@ static void GetDeferredShaderProperties(
 static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
     TypeId::ForType<SkyProbe>(),        // EPT_SKY
     TypeId::ForType<ReflectionProbe>(), // EPT_REFLECTION
-    TypeId::ForType<EnvProbe>(),        // EPT_SHADOW (fixme when derived class)
+    TypeId::ForType<EnvProbe>(),        // EPT_SHADOW (@TODO: Remove)
     TypeId::ForType<EnvProbe>()         // EPT_AMBIENT (fixme when derived class)
 };
 
@@ -265,7 +263,7 @@ void DeferredPass::Create()
                 TFM_LINEAR,
                 TWM_CLAMP_TO_EDGE },
             TextureData { std::move(ltcMatrixData) });
-        m_ltcMatrixTexture->SetName(NAME("LtcMatrixLut"));
+        m_ltcMatrixTexture->SetName(NAME("LTC_Matrix"));
         InitObject(m_ltcMatrixTexture);
 
         ByteBuffer ltcBrdfData(sizeof(s_ltcBrdf), s_ltcBrdf);
@@ -280,7 +278,7 @@ void DeferredPass::Create()
                 TWM_CLAMP_TO_EDGE },
             TextureData { std::move(ltcBrdfData) });
 
-        m_ltcMatrixTexture->SetName(NAME("LtcBrdfLut"));
+        m_ltcBrdfTexture->SetName(NAME("LTC_BRDF"));
         InitObject(m_ltcBrdfTexture);
     }
 }
@@ -1506,7 +1504,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
         {
             for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
             {
-                descriptorSet->SetElement(s_gbufferTextureNames[attachmentIndex], opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
+                descriptorSet->SetElement(GBufferTextureNames[attachmentIndex], opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
             }
 
             // add translucent bucket's albedo

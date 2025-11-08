@@ -387,8 +387,21 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 {
     proxy->lightmapVolume = WeakHandleFromThis();
 
-    proxy->atlasIrradianceTextures = Map(m_irradianceAtlasTextures, &Handle<Texture>::Get);
-    proxy->atlasRadianceTextures = Map(m_radianceAtlasTextures, &Handle<Texture>::Get);
+    proxy->atlasRadianceTextures.Clear();
+    proxy->atlasIrradianceTextures.Resize(m_irradianceAtlasTextures.Size());
+    
+    for (uint32 i = 0; i < uint32(m_irradianceAtlasTextures.Size()); i++)
+    {
+        proxy->atlasIrradianceTextures[i] = m_irradianceAtlasTextures[i].Get();
+    }
+
+    proxy->atlasRadianceTextures.Clear();
+    proxy->atlasRadianceTextures.Resize(m_radianceAtlasTextures.Size());
+
+    for (uint32 i = 0; i < uint32(m_radianceAtlasTextures.Size()); i++)
+    {
+        proxy->atlasRadianceTextures[i] = m_radianceAtlasTextures[i].Get();
+    }
 
     proxy->numAtlases = uint32(m_atlases.Size());
 

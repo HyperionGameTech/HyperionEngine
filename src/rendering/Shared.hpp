@@ -875,13 +875,13 @@ struct StencilFunction
     HYP_STRUCT_BODY(StencilFunction);
 
     HYP_FIELD(Serialize)
-    StencilOp passOp = SO_KEEP;
+    StencilOp passOp = SO_REPLACE;
 
     HYP_FIELD(Serialize)
-    StencilOp failOp = SO_REPLACE;
+    StencilOp failOp = SO_KEEP;
 
     HYP_FIELD(Serialize)
-    StencilOp depthFailOp = SO_REPLACE;
+    StencilOp depthFailOp = SO_KEEP;
 
     HYP_FIELD(Serialize)
     StencilCompareOp compareOp = SCO_ALWAYS;
