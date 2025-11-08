@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region GraphicsPipelineBase Reflection Data
 
-HYP_BEGIN_CLASS(GraphicsPipelineBase, 112, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(GraphicsPipelineBase, 111, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion GraphicsPipelineBase Reflection Data

@@ -30,7 +30,7 @@ namespace hyperion {
 
 #pragma region MeshFlags Reflection Data
 
-HYP_BEGIN_ENUM(MeshFlags, 283, 0, {})
+HYP_BEGIN_ENUM(MeshFlags, 282, 0, {})
     StaticField(NAME(HYP_STR(MF_NONE)), MeshFlags::MF_NONE),
     StaticField(NAME(HYP_STR(MF_VIEW_INDEPENDENT)), MeshFlags::MF_VIEW_INDEPENDENT)
 HYP_END_ENUM

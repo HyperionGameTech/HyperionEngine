@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VulkanGpuImage Reflection Data
 
-HYP_BEGIN_CLASS(VulkanGpuImage, 109, 0, NAME("GpuImageBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(VulkanGpuImage, 108, 0, NAME("GpuImageBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion VulkanGpuImage Reflection Data

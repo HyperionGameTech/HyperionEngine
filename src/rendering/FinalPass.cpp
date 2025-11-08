@@ -186,12 +186,12 @@ void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
     frame->renderQueue << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
 
     // ordered by priority of the view
-    for (const Pair<View*, DeferredPassData*>& it : dr->GetLastFrameData().passData)
+    for (const Pair<View*, DeferredRendererPassData*>& it : dr->GetLastFrameData().passData)
     {
         View* view = it.first;
         AssertDebug(view != nullptr);
 
-        DeferredPassData* pd = it.second;
+        DeferredRendererPassData* pd = it.second;
         AssertDebug(pd != nullptr);
 
         AssertDebug(pd->finalPassDescriptorSet);

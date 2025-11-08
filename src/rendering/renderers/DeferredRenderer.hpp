@@ -166,16 +166,45 @@ class LightmapPass final : public FullScreenPass
     HYP_OBJECT_BODY(LightmapPass);
 
 public:
-    LightmapPass(const FramebufferRef& framebuffer, Vec2u extent, GBuffer* gbuffer);
+    LightmapPass();
     LightmapPass(const LightmapPass& other) = delete;
     LightmapPass& operator=(const LightmapPass& other) = delete;
     virtual ~LightmapPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
 protected:
-    virtual void CreatePipeline() override;
+    struct LightmapVolumePassData
+    {
+        class LightmapVolume* lightmapVolume = nullptr;
+        Array<Texture*> atlasIrradianceTextures;
+        Array<Texture*> atlasRadianceTextures;
+        DescriptorSetRef descriptorSet;
+    };
+
+    void CreatePipeline() override;
+
+    virtual void Render_Internal(FrameBase* frame, const RenderSetup& renderSetup, GraphicsPipelineBase* graphicsPipeline) override;
+
+    LightmapVolumePassData& GetLightmapVolumePassData(LightmapVolume* lightmapVolume)
+    {
+        auto it = m_lightmapVolumePassData.FindIf([lightmapVolume](auto& item)
+            {
+                return item.lightmapVolume == lightmapVolume;
+            });
+
+        if (it != m_lightmapVolumePassData.End())
+        {
+            return *it;
+        }
+
+        it = &m_lightmapVolumePassData.EmplaceBack();
+        it->lightmapVolume = lightmapVolume;
+
+        return *it;
+    }
+
+    Array<LightmapVolumePassData, RenderAllocator> m_lightmapVolumePassData;
 
 private:
     virtual bool UsesTemporalBlending() const override

@@ -25,6 +25,14 @@ class GBuffer;
 struct RenderSetup;
 enum class RenderPassStage : uint8;
 
+enum FullScreenPassFlags : uint32
+{
+    FSP_NONE = 0x0,
+    FSP_EXTERNAL_FRAMEBUFFER = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(FullScreenPassFlags);
+
 HYP_CLASS(NoScriptBindings)
 class HYP_API FullScreenPass : public ObjectBase
 {
@@ -33,27 +41,33 @@ class HYP_API FullScreenPass : public ObjectBase
 public:
     friend struct RecreateFullScreenPassFramebuffer;
 
+    FullScreenPass(EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
+
     FullScreenPass(
         TextureFormat imageFormat,
-        GBuffer* gbuffer);
+        GBuffer* gbuffer,
+        EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(
         TextureFormat imageFormat,
         Vec2u extent,
-        GBuffer* gbuffer);
+        GBuffer* gbuffer,
+        EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(
         const ShaderRef& shader,
         TextureFormat imageFormat,
         Vec2u extent,
-        GBuffer* gbuffer);
+        GBuffer* gbuffer,
+        EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(
         const ShaderRef& shader,
         const DescriptorTableRef& descriptorTable,
         TextureFormat imageFormat,
         Vec2u extent,
-        GBuffer* gbuffer);
+        GBuffer* gbuffer,
+        EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(
         const ShaderRef& shader,
@@ -61,7 +75,8 @@ public:
         const FramebufferRef& framebuffer,
         TextureFormat imageFormat,
         Vec2u extent,
-        GBuffer* gbuffer);
+        GBuffer* gbuffer,
+        EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(const FullScreenPass&) = delete;
     FullScreenPass& operator=(const FullScreenPass&) = delete;
@@ -163,6 +178,10 @@ protected:
 
     virtual void Resize_Internal(Vec2u newSize);
 
+    virtual void Render_Internal(FrameBase* frame, const RenderSetup& renderSetup, GraphicsPipelineBase* graphicsPipeline)
+    {
+    }
+
     void CreateQuad();
 
     void RenderPreviousTextureToScreen(FrameBase* frame, const RenderSetup& renderSetup);
@@ -175,6 +194,8 @@ protected:
     Handle<Mesh> m_fullScreenQuad;
     Vec2u m_extent;
     GBuffer* m_gbuffer;
+
+    EnumFlags<FullScreenPassFlags> m_flags;
 
     PushConstantData m_pushConstantData;
 

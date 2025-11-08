@@ -29,7 +29,7 @@ namespace hyperion {
 
 #pragma region EditorActionStackState Reflection Data
 
-HYP_BEGIN_ENUM(EditorActionStackState, 257, 0, {})
+HYP_BEGIN_ENUM(EditorActionStackState, 256, 0, {})
     StaticField(NAME(HYP_STR(NONE)), EditorActionStackState::NONE),
     StaticField(NAME(HYP_STR(CAN_UNDO)), EditorActionStackState::CAN_UNDO),
     StaticField(NAME(HYP_STR(CAN_REDO)), EditorActionStackState::CAN_REDO)

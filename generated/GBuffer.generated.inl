@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region GBufferTargetName Reflection Data
 
-HYP_BEGIN_ENUM(GBufferTargetName, 274, 0, {})
+HYP_BEGIN_ENUM(GBufferTargetName, 273, 0, {})
     StaticField(NAME(HYP_STR(GTN_ALBEDO)), GBufferTargetName::GTN_ALBEDO),
     StaticField(NAME(HYP_STR(GTN_NORMALS)), GBufferTargetName::GTN_NORMALS),
     StaticField(NAME(HYP_STR(GTN_MATERIAL)), GBufferTargetName::GTN_MATERIAL),

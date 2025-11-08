@@ -8,7 +8,7 @@ namespace hyperion {
 
 #pragma region ObjectBase Reflection Data
 
-HYP_BEGIN_CLASS(ObjectBase, 0, 215, {})
+HYP_BEGIN_CLASS(ObjectBase, 0, 214, {})
 HYP_END_CLASS
 
 #pragma endregion ObjectBase Reflection Data

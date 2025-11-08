@@ -42,7 +42,7 @@ namespace hyperion {
 
 #pragma region SceneFlags Reflection Data
 
-HYP_BEGIN_ENUM(SceneFlags, 361, 0, {})
+HYP_BEGIN_ENUM(SceneFlags, 360, 0, {})
     StaticField(NAME(HYP_STR(NONE)), SceneFlags::NONE),
     StaticField(NAME(HYP_STR(FOREGROUND)), SceneFlags::FOREGROUND),
     StaticField(NAME(HYP_STR(DETACHED)), SceneFlags::DETACHED),

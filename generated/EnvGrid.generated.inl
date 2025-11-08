@@ -7,7 +7,7 @@ namespace hyperion {
 
 #pragma region EnvGrid Reflection Data
 
-HYP_BEGIN_CLASS(EnvGrid, 134, 1, NAME("Entity"))
+HYP_BEGIN_CLASS(EnvGrid, 133, 1, NAME("Entity"))
     Method(NAME(HYP_STR(GetAABB)), &EnvGrid::GetAABB),
     Field(NAME(HYP_STR(Aabb)), &EnvGrid::m_aabb, offsetof(EnvGrid, m_aabb), Span<const ClassAttribute> { {ClassAttribute("property", "AABB") } })
 HYP_END_CLASS
@@ -24,7 +24,7 @@ namespace hyperion {
 
 #pragma region LegacyEnvGrid Reflection Data
 
-HYP_BEGIN_CLASS(LegacyEnvGrid, 135, 0, NAME("EnvGrid"))
+HYP_BEGIN_CLASS(LegacyEnvGrid, 134, 0, NAME("EnvGrid"))
     Method(NAME(HYP_STR(SetAABB)), &LegacyEnvGrid::SetAABB),
     Method(NAME(HYP_STR(GetView)), &LegacyEnvGrid::GetView),
     Method(NAME(HYP_STR(GetCamera)), &LegacyEnvGrid::GetCamera),

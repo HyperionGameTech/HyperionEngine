@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AssetChangeType Reflection Data
 
-HYP_BEGIN_ENUM(AssetChangeType, 222, 0, {})
+HYP_BEGIN_ENUM(AssetChangeType, 221, 0, {})
     StaticField(NAME(HYP_STR(CHANGED)), AssetChangeType::CHANGED),
     StaticField(NAME(HYP_STR(CREATED)), AssetChangeType::CREATED),
     StaticField(NAME(HYP_STR(DELETED)), AssetChangeType::DELETED),
@@ -22,7 +22,7 @@ namespace hyperion {
 
 #pragma region AssetLoaderDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(AssetLoaderDefinition, 223, 0, {})
+HYP_BEGIN_STRUCT(AssetLoaderDefinition, 222, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion AssetLoaderDefinition Reflection Data

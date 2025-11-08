@@ -47,7 +47,7 @@ namespace hyperion {
 
 #pragma region AssetObjectFlags Reflection Data
 
-HYP_BEGIN_ENUM(AssetObjectFlags, 218, 0, {})
+HYP_BEGIN_ENUM(AssetObjectFlags, 217, 0, {})
     StaticField(NAME(HYP_STR(AOF_NONE)), AssetObjectFlags::AOF_NONE),
     StaticField(NAME(HYP_STR(AOF_PERSISTENT)), AssetObjectFlags::AOF_PERSISTENT),
     StaticField(NAME(HYP_STR(AOF_TRANSIENT)), AssetObjectFlags::AOF_TRANSIENT),

@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region ReflectionProbeComponent Reflection Data
 
-HYP_BEGIN_STRUCT(ReflectionProbeComponent, 381, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 24),ClassAttribute("label", "Reflection Probe Component"),ClassAttribute("description", "Handles cubemap reflection calculations for a single EnvProbe source"),ClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(ReflectionProbeComponent, 380, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 24),ClassAttribute("label", "Reflection Probe Component"),ClassAttribute("description", "Handles cubemap reflection calculations for a single EnvProbe source"),ClassAttribute("editor", true))
     Field(NAME(HYP_STR(Dimensions)), &ReflectionProbeComponent::dimensions, offsetof(ReflectionProbeComponent, dimensions), Span<const ClassAttribute> { {ClassAttribute("property", "Dimensions"), ClassAttribute("editor", true), ClassAttribute("label", "Dimensions") } }),
     Field(NAME(HYP_STR(EnvProbe)), &ReflectionProbeComponent::envProbe, offsetof(ReflectionProbeComponent, envProbe), Span<const ClassAttribute> { {ClassAttribute("property", "EnvProbe"), ClassAttribute("editor", true), ClassAttribute("label", "EnvProbe") } }),
     Field(NAME(HYP_STR(ReflectionProbeRenderer)), &ReflectionProbeComponent::reflectionProbeRenderer, offsetof(ReflectionProbeComponent, reflectionProbeRenderer), Span<const ClassAttribute> { {ClassAttribute("property", "ReflectionProbeRenderer"), ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true), ClassAttribute("editor", false) } })

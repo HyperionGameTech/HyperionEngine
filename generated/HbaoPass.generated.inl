@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region HBAOConfig Reflection Data
 
-HYP_BEGIN_STRUCT(HBAOConfig, 275, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.HBAO"))
+HYP_BEGIN_STRUCT(HBAOConfig, 274, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.HBAO"))
     Field(NAME(HYP_STR(Radius)), &HBAOConfig::radius, offsetof(HBAOConfig, radius)),
     Field(NAME(HYP_STR(Power)), &HBAOConfig::power, offsetof(HBAOConfig, power)),
     Field(NAME(HYP_STR(UseTemporalBlending)), &HBAOConfig::useTemporalBlending, offsetof(HBAOConfig, useTemporalBlending))

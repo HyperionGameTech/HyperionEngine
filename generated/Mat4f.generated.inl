@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Mat4f Reflection Data
 
-HYP_BEGIN_STRUCT(Mat4f, 244, 0, {}, ClassAttribute("size", 64))
+HYP_BEGIN_STRUCT(Mat4f, 243, 0, {}, ClassAttribute("size", 64))
 HYP_END_STRUCT
 
 #pragma endregion Mat4f Reflection Data

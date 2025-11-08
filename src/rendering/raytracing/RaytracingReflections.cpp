@@ -183,7 +183,7 @@ void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSe
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
-    DeferredPassData* parentPass = pd->parentPass;
+    DeferredRendererPassData* parentPass = pd->parentPass;
     AssertDebug(parentPass != nullptr);
 
     UpdatePipelineState(frame, renderSetup);

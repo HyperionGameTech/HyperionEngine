@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region GpuBufferType Reflection Data
 
-HYP_BEGIN_ENUM(GpuBufferType, 298, 0, {})
+HYP_BEGIN_ENUM(GpuBufferType, 297, 0, {})
     StaticField(NAME(HYP_STR(NONE)), GpuBufferType::NONE),
     StaticField(NAME(HYP_STR(MESH_INDEX_BUFFER)), GpuBufferType::MESH_INDEX_BUFFER),
     StaticField(NAME(HYP_STR(MESH_VERTEX_BUFFER)), GpuBufferType::MESH_VERTEX_BUFFER),
@@ -32,7 +32,7 @@ namespace hyperion {
 
 #pragma region GpuBufferBase Reflection Data
 
-HYP_BEGIN_CLASS(GpuBufferBase, 106, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(GpuBufferBase, 105, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion GpuBufferBase Reflection Data

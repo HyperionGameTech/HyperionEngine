@@ -814,9 +814,4 @@ Span<View* const> World::GetViews() const
     return m_viewsPerFrame[RenderApi::GetRingIndex()].ToSpan();
 }
 
-RenderStats* World::GetRenderStats() const
-{
-    return nullptr; // deprecated
-}
-
 } // namespace hyperion

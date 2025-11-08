@@ -109,7 +109,7 @@ class HYP_API LightmapVolume final : public Entity
 
 public:
     // maximum number of atlases per LightmapVolume
-    static constexpr uint32 s_maxAtlases = 4;
+    static constexpr uint32 MaxAtlases = 4;
 
     LightmapVolume();
 
@@ -193,10 +193,10 @@ private:
     Uuid m_uuid;
 
     HYP_FIELD(Property = "RadianceAtlasTextures")
-    Array<Handle<Texture>, FixedAllocator<s_maxAtlases>> m_radianceAtlasTextures;
+    Array<Handle<Texture>, FixedAllocator<MaxAtlases>> m_radianceAtlasTextures;
 
     HYP_FIELD(Property = "IrradianceAtlasTextures")
-    Array<Handle<Texture>, FixedAllocator<s_maxAtlases>> m_irradianceAtlasTextures;
+    Array<Handle<Texture>, FixedAllocator<MaxAtlases>> m_irradianceAtlasTextures;
 
     HYP_FIELD(Property = "Atlases")
     Array<LightmapVolumeAtlas, DynamicAllocator> m_atlases;

@@ -39,6 +39,8 @@ class EnvProbe;
 class EnvGrid;
 class ShadowMap;
 
+enum LightmapTextureType : uint32;
+
 HYP_STRUCT()
 struct MeshRaytracingData
 {
@@ -238,6 +240,9 @@ class RenderProxyLightmapVolume final : public IRenderProxy
 {
 public:
     WeakHandle<LightmapVolume> lightmapVolume;
+    Array<Texture*> atlasIrradianceTextures;
+    Array<Texture*> atlasRadianceTextures;
+    uint32 numAtlases = 0;
     LightmapVolumeShaderData bufferData {};
 };
 

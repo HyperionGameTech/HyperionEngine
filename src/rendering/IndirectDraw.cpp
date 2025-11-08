@@ -475,7 +475,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
 
     AssertDebug(m_batchAllocator->GetStructSize() % 4 == 0);
 
-    DeferredPassData* pd = ObjCast<DeferredPassData>(renderSetup.passData);
+    DeferredRendererPassData* pd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     Assert(pd != nullptr);
 
     pushConstants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();

@@ -84,13 +84,18 @@ struct RecreateFullScreenPassFramebuffer : RenderCommand
 
 #pragma endregion Render commands
 
-FullScreenPass::FullScreenPass(TextureFormat imageFormat, GBuffer* gbuffer)
-    : FullScreenPass(nullptr, imageFormat, Vec2u::Zero(), gbuffer)
+FullScreenPass::FullScreenPass(EnumFlags<FullScreenPassFlags> flags)
+    : FullScreenPass(TF_NONE, nullptr, flags)
 {
 }
 
-FullScreenPass::FullScreenPass(TextureFormat imageFormat, Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(nullptr, imageFormat, extent, gbuffer)
+FullScreenPass::FullScreenPass(TextureFormat imageFormat, GBuffer* gbuffer, EnumFlags<FullScreenPassFlags> flags)
+    : FullScreenPass(nullptr, imageFormat, Vec2u::Zero(), gbuffer, flags)
+{
+}
+
+FullScreenPass::FullScreenPass(TextureFormat imageFormat, Vec2u extent, GBuffer* gbuffer, EnumFlags<FullScreenPassFlags> flags)
+    : FullScreenPass(nullptr, imageFormat, extent, gbuffer, flags)
 {
 }
 
@@ -99,14 +104,16 @@ FullScreenPass::FullScreenPass(
     const DescriptorTableRef& descriptorTable,
     TextureFormat imageFormat,
     Vec2u extent,
-    GBuffer* gbuffer)
+    GBuffer* gbuffer,
+    EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
         shader,
         descriptorTable,
         FramebufferRef::Null(),
         imageFormat,
         extent,
-        gbuffer)
+        gbuffer,
+        flags)
 {
 }
 
@@ -114,14 +121,16 @@ FullScreenPass::FullScreenPass(
     const ShaderRef& shader,
     TextureFormat imageFormat,
     Vec2u extent,
-    GBuffer* gbuffer)
+    GBuffer* gbuffer,
+    EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
         shader,
         DescriptorTableRef::Null(),
         FramebufferRef::Null(),
         imageFormat,
         extent,
-        gbuffer)
+        gbuffer,
+        flags)
 {
 }
 
@@ -131,12 +140,14 @@ FullScreenPass::FullScreenPass(
     const FramebufferRef& framebuffer,
     TextureFormat imageFormat,
     Vec2u extent,
-    GBuffer* gbuffer)
+    GBuffer* gbuffer,
+    EnumFlags<FullScreenPassFlags> flags)
     : m_shader(shader),
       m_framebuffer(framebuffer),
       m_imageFormat(imageFormat),
       m_extent(extent),
       m_gbuffer(gbuffer),
+      m_flags(flags),
       m_blendFunction(BlendFunction::None()),
       m_stage(RenderPassStage::SHADER),
       m_isInitialized(false),
@@ -210,17 +221,12 @@ void FullScreenPass::Create()
 
     Assert(!m_isInitialized);
 
-    Assert(
-        m_imageFormat != TF_NONE,
-        "Image format must be set before creating the full screen pass");
-
     CreateQuad();
     CreateFramebuffer();
     CreateMergeHalfResTexturesPass();
     CreateRenderTextureToScreenPass();
     CreateTemporalBlending();
     CreateDescriptors();
-    // CreatePipeline();
 
     m_isInitialized = true;
 }
@@ -330,6 +336,14 @@ void FullScreenPass::CreateQuad()
 void FullScreenPass::CreateFramebuffer()
 {
     HYP_SCOPE;
+
+    if (m_flags & FSP_EXTERNAL_FRAMEBUFFER)
+    {
+        // will use RenderToFramebuffer() with other framebuffer one instead
+        return;
+    }
+
+    AssertDebug(m_imageFormat != TF_NONE);
 
     if (m_framebuffer != nullptr)
     {
@@ -448,6 +462,8 @@ void FullScreenPass::CreateTemporalBlending()
 
 void FullScreenPass::CreatePreviousTexture()
 {
+    Assert(m_imageFormat != TF_NONE);
+
     // Create previous image
     m_previousTexture = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
@@ -635,6 +651,9 @@ void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     AssertDebug(renderSetup.IsValid());
 
+    AssertDebug(!(m_flags & FSP_EXTERNAL_FRAMEBUFFER), "Cannot use Render() with FSP_EXTERNAL_FRAMEBUFFER, use RenderToFramebuffer() instead");
+    AssertDebug(m_framebuffer != nullptr);
+
     const uint32 frameIndex = frame->GetFrameIndex();
 
     frame->renderQueue << BeginFramebuffer(m_framebuffer);
@@ -719,6 +738,8 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
             viewDescriptorSetIndex);
     }
 
+    Render_Internal(frame, renderSetup, graphicsPipeline);
+
     frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
     frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
     frame->renderQueue << DrawIndexed(6);
@@ -734,11 +755,20 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
 
+    AssertDebug(!(m_flags & FSP_EXTERNAL_FRAMEBUFFER), "Cannot use Begin()/End() with FSP_EXTERNAL_FRAMEBUFFER, use RenderToFramebuffer() instead");
+    AssertDebug(m_framebuffer != nullptr);
+
     const uint32 frameIndex = frame->GetFrameIndex();
 
     const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline();
 
     frame->renderQueue << BeginFramebuffer(m_framebuffer);
+
+    // render previous frame's result to screen
+    if (!m_isFirstFrame && m_renderTextureToScreenPass != nullptr)
+    {
+        RenderPreviousTextureToScreen(frame, renderSetup);
+    }
 
     if (ShouldRenderHalfRes())
     {
@@ -751,6 +781,8 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
     {
         frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, renderSetup.view->GetViewport());
     }
+
+    Render_Internal(frame, renderSetup, graphicsPipeline);
 }
 
 void FullScreenPass::End(FrameBase* frame, const RenderSetup& renderSetup)
@@ -761,13 +793,10 @@ void FullScreenPass::End(FrameBase* frame, const RenderSetup& renderSetup)
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
 
-    const uint32 frameIndex = frame->GetFrameIndex();
+    AssertDebug(!(m_flags & FSP_EXTERNAL_FRAMEBUFFER), "Cannot use Begin()/End() with FSP_EXTERNAL_FRAMEBUFFER, use RenderToFramebuffer() instead");
+    AssertDebug(m_framebuffer != nullptr);
 
-    // render previous frame's result to screen
-    if (!m_isFirstFrame && m_renderTextureToScreenPass != nullptr)
-    {
-        RenderPreviousTextureToScreen(frame, renderSetup);
-    }
+    const uint32 frameIndex = frame->GetFrameIndex();
 
     frame->renderQueue << EndFramebuffer(m_framebuffer);
 

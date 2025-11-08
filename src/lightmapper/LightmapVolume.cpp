@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <scene/lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -205,7 +205,7 @@ LightmapVolume::LightmapVolume(const BoundingBox& aabb)
 {
     m_entityAabb = aabb;
 
-    m_atlases.Reserve(s_maxAtlases);
+    m_atlases.Reserve(MaxAtlases);
     m_atlases.EmplaceBack(Vec2u(4096, 4096));
 
     m_radianceAtlasTextures.PushBack(Handle<Texture>::Null());
@@ -226,7 +226,7 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, b
 
     LinkedList<LightmapVolumeAtlas> tmpAtlas;
 
-    for (uint32 atlasIndex = 0; atlasIndex < s_maxAtlases; atlasIndex++)
+    for (uint32 atlasIndex = 0; atlasIndex < MaxAtlases; atlasIndex++)
     {
         LightmapVolumeAtlas* pAtlas = nullptr;
         bool isNewAtlas = false;
@@ -257,6 +257,8 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, b
 
                 m_atlases[atlasIndex] = std::move(*pAtlas);
             }
+
+            SetNeedsRenderProxyUpdate();
 
             return true;
         }
@@ -385,6 +387,11 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 {
     proxy->lightmapVolume = WeakHandleFromThis();
 
+    proxy->atlasIrradianceTextures = Map(m_irradianceAtlasTextures, &Handle<Texture>::Get);
+    proxy->atlasRadianceTextures = Map(m_radianceAtlasTextures, &Handle<Texture>::Get);
+
+    proxy->numAtlases = uint32(m_atlases.Size());
+
     proxy->bufferData.aabbMax = Vec4f(m_entityAabb.max, 1.0f);
     proxy->bufferData.aabbMin = Vec4f(m_entityAabb.min, 1.0f);
     proxy->bufferData.textureIndex = ~0u; // @TODO: Set the correct texture index based on the element
@@ -464,6 +471,8 @@ void LightmapVolume::UpdateAtlasTextures(
 
         InitObject(irradianceTexture);
     }
+
+    SetNeedsRenderProxyUpdate();
 
     Array<Handle<Texture>> atlasTextures;
     atlasTextures.Resize(uint32(LTT_MAX));

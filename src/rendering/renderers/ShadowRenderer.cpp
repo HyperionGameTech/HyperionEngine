@@ -33,13 +33,13 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-#pragma region ShadowPassData
+#pragma region ShadowRendererPassData
 
-ShadowPassData::~ShadowPassData()
+ShadowRendererPassData::~ShadowRendererPassData()
 {
 }
 
-#pragma endregion ShadowPassData
+#pragma endregion ShadowRendererPassData
 
 #pragma region ShadowRendererBase
 

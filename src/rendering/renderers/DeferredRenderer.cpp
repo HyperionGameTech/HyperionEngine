@@ -42,6 +42,8 @@
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
 
+#include <lightmapper/LightmapVolume.hpp>
+
 #include <core/config/Config.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -566,16 +568,18 @@ void TonemapPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma endregion TonemapPass
 
-#pragma region TonemapPass
+#pragma region LightmapPass
 
-LightmapPass::LightmapPass(const FramebufferRef& framebuffer, Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(
-        ShaderRef::Null(),
-        DescriptorTableRef::Null(),
-        framebuffer,
-        TF_RGBA8,
-        extent,
-        gbuffer)
+struct LightmapVolumeUniforms
+{
+    float irradianceWeights[4];
+    float radianceWeights[4];
+
+    uint32 numAtlases;
+};
+
+LightmapPass::LightmapPass()
+    : FullScreenPass(FSP_EXTERNAL_FRAMEBUFFER)
 {
 }
 
@@ -623,9 +627,102 @@ void LightmapPass::Resize_Internal(Vec2u newSize)
     FullScreenPass::Resize_Internal(newSize);
 }
 
-void LightmapPass::Render(FrameBase* frame, const RenderSetup& rs)
+void LightmapPass::Render_Internal(FrameBase* frame, const RenderSetup& renderSetup, GraphicsPipelineBase* graphicsPipeline)
 {
-    FullScreenPass::Render(frame, rs);
+    HYP_SCOPE;
+
+    constexpr StringHash IrradianceTextureNames[LightmapVolume::MaxAtlases] = {
+        StringHash("IrradianceTexture0"),
+        StringHash("IrradianceTexture1"),
+        StringHash("IrradianceTexture2"),
+        StringHash("IrradianceTexture3")
+    };
+
+    constexpr StringHash RadianceTextureNames[LightmapVolume::MaxAtlases] = {
+        StringHash("RadianceTexture0"),
+        StringHash("RadianceTexture1"),
+        StringHash("RadianceTexture2"),
+        StringHash("RadianceTexture3")
+    };
+
+    AssertDebug(renderSetup.lightmapVolume != nullptr);
+
+    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(renderSetup.lightmapVolume));
+    Assert(proxy != nullptr);
+
+    LightmapVolumePassData& data = GetLightmapVolumePassData(renderSetup.lightmapVolume);
+    /// @TODO: Add clean up of data after lightmap volume has been removed
+
+    if (!data.descriptorSet
+        || !proxy->atlasIrradianceTextures.CompareBitwise(data.atlasIrradianceTextures)
+        || !proxy->atlasRadianceTextures.CompareBitwise(data.atlasRadianceTextures))
+    {
+        AssertDebug(m_shader != nullptr);
+
+        DescriptorSetRef& descriptorSet = data.descriptorSet;
+
+        if (!descriptorSet)
+        {
+            const DescriptorTableDeclaration* descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+            Assert(descriptorTableDecl != nullptr);
+
+            DescriptorSetDeclaration* decl = descriptorTableDecl->FindDescriptorSetDeclaration("LightmapVolume");
+            Assert(decl != nullptr);
+
+            const DescriptorSetLayout layout { decl };
+
+            descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
+            descriptorSet->SetDebugName(NAME_FMT("LightmapPassDescriptorSet_{}", renderSetup.lightmapVolume->GetName()));
+
+            AssertDebug(descriptorSet != nullptr);
+        }
+
+        LightmapVolumeUniforms uniforms {};
+        static_assert(HYP_ARRAY_SIZE(LightmapVolumeUniforms::irradianceWeights) == LightmapVolume::MaxAtlases);
+        static_assert(HYP_ARRAY_SIZE(LightmapVolumeUniforms::radianceWeights) == LightmapVolume::MaxAtlases);
+
+        uniforms.numAtlases = proxy->numAtlases;
+
+        GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms));
+        Assert(uniformBuffer->Create());
+
+        for (uint32 atlasIndex = 0; atlasIndex < LightmapVolume::MaxAtlases; atlasIndex++)
+        {
+            Texture* irradianceTexture = atlasIndex < proxy->numAtlases ? proxy->atlasIrradianceTextures[atlasIndex] : nullptr;
+            Texture* radianceTexture = atlasIndex < proxy->numAtlases ? proxy->atlasRadianceTextures[atlasIndex] : nullptr;
+
+            uniforms.irradianceWeights[atlasIndex] = irradianceTexture ? 1.0f : 0.0f;
+            uniforms.radianceWeights[atlasIndex] = radianceTexture ? 1.0f : 0.0f;
+
+            descriptorSet->SetElement(IrradianceTextureNames[atlasIndex], g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
+            descriptorSet->SetElement(RadianceTextureNames[atlasIndex], g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
+        }
+
+        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
+
+        descriptorSet->SetElement("LightmapVolumeUniforms", uniformBuffer);
+
+        if (descriptorSet->IsCreated())
+        {
+            descriptorSet->Update(true);
+        }
+        else
+        {
+            Assert(descriptorSet->Create());
+        }
+
+        data.atlasIrradianceTextures = proxy->atlasIrradianceTextures;
+        data.atlasRadianceTextures = proxy->atlasRadianceTextures;
+    }
+
+    const uint32 descriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("LightmapVolume");
+    AssertDebug(descriptorSetIndex != ~0u);
+
+    frame->renderQueue << BindDescriptorSet(
+        data.descriptorSet,
+        graphicsPipeline,
+        {},
+        descriptorSetIndex);
 }
 
 #pragma endregion LightmapPass
@@ -2170,9 +2267,17 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             frame->renderQueue << DrawIndexed(passData.combinePass->GetQuadMesh()->NumIndices());
         }
 
-        // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
-        // Apply lightmaps over the now shaded opaque objects.
-        passData.lightmapPass->RenderToFramebuffer(frame, rs, translucentFbo);
+        for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
+        {
+            RenderSetup newRs = rs.Fork();
+            newRs.lightmapVolume = lightmapVolume;
+
+            // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
+            // Apply lightmaps over the now shaded opaque objects.
+
+            // @TODO: Use stencil buffer to separate by lightmap volume ID
+            passData.lightmapPass->RenderToFramebuffer(frame, newRs, translucentFbo);
+        }
 
         // begin translucent with forward rendering
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_TRANSLUCENT));

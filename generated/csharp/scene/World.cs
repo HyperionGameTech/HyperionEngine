@@ -17,13 +17,6 @@ namespace Hyperion
         {
             obj.GetMethod(new Name(7502354063965211432)).InvokeNative(obj, name);
         }
-        public static RenderStats GetRenderStats(this World obj)
-        {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(15051342904925593478)).InvokeNative(obj))
-            {
-                return (RenderStats)resultData.GetValue();
-            }
-        }
         public static Subsystem GetSubsystemByName(this World obj, Name name)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(14590191884652231264)).InvokeNative(obj, name))

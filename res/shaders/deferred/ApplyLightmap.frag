@@ -38,26 +38,10 @@ HYP_DESCRIPTOR_SRV(View, SSRResultTexture) uniform texture2D ssr_result;
 HYP_DESCRIPTOR_SRV(View, SSAOResultTexture) uniform texture2D ssao_gi;
 HYP_DESCRIPTOR_SRV(View, DeferredIndirectResultTexture) uniform texture2D deferred_indirect_lighting;
 
-HYP_DESCRIPTOR_CBUFF(View, PostProcessingUniforms) uniform PostProcessingUniforms
-{
-    uvec2 effect_counts;
-    uvec2 last_enabled_indices;
-    uvec2 masks;
-    uvec2 _pad;
-}
-post_processing;
-
 #include "../include/shared.inc"
 #include "../include/gbuffer.inc"
 #include "../include/object.inc"
-#include "../include/PostFXSample.inc"
-
 #include "../include/scene.inc"
-
-#ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-HYP_DESCRIPTOR_SRV(View, PostFXPreStack, count = 4) uniform texture2D effects_pre_stack[4];
-HYP_DESCRIPTOR_SRV(View, PostFXPostStack, count = 4) uniform texture2D effects_post_stack[4];
-#endif
 
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
 {
@@ -67,11 +51,6 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
-};
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
-{
-    Light light;
 };
 
 HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
@@ -101,10 +80,47 @@ HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field
 #include "./DeferredLighting.glsl"
 #include "../include/shadows.inc"
 
-#define HYP_DEFERRED_NO_RT_RADIANCE // temp
-// #define HYP_DEFERRED_NO_ENV_PROBE // temp
+HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture0) uniform texture2D IrradianceTexture0;
+HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture1) uniform texture2D IrradianceTexture1;
+HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture2) uniform texture2D IrradianceTexture2;
+HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture3) uniform texture2D IrradianceTexture3;
+
+HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture0) uniform texture2D RadianceTexture0;
+HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture1) uniform texture2D RadianceTexture1;
+HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture2) uniform texture2D RadianceTexture2;
+HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture3) uniform texture2D RadianceTexture3;
+
+struct LightmapAtlas
+{
+    texture2D irradianceTexture;
+    texture2D radianceTexture;
+
+    float irradianceTextureWeight;
+    float radianceTextureWeight;
+};
+
+HYP_DESCRIPTOR_CBUFF(LightmapVolume, LightmapVolumeUniforms) uniform LightmapVolumeUniforms
+{
+    float atlas0IrradianceWeight;
+    float atlas1IrradianceWeight;
+    float atlas2IrradianceWeight;
+    float atlas3IrradianceWeight;
+
+    float atlas0RadianceWeight;
+    float atlas1RadianceWeight;
+    float atlas2RadianceWeight;
+    float atlas3RadianceWeight;
+
+    uint numAtlases;
+}
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#define INIT_LIGHTMAP_ATLAS(index) \
+    atlas##index.irradianceTexture = IrradianceTexture##index; \
+    atlas##index.radianceTexture = RadianceTexture##index; \
+    atlas##index.irradianceTextureWeight = atlas##index##_IrradianceWeight; \
+    atlas##index.radianceTextureWeight = atlas##index##_RadianceWeight;
 
 void main()
 {
@@ -134,9 +150,48 @@ void main()
     const vec3 V = normalize(camera.position.xyz - P);
     const vec3 R = normalize(reflect(-V, N));
 
+    LightmapAtlas atlas0;
+    LightmapAtlas atlas1;
+    LightmapAtlas atlas2;
+    LightmapAtlas atlas3;
+
+    INIT_LIGHTMAP_ATLAS(0);
+    INIT_LIGHTMAP_ATLAS(1);
+    INIT_LIGHTMAP_ATLAS(2);
+    INIT_LIGHTMAP_ATLAS(3);
+
     // apply reflections to lightmapped objects
+    /// @TODO use the stencil buffer to select lightmapped objects for this volume only
     if (bool(object_mask & OBJECT_MASK_LIGHTMAP))
     {
+        vec4 irradiance = vec4(0.0);
+        vec2 lightmap_uv = texcoord;
+        vec4 lightmap_sample = vec4(0.0);
+
+        // sample lightmap atlases based on weights
+        lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, atlas0.irradianceTexture, lightmap_uv);
+        irradiance += lightmap_sample * atlas0.irradianceTextureWeight;
+
+        if (numAtlases > 1)
+        {
+            lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, atlas1.irradianceTexture, lightmap_uv);
+            irradiance += lightmap_sample * atlas1.irradianceTextureWeight;
+            
+            if (numAtlases > 2)
+            {
+                lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, atlas2.irradianceTexture, lightmap_uv);
+                irradiance += lightmap_sample * atlas2.irradianceTextureWeight;
+
+                if (numAtlases > 3)
+                {
+                    lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, atlas3.irradianceTexture, lightmap_uv);
+                    irradiance += lightmap_sample * atlas3.irradianceTextureWeight;
+                }
+            }
+        }
+
+        // @TODO! sample radiance for direct shading
+
         vec3 ibl = vec3(0.0);
         vec3 F = vec3(0.0);
 
@@ -161,9 +216,7 @@ void main()
 
         vec3 spec = (ibl * mix(dfg.xxx, dfg.yyy, F0)) * energy_compensation;
 
-        vec4 lightmap = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_albedo_lightmap_texture, texcoord);
-
-        result = (albedo * lightmap) + vec4(spec, 0.0);
+        result = (albedo * irradiance) + vec4(spec, 0.0);
     }
 
     color_output = result;
