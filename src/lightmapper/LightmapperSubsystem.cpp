@@ -11,7 +11,7 @@
 
 #include <scene/EnvProbe.hpp>
 
-#include <scene/lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 

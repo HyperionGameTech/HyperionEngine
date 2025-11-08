@@ -17,33 +17,33 @@ class EnvProbe;
 class Texture;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API EnvProbePassData : public PassData
+class HYP_API EnvProbeRendererPassData : public PassData
 {
-    HYP_OBJECT_BODY(EnvProbePassData);
+    HYP_OBJECT_BODY(EnvProbeRendererPassData);
 
 public:
-    virtual ~EnvProbePassData() override = default;
+    virtual ~EnvProbeRendererPassData() override = default;
 
     // for sky
     Vec4f cachedLightDirIntensity;
     Vec3f cachedProbeOrigin;
 };
 
-struct EnvProbePassDataExt : PassDataExt
+struct EnvProbeRendererPassDataExt : PassDataExt
 {
     EnvProbe* envProbe = nullptr;
 
-    EnvProbePassDataExt()
-        : PassDataExt(TypeId::ForType<EnvProbePassDataExt>())
+    EnvProbeRendererPassDataExt()
+        : PassDataExt(TypeId::ForType<EnvProbeRendererPassDataExt>())
     {
     }
 
-    virtual ~EnvProbePassDataExt() override = default;
+    virtual ~EnvProbeRendererPassDataExt() override = default;
 
     virtual PassDataExt* Clone() override
     {
-        EnvProbePassDataExt* clone = new EnvProbePassDataExt;
-        clone->envProbe = envProbe;
+        EnvProbeRendererPassDataExt* clone = new EnvProbeRendererPassDataExt;
+        *clone = *this;
 
         return clone;
     }

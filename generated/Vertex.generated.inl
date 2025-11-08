@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Vertex Reflection Data
 
-HYP_BEGIN_STRUCT(Vertex, 249, 0, {}, ClassAttribute("size", 128),ClassAttribute("serialize", "bitwise"))
+HYP_BEGIN_STRUCT(Vertex, 250, 0, {}, ClassAttribute("size", 128),ClassAttribute("serialize", "bitwise"))
     Field(NAME(HYP_STR(Position)), &Vertex::position, offsetof(Vertex, position), Span<const ClassAttribute> { {ClassAttribute("property", "Position"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Normal)), &Vertex::normal, offsetof(Vertex, normal), Span<const ClassAttribute> { {ClassAttribute("property", "Normal"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Tangent)), &Vertex::tangent, offsetof(Vertex, tangent), Span<const ClassAttribute> { {ClassAttribute("property", "Tangent"), ClassAttribute("serialize", true) } }),
@@ -28,7 +28,7 @@ namespace hyperion {
 
 #pragma region VertexAttributeSet Reflection Data
 
-HYP_BEGIN_STRUCT(VertexAttributeSet, 250, 0, {}, ClassAttribute("serialize", "bitwise"))
+HYP_BEGIN_STRUCT(VertexAttributeSet, 251, 0, {}, ClassAttribute("serialize", "bitwise"))
     Field(NAME(HYP_STR(FlagMask)), &VertexAttributeSet::flagMask, offsetof(VertexAttributeSet, flagMask))
 HYP_END_STRUCT
 

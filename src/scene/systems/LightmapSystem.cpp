@@ -5,7 +5,7 @@
 #include <scene/systems/LightmapSystem.hpp>
 #include <scene/EntityManager.hpp>
 
-#include <scene/lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <core/logging/Logger.hpp>
 

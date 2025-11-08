@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AudioLoopMode Reflection Data
 
-HYP_BEGIN_ENUM(AudioLoopMode, 368, 0, {})
+HYP_BEGIN_ENUM(AudioLoopMode, 372, 0, {})
     StaticField(NAME(HYP_STR(ALM_ONCE)), AudioLoopMode::ALM_ONCE),
     StaticField(NAME(HYP_STR(ALM_REPEAT)), AudioLoopMode::ALM_REPEAT)
 HYP_END_ENUM
@@ -20,7 +20,7 @@ namespace hyperion {
 
 #pragma region AudioComponent Reflection Data
 
-HYP_BEGIN_STRUCT(AudioComponent, 369, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Audio Component"),ClassAttribute("description", "Controls the state of an audio source."),ClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(AudioComponent, 373, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Audio Component"),ClassAttribute("description", "Controls the state of an audio source."),ClassAttribute("editor", true))
     Field(NAME(HYP_STR(AudioSource)), &AudioComponent::audioSource, offsetof(AudioComponent, audioSource), Span<const ClassAttribute> { {ClassAttribute("property", "AudioSource"), ClassAttribute("editor", true) } }),
     Field(NAME(HYP_STR(PlaybackState)), &AudioComponent::playbackState, offsetof(AudioComponent, playbackState), Span<const ClassAttribute> { {ClassAttribute("property", "PlaybackState"), ClassAttribute("editor", true) } }),
     Field(NAME(HYP_STR(Flags)), &AudioComponent::flags, offsetof(AudioComponent, flags), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
@@ -38,7 +38,7 @@ namespace hyperion {
 
 #pragma region AudioComponentFlags Reflection Data
 
-HYP_BEGIN_ENUM(AudioComponentFlags, 370, 0, {})
+HYP_BEGIN_ENUM(AudioComponentFlags, 374, 0, {})
     StaticField(NAME(HYP_STR(NONE)), AudioComponentFlags::NONE),
     StaticField(NAME(HYP_STR(INIT)), AudioComponentFlags::INIT)
 HYP_END_ENUM
@@ -52,7 +52,7 @@ namespace hyperion {
 
 #pragma region AudioPlaybackStatus Reflection Data
 
-HYP_BEGIN_ENUM(AudioPlaybackStatus, 371, 0, {})
+HYP_BEGIN_ENUM(AudioPlaybackStatus, 375, 0, {})
     StaticField(NAME(HYP_STR(APS_STOPPED)), AudioPlaybackStatus::APS_STOPPED),
     StaticField(NAME(HYP_STR(APS_PAUSED)), AudioPlaybackStatus::APS_PAUSED),
     StaticField(NAME(HYP_STR(APS_PLAYING)), AudioPlaybackStatus::APS_PLAYING)
@@ -67,7 +67,7 @@ namespace hyperion {
 
 #pragma region AudioPlaybackState Reflection Data
 
-HYP_BEGIN_STRUCT(AudioPlaybackState, 372, 0, {})
+HYP_BEGIN_STRUCT(AudioPlaybackState, 376, 0, {})
     Field(NAME(HYP_STR(Status)), &AudioPlaybackState::status, offsetof(AudioPlaybackState, status), Span<const ClassAttribute> { {ClassAttribute("property", "Status"), ClassAttribute("editor", true) } }),
     Field(NAME(HYP_STR(LoopMode)), &AudioPlaybackState::loopMode, offsetof(AudioPlaybackState, loopMode), Span<const ClassAttribute> { {ClassAttribute("property", "LoopMode"), ClassAttribute("editor", true) } }),
     Field(NAME(HYP_STR(Speed)), &AudioPlaybackState::speed, offsetof(AudioPlaybackState, speed), Span<const ClassAttribute> { {ClassAttribute("property", "Speed"), ClassAttribute("editor", true) } }),

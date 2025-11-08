@@ -27,7 +27,7 @@ namespace hyperion {
 
 #pragma region AudioSourceFormat Reflection Data
 
-HYP_BEGIN_ENUM(AudioSourceFormat, 228, 0, {})
+HYP_BEGIN_ENUM(AudioSourceFormat, 229, 0, {})
     StaticField(NAME(HYP_STR(MONO8)), AudioSourceFormat::MONO8),
     StaticField(NAME(HYP_STR(MONO16)), AudioSourceFormat::MONO16),
     StaticField(NAME(HYP_STR(STEREO8)), AudioSourceFormat::STEREO8),
@@ -43,7 +43,7 @@ namespace hyperion {
 
 #pragma region AudioSourceState Reflection Data
 
-HYP_BEGIN_ENUM(AudioSourceState, 229, 0, {})
+HYP_BEGIN_ENUM(AudioSourceState, 230, 0, {})
     StaticField(NAME(HYP_STR(UNDEFINED)), AudioSourceState::UNDEFINED),
     StaticField(NAME(HYP_STR(STOPPED)), AudioSourceState::STOPPED),
     StaticField(NAME(HYP_STR(PLAYING)), AudioSourceState::PLAYING),

@@ -262,7 +262,7 @@ void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    const Handle<UIPassData>& pd = ObjCast<UIPassData>(FetchViewPassData(m_view));
+    const Handle<UIRendererPassData>& pd = ObjCast<UIRendererPassData>(FetchViewPassData(m_view));
     AssertDebug(pd != nullptr);
 
     RenderSetup rs = renderSetup;
@@ -285,7 +285,7 @@ void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
 
 Handle<PassData> UIRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
-    Handle<UIPassData> pd = CreateObject<UIPassData>();
+    Handle<UIRendererPassData> pd = CreateObject<UIRendererPassData>();
 
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();

@@ -281,7 +281,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
         rs.view = shadowView;
         rs.passData = FetchViewPassData(shadowView);
 
-        ShadowPassData* pd = ObjCast<ShadowPassData>(rs.passData);
+        ShadowRendererPassData* pd = ObjCast<ShadowRendererPassData>(rs.passData);
         AssertDebug(pd != nullptr);
 
         RenderProxyList& rpl = RenderApi::GetConsumerProxyList(shadowView);
@@ -420,7 +420,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
 
 Handle<PassData> ShadowRendererBase::CreateViewPassData(View* view, PassDataExt& ext)
 {
-    Handle<ShadowPassData> pd = CreateObject<ShadowPassData>();
+    Handle<ShadowRendererPassData> pd = CreateObject<ShadowRendererPassData>();
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();
 

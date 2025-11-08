@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region PhysicsMaterial Reflection Data
 
-HYP_BEGIN_STRUCT(PhysicsMaterial, 268, 0, {})
+HYP_BEGIN_STRUCT(PhysicsMaterial, 272, 0, {})
     Field(NAME(HYP_STR(Mass)), &PhysicsMaterial::mass, offsetof(PhysicsMaterial, mass), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("property", "Mass") } })
 HYP_END_STRUCT
 

@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region MaterialAttributeFlags Reflection Data
 
-HYP_BEGIN_ENUM(MaterialAttributeFlags, 281, 0, {})
+HYP_BEGIN_ENUM(MaterialAttributeFlags, 285, 0, {})
     StaticField(NAME(HYP_STR(MAF_NONE)), MaterialAttributeFlags::MAF_NONE),
     StaticField(NAME(HYP_STR(MAF_DEPTH_WRITE)), MaterialAttributeFlags::MAF_DEPTH_WRITE),
     StaticField(NAME(HYP_STR(MAF_DEPTH_TEST)), MaterialAttributeFlags::MAF_DEPTH_TEST),
@@ -21,7 +21,7 @@ namespace hyperion {
 
 #pragma region MaterialAttributes Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialAttributes, 282, 0, {})
+HYP_BEGIN_STRUCT(MaterialAttributes, 286, 0, {})
     Field(NAME(HYP_STR(ShaderDefinition)), &MaterialAttributes::shaderDefinition, offsetof(MaterialAttributes, shaderDefinition)),
     Field(NAME(HYP_STR(Bucket)), &MaterialAttributes::bucket, offsetof(MaterialAttributes, bucket)),
     Field(NAME(HYP_STR(FillMode)), &MaterialAttributes::fillMode, offsetof(MaterialAttributes, fillMode)),
@@ -41,7 +41,7 @@ namespace hyperion {
 
 #pragma region MeshAttributes Reflection Data
 
-HYP_BEGIN_STRUCT(MeshAttributes, 283, 0, {})
+HYP_BEGIN_STRUCT(MeshAttributes, 287, 0, {})
     Field(NAME(HYP_STR(VertexAttributes)), &MeshAttributes::vertexAttributes, offsetof(MeshAttributes, vertexAttributes), Span<const ClassAttribute> { {ClassAttribute("property", "VertexAttributes") } }),
     Field(NAME(HYP_STR(Topology)), &MeshAttributes::topology, offsetof(MeshAttributes, topology), Span<const ClassAttribute> { {ClassAttribute("property", "Topology") } }),
     Field(NAME(HYP_STR(IndexBufferElemType)), &MeshAttributes::indexBufferElemType, offsetof(MeshAttributes, indexBufferElemType), Span<const ClassAttribute> { {ClassAttribute("property", "IndexBufferElemType") } })

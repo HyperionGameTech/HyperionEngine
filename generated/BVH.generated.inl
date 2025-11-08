@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region BVHNode Reflection Data
 
-HYP_BEGIN_STRUCT(BVHNode, 342, 0, {})
+HYP_BEGIN_STRUCT(BVHNode, 346, 0, {})
     Field(NAME(HYP_STR(Aabb)), &BVHNode::aabb, offsetof(BVHNode, aabb), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Children)), &BVHNode::children, offsetof(BVHNode, children), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(TriangleIds)), &BVHNode::triangleIds, offsetof(BVHNode, triangleIds), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
@@ -21,7 +21,7 @@ namespace hyperion {
 
 #pragma region BvhFlags Reflection Data
 
-HYP_BEGIN_ENUM(BvhFlags, 343, 0, {})
+HYP_BEGIN_ENUM(BvhFlags, 347, 0, {})
     StaticField(NAME(HYP_STR(BF_NONE)), BvhFlags::BF_NONE),
     StaticField(NAME(HYP_STR(BF_IS_LEAF_NODE)), BvhFlags::BF_IS_LEAF_NODE)
 HYP_END_ENUM

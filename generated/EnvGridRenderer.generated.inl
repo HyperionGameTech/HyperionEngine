@@ -3,12 +3,12 @@
 
 namespace hyperion {
 
-#pragma region EnvGridPassData Reflection Data
+#pragma region EnvGridRendererPassData Reflection Data
 
-HYP_BEGIN_CLASS(EnvGridPassData, 97, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(EnvGridRendererPassData, 97, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
-#pragma endregion EnvGridPassData Reflection Data
+#pragma endregion EnvGridRendererPassData Reflection Data
 
 } // namespace hyperion
 

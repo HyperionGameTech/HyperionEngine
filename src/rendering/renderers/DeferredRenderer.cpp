@@ -1147,9 +1147,9 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma endregion ReflectionsPass
 
-#pragma region DeferredPassData
+#pragma region DeferredRendererPassData
 
-DeferredPassData::~DeferredPassData()
+DeferredRendererPassData::~DeferredRendererPassData()
 {
     depthPyramidRenderer.Reset();
 
@@ -1229,8 +1229,8 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
     if (view->GetFlags() & ViewFlags::GBUFFER)
     {
-        Handle<DeferredPassData> pd = CreateObject<DeferredPassData>();
-        DeferredPassData& passData = *pd;
+        Handle<DeferredRendererPassData> pd = CreateObject<DeferredRendererPassData>();
+        DeferredRendererPassData& passData = *pd;
 
         passData.view = MakeWeakRef(view);
         passData.viewport = view->GetViewport();
@@ -1336,7 +1336,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
     return Handle<PassData>::empty;
 }
 
-void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& passData)
+void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredRendererPassData& passData)
 {
     HYP_SCOPE;
 
@@ -1368,7 +1368,7 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPass
     passData.finalPassDescriptorSet = std::move(descriptorSet);
 }
 
-void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& passData)
+void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPassData& passData)
 {
     HYP_SCOPE;
 
@@ -1470,7 +1470,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
     passData.descriptorSets = std::move(descriptorSets);
 }
 
-void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& passData)
+void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassData& passData)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -1506,7 +1506,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& passD
     passData.combinePass->Create();
 }
 
-void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredPassData& passData)
+void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredRendererPassData& passData)
 {
     if (!g_renderBackend->GetRenderConfig().raytracing)
     {
@@ -1558,7 +1558,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
     }
 }
 
-void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredPassData& passData)
+void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -1626,8 +1626,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
     Assert(rs.IsValid());
 
-    RenderStatsCounts counts {};
-
     Array<RenderProxyList*, InlineAllocator<3, RenderAllocator>> renderProxyLists;
 
     HYP_DEFER({
@@ -1669,7 +1667,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         if (view->GetFlags() & ViewFlags::GBUFFER)
         {
-            DeferredPassData* pdCasted = ObjCast<DeferredPassData>(pd.Get());
+            DeferredRendererPassData* pdCasted = ObjCast<DeferredRendererPassData>(pd.Get());
             Assert(pdCasted != nullptr);
 
             const Viewport vp = view->GetViewport();
@@ -1850,7 +1848,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         RenderSetup newRs = rs.Fork();
 
-        const Handle<DeferredPassData>& pd = ObjCast<DeferredPassData>(FetchViewPassData(view));
+        const Handle<DeferredRendererPassData>& pd = ObjCast<DeferredRendererPassData>(FetchViewPassData(view));
         AssertDebug(pd != nullptr);
         AssertDebug(pd->viewport.extent.Volume() != 0);
 
@@ -1946,10 +1944,10 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     RenderCollector& renderCollector = RenderApi::GetRenderCollector(view);
 
-    DeferredPassData* passDataCasted = ObjCast<DeferredPassData>(rs.passData);
+    DeferredRendererPassData* passDataCasted = ObjCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(passDataCasted != nullptr);
 
-    DeferredPassData& passData = *passDataCasted;
+    DeferredRendererPassData& passData = *passDataCasted;
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -2221,13 +2219,13 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     auto lastFrameDataIt = std::lower_bound(
         m_lastFrameData.passData.Begin(),
         m_lastFrameData.passData.End(),
-        Pair<View*, DeferredPassData*> { view, &passData },
-        [view](const Pair<View*, DeferredPassData*>& a, const Pair<View*, DeferredPassData*>& b)
+        Pair<View*, DeferredRendererPassData*> { view, &passData },
+        [view](const Pair<View*, DeferredRendererPassData*>& a, const Pair<View*, DeferredRendererPassData*>& b)
         {
             return a.second->priority < b.second->priority;
         });
 
-    m_lastFrameData.passData.Insert(lastFrameDataIt, Pair<View*, DeferredPassData*> { view, &passData });
+    m_lastFrameData.passData.Insert(lastFrameDataIt, Pair<View*, DeferredRendererPassData*> { view, &passData });
 }
 
 #undef CHECK_FRAMEBUFFER_SIZE
@@ -2361,7 +2359,7 @@ void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& rs,
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    DeferredPassData* pd = ObjCast<DeferredPassData>(rs.passData);
+    DeferredRendererPassData* pd = ObjCast<DeferredRendererPassData>(rs.passData);
 
     const GpuImageRef& mipmappedResult = pd->mipChain->GetGpuImage();
     Assert(mipmappedResult.IsValid());

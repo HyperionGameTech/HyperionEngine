@@ -298,12 +298,12 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API DeferredPassData : public PassData
+class HYP_API DeferredRendererPassData : public PassData
 {
-    HYP_OBJECT_BODY(DeferredPassData);
+    HYP_OBJECT_BODY(DeferredRendererPassData);
 
 public:
-    virtual ~DeferredPassData() override;
+    virtual ~DeferredRendererPassData() override;
 
     int priority = 0;
 
@@ -338,7 +338,7 @@ class HYP_API RaytracingPassData : public PassData
 
 public:
     // Set only while rendering to this pass
-    DeferredPassData* parentPass = nullptr;
+    DeferredRendererPassData* parentPass = nullptr;
 
     FixedArray<GpuTlasRef, NumFramesInFlight> raytracingTlases;
 
@@ -354,9 +354,9 @@ public:
         uint8 frameId = uint8(-1);
 
         // The pass data for the last frame (per-View), sorted by View priority.
-        Array<Pair<View*, DeferredPassData*>> passData;
+        Array<Pair<View*, DeferredRendererPassData*>> passData;
 
-        DeferredPassData* GetPassDataForView(const View* view) const
+        DeferredRendererPassData* GetPassDataForView(const View* view) const
         {
             for (const auto& pair : passData)
             {
@@ -396,14 +396,15 @@ private:
 
     // Called on initialization or when the view changes
     virtual Handle<PassData> CreateViewPassData(View* view, PassDataExt&) override;
-    void CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& passData);
-    void CreateViewDescriptorSets(View* view, DeferredPassData& passData);
-    void CreateViewCombinePass(View* view, DeferredPassData& passData);
-    void CreateViewRaytracingPasses(View* view, DeferredPassData& passData);
+
+    void CreateViewFinalPassDescriptorSet(View* view, DeferredRendererPassData& passData);
+    void CreateViewDescriptorSets(View* view, DeferredRendererPassData& passData);
+    void CreateViewCombinePass(View* view, DeferredRendererPassData& passData);
+    void CreateViewRaytracingPasses(View* view, DeferredRendererPassData& passData);
 
     void CreateViewTopLevelAccelerationStructures(View* view, RaytracingPassData& passData);
 
-    void ResizeView(Viewport viewport, View* view, DeferredPassData& passData);
+    void ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData);
 
     void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector);
     void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask);

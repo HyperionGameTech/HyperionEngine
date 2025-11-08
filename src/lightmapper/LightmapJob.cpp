@@ -21,7 +21,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Renderer.hpp>
 
-#include <scene/lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <scene/World.hpp>
 #include <scene/View.hpp>

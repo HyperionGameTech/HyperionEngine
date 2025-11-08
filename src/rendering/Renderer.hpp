@@ -23,6 +23,7 @@ class World;
 class Light;
 class EnvProbe;
 class EnvGrid;
+class LightmapVolume;
 struct CullData;
 class PassData;
 class RendererBase;
@@ -90,6 +91,8 @@ struct HYP_API RenderSetup
     EnvProbe* envProbe;
     EnvGrid* envGrid;
     Light* light;
+    LightmapVolume* lightmapVolume;
+
     PassData* passData;
 
     RenderSetup* prev;
@@ -102,6 +105,7 @@ private:
           envProbe(nullptr),
           envGrid(nullptr),
           light(nullptr),
+          lightmapVolume(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -114,6 +118,7 @@ public:
           envProbe(nullptr),
           envGrid(nullptr),
           light(nullptr),
+          lightmapVolume(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -126,6 +131,7 @@ public:
           envProbe(nullptr),
           envGrid(nullptr),
           light(nullptr),
+          lightmapVolume(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -281,7 +287,7 @@ public:
 class HYP_API RendererBase
 {
 public:
-    using ViewPassDataMap = SparsePagedArray<Handle<PassData>, 16>;
+    using PassDataMap = SparsePagedArray<Handle<PassData>, 16>;
 
     virtual ~RendererBase();
 
@@ -300,11 +306,13 @@ protected:
     virtual Handle<PassData> CreateViewPassData(View* view, PassDataExt& ext) = 0;
 
     const Handle<PassData>& TryGetViewPassData(View* view);
-    const Handle<PassData>& FetchViewPassData(View* view, PassDataExt* ext = nullptr);
+    const Handle<PassData>& FetchViewPassData(View* view, PassDataExt* ext = nullptr, bool forceNew = false);
+
+    static int RunCleanupCycle(PassDataMap& passData, int maxIter, typename PassDataMap::Iterator* pIter = nullptr);
 
 private:
-    ViewPassDataMap m_viewPassData;
-    typename ViewPassDataMap::Iterator m_viewPassDataCleanupIterator;
+    PassDataMap m_viewPassData;
+    typename PassDataMap::Iterator m_viewPassDataCleanupIterator;
 };
 
 } // namespace hyperion

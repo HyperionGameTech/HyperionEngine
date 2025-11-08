@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region PhysicsShapeType Reflection Data
 
-HYP_BEGIN_ENUM(PhysicsShapeType, 269, 0, {})
+HYP_BEGIN_ENUM(PhysicsShapeType, 273, 0, {})
     StaticField(NAME(HYP_STR(NONE)), PhysicsShapeType::NONE),
     StaticField(NAME(HYP_STR(BOX)), PhysicsShapeType::BOX),
     StaticField(NAME(HYP_STR(SPHERE)), PhysicsShapeType::SPHERE),

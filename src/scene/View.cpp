@@ -9,7 +9,7 @@
 #include <rendering/Material.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
-#include <scene/lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 #include <scene/camera/Camera.hpp>
 #include <scene/animation/Skeleton.hpp>
 

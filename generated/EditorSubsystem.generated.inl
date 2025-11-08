@@ -29,7 +29,7 @@ namespace hyperion {
 
 #pragma region EditorSubsystem Reflection Data
 
-HYP_BEGIN_CLASS(EditorSubsystem, 146, 0, NAME("Subsystem"))
+HYP_BEGIN_CLASS(EditorSubsystem, 147, 0, NAME("Subsystem"))
     Method(NAME(HYP_STR(GetCurrentProject)), &EditorSubsystem::GetCurrentProject),
     Method(NAME(HYP_STR(GetActiveScene)), &EditorSubsystem::GetActiveScene),
     Method(NAME(HYP_STR(NewProject)), &EditorSubsystem::NewProject),

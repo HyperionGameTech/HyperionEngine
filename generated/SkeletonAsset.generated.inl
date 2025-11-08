@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region BoneDesc Reflection Data
 
-HYP_BEGIN_STRUCT(BoneDesc, 225, 0, {})
+HYP_BEGIN_STRUCT(BoneDesc, 226, 0, {})
     Field(NAME(HYP_STR(Name)), &BoneDesc::name, offsetof(BoneDesc, name)),
     Field(NAME(HYP_STR(BindingTransform)), &BoneDesc::bindingTransform, offsetof(BoneDesc, bindingTransform)),
     Field(NAME(HYP_STR(ParentName)), &BoneDesc::parentName, offsetof(BoneDesc, parentName))
@@ -33,7 +33,7 @@ namespace hyperion {
 
 #pragma region SkeletonData Reflection Data
 
-HYP_BEGIN_STRUCT(SkeletonData, 226, 0, {})
+HYP_BEGIN_STRUCT(SkeletonData, 227, 0, {})
     Field(NAME(HYP_STR(Animations)), &SkeletonData::animations, offsetof(SkeletonData, animations))
 HYP_END_STRUCT
 
@@ -46,7 +46,7 @@ namespace hyperion {
 
 #pragma region SkeletonDesc Reflection Data
 
-HYP_BEGIN_STRUCT(SkeletonDesc, 227, 0, {})
+HYP_BEGIN_STRUCT(SkeletonDesc, 228, 0, {})
     Field(NAME(HYP_STR(Bones)), &SkeletonDesc::bones, offsetof(SkeletonDesc, bones)),
     Field(NAME(HYP_STR(AnimationNames)), &SkeletonDesc::animationNames, offsetof(SkeletonDesc, animationNames))
 HYP_END_STRUCT

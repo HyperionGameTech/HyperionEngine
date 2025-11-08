@@ -15,29 +15,29 @@ class FullScreenPass;
 class ShadowMap;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API ShadowPassData : public PassData
+class HYP_API ShadowRendererPassData : public PassData
 {
-    HYP_OBJECT_BODY(ShadowPassData);
+    HYP_OBJECT_BODY(ShadowRendererPassData);
 
 public:
-    virtual ~ShadowPassData() override;
+    virtual ~ShadowRendererPassData() override;
 };
 
-struct ShadowPassDataExt : PassDataExt
+struct ShadowRendererPassDataExt : PassDataExt
 {
     Light* light = nullptr;
 
-    ShadowPassDataExt()
-        : PassDataExt(TypeId::ForType<ShadowPassDataExt>())
+    ShadowRendererPassDataExt()
+        : PassDataExt(TypeId::ForType<ShadowRendererPassDataExt>())
     {
     }
 
-    virtual ~ShadowPassDataExt() override = default;
+    virtual ~ShadowRendererPassDataExt() override = default;
 
     virtual PassDataExt* Clone() override
     {
-        ShadowPassDataExt* clone = new ShadowPassDataExt;
-        clone->light = light;
+        ShadowRendererPassDataExt* clone = new ShadowRendererPassDataExt;
+        *clone = *this;
 
         return clone;
     }

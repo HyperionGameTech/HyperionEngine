@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AssetPackageFlags Reflection Data
 
-HYP_BEGIN_ENUM(AssetPackageFlags, 220, 0, {})
+HYP_BEGIN_ENUM(AssetPackageFlags, 221, 0, {})
     StaticField(NAME(HYP_STR(APF_NONE)), AssetPackageFlags::APF_NONE),
     StaticField(NAME(HYP_STR(APF_TRANSIENT)), AssetPackageFlags::APF_TRANSIENT),
     StaticField(NAME(HYP_STR(APF_HIDDEN)), AssetPackageFlags::APF_HIDDEN)

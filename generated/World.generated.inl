@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region World Reflection Data
 
-HYP_BEGIN_CLASS(World, 163, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(World, 164, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetName)), &World::GetName),
     Method(NAME(HYP_STR(SetName)), &World::SetName),
     Method(NAME(HYP_STR(GetRenderStats)), &World::GetRenderStats),

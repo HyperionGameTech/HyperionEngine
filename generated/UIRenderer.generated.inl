@@ -3,12 +3,12 @@
 
 namespace hyperion {
 
-#pragma region UIPassData Reflection Data
+#pragma region UIRendererPassData Reflection Data
 
-HYP_BEGIN_CLASS(UIPassData, 100, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(UIRendererPassData, 101, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
-#pragma endregion UIPassData Reflection Data
+#pragma endregion UIRendererPassData Reflection Data
 
 } // namespace hyperion
 

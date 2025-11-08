@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region RigidBodyComponent Reflection Data
 
-HYP_BEGIN_STRUCT(RigidBodyComponent, 378, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Rigid Body Component"),ClassAttribute("description", "Controls the properties of an object with rigid body physics."),ClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(RigidBodyComponent, 382, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Rigid Body Component"),ClassAttribute("description", "Controls the properties of an object with rigid body physics."),ClassAttribute("editor", true))
     Field(NAME(HYP_STR(RigidBody)), &RigidBodyComponent::rigidBody, offsetof(RigidBodyComponent, rigidBody), Span<const ClassAttribute> { {ClassAttribute("property", "RigidBody") } }),
     Field(NAME(HYP_STR(PhysicsMaterial)), &RigidBodyComponent::physicsMaterial, offsetof(RigidBodyComponent, physicsMaterial), Span<const ClassAttribute> { {ClassAttribute("property", "PhysicsMaterial") } }),
     Field(NAME(HYP_STR(Flags)), &RigidBodyComponent::flags, offsetof(RigidBodyComponent, flags), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
@@ -23,7 +23,7 @@ namespace hyperion {
 
 #pragma region RigidBodyComponentFlags Reflection Data
 
-HYP_BEGIN_ENUM(RigidBodyComponentFlags, 379, 0, {})
+HYP_BEGIN_ENUM(RigidBodyComponentFlags, 383, 0, {})
     StaticField(NAME(HYP_STR(NONE)), RigidBodyComponentFlags::NONE),
     StaticField(NAME(HYP_STR(INIT)), RigidBodyComponentFlags::INIT),
     StaticField(NAME(HYP_STR(DIRTY)), RigidBodyComponentFlags::DIRTY)

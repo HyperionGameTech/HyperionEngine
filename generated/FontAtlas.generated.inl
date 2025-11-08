@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region FontAtlas Reflection Data
 
-HYP_BEGIN_CLASS(FontAtlas, 216, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(FontAtlas, 217, 0, NAME("ObjectBase"))
 HYP_END_CLASS
 
 #pragma endregion FontAtlas Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region FontAtlasTextureSet Reflection Data
 
-HYP_BEGIN_STRUCT(FontAtlasTextureSet, 414, 0, {})
+HYP_BEGIN_STRUCT(FontAtlasTextureSet, 415, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion FontAtlasTextureSet Reflection Data

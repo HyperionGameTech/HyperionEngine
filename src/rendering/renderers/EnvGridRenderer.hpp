@@ -17,12 +17,12 @@ class EnvGrid;
 class LegacyEnvGrid;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API EnvGridPassData : public PassData
+class HYP_API EnvGridRendererPassData : public PassData
 {
-    HYP_OBJECT_BODY(EnvGridPassData);
+    HYP_OBJECT_BODY(EnvGridRendererPassData);
 
 public:
-    virtual ~EnvGridPassData() override;
+    virtual ~EnvGridRendererPassData() override;
 
     ShaderRef shader;
     FramebufferRef framebuffer;
@@ -53,21 +53,21 @@ public:
     Queue<uint32> nextRenderIndices;
 };
 
-struct EnvGridPassDataExt : PassDataExt
+struct EnvGridRendererPassDataExt : PassDataExt
 {
     LegacyEnvGrid* envGrid = nullptr;
 
-    EnvGridPassDataExt()
-        : PassDataExt(TypeId::ForType<EnvGridPassDataExt>())
+    EnvGridRendererPassDataExt()
+        : PassDataExt(TypeId::ForType<EnvGridRendererPassDataExt>())
     {
     }
 
-    virtual ~EnvGridPassDataExt() override = default;
+    virtual ~EnvGridRendererPassDataExt() override = default;
 
     virtual PassDataExt* Clone() override
     {
-        EnvGridPassDataExt* clone = new EnvGridPassDataExt;
-        clone->envGrid = envGrid;
+        EnvGridRendererPassDataExt* clone = new EnvGridRendererPassDataExt;
+        *clone = *this;
 
         return clone;
     }
@@ -93,9 +93,9 @@ protected:
     void VoxelizeProbe(FrameBase* frame, const RenderSetup& renderSetup, uint32 probeIndex);
 
     Handle<PassData> CreateViewPassData(View* view, PassDataExt& ext) override;
-    void CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridPassData& pd);
-    void CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGridPassData& pd);
-    void CreateLightFieldData(LegacyEnvGrid* envGrid, EnvGridPassData& pd);
+    void CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridRendererPassData& pd);
+    void CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGridRendererPassData& pd);
+    void CreateLightFieldData(LegacyEnvGrid* envGrid, EnvGridRendererPassData& pd);
 };
 
 } // namespace hyperion

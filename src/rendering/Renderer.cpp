@@ -119,31 +119,46 @@ RendererBase::~RendererBase()
 
 int RendererBase::RunCleanupCycle(int maxIter)
 {
+    // default impl, run for views
+    return RunCleanupCycle(m_viewPassData, maxIter, &m_viewPassDataCleanupIterator);
+}
+
+int RendererBase::RunCleanupCycle(PassDataMap& passData, int maxIter, typename PassDataMap::Iterator* pIter)
+{
+    typename PassDataMap::Iterator tmpIterator;
+
+    if (!pIter)
+    {
+        pIter = &tmpIterator;
+    }
+
+    typename PassDataMap::Iterator& iter = *pIter;
+
     // Ensures the iterator is valid: the Iterator type for SparsePagedArray will find the next available slot in the constructor
     // elements may have been added in the middle or removed in the meantime.
     // elements that were added will be handled after the next time this loops around; elements that were removed will be skipped over to find the next valid entry.
-    m_viewPassDataCleanupIterator = typename ViewPassDataMap::Iterator(
-        &m_viewPassData,
-        m_viewPassDataCleanupIterator.page,
-        m_viewPassDataCleanupIterator.elem);
+    iter = typename PassDataMap::Iterator(
+        &passData,
+        iter.page,
+        iter.elem);
 
-    const typename ViewPassDataMap::Iterator startIterator = m_viewPassDataCleanupIterator; // the iterator we started at - use it to check that we don't do duplicate checks
+    const typename PassDataMap::Iterator startIterator = iter; // the iterator we started at - use it to check that we don't do duplicate checks
 
     int numCycles = 0;
     for (; numCycles < maxIter; ++numCycles)
     {
         // Loop around to the beginning of the container when the end is reached.
-        if (m_viewPassDataCleanupIterator == m_viewPassData.End())
+        if (iter == passData.End())
         {
-            m_viewPassDataCleanupIterator = m_viewPassData.Begin();
+            iter = passData.Begin();
 
-            if (m_viewPassDataCleanupIterator == m_viewPassData.End())
+            if (iter == passData.End())
             {
                 break;
             }
         }
 
-        Handle<PassData>& pd = *m_viewPassDataCleanupIterator;
+        Handle<PassData>& pd = *iter;
 
         if (!pd->view.Lock())
         {
@@ -151,16 +166,16 @@ int RendererBase::RunCleanupCycle(int maxIter)
 
             pd.Reset();
 
-            m_viewPassDataCleanupIterator = m_viewPassData.Erase(m_viewPassDataCleanupIterator);
+            iter = passData.Erase(iter);
         }
         else
         {
             pd->CullUnusedGraphicsPipelines(1000);
 
-            ++m_viewPassDataCleanupIterator;
+            ++iter;
         }
 
-        if (m_viewPassDataCleanupIterator == startIterator)
+        if (iter == startIterator)
         {
             // we checked everything
             break;
@@ -187,7 +202,7 @@ const Handle<PassData>& RendererBase::TryGetViewPassData(View* view)
     return Handle<PassData>::empty;
 }
 
-const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt* ext)
+const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt* ext, bool forceNew)
 {
     if (!view)
     {
@@ -213,7 +228,7 @@ const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt*
 
         pPassData = &*m_viewPassData.Set(view->Id().ToIndex(), pd);
     }
-    else if ((*pPassData)->view.GetUnsafe() != view)
+    else if (forceNew || (*pPassData)->view.GetUnsafe() != view)
     {
         Handle<PassData>& pd = *pPassData;
         pd.Reset();

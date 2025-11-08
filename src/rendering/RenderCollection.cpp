@@ -25,7 +25,7 @@
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
-#include <scene/lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <scene/camera/Camera.hpp>
 

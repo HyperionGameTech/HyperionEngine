@@ -21,7 +21,7 @@
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
 
-#include <scene/lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>

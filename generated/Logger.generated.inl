@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region LogChannel Reflection Data
 
-HYP_BEGIN_STRUCT(LogChannel, 237, 0, {})
+HYP_BEGIN_STRUCT(LogChannel, 238, 0, {})
     Field(NAME(HYP_STR(Id)), &LogChannel::id, offsetof(LogChannel, id)),
     Field(NAME(HYP_STR(Name)), &LogChannel::name, offsetof(LogChannel, name)),
     Field(NAME(HYP_STR(ParentChannel)), &LogChannel::parentChannel, offsetof(LogChannel, parentChannel)),

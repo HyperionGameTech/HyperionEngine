@@ -19,12 +19,12 @@ class View;
 struct RenderSetup;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API UIPassData : public PassData
+class HYP_API UIRendererPassData : public PassData
 {
-    HYP_OBJECT_BODY(UIPassData);
+    HYP_OBJECT_BODY(UIRendererPassData);
 
 public:
-    virtual ~UIPassData() override = default;
+    virtual ~UIRendererPassData() override = default;
 };
 
 class UIRenderCollector : public RenderCollector

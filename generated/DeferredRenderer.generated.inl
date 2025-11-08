@@ -39,12 +39,12 @@ HYP_END_CLASS
 
 namespace hyperion {
 
-#pragma region DeferredPassData Reflection Data
+#pragma region DeferredRendererPassData Reflection Data
 
-HYP_BEGIN_CLASS(DeferredPassData, 96, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(DeferredRendererPassData, 96, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
-#pragma endregion DeferredPassData Reflection Data
+#pragma endregion DeferredRendererPassData Reflection Data
 
 } // namespace hyperion
 

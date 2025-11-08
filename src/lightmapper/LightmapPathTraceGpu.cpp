@@ -33,7 +33,7 @@
 
 #include <scene/util/VoxelOctree.hpp>
 
-#include <scene/lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <scene/camera/Camera.hpp>
 #include <scene/camera/OrthoCamera.hpp>

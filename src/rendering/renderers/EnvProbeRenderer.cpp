@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <rendering/env_probe/EnvProbeRenderer.hpp>
+#include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -100,7 +100,7 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSe
 
 Handle<PassData> EnvProbeRenderer::CreateViewPassData(View* view, PassDataExt& ext)
 {
-    Handle<EnvProbePassData> pd = CreateObject<EnvProbePassData>();
+    Handle<EnvProbeRendererPassData> pd = CreateObject<EnvProbeRendererPassData>();
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();
 
@@ -144,7 +144,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     View* view = renderSetup.view;
     AssertDebug(view != nullptr);
 
-    EnvProbePassData* pd = ObjCast<EnvProbePassData>(renderSetup.passData);
+    EnvProbeRendererPassData* pd = ObjCast<EnvProbeRendererPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);

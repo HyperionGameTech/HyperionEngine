@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region LightmapSystem Reflection Data
 
-HYP_BEGIN_CLASS(LightmapSystem, 155, 0, NAME("SystemBase"), ClassAttribute("noscriptbindings", true),ClassAttribute("description", "Associates an Entity with a MeshComponent with the assigned LightmapVolume, if applicable."))
+HYP_BEGIN_CLASS(LightmapSystem, 156, 0, NAME("SystemBase"), ClassAttribute("noscriptbindings", true),ClassAttribute("description", "Associates an Entity with a MeshComponent with the assigned LightmapVolume, if applicable."))
 HYP_END_CLASS
 
 #pragma endregion LightmapSystem Reflection Data

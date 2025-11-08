@@ -22,7 +22,7 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/GameState.hpp>
 
-#include <scene/lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <scene/components/BoundingBoxComponent.hpp>
 
