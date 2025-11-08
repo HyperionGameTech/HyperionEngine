@@ -1401,7 +1401,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.tonemapPass->Create();
 
         // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
-        passData.lightmapPass = CreateObject<LightmapPass>(translucentFbo, passData.viewport.extent, gbuffer);
+        passData.lightmapPass = CreateObject<LightmapPass>();
         passData.lightmapPass->Create();
 
         passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), passData.viewport.extent, gbuffer);

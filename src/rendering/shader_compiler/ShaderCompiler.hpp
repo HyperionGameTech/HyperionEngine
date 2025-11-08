@@ -1206,7 +1206,7 @@ struct HYP_API CompiledShader
     HYP_FIELD(Property = "EntryPointName")
     String entryPointName = "main";
 
-    HYP_FIELD(Property = "Modules")
+    HYP_FIELD(Property = "Modules", Compressed)
     FixedArray<ByteBuffer, SMT_MAX> modules;
 
     /// ===== Serialization only =====
