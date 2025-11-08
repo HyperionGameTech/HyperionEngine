@@ -28,7 +28,7 @@ HYP_BEGIN_STRUCT(CompiledShader, 331, 0, {})
     Field(NAME(HYP_STR(DescriptorTableDeclaration)), &CompiledShader::descriptorTableDeclaration, offsetof(CompiledShader, descriptorTableDeclaration), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorTableDeclaration"), ClassAttribute("transient", true) } }),
     Field(NAME(HYP_STR(DescriptorUsageSet)), &CompiledShader::descriptorUsageSet, offsetof(CompiledShader, descriptorUsageSet), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorUsageSet") } }),
     Field(NAME(HYP_STR(EntryPointName)), &CompiledShader::entryPointName, offsetof(CompiledShader, entryPointName), Span<const ClassAttribute> { {ClassAttribute("property", "EntryPointName") } }),
-    Field(NAME(HYP_STR(Modules)), &CompiledShader::modules, offsetof(CompiledShader, modules), Span<const ClassAttribute> { {ClassAttribute("property", "Modules") } }),
+    Field(NAME(HYP_STR(Modules)), &CompiledShader::modules, offsetof(CompiledShader, modules), Span<const ClassAttribute> { {ClassAttribute("property", "Modules"), ClassAttribute("compressed", true) } }),
     Method(NAME(HYP_STR(GetRevisionNumber)), &CompiledShader::GetRevisionNumber, Span<const ClassAttribute> { {ClassAttribute("property", "RevisionNumber"), ClassAttribute("noscriptbindings", true) } })
 HYP_END_STRUCT
 

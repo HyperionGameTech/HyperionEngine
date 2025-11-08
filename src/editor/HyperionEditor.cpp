@@ -145,6 +145,9 @@ void HyperionEditor::Init()
     batch->OnComplete
         .Bind([this, scene](AssetMap& results)
             {
+                Assert(results["test_model"].IsValid());
+                Assert(results["zombie"].IsValid());
+
                 Handle<Node> node = results["test_model"].ExtractAs<Node>();
 
                 node->Scale(0.03f);

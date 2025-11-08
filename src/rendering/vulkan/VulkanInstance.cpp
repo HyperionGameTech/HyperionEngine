@@ -162,21 +162,31 @@ static Array<const char*> CheckValidationLayerSupport(const Array<const char*>& 
 
 ExtensionMap VulkanInstance::GetExtensionMap()
 {
-    return {
+    ExtensionMap map;
+    map[VK_KHR_SWAPCHAIN_EXTENSION_NAME] = true;
+    map[VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME] = false;
+
+    map[VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME] = false;
+    map[VK_KHR_SPIRV_1_4_EXTENSION_NAME] = false;
+
 #ifdef HYP_DEBUG_MODE
-        { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false },
+    map[VK_EXT_DEBUG_UTILS_EXTENSION_NAME] = false;
 #endif
-        { VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, false },
-        { VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, false },
-        { VK_KHR_RAY_QUERY_EXTENSION_NAME, false },
-        { VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, false },
-        { VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, false },
-        { VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, false },
-        { VK_KHR_SPIRV_1_4_EXTENSION_NAME, false },
-        { VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME, false },
-        { VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME, false },
-        { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true }
-    };
+
+#if HYP_FEATURES_ENABLE_RAYTRACING
+    map[VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME] = false;
+    map[VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME] = false;
+    map[VK_KHR_RAY_QUERY_EXTENSION_NAME] = false;
+    map[VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME] = false;
+    map[VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME] = false;
+#endif
+
+#ifdef HYP_WINDOWS
+    map[VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME] = false;
+    map[VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME] = false;
+#endif
+
+    return map;
 }
 
 #ifdef HYP_DEBUG_MODE
@@ -192,7 +202,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     switch (severity)
     {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-
         HYP_LOG(RenderingBackend, Debug, "Vulkan: [{}, {}]: {}",
             callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
         break;
@@ -204,9 +213,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         HYP_LOG(RenderingBackend, Error, "Vulkan: [{}, {}]: {}",
             callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
 
-#ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
-#endif
 
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
@@ -249,11 +256,12 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 #ifdef HYP_DEBUG_MODE
 RendererResult VulkanInstance::SetupDebug()
 {
-    static const Array<const char*> layers {
+    static const Array<const char*> layers
+    {
         "VK_LAYER_KHRONOS_validation"
 #if !defined(HYP_APPLE) || !HYP_APPLE
-        ,
-        "VK_LAYER_LUNARG_monitor"
+            ,
+            "VK_LAYER_LUNARG_monitor"
 #endif
     };
 
@@ -411,7 +419,7 @@ RendererResult VulkanInstance::CreateDevice(VkPhysicalDevice physicalDevice)
     }
 
     m_device = CreateObject<VulkanDevice>(physicalDevice, m_surface);
-    m_device->SetRequiredExtensions(GetExtensionMap());
+    m_device->SetWantedExtensions(GetExtensionMap());
 
     const QueueFamilyIndices& familyIndices = m_device->GetQueueFamilyIndices();
 

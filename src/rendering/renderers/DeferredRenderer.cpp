@@ -1435,7 +1435,7 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredRend
 {
     HYP_SCOPE;
 
-    ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
+    ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
     Assert(renderTextureToScreenShader.IsValid());
 
     const GpuImageViewRef& inputImageView = m_rendererConfig.taaEnabled
@@ -1574,7 +1574,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
     const FramebufferRef& translucentFbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
     Assert(translucentFbo != nullptr);
 
-    ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
+    ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
     Assert(renderTextureToScreenShader.IsValid());
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(

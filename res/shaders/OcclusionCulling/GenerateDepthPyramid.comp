@@ -8,7 +8,7 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 #include "../include/defines.inc"
 #include "../include/shared.inc"
-#include "./shared.inc"
+#include "./Shared.inc"
 
 HYP_DESCRIPTOR_SRV(DepthPyramidDescriptorSet, InImage) uniform texture2D mip_in;
 HYP_DESCRIPTOR_UAV(DepthPyramidDescriptorSet, OutImage) uniform writeonly image2D mip_out;

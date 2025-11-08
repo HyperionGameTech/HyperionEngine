@@ -41,9 +41,9 @@ void VulkanDevice::SetRenderSurface(const VkSurfaceKHR& surface)
     m_surface = surface;
 }
 
-void VulkanDevice::SetRequiredExtensions(const ExtensionMap& extensions)
+void VulkanDevice::SetWantedExtensions(const ExtensionMap& extensions)
 {
-    m_requiredExtensions = extensions;
+    m_wantedExtensions = extensions;
 }
 
 VkDevice VulkanDevice::GetDevice()
@@ -240,7 +240,7 @@ ExtensionMap VulkanDevice::GetUnsupportedExtensions()
     const Array<VkExtensionProperties> extensionsSupported = GetSupportedExtensions();
     ExtensionMap unsupportedExtensions;
 
-    for (const KeyValuePair<String, bool>& requiredExt : m_requiredExtensions)
+    for (const KeyValuePair<String, bool>& requiredExt : m_wantedExtensions)
     {
         auto supportedIt = extensionsSupported.FindIf(
             [&requiredExt](const auto& it)
@@ -418,13 +418,13 @@ RendererResult VulkanDevice::Create(uint32 requiredQueueFamilies)
     {
         HYP_GFX_ASSERT(!it.second, "Unsupported extension should not be 'required', should have failed earlier check");
 
-        m_requiredExtensions.Erase(it.first);
+        m_wantedExtensions.Erase(it.first);
     }
 
     Array<const char*> extensionNames;
-    extensionNames.Reserve(m_requiredExtensions.Size());
+    extensionNames.Reserve(m_wantedExtensions.Size());
 
-    for (const auto& it : m_requiredExtensions)
+    for (const auto& it : m_wantedExtensions)
     {
         extensionNames.PushBack(it.first.Data());
     }

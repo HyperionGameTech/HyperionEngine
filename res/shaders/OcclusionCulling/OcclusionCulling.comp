@@ -9,7 +9,7 @@ layout(local_size_x = 256) in;
 #include "../include/defines.inc"
 #include "../include/shared.inc"
 #include "../include/aabb.inc"
-#include "./shared.inc"
+#include "./Shared.inc"
 
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler depth_pyramid_sampler;
 HYP_DESCRIPTOR_SRV(View, DepthPyramidResult) uniform texture2D depth_pyramid;

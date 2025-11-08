@@ -114,7 +114,7 @@ void FinalPass::Create()
     m_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
     InitObject(m_quadMesh);
 
-    ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
+    ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
     Assert(renderTextureToScreenShader.IsValid());
 
     const DescriptorTableDeclaration* descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();

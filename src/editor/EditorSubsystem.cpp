@@ -1568,11 +1568,7 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Add(NAME("OnReadbackTextureChanged"), view->OnReadbackTextureChanged.Bind([uiImageWeak = uiImage.ToWeak()](const Handle<Texture>& readbackTexture)
                                                                  {
                                                                      Handle<UIImage> uiImage = uiImageWeak.Lock();
-
-                                                                     if (!uiImage)
-                                                                     {
-                                                                         return;
-                                                                     }
+                                                                     AssertDebug(uiImage != nullptr);
 
                                                                      uiImage->SetTexture(readbackTexture);
                                                                  }));

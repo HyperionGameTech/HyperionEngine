@@ -62,7 +62,7 @@ public:
     void Destroy();
 
     void SetRenderSurface(const VkSurfaceKHR& surface);
-    void SetRequiredExtensions(const ExtensionMap& extensions);
+    void SetWantedExtensions(const ExtensionMap& extensions);
 
     VkDevice GetDevice();
     VkSurfaceKHR GetRenderSurface();
@@ -155,7 +155,7 @@ private:
     VulkanDeviceQueue m_queuePresent;
     VulkanDeviceQueue m_queueCompute;
 
-    ExtensionMap m_requiredExtensions;
+    ExtensionMap m_wantedExtensions;
 };
 
 } // namespace hyperion
