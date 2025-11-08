@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region MeshData Reflection Data
 
-HYP_BEGIN_STRUCT(MeshData, 264, 0, {})
+HYP_BEGIN_STRUCT(MeshData, 223, 0, {})
     Field(NAME(HYP_STR(VertexData)), &MeshData::vertexData, offsetof(MeshData, vertexData), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("compressed", true) } }),
     Field(NAME(HYP_STR(IndexData)), &MeshData::indexData, offsetof(MeshData, indexData), Span<const ClassAttribute> { {ClassAttribute("serialize", true), ClassAttribute("compressed", true) } })
 HYP_END_STRUCT
@@ -19,7 +19,7 @@ namespace hyperion {
 
 #pragma region MeshAsset Reflection Data
 
-HYP_BEGIN_CLASS(MeshAsset, 49, 0, NAME("AssetObject"))
+HYP_BEGIN_CLASS(MeshAsset, 17, 0, NAME("AssetObject"))
     Field(NAME(HYP_STR(MeshDesc)), &MeshAsset::m_meshDesc, offsetof(MeshAsset, m_meshDesc), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
 HYP_END_CLASS
 
@@ -32,7 +32,7 @@ namespace hyperion {
 
 #pragma region MeshDesc Reflection Data
 
-HYP_BEGIN_STRUCT(MeshDesc, 265, 0, {})
+HYP_BEGIN_STRUCT(MeshDesc, 224, 0, {})
     Field(NAME(HYP_STR(MeshAttributes)), &MeshDesc::meshAttributes, offsetof(MeshDesc, meshAttributes), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(NumVertices)), &MeshDesc::numVertices, offsetof(MeshDesc, numVertices), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(NumIndices)), &MeshDesc::numIndices, offsetof(MeshDesc, numIndices), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })

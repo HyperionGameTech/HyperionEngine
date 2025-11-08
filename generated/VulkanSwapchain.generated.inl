@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VulkanSwapchain Reflection Data
 
-HYP_BEGIN_CLASS(VulkanSwapchain, 87, 0, NAME("SwapchainBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(VulkanSwapchain, 117, 0, NAME("SwapchainBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion VulkanSwapchain Reflection Data

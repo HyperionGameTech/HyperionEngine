@@ -421,8 +421,6 @@ void Material::UpdateAttributesTextureMask()
         if (m_textures.AtIndex(i) != nullptr)
         {
             m_attributes.textureMask |= (1u << i);
-
-            HYP_LOG(Material, Debug, "Material {} has texture at slot {} : {}", GetName(), i, m_textures.AtIndex(i)->GetName());
         }
     }
 }

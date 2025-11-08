@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AudioSource Reflection Data
 
-HYP_BEGIN_CLASS(AudioSource, 76, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(AudioSource, 30, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetFormat)), &AudioSource::GetFormat, Span<const ClassAttribute> { {ClassAttribute("property", "Format"), ClassAttribute("serialize", true), ClassAttribute("editor", true) } }),
     Method(NAME(HYP_STR(SetFormat)), &AudioSource::SetFormat, Span<const ClassAttribute> { {ClassAttribute("property", "Format"), ClassAttribute("serialize", true), ClassAttribute("editor", true) } }),
     Method(NAME(HYP_STR(GetFreq)), &AudioSource::GetFreq, Span<const ClassAttribute> { {ClassAttribute("property", "Freq"), ClassAttribute("serialize", true), ClassAttribute("editor", true) } }),
@@ -27,7 +27,7 @@ namespace hyperion {
 
 #pragma region AudioSourceFormat Reflection Data
 
-HYP_BEGIN_ENUM(AudioSourceFormat, 279, 0, {})
+HYP_BEGIN_ENUM(AudioSourceFormat, 228, 0, {})
     StaticField(NAME(HYP_STR(MONO8)), AudioSourceFormat::MONO8),
     StaticField(NAME(HYP_STR(MONO16)), AudioSourceFormat::MONO16),
     StaticField(NAME(HYP_STR(STEREO8)), AudioSourceFormat::STEREO8),
@@ -43,7 +43,7 @@ namespace hyperion {
 
 #pragma region AudioSourceState Reflection Data
 
-HYP_BEGIN_ENUM(AudioSourceState, 280, 0, {})
+HYP_BEGIN_ENUM(AudioSourceState, 229, 0, {})
     StaticField(NAME(HYP_STR(UNDEFINED)), AudioSourceState::UNDEFINED),
     StaticField(NAME(HYP_STR(STOPPED)), AudioSourceState::STOPPED),
     StaticField(NAME(HYP_STR(PLAYING)), AudioSourceState::PLAYING),

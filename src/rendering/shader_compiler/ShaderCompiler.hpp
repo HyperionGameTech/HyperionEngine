@@ -1432,7 +1432,7 @@ public:
         }
     };
 
-    struct Bundle // combination of shader files, .frag, .vert etc. in .ini definitions file.
+    struct ShaderDesc // combination of shader files, .frag, .vert etc. in .ini definitions file.
     {
         Name name;
         String entryPointName = "main";
@@ -1491,22 +1491,23 @@ private:
 
     void ParseDefinitionSection(
         const INIFile::Section& section,
-        Bundle& bundle);
+        ShaderDesc& outShaderDesc);
 
     bool CompileBundle(
-        Bundle& bundle,
+        ShaderDesc& shaderDesc,
         CompiledShaderBatch& out)
     {
-        return CompileBundle(bundle, ShaderProperties(), out);
+        return CompileBundle(shaderDesc, ShaderProperties(), out, false);
     }
 
     bool CompileBundle(
-        Bundle& bundle,
+        ShaderDesc& shaderDesc,
         const ShaderProperties& additionalVersions,
-        CompiledShaderBatch& out);
+        CompiledShaderBatch& out,
+        bool onlyCompileRequestedVersions = false);
 
     bool HandleCompiledShaderBatch(
-        Bundle& bundle,
+        ShaderDesc& shaderDesc,
         const ShaderProperties& additionalVersions,
         const FilePath& outputFilePath,
         CompiledShaderBatch& batch);
@@ -1518,7 +1519,7 @@ private:
 
     INIFile* m_definitions;
     ShaderCache m_cache;
-    Array<Bundle> m_bundles;
+    Array<ShaderDesc> m_shaderDescs;
 };
 
 } // namespace hyperion

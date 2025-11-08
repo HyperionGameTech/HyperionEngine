@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AssetPackageFlags Reflection Data
 
-HYP_BEGIN_ENUM(AssetPackageFlags, 260, 0, {})
+HYP_BEGIN_ENUM(AssetPackageFlags, 220, 0, {})
     StaticField(NAME(HYP_STR(APF_NONE)), AssetPackageFlags::APF_NONE),
     StaticField(NAME(HYP_STR(APF_TRANSIENT)), AssetPackageFlags::APF_TRANSIENT),
     StaticField(NAME(HYP_STR(APF_HIDDEN)), AssetPackageFlags::APF_HIDDEN)
@@ -20,7 +20,7 @@ namespace hyperion {
 
 #pragma region AssetPackage Reflection Data
 
-HYP_BEGIN_CLASS(AssetPackage, 43, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(AssetPackage, 26, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetUUID)), &AssetPackage::GetUUID),
     Method(NAME(HYP_STR(SetUUID)), &AssetPackage::SetUUID),
     Method(NAME(HYP_STR(GetName)), &AssetPackage::GetName),
@@ -58,7 +58,7 @@ namespace hyperion {
 
 #pragma region AssetRegistry Reflection Data
 
-HYP_BEGIN_CLASS(AssetRegistry, 44, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(AssetRegistry, 27, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetRootPath)), &AssetRegistry::GetRootPath),
     Method(NAME(HYP_STR(SetRootPath)), &AssetRegistry::SetRootPath),
     Method(NAME(HYP_STR(RemovePackage)), &AssetRegistry::RemovePackage),

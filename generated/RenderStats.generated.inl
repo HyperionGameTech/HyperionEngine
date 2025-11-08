@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region RenderStatsCountType Reflection Data
 
-HYP_BEGIN_ENUM(RenderStatsCountType, 334, 0, {})
+HYP_BEGIN_ENUM(RenderStatsCountType, 293, 0, {})
     StaticField(NAME(HYP_STR(ERS_DRAW_CALLS)), RenderStatsCountType::ERS_DRAW_CALLS),
     StaticField(NAME(HYP_STR(ERS_INSTANCED_DRAW_CALLS)), RenderStatsCountType::ERS_INSTANCED_DRAW_CALLS),
     StaticField(NAME(HYP_STR(ERS_TRIANGLES)), RenderStatsCountType::ERS_TRIANGLES),
@@ -30,7 +30,7 @@ namespace hyperion {
 
 #pragma region RenderStats Reflection Data
 
-HYP_BEGIN_STRUCT(RenderStats, 335, 0, {})
+HYP_BEGIN_STRUCT(RenderStats, 294, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion RenderStats Reflection Data
@@ -42,7 +42,7 @@ namespace hyperion {
 
 #pragma region RenderStatsCounts Reflection Data
 
-HYP_BEGIN_STRUCT(RenderStatsCounts, 336, 0, {})
+HYP_BEGIN_STRUCT(RenderStatsCounts, 295, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion RenderStatsCounts Reflection Data

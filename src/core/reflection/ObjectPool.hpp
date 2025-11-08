@@ -137,7 +137,7 @@ struct ObjectHeader
 
     HYP_FORCE_INLINE uint32 GetRefCountWeak() const
     {
-        return AtomicAdd(const_cast<volatile int32*>(&refCountStrong), 0);
+        return AtomicAdd(const_cast<volatile int32*>(&refCountWeak), 0);
     }
 
     bool TryIncRefStrong()
