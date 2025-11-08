@@ -309,7 +309,7 @@ if (RENDERING_BACKEND STREQUAL "WebGPU")
     add_definitions(-DHYP_WEBGPU=1)
 
     # Build WebGPU as external project (only for VS and Xcode)
-    if(MSVC OR CMAKE_GENERATOR STREQUAL "Xcode")
+    if(MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
         ExternalProject_Add(webgpu_external
             SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/webgpu
             CMAKE_ARGS
@@ -552,7 +552,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
         add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
 
         # Build glslang as external project to avoid cluttering solution (only for VS and Xcode)
-        if(MSVC OR CMAKE_GENERATOR STREQUAL "Xcode")
+        if(MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
             ExternalProject_Add(glslang_external
                 SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/glslang
                 CMAKE_ARGS
@@ -690,7 +690,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
         add_definitions(-DHYP_LIBDATACHANNEL=1)
 
         # Build libdatachannel as external project (only for VS and Xcode)
-        if(MSVC OR CMAKE_GENERATOR STREQUAL "Xcode")
+        if(MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
             ExternalProject_Add(libdatachannel_external
                 SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/libdatachannel
                 CMAKE_ARGS
