@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VulkanCommandBuffer Reflection Data
 
-HYP_BEGIN_CLASS(VulkanCommandBuffer, 85, 0, NAME("CommandBufferBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(VulkanCommandBuffer, 114, 0, NAME("CommandBufferBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion VulkanCommandBuffer Reflection Data

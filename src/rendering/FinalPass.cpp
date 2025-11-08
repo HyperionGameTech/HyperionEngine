@@ -31,7 +31,7 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#define HYP_RENDER_UI_IN_FINAL_PASS
+// #define HYP_RENDER_UI_IN_FINAL_PASS
 
 namespace hyperion {
 

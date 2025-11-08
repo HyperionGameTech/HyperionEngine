@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region UIComponent Reflection Data
 
-HYP_BEGIN_STRUCT(UIComponent, 387, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 8),ClassAttribute("serialize", false))
+HYP_BEGIN_STRUCT(UIComponent, 395, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 8),ClassAttribute("serialize", false))
     Field(NAME(HYP_STR(UiObject)), &UIComponent::uiObject, offsetof(UIComponent, uiObject))
 HYP_END_STRUCT
 

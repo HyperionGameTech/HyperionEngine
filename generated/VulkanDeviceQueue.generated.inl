@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VulkanDeviceQueueType Reflection Data
 
-HYP_BEGIN_ENUM(VulkanDeviceQueueType, 344, 0, {})
+HYP_BEGIN_ENUM(VulkanDeviceQueueType, 361, 0, {})
     StaticField(NAME(HYP_STR(GRAPHICS)), VulkanDeviceQueueType::GRAPHICS),
     StaticField(NAME(HYP_STR(COMPUTE)), VulkanDeviceQueueType::COMPUTE),
     StaticField(NAME(HYP_STR(TRANSFER)), VulkanDeviceQueueType::TRANSFER),

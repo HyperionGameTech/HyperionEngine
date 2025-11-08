@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region SkydomeRenderer Reflection Data
 
-HYP_BEGIN_CLASS(SkydomeRenderer, 148, 0, NAME("Subsystem"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(SkydomeRenderer, 162, 0, NAME("Subsystem"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion SkydomeRenderer Reflection Data

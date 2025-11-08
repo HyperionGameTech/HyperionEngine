@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region LightmapperSubsystem Reflection Data
 
-HYP_BEGIN_CLASS(LightmapperSubsystem, 147, 0, NAME("Subsystem"))
+HYP_BEGIN_CLASS(LightmapperSubsystem, 161, 0, NAME("Subsystem"))
 HYP_END_CLASS
 
 #pragma endregion LightmapperSubsystem Reflection Data

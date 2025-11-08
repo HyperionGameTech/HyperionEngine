@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region WorldGrid Reflection Data
 
-HYP_BEGIN_CLASS(WorldGrid, 175, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(WorldGrid, 194, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetWorld)), &WorldGrid::GetWorld),
     Method(NAME(HYP_STR(AddLayer)), &WorldGrid::AddLayer),
     Method(NAME(HYP_STR(RemoveLayer)), &WorldGrid::RemoveLayer),

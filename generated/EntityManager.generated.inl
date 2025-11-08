@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EntityManager Reflection Data
 
-HYP_BEGIN_CLASS(EntityManager, 129, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(EntityManager, 180, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetWorld)), &EntityManager::GetWorld),
     Method(NAME(HYP_STR(GetScene)), &EntityManager::GetScene),
     Method(NAME(HYP_STR(AddExistingEntity)), &EntityManager::AddExistingEntity),

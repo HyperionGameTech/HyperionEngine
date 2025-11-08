@@ -9,7 +9,7 @@ namespace hyperion {
 
 #pragma region ConsoleCommandBase Reflection Data
 
-HYP_BEGIN_CLASS(ConsoleCommandBase, 31, 1, NAME("ObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(ConsoleCommandBase, 215, 1, NAME("ObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(Execute)), &ConsoleCommandBase::Execute, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
 HYP_END_CLASS
 

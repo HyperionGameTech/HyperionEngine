@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region PhysicsSystem Reflection Data
 
-HYP_BEGIN_CLASS(PhysicsSystem, 156, 0, NAME("SystemBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(PhysicsSystem, 149, 0, NAME("SystemBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion PhysicsSystem Reflection Data

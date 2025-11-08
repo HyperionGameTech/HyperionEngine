@@ -71,7 +71,7 @@ function(RunHypBuildTool)
     if(NOT EXISTS ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH})
         message(FATAL_ERROR "RunHypBuildTool script not found in tools/scripts! Expected path: ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH}")
     endif()
-    
+
     execute_process(
         COMMAND ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH} ${HYP_BUILD_TOOL_VERSION_MAJOR} ${HYP_BUILD_TOOL_VERSION_MINOR}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -92,6 +92,8 @@ add_definitions(-DHYP_DEBUG_MODE=1)
 # set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
 add_definitions(-DHYPERION_ENGINE=1)
 set(HYPERION_ENGINE 1)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 
 if(HYP_DEBUG_MODE)
@@ -197,7 +199,7 @@ if(IOS)
     else()
         set(MVK_PACKAGE_NAME "ios-arm64")
     endif()
-    
+
     # ensure VULKAN_SDK is set
     if(NOT DEFINED ENV{VULKAN_SDK})
         message(FATAL_ERROR "VULKAN_SDK environment variable is not set. Please set it to the path of your Vulkan SDK.")
@@ -211,7 +213,7 @@ if(IOS)
     set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
     set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
     set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
-    
+
     set(VULKAN_SDK $ENV{VULKAN_SDK})
     set(Vulkan_INCLUDE_DIR "${VULKAN_SDK}/include")
     set(Vulkan_INCLUDE_DIRS "${VULKAN_SDK}/include")
@@ -224,7 +226,7 @@ if(IOS)
     set(SDL2_LIBRARIES "${THIRD_PARTY_LIBRARY_DIR}/libSDL2.a")
     set(SDL2_LIBRARY "${THIRD_PARTY_LIBRARY_DIR}/libSDL2.a")
     set(SDL2_FOUND TRUE)
-    
+
     find_library(UIKIT_LIB UIKit)
     find_library(COREMEDIA_LIB CoreMedia)
     find_library(METAL_LIB Metal)
@@ -323,10 +325,10 @@ if (RENDERING_BACKEND STREQUAL "WebGPU")
 
         # Create imported target for WebGPU
         ExternalProject_Get_Property(webgpu_external BINARY_DIR)
-        
+
         add_library(webgpu STATIC IMPORTED)
         add_dependencies(webgpu webgpu_external)
-        
+
         if(WIN32)
             set_target_properties(webgpu PROPERTIES
                 IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/webgpu.lib
@@ -342,7 +344,7 @@ if (RENDERING_BACKEND STREQUAL "WebGPU")
     else()
         # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
         add_subdirectory(submodules/webgpu EXCLUDE_FROM_ALL)
-        
+
         include_directories(submodules/webgpu/include)
         set(COMMON_LIBRARIES ${COMMON_LIBRARIES} webgpu)
     endif()
@@ -397,7 +399,7 @@ if(NOT HYP_NO_DOTNET)
     # if dotnet headers exist, set HYP_DOTNET to 1
     if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dotnetcore/hostfxr.h")
         message(STATUS ".NET headers found, building .NET core runtime")
-        
+
         file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.dylib"
             "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.so"
             "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.a"
@@ -455,7 +457,7 @@ function(collect_sources_and_modules dir out_sources out_modules out_pch_headers
     # If this directory has a CMakeLists.txt, consider it a module and skip recursion.
     if(EXISTS "${dir}/CMakeLists.txt")
         # the subfolder must contain a library with the name hyperion-<subfolder>
- 
+
         set(subdir_basename "")
         string(REGEX MATCH "([^/]+)$" subdir_basename ${dir})
 
@@ -477,7 +479,7 @@ function(collect_sources_and_modules dir out_sources out_modules out_pch_headers
         return()
     endif()
 
-    file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR} 
+    file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR}
          "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.h" "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hxx" "${dir}/*.inl" "${dir}/*.mm" "${dir}/*.m")
     list(APPEND local_sources ${current_sources})
 
@@ -552,7 +554,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
         add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
 
         # Build glslang as external project to avoid cluttering solution (only for VS and Xcode)
-        if(MSVC OR CMAKE_GENERATOR STREQUAL "Xcode")
+        if(MSVC )
             ExternalProject_Add(glslang_external
                 SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/glslang
                 CMAKE_ARGS
@@ -573,7 +575,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
 
             # Create imported targets for all the libraries we need
             ExternalProject_Get_Property(glslang_external BINARY_DIR)
-            
+
             add_library(glslang STATIC IMPORTED)
             add_library(SPIRV STATIC IMPORTED)
             add_library(glslang-default-resource-limits STATIC IMPORTED)
@@ -582,7 +584,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
             add_library(MachineIndependent STATIC IMPORTED)
             add_library(GenericCodeGen STATIC IMPORTED)
             add_library(OSDependent STATIC IMPORTED)
-            
+
             add_dependencies(glslang glslang_external)
             add_dependencies(SPIRV glslang_external)
             add_dependencies(glslang-default-resource-limits glslang_external)
@@ -591,7 +593,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
             add_dependencies(MachineIndependent glslang_external)
             add_dependencies(GenericCodeGen glslang_external)
             add_dependencies(OSDependent glslang_external)
-            
+
             # Set the imported library locations
             if(WIN32)
                 set_target_properties(glslang PROPERTIES
@@ -667,9 +669,9 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
             set(ENABLE_SPVREMAPPER OFF CACHE BOOL "" FORCE)
             set(ENABLE_SPIRV ON CACHE BOOL "" FORCE)
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-            
+
             add_subdirectory(submodules/glslang EXCLUDE_FROM_ALL)
-            
+
             include_directories(BEFORE submodules/glslang)
 
             set(COMMON_LIBRARIES
@@ -704,10 +706,10 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
 
             # Create imported target
             ExternalProject_Get_Property(libdatachannel_external BINARY_DIR)
-            
+
             add_library(datachannel-static STATIC IMPORTED)
             add_dependencies(datachannel-static libdatachannel_external)
-            
+
             if(WIN32)
                 set_target_properties(datachannel-static PROPERTIES
                     IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/datachannel-static.lib
@@ -1207,12 +1209,12 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         if(MSVC)
             # Enable C# language support for proper project inclusion
             enable_language(CSharp)
-            
+
             # Include existing .csproj files in the solution
             include_external_msproject(Hyperion.NET.Shared ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj)
             include_external_msproject(Hyperion.NET.Runtime ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj)
             include_external_msproject(Hyperion.NET.Interop ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj)
-            
+
             # Check if Scripting project exists and include it
             if(EXISTS ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
                 include_external_msproject(Hyperion.NET.Scripting ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
@@ -1243,7 +1245,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             endif()
         endif()
     endif()
-        
+
 else()
     message(STATUS "Not building C# libraries, HYP_GENERATE_CSHARP_LIBRARIES is false")
 endif()
