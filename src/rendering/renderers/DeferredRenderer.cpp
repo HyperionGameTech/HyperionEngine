@@ -1694,7 +1694,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     passData.tonemapPass->Resize(newSize);
 
-    passData.lightmapPass = CreateObject<LightmapPass>(translucentFbo, newSize, gbuffer);
+    passData.lightmapPass = CreateObject<LightmapPass>();
     passData.lightmapPass->Create();
 
     passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), newSize, gbuffer);
