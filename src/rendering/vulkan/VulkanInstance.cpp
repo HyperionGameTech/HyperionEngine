@@ -164,9 +164,10 @@ ExtensionMap VulkanInstance::GetExtensionMap()
 {
     ExtensionMap map;
     map[VK_KHR_SWAPCHAIN_EXTENSION_NAME] = true;
-    map[VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME] = false;
+    map[VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME] = true;
+    map[VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME] = true;
 
-    map[VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME] = false;
+    map[VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME] = false;
     map[VK_KHR_SPIRV_1_4_EXTENSION_NAME] = false;
 
 #ifdef HYP_DEBUG_MODE
