@@ -17,10 +17,10 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderGlobalState.hpp>
 
-#include <rendering/shadows/ShadowMap.hpp>
-#include <rendering/shadows/ShadowMapAllocator.hpp>
-#include <rendering/shadows/ShadowRenderer.hpp>
-#include <rendering/shadows/ShadowCameraHelper.hpp>
+#include <shadows/ShadowMap.hpp>
+#include <shadows/ShadowMapAllocator.hpp>
+#include <rendering/renderers/ShadowRenderer.hpp>
+#include <shadows/ShadowCameraHelper.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

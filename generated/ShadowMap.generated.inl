@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region ShadowMapType Reflection Data
 
-HYP_BEGIN_ENUM(ShadowMapType, 345, 0, {})
+HYP_BEGIN_ENUM(ShadowMapType, 394, 0, {})
     StaticField(NAME(HYP_STR(SMT_DIRECTIONAL)), ShadowMapType::SMT_DIRECTIONAL),
     StaticField(NAME(HYP_STR(SMT_SPOT)), ShadowMapType::SMT_SPOT),
     StaticField(NAME(HYP_STR(SMT_OMNI)), ShadowMapType::SMT_OMNI)
@@ -20,7 +20,7 @@ namespace hyperion {
 
 #pragma region ShadowMapFilter Reflection Data
 
-HYP_BEGIN_ENUM(ShadowMapFilter, 346, 0, {})
+HYP_BEGIN_ENUM(ShadowMapFilter, 395, 0, {})
     StaticField(NAME(HYP_STR(SMF_STANDARD)), ShadowMapFilter::SMF_STANDARD),
     StaticField(NAME(HYP_STR(SMF_PCF)), ShadowMapFilter::SMF_PCF),
     StaticField(NAME(HYP_STR(SMF_CONTACT_HARDENED)), ShadowMapFilter::SMF_CONTACT_HARDENED),

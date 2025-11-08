@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region ParticleSpawner Reflection Data
 
-HYP_BEGIN_CLASS(ParticleSpawner, 78, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(ParticleSpawner, 80, 0, NAME("ObjectBase"))
 HYP_END_CLASS
 
 #pragma endregion ParticleSpawner Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region ParticleSystem Reflection Data
 
-HYP_BEGIN_CLASS(ParticleSystem, 79, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(ParticleSystem, 81, 0, NAME("ObjectBase"))
 HYP_END_CLASS
 
 #pragma endregion ParticleSystem Reflection Data

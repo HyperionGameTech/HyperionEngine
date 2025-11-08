@@ -4,7 +4,7 @@
 
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderComputePipeline.hpp>
-#include <rendering/rt/RenderRaytracingPipeline.hpp>
+#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 #include <rendering/RenderFramebuffer.hpp>
 #include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
@@ -233,18 +233,18 @@ public:
           m_viewport(viewport)
     {
     }
-    
+
     BindGraphicsPipeline(GraphicsPipelineBase* pipeline, Vec2i viewportOffset, Vec2u viewportExtent);
         : m_pipeline(pipeline),
           m_viewport(Viewport { viewportExtent, viewportOffset })
-    {
-    }
+        {
+        }
 
-    BindGraphicsPipeline(GraphicsPipelineBase* pipeline)
-        : m_pipeline(pipeline),
-          m_viewport()
-    {
-    }
+        BindGraphicsPipeline(GraphicsPipelineBase* pipeline)
+            : m_pipeline(pipeline),
+              m_viewport()
+        {
+        }
 #endif
 
     HYP_API static void PrepareStatic(CmdBase* cmd, FrameBase*);

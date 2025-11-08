@@ -11,7 +11,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/Deferred.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/ShaderManager.hpp>
@@ -24,7 +24,7 @@
 #include <rendering/RenderSwapchain.hpp>
 #include <rendering/RenderConfig.hpp>
 
-#include <rendering/debug/DebugDrawer.hpp>
+#include <engine/DebugDrawer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

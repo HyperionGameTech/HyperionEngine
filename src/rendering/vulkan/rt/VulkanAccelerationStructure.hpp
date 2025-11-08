@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <rendering/rt/RenderAccelerationStructure.hpp>
+#include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/Shared.hpp>

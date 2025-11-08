@@ -22,7 +22,6 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderStats.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderQueue.hpp>

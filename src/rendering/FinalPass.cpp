@@ -7,7 +7,7 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/Deferred.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderFrame.hpp>

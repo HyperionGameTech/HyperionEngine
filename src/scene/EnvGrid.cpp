@@ -19,10 +19,10 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderProxyList.hpp>
 
-#include <rendering/env_grid/EnvGridRenderer.hpp>
-#include <rendering/env_probe/EnvProbeRenderer.hpp>
+#include <rendering/renderers/EnvGridRenderer.hpp>
+#include <rendering/renderers/EnvProbeRenderer.hpp>
 
-#include <rendering/debug/DebugDrawer.hpp>
+#include <engine/DebugDrawer.hpp>
 
 #include <rendering/RenderDescriptorSet.hpp>
 

@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region AnimationComponent Reflection Data
 
-HYP_BEGIN_STRUCT(AnimationComponent, 372, 0, {}, ClassAttribute("component", true))
+HYP_BEGIN_STRUCT(AnimationComponent, 364, 0, {}, ClassAttribute("component", true))
     Field(NAME(HYP_STR(PlaybackState)), &AnimationComponent::playbackState, offsetof(AnimationComponent, playbackState), Span<const ClassAttribute> { {ClassAttribute("property", "PlaybackState"), ClassAttribute("serialize", true), ClassAttribute("editor", true) } })
 HYP_END_STRUCT
 
@@ -20,7 +20,7 @@ namespace hyperion {
 
 #pragma region AnimationPlaybackState Reflection Data
 
-HYP_BEGIN_STRUCT(AnimationPlaybackState, 373, 0, {})
+HYP_BEGIN_STRUCT(AnimationPlaybackState, 365, 0, {})
     Field(NAME(HYP_STR(AnimationIndex)), &AnimationPlaybackState::animationIndex, offsetof(AnimationPlaybackState, animationIndex), Span<const ClassAttribute> { {ClassAttribute("property", "AnimationIndex"), ClassAttribute("editor", true) } }),
     Field(NAME(HYP_STR(Status)), &AnimationPlaybackState::status, offsetof(AnimationPlaybackState, status), Span<const ClassAttribute> { {ClassAttribute("property", "Status"), ClassAttribute("editor", true) } }),
     Field(NAME(HYP_STR(LoopMode)), &AnimationPlaybackState::loopMode, offsetof(AnimationPlaybackState, loopMode), Span<const ClassAttribute> { {ClassAttribute("property", "LoopMode"), ClassAttribute("editor", true) } }),
@@ -37,7 +37,7 @@ namespace hyperion {
 
 #pragma region AnimationLoopMode Reflection Data
 
-HYP_BEGIN_ENUM(AnimationLoopMode, 374, 0, {})
+HYP_BEGIN_ENUM(AnimationLoopMode, 366, 0, {})
     StaticField(NAME(HYP_STR(ONCE)), AnimationLoopMode::ONCE),
     StaticField(NAME(HYP_STR(REPEAT)), AnimationLoopMode::REPEAT)
 HYP_END_ENUM
@@ -51,7 +51,7 @@ namespace hyperion {
 
 #pragma region AnimationPlaybackStatus Reflection Data
 
-HYP_BEGIN_ENUM(AnimationPlaybackStatus, 375, 0, {})
+HYP_BEGIN_ENUM(AnimationPlaybackStatus, 367, 0, {})
     StaticField(NAME(HYP_STR(STOPPED)), AnimationPlaybackStatus::STOPPED),
     StaticField(NAME(HYP_STR(PAUSED)), AnimationPlaybackStatus::PAUSED),
     StaticField(NAME(HYP_STR(PLAYING)), AnimationPlaybackStatus::PLAYING)

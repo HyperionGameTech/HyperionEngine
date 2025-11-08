@@ -22,7 +22,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGlobalState.hpp>
 
-#include <rendering/rt/RenderAccelerationStructure.hpp>
+#include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

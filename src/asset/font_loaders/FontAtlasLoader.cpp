@@ -5,7 +5,7 @@
 #include <asset/font_loaders/FontAtlasLoader.hpp>
 #include <asset/Assets.hpp>
 
-#include <rendering/font/FontAtlas.hpp>
+#include <ui/font/FontAtlas.hpp>
 
 #include <rendering/Texture.hpp>
 

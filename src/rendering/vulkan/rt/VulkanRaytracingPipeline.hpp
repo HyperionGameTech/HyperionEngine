@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <rendering/rt/RenderRaytracingPipeline.hpp>
+#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 #include <rendering/vulkan/VulkanPipeline.hpp>
 
 #include <core/containers/Array.hpp>

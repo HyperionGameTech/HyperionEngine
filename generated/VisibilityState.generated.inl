@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VisibilityState Reflection Data
 
-HYP_BEGIN_STRUCT(VisibilityState, 366, 0, {})
+HYP_BEGIN_STRUCT(VisibilityState, 358, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion VisibilityState Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region VisibilityStateSnapshot Reflection Data
 
-HYP_BEGIN_STRUCT(VisibilityStateSnapshot, 367, 0, {})
+HYP_BEGIN_STRUCT(VisibilityStateSnapshot, 359, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion VisibilityStateSnapshot Reflection Data

@@ -8,7 +8,7 @@
 
 #include <rendering/RenderEnvironment.hpp>
 
-#include <rendering/debug/DebugDrawer.hpp>
+#include <engine/DebugDrawer.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Light.hpp>
@@ -67,8 +67,8 @@
 
 #include <rendering/Mesh.hpp>
 
-#include <rendering/lightmapper/LightmapperSubsystem.hpp>
-#include <rendering/lightmapper/LightmapData.hpp>
+#include <lightmapper/LightmapperSubsystem.hpp>
+#include <lightmapper/LightmapData.hpp>
 
 #include <system/SystemEvent.hpp>
 

@@ -21,7 +21,7 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#include <rendering/font/FontAtlas.hpp>
+#include <ui/font/FontAtlas.hpp>
 
 #include <rendering/Texture.hpp>
 
@@ -858,7 +858,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
 
-        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::* ClickDelegateMember;
+        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::*ClickDelegateMember;
         const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ClickDelegateMember delegateMember = nullptr)
         {
             if (buttons != mouseButtonToCheck)

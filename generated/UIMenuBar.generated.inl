@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region UIMenuBarDropDirection Reflection Data
 
-HYP_BEGIN_ENUM(UIMenuBarDropDirection, 408, 0, {})
+HYP_BEGIN_ENUM(UIMenuBarDropDirection, 404, 0, {})
     StaticField(NAME(HYP_STR(DOWN)), UIMenuBarDropDirection::DOWN),
     StaticField(NAME(HYP_STR(UP)), UIMenuBarDropDirection::UP)
 HYP_END_ENUM
@@ -19,7 +19,7 @@ namespace hyperion {
 
 #pragma region UIMenuItem Reflection Data
 
-HYP_BEGIN_CLASS(UIMenuItem, 199, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIMenuItem, 198, 0, NAME("UIObject"))
 HYP_END_CLASS
 
 #pragma endregion UIMenuItem Reflection Data
@@ -31,7 +31,7 @@ namespace hyperion {
 
 #pragma region UIMenuBar Reflection Data
 
-HYP_BEGIN_CLASS(UIMenuBar, 209, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UIMenuBar, 208, 0, NAME("UIPanel"))
     Method(NAME(HYP_STR(GetDropDirection)), &UIMenuBar::GetDropDirection, Span<const ClassAttribute> { {ClassAttribute("property", "DropDirection"), ClassAttribute("xmlattribute", "direction") } }),
     Method(NAME(HYP_STR(SetDropDirection)), &UIMenuBar::SetDropDirection, Span<const ClassAttribute> { {ClassAttribute("property", "DropDirection"), ClassAttribute("xmlattribute", "direction") } }),
     Method(NAME(HYP_STR(SetSelectedMenuItemIndex)), &UIMenuBar::SetSelectedMenuItemIndex),

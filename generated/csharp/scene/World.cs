@@ -21,7 +21,7 @@ namespace Hyperion
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(15051342904925593478)).InvokeNative(obj))
             {
-                return resultData.ReadStruct<RenderStats>();
+                return (RenderStats)resultData.GetValue();
             }
         }
         public static Subsystem GetSubsystemByName(this World obj, Name name)

@@ -4,7 +4,7 @@
 
 #include <rendering/SSGI.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/Deferred.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderQueue.hpp>

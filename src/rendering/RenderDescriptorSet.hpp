@@ -25,7 +25,7 @@
 #include <rendering/RenderSampler.hpp>
 #include <rendering/Shared.hpp>
 
-#include <rendering/rt/RenderAccelerationStructure.hpp>
+#include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

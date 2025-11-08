@@ -3,7 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/Deferred.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/Mesh.hpp>
@@ -11,9 +11,9 @@
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/GaussianSplatting.hpp>
 
-#include <rendering/debug/DebugDrawer.hpp>
+#include <engine/DebugDrawer.hpp>
 
-#include <rendering/rt/RenderAccelerationStructure.hpp>
+#include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <system/AppContext.hpp>
 

@@ -14,7 +14,7 @@
 
 #include <rendering/Shared.hpp>
 
-#include <rendering/font/FontAtlas.hpp>
+#include <ui/font/FontAtlas.hpp>
 
 #include <scene/Scene.hpp>
 

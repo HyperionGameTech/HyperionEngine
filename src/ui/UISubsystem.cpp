@@ -21,7 +21,7 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 
-#include <rendering/UIRenderer.hpp>
+#include <rendering/renderers/UIRenderer.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderGlobalState.hpp>

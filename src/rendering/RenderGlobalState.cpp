@@ -5,7 +5,7 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/Renderer.hpp>
-#include <rendering/Deferred.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/GpuBufferHolderMap.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -15,7 +15,6 @@
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/RenderStats.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderShader.hpp>
 #include <rendering/RenderBackend.hpp>
@@ -25,13 +24,13 @@
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/env_probe/EnvProbeRenderer.hpp>
-#include <rendering/env_grid/EnvGridRenderer.hpp>
+#include <rendering/renderers/EnvProbeRenderer.hpp>
+#include <rendering/renderers/EnvGridRenderer.hpp>
 
-#include <rendering/shadows/ShadowMapAllocator.hpp>
-#include <rendering/shadows/ShadowRenderer.hpp>
+#include <shadows/ShadowMapAllocator.hpp>
+#include <rendering/renderers/ShadowRenderer.hpp>
 
-#include <rendering/rt/DDGI.hpp>
+#include <rendering/raytracing/DDGI.hpp>
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
@@ -522,7 +521,6 @@ struct FrameData
     HashMap<View*, ViewFrameData*> viewFrameData;
 
     WorldShaderData worldBufferData {};
-    RenderStats renderStats {}; // for game thread to write to and render thread to read from
 };
 
 static FrameData s_frameData[RingBufferDepth];
@@ -1169,8 +1167,8 @@ void BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                i != Bitset::NotFound;
-                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                 i != Bitset::NotFound;
+                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {

@@ -12,7 +12,7 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
 
-#include <rendering/lightmapper/LightmapData.hpp>
+#include <lightmapper/LightmapData.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

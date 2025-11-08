@@ -4,7 +4,7 @@
 
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/Deferred.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
@@ -101,12 +101,12 @@ FullScreenPass::FullScreenPass(
     Vec2u extent,
     GBuffer* gbuffer)
     : FullScreenPass(
-          shader,
-          descriptorTable,
-          FramebufferRef::Null(),
-          imageFormat,
-          extent,
-          gbuffer)
+        shader,
+        descriptorTable,
+        FramebufferRef::Null(),
+        imageFormat,
+        extent,
+        gbuffer)
 {
 }
 
@@ -116,12 +116,12 @@ FullScreenPass::FullScreenPass(
     Vec2u extent,
     GBuffer* gbuffer)
     : FullScreenPass(
-          shader,
-          DescriptorTableRef::Null(),
-          FramebufferRef::Null(),
-          imageFormat,
-          extent,
-          gbuffer)
+        shader,
+        DescriptorTableRef::Null(),
+        FramebufferRef::Null(),
+        imageFormat,
+        extent,
+        gbuffer)
 {
 }
 

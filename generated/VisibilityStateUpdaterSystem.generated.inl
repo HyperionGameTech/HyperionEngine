@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VisibilityStateUpdaterSystem Reflection Data
 
-HYP_BEGIN_CLASS(VisibilityStateUpdaterSystem, 161, 0, NAME("SystemBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(VisibilityStateUpdaterSystem, 160, 0, NAME("SystemBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion VisibilityStateUpdaterSystem Reflection Data

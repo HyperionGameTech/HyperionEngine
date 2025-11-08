@@ -7,7 +7,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/Deferred.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>

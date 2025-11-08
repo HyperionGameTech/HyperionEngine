@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VulkanRenderPass Reflection Data
 
-HYP_BEGIN_CLASS(VulkanRenderPass, 128, 0, NAME("ObjectBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(VulkanRenderPass, 127, 0, NAME("ObjectBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion VulkanRenderPass Reflection Data

@@ -13,7 +13,7 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <rendering/font/FontAtlas.hpp>
+#include <ui/font/FontAtlas.hpp>
 
 #include <rendering/Texture.hpp>
 

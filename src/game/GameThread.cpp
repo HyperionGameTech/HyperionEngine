@@ -19,7 +19,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <rendering/debug/DebugDrawer.hpp>
+#include <engine/DebugDrawer.hpp>
 #include <rendering/RenderGlobalState.hpp>
 
 #include <engine/EngineGlobals.hpp>

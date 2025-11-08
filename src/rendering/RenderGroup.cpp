@@ -5,11 +5,11 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/Deferred.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/env_grid/EnvGridRenderer.hpp>
-#include <rendering/env_probe/EnvProbeRenderer.hpp>
+#include <rendering/renderers/EnvGridRenderer.hpp>
+#include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>

@@ -20,7 +20,7 @@
 #include <ui/UISubsystem.hpp>
 #include <ui/UIStage.hpp>
 
-#include <rendering/debug/DebugDrawer.hpp>
+#include <engine/DebugDrawer.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/ManagedClass.hpp>

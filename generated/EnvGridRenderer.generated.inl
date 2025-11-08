@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EnvGridPassData Reflection Data
 
-HYP_BEGIN_CLASS(EnvGridPassData, 96, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(EnvGridPassData, 97, 0, NAME("PassData"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion EnvGridPassData Reflection Data

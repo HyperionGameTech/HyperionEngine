@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <rendering/RenderStats.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderObject.hpp>
 

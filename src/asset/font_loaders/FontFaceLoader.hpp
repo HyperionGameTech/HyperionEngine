@@ -4,7 +4,7 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <rendering/font/FontFace.hpp>
+#include <ui/font/FontFace.hpp>
 
 #include <core/Types.hpp>
 

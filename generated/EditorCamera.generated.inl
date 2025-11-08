@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EditorCameraInputHandler Reflection Data
 
-HYP_BEGIN_CLASS(EditorCameraInputHandler, 56, 0, NAME("InputHandlerBase"))
+HYP_BEGIN_CLASS(EditorCameraInputHandler, 57, 0, NAME("InputHandlerBase"))
 HYP_END_CLASS
 
 #pragma endregion EditorCameraInputHandler Reflection Data
@@ -32,7 +32,7 @@ namespace hyperion {
 
 #pragma region EditorCameraController Reflection Data
 
-HYP_BEGIN_CLASS(EditorCameraController, 174, 0, NAME("FirstPersonCameraController"))
+HYP_BEGIN_CLASS(EditorCameraController, 173, 0, NAME("FirstPersonCameraController"))
 HYP_END_CLASS
 
 #pragma endregion EditorCameraController Reflection Data

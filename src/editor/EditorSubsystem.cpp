@@ -64,18 +64,18 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/debug/DebugDrawer.hpp>
+#include <engine/DebugDrawer.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/font/FontAtlas.hpp>
+#include <ui/font/FontAtlas.hpp>
 
 // temp
-#include <rendering/lightmapper/LightmapperSubsystem.hpp>
-#include <rendering/lightmapper/LightmapData.hpp>
+#include <lightmapper/LightmapperSubsystem.hpp>
+#include <lightmapper/LightmapData.hpp>
 
 #include <console/ui/ConsoleUI.hpp>
 

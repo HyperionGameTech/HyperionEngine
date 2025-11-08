@@ -14,7 +14,7 @@
 
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
-#include <rendering/rt/RenderRaytracingPipeline.hpp>
+#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 
 #include <VulkanCommandBuffer.generated.inl>
 
