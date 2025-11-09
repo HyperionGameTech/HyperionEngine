@@ -640,7 +640,7 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRe
 
     data.graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        m_descriptorTable.GetOr(DescriptorTableRef::Null()),
+        DescriptorTableRef::Null(),
         { &framebuffer, 1 },
         RenderableAttributeSet(meshAttributes, materialAttributes));
 
@@ -684,7 +684,8 @@ void LightmapPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& rend
         || !proxy->atlasIrradianceTextures.CompareBitwise(data.atlasIrradianceTextures)
         || !proxy->atlasRadianceTextures.CompareBitwise(data.atlasRadianceTextures))
     {
-        AssertDebug(m_shader != nullptr);
+        // dirty, request new pipeline
+        data.graphicsPipeline = {};
 
         DescriptorSetRef& descriptorSet = data.descriptorSet;
 

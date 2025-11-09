@@ -17,6 +17,7 @@
 #include <rendering/vulkan/rt/VulkanAccelerationStructure.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -157,8 +158,11 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
             PrefillElements<GpuBufferRef>(name, element.count);
 
             break;
-        case DescriptorSetElementType::IMAGE:         // fallthrough
-        case DescriptorSetElementType::IMAGE_STORAGE: // fallthrough
+        case DescriptorSetElementType::IMAGE:
+            PrefillElements<GpuImageViewRef>(name, element.count);
+
+            break;
+        case DescriptorSetElementType::IMAGE_STORAGE:
             PrefillElements<GpuImageViewRef>(name, element.count);
 
             break;

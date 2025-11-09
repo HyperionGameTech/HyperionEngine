@@ -92,9 +92,6 @@ HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture3) uniform texture2D RadianceT
 
 struct LightmapAtlas
 {
-    texture2D irradianceTexture;
-    texture2D radianceTexture;
-
     float irradianceTextureWeight;
     float radianceTextureWeight;
 };
@@ -112,15 +109,13 @@ HYP_DESCRIPTOR_CBUFF(LightmapVolume, LightmapVolumeUniforms) uniform LightmapVol
     float atlas3RadianceWeight;
 
     uint numAtlases;
-}
+};
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #define INIT_LIGHTMAP_ATLAS(index) \
-    atlas##index.irradianceTexture = IrradianceTexture##index; \
-    atlas##index.radianceTexture = RadianceTexture##index; \
-    atlas##index.irradianceTextureWeight = atlas##index##_IrradianceWeight; \
-    atlas##index.radianceTextureWeight = atlas##index##_RadianceWeight;
+    atlas##index.irradianceTextureWeight = atlas##index##IrradianceWeight; \
+    atlas##index.radianceTextureWeight = atlas##index##RadianceWeight
 
 void main()
 {
@@ -169,22 +164,22 @@ void main()
         vec4 lightmap_sample = vec4(0.0);
 
         // sample lightmap atlases based on weights
-        lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, atlas0.irradianceTexture, lightmap_uv);
+        lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture0, lightmap_uv);
         irradiance += lightmap_sample * atlas0.irradianceTextureWeight;
 
         if (numAtlases > 1)
         {
-            lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, atlas1.irradianceTexture, lightmap_uv);
+            lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture1, lightmap_uv);
             irradiance += lightmap_sample * atlas1.irradianceTextureWeight;
             
             if (numAtlases > 2)
             {
-                lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, atlas2.irradianceTexture, lightmap_uv);
+                lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture2, lightmap_uv);
                 irradiance += lightmap_sample * atlas2.irradianceTextureWeight;
 
                 if (numAtlases > 3)
                 {
-                    lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, atlas3.irradianceTexture, lightmap_uv);
+                    lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture3, lightmap_uv);
                     irradiance += lightmap_sample * atlas3.irradianceTextureWeight;
                 }
             }
