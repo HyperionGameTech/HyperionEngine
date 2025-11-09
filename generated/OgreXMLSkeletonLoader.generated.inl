@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region OgreXMLSkeletonLoader Reflection Data
 
-HYP_BEGIN_CLASS(OgreXMLSkeletonLoader, 32, 0, NAME("AssetLoaderBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(OgreXMLSkeletonLoader, 13, 0, NAME("AssetLoaderBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion OgreXMLSkeletonLoader Reflection Data

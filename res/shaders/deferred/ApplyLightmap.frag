@@ -80,42 +80,19 @@ HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field
 #include "./DeferredLighting.glsl"
 #include "../include/shadows.inc"
 
-HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture0) uniform texture2D IrradianceTexture0;
-HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture1) uniform texture2D IrradianceTexture1;
-HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture2) uniform texture2D IrradianceTexture2;
-HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture3) uniform texture2D IrradianceTexture3;
+HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture) uniform texture2D IrradianceTexture;
 
-HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture0) uniform texture2D RadianceTexture0;
-HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture1) uniform texture2D RadianceTexture1;
-HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture2) uniform texture2D RadianceTexture2;
-HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture3) uniform texture2D RadianceTexture3;
-
-struct LightmapAtlas
-{
-    float irradianceTextureWeight;
-    float radianceTextureWeight;
-};
+HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture) uniform texture2D RadianceTexture;
 
 HYP_DESCRIPTOR_CBUFF(LightmapVolume, LightmapVolumeUniforms) uniform LightmapVolumeUniforms
 {
-    float atlas0IrradianceWeight;
-    float atlas1IrradianceWeight;
-    float atlas2IrradianceWeight;
-    float atlas3IrradianceWeight;
-
-    float atlas0RadianceWeight;
-    float atlas1RadianceWeight;
-    float atlas2RadianceWeight;
-    float atlas3RadianceWeight;
+    float irradianceWeight;
+    float radianceWeight;
 
     uint numAtlases;
 };
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-#define INIT_LIGHTMAP_ATLAS(index) \
-    atlas##index.irradianceTextureWeight = atlas##index##IrradianceWeight; \
-    atlas##index.radianceTextureWeight = atlas##index##RadianceWeight
 
 void main()
 {
@@ -148,16 +125,6 @@ void main()
     const vec3 V = normalize(camera.position.xyz - P);
     const vec3 R = normalize(reflect(-V, N));
 
-    LightmapAtlas atlas0;
-    LightmapAtlas atlas1;
-    LightmapAtlas atlas2;
-    LightmapAtlas atlas3;
-
-    INIT_LIGHTMAP_ATLAS(0);
-    INIT_LIGHTMAP_ATLAS(1);
-    INIT_LIGHTMAP_ATLAS(2);
-    INIT_LIGHTMAP_ATLAS(3);
-
     // apply reflections to lightmapped objects
     /// @TODO use the stencil buffer to select lightmapped objects for this volume only
     if (bool(object_mask & OBJECT_MASK_LIGHTMAP))
@@ -167,26 +134,8 @@ void main()
         vec4 lightmap_sample = vec4(0.0);
 
         // sample lightmap atlases based on weights
-        lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture0, lightmap_uv);
-        irradiance += lightmap_sample * atlas0.irradianceTextureWeight;
-
-        if (numAtlases > 1)
-        {
-            lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture1, lightmap_uv);
-            irradiance += lightmap_sample * atlas1.irradianceTextureWeight;
-            
-            if (numAtlases > 2)
-            {
-                lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture2, lightmap_uv);
-                irradiance += lightmap_sample * atlas2.irradianceTextureWeight;
-
-                if (numAtlases > 3)
-                {
-                    lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture3, lightmap_uv);
-                    irradiance += lightmap_sample * atlas3.irradianceTextureWeight;
-                }
-            }
-        }
+        lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture, lightmap_uv);
+        irradiance += lightmap_sample * irradianceWeight;
 
         // @TODO! sample radiance for direct shading
 
@@ -217,5 +166,5 @@ void main()
         result = (albedo * irradiance) + vec4(spec, 0.0);
     }
 
-    color_output = result;
+    color_output = vec4(1.0, 0.0, 0.0, 1.0);// result;
 }

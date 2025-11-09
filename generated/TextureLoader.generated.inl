@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region TextureLoader Reflection Data
 
-HYP_BEGIN_CLASS(TextureLoader, 41, 0, NAME("AssetLoaderBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(TextureLoader, 14, 0, NAME("AssetLoaderBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion TextureLoader Reflection Data

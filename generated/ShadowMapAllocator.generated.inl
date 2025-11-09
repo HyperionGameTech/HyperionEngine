@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region ShadowMapAtlas Reflection Data
 
-HYP_BEGIN_STRUCT(ShadowMapAtlas, 260, 0, {})
+HYP_BEGIN_STRUCT(ShadowMapAtlas, 396, 0, {})
     Property(NAME(HYP_STR(AtlasDimensions)), &ShadowMapAtlas::atlasDimensions),
     Property(NAME(HYP_STR(Elements)), &ShadowMapAtlas::elements),
     Property(NAME(HYP_STR(FreeSpaces)), &ShadowMapAtlas::freeSpaces),
@@ -21,7 +21,7 @@ namespace hyperion {
 
 #pragma region ShadowMapAtlasElement Reflection Data
 
-HYP_BEGIN_STRUCT(ShadowMapAtlasElement, 261, 0, {})
+HYP_BEGIN_STRUCT(ShadowMapAtlasElement, 397, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion ShadowMapAtlasElement Reflection Data

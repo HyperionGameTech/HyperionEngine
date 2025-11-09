@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region UIDataSource Reflection Data
 
-HYP_BEGIN_CLASS(UIDataSource, 4, 0, NAME("UIDataSourceBase"))
+HYP_BEGIN_CLASS(UIDataSource, 192, 0, NAME("UIDataSourceBase"))
     Method(NAME(HYP_STR(Size)), &UIDataSource::Size),
     Method(NAME(HYP_STR(Clear)), &UIDataSource::Clear)
 HYP_END_CLASS
@@ -23,7 +23,7 @@ namespace hyperion {
 
 #pragma region UIElementFactoryBase Reflection Data
 
-HYP_BEGIN_CLASS(UIElementFactoryBase, 2, 0, NAME("ObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(UIElementFactoryBase, 190, 0, NAME("ObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(GetElementTypeId)), &UIElementFactoryBase::GetElementTypeId, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(CreateUIObject)), &UIElementFactoryBase::CreateUIObject, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(UpdateUIObject)), &UIElementFactoryBase::UpdateUIObject, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
@@ -84,7 +84,7 @@ namespace hyperion {
 
 #pragma region UIDataSourceBase Reflection Data
 
-HYP_BEGIN_CLASS(UIDataSourceBase, 3, 1, NAME("ObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(UIDataSourceBase, 191, 1, NAME("ObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(Size)), &UIDataSourceBase::Size),
     Method(NAME(HYP_STR(Clear)), &UIDataSourceBase::Clear)
 HYP_END_CLASS

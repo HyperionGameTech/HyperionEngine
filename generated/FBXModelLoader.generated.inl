@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region FBXModelLoader Reflection Data
 
-HYP_BEGIN_CLASS(FBXModelLoader, 37, 0, NAME("AssetLoaderBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(FBXModelLoader, 9, 0, NAME("AssetLoaderBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion FBXModelLoader Reflection Data

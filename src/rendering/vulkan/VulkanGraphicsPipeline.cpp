@@ -140,7 +140,14 @@ void VulkanGraphicsPipeline::Bind(CommandBufferBase* commandBuffer, Vec2i viewpo
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
-    VULKAN_CAST(commandBuffer)->ResetBoundDescriptorSets();
+    VulkanCommandBuffer* vulkanCommandBuffer = VULKAN_CAST(commandBuffer);
+
+    vulkanCommandBuffer->ResetBoundDescriptorSets();
+
+    vkCmdBindPipeline(
+        vulkanCommandBuffer->GetVulkanHandle(),
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        VulkanPipelineBase::m_handle);
 
     if (viewportExtent != Vec2u::Zero())
     {
@@ -148,23 +155,36 @@ void VulkanGraphicsPipeline::Bind(CommandBufferBase* commandBuffer, Vec2i viewpo
         viewport.position = viewportOffset;
         viewport.extent = viewportExtent;
 
-        UpdateViewport(VULKAN_CAST(commandBuffer), viewport);
+        UpdateViewport(vulkanCommandBuffer, viewport);
     }
-
-    vkCmdBindPipeline(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        VulkanPipelineBase::m_handle);
 
     if (m_pushConstants)
     {
         vkCmdPushConstants(
-            VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+            vulkanCommandBuffer->GetVulkanHandle(),
             VulkanPipelineBase::m_layout,
             VK_SHADER_STAGE_ALL_GRAPHICS,
             0,
             m_pushConstants.Size(),
             m_pushConstants.Data());
+    }
+
+    if (m_stencilFunction.HasValue())
+    {
+        vkCmdSetStencilReference(
+            vulkanCommandBuffer->GetVulkanHandle(),
+            VK_STENCIL_FRONT_AND_BACK,
+            commandBuffer->stencilReference);
+
+        vkCmdSetStencilCompareMask(
+            vulkanCommandBuffer->GetVulkanHandle(),
+            VK_STENCIL_FRONT_AND_BACK,
+            commandBuffer->stencilCompareMask);
+
+        vkCmdSetStencilWriteMask(
+            vulkanCommandBuffer->GetVulkanHandle(),
+            VK_STENCIL_FRONT_AND_BACK,
+            commandBuffer->stencilWriteMask);
     }
 }
 
@@ -309,10 +329,17 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     colorBlending.blendConstants[3] = 0.0f;
 
     // Allow updating viewport and scissor at runtime
-    const FixedArray<VkDynamicState, 2> dynamicStates {
+    Array<VkDynamicState> dynamicStates = {
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
     };
+
+    if (m_stencilFunction.HasValue())
+    {
+        dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+        dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
+        dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
+    }
 
     VkPipelineDynamicStateCreateInfo dynamicState { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
     dynamicState.dynamicStateCount = uint32(dynamicStates.Size());
@@ -371,18 +398,18 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     depthStencil.front = {};
     depthStencil.back = {};
 
-    if (m_stencilFunction.IsSet())
+    if (m_stencilFunction.HasValue())
     {
         depthStencil.stencilTestEnable = VK_TRUE;
 
         depthStencil.back = {
-            .failOp = ToVkStencilOp(m_stencilFunction.failOp),
-            .passOp = ToVkStencilOp(m_stencilFunction.passOp),
-            .depthFailOp = ToVkStencilOp(m_stencilFunction.depthFailOp),
-            .compareOp = ToVkCompareOp(m_stencilFunction.compareOp),
-            .compareMask = m_stencilFunction.mask,
-            .writeMask = m_stencilFunction.mask,
-            .reference = m_stencilFunction.value
+            .failOp = ToVkStencilOp(m_stencilFunction->failOp),
+            .passOp = ToVkStencilOp(m_stencilFunction->passOp),
+            .depthFailOp = ToVkStencilOp(m_stencilFunction->depthFailOp),
+            .compareOp = ToVkCompareOp(m_stencilFunction->compareOp),
+            .compareMask = 0xFF,
+            .writeMask = 0xFF,
+            .reference = 0
         };
 
         depthStencil.front = depthStencil.back;

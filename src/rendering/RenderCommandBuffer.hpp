@@ -35,6 +35,17 @@ public:
     virtual void DrawIndexedIndirect(
         const GpuBufferBase* buffer,
         uint32 bufferOffset) const = 0;
+
+    void ResetStencilState()
+    {
+        stencilReference = 0;
+        stencilCompareMask = 0;
+        stencilWriteMask = 0;
+    }
+
+    uint8 stencilReference = 0;
+    uint8 stencilCompareMask = 0;
+    uint8 stencilWriteMask = 0;
 };
 
 } // namespace hyperion

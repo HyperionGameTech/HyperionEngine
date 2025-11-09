@@ -729,6 +729,34 @@ private:
     Vec3u m_workgroupCount;
 };
 
+class SetStencilState final : public CmdBase
+{
+public:
+    explicit SetStencilState(uint8 referenceValue, uint8 compareMask = 0xFF, uint8 writeMask = 0xFF)
+        : m_referenceValue(referenceValue),
+          m_compareMask(compareMask),
+          m_writeMask(writeMask)
+    {
+    }
+
+    static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
+    {
+        SetStencilState* cmdCasted = static_cast<SetStencilState*>(cmd);
+
+        commandBuffer->stencilReference = cmdCasted->m_referenceValue;
+        commandBuffer->stencilCompareMask = cmdCasted->m_compareMask;
+        commandBuffer->stencilWriteMask = cmdCasted->m_writeMask;
+
+        static_assert(std::is_trivially_destructible_v<SetStencilState>);
+        // cmdCasted->~SetStencilState();
+    }
+
+private:
+    uint8 m_referenceValue;
+    uint8 m_compareMask;
+    uint8 m_writeMask;
+};
+
 class RenderQueueBase
 {
 protected:
@@ -761,9 +789,10 @@ class TRenderQueue : public RenderQueueBase
     using Base::PrepareCmdFnPtr;
 
 public:
-    volatile int64 token = 0; // for debugging temp
-
-    TRenderQueue();
+    TRenderQueue()
+        : m_offset(0)
+    {
+    }
 
     explicit TRenderQueue(AllocatorType* pAllocator)
         : m_cmdHeaders(pAllocator),
@@ -883,12 +912,6 @@ private:
     TByteBuffer<AllocatorType> m_buffer;
     uint32 m_offset;
 };
-
-template <class AllocatorType>
-TRenderQueue<AllocatorType>::TRenderQueue()
-    : m_offset(0)
-{
-}
 
 template <class AllocatorType>
 TRenderQueue<AllocatorType>::~TRenderQueue()

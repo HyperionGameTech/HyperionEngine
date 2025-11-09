@@ -886,12 +886,6 @@ struct StencilFunction
     HYP_FIELD(Serialize)
     StencilCompareOp compareOp = SCO_ALWAYS;
 
-    HYP_FIELD(Serialize)
-    uint8 mask = 0x0;
-
-    HYP_FIELD(Serialize)
-    uint8 value = 0x1;
-
     HYP_FORCE_INLINE bool operator==(const StencilFunction& other) const = default;
     HYP_FORCE_INLINE bool operator!=(const StencilFunction& other) const = default;
 
@@ -902,12 +896,21 @@ struct StencilFunction
 
     HYP_FORCE_INLINE bool IsSet() const
     {
-        return mask != 0x0;
+        return compareOp != SCO_ALWAYS
+            || passOp != SO_KEEP
+            || failOp != SO_KEEP
+            || depthFailOp != SO_KEEP;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(value);
+        HashCode hc;
+        hc.Add(passOp);
+        hc.Add(failOp);
+        hc.Add(depthFailOp);
+        hc.Add(compareOp);
+
+        return hc;
     }
 };
 

@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AssetChangeType Reflection Data
 
-HYP_BEGIN_ENUM(AssetChangeType, 271, 0, {})
+HYP_BEGIN_ENUM(AssetChangeType, 221, 0, {})
     StaticField(NAME(HYP_STR(CHANGED)), AssetChangeType::CHANGED),
     StaticField(NAME(HYP_STR(CREATED)), AssetChangeType::CREATED),
     StaticField(NAME(HYP_STR(DELETED)), AssetChangeType::DELETED),
@@ -22,7 +22,7 @@ namespace hyperion {
 
 #pragma region AssetLoaderDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(AssetLoaderDefinition, 272, 0, {})
+HYP_BEGIN_STRUCT(AssetLoaderDefinition, 222, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion AssetLoaderDefinition Reflection Data
@@ -34,7 +34,7 @@ namespace hyperion {
 
 #pragma region AssetManager Reflection Data
 
-HYP_BEGIN_CLASS(AssetManager, 56, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(AssetManager, 28, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetInstance)), &AssetManager::GetInstance),
     Method(NAME(HYP_STR(GetBasePath)), &AssetManager::GetBasePath),
     Method(NAME(HYP_STR(SetBasePath)), &AssetManager::SetBasePath),
@@ -56,7 +56,7 @@ namespace hyperion {
 
 #pragma region AssetCollector Reflection Data
 
-HYP_BEGIN_CLASS(AssetCollector, 57, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(AssetCollector, 29, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetBasePath)), &AssetCollector::GetBasePath, Span<const ClassAttribute> { {ClassAttribute("property", "BasePath"), ClassAttribute("serialize", true) } }),
     Method(NAME(HYP_STR(SetBasePath)), &AssetCollector::SetBasePath, Span<const ClassAttribute> { {ClassAttribute("property", "BasePath"), ClassAttribute("serialize", true) } }),
     Method(NAME(HYP_STR(NotifyAssetChanged)), &AssetCollector::NotifyAssetChanged),

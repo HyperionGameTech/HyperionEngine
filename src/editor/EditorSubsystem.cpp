@@ -770,16 +770,6 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
                 materialAttributes.flags &= ~(MAF_DEPTH_TEST);
                 materialAttributes.bucket = RB_DEBUG;
 
-                // testing
-                materialAttributes.stencilFunction = StencilFunction {
-                    .passOp = SO_REPLACE,
-                    .failOp = SO_REPLACE,
-                    .depthFailOp = SO_REPLACE,
-                    .compareOp = SCO_ALWAYS,
-                    .mask = 0xff,
-                    .value = 0x1
-                };
-
                 meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
                 meshComponent->material->SetIsDynamic(true);
 

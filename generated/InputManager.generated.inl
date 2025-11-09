@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region InputManager Reflection Data
 
-HYP_BEGIN_CLASS(InputManager, 58, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(InputManager, 60, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(IsMouseLocked)), &InputManager::IsMouseLocked),
     Method(NAME(HYP_STR(PushMouseLockState)), &InputManager::PushMouseLockState),
     Method(NAME(HYP_STR(PopMouseLockState)), &InputManager::PopMouseLockState),

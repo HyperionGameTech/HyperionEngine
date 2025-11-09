@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VulkanAttachment Reflection Data
 
-HYP_BEGIN_CLASS(VulkanAttachment, 100, 0, NAME("AttachmentBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(VulkanAttachment, 83, 0, NAME("AttachmentBase"), ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion VulkanAttachment Reflection Data

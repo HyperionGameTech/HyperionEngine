@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AssetPath Reflection Data
 
-HYP_BEGIN_STRUCT(AssetPath, 268, 0, {}, ClassAttribute("size", 8))
+HYP_BEGIN_STRUCT(AssetPath, 218, 0, {}, ClassAttribute("size", 8))
     Property(NAME(HYP_STR(Value)), &AssetPath::ToString, &AssetPath::Set),
     Field(NAME(HYP_STR(Chain)), &AssetPath::chain, offsetof(AssetPath, chain), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
     Method(NAME(HYP_STR(IsValid)), &AssetPath::IsValid),

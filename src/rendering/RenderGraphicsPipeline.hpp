@@ -77,14 +77,14 @@ public:
         m_blendFunction = blendFunction;
     }
 
-    HYP_FORCE_INLINE const StencilFunction& GetStencilFunction() const
+    HYP_FORCE_INLINE const Optional<StencilFunction>& GetStencilFunction() const
     {
         return m_stencilFunction;
     }
 
-    HYP_FORCE_INLINE void SetStencilFunction(const StencilFunction& stencilFunction)
+    HYP_FORCE_INLINE void SetStencilFunction(const Optional<StencilFunction>& optStencilFunction)
     {
-        m_stencilFunction = stencilFunction;
+        m_stencilFunction = optStencilFunction;
     }
 
     HYP_FORCE_INLINE bool GetDepthTest() const
@@ -174,7 +174,7 @@ protected:
     FillMode m_fillMode = FM_FILL;
     BlendFunction m_blendFunction = BlendFunction::None();
 
-    StencilFunction m_stencilFunction;
+    Optional<StencilFunction> m_stencilFunction;
 
     bool m_depthTest = true;
     bool m_depthWrite = true;

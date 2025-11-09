@@ -24,7 +24,8 @@ enum MaterialAttributeFlags : uint32
 
     MAF_DEPTH_WRITE = 0x1,
     MAF_DEPTH_TEST = 0x2,
-    MAF_ALPHA_DISCARD = 0x4
+    MAF_STENCIL_TEST = 0x4,
+    MAF_ALPHA_DISCARD = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(MaterialAttributeFlags)
@@ -55,6 +56,9 @@ struct MaterialAttributes
     HYP_FIELD()
     StencilFunction stencilFunction;
 
+    HYP_FIELD()
+    uint8 stencilReference = 0;
+
     HYP_FIELD(Transient)
     uint32 textureMask = 0;
 
@@ -67,6 +71,7 @@ struct MaterialAttributes
             && cullFaces == other.cullFaces
             && flags == other.flags
             && stencilFunction == other.stencilFunction
+            && stencilReference == other.stencilReference
             && textureMask == other.textureMask;
     }
 
@@ -79,6 +84,7 @@ struct MaterialAttributes
             || cullFaces != other.cullFaces
             || flags != other.flags
             || stencilFunction != other.stencilFunction
+            || stencilReference != other.stencilReference
             || textureMask != other.textureMask;
     }
 
@@ -92,6 +98,7 @@ struct MaterialAttributes
         hc.Add(cullFaces);
         hc.Add(flags);
         hc.Add(stencilFunction);
+        hc.Add(stencilReference);
         hc.Add(textureMask);
 
         return hc;

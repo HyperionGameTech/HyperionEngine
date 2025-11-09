@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region SwapchainBase Reflection Data
 
-HYP_BEGIN_CLASS(SwapchainBase, 88, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(SwapchainBase, 118, 1, NAME("ObjectBase"), ClassAttribute("abstract", true),ClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion SwapchainBase Reflection Data

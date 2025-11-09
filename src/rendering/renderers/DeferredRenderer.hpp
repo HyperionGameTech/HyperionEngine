@@ -182,6 +182,7 @@ protected:
         Array<Texture*> atlasIrradianceTextures;
         Array<Texture*> atlasRadianceTextures;
         GraphicsPipelineCacheHandle graphicsPipeline;
+        Array<DescriptorSetRef> descriptorSets;
     };
 
     const GraphicsPipelineRef& GetGraphicsPipeline(const FramebufferRef& framebuffer, LightmapVolumePassData& data);

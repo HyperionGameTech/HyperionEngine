@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region DescriptorUsage Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorUsage, 347, 0, {})
+HYP_BEGIN_STRUCT(DescriptorUsage, 330, 0, {})
     Field(NAME(HYP_STR(Slot)), &DescriptorUsage::slot, offsetof(DescriptorUsage, slot), Span<const ClassAttribute> { {ClassAttribute("property", "Slot"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(SetName)), &DescriptorUsage::setName, offsetof(DescriptorUsage, setName), Span<const ClassAttribute> { {ClassAttribute("property", "SetName"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(DescriptorName)), &DescriptorUsage::descriptorName, offsetof(DescriptorUsage, descriptorName), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorName"), ClassAttribute("serialize", true) } }),
@@ -23,7 +23,7 @@ namespace hyperion {
 
 #pragma region CompiledShader Reflection Data
 
-HYP_BEGIN_STRUCT(CompiledShader, 348, 0, {})
+HYP_BEGIN_STRUCT(CompiledShader, 331, 0, {})
     Field(NAME(HYP_STR(Definition)), &CompiledShader::definition, offsetof(CompiledShader, definition), Span<const ClassAttribute> { {ClassAttribute("property", "Definition") } }),
     Field(NAME(HYP_STR(DescriptorTableDeclaration)), &CompiledShader::descriptorTableDeclaration, offsetof(CompiledShader, descriptorTableDeclaration), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorTableDeclaration"), ClassAttribute("transient", true) } }),
     Field(NAME(HYP_STR(DescriptorUsageSet)), &CompiledShader::descriptorUsageSet, offsetof(CompiledShader, descriptorUsageSet), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorUsageSet") } }),
@@ -41,7 +41,7 @@ namespace hyperion {
 
 #pragma region ShaderPropertyFlags Reflection Data
 
-HYP_BEGIN_ENUM(ShaderPropertyFlags, 349, 0, {})
+HYP_BEGIN_ENUM(ShaderPropertyFlags, 332, 0, {})
     StaticField(NAME(HYP_STR(SPF_NONE)), ShaderPropertyFlags::SPF_NONE),
     StaticField(NAME(HYP_STR(SPF_VERTEX_ATTRIBUTE)), ShaderPropertyFlags::SPF_VERTEX_ATTRIBUTE),
     StaticField(NAME(HYP_STR(SPF_PERMUTATION)), ShaderPropertyFlags::SPF_PERMUTATION)
@@ -56,7 +56,7 @@ namespace hyperion {
 
 #pragma region ShaderDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(ShaderDefinition, 350, 0, {})
+HYP_BEGIN_STRUCT(ShaderDefinition, 333, 0, {})
     Field(NAME(HYP_STR(Name)), &ShaderDefinition::name, offsetof(ShaderDefinition, name)),
     Field(NAME(HYP_STR(Properties)), &ShaderDefinition::properties, offsetof(ShaderDefinition, properties))
 HYP_END_STRUCT
@@ -70,7 +70,7 @@ namespace hyperion {
 
 #pragma region ProcessShaderSourcePhase Reflection Data
 
-HYP_BEGIN_ENUM(ProcessShaderSourcePhase, 351, 0, {})
+HYP_BEGIN_ENUM(ProcessShaderSourcePhase, 334, 0, {})
     StaticField(NAME(HYP_STR(BEFORE_PREPROCESS)), ProcessShaderSourcePhase::BEFORE_PREPROCESS),
     StaticField(NAME(HYP_STR(AFTER_PREPROCESS)), ProcessShaderSourcePhase::AFTER_PREPROCESS)
 HYP_END_ENUM
@@ -84,7 +84,7 @@ namespace hyperion {
 
 #pragma region ShaderProperties Reflection Data
 
-HYP_BEGIN_STRUCT(ShaderProperties, 352, 0, {})
+HYP_BEGIN_STRUCT(ShaderProperties, 335, 0, {})
     Field(NAME(HYP_STR(Props)), &ShaderProperties::m_props, offsetof(ShaderProperties, m_props)),
     Field(NAME(HYP_STR(RequiredVertexAttributes)), &ShaderProperties::m_requiredVertexAttributes, offsetof(ShaderProperties, m_requiredVertexAttributes)),
     Field(NAME(HYP_STR(OptionalVertexAttributes)), &ShaderProperties::m_optionalVertexAttributes, offsetof(ShaderProperties, m_optionalVertexAttributes))
@@ -99,7 +99,7 @@ namespace hyperion {
 
 #pragma region ShaderProperty Reflection Data
 
-HYP_BEGIN_STRUCT(ShaderProperty, 353, 0, {})
+HYP_BEGIN_STRUCT(ShaderProperty, 336, 0, {})
     Field(NAME(HYP_STR(Name)), &ShaderProperty::name, offsetof(ShaderProperty, name)),
     Field(NAME(HYP_STR(Flags)), &ShaderProperty::flags, offsetof(ShaderProperty, flags)),
     Field(NAME(HYP_STR(CurrentValue)), &ShaderProperty::currentValue, offsetof(ShaderProperty, currentValue)),
@@ -116,7 +116,7 @@ namespace hyperion {
 
 #pragma region ShaderLanguage Reflection Data
 
-HYP_BEGIN_ENUM(ShaderLanguage, 354, 0, {})
+HYP_BEGIN_ENUM(ShaderLanguage, 337, 0, {})
     StaticField(NAME(HYP_STR(GLSL)), ShaderLanguage::GLSL),
     StaticField(NAME(HYP_STR(HLSL)), ShaderLanguage::HLSL)
 HYP_END_ENUM
@@ -130,7 +130,7 @@ namespace hyperion {
 
 #pragma region VertexAttributeDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(VertexAttributeDefinition, 355, 0, {})
+HYP_BEGIN_STRUCT(VertexAttributeDefinition, 338, 0, {})
     Field(NAME(HYP_STR(Name)), &VertexAttributeDefinition::name, offsetof(VertexAttributeDefinition, name)),
     Field(NAME(HYP_STR(TypeClass)), &VertexAttributeDefinition::typeClass, offsetof(VertexAttributeDefinition, typeClass)),
     Field(NAME(HYP_STR(Location)), &VertexAttributeDefinition::location, offsetof(VertexAttributeDefinition, location)),
@@ -146,7 +146,7 @@ namespace hyperion {
 
 #pragma region CompiledShaderBatch Reflection Data
 
-HYP_BEGIN_STRUCT(CompiledShaderBatch, 356, 0, {})
+HYP_BEGIN_STRUCT(CompiledShaderBatch, 339, 0, {})
     Field(NAME(HYP_STR(CompiledShaders)), &CompiledShaderBatch::compiledShaders, offsetof(CompiledShaderBatch, compiledShaders)),
     Field(NAME(HYP_STR(ErrorMessages)), &CompiledShaderBatch::errorMessages, offsetof(CompiledShaderBatch, errorMessages))
 HYP_END_STRUCT
@@ -160,7 +160,7 @@ namespace hyperion {
 
 #pragma region HashedShaderDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(HashedShaderDefinition, 357, 0, {})
+HYP_BEGIN_STRUCT(HashedShaderDefinition, 340, 0, {})
     Field(NAME(HYP_STR(Name)), &HashedShaderDefinition::name, offsetof(HashedShaderDefinition, name)),
     Field(NAME(HYP_STR(PropertySetHash)), &HashedShaderDefinition::propertySetHash, offsetof(HashedShaderDefinition, propertySetHash)),
     Field(NAME(HYP_STR(RequiredVertexAttributes)), &HashedShaderDefinition::requiredVertexAttributes, offsetof(HashedShaderDefinition, requiredVertexAttributes))
@@ -175,7 +175,7 @@ namespace hyperion {
 
 #pragma region DescriptorUsageSet Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorUsageSet, 358, 0, {})
+HYP_BEGIN_STRUCT(DescriptorUsageSet, 341, 0, {})
     Field(NAME(HYP_STR(Elements)), &DescriptorUsageSet::elements, offsetof(DescriptorUsageSet, elements))
 HYP_END_STRUCT
 
@@ -188,7 +188,7 @@ namespace hyperion {
 
 #pragma region DescriptorUsageFlags Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorUsageFlags, 359, 0, {})
+HYP_BEGIN_ENUM(DescriptorUsageFlags, 342, 0, {})
     StaticField(NAME(HYP_STR(NONE)), DescriptorUsageFlags::NONE),
     StaticField(NAME(HYP_STR(DYNAMIC)), DescriptorUsageFlags::DYNAMIC)
 HYP_END_ENUM
@@ -202,7 +202,7 @@ namespace hyperion {
 
 #pragma region DescriptorUsageType Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorUsageType, 360, 0, {})
+HYP_BEGIN_STRUCT(DescriptorUsageType, 343, 0, {})
     Field(NAME(HYP_STR(Name)), &DescriptorUsageType::name, offsetof(DescriptorUsageType, name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Size)), &DescriptorUsageType::size, offsetof(DescriptorUsageType, size), Span<const ClassAttribute> { {ClassAttribute("property", "Size"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(FieldNames)), &DescriptorUsageType::fieldNames, offsetof(DescriptorUsageType, fieldNames), Span<const ClassAttribute> { {ClassAttribute("property", "FieldNames"), ClassAttribute("serialize", true) } }),

@@ -9,7 +9,7 @@ namespace hyperion {
 
 #pragma region EditorProject Reflection Data
 
-HYP_BEGIN_CLASS(EditorProject, 199, 0, NAME("ObjectBase"))
+HYP_BEGIN_CLASS(EditorProject, 37, 0, NAME("ObjectBase"))
     Method(NAME(HYP_STR(GetUUID)), &EditorProject::GetUUID),
     Method(NAME(HYP_STR(GetName)), &EditorProject::GetName),
     Method(NAME(HYP_STR(SetName)), &EditorProject::SetName),

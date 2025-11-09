@@ -50,19 +50,14 @@ static RenderableAttributeSet GetRenderableAttributes()
     return RenderableAttributeSet(
         MeshAttributes {
             .vertexAttributes = staticMeshVertexAttributes,
-            .topology = TOP_LINES },
+            .topology = TOP_LINES
+        },
         MaterialAttributes {
             .bucket = RB_TRANSLUCENT,
             .fillMode = FM_FILL,
             .blendFunction = BlendFunction::None(),
-            .flags = MAF_DEPTH_TEST,
-            .stencilFunction = StencilFunction {
-                .passOp = SO_KEEP,
-                .failOp = SO_KEEP,
-                .depthFailOp = SO_KEEP,
-                .compareOp = SCO_NOT_EQUAL,
-                .mask = 0x0,
-                .value = 0x1 } });
+            .flags = MAF_DEPTH_TEST
+        });
 }
 
 struct DebugDrawCommand

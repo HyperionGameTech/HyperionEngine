@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region LightmapperBase Reflection Data
 
-HYP_BEGIN_CLASS(LightmapperBase, 71, 0, NAME("ObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(LightmapperBase, 61, 0, NAME("ObjectBase"), ClassAttribute("abstract", true))
 HYP_END_CLASS
 
 #pragma endregion LightmapperBase Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region LightmapShadingType Reflection Data
 
-HYP_BEGIN_ENUM(LightmapShadingType, 284, 0, {})
+HYP_BEGIN_ENUM(LightmapShadingType, 265, 0, {})
     StaticField(NAME(HYP_STR(IRRADIANCE)), LightmapShadingType::IRRADIANCE),
     StaticField(NAME(HYP_STR(RADIANCE)), LightmapShadingType::RADIANCE),
     StaticField(NAME(HYP_STR(MAX)), LightmapShadingType::MAX)
@@ -32,7 +32,7 @@ namespace hyperion {
 
 #pragma region LightmapperConfig Reflection Data
 
-HYP_BEGIN_STRUCT(LightmapperConfig, 285, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Lightmapper"))
+HYP_BEGIN_STRUCT(LightmapperConfig, 266, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Lightmapper"))
     Field(NAME(HYP_STR(TraceMode)), &LightmapperConfig::traceMode, offsetof(LightmapperConfig, traceMode)),
     Field(NAME(HYP_STR(Radiance)), &LightmapperConfig::radiance, offsetof(LightmapperConfig, radiance)),
     Field(NAME(HYP_STR(Irradiance)), &LightmapperConfig::irradiance, offsetof(LightmapperConfig, irradiance)),
@@ -50,7 +50,7 @@ namespace hyperion {
 
 #pragma region LightmapTraceMode Reflection Data
 
-HYP_BEGIN_ENUM(LightmapTraceMode, 286, 0, {})
+HYP_BEGIN_ENUM(LightmapTraceMode, 267, 0, {})
     StaticField(NAME(HYP_STR(GPU_PATH_TRACING)), LightmapTraceMode::GPU_PATH_TRACING),
     StaticField(NAME(HYP_STR(CPU_PATH_TRACING)), LightmapTraceMode::CPU_PATH_TRACING),
     StaticField(NAME(HYP_STR(MAX)), LightmapTraceMode::MAX)

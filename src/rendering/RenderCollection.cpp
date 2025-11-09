@@ -147,25 +147,23 @@ static const Name s_nameHasAoMap = NAME("HAS_AO_MAP");
 
 } // namespace PropNames
 
-static inline uint8 GetLightmapStencilValue(LightmapVolume* lightmapVolume, LightmapElement::Id lightmapElementId)
+constexpr uint8 LightmapStencilMask = 0xF;
+
+// Get the stencil reference value to set for a lightmapped object,
+// based on its associated atlas index.
+static inline uint8 GetLightmapStencilValue(LightmapElement::Id lightmapElementId)
 {
-    if (!lightmapVolume || lightmapElementId == ~0u)
+    if (lightmapElementId == ~0u)
     {
         return 0; // invalid element
     }
-
-    const uint32 lightmapVolumeBoundIndex = RenderApi::RetrieveResourceBinding(lightmapVolume);
-    AssertDebug(lightmapVolumeBoundIndex != ~0u);
 
     uint16 atlasIndex = 0;
     uint16 elementIndex = 0;
     LightmapElement::GetAtlasAndElementIndex(lightmapElementId, atlasIndex, elementIndex);
 
-    AssertDebug(elementIndex < 0x8); // max 3 bits allocated
-
     uint8 value = 0;
-    value |= (atlasIndex & 0x7);
-    value |= (lightmapVolumeBoundIndex << 3);
+    value |= ((atlasIndex + 1) & LightmapStencilMask);
 
     return value;
 }
@@ -173,7 +171,7 @@ static inline uint8 GetLightmapStencilValue(LightmapVolume* lightmapVolume, Ligh
 static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
 {
     HYP_SCOPE;
- 
+
     Mesh* mesh = proxy.mesh;
     AssertDebug(mesh != nullptr);
 
@@ -205,18 +203,21 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     // set base attributes from mesh and material
     attributes = RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() };
 
+    // if lightmap volume is set we need stencil testing
     if (proxy.lightmapVolume != nullptr)
     {
-        StencilFunction& stencilFunction = attributes.GetMaterialAttributes().stencilFunction;
+        const uint8 stencilReferenceValue = GetLightmapStencilValue(proxy.lightmapElementId) & LightmapStencilMask;
 
-        // if lightmap volume is set, we need to set stencil values
-        const uint8 prevStencilValue = stencilFunction.value;
-        stencilFunction.value = GetLightmapStencilValue(proxy.lightmapVolume, proxy.lightmapElementId);
-
-        if (prevStencilValue != stencilFunction.value)
+        if (stencilReferenceValue != (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask))
         {
+            attributes.GetMaterialAttributes().stencilReference |= stencilReferenceValue;
             attributes.Invalidate();
         }
+    }
+    else if (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask)
+    {
+        attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
+        attributes.Invalidate();
     }
 
     if (overrideAttributes)
@@ -1045,7 +1046,7 @@ void RenderCollector::ExecuteDrawCalls(
             }
 
             const Handle<RenderGroup>& renderGroup = mapping.renderGroup;
-            AssertDebug(renderGroup.IsValid());
+            AssertDebug(renderGroup != nullptr);
 
             const DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
 

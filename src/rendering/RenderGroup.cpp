@@ -289,6 +289,17 @@ static void RenderAll(
     const uint32 instancingDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Instancing");
     const DescriptorSetRef& instancingDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Instancing", frameIndex);
 
+    RenderGroup* renderGroup = drawCallCollection.renderGroup;
+    const RenderableAttributeSet& renderableAttributes = renderGroup->GetRenderableAttributes();
+
+    const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
+    const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
+
+    if (materialAttributes.stencilReference != 0)
+    {
+        frame->renderQueue << SetStencilState(materialAttributes.stencilReference, 0xFF, 0xFF);
+    }
+
     frame->renderQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
 
     if (globalDescriptorSetIndex != ~0u)
@@ -499,6 +510,17 @@ static void RenderAll_Parallel(
     const uint32 materialDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Material");
 
     RenderQueue& rootQueue = parallelRenderingState->rootQueue;
+
+    RenderGroup* renderGroup = drawCallCollection.renderGroup;
+    const RenderableAttributeSet& renderableAttributes = renderGroup->GetRenderableAttributes();
+
+    const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
+    const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
+
+    if (materialAttributes.stencilReference != 0)
+    {
+        rootQueue << SetStencilState(materialAttributes.stencilReference, 0xFF, 0xFF);
+    }
 
     rootQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
 
