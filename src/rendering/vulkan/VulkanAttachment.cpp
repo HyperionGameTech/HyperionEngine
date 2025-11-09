@@ -133,7 +133,7 @@ VkAttachmentDescription VulkanAttachment::GetVulkanAttachmentDescription() const
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = ToVkLoadOp(GetLoadOperation()),
         .storeOp = ToVkStoreOp(GetStoreOperation()),
-        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE, // <-- @TODO for stencil
+        .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(GetLoadOperation()) : VK_ATTACHMENT_LOAD_OP_DONT_CARE, 
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .initialLayout = GetInitialLayout(GetLoadOperation()),
         .finalLayout = GetFinalLayout(GetRenderPassStage(), IsDepthAttachment())

@@ -36,6 +36,9 @@
 
 namespace hyperion {
 
+constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
+constexpr TextureFormat AtlasTextureFormat = TF_RGBA8;
+
 #pragma region Render commands
 
 struct BakeLightmapAtlasTexture : RenderCommand
@@ -206,7 +209,7 @@ LightmapVolume::LightmapVolume(const BoundingBox& aabb)
     m_entityAabb = aabb;
 
     m_atlases.Reserve(MaxAtlases);
-    m_atlases.EmplaceBack(Vec2u(4096, 4096));
+    m_atlases.EmplaceBack(DefaultAtlasDimensions);
 
     m_radianceAtlasTextures.PushBack(Handle<Texture>::Null());
     m_irradianceAtlasTextures.PushBack(Handle<Texture>::Null());
@@ -220,6 +223,7 @@ LightmapVolume::~LightmapVolume()
 
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
     outElement.id = ~0u;
@@ -233,7 +237,7 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, b
 
         if (atlasIndex >= m_atlases.Size())
         {
-            pAtlas = &tmpAtlas.EmplaceBack(Vec2u(4096, 4096));
+            pAtlas = &tmpAtlas.EmplaceBack(DefaultAtlasDimensions);
             isNewAtlas = true;
         }
         else
@@ -434,7 +438,6 @@ void LightmapVolume::UpdateAtlasTextures(
     LightmapVolumeAtlas& atlas = m_atlases[atlasIndex];
 
     // Calculate the size of the atlas texture in bytes
-    constexpr TextureFormat AtlasTextureFormat = TF_RGBA8;
     constexpr uint32 BytesPerPixel = BytesPerComponent(AtlasTextureFormat) * NumComponents(AtlasTextureFormat);
 
     const SizeType atlasWidth = atlas.atlasDimensions.x;

@@ -35,7 +35,7 @@ struct GBufferTargetDesc
 
 static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
     GBufferTargetDesc { GBufferFormat(Array<TextureFormat> { TF_R11G11B10F }) }, // color
-    GBufferTargetDesc { GBufferFormat(DIF_NORMALS) },                            // normal, uv1
+    GBufferTargetDesc { GBufferFormat(TF_RGBA16F) },                             // normal, uv1
     GBufferTargetDesc { GBufferFormat(TF_RG32) },                                // material data
     GBufferTargetDesc { GBufferFormat(Array<TextureFormat> { TF_R11G11B10F, TF_RGBA16F }) },
     GBufferTargetDesc { GBufferFormat(TF_RG16F) },    // velocity

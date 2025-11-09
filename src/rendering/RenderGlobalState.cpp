@@ -503,6 +503,34 @@ struct ViewData
     RenderCollector renderCollector;
     uint32 framesSinceUsed = 0;
     uint32 numRefs = 0; // number of ViewFrameData holding refs to this
+
+    void AddRef()
+    {
+        AssertDebug(view != nullptr);
+
+        ++numRefs;
+        view->GetObjectHeader_Internal()->IncRefStrong();
+    }
+
+    uint32 ReleaseRef()
+    {
+        AssertDebug(view != nullptr && numRefs > 0);
+
+        if (--numRefs == 0)
+        {
+            Handle<View> viewHandle;
+            viewHandle.ptr = view;
+            SafeDelete(std::move(viewHandle));
+
+            view = nullptr;
+        }
+        else
+        {
+            view->GetObjectHeader_Internal()->DecRefStrong();
+        }
+
+        return numRefs;
+    }
 };
 
 // Data for views that is buffered over multiple frames
@@ -1062,12 +1090,7 @@ void BeginFrame_RenderThread()
         if (!vfd.viewData)
         {
             vfd.viewData = GetViewData(vfd.view);
-            ++vfd.viewData->numRefs;
-        }
-        else if (vfd.viewData->framesSinceUsed >= MaxFramesBeforeDiscard)
-        {
-            // skip it if its been queued for deletion (the View might already have been destroyed!)
-            continue;
+            vfd.viewData->AddRef();
         }
 
         vfd.rplShared->BeginRead();
@@ -1230,7 +1253,7 @@ void EndFrame_RenderThread()
             // if we hit zero there are no more ViewFrameData holding refs to the ViewData so we delete it
             AssertDebug(vd.numRefs > 0);
 
-            if ((--vd.numRefs) == 0)
+            if (vd.ReleaseRef() == 0)
             {
                 HYP_LOG(Rendering, Debug, "Discarding ViewData for view {}", view->Id());
 

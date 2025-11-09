@@ -79,8 +79,9 @@ HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field
 #include "../include/shadows.inc"
 
 HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture) uniform texture2D IrradianceTexture;
-
 HYP_DESCRIPTOR_SRV(LightmapVolume, RadianceTexture) uniform texture2D RadianceTexture;
+HYP_DESCRIPTOR_SAMPLER(LightmapVolume, Sampler) uniform sampler Sampler;
+HYP_DESCRIPTOR_SAMPLER(LightmapVolume, GBufferSampler) uniform sampler GBufferSampler;
 
 HYP_DESCRIPTOR_CBUFF(LightmapVolume, LightmapVolumeUniforms) uniform LightmapVolumeUniforms
 {
@@ -94,9 +95,9 @@ HYP_DESCRIPTOR_CBUFF(LightmapVolume, LightmapVolumeUniforms) uniform LightmapVol
 
 void main()
 {
-    vec4 albedo = Texture2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
+    vec4 albedo = Texture2D(GBufferSampler, gbuffer_albedo_texture, texcoord);
 
-    uvec2 materialData = texture(usampler2D(gbuffer_material_texture, sampler_nearest), texcoord).rg;
+    uvec2 materialData = texture(usampler2D(gbuffer_material_texture, GBufferSampler), texcoord).rg;
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(materialData, materialParams);
@@ -112,9 +113,9 @@ void main()
 
     vec3 N;
     vec2 UV1;
-    GBufferUnpackNormalUV1(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord), N, UV1);
+    GBufferUnpackNormalUV1(Texture2D(GBufferSampler, gbuffer_normals_texture, texcoord), N, UV1);
 
-    const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float depth = Texture2D(GBufferSampler, gbuffer_depth_texture, texcoord).r;
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     const vec3 V = normalize(camera.position.xyz - P);
     const vec3 R = normalize(reflect(-V, N));
@@ -124,7 +125,7 @@ void main()
     vec4 lightmap_sample = vec4(0.0);
 
     // sample lightmap atlases based on weights
-    lightmap_sample = Texture2D(sampler_linear, IrradianceTexture, lightmap_uv);
+    lightmap_sample = Texture2D(Sampler, IrradianceTexture, lightmap_uv);
     irradiance += lightmap_sample;// * irradianceWeight;
 
     // @TODO! sample radiance for direct shading
@@ -144,10 +145,10 @@ void main()
     const vec3 E = CalculateE(F0, dfg);
     const vec3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
 
-    vec4 reflections_color = Texture2D(sampler_nearest, reflections_texture, texcoord);
+    vec4 reflections_color = Texture2D(GBufferSampler, reflections_texture, texcoord);
     ibl = ibl * (1.0 - reflections_color.a) + (reflections_color.rgb * reflections_color.a);
 
-    vec4 rt_radiance = Texture2D(sampler_nearest, rt_radiance_final, texcoord);
+    vec4 rt_radiance = Texture2D(GBufferSampler, rt_radiance_final, texcoord);
     ibl = ibl * (1.0 - rt_radiance.a) + (rt_radiance.rgb * rt_radiance.a);
 
     vec3 spec = (ibl * mix(dfg.xxx, dfg.yyy, F0)) * energy_compensation;

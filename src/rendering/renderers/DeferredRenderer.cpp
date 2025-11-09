@@ -649,6 +649,8 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRe
         // @TODO: Get rid of wasted lightmap volume descriptor set!!
         descriptorSet->SetElement("IrradianceTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
         descriptorSet->SetElement("RadianceTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("Sampler", g_renderGlobalState->placeholderData->GetSamplerLinear());
+        descriptorSet->SetElement("GBufferSampler", g_renderGlobalState->placeholderData->GetSamplerNearest());
         descriptorSet->SetElement("LightmapVolumeUniforms", g_renderGlobalState->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms), /* exactSize */ true));
     }
 
@@ -679,6 +681,8 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRe
 
         descriptorSet->SetElement("IrradianceTexture", g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
         descriptorSet->SetElement("RadianceTexture", g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("Sampler", g_renderGlobalState->placeholderData->GetSamplerLinear());
+        descriptorSet->SetElement("GBufferSampler", g_renderGlobalState->placeholderData->GetSamplerNearest());
         descriptorSet->SetElement("LightmapVolumeUniforms", uniformBuffer);
 
         Assert(descriptorSet->Create());

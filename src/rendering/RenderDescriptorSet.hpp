@@ -673,12 +673,12 @@ protected:
 
         if constexpr (std::is_base_of_v<GpuBufferBase, T>)
         {
-            static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
+            static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
                 | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
                 | (1u << uint32(DescriptorSetElementType::SSBO))
                 | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
 
-            AssertDebug(mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
+            AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
 
             if (ref != nullptr)
             {
@@ -703,22 +703,22 @@ protected:
         }
         else if constexpr (std::is_base_of_v<GpuImageViewBase, T>)
         {
-            static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::IMAGE))
+            static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::IMAGE))
                 | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
 
-            AssertDebug(mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
+            AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
         }
         else if constexpr (std::is_base_of_v<SamplerBase, T>)
         {
-            static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
+            static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
 
-            AssertDebug(mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
+            AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
         }
         else if constexpr (std::is_base_of_v<GpuTlasBase, T>)
         {
-            static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
+            static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::TLAS));
 
-            AssertDebug(mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
+            AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
         }
         else
         {
