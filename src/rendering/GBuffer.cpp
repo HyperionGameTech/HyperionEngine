@@ -240,7 +240,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaqueFramebuffe
     {
         addOwnedAttachment(0, GetImageFormat(GTN_ALBEDO));
     }
-    else if (rb == RB_LIGHTMAP)
+    else if (rb == RB_LIGHTMAP || rb == RB_TRANSLUCENT)
     {
         addSharedAttachment(0);
     }

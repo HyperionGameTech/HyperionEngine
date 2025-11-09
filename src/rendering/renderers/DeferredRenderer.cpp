@@ -1398,11 +1398,9 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
         const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-        const FramebufferRef& translucentFbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
         CHECK_FRAMEBUFFER_SIZE(opaqueFbo);
         CHECK_FRAMEBUFFER_SIZE(lightmapFbo);
-        CHECK_FRAMEBUFFER_SIZE(translucentFbo);
 
         passData.envGridRadiancePass = CreateObject<EnvGridPass>(EGPM_RADIANCE, passData.viewport.extent, gbuffer);
         passData.envGridRadiancePass->Create();
@@ -1528,7 +1526,6 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
     const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
     const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-    const FramebufferRef& translucentFbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
     // depth attachment goes into separate slot
     AttachmentBase* depthAttachment = opaqueFbo->GetAttachment(GTN_MAX - 1);
@@ -1548,9 +1545,6 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
             {
                 descriptorSet->SetElement("GBufferTextures", gbufferElementIndex++, opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
             }
-
-            // add translucent bucket's albedo
-            descriptorSet->SetElement("GBufferTextures", gbufferElementIndex++, translucentFbo->GetAttachment(0)->GetImageView());
         }
         else
         {
@@ -1558,9 +1552,6 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
             {
                 descriptorSet->SetElement(GBufferTextureNames[attachmentIndex], opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
             }
-
-            // add translucent bucket's albedo
-            descriptorSet->SetElement("GBufferTranslucentTexture", translucentFbo->GetAttachment(0)->GetImageView());
         }
 
         descriptorSet->SetElement("GBufferDepthTexture", depthAttachment->GetImageView());
@@ -1621,10 +1612,6 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    // The combine pass will render into the translucent bucket's framebuffer with the shaded result.
-    const FramebufferRef& translucentFbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
-    Assert(translucentFbo != nullptr);
-
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
     Assert(renderTextureToScreenShader.IsValid());
 
@@ -1644,9 +1631,8 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
     passData.combinePass = CreateObject<FullScreenPass>(
         renderTextureToScreenShader,
         std::move(descriptorTable),
-        translucentFbo,
-        translucentFbo->GetAttachment(0)->GetFormat(),
-        translucentFbo->GetExtent(),
+        TF_RGBA16F,
+        view->GetOutputTarget().GetGBuffer()->GetExtent(),
         nullptr);
 
     passData.combinePass->Create();
