@@ -25,7 +25,7 @@ HYP_DESCRIPTOR_SSBO(Object, SkeletonsBuffer, 1, sizeof(SkeletonShaderData), true
 HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, ~0u, false, !g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
 HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
 
-HYP_DESCRIPTOR_SRV_COND(View, GBufferTextures, NumGbufferTargets, g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
+HYP_DESCRIPTOR_SRV_COND(View, GBufferTextures, NumGBufferTargets, g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferAlbedoTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferNormalsTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferMaterialTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);

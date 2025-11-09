@@ -28,7 +28,6 @@ enum GBufferTargetName : uint32
     GTN_ALBEDO = 0,
     GTN_NORMALS,
     GTN_MATERIAL,
-    GTN_LIGHTMAP,
     GTN_VELOCITY,
     GTN_WS_NORMALS,
     GTN_DEPTH,
@@ -36,7 +35,7 @@ enum GBufferTargetName : uint32
     GTN_MAX
 };
 
-static_assert(GTN_MAX == NumGbufferTargets, "GTN_MAX does not match NumGbufferTargets");
+static_assert(GTN_MAX == NumGBufferTargets, "GTN_MAX does not match NumGbufferTargets");
 
 HYP_CLASS(NoScriptBindings)
 class GBuffer : public ObjectBase

@@ -196,7 +196,7 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
     properties.Set(ShaderProperty(NAME("HYP_IOS")));
 #endif
 
-    properties.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), ShaderProperty::Value(int(NumGbufferTargets))));
+    properties.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), ShaderProperty::Value(int(NumGBufferTargets))));
 
     if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
     {

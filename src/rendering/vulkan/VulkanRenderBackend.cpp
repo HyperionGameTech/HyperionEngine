@@ -81,7 +81,7 @@ public:
         raytracing = renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported();
         indirectRendering = CoreApi_GetGlobalConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
         parallelRendering = CoreApi_GetGlobalConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
-        dynamicDescriptorIndexing = false;
+        dynamicDescriptorIndexing = false; //renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
     }
 };
 
