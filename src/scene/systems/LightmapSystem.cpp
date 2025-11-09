@@ -73,7 +73,7 @@ void LightmapSystem::Process(float delta)
         {
             if (!AssignLightmapVolume(meshComponent))
             {
-                HYP_LOG(Lightmap, Warning, "MeshComponent has volume Uuid: {} could not be assigned to a LightmapVolume",
+                HYP_LOG(Lightmap, Warning, "MeshComponent has volume uuid: {} could not be assigned to a LightmapVolume",
                     meshComponent.lightmapVolumeUuid);
             }
         }

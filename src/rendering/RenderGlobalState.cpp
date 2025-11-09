@@ -181,7 +181,7 @@ static ResourceBindingAllocator<MaxBoundReflectionProbes> s_reflectionProbeTextu
 static ResourceBinder<EnvProbe, &OnBindingChanged_ReflectionProbe> s_reflectionProbeTextureBinder { &s_reflectionProbeTextureBindingsAllocator };
 ResourceBinderBase* g_reflectionProbeTextureBinder = &s_reflectionProbeTextureBinder;
 
-static ResourceBindingAllocator<16> s_envGridBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundEnvGrids> s_envGridBindingsAllocator;
 static ResourceBinder<EnvGrid, &OnBindingChanged_EnvGrid> s_envGridBinder { &s_envGridBindingsAllocator };
 ResourceBinderBase* g_envGridBinder = &s_envGridBinder;
 
@@ -189,7 +189,7 @@ static ResourceBindingAllocator<> s_lightBindingsAllocator;
 static ResourceBinder<Light, &OnBindingChanged_Light> s_lightBinder { &s_lightBindingsAllocator };
 ResourceBinderBase* g_lightBinder = &s_lightBinder;
 
-static ResourceBindingAllocator<> s_lightmapVolumeBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundLightmapVolumes> s_lightmapVolumeBindingsAllocator;
 static ResourceBinder<LightmapVolume, &OnBindingChanged_Default<LightmapVolume>> s_lightmapVolumeBinder {
     &s_lightmapVolumeBindingsAllocator
 };

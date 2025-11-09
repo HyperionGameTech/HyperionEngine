@@ -333,8 +333,10 @@ static void RenderAll(
         {
             AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-            DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
-                { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) } });
+            DescriptorSetOffsetMap offsets = {
+                { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
+                { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
+            };
 
             if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
             {
@@ -563,8 +565,10 @@ static void RenderAll_Parallel(
                     {
                         AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-                        DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
-                            { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) } });
+                        DescriptorSetOffsetMap offsets = {
+                            { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
+                            { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
+                        };
 
                         if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
                         {

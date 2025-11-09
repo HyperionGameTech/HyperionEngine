@@ -589,35 +589,62 @@ void LightmapPass::Create()
 {
     Threads::AssertOnThread(g_renderThread);
 
+    m_shader = g_shaderManager->GetOrCreate(NAME("ApplyLightmap"));
+    Assert(m_shader != nullptr);
+
     FullScreenPass::Create();
 }
 
-void LightmapPass::CreatePipeline()
+const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRef& framebuffer, LightmapVolumePassData& data)
 {
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    LightmapVolume* lightmapVolume = data.lightmapVolume;
+    AssertDebug(lightmapVolume != nullptr);
 
+    const uint32 lightmapVolumeBoundIndex = RenderApi::RetrieveResourceBinding(lightmapVolume);
+    AssertDebug(lightmapVolumeBoundIndex != ~0u);
+
+    const uint8 stencilMask = uint8(0x7u | (lightmapVolumeBoundIndex << 3));
+
+    if (data.graphicsPipeline.IsAlive())
+    {
+        const GraphicsPipelineRef& graphicsPipeline = *data.graphicsPipeline;
+        AssertDebug(graphicsPipeline != nullptr);
+
+        if (graphicsPipeline->GetStencilFunction().mask == stencilMask
+            && graphicsPipeline->GetFramebuffers().Contains(framebuffer))
+        {
+            return graphicsPipeline;
+        }
+    }
+    
     const MeshAttributes meshAttributes {
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
         | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
         | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 
-    const MaterialAttributes materialAttributes {
-        .fillMode = FM_FILL,
-        .blendFunction = BlendFunction(
-            BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
-        .flags = MAF_NONE
+    MaterialAttributes materialAttributes;
+    materialAttributes.fillMode = FM_FILL;
+    materialAttributes.blendFunction = BlendFunction(
+        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
+    materialAttributes.flags = MAF_NONE;
+    materialAttributes.stencilFunction = StencilFunction {
+        .passOp = SO_KEEP,
+        .failOp = SO_KEEP, // Are these values right??
+        .depthFailOp = SO_KEEP,
+        .compareOp = SCO_ALWAYS,
+        .mask = stencilMask,
+        .value = 0x0
     };
 
-    RenderableAttributeSet renderableAttributes(
-        meshAttributes,
-        materialAttributes);
+    data.graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+        m_shader,
+        m_descriptorTable.GetOr(DescriptorTableRef::Null()),
+        { &framebuffer, 1 },
+        RenderableAttributeSet(meshAttributes, materialAttributes));
 
-    m_shader = g_shaderManager->GetOrCreate(NAME("ApplyLightmap"));
-
-    FullScreenPass::CreatePipeline(renderableAttributes);
+    return *data.graphicsPipeline;
 }
 
 void LightmapPass::Resize_Internal(Vec2u newSize)
@@ -625,9 +652,13 @@ void LightmapPass::Resize_Internal(Vec2u newSize)
     FullScreenPass::Resize_Internal(newSize);
 }
 
-void LightmapPass::Render_Internal(FrameBase* frame, const RenderSetup& renderSetup, GraphicsPipelineBase* graphicsPipeline)
+void LightmapPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+
+    AssertDebug(renderSetup.IsValid());
+    AssertDebug(renderSetup.lightmapVolume != nullptr);
 
     constexpr StringHash IrradianceTextureNames[LightmapVolume::MaxAtlases] = {
         StringHash("IrradianceTexture0"),
@@ -642,8 +673,6 @@ void LightmapPass::Render_Internal(FrameBase* frame, const RenderSetup& renderSe
         StringHash("RadianceTexture2"),
         StringHash("RadianceTexture3")
     };
-
-    AssertDebug(renderSetup.lightmapVolume != nullptr);
 
     RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(renderSetup.lightmapVolume));
     Assert(proxy != nullptr);
@@ -713,6 +742,32 @@ void LightmapPass::Render_Internal(FrameBase* frame, const RenderSetup& renderSe
         data.atlasRadianceTextures = proxy->atlasRadianceTextures;
     }
 
+    const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline(framebuffer, data);
+
+    frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
+
+    if (renderSetup.view != nullptr && renderSetup.view->GetCamera() != nullptr)
+    {
+        frame->renderQueue << BindDescriptorTable(
+            graphicsPipeline->GetDescriptorTable(),
+            graphicsPipeline,
+            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            frame->GetFrameIndex());
+    }
+
+    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+
+    if (viewDescriptorSetIndex != ~0u)
+    {
+        AssertDebug(renderSetup.passData != nullptr);
+
+        frame->renderQueue << BindDescriptorSet(
+            renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
+            graphicsPipeline,
+            {},
+            viewDescriptorSetIndex);
+    }
+
     const uint32 descriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("LightmapVolume");
     AssertDebug(descriptorSetIndex != ~0u);
 
@@ -721,6 +776,12 @@ void LightmapPass::Render_Internal(FrameBase* frame, const RenderSetup& renderSe
         graphicsPipeline,
         {},
         descriptorSetIndex);
+
+    frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+    frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+    frame->renderQueue << DrawIndexed(6);
+
+    m_isFirstFrame = false;
 }
 
 #pragma endregion LightmapPass
@@ -2449,7 +2510,11 @@ void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSet
     renderCollector.PerformOcclusionCulling(frame, rs, BucketMask);
 }
 
-void DeferredRenderer::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask)
+void DeferredRenderer::ExecuteDrawCalls(
+    FrameBase* frame,
+    const RenderSetup& rs,
+    RenderCollector& renderCollector,
+    uint32 bucketMask)
 {
     HYP_SCOPE;
 

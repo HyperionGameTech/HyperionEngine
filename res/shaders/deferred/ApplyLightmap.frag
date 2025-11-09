@@ -165,7 +165,7 @@ void main()
     if (bool(object_mask & OBJECT_MASK_LIGHTMAP))
     {
         vec4 irradiance = vec4(0.0);
-        vec2 lightmap_uv = texcoord;
+        vec2 lightmap_uv = texcoord; // FIXME not real uv1, we need to get it from Gbuffer
         vec4 lightmap_sample = vec4(0.0);
 
         // sample lightmap atlases based on weights

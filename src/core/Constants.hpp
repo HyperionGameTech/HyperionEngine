@@ -36,9 +36,11 @@ constexpr uint32 NumFramesInFlight = 3;
 constexpr uint32 NumAsyncCommandBuffers = 4;
 
 constexpr uint32 MaxBoundReflectionProbes = 16;
+constexpr uint32 MaxBoundEnvGrids = 16;
 constexpr uint32 MaxBoundAmbientProbes = 4096;
 constexpr uint32 MaxBoundOmniShadowMaps = 8;
 constexpr uint32 MaxBoundTextures = 16;
+constexpr uint32 MaxBoundLightmapVolumes = 4;
 
 constexpr uint32 MaxBindlessResources = 4096;
 

@@ -187,6 +187,11 @@ public:
         m_needsHashCodeRecalculation = true;
     }
 
+    HYP_FORCE_INLINE MeshAttributes& GetMeshAttributes()
+    {
+        return m_meshAttributes;
+    }
+
     HYP_FORCE_INLINE const MeshAttributes& GetMeshAttributes() const
     {
         return m_meshAttributes;
@@ -196,6 +201,11 @@ public:
     {
         m_meshAttributes = meshAttributes;
         m_needsHashCodeRecalculation = true;
+    }
+
+    HYP_FORCE_INLINE MaterialAttributes& GetMaterialAttributes()
+    {
+        return m_materialAttributes;
     }
 
     HYP_FORCE_INLINE const MaterialAttributes& GetMaterialAttributes() const
@@ -227,6 +237,11 @@ public:
         }
 
         m_layerIndex = layerIndex;
+        m_needsHashCodeRecalculation = true;
+    }
+
+    void Invalidate()
+    {
         m_needsHashCodeRecalculation = true;
     }
 

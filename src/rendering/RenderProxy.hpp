@@ -108,12 +108,20 @@ class RenderProxyMesh final : public IRenderProxy
 {
 public:
     WeakHandle<Entity> entity;
+
     Mesh* mesh = nullptr;
     Material* material = nullptr;
     Skeleton* skeleton = nullptr;
+
     uint32 numIndices = 0;
+
+    LightmapVolume* lightmapVolume = nullptr;
+    uint32 lightmapElementId = 0;
+
     MeshInstanceData instanceData;
+
     MeshRaytracingData raytracingData;
+
     EntityShaderData bufferData {};
 
     HYP_FORCE_INLINE bool operator==(const RenderProxyMesh& other) const
@@ -123,6 +131,8 @@ public:
             && material == other.material
             && skeleton == other.skeleton
             && numIndices == other.numIndices
+            && lightmapVolume == other.lightmapVolume
+            && lightmapElementId == other.lightmapElementId
             && instanceData == other.instanceData
             && Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) == 0;
     }
@@ -134,6 +144,9 @@ public:
             || material != other.material
             || numIndices != other.numIndices
             || skeleton != other.skeleton
+            || numIndices != other.numIndices
+            || lightmapVolume != other.lightmapVolume
+            || lightmapElementId != other.lightmapElementId
             || instanceData != other.instanceData
             || Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) != 0;
     }

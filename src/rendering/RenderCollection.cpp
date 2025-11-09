@@ -147,9 +147,33 @@ static const Name s_nameHasAoMap = NAME("HAS_AO_MAP");
 
 } // namespace PropNames
 
+static inline uint8 GetLightmapStencilValue(LightmapVolume* lightmapVolume, LightmapElement::Id lightmapElementId)
+{
+    if (!lightmapVolume || lightmapElementId == ~0u)
+    {
+        return 0; // invalid element
+    }
+
+    const uint32 lightmapVolumeBoundIndex = RenderApi::RetrieveResourceBinding(lightmapVolume);
+    AssertDebug(lightmapVolumeBoundIndex != ~0u);
+
+    uint16 atlasIndex = 0;
+    uint16 elementIndex = 0;
+    LightmapElement::GetAtlasAndElementIndex(lightmapElementId, atlasIndex, elementIndex);
+
+    AssertDebug(elementIndex < 0x8); // max 3 bits allocated
+
+    uint8 value = 0;
+    value |= (atlasIndex & 0x7);
+    value |= (lightmapVolumeBoundIndex << 3);
+
+    return value;
+}
+
 static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
 {
     HYP_SCOPE;
+ 
     Mesh* mesh = proxy.mesh;
     AssertDebug(mesh != nullptr);
 
@@ -180,6 +204,20 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     // set base attributes from mesh and material
     attributes = RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() };
+
+    if (proxy.lightmapVolume != nullptr)
+    {
+        StencilFunction& stencilFunction = attributes.GetMaterialAttributes().stencilFunction;
+
+        // if lightmap volume is set, we need to set stencil values
+        const uint8 prevStencilValue = stencilFunction.value;
+        stencilFunction.value = GetLightmapStencilValue(proxy.lightmapVolume, proxy.lightmapElementId);
+
+        if (prevStencilValue != stencilFunction.value)
+        {
+            attributes.Invalidate();
+        }
+    }
 
     if (overrideAttributes)
     {
@@ -900,7 +938,11 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
     }
 }
 
-void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& renderSetup, uint32 bucketBits)
+void RenderCollector::ExecuteDrawCalls(
+    FrameBase* frame,
+    const RenderSetup& renderSetup,
+    uint32 bucketBits,
+    bool commit)
 {
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView(), "RenderSetup must have a View attached");
@@ -909,18 +951,23 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
     if (renderSetup.view->GetFlags() & ViewFlags::GBUFFER)
     {
         // Pass NULL framebuffer for GBuffer rendering, as it will be handled by DeferredRenderer outside of this scope.
-        ExecuteDrawCalls(frame, renderSetup, FramebufferRef::Null(), bucketBits);
+        ExecuteDrawCalls(frame, renderSetup, FramebufferRef::Null(), bucketBits, commit);
     }
     else
     {
         const FramebufferRef& framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
         AssertDebug(framebuffer != nullptr, "Must have a valid framebuffer for rendering");
 
-        ExecuteDrawCalls(frame, renderSetup, framebuffer, bucketBits);
+        ExecuteDrawCalls(frame, renderSetup, framebuffer, bucketBits, commit);
     }
 }
 
-void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer, uint32 bucketBits)
+void RenderCollector::ExecuteDrawCalls(
+    FrameBase* frame,
+    const RenderSetup& renderSetup,
+    const FramebufferRef& framebuffer,
+    uint32 bucketBits,
+    bool commit)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -1022,8 +1069,11 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
         }
     }
 
-    // Wait for all parallel rendering tasks to finish
-    CommitParallelRenderingState(frame->renderQueue);
+    if (commit)
+    {
+        // Wait for all parallel rendering tasks to finish
+        CommitParallelRenderingState(frame->renderQueue);
+    }
 
     if (framebuffer)
     {

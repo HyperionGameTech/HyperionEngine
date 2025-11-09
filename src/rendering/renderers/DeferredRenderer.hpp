@@ -173,6 +173,8 @@ public:
 
     virtual void Create() override;
 
+    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override;
+
 protected:
     struct LightmapVolumePassData
     {
@@ -180,11 +182,10 @@ protected:
         Array<Texture*> atlasIrradianceTextures;
         Array<Texture*> atlasRadianceTextures;
         DescriptorSetRef descriptorSet;
+        GraphicsPipelineCacheHandle graphicsPipeline;
     };
 
-    void CreatePipeline() override;
-
-    virtual void Render_Internal(FrameBase* frame, const RenderSetup& renderSetup, GraphicsPipelineBase* graphicsPipeline) override;
+    const GraphicsPipelineRef& GetGraphicsPipeline(const FramebufferRef& framebuffer, LightmapVolumePassData& data);
 
     LightmapVolumePassData& GetLightmapVolumePassData(LightmapVolume* lightmapVolume)
     {
