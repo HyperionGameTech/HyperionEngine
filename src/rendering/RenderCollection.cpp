@@ -147,11 +147,11 @@ static const Name s_nameHasAoMap = NAME("HAS_AO_MAP");
 
 } // namespace PropNames
 
-constexpr uint8 LightmapStencilMask = 0xF;
+constexpr uint8 LightmapStencilMask = (1u << LightmapVolume::MaxAtlases) - 1;
 
 // Get the stencil reference value to set for a lightmapped object,
 // based on its associated atlas index.
-static inline uint8 GetLightmapStencilValue(LightmapElement::Id lightmapElementId)
+static constexpr inline uint8 GetLightmapStencilValue(LightmapElement::Id lightmapElementId)
 {
     if (lightmapElementId == ~0u)
     {
@@ -180,8 +180,8 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     // shading mode
     static const ShaderProperty s_propShadingTypeDeferredDeferred = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameDeferred));
-    static const ShaderProperty s_propShadingTypeDeferredForward = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameForward));
-    static const ShaderProperty s_propShadingTypeDeferredLightmapped = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameLightmapped));
+    static const ShaderProperty s_propShadingTypeForward = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameForward));
+    static const ShaderProperty s_propShadingTypeLightmapped = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameLightmapped));
 
     // textures
     static const ShaderProperty s_propHasAlbedoMap = ShaderProperty(PropNames::s_nameHasAlbedoMap);
@@ -210,6 +210,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
         if (stencilReferenceValue != (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask))
         {
+            attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
             attributes.GetMaterialAttributes().stencilReference |= stencilReferenceValue;
             attributes.Invalidate();
         }
@@ -280,13 +281,13 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
         if (hasForwardLighting != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode.value == PropNames::s_nameForward.hashCode))
         {
-            shaderDefinition.GetProperties().Set(s_propShadingTypeDeferredForward, hasForwardLighting);
+            shaderDefinition.GetProperties().Set(s_propShadingTypeForward, hasForwardLighting);
             shaderDefinitionChanged = true;
         }
 
         if (hasLightmaps != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode.value == PropNames::s_nameLightmapped.hashCode))
         {
-            shaderDefinition.GetProperties().Set(s_propShadingTypeDeferredLightmapped, hasLightmaps);
+            shaderDefinition.GetProperties().Set(s_propShadingTypeLightmapped, hasLightmaps);
             shaderDefinitionChanged = true;
         }
     }
