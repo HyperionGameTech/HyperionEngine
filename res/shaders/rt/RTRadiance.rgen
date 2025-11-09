@@ -108,7 +108,7 @@ void main()
     const mat4 view_inverse = inverse(camera.view);
     const mat4 projection_inverse = inverse(camera.projection);
 
-    const vec3 normal = normalize(DecodeNormal(Texture2DLod(sampler_nearest, gbuffer_normals_texture, uv, 0.0)));
+    const vec3 normal =  GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, uv).xy);
     const float depth = Texture2DLod(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
     const vec3 position = ReconstructWorldSpacePositionFromDepth(projection_inverse, view_inverse, uv, depth).xyz;
 

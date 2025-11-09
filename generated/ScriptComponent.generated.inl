@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region ScriptComponentFlags Reflection Data
 
-HYP_BEGIN_ENUM(ScriptComponentFlags, 383, 0, {})
+HYP_BEGIN_ENUM(ScriptComponentFlags, 393, 0, {})
     StaticField(NAME(HYP_STR(NONE)), ScriptComponentFlags::NONE),
     StaticField(NAME(HYP_STR(INITIALIZED)), ScriptComponentFlags::INITIALIZED),
     StaticField(NAME(HYP_STR(RELOADING)), ScriptComponentFlags::RELOADING),
@@ -24,7 +24,7 @@ namespace hyperion {
 
 #pragma region ScriptComponent Reflection Data
 
-HYP_BEGIN_STRUCT(ScriptComponent, 384, 0, {}, ClassAttribute("component", true),ClassAttribute("noscriptbindings", true),ClassAttribute("label", "Script Component"),ClassAttribute("description", "A script component that can be attached to an entity."))
+HYP_BEGIN_STRUCT(ScriptComponent, 394, 0, {}, ClassAttribute("component", true),ClassAttribute("noscriptbindings", true),ClassAttribute("label", "Script Component"),ClassAttribute("description", "A script component that can be attached to an entity."))
     Field(NAME(HYP_STR(AssetReference)), &ScriptComponent::assetReference, offsetof(ScriptComponent, assetReference), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
     Field(NAME(HYP_STR(Assembly)), &ScriptComponent::assembly, offsetof(ScriptComponent, assembly), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
     Field(NAME(HYP_STR(ScriptObjectResource)), &ScriptComponent::scriptObjectResource, offsetof(ScriptComponent, scriptObjectResource), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),

@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Error Reflection Data
 
-HYP_BEGIN_STRUCT(Error, 252, 0, {}, ClassAttribute("size", 16))
+HYP_BEGIN_STRUCT(Error, 253, 0, {}, ClassAttribute("size", 16))
 HYP_END_STRUCT
 
 #pragma endregion Error Reflection Data
@@ -18,7 +18,7 @@ namespace hyperion {
 
 #pragma region Result Reflection Data
 
-HYP_BEGIN_STRUCT(Result, 253, 0, {}, ClassAttribute("size", 8))
+HYP_BEGIN_STRUCT(Result, 254, 0, {}, ClassAttribute("size", 8))
     Method(NAME(HYP_STR(HasValue)), &Result::HasValue),
     Method(NAME(HYP_STR(HasError)), &Result::HasError),
     Method(NAME(HYP_STR(GetError)), &Result::GetError)

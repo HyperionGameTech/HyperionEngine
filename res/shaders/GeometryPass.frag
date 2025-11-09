@@ -360,7 +360,8 @@ void main()
     // // debug texcoord1
     // gbuffer_albedo = vec4(v_texcoord1, 0.0, 1.0);
 
-    gbuffer_normals = EncodeNormal(N);
+    gbuffer_normals = vec4(GBufferPackNormalUV1(N, v_texcoord1), 0.0);
+
     gbuffer_material = GBufferPackMaterialParams(materialParams);
     gbuffer_velocity = velocity;
     gbuffer_ws_normals = EncodeNormal(ws_normals);

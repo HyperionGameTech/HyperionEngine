@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Bone Reflection Data
 
-HYP_BEGIN_CLASS(Bone, 144, 0, NAME("Node"))
+HYP_BEGIN_CLASS(Bone, 178, 0, NAME("Node"))
     Field(NAME(HYP_STR(Skeleton)), &Bone::m_skeleton, offsetof(Bone, m_skeleton), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
     Field(NAME(HYP_STR(BoneMatrix)), &Bone::m_boneMatrix, offsetof(Bone, m_boneMatrix)),
     Field(NAME(HYP_STR(Keyframe)), &Bone::m_keyframe, offsetof(Bone, m_keyframe), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),

@@ -181,7 +181,6 @@ protected:
         class LightmapVolume* lightmapVolume = nullptr;
         Array<Texture*> atlasIrradianceTextures;
         Array<Texture*> atlasRadianceTextures;
-        DescriptorSetRef descriptorSet;
         GraphicsPipelineCacheHandle graphicsPipeline;
     };
 

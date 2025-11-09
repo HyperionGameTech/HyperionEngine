@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VisibilityStateFlags Reflection Data
 
-HYP_BEGIN_ENUM(VisibilityStateFlags, 388, 0, {})
+HYP_BEGIN_ENUM(VisibilityStateFlags, 389, 0, {})
     StaticField(NAME(HYP_STR(NONE)), VisibilityStateFlags::NONE),
     StaticField(NAME(HYP_STR(ALWAYS_VISIBLE)), VisibilityStateFlags::ALWAYS_VISIBLE),
     StaticField(NAME(HYP_STR(INVALIDATED)), VisibilityStateFlags::INVALIDATED)
@@ -21,7 +21,7 @@ namespace hyperion {
 
 #pragma region VisibilityStateComponent Reflection Data
 
-HYP_BEGIN_STRUCT(VisibilityStateComponent, 389, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 32),ClassAttribute("serialize", false),ClassAttribute("editor", false))
+HYP_BEGIN_STRUCT(VisibilityStateComponent, 390, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 32),ClassAttribute("serialize", false),ClassAttribute("editor", false))
     Field(NAME(HYP_STR(Flags)), &VisibilityStateComponent::flags, offsetof(VisibilityStateComponent, flags)),
     Field(NAME(HYP_STR(OctantId)), &VisibilityStateComponent::octantId, offsetof(VisibilityStateComponent, octantId)),
     Field(NAME(HYP_STR(VisibilityState)), &VisibilityStateComponent::visibilityState, offsetof(VisibilityStateComponent, visibilityState))

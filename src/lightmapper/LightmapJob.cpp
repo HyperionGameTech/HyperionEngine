@@ -374,6 +374,10 @@ void LightmapJob<LightmapVolume>::Start_Internal()
         // No elements to process
         if (!m_params.subElementsView)
         {
+            HYP_LOG(Lightmap, Warning, "Lightmap job {}: No sub-elements to process!", m_uuid);
+            
+            m_lightmapDataBuilt = true;
+
             return;
         }
 

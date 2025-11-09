@@ -114,7 +114,7 @@ void main(void)
     }
 
     vec3 P = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), texcoord, depth).xyz;
-    vec3 N = DecodeNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    vec3 N =  GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord).xy);
     vec3 V = normalize(camera.position.xyz - P);
 
     if (alpha > HYP_FMATH_EPSILON)

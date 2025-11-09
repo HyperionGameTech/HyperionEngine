@@ -139,7 +139,10 @@ void main()
     const mat4 inverse_proj = inverse(camera.projection);
     const mat4 inverse_view = inverse(camera.view);
 
-    const vec3 N = DecodeNormal(Texture2D(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord));
+    vec3 N;
+    vec2 UV1;
+    GBufferUnpackNormalUV1(Texture2D(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord).xyz, N, UV1);
+
     const float depth = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord).r;
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     const vec3 V = normalize(camera.position.xyz - P);
@@ -160,7 +163,7 @@ void main()
     if (bool(object_mask & OBJECT_MASK_LIGHTMAP))
     {
         vec4 irradiance = vec4(0.0);
-        vec2 lightmap_uv = texcoord; // FIXME not real uv1, we need to get it from Gbuffer
+        vec2 lightmap_uv = UV1;
         vec4 lightmap_sample = vec4(0.0);
 
         // sample lightmap atlases based on weights

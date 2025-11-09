@@ -27,6 +27,6 @@ void main()
     vec2 texcoord = v_texcoord0;
 
     gbuffer_albedo = vec4(1.0);
-    gbuffer_normals = EncodeNormal(normal);
+    gbuffer_normals = vec4(0.0);
     gbuffer_material = uvec2(0);
 }

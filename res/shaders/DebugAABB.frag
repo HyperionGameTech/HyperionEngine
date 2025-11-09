@@ -121,7 +121,7 @@ void main()
     materialParams.ao = 1.0;
 
     gbuffer_albedo = vec4(0.0, 1.0, 0.0, 1.0);
-    gbuffer_normals = EncodeNormal(normal);
+    gbuffer_normals = vec4(GBufferPackNormal(normal), 0.0, 0.0);
     gbuffer_velocity = vec2(velocity);
     gbuffer_ws_normals = EncodeNormal(normal);
 

@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region CommandLineArgumentDefinitions Reflection Data
 
-HYP_BEGIN_STRUCT(CommandLineArgumentDefinitions, 233, 0, {}, ClassAttribute("size", 8))
+HYP_BEGIN_STRUCT(CommandLineArgumentDefinitions, 235, 0, {}, ClassAttribute("size", 8))
 HYP_END_STRUCT
 
 #pragma endregion CommandLineArgumentDefinitions Reflection Data
@@ -18,7 +18,7 @@ namespace hyperion {
 
 #pragma region CommandLineArguments Reflection Data
 
-HYP_BEGIN_STRUCT(CommandLineArguments, 234, 0, {})
+HYP_BEGIN_STRUCT(CommandLineArguments, 236, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion CommandLineArguments Reflection Data
@@ -30,7 +30,7 @@ namespace hyperion {
 
 #pragma region CommandLineArgumentType Reflection Data
 
-HYP_BEGIN_ENUM(CommandLineArgumentType, 235, 0, {})
+HYP_BEGIN_ENUM(CommandLineArgumentType, 237, 0, {})
     StaticField(NAME(HYP_STR(STRING)), CommandLineArgumentType::STRING),
     StaticField(NAME(HYP_STR(INTEGER)), CommandLineArgumentType::INTEGER),
     StaticField(NAME(HYP_STR(FLOAT)), CommandLineArgumentType::FLOAT),

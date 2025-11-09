@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region BlendFunction Reflection Data
 
-HYP_BEGIN_STRUCT(BlendFunction, 300, 0, {}, ClassAttribute("serialize", "bitwise"),ClassAttribute("size", 4))
+HYP_BEGIN_STRUCT(BlendFunction, 308, 0, {}, ClassAttribute("serialize", "bitwise"),ClassAttribute("size", 4))
 HYP_END_STRUCT
 
 #pragma endregion BlendFunction Reflection Data
@@ -18,7 +18,7 @@ namespace hyperion {
 
 #pragma region Topology Reflection Data
 
-HYP_BEGIN_ENUM(Topology, 301, 0, {})
+HYP_BEGIN_ENUM(Topology, 309, 0, {})
     StaticField(NAME(HYP_STR(TOP_TRIANGLES)), Topology::TOP_TRIANGLES),
     StaticField(NAME(HYP_STR(TOP_TRIANGLE_FAN)), Topology::TOP_TRIANGLE_FAN),
     StaticField(NAME(HYP_STR(TOP_TRIANGLE_STRIP)), Topology::TOP_TRIANGLE_STRIP),
@@ -35,7 +35,7 @@ namespace hyperion {
 
 #pragma region BlendModeFactor Reflection Data
 
-HYP_BEGIN_ENUM(BlendModeFactor, 302, 0, {})
+HYP_BEGIN_ENUM(BlendModeFactor, 310, 0, {})
     StaticField(NAME(HYP_STR(BMF_NONE)), BlendModeFactor::BMF_NONE),
     StaticField(NAME(HYP_STR(BMF_ONE)), BlendModeFactor::BMF_ONE),
     StaticField(NAME(HYP_STR(BMF_ZERO)), BlendModeFactor::BMF_ZERO),
@@ -59,7 +59,7 @@ namespace hyperion {
 
 #pragma region GpuElemType Reflection Data
 
-HYP_BEGIN_ENUM(GpuElemType, 303, 0, {})
+HYP_BEGIN_ENUM(GpuElemType, 311, 0, {})
     StaticField(NAME(HYP_STR(GET_UNSIGNED_BYTE)), GpuElemType::GET_UNSIGNED_BYTE),
     StaticField(NAME(HYP_STR(GET_SIGNED_BYTE)), GpuElemType::GET_SIGNED_BYTE),
     StaticField(NAME(HYP_STR(GET_UNSIGNED_SHORT)), GpuElemType::GET_UNSIGNED_SHORT),
@@ -79,7 +79,7 @@ namespace hyperion {
 
 #pragma region StencilOp Reflection Data
 
-HYP_BEGIN_ENUM(StencilOp, 304, 0, {})
+HYP_BEGIN_ENUM(StencilOp, 312, 0, {})
     StaticField(NAME(HYP_STR(SO_KEEP)), StencilOp::SO_KEEP),
     StaticField(NAME(HYP_STR(SO_ZERO)), StencilOp::SO_ZERO),
     StaticField(NAME(HYP_STR(SO_REPLACE)), StencilOp::SO_REPLACE),
@@ -96,7 +96,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetElementType Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSetElementType, 305, 0, {})
+HYP_BEGIN_ENUM(DescriptorSetElementType, 313, 0, {})
     StaticField(NAME(HYP_STR(UNSET)), DescriptorSetElementType::UNSET),
     StaticField(NAME(HYP_STR(UNIFORM_BUFFER)), DescriptorSetElementType::UNIFORM_BUFFER),
     StaticField(NAME(HYP_STR(UNIFORM_BUFFER_DYNAMIC)), DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC),
@@ -118,7 +118,7 @@ namespace hyperion {
 
 #pragma region TextureWrapMode Reflection Data
 
-HYP_BEGIN_ENUM(TextureWrapMode, 306, 0, {})
+HYP_BEGIN_ENUM(TextureWrapMode, 314, 0, {})
     StaticField(NAME(HYP_STR(TWM_CLAMP_TO_EDGE)), TextureWrapMode::TWM_CLAMP_TO_EDGE),
     StaticField(NAME(HYP_STR(TWM_CLAMP_TO_BORDER)), TextureWrapMode::TWM_CLAMP_TO_BORDER),
     StaticField(NAME(HYP_STR(TWM_REPEAT)), TextureWrapMode::TWM_REPEAT)
@@ -133,7 +133,7 @@ namespace hyperion {
 
 #pragma region StencilCompareOp Reflection Data
 
-HYP_BEGIN_ENUM(StencilCompareOp, 307, 0, {})
+HYP_BEGIN_ENUM(StencilCompareOp, 315, 0, {})
     StaticField(NAME(HYP_STR(SCO_ALWAYS)), StencilCompareOp::SCO_ALWAYS),
     StaticField(NAME(HYP_STR(SCO_NEVER)), StencilCompareOp::SCO_NEVER),
     StaticField(NAME(HYP_STR(SCO_EQUAL)), StencilCompareOp::SCO_EQUAL),
@@ -149,7 +149,7 @@ namespace hyperion {
 
 #pragma region ImageSupport Reflection Data
 
-HYP_BEGIN_ENUM(ImageSupport, 308, 0, {})
+HYP_BEGIN_ENUM(ImageSupport, 316, 0, {})
     StaticField(NAME(HYP_STR(IS_SRV)), ImageSupport::IS_SRV),
     StaticField(NAME(HYP_STR(IS_UAV)), ImageSupport::IS_UAV),
     StaticField(NAME(HYP_STR(IS_DEPTH)), ImageSupport::IS_DEPTH)
@@ -164,7 +164,7 @@ namespace hyperion {
 
 #pragma region FillMode Reflection Data
 
-HYP_BEGIN_ENUM(FillMode, 309, 0, {})
+HYP_BEGIN_ENUM(FillMode, 317, 0, {})
     StaticField(NAME(HYP_STR(FM_FILL)), FillMode::FM_FILL),
     StaticField(NAME(HYP_STR(FM_LINE)), FillMode::FM_LINE)
 HYP_END_ENUM
@@ -178,7 +178,7 @@ namespace hyperion {
 
 #pragma region DefaultImageFormat Reflection Data
 
-HYP_BEGIN_ENUM(DefaultImageFormat, 310, 0, {})
+HYP_BEGIN_ENUM(DefaultImageFormat, 318, 0, {})
     StaticField(NAME(HYP_STR(DIF_NONE)), DefaultImageFormat::DIF_NONE),
     StaticField(NAME(HYP_STR(DIF_COLOR)), DefaultImageFormat::DIF_COLOR),
     StaticField(NAME(HYP_STR(DIF_DEPTH)), DefaultImageFormat::DIF_DEPTH),
@@ -195,7 +195,7 @@ namespace hyperion {
 
 #pragma region TextureType Reflection Data
 
-HYP_BEGIN_ENUM(TextureType, 311, 0, {})
+HYP_BEGIN_ENUM(TextureType, 319, 0, {})
     StaticField(NAME(HYP_STR(TT_INVALID)), TextureType::TT_INVALID),
     StaticField(NAME(HYP_STR(TT_TEX2_D)), TextureType::TT_TEX2D),
     StaticField(NAME(HYP_STR(TT_TEX3_D)), TextureType::TT_TEX3D),
@@ -214,7 +214,7 @@ namespace hyperion {
 
 #pragma region TextureData Reflection Data
 
-HYP_BEGIN_STRUCT(TextureData, 312, 0, {})
+HYP_BEGIN_STRUCT(TextureData, 320, 0, {})
     Field(NAME(HYP_STR(ImageData)), &TextureData::imageData, offsetof(TextureData, imageData), Span<const ClassAttribute> { {ClassAttribute("property", "ImageData"), ClassAttribute("serialize", true), ClassAttribute("compressed", true) } })
 HYP_END_STRUCT
 
@@ -227,7 +227,7 @@ namespace hyperion {
 
 #pragma region TextureBaseFormat Reflection Data
 
-HYP_BEGIN_ENUM(TextureBaseFormat, 313, 0, {})
+HYP_BEGIN_ENUM(TextureBaseFormat, 321, 0, {})
     StaticField(NAME(HYP_STR(TFB_NONE)), TextureBaseFormat::TFB_NONE),
     StaticField(NAME(HYP_STR(TFB_R)), TextureBaseFormat::TFB_R),
     StaticField(NAME(HYP_STR(TFB_RG)), TextureBaseFormat::TFB_RG),
@@ -247,7 +247,7 @@ namespace hyperion {
 
 #pragma region DescriptorTableOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 314, 0, {})
+HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 322, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorTableOffsetMap Reflection Data
@@ -259,7 +259,7 @@ namespace hyperion {
 
 #pragma region StoreOperation Reflection Data
 
-HYP_BEGIN_ENUM(StoreOperation, 315, 0, {})
+HYP_BEGIN_ENUM(StoreOperation, 323, 0, {})
     StaticField(NAME(HYP_STR(UNDEFINED)), StoreOperation::UNDEFINED),
     StaticField(NAME(HYP_STR(NONE)), StoreOperation::NONE),
     StaticField(NAME(HYP_STR(STORE)), StoreOperation::STORE)
@@ -274,7 +274,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 316, 0, {})
+HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 324, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorSetOffsetMap Reflection Data
@@ -286,7 +286,7 @@ namespace hyperion {
 
 #pragma region ImageUsage Reflection Data
 
-HYP_BEGIN_ENUM(ImageUsage, 317, 0, {})
+HYP_BEGIN_ENUM(ImageUsage, 325, 0, {})
     StaticField(NAME(HYP_STR(IU_NONE)), ImageUsage::IU_NONE),
     StaticField(NAME(HYP_STR(IU_SAMPLED)), ImageUsage::IU_SAMPLED),
     StaticField(NAME(HYP_STR(IU_STORAGE)), ImageUsage::IU_STORAGE),
@@ -303,7 +303,7 @@ namespace hyperion {
 
 #pragma region ResourceState Reflection Data
 
-HYP_BEGIN_ENUM(ResourceState, 318, 0, {})
+HYP_BEGIN_ENUM(ResourceState, 326, 0, {})
     StaticField(NAME(HYP_STR(RS_UNDEFINED)), ResourceState::RS_UNDEFINED),
     StaticField(NAME(HYP_STR(RS_PRE_INITIALIZED)), ResourceState::RS_PRE_INITIALIZED),
     StaticField(NAME(HYP_STR(RS_COMMON)), ResourceState::RS_COMMON),
@@ -334,7 +334,7 @@ namespace hyperion {
 
 #pragma region TextureFormat Reflection Data
 
-HYP_BEGIN_ENUM(TextureFormat, 319, 0, {})
+HYP_BEGIN_ENUM(TextureFormat, 327, 0, {})
     StaticField(NAME(HYP_STR(TF_NONE)), TextureFormat::TF_NONE),
     StaticField(NAME(HYP_STR(TF_R8)), TextureFormat::TF_R8),
     StaticField(NAME(HYP_STR(TF_RG8)), TextureFormat::TF_RG8),
@@ -388,7 +388,7 @@ namespace hyperion {
 
 #pragma region FaceCullMode Reflection Data
 
-HYP_BEGIN_ENUM(FaceCullMode, 320, 0, {})
+HYP_BEGIN_ENUM(FaceCullMode, 328, 0, {})
     StaticField(NAME(HYP_STR(FCM_NONE)), FaceCullMode::FCM_NONE),
     StaticField(NAME(HYP_STR(FCM_BACK)), FaceCullMode::FCM_BACK),
     StaticField(NAME(HYP_STR(FCM_FRONT)), FaceCullMode::FCM_FRONT)
@@ -403,7 +403,7 @@ namespace hyperion {
 
 #pragma region StencilFunction Reflection Data
 
-HYP_BEGIN_STRUCT(StencilFunction, 321, 0, {})
+HYP_BEGIN_STRUCT(StencilFunction, 329, 0, {})
     Field(NAME(HYP_STR(PassOp)), &StencilFunction::passOp, offsetof(StencilFunction, passOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(FailOp)), &StencilFunction::failOp, offsetof(StencilFunction, failOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(DepthFailOp)), &StencilFunction::depthFailOp, offsetof(StencilFunction, depthFailOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
@@ -421,7 +421,7 @@ namespace hyperion {
 
 #pragma region TextureDesc Reflection Data
 
-HYP_BEGIN_STRUCT(TextureDesc, 322, 0, {})
+HYP_BEGIN_STRUCT(TextureDesc, 330, 0, {})
     Field(NAME(HYP_STR(Type)), &TextureDesc::type, offsetof(TextureDesc, type), Span<const ClassAttribute> { {ClassAttribute("property", "Type"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Format)), &TextureDesc::format, offsetof(TextureDesc, format), Span<const ClassAttribute> { {ClassAttribute("property", "Format"), ClassAttribute("serialize", true) } }),
     Field(NAME(HYP_STR(Extent)), &TextureDesc::extent, offsetof(TextureDesc, extent), Span<const ClassAttribute> { {ClassAttribute("property", "Extent"), ClassAttribute("serialize", true) } }),
@@ -441,7 +441,7 @@ namespace hyperion {
 
 #pragma region LoadOperation Reflection Data
 
-HYP_BEGIN_ENUM(LoadOperation, 323, 0, {})
+HYP_BEGIN_ENUM(LoadOperation, 331, 0, {})
     StaticField(NAME(HYP_STR(UNDEFINED)), LoadOperation::UNDEFINED),
     StaticField(NAME(HYP_STR(NONE)), LoadOperation::NONE),
     StaticField(NAME(HYP_STR(CLEAR)), LoadOperation::CLEAR),
@@ -457,7 +457,7 @@ namespace hyperion {
 
 #pragma region TextureFilterMode Reflection Data
 
-HYP_BEGIN_ENUM(TextureFilterMode, 324, 0, {})
+HYP_BEGIN_ENUM(TextureFilterMode, 332, 0, {})
     StaticField(NAME(HYP_STR(TFM_NEAREST)), TextureFilterMode::TFM_NEAREST),
     StaticField(NAME(HYP_STR(TFM_LINEAR)), TextureFilterMode::TFM_LINEAR),
     StaticField(NAME(HYP_STR(TFM_NEAREST_LINEAR)), TextureFilterMode::TFM_NEAREST_LINEAR),
@@ -475,7 +475,7 @@ namespace hyperion {
 
 #pragma region RenderPassStage Reflection Data
 
-HYP_BEGIN_ENUM(RenderPassStage, 325, 0, {})
+HYP_BEGIN_ENUM(RenderPassStage, 333, 0, {})
     StaticField(NAME(HYP_STR(NONE)), RenderPassStage::NONE),
     StaticField(NAME(HYP_STR(PRESENT)), RenderPassStage::PRESENT),
     StaticField(NAME(HYP_STR(SHADER)), RenderPassStage::SHADER)

@@ -568,6 +568,20 @@ void TonemapPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma region LightmapPass
 
+constexpr StringHash LightmapIrradianceTextureNames[LightmapVolume::MaxAtlases] = {
+    StringHash("IrradianceTexture0"),
+    StringHash("IrradianceTexture1"),
+    StringHash("IrradianceTexture2"),
+    StringHash("IrradianceTexture3")
+};
+
+constexpr StringHash LightmapRadianceTextureNames[LightmapVolume::MaxAtlases] = {
+    StringHash("RadianceTexture0"),
+    StringHash("RadianceTexture1"),
+    StringHash("RadianceTexture2"),
+    StringHash("RadianceTexture3")
+};
+
 struct LightmapVolumeUniforms
 {
     float irradianceWeights[4];
@@ -600,10 +614,13 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRe
     LightmapVolume* lightmapVolume = data.lightmapVolume;
     AssertDebug(lightmapVolume != nullptr);
 
-    const uint32 lightmapVolumeBoundIndex = RenderApi::RetrieveResourceBinding(lightmapVolume);
-    AssertDebug(lightmapVolumeBoundIndex != ~0u);
+    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(lightmapVolume));
+    Assert(proxy != nullptr);
 
-    const uint8 stencilMask = uint8(0x7u | (lightmapVolumeBoundIndex << 3));
+    const uint32 boundIndex = RenderApi::RetrieveResourceBinding(lightmapVolume);
+    AssertDebug(boundIndex != ~0u);
+
+    const uint8 stencilMask = uint8(0x7u | (boundIndex << 3));
 
     if (data.graphicsPipeline.IsAlive())
     {
@@ -611,12 +628,14 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRe
         AssertDebug(graphicsPipeline != nullptr);
 
         if (graphicsPipeline->GetStencilFunction().mask == stencilMask
-            && graphicsPipeline->GetFramebuffers().Contains(framebuffer))
+            && graphicsPipeline->GetFramebuffers().Contains(framebuffer)
+            && proxy->atlasIrradianceTextures.CompareBitwise(data.atlasIrradianceTextures)
+            && proxy->atlasRadianceTextures.CompareBitwise(data.atlasRadianceTextures))
         {
             return graphicsPipeline;
         }
     }
-    
+
     const MeshAttributes meshAttributes {
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
         | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
@@ -638,11 +657,49 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRe
         .value = 0x0
     };
 
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+    descriptorTable->SetDebugName(NAME_FMT("DescriptorTable_{}", m_shader->GetCompiledShader()->GetName()));
+
+    const uint32 lightmapVolumeDescriptorSetIndex = descriptorTable->GetDescriptorSetIndex("LightmapVolume");
+    AssertDebug(lightmapVolumeDescriptorSetIndex != ~0u);
+
+    LightmapVolumeUniforms uniforms {};
+    uniforms.numAtlases = proxy->numAtlases;
+
+    GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms));
+    Assert(uniformBuffer->Create());
+    uniformBuffer->Copy(sizeof(uniforms), &uniforms);
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("LightmapVolume", frameIndex);
+        Assert(descriptorSet != nullptr);
+
+        for (uint32 atlasIndex = 0; atlasIndex < LightmapVolume::MaxAtlases; atlasIndex++)
+        {
+            Texture* irradianceTexture = atlasIndex < proxy->numAtlases ? proxy->atlasIrradianceTextures[atlasIndex] : nullptr;
+            Texture* radianceTexture = atlasIndex < proxy->numAtlases ? proxy->atlasRadianceTextures[atlasIndex] : nullptr;
+
+            uniforms.irradianceWeights[atlasIndex] = irradianceTexture ? 1.0f : 0.0f;
+            uniforms.radianceWeights[atlasIndex] = radianceTexture ? 1.0f : 0.0f;
+
+            descriptorSet->SetElement(LightmapIrradianceTextureNames[atlasIndex], g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
+            descriptorSet->SetElement(LightmapRadianceTextureNames[atlasIndex], g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
+
+            descriptorSet->SetElement("LightmapVolumeUniforms", uniformBuffer);
+        }
+    }
+
+    DeferCreate(descriptorTable);
+
     data.graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        DescriptorTableRef::Null(),
+        descriptorTable,
         { &framebuffer, 1 },
         RenderableAttributeSet(meshAttributes, materialAttributes));
+
+    data.atlasIrradianceTextures = proxy->atlasIrradianceTextures;
+    data.atlasRadianceTextures = proxy->atlasRadianceTextures;
 
     return *data.graphicsPipeline;
 }
@@ -660,88 +717,11 @@ void LightmapPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& rend
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.lightmapVolume != nullptr);
 
-    constexpr StringHash IrradianceTextureNames[LightmapVolume::MaxAtlases] = {
-        StringHash("IrradianceTexture0"),
-        StringHash("IrradianceTexture1"),
-        StringHash("IrradianceTexture2"),
-        StringHash("IrradianceTexture3")
-    };
-
-    constexpr StringHash RadianceTextureNames[LightmapVolume::MaxAtlases] = {
-        StringHash("RadianceTexture0"),
-        StringHash("RadianceTexture1"),
-        StringHash("RadianceTexture2"),
-        StringHash("RadianceTexture3")
-    };
-
     RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(renderSetup.lightmapVolume));
     Assert(proxy != nullptr);
 
     LightmapVolumePassData& data = GetLightmapVolumePassData(renderSetup.lightmapVolume);
     /// @TODO: Add clean up of data after lightmap volume has been removed
-
-    if (!data.descriptorSet
-        || !proxy->atlasIrradianceTextures.CompareBitwise(data.atlasIrradianceTextures)
-        || !proxy->atlasRadianceTextures.CompareBitwise(data.atlasRadianceTextures))
-    {
-        // dirty, request new pipeline
-        data.graphicsPipeline = {};
-
-        DescriptorSetRef& descriptorSet = data.descriptorSet;
-
-        if (!descriptorSet)
-        {
-            const DescriptorTableDeclaration* descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-            Assert(descriptorTableDecl != nullptr);
-
-            DescriptorSetDeclaration* decl = descriptorTableDecl->FindDescriptorSetDeclaration("LightmapVolume");
-            Assert(decl != nullptr);
-
-            const DescriptorSetLayout layout { decl };
-
-            descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
-            descriptorSet->SetDebugName(NAME_FMT("LightmapPassDescriptorSet_{}", renderSetup.lightmapVolume->GetName()));
-
-            AssertDebug(descriptorSet != nullptr);
-        }
-
-        LightmapVolumeUniforms uniforms {};
-        static_assert(HYP_ARRAY_SIZE(LightmapVolumeUniforms::irradianceWeights) == LightmapVolume::MaxAtlases);
-        static_assert(HYP_ARRAY_SIZE(LightmapVolumeUniforms::radianceWeights) == LightmapVolume::MaxAtlases);
-
-        uniforms.numAtlases = proxy->numAtlases;
-
-        GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms));
-        Assert(uniformBuffer->Create());
-
-        for (uint32 atlasIndex = 0; atlasIndex < LightmapVolume::MaxAtlases; atlasIndex++)
-        {
-            Texture* irradianceTexture = atlasIndex < proxy->numAtlases ? proxy->atlasIrradianceTextures[atlasIndex] : nullptr;
-            Texture* radianceTexture = atlasIndex < proxy->numAtlases ? proxy->atlasRadianceTextures[atlasIndex] : nullptr;
-
-            uniforms.irradianceWeights[atlasIndex] = irradianceTexture ? 1.0f : 0.0f;
-            uniforms.radianceWeights[atlasIndex] = radianceTexture ? 1.0f : 0.0f;
-
-            descriptorSet->SetElement(IrradianceTextureNames[atlasIndex], g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
-            descriptorSet->SetElement(RadianceTextureNames[atlasIndex], g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
-        }
-
-        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
-
-        descriptorSet->SetElement("LightmapVolumeUniforms", uniformBuffer);
-
-        if (descriptorSet->IsCreated())
-        {
-            descriptorSet->Update(true);
-        }
-        else
-        {
-            Assert(descriptorSet->Create());
-        }
-
-        data.atlasIrradianceTextures = proxy->atlasIrradianceTextures;
-        data.atlasRadianceTextures = proxy->atlasRadianceTextures;
-    }
 
     const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline(framebuffer, data);
 
@@ -756,7 +736,7 @@ void LightmapPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& rend
             frame->GetFrameIndex());
     }
 
-    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+    const uint32 viewDescriptorSetIndex = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex("View");
 
     if (viewDescriptorSetIndex != ~0u)
     {
@@ -768,15 +748,6 @@ void LightmapPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& rend
             {},
             viewDescriptorSetIndex);
     }
-
-    const uint32 descriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("LightmapVolume");
-    AssertDebug(descriptorSetIndex != ~0u);
-
-    frame->renderQueue << BindDescriptorSet(
-        data.descriptorSet,
-        graphicsPipeline,
-        {},
-        descriptorSetIndex);
 
     frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
     frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());

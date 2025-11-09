@@ -41,7 +41,7 @@ struct GBufferMaterialParams
 
 uvec2 GBufferPackMaterialParams(in GBufferMaterialParams params)
 {
-    uvec2 vec = uvec2(0.0);
+    uvec2 vec = uvec2(0);
     vec.x = HYP_QUANTIZE(params.roughness, 6)
         | (HYP_QUANTIZE(params.metalness, 6) << 6)
         | (HYP_QUANTIZE(params.transmission, 6) << 12)
@@ -58,6 +58,31 @@ void GBufferUnpackMaterialParams(in uvec2 vec, out GBufferMaterialParams params)
     params.transmission = HYP_UNQUANTIZE((vec.x >> 12) & 0x3Fu, 6);
     params.ao = 1.0 - HYP_UNQUANTIZE((vec.x >> 18) & 0xFu, 4);
     params.mask = (vec.x >> 22) & 0x3FFu;
+}
+
+vec2 GBufferPackNormal(in vec3 normal)
+{
+    return PackNormalVec2(normal);
+}
+
+vec3 GBufferUnpackNormal(in vec2 packed)
+{
+    return UnpackNormalVec2(packed);
+}
+
+vec3 GBufferPackNormalUV1(in vec3 normal, in vec2 uv1)
+{
+    vec2 packedNormal = PackNormalVec2(normal);
+    float packedUV = HYP_QUANTIZE(uv1.x, 16) | (HYP_QUANTIZE(uv1.y, 16) << 16);
+    return vec3(packedNormal, packedUV);
+}
+
+void GBufferUnpackNormalUV1(in vec3 packed, out vec3 normal, out vec2 uv1)
+{
+    normal = UnpackNormalVec2(packed.xy);
+    uint packedUV = uint(packed.z);
+    uv1.x = HYP_UNQUANTIZE(packedUV & 0xFFFFu, 16);
+    uv1.y = HYP_UNQUANTIZE((packedUV >> 16) & 0xFFFFu, 16);
 }
 
 #endif

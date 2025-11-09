@@ -109,7 +109,7 @@ layout(push_constant) uniform PushConstant
 void main()
 {
     vec4 albedo = Texture2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
-    vec3 normal = DecodeNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord).xy);
     vec3 ws_normal = DecodeNormal(Texture2D(sampler_nearest, gbuffer_ws_normals_texture, texcoord));
 
     float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;

@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region PerspectiveCameraController Reflection Data
 
-HYP_BEGIN_CLASS(PerspectiveCameraController, 170, 4, NAME("CameraController"))
+HYP_BEGIN_CLASS(PerspectiveCameraController, 182, 4, NAME("CameraController"))
 HYP_END_CLASS
 
 #pragma endregion PerspectiveCameraController Reflection Data
