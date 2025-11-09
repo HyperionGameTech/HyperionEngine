@@ -633,8 +633,7 @@ static bool PreprocessShaderSource(ShaderModuleType type,
         break;
     }
 
-    uint32 vulkanApiVersion =
-        MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
+    uint32 vulkanApiVersion = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
     uint32 spirvApiVersion = GLSLANG_TARGET_SPV_1_2;
     uint32 spirvVersion = 450;
 
@@ -1647,10 +1646,11 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
     const bool anyMissing = missingVariants.Any();
 
     const bool requestedFound = batch.compiledShaders
-        .FindIf([&requestedProperties](const CompiledShader& item)
-        {
-            return SatisfiesRequestedPropertySet(requestedProperties, item.GetDefinition().GetProperties());
-        }) != batch.compiledShaders.End();
+                                    .FindIf([&requestedProperties](const CompiledShader& item)
+                                        {
+                                            return SatisfiesRequestedPropertySet(requestedProperties, item.GetDefinition().GetProperties());
+                                        })
+        != batch.compiledShaders.End();
 
     if (anyMissing || !requestedFound)
     {

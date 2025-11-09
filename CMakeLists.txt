@@ -271,14 +271,14 @@ elseif(MSVC)
     add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
 endif()
 
-if(NOT IOS)
-    link_directories(/usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
+# if(NOT IOS)
+#     link_directories(/usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
 
-    find_package(PkgConfig)
-    pkg_check_modules(GST gstreamer-1.0
-                        gstreamer-video-1.0
-                        gstreamer-app-1.0)
-endif()
+#     find_package(PkgConfig)
+#     pkg_check_modules(GST gstreamer-1.0
+#                         gstreamer-video-1.0
+#                         gstreamer-app-1.0)
+# endif()
 
 find_package(Threads REQUIRED)
 find_package(OpenAL)
@@ -374,6 +374,8 @@ add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
 add_definitions(-DHYP_VERSION_MAJOR=${HYP_VERSION_MAJOR})
 add_definitions(-DHYP_VERSION_MINOR=${HYP_VERSION_MINOR})
 add_definitions(-DHYP_VERSION_PATCH=${HYP_VERSION_PATCH})
+
+message(STATUS "HYP_ROOT_DIR: ${CMAKE_CURRENT_LIST_DIR}")
 
 set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated")
 
@@ -784,22 +786,22 @@ if(NOT IOS)
         )
     endif()
 
-    if(GST_FOUND)
-        add_definitions(-DHYP_GSTREAMER=1)
-        add_definitions(-DHYP_GSTREAMER_BIN_DIR="Z:/gstreamer/1.0/msvc_x86_64/bin")
+    # if(GST_FOUND)
+    #     add_definitions(-DHYP_GSTREAMER=1)
+    #     add_definitions(-DHYP_GSTREAMER_BIN_DIR="Z:/gstreamer/1.0/msvc_x86_64/bin")
 
-        include_directories(${GST_INCLUDE_DIRS})
-        link_directories(${GST_LIBRARY_DIRS})
+    #     include_directories(${GST_INCLUDE_DIRS})
+    #     link_directories(${GST_LIBRARY_DIRS})
 
-        # target_link_libraries(${BUILD_NAME} PRIVATE ${GST_LIBRARIES})
+    #     # target_link_libraries(${BUILD_NAME} PRIVATE ${GST_LIBRARIES})
 
-        message(STATUS "GStreamer found, linking to it: ${GST_LIBRARIES}\nInclude directories: ${GST_INCLUDE_DIRS}")
+    #     message(STATUS "GStreamer found, linking to it: ${GST_LIBRARIES}\nInclude directories: ${GST_INCLUDE_DIRS}")
 
-        set(COMMON_LIBRARIES
-            ${COMMON_LIBRARIES}
-            ${GST_LIBRARIES}
-        )
-    endif()
+    #     set(COMMON_LIBRARIES
+    #         ${COMMON_LIBRARIES}
+    #         ${GST_LIBRARIES}
+    #     )
+    # endif()
 endif()
 
 # set to empty list

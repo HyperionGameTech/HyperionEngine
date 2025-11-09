@@ -516,7 +516,7 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #endif
 
 #if defined(HYP_VULKAN) && HYP_VULKAN
-#define HYP_VULKAN_API_VERSION VK_API_VERSION_1_1 // moltenvk supports api 1.1
+#define HYP_VULKAN_API_VERSION VK_API_VERSION_1_2 // moltenvk supports api 1.1
 #define HYP_MOLTENVK 1
 
 #ifdef HYP_DEBUG_MODE
