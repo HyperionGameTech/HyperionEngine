@@ -21,7 +21,6 @@ HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normal
 HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform texture2D gbuffer_material_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferWSNormalsTexture) uniform texture2D gbuffer_ws_normals_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferTranslucentTexture) uniform texture2D gbuffer_albedo_texture_translucent;
 #endif
 
 HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;

@@ -1601,7 +1601,6 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
         }
 
         descriptorSet->SetElement("DeferredResult", passData.combinePass->GetFinalImageView());
-
         descriptorSet->SetElement("DeferredIndirectResultTexture", passData.indirectPass->GetFinalImageView());
 
         descriptorSet->SetElement("ReflectionProbeResultTexture", passData.reflectionsPass->GetFinalImageView());
@@ -1725,11 +1724,9 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
     const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-    const FramebufferRef& translucentFbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
     CHECK_FRAMEBUFFER_SIZE(opaqueFbo);
     CHECK_FRAMEBUFFER_SIZE(lightmapFbo);
-    CHECK_FRAMEBUFFER_SIZE(translucentFbo);
 
     passData.hbao->Resize(newSize);
 
@@ -2100,11 +2097,10 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
     const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-    const FramebufferRef& translucentFbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
     CHECK_FRAMEBUFFER_SIZE(opaqueFbo);
     CHECK_FRAMEBUFFER_SIZE(lightmapFbo);
-    CHECK_FRAMEBUFFER_SIZE(translucentFbo);
+    CHECK_FRAMEBUFFER_SIZE(passData.combinePass->GetFramebuffer());
 
     const bool doParticles = true;
     const bool doGaussianSplatting = false; // environment && environment->IsReady();
@@ -2297,8 +2293,10 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
-    { // translucent objects
-        frame->renderQueue << BeginFramebuffer(translucentFbo);
+    { // combined + translucent (forward pass)
+        const FramebufferRef& combinePassFramebuffer = passData.combinePass->GetFramebuffer();
+
+        frame->renderQueue << BeginFramebuffer(combinePassFramebuffer);
 
         { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
             const GraphicsPipelineRef& pipeline = passData.combinePass->GetGraphicsPipeline();
@@ -2326,7 +2324,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             // Apply lightmaps over the now shaded opaque objects.
 
             // @TODO: Use stencil buffer to separate by lightmap volume ID
-            passData.lightmapPass->RenderToFramebuffer(frame, newRs, translucentFbo);
+            passData.lightmapPass->RenderToFramebuffer(frame, newRs, combinePassFramebuffer);
         }
 
         // begin translucent with forward rendering
@@ -2348,7 +2346,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         // render debug draw
         g_engineDriver->GetDebugDrawer()->Render(frame, rs);
 
-        frame->renderQueue << EndFramebuffer(translucentFbo);
+        frame->renderQueue << EndFramebuffer(combinePassFramebuffer);
     }
 
     { // render depth pyramid

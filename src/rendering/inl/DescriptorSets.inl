@@ -29,10 +29,8 @@ HYP_DESCRIPTOR_SRV_COND(View, GBufferTextures, NumGBufferTargets, g_renderBacken
 HYP_DESCRIPTOR_SRV_COND(View, GBufferAlbedoTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferNormalsTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferMaterialTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
-HYP_DESCRIPTOR_SRV_COND(View, GBufferLightmapTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferVelocityTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferWSNormalsTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
-HYP_DESCRIPTOR_SRV_COND(View, GBufferTranslucentTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture, 1);
 HYP_DESCRIPTOR_SRV(View, GBufferMipChain, 1);
 HYP_DESCRIPTOR_SRV(View, DeferredResult, 1);

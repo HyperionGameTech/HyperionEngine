@@ -20,8 +20,9 @@ HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normal
 HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferWSNormalsTexture) uniform texture2D gbuffer_ws_normals_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferTranslucentTexture) uniform texture2D gbuffer_albedo_texture_translucent;
 #endif
+
+HYP_DESCRIPTOR_SRV(View, DeferredResult) uniform texture2D DeferredResult;
 
 HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
 
@@ -74,7 +75,7 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 void main()
 {
     // Shaded result with forward rendered objects included
-    vec4 shaded_result = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture_translucent, texcoord);
+    vec4 shaded_result = Texture2D(HYP_SAMPLER_NEAREST, DeferredResult, texcoord);
 
     color_output = shaded_result;
 
