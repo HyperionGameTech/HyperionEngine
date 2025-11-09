@@ -263,7 +263,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaqueFramebuffe
     }
     else
     {
-        // add the attachments shared with opaque bucket
+        // add the attachments shared with opaque bucket (including depth)
         for (uint32 i = 1; i < GTN_MAX; i++)
         {
             addSharedAttachment(i);

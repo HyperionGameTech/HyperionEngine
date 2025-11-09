@@ -70,19 +70,16 @@ vec3 GBufferUnpackNormal(in vec2 packed)
     return UnpackNormalVec2(packed);
 }
 
-vec3 GBufferPackNormalUV1(in vec3 normal, in vec2 uv1)
+vec4 GBufferPackNormalUV1(in vec3 normal, in vec2 uv1)
 {
     vec2 packedNormal = PackNormalVec2(normal);
-    float packedUV = HYP_QUANTIZE(uv1.x, 8) | (HYP_QUANTIZE(uv1.y, 8) << 8);
-    return vec3(packedNormal, packedUV);
+    return vec4(packedNormal, uv1);
 }
 
-void GBufferUnpackNormalUV1(in vec3 packed, out vec3 normal, out vec2 uv1)
+void GBufferUnpackNormalUV1(in vec4 packed, out vec3 normal, out vec2 uv1)
 {
     normal = UnpackNormalVec2(packed.xy);
-    uint packedUV = uint(packed.z);
-    uv1.x = HYP_UNQUANTIZE(packedUV & 0xFFFFu, 8);
-    uv1.y = HYP_UNQUANTIZE((packedUV >> 8) & 0xFFFFu, 8);
+    uv1 = packed.zw;
 }
 
 #endif

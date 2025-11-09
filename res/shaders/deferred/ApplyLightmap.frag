@@ -25,10 +25,8 @@ HYP_DESCRIPTOR_SRV(View, GBufferTranslucentTexture) uniform texture2D gbuffer_al
 
 HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest)
-uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear)
-uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 
 HYP_DESCRIPTOR_SRV(Global, RTRadianceResultTexture) uniform texture2D rt_radiance_final;
 
@@ -96,11 +94,9 @@ HYP_DESCRIPTOR_CBUFF(LightmapVolume, LightmapVolumeUniforms) uniform LightmapVol
 
 void main()
 {
-    vec4 result = vec4(0.0);
+    vec4 albedo = Texture2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
 
-    vec4 albedo = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture, texcoord);
-
-    uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
+    uvec2 materialData = texture(usampler2D(gbuffer_material_texture, sampler_nearest), texcoord).rg;
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(materialData, materialParams);
@@ -111,60 +107,51 @@ void main()
     const float ao = materialParams.ao;
     const uint object_mask = materialParams.mask;
 
-    const float perceptual_roughness = sqrt(roughness);
-
     const mat4 inverse_proj = inverse(camera.projection);
     const mat4 inverse_view = inverse(camera.view);
 
     vec3 N;
     vec2 UV1;
-    GBufferUnpackNormalUV1(Texture2D(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord).xyz, N, UV1);
+    GBufferUnpackNormalUV1(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord), N, UV1);
 
-    const float depth = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord).r;
+    const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     const vec3 V = normalize(camera.position.xyz - P);
     const vec3 R = normalize(reflect(-V, N));
 
-    // apply reflections to lightmapped objects
-    /// @TODO use the stencil buffer to select lightmapped objects for this volume only
-    if (bool(object_mask & OBJECT_MASK_LIGHTMAP))
-    {
-        vec4 irradiance = vec4(0.0);
-        vec2 lightmap_uv = UV1;
-        vec4 lightmap_sample = vec4(0.0);
+    vec4 irradiance = vec4(0.0);
+    vec2 lightmap_uv = UV1;
+    vec4 lightmap_sample = vec4(0.0);
 
-        // sample lightmap atlases based on weights
-        lightmap_sample = Texture2D(HYP_SAMPLER_LINEAR, IrradianceTexture, lightmap_uv);
-        irradiance += lightmap_sample * irradianceWeight;
+    // sample lightmap atlases based on weights
+    lightmap_sample = Texture2D(sampler_linear, IrradianceTexture, lightmap_uv);
+    irradiance += lightmap_sample;// * irradianceWeight;
 
-        // @TODO! sample radiance for direct shading
+    // @TODO! sample radiance for direct shading
 
-        vec3 ibl = vec3(0.0);
-        vec3 F = vec3(0.0);
+    vec3 ibl = vec3(0.0);
+    vec3 F = vec3(0.0);
 
-        float NdotV = max(0.0001, dot(N, V));
+    float NdotV = max(0.0001, dot(N, V));
 
-        const vec3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
-        const vec3 F0 = CalculateF0(albedo.rgb, metalness);
+    const vec3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
+    const vec3 F0 = CalculateF0(albedo.rgb, metalness);
 
-        F = CalculateFresnelTerm(F0, roughness, NdotV);
-        const vec3 kD = (vec3(1.0) - F) * (1.0 - metalness);
+    F = CalculateFresnelTerm(F0, roughness, NdotV);
+    const vec3 kD = (vec3(1.0) - F) * (1.0 - metalness);
 
-        const float perceptual_roughness = sqrt(roughness);
-        const vec3 dfg = CalculateDFG(F, roughness, NdotV);
-        const vec3 E = CalculateE(F0, dfg);
-        const vec3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
+    const vec3 dfg = CalculateDFG(F, roughness, NdotV);
+    const vec3 E = CalculateE(F0, dfg);
+    const vec3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
 
-        vec4 reflections_color = Texture2D(HYP_SAMPLER_NEAREST, reflections_texture, texcoord);
-        ibl = ibl * (1.0 - reflections_color.a) + (reflections_color.rgb * reflections_color.a);
+    vec4 reflections_color = Texture2D(sampler_nearest, reflections_texture, texcoord);
+    ibl = ibl * (1.0 - reflections_color.a) + (reflections_color.rgb * reflections_color.a);
 
-        vec4 rt_radiance = Texture2D(HYP_SAMPLER_NEAREST, rt_radiance_final, texcoord);
-        ibl = ibl * (1.0 - rt_radiance.a) + (rt_radiance.rgb * rt_radiance.a);
+    vec4 rt_radiance = Texture2D(sampler_nearest, rt_radiance_final, texcoord);
+    ibl = ibl * (1.0 - rt_radiance.a) + (rt_radiance.rgb * rt_radiance.a);
 
-        vec3 spec = (ibl * mix(dfg.xxx, dfg.yyy, F0)) * energy_compensation;
+    vec3 spec = (ibl * mix(dfg.xxx, dfg.yyy, F0)) * energy_compensation;
 
-        result = (albedo * irradiance) + vec4(spec, 0.0);
-    }
-
-    color_output = vec4(1.0, 0.0, 0.0, 1.0);// result;
+    color_output = (albedo * irradiance) + vec4(spec, 0.0);
+    color_output.a = 1.0;
 }

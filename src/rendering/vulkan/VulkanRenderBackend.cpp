@@ -887,8 +887,7 @@ GraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
     graphicsPipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
 
     if ((attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
-        || attributes.GetMaterialAttributes().stencilReference != 0
-        || attributes.GetMaterialAttributes().stencilFunction.IsSet())
+        || attributes.GetMaterialAttributes().stencilReference != 0)
     {
         graphicsPipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     }

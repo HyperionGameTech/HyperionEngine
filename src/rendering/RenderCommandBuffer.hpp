@@ -39,13 +39,13 @@ public:
     void ResetStencilState()
     {
         stencilReference = 0;
-        stencilCompareMask = 0;
-        stencilWriteMask = 0;
+        stencilCompareMask = 0xFF;
+        stencilWriteMask = 0xFF;
     }
 
     uint8 stencilReference = 0;
-    uint8 stencilCompareMask = 0;
-    uint8 stencilWriteMask = 0;
+    uint8 stencilCompareMask = 0xFF;
+    uint8 stencilWriteMask = 0xFF;
 };
 
 } // namespace hyperion

@@ -765,8 +765,8 @@ void LightmapPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& rend
         frame->renderQueue << DrawIndexed(6); // @TODO: Draw a box transformed to the size of the lightmap volume
     }
 
-    // reset stencil state back to what it was
-    frame->renderQueue << SetStencilState(0, 0x0, 0x0);
+    // reset stencil state back to default
+    frame->renderQueue << SetStencilState(0);
 
     m_isFirstFrame = false;
 }

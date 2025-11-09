@@ -194,7 +194,7 @@ void main()
     materialParams.ao = ao;
     materialParams.mask = GET_OBJECT_BUCKET(object) | OBJECT_MASK_TERRAIN;
 
-    gbuffer_normals = vec4(GBufferPackNormalUV1(normal, v_texcoord1), 0.0);
+    gbuffer_normals = GBufferPackNormalUV1(normal, v_texcoord1);
     gbuffer_material = GBufferPackMaterialParams(materialParams);
     gbuffer_velocity = velocity;
 }

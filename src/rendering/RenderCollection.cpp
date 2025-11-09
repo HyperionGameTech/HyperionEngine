@@ -203,24 +203,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     // set base attributes from mesh and material
     attributes = RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() };
 
-    // if lightmap volume is set we need stencil testing
-    if (proxy.lightmapVolume != nullptr)
-    {
-        const uint8 stencilReferenceValue = GetLightmapStencilValue(proxy.lightmapElementId) & LightmapStencilMask;
-
-        if (stencilReferenceValue != (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask))
-        {
-            attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
-            attributes.GetMaterialAttributes().stencilReference |= stencilReferenceValue;
-            attributes.Invalidate();
-        }
-    }
-    else if (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask)
-    {
-        attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
-        attributes.Invalidate();
-    }
-
     if (overrideAttributes)
     {
         if (const ShaderDefinition& overrideShaderDefinition = overrideAttributes->GetShaderDefinition())
@@ -257,6 +239,24 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     const bool hasDeferredLighting = !hasForwardLighting && !hasLightmaps;
     const bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
     const bool hasSkinning = proxy.skeleton != nullptr && proxy.skeleton->GetRootBone() != nullptr;
+
+    // if lightmap volume is set we need stencil testing
+    if (hasLightmaps)
+    {
+        const uint8 stencilReferenceValue = GetLightmapStencilValue(proxy.lightmapElementId) & LightmapStencilMask;
+
+        if (stencilReferenceValue != (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask))
+        {
+            attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
+            attributes.GetMaterialAttributes().stencilReference |= stencilReferenceValue;
+            attributes.Invalidate();
+        }
+    }
+    else if (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask)
+    {
+        attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
+        attributes.Invalidate();
+    }
 
     const ShaderDefinition& currentShaderDefinition = attributes.GetShaderDefinition();
     const ShaderProperties& currentProperties = currentShaderDefinition.GetProperties();
@@ -508,25 +508,13 @@ RenderProxyList::~RenderProxyList()
             }
         });
 
-    HYP_LOG(Rendering, Debug, "RenderProxyList destroyed with {} render proxies still in it", numRenderProxies);
-    AssertDebug(numRenderProxies == 0 || !debugIsSynced,
-        "RenderProxyList destroyed with render proxies still in it!\n"
-        "This could cause danglng pointers as the RenderGlobalState copies the pointers (see SyncDependencies() in RenderGlobalState.cpp)");
+    if (numRenderProxies > 0)
+        HYP_LOG(Rendering, Debug, "RenderProxyList destroyed with {} render proxies still in it", numRenderProxies);
 #endif
-
-    // Have to dec refs on all objects we hold a strong reference to.
 
     for (SizeType i = 0; i < resourceTrackers.Size(); i++)
     {
         ResourceTrackerBase<AllocatorType>* resourceTracker = resourceTrackers[i];
-        AssertDebug(resourceTracker != nullptr);
-
-        if (useRefCounting)
-        {
-            // Release all strong references to tracked elements
-            AssertDebug(releaseRefsFunctions[i] != nullptr);
-            releaseRefsFunctions[i](resourceTracker);
-        }
 
         delete resourceTracker;
     }

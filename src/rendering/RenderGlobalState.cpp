@@ -78,7 +78,7 @@ namespace hyperion {
 static_assert(RingBufferDepth <= MinSafeDeleteCycles,
     "RingBufferDepth must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
 
-static constexpr uint32 MaxFramesBeforeDiscard = 60; // number of frames before ViewData is discarded if not written to
+static constexpr uint32 MaxFramesBeforeDiscard = 10; // number of frames before ViewData is discarded if not written to
 
 // must be greater than or equal to MinSafeDeleteCycles so that
 // we can ensure no active views hold pointers to deleted objects.
@@ -1064,6 +1064,11 @@ void BeginFrame_RenderThread()
             vfd.viewData = GetViewData(vfd.view);
             ++vfd.viewData->numRefs;
         }
+        else if (vfd.viewData->framesSinceUsed >= MaxFramesBeforeDiscard)
+        {
+            // skip it if its been queued for deletion (the View might already have been destroyed!)
+            continue;
+        }
 
         vfd.rplShared->BeginRead();
 
@@ -1219,17 +1224,16 @@ void EndFrame_RenderThread()
         vd.renderCollector.RemoveEmptyRenderGroups();
 
         // Clear out data for views that haven't been written to for a while
-        if (++vd.framesSinceUsed == MaxFramesBeforeDiscard)
+        if (++vd.framesSinceUsed >= MaxFramesBeforeDiscard)
         {
-            HYP_LOG(Rendering, Debug, "Discarding ViewData for view {} after {} frames",
-                view->Id(), MaxFramesBeforeDiscard);
-
             // Decrement ref count on the ViewData,
             // if we hit zero there are no more ViewFrameData holding refs to the ViewData so we delete it
             AssertDebug(vd.numRefs > 0);
 
             if ((--vd.numRefs) == 0)
             {
+                HYP_LOG(Rendering, Debug, "Discarding ViewData for view {}", view->Id());
+
                 auto viewDataIt = s_viewData.Find(view);
                 AssertDebug(viewDataIt != s_viewData.End() && viewDataIt->second == &vd);
 

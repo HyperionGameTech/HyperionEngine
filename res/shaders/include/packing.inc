@@ -2,7 +2,7 @@
 #define HYP_PACKING
 
 // #define HYP_PACK_NORMALS 1
-#define HYP_NORMAL_PACKING_0
+#define HYP_NORMAL_PACKING_2
 // #define HYP_NORMAL_PACKING_1
 // #define HYP_NORMAL_PACKING_2
 
