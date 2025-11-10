@@ -98,12 +98,11 @@ static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties 
     ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT")) } }
 };
 
-static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
+static constexpr StringHash GBufferTextureNames[GTN_MAX - 1] = {
     StringHash("GBufferAlbedoTexture"),
     StringHash("GBufferNormalsTexture"),
     StringHash("GBufferMaterialTexture"),
-    StringHash("GBufferVelocityTexture"),
-    StringHash("GBufferWSNormalsTexture")
+    StringHash("GBufferVelocityTexture")
 };
 
 static EngineStatTimer s_deferredPassTimer("Rendering/Deferred/DeferredPass");

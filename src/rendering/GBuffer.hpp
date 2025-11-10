@@ -29,7 +29,6 @@ enum GBufferTargetName : uint32
     GTN_NORMALS,
     GTN_MATERIAL,
     GTN_VELOCITY,
-    GTN_WS_NORMALS,
     GTN_DEPTH,
 
     GTN_MAX

@@ -24,7 +24,6 @@ HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_
 HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferWSNormalsTexture) uniform texture2D gbuffer_ws_normals_texture;
 #endif
 
 HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
@@ -108,7 +107,6 @@ void main()
 {
     vec4 albedo = Texture2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
     vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
-    vec3 ws_normal = DecodeNormal(Texture2D(sampler_nearest, gbuffer_ws_normals_texture, texcoord));
 
     float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
     vec4 position = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), texcoord, depth);
@@ -151,12 +149,6 @@ void main()
     irradiance += Texture2D(HYP_SAMPLER_LINEAR, env_grid_irradiance_texture, texcoord).rgb * ENV_GRID_MULTIPLIER;
 #endif
 
-    // SH9 sh9;
-    // for (int i = 0; i < 9; i++) {
-    //     sh9.values[i] = current_env_probe.sh[i].rgb;
-    // }
-    // irradiance += SphericalHarmonicsSample(sh9, ws_normal) * ENV_GRID_MULTIPLIER;
-
 #ifdef SSGI_ENABLED
     const vec4 ssgi = Texture2D(HYP_SAMPLER_LINEAR, ssgi_result, v_texcoord0);
     irradiance = irradiance * (1.0 - ssgi.a) + (ssgi.rgb * ssgi.a);
@@ -167,7 +159,7 @@ void main()
 #endif
 
 #ifdef RT_GI
-    irradiance += DDGISampleIrradiance(position.xyz, ws_normal, V).rgb * DDGI_MULTIPLIER;
+    irradiance += DDGISampleIrradiance(position.xyz, normal, V).rgb * DDGI_MULTIPLIER;
 #endif
 
 #ifdef HBIL_ENABLED

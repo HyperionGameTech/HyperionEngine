@@ -44,7 +44,7 @@ constexpr uint32 MaxBoundLightmapVolumes = 4;
 
 constexpr uint32 MaxBindlessResources = 4096;
 
-constexpr uint32 NumGBufferTargets = 6;
+constexpr uint32 NumGBufferTargets = 5;
 
 template <class... T>
 constexpr bool ResolutionFailureV = false;

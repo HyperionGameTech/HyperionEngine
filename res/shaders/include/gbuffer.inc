@@ -25,7 +25,6 @@
 #define gbuffer_normals_texture HYP_GBUFFER_TEXTURE(1)
 #define gbuffer_material_texture HYP_GBUFFER_TEXTURE(2)
 #define gbuffer_velocity_texture HYP_GBUFFER_TEXTURE(3)
-#define gbuffer_ws_normals_texture HYP_GBUFFER_TEXTURE(4)
 #endif
 
 struct GBufferMaterialParams

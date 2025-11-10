@@ -23,9 +23,7 @@ layout(location = 16) in flat uint v_object_mask;
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec4 gbuffer_material;
-layout(location = 3) out vec4 gbuffer_albedo_lightmap;
-layout(location = 4) out vec2 gbuffer_velocity;
-layout(location = 5) out vec4 gbuffer_ws_normals;
+layout(location = 3) out vec2 gbuffer_velocity;
 
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
@@ -69,11 +67,6 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 
 HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
 HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
-
-HYP_DESCRIPTOR_SSBO(Global, LightmapVolumesBuffer) readonly buffer LightmapVolumesBuffer
-{
-    LightmapVolume lightmap_volumes[];
-};
 
 #ifdef SHADING_TYPE_FORWARD
 #include "include/brdf.inc"
@@ -134,7 +127,6 @@ void main()
 {
     vec3 view_vector = normalize(v_camera_position - v_position);
     vec3 N = normalize(v_normal);
-    const vec3 ws_normals = N;
     const vec3 P = v_position.xyz;
     const vec3 V = normalize(camera.position.xyz - P);
 
@@ -370,5 +362,4 @@ void main()
 #endif
 
     gbuffer_velocity = velocity;
-    gbuffer_ws_normals = EncodeNormal(ws_normals);
 }

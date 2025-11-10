@@ -15,7 +15,6 @@ layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec2 gbuffer_material;
 layout(location = 3) out vec2 gbuffer_velocity;
-layout(location = 4) out vec4 gbuffer_ws_normals;
 
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler texture_sampler;
 
@@ -79,5 +78,4 @@ void main()
     gbuffer_normals = GBufferPackNormal(normal);
     gbuffer_material = GBufferPackMaterialParams(materialParams);
     gbuffer_velocity = vec2(0.0);
-    gbuffer_ws_normals = vec4(0.0);
 }

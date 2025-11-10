@@ -33,7 +33,6 @@ HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_
 HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferWSNormalsTexture) uniform texture2D gbuffer_ws_normals_texture;
 #endif
 
 HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
@@ -237,7 +236,7 @@ void main(void)
     const float perceptual_roughness = sqrt(roughness);
     const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
 
-    const vec3 N = DecodeNormal(Texture2D(sampler_nearest, gbuffer_ws_normals_texture, texcoord));
+    const vec3 N = DecodeNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
     const vec3 view_space_normal = normalize((view * vec4(N, 0.0)).xyz);
 
     vec4 accum_result = vec4(0.0);
@@ -298,7 +297,7 @@ void main(void)
 #ifdef EVAL_LIGHTING
                     vec4 hit_albedo = Texture2D(sampler_linear, gbuffer_albedo_texture, sample_uv);
 
-                    vec3 hit_normal = DecodeNormal(Texture2D(sampler_nearest, gbuffer_ws_normals_texture, sample_uv));
+                    vec3 hit_normal = DecodeNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, sample_uv));
 
                     vec4 hit_position = inverse_view * hit_view_space_position;
                     hit_position /= hit_position.w;

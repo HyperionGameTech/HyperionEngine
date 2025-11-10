@@ -18,7 +18,6 @@ HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_
 HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferWSNormalsTexture) uniform texture2D gbuffer_ws_normals_texture;
 #endif
 
 HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
@@ -97,7 +96,7 @@ void main()
     const mat4 inverse_view = inverse(camera.view);
 
     const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
-    const vec3 N = DecodeNormal(Texture2D(sampler_nearest, gbuffer_ws_normals_texture, texcoord));
+    const vec3 N = DecodeNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     const vec3 V = normalize(camera.position.xyz - P);
 
