@@ -135,7 +135,7 @@ public:
 
 private:
     void CreateBucketFramebuffers();
-    FramebufferRef CreateFramebuffer(const FramebufferRef& opaqueFramebuffer, Vec2u resolution, RenderBucket rb);
+    FramebufferRef CreateFramebuffer(const FramebufferRef& parentFramebuffer, Vec2u resolution, RenderBucket rb);
 
     FixedArray<GBufferTarget, uint32(RB_MAX) - 1> m_buckets;
     Array<FramebufferRef> m_framebuffers;

@@ -34,11 +34,11 @@ struct GBufferTargetDesc
 };
 
 static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
-    GBufferTargetDesc { GBufferFormat(TF_R11G11B10F) }, // color
-    GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) },                             // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
-    GBufferTargetDesc { GBufferFormat(TF_RGBA32) },                                // material data
-    GBufferTargetDesc { GBufferFormat(TF_RG16F) },    // velocity
-    GBufferTargetDesc { GBufferFormat(DIF_DEPTH) }    // depth
+    GBufferTargetDesc { GBufferFormat(TF_R11G11B10F) },  // color
+    GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) }, // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
+    GBufferTargetDesc { GBufferFormat(TF_RGBA32) },      // material data
+    GBufferTargetDesc { GBufferFormat(TF_RG16F) },       // velocity
+    GBufferTargetDesc { GBufferFormat(DIF_DEPTH) }       // depth
 };
 
 static TextureFormat GetImageFormat(GBufferTargetName targetName)
@@ -173,9 +173,7 @@ void GBuffer::CreateBucketFramebuffers()
         case RB_TRANSLUCENT:
             target.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
             break;
-        case RB_SKYBOX:
-            target.m_framebuffer = GetBucket(RB_TRANSLUCENT).m_framebuffer;
-            break;
+        case RB_SKYBOX: // fallthrough
         case RB_DEBUG:
             target.m_framebuffer = GetBucket(RB_TRANSLUCENT).m_framebuffer;
             break;
@@ -188,7 +186,7 @@ void GBuffer::CreateBucketFramebuffers()
     }
 }
 
-FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaqueFramebuffer, Vec2u resolution, RenderBucket rb)
+FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffer, Vec2u resolution, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -216,7 +214,9 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaqueFramebuffe
 
     auto addSharedAttachment = [&](uint32 binding)
     {
-        AttachmentBase* parentAttachment = opaqueFramebuffer->GetAttachment(binding);
+        Assert(parentFramebuffer != nullptr);
+
+        AttachmentBase* parentAttachment = parentFramebuffer->GetAttachment(binding);
         Assert(parentAttachment != nullptr);
 
         framebuffer->AddAttachment(
@@ -250,7 +250,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaqueFramebuffe
 
     // opaque creates the main non-color gbuffer attachments,
     // which will be shared with other renderable buckets
-    if (opaqueFramebuffer == nullptr)
+    if (!parentFramebuffer)
     {
         for (uint32 i = 1; i < GTN_MAX; i++)
         {
