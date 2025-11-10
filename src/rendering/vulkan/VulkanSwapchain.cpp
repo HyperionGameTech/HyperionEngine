@@ -32,7 +32,7 @@ static inline VulkanRenderBackend* GetRenderBackend()
 }
 
 static constexpr bool UseSrgbFormat = true;
-static constexpr bool UseHdrFormat = true;
+static constexpr bool UseHdrFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 static RendererResult HandleNextFrame(

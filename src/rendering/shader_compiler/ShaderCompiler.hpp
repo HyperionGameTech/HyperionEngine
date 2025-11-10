@@ -1189,6 +1189,38 @@ struct ShaderDefinition
     }
 };
 
+struct ShaderDesc // combination of shader files, .frag, .vert etc. in .ini definitions file.
+{
+    Name name;
+    String entryPointName = "main";
+    FlatMap<ShaderModuleType, String> sources;
+    ShaderProperties versions; // permutations
+
+    bool HasRTShaders() const
+    {
+        return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
+            {
+                return IsRaytracingShaderModule(item.first);
+            });
+    }
+
+    bool IsComputeShader() const
+    {
+        return Every(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
+            {
+                return item.first == SMT_COMPUTE;
+            });
+    }
+
+    bool HasVertexShader() const
+    {
+        return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
+            {
+                return item.first == SMT_VERTEX;
+            });
+    }
+};
+
 HYP_STRUCT()
 struct HYP_API CompiledShader
 {
@@ -1339,60 +1371,6 @@ struct CompiledShaderBatch
     }
 };
 
-class ShaderCache
-{
-public:
-    ShaderCache() = default;
-    ShaderCache(const ShaderCache& other) = delete;
-    ShaderCache& operator=(const ShaderCache& other) = delete;
-    ShaderCache(ShaderCache&& other) noexcept = delete;
-    ShaderCache& operator=(ShaderCache&& other) noexcept = delete;
-    ~ShaderCache() = default;
-
-    bool Get(Name name, CompiledShaderBatch& out) const
-    {
-        Mutex::Guard guard(m_mutex);
-
-        const auto it = m_compiledShaders.Find(name);
-
-        if (it == m_compiledShaders.End())
-        {
-            return false;
-        }
-
-        out = it->second;
-
-        return true;
-    }
-
-    bool GetShaderInstance(Name name, const ShaderProperties& properties, CompiledShader& out) const;
-
-    void Set(Name name, const CompiledShaderBatch& batch)
-    {
-        Mutex::Guard guard(m_mutex);
-
-        m_compiledShaders.Set(name, batch);
-    }
-
-    void Set(Name name, CompiledShaderBatch&& batch)
-    {
-        Mutex::Guard guard(m_mutex);
-
-        m_compiledShaders.Set(name, std::move(batch));
-    }
-
-    void Remove(Name name)
-    {
-        Mutex::Guard guard(m_mutex);
-
-        m_compiledShaders.Erase(name);
-    }
-
-private:
-    HashMap<Name, CompiledShaderBatch> m_compiledShaders;
-    mutable Mutex m_mutex;
-};
-
 void MergeGlobalShaderProperties(ShaderProperties& out);
 
 class ShaderCompiler
@@ -1419,51 +1397,6 @@ class ShaderCompiler
     };
 
 public:
-    struct SourceFile
-    {
-        String path;
-
-        HashCode GetHashCode() const
-        {
-            HashCode hc;
-            hc.Add(path);
-
-            return hc;
-        }
-    };
-
-    struct ShaderDesc // combination of shader files, .frag, .vert etc. in .ini definitions file.
-    {
-        Name name;
-        String entryPointName = "main";
-        FlatMap<ShaderModuleType, SourceFile> sources;
-        ShaderProperties versions; // permutations
-
-        bool HasRTShaders() const
-        {
-            return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, SourceFile>& item)
-                {
-                    return IsRaytracingShaderModule(item.first);
-                });
-        }
-
-        bool IsComputeShader() const
-        {
-            return Every(sources, [](const KeyValuePair<ShaderModuleType, SourceFile>& item)
-                {
-                    return item.first == SMT_COMPUTE;
-                });
-        }
-
-        bool HasVertexShader() const
-        {
-            return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, SourceFile>& item)
-                {
-                    return item.first == SMT_VERTEX;
-                });
-        }
-    };
-
     ShaderCompiler();
     ShaderCompiler(const ShaderCompiler& other) = delete;
     ShaderCompiler& operator=(const ShaderCompiler& other) = delete;
@@ -1518,7 +1451,6 @@ private:
         CompiledShaderBatch& out);
 
     INIFile* m_definitions;
-    ShaderCache m_cache;
     Array<ShaderDesc> m_shaderDescs;
 };
 

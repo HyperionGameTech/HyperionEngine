@@ -369,7 +369,6 @@ public:
     {
         ObjCast<UITextbox>(uiObject->FindChildUIObject(NAME("Vec3fPanel_X_Value")))->SetText(HYP_FORMAT("{}", value.x));
         ObjCast<UITextbox>(uiObject->FindChildUIObject(NAME("Vec3fPanel_Y_Value")))->SetText(HYP_FORMAT("{}", value.y));
-
         ObjCast<UITextbox>(uiObject->FindChildUIObject(NAME("Vec3fPanel_Z_Value")))->SetText(HYP_FORMAT("{}", value.z));
     }
 };

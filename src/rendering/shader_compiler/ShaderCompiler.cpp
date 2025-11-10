@@ -339,36 +339,6 @@ uint64 CompiledShader::GetRevisionNumber() const
 
 #pragma endregion CompiledShader
 
-#pragma region ShaderCache
-
-bool ShaderCache::GetShaderInstance(Name name, const ShaderProperties& properties, CompiledShader& out) const
-{
-    Mutex::Guard guard(m_mutex);
-
-    const auto it = m_compiledShaders.Find(name);
-
-    if (it == m_compiledShaders.End())
-    {
-        return false;
-    }
-
-    const auto versionIt = it->second.compiledShaders.FindIf([&properties](const CompiledShader& item) -> bool
-        {
-            return SatisfiesRequestedPropertySet(properties, item.GetProperties());
-        });
-
-    if (versionIt == it->second.compiledShaders.End())
-    {
-        return false;
-    }
-
-    out = *versionIt;
-
-    return true;
-}
-
-#pragma endregion ShaderCache
-
 #pragma region DescriptorUsageSet
 
 void DescriptorUsageSet::BuildDescriptorTableDeclaration(DescriptorTableDeclaration& table) const
@@ -1045,7 +1015,7 @@ struct LoadedSourceFile
 {
     ShaderModuleType type;
     ShaderLanguage language;
-    ShaderCompiler::SourceFile file;
+    String file;
     Time lastModifiedTimestamp;
     String source;
 
@@ -1053,10 +1023,10 @@ struct LoadedSourceFile
         const ShaderDefinition& shaderDefinition) const
     {
         HashCode hc;
-        hc.Add(file.path);
+        hc.Add(file);
         hc.Add(shaderDefinition.GetHashCode());
 
-        return basePath / "data/compiled_shaders/tmp" / FilePath(file.path).Basename() + "_" + (String::ToString(hc.Value()) + ".spirv");
+        return basePath / "data/compiled_shaders/tmp" / FilePath(file).Basename() + "_" + (String::ToString(hc.Value()) + ".spirv");
     }
 
     HashCode GetHashCode() const
@@ -1569,8 +1539,7 @@ void ShaderCompiler::ParseDefinitionSection(
         }
         else if (s_shaderTypeNames.Contains(sectionIt.first))
         {
-            outShaderDesc.sources[s_shaderTypeNames.At(sectionIt.first)] =
-                SourceFile { GetResourceDirectory() / "shaders" / sectionIt.second.GetValue().name };
+            outShaderDesc.sources[s_shaderTypeNames.At(sectionIt.first)] = GetResourceDirectory() / "shaders" / sectionIt.second.GetValue().name;
         }
         else
         {
@@ -1598,7 +1567,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
 
     for (const auto& sourceFile : shaderDesc.sources)
     {
-        maxSourceFileLastModified = MathUtil::Max(maxSourceFileLastModified, FilePath(sourceFile.second.path).LastModifiedTimestamp());
+        maxSourceFileLastModified = MathUtil::Max(maxSourceFileLastModified, FilePath(sourceFile.second).LastModifiedTimestamp());
     }
 
     if (maxSourceFileLastModified > objectFileLastModified)
@@ -2351,7 +2320,7 @@ bool ShaderCompiler::CompileBundle(
     for (SizeType index = 0; index < shaderDesc.sources.Size(); index++)
     {
         StaticMessage debugName;
-        debugName.value = ANSIStringView(shaderDesc.sources.AtIndex(index).second.path.Data());
+        debugName.value = ANSIStringView(*shaderDesc.sources.AtIndex(index).second);
 
         taskBatch.AddTask([this, index, &shaderDesc, &loadedSourceFiles, &processErrors,
                               &requiredVertexAttributes,
@@ -2359,7 +2328,7 @@ bool ShaderCompiler::CompileBundle(
             {
                 const auto& it = shaderDesc.sources.AtIndex(index);
 
-                const FilePath filepath = it.second.path;
+                const FilePath filepath = it.second;
                 const ShaderLanguage language = filepath.EndsWith("hlsl")
                     ? ShaderLanguage::HLSL
                     : ShaderLanguage::GLSL;
@@ -2655,14 +2624,14 @@ bool ShaderCompiler::CompileBundle(
                 Array<String> errorMessages;
 
                 // set directory to the directory of the shader
-                const FilePath dir = GetResourceDirectory() / FilePath::Relative(FilePath(item.file.path).BasePath(), GetResourceDirectory());
+                const FilePath dir = GetResourceDirectory() / FilePath::Relative(FilePath(item.file).BasePath(), GetResourceDirectory());
 
                 String& processedSource = processedSources[index];
 
                 { // Process shader (preprocessing, custom statements, etc.)
                     ProcessResult processResult = ProcessShaderSource(
                         ProcessShaderSourcePhase::AFTER_PREPROCESS, item.type,
-                        item.language, item.source, item.file.path, properties);
+                        item.language, item.source, item.file, properties);
 
                     if (processResult.errors.Any())
                     {
@@ -2755,7 +2724,7 @@ bool ShaderCompiler::CompileBundle(
                     item.language,
                     descriptorUsageSetsMerged,
                     processedSources[index],
-                    item.file.path,
+                    item.file,
                     properties,
                     errorMessages);
 
@@ -2763,7 +2732,7 @@ bool ShaderCompiler::CompileBundle(
                 {
                     HYP_LOG(ShaderCompiler, Error,
                         "Failed to compile file {} with version hash {}",
-                        item.file.path, properties.GetHashCode().Value());
+                        item.file, properties.GetHashCode().Value());
 
                     Mutex::Guard guard(errorMessagesMutex);
                     out.errorMessages.Concat(errorMessages);
@@ -2873,8 +2842,6 @@ bool ShaderCompiler::CompileBundle(
 
     byteWriter.Close();
 
-    m_cache.Set(shaderDesc.name, out);
-
     if (numCompiledPermutations.Get(MemoryOrder::RELAXED) != 0)
     {
         HYP_LOG(ShaderCompiler, Info,
@@ -2913,11 +2880,6 @@ bool ShaderCompiler::GetCompiledShader(
     MergeGlobalShaderProperties(finalProperties);
     finalProperties.Merge(properties);
 
-    if (m_cache.GetShaderInstance(name, finalProperties, out))
-    {
-        return true;
-    }
-
     const HashCode finalPropertiesHash = finalProperties.GetPropertySetHashCode();
 
     CompiledShaderBatch batch;
@@ -2931,9 +2893,6 @@ bool ShaderCompiler::GetCompiledShader(
 
         return false;
     }
-
-    // set in cache so we can use it later
-    m_cache.Set(name, batch);
 
     if (batch.compiledShaders.Empty())
     {
