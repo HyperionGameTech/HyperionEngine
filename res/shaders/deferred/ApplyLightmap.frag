@@ -116,15 +116,11 @@ void main()
     const vec3 V = normalize(camera.position.xyz - P);
     const vec3 R = normalize(reflect(-V, N));
 
-    vec4 irradiance = vec4(0.0);
     vec2 lightmap_uv = UV1;
-    vec4 lightmap_sample = vec4(0.0);
 
     // sample lightmap atlases based on weights
-    lightmap_sample = Texture2D(Sampler, IrradianceTexture, lightmap_uv);
-    irradiance += lightmap_sample; // * irradianceWeight;
-
-    // @TODO! sample radiance for direct shading
+    vec4 irradiance = Texture2D(Sampler, IrradianceTexture, lightmap_uv) * irradianceWeight;
+    vec4 radiance = Texture2D(Sampler, RadianceTexture, lightmap_uv) * radianceWeight;
 
     vec3 ibl = vec3(0.0);
     vec3 F = vec3(0.0);
@@ -149,6 +145,6 @@ void main()
 
     vec3 spec = (ibl * mix(dfg.xxx, dfg.yyy, F0)) * energy_compensation;
 
-    color_output = (albedo * irradiance) + vec4(spec, 0.0);
+    color_output = (albedo * irradiance) + (albedo * radiance) + vec4(spec, 0.0);
     color_output.a = 1.0;
 }
