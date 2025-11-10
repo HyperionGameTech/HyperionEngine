@@ -13,13 +13,13 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/Mesh.hpp>
 
-#include <ui/font/FontAtlas.hpp>
-
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
 
 #include <scene/View.hpp>
+
+#include <ui/font/FontAtlas.hpp>
 
 #include <ui/UIStage.hpp>
 

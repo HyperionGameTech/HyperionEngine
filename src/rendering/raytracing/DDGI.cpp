@@ -3,9 +3,10 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/raytracing/DDGI.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
+
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderComputePipeline.hpp>

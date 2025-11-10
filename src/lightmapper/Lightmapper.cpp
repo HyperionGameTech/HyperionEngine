@@ -7,6 +7,7 @@
 #include <lightmapper/LightmapPathTraceCpu.hpp>
 #include <lightmapper/LightmapPathTraceGpu.hpp>
 #include <lightmapper/LightmapAccelerationStructure.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -34,8 +35,6 @@
 #include <scene/View.hpp>
 
 #include <scene/util/VoxelOctree.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <scene/camera/Camera.hpp>
 #include <scene/camera/OrthoCamera.hpp>

@@ -5,6 +5,7 @@
 #include <physics/null/Adapter.hpp>
 #include <physics/PhysicsWorld.hpp>
 #include <physics/RigidBody.hpp>
+
 #include <core/memory/UniquePtr.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Quaternion.hpp>

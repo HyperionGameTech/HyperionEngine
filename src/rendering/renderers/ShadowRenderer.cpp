@@ -3,6 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/renderers/ShadowRenderer.hpp>
+
 #include <shadows/ShadowMapAllocator.hpp>
 #include <shadows/ShadowMap.hpp>
 

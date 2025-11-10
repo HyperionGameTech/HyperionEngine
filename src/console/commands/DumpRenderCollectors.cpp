@@ -1,3 +1,5 @@
+#include <HyperionPch.hpp>
+
 #include <console/ConsoleCommand.hpp>
 
 #include <core/reflection/ClassUtils.hpp>
@@ -77,5 +79,3 @@ HYP_END_CLASS
 HYP_REGISTER_STATIC_CLASS(DumpRenderCollectors);
 
 } // namespace hyperion
-
-#include <HyperionPch.hpp>

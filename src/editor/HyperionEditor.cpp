@@ -1,4 +1,5 @@
 #include <HyperionPch.hpp>
+
 #include <editor/HyperionEditor.hpp>
 #include <editor/EditorObjectProperties.hpp>
 #include <editor/EditorDelegates.hpp>

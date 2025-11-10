@@ -6,12 +6,11 @@
 #include <lightmapper/Lightmapper.hpp>
 #include <lightmapper/LightmapPathTraceCpu.hpp>
 #include <lightmapper/LightmapPathTraceGpu.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/RenderConfig.hpp>
 
 #include <scene/EnvProbe.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 
