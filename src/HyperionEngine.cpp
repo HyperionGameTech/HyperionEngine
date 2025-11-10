@@ -134,18 +134,24 @@ static void HandleFatalError(const char* message)
     debug::TerminateProgram();
 }
 
-template <auto DirectoryStaticString>
+template <auto DirectoryStaticString, bool RelativeToExecutablePath = true>
 struct DirectoryInitializer
 {
     FilePath path;
 
     DirectoryInitializer()
     {
-#if defined(HYP_DEBUG_MODE) && defined(HYP_ROOT_DIR)
-        path = FilePath(HYP_ROOT_DIR) / DirectoryStaticString.Data();
-#else
-        path = CoreApi_GetExecutablePath() / DirectoryStaticString.Data();
+#ifdef HYP_ROOT_DIR
+        // In non-debug modes, we always want resource directories to be relative to the executable path
+        if (!RelativeToExecutablePath)
+        {
+            path = FilePath(HYP_ROOT_DIR) / DirectoryStaticString.Data();
+        }
+        else
 #endif
+        {
+            path = CoreApi_GetExecutablePath() / DirectoryStaticString.Data();
+        }
 
         if (!path.Exists())
         {
@@ -161,9 +167,33 @@ struct DirectoryInitializer
     }
 };
 
+// Directory for data to be imported into editor builds
 HYP_API const FilePath& GetResourceDirectory()
 {
-    static DirectoryInitializer<HYP_STATIC_STRING("res")> s_resourceDirectory;
+#ifdef HYP_EDITOR
+    static DirectoryInitializer<HYP_STATIC_STRING("res"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
+    return s_resourceDirectory.path;
+#else
+    // shouldn't be used in non-editor builds, so just return executable path to avoid issues with appending paths
+    HYP_LOG(Engine, Warning, "GetResourceDirectory() called in non-editor build; returning executable path instead");
+
+    static const FilePath s_emptyPath = CoreApi_GetExecutablePath();
+    Assert(s_emptyPath.Length() != 0); // don't want to return empty path which will cause appending to give root-level paths.
+    return s_emptyPath;
+#endif
+}
+
+// Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
+HYP_API const FilePath& GetCacheDirectory()
+{
+    static DirectoryInitializer<HYP_STATIC_STRING("Cache")> s_resourceDirectory;
+    return s_resourceDirectory.path;
+}
+
+// Directory for temporary data (intermediate compilation outputs, etc.) Will be not be used in production builds
+HYP_API const FilePath& GetTempDirectory()
+{
+    static DirectoryInitializer<HYP_STATIC_STRING("Temp")> s_resourceDirectory;
     return s_resourceDirectory.path;
 }
 

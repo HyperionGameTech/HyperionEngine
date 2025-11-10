@@ -136,7 +136,7 @@ void HyperionEditor::Init()
 
     scene->GetEntityManager()->GetComponent<TransformComponent>(skyboxEntity) = TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) };
     scene->GetEntityManager()->GetComponent<VisibilityStateComponent>(skyboxEntity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
-
+#if 0
     // Test assets
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/sponza/sponza.obj");
@@ -205,6 +205,7 @@ void HyperionEditor::Init()
         .Detach();
 
     batch->LoadAsync();
+#endif
 }
 
 void HyperionEditor::Logic(float delta)

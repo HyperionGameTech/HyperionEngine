@@ -221,6 +221,13 @@ void Mesh::UploadGpuData()
 
     ResourceHandle resourceHandle(*asset->GetResource());
     AssertDebug(asset->IsLoaded());
+    
+    if (!asset->IsLoaded())
+    {
+        HYP_LOG(Mesh, Error, "Mesh asset for {} is not loaded in memory, cannot create GPU buffers", GetName());
+        
+        return;
+    }
 
     const VertexAttributeSet& vertexAttributes = asset->GetMeshDesc().meshAttributes.vertexAttributes;
 
@@ -466,6 +473,12 @@ bool Mesh::BuildBVH(int maxDepth)
     }
 
     ResourceHandle resourceHandle(*asset->GetResource());
+    AssertDebug(asset->GetMeshData() != nullptr);
+    
+    if (!asset->GetMeshData())
+    {
+        return false;
+    }
 
     const MeshData& meshData = *asset->GetMeshData();
 

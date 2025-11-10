@@ -104,7 +104,7 @@ public:
 
     FilePath GetDotNetPath() const
     {
-        return GetResourceDirectory() / "data/dotnet";
+        return GetCacheDirectory() / "DotNET";
     }
 
     FilePath GetLibraryPath() const

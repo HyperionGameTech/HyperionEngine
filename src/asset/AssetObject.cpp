@@ -194,7 +194,7 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
     FBOMWriter writer { FBOMWriterConfig {} };
 
     FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetAssetType().id);
-    Assert(marshal != nullptr);
+    Assert(marshal != nullptr, "No marshal for asset type {}!", GetAssetType().name);
 
     FBOMObject object;
 

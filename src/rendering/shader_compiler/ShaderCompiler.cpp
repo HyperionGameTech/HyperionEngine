@@ -1019,14 +1019,13 @@ struct LoadedSourceFile
     Time lastModifiedTimestamp;
     String source;
 
-    FilePath GetOutputFilepath(const FilePath& basePath,
-        const ShaderDefinition& shaderDefinition) const
+    FilePath GetOutputFilepath(const ShaderDefinition& shaderDefinition) const
     {
         HashCode hc;
         hc.Add(file);
         hc.Add(shaderDefinition.GetHashCode());
 
-        return basePath / "data/compiled_shaders/tmp" / FilePath(file).Basename() + "_" + (String::ToString(hc.Value()) + ".spirv");
+        return GetTempDirectory() / FilePath(file).Basename() + "_" + (String::ToString(hc.Value()) + ".spv");
     }
 
     HashCode GetHashCode() const
@@ -1737,7 +1736,7 @@ bool ShaderCompiler::LoadOrCompileBatch(
         return LoadBatchFromFile(outputFilePath, batch);
     };
 
-    const FilePath outputFilePath = GetResourceDirectory() / "data/compiled_shaders" / nameString + ".shaderbundle";
+    const FilePath outputFilePath = GetCacheDirectory() / "ShaderBundles" / nameString + ".shaderbundle";
 
     if (outputFilePath.Exists())
     {
@@ -1766,7 +1765,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
         return true;
     }
 
-    const FilePath dataPath = GetResourceDirectory() / "data/compiled_shaders";
+    const FilePath dataPath = GetCacheDirectory() / "ShaderBundles";
 
     if (!dataPath.Exists())
     {
@@ -2300,9 +2299,6 @@ bool ShaderCompiler::CompileBundle(
         return false;
     }
 
-    // run with spirv-cross
-    FilePath(GetResourceDirectory() / "data/compiled_shaders/tmp").MkDir();
-
     Array<LoadedSourceFile> loadedSourceFiles;
     loadedSourceFiles.Resize(shaderDesc.sources.Size());
 
@@ -2615,7 +2611,7 @@ bool ShaderCompiler::CompileBundle(
                 const LoadedSourceFile& item = loadedSourceFiles[index];
 
                 // check if a file exists w/ same hash
-                const FilePath outputFilepath = item.GetOutputFilepath(GetResourceDirectory(), compiledShader.definition);
+                const FilePath outputFilepath = item.GetOutputFilepath(compiledShader.definition);
 
                 filepaths[index] = { outputFilepath, false };
 
@@ -2812,7 +2808,7 @@ bool ShaderCompiler::CompileBundle(
         return false;
     }
 
-    const FilePath finalOutputPath = GetResourceDirectory() / "data/compiled_shaders" / String(*shaderDesc.name) + ".shaderbundle";
+    const FilePath finalOutputPath = GetCacheDirectory() / "ShaderBundles" / String(*shaderDesc.name) + ".shaderbundle";
 
     FileByteWriter byteWriter(finalOutputPath.Data());
 

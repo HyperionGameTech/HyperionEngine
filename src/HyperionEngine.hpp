@@ -27,6 +27,8 @@ class CommandLineArguments;
 using cli::CommandLineArguments;
 
 HYP_API const FilePath& GetResourceDirectory();
+HYP_API const FilePath& GetCacheDirectory();
+HYP_API const FilePath& GetTempDirectory();
 
 HYP_API bool InitializeEngine(int argc, char** argv);
 HYP_API void DestroyEngine();

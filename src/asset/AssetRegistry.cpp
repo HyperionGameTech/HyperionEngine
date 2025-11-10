@@ -209,7 +209,7 @@ void AssetPackage::Init()
 
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
-            assetObject->SetIsTransientByProxy(IsTransient());
+            assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
 
             if (isPackageSavedInFilesystem)
             {
@@ -336,7 +336,7 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
             assetObject->m_package = WeakHandleFromThis();
             assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
 
-            assetObject->SetIsTransientByProxy(IsTransient());
+            assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
 
             if (isPackageSavedInFilesystem)
             {
@@ -438,7 +438,7 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
                 assetObject->m_name = GetUniqueAssetName_Internal(assetObject->InstanceClass()->GetName());
             }
 
-            assetObject->SetIsTransientByProxy(IsTransient());
+            assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
 
             if (isPackageSavedInFilesystem)
             {
@@ -974,7 +974,8 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
     {
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
-            if (assetObject->IsTransient())
+            // If TRANSIENT (not BY PROXY), skip saving this asset
+            if ((assetObject->GetAssetFlags() & (AOF_TRANSIENT | AOF_TRANSIENT_BY_PROXY)) == AOF_TRANSIENT)
             {
                 continue;
             }
