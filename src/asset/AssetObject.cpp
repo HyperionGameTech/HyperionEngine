@@ -560,6 +560,8 @@ Result AssetObject::Load(
         {
             return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
         }
+
+        AssertDebug(binData.IsValid());
     }
 
     HypData targetData;
@@ -587,6 +589,8 @@ Result AssetObject::Load(
         Assert(pBinStream != nullptr);
 
         resource->Extract_Internal(binData.ToRef());
+
+        AssertDebug(resource->GetAssetRef().HasValue());
     }
 
     // invoke PostLoad callback

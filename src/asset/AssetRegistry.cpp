@@ -2176,32 +2176,35 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
 
                 Handle<AssetPackage> dependencyPackage = GetPackageFromPath(dependencyPath.ToString(), /* createIfNotExist */ false);
 
-                if (!dependencyPackage.IsValid())
+                if (dependencyPackage != nullptr)
                 {
-                    // Dependency package doesn't exist yet, try to load it from filesystem
+                    HYP_LOG(Assets, Debug, "Dependency package '{}' already loaded!", dependencyPath);
+                    HYP_BREAKPOINT;
+                    continue;
+                }
 
-                    const String relativePath = AssetPath::MakeRelativePath(AssetPath(outPackage->BuildPackagePath()), dependencyPath);
-                    const FilePath dependencyManifestPath = dir / relativePath / "PackageManifest.json";
+                // Dependency package doesn't exist yet, try to load it from filesystem
+                const String relativePath = AssetPath::MakeRelativePath(AssetPath(outPackage->BuildPackagePath()), dependencyPath);
+                const FilePath dependencyManifestPath = dir / relativePath / "PackageManifest.json";
 
-                    if (dependencyManifestPath.Exists() && !dependencyManifestPath.IsDirectory())
+                if (dependencyManifestPath.Exists() && !dependencyManifestPath.IsDirectory())
+                {
+                    HYP_LOG(Assets, Debug, "Loading dependency package '{}' from manifest '{}'", dependencyPath, dependencyManifestPath);
+
+                    TResult<Handle<AssetPackage>> dependencyPackageResult = LoadPackageFromManifest(dependencyManifestPath, /* loadSubpackages */ false).Await();
+
+                    if (dependencyPackageResult.HasError())
                     {
-                        HYP_LOG(Assets, Debug, "Loading dependency package '{}' from manifest '{}'", dependencyPath, dependencyManifestPath);
-
-                        TResult<Handle<AssetPackage>> dependencyPackageResult = LoadPackageFromManifest(dependencyManifestPath, /* loadSubpackages */ false).Await();
-
-                        if (dependencyPackageResult.HasError())
-                        {
-                            HYP_LOG(Assets, Error, "Failed to load dependency package '{}' from manifest '{}': {}", dependencyPath, dependencyManifestPath, dependencyPackageResult.GetError().GetMessage());
-                            continue;
-                        }
-
-                        dependencyPackage = std::move(*dependencyPackageResult);
-                    }
-                    else
-                    {
-                        HYP_LOG(Assets, Warning, "Dependency package '{}' for package '{}' not found at '{}'", dependencyPath, outPackage->GetName(), dependencyManifestPath);
+                        HYP_LOG(Assets, Error, "Failed to load dependency package '{}' from manifest '{}': {}", dependencyPath, dependencyManifestPath, dependencyPackageResult.GetError().GetMessage());
                         continue;
                     }
+
+                    dependencyPackage = std::move(*dependencyPackageResult);
+                }
+                else
+                {
+                    HYP_LOG(Assets, Warning, "Dependency package '{}' for package '{}' not found at '{}'", dependencyPath, outPackage->GetName(), dependencyManifestPath);
+                    continue;
                 }
             }
 
@@ -2260,7 +2263,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                             }
                         });
 
-                        HYP_LOG(Assets, Debug, "Loading asset from manifest: {}", entry);
+                        HYP_LOG(Assets, Debug, "Loading asset from manifest: {}\tHas binary? {}", entry, pDataStream != nullptr);
 
                         Handle<AssetObject> assetObject;
 

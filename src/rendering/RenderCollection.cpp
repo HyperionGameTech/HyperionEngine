@@ -168,6 +168,7 @@ static constexpr inline uint8 GetLightmapStencilValue(LightmapElement::Id lightm
     return value;
 }
 
+/// Set attributes, used to decide what shader variant + pipeline to use for rendering the given proxy.
 static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
 {
     HYP_SCOPE;
