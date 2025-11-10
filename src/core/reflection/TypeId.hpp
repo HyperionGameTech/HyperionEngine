@@ -13,7 +13,7 @@ namespace utilities {
 
 using TypeIdValue = uint32;
 
-#define CONSTEXPR_TYPE_ID(T) (!std::is_void_v<T> ? ((TypeName<T>().GetHashCode().Value() % HashCode::ValueType(0x7FFFFFFFu)) << 1) : 0)
+#define CONSTEXPR_TYPE_ID(T) (!std::is_void_v<T> ? ((TypeNameWithoutNamespace<T>().GetHashCode().Value() % HashCode::ValueType(0x7FFFFFFFu)) << 1) : 0)
 #define TYPE_ID_FROM_STRING(str) ((HashCode::GetHashCode(str).Value() % HashCode::ValueType(0x7FFFFFFFu)) << 1)
 
 /*! \brief Simple 32-bit identifier for a given type. Stable across DLLs as the type hash is based on the name of the type. */
