@@ -25,7 +25,7 @@ layout(location = 7) in vec4 a_bone_indices;
 
 #include "include/scene.inc"
 
-#include "include/object.inc"
+#include "include/Entity.glsl"
 
 #include "include/Skeleton.glsl"
 
@@ -43,14 +43,14 @@ void main()
 #ifdef SKINNING
     mat4 skinning_matrix = CreateSkinningMatrix(ivec4(a_bone_indices), a_bone_weights);
 
-    position = object.model_matrix * skinning_matrix * vec4(displaced_position, 1.0);
-    previous_position = object.previous_model_matrix * skinning_matrix * vec4(displaced_position, 1.0);
-    normal_matrix = transpose(inverse(object.model_matrix * skinning_matrix));
+    position = entity.model_matrix * skinning_matrix * vec4(displaced_position, 1.0);
+    previous_position = entity.previous_model_matrix * skinning_matrix * vec4(displaced_position, 1.0);
+    normal_matrix = transpose(inverse(entity.model_matrix * skinning_matrix));
 #else
     // This is not valid calc for prevous position with displacement
-    position = object.model_matrix * vec4(displaced_position, 1.0);
-    previous_position = object.previous_model_matrix * vec4(displaced_position, 1.0);
-    normal_matrix = transpose(inverse(object.model_matrix));
+    position = entity.model_matrix * vec4(displaced_position, 1.0);
+    previous_position = entity.previous_model_matrix * vec4(displaced_position, 1.0);
+    normal_matrix = transpose(inverse(entity.model_matrix));
 #endif
 
     v_position = position.xyz;

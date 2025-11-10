@@ -13,7 +13,7 @@ layout(local_size_x = WORKGROUP_SIZE_X, local_size_y = 1, local_size_z = 1) in;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/scene.inc"
-#include "../include/object.inc"
+#include "../include/Entity.glsl"
 #include "../include/packing.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

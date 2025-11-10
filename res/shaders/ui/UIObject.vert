@@ -20,7 +20,7 @@ HYP_ATTRIBUTE(2) vec2 a_texcoord0;
 
 #include "../include/scene.inc"
 
-#include "../include/object.inc"
+#include "../include/Entity.glsl"
 
 #include "../include/UIObject.glsl"
 
@@ -29,9 +29,9 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
@@ -39,7 +39,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly bu
     UIEntityInstanceBatch entity_instance_batch;
 };
 
-// clang-format on
+    // clang-format on
 
 #undef OBJECT_INDEX
 #define OBJECT_INDEX (entity_instance_batch.batch.indices[gl_InstanceIndex >> 2][gl_InstanceIndex & 3])

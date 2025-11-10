@@ -71,10 +71,9 @@ static inline void ValidateDynamicOffset(
         const auto firstValueIt = element->values.Begin();
         if (firstValueIt != element->values.End())
         {
-            const DescriptorSetElement::ValueType& value = firstValueIt->second;
-            const GpuBufferRef& bufferRef = value.Get<GpuBufferRef>();
+            const GpuBufferRef& bufferRef = ObjCast<GpuBufferBase>(firstValueIt->second);
 
-            if (bufferRef.IsValid())
+            if (bufferRef != nullptr)
             {
                 const SizeType bufferSize = bufferRef->Size();
                 const SizeType elementSize = layoutElement->size != ~0u ? layoutElement->size : bufferSize;
@@ -258,9 +257,8 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             for (auto& valuesIt : element.values)
             {
                 const uint32 index = valuesIt.first;
-                const DescriptorSetElement::ValueType& value = valuesIt.second;
 
-                const GpuBufferRef& ref = value.Get<GpuBufferRef>();
+                const GpuBufferRef& ref = ObjCast<GpuBufferBase>(valuesIt.second);
                 HYP_GFX_ASSERT(ref.IsValid(), "Invalid buffer reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
                 HYP_GFX_ASSERT(ref->IsCreated(), "Buffer not initialized for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
@@ -286,16 +284,15 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             for (auto& valuesIt : element.values)
             {
                 const uint32 index = valuesIt.first;
-                const DescriptorSetElement::ValueType& value = valuesIt.second;
+
+                const GpuImageViewRef& ref = ObjCast<GpuImageViewBase>(valuesIt.second);
+                HYP_GFX_ASSERT(ref.IsValid(), "Invalid image view reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
                 descriptorElementInfo.index = index;
                 descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
-
-                const GpuImageViewRef& ref = value.Get<GpuImageViewRef>();
-                HYP_GFX_ASSERT(ref.IsValid(), "Invalid image view reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-                HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 descriptorElementInfo.imageInfo = VkDescriptorImageInfo {
                     .sampler = VK_NULL_HANDLE,
@@ -311,17 +308,15 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             for (auto& valuesIt : element.values)
             {
                 const uint32 index = valuesIt.first;
-                const DescriptorSetElement::ValueType& value = valuesIt.second;
+
+                const SamplerRef& ref = ObjCast<SamplerBase>(valuesIt.second);
+                HYP_GFX_ASSERT(ref.IsValid(), "Invalid sampler reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
                 descriptorElementInfo.index = index;
                 descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
-
-                const SamplerRef& ref = value.Get<SamplerRef>();
-                HYP_GFX_ASSERT(ref.IsValid(), "Invalid sampler reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-
-                HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 descriptorElementInfo.imageInfo = VkDescriptorImageInfo {
                     .sampler = VULKAN_CAST(ref.Get())->GetVulkanHandle(),
@@ -337,17 +332,15 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             for (auto& valuesIt : element.values)
             {
                 const uint32 index = valuesIt.first;
-                const DescriptorSetElement::ValueType& value = valuesIt.second;
+
+                const GpuTlasRef& ref = ObjCast<GpuTlasBase>(valuesIt.second);
+                HYP_GFX_ASSERT(ref.IsValid(), "Invalid TLAS reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
                 descriptorElementInfo.index = index;
                 descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
-
-                const GpuTlasRef& ref = value.Get<GpuTlasRef>();
-                HYP_GFX_ASSERT(ref.IsValid(), "Invalid TLAS reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-
-                HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 descriptorElementInfo.accelerationStructureInfo = VkWriteDescriptorSetAccelerationStructureKHR {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
@@ -365,7 +358,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         HYP_GFX_ASSERT(localDescriptorElementInfos.Size() <= cachedValues.Size(), "Index out of range for cached values");
 
-        auto localDirtyRange = Range<uint32>::Invalid();
+        Range<uint32> localDirtyRange = Range<uint32>::Invalid();
 
         for (SizeType i = 0; i < localDescriptorElementInfos.Size(); i++)
         {

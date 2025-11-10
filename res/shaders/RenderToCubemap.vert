@@ -25,7 +25,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 
 #include "include/scene.inc"
 
-#include "include/object.inc"
+#include "include/Entity.glsl"
 
 #ifdef SKINNING
 #include "include/Skeleton.glsl"
@@ -51,9 +51,9 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvP
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
@@ -63,9 +63,9 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly bu
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, CurrentObject) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
 {
-    Object object;
+    Entity entity;
 };
 
 #endif
@@ -100,7 +100,7 @@ mat4 LookAt(vec3 pos, vec3 target, vec3 up)
 
 #ifdef SKINNING
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, SkeletonsBuffer) readonly buffer SkeletonsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, SkeletonsBuffer) readonly buffer SkeletonsBuffer
 {
     Skeleton skeleton;
 };
@@ -131,11 +131,11 @@ void main()
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_weights) && defined(HYP_ATTRIBUTE_a_bone_indices)
     mat4 skinning_matrix = CreateSkinningMatrix(ivec4(a_bone_indices), a_bone_weights);
 
-    position = object.model_matrix * skinning_matrix * vec4(a_position, 1.0);
-    normal_matrix = transpose(inverse(object.model_matrix * skinning_matrix));
+    position = entity.model_matrix * skinning_matrix * vec4(a_position, 1.0);
+    normal_matrix = transpose(inverse(entity.model_matrix * skinning_matrix));
 #else
-    position = object.model_matrix * vec4(a_position, 1.0);
-    normal_matrix = transpose(inverse(object.model_matrix));
+    position = entity.model_matrix * vec4(a_position, 1.0);
+    normal_matrix = transpose(inverse(entity.model_matrix));
 #endif
 
     v_position = position.xyz;

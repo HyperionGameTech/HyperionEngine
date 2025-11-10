@@ -836,7 +836,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
                         { "Global",
                             { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
                                 { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) } } },
-                        { "Object", {} } },
+                        { "Entity", {} } },
                     frameIndex);
             }
 

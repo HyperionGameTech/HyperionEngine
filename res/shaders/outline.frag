@@ -18,7 +18,7 @@ layout(location = 2) out uvec2 gbuffer_material;
 
 #include "include/scene.inc"
 #include "include/material.inc"
-#include "include/object.inc"
+#include "include/Entity.glsl"
 #include "include/packing.inc"
 
 void main()

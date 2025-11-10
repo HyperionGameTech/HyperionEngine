@@ -43,7 +43,7 @@ HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field
 #include "include/shared.inc"
 #include "include/gbuffer.inc"
 #include "include/material.inc"
-#include "include/object.inc"
+#include "include/Entity.glsl"
 
 #include "include/scene.inc"
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer

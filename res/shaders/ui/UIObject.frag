@@ -23,7 +23,7 @@ layout(location = 5) out uint gbuffer_mask;
 #include "../include/shared.inc"
 #include "../include/gbuffer.inc"
 #include "../include/material.inc"
-#include "../include/object.inc"
+#include "../include/Entity.glsl"
 #include "../include/UIObject.glsl"
 #include "../include/scene.inc"
 
@@ -36,9 +36,9 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
@@ -47,17 +47,17 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 #define texture_sampler sampler_linear
 
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[HYP_MAX_MATERIALS];
 };
 
 #ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[object.material_index])
+#define CURRENT_MATERIAL (materials[entity.material_index])
 #endif
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -116,5 +116,5 @@ void main()
     }
 
     gbuffer_albedo = ui_color * v_color;
-    gbuffer_mask = GET_OBJECT_BUCKET(object) | OBJECT_MASK_UI;
+    gbuffer_mask = GET_OBJECT_BUCKET(entity) | OBJECT_MASK_UI;
 }

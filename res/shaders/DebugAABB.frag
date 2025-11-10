@@ -62,7 +62,7 @@ HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
 HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
-#include "include/object.inc"
+#include "include/Entity.glsl"
 
 #ifdef IMMEDIATE_MODE
 
@@ -71,16 +71,16 @@ HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field
 
 #elif defined(INSTANCING)
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, CurrentObject) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
 {
-    Object object;
+    Entity entity;
 };
 
 #endif
@@ -88,17 +88,17 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, CurrentObject) readonly buffer ObjectsBuffer
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[HYP_MAX_MATERIALS];
 };
 
 #ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[object.material_index])
+#define CURRENT_MATERIAL (materials[entity.material_index])
 #endif
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -152,7 +152,7 @@ void main()
         gbuffer_albedo.rgb = ibl.rgb;
     }
 #else
-    materialParams.mask = GET_OBJECT_BUCKET(object);
+    materialParams.mask = GET_OBJECT_BUCKET(entity);
 #endif
 
     gbuffer_material = GBufferPackMaterialParams(materialParams);

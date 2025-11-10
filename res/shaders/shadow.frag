@@ -20,39 +20,39 @@ uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-#include "include/object.inc"
+#include "include/Entity.glsl"
 #include "include/material.inc"
 #include "include/shared.inc"
 #include "include/packing.inc"
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, CurrentObject) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
 {
-    Object object;
+    Entity entity;
 };
 
 #endif
 
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[HYP_MAX_MATERIALS];
 };
 
 #ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[object.material_index])
+#define CURRENT_MATERIAL (materials[entity.material_index])
 #endif
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -64,7 +64,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBu
 
 void main()
 {
-    // if (bool(GET_OBJECT_BUCKET(object) & OBJECT_MASK_SKY)) {
+    // if (bool(GET_OBJECT_BUCKET(entity) & OBJECT_MASK_SKY)) {
     //     discard;
     // }
 

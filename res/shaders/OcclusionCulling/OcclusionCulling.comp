@@ -15,7 +15,7 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler depth_pyramid_sam
 HYP_DESCRIPTOR_SRV(View, DepthPyramidResult) uniform texture2D depth_pyramid;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/object.inc"
+#include "../include/Entity.glsl"
 #include "../include/scene.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -24,9 +24,9 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object entities[];
+    Entity entities[];
 };
 
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
@@ -73,8 +73,7 @@ layout(push_constant) uniform ObjectVisibilityData
     uint batch_offset;
     uint num_instances;
     uint batch_stride;
-}
-push_constants;
+} push_constants;
 
 // uint GetObjectBucket(ObjectInstance object_instance)
 // {
@@ -118,7 +117,7 @@ void main()
         return;
     }
 
-    Object entity = entities[entity_id - 1];
+    Entity entity = entities[entity_id - 1];
 
     bool is_visible = false;
 

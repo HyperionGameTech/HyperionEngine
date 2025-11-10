@@ -27,7 +27,7 @@ layout(location = 7) in vec4 a_bone_indices;
 
 #include "include/scene.inc"
 
-#include "include/object.inc"
+#include "include/Entity.glsl"
 
 #include "include/Skeleton.glsl"
 
@@ -42,11 +42,11 @@ void main()
 #ifdef SKINNING
     mat4 skinning_matrix = CreateSkinningMatrix(ivec4(a_bone_indices), a_bone_weights);
 
-    position = object.model_matrix * skinning_matrix * extendedPosition;
-    normal_matrix = transpose(inverse(object.model_matrix * skinning_matrix));
+    position = entity.model_matrix * skinning_matrix * extendedPosition;
+    normal_matrix = transpose(inverse(entity.model_matrix * skinning_matrix));
 #else
-    position = object.model_matrix * extendedPosition;
-    normal_matrix = transpose(inverse(object.model_matrix));
+    position = entity.model_matrix * extendedPosition;
+    normal_matrix = transpose(inverse(entity.model_matrix));
 #endif
 
     v_position = position.xyz;

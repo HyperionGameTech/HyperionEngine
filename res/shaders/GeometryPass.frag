@@ -27,10 +27,8 @@ layout(location = 3) out vec4 gbuffer_albedo_lightmap;
 layout(location = 4) out vec2 gbuffer_velocity;
 layout(location = 5) out vec4 gbuffer_ws_normals;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear)
-uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest)
-uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
@@ -38,7 +36,7 @@ uniform sampler sampler_nearest;
 
 #include "include/scene.inc"
 #include "include/material.inc"
-#include "include/object.inc"
+#include "include/Entity.glsl"
 #include "include/packing.inc"
 
 #include "include/env_probe.inc"
@@ -89,14 +87,14 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvP
 };
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 #else
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object object;
+    Entity entity;
 };
 #endif
 
@@ -108,17 +106,17 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
 };
 
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[HYP_MAX_MATERIALS];
 };
 
 #ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[object.material_index % HYP_MAX_MATERIALS])
+#define CURRENT_MATERIAL (materials[entity.material_index % HYP_MAX_MATERIALS])
 #endif
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -336,19 +334,19 @@ void main()
 
     uint mask = v_object_mask;
 
-//  FIXME! Sampling should be done in ApplyLightmap.frag
-// #if SHADING_TYPE_LIGHTMAPPED
-//     vec4 lm_irradiance = vec4(0.0);
-//     vec4 lm_radiance = vec4(0.0);
+    //  FIXME! Sampling should be done in ApplyLightmap.frag
+    // #if SHADING_TYPE_LIGHTMAPPED
+    //     vec4 lm_irradiance = vec4(0.0);
+    //     vec4 lm_radiance = vec4(0.0);
 
-//     mask |= (OBJECT_MASK_LIGHTMAP_IRRADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP)));
-//     mask |= (OBJECT_MASK_LIGHTMAP_RADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP)));
+    //     mask |= (OBJECT_MASK_LIGHTMAP_IRRADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP)));
+    //     mask |= (OBJECT_MASK_LIGHTMAP_RADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP)));
 
-//     lm_irradiance = mix(lm_irradiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_IRRADIANCE)));
-//     lm_radiance = mix(lm_radiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_RADIANCE)));
+    //     lm_irradiance = mix(lm_irradiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_IRRADIANCE)));
+    //     lm_radiance = mix(lm_radiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_RADIANCE)));
 
-//     gbuffer_albedo_lightmap = (lm_irradiance + lm_radiance) * float(bool(mask & OBJECT_MASK_LIGHTMAP));
-// #endif
+    //     gbuffer_albedo_lightmap = (lm_irradiance + lm_radiance) * float(bool(mask & OBJECT_MASK_LIGHTMAP));
+    // #endif
 
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;

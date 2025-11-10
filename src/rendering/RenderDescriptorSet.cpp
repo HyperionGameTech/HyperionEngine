@@ -80,17 +80,14 @@ DescriptorSetDeclaration* DescriptorTableDeclaration::AddDescriptorSetDeclaratio
 
 DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
 {
-    static struct Initializer
-    {
-        DescriptorTableDeclaration decl;
+    static DescriptorTableDeclaration s_decl;
 
-        DescriptorTableDeclaration::DeclareSet globalSet { &decl, 0, NAME("Global") };
-        DescriptorTableDeclaration::DeclareSet viewSet { &decl, 1, NAME("View"), /* isTemplate */ true };
-        DescriptorTableDeclaration::DeclareSet objectSet { &decl, 2, NAME("Object") };
-        DescriptorTableDeclaration::DeclareSet materialSet { &decl, 3, NAME("Material") };
-    } initializer;
+    static DescriptorTableDeclaration::DeclareSet s_globalSet { &s_decl, 0, NAME("Global") };
+    static DescriptorTableDeclaration::DeclareSet s_viewSet { &s_decl, 1, NAME("View"), /* isTemplate */ true };
+    static DescriptorTableDeclaration::DeclareSet s_entitySet { &s_decl, 2, NAME("Entity") };
+    static DescriptorTableDeclaration::DeclareSet s_materialSet { &s_decl, 3, NAME("Material") };
 
-    return initializer.decl;
+    return s_decl;
 }
 
 #pragma endregion DescriptorSetDeclaration
@@ -214,17 +211,14 @@ DescriptorSetBase::~DescriptorSetBase()
     {
         for (auto& valuesIt : elementsIt.second.values)
         {
-            DescriptorSetElement::ValueType& value = valuesIt.second;
+            Handle<ObjectBase>& value = valuesIt.second;
 
-            if (!value.HasValue())
+            if (!value)
             {
                 continue;
             }
 
-            Visit(std::move(value), [](auto&& ref)
-                {
-                    SafeDelete(std::move(ref));
-                });
+            SafeDelete(std::move(value));
         }
     }
 }

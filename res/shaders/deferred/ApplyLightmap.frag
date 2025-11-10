@@ -36,7 +36,7 @@ HYP_DESCRIPTOR_SRV(View, DeferredIndirectResultTexture) uniform texture2D deferr
 
 #include "../include/shared.inc"
 #include "../include/gbuffer.inc"
-#include "../include/object.inc"
+#include "../include/Entity.glsl"
 #include "../include/scene.inc"
 
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
@@ -124,7 +124,7 @@ void main()
 
     // sample lightmap atlases based on weights
     lightmap_sample = Texture2D(Sampler, IrradianceTexture, lightmap_uv);
-    irradiance += lightmap_sample;// * irradianceWeight;
+    irradiance += lightmap_sample; // * irradianceWeight;
 
     // @TODO! sample radiance for direct shading
 

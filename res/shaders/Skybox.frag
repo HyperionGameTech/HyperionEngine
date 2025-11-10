@@ -20,7 +20,7 @@ layout(location = 5) out vec4 gbuffer_ws_normals;
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler texture_sampler;
 
 #include "include/gbuffer.inc"
-#include "include/object.inc"
+#include "include/Entity.glsl"
 #include "include/packing.inc"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS 1 // don't want to define AlbedoMap as a 2D texture
@@ -33,23 +33,23 @@ HYP_DESCRIPTOR_SRV(Material, Textures) uniform textureCube textures[];
 HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform textureCube AlbedoMap;
 #endif
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[HYP_MAX_MATERIALS];
 };
 
 #ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[object.material_index])
+#define CURRENT_MATERIAL (materials[entity.material_index])
 #endif
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

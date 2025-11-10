@@ -1593,7 +1593,7 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
     globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
         ->SetElement("CurrentLight", gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
     globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-        ->SetElement("ObjectsBuffer", gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+        ->SetElement("EntitiesBuffer", gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
     globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
         ->SetElement("CamerasBuffer", gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex));
     globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
@@ -1653,16 +1653,16 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
     globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
         ->SetElement("PointLightShadowMapsTextureArray", shadowMapAllocator->GetPointLightShadowMapImageView());
 
-    // Object
-    globalDescriptorTable->GetDescriptorSet("Object", frameIndex)
-        ->SetElement("CurrentObject", gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Object", frameIndex)
+    // Entity
+    globalDescriptorTable->GetDescriptorSet("Entity", frameIndex)
+        ->SetElement("CurrentEntity", gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    globalDescriptorTable->GetDescriptorSet("Entity", frameIndex)
         ->SetElement("MaterialsBuffer", gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Object", frameIndex)
+    globalDescriptorTable->GetDescriptorSet("Entity", frameIndex)
         ->SetElement("SkeletonsBuffer", gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Object", frameIndex)
+    globalDescriptorTable->GetDescriptorSet("Entity", frameIndex)
         ->SetElement("LightmapVolumeIrradianceTexture", placeholderData->GetImageView2D1x1R8());
-    globalDescriptorTable->GetDescriptorSet("Object", frameIndex)
+    globalDescriptorTable->GetDescriptorSet("Entity", frameIndex)
         ->SetElement("LightmapVolumeRadianceTexture", placeholderData->GetImageView2D1x1R8());
 
     // Material

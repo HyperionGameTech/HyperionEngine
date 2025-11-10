@@ -20,7 +20,7 @@ layout(location = 5) in vec3 a_bitangent;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/scene.inc"
-#include "../include/object.inc"
+#include "../include/Entity.glsl"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "./Gaussian.inc.glsl"

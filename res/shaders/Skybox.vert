@@ -20,7 +20,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 
 #include "include/scene.inc"
 
-#include "include/object.inc"
+#include "include/Entity.glsl"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -31,9 +31,9 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CameraShaderData
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
@@ -43,17 +43,17 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly bu
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, CurrentObject) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
 {
-    Object object;
+    Entity entity;
 };
 
 #endif
 
 void main()
 {
-    vec4 position = object.model_matrix * vec4(a_position, 1.0);
-    mat4 normal_matrix = transpose(inverse(object.model_matrix));
+    vec4 position = entity.model_matrix * vec4(a_position, 1.0);
+    mat4 normal_matrix = transpose(inverse(entity.model_matrix));
 
     v_position = a_position.xyz;
     v_normal = (normal_matrix * vec4(a_normal, 0.0)).xyz;

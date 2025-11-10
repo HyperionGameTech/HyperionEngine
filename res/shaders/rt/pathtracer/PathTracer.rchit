@@ -12,7 +12,7 @@
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/material.inc"
-#include "../../include/object.inc"
+#include "../../include/Entity.glsl"
 #include "../../include/scene.inc"
 #include "../../include/noise.inc"
 
@@ -64,9 +64,9 @@ struct PackedVertex
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object entities[];
+    Entity entities[];
 };
 
 HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, MeshDescriptionsBuffer) buffer MeshDescriptions

@@ -27,7 +27,7 @@ HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D gbuffer_depth_te
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/scene.inc"
-#include "../include/object.inc"
+#include "../include/Entity.glsl"
 #include "../include/packing.inc"
 #include "../include/gbuffer.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -173,7 +173,7 @@ void main()
     if (distance(position_world_space.xyz, particle.position.xyz) <= 1.0)
     {
         // has collision
-        const vec3 normal =  GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, particle_uv).xy);
+        const vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, particle_uv).xy);
 
         particle.velocity.xyz = reflect(normal, normalize(particle.velocity.xyz));
     }

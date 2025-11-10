@@ -5,7 +5,7 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear, 1);
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest, 1);
 HYP_DESCRIPTOR_SRV(Global, UITexture, 1);
 HYP_DESCRIPTOR_SRV(Global, FinalOutputTexture, 1);
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer, 1, ~0u, false); // For instanced objects
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer, 1, ~0u, false); // For instanced objects
 HYP_DESCRIPTOR_SRV(Global, VoxelGridTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture, 1);
@@ -18,12 +18,12 @@ HYP_DESCRIPTOR_CBUFF(Global, EnvGridsBuffer, 1, sizeof(EnvGridShaderData), true)
 HYP_DESCRIPTOR_CBUFF(Global, CamerasBuffer, 1, sizeof(CameraShaderData), true);
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer, 1, sizeof(WorldShaderData), false);
 
-HYP_DESCRIPTOR_SRV(Object, LightmapVolumeIrradianceTexture, 1);
-HYP_DESCRIPTOR_SRV(Object, LightmapVolumeRadianceTexture, 1);
-HYP_DESCRIPTOR_SSBO(Object, CurrentObject, 1, sizeof(EntityShaderData), true); // For non-instanced objects
-HYP_DESCRIPTOR_SSBO(Object, SkeletonsBuffer, 1, sizeof(SkeletonShaderData), true);
-HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, ~0u, false, !g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
-HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
+HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeIrradianceTexture, 1);
+HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeRadianceTexture, 1);
+HYP_DESCRIPTOR_SSBO(Entity, CurrentEntity, 1, sizeof(EntityShaderData), true); // For non-instanced objects
+HYP_DESCRIPTOR_SSBO(Entity, SkeletonsBuffer, 1, sizeof(SkeletonShaderData), true);
+HYP_DESCRIPTOR_SSBO_COND(Entity, MaterialsBuffer, 1, ~0u, false, !g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
+HYP_DESCRIPTOR_SSBO_COND(Entity, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
 
 HYP_DESCRIPTOR_SRV_COND(View, GBufferTextures, NumGBufferTargets, g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferAlbedoTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);

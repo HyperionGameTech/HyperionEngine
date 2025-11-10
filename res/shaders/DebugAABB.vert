@@ -58,12 +58,12 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer, stan
 #define MODEL_MATRIX (immediateDraw.model_matrix)
 #define PREV_MODEL_MATRIX (immediateDraw.model_matrix)
 #else
-#include "include/object.inc"
+#include "include/Entity.glsl"
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
@@ -71,14 +71,14 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly bu
     EntityInstanceBatch entity_instance_batch;
 };
 #else
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, CurrentObject) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
 {
-    Object object;
+    Entity entity;
 };
 #endif
 
-#define MODEL_MATRIX (object.model_matrix)
-#define PREV_MODEL_MATRIX (object.previous_model_matrix)
+#define MODEL_MATRIX (entity.model_matrix)
+#define PREV_MODEL_MATRIX (entity.previous_model_matrix)
 #endif
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

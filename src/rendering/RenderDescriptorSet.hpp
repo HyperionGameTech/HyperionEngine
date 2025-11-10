@@ -554,9 +554,7 @@ private:
 
 struct DescriptorSetElement
 {
-    using ValueType = Variant<GpuBufferRef, GpuImageViewRef, SamplerRef, GpuTlasRef>;
-
-    FlatMap<uint32, ValueType> values;
+    FlatMap<uint32, Handle<ObjectBase>> values;
     Range<uint32> dirtyRange {};
 
     ~DescriptorSetElement()
@@ -568,15 +566,12 @@ struct DescriptorSetElement
 
         for (auto& it : values)
         {
-            if (!it.second.HasValue())
+            if (!it.second)
             {
                 continue;
             }
 
-            Visit(std::move(it.second), [](auto&& ref)
-                {
-                    SafeDelete(std::move(ref));
-                });
+            SafeDelete(std::move(it.second));
         }
     }
 
@@ -739,18 +734,16 @@ protected:
 
         if (elementIt == element.values.End())
         {
-            elementIt = element.values.Emplace(index, Handle<T>(ref)).first;
+            elementIt = element.values.Emplace(index, ref).first;
         }
         else
         {
-            Handle<T>* currentValue = elementIt->second.template TryGet<Handle<T>>();
-
-            if (currentValue)
+            if (elementIt->second != nullptr)
             {
-                SafeDelete(std::move(*currentValue));
+                SafeDelete(std::move(elementIt->second));
             }
 
-            elementIt->second.template Set<Handle<T>>(ref);
+            elementIt->second = ref;
         }
 
         // Mark the range as dirty so that it will be updated in the next update

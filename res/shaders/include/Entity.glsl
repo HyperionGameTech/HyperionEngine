@@ -3,7 +3,7 @@
 
 #include "defines.inc"
 
-struct Object
+struct Entity
 {
     mat4 model_matrix;
     mat4 previous_model_matrix;
@@ -62,9 +62,9 @@ struct EntityInstanceBatch
 #ifdef INSTANCING
 #if defined(VERTEX_SHADER)
 #define OBJECT_INDEX (entity_instance_batch.indices[gl_InstanceIndex >> 2][gl_InstanceIndex & 3])
-#define object (objects[OBJECT_INDEX])
+#define entity (entities[OBJECT_INDEX])
 #elif defined(FRAGMENT_SHADER)
-#define object (objects[v_object_index])
+#define entity (entities[v_object_index])
 #endif
 #endif
 

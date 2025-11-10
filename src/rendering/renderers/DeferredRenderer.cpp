@@ -98,14 +98,12 @@ static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties 
     ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT")) } }
 };
 
-static constexpr StringHash GBufferTextureNames[] = {
+static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     StringHash("GBufferAlbedoTexture"),
     StringHash("GBufferNormalsTexture"),
     StringHash("GBufferMaterialTexture"),
-    StringHash("GBufferLightmapTexture"),
     StringHash("GBufferVelocityTexture"),
-    StringHash("GBufferWSNormalsTexture"),
-    StringHash("GBufferTranslucentTexture")
+    StringHash("GBufferWSNormalsTexture")
 };
 
 static EngineStatTimer s_deferredPassTimer("Rendering/Deferred/DeferredPass");
@@ -1525,7 +1523,6 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
     FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
 
     const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-    const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
 
     // depth attachment goes into separate slot
     AttachmentBase* depthAttachment = opaqueFbo->GetAttachment(GTN_MAX - 1);

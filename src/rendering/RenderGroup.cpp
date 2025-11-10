@@ -283,8 +283,8 @@ static void RenderAll(
         ? pipeline->GetDescriptorTable()->GetDescriptorSet("Material", frameIndex)
         : DescriptorSetRef::empty;
 
-    const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
-    const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
+    const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Entity");
+    const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Entity", frameIndex);
 
     const uint32 instancingDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Instancing");
     const DescriptorSetRef& instancingDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Instancing", frameIndex);
@@ -346,7 +346,7 @@ static void RenderAll(
 
             DescriptorSetOffsetMap offsets = {
                 { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
-                { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
+                { "CurrentEntity", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
             };
 
             if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
@@ -574,8 +574,8 @@ static void RenderAll_Parallel(
 
                 auto& renderQueue = *parallelRenderingState->localQueues[batchIndex];
 
-                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
-                const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
+                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Entity");
+                const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Entity", frameIndex);
 
                 const DrawCallStorage& drawCalls = drawCallCollection.drawCalls;
 
@@ -589,7 +589,7 @@ static void RenderAll_Parallel(
 
                         DescriptorSetOffsetMap offsets = {
                             { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
-                            { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
+                            { "CurrentEntity", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
                         };
 
                         if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
@@ -660,8 +660,8 @@ static void RenderAll_Parallel(
 
                 auto& renderQueue = *parallelRenderingState->localQueues[batchIndex];
 
-                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
-                const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
+                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Entity");
+                const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Entity", frameIndex);
 
                 const uint32 instancingDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Instancing");
                 const DescriptorSetRef& instancingDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Instancing", frameIndex);

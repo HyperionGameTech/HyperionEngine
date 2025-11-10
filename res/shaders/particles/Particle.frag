@@ -24,7 +24,7 @@ HYP_DESCRIPTOR_SRV(ParticleDescriptorSet, ParticleTexture) uniform texture2D alb
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler texture_sampler;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/object.inc"
+#include "../include/Entity.glsl"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 void main()

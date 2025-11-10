@@ -27,7 +27,7 @@ HYP_ATTRIBUTE(5) vec3 a_bitangent;
 
 #include "../include/scene.inc"
 
-#include "../include/object.inc"
+#include "../include/Entity.glsl"
 #include "../include/env_probe.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -43,9 +43,9 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvP
 };
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
@@ -53,9 +53,9 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly bu
     EntityInstanceBatch entity_instance_batch;
 };
 #else
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, CurrentObject) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
 {
-    Object object;
+    Entity entity;
 };
 #endif
 
@@ -64,12 +64,12 @@ void main()
     vec4 position;
     mat4 normal_matrix;
 
-    // if (object.bucket == HYP_OBJECT_BUCKET_SKYBOX) {
+    // if (entity.bucket == HYP_OBJECT_BUCKET_SKYBOX) {
     //     position = vec4((a_position * 150.0) + camera.position.xyz, 1.0);
-    //     normal_matrix = transpose(inverse(object.model_matrix));
+    //     normal_matrix = transpose(inverse(entity.model_matrix));
     // } else {
-    position = object.model_matrix * vec4(a_position, 1.0);
-    normal_matrix = transpose(inverse(object.model_matrix));
+    position = entity.model_matrix * vec4(a_position, 1.0);
+    normal_matrix = transpose(inverse(entity.model_matrix));
     // }
 
     v_position = position.xyz;

@@ -30,7 +30,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 
 #include "include/scene.inc"
 
-#include "include/object.inc"
+#include "include/Entity.glsl"
 
 #ifdef SKINNING
 #include "include/Skeleton.glsl"
@@ -45,9 +45,9 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
-    Object objects[];
+    Entity entities[];
 };
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
@@ -57,15 +57,15 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly bu
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, CurrentObject) readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
 {
-    Object object;
+    Entity entity;
 };
 
 #endif
 
 #ifdef SKINNING
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, SkeletonsBuffer) readonly buffer SkeletonsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, SkeletonsBuffer) readonly buffer SkeletonsBuffer
 {
     Skeleton skeleton;
 };
@@ -94,20 +94,20 @@ void main()
     mat4 normal_matrix;
 
 #ifdef INSTANCING
-    mat4 model_matrix = entity_instance_batch.transforms[gl_InstanceIndex] * object.model_matrix;
+    mat4 model_matrix = entity_instance_batch.transforms[gl_InstanceIndex] * entity.model_matrix;
 #else
-    mat4 model_matrix = object.model_matrix;
+    mat4 model_matrix = entity.model_matrix;
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_weights) && defined(HYP_ATTRIBUTE_a_bone_indices)
     mat4 skinning_matrix = CreateSkinningMatrix(ivec4(a_bone_indices), a_bone_weights);
 
     position = model_matrix * skinning_matrix * vec4(a_position, 1.0);
-    previous_position = object.previous_model_matrix * skinning_matrix * vec4(a_position, 1.0);
+    previous_position = entity.previous_model_matrix * skinning_matrix * vec4(a_position, 1.0);
     normal_matrix = transpose(inverse(model_matrix * skinning_matrix));
 #else
     position = model_matrix * vec4(a_position, 1.0);
-    previous_position = object.previous_model_matrix * vec4(a_position, 1.0);
+    previous_position = entity.previous_model_matrix * vec4(a_position, 1.0);
     normal_matrix = transpose(inverse(model_matrix));
 #endif
 
@@ -131,7 +131,7 @@ void main()
     v_object_index = OBJECT_INDEX;
 #endif
 
-    const uint bucket = object.bucket;
+    const uint bucket = entity.bucket;
     v_object_mask = (uint(bucket == HYP_OBJECT_BUCKET_OPAQUE) * OBJECT_MASK_OPAQUE)
         | (uint(bucket == HYP_OBJECT_BUCKET_TRANSLUCENT) * OBJECT_MASK_TRANSLUCENT)
         | (uint(bucket == HYP_OBJECT_BUCKET_SKYBOX) * OBJECT_MASK_SKY);
