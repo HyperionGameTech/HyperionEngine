@@ -13,7 +13,6 @@ layout(location = 4) in flat uint v_object_index;
 layout(location = 5) in flat uvec4 v_properties;
 
 layout(location = 0) out vec4 gbuffer_albedo;
-layout(location = 5) out uint gbuffer_mask;
 
 #define INSTANCING
 
@@ -116,5 +115,4 @@ void main()
     }
 
     gbuffer_albedo = ui_color * v_color;
-    gbuffer_mask = GET_OBJECT_BUCKET(entity) | OBJECT_MASK_UI;
 }

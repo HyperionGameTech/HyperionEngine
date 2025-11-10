@@ -23,8 +23,8 @@ layout(location = 18) in flat uint v_env_probe_type;
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec2 gbuffer_material;
-layout(location = 4) out vec2 gbuffer_velocity;
-layout(location = 5) out vec4 gbuffer_ws_normals;
+layout(location = 3) out vec2 gbuffer_velocity;
+layout(location = 4) out vec4 gbuffer_ws_normals;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -121,7 +121,7 @@ void main()
     materialParams.ao = 1.0;
 
     gbuffer_albedo = vec4(0.0, 1.0, 0.0, 1.0);
-    gbuffer_normals = vec4(GBufferPackNormal(normal), 0.0, 0.0);
+    gbuffer_normals = GBufferPackNormal(normal);
     gbuffer_velocity = vec2(velocity);
     gbuffer_ws_normals = EncodeNormal(normal);
 

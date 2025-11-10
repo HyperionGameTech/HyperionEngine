@@ -53,8 +53,40 @@ vec3 UnpackNormalVec2(vec2 enc)
 #endif
 }
 
+vec3 SignedOctEncode(vec3 n)
+{
+    vec3 result;
+
+    n /= (abs(n.x) + abs(n.y) + abs(n.z));
+
+    result.y = n.y *  0.5  + 0.5;
+    result.x = n.x *  0.5  + result.y;
+    result.y = n.x * -0.5  + result.y;
+
+    result.z = clamp(n.z * HYP_FLOAT_MAX, 0.0, 1.0);
+
+    return result;
+}
+
+vec3 SignedOctDecode(vec3 n)
+{
+    vec3 result;
+
+    result.x = (n.x - n.y);
+    result.y = (n.x + n.y) - 1.0;
+    result.z = n.z * 2.0 - 1.0;
+    result.z = result.z * (1.0 - abs(result.x) - abs(result.y));
+    
+    result = normalize(result);
+
+    return result;
+}
+
+
 vec4 EncodeNormal(vec3 n)
 {
+    return vec4(SignedOctEncode(n), 0.0);
+
 #if defined(HYP_PACK_NORMALS) && HYP_PACK_NORMALS
     return vec4(PackNormalVec2(n), 0.0, 0.0);
 #else
@@ -64,6 +96,8 @@ vec4 EncodeNormal(vec3 n)
 
 vec3 DecodeNormal(vec4 enc)
 {
+    return SignedOctDecode(enc.xyz);
+
 #if defined(HYP_PACK_NORMALS) && HYP_PACK_NORMALS
     return UnpackNormalVec2(enc.xy);
 #else

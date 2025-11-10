@@ -1609,6 +1609,9 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
+    const FramebufferRef& framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
+    Assert(framebuffer != nullptr);
+
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
     Assert(renderTextureToScreenShader.IsValid());
 
@@ -1628,8 +1631,9 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
     passData.combinePass = CreateObject<FullScreenPass>(
         renderTextureToScreenShader,
         std::move(descriptorTable),
-        TF_RGBA16F,
-        view->GetOutputTarget().GetGBuffer()->GetExtent(),
+        framebuffer,
+        framebuffer->GetAttachment(0)->GetFormat(),
+        framebuffer->GetExtent(),
         nullptr);
 
     passData.combinePass->Create();
@@ -2080,10 +2084,11 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
     const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
+    const FramebufferRef& translucentFbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
     CHECK_FRAMEBUFFER_SIZE(opaqueFbo);
     CHECK_FRAMEBUFFER_SIZE(lightmapFbo);
-    CHECK_FRAMEBUFFER_SIZE(passData.combinePass->GetFramebuffer());
+    CHECK_FRAMEBUFFER_SIZE(translucentFbo);
 
     const bool doParticles = true;
     const bool doGaussianSplatting = false; // environment && environment->IsReady();
@@ -2277,9 +2282,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     }
 
     { // combined + translucent (forward pass)
-        const FramebufferRef& combinePassFramebuffer = passData.combinePass->GetFramebuffer();
-
-        frame->renderQueue << BeginFramebuffer(combinePassFramebuffer);
+        frame->renderQueue << BeginFramebuffer(translucentFbo);
 
         { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
             const GraphicsPipelineRef& pipeline = passData.combinePass->GetGraphicsPipeline();
@@ -2307,7 +2310,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             // Apply lightmaps over the now shaded opaque objects.
 
             // @TODO: Use stencil buffer to separate by lightmap volume ID
-            passData.lightmapPass->RenderToFramebuffer(frame, newRs, combinePassFramebuffer);
+            passData.lightmapPass->RenderToFramebuffer(frame, newRs, translucentFbo);
         }
 
         // begin translucent with forward rendering
@@ -2329,7 +2332,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         // render debug draw
         g_engineDriver->GetDebugDrawer()->Render(frame, rs);
 
-        frame->renderQueue << EndFramebuffer(combinePassFramebuffer);
+        frame->renderQueue << EndFramebuffer(translucentFbo);
     }
 
     { // render depth pyramid

@@ -177,7 +177,7 @@ void main(void)
         return;
     }
 
-    vec3 N =  GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord).xy);
+    vec3 N =  GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
 
     vec3 P = ReconstructViewSpacePositionFromDepth(inverse_proj, texcoord, depth).xyz;
     vec3 V = normalize(vec3(0.0) - P);

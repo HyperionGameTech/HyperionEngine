@@ -84,7 +84,7 @@ vec3 GetPosition(vec2 uv, float depth)
 
 vec3 GetNormal(vec2 uv)
 {
-    vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, uv).xy);
+    vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, uv));
     vec3 view_normal = (camera.view * vec4(normal, 0.0)).xyz;
 
     return view_normal;

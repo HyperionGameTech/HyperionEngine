@@ -173,7 +173,7 @@ void main()
     if (distance(position_world_space.xyz, particle.position.xyz) <= 1.0)
     {
         // has collision
-        const vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, particle_uv).xy);
+        const vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, particle_uv));
 
         particle.velocity.xyz = reflect(normal, normalize(particle.velocity.xyz));
     }

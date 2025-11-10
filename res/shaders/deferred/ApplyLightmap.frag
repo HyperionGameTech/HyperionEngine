@@ -95,10 +95,10 @@ void main()
 {
     vec4 albedo = Texture2D(GBufferSampler, gbuffer_albedo_texture, texcoord);
 
-    uvec2 materialData = texture(usampler2D(gbuffer_material_texture, GBufferSampler), texcoord).rg;
+    uvec4 materialData = texture(usampler2D(gbuffer_material_texture, GBufferSampler), texcoord);
 
     GBufferMaterialParams materialParams;
-    GBufferUnpackMaterialParams(materialData, materialParams);
+    GBufferUnpackMaterialParams(materialData.xy, materialParams);
 
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
@@ -109,9 +109,8 @@ void main()
     const mat4 inverse_proj = inverse(camera.projection);
     const mat4 inverse_view = inverse(camera.view);
 
-    vec3 N;
-    vec2 UV1;
-    GBufferUnpackNormalUV1(Texture2D(GBufferSampler, gbuffer_normals_texture, texcoord), N, UV1);
+    vec3 N = GBufferUnpackNormal(Texture2D(GBufferSampler, gbuffer_normals_texture, texcoord));
+    vec2 UV1 = vec2(uintBitsToFloat(materialData.z), uintBitsToFloat(materialData.w));
 
     const float depth = Texture2D(GBufferSampler, gbuffer_depth_texture, texcoord).r;
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;

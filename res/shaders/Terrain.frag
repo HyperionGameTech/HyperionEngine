@@ -22,9 +22,9 @@ layout(location = 16) in flat uint v_object_mask;
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
-layout(location = 2) out uvec2 gbuffer_material;
-layout(location = 4) out vec2 gbuffer_velocity;
-layout(location = 5) out vec4 gbuffer_ws_normals;
+layout(location = 2) out uvec4 gbuffer_material;
+layout(location = 3) out vec2 gbuffer_velocity;
+layout(location = 4) out vec4 gbuffer_ws_normals;
 
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
@@ -195,7 +195,7 @@ void main()
     materialParams.ao = ao;
     materialParams.mask = GET_OBJECT_BUCKET(entity) | OBJECT_MASK_TERRAIN;
 
-    gbuffer_normals = GBufferPackNormalUV1(normal, v_texcoord1);
+    gbuffer_normals = GBufferPackNormal(normal);
     gbuffer_material = GBufferPackMaterialParams(materialParams);
     gbuffer_velocity = velocity;
 }

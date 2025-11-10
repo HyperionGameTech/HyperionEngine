@@ -36,7 +36,7 @@
 
 namespace hyperion {
 
-constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
+constexpr Vec2u DefaultAtlasDimensions = Vec2u(4096, 4096);
 constexpr TextureFormat AtlasTextureFormat = TF_RGBA8;
 
 #pragma region Render commands

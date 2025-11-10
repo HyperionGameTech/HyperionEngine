@@ -22,7 +22,7 @@ layout(location = 16) in flat uint v_object_mask;
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
-layout(location = 2) out uvec2 gbuffer_material;
+layout(location = 2) out uvec4 gbuffer_material;
 layout(location = 3) out vec4 gbuffer_albedo_lightmap;
 layout(location = 4) out vec2 gbuffer_velocity;
 layout(location = 5) out vec4 gbuffer_ws_normals;
@@ -358,9 +358,17 @@ void main()
     // // debug texcoord1
     // gbuffer_albedo = vec4(v_texcoord1, 0.0, 1.0);
 
-    gbuffer_normals = GBufferPackNormalUV1(N, v_texcoord1);
+    gbuffer_normals = GBufferPackNormal(N);
 
-    gbuffer_material = GBufferPackMaterialParams(materialParams);
+    gbuffer_material.xy = GBufferPackMaterialParams(materialParams);
+#ifdef SHADING_TYPE_LIGHTMAPPED
+    gbuffer_material.z = floatBitsToUint(v_texcoord1.x);
+    gbuffer_material.w = floatBitsToUint(v_texcoord1.y);
+#else
+    gbuffer_material.z = 0u;
+    gbuffer_material.w = 0u;
+#endif
+
     gbuffer_velocity = velocity;
     gbuffer_ws_normals = EncodeNormal(ws_normals);
 }

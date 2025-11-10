@@ -34,9 +34,9 @@ struct GBufferTargetDesc
 };
 
 static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
-    GBufferTargetDesc { GBufferFormat(Array<TextureFormat> { TF_R11G11B10F }) }, // color
-    GBufferTargetDesc { GBufferFormat(TF_RGBA16F) },                             // normal, uv1
-    GBufferTargetDesc { GBufferFormat(TF_RG32) },                                // material data
+    GBufferTargetDesc { GBufferFormat(TF_R11G11B10F) }, // color
+    GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) },                             // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
+    GBufferTargetDesc { GBufferFormat(TF_RGBA32) },                                // material data
     GBufferTargetDesc { GBufferFormat(TF_RG16F) },    // velocity
     GBufferTargetDesc { GBufferFormat(DIF_NORMALS) }, // world-space normals (untextured)
     GBufferTargetDesc { GBufferFormat(DIF_DEPTH) }    // depth
@@ -240,7 +240,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaqueFramebuffe
     {
         addOwnedAttachment(0, GetImageFormat(GTN_ALBEDO));
     }
-    else if (rb == RB_LIGHTMAP || rb == RB_TRANSLUCENT)
+    else if (rb == RB_LIGHTMAP)
     {
         addSharedAttachment(0);
     }

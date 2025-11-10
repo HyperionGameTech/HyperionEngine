@@ -58,26 +58,15 @@ void GBufferUnpackMaterialParams(in uvec2 vec, out GBufferMaterialParams params)
     params.mask = (vec.x >> 22) & 0x3FFu;
 }
 
-vec2 GBufferPackNormal(in vec3 normal)
+vec4 GBufferPackNormal(in vec3 normal)
 {
-    return PackNormalVec2(normal);
+    // use 2 bit w component for z value
+    return vec4(0.0, EncodeNormal(normal));
 }
 
-vec3 GBufferUnpackNormal(in vec2 packed)
+vec3 GBufferUnpackNormal(in vec4 packed)
 {
-    return UnpackNormalVec2(packed);
-}
-
-vec4 GBufferPackNormalUV1(in vec3 normal, in vec2 uv1)
-{
-    vec2 packedNormal = PackNormalVec2(normal);
-    return vec4(packedNormal, uv1);
-}
-
-void GBufferUnpackNormalUV1(in vec4 packed, out vec3 normal, out vec2 uv1)
-{
-    normal = UnpackNormalVec2(packed.xy);
-    uv1 = packed.zw;
+    return DecodeNormal(packed.yzww);
 }
 
 #endif
