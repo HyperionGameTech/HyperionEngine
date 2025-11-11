@@ -18,12 +18,14 @@ public:
         : AssetObject(),
           m_textureDesc()
     {
+        AssetObject::SetData(TextureData());
     }
 
     TextureAsset(Name name, const TextureDesc& desc)
         : AssetObject(name),
           m_textureDesc(desc)
     {
+        AssetObject::SetData(TextureData());
     }
 
     TextureAsset(Name name, const TextureDesc& desc, const TextureData& textureData)

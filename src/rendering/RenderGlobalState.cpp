@@ -1324,9 +1324,6 @@ void EndFrame_RenderThread()
                 IRenderProxy* pProxy = subtypeData.proxies.Get(i);
                 AssertDebug(pProxy != nullptr);
 
-                HYP_LOG(Rendering, Debug, "Deleting render proxy for resource id {} at index {} for frame {}",
-                    rd.resource->Id(), i, slot);
-
                 subtypeData.proxies.EraseAt(i);
             }
         }

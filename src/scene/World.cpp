@@ -442,9 +442,15 @@ const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsyst
     subsystem->SetWorld(this);
 
     const auto it = m_subsystems.Find(typeId);
-    Assert(it == m_subsystems.End(), "Subsystem of type %s already exists in World", *subsystem->InstanceClass()->GetName());
+    Assert(it == m_subsystems.End(), "Subsystem of type {} already exists in World", *subsystem->InstanceClass()->GetName());
+
+    if (it != m_subsystems.End())
+    {
+        return it->second;
+    }
 
     auto insertResult = m_subsystems.Set(typeId, subsystem);
+    Assert(insertResult.second);
 
     // fine to take reference since we use dynamic hash map allocator which doesn't invalidate references.
     const Handle<Subsystem>& newSubsystem = insertResult.first->second;

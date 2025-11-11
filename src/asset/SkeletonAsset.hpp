@@ -94,24 +94,28 @@ public:
         : AssetObject(),
           m_skeletonDesc()
     {
+        AssetObject::SetData(SkeletonData());
     }
 
     SkeletonAsset(Name name, const SkeletonDesc& desc)
         : AssetObject(name),
           m_skeletonDesc(desc)
     {
+        AssetObject::SetData(SkeletonData());
     }
 
     SkeletonAsset(Name name, const SkeletonDesc& desc, const SkeletonData& skeletonData)
         : AssetObject(name, skeletonData),
           m_skeletonDesc(desc)
     {
+        AssetObject::SetData(SkeletonData());
     }
 
     SkeletonAsset(Name name, const SkeletonDesc& desc, SkeletonData&& skeletonData)
         : AssetObject(name, std::move(skeletonData)),
           m_skeletonDesc(desc)
     {
+        AssetObject::SetData(SkeletonData());
     }
 
     SkeletonAsset(const SkeletonAsset& other) = delete;

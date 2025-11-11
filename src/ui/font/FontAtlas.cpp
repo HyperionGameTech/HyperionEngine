@@ -122,15 +122,15 @@ FontAtlas::~FontAtlas() = default;
 FontAtlas::SymbolList FontAtlas::GetDefaultSymbolList()
 {
     // first renderable symbol
-    static constexpr uint32 charRangeStart = 33; // !
+    static constexpr uint32 CharRangeStart = 33; // !
 
     // highest symbol in the ascii table
-    static constexpr uint32 charRangeEnd = 126; // ~ + 1
+    static constexpr uint32 CharRangeEnd = 126; // ~ + 1
 
     SymbolList symbolList;
-    symbolList.Reserve(charRangeEnd - charRangeStart + 1);
+    symbolList.Reserve(CharRangeEnd - CharRangeStart + 1);
 
-    for (uint32 ch = charRangeStart; ch <= charRangeEnd; ch++)
+    for (uint32 ch = CharRangeStart; ch <= CharRangeEnd; ch++)
     {
         symbolList.PushBack(ch);
     }

@@ -259,7 +259,7 @@ EditorManipulationWidgetBase::EditorManipulationWidgetBase()
 void EditorManipulationWidgetBase::Init()
 {
     // Keep the node around so we only have to load it once.
-    if (m_node.IsValid())
+    if (m_node.IsValid() || IsA(NullEditorManipulationWidget::StaticClass()))
     {
         return;
     }
@@ -268,9 +268,11 @@ void EditorManipulationWidgetBase::Init()
 
     if (!m_node.IsValid())
     {
-        HYP_LOG(Editor, Warning, "Failed to create manipulation widget node for \"{}\"", InstanceClass()->GetName());
+        HYP_LOG(Editor, Warning, "Failed to create manipulation widget node for \"{}\"!", InstanceClass()->GetName());
 
-        return;
+        // Create default node so we don't crash trying to use it
+        m_node = CreateObject<Node>();
+        m_node->SetName(NAME_FMT("{}_FallbackManipulationWidgetNode", InstanceClass()->GetName()));
     }
 
     m_node->UnlockTransform();
@@ -280,8 +282,6 @@ void EditorManipulationWidgetBase::Init()
         | NodeFlags::HIDE_IN_SCENE_OUTLINE // don't display transform widget in the outline
         | NodeFlags::TRANSIENT             // should not ever be serialized to disk
     );
-
-    SetReady(true);
 }
 
 void EditorManipulationWidgetBase::Shutdown()
@@ -290,13 +290,9 @@ void EditorManipulationWidgetBase::Shutdown()
     {
         // Remove from scene
         m_node->Remove();
-
-        m_node.Reset();
     }
 
     m_focusedNode.Reset();
-
-    SetReady(false);
 }
 
 void EditorManipulationWidgetBase::UpdateWidget(const Handle<Node>& focusedNode)
@@ -908,6 +904,9 @@ EditorSubsystem::EditorSubsystem()
 
                 InitObject(project);
 
+                m_manipulationWidgetHolder.Initialize();
+                m_manipulationWidgetHolder.SetCurrentProject(project);
+
                 WeakHandle<Scene> activeScene;
 
                 for (const Handle<Scene>& scene : project->GetScenes())
@@ -1016,9 +1015,6 @@ EditorSubsystem::EditorSubsystem()
                             },
                             g_gameThread));
                 }
-
-                m_manipulationWidgetHolder.Initialize();
-                m_manipulationWidgetHolder.SetCurrentProject(project);
 
                 m_delegateHandlers.Add(
                     NAME("OnGameStateChange"),
@@ -2966,9 +2962,9 @@ void EditorSubsystem::ShowOpenProjectDialog()
     HYP_SCOPE;
 
     ShowOpenFileDialog(
-        "Select the project file to open",
+        "Select the project to open",
         GetResourceDirectory(),
-        { "hyp" },
+        { "hypproj" },
         /* allowMultiple */ false, /* allowDirectories */ true,
         [](TResult<Array<FilePath>>&& result)
         {

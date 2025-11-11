@@ -121,6 +121,11 @@ void SkydomeRenderer::OnRemovedFromWorld()
 
 void SkydomeRenderer::Update(float delta)
 {
+    if (!m_envProbe)
+    {
+        return;
+    }
+
     if (!m_envProbe->ReceivesUpdate())
     {
         return;

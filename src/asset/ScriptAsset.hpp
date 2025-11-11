@@ -17,11 +17,13 @@ public:
     ScriptAsset()
         : AssetObject()
     {
+        AssetObject::SetData(ScriptData());
     }
 
     explicit ScriptAsset(Name name)
         : AssetObject(name)
     {
+        AssetObject::SetData(ScriptData());
     }
 
     ScriptAsset(Name name, const ScriptData& scriptData)

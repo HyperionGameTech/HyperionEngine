@@ -1087,11 +1087,7 @@ void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
 
         for (const String& path : relativePaths)
         {
-            HYP_LOG_TEMP("Setting dependency for package '{}': {}", thisPackagePath, path);
-
             const AssetPath dependencyPath = AssetPath::FromRelativePath(thisPackagePath, path);
-
-            HYP_LOG_TEMP("Resolved dependency for package '{}': {}", thisPackagePath, dependencyPath);
 
             if (dependencyPath.chain && dependencyPath.chain[0] != Name::Invalid() && dependencyPath != thisPackagePath)
             {
@@ -2179,7 +2175,6 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 if (dependencyPackage != nullptr)
                 {
                     HYP_LOG(Assets, Debug, "Dependency package '{}' already loaded!", dependencyPath);
-                    HYP_BREAKPOINT;
                     continue;
                 }
 

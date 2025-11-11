@@ -13,11 +13,12 @@
 #include <scene/EntityTag.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Node.hpp>
+#include <scene/World.hpp>
+
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-#include <scene/Node.hpp>
-#include <scene/World.hpp>
 
 #include <core/math/Vertex.hpp>
 

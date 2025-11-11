@@ -28,6 +28,9 @@
 #include <asset/AssetReference.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
+
+// TEMP
+#include <scene/Node.hpp>
 #endif
 
 namespace hyperion {
@@ -662,6 +665,7 @@ bool ObjectToJSON(
     return true;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, HypData& target)
 {
     auto resolveMember = [&target](const IHypMember& member, const json::JSONValue& value) -> bool
@@ -685,7 +689,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
 
             property.Set(target, hypData);
 
-            break;
+            return true;
         }
         case HypMemberType::TYPE_FIELD:
         {
@@ -704,13 +708,13 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
 
             field.Set(target, hypData);
 
-            break;
+            return true;
         }
         default:
             break;
         }
 
-        return true;
+        return false;
     };
 
     json::JSONValue jsonObjectValue { jsonObject };
@@ -816,6 +820,13 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
 
         for (const KeyValuePair<int, const IHypMember*>& pair : sortedMembers)
         {
+            // temp debug
+            if (pair.second->GetName() == "LocalTransform" && instanceClass && instanceClass->GetName() == "Node")
+            {
+                HYP_BREAKPOINT;
+            }
+
+
             if (!resolveMember(*pair.second, *jsonObjectValue.Get(*pair.second->GetName()).value))
             {
                 HYP_LOG(Core, Warning, "Failed to resolve member \"{}\" for Class \"{}\"", pair.second->GetName(), instanceClass->GetName());
@@ -855,6 +866,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
 
     return true;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, HypData& outHypData)
 {

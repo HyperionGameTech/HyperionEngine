@@ -36,14 +36,14 @@ class Camera;
 
 static const Handle<NullInputHandler>& GetNullInputHandler()
 {
-    static const Handle<NullInputHandler> nullInputHandler = CreateObject<NullInputHandler>();
-    return nullInputHandler;
+    static const Handle<NullInputHandler> s_nullInputHandler = CreateObject<NullInputHandler>();
+    return s_nullInputHandler;
 }
 
 static const Handle<NullCameraController>& GetNullCameraController()
 {
-    static const Handle<NullCameraController> nullCameraController = CreateObject<NullCameraController>();
-    return nullCameraController;
+    static const Handle<NullCameraController> s_nullCameraController = CreateObject<NullCameraController>();
+    return s_nullCameraController;
 }
 
 #pragma region CameraController

@@ -80,7 +80,6 @@ const Handle<AssetObject>& AssetReference::Resolve() const
         }
 
         HYP_LOG(Assets, Error, "Failed to resolve asset reference for path '{}'", assetPath);
-        HYP_BREAKPOINT;
     }
 
     return Handle<AssetObject>::empty;

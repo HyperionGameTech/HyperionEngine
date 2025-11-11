@@ -946,6 +946,9 @@ protected:
     void GetEditorDelegates(Function&& func);
 #endif
 
+    HYP_METHOD(Property = "Children")
+    void SetChildren(const NodeList& children); // use setter so we can manage parent pointers
+
     EnumFlags<NodeFlags> m_nodeFlags = NodeFlags::NONE;
 
     HYP_FIELD(Property = "Name", Editor = true, Label = "Name", Description = "The name of the node.")

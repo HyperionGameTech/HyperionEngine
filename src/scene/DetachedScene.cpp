@@ -59,7 +59,7 @@ private:
     Mutex m_mutex;
 };
 
-static thread_local Scene* s_pScene;
+static thread_local Scene* s_sceneForCurrentThread;
 
 static DetachedScenes& GetDetachedScenes()
 {
@@ -69,12 +69,12 @@ static DetachedScenes& GetDetachedScenes()
 
 Scene* GetDetachedSceneForCurrentThread()
 {
-    if (!s_pScene)
+    if (!s_sceneForCurrentThread)
     {
-        s_pScene = GetDetachedScenes().GetDetachedScene(Threads::CurrentThreadId());
+        s_sceneForCurrentThread = GetDetachedScenes().GetDetachedScene(Threads::CurrentThreadId());
     }
 
-    return s_pScene;
+    return s_sceneForCurrentThread;
 }
 
 Scene* GetDetachedSceneForThread(const ThreadId& threadId)

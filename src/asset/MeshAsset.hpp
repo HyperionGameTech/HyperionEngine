@@ -67,12 +67,14 @@ public:
         : AssetObject(),
           m_meshDesc()
     {
+        AssetObject::SetData(MeshData());
     }
 
     MeshAsset(Name name, const MeshDesc& desc)
         : AssetObject(name),
           m_meshDesc(desc)
     {
+        AssetObject::SetData(MeshData());
     }
 
     MeshAsset(Name name, const MeshDesc& desc, const MeshData& meshData)

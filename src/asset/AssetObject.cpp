@@ -40,7 +40,7 @@
 namespace hyperion {
 
 //! for debugging
-static constexpr bool DebugDisableUnload = false;
+static constexpr bool DebugDisableUnload = true;
 
 HYP_API extern const FilePath& GetResourceDirectory();
 
@@ -107,20 +107,18 @@ void AssetDataResourceBase::Initialize()
     if (IsDataLoaded())
     {
         HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded", assetObject->GetName());
+    
+        return;
+    }
 
-        // TEMP
-        if (GetAssetRef().Is<TextureData>())
-        {
-            TextureData& textureData = GetAssetRef().Get<TextureData>();
-            HYP_LOG(Assets, Debug, "TextureData image data size: {}", textureData.imageData.Size());
-        }
+    if (assetObject->IsTransient())
+    {
+        HYP_LOG(Assets, Warning, "Transient assets cannot be loaded from disk!");
 
         return;
     }
 
     HYP_LOG(Assets, Debug, "Loading asset '{}'", assetObject->GetName());
-
-    AssertDebug(!assetObject->IsTransient(), "Transient assets should not be loaded from disk!");
 
     if (Result result = Load_Internal(); result.HasError())
     {
@@ -585,10 +583,13 @@ Result AssetObject::Load(
 
     if (useResource)
     {
-        Assert(resource != nullptr && !resource->IsNull());
-        Assert(pBinStream != nullptr);
+        AssertDebug(resource != nullptr && !resource->IsNull());
+        AssertDebug(binData.IsValid());
 
-        resource->Extract_Internal(binData.ToRef());
+        if (binData.IsValid())
+        {
+            resource->Extract_Internal(binData.ToRef());
+        }
 
         AssertDebug(resource->GetAssetRef().HasValue());
     }
@@ -597,24 +598,6 @@ Result AssetObject::Load(
     targetAssetObject->InstanceClass()->PostLoad(targetAssetObject);
 
     outAssetObject = MakeStrongRef(targetAssetObject);
-
-#if 0
-    FBOMLoadContext loadContext {};
-    FBOMObject dataObject;
-
-    FBOMReader dataReader(FBOMReaderConfig {});
-    if (FBOMResult result = dataReader.ReadObject(loadContext, &dataStream, dataObject, nullptr, /* deserializeObject */ true); !result.IsOK())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to read asset data: {}", result.message);
-    }
-
-    if (!dataObject.m_deserializedObject || !dataObject.m_deserializedObject->Is<Handle<AssetObject>>())
-    {
-        return HYP_MAKE_ERROR(Error, "Deserialized asset data is not a valid AssetObject");
-    }
-
-    outAssetObject = std::move(dataObject.m_deserializedObject->Get<Handle<AssetObject>>());
-#endif
 
     return {};
 }

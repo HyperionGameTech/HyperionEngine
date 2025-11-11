@@ -213,6 +213,8 @@ Node* Node::FindParentWithName(UTF8StringView name) const
 
 void Node::SetScene(Scene* scene)
 {
+    HYP_SCOPE;
+
     if (!scene)
     {
         scene = GetDetachedSceneForCurrentThread();
@@ -278,8 +280,22 @@ void Node::OnDetachedFromNode(Node* node)
     m_parentNode = nullptr;
 }
 
+void Node::SetChildren(const NodeList& children)
+{
+    HYP_SCOPE;
+
+    RemoveAllChildren();
+
+    for (const Handle<Node>& child : children)
+    {
+        AddChild(child);
+    }
+}
+
 Handle<Node> Node::AddChild(const Handle<Node>& node)
 {
+    HYP_SCOPE;
+
     if (!node.IsValid())
     {
         return AddChild(Handle<Node>(CreateObject<Node>()));
@@ -340,6 +356,8 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
 bool Node::RemoveChild(const Node* node)
 {
+    HYP_SCOPE;
+
     if (!node)
     {
         return false;
@@ -397,6 +415,8 @@ bool Node::RemoveChild(const Node* node)
 
 bool Node::RemoveAt(int index)
 {
+    HYP_SCOPE;
+
     if (index < 0)
     {
         index = int(m_childNodes.Size()) + index;
@@ -414,6 +434,8 @@ bool Node::RemoveAt(int index)
 
 bool Node::Remove()
 {
+    HYP_SCOPE;
+
     if (!m_parentNode)
     {
         SetScene(nullptr);
@@ -426,6 +448,8 @@ bool Node::Remove()
 
 void Node::RemoveAllChildren()
 {
+    HYP_SCOPE;
+
     for (auto it = m_childNodes.begin(); it != m_childNodes.end();)
     {
         if (const Handle<Node>& node = *it)
@@ -455,6 +479,8 @@ void Node::RemoveAllChildren()
 
 Handle<Node> Node::GetChild(int index) const
 {
+    HYP_SCOPE;
+
     if (index < 0)
     {
         index = int(m_childNodes.Size()) + index;
@@ -470,6 +496,8 @@ Handle<Node> Node::GetChild(int index) const
 
 Handle<Node> Node::Select(ANSIStringView selector) const
 {
+    HYP_SCOPE;
+
     Handle<Node> result;
 
     if (selector.Size() == 0)
@@ -598,7 +626,7 @@ Array<Node*> Node::GetDescendantsArray() const
     // add all children to the list
     Array<Node*> descendants;
 
-    typedef void (*CollectFunc)(Array<Node*>& descendants, const Node& target, void* collectFunc);
+    typedef void (*CollectFunc)(Array<Node*> & descendants, const Node& target, void* collectFunc);
 
     CollectFunc collectFunc = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
     {
@@ -752,6 +780,8 @@ BoundingBox Node::GetWorldAABB() const
 
 void Node::UpdateWorldTransform(bool updateChildTransforms)
 {
+    HYP_SCOPE;
+
     if (IsTransformLocked())
     {
         return;
@@ -855,6 +885,8 @@ uint32 Node::FindSelfIndex() const
 
 bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags) const
 {
+    HYP_SCOPE;
+
     const BoundingBox worldAabb = GetWorldAABB();
 
     bool hasEntityHit = false;
@@ -988,6 +1020,8 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
 Handle<Node> Node::FindChildByName(StringHash name) const
 {
+    HYP_SCOPE;
+
     // breadth-first search
     Queue<const Node*> queue;
     queue.Push(this);
@@ -1017,6 +1051,8 @@ Handle<Node> Node::FindChildByName(StringHash name) const
 
 Handle<Node> Node::FindChildByUUID(const Uuid& uuid) const
 {
+    HYP_SCOPE;
+
     // breadth-first search
     Queue<const Node*> queue;
     queue.Push(this);
