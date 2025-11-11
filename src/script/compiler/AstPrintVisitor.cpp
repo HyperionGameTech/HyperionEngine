@@ -62,7 +62,6 @@ WideString AstPrintVisitor::PrintNode(AstStatement* node, SizeType depth) const
     WideString result;
     const WideString indentation = GetIndentation(depth);
 
-    // Create beautiful tree connectors
     WideString connector = depth == 0 ? L"┌─ " : L"├─ ";
 
     // Start with node name
@@ -117,10 +116,6 @@ WideString AstPrintVisitor::PrintTree(AstStatement* root) const
     }
 
     WideString result;
-
-    result += Colorize(L"╔══════════════════════════════════════╗", s_colorKeyword) + L"\n";
-    result += Colorize(L"║              AST Tree                ║", s_colorKeyword) + L"\n";
-    result += Colorize(L"╚══════════════════════════════════════╝", s_colorKeyword) + L"\n\n";
 
     result += PrintNode(root, 0);
     result += L"\n" + Colorize(L"└─ " + Colorize(L"End of tree", s_colorComment), s_colorComment) + L"\n";
