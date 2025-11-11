@@ -28,9 +28,6 @@
 #include <asset/AssetReference.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
-
-// TEMP
-#include <scene/Node.hpp>
 #endif
 
 namespace hyperion {
@@ -386,6 +383,33 @@ bool HypDataToJSON(
         return false;
     }
 
+    if (typeInfo.IsVariantType())
+    {
+        Assert(typeInfo.extendedInfo.handler && typeInfo.extendedInfo.handler->GetHandlerType() == ITypeInfoHandler::TYPE_VARIANT);
+
+        ITypeInfoVariantHandler* handler = static_cast<ITypeInfoVariantHandler*>(typeInfo.extendedInfo.handler);
+
+        AnyRef activeValue = handler->GetValue(value);
+
+        if (!activeValue.HasValue())
+        {
+            HYP_LOG(Core, Warning, "Failed to get active value of variant of type {}", typeInfo.name);
+
+            return false;
+        }
+
+        ToJSONOptions newOpts = opts;
+        newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+        // always (if ForceWriteClassNamesWhenTypesDiffer is true) write out class names for variants.
+        if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer)
+        {
+            newOpts.writeClassNames = true;
+        }
+
+        return HypDataToJSON(HypData(activeValue), outJson, newOpts);
+    }
+
     const Class* cls = GetClass(value.GetTypeId());
 
     if (cls)
@@ -395,8 +419,6 @@ bool HypDataToJSON(
         if (!s_serializedObjects.Insert(pair).second)
         {
             HYP_LOG(Core, Warning, "Detected circular reference when serializing HypData to JSON!");
-
-            HYP_BREAKPOINT_DEBUG_MODE;
 
             return false;
         }
@@ -687,6 +709,12 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
                 return false;
             }
 
+            if (hypData.IsNull())
+            {
+                // dont set null values
+                return true;
+            }
+
             property.Set(target, hypData);
 
             return true;
@@ -704,6 +732,12 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
                     member.GetName());
 
                 return false;
+            }
+
+            if (hypData.IsNull())
+            {
+                // dont set null values
+                return true;
             }
 
             field.Set(target, hypData);
@@ -851,7 +885,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
             }
         }
 
-        HYP_LOG(Core, Warning, "Failed to resolve AssetReference when deserializing to AssetObject: invalid reference");
+        HYP_LOG(Core, Warning, "Failed to resolve AssetReference when deserializing to AssetObject: invalid reference at \"{}\"", assetReference.GetAssetPath().ToString());
 
         return false;
     }
@@ -1315,6 +1349,12 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         for (SizeType i = 0; i < jsonArray.Size(); i++)
         {
+            if (jsonArray[i].IsNull())
+            {
+                // skip null/undefined elements
+                continue;
+            }
+
             HypData elementData;
 
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
@@ -1372,6 +1412,12 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         for (SizeType i = 0; i < jsonArray.Size(); i++)
         {
+            if (jsonArray[i].IsNull())
+            {
+                // skip null/undefined elements
+                continue;
+            }
+
             HypData elementData;
 
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
@@ -1391,6 +1437,78 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         }
 
         outHypData = std::move(setInstance);
+
+        return true;
+    }
+
+    if (typeInfo.IsVariantType())
+    {
+        // variant type is stored directly as whatever inner type it was serialized as.
+        // so, we need to iterate over the possible types and stop at the first one that works.
+
+        ITypeInfoVariantHandler* variantHandler = static_cast<ITypeInfoVariantHandler*>(typeInfo.extendedInfo.handler);
+        Assert(variantHandler && variantHandler->GetHandlerType() == ITypeInfoHandler::TYPE_VARIANT);
+
+        if (jsonValue.IsNull())
+        {
+            // create empty variant on null/undefined
+
+            HypData variantInstance;
+            if (!variantHandler->CreateInstance(variantInstance))
+            {
+                HYP_LOG(Core, Warning, "Failed to create instance of variant type {}", typeInfo.name);
+                return false;
+            }
+
+            outHypData = std::move(variantInstance);
+
+            return true;
+        }
+
+        const int numTypes = variantHandler->GetNumTypes();
+
+        for (int typeIndex = 0; typeIndex < numTypes; typeIndex++)
+        {
+            const TypeInfo* variantTypeInfo = variantHandler->GetTypeInfoAtIndex(typeIndex);
+            AssertDebug(variantTypeInfo != nullptr, "Variant type info at index {} is null", typeIndex);
+
+            if (!variantTypeInfo)
+            {
+                continue;
+            }
+
+            HypData variantData;
+
+            if (JSONToHypData(jsonValue, *variantTypeInfo, variantData))
+            {
+                HypData variantInstance;
+
+                if (!variantHandler->CreateInstance(variantInstance))
+                {
+                    HYP_LOG(Core, Warning, "Failed to create instance of variant type {}", typeInfo.name);
+                    return false;
+                }
+
+                if (!variantHandler->SetValue(variantInstance, variantData))
+                {
+                    HYP_LOG(Core, Warning, "Failed to set value of variant type {}", typeInfo.name);
+                    return false;
+                }
+
+                outHypData = std::move(variantInstance);
+                return true;
+            }
+        }
+
+        HYP_LOG(Core, Warning, "Failed to deserialize JSON to any of the possible types for variant: {}", typeInfo.name);
+
+        return false;
+    }
+
+    if (jsonValue.IsNull() && typeInfo.IsClass())
+    {
+        // null object
+        outHypData = HypData();
 
         return true;
     }
@@ -1447,7 +1565,8 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         return false;
     }
 
-    HYP_LOG(Core, Warning, "Failed to deserialize JSON to HypData of type: {}", typeInfo.name);
+    HYP_LOG(Core, Warning, "Failed to deserialize JSON to HypData of type: {}, no handle logic for JSON value: {}",
+        typeInfo.name, jsonValue.ToString(true));
 
     return false;
 }

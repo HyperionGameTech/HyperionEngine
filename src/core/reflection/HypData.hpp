@@ -3558,12 +3558,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         return value.Is<Variant<Types...>>();
     }
 
-    HYP_FORCE_INLINE Variant<Types...>& Get(Any& value) const // temp
-    {
-        return value.Get<Variant<Types...>>();
-    }
-
-    HYP_FORCE_INLINE const Variant<Types...>& Get(const Any& value) const
+    HYP_FORCE_INLINE Variant<Types...>& Get(const Any& value) const
     {
         return value.Get<Variant<Types...>>();
     }
@@ -3822,8 +3817,6 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !Imple
 
 #include <core/reflection/HypDataArray.inl>
 
-HYP_DISABLE_OPTIMIZATION;
-
 #pragma region HypData_Is implementation
 
 template <class To, class From = To>
@@ -3904,7 +3897,6 @@ struct HypData_Get<ReturnType, T, Tuple<ConvertibleFrom...>>
         return HypData_Get_Impl<const HypData::VariantType&, ReturnType, T, ConvertibleFrom...>(value, outValue, std::index_sequence_for<T, ConvertibleFrom...> {});
     }
 };
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion HypData_Get implementation
 

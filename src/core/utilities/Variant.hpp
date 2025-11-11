@@ -742,6 +742,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
 
     // we do sizeof...(Types) + 1 so getting type id from index is just accessing the element at type index + 1.
     static const TypeId typeIds[sizeof...(Types) + 1];
+    static const TypeInfo* typeInfos[sizeof...(Types) + 1];
     static constexpr SizeType typeCount = sizeof...(Types);
 
     constexpr Variant() = default;
@@ -947,7 +948,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
             return AnyRef();
         }
 
-        return AnyRef(m_holder.GetTypeId(), m_holder.GetPointer());
+        return AnyRef(m_holder.GetCurrentTypeInfo(), m_holder.GetPointer());
     }
 
     HYP_FORCE_INLINE ConstAnyRef ToRef() const
@@ -992,6 +993,9 @@ private:
 
 template <class... Types>
 const TypeId Variant<Types...>::typeIds[sizeof...(Types) + 1] = { TypeId::Void(), TypeId::ForType<Types>()... };
+
+template <class... Types>
+const TypeInfo* Variant<Types...>::typeInfos[sizeof...(Types) + 1] = { nullptr, &TypeOf<Types>()... };
 
 #pragma region TypeIndex
 

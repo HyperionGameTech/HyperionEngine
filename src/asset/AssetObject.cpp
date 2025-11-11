@@ -40,7 +40,7 @@
 namespace hyperion {
 
 //! for debugging
-static constexpr bool DebugDisableUnload = true;
+static constexpr bool DebugDisableUnload = false;
 
 HYP_API extern const FilePath& GetResourceDirectory();
 
@@ -104,12 +104,12 @@ void AssetDataResourceBase::Initialize()
     Handle<AssetObject> assetObject = m_assetObject.Lock();
     Assert(assetObject.IsValid());
 
-    if (IsDataLoaded())
-    {
-        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded", assetObject->GetName());
-    
-        return;
-    }
+//    if (IsDataLoaded())
+//    {
+//        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded", assetObject->GetName());
+//
+//        return;
+//    }
 
     if (assetObject->IsTransient())
     {

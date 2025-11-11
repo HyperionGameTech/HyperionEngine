@@ -29,6 +29,76 @@ static const ShaderDefinition s_defaultShaderDefinition {
     ShaderProperties(staticMeshVertexAttributes)
 };
 
+#pragma region MaterialParameter
+
+MaterialParameter::SerializedValueType MaterialParameter::SerializeData() const
+{
+    switch (type)
+    {
+    case MPT_FLOAT:
+        return SerializedValueType(float32(*this));
+    case MPT_FLOAT2:
+        return SerializedValueType(Vec2f(*this));
+    case MPT_FLOAT3:
+        return SerializedValueType(Vec3f(*this));
+    case MPT_FLOAT4:
+        return SerializedValueType(Vec4f(*this));
+    case MPT_INT:
+        return SerializedValueType(int32(*this));
+    case MPT_INT2:
+        return SerializedValueType(Vec2i(*this));
+    case MPT_INT3:
+        return SerializedValueType(Vec3i(*this));
+    case MPT_INT4:
+        return SerializedValueType(Vec4i(*this));
+    default:
+        return SerializedValueType();
+    }
+}
+
+void MaterialParameter::DeserializeData(const SerializedValueType& data)
+{
+    if (data.Is<float32>())
+    {
+        *this = MaterialParameter(data.Get<float32>());
+    }
+    else if (data.Is<Vec2f>())
+    {
+        *this = MaterialParameter(data.Get<Vec2f>());
+    }
+    else if (data.Is<Vec3f>())
+    {
+        *this = MaterialParameter(data.Get<Vec3f>());
+    }
+    else if (data.Is<Vec4f>())
+    {
+        *this = MaterialParameter(data.Get<Vec4f>());
+    }
+    else if (data.Is<int32>())
+    {
+        *this = MaterialParameter(data.Get<int32>());
+    }
+    else if (data.Is<Vec2i>())
+    {
+        *this = MaterialParameter(data.Get<Vec2i>());
+    }
+    else if (data.Is<Vec3i>())
+    {
+        *this = MaterialParameter(data.Get<Vec3i>());
+    }
+    else if (data.Is<Vec4i>())
+    {
+        *this = MaterialParameter(data.Get<Vec4i>());
+    }
+    else
+    {
+        type = MPT_NONE;
+        Memory::MemSet(&value, 0, sizeof(value));
+    }
+}
+
+#pragma endregion MaterialParameter
+
 #pragma region Material
 
 const Array<Name> Material::s_textureNames = {

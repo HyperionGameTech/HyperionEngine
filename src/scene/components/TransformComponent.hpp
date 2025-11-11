@@ -28,6 +28,4 @@ struct TransformComponent
     }
 };
 
-static_assert(sizeof(TransformComponent) == 112, "TransformComponent must be 112 bytes to match C# struct size");
-
 } // namespace hyperion

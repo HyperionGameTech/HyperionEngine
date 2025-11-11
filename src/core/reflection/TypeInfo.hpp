@@ -201,7 +201,8 @@ public:
         TYPE_SET,
         TYPE_STRING,
         TYPE_VECTOR,
-        TYPE_MATRIX
+        TYPE_MATRIX,
+        TYPE_VARIANT
     };
 
     virtual ~ITypeInfoHandler() = default;
@@ -362,6 +363,29 @@ public:
 
     virtual AnyRef GetElement(const HypData& instance, int row, int column) const = 0;
     virtual void SetElement(const HypData& instance, int row, int column, const HypData& value) const = 0;
+};
+
+class ITypeInfoVariantHandler : public ITypeInfoHandler
+{
+public:
+    virtual ~ITypeInfoVariantHandler() = default;
+
+    virtual Type GetHandlerType() const override final
+    {
+        return TYPE_VARIANT;
+    }
+
+    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+
+    virtual ITypeInfoHandler* Clone() const override = 0;
+
+    virtual int GetNumTypes() const = 0;
+    virtual const TypeInfo* GetTypeInfoAtIndex(int typeIndex) const = 0;
+
+    virtual int GetCurrentTypeIndex(const HypData& instance) const = 0;
+
+    virtual AnyRef GetValue(const HypData& instance) const = 0;
+    virtual bool SetValue(const HypData& instance, const HypData& value) const = 0;
 };
 
 /*! \brief Additional type information for containers and complex types */
@@ -596,6 +620,7 @@ struct TypeInfo
 
             TypeInfo result;
             result.id = typeId;
+            result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<NormalizedT>::value>());
             result.size = uint16(sizeof(NormalizedT));
             result.alignment = uint16(alignof(NormalizedT));
             result.flags = TypeInfoFlags::NONE;
@@ -771,25 +796,6 @@ struct TypeInfo
     HYP_FORCE_INLINE bool IsMatrixType() const
     {
         return flags & TypeInfoFlags::MATRIX_TYPE;
-    }
-
-    /*! \brief Get alternative type at index for Variant<Types...>
-     *  \param index The index of the alternative type (0-based)
-     *  \return Pointer to TypeInfo for the alternative type, or nullptr if invalid */
-    HYP_FORCE_INLINE const TypeInfo* GetVariantAlternativeType(uint32 index) const
-    {
-        if (!IsVariantType())
-        {
-            return nullptr;
-        }
-
-        TypeInfoEx* current = extendedInfo.next;
-        for (uint32 i = 0; i < index && current; ++i)
-        {
-            current = current->next;
-        }
-
-        return current ? current->GetElementType() : nullptr;
     }
 
     /*! \brief Get element type for Array, String, HashSet, FlatSet, or key type for HashMap/FlatMap */
@@ -1683,13 +1689,15 @@ void TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, HypDataT
 template <class... Types, class HypDataType>
 void TypeInfoImpl<utilities::Variant<Types...>, HypDataType>::operator()(TypeInfo& result) const
 {
+    using VariantType = utilities::Variant<Types...>;
+
     result.flags |= TypeInfoFlags::VARIANT_TYPE;
 
-    constexpr SizeType variantSize = sizeof...(Types);
+    constexpr SizeType VariantSize = sizeof...(Types);
 
-    if constexpr (variantSize > 0)
+    if constexpr (VariantSize > 0)
     {
-        auto altArray = BuildVariantTypeArray<utilities::Variant<Types...>>(std::make_index_sequence<SizeType(variantSize)> {});
+        auto altArray = BuildVariantTypeArray<utilities::Variant<Types...>>(std::make_index_sequence<VariantSize> {});
 
         // Convert the fixed array into a linked list of TypeInfoEx nodes
         TypeInfoEx* head = nullptr;
@@ -1715,6 +1723,76 @@ void TypeInfoImpl<utilities::Variant<Types...>, HypDataType>::operator()(TypeInf
 
         result.extendedInfo.next = head;
     }
+
+    class VariantHandler final : public ITypeInfoVariantHandler
+    {
+    public:
+        virtual ITypeInfoHandler* Clone() const override
+        {
+            return new VariantHandler();
+        }
+
+        virtual bool CreateInstance(HypDataType& outInstance) const override
+        {
+            outInstance = HypData(VariantType {});
+            return true;
+        }
+
+        virtual int GetNumTypes() const override
+        {
+            return int(VariantSize);
+        }
+
+        virtual const TypeInfo* GetTypeInfoAtIndex(int typeIndex) const override
+        {
+            // typeinfos stores first elem as nullptr to match typeids
+            return VariantType::typeInfos[typeIndex + 1];
+        }
+
+        virtual int GetCurrentTypeIndex(const HypDataType& instance) const override
+        {
+            VariantType& variant = instance.template Get<VariantType>();
+            return variant.GetTypeIndex();
+        }
+
+        virtual AnyRef GetValue(const HypDataType& instance) const override
+        {
+            VariantType& variant = instance.template Get<VariantType>();
+            return variant.ToRef();
+        }
+
+        virtual bool SetValue(const HypDataType& instance, const HypDataType& value) const override
+        {
+            VariantType& variant = instance.template Get<VariantType>();
+            bool isSet = false;
+
+            StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
+                {
+                    if (isSet)
+                    {
+                        return;
+                    }
+
+                    if (value.template Is<T>(/* strict */ true))
+                    {
+                        variant.template Set<T>(value.template Get<T>());
+                        isSet = true;
+                    }
+                });
+
+            if (!isSet)
+            {
+                // Type not found in variant types; reset to default
+                variant = VariantType {};
+
+                return false;
+            }
+
+            return true;
+        }
+    };
+
+    result.extendedInfo.handler = new VariantHandler();
 }
 
 template <class T, class HypDataType>
@@ -2105,6 +2183,7 @@ using utilities::ITypeInfoMapHandler;
 using utilities::ITypeInfoMatrixHandler;
 using utilities::ITypeInfoSetHandler;
 using utilities::ITypeInfoStringHandler;
+using utilities::ITypeInfoVariantHandler;
 using utilities::ITypeInfoVectorHandler;
 
 using utilities::TypeInfo_ForClass;

@@ -303,7 +303,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
 
         if (typeInfo != nullptr)
         {
-            AssertDebug(*typeInfo == fieldTypeInfo, "Getter type (%s) does not match field type (%s)", *typeInfo->name, *fieldTypeInfo.name);
+            AssertDebug(*typeInfo == fieldTypeInfo, "Getter type {} does not match field type {}", *typeInfo->name, *fieldTypeInfo.name);
         }
         else
         {
@@ -312,7 +312,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
 
         if (targetTypeInfo != nullptr)
         {
-            AssertDebug(*targetTypeInfo == field->GetTargetTypeInfo(), "Getter target type (%s) does not match field target type (%s)", *targetTypeInfo->name, *field->GetTargetTypeInfo().name);
+            AssertDebug(*targetTypeInfo == field->GetTargetTypeInfo(), "Getter target type {} does not match field target type {}", *targetTypeInfo->name, *field->GetTargetTypeInfo().name);
         }
         else
         {
@@ -335,7 +335,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
 
         if (typeInfo != nullptr)
         {
-            AssertDebug(*typeInfo == setterTypeInfo, "Getter/field type (%s) does not match setter type (%s)", *typeInfo->name, *setterTypeInfo.name);
+            AssertDebug(*typeInfo == setterTypeInfo, "Getter/field type {} does not match setter type {}", *typeInfo->name, *setterTypeInfo.name);
         }
         else
         {
@@ -344,7 +344,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
 
         if (targetTypeInfo != nullptr)
         {
-            AssertDebug(*targetTypeInfo == setter->GetTargetTypeInfo(), "Getter/field target type (%s) does not match setter target type (%s)", *targetTypeInfo->name, *setter->GetTargetTypeInfo().name);
+            AssertDebug(*targetTypeInfo == setter->GetTargetTypeInfo(), "Getter/field target type {} does not match setter target type {}", *targetTypeInfo->name, *setter->GetTargetTypeInfo().name);
         }
         else
         {

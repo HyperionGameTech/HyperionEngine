@@ -76,7 +76,6 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
 
         transform.translation = transform.translation.Lerp(next.transform.translation, delta);
         transform.rotation = transform.rotation.Slerp(next.transform.rotation, delta);
-        transform.UpdateMatrix();
     }
 
     return { time, transform };

@@ -42,7 +42,7 @@ struct EditorProjectSaveContext
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-static const String s_defaultProjectName = "Project";
+static const String s_defaultProjectName = "UntitledProject";
 
 EditorProject::EditorProject()
     : EditorProject(Name::Invalid())

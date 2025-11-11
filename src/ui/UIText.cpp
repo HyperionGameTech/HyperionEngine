@@ -379,11 +379,10 @@ void UIText::UpdateMeshData_Internal()
     ForEachCharacter(*fontAtlas, m_text, GetParentBounds(), textSize, nullptr, [&](const FontAtlasCharacterIterator& iter)
         {
             Transform characterTransform;
-            characterTransform.SetScale(Vec3f(iter.glyphDimensions.x * textSize, iter.glyphDimensions.y * textSize, 1.0f));
-            characterTransform.GetTranslation().y += (iter.cellDimensions.y - iter.glyphDimensions.y) * textSize;
-            characterTransform.GetTranslation().y += iter.bearingY * textSize;
-            characterTransform.GetTranslation() += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * textSize;
-            characterTransform.UpdateMatrix();
+            characterTransform.scale = Vec3f(iter.glyphDimensions.x * textSize, iter.glyphDimensions.y * textSize, 1.0f);
+            characterTransform.translation.y += (iter.cellDimensions.y - iter.glyphDimensions.y) * textSize;
+            characterTransform.translation.y += iter.bearingY * textSize;
+            characterTransform.translation += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * textSize;
 
             BoundingBox characterAabb = characterTransform * BoundingBox(Vec3f::Zero(), Vec3f::One());
             characterAabb.min += Vec3f(position, 0.0f);

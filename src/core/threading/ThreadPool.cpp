@@ -19,6 +19,8 @@
 namespace hyperion {
 namespace threading {
 
+constexpr bool EnableCleanupIdleBackgroundThreads = false; // tmp debugging
+
 #pragma region ThreadPoolBase
 
 ThreadPoolBase::ThreadPoolBase()
@@ -247,7 +249,10 @@ void BackgroundTaskThreadPool::Start()
                     break;
                 }
 
-                m_pool->CleanupIdleThreads();
+                if constexpr (EnableCleanupIdleBackgroundThreads)
+                {
+                    m_pool->CleanupIdleThreads();
+                }
             }
         }
 

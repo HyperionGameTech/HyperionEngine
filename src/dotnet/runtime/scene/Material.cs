@@ -39,7 +39,7 @@ namespace Hyperion
         Int4 = 8
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 20)]
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
     public struct MaterialParameter
     {
         // natively represented as a union of float and int
@@ -62,17 +62,12 @@ namespace Hyperion
         [FieldOffset(12)]
         private int i3;
 
-        [FieldOffset(16)]
-        private MaterialParameterType type;
-
         public MaterialParameter()
         {
             this.f0 = 0;
             this.f1 = 0;
             this.f2 = 0;
             this.f3 = 0;
-
-            this.type = MaterialParameterType.None;
         }
 
         public MaterialParameter(float f0, float f1, float f2, float f3)
@@ -81,8 +76,6 @@ namespace Hyperion
             this.f1 = f1;
             this.f2 = f2;
             this.f3 = f3;
-
-            this.type = MaterialParameterType.Float4;
         }
 
         public MaterialParameter(float f0, float f1, float f2)
@@ -91,8 +84,6 @@ namespace Hyperion
             this.f1 = f1;
             this.f2 = f2;
             this.f3 = 0;
-
-            this.type = MaterialParameterType.Float3;
         }
 
         public MaterialParameter(float f0, float f1)
@@ -101,8 +92,6 @@ namespace Hyperion
             this.f1 = f1;
             this.f2 = 0;
             this.f3 = 0;
-
-            this.type = MaterialParameterType.Float2;
         }
 
         public MaterialParameter(float f0)
@@ -111,8 +100,6 @@ namespace Hyperion
             this.f1 = 0;
             this.f2 = 0;
             this.f3 = 0;
-
-            this.type = MaterialParameterType.Float;
         }
 
         public MaterialParameter(int i0, int i1, int i2, int i3)
@@ -121,8 +108,6 @@ namespace Hyperion
             this.i1 = i1;
             this.i2 = i2;
             this.i3 = i3;
-
-            this.type = MaterialParameterType.Int4;
         }
 
         public MaterialParameter(int i0, int i1, int i2)
@@ -131,8 +116,6 @@ namespace Hyperion
             this.i1 = i1;
             this.i2 = i2;
             this.i3 = 0;
-
-            this.type = MaterialParameterType.Int3;
         }
 
         public MaterialParameter(int i0, int i1)
@@ -141,8 +124,6 @@ namespace Hyperion
             this.i1 = i1;
             this.i2 = 0;
             this.i3 = 0;
-
-            this.type = MaterialParameterType.Int2;
         }
 
         public MaterialParameter(int i0)
@@ -151,56 +132,6 @@ namespace Hyperion
             this.i1 = 0;
             this.i2 = 0;
             this.i3 = 0;
-
-            this.type = MaterialParameterType.Int;
-        }
-
-        public MaterialParameterType Type
-        {
-            get
-            {
-                return type;
-            }
-        }
-
-        public override string ToString()
-        {
-            if (type == MaterialParameterType.Float)
-            {
-                return f0.ToString();
-            }
-            else if (type == MaterialParameterType.Float2)
-            {
-                return $"({f0}, {f1})";
-            }
-            else if (type == MaterialParameterType.Float3)
-            {
-                return $"({f0}, {f1}, {f2})";
-            }
-            else if (type == MaterialParameterType.Float4)
-            {
-                return $"({f0}, {f1}, {f2}, {f3})";
-            }
-            else if (type == MaterialParameterType.Int)
-            {
-                return i0.ToString();
-            }
-            else if (type == MaterialParameterType.Int2)
-            {
-                return $"({i0}, {i1})";
-            }
-            else if (type == MaterialParameterType.Int3)
-            {
-                return $"({i0}, {i1}, {i2})";
-            }
-            else if (type == MaterialParameterType.Int4)
-            {
-                return $"({i0}, {i1}, {i2}, {i3})";
-            }
-            else
-            {
-                return "";
-            }
         }
     }
 

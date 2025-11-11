@@ -40,8 +40,8 @@ enum class MaterialTextureKey : uint64
     METALNESS_MAP = 0x8,
     ROUGHNESS_MAP = 0x10,
     AO_MAP = 0x20,
-    RADIANCE_MAP = 0x40, // to be removed
-    IRRADIANCE_MAP = 0x80  // to be removed
+    RADIANCE_MAP = 0x40,  // to be removed
+    IRRADIANCE_MAP = 0x80 // to be removed
 };
 
 HYP_ENUM()
@@ -76,12 +76,13 @@ struct MaterialParameter
     HYP_STRUCT_BODY(MaterialParameter);
 
     using Type = MaterialParameterType;
+    using SerializedValueType = Variant<float32, Vec2f, Vec3f, Vec4f, int32, Vec2i, Vec3i, Vec4i>;
 
-    HYP_FIELD(Serialize)
-    MaterialParameterValue value;
-
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "Type", LoadOrder = -1)
     MaterialParameterType type;
+
+    HYP_FIELD(Transient)
+    MaterialParameterValue value;
 
     MaterialParameter()
         : type(MPT_NONE)
@@ -267,6 +268,12 @@ struct MaterialParameter
     {
         return Vec4f { value.floatValues[0], value.floatValues[1], value.floatValues[2], value.floatValues[3] };
     }
+
+    HYP_METHOD(Property = "Value", NoScriptBindings)
+    HYP_API SerializedValueType SerializeData() const;
+
+    HYP_METHOD(Property = "Value", NoScriptBindings)
+    HYP_API void DeserializeData(const SerializedValueType& data);
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -614,13 +621,10 @@ public:
      *  If the Material has already been initialized, the Textures are initialized.
      *  Otherwise, they will be initialized when the Material is initialized.
      *  \param textures The textures to set on this Material. */
+    HYP_METHOD(Property = "Textures")
     void SetTextures(const MaterialTextures& textures);
 
-    HYP_FORCE_INLINE MaterialTextures& GetTextures()
-    {
-        return m_textures;
-    }
-
+    HYP_METHOD(Property = "Textures")
     HYP_FORCE_INLINE const MaterialTextures& GetTextures() const
     {
         return m_textures;
@@ -824,7 +828,7 @@ private:
     HYP_FIELD()
     MaterialParameters m_parameters;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "Textures")
     MaterialTextures m_textures;
 
     HYP_FIELD()

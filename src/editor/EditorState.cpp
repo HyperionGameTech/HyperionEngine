@@ -183,6 +183,8 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
         {
             return;
         }
+        
+        m_onProjectPackageChangedHandle.Reset();
 
         m_currentProject = project;
 

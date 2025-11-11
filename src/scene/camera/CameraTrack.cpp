@@ -46,7 +46,6 @@ CameraTrackPivot CameraTrack::GetPivotAt(double timestamp) const
 
         transform.GetTranslation().Lerp(next.transform.GetTranslation(), float(delta));
         transform.GetRotation().Slerp(next.transform.GetRotation(), float(delta));
-        transform.UpdateMatrix();
     }
 
     return { fraction, transform };

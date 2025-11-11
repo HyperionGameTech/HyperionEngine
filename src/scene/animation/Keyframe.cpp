@@ -18,7 +18,6 @@ Keyframe Keyframe::Blend(const Keyframe& to, float blend) const
     newTransform.translation = newTransform.translation.Lerp(to.transform.translation, blend);
     newTransform.scale = newTransform.scale.Lerp(to.transform.scale, blend);
     newTransform.rotation = newTransform.rotation.Slerp(to.transform.rotation, blend);
-    newTransform.UpdateMatrix();
 
     return { newTime, newTransform };
 }

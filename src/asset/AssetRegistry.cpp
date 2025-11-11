@@ -2269,8 +2269,6 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                             return;
                         }
 
-                        AssertDebug(assetObject != nullptr);
-
                         assetObject->m_manifestPath = entry;
 
                         assetObjects[index] = std::move(assetObject);

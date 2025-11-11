@@ -41,6 +41,22 @@ struct alignas(16) HYP_API Quaternion
     Quaternion(const Quaternion& other) = default;
     Quaternion& operator=(const Quaternion& other) = default;
 
+    HYP_FORCE_INLINE bool operator==(const Quaternion& other) const
+    {
+        return x == other.x
+            && y == other.y
+            && z == other.z
+            && w == other.w;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const Quaternion& other) const
+    {
+        return x != other.x
+            || y != other.y
+            || z != other.z
+            || w != other.w;
+    }
+
     HYP_FORCE_INLINE float GetX() const
     {
         return x;

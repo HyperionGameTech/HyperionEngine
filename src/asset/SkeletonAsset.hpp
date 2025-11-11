@@ -108,14 +108,12 @@ public:
         : AssetObject(name, skeletonData),
           m_skeletonDesc(desc)
     {
-        AssetObject::SetData(SkeletonData());
     }
 
     SkeletonAsset(Name name, const SkeletonDesc& desc, SkeletonData&& skeletonData)
         : AssetObject(name, std::move(skeletonData)),
           m_skeletonDesc(desc)
     {
-        AssetObject::SetData(SkeletonData());
     }
 
     SkeletonAsset(const SkeletonAsset& other) = delete;

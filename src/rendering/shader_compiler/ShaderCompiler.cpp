@@ -1452,7 +1452,7 @@ ShaderCompiler::~ShaderCompiler()
 
 void ShaderCompiler::ParseDefinitionSection(
     const INIFile::Section& section,
-    ShaderDesc& outShaderDesc)
+    ShaderBundleDecl& outShaderBundleDecl)
 {
     for (const auto& sectionIt : section)
     {
@@ -1524,21 +1524,21 @@ void ShaderCompiler::ParseDefinitionSection(
                         enumValues.PushBack(std::move(value));
                     }
 
-                    outShaderDesc.versions.AddValueGroup(CreateNameFromDynamicString(*element.name), enumValues);
+                    outShaderBundleDecl.versions.AddValueGroup(CreateNameFromDynamicString(*element.name), enumValues);
                 }
                 else
                 {
-                    outShaderDesc.versions.AddPermutation(CreateNameFromDynamicString(*element.name));
+                    outShaderBundleDecl.versions.AddPermutation(CreateNameFromDynamicString(*element.name));
                 }
             }
         }
         else if (sectionIt.first == "entry_point")
         {
-            outShaderDesc.entryPointName = sectionIt.second.GetValue().name;
+            outShaderBundleDecl.entryPointName = sectionIt.second.GetValue().name;
         }
         else if (s_shaderTypeNames.Contains(sectionIt.first))
         {
-            outShaderDesc.sources[s_shaderTypeNames.At(sectionIt.first)] = GetResourceDirectory() / "shaders" / sectionIt.second.GetValue().name;
+            outShaderBundleDecl.sources[s_shaderTypeNames.At(sectionIt.first)] = GetResourceDirectory() / "shaders" / sectionIt.second.GetValue().name;
         }
         else
         {
@@ -1550,7 +1550,7 @@ void ShaderCompiler::ParseDefinitionSection(
 }
 
 bool ShaderCompiler::HandleCompiledShaderBatch(
-    ShaderDesc& shaderDesc,
+    ShaderBundleDecl& shaderBundleDecl,
     const ShaderProperties& requestedProperties,
     const FilePath& outputFilePath,
     CompiledShaderBatch& batch)
@@ -1564,7 +1564,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
 
     Time maxSourceFileLastModified = Time(0);
 
-    for (const auto& sourceFile : shaderDesc.sources)
+    for (const auto& sourceFile : shaderBundleDecl.sources)
     {
         maxSourceFileLastModified = MathUtil::Max(maxSourceFileLastModified, FilePath(sourceFile.second).LastModifiedTimestamp());
     }
@@ -1574,11 +1574,11 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         HYP_LOG(ShaderCompiler, Info,
             "Source file in batch {} has been modified since the batch was "
             "last compiled, recompiling...",
-            *shaderDesc.name);
+            *shaderBundleDecl.name);
 
         batch = CompiledShaderBatch {};
 
-        return CompileBundle(shaderDesc, requestedProperties, batch, !ShouldCompileEntireBundle);
+        return CompileBundle(shaderBundleDecl, requestedProperties, batch, !ShouldCompileEntireBundle);
     }
 
     // find variants for the bundle that are not in the compiled batch
@@ -1587,7 +1587,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
     if (ShouldCompileMissingVariants)
     {
         ForEachPermutation(
-            shaderDesc.versions,
+            shaderBundleDecl.versions,
             [&](const ShaderProperties& properties)
             {
                 // get hashcode for this set of properties
@@ -1659,7 +1659,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
 
         if (CanCompileShaders())
         {
-            return CompileBundle(shaderDesc, requestedProperties, batch, !ShouldCompileEntireBundle);
+            return CompileBundle(shaderBundleDecl, requestedProperties, batch, !ShouldCompileEntireBundle);
         }
 
         HYP_BREAKPOINT;
@@ -1702,12 +1702,12 @@ bool ShaderCompiler::LoadOrCompileBatch(
         return false;
     }
 
-    ShaderDesc shaderDesc { name };
-    MergeGlobalShaderProperties(shaderDesc.versions);
+    ShaderBundleDecl shaderBundleDecl { name };
+    MergeGlobalShaderProperties(shaderBundleDecl.versions);
 
     // apply each permutable property from the definitions file
     const INIFile::Section& section = m_definitions->GetSection(nameString);
-    ParseDefinitionSection(section, shaderDesc);
+    ParseDefinitionSection(section, shaderBundleDecl);
 
     auto forceRecompileOnError = [&](const FilePath& outputFilePath)
     {
@@ -1726,7 +1726,7 @@ bool ShaderCompiler::LoadOrCompileBatch(
             return false;
         }
 
-        if (!CompileBundle(shaderDesc, properties, batch, !ShouldCompileEntireBundle))
+        if (!CompileBundle(shaderBundleDecl, properties, batch, !ShouldCompileEntireBundle))
         {
             HYP_LOG(ShaderCompiler, Error, "Failed to compile shader bundle {}", name);
 
@@ -1755,7 +1755,7 @@ bool ShaderCompiler::LoadOrCompileBatch(
         return false;
     }
 
-    return HandleCompiledShaderBatch(shaderDesc, properties, outputFilePath, batch);
+    return HandleCompiledShaderBatch(shaderBundleDecl, properties, outputFilePath, batch);
 }
 
 bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
@@ -1797,8 +1797,8 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
         return false;
     }
 
-    m_shaderDescs.Clear();
-    m_shaderDescs.Reserve(m_definitions->GetSections().Size());
+    m_shaderBundleDecls.Clear();
+    m_shaderBundleDecls.Reserve(m_definitions->GetSections().Size());
 
     // init shader descs
     for (const auto& it : m_definitions->GetSections())
@@ -1808,8 +1808,8 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
         const Name nameFromString = CreateNameFromDynamicString(ANSIString(key));
 
-        ShaderDesc& shaderDesc = m_shaderDescs.EmplaceBack(nameFromString);
-        ParseDefinitionSection(section, shaderDesc);
+        ShaderBundleDecl& decl = m_shaderBundleDecls.EmplaceBack(nameFromString);
+        ParseDefinitionSection(section, decl);
     }
 
     if (!precompileShaders)
@@ -1821,31 +1821,31 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
     const bool supportsRtShaders = g_renderBackend->GetRenderConfig().raytracing;
 
-    HashMap<const ShaderDesc*, bool> results;
+    HashMap<const ShaderBundleDecl*, bool> results;
     Mutex resultsMutex;
 
     // Compile all shaders ahead of time
-    TaskSystem::GetInstance().ParallelForEach(m_shaderDescs, [&](const ShaderDesc& shaderDesc, uint32, uint32)
+    TaskSystem::GetInstance().ParallelForEach(m_shaderBundleDecls, [&](const ShaderBundleDecl& decl, uint32, uint32)
         {
-            if (shaderDesc.HasRTShaders() && !supportsRtShaders)
+            if (decl.HasRTShaders() && !supportsRtShaders)
             {
                 HYP_LOG(ShaderCompiler, Warning,
                     "Not compiling shader {} because it contains raytracing "
                     "shaders and raytracing is not supported on this device.",
-                    shaderDesc.name);
+                    decl.name);
 
                 return;
             }
 
             ForEachPermutation(
-                shaderDesc.versions,
+                decl.versions,
                 [&](const ShaderProperties& properties)
                 {
                     CompiledShader compiledShader;
-                    bool result = GetCompiledShader(shaderDesc.name, properties, compiledShader);
+                    bool result = GetCompiledShader(decl.name, properties, compiledShader);
 
                     Mutex::Guard guard(resultsMutex);
-                    results[&shaderDesc] = result;
+                    results[&decl] = result;
                 },
                 false); // true);
         });
@@ -2289,7 +2289,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 }
 
 bool ShaderCompiler::CompileBundle(
-    ShaderDesc& shaderDesc,
+    ShaderBundleDecl& shaderBundleDecl,
     const ShaderProperties& additionalVersions,
     CompiledShaderBatch& out,
     bool onlyCompileRequestedVersions)
@@ -2300,29 +2300,29 @@ bool ShaderCompiler::CompileBundle(
     }
 
     Array<LoadedSourceFile> loadedSourceFiles;
-    loadedSourceFiles.Resize(shaderDesc.sources.Size());
+    loadedSourceFiles.Resize(shaderBundleDecl.sources.Size());
 
     Array<Array<ProcessError>> processErrors;
-    processErrors.Resize(shaderDesc.sources.Size());
+    processErrors.Resize(shaderBundleDecl.sources.Size());
 
     Array<Array<VertexAttributeDefinition>> requiredVertexAttributes;
-    requiredVertexAttributes.Resize(shaderDesc.sources.Size());
+    requiredVertexAttributes.Resize(shaderBundleDecl.sources.Size());
 
     Array<Array<VertexAttributeDefinition>> optionalVertexAttributes;
-    optionalVertexAttributes.Resize(shaderDesc.sources.Size());
+    optionalVertexAttributes.Resize(shaderBundleDecl.sources.Size());
 
     TaskBatch taskBatch;
 
-    for (SizeType index = 0; index < shaderDesc.sources.Size(); index++)
+    for (SizeType index = 0; index < shaderBundleDecl.sources.Size(); index++)
     {
         StaticMessage debugName;
-        debugName.value = ANSIStringView(*shaderDesc.sources.AtIndex(index).second);
+        debugName.value = ANSIStringView(*shaderBundleDecl.sources.AtIndex(index).second);
 
-        taskBatch.AddTask([this, index, &shaderDesc, &loadedSourceFiles, &processErrors,
+        taskBatch.AddTask([this, index, &shaderBundleDecl, &loadedSourceFiles, &processErrors,
                               &requiredVertexAttributes,
                               &optionalVertexAttributes](...)
             {
-                const auto& it = shaderDesc.sources.AtIndex(index);
+                const auto& it = shaderBundleDecl.sources.AtIndex(index);
 
                 const FilePath filepath = it.second;
                 const ShaderLanguage language = filepath.EndsWith("hlsl")
@@ -2432,7 +2432,7 @@ bool ShaderCompiler::CompileBundle(
 
     if (!onlyCompileRequestedVersions)
     {
-        finalProperties.Merge(shaderDesc.versions);
+        finalProperties.Merge(shaderBundleDecl.versions);
     }
 
     { // Lookup vertex attribute names
@@ -2454,7 +2454,7 @@ bool ShaderCompiler::CompileBundle(
         finalProperties.SetOptionalVertexAttributes(optionalVertexAttributeSet);
     }
 
-    HYP_LOG(ShaderCompiler, Info, "Compiling shader {}", shaderDesc.name);
+    HYP_LOG(ShaderCompiler, Info, "Compiling shader {}", shaderBundleDecl.name);
 
     // INFO ON MERGING ADDITIONAL SHADER VERSIONS (on requesting a shader)
     // ============================================
@@ -2565,11 +2565,11 @@ bool ShaderCompiler::CompileBundle(
     // update versions to include vertex attribute properties
     if (onlyCompileRequestedVersions)
     {
-        shaderDesc.versions.Merge(finalProperties);
+        shaderBundleDecl.versions.Merge(finalProperties);
     }
     else
     {
-        shaderDesc.versions = finalProperties;
+        shaderBundleDecl.versions = finalProperties;
     }
 
     Mutex fsMutex;
@@ -2585,8 +2585,8 @@ bool ShaderCompiler::CompileBundle(
         [&](const ShaderProperties& properties)
         {
             CompiledShader compiledShader;
-            compiledShader.definition = ShaderDefinition { shaderDesc.name, properties };
-            compiledShader.entryPointName = shaderDesc.entryPointName;
+            compiledShader.definition = ShaderDefinition { shaderBundleDecl.name, properties };
+            compiledShader.entryPointName = shaderBundleDecl.entryPointName;
 
             Assert(compiledShader.definition.IsValid());
 
@@ -2784,7 +2784,7 @@ bool ShaderCompiler::CompileBundle(
     {
         HYP_LOG(ShaderCompiler, Error,
             "No compiled shaders were produced for shader {}",
-            shaderDesc.name);
+            shaderBundleDecl.name);
 
         return false;
     }
@@ -2803,12 +2803,12 @@ bool ShaderCompiler::CompileBundle(
     {
         HYP_LOG(ShaderCompiler, Error,
             "Failed to compile {} permutations of shader {}",
-            numErroredPermutations.Get(MemoryOrder::RELAXED), shaderDesc.name);
+            numErroredPermutations.Get(MemoryOrder::RELAXED), shaderBundleDecl.name);
 
         return false;
     }
 
-    const FilePath finalOutputPath = GetCacheDirectory() / "ShaderBundles" / String(*shaderDesc.name) + ".shaderbundle";
+    const FilePath finalOutputPath = GetCacheDirectory() / "ShaderBundles" / String(*shaderBundleDecl.name) + ".shaderbundle";
 
     FileByteWriter byteWriter(finalOutputPath.Data());
 
@@ -2818,7 +2818,7 @@ bool ShaderCompiler::CompileBundle(
     {
         HYP_LOG(ShaderCompiler, Error,
             "Failed to serialize compiled shader {}: {}",
-            shaderDesc.name, err.message);
+            shaderBundleDecl.name, err.message);
 
         HYP_BREAKPOINT_DEBUG_MODE;
 
@@ -2829,7 +2829,7 @@ bool ShaderCompiler::CompileBundle(
     {
         HYP_LOG(ShaderCompiler, Error,
             "Failed to write compiled shader {} to file {}: {}",
-            shaderDesc.name, finalOutputPath, err.message);
+            shaderBundleDecl.name, finalOutputPath, err.message);
 
         HYP_BREAKPOINT_DEBUG_MODE;
 
@@ -2842,7 +2842,7 @@ bool ShaderCompiler::CompileBundle(
     {
         HYP_LOG(ShaderCompiler, Info,
             "Compiled {} new variants for shader {} to: {}",
-            numCompiledPermutations.Get(MemoryOrder::RELAXED), shaderDesc.name,
+            numCompiledPermutations.Get(MemoryOrder::RELAXED), shaderBundleDecl.name,
             finalOutputPath);
     }
 

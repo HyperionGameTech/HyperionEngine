@@ -50,9 +50,9 @@ HYP_FORCE_INLINE decltype(auto) CallMethod_Impl(FunctionType fn, HypData** args,
 
         if (!condition)
         {
-            HYP_FAIL("Invalid argument at index of type {}",
-                Index,
-                TypeInfo_GetName(*args[Index]->GetTypeInfo()));
+            HYP_FAIL("Unexpected argument of type {} at index {}",
+                TypeInfo_GetName(*args[Index]->GetTypeInfo()),
+                Index);
         }
 
         return condition;

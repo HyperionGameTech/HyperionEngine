@@ -41,7 +41,6 @@ struct alignas(16) HYP_API Transform
         return translation;
     }
 
-    /** returns a reference to the translation - if modified, you must call UpdateMatrix(). */
     HYP_FORCE_INLINE Vec3f& GetTranslation()
     {
         return translation;
@@ -57,7 +56,6 @@ struct alignas(16) HYP_API Transform
         return scale;
     }
 
-    /** returns a reference to the scale - if modified, you must call UpdateMatrix(). */
     HYP_FORCE_INLINE Vec3f& GetScale()
     {
         return scale;
@@ -73,7 +71,6 @@ struct alignas(16) HYP_API Transform
         return rotation;
     }
 
-    /** returns a reference to the rotation - if modified, you must call UpdateMatrix(). */
     HYP_FORCE_INLINE Quaternion& GetRotation()
     {
         return rotation;
@@ -92,14 +89,30 @@ struct alignas(16) HYP_API Transform
 
         return t * r * s;
     }
+    
+    HYP_FORCE_INLINE explicit operator Mat4f() const
+    {
+        return GetMatrix();
+    }
 
     Transform GetInverse() const;
 
     Transform operator*(const Transform& other) const;
     Transform& operator*=(const Transform& other);
 
-    HYP_FORCE_INLINE bool operator==(const Transform& other) const = default;
-    HYP_FORCE_INLINE bool operator!=(const Transform& other) const = default;
+    HYP_FORCE_INLINE bool operator==(const Transform& other) const
+    {
+        return translation == other.translation
+            && scale == other.scale
+            && rotation == other.rotation;
+    }
+    
+    HYP_FORCE_INLINE bool operator!=(const Transform& other) const
+    {
+        return translation != other.translation
+            || scale != other.scale
+            || rotation != other.rotation;
+    }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
