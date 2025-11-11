@@ -162,7 +162,7 @@ public:
     {
         LightmapRayTestResults results;
 
-        const Mat4f& modelMatrix = m_subElement->transform.GetMatrix();
+        const Mat4f modelMatrix = m_subElement->transform.GetMatrix();
 
         const Ray localSpaceRay = modelMatrix.Inverted() * ray;
 

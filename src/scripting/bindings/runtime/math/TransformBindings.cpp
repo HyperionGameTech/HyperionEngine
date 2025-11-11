@@ -8,8 +8,10 @@ using namespace hyperion;
 
 extern "C"
 {
-    HYP_EXPORT void Transform_UpdateMatrix(Transform* transform)
+    HYP_EXPORT void Transform_GetMatrix(Transform* transform, Mat4f* outMatrix)
     {
-        transform->UpdateMatrix();
+        Assert(transform != nullptr && outMatrix != nullptr);
+
+        *outMatrix = transform->GetMatrix();
     }
 } // extern "C"

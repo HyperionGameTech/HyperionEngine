@@ -347,9 +347,6 @@ void main()
     materialParams.ao = ao;
     materialParams.mask = mask;
 
-    // debug texcoord1
-    gbuffer_albedo = vec4(v_texcoord0, 0.0, 1.0);
-
     gbuffer_normals = GBufferPackNormal(N);
 
     gbuffer_material.xy = GBufferPackMaterialParams(materialParams);

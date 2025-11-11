@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name="Transform")]
-    [StructLayout(LayoutKind.Sequential, Size = 112, Pack = 16)]
+    [StructLayout(LayoutKind.Sequential, Size = 48, Pack = 16)]
     public struct Transform
     {
         public static readonly Transform Identity = new Transform();
@@ -12,16 +12,12 @@ namespace Hyperion
         private Vec3f translation;
         private Vec3f scale;
         private Quaternion rotation;
-        private Mat4f matrix;
 
         public Transform()
         {
             this.translation = new Vec3f();
             this.scale = new Vec3f(1);
             this.rotation = new Quaternion();
-            this.matrix = new Mat4f();
-
-            UpdateMatrix();
         }
 
         public Transform(Vec3f translation, Vec3f scale, Quaternion rotation)
@@ -29,9 +25,6 @@ namespace Hyperion
             this.translation = translation;
             this.scale = scale;
             this.rotation = rotation;
-            this.matrix = new Mat4f();
-
-            UpdateMatrix();
         }
 
         public Vec3f Translation
@@ -43,8 +36,6 @@ namespace Hyperion
             set
             {
                 translation = value;
-
-                UpdateMatrix();
             }
         }
 
@@ -57,8 +48,6 @@ namespace Hyperion
             set
             {
                 scale = value;
-
-                UpdateMatrix();
             }
         }
 
@@ -71,8 +60,6 @@ namespace Hyperion
             set
             {
                 rotation = value;
-
-                UpdateMatrix();
             }
         }
 
@@ -80,13 +67,11 @@ namespace Hyperion
         {
             get
             {
+                Mat4f matrix;
+                Transform_GetMatrix(ref this, out matrix);
+
                 return matrix;
             }
-        }
-
-        public void UpdateMatrix()
-        {
-            Transform_UpdateMatrix(ref this);
         }
 
         public override string ToString()
@@ -94,7 +79,7 @@ namespace Hyperion
             return $"Translation: {translation}, Scale: {scale}, Rotation: {rotation}";
         }
 
-        [DllImport("hyperion", EntryPoint = "Transform_UpdateMatrix")]
-        private static extern void Transform_UpdateMatrix([In] ref Transform transform);
+        [DllImport("hyperion", EntryPoint = "Transform_GetMatrix")]
+        private static extern void Transform_GetMatrix([In] ref Transform transform, [Out] out Mat4f matrix);
     }
 }

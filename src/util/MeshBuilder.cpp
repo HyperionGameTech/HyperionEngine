@@ -249,7 +249,8 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
         resourceHandle = ResourceHandle(*mesh->GetAsset()->GetResource());
     }
 
-    const Mat4f normalMatrix = transform.GetMatrix().Inverted().Transposed();
+    const Mat4f modelMatrix = transform.GetMatrix();
+    const Mat4f normalMatrix = modelMatrix.Inverted().Transposed();
 
     const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
 
@@ -262,7 +263,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
 
     for (Vertex& vertex : newMeshData.vertexData)
     {
-        vertex.SetPosition(transform.GetMatrix() * vertex.GetPosition());
+        vertex.SetPosition(modelMatrix * vertex.GetPosition());
         vertex.SetNormal(normalMatrix * vertex.GetNormal());
         vertex.SetTangent(normalMatrix * vertex.GetTangent());
         vertex.SetBitangent(normalMatrix * vertex.GetBitangent());

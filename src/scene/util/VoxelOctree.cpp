@@ -205,6 +205,8 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
     {
         if (meshDesc.numIndices > 0)
         {
+            const Mat4f transformMatrix = element.transform.GetMatrix();
+
             Span<const uint32> meshIndices = Span<const uint32>(
                 reinterpret_cast<const uint32*>(meshData.indexData.Data()),
                 reinterpret_cast<const uint32*>(meshData.indexData.Data()) + (meshData.indexData.Size() / sizeof(uint32)));
@@ -214,9 +216,9 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
             for (SizeType i = 0; i < meshIndices.Size(); i += 3)
             {
                 Triangle triangle {
-                    Vertex(element.transform.GetMatrix() * meshData.vertexData[meshIndices[i + 0]].position),
-                    Vertex(element.transform.GetMatrix() * meshData.vertexData[meshIndices[i + 1]].position),
-                    Vertex(element.transform.GetMatrix() * meshData.vertexData[meshIndices[i + 2]].position)
+                    Vertex(transformMatrix * meshData.vertexData[meshIndices[i + 0]].position),
+                    Vertex(transformMatrix * meshData.vertexData[meshIndices[i + 1]].position),
+                    Vertex(transformMatrix * meshData.vertexData[meshIndices[i + 2]].position)
                 };
 
                 BoundingBox triangleAabb = triangle.GetBoundingBox().Expand(0.002f);

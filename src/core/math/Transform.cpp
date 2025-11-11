@@ -13,8 +13,7 @@ const Transform Transform::identity {};
 Transform::Transform()
     : translation(Vec3f::Zero()),
       scale(Vec3f::One()),
-      rotation(Quaternion::Identity()),
-      matrix(Mat4f::Identity())
+      rotation(Quaternion::Identity())
 {
 }
 
@@ -23,7 +22,6 @@ Transform::Transform(const Vec3f& translation, const Vec3f& scale)
       scale(scale),
       rotation(Quaternion::Identity())
 {
-    UpdateMatrix();
 }
 
 Transform::Transform(const Vec3f& translation, const Vec3f& scale, const Quaternion& rotation)
@@ -31,21 +29,11 @@ Transform::Transform(const Vec3f& translation, const Vec3f& scale, const Quatern
       scale(scale),
       rotation(rotation)
 {
-    UpdateMatrix();
 }
 
 Transform::Transform(const Vec3f& translation)
     : Transform(translation, Vec3f::One(), Quaternion::Identity())
 {
-}
-
-void Transform::UpdateMatrix()
-{
-    const Mat4f t = Mat4f::Translation(translation);
-    const Mat4f r = Mat4f::Rotation(rotation);
-    const Mat4f s = Mat4f::Scaling(scale);
-
-    matrix = t * r * s;
 }
 
 Transform Transform::GetInverse() const

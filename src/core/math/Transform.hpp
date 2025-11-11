@@ -12,7 +12,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Size = 112, Serialize = "bitwise")
+HYP_STRUCT(Size = 48, Serialize = "bitwise")
 struct alignas(16) HYP_API Transform
 {
     HYP_STRUCT_BODY(Transform);
@@ -27,9 +27,6 @@ struct alignas(16) HYP_API Transform
 
     HYP_FIELD()
     Quaternion rotation;
-
-    HYP_FIELD(Transient)
-    Mat4f matrix;
 
     Transform();
     explicit Transform(const Vec3f& translation);
@@ -53,7 +50,6 @@ struct alignas(16) HYP_API Transform
     HYP_FORCE_INLINE void SetTranslation(const Vec3f& translation)
     {
         this->translation = translation;
-        UpdateMatrix();
     }
 
     HYP_FORCE_INLINE const Vec3f& GetScale() const
@@ -70,7 +66,6 @@ struct alignas(16) HYP_API Transform
     HYP_FORCE_INLINE void SetScale(const Vec3f& scale)
     {
         this->scale = scale;
-        UpdateMatrix();
     }
 
     HYP_FORCE_INLINE const Quaternion& GetRotation() const
@@ -87,14 +82,15 @@ struct alignas(16) HYP_API Transform
     HYP_FORCE_INLINE void SetRotation(const Quaternion& rotation)
     {
         this->rotation = rotation;
-        UpdateMatrix();
     }
 
-    void UpdateMatrix();
-
-    HYP_FORCE_INLINE const Mat4f& GetMatrix() const
+    Mat4f GetMatrix() const
     {
-        return this->matrix;
+        const Mat4f t = Mat4f::Translation(translation);
+        const Mat4f r = Mat4f::Rotation(rotation);
+        const Mat4f s = Mat4f::Scaling(scale);
+
+        return t * r * s;
     }
 
     Transform GetInverse() const;
@@ -102,23 +98,14 @@ struct alignas(16) HYP_API Transform
     Transform operator*(const Transform& other) const;
     Transform& operator*=(const Transform& other);
 
-    HYP_FORCE_INLINE bool operator==(const Transform& other) const
+    HYP_FORCE_INLINE bool operator==(const Transform& other) const = default;
+    HYP_FORCE_INLINE bool operator!=(const Transform& other) const = default;
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return matrix == other.matrix;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const Transform& other) const
-    {
-        return matrix != other.matrix;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-
-        hc.Add(matrix.GetHashCode());
-
-        return hc;
+        return translation.GetHashCode()
+            .Combine(scale.GetHashCode())
+            .Combine(rotation.GetHashCode());
     }
 };
 

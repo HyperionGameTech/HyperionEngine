@@ -820,13 +820,6 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
 
         for (const KeyValuePair<int, const IHypMember*>& pair : sortedMembers)
         {
-            // temp debug
-            if (pair.second->GetName() == "LocalTransform" && instanceClass && instanceClass->GetName() == "Node")
-            {
-                HYP_BREAKPOINT;
-            }
-
-
             if (!resolveMember(*pair.second, *jsonObjectValue.Get(*pair.second->GetName()).value))
             {
                 HYP_LOG(Core, Warning, "Failed to resolve member \"{}\" for Class \"{}\"", pair.second->GetName(), instanceClass->GetName());

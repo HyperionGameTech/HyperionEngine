@@ -71,11 +71,13 @@ bool WorldAABBUpdaterSystem::ProcessEntity(Entity* entity, BoundingBoxComponent&
 
     worldAabb = BoundingBox::Empty();
 
+    const Mat4f transformMatrix = transformComponent.transform.GetMatrix();
+
     if (localAabb.IsValid())
     {
         for (const Vec3f& corner : localAabb.GetCorners())
         {
-            worldAabb = worldAabb.Union(transformComponent.transform.GetMatrix() * corner);
+            worldAabb = worldAabb.Union(transformMatrix * corner);
         }
     }
 

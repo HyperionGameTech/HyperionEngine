@@ -324,6 +324,8 @@ bool Ray::TestTriangleList(
         return false;
     }
 
+    const Mat4f transformMatrix = transform.GetMatrix();
+
     RayTestResults tmpResults;
 
     for (SizeType i = 0; i < indices.Size(); i += 3)
@@ -333,9 +335,9 @@ bool Ray::TestTriangleList(
         HYP_CORE_ASSERT(indices[i + 2] < vertices.Size());
 
         const Triangle triangle {
-            vertices[indices[i + 0]].GetPosition() * transform.GetMatrix(),
-            vertices[indices[i + 1]].GetPosition() * transform.GetMatrix(),
-            vertices[indices[i + 2]].GetPosition() * transform.GetMatrix()
+            vertices[indices[i + 0]].GetPosition() * transformMatrix,
+            vertices[indices[i + 1]].GetPosition() * transformMatrix,
+            vertices[indices[i + 2]].GetPosition() * transformMatrix
         };
 
         if (TestTriangle(triangle, static_cast<RayHitID>(i / 3 /* triangle index */), tmpResults))

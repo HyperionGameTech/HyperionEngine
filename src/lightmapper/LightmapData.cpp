@@ -87,11 +87,12 @@ LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subEle
             }
         }
 
-        const Mat4f normalMatrix = subElement.transform.GetMatrix().Inverted().Transpose();
+        const Mat4f modelMatrix = subElement.transform.GetMatrix();
+        const Mat4f normalMatrix = modelMatrix.Inverted().Transpose();
 
         for (SizeType vertexIndex = 0; vertexIndex < meshData.vertexData.Size(); vertexIndex++)
         {
-            const Vec3f position = subElement.transform.GetMatrix() * meshData.vertexData[vertexIndex].GetPosition();
+            const Vec3f position = modelMatrix * meshData.vertexData[vertexIndex].GetPosition();
             const Vec3f normal = (normalMatrix * Vec4f(meshData.vertexData[vertexIndex].GetNormal(), 0.0f)).GetXYZ().Normalize();
             const Vec2f uv = meshData.vertexData[vertexIndex].GetTexCoord0();
 
