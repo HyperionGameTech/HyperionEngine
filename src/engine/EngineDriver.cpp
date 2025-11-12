@@ -68,6 +68,11 @@
 
 #define HYP_LOG_FRAMES_PER_SECOND
 
+// temp, move this
+#ifdef HYP_LIBUI
+#include <ui.h>
+#endif
+
 #include <EngineDriver.generated.inl>
 
 namespace hyperion {
@@ -129,8 +134,25 @@ private:
 
         g_renderThreadInstance = this;
 
+#ifdef HYP_LIBUI
+        uiInitOptions options = {};
+        const char* err = uiInit(&options);
+        if (err != nullptr)
+        {
+            uiFreeInitError(err);
+
+            HYP_FAIL("Failed to initialize libui! Message: {}", err);
+
+            return;
+        }
+#endif
+
         while (m_isRunning.Get(MemoryOrder::RELAXED))
         {
+#ifdef HYP_LIBUI
+            uiMainSteps();
+#endif
+
             RenderApi::BeginFrame_RenderThread();
 
             while (g_appContext->PollEvent(event))
@@ -152,6 +174,10 @@ private:
 
             RenderApi::EndFrame_RenderThread();
         }
+
+#ifdef HYP_LIBUI
+        uiUninit();
+#endif
 
         g_renderThreadInstance = nullptr;
     }

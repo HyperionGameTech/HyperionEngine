@@ -57,6 +57,9 @@ if(APPLE)
     enable_language(OBJC)
 endif()
 
+# Include ExternalProject for building submodules separately
+include(ExternalProject)
+
 function(RunHypBuildTool)
     if(WIN32)
         set(HYP_BUILD_TOOL_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunHypBuildTool.bat")
@@ -92,7 +95,6 @@ add_definitions(-DHYP_DEBUG_MODE=1)
 # set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
 add_definitions(-DHYPERION_ENGINE=1)
 set(HYPERION_ENGINE 1)
-
 
 if(HYP_DEBUG_MODE)
     # enable TypeId generatation at compile time
@@ -382,6 +384,7 @@ set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated")
 set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
+set(HYP_EDITOR 1)
 add_definitions(-DHYP_EDITOR=1)
 
 add_definitions(-DSDL_MAIN_HANDLED=1)
@@ -390,7 +393,87 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
 
+# enable HypScript
 add_definitions(-DHYP_SCRIPT=1)
+
+# enable libui-ng (editor only)
+if (HYP_EDITOR AND EXISTS "${CMAKE_SOURCE_DIR}/submodules/libui-ng/meson.build")
+    add_definitions(-DHYP_LIBUI=1)
+    
+    # Find meson and ninja
+    find_program(MESON_EXECUTABLE meson)
+    find_program(NINJA_EXECUTABLE ninja)
+    
+    if(NOT MESON_EXECUTABLE)
+        message(WARNING "Meson not found. libui-ng will not be built. Install meson with: pip install meson")
+    elseif(NOT NINJA_EXECUTABLE)
+        message(WARNING "Ninja not found. libui-ng will not be built. Install ninja with: pip install ninja or your package manager")
+    else()
+        message(STATUS "Building libui-ng with Meson")
+        
+        set(LIBUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/libui-ng)
+        set(LIBUI_BUILD_DIR ${CMAKE_BINARY_DIR}/libui-ng-build)
+        set(LIBUI_INSTALL_DIR ${CMAKE_BINARY_DIR}/libui-ng-install)
+        
+        if(WIN32)
+            set(LIBUI_LIBRARY_NAME "libui.lib")
+            set(LIBUI_SHARED_LIBRARY "libui.dll")
+        elseif(APPLE)
+            set(LIBUI_LIBRARY_NAME "libui.dylib")
+            set(LIBUI_SHARED_LIBRARY "libui.dylib")
+        else()
+            set(LIBUI_LIBRARY_NAME "libui.so")
+            set(LIBUI_SHARED_LIBRARY "libui.so")
+        endif()
+        
+        set(LIBUI_MESON_BUILDTYPE "release")
+        
+        # Build libui-ng using Meson
+        ExternalProject_Add(libui_external
+            SOURCE_DIR ${LIBUI_SOURCE_DIR}
+            BINARY_DIR ${LIBUI_BUILD_DIR}
+            CONFIGURE_COMMAND ${MESON_EXECUTABLE} setup ${LIBUI_BUILD_DIR} ${LIBUI_SOURCE_DIR}
+                --prefix=${LIBUI_INSTALL_DIR}
+                --buildtype=${LIBUI_MESON_BUILDTYPE}
+                --default-library=shared
+            BUILD_COMMAND ${NINJA_EXECUTABLE} -C ${LIBUI_BUILD_DIR}
+            INSTALL_COMMAND ${NINJA_EXECUTABLE} -C ${LIBUI_BUILD_DIR} install
+            BUILD_ALWAYS FALSE
+            EXCLUDE_FROM_ALL TRUE
+        )
+        
+        # Create the install directory structure so CMake doesn't complain
+        file(MAKE_DIRECTORY ${LIBUI_INSTALL_DIR}/include)
+        file(MAKE_DIRECTORY ${LIBUI_INSTALL_DIR}/lib)
+        
+        # Copy the shared library to the output directory as part of the external project
+        ExternalProject_Add_Step(libui_external copy_library
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${LIBUI_INSTALL_DIR}/lib/${LIBUI_SHARED_LIBRARY}
+                ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${LIBUI_SHARED_LIBRARY}
+            DEPENDEES install
+            COMMENT "Copying libui shared library to output directory"
+        )
+        
+        # Create imported target
+        add_library(libui SHARED IMPORTED)
+        add_dependencies(libui libui_external)
+        
+        set_target_properties(libui PROPERTIES
+            IMPORTED_LOCATION ${LIBUI_INSTALL_DIR}/lib/${LIBUI_LIBRARY_NAME}
+            INTERFACE_INCLUDE_DIRECTORIES ${LIBUI_INSTALL_DIR}/include
+        )
+        
+        # Add to common libraries
+        set(COMMON_LIBRARIES
+            ${COMMON_LIBRARIES}
+            libui
+        )
+        
+        message(STATUS "libui-ng will be built and linked")
+    endif()
+endif()
+
 
 # Disable .NET support by default (comment to enable)
 set(HYP_NO_DOTNET 1)
@@ -521,9 +604,6 @@ file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp" "src/*.inl")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Include ExternalProject for building submodules separately
-include(ExternalProject)
 
 if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
     # link with libraries to allow NSAlert and NSString

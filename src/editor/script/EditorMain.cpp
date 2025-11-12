@@ -33,6 +33,9 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+// test
+#include <editor/nativeui/TestNativeUI.hpp>
+
 #include <EditorMain.generated.inl>
 
 namespace hyperion {
@@ -787,6 +790,12 @@ UIEventHandlerResult EditorMain::AddDirectionalLight(const MouseEvent& event)
 UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
 {
     HYP_SCOPE;
+
+    // temp
+    Handle<TestNativeUI> testNativeUi = CreateObject<TestNativeUI>();
+    testNativeUi->Show();
+
+    return UIEventHandlerResult::OK;
 
     HYP_LOG(Editor, Info, "Add Reflection Probe clicked");
 
