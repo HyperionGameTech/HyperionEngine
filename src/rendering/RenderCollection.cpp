@@ -14,6 +14,7 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderMemory.hpp>
+#include <rendering/IndirectDraw.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
@@ -25,11 +26,12 @@
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <scene/camera/Camera.hpp>
 
 #include <scene/animation/Skeleton.hpp>
+
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

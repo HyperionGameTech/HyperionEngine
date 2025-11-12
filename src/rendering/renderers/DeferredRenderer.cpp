@@ -2297,7 +2297,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
             frame->renderQueue << BindVertexBuffer(passData.combinePass->GetQuadMesh()->GetVertexBuffer());
             frame->renderQueue << BindIndexBuffer(passData.combinePass->GetQuadMesh()->GetIndexBuffer());
-            frame->renderQueue << DrawIndexed(passData.combinePass->GetQuadMesh()->NumIndices());
+            frame->renderQueue << DrawIndexed(6);
         }
 
         for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())

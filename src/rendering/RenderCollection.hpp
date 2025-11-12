@@ -21,8 +21,6 @@
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
-#include <rendering/RenderProxy.hpp>
-#include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderObject.hpp>
@@ -46,6 +44,7 @@ class Texture;
 class Skeleton;
 class RenderCollector;
 struct ResourceContainer;
+struct RenderProxy;
 enum class RenderGroupFlags : uint32;
 enum LightType : uint32;
 enum EnvProbeType : uint32;

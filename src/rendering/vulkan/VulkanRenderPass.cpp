@@ -58,32 +58,87 @@ void VulkanRenderPass::CreateDependencies()
         loadDependency = VkSubpassDependency {
             .srcSubpass = VK_SUBPASS_EXTERNAL,
             .dstSubpass = 0,
-            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+            .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             .srcAccessMask = 0,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
         };
 
         break;
     case RenderPassStage::SHADER:
-        AddDependency({ .srcSubpass = VK_SUBPASS_EXTERNAL,
-            .dstSubpass = 0,
-            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-            .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            .dependencyFlags = 0 });
+    {
+        for (const VulkanAttachmentRef& attachment : m_renderPassAttachments)
+        {
+            switch (attachment->GetLoadOperation())
+            {
+            case LoadOperation::LOAD:
+                if (!loadDependency.HasValue())
+                {
+                    loadDependency = VkSubpassDependency {
+                        .srcSubpass = VK_SUBPASS_EXTERNAL,
+                        .dstSubpass = 0,
+                        .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
+                    };
+                }
 
-        AddDependency({ .srcSubpass = 0,
-            .dstSubpass = VK_SUBPASS_EXTERNAL,
-            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-            .dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-            .dependencyFlags = 0 });
+                if (attachment->IsDepthAttachment())
+                {
+                    loadDependency->srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+                    loadDependency->srcAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+                    loadDependency->dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+                    loadDependency->dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                }
+                else
+                {
+                    loadDependency->srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                    loadDependency->srcAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+                    loadDependency->dstStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                    loadDependency->dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                }
+
+                break;
+            default:
+                break;
+            }
+
+            switch (attachment->GetStoreOperation())
+            {
+            case StoreOperation::STORE:
+                if (!storeDependency.HasValue())
+                {
+                    storeDependency = VkSubpassDependency {
+                        .srcSubpass = 0,
+                        .dstSubpass = VK_SUBPASS_EXTERNAL,
+                        .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
+                    };
+                }
+
+                if (attachment->IsDepthAttachment())
+                {
+                    storeDependency->srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+                    storeDependency->srcAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+                    storeDependency->dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT; // @TODO: revisit if compute bit needed if we change SSR to be fragment shader
+                    storeDependency->dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
+                }
+                else
+                {
+                    storeDependency->srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                    storeDependency->srcAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+                    storeDependency->dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT; // @TODO: revisit if compute bit needed if we change SSR to be fragment shader
+                    storeDependency->dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
+                }
+
+                break;
+            }
+        }
 
         break;
+    }
     default:
         HYP_GFX_ASSERT(0, "Unsupported stage type %d", int(m_stage));
     }
