@@ -324,7 +324,7 @@ protected:
 private:
     void Build();
 
-    LightmapJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex, LightmapShadingType shadingType);
+    LightmapJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
 
     void AddJob(UniquePtr<LightmapJobBase>&& job)
     {

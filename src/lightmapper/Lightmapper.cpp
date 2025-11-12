@@ -178,7 +178,10 @@ void LightmapperBase::Initialize()
         m_threadPool->Start();
     }
 
-    // build renderers
+    Initialize_Internal();
+
+    Build();
+
     for (uint32 i = 0; i < uint32(LightmapShadingType::MAX); i++)
     {
         switch (LightmapShadingType(i))
@@ -212,39 +215,18 @@ void LightmapperBase::Initialize()
         lightmapRenderer->Create();
     }
 
-    Initialize_Internal();
-
-    Build();
-
     Assert(m_lightmapRenderers.Any());
 }
 
-LightmapJobParams LightmapperBase::CreateLightmapJobParams(
-    SizeType startIndex,
-    SizeType endIndex,
-    LightmapShadingType shadingType)
+LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
 {
-    ILightmapRenderer* renderer = nullptr;
-
-    for (const UniquePtr<ILightmapRenderer>& lightmapRenderer : m_lightmapRenderers)
-    {
-        if (lightmapRenderer->GetShadingType() == shadingType)
-        {
-            renderer = lightmapRenderer.Get();
-            break;
-        }
-    }
-
-    AssertDebug(renderer != nullptr, "Requested lightmap shading type not supported by this lightmapper");
-
     LightmapJobParams jobParams {
         &m_config,
-        shadingType,
-        renderer,
         m_scene,
         m_view,
         m_subElements.ToSpan().Slice(startIndex, endIndex - startIndex),
-        &m_subElementsByEntity
+        &m_subElementsByEntity,
+        &m_lightmapRenderers
     };
 
     return jobParams;
@@ -431,28 +413,6 @@ void LightmapperBase::Build()
     uint32 numTriangles = 0;
     SizeType startIndex = 0;
 
-    const auto addJobsForShadingTypes = [&](SizeType endIndex)
-    {
-        const bool enabledStates[int(LightmapShadingType::MAX)] = {
-            m_config.irradiance, // IRRADIANCE
-            m_config.radiance    // RADIANCE
-        };
-
-        for (int i = 0; i < int(LightmapShadingType::MAX); i++)
-        {
-            LightmapShadingType shadingType = LightmapShadingType(i);
-
-            if (!enabledStates[i])
-            {
-                continue;
-            }
-
-            UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, endIndex, shadingType));
-            Assert(job != nullptr);
-            AddJob(std::move(job));
-        }
-    };
-
     for (SizeType index = 0; index < m_subElements.Size(); index++)
     {
         LightmapSubElement& subElement = m_subElements[index];
@@ -461,9 +421,13 @@ void LightmapperBase::Build()
 
         if (idealTrianglesPerJob != 0 && numTriangles != 0 && numTriangles + subElement.mesh->NumIndices() / 3 > idealTrianglesPerJob)
         {
-            addJobsForShadingTypes(index);
+            UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, index + 1));
+            Assert(job != nullptr);
 
             startIndex = index + 1;
+
+            AddJob(std::move(job));
+
             numTriangles = 0;
         }
 
@@ -472,7 +436,10 @@ void LightmapperBase::Build()
 
     if (startIndex < m_subElements.Size() - 1)
     {
-        addJobsForShadingTypes(m_subElements.Size());
+        UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, m_subElements.Size()));
+        Assert(job != nullptr);
+
+        AddJob(std::move(job));
     }
 }
 

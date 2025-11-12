@@ -106,9 +106,16 @@ struct LightmapRender : RenderCommand
                 Array<LightmapHit> hitsBuffer;
                 hitsBuffer.Resize(previousRays.Size());
 
-                job->GetParams().renderer->ReadHitsBuffer(frame, hitsBuffer);
+                AssertDebug(job->GetParams().renderers != nullptr);
 
-                job->IntegrateRayHits(previousRays, hitsBuffer);
+                for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
+                {
+                    AssertDebug(lightmapRenderer != nullptr);
+
+                    lightmapRenderer->ReadHitsBuffer(frame, hitsBuffer);
+
+                    job->IntegrateRayHits(previousRays, hitsBuffer, lightmapRenderer->GetShadingType());
+                }
             }
 
             job->SetPreviousFrameRays(rays);
@@ -116,7 +123,14 @@ struct LightmapRender : RenderCommand
 
         if (rays.Any())
         {
-            job->GetParams().renderer->Render(frame, renderSetup, job, rays, rayOffset);
+            AssertDebug(job->GetParams().renderers != nullptr);
+
+            for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
+            {
+                AssertDebug(lightmapRenderer != nullptr);
+
+                lightmapRenderer->Render(frame, renderSetup, job, rays, rayOffset);
+            }
         }
 
         HYPERION_RETURN_OK;
@@ -201,7 +215,7 @@ void LightmapJobBase::GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays)
     }
 }
 
-void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits)
+void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
 {
     Assert(rays.Size() == hits.Size());
 
@@ -214,7 +228,7 @@ void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const 
 
         LightmapTexel& texel = lightmapData.texels[ray.texelIndex];
 
-        switch (m_params.shadingType)
+        switch (shadingType)
         {
         case LightmapShadingType::RADIANCE:
             texel.radiance += Vec4f(hit.color, 1.0f);
@@ -307,24 +321,37 @@ void LightmapJobBase::Process()
         return;
     }
 
+    AssertDebug(m_params.renderers != nullptr);
+    Array<UniquePtr<ILightmapRenderer>>& lightmapRenderers = *m_params.renderers;
+
+    AssertDebug(lightmapRenderers[0] != nullptr);
+
     // @TODO: Radiance map won't need as many samples as irradiance due to having less variance in directions,
     // we should separate LightmapJob to be per- shading type, so the radiance one can finish earlier.
 
-    if (!m_params.renderer->CanRender())
+    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
     {
-        HYP_LOG(Lightmap, Info, "Waiting for lightmap renderers to be ready...");
+        AssertDebug(lightmapRenderer != nullptr);
 
-        return;
+        if (!lightmapRenderer->CanRender())
+        {
+            HYP_LOG(Lightmap, Info, "Waiting for lightmap renderers to be ready...");
+
+            return;
+        }
     }
 
-    const SizeType maxRays = MathUtil::Min(m_params.renderer->MaxRaysPerFrame(), m_params.config->maxRaysPerFrame);
+    const SizeType maxRays = MathUtil::Min(lightmapRenderers[0]->MaxRaysPerFrame(), m_params.config->maxRaysPerFrame);
 
     Array<LightmapRay> rays;
     rays.Reserve(maxRays);
 
     GatherRays(maxRays, rays);
 
-    m_params.renderer->UpdateRays(rays);
+    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
+    {
+        lightmapRenderer->UpdateRays(rays);
+    }
 
     const double percentage = double(m_texelIndex) / double(m_texelIndices.Size() * m_params.config->numSamples) * 100.0;
 
