@@ -48,7 +48,7 @@ public:
     SystemMessageBox& Text(const String& text);
     SystemMessageBox& Button(const String& text, Proc<void()>&& onClick);
 
-    void Show() const;
+    void Show(bool showBlocking = true) const;
 
 private:
     MessageBoxType m_type;

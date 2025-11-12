@@ -22,9 +22,11 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/GameState.hpp>
 
+#include <scene/components/BoundingBoxComponent.hpp>
+
 #include <lightmapper/LightmapVolume.hpp>
 
-#include <scene/components/BoundingBoxComponent.hpp>
+#include <system/MessageBox.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -521,6 +523,84 @@ UIEventHandlerResult EditorMain::AddPointLight(const MouseEvent& event)
     return UIEventHandlerResult::OK;
 }
 
+UIEventHandlerResult EditorMain::AddSpotLight(const MouseEvent& event)
+{
+    HYP_SCOPE;
+
+    HYP_LOG(Editor, Info, "Add Spot Light clicked");
+
+    EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
+    if (editorSubsystem == nullptr)
+    {
+        HYP_LOG(Editor, Error, "EditorSubsystem not found");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
+    if (!currentProject.IsValid())
+    {
+        HYP_LOG(Editor, Error, "No project loaded; cannot add spot light");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    Handle<Scene> activeScene = editorSubsystem->GetActiveScene();
+    if (!activeScene.IsValid())
+    {
+        HYP_LOG(Editor, Error, "No active scene found");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    Handle<SpotLight> light = activeScene->GetEntityManager()->AddEntity<SpotLight>();
+    light->SetColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
+    light->SetRadius(15.0f);
+    light->SetIntensity(4.0f);
+
+    constexpr Vec2f DefaultSpotAngles = Vec2f(MathUtil::DegToRad(15.0f), MathUtil::DegToRad(30.0f));
+    light->SetSpotAngles(DefaultSpotAngles);
+
+    light->SetName(activeScene->GetUniqueNodeName("SpotLight"));
+    light->SetWorldTranslation(Vec3f(0.0f, 5.0f, 5.0f));
+
+    WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
+
+    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+        NAME("AddSpotLight"),
+        Proc<EditorActionFunctions()>([light, previousFocusedNode, activeScene]() -> EditorActionFunctions
+            {
+                return EditorActionFunctions {
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>([light, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                        {
+                            activeScene->GetRoot()->AddChild(light);
+                            editorSubsystem->SetFocusedNode(light, true);
+                        }),
+                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>([light, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                        {
+                            light->Remove();
+
+                            if (editorSubsystem->GetFocusedNode() == light)
+                            {
+                                editorSubsystem->SetFocusedNode(nullptr, true);
+
+                                Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                if (focusedNode.IsValid())
+                                {
+                                    editorSubsystem->SetFocusedNode(focusedNode, true);
+                                }
+                            }
+                        })
+                };
+            }));
+
+    InitObject(action);
+
+    currentProject->GetActionStack()->Push(action);
+
+    return UIEventHandlerResult::OK;
+}
+
 UIEventHandlerResult EditorMain::AddAreaRectLight(const MouseEvent& event)
 {
     HYP_SCOPE;
@@ -565,6 +645,112 @@ UIEventHandlerResult EditorMain::AddAreaRectLight(const MouseEvent& event)
 
     Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
         NAME("AddAreaRectLight"),
+        Proc<EditorActionFunctions()>([light, previousFocusedNode, activeScene]() -> EditorActionFunctions
+            {
+                return EditorActionFunctions {
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>([light, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                        {
+                            activeScene->GetRoot()->AddChild(light);
+                            editorSubsystem->SetFocusedNode(light, true);
+                        }),
+                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>([light, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                        {
+                            light->Remove();
+
+                            if (editorSubsystem->GetFocusedNode() == light)
+                            {
+                                editorSubsystem->SetFocusedNode(nullptr, true);
+
+                                Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                if (focusedNode.IsValid())
+                                {
+                                    editorSubsystem->SetFocusedNode(focusedNode, true);
+                                }
+                            }
+                        })
+                };
+            }));
+
+    InitObject(action);
+
+    currentProject->GetActionStack()->Push(action);
+
+    return UIEventHandlerResult::OK;
+}
+
+UIEventHandlerResult EditorMain::AddDirectionalLight(const MouseEvent& event)
+{
+    HYP_SCOPE;
+
+    HYP_LOG(Editor, Info, "Add Directional Light clicked");
+
+    EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
+    if (editorSubsystem == nullptr)
+    {
+        HYP_LOG(Editor, Error, "EditorSubsystem not found");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
+    if (!currentProject.IsValid())
+    {
+        HYP_LOG(Editor, Error, "No project loaded; cannot add directional light");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    Handle<Scene> activeScene = editorSubsystem->GetActiveScene();
+    if (!activeScene.IsValid())
+    {
+        HYP_LOG(Editor, Error, "No active scene found");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    if (activeScene->GetEntityManager()->GetEntitySet<EntityType<DirectionalLight>>().Size() > 0)
+    {
+        bool shouldContinue = false;
+
+        SystemMessageBox confirmMsgBox { MessageBoxType::WARNING };
+        confirmMsgBox.Title("Add Directional Light");
+        confirmMsgBox.Text(
+            "A directional light already exists in the scene. Adding another may lead to unexpected lighting results and performance issues!\n"
+            "Are you sure you want to add another directional light?");
+        confirmMsgBox.Button(
+            "Cancel",
+            Proc<void()>([]()
+                {
+                    HYP_LOG(Editor, Info, "Add Directional Light cancelled by user");
+                }));
+
+        confirmMsgBox.Button(
+            "Add Light",
+            Proc<void()>([&shouldContinue]()
+                {
+                    HYP_LOG(Editor, Info, "User confirmed adding another Directional Light");
+                    shouldContinue = true;
+                }));
+
+        confirmMsgBox.Show();
+
+        if (!shouldContinue)
+        {
+            return UIEventHandlerResult::OK;
+        }
+    }
+
+    Handle<DirectionalLight> light = activeScene->GetEntityManager()->AddEntity<DirectionalLight>();
+    light->SetColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
+    light->SetIntensity(1.0f);
+
+    light->SetName(activeScene->GetUniqueNodeName("DirectionalLight"));
+    light->SetWorldTranslation(Vec3f(0.0f, 10.0f, 0.0f));
+
+    WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
+
+    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+        NAME("AddDirectionalLight"),
         Proc<EditorActionFunctions()>([light, previousFocusedNode, activeScene]() -> EditorActionFunctions
             {
                 return EditorActionFunctions {

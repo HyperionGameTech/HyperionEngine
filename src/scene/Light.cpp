@@ -12,15 +12,16 @@
 
 #include <scene/EntityTag.hpp>
 
+#include <shadows/ShadowMap.hpp>
+#include <shadows/ShadowMapAllocator.hpp>
+#include <shadows/ShadowCameraHelper.hpp>
+
 #include <rendering/Material.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderGlobalState.hpp>
 
-#include <shadows/ShadowMap.hpp>
-#include <shadows/ShadowMapAllocator.hpp>
 #include <rendering/renderers/ShadowRenderer.hpp>
-#include <shadows/ShadowCameraHelper.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

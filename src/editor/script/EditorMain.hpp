@@ -58,7 +58,13 @@ public:
     UIEventHandlerResult AddPointLight(const MouseEvent& event);
 
     HYP_METHOD()
+    UIEventHandlerResult AddSpotLight(const MouseEvent& event);
+
+    HYP_METHOD()
     UIEventHandlerResult AddAreaRectLight(const MouseEvent& event);
+
+    HYP_METHOD()
+    UIEventHandlerResult AddDirectionalLight(const MouseEvent& event);
 
     HYP_METHOD()
     UIEventHandlerResult AddReflectionProbe(const MouseEvent& event);

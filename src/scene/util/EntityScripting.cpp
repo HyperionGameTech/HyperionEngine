@@ -368,7 +368,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                         .Button("Close", []()
                             {
                             })
-                        .Show();
+                        .Show(/* showBlocking */ false);
 
                     return;
                 }

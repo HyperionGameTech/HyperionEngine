@@ -7,9 +7,27 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <core/threading/Task.hpp>
+
 extern "C"
 {
-    extern int ShowMessageBox(int type, const char* title, const char* message, int buttons, const char* buttonTexts[3]);
+#ifdef HYP_MACOS
+    extern int ShowMessageBox(
+        int type,
+        const char* title,
+        const char* message,
+        int buttons,
+        const char* buttonTexts[3],
+        const void* buttonFuncs[3],
+        hyperion::TaskPromise<void>* promise);
+#else
+    extern int ShowMessageBox(
+        int type,
+        const char* title,
+        const char* message,
+        int buttons,
+        const char* buttonTexts[3]);
+#endif
 }
 
 namespace hyperion {
@@ -87,22 +105,47 @@ SystemMessageBox& SystemMessageBox::Button(const String& text, Proc<void()>&& on
     return *this;
 }
 
-void SystemMessageBox::Show() const
+void SystemMessageBox::Show(bool showBlocking) const
 {
     const char* buttonTexts[3] = {};
+    const void* buttonFuncs[3] = {};
 
     for (int i = 0; i < int(m_buttons.Size()); i++)
     {
         buttonTexts[i] = m_buttons[i].text.Data();
+        buttonFuncs[i] = &m_buttons[i].onClick;
     }
 
-    int buttonIndex = ShowMessageBox(int(m_type), m_title.Data(), m_message.Data(), int(m_buttons.Size()), buttonTexts);
+#ifdef HYP_MACOS
+    Task<void> futureValue;
 
-    if (m_buttons.Any())
+    int buttonIndex = ShowMessageBox(
+        int(m_type),
+        m_title.Data(),
+        m_message.Data(),
+        int(m_buttons.Size()),
+        buttonTexts,
+        buttonFuncs,
+        futureValue.Promise());
+#else
+    int buttonIndex = ShowMessageBox(
+        int(m_type),
+        m_title.Data(),
+        m_message.Data(),
+        int(m_buttons.Size()),
+        buttonTexts);
+#endif
+
+    if (buttonIndex != -1) // handle on this side
     {
         if (buttonIndex < 0 || buttonIndex >= m_buttons.Size())
         {
+            // on macOS, we pass function pointers to Obj-C side,
+            // to invoke the function pointer when not on the main thread and using async dispatch.
+
+#ifndef HYP_APPLE
             HYP_LOG(Core, Warning, "ShowMessageBox() returned invalid index: {}, {} buttons", buttonIndex, m_buttons.Size());
+#endif
 
             return;
         }
@@ -112,6 +155,13 @@ void SystemMessageBox::Show() const
             m_buttons[buttonIndex].onClick();
         }
     }
+
+#ifdef HYP_MACOS
+    else if (showBlocking) // async call and showBlocking true, await
+    {
+        futureValue.Await();
+    }
+#endif
 }
 
 } // namespace sys

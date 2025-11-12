@@ -1,13 +1,29 @@
 #import <AppKit/AppKit.h>
 #import <Cocoa/Cocoa.h>
 
-int ShowMessageBox(int type, const char* title, const char* message, int buttons, const char* buttonTexts[3])
+#include <core/functional/Proc.hpp>
+
+#include <core/threading/Task.hpp>
+
+using namespace hyperion;
+
+extern "C" {
+
+int ShowMessageBox(
+    int type,
+    const char* title,
+    const char* message,
+    int buttons,
+    const char* buttonTexts[3],
+    const void* buttonFuncs[3],
+    hyperion::TaskPromise<void>* promise)
 {
     __block int returnValue = -1;
+    __block bool doAsyncCall = ![NSThread isMainThread];
 
     __block NSString* titleString = [NSString stringWithUTF8String:title];
     __block NSString* messageString = [NSString stringWithUTF8String:message];
-    __block NSString** buttonTextStrings = malloc(sizeof(NSString*) * 3);
+    __block NSString** buttonTextStrings = (NSString**)malloc(sizeof(NSString*) * 3);
 
     for (int i = 0; i < 3; i++)
     {
@@ -72,17 +88,36 @@ int ShowMessageBox(int type, const char* title, const char* message, int buttons
 
             free(buttonTextStrings);
             buttonTextStrings = NULL;
+
+            if (doAsyncCall)
+            {
+                if (buttonFuncs != NULL && returnValue >= 0 && returnValue < 3)
+                {
+                    const Proc<void()>* pProc = (const Proc<void()>*)buttonFuncs[returnValue];
+                    if (pProc != NULL)
+                    {
+                        (*pProc)();
+                    }
+                }
+                
+                if (promise != NULL)
+                {
+                    promise->Fulfill();
+                }
+            }
         }
     };
     
-    if ([NSThread isMainThread])
+    if (!doAsyncCall)
     {
         alertBlock();
-    }
-    else
-    {
-        dispatch_async(dispatch_get_main_queue(), alertBlock);
-    }
     
-    return returnValue;
+        return returnValue;
+    }
+
+    dispatch_async(dispatch_get_main_queue(), alertBlock);
+
+    return -1; // always return -1 for async calls, we'll invoke via pointer to Proc<> instead
 }
+
+} // extern "C"

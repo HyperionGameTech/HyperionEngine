@@ -53,11 +53,6 @@ HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 
-// DrawCallCollectionMapping::~DrawCallCollectionMapping()
-//{
-//     Threads::AssertOnThread(g_renderThread);
-// }
-
 #pragma region ParallelRenderingState
 
 // Holds shared data for ParallelRenderingState instances to reduce memory usage
