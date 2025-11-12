@@ -148,6 +148,6 @@ void main()
 
     vec3 spec = (ibl * mix(dfg.xxx, dfg.yyy, F0)) * energyCompensation;
 
-    color_output.rgb = (diffuse_color * irradiance.rgb) + spec;
+    color_output.rgb = (diffuse_color * irradiance.rgb) + (diffuse_color * radiance.rgb * ao) + spec;
     color_output.a = 1.0;
 }
