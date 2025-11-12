@@ -301,6 +301,46 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
     }
 }
 
+void WriteBufferData_Material(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
+{
+    Threads::AssertOnThread(g_renderThread);
+
+    AssertDebug(gpuBufferHolder != nullptr);
+    AssertDebug(idx != ~0u);
+
+    static const bool s_isBindlessSupported = g_renderBackend->GetRenderConfig().bindlessTextures;
+
+    RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
+    AssertDebug(proxyCasted != nullptr);
+
+    if (s_isBindlessSupported)
+    {
+        // when using bindless textures, we need to update the material's bound texture indices to be set here
+        for (uint32 i = 0; i < proxyCasted->boundTextures.Size(); ++i)
+        {
+            const Texture* texture = proxyCasted->boundTextures[i].Get();
+            AssertDebug(texture != nullptr);
+
+            const uint32 textureBoundIndex = RenderApi::RetrieveResourceBinding(texture);
+            AssertDebug(textureBoundIndex != ~0u);
+
+            proxyCasted->boundTextureIndices[i] = textureBoundIndex;
+        }
+    }
+
+    AssertDebug(proxyCasted->boundTextures.Size() <= proxyCasted->boundTextureIndices.Size());
+
+    MaterialShaderData& bufferData = proxyCasted->bufferData;
+    uint32* textureIndicesU32 = reinterpret_cast<uint32*>(&bufferData.textureIndices);
+
+    Memory::MemCpy(
+        textureIndicesU32,
+        proxyCasted->boundTextureIndices.Data(),
+        proxyCasted->boundTextureIndices.ByteSize());
+
+    gpuBufferHolder->WriteBufferData(idx, &bufferData, sizeof(bufferData));
+}
+
 void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
 {
     static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
@@ -310,11 +350,11 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
     {
         if (next != ~0u)
         {
-            g_renderGlobalState->bindlessStorage->AddResource(texture->Id(), g_renderBackend->GetTextureImageView(MakeStrongRef(texture)));
+            g_renderGlobalState->bindlessStorage->AddResource(next, texture);
         }
         else
         {
-            g_renderGlobalState->bindlessStorage->RemoveResource(texture->Id());
+            g_renderGlobalState->bindlessStorage->RemoveResource(prev);
         }
     }
 
