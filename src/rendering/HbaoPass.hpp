@@ -48,11 +48,6 @@ public:
 
     virtual void Render(FrameBase* frame, const RenderSetup& renderSetup) override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
-
 protected:
     virtual bool UsesTemporalBlending() const override
     {

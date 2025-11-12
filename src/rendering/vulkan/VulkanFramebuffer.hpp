@@ -155,6 +155,11 @@ public:
 
     virtual AttachmentBase* GetAttachment(uint32 binding) const override;
 
+    virtual int NumAttachments() const override
+    {
+        return int(m_attachmentMap.Size());
+    }
+
     HYP_FORCE_INLINE const VulkanAttachmentMap& GetAttachmentMap() const
     {
         return m_attachmentMap;

@@ -84,6 +84,8 @@ private:
     Array<VkClearValue> m_vkClearValues;
 
     VkRenderPass m_handle;
+
+    bool m_isRecording : 1;
 };
 
 using VulkanRenderPassRef = Handle<VulkanRenderPass>;

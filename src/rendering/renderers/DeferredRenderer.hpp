@@ -95,10 +95,10 @@ public:
     virtual ~DeferredPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
 protected:
     GraphicsPipelineCacheHandle CreatePipeline(const ShaderProperties& shaderProperties);
+    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override;
 
     virtual void Resize_Internal(Vec2u newSize) override;
 
@@ -173,8 +173,6 @@ public:
 
     virtual void Create() override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override;
-
 protected:
     struct LightmapVolumePassData
     {
@@ -184,6 +182,8 @@ protected:
         GraphicsPipelineCacheHandle graphicsPipeline;
         Array<DescriptorSetRef> descriptorSets;
     };
+
+    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override;
 
     const GraphicsPipelineRef& GetGraphicsPipeline(const FramebufferRef& framebuffer, LightmapVolumePassData& data);
 
@@ -235,13 +235,12 @@ public:
     virtual void Create() override;
     virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
+protected:
+    virtual void CreatePipeline() override;
+    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }
-
-protected:
-    virtual void CreatePipeline() override;
 
 private:
     virtual bool UsesTemporalBlending() const override
@@ -292,11 +291,6 @@ public:
     virtual void Create() override;
     virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
-
 private:
     virtual bool UsesTemporalBlending() const override
     {
@@ -312,6 +306,11 @@ private:
     virtual void CreatePipeline(const RenderableAttributeSet& renderableAttributes) override;
 
     void CreateSSRRenderer();
+
+    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
 
     virtual void Resize_Internal(Vec2u newSize) override;
 

@@ -338,7 +338,7 @@ void DeferredPass::Resize_Internal(Vec2u newSize)
     m_directLightGraphicsPipelines = {};
 }
 
-void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
+void DeferredPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
     ENGINE_STAT_SCOPE(&s_deferredPassTimer);
@@ -380,7 +380,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             AssertDebug(!ShouldRecreatePipeline(m_graphicsPipelineCacheHandle, shaderProperties));
         }
 
-        RenderToFramebuffer(frame, rs, nullptr);
+        FullScreenPass::RenderToFramebuffer_Internal(frame, rs, framebuffer);
 
         return;
     }
@@ -702,7 +702,7 @@ void LightmapPass::Resize_Internal(Vec2u newSize)
     FullScreenPass::Resize_Internal(newSize);
 }
 
-void LightmapPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+void LightmapPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -754,7 +754,7 @@ void LightmapPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& rend
 
         const uint32 lightmapVolumeDescriptorSetIndex = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex("LightmapVolume");
         AssertDebug(lightmapVolumeDescriptorSetIndex != ~0u);
-        
+
         frame->renderQueue << BindDescriptorSet(
             data.descriptorSets[atlasIndex],
             graphicsPipeline,
@@ -2257,12 +2257,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     CHECK_FRAMEBUFFER_SIZE(deferredPassFramebuffer);
 
     { // deferred lighting on opaque objects
-        frame->renderQueue << BeginFramebuffer(deferredPassFramebuffer);
-
-        passData.indirectPass->Render(frame, rs);
-        passData.directPass->Render(frame, rs);
-
-        frame->renderQueue << EndFramebuffer(deferredPassFramebuffer);
+        passData.indirectPass->RenderToFramebuffer(frame, rs, deferredPassFramebuffer);
+        passData.directPass->RenderToFramebuffer(frame, rs, deferredPassFramebuffer);
     }
 
     if (rpl.GetLightmapVolumes().NumCurrent())

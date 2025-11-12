@@ -14,6 +14,7 @@
 #include <rendering/RenderFramebuffer.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -25,6 +26,8 @@
 #include <core/math/MathUtil.hpp>
 
 #include <core/reflection/Class.hpp>
+
+#include <core/memory/allocator/ArenaAllocator.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -107,13 +110,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-        shader,
-        descriptorTable,
-        FramebufferRef::Null(),
-        imageFormat,
-        extent,
-        gbuffer,
-        flags)
+          shader,
+          descriptorTable,
+          FramebufferRef::Null(),
+          imageFormat,
+          extent,
+          gbuffer,
+          flags)
 {
 }
 
@@ -124,13 +127,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-        shader,
-        DescriptorTableRef::Null(),
-        FramebufferRef::Null(),
-        imageFormat,
-        extent,
-        gbuffer,
-        flags)
+          shader,
+          DescriptorTableRef::Null(),
+          FramebufferRef::Null(),
+          imageFormat,
+          extent,
+          gbuffer,
+          flags)
 {
 }
 
@@ -656,11 +659,7 @@ void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    frame->renderQueue << BeginFramebuffer(m_framebuffer);
-
     RenderToFramebuffer(frame, renderSetup, m_framebuffer);
-
-    frame->renderQueue << EndFramebuffer(m_framebuffer);
 
     if (ShouldRenderHalfRes())
     {
@@ -684,6 +683,60 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     Threads::AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
+    AssertDebug(framebuffer != nullptr);
+
+    // are we responsible for starting/ending framebuffer recording?
+    bool shouldStartRecording = !framebuffer->IsDeferredRecording();
+    bool shouldEndRecording = shouldStartRecording;
+
+    Array<InsertBarrier, RenderTempAllocator> insertBarrierCmds;
+
+    // we need to insert a barrier if any attachments are LOAD operations
+    for (int i = 0; i < framebuffer->NumAttachments(); i++)
+    {
+        AttachmentBase* attachment = framebuffer->GetAttachment(i);
+
+        if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+        {
+            insertBarrierCmds.PushBack(InsertBarrier(attachment->GetImage(), RS_RENDER_TARGET));
+        }
+    }
+
+    if (insertBarrierCmds.Any())
+    {
+        if (framebuffer->IsDeferredRecording())
+        {
+            // if we need to insert barriers we need to do it outside of the pass
+            frame->renderQueue << EndFramebuffer(framebuffer);
+
+            shouldStartRecording = true; // we need to start new recording but should preserve the state (it was already recording)
+        }
+
+        for (const InsertBarrier& cmd : insertBarrierCmds)
+        {
+            frame->renderQueue << cmd;
+        }
+    }
+
+    if (shouldStartRecording)
+    {
+        frame->renderQueue << BeginFramebuffer(framebuffer);
+    }
+
+    RenderToFramebuffer_Internal(frame, renderSetup, framebuffer);
+
+    if (shouldEndRecording)
+    {
+        frame->renderQueue << EndFramebuffer(framebuffer);
+    }
+
+    m_isFirstFrame = false;
+}
+
+void FullScreenPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
     // render previous frame's result to screen
     if (!m_isFirstFrame && m_renderTextureToScreenPass != nullptr)
@@ -743,8 +796,6 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
     frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
     frame->renderQueue << DrawIndexed(6);
-
-    m_isFirstFrame = false;
 }
 
 void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)

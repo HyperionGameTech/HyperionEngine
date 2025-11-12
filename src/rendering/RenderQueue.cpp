@@ -259,40 +259,48 @@ void InsertBarrier::CheckNotInRenderPass(CommandBufferBase* commandBuffer) const
 #ifdef HYP_DEBUG_MODE
 thread_local int s_framebufferCount;
 thread_local FramebufferBase* s_currentFramebuffer;
+#endif
 
 BeginFramebuffer::BeginFramebuffer(FramebufferBase* framebuffer)
     : m_framebuffer(framebuffer)
 {
+#ifdef HYP_DEBUG_MODE
     Assert(!s_framebufferCount, "Cannot begin framebuffer: already in a framebuffer");
     s_framebufferCount++;
     s_currentFramebuffer = framebuffer;
+#endif
+
+    AssertDebug(!framebuffer->IsDeferredRecording(), "Beginning a framebuffer that is already recording");
+
+    m_framebuffer->SetIsDeferredRecording(true);
 }
 
 void BeginFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
 {
 }
-#endif
 
 #pragma endregion BeginFramebuffer
 
 #pragma region EndFramebuffer
 
-#ifdef HYP_DEBUG_MODE
-
 EndFramebuffer::EndFramebuffer(FramebufferBase* framebuffer)
     : m_framebuffer(framebuffer)
 {
+#ifdef HYP_DEBUG_MODE
     Assert(s_framebufferCount, "Cannot end framebuffer: not in a framebuffer");
     s_framebufferCount--;
 
     Assert(s_currentFramebuffer == framebuffer, "Cannot end framebuffer: mismatched framebuffer");
     s_currentFramebuffer = nullptr;
+#endif
+    AssertDebug(framebuffer->IsDeferredRecording(), "Ending a framebuffer that is not recording");
+
+    m_framebuffer->SetIsDeferredRecording(false);
 }
 
 void EndFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
 {
 }
-#endif
 
 #pragma endregion EndFramebuffer
 

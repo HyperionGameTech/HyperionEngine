@@ -25,7 +25,8 @@ VulkanRenderPass::VulkanRenderPass(RenderPassStage stage, RenderPassMode mode)
     : m_stage(stage),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
-      m_numMultiviewLayers(0)
+      m_numMultiviewLayers(0),
+      m_isRecording(false)
 {
 }
 
@@ -33,7 +34,8 @@ VulkanRenderPass::VulkanRenderPass(RenderPassStage stage, RenderPassMode mode, u
     : m_stage(stage),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
-      m_numMultiviewLayers(numMultiviewLayers)
+      m_numMultiviewLayers(numMultiviewLayers),
+      m_isRecording(false)
 {
 }
 
@@ -271,6 +273,11 @@ RendererResult VulkanRenderPass::Create()
 
 void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* framebuffer)
 {
+    if (m_isRecording)
+    {
+        return;
+    }
+
     HYP_GFX_ASSERT(framebuffer != nullptr);
 
     VkRenderPassBeginInfo renderPassInfo { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
@@ -294,11 +301,20 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
     }
 
     vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, contents);
+
+    m_isRecording = true;
 }
 
 void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 {
+    if (!m_isRecording)
+    {
+        return;
+    }
+
     vkCmdEndRenderPass(cmd->GetVulkanHandle());
+
+    m_isRecording = false;
 }
 
 } // namespace hyperion

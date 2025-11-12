@@ -160,7 +160,7 @@ public:
     virtual void Create();
 
     virtual void Render(FrameBase* frame, const RenderSetup& renderSetup);
-    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer);
+    void RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer);
 
     void Begin(FrameBase* frame, const RenderSetup& renderSetup);
     void End(FrameBase* frame, const RenderSetup& renderSetup);
@@ -181,6 +181,8 @@ protected:
     virtual void Render_Internal(FrameBase* frame, const RenderSetup& renderSetup, GraphicsPipelineBase* graphicsPipeline)
     {
     }
+
+    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer);
 
     void CreateQuad();
 

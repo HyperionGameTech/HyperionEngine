@@ -147,15 +147,8 @@ public:
 class BeginFramebuffer final : public CmdBase
 {
 public:
-#ifdef HYP_DEBUG_MODE
     HYP_API BeginFramebuffer(FramebufferBase* framebuffer);
     HYP_API static void PrepareStatic(CmdBase* cmd, FrameBase* frame);
-#else
-    BeginFramebuffer(FramebufferBase* framebuffer)
-        : m_framebuffer(framebuffer)
-    {
-    }
-#endif
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
     {
@@ -174,15 +167,8 @@ private:
 class EndFramebuffer final : public CmdBase
 {
 public:
-#ifdef HYP_DEBUG_MODE
     HYP_API EndFramebuffer(FramebufferBase* framebuffer);
     HYP_API static void PrepareStatic(CmdBase* cmd, FrameBase* frame);
-#else
-    EndFramebuffer(FramebufferBase* framebuffer)
-        : m_framebuffer(framebuffer)
-    {
-    }
-#endif
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
     {
@@ -821,7 +807,7 @@ public:
         using TCmd = NormalizedType<CmdType>;
         static_assert(alignof(TCmd) <= 16, "CmdType should have alignment <= 16!");
 
-        static_assert(std::is_trivially_copyable_v<CmdType> && std::is_trivially_destructible_v<TCmd>,
+        static_assert(std::is_trivially_copyable_v<TCmd> && std::is_trivially_destructible_v<TCmd>,
             "CmdType should be trivially copyable and destructible!");
 
         constexpr SizeType CmdSize = sizeof(TCmd);
