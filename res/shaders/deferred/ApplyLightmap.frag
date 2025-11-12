@@ -25,7 +25,7 @@ HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D gbuffer_depth_te
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 
-HYP_DESCRIPTOR_SRV(Global, RTRadianceResultTexture) uniform texture2D rt_radiance_final;
+HYP_DESCRIPTOR_SRV(Global, RTRadianceResultTexture) uniform texture2D raytracingReflections;
 
 HYP_DESCRIPTOR_SRV(View, SSGIResultTexture) uniform texture2D ssgi_result;
 HYP_DESCRIPTOR_SRV(View, TAAResultTexture) uniform texture2D temporal_aa_result;
@@ -67,7 +67,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvP
 {
     EnvProbe current_env_probe;
 };
-HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture) uniform texture2D reflections_texture;
+HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture) uniform texture2D ReflectionProbeResultTexture;
 
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
 HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
@@ -103,7 +103,6 @@ void main()
     const float metalness = materialParams.metalness;
     const float transmission = materialParams.transmission;
     const float ao = materialParams.ao;
-    const uint object_mask = materialParams.mask;
 
     const mat4 inverse_proj = inverse(camera.projection);
     const mat4 inverse_view = inverse(camera.view);
@@ -116,11 +115,14 @@ void main()
     const vec3 V = normalize(camera.position.xyz - P);
     const vec3 R = normalize(reflect(-V, N));
 
-    vec2 lightmap_uv = UV1;
+    vec2 lightmapUV = UV1;
 
     // sample lightmap atlases based on weights
-    vec4 irradiance = Texture2D(Sampler, IrradianceTexture, lightmap_uv) * irradianceWeight;
-    vec4 radiance = Texture2D(Sampler, RadianceTexture, lightmap_uv) * radianceWeight;
+    vec4 irradiance = Texture2D(Sampler, IrradianceTexture, lightmapUV) * irradianceWeight;
+    irradiance.a = 1.0;
+
+    vec4 radiance = Texture2D(Sampler, RadianceTexture, lightmapUV) * radianceWeight;
+    radiance.a = 1.0;
 
     vec3 ibl = vec3(0.0);
     vec3 F = vec3(0.0);
@@ -135,16 +137,17 @@ void main()
 
     const vec3 dfg = CalculateDFG(F, roughness, NdotV);
     const vec3 E = CalculateE(F0, dfg);
-    const vec3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
+    const vec3 energyCompensation = CalculateEnergyCompensation(F0, dfg);
 
-    vec4 reflections_color = Texture2D(GBufferSampler, reflections_texture, texcoord);
-    ibl = ibl * (1.0 - reflections_color.a) + (reflections_color.rgb * reflections_color.a);
+    vec4 reflections = Texture2D(GBufferSampler, ReflectionProbeResultTexture, texcoord);
 
-    vec4 rt_radiance = Texture2D(GBufferSampler, rt_radiance_final, texcoord);
-    ibl = ibl * (1.0 - rt_radiance.a) + (rt_radiance.rgb * rt_radiance.a);
+    vec4 raytracingReflections = Texture2D(GBufferSampler, raytracingReflections, texcoord);
+    reflections = reflections * (1.0 - raytracingReflections.a) + raytracingReflections * raytracingReflections.a;
 
-    vec3 spec = (ibl * mix(dfg.xxx, dfg.yyy, F0)) * energy_compensation;
+    ibl = ibl * (1.0 - reflections.a) + (reflections.rgb * reflections.a);
 
-    color_output = (albedo * irradiance) + (albedo * radiance) + vec4(spec, 0.0);
+    vec3 spec = (ibl * mix(dfg.xxx, dfg.yyy, F0)) * energyCompensation;
+
+    color_output.rgb = (diffuse_color * irradiance.rgb) + spec;
     color_output.a = 1.0;
 }
