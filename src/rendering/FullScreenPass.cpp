@@ -253,16 +253,28 @@ AttachmentBase* FullScreenPass::GetAttachment(uint32 attachmentIndex) const
 
 void FullScreenPass::SetBlendFunction(const BlendFunction& blendFunction)
 {
+    if (m_blendFunction == blendFunction)
+    {
+        return;
+    }
+
     m_blendFunction = blendFunction;
 
-    // @TODO invalidate graphics pipeline cache on blend function change
+    // throw away graphics pipeline cache handle to force recreation.
+    m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
 }
 
 void FullScreenPass::SetStage(RenderPassStage stage)
 {
+    if (m_stage == stage)
+    {
+        return;
+    }
+
     m_stage = stage;
 
-    // @TODO invalidate graphics pipeline cache on stage change
+    // throw away graphics pipeline cache handle to force recreation.
+    m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
 }
 
 const GraphicsPipelineRef& FullScreenPass::GetGraphicsPipeline()

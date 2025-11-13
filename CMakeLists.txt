@@ -87,7 +87,7 @@ function(RunHypBuildTool)
 endfunction()
 
 # run HypBuildTool before configuring
-RunHypBuildTool()
+# RunHypBuildTool()
 
 set(HYP_DEBUG_MODE 1)
 add_definitions(-DHYP_DEBUG_MODE=1)
@@ -445,11 +445,18 @@ if (HYP_EDITOR AND EXISTS "${CMAKE_SOURCE_DIR}/submodules/libui-ng/meson.build")
         # Create the install directory structure so CMake doesn't complain
         file(MAKE_DIRECTORY ${LIBUI_INSTALL_DIR}/include)
         file(MAKE_DIRECTORY ${LIBUI_INSTALL_DIR}/lib)
+        file(MAKE_DIRECTORY ${LIBUI_INSTALL_DIR}/bin)
         
         # Copy the shared library to the output directory as part of the external project
+        if(WIN32)
+            set(LIBUI_LIBRARY_PATH "${LIBUI_INSTALL_DIR}/bin/${LIBUI_SHARED_LIBRARY}")
+        else()
+            set(LIBUI_LIBRARY_PATH "${LIBUI_INSTALL_DIR}/lib/${LIBUI_SHARED_LIBRARY}")
+        endif()
+
         ExternalProject_Add_Step(libui_external copy_library
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${LIBUI_INSTALL_DIR}/lib/${LIBUI_SHARED_LIBRARY}
+                ${LIBUI_LIBRARY_PATH}
                 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${LIBUI_SHARED_LIBRARY}
             DEPENDEES install
             COMMENT "Copying libui shared library to output directory"
@@ -459,10 +466,18 @@ if (HYP_EDITOR AND EXISTS "${CMAKE_SOURCE_DIR}/submodules/libui-ng/meson.build")
         add_library(libui SHARED IMPORTED)
         add_dependencies(libui libui_external)
         
-        set_target_properties(libui PROPERTIES
-            IMPORTED_LOCATION ${LIBUI_INSTALL_DIR}/lib/${LIBUI_LIBRARY_NAME}
-            INTERFACE_INCLUDE_DIRECTORIES ${LIBUI_INSTALL_DIR}/include
-        )
+        if (WIN32)
+            set_target_properties(libui PROPERTIES
+                IMPORTED_IMPLIB "${LIBUI_INSTALL_DIR}/lib/libui.lib"
+                IMPORTED_LOCATION "${LIBUI_INSTALL_DIR}/bin/libui.dll"
+                INTERFACE_INCLUDE_DIRECTORIES "${LIBUI_INSTALL_DIR}/include"
+            )
+        else()
+            set_target_properties(libui PROPERTIES
+                IMPORTED_LOCATION "${LIBUI_INSTALL_DIR}/lib/${LIBUI_LIBRARY_NAME}"
+                INTERFACE_INCLUDE_DIRECTORIES "${LIBUI_INSTALL_DIR}/include"
+            )
+        endif()
         
         # Add to common libraries
         set(COMMON_LIBRARIES
