@@ -728,7 +728,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 
         for (const InsertBarrier& cmd : insertBarrierCmds)
         {
-            //frame->renderQueue << cmd;
+            frame->renderQueue << cmd;
         }
     }
 

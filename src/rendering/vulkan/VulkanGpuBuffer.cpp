@@ -74,7 +74,6 @@ VkImageLayout GetVkImageLayout(ResourceState state)
         return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     case RS_COPY_SRC:
         return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        break;
     case RS_PRESENT:
         return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     default:
