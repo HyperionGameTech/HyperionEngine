@@ -287,6 +287,8 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 
 #ifdef HYP_WINDOWS
     g_appContext = CreateObject<Win32AppContext>("Hyperion", cliArgs);
+#elif defined(HYP_MACOS)
+    g_appContext = CreateObject<CocoaAppContext>("Hyperion", cliArgs);
 #elif defined(HYP_SDL)
     g_appContext = CreateObject<SDLAppContext>("Hyperion", cliArgs);
 #else

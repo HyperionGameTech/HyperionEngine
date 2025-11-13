@@ -7,7 +7,9 @@
 
 #include <core/math/Vector2.hpp>
 
+#ifdef HYP_SDL
 #include <SDL2/SDL.h>
+#endif
 
 #include <core/Types.hpp>
 
@@ -18,6 +20,7 @@ enum SystemEventType : uint32
 {
     EVENT_INVALID = ~0u,
 
+#ifdef HYP_SDL
     EVENT_WINDOW_EVENT = SDL_WINDOWEVENT,
     EVENT_SHUTDOWN = SDL_QUIT,
 
@@ -39,6 +42,30 @@ enum SystemEventType : uint32
 
     EVENT_WINDOW_CLOSE = SDL_WINDOWEVENT_CLOSE,
     EVENT_WINDOW_MINIMIZED = SDL_WINDOWEVENT_MINIMIZED
+#else
+    // Platform-agnostic event type values
+    EVENT_WINDOW_EVENT = 0x0200,
+    EVENT_SHUTDOWN = 0x0100,
+
+    EVENT_KEYDOWN = 0x0300,
+    EVENT_KEYUP = 0x0301,
+
+    EVENT_MOUSEMOTION = 0x0400,
+    EVENT_MOUSEBUTTON_DOWN = 0x0401,
+    EVENT_MOUSEBUTTON_UP = 0x0402,
+    EVENT_MOUSESCROLL = 0x0403,
+
+    EVENT_FILE_DROP = 0x1000,
+
+    EVENT_WINDOW_MOVED = 0x0204,
+    EVENT_WINDOW_RESIZED = 0x0205,
+
+    EVENT_WINDOW_FOCUS_GAINED = 0x020C,
+    EVENT_WINDOW_FOCUS_LOST = 0x020D,
+
+    EVENT_WINDOW_CLOSE = 0x0203,
+    EVENT_WINDOW_MINIMIZED = 0x0206
+#endif
 };
 
 #ifdef HYP_WINDOWS
@@ -51,6 +78,13 @@ struct Win32Event
 };
 #endif
 
+#ifdef HYP_MACOS
+struct CocoaEvent
+{
+    void* nsEvent; // NSEvent* (bridged)
+};
+#endif
+
 union PlatformEvent
 {
 #ifdef HYP_SDL
@@ -59,6 +93,10 @@ union PlatformEvent
 
 #ifdef HYP_WINDOWS
     Win32Event win32Event;
+#endif
+
+#ifdef HYP_MACOS
+    CocoaEvent cocoaEvent;
 #endif
 };
 

@@ -29,7 +29,7 @@ public:
     VulkanInstance();
     ~VulkanInstance();
 
-    RendererResult Initialize(bool enableDebugLayers);
+    RendererResult Initialize(bool enableDebug);
 
     HYP_FORCE_INLINE VkInstance GetInstance() const
     {

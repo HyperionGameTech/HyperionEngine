@@ -41,6 +41,10 @@
 #include <vulkan/vulkan_win32.h>
 #endif
 
+#ifdef HYP_MACOS
+#include <vulkan/vulkan_metal.h>
+#endif
+
 #define CHECK_FRAME_RESULT(result)                  \
     do                                              \
     {                                               \
@@ -81,7 +85,7 @@ public:
         raytracing = renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported();
         indirectRendering = CoreApi_GetGlobalConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
         parallelRendering = CoreApi_GetGlobalConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
-        dynamicDescriptorIndexing = false; //renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
+        dynamicDescriptorIndexing = false; // renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
     }
 };
 
@@ -684,15 +688,15 @@ RendererResult VulkanRenderBackend::Initialize()
         HYP_LOG(RenderingBackend, Debug, "Vulkan debug layers enabled");
     }
 
-    const bool enableDebugLayers = s_cfgDebugLayers.ToBool(false);
+    const bool enableDebug = s_cfgDebugLayers.ToBool(false);
 #else
-    const bool enableDebugLayers = false;
+    const bool enableDebug = false;
 #endif
 
     g_vulkanArena = PoolNew<TArena<RenderAllocator>>(*g_renderPool, VulkanArenaSize);
 
     m_instance = PoolNew<VulkanInstance>(*g_renderPool);
-    HYP_GFX_CHECK(m_instance->Initialize(enableDebugLayers));
+    HYP_GFX_CHECK(m_instance->Initialize(enableDebug));
 
     VulkanDynamicFunctions::Load(m_instance->GetDevice());
 
@@ -1194,11 +1198,72 @@ VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, Vul
     }
 #endif
 
+#ifdef HYP_MACOS
+    if (CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window))
+    {
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+        VkMetalSurfaceCreateInfoEXT createInfo { VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT };
+        createInfo.pLayer = cocoaWindow->GetCAMetalLayer();
+
+        VkResult vkResult = vkCreateMetalSurfaceEXT(
+            instance->GetInstance(),
+            &createInfo,
+            nullptr,
+            &surface);
+
+        HYP_GFX_ASSERT(vkResult == VK_SUCCESS, "Failed to create Metal Vulkan surface: %d", int(vkResult));
+
+        return surface;
+    }
+#endif
+
     HYP_NOT_IMPLEMENTED();
 }
 
 RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExtensions)
 {
+#ifdef HYP_MACOS
+    if (const CocoaAppContext* cocoaAppContext = ObjCast<CocoaAppContext>(g_appContext))
+    {
+        static constexpr const char* RequiredExtensions[] = {
+            VK_KHR_SURFACE_EXTENSION_NAME,
+            VK_EXT_METAL_SURFACE_EXTENSION_NAME,
+            VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+        };
+
+        uint32_t count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+
+        Array<VkExtensionProperties> vkProperties(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, vkProperties.Data());
+
+        for (const char* ext : RequiredExtensions)
+        {
+            bool found = false;
+
+            for (VkExtensionProperties& it : vkProperties)
+            {
+                if (!std::strcmp(it.extensionName, ext))
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                // required extension missing.
+                return HYP_MAKE_ERROR(RendererError, "Required Vulkan extension '{}' is not supported by the system", 0, ext);
+            }
+
+            outExtensions.PushBack(ext);
+        }
+
+        return {};
+    }
+#endif
+
 #ifdef HYP_SDL
     if (const SDLAppContext* sdlAppContext = ObjCast<SDLAppContext>(g_appContext))
     {

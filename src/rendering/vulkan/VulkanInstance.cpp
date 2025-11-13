@@ -257,12 +257,11 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 #ifdef HYP_DEBUG_MODE
 RendererResult VulkanInstance::SetupDebug()
 {
-    static const Array<const char*> layers
-    {
+    static const Array<const char*> layers {
         "VK_LAYER_KHRONOS_validation"
 #if !defined(HYP_APPLE) || !HYP_APPLE
-            ,
-            "VK_LAYER_LUNARG_monitor"
+        ,
+        "VK_LAYER_LUNARG_monitor"
 #endif
     };
 
@@ -323,11 +322,11 @@ RendererResult VulkanInstance::SetupDebugMessenger()
 }
 #endif
 
-RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
+RendererResult VulkanInstance::Initialize(bool enableDebug)
 {
 #ifdef HYP_DEBUG_MODE
     /* Set up our debug and validation layers */
-    if (enableDebugLayers)
+    if (enableDebug)
     {
         HYP_GFX_CHECK(SetupDebug());
     }
@@ -351,13 +350,12 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 #endif
     createInfo.flags = 0;
 
-#if 1
-#if defined(HYP_APPLE) && HYP_APPLE
-    // for vulkan sdk 1.3.216 and above, enumerate portability extension is required for
-    // translation layers such as moltenvk.
-    createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif
-#endif
+    if (g_appContext->IsA(CocoaAppContext::StaticClass()))
+    {
+        // for vulkan sdk 1.3.216 and above, enumerate portability extension is required for
+        // translation layers such as moltenvk.
+        createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    }
 
     // Setup Vulkan extensions
     Array<const char*> extensionNames;
@@ -367,13 +365,11 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
         return result;
     }
 
-    extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-
-#if 1
-#if defined(HYP_APPLE) && HYP_APPLE && VK_HEADER_VERSION >= 216
-    // add our enumeration extension to our instance extensions
-    extensionNames.PushBack(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-#endif
+#ifdef HYP_DEBUG_MODE
+    if (enableDebug)
+    {
+        extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
 #endif
 
     HYP_LOG(RenderingBackend, Info, "Found {} extensions:", extensionNames.Size());
@@ -399,7 +395,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     HYP_GFX_CHECK(CreateSwapchain());
 
 #ifdef HYP_DEBUG_MODE
-    if (enableDebugLayers)
+    if (enableDebug)
     {
         SetupDebugMessenger();
     }

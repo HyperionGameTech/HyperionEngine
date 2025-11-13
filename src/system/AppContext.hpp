@@ -243,6 +243,62 @@ public:
     int PollEvent(SystemEvent& event) override;
 };
 
+HYP_CLASS()
+class HYP_API CocoaApplicationWindow final : public ApplicationWindow
+{
+    HYP_OBJECT_BODY(CocoaApplicationWindow);
+
+public:
+    CocoaApplicationWindow(ANSIString title, Vec2i size);
+    ~CocoaApplicationWindow() override;
+
+    void Initialize(WindowOptions windowOptions);
+
+    void SetMousePosition(Vec2i position) override;
+    Vec2i GetMousePosition() const override;
+
+    Vec2i GetDimensions() const override;
+
+    void SetIsMouseLocked(bool locked) override;
+    bool HasMouseFocus() const override;
+
+    bool IsHighDPI() const override;
+
+#ifdef HYP_MACOS
+    HYP_FORCE_INLINE void* GetNSWindow() const
+    {
+        return m_nsWindow;
+    }
+
+    void* GetCAMetalLayer() const;
+
+    HYP_FORCE_INLINE bool IsMouseLocked() const
+    {
+        return m_mouseLocked;
+    }
+
+private:
+    void* m_nsWindow = nullptr;
+    void* m_windowDelegate = nullptr;
+    void* m_metalLayer = nullptr;
+    bool m_mouseLocked = false;
+#endif
+};
+
+HYP_CLASS()
+class HYP_API CocoaAppContext final : public AppContextBase
+{
+    HYP_OBJECT_BODY(CocoaAppContext);
+
+public:
+    CocoaAppContext(ANSIString name, const CommandLineArguments& arguments);
+    ~CocoaAppContext() override;
+
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
+
+    int PollEvent(SystemEvent& event) override;
+};
+
 } // namespace sys
 
 using sys::SystemEvent;
@@ -257,5 +313,8 @@ using sys::SDLApplicationWindow;
 
 using sys::Win32AppContext;
 using sys::Win32ApplicationWindow;
+
+using sys::CocoaAppContext;
+using sys::CocoaApplicationWindow;
 
 } // namespace hyperion

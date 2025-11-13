@@ -193,6 +193,12 @@ set(OpenGL_GL_PREFERENCE GLVND)
 link_directories(${THIRD_PARTY_LIBRARY_DIR})
 
 if(IOS)
+    find_package(SDL2 REQUIRED)
+
+    if(SDL2_FOUND)
+        add_definitions(-DHYP_SDL=1)
+    endif()
+
     if (${CMAKE_OSX_SYSROOT} STREQUAL "iphonesimulator")
         set(IOS_SIMULATOR true)
         set(MVK_PACKAGE_NAME "ios-arm64_x86_64-simulator")
@@ -258,6 +264,13 @@ if(IOS)
         ${COREMOTION_LIB}
         ${OPENGLES_LIB}
     )
+elseif(HYP_PLATFORM_NAME STREQUAL "Linux")
+    # we still use sdl on Linux (for now)
+    find_package(SDL2 REQUIRED)
+
+    if(SDL2_FOUND)
+        add_definitions(-DHYP_SDL=1)
+    endif()
 endif()
 
 if(CMAKE_GENERATOR STREQUAL "Xcode")
@@ -288,10 +301,6 @@ find_package(Bullet)
 
 if(NOT IOS)
     set(RENDERING_BACKEND "Vulkan")
-
-    if(NOT WIN32)
-        find_package(SDL2 REQUIRED)
-    endif()
 
     find_package(Vulkan)
     find_package(Freetype)
@@ -362,12 +371,6 @@ if(${OpenAL_FOUND})
     message(STATUS "OpenAL found")
 
     add_definitions(-DHYP_OPENAL=1)
-endif()
-
-if(SDL2_FOUND AND NOT WIN32)
-    message(STATUS "SDL2 found")
-
-    add_definitions(-DHYP_SDL=1)
 endif()
 
 # default definitions
@@ -626,6 +629,8 @@ if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
         ${COMMON_LIBRARIES}
         "-framework Cocoa"
         "-framework Foundation"
+        "-framework AppKit"
+        "-framework QuartzCore"
     )
 endif()
 

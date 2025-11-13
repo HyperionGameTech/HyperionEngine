@@ -25,7 +25,6 @@
 #ifdef HYP_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
-
 #endif
 
 #include <AppContext.generated.inl>
@@ -256,7 +255,7 @@ static struct IOSSDLInitializer
     {
         SDL_SetMainReady();
     }
-} g_iosSdlInitializer = {};
+} s_iosSdlInitializer = {};
 #endif
 
 SDLAppContext::SDLAppContext(ANSIString name, const CommandLineArguments& arguments)
@@ -623,6 +622,7 @@ Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions opts
     return window;
 }
 
+/// @TODO : Move Windows implementation to sys/platform/win32 file to reduce code bloat.
 #ifdef HYP_WINDOWS
 
 static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
@@ -845,6 +845,81 @@ int Win32AppContext::PollEvent(SystemEvent& event)
 #endif
 
 #pragma endregion Win32AppContext
+
+#pragma region CocoaApplicationWindow
+
+#ifndef HYP_MACOS
+
+CocoaApplicationWindow::CocoaApplicationWindow(ANSIString title, Vec2i size)
+    : ApplicationWindow(std::move(title), size)
+{
+}
+
+CocoaApplicationWindow::~CocoaApplicationWindow() = default;
+
+void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void CocoaApplicationWindow::SetMousePosition(Vec2i position)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+Vec2i CocoaApplicationWindow::GetMousePosition() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+Vec2i CocoaApplicationWindow::GetDimensions() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void CocoaApplicationWindow::SetIsMouseLocked(bool locked)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+bool CocoaApplicationWindow::HasMouseFocus() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+bool CocoaApplicationWindow::IsHighDPI() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+#endif
+
+#pragma endregion CocoaApplicationWindow
+
+#pragma region CocoaAppContext
+
+#ifndef HYP_MACOS
+
+CocoaAppContext::CocoaAppContext(ANSIString name, const CommandLineArguments& arguments)
+    : AppContextBase(std::move(name), arguments)
+{
+}
+
+CocoaAppContext::~CocoaAppContext() = default;
+
+Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+int CocoaAppContext::PollEvent(SystemEvent& event)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+#endif
+
+#pragma endregion CocoaAppContext
 
 } // namespace sys
 } // namespace hyperion
