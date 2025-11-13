@@ -36,13 +36,20 @@ static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFra
         const VulkanGpuImageRef& image = attachmentDef->image;
         HYP_GFX_ASSERT(image.IsValid());
 
-        if (framebuffer->GetRenderPass()->GetStage() == RenderPassStage::PRESENT)
+        switch (framebuffer->GetRenderPass()->GetRenderTargetType())
         {
+        case RTT_PRESENT:
             renderQueue << InsertBarrier(image, RS_PRESENT);
-        }
-        else
-        {
+            break;
+        case RTT_SHADER_RESOURCE:
             renderQueue << InsertBarrier(image, RS_SHADER_RESOURCE);
+            break;
+        case RTT_RENDER_TARGET:
+            renderQueue << InsertBarrier(image, RS_RENDER_TARGET);
+            break;
+        default:
+            HYP_NOT_IMPLEMENTED();
+            break;
         }
     }
 }
@@ -147,7 +154,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
         VulkanAttachmentRef newAttachment = CreateObject<VulkanAttachment>(
             newImage,
             framebufferWeak,
-            def.attachment->GetRenderPassStage(),
+            framebuffer->GetRenderTargetType(),
             def.attachment->GetLoadOperation(),
             def.attachment->GetStoreOperation());
 
@@ -196,10 +203,10 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
 
 #pragma region VulkanFramebuffer
 
-VulkanFramebuffer::VulkanFramebuffer(Vec2u extent, RenderPassStage stage, uint32 numMultiviewLayers)
-    : FramebufferBase(extent),
+VulkanFramebuffer::VulkanFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numMultiviewLayers)
+    : FramebufferBase(extent, renderTargetType),
       m_handle(VK_NULL_HANDLE),
-      m_renderPass(CreateObject<VulkanRenderPass>(stage, RenderPassMode::RENDER_PASS_INLINE, numMultiviewLayers))
+      m_renderPass(CreateObject<VulkanRenderPass>(renderTargetType, RenderPassMode::RENDER_PASS_INLINE, numMultiviewLayers))
 {
     m_attachmentMap.framebufferWeak = VulkanFramebufferWeakRef(WeakHandleFromThis());
 }
@@ -375,7 +382,7 @@ AttachmentRef VulkanFramebuffer::AddAttachment(
     VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(
         VulkanGpuImageRef(image),
         VulkanFramebufferWeakRef(WeakHandleFromThis()),
-        m_renderPass->GetStage(),
+        m_renderTargetType,
         loadOp,
         storeOp);
 
@@ -396,7 +403,7 @@ AttachmentRef VulkanFramebuffer::AddAttachment(
         m_extent,
         format,
         type,
-        m_renderPass->GetStage(),
+        m_renderTargetType,
         loadOp,
         storeOp);
 }

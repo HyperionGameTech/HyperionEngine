@@ -123,7 +123,7 @@ public:
     virtual SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) override;
 
     virtual FramebufferRef MakeFramebuffer(Vec2u extent, uint32 numViews = 1) override;
-    virtual FramebufferRef MakeFramebuffer(Vec2u extent, RenderPassStage stage, uint32 numViews = 1) override;
+    virtual FramebufferRef MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews = 1) override;
 
     virtual FrameRef MakeFrame(uint32 frameIndex) override;
 

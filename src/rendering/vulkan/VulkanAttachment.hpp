@@ -23,7 +23,7 @@ public:
     VulkanAttachment(
         const VulkanGpuImageRef& image,
         const VulkanFramebufferWeakRef& framebuffer,
-        RenderPassStage stage,
+        RenderTargetType renderTargetType,
         LoadOperation loadOperation = LoadOperation::CLEAR,
         StoreOperation storeOperation = StoreOperation::STORE,
         BlendFunction blendFunction = BlendFunction::None());
@@ -32,9 +32,9 @@ public:
     VkAttachmentReference GetVulkanHandle() const;
     VkAttachmentDescription GetVulkanAttachmentDescription() const;
 
-    HYP_FORCE_INLINE RenderPassStage GetRenderPassStage() const
+    HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
     {
-        return m_stage;
+        return m_renderTargetType;
     }
 
     virtual bool IsCreated() const override;
@@ -42,7 +42,7 @@ public:
     virtual RendererResult Create() override;
 
 private:
-    RenderPassStage m_stage;
+    RenderTargetType m_renderTargetType;
 };
 
 } // namespace hyperion

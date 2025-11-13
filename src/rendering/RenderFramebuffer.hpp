@@ -34,6 +34,11 @@ public:
         return m_extent;
     }
 
+    HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
+    {
+        return m_renderTargetType;
+    }
+
     virtual bool IsCreated() const = 0;
 
     /*! \brief Check if this framebuffer is currently capturing (deferred, see RenderQueue).
@@ -83,14 +88,16 @@ public:
     virtual void Clear(CommandBufferBase* commandBuffer) = 0;
 
 protected:
-    FramebufferBase(Vec2u extent)
+    FramebufferBase(Vec2u extent, RenderTargetType renderTargetType)
         : m_extent(extent),
-          m_isRecordingCount(0)
+          m_isRecordingCount(0),
+          m_renderTargetType(renderTargetType)
     {
     }
 
     Vec2u m_extent;
     int m_isRecordingCount;
+    RenderTargetType m_renderTargetType;
 };
 
 } // namespace hyperion

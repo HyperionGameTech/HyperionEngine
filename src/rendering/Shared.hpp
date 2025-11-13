@@ -826,11 +826,13 @@ struct BlendFunction
 };
 
 HYP_ENUM()
-enum class RenderPassStage : uint8
+enum RenderTargetType : uint8
 {
-    NONE,
-    PRESENT, /* for presentation on screen */
-    SHADER   /* for use as a sampled texture in a shader */
+    RTT_NONE = 0,
+    RTT_PRESENT,         /* for presentation on screen */
+    RTT_SHADER_RESOURCE, /* for use as a texture, sampled within in a shader */
+    RTT_RENDER_TARGET,   /* for use as a render target, writen to multiple times within a render pass */
+    RTT_MAX
 };
 
 HYP_ENUM()

@@ -146,7 +146,7 @@ void FinalPass::Create()
         m_extent,
         nullptr);
 
-    m_renderTextureToScreenPass->SetStage(RenderPassStage::PRESENT);
+    m_renderTextureToScreenPass->SetRenderTargetType(RTT_PRESENT);
 
     m_renderTextureToScreenPass->SetBlendFunction(BlendFunction(
         BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,

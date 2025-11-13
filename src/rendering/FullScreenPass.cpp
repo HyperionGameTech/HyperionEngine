@@ -152,7 +152,7 @@ FullScreenPass::FullScreenPass(
       m_gbuffer(gbuffer),
       m_flags(flags),
       m_blendFunction(BlendFunction::None()),
-      m_stage(RenderPassStage::SHADER),
+      m_renderTargetType(RTT_SHADER_RESOURCE),
       m_isInitialized(false),
       m_isFirstFrame(true)
 {
@@ -264,14 +264,14 @@ void FullScreenPass::SetBlendFunction(const BlendFunction& blendFunction)
     m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
 }
 
-void FullScreenPass::SetStage(RenderPassStage stage)
+void FullScreenPass::SetRenderTargetType(RenderTargetType renderTargetType)
 {
-    if (m_stage == stage)
+    if (m_renderTargetType == renderTargetType)
     {
         return;
     }
 
-    m_stage = stage;
+    m_renderTargetType = renderTargetType;
 
     // throw away graphics pipeline cache handle to force recreation.
     m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
@@ -392,7 +392,7 @@ void FullScreenPass::CreateFramebuffer()
         framebufferExtent = Vec2u { uint32(reshapedExtent.x * 2), uint32(reshapedExtent.y) };
     }
 
-    m_framebuffer = g_renderBackend->MakeFramebuffer(framebufferExtent, m_stage);
+    m_framebuffer = g_renderBackend->MakeFramebuffer(framebufferExtent, m_renderTargetType);
 
     TextureDesc textureDesc;
     textureDesc.type = TT_TEX2D;
@@ -702,7 +702,8 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     bool shouldStartRecording = !framebuffer->IsDeferredRecording();
     bool shouldEndRecording = shouldStartRecording;
 
-    Array<InsertBarrier, RenderTempAllocator> insertBarrierCmds;
+    Array<InsertBarrier, RenderTempAllocator> preRenderBarriers;
+    Array<InsertBarrier, RenderTempAllocator> postRenderBarriers;
 
     // we need to insert a barrier if any attachments are LOAD operations
     for (int i = 0; i < framebuffer->NumAttachments(); i++)
@@ -712,11 +713,22 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 
         if (attachment->GetLoadOperation() == LoadOperation::LOAD)
         {
-            insertBarrierCmds.PushBack(InsertBarrier(attachment->GetImage(), RS_RENDER_TARGET));
+            preRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), RS_RENDER_TARGET));
         }
+
+        // after rendering, if the attachment is not a render target (i.e. we're rendering to a texture for sampling),
+        // we need to transition it back to the appropriate state
+        // if (framebuffer->GetRenderTargetType() != RTT_RENDER_TARGET)
+        // {
+        // const ResourceState resourceStateAfterRender = (attachment->IsDepthAttachment())
+        //     ? RS_DEPTH_STENCIL
+        //     : RS_SHADER_RESOURCE;
+
+        // postRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), resourceStateAfterRender));
+        // }
     }
 
-    if (insertBarrierCmds.Any())
+    if (preRenderBarriers.Any())
     {
         if (framebuffer->IsDeferredRecording())
         {
@@ -726,9 +738,9 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
             shouldStartRecording = true; // we need to start new recording but should preserve the state (it was already recording)
         }
 
-        for (const InsertBarrier& cmd : insertBarrierCmds)
+        for (const InsertBarrier& cmd : preRenderBarriers)
         {
-            // frame->renderQueue << cmd;
+            frame->renderQueue << cmd;
         }
     }
 
@@ -742,6 +754,14 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     if (shouldEndRecording)
     {
         frame->renderQueue << EndFramebuffer(framebuffer);
+    }
+
+    if (postRenderBarriers.Any())
+    {
+        for (const InsertBarrier& cmd : postRenderBarriers)
+        {
+            frame->renderQueue << cmd;
+        }
     }
 
     m_isFirstFrame = false;

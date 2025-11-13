@@ -35,7 +35,7 @@ class DescriptorSetLayout;
 struct DescriptorTableDeclaration;
 
 enum class GpuBufferType : uint8;
-enum class RenderPassStage : uint8;
+enum RenderTargetType : uint8;
 
 template <class T>
 struct Handle;
@@ -103,7 +103,7 @@ public:
     virtual SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) = 0;
 
     virtual FramebufferRef MakeFramebuffer(Vec2u extent, uint32 numViews = 1) = 0;
-    virtual FramebufferRef MakeFramebuffer(Vec2u extent, RenderPassStage stage, uint32 numViews = 1) = 0;
+    virtual FramebufferRef MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews = 1) = 0;
 
     virtual FrameRef MakeFrame(uint32 frameIndex) = 0;
 

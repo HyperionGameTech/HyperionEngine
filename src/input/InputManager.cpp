@@ -118,6 +118,7 @@ InputManager::~InputManager()
 
 void InputManager::CheckEvent(SystemEvent* event)
 {
+    HYP_SCOPE;
     AssertOnThread(g_gameThread);
 
     switch (event->GetType())

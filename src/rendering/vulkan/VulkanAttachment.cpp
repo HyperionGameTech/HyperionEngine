@@ -17,32 +17,39 @@
 namespace hyperion {
 #pragma region Helpers
 
-static VkImageLayout GetInitialLayout(LoadOperation loadOperation)
+static VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment)
 {
     switch (loadOperation)
     {
     case LoadOperation::CLEAR:
         return VK_IMAGE_LAYOUT_UNDEFINED;
     case LoadOperation::LOAD:
-        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        return isDepthAttachment
+            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     default:
         return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 }
 
-static VkImageLayout GetFinalLayout(RenderPassStage stage, bool isDepthAttachment)
+static VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDepthAttachment)
 {
-    switch (stage)
+    switch (renderTargetType)
     {
-    case RenderPassStage::NONE:
+    case RTT_NONE:
         return VK_IMAGE_LAYOUT_UNDEFINED;
-    case RenderPassStage::PRESENT:
+    case RTT_PRESENT:
         return isDepthAttachment
             ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
             : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    case RenderPassStage::SHADER:
+    case RTT_SHADER_RESOURCE:
         return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    case RTT_RENDER_TARGET:
+        return isDepthAttachment
+            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     default:
+        HYP_UNREACHABLE();
         return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 }
@@ -60,6 +67,7 @@ static VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
     case LoadOperation::LOAD:
         return VK_ATTACHMENT_LOAD_OP_LOAD;
     default:
+        HYP_UNREACHABLE();
         return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     }
 }
@@ -75,6 +83,7 @@ static VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation)
     case StoreOperation::STORE:
         return VK_ATTACHMENT_STORE_OP_STORE;
     default:
+        HYP_UNREACHABLE();
         return VK_ATTACHMENT_STORE_OP_DONT_CARE;
     }
 }
@@ -93,12 +102,12 @@ static VkImageLayout GetIntermediateLayout(bool isDepthAttachment)
 VulkanAttachment::VulkanAttachment(
     const VulkanGpuImageRef& image,
     const VulkanFramebufferWeakRef& framebuffer,
-    RenderPassStage stage,
+    RenderTargetType renderTargetType,
     LoadOperation loadOperation,
     StoreOperation storeOperation,
     BlendFunction blendFunction)
     : AttachmentBase(image, framebuffer, loadOperation, storeOperation, blendFunction),
-      m_stage(stage)
+      m_renderTargetType(renderTargetType)
 {
     m_imageView = CreateObject<VulkanGpuImageView>(image);
 }
@@ -133,10 +142,10 @@ VkAttachmentDescription VulkanAttachment::GetVulkanAttachmentDescription() const
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = ToVkLoadOp(GetLoadOperation()),
         .storeOp = ToVkStoreOp(GetStoreOperation()),
-        .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(GetLoadOperation()) : VK_ATTACHMENT_LOAD_OP_DONT_CARE, 
+        .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(GetLoadOperation()) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = GetInitialLayout(GetLoadOperation()),
-        .finalLayout = GetFinalLayout(GetRenderPassStage(), IsDepthAttachment())
+        .initialLayout = GetInitialLayout(GetLoadOperation(), IsDepthAttachment()),
+        .finalLayout = GetFinalLayout(m_renderTargetType, IsDepthAttachment())
     };
 }
 

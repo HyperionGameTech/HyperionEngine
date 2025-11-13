@@ -945,15 +945,15 @@ FramebufferRef VulkanRenderBackend::MakeFramebuffer(Vec2u extent, uint32 numView
 {
     return CreateObject<VulkanFramebuffer>(
         extent,
-        RenderPassStage::SHADER,
+        RTT_SHADER_RESOURCE,
         numViews);
 }
 
-FramebufferRef VulkanRenderBackend::MakeFramebuffer(Vec2u extent, RenderPassStage stage, uint32 numViews)
+FramebufferRef VulkanRenderBackend::MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews)
 {
     return CreateObject<VulkanFramebuffer>(
         extent,
-        stage,
+        renderTargetType,
         numViews);
 }
 

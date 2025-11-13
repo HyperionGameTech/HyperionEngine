@@ -1671,6 +1671,8 @@ void EditorSubsystem::InitViewport()
                 const Vec2f position = uiImage->GetAbsolutePosition();
                 const Vec2i size = uiImage->GetActualSize();
 
+                // @TODO : refactor, we're calling SetMousePosition() on game thread which is causing warnings on macOS
+                // since this is a UI event we should call this on the UI thread (main)
                 event.inputManager->SetMousePosition(Vec2i(position + Vec2f(size) * 0.5f));
 
                 return UIEventHandlerResult::OK;

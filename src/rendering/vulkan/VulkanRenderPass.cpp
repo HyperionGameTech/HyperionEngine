@@ -21,8 +21,8 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
-VulkanRenderPass::VulkanRenderPass(RenderPassStage stage, RenderPassMode mode)
-    : m_stage(stage),
+VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode)
+    : m_renderTargetType(renderTargetType),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
       m_numMultiviewLayers(0),
@@ -30,8 +30,8 @@ VulkanRenderPass::VulkanRenderPass(RenderPassStage stage, RenderPassMode mode)
 {
 }
 
-VulkanRenderPass::VulkanRenderPass(RenderPassStage stage, RenderPassMode mode, uint32 numMultiviewLayers)
-    : m_stage(stage),
+VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode, uint32 numMultiviewLayers)
+    : m_renderTargetType(renderTargetType),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
       m_numMultiviewLayers(numMultiviewLayers),
@@ -54,9 +54,9 @@ void VulkanRenderPass::CreateDependencies()
     Optional<VkSubpassDependency> loadDependency;
     Optional<VkSubpassDependency> storeDependency;
 
-    switch (m_stage)
+    switch (m_renderTargetType)
     {
-    case RenderPassStage::PRESENT:
+    case RTT_PRESENT:
         loadDependency = VkSubpassDependency {
             .srcSubpass = VK_SUBPASS_EXTERNAL,
             .dstSubpass = 0,
@@ -68,7 +68,8 @@ void VulkanRenderPass::CreateDependencies()
         };
 
         break;
-    case RenderPassStage::SHADER:
+    case RTT_SHADER_RESOURCE: // fallthrough
+    case RTT_RENDER_TARGET:
     {
         for (const VulkanAttachmentRef& attachment : m_renderPassAttachments)
         {
@@ -142,7 +143,7 @@ void VulkanRenderPass::CreateDependencies()
         break;
     }
     default:
-        HYP_GFX_ASSERT(0, "Unsupported stage type %d", int(m_stage));
+        HYP_FAIL("Unsupported RenderTargetType value {}", int(m_renderTargetType));
     }
 
     if (loadDependency.HasValue())

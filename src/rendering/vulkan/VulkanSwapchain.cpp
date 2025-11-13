@@ -249,7 +249,7 @@ RendererResult VulkanSwapchain::Create()
             HYP_GFX_CHECK(HYP_MAKE_ERROR(RendererError, "Image resource state is not PRESENT!"));
         }
 
-        VulkanFramebufferRef framebuffer = VULKAN_CAST(m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(m_extent, RenderPassStage::PRESENT)));
+        VulkanFramebufferRef framebuffer = VULKAN_CAST(m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(m_extent, RTT_PRESENT)));
         framebuffer->AddAttachment(0, VulkanGpuImageRef(image), LoadOperation::CLEAR, StoreOperation::STORE);
         HYP_GFX_CHECK(framebuffer->Create());
     }

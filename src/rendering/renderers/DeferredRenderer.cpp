@@ -1345,7 +1345,7 @@ RaytracingPassData::~RaytracingPassData()
 
 static FramebufferRef CreateDeferredIndirectPassFramebuffer(GBuffer* gbuffer)
 {
-    FramebufferRef indirectPassFramebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent(), RenderPassStage::SHADER);
+    FramebufferRef indirectPassFramebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent(), RTT_SHADER_RESOURCE);
 
     TextureDesc textureDesc;
     textureDesc.type = TT_TEX2D;
@@ -1373,7 +1373,7 @@ static FramebufferRef CreateDeferredDirectPassFramebuffer(GBuffer* gbuffer, cons
 {
     Assert(indirectPassFramebuffer != nullptr && indirectPassFramebuffer->IsCreated());
 
-    FramebufferRef directPassFramebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent(), RenderPassStage::SHADER);
+    FramebufferRef directPassFramebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent(), RTT_SHADER_RESOURCE);
 
     // shared image between indirect / direct passes
     AttachmentRef attachment = directPassFramebuffer->AddAttachment(

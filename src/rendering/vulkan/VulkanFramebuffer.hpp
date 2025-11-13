@@ -91,7 +91,7 @@ struct VulkanAttachmentMap
         Vec2u extent,
         TextureFormat format,
         TextureType type,
-        RenderPassStage stage,
+        RenderTargetType renderTargetType,
         LoadOperation loadOp,
         StoreOperation storeOp)
     {
@@ -103,7 +103,13 @@ struct VulkanAttachmentMap
 
         VulkanGpuImageRef image = CreateObject<VulkanGpuImage>(textureDesc);
 
-        VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(image, framebufferWeak, stage, loadOp, storeOp);
+        VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(
+            image,
+            framebufferWeak,
+            renderTargetType,
+            loadOp,
+            storeOp);
+
         attachment->SetBinding(binding);
 
         attachments.Set(
@@ -126,7 +132,7 @@ class VulkanFramebuffer final : public FramebufferBase
 public:
     VulkanFramebuffer(
         Vec2u extent,
-        RenderPassStage stage = RenderPassStage::SHADER,
+        RenderTargetType renderTargetType = RTT_SHADER_RESOURCE,
         uint32 numMultiviewLayers = 0);
 
     virtual ~VulkanFramebuffer() override;

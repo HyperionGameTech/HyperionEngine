@@ -29,8 +29,8 @@ class VulkanRenderPass final : public ObjectBase
     HYP_OBJECT_BODY(VulkanRenderPass);
 
 public:
-    VulkanRenderPass(RenderPassStage stage, RenderPassMode mode);
-    VulkanRenderPass(RenderPassStage stage, RenderPassMode mode, uint32 numMultiviewLayers);
+    VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode);
+    VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode, uint32 numMultiviewLayers);
     virtual ~VulkanRenderPass() override;
 
     HYP_FORCE_INLINE VkRenderPass GetVulkanHandle() const
@@ -38,17 +38,17 @@ public:
         return m_handle;
     }
 
-    RenderPassStage GetStage() const
+    HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
     {
-        return m_stage;
+        return m_renderTargetType;
     }
 
-    bool IsMultiview() const
+    HYP_FORCE_INLINE bool IsMultiview() const
     {
         return m_numMultiviewLayers > 1;
     }
 
-    uint32 NumMultiviewLayers() const
+    HYP_FORCE_INLINE uint32 NumMultiviewLayers() const
     {
         return m_numMultiviewLayers;
     }
@@ -74,7 +74,7 @@ private:
         m_dependencies.PushBack(dependency);
     }
 
-    RenderPassStage m_stage;
+    RenderTargetType m_renderTargetType;
     RenderPassMode m_mode;
     uint32 m_numMultiviewLayers;
 
