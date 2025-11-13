@@ -419,7 +419,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
         proxy->material = MakeWeakRef(this);
     }
 
-    const bool s_isBindlessSupported = g_renderBackend->GetRenderConfig().bindlessTextures;
+    const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
 
     MaterialShaderData& bufferData = proxy->bufferData;
 
@@ -438,7 +438,10 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 
     bufferData.textureUsage = 0;
 
-    const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::MaxTextures, s_isBindlessSupported ? MaxBindlessResources : MaxBoundTextures);
+    uint32* textureIndicesU32 = reinterpret_cast<uint32*>(&bufferData.textureIndices);
+    Memory::MemSet(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
+
+    const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::MaxTextures, useBindlessTextures ? MaxBindlessResources : MaxBoundTextures);
     uint32 remainingTextureSlots = numTextureSlots;
 
     proxy->boundTextures.Clear();
@@ -460,13 +463,19 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             const uint32 idx = uint32(proxy->boundTextures.Size());
             proxy->boundTextures.PushBack(texture);
 
+            if (useBindlessTextures)
+            {
+                textureIndicesU32[slot] = texture.Id().ToIndex();
+            }
+            else
+            {
+                textureIndicesU32[slot] = idx;
+            }
+
             // enable this slot for the texture
             bufferData.textureUsage |= (1u << slot);
 
-            if (!s_isBindlessSupported) // bindless textures are updated in WriteBufferData_Material().
-            {
-                proxy->boundTextureIndices[slot] = idx;
-            }
+            proxy->boundTextureIndices[slot] = idx;
 
             --remainingTextureSlots;
         }

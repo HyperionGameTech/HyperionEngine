@@ -29,66 +29,66 @@ void BindlessStorage::UnsetAllResources()
         AssertDebug(descriptorSet.IsValid());
 
         // Unset all active textures
-        for (const auto& it : m_textures)
+        for (const auto& it : m_resources)
         {
-            descriptorSet->SetElement("Textures", it.first, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+            descriptorSet->SetElement("Textures", it.first.ToIndex(), g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
         }
     }
 
-    m_textures.Clear();
+    m_resources.Clear();
 }
 
-void BindlessStorage::AddResource(uint32 boundIndex, Texture* texture)
+void BindlessStorage::AddResource(ObjId<Texture> id, const GpuImageViewRef& imageView)
 {
     Threads::AssertOnThread(g_renderThread);
 
-    if (boundIndex == ~0u || !texture)
+    if (!id.IsValid())
     {
         return;
     }
 
-    auto it = m_textures.Find(boundIndex);
+    auto it = m_resources.Find(id);
 
-    if (it != m_textures.End())
+    if (it != m_resources.End())
     {
         return;
     }
 
-    m_textures.Insert({ boundIndex, MakeWeakRef(texture) });
+    m_resources.Insert({ id, imageView });
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Material", frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
-        descriptorSet->SetElement("Textures", boundIndex, g_renderBackend->GetTextureImageView(texture));
+        descriptorSet->SetElement("Textures", id.ToIndex(), imageView);
     }
 }
 
-void BindlessStorage::RemoveResource(uint32 boundIndex)
+void BindlessStorage::RemoveResource(ObjId<Texture> id)
 {
     Threads::AssertOnThread(g_renderThread);
 
-    if (boundIndex == ~0u)
+    if (!id.IsValid())
     {
         return;
     }
 
-    auto it = m_textures.Find(boundIndex);
+    auto it = m_resources.Find(id);
 
-    if (it == m_textures.End())
+    if (it == m_resources.End())
     {
         return;
     }
 
-    m_textures.Erase(it);
+    m_resources.Erase(it);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Material", frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
-        descriptorSet->SetElement("Textures", boundIndex, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("Textures", id.ToIndex(), g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
     }
 }
 

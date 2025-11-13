@@ -81,7 +81,7 @@ public:
         raytracing = renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported();
         indirectRendering = CoreApi_GetGlobalConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
         parallelRendering = CoreApi_GetGlobalConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
-        dynamicDescriptorIndexing = false; // renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
+        dynamicDescriptorIndexing = false; //renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
     }
 };
 
@@ -510,54 +510,38 @@ class VulkanTextureCache
 {
 public:
     // map texture ID -> image views
-    HashMap<ObjId<Texture>, HashMap<ImageSubResource, GpuImageViewRef>, NodeAllocator<RenderAllocator>> imageViews;
+    SparsePagedArray<HashMap<ImageSubResource, GpuImageViewRef>, 1024> imageViews;
     // to keep texture IDs as valid
-    HashMap<ObjId<Texture>, WeakHandle<Texture>, NodeAllocator<RenderAllocator>> weakTextureHandles;
+    SparsePagedArray<WeakHandle<Texture>, 1024> weakTextureHandles;
 
     typename decltype(weakTextureHandles)::Iterator cleanupIterator;
 
     VulkanTextureCache()
-        : cleanupIterator(weakTextureHandles.End())
     {
+        cleanupIterator = weakTextureHandles.End();
     }
 
-    const GpuImageViewRef& GetOrCreate(Texture* texture, const ImageSubResource& subResource)
+    const GpuImageViewRef& GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource)
     {
-        HYP_SCOPE;
         Threads::AssertOnThread(g_renderThread);
 
-        HYP_GFX_ASSERT(texture != nullptr);
+        HYP_GFX_ASSERT(texture.IsValid());
 
-        auto imageViewsIt = imageViews.Find(texture->Id());
-        if (imageViewsIt == imageViews.End())
+        const SizeType idx = texture.Id().ToIndex();
+
+        if (!imageViews.HasIndex(idx))
         {
-            imageViewsIt = imageViews.Emplace(texture->Id()).first;
-
-            const ObjId<Texture> cleanupIteratorValueBefore = cleanupIterator != weakTextureHandles.End() ? cleanupIterator->first : ObjId<Texture>();
-            const SizeType bucketCount = weakTextureHandles.BucketCount();
-
-            weakTextureHandles.Set(texture->Id(), MakeWeakRef(texture));
-
-            // just in case the iterator was invalidated by the insertion causing bucket resizing.
-            if (bucketCount != weakTextureHandles.BucketCount())
-            {
-                if (cleanupIteratorValueBefore.IsValid())
-                {
-                    cleanupIterator = weakTextureHandles.Find(cleanupIteratorValueBefore);
-                }
-                else
-                {
-                    cleanupIterator = weakTextureHandles.End();
-                }
-            }
+            imageViews.Emplace(idx);
+            weakTextureHandles.Emplace(idx, texture.ToWeak());
         }
 
-        auto& textureImageViews = imageViewsIt->second;
+        auto& textureImageViews = imageViews.Get(idx);
 
         auto it = textureImageViews.Find(subResource);
 
         if (it == textureImageViews.End())
         {
+
             VulkanGpuImageViewRef imageView = CreateObject<VulkanGpuImageView>(
                 VulkanGpuImageRef(texture->GetGpuImage()),
                 subResource.baseMipLevel,
@@ -575,39 +559,40 @@ public:
         return it->second;
     }
 
-    void RemoveTexture(Texture* texture)
+    void RemoveTexture(const Handle<Texture>& texture)
     {
-        HYP_SCOPE;
         Threads::AssertOnThread(g_renderThread);
 
-        if (!texture)
+        if (!texture.IsValid())
         {
             return;
         }
 
-        const ObjId<Texture> textureId = texture->Id();
+        const SizeType idx = texture.Id().ToIndex();
 
-        auto imageViewsIt = imageViews.Find(texture->Id());
-        if (imageViewsIt == imageViews.End())
+        if (imageViews.HasIndex(idx))
         {
-            return;
-        }
+            for (auto& it : imageViews.Get(idx))
+            {
+                SafeDelete(std::move(it.second));
+            }
 
-        for (auto& it : imageViewsIt->second)
-        {
-            SafeDelete(std::move(it.second));
+            imageViews.EraseAt(idx);
+            weakTextureHandles.EraseAt(idx);
         }
-
-        imageViews.Erase(imageViewsIt);
-        weakTextureHandles.Erase(textureId);
     }
 
     void CleanupUnusedTextures()
     {
-        HYP_SCOPE;
         Threads::AssertOnThread(g_renderThread);
 
-        constexpr uint32 MaxCycles = 32;
+        constexpr uint32 maxCycles = 32;
+
+        cleanupIterator = typename decltype(weakTextureHandles)::Iterator {
+            &weakTextureHandles,
+            cleanupIterator.page,
+            cleanupIterator.elem
+        };
 
         if (cleanupIterator == weakTextureHandles.End())
         {
@@ -616,22 +601,23 @@ public:
 
         uint32 numRemoved = 0;
 
-        for (uint32 i = 0; cleanupIterator != weakTextureHandles.End() && i < MaxCycles; i++)
+        for (uint32 i = 0; cleanupIterator != weakTextureHandles.End() && i < maxCycles; i++)
         {
-            const ObjId<Texture> id = cleanupIterator->first;
-            WeakHandle<Texture>& weakTexture = cleanupIterator->second;
+            auto& entry = *cleanupIterator;
 
-            if (!weakTexture.Lock())
+            if (!entry.Lock())
             {
-                auto imageViewsIt = imageViews.Find(id);
-                AssertDebug(imageViewsIt != imageViews.End());
+                const SizeType idx = weakTextureHandles.IndexOf(cleanupIterator);
 
-                for (auto& it : imageViewsIt->second)
+                HYP_GFX_ASSERT(imageViews.HasIndex(idx));
+                HYP_GFX_ASSERT(weakTextureHandles.HasIndex(idx));
+
+                for (auto& it : imageViews.Get(idx))
                 {
                     SafeDelete(std::move(it.second));
                 }
 
-                imageViews.Erase(imageViewsIt);
+                imageViews.EraseAt(idx);
 
                 cleanupIterator = weakTextureHandles.Erase(cleanupIterator);
 
@@ -999,9 +985,9 @@ GpuTlasRef VulkanRenderBackend::MakeTLAS()
     return CreateObject<VulkanGpuTlas>();
 }
 
-const GpuImageViewRef& VulkanRenderBackend::GetTextureImageView(Texture* texture, uint32 mipIndex, uint32 numMips, uint32 faceIndex, uint32 numFaces)
+const GpuImageViewRef& VulkanRenderBackend::GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex, uint32 numMips, uint32 faceIndex, uint32 numFaces)
 {
-    if (!texture)
+    if (!texture.IsValid())
     {
         return GpuImageViewRef::empty;
     }

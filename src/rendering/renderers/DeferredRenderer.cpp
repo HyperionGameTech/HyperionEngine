@@ -679,8 +679,8 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRe
         Assert(uniformBuffer->Create());
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        descriptorSet->SetElement("IrradianceTexture", g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? irradianceTexture : g_renderGlobalState->placeholderData->defaultTexture2d));
-        descriptorSet->SetElement("RadianceTexture", g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? radianceTexture : g_renderGlobalState->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("IrradianceTexture", g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("RadianceTexture", g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
         descriptorSet->SetElement("Sampler", g_renderGlobalState->placeholderData->GetSamplerLinear());
         descriptorSet->SetElement("GBufferSampler", g_renderGlobalState->placeholderData->GetSamplerNearest());
         descriptorSet->SetElement("LightmapVolumeUniforms", uniformBuffer);
