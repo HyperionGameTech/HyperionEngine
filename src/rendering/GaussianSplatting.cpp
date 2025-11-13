@@ -223,7 +223,7 @@ void GaussianSplattingInstance::Init()
 void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     Assert(IsReady());
 
@@ -636,7 +636,7 @@ void GaussianSplatting::CreateBuffers()
 
 void GaussianSplatting::UpdateSplats(FrameBase* frame, const RenderSetup& renderSetup)
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
     AssertReady();
 
     if (!m_gaussianSplattingInstance)
@@ -667,7 +667,7 @@ void GaussianSplatting::UpdateSplats(FrameBase* frame, const RenderSetup& render
 void GaussianSplatting::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
     AssertReady();
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());

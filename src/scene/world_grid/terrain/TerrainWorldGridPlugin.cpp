@@ -344,7 +344,7 @@ void TerrainStreamingCell::OnStreamStart_Impl()
 {
     HYP_SCOPE;
 
-    HYP_LOG(WorldGrid, Debug, "Generating terrain patch at coord {} with extent {} and scale {} on thread {}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, Threads::CurrentThreadId().GetName());
+    HYP_LOG(WorldGrid, Debug, "Generating terrain patch at coord {} with extent {} and scale {} on thread {}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, CurrentThreadId().GetName());
 
     terrain::TerrainMeshBuilder meshBuilder(m_cellInfo);
     meshBuilder.GenerateHeights(terrain::GetTerrainNoiseCombinator());
@@ -356,7 +356,7 @@ void TerrainStreamingCell::OnStreamStart_Impl()
 void TerrainStreamingCell::OnLoaded_Impl()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     Assert(m_scene.IsValid(), "Invalid scene!");
     Assert(m_mesh.IsValid(), "Invalid mesh!");
@@ -409,7 +409,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
 void TerrainStreamingCell::OnRemoved_Impl()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (m_node.IsValid())
     {
@@ -435,7 +435,7 @@ TerrainWorldGridLayer::~TerrainWorldGridLayer()
 void TerrainWorldGridLayer::Init()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     WorldGridLayer::Init();
 
@@ -475,7 +475,7 @@ void TerrainWorldGridLayer::Init()
 void TerrainWorldGridLayer::OnAdded_Impl(WorldGrid* worldGrid)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     AssertDebug(worldGrid != nullptr);
     AssertDebug(m_scene.IsValid());
@@ -488,7 +488,7 @@ void TerrainWorldGridLayer::OnAdded_Impl(WorldGrid* worldGrid)
 void TerrainWorldGridLayer::OnRemoved_Impl(WorldGrid* worldGrid)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     AssertDebug(worldGrid != nullptr);
     AssertDebug(m_scene.IsValid());
@@ -504,7 +504,7 @@ void TerrainWorldGridLayer::OnRemoved_Impl(WorldGrid* worldGrid)
 // void TerrainWorldGridLayer::Shutdown_Impl(WorldGrid* worldGrid)
 // {
 //     HYP_SCOPE;
-//     Threads::AssertOnThread(g_gameThread);
+//     AssertOnThread(g_gameThread);
 
 //     AssertDebug(worldGrid != nullptr);
 
@@ -516,7 +516,7 @@ void TerrainWorldGridLayer::OnRemoved_Impl(WorldGrid* worldGrid)
 // void TerrainWorldGridPlugin::Update_Impl(float delta)
 // {
 //     HYP_SCOPE;
-//     Threads::AssertOnThread(g_gameThread);
+//     AssertOnThread(g_gameThread);
 // }
 
 Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo)

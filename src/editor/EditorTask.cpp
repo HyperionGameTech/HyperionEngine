@@ -41,7 +41,7 @@ TickableEditorTask::TickableEditorTask()
 
 bool TickableEditorTask::Commit()
 {
-    ThreadBase* gameThread = Threads::GetThread(g_gameThread);
+    ThreadBase* gameThread = GetThreadById(g_gameThread);
     Assert(gameThread != nullptr);
 
     m_task = gameThread->GetScheduler().Enqueue([this, weakThis = WeakHandleFromThis()]()
@@ -65,7 +65,7 @@ void TickableEditorTask::Cancel_Impl()
 {
     if (m_task.IsValid() && !m_task.IsCompleted())
     {
-        if (!Threads::IsOnThread(g_gameThread))
+        if (!IsOnThread(g_gameThread))
         {
             HYP_LOG(Editor, Info, "Awaiting TickableEditorTask completion");
 

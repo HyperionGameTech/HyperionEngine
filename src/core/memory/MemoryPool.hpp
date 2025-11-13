@@ -361,7 +361,7 @@ public:
     {
         HYP_SCOPE;
         // // Must be on the owner thread to remove empty blocks.
-        // Threads::AssertOnThread(m_ownerThreadId);
+        // AssertOnThread(m_ownerThreadId);
 
         if (m_numBlocks.Get(MemoryOrder::ACQUIRE) <= m_initialNumBlocks)
         {
@@ -410,7 +410,7 @@ public:
         HYP_SCOPE;
 
         // // Must be on the owner thread to reset indices.
-        // Threads::AssertOnThread(m_ownerThreadId);
+        // AssertOnThread(m_ownerThreadId);
 
         m_idGenerator.Reset();
     }

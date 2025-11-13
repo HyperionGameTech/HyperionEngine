@@ -302,13 +302,13 @@ EngineStatsRecorder::EngineStatsRecorder()
 
 EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot()
 {
-    Threads::AssertOnThread(g_renderThread | g_gameThread);
+    AssertOnThread(g_renderThread | g_gameThread);
     return m_impl->snapshots[RenderApi::GetRingIndex()];
 }
 
 const EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot() const
 {
-    Threads::AssertOnThread(g_renderThread | g_gameThread);
+    AssertOnThread(g_renderThread | g_gameThread);
     return m_impl->snapshots[RenderApi::GetRingIndex()];
 }
 
@@ -358,7 +358,7 @@ double EngineStatsRecorder::CalculateFps() const
 void EngineStatsRecorder::Prepare()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 sampleIdx = m_impl->sampleIndex % EngineStatsNumSamples;
 
@@ -372,7 +372,7 @@ void EngineStatsRecorder::Prepare()
 void EngineStatsRecorder::RecordValueSet(const EngineStatsValueSet& valueSet)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 sampleIdx = m_impl->sampleIndex % EngineStatsNumSamples;
 
@@ -392,7 +392,7 @@ void EngineStatsRecorder::RecordValueSet(const EngineStatsValueSet& valueSet)
 void EngineStatsRecorder::Advance()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     m_impl->counter.NextTick();
     m_impl->deltaAccum += m_impl->counter.delta;

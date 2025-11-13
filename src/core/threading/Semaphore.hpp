@@ -19,6 +19,8 @@
 namespace hyperion {
 namespace threading {
 
+HYP_API extern void ThreadSleep(uint32 milliseconds);
+
 enum class SemaphoreDirection : uint8
 {
     WAIT_FOR_ZERO_OR_NEGATIVE = 0,

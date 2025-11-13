@@ -1343,7 +1343,7 @@ void AssetRegistry::Init()
 void AssetRegistry::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(s_assetRegistryThread);
+    AssertOnThread(s_assetRegistryThread);
 
     AssertReady();
 
@@ -1429,7 +1429,7 @@ void AssetRegistry::PostTask(Func&& fn, Task<FutureType>* pOutFuture)
     HYP_SCOPE;
     AssertReady();
 
-    if (!UseSingleThread || Threads::IsOnThread(s_assetRegistryThread))
+    if (!UseSingleThread || IsOnThread(s_assetRegistryThread))
     {
         if (pOutFuture)
         {
@@ -1570,7 +1570,7 @@ void AssetRegistry::SetRootPath(const String& rootPath)
 void AssetRegistry::SetPackages(const AssetPackageSet& packages)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(s_assetRegistryThread);
+    AssertOnThread(s_assetRegistryThread);
 
     Proc<void(Handle<AssetPackage>)> initializePackage;
 
@@ -2479,7 +2479,7 @@ void AssetRegistry::RegisterAssetsRecursively(
     ProcRef<String(const AssetObject&)> getObjectSubpath)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(s_assetRegistryThread);
+    AssertOnThread(s_assetRegistryThread);
 
     if (!target.IsValid() || target.IsNull())
     {

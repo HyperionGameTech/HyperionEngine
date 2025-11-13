@@ -59,7 +59,7 @@ DepthPyramidRenderer::~DepthPyramidRenderer()
 void DepthPyramidRenderer::Create()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     Assert(m_gbuffer != nullptr);
 
@@ -75,7 +75,7 @@ void DepthPyramidRenderer::Create()
     auto createDepthPyramidResources = [this]()
     {
         HYP_NAMED_SCOPE("Create depth pyramid resources");
-        Threads::AssertOnThread(g_renderThread);
+        AssertOnThread(g_renderThread);
 
         m_depthPyramidSampler = g_renderBackend->MakeSampler(TFM_NEAREST_MIPMAP, TFM_NEAREST, TWM_CLAMP_TO_EDGE);
         HYP_GFX_ASSERT(m_depthPyramidSampler->Create());
@@ -229,7 +229,7 @@ Vec2u DepthPyramidRenderer::GetExtent() const
 void DepthPyramidRenderer::Render(FrameBase* frame)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 

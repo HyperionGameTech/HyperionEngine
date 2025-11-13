@@ -67,12 +67,12 @@ TemporalBlending::TemporalBlending(
     const GpuImageViewRef& inputImageView,
     GBuffer* gbuffer)
     : TemporalBlending(
-        extent,
-        TF_RGBA8,
-        technique,
-        feedback,
-        inputImageView,
-        gbuffer)
+          extent,
+          TF_RGBA8,
+          technique,
+          feedback,
+          inputImageView,
+          gbuffer)
 {
 }
 
@@ -152,7 +152,7 @@ void TemporalBlending::Resize(Vec2u newSize)
 void TemporalBlending::Resize_Internal(Vec2u newSize)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (m_extent == newSize)
     {
@@ -291,7 +291,7 @@ void TemporalBlending::CreatePipeline()
 void TemporalBlending::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());

@@ -61,7 +61,7 @@ Entity::~Entity()
         return;
     }
 
-    if (Threads::IsOnThread(entityManager->GetOwnerThreadId()))
+    if (IsOnThread(entityManager->GetOwnerThreadId()))
     {
         HYP_NAMED_SCOPE("Remove Entity from EntityManager (sync)");
 
@@ -76,7 +76,7 @@ Entity::~Entity()
     {
         // If not on the correct thread, perform the removal asynchronously
         // Keep a WeakHandle of Entity so the Id doesn't get reused while we're using it
-        Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue([weakThis = MakeWeakRef(this), entityManagerWeak = MakeWeakRef(entityManager)]()
+        GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue([weakThis = MakeWeakRef(this), entityManagerWeak = MakeWeakRef(entityManager)]()
             {
                 Handle<EntityManager> entityManager = entityManagerWeak.Lock();
                 if (!entityManager)
@@ -165,7 +165,7 @@ bool Entity::ReceivesUpdate() const
     EntityManager* entityManager = GetEntityManager();
     AssertDebug(entityManager != nullptr, "EntityManager is null for Entity {} while checking receives update", Id());
 
-    Threads::AssertOnThread(entityManager->GetOwnerThreadId());
+    AssertOnThread(entityManager->GetOwnerThreadId());
 
     return entityManager->HasTag<EntityTag::RECEIVES_UPDATE>(this);
 }
@@ -182,7 +182,7 @@ void Entity::SetReceivesUpdate(bool receivesUpdate)
     EntityManager* entityManager = GetEntityManager();
     AssertDebug(entityManager != nullptr, "EntityManager is null for Entity {} while setting receives update", Id());
 
-    Threads::AssertOnThread(entityManager->GetOwnerThreadId());
+    AssertOnThread(entityManager->GetOwnerThreadId());
 
     if (receivesUpdate)
     {
@@ -456,7 +456,7 @@ Array<HypData, DynamicAllocator> Entity::SerializeComponents() const
         }
     };
 
-    if (Threads::IsOnThread(entityManager->GetOwnerThreadId()))
+    if (IsOnThread(entityManager->GetOwnerThreadId()))
     {
         serializeEntityAndComponents();
     }
@@ -464,7 +464,7 @@ Array<HypData, DynamicAllocator> Entity::SerializeComponents() const
     {
         HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
 
-        Task<void> serializeEntityAndComponentsTask = Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serializeEntityAndComponents]()
+        Task<void> serializeEntityAndComponentsTask = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serializeEntityAndComponents]()
             {
                 serializeEntityAndComponents();
             });

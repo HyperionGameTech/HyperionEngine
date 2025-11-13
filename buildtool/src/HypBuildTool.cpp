@@ -1765,13 +1765,13 @@ private:
 
     void WaitWhileTaskRunning(const Task<void>& task)
     {
-        Threads::AssertOnThread(g_mainThread);
+        AssertOnThread(g_mainThread);
 
         Assert(task.IsValid());
 
         while (!task.IsCompleted())
         {
-            Threads::Sleep(100);
+            ThreadSleep(100);
         }
     }
 
@@ -1804,7 +1804,7 @@ using namespace buildtool;
 
 int main(int argc, char** argv)
 {
-    Threads::SetCurrentThreadId(g_mainThread);
+    SetCurrentThreadId(g_mainThread);
 
     static Logger s_buildToolLogger;
 

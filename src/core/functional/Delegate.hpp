@@ -25,9 +25,19 @@
 
 namespace hyperion {
 
-namespace dotnet {
-class ManagedObject;
-} // namespace dotnet
+namespace threading {
+
+class ThreadId;
+class ThreadBase;
+
+HYP_API extern void ThreadSleep(uint32 milliseconds);
+HYP_API extern ThreadBase* GetThreadById(const ThreadId& threadId);
+
+} // namespace threading
+
+using threading::GetThreadById;
+using threading::ThreadBase;
+using threading::ThreadSleep;
 
 namespace functional {
 
@@ -63,7 +73,7 @@ struct DelegateHandlerEntryBase
         while (HYP_UNLIKELY(mask.Get(MemoryOrder::ACQUIRE) & g_readMask))
         {
             HYP_NAMED_SCOPE("~DelegateHandlerEntryBase() - Waiting for read scopes to finish");
-            Threads::Sleep(0);
+            ThreadSleep(0);
         }
     }
 
@@ -84,7 +94,7 @@ struct DelegateHandlerEntryBase
             return nullptr;
         }
 
-        ThreadBase* thread = Threads::GetThread(callingThreadId);
+        ThreadBase* thread = GetThreadById(callingThreadId);
         HYP_CORE_ASSERT(thread != nullptr);
 
         return thread;
@@ -271,7 +281,7 @@ public:
             while (HYP_UNLIKELY(entry->mask.Get(MemoryOrder::ACQUIRE) & g_readMask))
             {
                 HYP_NAMED_SCOPE("~DelegateImpl() - Waiting for read scopes to finish");
-                Threads::Sleep(0);
+                ThreadSleep(0);
             }
 
             delete entry;
@@ -321,7 +331,7 @@ public:
 #ifdef HYP_DEBUG_MODE
         if (callingThreadId != ThreadId::Invalid())
         {
-            HYP_CORE_ASSERT(Threads::GetThread(callingThreadId) != nullptr, "Cannot bind a handler to a thread that is not registered with the Threads system");
+            HYP_CORE_ASSERT(GetThreadById(callingThreadId) != nullptr, "Cannot bind a handler to a thread that is not registered with the Threads system");
         }
 #endif
 
@@ -435,7 +445,7 @@ public:
             }
         }
 
-        const ThreadId currentThreadId = Threads::CurrentThreadId();
+        const ThreadId currentThreadId = CurrentThreadId();
 
         ValueStorage<ReturnType> resultStorage;
         bool resultConstructed = false;

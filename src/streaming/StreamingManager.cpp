@@ -168,7 +168,7 @@ public:
             return;
         }
 
-        if (!IsRunning() || Threads::IsOnThread(Id()))
+        if (!IsRunning() || IsOnThread(Id()))
         {
             m_volumes.PushBack(volume);
         }
@@ -186,7 +186,7 @@ public:
 
     void RemoveStreamingVolume(const StreamingVolumeBase* volume)
     {
-        if (!IsRunning() || Threads::IsOnThread(Id()))
+        if (!IsRunning() || IsOnThread(Id()))
         {
             auto it = m_volumes.FindAs(volume);
             Assert(it != m_volumes.End(), "StreamingVolume not found in streaming manager!");
@@ -215,7 +215,7 @@ public:
             return;
         }
 
-        if (!IsRunning() || Threads::IsOnThread(Id()))
+        if (!IsRunning() || IsOnThread(Id()))
         {
             auto it = m_layers.FindIf([layer](const LayerData& data)
                 {
@@ -247,7 +247,7 @@ public:
 
     void RemoveWorldGridLayer(const WorldGridLayer* layer)
     {
-        if (!IsRunning() || Threads::IsOnThread(Id()))
+        if (!IsRunning() || IsOnThread(Id()))
         {
             auto it = m_layers.FindIf([layer](const LayerData& data)
                 {
@@ -291,7 +291,7 @@ public:
 
     void SinkGameThreadUpdates(Array<Pair<Handle<StreamingCell>, StreamingCellState>>& out)
     {
-        Threads::AssertOnThread(g_gameThread);
+        AssertOnThread(g_gameThread);
 
         out.Concat(m_cellUpdatesGameThread);
         m_cellUpdatesGameThread.Clear();
@@ -348,7 +348,7 @@ private:
             }
             while (num > 0 && !m_stopRequested.Get(MemoryOrder::RELAXED));
 
-            Threads::Sleep(1000);
+            ThreadSleep(1000);
         }
     }
 
@@ -364,7 +364,7 @@ private:
         Task<void>& future = m_gameThreadFutures.EmplaceBack();
         TaskPromise<void>* promise = future.Promise();
 
-        Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
+        GetThreadById(g_gameThread)->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
             {
                 m_cellUpdatesGameThread.EmplaceBack(std::move(cell), state);
 
@@ -405,7 +405,7 @@ void StreamingManagerThread::StartWorkerThreadPool()
 
     while (!m_threadPool->IsRunning())
     {
-        Threads::Sleep(0);
+        ThreadSleep(0);
     }
 }
 
@@ -574,7 +574,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
             deferredUpdates.EmplaceBack([this, &layerData, cell]()
                 {
                     // HYP_LOG(Streaming, Debug, "Loading StreamingCell at coord: {} on thread: {} for layer: {}",
-                    //     cell->GetPatchInfo().coord, Threads::CurrentThreadId().GetName(), layerData.layer->InstanceClass()->GetName());
+                    //     cell->GetPatchInfo().coord, CurrentThreadId().GetName(), layerData.layer->InstanceClass()->GetName());
 
                     bool isOk = true;
 
@@ -635,7 +635,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
             // HYP_LOG(Streaming, Debug, "Removed StreamingCell at coord: {} for layer: {} on thread: {}",
             //     cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName().LookupString(),
-            //     Threads::CurrentThreadId().GetName());
+            //     CurrentThreadId().GetName());
 
             layerData.Lock();
 
@@ -644,7 +644,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
                 {
                     // HYP_LOG(Streaming, Debug, "Unloading StreamingCell at coord: {} for layer: {} on thread: {}",
                     //     cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName().LookupString(),
-                    //     Threads::CurrentThreadId().GetName());
+                    //     CurrentThreadId().GetName());
 
                     PostCellUpdateToGameThread(cell, StreamingCellState::UNLOADED);
 
@@ -732,7 +732,7 @@ StreamingManager::~StreamingManager()
 void StreamingManager::AddStreamingVolume(const Handle<StreamingVolumeBase>& volume)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     Assert(volume.IsValid());
 
@@ -744,7 +744,7 @@ void StreamingManager::AddStreamingVolume(const Handle<StreamingVolumeBase>& vol
 void StreamingManager::RemoveStreamingVolume(StreamingVolumeBase* volume)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (!volume)
     {
@@ -759,7 +759,7 @@ void StreamingManager::RemoveStreamingVolume(StreamingVolumeBase* volume)
 void StreamingManager::AddWorldGridLayer(const Handle<WorldGridLayer>& layer)
 {
     HYP_SCOPE;
-    // Threads::AssertOnThread(g_gameThread);
+    // AssertOnThread(g_gameThread);
 
     Assert(layer.IsValid());
 
@@ -769,7 +769,7 @@ void StreamingManager::AddWorldGridLayer(const Handle<WorldGridLayer>& layer)
 void StreamingManager::RemoveWorldGridLayer(WorldGridLayer* layer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (!layer)
     {
@@ -818,7 +818,7 @@ void StreamingManager::Init()
 void StreamingManager::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> updates;
     m_thread->SinkGameThreadUpdates(updates);

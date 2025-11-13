@@ -186,7 +186,7 @@ protected:
 
     virtual bool NeedsUpdate() const override
     {
-        return m_mouseButtonPressedStates.Any() // to update mouse down timers
+        return m_objectMouseStates.Any() // to update mouse down timers
             || m_keyedDownObjects.Any()
             || UIObject::NeedsUpdate();
     }
@@ -212,7 +212,7 @@ private:
 
     Handle<FontAtlas> m_defaultFontAtlas;
 
-    HashMap<WeakHandle<UIObject>, UIObjectMouseState> m_mouseButtonPressedStates;
+    HashMap<WeakHandle<UIObject>, UIObjectMouseState> m_objectMouseStates;
     HashSet<WeakHandle<UIObject>> m_hoveredUiObjects;
     SparsePagedArray<HashMap<WeakHandle<UIObject>, UIObjectKeyState>, 16> m_keyedDownObjects;
 

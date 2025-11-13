@@ -73,7 +73,7 @@ static constexpr uint32 MaxBouncesCpu = 4;
 uint32 LightmapThreadPool::NumThreadsToCreate()
 {
     uint32 numThreads = CoreApi_GetGlobalConfig().Get("Lightmapper.NumThreadsPerJob").ToUInt32(4);
-    return MathUtil::Clamp(numThreads, 1u, Threads::NumCores());
+    return MathUtil::Clamp(numThreads, 1u, NumCores());
 }
 
 #pragma endregion LightmapThreadPool
@@ -111,7 +111,7 @@ void LightmapRenderer_CpuPathTracing::UpdateRays(Span<const LightmapRay> rays)
 
 void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits)
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     Assert(m_numTracingTasks.Get(MemoryOrder::ACQUIRE) == 0,
         "Cannot read hits buffer while tracing is in progress");
@@ -203,7 +203,7 @@ LightmapRenderer_CpuPathTracing::SharedCpuData* LightmapRenderer_CpuPathTracing:
 
 void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());

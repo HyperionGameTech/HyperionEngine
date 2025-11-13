@@ -282,6 +282,7 @@ private:
     void* m_windowDelegate = nullptr;
     void* m_metalLayer = nullptr;
     bool m_mouseLocked = false;
+    mutable Vec2i m_mousePosition = Vec2i::Zero();
 #endif
 };
 

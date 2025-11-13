@@ -164,7 +164,7 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
@@ -260,7 +260,7 @@ void UIRenderer::Shutdown()
 void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const Handle<UIRendererPassData>& pd = ObjCast<UIRendererPassData>(FetchViewPassData(m_view));
     AssertDebug(pd != nullptr);

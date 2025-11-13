@@ -66,7 +66,7 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
         while (entry->state.Get(MemoryOrder::SEQUENTIAL) == ShaderMapEntry::State::LOADING)
         {
             // sanity check - should never happen
-            Assert(entry->loadingThreadId != Threads::CurrentThreadId());
+            Assert(entry->loadingThreadId != CurrentThreadId());
 
             if (numSpins == maxSpins)
             {
@@ -74,18 +74,18 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
                     "Shader {} is loading for too long! Skipping reuse attempt and loading on this thread. (Loading thread: {}, current thread: {})",
                     definition.GetName(),
                     entry->loadingThreadId.GetName(),
-                    Threads::CurrentThreadId().GetName());
+                    CurrentThreadId().GetName());
 
                 entry = MakeRefCountedPtr<ShaderMapEntry>();
                 entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
-                entry->loadingThreadId = Threads::CurrentThreadId();
+                entry->loadingThreadId = CurrentThreadId();
 
                 shouldAddEntryToCache = false;
 
                 break;
             }
 
-            Threads::Sleep(0);
+            ThreadSleep(0);
 
             numSpins++;
         }
@@ -116,7 +116,7 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
         entry = MakeRefCountedPtr<ShaderMapEntry>();
         entry->compiledShader = compiledShader;
         entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
-        entry->loadingThreadId = Threads::CurrentThreadId();
+        entry->loadingThreadId = CurrentThreadId();
     }
 
     if (shouldAddEntryToCache)

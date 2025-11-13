@@ -203,7 +203,7 @@ public:
         }
     };
 
-    Scheduler(ThreadId ownerThreadId = Threads::CurrentThreadId())
+    Scheduler(ThreadId ownerThreadId = CurrentThreadId())
         : SchedulerBase(ownerThreadId)
     {
     }
@@ -299,7 +299,7 @@ public:
     /*! \brief Wait until the given task has been executed (no longer in the queue). */
     virtual void Await(TaskID id) override
     {
-        HYP_CORE_ASSERT(!Threads::IsOnThread(m_ownerThread));
+        HYP_CORE_ASSERT(!IsOnThread(m_ownerThread));
 
         std::unique_lock lock(m_mutex);
 
@@ -351,7 +351,7 @@ public:
 
     virtual bool TakeOwnershipOfTask(TaskID id, TaskExecutorBase* executor) override
     {
-        HYP_CORE_ASSERT(!Threads::IsOnThread(m_ownerThread));
+        HYP_CORE_ASSERT(!IsOnThread(m_ownerThread));
 
         HYP_CORE_ASSERT(id.IsValid());
         HYP_CORE_ASSERT(executor != nullptr);
@@ -409,7 +409,7 @@ public:
     // template <class Container>
     // void AcceptNext(Container &outContainer)
     // {
-    //     HYP_CORE_ASSERT(Threads::IsOnThread(m_ownerThread));
+    //     HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
 
     //     std::unique_lock lock(m_mutex);
 
@@ -426,7 +426,7 @@ public:
     template <class Container>
     void AcceptAll(Container& outContainer)
     {
-        HYP_CORE_ASSERT(Threads::IsOnThread(m_ownerThread));
+        HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
 
         std::unique_lock lock(m_mutex);
 
@@ -449,7 +449,7 @@ public:
     template <class Container>
     bool WaitForTasks(Container& outContainer)
     {
-        HYP_CORE_ASSERT(Threads::IsOnThread(m_ownerThread));
+        HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
 
         std::unique_lock lock(m_mutex);
 
@@ -477,7 +477,7 @@ public:
     template <class Lambda>
     void Flush(Lambda&& lambda)
     {
-        HYP_CORE_ASSERT(Threads::IsOnThread(m_ownerThread));
+        HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
 
         HYP_CORE_ASSERT(
             !m_stopRequested.Get(MemoryOrder::RELAXED),
@@ -506,7 +506,7 @@ private:
         const TaskID taskId { ++m_idCounter };
 
         scheduledTask.executor->SetTaskID(taskId);
-        scheduledTask.executor->SetInitiatorThreadId(Threads::CurrentThreadId());
+        scheduledTask.executor->SetInitiatorThreadId(CurrentThreadId());
         scheduledTask.executor->SetAssignedScheduler(this);
 
         m_queue.PushBack(std::move(scheduledTask));

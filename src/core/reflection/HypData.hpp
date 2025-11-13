@@ -8,6 +8,7 @@
 #include <core/reflection/Handle.hpp>
 #include <core/reflection/ObjectFwd.hpp>
 #include <core/reflection/HypDataArray.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/containers/Array.hpp>
 
@@ -20,7 +21,6 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Float16.hpp>
 #include <core/utilities/Result.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/memory/Any.hpp>
 #include <core/memory/RefCountedPtr.hpp>
@@ -39,9 +39,6 @@
 #include <type_traits>
 
 namespace hyperion {
-
-class Node;
-class Entity;
 
 namespace filesystem {
 class FilePath;

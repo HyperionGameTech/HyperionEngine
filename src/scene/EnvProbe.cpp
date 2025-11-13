@@ -311,7 +311,7 @@ void EnvProbe::SetOrigin(const Vec3f& origin)
 void EnvProbe::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
     AssertReady();
 
     if (IsControlledByEnvGrid())

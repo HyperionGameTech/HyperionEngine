@@ -163,7 +163,7 @@ IndirectDrawState::~IndirectDrawState()
 void IndirectDrawState::Create()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     TByteBuffer<RenderAllocator> drawCommandsBuffer;
     g_renderBackend->PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, drawCommandsBuffer);
@@ -241,7 +241,7 @@ void IndirectDrawState::PushInstancedDrawCall(SizeType drawCallIndex, const Inst
 void IndirectDrawState::ResetDrawState()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     m_numDrawCommands = 0;
 
@@ -256,7 +256,7 @@ void IndirectDrawState::ResetDrawState()
 void IndirectDrawState::UpdateBufferData(FrameBase* frame, bool* outWasResized)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -376,7 +376,7 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
 void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     for (SizeType i = 0; i < drawCallCollection.drawCalls.Size(); i++)
     {
@@ -398,7 +398,7 @@ void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCall
 void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());

@@ -177,7 +177,7 @@ int ShadowRendererBase::RunCleanupCycle(int maxIter)
 void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.light != nullptr);

@@ -95,7 +95,7 @@ void SkydomeRenderer::Init()
 void SkydomeRenderer::OnAddedToWorld()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     AssertDebug(m_virtualScene.IsValid());
     AssertDebug(m_camera.IsValid());

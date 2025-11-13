@@ -301,7 +301,7 @@ void FullScreenPass::Resize(Vec2u newSize)
 void FullScreenPass::Resize_Internal(Vec2u newSize)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (m_extent == newSize)
     {
@@ -597,7 +597,7 @@ void FullScreenPass::CreateDescriptors()
 void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
 
@@ -629,7 +629,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
 void FullScreenPass::CopyResultToPreviousTexture(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -650,7 +650,7 @@ void FullScreenPass::CopyResultToPreviousTexture(FrameBase* frame, const RenderS
 void FullScreenPass::MergeHalfResTextures(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -662,7 +662,7 @@ void FullScreenPass::MergeHalfResTextures(FrameBase* frame, const RenderSetup& r
 void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
 
@@ -693,7 +693,7 @@ HYP_DISABLE_OPTIMIZATION;
 void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(framebuffer != nullptr);
@@ -751,7 +751,7 @@ HYP_ENABLE_OPTIMIZATION;
 void FullScreenPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     // render previous frame's result to screen
     if (!m_isFirstFrame && m_renderTextureToScreenPass != nullptr)
@@ -816,7 +816,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(FrameBase* frame, const Render
 void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
@@ -854,7 +854,7 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
 void FullScreenPass::End(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());

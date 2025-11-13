@@ -145,7 +145,7 @@ public:
             }
         };
 
-        if (Threads::IsOnThread(entityManager->GetOwnerThreadId()))
+        if (IsOnThread(entityManager->GetOwnerThreadId()))
         {
             serializeEntityAndComponents();
         }
@@ -153,7 +153,7 @@ public:
         {
             HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
 
-            Task<void> serializeEntityAndComponentsTask = Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serializeEntityAndComponents]()
+            Task<void> serializeEntityAndComponentsTask = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serializeEntityAndComponents]()
                 {
                     serializeEntityAndComponents();
                 });

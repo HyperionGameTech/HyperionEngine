@@ -221,11 +221,11 @@ void Mesh::UploadGpuData()
 
     ResourceHandle resourceHandle(*asset->GetResource());
     AssertDebug(asset->IsLoaded());
-    
+
     if (!asset->IsLoaded())
     {
         HYP_LOG(Mesh, Error, "Mesh asset for {} is not loaded in memory, cannot create GPU buffers", GetName());
-        
+
         return;
     }
 
@@ -263,7 +263,7 @@ void Mesh::UploadGpuData()
     GpuBufferRef indexBuffer;
 
     // don't assign m_vertexBuffer and m_indexBuffer when render thread could be reading it.
-    if (IsReady() && !Threads::IsOnThread(g_renderThread))
+    if (IsReady() && !IsOnThread(g_renderThread))
     {
         vertexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
         indexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
@@ -474,7 +474,7 @@ bool Mesh::BuildBVH(int maxDepth)
 
     ResourceHandle resourceHandle(*asset->GetResource());
     AssertDebug(asset->GetMeshData() != nullptr);
-    
+
     if (!asset->GetMeshData())
     {
         return false;

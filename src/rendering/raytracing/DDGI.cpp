@@ -400,7 +400,7 @@ void DDGI::UpdateUniforms(FrameBase* frame, const RenderSetup& renderSetup)
 
 void DDGI::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     Assert(renderSetup.IsValid());
     Assert(renderSetup.HasView());

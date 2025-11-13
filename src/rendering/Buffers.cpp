@@ -136,7 +136,7 @@ StagingBufferPool& StagingBufferPool::GetInstance()
     {
         s_stagingBufferPool = new StagingBufferPool();
 
-        Threads::CurrentThreadObject()->AtExit([]()
+        CurrentThreadObject()->AtExit([]()
             {
                 delete s_stagingBufferPool;
             });
@@ -167,7 +167,7 @@ GpuBufferHolderBase::~GpuBufferHolderBase()
 void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initialCount, SizeType size)
 {
     HYP_SCOPE;
-    // Threads::AssertOnThread(g_renderThread);
+    // AssertOnThread(g_renderThread);
 
     if (initialCount == 0)
     {
@@ -191,7 +191,7 @@ void GpuBufferHolderBase::CopyToGpuBuffer(
     const Array<uint32>& chunkEnds)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (stagingBuffers.Empty())
     {

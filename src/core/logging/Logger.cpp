@@ -34,7 +34,7 @@ HYP_DECLARE_LOG_CHANNEL(Temp);
 
 HYP_API ANSIStringView GetCurrentThreadName()
 {
-    return *Threads::CurrentThreadId().GetName();
+    return *CurrentThreadId().GetName();
 }
 
 namespace logging {

@@ -103,7 +103,7 @@ SafeDeleter::~SafeDeleter()
 {
     HYP_NAMED_SCOPE("SafeDeleter::~SafeDeleter");
 
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     auto deleteAll = [](auto& entryList)
     {
@@ -144,7 +144,7 @@ SafeDeleter::~SafeDeleter()
 void SafeDeleter::GetCounterValues(uint32& outNumElements, uint32& outTotalBytes) const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     outNumElements = 0;
     outTotalBytes = 0;
@@ -159,7 +159,7 @@ void SafeDeleter::GetCounterValues(uint32& outNumElements, uint32& outTotalBytes
 int SafeDeleter::Iterate(int maxIter)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     uint32 bufferIndex = RenderApi::GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
@@ -242,7 +242,7 @@ int SafeDeleter::Iterate(int maxIter)
 int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(bufferIndex < m_entryLists.Size());
 
@@ -276,7 +276,7 @@ int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
 void SafeDeleter::UpdateCounter(uint32 bufferIndex)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(bufferIndex < m_entryLists.Size());
 
@@ -290,7 +290,7 @@ void SafeDeleter::UpdateCounter(uint32 bufferIndex)
 void SafeDeleter::UpdateEntryListQueue()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     uint32 bufferIndex = RenderApi::GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
@@ -391,7 +391,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetCurrentEntryList(Mutex::Guard** ppGu
     AssertDebug(ppGuard != nullptr);
     *ppGuard = nullptr;
 
-    if (Threads::IsOnThread(g_gameThread | g_renderThread))
+    if (IsOnThread(g_gameThread | g_renderThread))
     {
         uint32 bufferIndex = RenderApi::GetRingIndex();
         AssertDebug(bufferIndex < m_entryLists.Size());
@@ -413,7 +413,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, ui
     //  - desiredIdx == ~0u (not specified) OR
     //  - On render thread and desiredIdx == CURRENT idx
     // we use the CURRENT entry list
-    if (desiredIdx == ~0u || (Threads::IsOnThread(g_renderThread) && desiredIdx == RenderApi::GetRingIndex()))
+    if (desiredIdx == ~0u || (IsOnThread(g_renderThread) && desiredIdx == RenderApi::GetRingIndex()))
     {
         return GetCurrentEntryList(ppGuard);
     }

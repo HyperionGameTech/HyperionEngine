@@ -41,7 +41,7 @@ App::~App()
 
 void App::LaunchGame(const Handle<Game>& game)
 {
-    Threads::AssertOnThread(g_mainThread);
+    AssertOnThread(g_mainThread);
 
     Assert(game.IsValid());
 

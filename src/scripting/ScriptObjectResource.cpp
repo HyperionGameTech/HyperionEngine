@@ -166,7 +166,7 @@ void ScriptObjectResource::Initialize()
         if (!m_ptr.IsValid())
         {
             HYP_LOG(Object, Error, "Thread: {}\tManaged object could not be kept alive, it may have been garbage collected\n\tObject address: {}",
-                Threads::CurrentThreadId().GetName(),
+                CurrentThreadId().GetName(),
                 (void*)dotNetData->objectPtr);
 
             return;
@@ -177,7 +177,7 @@ void ScriptObjectResource::Initialize()
         const Class* cls = m_ptr.GetClass();
 
         HYP_LOG(Object, Info, "Thread: {}\tManaged object for object with Class {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
-            Threads::CurrentThreadId().GetName(),
+            CurrentThreadId().GetName(),
             cls->GetName(), m_ptr.GetPointer(),
             (void*)dotNetData->objectPtr);
 

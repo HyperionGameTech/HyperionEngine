@@ -3077,7 +3077,7 @@ void UIObject::AssertOnOwnerThread() const
 {
     if (Scene* scene = GetScene())
     {
-        Threads::AssertOnThread(scene->GetOwnerThreadId());
+        AssertOnThread(scene->GetOwnerThreadId());
     }
 }
 

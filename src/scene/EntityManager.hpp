@@ -393,7 +393,7 @@ public:
 
     HYP_FORCE_INLINE bool HasEntity(ObjId<Entity> id) const
     {
-        Threads::AssertOnThread(m_ownerThreadId);
+        AssertOnThread(m_ownerThreadId);
 
         return id.IsValid() && m_entities.HasEntity(id);
     }
@@ -470,7 +470,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        // Threads::AssertOnThread(m_ownerThreadId);
+        // AssertOnThread(m_ownerThreadId);
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
 
@@ -481,7 +481,7 @@ public:
     {
         EnsureValidComponentType(componentTypeId);
 
-        // Threads::AssertOnThread(m_ownerThreadId);
+        // AssertOnThread(m_ownerThreadId);
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
 
@@ -495,7 +495,7 @@ public:
 
         Assert(entity, "Invalid entity");
 
-        // Threads::AssertOnThread(m_ownerThreadId);
+        // AssertOnThread(m_ownerThreadId);
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
         HYP_MT_CHECK_READ(m_containersDataRaceDetector);
@@ -532,7 +532,7 @@ public:
             return nullptr;
         }
 
-        // Threads::AssertOnThread(m_ownerThreadId);
+        // AssertOnThread(m_ownerThreadId);
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
         HYP_MT_CHECK_READ(m_containersDataRaceDetector);
@@ -591,7 +591,7 @@ public:
             return AnyRef::Empty();
         }
 
-        // Threads::AssertOnThread(m_ownerThreadId);
+        // AssertOnThread(m_ownerThreadId);
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
         HYP_MT_CHECK_READ(m_containersDataRaceDetector);
@@ -662,7 +662,7 @@ public:
             return {};
         }
 
-        Threads::AssertOnThread(m_ownerThreadId);
+        AssertOnThread(m_ownerThreadId);
 
         const EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
 
@@ -686,7 +686,7 @@ public:
 
         Assert(entity, "Invalid entity");
 
-        Threads::AssertOnThread(m_ownerThreadId);
+        AssertOnThread(m_ownerThreadId);
 
         Handle<Entity> entityHandle = MakeStrongRef(entity);
         Assert(entityHandle.IsValid());
@@ -758,7 +758,7 @@ public:
         Handle<Entity> entityHandle = MakeStrongRef(entity);
         Assert(entityHandle.IsValid());
 
-        Threads::AssertOnThread(m_ownerThreadId);
+        AssertOnThread(m_ownerThreadId);
 
         TypeMap<ComponentId> removedComponentIds;
 
@@ -922,7 +922,7 @@ public:
     template <class Callback>
     HYP_FORCE_INLINE void ForEachEntity(Callback&& callback) const
     {
-        Threads::AssertOnThread(m_ownerThreadId);
+        AssertOnThread(m_ownerThreadId);
 
         for (auto& subtypeData : m_entities.GetSubtypeData())
         {

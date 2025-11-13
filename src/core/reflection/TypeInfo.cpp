@@ -101,7 +101,7 @@ HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 ali
 
 HYP_API void TypeInfo_Initialize()
 {
-    Threads::AssertOnThread(g_mainThread, "TypeInfo system must be initialized on the main thread");
+    AssertOnThread(g_mainThread, "TypeInfo system must be initialized on the main thread");
 
     AssertDebug(!s_typeInfoSystemInitialized, "TypeInfo system is already initialized");
 
@@ -116,7 +116,7 @@ HYP_API void TypeInfo_Initialize()
 
 HYP_API void TypeInfo_Shutdown()
 {
-    Threads::AssertOnThread(g_mainThread, "TypeInfo system must be shutdown on the main thread");
+    AssertOnThread(g_mainThread, "TypeInfo system must be shutdown on the main thread");
 
     Mutex::Guard guard(GetTypeInfoCacheMutex());
 

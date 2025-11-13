@@ -199,7 +199,7 @@ HYP_API const FilePath& GetTempDirectory()
 
 HYP_API bool InitializeEngine(int argc, char** argv)
 {
-    Threads::SetCurrentThreadId(g_mainThread);
+    SetCurrentThreadId(g_mainThread);
 
     // load generated class declarations
     InitializeClassDeclarations();
@@ -334,7 +334,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 
 HYP_API void DestroyEngine()
 {
-    Threads::AssertOnThread(g_mainThread);
+    AssertOnThread(g_mainThread);
 
     Assert(
         g_engineDriver != nullptr,

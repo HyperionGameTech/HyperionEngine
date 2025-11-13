@@ -511,7 +511,7 @@ const char* LookupTypeName(const TypeId& typeId)
 
     if (!s_formattedStringMap)
     {
-        ThreadBase* currentThreadObject = Threads::CurrentThreadObject();
+        ThreadBase* currentThreadObject = CurrentThreadObject();
 
         if (currentThreadObject == nullptr)
         {

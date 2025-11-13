@@ -155,7 +155,7 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<Obje
 void GenerateLightmapsEditorTask::Process()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (m_sources.Empty())
     {
@@ -229,7 +229,7 @@ bool GenerateLightmapsEditorTask::IsCompleted() const
 void GenerateLightmapsEditorTask::Tick(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     for (auto it = m_tasks.Begin(); it != m_tasks.End();)
     {
@@ -809,14 +809,14 @@ EditorManipulationWidgetHolder::EditorManipulationWidgetHolder(EditorSubsystem* 
 
 EditorManipulationMode EditorManipulationWidgetHolder::GetSelectedManipulationMode() const
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     return m_selectedManipulationMode;
 }
 
 void EditorManipulationWidgetHolder::SetSelectedManipulationMode(EditorManipulationMode mode)
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (mode == m_selectedManipulationMode)
     {
@@ -833,14 +833,14 @@ void EditorManipulationWidgetHolder::SetSelectedManipulationMode(EditorManipulat
 
 EditorManipulationWidgetBase& EditorManipulationWidgetHolder::GetSelectedManipulationWidget() const
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     return *m_manipulationWidgets.At(m_selectedManipulationMode);
 }
 
 void EditorManipulationWidgetHolder::SetCurrentProject(const WeakHandle<EditorProject>& project)
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     m_currentProject = project;
 
@@ -852,7 +852,7 @@ void EditorManipulationWidgetHolder::SetCurrentProject(const WeakHandle<EditorPr
 
 void EditorManipulationWidgetHolder::Initialize()
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     for (const Handle<EditorManipulationWidgetBase>& widget : m_manipulationWidgets)
     {
@@ -865,7 +865,7 @@ void EditorManipulationWidgetHolder::Initialize()
 
 void EditorManipulationWidgetHolder::Shutdown()
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (m_selectedManipulationMode != EditorManipulationMode::NONE)
     {
@@ -1258,7 +1258,7 @@ void EditorSubsystem::OnRemovedFromWorld()
 void EditorSubsystem::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     m_editorDelegates->Update();
 
@@ -2919,7 +2919,7 @@ void EditorSubsystem::NewProject()
 void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (project == m_currentProject)
     {
@@ -2980,7 +2980,7 @@ void EditorSubsystem::ShowOpenProjectDialog()
                 return;
             }
 
-            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([projectFilepath = std::move(result.GetValue()[0])]()
+            GetThreadById(g_gameThread)->GetScheduler().Enqueue([projectFilepath = std::move(result.GetValue()[0])]()
                 {
                     TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
 
@@ -3067,7 +3067,7 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
         return;
     }
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
@@ -3141,8 +3141,8 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
     // const Handle<UIObject> &uiObject = task->GetUIObject();
 
     // if (!uiObject) {
-    //     if (Threads::IsOnThread(ThreadName::THREAD_GAME)) {
-    //         Threads::GetThread(ThreadName::THREAD_GAME)->GetScheduler().Enqueue([this, task, CreateTaskUIObject]()
+    //     if (IsOnThread(ThreadName::THREAD_GAME)) {
+    //         GetThreadById(ThreadName::THREAD_GAME)->GetScheduler().Enqueue([this, task, CreateTaskUIObject]()
     //         {
     //             task->SetUIObject(CreateTaskUIObject(GetUIStage(), task->InstanceClass()));
     //         });
@@ -3219,7 +3219,7 @@ void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debu
         return;
     }
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
@@ -3269,7 +3269,7 @@ bool EditorSubsystem::RemoveDebugOverlay(StringHash name)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     auto it = m_debugOverlays.FindIf([name](const auto& item)
         {

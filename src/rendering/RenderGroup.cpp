@@ -762,7 +762,7 @@ void RenderGroup::PerformRendering(
     ParallelRenderingState* parallelRenderingState)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
     AssertReady();
 
     AssertDebug(renderSetup.IsValid(), "RenderSetup must be valid for rendering");

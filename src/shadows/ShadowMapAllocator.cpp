@@ -77,7 +77,7 @@ void ShadowMapAllocator::Initialize()
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     m_atlasImage = g_renderBackend->MakeImage(TextureDesc {
         TT_TEX2D_ARRAY,
@@ -114,7 +114,7 @@ void ShadowMapAllocator::Destroy()
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     for (ShadowMapAtlas& atlas : m_atlases)
     {

@@ -43,7 +43,7 @@
 
 namespace hyperion {
 
-static constexpr float g_minHoldTimeToDrag = 0.05f;
+static constexpr float MinHoldTimeToDrag = 0.05f;
 
 static HYP_FORCE_INLINE float GetTimeToNextKeyDownEvent(const UIObjectKeyState& keyState)
 {
@@ -133,13 +133,13 @@ UIStage::~UIStage()
 {
     if (m_scene.IsValid())
     {
-        if (Threads::IsOnThread(m_scene->GetOwnerThreadId()))
+        if (IsOnThread(m_scene->GetOwnerThreadId()))
         {
             m_scene->RemoveFromWorld();
         }
         else
         {
-            Threads::GetThread(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
+            GetThreadById(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
                 {
                     scene->RemoveFromWorld();
                 },
@@ -384,7 +384,7 @@ void UIStage::Update_Internal(float delta)
 
     UIObject::Update_Internal(delta);
 
-    for (auto& it : m_mouseButtonPressedStates)
+    for (auto& it : m_objectMouseStates)
     {
         it.second.heldTime += delta;
     }
@@ -572,14 +572,11 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
     RayTestResults rayTestResults;
 
-    const Vec2i mousePosition = inputManager->GetMousePosition();
     const Vec2i previousMousePosition = inputManager->GetPreviousMousePosition();
-    const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
-    const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
 
     switch (event.GetType())
     {
-    case SystemEventType::EVENT_MOUSEMOTION:
+    case SystemEvent::MOUSEMOTION:
     {
         // check intersects with objects on mouse movement.
         // for any objects that had mouse held on them,
@@ -589,11 +586,18 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         const EnumFlags<MouseButtonState> mouseButtons = inputManager->GetButtonStates();
 
+        const Vec2i mousePosition = inputManager->GetMousePosition(); // event.GetEventData().Get<Vec2i>();
+        const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
+        const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
+
+        HYP_LOG(UI, Debug, "Mouse move event: position: {}, previous position: {}, buttons: {}, object mouse states size: {}",
+            mousePosition, previousMousePosition, mouseButtons.enumValue, m_objectMouseStates.Size());
+
         if (mouseButtons != MouseButtonState::NONE)
         { // mouse drag event
             UIEventHandlerResult mouseDragEventHandlerResult = UIEventHandlerResult::OK;
 
-            for (const Pair<WeakHandle<UIObject>, UIObjectMouseState>& it : m_mouseButtonPressedStates)
+            for (const Pair<WeakHandle<UIObject>, UIObjectMouseState>& it : m_objectMouseStates)
             {
                 if (it.second.mouseButtons & mouseButtons)
                 {
@@ -768,8 +772,12 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         break;
     }
-    case SystemEventType::EVENT_MOUSEBUTTON_DOWN:
+    case SystemEvent::MOUSEBUTTON_DOWN:
     {
+        const Vec2i mousePosition = inputManager->GetMousePosition();
+        const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
+        const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
+
         // project a ray into the scene and test if it hits any objects
         RayHit hit;
 
@@ -788,19 +796,9 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     firstHit = uiObject.Get();
                 }
 
-                // if (firstHit != nullptr) {
-                //     // We don't want to check the current object if it's not a child of the first hit object,
-                //     // since it would be behind the first hit object.
-                //     if (!firstHit->IsOrHasParent(uiObject)) {
-                //         continue;
-                //     }
-                // } else {
-                //     firstHit = uiObject;
-                // }
+                auto mouseButtonPressedStatesIt = m_objectMouseStates.FindAs(uiObject);
 
-                auto mouseButtonPressedStatesIt = m_mouseButtonPressedStates.FindAs(uiObject);
-
-                if (mouseButtonPressedStatesIt != m_mouseButtonPressedStates.End())
+                if (mouseButtonPressedStatesIt != m_objectMouseStates.End())
                 {
                     if ((mouseButtonPressedStatesIt->second.mouseButtons & event.GetMouseButtons()) == event.GetMouseButtons())
                     {
@@ -817,7 +815,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         continue;
                     }
 
-                    mouseButtonPressedStatesIt = m_mouseButtonPressedStates.Set(uiObject, { event.GetMouseButtons(), 0.0f }).first;
+                    mouseButtonPressedStatesIt = m_objectMouseStates.Set(uiObject, { event.GetMouseButtons(), 0.0f }).first;
                 }
 
                 mouseButtonPressedStatesIt->second.originalMousePosition = mouseScreen;
@@ -851,14 +849,18 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         break;
     }
-    case SystemEventType::EVENT_MOUSEBUTTON_UP:
+    case SystemEvent::MOUSEBUTTON_UP:
     {
+        const Vec2i mousePosition = inputManager->GetMousePosition();
+        const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
+        const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
+
         Array<Handle<UIObject>> rayTestResults;
         TestRay(mouseScreen, rayTestResults);
 
         const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
 
-        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::*ClickDelegateMember;
+        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::* ClickDelegateMember;
         const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ClickDelegateMember delegateMember = nullptr)
         {
             if (buttons != mouseButtonToCheck)
@@ -870,9 +872,9 @@ UIEventHandlerResult UIStage::OnInputEvent(
             {
                 const Handle<UIObject>& uiObject = *it;
 
-                auto stateIt = m_mouseButtonPressedStates.Find(uiObject);
+                auto stateIt = m_objectMouseStates.Find(uiObject);
 
-                if (stateIt == m_mouseButtonPressedStates.End() || !(stateIt->second.mouseButtons & mouseButtonToCheck))
+                if (stateIt == m_objectMouseStates.End() || !(stateIt->second.mouseButtons & mouseButtonToCheck))
                 {
                     continue;
                 }
@@ -912,7 +914,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
         checkClickEvent(MouseButtonState::LEFT, &UIObject::OnClick);
         checkClickEvent(MouseButtonState::RIGHT, &UIObject::OnRightClick);
 
-        for (auto it = m_mouseButtonPressedStates.Begin(); it != m_mouseButtonPressedStates.End();)
+        for (auto it = m_objectMouseStates.Begin(); it != m_objectMouseStates.End();)
         {
             EnumFlags<MouseButtonState>& stateMouseButtons = it->second.mouseButtons;
 
@@ -950,7 +952,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             if (stateMouseButtons == MouseButtonState::NONE) // now empty after update; remove from the map
             {
-                it = m_mouseButtonPressedStates.Erase(it);
+                it = m_objectMouseStates.Erase(it);
 
                 continue;
             }
@@ -960,8 +962,11 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         break;
     }
-    case SystemEventType::EVENT_MOUSESCROLL:
+    case SystemEvent::MOUSESCROLL:
     {
+        const Vec2i mousePosition = inputManager->GetMousePosition();
+        const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
+
         Vec2i wheel = event.GetMouseWheel();
 
         Array<Handle<UIObject>> rayTestResults;
@@ -1003,7 +1008,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         break;
     }
-    case SystemEventType::EVENT_KEYDOWN:
+    case SystemEvent::KEYDOWN:
     {
         const KeyCode keyCode = event.GetKeyCode();
 
@@ -1052,7 +1057,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         break;
     }
-    case SystemEventType::EVENT_KEYUP:
+    case SystemEvent::KEYUP:
     {
         const KeyCode keyCode = event.GetKeyCode();
 

@@ -70,7 +70,7 @@ struct ParallelRenderingState_Shared
         : arenas {},
           localQueues {}
     {
-        Threads::AssertOnThread(g_renderThread);
+        AssertOnThread(g_renderThread);
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
@@ -83,7 +83,7 @@ struct ParallelRenderingState_Shared
 
     ~ParallelRenderingState_Shared()
     {
-        Threads::AssertOnThread(g_renderThread);
+        AssertOnThread(g_renderThread);
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
@@ -628,7 +628,7 @@ void RenderProxyList::EndRead()
 template <class Func>
 static inline void DeleteOnRenderThread(Func&& function)
 {
-    if (Threads::IsOnThread(g_renderThread))
+    if (IsOnThread(g_renderThread))
     {
         function();
         return;
@@ -641,7 +641,7 @@ static inline void DeleteOnRenderThread(Func&& function)
 
     Payload** ppPayload = GetSafeDeleterInstance()->AllocCustom<Payload*>([](void* ptr)
         {
-            Threads::AssertOnThread(g_renderThread);
+            AssertOnThread(g_renderThread);
 
             Payload* pPayload = *reinterpret_cast<Payload**>(ptr);
             AssertDebug(pPayload != nullptr && pPayload->IsValid());
@@ -741,7 +741,7 @@ SizeType RenderCollector::NumDrawCallsCollected() const
 void RenderCollector::Clear(bool freeMemory)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     for (auto& mappings : mappingsByBucket)
     {
@@ -772,7 +772,7 @@ void RenderCollector::Clear(bool freeMemory)
 ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     ParallelRenderingState* curr = parallelRenderingStateTail;
 
@@ -878,7 +878,7 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
 void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& renderSetup, uint32 bucketBits)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView(), "RenderSetup must have a View attached");
@@ -958,7 +958,7 @@ void RenderCollector::ExecuteDrawCalls(
     bool commit)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -1280,7 +1280,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     static const bool uniquePerMaterial = g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial;
 

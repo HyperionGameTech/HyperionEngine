@@ -37,7 +37,7 @@ HYP_CLASS(NoScriptBindings)
 class HYP_API PostFXPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(PostFXPass);
-    
+
 public:
     PostFXPass(
         TextureFormat imageFormat,
@@ -230,7 +230,7 @@ private:
     {
         static_assert(std::is_base_of_v<PostProcessingEffect, EffectClass>, "Type must be a derived class of PostProcessingEffect.");
 
-        Threads::AssertOnThread(g_renderThread);
+        AssertOnThread(g_renderThread);
 
         auto& effects = m_effects[uint32(stage)];
 

@@ -1014,7 +1014,7 @@ public:
         Handle<UIGridRow> componentsGridContainerContentRow = componentsGridContainer->AddRow();
         Handle<UIGridColumn> componentsGridContainerContentColumn = componentsGridContainerContentRow->AddColumn();
 
-        if (Threads::IsOnThread(entityManager->GetOwnerThreadId()))
+        if (IsOnThread(entityManager->GetOwnerThreadId()))
         {
             componentsGridContainerContentColumn->AddChildUIObject(createComponentsGrid());
         }
@@ -1022,7 +1022,7 @@ public:
         {
             HYP_NAMED_SCOPE("Awaiting async component UI element creation");
 
-            Task<Handle<UIObject>> task = Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(createComponentsGrid);
+            Task<Handle<UIObject>> task = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(createComponentsGrid);
 
             componentsGridContainerContentColumn->AddChildUIObject(task.Await());
         }

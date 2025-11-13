@@ -296,7 +296,7 @@ int SDLAppContext::PollEvent(SystemEvent& event)
         {
         case SDL_DROPFILE:
         {
-            event = SystemEvent(SystemEventType::EVENT_FILE_DROP, PlatformEvent(sdlEvent));
+            event = SystemEvent(SystemEvent::FILE_DROP, PlatformEvent(sdlEvent));
             // set event data variant to the file path
             event.GetEventData().Set(FilePath(sdlEvent.drop.file));
 
@@ -312,10 +312,10 @@ int SDLAppContext::PollEvent(SystemEvent& event)
             switch (sdlEvent.type)
             {
             case SDL_KEYDOWN:
-                event = SystemEvent(SystemEventType::EVENT_KEYDOWN, PlatformEvent(sdlEvent));
+                event = SystemEvent(SystemEvent::KEYDOWN, PlatformEvent(sdlEvent));
                 break;
             case SDL_KEYUP:
-                event = SystemEvent(SystemEventType::EVENT_KEYUP, PlatformEvent(sdlEvent));
+                event = SystemEvent(SystemEvent::KEYUP, PlatformEvent(sdlEvent));
                 break;
             default:
                 HYP_UNREACHABLE();
@@ -327,7 +327,7 @@ int SDLAppContext::PollEvent(SystemEvent& event)
         }
         case SDL_MOUSEMOTION:
         {
-            event = SystemEvent(SystemEventType::EVENT_MOUSEMOTION, PlatformEvent(sdlEvent));
+            event = SystemEvent(SystemEvent::MOUSEMOTION, PlatformEvent(sdlEvent));
             event.GetEventData().Set(Vec2i(sdlEvent.motion.x, sdlEvent.motion.y));
             break;
         }
@@ -337,10 +337,10 @@ int SDLAppContext::PollEvent(SystemEvent& event)
             switch (sdlEvent.type)
             {
             case SDL_MOUSEBUTTONDOWN:
-                event = SystemEvent(SystemEventType::EVENT_MOUSEBUTTON_DOWN, PlatformEvent(sdlEvent));
+                event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, PlatformEvent(sdlEvent));
                 break;
             case SDL_MOUSEBUTTONUP:
-                event = SystemEvent(SystemEventType::EVENT_MOUSEBUTTON_UP, PlatformEvent(sdlEvent));
+                event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, PlatformEvent(sdlEvent));
                 break;
             default:
                 HYP_UNREACHABLE();
@@ -369,7 +369,7 @@ int SDLAppContext::PollEvent(SystemEvent& event)
         }
         case SDL_MOUSEWHEEL:
         {
-            event = SystemEvent(SystemEventType::EVENT_MOUSESCROLL, PlatformEvent(sdlEvent));
+            event = SystemEvent(SystemEvent::MOUSESCROLL, PlatformEvent(sdlEvent));
             event.GetEventData().Set(Vec2i(sdlEvent.wheel.x, sdlEvent.wheel.y));
             break;
         }
@@ -384,7 +384,7 @@ int SDLAppContext::PollEvent(SystemEvent& event)
 
                 HYP_LOG_TEMP("SDLAppContext: Window resized to {}x{}", width, height);
 
-                event = SystemEvent(SystemEventType::EVENT_WINDOW_RESIZED, PlatformEvent(sdlEvent));
+                event = SystemEvent(SystemEvent::WINDOW_RESIZED, PlatformEvent(sdlEvent));
                 event.GetEventData().Set(Vec2i(width, height));
 
                 break;
@@ -725,18 +725,18 @@ int Win32AppContext::PollEvent(SystemEvent& event)
         switch (msg.message)
         {
         case WM_KEYDOWN:
-            event = SystemEvent(SystemEventType::EVENT_KEYDOWN, platformEvent);
+            event = SystemEvent(SystemEvent::KEYDOWN, platformEvent);
             event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(msg.lParam, msg.wParam));
 
             return 1;
         case WM_KEYUP:
-            event = SystemEvent(SystemEventType::EVENT_KEYUP, platformEvent);
+            event = SystemEvent(SystemEvent::KEYUP, platformEvent);
             event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(msg.lParam, msg.wParam));
 
             return 1;
         case WM_MOUSEMOVE:
         {
-            event = SystemEvent(SystemEventType::EVENT_MOUSEMOTION, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEMOTION, platformEvent);
 
             POINT pt;
             pt.x = LOWORD(msg.lParam);
@@ -747,38 +747,38 @@ int Win32AppContext::PollEvent(SystemEvent& event)
             return 1;
         }
         case WM_LBUTTONDOWN:
-            event = SystemEvent(SystemEventType::EVENT_MOUSEBUTTON_DOWN, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
 
             return 1;
         case WM_LBUTTONUP:
-            event = SystemEvent(SystemEventType::EVENT_MOUSEBUTTON_UP, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
 
             return 1;
         case WM_MBUTTONDOWN:
-            event = SystemEvent(SystemEventType::EVENT_MOUSEBUTTON_DOWN, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
 
             return 1;
         case WM_MBUTTONUP:
-            event = SystemEvent(SystemEventType::EVENT_MOUSEBUTTON_UP, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
 
             return 1;
         case WM_RBUTTONDOWN:
-            event = SystemEvent(SystemEventType::EVENT_MOUSEBUTTON_DOWN, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
 
             return 1;
         case WM_RBUTTONUP:
-            event = SystemEvent(SystemEventType::EVENT_MOUSEBUTTON_UP, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
 
             return 1;
         case WM_MOUSEWHEEL:
         {
-            event = SystemEvent(SystemEventType::EVENT_MOUSESCROLL, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
 
             int delta = GET_WHEEL_DELTA_WPARAM(msg.wParam);
             event.GetEventData().Set(Vec2i(0, delta));
@@ -787,7 +787,7 @@ int Win32AppContext::PollEvent(SystemEvent& event)
         }
         case WM_MOUSEHWHEEL:
         {
-            event = SystemEvent(SystemEventType::EVENT_MOUSESCROLL, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
 
             int delta = GET_WHEEL_DELTA_WPARAM(msg.wParam);
             event.GetEventData().Set(Vec2i(delta, 0));
@@ -802,7 +802,7 @@ int Win32AppContext::PollEvent(SystemEvent& event)
             {
                 WCHAR filePath[MAX_PATH];
                 DragQueryFileW(hDrop, i, filePath, MAX_PATH);
-                event = SystemEvent(SystemEventType::EVENT_FILE_DROP, platformEvent);
+                event = SystemEvent(SystemEvent::FILE_DROP, platformEvent);
                 event.GetEventData().Set(FilePath(filePath));
             }
             DragFinish(hDrop);*/
@@ -812,7 +812,7 @@ int Win32AppContext::PollEvent(SystemEvent& event)
         case WM_CLOSE:
         case WM_DESTROY:
         {
-            event = SystemEvent(SystemEventType::EVENT_WINDOW_CLOSE, platformEvent);
+            event = SystemEvent(SystemEvent::WINDOW_CLOSE, platformEvent);
             PostQuitMessage(0);
 
             return 1;
@@ -822,7 +822,7 @@ int Win32AppContext::PollEvent(SystemEvent& event)
             int width = LOWORD(msg.lParam);
             int height = HIWORD(msg.lParam);
 
-            event = SystemEvent(SystemEventType::EVENT_WINDOW_RESIZED, platformEvent);
+            event = SystemEvent(SystemEvent::WINDOW_RESIZED, platformEvent);
             event.GetEventData().Set(Vec2i(width, height));
 
             return 1;

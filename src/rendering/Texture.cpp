@@ -416,7 +416,7 @@ void Texture::GenerateMipmaps()
 void Texture::Readback(ByteBuffer& outByteBuffer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertReady();
 
@@ -463,7 +463,7 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
 void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertReady();
 

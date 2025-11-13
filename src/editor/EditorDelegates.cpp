@@ -27,7 +27,7 @@ EditorDelegates::EditorDelegates()
 void EditorDelegates::AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const Property> propertiesToWatch, Proc<void(Node*, const Property*)>&& proc)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     Assert(rootNode != nullptr);
 
@@ -44,7 +44,7 @@ void EditorDelegates::AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const
 int EditorDelegates::RemoveNodeWatcher(StringHash watcherKey, Node* rootNode)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     Assert(rootNode != nullptr);
 
@@ -65,7 +65,7 @@ int EditorDelegates::RemoveNodeWatcher(StringHash watcherKey, Node* rootNode)
 int EditorDelegates::RemoveNodeWatchers(StringHash watcherKey)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     int numRemoved = 0;
 
@@ -132,7 +132,7 @@ void EditorDelegates::OnNodeUpdate(Node* node, const Property* property)
         }
     };
 
-    if (Threads::IsOnThread(g_gameThread))
+    if (IsOnThread(g_gameThread))
     {
         impl();
     }
@@ -149,7 +149,7 @@ void EditorDelegates::Update()
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     Queue<Scheduler::ScheduledTask> tasks;
 

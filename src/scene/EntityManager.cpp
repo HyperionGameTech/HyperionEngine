@@ -216,7 +216,7 @@ void EntityManager::ShutdownSystem(const Handle<SystemBase>& system)
 
 void EntityManager::Init()
 {
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     Array<Handle<SystemBase>> systems;
 
@@ -341,7 +341,7 @@ void EntityManager::SetWorld(World* world)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     if (world == m_world)
     {
@@ -410,7 +410,7 @@ void EntityManager::SetWorld(World* world)
 Handle<Entity> EntityManager::AddBasicEntity()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     Handle<Entity> entity = CreateObject<Entity>();
 
@@ -449,7 +449,7 @@ Handle<Entity> EntityManager::AddBasicEntity()
 Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     Assert(cls != nullptr, "Class must not be null");
     Assert(cls->IsDerivedFrom(Entity::StaticClass()), "Class must be a subclass of Entity");
@@ -526,7 +526,7 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
         return;
     }
 
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     // Get the current EntityManager for the entity, if it exists
     EntityManager* otherEntityManager = entity->GetEntityManager();
@@ -595,7 +595,7 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 bool EntityManager::RemoveEntity(Entity* entity)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     Assert(m_world == nullptr, "RemoveEntity() can only be called on non-world EntityManagers. Use MoveEntity() to move entities out of a world EntityManager on its owner thread.");
 
@@ -681,7 +681,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         return;
     }
 
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     // Components generically stored as HypData by TypeId - to add to other EntityManager
     Array<HypData> componentHypDatas;
@@ -769,7 +769,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
     // Add the entity and its components to the other EntityManager
     auto addToOtherEntityManager = [other = other, entity = entity, componentHypDatas = std::move(componentHypDatas)]() mutable
     {
-        Threads::AssertOnThread(other->GetOwnerThreadId());
+        AssertOnThread(other->GetOwnerThreadId());
 
         // Sanity check to prevent infinite recursion from AddExistingEntity calling MoveEntity again if there is already an EntityManager set
         AssertDebug(entity->GetEntityManager() == nullptr);
@@ -865,13 +865,13 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         other->NotifySystemsOfEntityAdded(entity, componentIds);
     };
 
-    if (Threads::IsOnThread(other->GetOwnerThreadId()))
+    if (IsOnThread(other->GetOwnerThreadId()))
     {
         addToOtherEntityManager();
     }
     else
     {
-        Task<void> task = Threads::GetThread(other->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(addToOtherEntityManager));
+        Task<void> task = GetThreadById(other->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(addToOtherEntityManager));
         task.Await();
     }
 }
@@ -880,7 +880,7 @@ void EntityManager::AddComponent(Entity* entity, const HypData& componentData)
 {
     AssertDebug(!componentData.IsNull());
 
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     Assert(entity, "Invalid entity");
 
@@ -960,7 +960,7 @@ void EntityManager::AddComponent(Entity* entity, HypData&& componentData)
 {
     AssertDebug(!componentData.IsNull());
 
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     Assert(entity, "Invalid entity");
 
@@ -1038,7 +1038,7 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
 {
     HYP_SCOPE;
     EnsureValidComponentType(componentTypeId);
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     if (!entity)
     {
@@ -1122,7 +1122,7 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
 bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     if (!entity)
     {
@@ -1159,7 +1159,7 @@ void EntityManager::AddTag(Entity* entity, EntityTag tag)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     if (!entity)
     {
@@ -1204,7 +1204,7 @@ bool EntityManager::RemoveTag(Entity* entity, EntityTag tag)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     if (!entity)
     {
@@ -1318,7 +1318,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<C
 void EntityManager::BeginAsyncUpdate(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     AssertDebug(GetWorld() != nullptr);
 
@@ -1400,7 +1400,7 @@ void EntityManager::BeginAsyncUpdate(float delta)
 void EntityManager::EndAsyncUpdate()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
     {

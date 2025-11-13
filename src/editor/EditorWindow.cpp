@@ -53,14 +53,14 @@ void EditorWindow::Show()
         uiControlShow(uiControl(m_window));
     };
 
-    if (Threads::IsOnThread(g_mainThread))
+    if (IsOnThread(g_mainThread))
     {
         showWindowImpl();
 
         return;
     }
 
-    Threads::GetThread(g_mainThread)->GetScheduler().Enqueue([strongRef = MakeStrongRef(this), showWindowImpl]()
+    GetThreadById(g_mainThread)->GetScheduler().Enqueue([strongRef = MakeStrongRef(this), showWindowImpl]()
         {
             showWindowImpl();
         },

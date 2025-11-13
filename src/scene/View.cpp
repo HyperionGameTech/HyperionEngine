@@ -265,7 +265,7 @@ void View::Init()
 bool View::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags) const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     bool hasHits = false;
 
@@ -285,7 +285,7 @@ bool View::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 void View::UpdateViewport()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
     AssertReady();
 
     const uint32 slot = RenderApi::GetRingIndex();
@@ -321,7 +321,7 @@ void View::UpdateViewport()
 void View::UpdateVisibility()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
     AssertReady();
 
     if (!m_camera.IsValid())
@@ -339,7 +339,7 @@ void View::UpdateVisibility()
 void View::BeginAsyncCollection(TaskBatch& batch)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
     AssertReady();
 
     AssertDebug(m_collectionTaskBatch == nullptr, "m_collectionTaskBatch is not nullptr, already collecting?");
@@ -368,7 +368,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
 void View::EndAsyncCollection()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
     AssertReady();
 
     Assert(m_collectionTaskBatch != nullptr);
@@ -380,7 +380,7 @@ void View::EndAsyncCollection()
 void View::CollectSync()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
     AssertReady();
 
     TaskBatch taskBatch;
@@ -394,9 +394,9 @@ void View::CollectSync()
 const Viewport& View::GetViewport() const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_gameThread | g_renderThread);
 
-    if (Threads::IsOnThread(g_gameThread))
+    if (IsOnThread(g_gameThread))
     {
         return m_viewport;
     }
@@ -409,7 +409,7 @@ const Viewport& View::GetViewport() const
 void View::SetViewport(const Viewport& viewport)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (viewport == m_viewport)
     {
@@ -439,7 +439,7 @@ void View::SetViewport(const Viewport& viewport)
 GpuImageBase* View::GetReadbackTextureGpuImage() const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_gameThread | g_renderThread);
 
     return m_readbackTextureGpuImages[RenderApi::GetRingIndex()];
 }
@@ -447,7 +447,7 @@ GpuImageBase* View::GetReadbackTextureGpuImage() const
 void View::CreateReadbackTexture()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     m_readbackTexture.Reset();
     m_readbackTexture = CreateObject<Texture>(TextureDesc {
@@ -534,7 +534,7 @@ void View::RemoveScene(Scene* scene)
 void View::CollectMeshEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
     if (!m_camera.IsValid())

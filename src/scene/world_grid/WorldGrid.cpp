@@ -70,7 +70,7 @@ WorldGrid::~WorldGrid()
 void WorldGrid::Init()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     ObjectBase::Init();
 
@@ -119,7 +119,7 @@ void WorldGrid::Shutdown()
 void WorldGrid::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     AssertReady();
 
@@ -129,7 +129,7 @@ void WorldGrid::Update(float delta)
 void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (!layer.IsValid())
     {
@@ -156,7 +156,7 @@ void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)
 bool WorldGrid::RemoveLayer(WorldGridLayer* layer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (!layer)
     {

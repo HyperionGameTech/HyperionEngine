@@ -122,7 +122,7 @@ Handle<UIObject> FpsCounter::CreateUIObject_Impl(UIObject* spawnParent)
 void FpsCounter::Update_Impl(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     m_deltaAccumGame += delta;
     m_numTicksGame++;

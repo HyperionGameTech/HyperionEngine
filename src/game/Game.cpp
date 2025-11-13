@@ -65,7 +65,7 @@ void Game::Update(float delta)
 void Game::Init()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     m_world = CreateObject<World>();
     InitObject(m_world);
@@ -78,7 +78,7 @@ void Game::Init()
 void Game::HandleEvent(SystemEvent&& event)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     OnInputEvent(std::move(event));
 }
@@ -87,7 +87,7 @@ void Game::OnInputEvent(const SystemEvent& event)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     m_uiSubsystem->GetUIStage()->OnInputEvent(g_appContext->GetInputManager().Get(), event);
 }

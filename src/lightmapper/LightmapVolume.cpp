@@ -224,7 +224,7 @@ LightmapVolume::~LightmapVolume()
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     outElement.id = ~0u;
 
@@ -274,7 +274,7 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, b
 
 const LightmapElement* LightmapVolume::GetElement(LightmapElement::Id elementId) const
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     uint16 atlasIndex;
     uint16 elementIndex;
@@ -296,7 +296,7 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElement::Id elementId)
 bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& lightmapData, LightmapElement::Id elementId)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     AssertReady();
 
@@ -393,7 +393,7 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 
     proxy->atlasRadianceTextures.Clear();
     proxy->atlasIrradianceTextures.Resize(m_irradianceAtlasTextures.Size());
-    
+
     for (uint32 i = 0; i < uint32(m_irradianceAtlasTextures.Size()); i++)
     {
         proxy->atlasIrradianceTextures[i] = m_irradianceAtlasTextures[i].Get();

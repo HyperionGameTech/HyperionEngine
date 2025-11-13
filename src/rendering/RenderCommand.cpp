@@ -51,7 +51,7 @@ RendererResult RenderCommands::Flush()
 {
     HYP_NAMED_SCOPE("Flush render commands");
 
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     Array<RenderCommand*> commands;
 
@@ -135,7 +135,7 @@ void RenderCommands::Wait()
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(~g_renderThread);
+    AssertOnThread(~g_renderThread);
 
     const uint32 currentValue = s_semaphore.GetValue();
 

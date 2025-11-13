@@ -50,14 +50,12 @@ static RenderableAttributeSet GetRenderableAttributes()
     return RenderableAttributeSet(
         MeshAttributes {
             .vertexAttributes = staticMeshVertexAttributes,
-            .topology = TOP_LINES
-        },
+            .topology = TOP_LINES },
         MaterialAttributes {
             .bucket = RB_TRANSLUCENT,
             .fillMode = FM_FILL,
             .blendFunction = BlendFunction::None(),
-            .flags = MAF_DEPTH_TEST
-        });
+            .flags = MAF_DEPTH_TEST });
 }
 
 struct DebugDrawCommand
@@ -479,7 +477,7 @@ DebugDrawer::~DebugDrawer()
         // safely destroy the buffer data on the correct frame
         DebugDrawBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<DebugDrawBufferDeleter>([](void* ptr)
             {
-                Threads::AssertOnThread(g_renderThread);
+                AssertOnThread(g_renderThread);
 
                 DebugDrawBufferDeleter* del = reinterpret_cast<DebugDrawBufferDeleter*>(ptr);
                 AssertDebug(del->idx == RenderApi::GetRingIndex());
@@ -561,7 +559,7 @@ void DebugDrawer::Init()
 void DebugDrawer::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     const uint32 idx = RenderApi::GetRingIndex();
 
@@ -644,7 +642,7 @@ void DebugDrawer::Update(float delta)
 void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     // wait for initialization on the game thread
     if (!m_isInitialized.Get(MemoryOrder::RELAXED))
@@ -893,7 +891,7 @@ void DebugDrawer::ClearCommands(uint32 idx)
 DebugDrawCommandList& DebugDrawer::CreateCommandList()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_gameThread | g_renderThread);
 
     const uint32 idx = RenderApi::GetRingIndex();
 
@@ -903,7 +901,7 @@ DebugDrawCommandList& DebugDrawer::CreateCommandList()
 GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 layerIndex, PassData* passData)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(passData != nullptr);
 

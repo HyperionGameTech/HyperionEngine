@@ -480,7 +480,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
 int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 currFrame = RenderApi::GetFrameCounter();
 

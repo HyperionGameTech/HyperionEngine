@@ -77,7 +77,7 @@ DataRaceDetector::~DataRaceDetector()
 
 EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadId threadId, EnumFlags<DataAccessFlags> accessFlags, const DataAccessState& state)
 {
-    Threads::AssertOnThread(threadId);
+    AssertOnThread(threadId);
 
     uint32 index = ~0u;
 
@@ -180,7 +180,7 @@ void DataRaceDetector::RemoveAccess(ThreadId threadId, EnumFlags<DataAccessFlags
         return;
     }
 
-    Threads::AssertOnThread(threadId);
+    AssertOnThread(threadId);
 
     uint32 index = ~0u;
     EnumFlags<DataAccessFlags> flags = DataAccessFlags::ACCESS_NONE;
@@ -286,7 +286,7 @@ void DataRaceDetector::LogDataRace(uint64 readersMask, uint64 writersMask) const
         ThreadId::Current().GetName(), ThreadId::Current().GetValue(),
         writerThreadsString,
         readerThreadsString);
-    
+
     debug::DebugLog_FlushOutputStream();
 }
 

@@ -2384,7 +2384,7 @@ bool ShaderCompiler::CompileBundle(
             });
     }
 
-    if (Threads::IsOnThread(ThreadCategory::THREAD_CATEGORY_TASK))
+    if (IsOnThread(ThreadCategory::THREAD_CATEGORY_TASK))
     {
         // run on this thread if we are already in a task thread
         taskBatch.ExecuteBlocking();
@@ -2395,7 +2395,7 @@ bool ShaderCompiler::CompileBundle(
         // cause a deadlock, if we are waiting on tasks to complete from the render
         // thread.
 
-        if (Threads::IsOnThread(g_renderThread))
+        if (IsOnThread(g_renderThread))
         {
             taskBatch.ExecuteBlocking();
         }

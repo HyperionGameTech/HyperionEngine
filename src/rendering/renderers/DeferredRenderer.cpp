@@ -512,7 +512,7 @@ TonemapPass::~TonemapPass()
 
 void TonemapPass::Create()
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     FullScreenPass::Create();
 }
@@ -520,7 +520,7 @@ void TonemapPass::Create()
 void TonemapPass::CreatePipeline()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const MeshAttributes meshAttributes {
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
@@ -587,7 +587,7 @@ LightmapPass::~LightmapPass()
 
 void LightmapPass::Create()
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     m_shader = g_shaderManager->GetOrCreate(NAME("ApplyLightmap"));
     Assert(m_shader != nullptr);
@@ -708,7 +708,7 @@ void LightmapPass::Resize_Internal(Vec2u newSize)
 void LightmapPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.lightmapVolume != nullptr);
@@ -813,7 +813,7 @@ EnvGridPass::~EnvGridPass()
 
 void EnvGridPass::Create()
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     FullScreenPass::Create();
 }
@@ -821,7 +821,7 @@ void EnvGridPass::Create()
 void EnvGridPass::CreatePipeline()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const MeshAttributes meshAttributes {
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
@@ -890,7 +890,7 @@ void EnvGridPass::Resize_Internal(Vec2u newSize)
 void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(rs.IsValid());
     AssertDebug(rs.HasView());
@@ -1059,7 +1059,7 @@ void ReflectionsPass::CreatePipeline()
 void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     static const FixedArray<Pair<CubemapType, ShaderProperties>, CMT_MAX> s_cubemapPasses = {
         Pair<CubemapType, ShaderProperties> { CMT_DEFAULT, ShaderProperties {} },
@@ -1152,7 +1152,7 @@ void ReflectionsPass::Resize_Internal(Vec2u newSize)
 void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(rs.IsValid());
     AssertDebug(rs.HasView());
@@ -1658,7 +1658,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassData& passData)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const FramebufferRef& framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
     Assert(framebuffer != nullptr);
@@ -1745,7 +1745,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
 void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     HYP_LOG(Rendering, Debug, "Resizing View '{}' to {}x{}", view->Id(), viewport.extent.x, viewport.extent.y);
 
@@ -2308,7 +2308,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         passData.ssgi->Render(frame, rs);
     }
 
-    passData.postProcessing->RenderPre(frame, rs);;
+    passData.postProcessing->RenderPre(frame, rs);
+    ;
 
     { // deferred lighting on opaque objects
         passData.indirectPass->RenderToFramebuffer(frame, rs, passData.indirectPassFramebuffer);

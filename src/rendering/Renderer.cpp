@@ -52,7 +52,7 @@ PassData::~PassData()
 int PassData::CullUnusedGraphicsPipelines(int maxIter)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     // Ensures the iterator is valid: the Iterator type for SparsePagedArray will find the next available slot in the constructor
     // elements may have been added in the middle or removed in the meantime.

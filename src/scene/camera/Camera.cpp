@@ -288,7 +288,7 @@ void Camera::Init()
                 {
                     HYP_NAMED_SCOPE("Update Camera size based on window size");
 
-                    Threads::AssertOnThread(g_gameThread);
+                    AssertOnThread(g_gameThread);
 
                     windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
 
@@ -666,7 +666,7 @@ Vec2f Camera::GetPixelSize() const
 void Camera::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
     if (HasActiveCameraController())

@@ -330,7 +330,7 @@ void ParticleSystem::CreateBuffers()
 void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
     AssertReady();
 
     AssertDebug(renderSetup.IsValid());
@@ -440,7 +440,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
 void ParticleSystem::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
     AssertReady();
 
     AssertDebug(renderSetup.IsValid());

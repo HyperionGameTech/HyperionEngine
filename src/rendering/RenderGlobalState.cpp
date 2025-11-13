@@ -115,7 +115,7 @@ template <class T>
 static void OnBindingChanged_Default(T* resource, uint32 prev, uint32 next)
 {
 #ifdef HYP_DEBUG_MODE
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 #endif
 
     AssertDebug(resource != nullptr);
@@ -240,7 +240,7 @@ static SparsePagedArray<SubtypeResourceBindings, 64> s_subtypeBindings;
 static inline SubtypeResourceBindings& ResourceBinding_GetSubtypeBindings(const Class* cls)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertDebug(cls != nullptr);
 
@@ -256,7 +256,7 @@ static inline SubtypeResourceBindings& ResourceBinding_GetSubtypeBindings(const 
 static void ResourceBinding_Assign(ObjectBase* resource, uint32 binding)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(resource != nullptr);
 
@@ -283,7 +283,7 @@ static void ResourceBinding_Assign(ObjectBase* resource, uint32 binding)
 static uint32 ResourceBinding_Retrieve(const ObjectBase* resource)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     if (!resource)
     {
@@ -558,7 +558,7 @@ static ResourceContainer* s_resources;
 static ViewData* GetViewData(View* view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(view != nullptr);
 
@@ -791,7 +791,7 @@ static HYP_FORCE_INLINE void CopyDependencies(RenderProxyList& dst, RenderProxyL
 void Init()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_mainThread);
+    AssertOnThread(g_mainThread);
 
     s_resources = PoolNew<ResourceContainer>(*g_renderPool);
 
@@ -835,7 +835,7 @@ void Init()
 void Shutdown()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_mainThread);
+    AssertOnThread(g_mainThread);
 
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
@@ -872,7 +872,7 @@ void Shutdown()
 
 static inline int CurrentThreadType()
 {
-    const ThreadId& threadId = Threads::CurrentThreadId();
+    const ThreadId& threadId = CurrentThreadId();
 
     if (threadId == g_renderThread)
     {
@@ -909,7 +909,7 @@ uint32 GetFrameCounter()
 RenderProxyList& GetProducerProxyList(View* view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     ViewFrameData* vd = GetViewFrameData(view, s_frameIndex[PRODUCER]);
 
@@ -919,7 +919,7 @@ RenderProxyList& GetProducerProxyList(View* view)
 RenderProxyList& GetConsumerProxyList(View* view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(view != nullptr);
 
@@ -929,7 +929,7 @@ RenderProxyList& GetConsumerProxyList(View* view)
 RenderCollector& GetRenderCollector(View* view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     return GetViewData(view)->renderCollector;
 }
@@ -937,7 +937,7 @@ RenderCollector& GetRenderCollector(View* view)
 Array<Pair<View*, RenderCollector*>> GetAllRenderCollectors()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     Array<Pair<View*, RenderCollector*>> result;
 
@@ -952,7 +952,7 @@ Array<Pair<View*, RenderCollector*>> GetAllRenderCollectors()
 IRenderProxy* GetRenderProxy(const ObjectBase* resource)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(resource != nullptr);
 
@@ -980,7 +980,7 @@ IRenderProxy* GetRenderProxy(const ObjectBase* resource)
 void UpdateGpuData(const ObjectBase* resource)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(resource != nullptr);
 
@@ -1014,7 +1014,7 @@ void UpdateGpuData(const ObjectBase* resource)
 void AssignResourceBinding(ObjectBase* resource, uint32 binding)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     ResourceBinding_Assign(resource, binding);
 }
@@ -1023,7 +1023,7 @@ uint32 RetrieveResourceBinding(const ObjectBase* resource)
 {
     HYP_SCOPE;
     // FIXME: Add better check to ensure it is from a render task thread.
-    Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     return ResourceBinding_Retrieve(resource);
 }
@@ -1031,7 +1031,7 @@ uint32 RetrieveResourceBinding(const ObjectBase* resource)
 WorldShaderData* GetWorldBufferData()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_gameThread | g_renderThread);
 
     return &s_frameData[*s_threadFrameIndex].worldBufferData;
 }
@@ -1039,7 +1039,7 @@ WorldShaderData* GetWorldBufferData()
 Viewport& GetViewport(View* view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_gameThread | g_renderThread);
 
     return GetViewFrameData(view, *s_threadFrameIndex)->viewport;
 }
@@ -1056,7 +1056,7 @@ void BeginFrame_GameThread()
 void EndFrame_GameThread()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     const uint32 slot = s_frameIndex[PRODUCER];
     FrameData& frameData = s_frameData[slot];
@@ -1071,7 +1071,7 @@ void EndFrame_GameThread()
 void BeginFrame_RenderThread()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     s_fullSemaphore.acquire();
 
@@ -1195,8 +1195,8 @@ void BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                 i != Bitset::NotFound;
-                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                i != Bitset::NotFound;
+                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1227,7 +1227,7 @@ void BeginFrame_RenderThread()
 void EndFrame_RenderThread()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 slot = s_frameIndex[CONSUMER];
 
@@ -1358,7 +1358,7 @@ RenderGlobalState::RenderGlobalState()
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool))
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CBUFF>(1);
     gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CBUFF>();
@@ -1468,7 +1468,7 @@ RenderGlobalState::~RenderGlobalState()
 void RenderGlobalState::UpdateBuffers(FrameBase* frame)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -1484,7 +1484,7 @@ void RenderGlobalState::UpdateBuffers(FrameBase* frame)
 void RenderGlobalState::AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(globalRendererType != GRT_NONE && globalRendererType < GRT_MAX);
 
@@ -1497,7 +1497,7 @@ void RenderGlobalState::AddRenderer(GlobalRendererType globalRendererType, Rende
 void RenderGlobalState::RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(globalRendererType != GRT_NONE && globalRendererType < GRT_MAX);
 
@@ -1580,7 +1580,7 @@ void RenderGlobalState::CreateSphereSamplesBuffer()
 void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     // Global
     globalDescriptorTable->GetDescriptorSet("Global", frameIndex)

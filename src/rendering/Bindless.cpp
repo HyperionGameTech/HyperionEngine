@@ -21,7 +21,7 @@ BindlessStorage::~BindlessStorage()
 
 void BindlessStorage::UnsetAllResources()
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -40,7 +40,7 @@ void BindlessStorage::UnsetAllResources()
 
 void BindlessStorage::AddResource(ObjId<Texture> id, const GpuImageViewRef& imageView)
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (!id.IsValid())
     {
@@ -67,7 +67,7 @@ void BindlessStorage::AddResource(ObjId<Texture> id, const GpuImageViewRef& imag
 
 void BindlessStorage::RemoveResource(ObjId<Texture> id)
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (!id.IsValid())
     {

@@ -399,7 +399,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(FrameBase* frame, Span<Ligh
 void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     Assert(CanRender());
 

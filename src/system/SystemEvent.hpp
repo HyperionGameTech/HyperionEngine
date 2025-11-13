@@ -16,58 +16,6 @@
 namespace hyperion {
 namespace sys {
 
-enum SystemEventType : uint32
-{
-    EVENT_INVALID = ~0u,
-
-#ifdef HYP_SDL
-    EVENT_WINDOW_EVENT = SDL_WINDOWEVENT,
-    EVENT_SHUTDOWN = SDL_QUIT,
-
-    EVENT_KEYDOWN = SDL_KEYDOWN,
-    EVENT_KEYUP = SDL_KEYUP,
-
-    EVENT_MOUSEMOTION = SDL_MOUSEMOTION,
-    EVENT_MOUSEBUTTON_DOWN = SDL_MOUSEBUTTONDOWN,
-    EVENT_MOUSEBUTTON_UP = SDL_MOUSEBUTTONUP,
-    EVENT_MOUSESCROLL = SDL_MOUSEWHEEL,
-
-    EVENT_FILE_DROP = SDL_DROPFILE,
-
-    EVENT_WINDOW_MOVED = SDL_WINDOWEVENT_MOVED,
-    EVENT_WINDOW_RESIZED = SDL_WINDOWEVENT_RESIZED,
-
-    EVENT_WINDOW_FOCUS_GAINED = SDL_WINDOWEVENT_FOCUS_GAINED,
-    EVENT_WINDOW_FOCUS_LOST = SDL_WINDOWEVENT_FOCUS_LOST,
-
-    EVENT_WINDOW_CLOSE = SDL_WINDOWEVENT_CLOSE,
-    EVENT_WINDOW_MINIMIZED = SDL_WINDOWEVENT_MINIMIZED
-#else
-    // Platform-agnostic event type values
-    EVENT_WINDOW_EVENT = 0x0200,
-    EVENT_SHUTDOWN = 0x0100,
-
-    EVENT_KEYDOWN = 0x0300,
-    EVENT_KEYUP = 0x0301,
-
-    EVENT_MOUSEMOTION = 0x0400,
-    EVENT_MOUSEBUTTON_DOWN = 0x0401,
-    EVENT_MOUSEBUTTON_UP = 0x0402,
-    EVENT_MOUSESCROLL = 0x0403,
-
-    EVENT_FILE_DROP = 0x1000,
-
-    EVENT_WINDOW_MOVED = 0x0204,
-    EVENT_WINDOW_RESIZED = 0x0205,
-
-    EVENT_WINDOW_FOCUS_GAINED = 0x020C,
-    EVENT_WINDOW_FOCUS_LOST = 0x020D,
-
-    EVENT_WINDOW_CLOSE = 0x0203,
-    EVENT_WINDOW_MINIMIZED = 0x0206
-#endif
-};
-
 #ifdef HYP_WINDOWS
 struct Win32Event
 {
@@ -100,20 +48,47 @@ union PlatformEvent
 #endif
 };
 
-class HYP_API SystemEvent
+class HYP_API SystemEvent final
 {
 public:
     using EventData = Variant<EnumFlags<MouseButtonState>, KeyCode, FilePath, Vec2i, void*>;
 
+    enum EventType : uint32
+    {
+        INVALID = ~0u,
+
+        WINDOW_EVENT = 0x0200,
+        SHUTDOWN = 0x0100,
+
+        KEYDOWN = 0x0300,
+        KEYUP = 0x0301,
+
+        MOUSEMOTION = 0x0400,
+        MOUSEBUTTON_DOWN = 0x0401,
+        MOUSEBUTTON_UP = 0x0402,
+        MOUSESCROLL = 0x0403,
+
+        FILE_DROP = 0x1000,
+
+        WINDOW_MOVED = 0x0204,
+        WINDOW_RESIZED = 0x0205,
+
+        WINDOW_FOCUS_GAINED = 0x020C,
+        WINDOW_FOCUS_LOST = 0x020D,
+
+        WINDOW_CLOSE = 0x0203,
+        WINDOW_MINIMIZED = 0x0206
+    };
+
     SystemEvent()
-        : m_eventType(SystemEventType::EVENT_INVALID),
+        : m_eventType(EventType::INVALID),
           m_platformEvent(),
           m_eventData()
     {
         Memory::MemSet(&m_platformEvent, 0x0, sizeof(PlatformEvent));
     }
 
-    SystemEvent(SystemEventType eventType, PlatformEvent platformEvent)
+    SystemEvent(EventType eventType, PlatformEvent platformEvent)
         : m_eventType(eventType),
           m_platformEvent(platformEvent)
     {
@@ -130,7 +105,7 @@ public:
         m_platformEvent = other.m_platformEvent;
         Memory::MemSet(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
 
-        other.m_eventType = SystemEventType::EVENT_INVALID;
+        other.m_eventType = EventType::INVALID;
     }
 
     SystemEvent& operator=(SystemEvent&& other) noexcept
@@ -147,19 +122,19 @@ public:
 
         Memory::MemSet(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
 
-        other.m_eventType = SystemEventType::EVENT_INVALID;
+        other.m_eventType = EventType::INVALID;
 
         return *this;
     }
 
-    ~SystemEvent() = default;
+    ~SystemEvent();
 
-    SystemEventType GetType() const
+    HYP_FORCE_INLINE EventType GetType() const
     {
         return m_eventType;
     }
 
-    KeyCode GetKeyCode() const
+    HYP_FORCE_INLINE KeyCode GetKeyCode() const
     {
         const KeyCode* keyCode = m_eventData.TryGet<KeyCode>();
         AssertDebug(keyCode != nullptr);
@@ -172,7 +147,7 @@ public:
         return *keyCode;
     }
 
-    EnumFlags<MouseButtonState> GetMouseButtons() const
+    HYP_FORCE_INLINE EnumFlags<MouseButtonState> GetMouseButtons() const
     {
         const EnumFlags<MouseButtonState>* mouseButtonState = m_eventData.TryGet<EnumFlags<MouseButtonState>>();
         AssertDebug(mouseButtonState != nullptr);
@@ -185,9 +160,9 @@ public:
         return *mouseButtonState;
     }
 
-    Vec2i GetWindowResizeDimensions() const
+    HYP_FORCE_INLINE Vec2i GetWindowResizeDimensions() const
     {
-        if (m_eventType != SystemEventType::EVENT_WINDOW_RESIZED)
+        if (m_eventType != WINDOW_RESIZED)
         {
             return Vec2i::Zero();
         }
@@ -203,9 +178,9 @@ public:
         return *dimensions;
     }
 
-    Vec2i GetMouseWheel() const
+    HYP_FORCE_INLINE Vec2i GetMouseWheel() const
     {
-        if (m_eventType != SystemEventType::EVENT_MOUSESCROLL)
+        if (m_eventType != MOUSESCROLL)
         {
             return Vec2i::Zero();
         }
@@ -242,16 +217,44 @@ public:
     }
 
 private:
-    SystemEventType m_eventType;
-
+    EventType m_eventType;
     PlatformEvent m_platformEvent;
-
     EventData m_eventData;
+};
+
+// for backwards compatibility
+enum SystemEventType : uint32
+{
+    SYSTEM_EVENT_INVALID = SystemEvent::INVALID,
+    SYSTEM_EVENT_WINDOW_EVENT = SystemEvent::WINDOW_EVENT,
+    SYSTEM_EVENT_SHUTDOWN = SystemEvent::SHUTDOWN,
+    SYSTEM_EVENT_KEYDOWN = SystemEvent::KEYDOWN,
+    SYSTEM_EVENT_KEYUP = SystemEvent::KEYUP,
+    SYSTEM_EVENT_MOUSEMOTION = SystemEvent::MOUSEMOTION,
+    SYSTEM_EVENT_MOUSEBUTTON_DOWN = SystemEvent::MOUSEBUTTON_DOWN,
+    SYSTEM_EVENT_MOUSEBUTTON_UP = SystemEvent::MOUSEBUTTON_UP,
+    SYSTEM_EVENT_MOUSESCROLL = SystemEvent::MOUSESCROLL,
+    SYSTEM_EVENT_FILE_DROP = SystemEvent::FILE_DROP,
+    SYSTEM_EVENT_WINDOW_MOVED = SystemEvent::WINDOW_MOVED,
+    SYSTEM_EVENT_WINDOW_RESIZED = SystemEvent::WINDOW_RESIZED,
+    SYSTEM_EVENT_WINDOW_FOCUS_GAINED = SystemEvent::WINDOW_FOCUS_GAINED,
+    SYSTEM_EVENT_WINDOW_FOCUS_LOST = SystemEvent::WINDOW_FOCUS_LOST,
+    SYSTEM_EVENT_WINDOW_CLOSE = SystemEvent::WINDOW_CLOSE,
+    SYSTEM_EVENT_WINDOW_MINIMIZED = SystemEvent::WINDOW_MINIMIZED
 };
 
 } // namespace sys
 
+using sys::PlatformEvent;
 using sys::SystemEvent;
 using sys::SystemEventType;
+
+#ifdef HYP_WINDOWS
+using sys::Win32Event;
+#endif
+
+#ifdef HYP_MACOS
+using sys::CocoaEvent;
+#endif
 
 } // namespace hyperion

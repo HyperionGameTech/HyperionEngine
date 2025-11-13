@@ -44,7 +44,7 @@ PostFXPass::~PostFXPass()
 
 void PostFXPass::CreateDescriptors()
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (m_effectIndex == ~0u)
     {
@@ -106,7 +106,7 @@ PostProcessing::~PostProcessing() = default;
 
 void PostProcessing::Create()
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     for (uint32 stageIndex = 0; stageIndex < 2; stageIndex++)
     {
@@ -127,7 +127,7 @@ void PostProcessing::Create()
 
 void PostProcessing::Destroy()
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     {
         std::lock_guard guard(m_effectsMutex);
@@ -156,7 +156,7 @@ void PostProcessing::Destroy()
 
 void PostProcessing::PerformUpdates()
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (!m_effectsUpdated.Get(MemoryOrder::ACQUIRE))
     {
@@ -238,7 +238,7 @@ PostProcessingUniforms PostProcessing::GetUniforms() const
 
 void PostProcessing::CreateUniformBuffer()
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const PostProcessingUniforms postProcessingUniforms = GetUniforms();
 
@@ -249,7 +249,7 @@ void PostProcessing::CreateUniformBuffer()
 
 void PostProcessing::RenderPre(FrameBase* frame, const RenderSetup& renderSetup) const
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     uint32 index = 0;
 
@@ -265,7 +265,7 @@ void PostProcessing::RenderPre(FrameBase* frame, const RenderSetup& renderSetup)
 
 void PostProcessing::RenderPost(FrameBase* frame, const RenderSetup& renderSetup) const
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     uint32 index = 0;
 

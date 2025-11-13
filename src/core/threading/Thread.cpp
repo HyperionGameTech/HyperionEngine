@@ -31,38 +31,18 @@
 namespace hyperion {
 namespace threading {
 
-HYP_API void RegisterThread(const ThreadId& id, ThreadBase* thread)
-{
-    Threads::RegisterThread(id, thread);
-}
-
-HYP_API void UnregisterThread(const ThreadId& id)
-{
-    Threads::UnregisterThread(id);
-}
-
-HYP_API void SetCurrentThreadObject(ThreadBase* thread)
-{
-    Threads::SetCurrentThreadObject(thread);
-}
-
-HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority)
-{
-    Threads::SetCurrentThreadPriority(priority);
-}
-
 #pragma region ThreadBase
 
-thread_local Delegate<void>* g_onThreadExit;
+thread_local Delegate<void>* s_onThreadExit;
 
 HYP_API void OnCurrentThreadExit()
 {
-    if (g_onThreadExit)
+    if (s_onThreadExit)
     {
-        (*g_onThreadExit)();
+        (*s_onThreadExit)();
 
-        delete g_onThreadExit;
-        g_onThreadExit = nullptr;
+        delete s_onThreadExit;
+        s_onThreadExit = nullptr;
     }
 }
 
@@ -90,7 +70,7 @@ ThreadBase::~ThreadBase()
 ThreadLocalStorage& ThreadBase::GetTLS() const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_id);
+    AssertOnThread(m_id);
 
     if (HYP_UNLIKELY(!m_tls))
     {
@@ -103,14 +83,14 @@ ThreadLocalStorage& ThreadBase::GetTLS() const
 void ThreadBase::AtExit(Proc<void()>&& proc)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_id);
+    AssertOnThread(m_id);
 
-    if (!g_onThreadExit)
+    if (!s_onThreadExit)
     {
-        g_onThreadExit = new Delegate<void>();
+        s_onThreadExit = new Delegate<void>();
     }
 
-    g_onThreadExit->Bind(std::move(proc)).Detach();
+    s_onThreadExit->Bind(std::move(proc)).Detach();
 }
 
 #pragma endregion ThreadBase

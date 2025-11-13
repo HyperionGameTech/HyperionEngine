@@ -126,7 +126,7 @@ public:
     {
         HYP_LOG(Profile, Info, "Iterate requests ({})", m_requests.Size());
 
-        Threads::AssertOnThread(m_thread.Id());
+        AssertOnThread(m_thread.Id());
 
         // iterate over completed requests
         for (auto it = m_requests.Begin(); it != m_requests.End();)
@@ -143,7 +143,7 @@ public:
 
     void Push(Array<json::JSONValue>&& values)
     {
-        const ThreadId currentThreadId = Threads::CurrentThreadId();
+        const ThreadId currentThreadId = CurrentThreadId();
 
         json::JSONArray* jsonValuesArray = nullptr;
 
@@ -166,7 +166,7 @@ public:
 
     bool StartConnection()
     {
-        Threads::AssertOnThread(m_thread.Id());
+        AssertOnThread(m_thread.Id());
 
         if (m_params.endpointUrl.Empty())
         {
@@ -199,7 +199,7 @@ public:
 
     void Submit()
     {
-        Threads::AssertOnThread(m_thread.Id());
+        AssertOnThread(m_thread.Id());
 
         if (m_params.endpointUrl.Empty())
         {
@@ -273,7 +273,7 @@ void ProfilerConnectionThread::DoWork(ProfilerConnection* profilerConnection)
 {
     profilerConnection->IterateRequests();
 
-    Threads::Sleep(100);
+    ThreadSleep(100);
 
     profilerConnection->Submit();
 }
@@ -387,7 +387,7 @@ class ProfileScopeStack
 {
 public:
     ProfileScopeStack()
-        : m_threadId(Threads::CurrentThreadId()),
+        : m_threadId(CurrentThreadId()),
           m_rootEntry("ROOT", ""),
           m_head(&m_rootEntry)
     {
@@ -398,7 +398,7 @@ public:
 
     void Reset()
     {
-        Threads::AssertOnThread(m_threadId);
+        AssertOnThread(m_threadId);
 
         m_rootEntry.SaveDiff();
 
@@ -422,7 +422,7 @@ public:
 
     ProfileScopeEntry& Open(ANSIStringView label, ANSIStringView location)
     {
-        Threads::AssertOnThread(m_threadId);
+        AssertOnThread(m_threadId);
 
         m_head = &m_head->children.EmplaceBack(label, location, m_head);
         return *m_head;
@@ -430,7 +430,7 @@ public:
 
     void Close()
     {
-        Threads::AssertOnThread(m_threadId);
+        AssertOnThread(m_threadId);
 
         m_head->SaveDiff();
 

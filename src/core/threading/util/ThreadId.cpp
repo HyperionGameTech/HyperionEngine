@@ -150,7 +150,7 @@ static uint32 MakeThreadIdValue(Name name, ThreadCategory category, uint32 alloc
 
 const ThreadId& ThreadId::Current()
 {
-    return Threads::CurrentThreadId();
+    return CurrentThreadId();
 }
 
 const ThreadId& ThreadId::Invalid()
@@ -165,10 +165,10 @@ ThreadId::ThreadId(Name name, bool forceUnique)
 
 ThreadId::ThreadId(Name name, ThreadCategory category, bool forceUnique)
     : ThreadId(
-        name,
-        category,
-        AllocateFlags::DYNAMIC
-            | (forceUnique ? AllocateFlags::FORCE_UNIQUE : AllocateFlags::NONE))
+          name,
+          category,
+          AllocateFlags::DYNAMIC
+              | (forceUnique ? AllocateFlags::FORCE_UNIQUE : AllocateFlags::NONE))
 {
 }
 

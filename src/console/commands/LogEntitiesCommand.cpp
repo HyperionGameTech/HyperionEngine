@@ -45,7 +45,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 
     // Trigger .NET garbage collector and wait for finalizers (there may be entities waiting to be collected)
     dotnet::DotNetSystem::GetInstance().GetGlobalFunctions().triggerGcFunction();
-    Threads::Sleep(1000);
+    ThreadSleep(1000);
 
     String fileArg = args["file"].ToString();
 
@@ -152,13 +152,13 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                 });
         };
 
-        if (Threads::CurrentThreadId() == entityManager->GetOwnerThreadId())
+        if (CurrentThreadId() == entityManager->GetOwnerThreadId())
         {
             impl();
         }
         else
         {
-            Task task = Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(impl));
+            Task task = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(impl));
             task.Await();
         }
 

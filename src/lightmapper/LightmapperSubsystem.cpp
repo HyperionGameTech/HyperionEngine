@@ -35,19 +35,19 @@ LightmapperSubsystem::LightmapperSubsystem()
 
 void LightmapperSubsystem::OnAddedToWorld()
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 }
 
 void LightmapperSubsystem::OnRemovedFromWorld()
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     m_lightmappers.Clear();
 }
 
 void LightmapperSubsystem::Update(float delta)
 {
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     HashSet<Task<void>*> erasedTasks; // to ensure we remove pointers after we remove tasks!
 
@@ -124,7 +124,7 @@ template <class T, class... Args>
 Task<void>* LightmapperSubsystem::GenerateLightmaps_Internal(const Handle<T>& source, Args&&... args)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (!source)
     {

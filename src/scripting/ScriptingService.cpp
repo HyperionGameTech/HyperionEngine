@@ -132,7 +132,7 @@ protected:
             HYP_NAMED_SCOPE("Scripting service: invoke update on managed side");
 
             m_scriptTracker->InvokeUpdate();
-            Threads::Sleep(1000);
+            ThreadSleep(1000);
         }
     }
 

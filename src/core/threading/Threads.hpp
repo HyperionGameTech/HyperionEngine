@@ -3,14 +3,20 @@
 #pragma once
 
 #include <core/Defines.hpp>
-
-#include <core/threading/Thread.hpp>
-
 #include <core/Types.hpp>
+
+#include <core/threading/util/ThreadId.hpp>
 
 namespace hyperion {
 
 namespace threading {
+
+class ThreadBase;
+class ThreadId;
+
+enum class ThreadPriorityValue : uint32;
+
+using ThreadMask = uint32;
 
 // max 4 bits
 enum ThreadCategory : ThreadMask
@@ -19,50 +25,49 @@ enum ThreadCategory : ThreadMask
     THREAD_CATEGORY_TASK = 0x1
 };
 
-enum ThreadType : uint32
-{
-    THREAD_TYPE_INVALID = ~0u,
-    THREAD_TYPE_GAME = 0,
-    THREAD_TYPE_RENDER = 1,
-    THREAD_TYPE_TASK = 2,
-    THREAD_TYPE_DYNAMIC = 3,
-    THREAD_TYPE_MAX
-};
+HYP_API void AssertOnThread(ThreadMask mask, const char* message = nullptr);
+HYP_API void AssertOnThread(const ThreadId& threadId, const char* message = nullptr);
+HYP_API bool IsThreadInMask(const ThreadId& threadId, ThreadMask mask);
+HYP_API bool IsOnThread(ThreadMask mask);
+HYP_API bool IsOnThread(const ThreadId& threadId);
 
-class HYP_API Threads
-{
-public:
-    static void AssertOnThread(ThreadMask mask, const char* message = nullptr);
-    static void AssertOnThread(const ThreadId& threadId, const char* message = nullptr);
-    static bool IsThreadInMask(const ThreadId& threadId, ThreadMask mask);
-    static bool IsOnThread(ThreadMask mask);
-    static bool IsOnThread(const ThreadId& threadId);
+HYP_API ThreadBase* GetThreadById(const ThreadId& threadId);
 
-    static ThreadBase* GetThread(const ThreadId& threadId);
+HYP_API ThreadBase* CurrentThreadObject();
 
-    static ThreadBase* CurrentThreadObject();
+HYP_API const ThreadId& CurrentThreadId();
 
-    static const ThreadId& CurrentThreadId();
+HYP_API void RegisterThread(const ThreadId& id, ThreadBase* thread);
+HYP_API void UnregisterThread(const ThreadId& id);
+HYP_API bool IsThreadRegistered(const ThreadId& id);
 
-    static void RegisterThread(const ThreadId& id, ThreadBase* thread);
-    static void UnregisterThread(const ThreadId& id);
-    static bool IsThreadRegistered(const ThreadId& id);
+HYP_API void SetCurrentThreadId(const ThreadId& id);
 
-    static void SetCurrentThreadId(const ThreadId& id);
+HYP_API void SetCurrentThreadObject(ThreadBase*);
+HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
-    static void SetCurrentThreadObject(ThreadBase*);
-    static void SetCurrentThreadPriority(ThreadPriorityValue priority);
+HYP_API uint32 NumCores();
 
-    static uint32 NumCores();
-
-    static void Sleep(uint32 milliseconds);
-};
+HYP_API void ThreadSleep(uint32 milliseconds);
 
 } // namespace threading
 
 using threading::ThreadCategory;
-using threading::Threads;
-using threading::ThreadType;
+
+using threading::AssertOnThread;
+using threading::CurrentThreadId;
+using threading::CurrentThreadObject;
+using threading::GetThreadById;
+using threading::IsOnThread;
+using threading::IsThreadInMask;
+using threading::IsThreadRegistered;
+using threading::NumCores;
+using threading::RegisterThread;
+using threading::SetCurrentThreadId;
+using threading::SetCurrentThreadObject;
+using threading::SetCurrentThreadPriority;
+using threading::ThreadSleep;
+using threading::UnregisterThread;
 
 HYP_API extern const StaticThreadId g_mainThread;
 HYP_API extern const StaticThreadId g_renderThread;

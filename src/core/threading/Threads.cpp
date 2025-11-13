@@ -111,7 +111,7 @@ thread_local ThreadId g_currentThreadId = ThreadId::Invalid();
 static const ThreadId g_currentThreadId = ThreadId::Invalid();
 #endif
 
-void Threads::SetCurrentThreadId(const ThreadId& id)
+void SetCurrentThreadId(const ThreadId& id)
 {
 #ifdef HYP_ENABLE_THREAD_ID
     g_currentThreadId = id;
@@ -133,7 +133,7 @@ void Threads::SetCurrentThreadId(const ThreadId& id)
 #endif
 }
 
-void Threads::RegisterThread(const ThreadId& id, ThreadBase* thread)
+void RegisterThread(const ThreadId& id, ThreadBase* thread)
 {
     AssertDebug(id.IsValid());
     AssertDebug(thread != nullptr);
@@ -153,7 +153,7 @@ void Threads::RegisterThread(const ThreadId& id, ThreadBase* thread)
         id.GetValue(), *id.GetName());
 }
 
-void Threads::UnregisterThread(const ThreadId& id)
+void UnregisterThread(const ThreadId& id)
 {
     if (!id.IsValid())
     {
@@ -170,7 +170,7 @@ void Threads::UnregisterThread(const ThreadId& id)
     }
 }
 
-bool Threads::IsThreadRegistered(const ThreadId& id)
+bool IsThreadRegistered(const ThreadId& id)
 {
     if (!id.IsValid())
     {
@@ -187,7 +187,7 @@ bool Threads::IsThreadRegistered(const ThreadId& id)
     }
 }
 
-ThreadBase* Threads::GetThread(const ThreadId& threadId)
+ThreadBase* GetThreadById(const ThreadId& threadId)
 {
     if (!threadId.IsValid())
     {
@@ -204,12 +204,12 @@ ThreadBase* Threads::GetThread(const ThreadId& threadId)
     }
 }
 
-ThreadBase* Threads::CurrentThreadObject()
+ThreadBase* CurrentThreadObject()
 {
     return g_currentThread;
 }
 
-void Threads::SetCurrentThreadObject(ThreadBase* thread)
+void SetCurrentThreadObject(ThreadBase* thread)
 {
     AssertDebug(thread != nullptr);
 
@@ -222,7 +222,7 @@ void Threads::SetCurrentThreadObject(ThreadBase* thread)
     SetCurrentThreadPriority(thread->GetPriority());
 }
 
-void Threads::AssertOnThread(ThreadMask mask, const char* message)
+void AssertOnThread(ThreadMask mask, const char* message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
@@ -242,7 +242,7 @@ void Threads::AssertOnThread(ThreadMask mask, const char* message)
 #endif
 }
 
-void Threads::AssertOnThread(const ThreadId& threadId, const char* message)
+void AssertOnThread(const ThreadId& threadId, const char* message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
@@ -260,12 +260,12 @@ void Threads::AssertOnThread(const ThreadId& threadId, const char* message)
 #endif
 }
 
-bool Threads::IsThreadInMask(const ThreadId& threadId, ThreadMask mask)
+bool IsThreadInMask(const ThreadId& threadId, ThreadMask mask)
 {
     return mask & threadId.GetMask();
 }
 
-bool Threads::IsOnThread(ThreadMask mask)
+bool IsOnThread(ThreadMask mask)
 {
 #ifdef HYP_ENABLE_THREAD_ID
     thread_local const ThreadId& currentThreadId = CurrentThreadId();
@@ -282,7 +282,7 @@ bool Threads::IsOnThread(ThreadMask mask)
     return false;
 }
 
-bool Threads::IsOnThread(const ThreadId& threadId)
+bool IsOnThread(const ThreadId& threadId)
 {
 #ifdef HYP_ENABLE_THREAD_ID
     thread_local const ThreadId& currentThreadId = CurrentThreadId();
@@ -299,7 +299,7 @@ bool Threads::IsOnThread(const ThreadId& threadId)
     return false;
 }
 
-const ThreadId& Threads::CurrentThreadId()
+const ThreadId& CurrentThreadId()
 {
     // For non-thread object threads (e.g .NET finalizer threads),
     // read the thread name from the OS and allocate a new thread Id.
@@ -340,7 +340,7 @@ const ThreadId& Threads::CurrentThreadId()
     return g_currentThreadId;
 }
 
-void Threads::SetCurrentThreadPriority(ThreadPriorityValue priority)
+void SetCurrentThreadPriority(ThreadPriorityValue priority)
 {
 #ifdef HYP_WINDOWS
     int winPriority = THREAD_PRIORITY_NORMAL;
@@ -400,7 +400,7 @@ void Threads::SetCurrentThreadPriority(ThreadPriorityValue priority)
 #endif
 }
 
-uint32 Threads::NumCores() /// TODO: Refactor thread affinity setting per-thread
+uint32 NumCores() /// TODO: Refactor thread affinity setting per-thread
 {
 #ifdef HYP_WINDOWS
     SYSTEM_INFO sysinfo;
@@ -413,7 +413,7 @@ uint32 Threads::NumCores() /// TODO: Refactor thread affinity setting per-thread
 #endif
 }
 
-void Threads::Sleep(uint32 milliseconds)
+void ThreadSleep(uint32 milliseconds)
 {
 #ifdef HYP_WINDOWS
     ::Sleep(milliseconds);

@@ -101,7 +101,7 @@ GBuffer::~GBuffer()
 void GBuffer::Create()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (m_isCreated)
     {
@@ -121,7 +121,7 @@ void GBuffer::Create()
 void GBuffer::Resize(Vec2u extent)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (m_extent == extent)
     {

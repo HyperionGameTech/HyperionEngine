@@ -101,7 +101,7 @@ public:
         Only call from the owner thread.*/
     void UpdateItems()
     {
-        Threads::AssertOnThread(m_ownerThread);
+        AssertOnThread(m_ownerThread);
 
         m_updateMutex.lock();
 
@@ -150,7 +150,7 @@ public:
     {
         if (checkThreadId)
         {
-            Threads::AssertOnThread(m_ownerThread);
+            AssertOnThread(m_ownerThread);
         }
 
         if (HasUpdatesPending())

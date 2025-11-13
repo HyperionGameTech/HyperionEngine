@@ -527,7 +527,7 @@ public:
 
     const GpuImageViewRef& GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource)
     {
-        Threads::AssertOnThread(g_renderThread);
+        AssertOnThread(g_renderThread);
 
         HYP_GFX_ASSERT(texture.IsValid());
 
@@ -565,7 +565,7 @@ public:
 
     void RemoveTexture(const Handle<Texture>& texture)
     {
-        Threads::AssertOnThread(g_renderThread);
+        AssertOnThread(g_renderThread);
 
         if (!texture.IsValid())
         {
@@ -588,7 +588,7 @@ public:
 
     void CleanupUnusedTextures()
     {
-        Threads::AssertOnThread(g_renderThread);
+        AssertOnThread(g_renderThread);
 
         constexpr uint32 maxCycles = 32;
 

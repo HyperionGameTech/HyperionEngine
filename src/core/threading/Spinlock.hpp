@@ -3,16 +3,14 @@
 #pragma once
 
 #include <core/Defines.hpp>
+#include <core/Types.hpp>
 
 #include <core/threading/AtomicVar.hpp>
-#include <core/threading/Threads.hpp>
-
-#include <core/debug/Debug.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 namespace threading {
+
+HYP_API extern void ThreadSleep(uint32 milliseconds);
 
 enum SpinlockType : int
 {
@@ -68,7 +66,7 @@ public:
             if (numSpins++ >= MaxSpins)
             {
                 // yield to other threads
-                Threads::Sleep(0);
+                ThreadSleep(0);
                 numSpins = 0;
             }
 
@@ -103,7 +101,7 @@ public:
 
             if (numSpins++ >= MaxSpins)
             {
-                Threads::Sleep(0);
+                ThreadSleep(0);
                 numSpins = 0;
             }
 
@@ -144,20 +142,20 @@ public:
     {
         uint32 numSpins = 0;
         int64 expected = 0;
-        
+
         while (!AtomicCompareExchange(m_value, expected, 1))
         {
             for (int i = 0; i < 32; i++)
             {
                 HYP_WAIT_IDLE();
             }
-            
+
             if (numSpins++ >= MaxSpins)
             {
-                Threads::Sleep(0);
+                ThreadSleep(0);
                 numSpins = 0;
             }
-            
+
             expected = 0;
         }
     }
@@ -251,11 +249,11 @@ struct WriteLock<Spinlock<SPMC>>
 
 } // namespace threading
 
+using threading::MPMC;
+using threading::ReadLock;
+using threading::RWLock;
 using threading::Spinlock;
 using threading::SPMC;
-using threading::MPMC;
-using threading::RWLock;
-using threading::ReadLock;
 using threading::WriteLock;
 
 } // namespace hyperion

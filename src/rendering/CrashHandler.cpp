@@ -176,7 +176,7 @@ void CrashHandler::Initialize()
             FileByteWriter writer("./dump.nv-gpudmp");
             writer.Write(bytes.data(), bytes.size());
             writer.Close();
-            
+
             if (!g_savedDumpFiles)
             {
                 g_savedDumpFiles = new Array<FilePath>();
@@ -211,7 +211,7 @@ void CrashHandler::Initialize()
             FileByteWriter writer(FilePath::Current() / HYP_FORMAT("shader-{}.nvdbg", str.c_str()));
             writer.Write(bytes.data(), bytes.size());
             writer.Close();
-            
+
             if (!g_savedDumpFiles)
             {
                 g_savedDumpFiles = new Array<FilePath>();
@@ -251,7 +251,7 @@ void CrashHandler::HandleGPUCrash(RendererResult result)
 
     while (status != GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed && status != GFSDK_Aftermath_CrashDump_Status_Finished && elapsed.count() < 10000)
     {
-        Threads::Sleep(30);
+        ThreadSleep(30);
 
         Assert(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
 
@@ -263,9 +263,12 @@ void CrashHandler::HandleGPUCrash(RendererResult result)
 
     const String message = String("A GPU crash has been detected. The application will now exit.")
         + (g_savedDumpFilesPerThread.Any()
-            ? HYP_FORMAT("\nCrash dump(s) has been saved to: {}\n\nPlease attach these when submitting a bug report.",
-                  String::Join(g_savedDumpFilesPerThread, '\n', [](const Array<FilePath>* item) { return item ? String::Join(*item, '\n') : String(); }))
-            : "\nCrash dump state is unknown.");
+                ? HYP_FORMAT("\nCrash dump(s) has been saved to: {}\n\nPlease attach these when submitting a bug report.",
+                      String::Join(g_savedDumpFilesPerThread, '\n', [](const Array<FilePath>* item)
+                          {
+                              return item ? String::Join(*item, '\n') : String();
+                          }))
+                : "\nCrash dump state is unknown.");
 
     HYP_LOG(Rendering, Fatal, "GPU Crash Detected!\n{}", message);
 }

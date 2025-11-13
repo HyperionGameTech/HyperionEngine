@@ -12,7 +12,7 @@ void SchedulerBase::RequestStop()
 {
     m_stopRequested.Set(true, MemoryOrder::RELAXED);
 
-    if (!Threads::IsOnThread(m_ownerThread))
+    if (!IsOnThread(m_ownerThread))
     {
         WakeUpOwnerThread();
     }

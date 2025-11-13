@@ -347,7 +347,7 @@ void LightmapperBase::BuildResourceCache()
 
     while (!taskBatch.IsCompleted())
     {
-        Threads::Sleep(1000);
+        ThreadSleep(1000);
 
         Mutex::Guard guard(mtx);
 
@@ -471,7 +471,7 @@ void LightmapperBase::Update(float delta)
 void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     HYP_DEFER({
         m_queue.Pop();
@@ -637,7 +637,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
             entityManager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
         };
 
-        if (Threads::IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
+        if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
         {
             // If we are on the same thread, we can update the mesh component immediately
             updateMeshComponent();
@@ -645,7 +645,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
         else
         {
             // Enqueue the update to be performed on the owner thread
-            ThreadBase* thread = Threads::GetThread(m_scene->GetEntityManager()->GetOwnerThreadId());
+            ThreadBase* thread = GetThreadById(m_scene->GetEntityManager()->GetOwnerThreadId());
             Assert(thread != nullptr);
 
             thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);

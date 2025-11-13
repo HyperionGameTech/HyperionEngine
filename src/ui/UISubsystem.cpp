@@ -222,7 +222,7 @@ void UISubsystem::OnRemovedFromWorld()
 void UISubsystem::PreUpdate(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 }
 
 void UISubsystem::Update(float delta)
@@ -332,7 +332,7 @@ void UISubsystem::CreateFramebuffer()
         }
     };
 
-    if (Threads::IsOnThread(ownerThreadId))
+    if (IsOnThread(ownerThreadId))
     {
         HYP_NAMED_SCOPE("Create UI Render Subsystem view on owner thread");
 
@@ -340,7 +340,7 @@ void UISubsystem::CreateFramebuffer()
     }
     else
     {
-        Threads::GetThread(ownerThreadId)->GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
+        GetThreadById(ownerThreadId)->GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 
     const ViewOutputTarget& outputTarget = m_view->GetOutputTarget();

@@ -69,7 +69,7 @@ public:
 
     HYP_FORCE_INLINE uint32 GetProcessorAffinity() const
     {
-        return MathUtil::Min(NumThreads(), MathUtil::Max(1u, Threads::NumCores()) - 1);
+        return MathUtil::Min(NumThreads(), MathUtil::Max(1u, NumCores()) - 1);
     }
 
     HYP_FORCE_INLINE ThreadMask GetThreadMask() const

@@ -2,6 +2,11 @@
 
 #include <system/SystemEvent.hpp>
 namespace hyperion {
+
+#ifdef HYP_MACOS
+extern void DestroyCocoaEvent(CocoaEvent& cocoaEvent);
+#endif
+
 namespace sys {
 
 #pragma region Helper methods
@@ -57,6 +62,14 @@ static EnumFlags<MouseButtonState> GetMouseButtonState(int sdlButton)
 #pragma endregion Helper methods
 
 #pragma region SystemEvent
+
+SystemEvent::~SystemEvent()
+{
+#ifdef HYP_MACOS
+    CocoaEvent& cocoaEvent = m_platformEvent.cocoaEvent;
+    DestroyCocoaEvent(cocoaEvent);
+#endif
+}
 
 #pragma endregion SystemEvent
 

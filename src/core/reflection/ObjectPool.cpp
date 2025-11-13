@@ -178,15 +178,15 @@ void ObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard
         return;
     }
 
-    /*if (!Threads::IsOnThread(EngineMemory_GetPoolThreadId(poolName)))
+    /*if (!IsOnThread(EngineMemory_GetPoolThreadId(poolName)))
     {
         HYP_LOG(Core, Warning, "Create/destroying object of type {} from thread: {} but its pool is owned by thread: {}",
             m_class->GetName(),
-            Threads::CurrentThreadId().GetName(),
+            CurrentThreadId().GetName(),
             EngineMemory_GetPoolThreadId(poolName).GetName());
     }*/
 
-    // Threads::AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "Object can only be created/destroyed from its owning pool thread");
+    // AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "Object can only be created/destroyed from its owning pool thread");
 #endif
 }
 

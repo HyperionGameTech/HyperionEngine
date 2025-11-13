@@ -95,7 +95,7 @@ public:
         }
         else if (m_ownerThreadId.IsValid())
         {
-            Threads::AssertOnThread(m_ownerThreadId, "TSlabAllocator allocation from wrong thread!");
+            AssertOnThread(m_ownerThreadId, "TSlabAllocator allocation from wrong thread!");
         }
 
         for (uint32 i = 0; i < m_slabs.Size(); ++i)
@@ -194,7 +194,7 @@ public:
         }
         else if (m_ownerThreadId.IsValid())
         {
-            Threads::AssertOnThread(m_ownerThreadId, "TSlabAllocator free from wrong thread!");
+            AssertOnThread(m_ownerThreadId, "TSlabAllocator free from wrong thread!");
         }
 
         Slab* slab = FindOwningSlab(ptr);
@@ -293,7 +293,7 @@ public:
         }
         else if (m_ownerThreadId.IsValid())
         {
-            Threads::AssertOnThread(m_ownerThreadId, "TSlabAllocator reset from wrong thread!");
+            AssertOnThread(m_ownerThreadId, "TSlabAllocator reset from wrong thread!");
         }
 
         for (uint32 i = 0; i < m_slabs.Size(); ++i)

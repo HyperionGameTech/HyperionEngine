@@ -160,7 +160,7 @@ void SceneOctree::Clear()
 
     if (m_entityManager)
     {
-        Assert(Threads::IsOnThread(m_entityManager->GetOwnerThreadId()));
+        Assert(IsOnThread(m_entityManager->GetOwnerThreadId()));
 
         for (SceneOctreePayload& payload : payloads)
         {

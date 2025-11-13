@@ -5,6 +5,7 @@
 
 #include <core/threading/ThreadLocalStorage.hpp>
 #include <core/threading/Thread.hpp>
+#include <core/threading/Threads.hpp>
 #include <core/threading/util/ThreadId.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -38,7 +39,7 @@ thread_local ThreadLocalCacheMap* s_cache;
 
 static void InitThreadLocalCache()
 {
-    ThreadBase* thisThread = Threads::CurrentThreadObject();
+    ThreadBase* thisThread = CurrentThreadObject();
 
     if (thisThread)
     {
@@ -323,7 +324,7 @@ void ClassRegistry::ForEachClass(const ProcRef<IterationResult(const Class*)>& c
 void ClassRegistry::Initialize()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_mainThread);
+    AssertOnThread(g_mainThread);
 
     HYP_CORE_ASSERT(!m_isInitialized);
     m_isInitialized = true;

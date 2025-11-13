@@ -45,7 +45,7 @@ HYP_NODISCARD void* Pool::Allocate(SizeType size, SizeType alignment)
     }
     else if (m_ownerThreadId.IsValid())
     {
-        Threads::AssertOnThread(m_ownerThreadId, "Pool allocation from wrong thread!");
+        AssertOnThread(m_ownerThreadId, "Pool allocation from wrong thread!");
     }
 
     for (auto& block : m_blocks)
@@ -95,7 +95,7 @@ void Pool::Free(void* ptr)
     }
     else if (m_ownerThreadId.IsValid())
     {
-        Threads::AssertOnThread(m_ownerThreadId, "Freeing from wrong thread!");
+        AssertOnThread(m_ownerThreadId, "Freeing from wrong thread!");
     }
 
     for (auto& block : m_blocks)
@@ -133,7 +133,7 @@ void Pool::Reset()
     }
     else if (m_ownerThreadId.IsValid())
     {
-        Threads::AssertOnThread(m_ownerThreadId, "Pool reset from wrong thread!");
+        AssertOnThread(m_ownerThreadId, "Pool reset from wrong thread!");
     }
 
     m_blocks.Clear();

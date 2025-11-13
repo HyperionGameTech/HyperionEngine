@@ -311,7 +311,7 @@ void LegacyEnvGrid::Update(float delta)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
     static const ConfigurationValue& s_configDebugDrawProbes = CoreApi_GetGlobalConfig().Get("Rendering.Debug.DebugDrawer.EnvGridProbes");
@@ -463,7 +463,7 @@ void LegacyEnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
     HYP_SCOPE;
     AssertReady();
 
-    Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     m_aabb = aabb;
 

@@ -25,7 +25,7 @@ namespace hyperion {
 /*! \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push.
  *  If called from the render thread, the command is executed immediately. */
 #define PUSH_RENDER_COMMAND(name, ...)                                                                                                           \
-    if (::hyperion::Threads::IsOnThread(::hyperion::g_renderThread))                                                                             \
+    if (::hyperion::IsOnThread(::hyperion::g_renderThread))                                                                                      \
     {                                                                                                                                            \
         const ::hyperion::RendererResult commandResult = name(__VA_ARGS__).Call();                                                               \
         Assert(commandResult, "Render command error! [{}]: {}", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage()); \
@@ -36,10 +36,10 @@ namespace hyperion {
     }
 
 /*! \brief If not on the render thread, waits for the render thread to finish executing all render commands. */
-#define HYP_SYNC_RENDER(...)                                          \
-    if (!::hyperion::Threads::IsOnThread(::hyperion::g_renderThread)) \
-    {                                                                 \
-        ::hyperion::RenderCommands::Wait();                           \
+#define HYP_SYNC_RENDER(...)                                 \
+    if (!::hyperion::IsOnThread(::hyperion::g_renderThread)) \
+    {                                                        \
+        ::hyperion::RenderCommands::Wait();                  \
     }
 
 constexpr uint32 maxRenderCommandTypes = 128;
@@ -216,7 +216,7 @@ public:
     {
         static_assert(std::is_base_of_v<RenderCommand, T>, "T must derive RenderCommand");
 
-        Threads::AssertOnThread(~g_renderThread);
+        AssertOnThread(~g_renderThread);
 
         uint32 bufferIndex = CurrentBufferIndex();
         Buffer& buffer = s_buffers[bufferIndex];

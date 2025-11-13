@@ -268,7 +268,7 @@ void WriteBufferData_Light(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRe
 
 void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
     static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;

@@ -121,7 +121,7 @@ World::~World()
 void World::Init()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     m_viewCollectionBatch = new TaskBatch();
     m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
@@ -227,7 +227,7 @@ void World::Init()
 void World::ProcessViewAsync(View* view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
     AssertReady();
 
     if (!view)
@@ -265,7 +265,7 @@ DelegateHandler World::ProcessViewAsync(View* view, Proc<void()>&& onComplete)
 void World::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     AssertReady();
 
@@ -437,7 +437,7 @@ const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsyst
         return Handle<Subsystem>::Null();
     }
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     subsystem->SetWorld(this);
 
@@ -481,7 +481,7 @@ const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsyst
 Subsystem* World::GetSubsystem(TypeId typeId) const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     const auto it = m_subsystems.Find(typeId);
 
@@ -496,7 +496,7 @@ Subsystem* World::GetSubsystem(TypeId typeId) const
 Subsystem* World::GetSubsystemByName(StringHash name) const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     const auto it = m_subsystemsArray.FindIf([name](Subsystem* subsystem)
         {
@@ -516,7 +516,7 @@ Subsystem* World::GetSubsystemByName(StringHash name) const
 bool World::RemoveSubsystem(Subsystem* subsystem)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (!subsystem)
     {
@@ -564,7 +564,7 @@ bool World::RemoveSubsystem(Subsystem* subsystem)
 void World::StartSimulating()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
     AssertReady();
 
     if (m_gameState.mode == GameStateMode::SIMULATING)
@@ -584,7 +584,7 @@ void World::StartSimulating()
 void World::StopSimulating()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
     AssertReady();
 
     if (m_gameState.mode != GameStateMode::SIMULATING)
@@ -604,7 +604,7 @@ void World::StopSimulating()
 void World::AddScene(const Handle<Scene>& scene)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (!scene.IsValid())
     {
@@ -651,7 +651,7 @@ void World::AddScene(const Handle<Scene>& scene)
 bool World::RemoveScene(Scene* scene)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     auto it = m_scenes.Find(scene);
 
@@ -693,7 +693,7 @@ bool World::HasScene(ObjId<Scene> sceneId) const
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     return m_scenes.FindIf([sceneId](const Handle<Scene>& scene)
                {
@@ -706,7 +706,7 @@ const Handle<Scene>& World::GetSceneByName(Name name) const
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     const auto it = m_scenes.FindIf([name](const Handle<Scene>& scene)
         {
@@ -719,7 +719,7 @@ const Handle<Scene>& World::GetSceneByName(Name name) const
 void World::AddView(const Handle<View>& view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (!view.IsValid())
     {
@@ -771,7 +771,7 @@ void World::AddView(const Handle<View>& view)
 void World::RemoveView(View* view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (!view)
     {
@@ -815,7 +815,7 @@ void World::RemoveView(View* view)
 Span<View* const> World::GetViews() const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread | g_gameThread);
+    AssertOnThread(g_renderThread | g_gameThread);
 
     return m_viewsPerFrame[RenderApi::GetRingIndex()].ToSpan();
 }

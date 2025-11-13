@@ -522,7 +522,7 @@ void EnvGridRenderer::CreateLightFieldData(LegacyEnvGrid* envGrid, EnvGridRender
 void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     static const ConfigurationValue& globalIlluminationEnabled = CoreApi_GetGlobalConfig().Get("Rendering.EnvGrid.GI.Enabled");
 
@@ -892,7 +892,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
             // g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
             // Enqueue on game thread, not safe to write on render thread.
-            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData]() mutable
+            GetThreadById(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData]() mutable
                 {
                     probe->SetSphericalHarmonicsData(shData);
 

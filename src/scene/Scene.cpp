@@ -152,9 +152,9 @@ Scene::~Scene()
 
     if (m_root.IsValid())
     {
-        if (m_ownerThreadId.IsValid() && !Threads::IsOnThread(m_ownerThreadId))
+        if (m_ownerThreadId.IsValid() && !IsOnThread(m_ownerThreadId))
         {
-            Task<void> task = Threads::GetThread(m_ownerThreadId)->GetScheduler().Enqueue([&node = m_root]()
+            Task<void> task = GetThreadById(m_ownerThreadId)->GetScheduler().Enqueue([&node = m_root]()
                 {
                     node->SetScene(nullptr);
                 });
@@ -170,7 +170,7 @@ Scene::~Scene()
     // Move so destruction of components can check GetEntityManager() returns nullptr
     if (Handle<EntityManager> entityManager = std::move(m_entityManager))
     {
-        if (Threads::IsOnThread(entityManager->GetOwnerThreadId()))
+        if (IsOnThread(entityManager->GetOwnerThreadId()))
         {
             // If we are on the same thread, we can safely shutdown the entity manager here:
             entityManager->Shutdown();
@@ -178,7 +178,7 @@ Scene::~Scene()
         else
         {
             // have to enqueue a task to shut down the entity manager on its owner thread
-            Task<void> task = Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue([&entityManager]()
+            Task<void> task = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue([&entityManager]()
                 {
                     entityManager->Shutdown();
                 });
@@ -233,7 +233,7 @@ void Scene::SetOwnerThreadId(ThreadId ownerThreadId)
 Camera* Scene::GetPrimaryCamera() const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     if (!m_entityManager)
     {
@@ -253,7 +253,7 @@ Camera* Scene::GetPrimaryCamera() const
 void Scene::SetWorld(World* world)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     if (m_world == world)
     {
@@ -274,7 +274,7 @@ void Scene::SetWorld(World* world)
 Handle<Node> Scene::FindNodeByName(StringHash name) const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     Assert(m_root);
 
@@ -289,7 +289,7 @@ Handle<Node> Scene::FindNodeByName(StringHash name) const
 void Scene::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     AssertReady();
 
@@ -307,7 +307,7 @@ void Scene::Update(float delta)
 void Scene::SetRoot(const Handle<Node>& root)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
+    AssertOnThread(m_ownerThreadId);
 
     if (root == m_root)
     {
@@ -335,7 +335,7 @@ bool Scene::AddToWorld(World* world)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (world == m_world)
     {
@@ -357,7 +357,7 @@ bool Scene::AddToWorld(World* world)
 bool Scene::RemoveFromWorld()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (m_world == nullptr)
     {

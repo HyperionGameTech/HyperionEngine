@@ -76,7 +76,7 @@ void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
 const DescriptorSetRef& MaterialDescriptorSetManager::ForBoundMaterial(const Material* material, uint32 frameIndex)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     uint32 boundIndex = ~0u;
 
@@ -111,7 +111,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
         return {};
     }
 
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const DescriptorSetDeclaration* decl = g_renderGlobalState->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
     Assert(decl != nullptr);
@@ -166,7 +166,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
         return {};
     }
 
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const DescriptorSetDeclaration* decl = g_renderGlobalState->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
     Assert(decl != nullptr);
@@ -238,7 +238,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
 
 void MaterialDescriptorSetManager::Remove(uint32 boundIndex)
 {
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (boundIndex == ~0u)
     {

@@ -102,7 +102,7 @@ public:
         Assert(m_isRunning.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
 
         // Must be current thread
-        Threads::AssertOnThread(g_renderThread);
+        AssertOnThread(g_renderThread);
 
         SetCurrentThreadObject(this);
         m_scheduler.SetOwnerThread(Id());
@@ -200,7 +200,7 @@ void HandleSignal(int signum)
     //
     //    while (g_renderThreadInstance->IsRunning())
     //    {
-    //        Threads::Sleep(10);
+    //        ThreadSleep(10);
     //    }
     //
     //    g_renderThreadInstance->Join();
@@ -259,7 +259,7 @@ EngineDriver::~EngineDriver()
 HYP_API void EngineDriver::Init()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_mainThread);
+    AssertOnThread(g_mainThread);
 
     // Set ready to false after render thread stops running.
     HYP_DEFER({ SetReady(false); });
@@ -320,7 +320,7 @@ HYP_API void EngineDriver::Init()
 const Handle<World>& EngineDriver::GetCurrentWorld() const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_gameThread | g_renderThread);
 
     return m_currentWorldBuffered[RenderApi::GetRingIndex()];
 }
@@ -328,7 +328,7 @@ const Handle<World>& EngineDriver::GetCurrentWorld() const
 void EngineDriver::SetCurrentWorld(const Handle<World>& world)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_gameThread | g_renderThread);
 
     if (!world)
     {
@@ -349,7 +349,7 @@ bool EngineDriver::IsRenderLoopActive() const
 bool EngineDriver::StartRenderLoop()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_mainThread);
+    AssertOnThread(g_mainThread);
 
     if (m_renderThread == nullptr)
     {
@@ -384,7 +384,7 @@ void EngineDriver::RequestStop()
 void EngineDriver::FinalizeStop()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_mainThread);
+    AssertOnThread(g_mainThread);
 
     m_isShuttingDown.Set(true, MemoryOrder::SEQUENTIAL);
 
@@ -434,7 +434,7 @@ void EngineDriver::FinalizeStop()
             counts[i] = g_safeDeleter->ForceDeleteAll(i);
         }
 
-        Threads::Sleep(1); // give some time for other threads to finish
+        ThreadSleep(1); // give some time for other threads to finish
     }
     while (AnyOf(counts, [](uint32 count) { return count > 0; }));
     // clang-format on
@@ -472,7 +472,7 @@ void EngineDriver::PreFrameUpdate(FrameBase* frame)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 }
 
 #pragma endregion EngineDriver

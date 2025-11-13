@@ -3,6 +3,7 @@
 #include <core/containers/TypeMap.hpp>
 
 #include <core/threading/Mutex.hpp>
+#include <core/threading/Threads.hpp>
 #include <core/threading/Scheduler.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -125,7 +126,7 @@ void ResourceBase::WaitForFinalization() const
 
         do
         {
-            Threads::Sleep(0);
+            ThreadSleep(0);
         }
         while (m_refCount != 0 && timer.ElapsedMs() < 30.0);
 

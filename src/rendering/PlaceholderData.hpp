@@ -91,7 +91,7 @@ public:
     /*! \brief Get or create a buffer of at least the given size */
     GpuBufferRef GetOrCreateBuffer(GpuBufferType bufferType, SizeType requiredSize, bool exactSize = false)
     {
-        // Threads::AssertOnThread(g_renderThread);
+        // AssertOnThread(g_renderThread);
 
         if (!m_buffers.Contains(bufferType))
         {

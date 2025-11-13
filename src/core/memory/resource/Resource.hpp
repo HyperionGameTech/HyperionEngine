@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <core/threading/Threads.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/DataRaceDetector.hpp>

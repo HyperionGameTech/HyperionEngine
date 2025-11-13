@@ -364,7 +364,7 @@ void AssetManager::Init()
 void AssetManager::Update(float delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     m_assetRegistry->Update(delta);
 

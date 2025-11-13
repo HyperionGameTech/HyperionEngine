@@ -71,7 +71,7 @@ Scene* GetDetachedSceneForCurrentThread()
 {
     if (!s_sceneForCurrentThread)
     {
-        s_sceneForCurrentThread = GetDetachedScenes().GetDetachedScene(Threads::CurrentThreadId());
+        s_sceneForCurrentThread = GetDetachedScenes().GetDetachedScene(CurrentThreadId());
     }
 
     return s_sceneForCurrentThread;

@@ -68,107 +68,113 @@ CocoaApplicationWindow::CocoaApplicationWindow(ANSIString title, Vec2i size)
 
 CocoaApplicationWindow::~CocoaApplicationWindow()
 {
-    @autoreleasepool
+    if (m_metalLayer)
     {
-        if (m_metalLayer)
-        {
-            CAMetalLayer* metalLayer = (__bridge_transfer CAMetalLayer*)m_metalLayer;
-            m_metalLayer = nullptr;
-        }
-        
-        if (m_windowDelegate)
-        {
-            HyperionWindowDelegate* delegate = (__bridge_transfer HyperionWindowDelegate*)m_windowDelegate;
-            delegate.window = nullptr;
-            m_windowDelegate = nullptr;
-        }
-        
-        if (m_nsWindow)
-        {
-            NSWindow* window = (__bridge_transfer NSWindow*)m_nsWindow;
-            [window close];
-            m_nsWindow = nullptr;
-        }
+        CAMetalLayer* metalLayer = (CAMetalLayer*)m_metalLayer;
+        [metalLayer release];
+        m_metalLayer = nullptr;
+    }
+    
+    if (m_windowDelegate)
+    {
+        HyperionWindowDelegate* delegate = (HyperionWindowDelegate*)m_windowDelegate;
+        delegate.window = nullptr;
+        [delegate release];
+
+        m_windowDelegate = nullptr;
+    }
+    
+    if (m_nsWindow)
+    {
+        NSWindow* window = (NSWindow*)m_nsWindow;
+        [window close];
+        [window release];
+
+        m_nsWindow = nullptr;
     }
 }
 
 void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 {
-    @autoreleasepool
-    {
-        m_title = windowOptions.title;
-        m_size = windowOptions.size;
+    m_title = windowOptions.title;
+    m_size = windowOptions.size;
 
-        NSRect frame = NSMakeRect(0, 0, m_size.x, m_size.y);
-        
-        NSWindowStyleMask styleMask = NSWindowStyleMaskTitled | 
-                                      NSWindowStyleMaskClosable | 
-                                      NSWindowStyleMaskMiniaturizable | 
-                                      NSWindowStyleMaskResizable;
-        
-        if (windowOptions.flags & WindowFlags::HEADLESS)
-        {
-            // Create window but don't show it
-        }
-        
-        NSWindow* window = [[NSWindow alloc] initWithContentRect:frame
-                                                        styleMask:styleMask
-                                                          backing:NSBackingStoreBuffered
-                                                            defer:NO];
-        
-        [window setTitle:[NSString stringWithUTF8String:m_title.Data()]];
-        [window center];
+    NSRect frame = NSMakeRect(0, 0, m_size.x, m_size.y);
+    
+    NSWindowStyleMask styleMask = NSWindowStyleMaskTitled | 
+                                    NSWindowStyleMaskClosable | 
+                                    NSWindowStyleMaskMiniaturizable | 
+                                    NSWindowStyleMaskResizable;
+    
+    if (windowOptions.flags & WindowFlags::HEADLESS)
+    {
+        // Create window but don't show it
+    }
+    
+    NSWindow* window = [[NSWindow alloc] initWithContentRect:frame
+                                                    styleMask:styleMask
+                                                        backing:NSBackingStoreBuffered
+                                                        defer:NO];
+    
+    [window setTitle:[NSString stringWithUTF8String:m_title.Data()]];
+    [window center];
+
+    
+    // Setup delegate
+    HyperionWindowDelegate* delegate = [[HyperionWindowDelegate alloc] init];
+    delegate.window = this;
+    [window setDelegate:delegate];
+    
+    // Accept mouse moved events
+    [window setAcceptsMouseMovedEvents:YES];
+    
+    // Register for drag-and-drop
+    [window registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
+    
+    // Create Metal layer
+    if (!(windowOptions.flags & WindowFlags::NO_GFX))
+    {
+        CAMetalLayer* metalLayer = [CAMetalLayer layer];
+        [window.contentView setLayer:metalLayer];
+        [window.contentView setWantsLayer:YES];
         
         if (windowOptions.flags & WindowFlags::HIGH_DPI)
         {
-            // Enable high DPI support
-            [window.contentView setWantsBestResolutionOpenGLSurface:YES];
+            metalLayer.contentsScale = [window backingScaleFactor];
         }
-        
-        // Setup delegate
-        HyperionWindowDelegate* delegate = [[HyperionWindowDelegate alloc] init];
-        delegate.window = this;
-        [window setDelegate:delegate];
-        
-        // Accept mouse moved events
-        [window setAcceptsMouseMovedEvents:YES];
-        
-        // Register for drag-and-drop
-        [window registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
-        
-        // Create Metal layer
-        if (!(windowOptions.flags & WindowFlags::NO_GFX))
+        else
         {
-            CAMetalLayer* metalLayer = [CAMetalLayer layer];
-            [window.contentView setLayer:metalLayer];
-            [window.contentView setWantsLayer:YES];
-            
-            if (windowOptions.flags & WindowFlags::HIGH_DPI)
-            {
-                metalLayer.contentsScale = [window backingScaleFactor];
-            }
-            
-            m_metalLayer = (__bridge_retained void*)metalLayer;
+            metalLayer.contentsScale = 1.0;
         }
         
-        if (!(windowOptions.flags & WindowFlags::HEADLESS))
-        {
-            [window makeKeyAndOrderFront:nil];
-        }
+        metalLayer.drawableSize = CGSizeMake(
+            [window.contentView bounds].size.width * metalLayer.contentsScale,
+            [window.contentView bounds].size.height * metalLayer.contentsScale
+        );
         
-        m_nsWindow = (__bridge_retained void*)window;
-        m_windowDelegate = (__bridge_retained void*)delegate;
         
-        HYP_LOG(Core, Debug, "CocoaApplicationWindow initialized: {} ({}x{})", 
-                m_title, m_size.x, m_size.y);
+        m_metalLayer = (void*)metalLayer;
     }
+    
+    if (!(windowOptions.flags & WindowFlags::HEADLESS))
+    {
+        [window makeKeyAndOrderFront:nil];
+    }
+    
+    m_nsWindow = (void*)window;
+    m_windowDelegate = (void*)delegate;
+    
+    HYP_LOG(Core, Debug, "CocoaApplicationWindow initialized: {} ({}x{})", 
+            m_title, m_size.x, m_size.y);
 }
 
 void CocoaApplicationWindow::SetMousePosition(Vec2i position)
 {
-    @autoreleasepool
+    HYP_LOG(Core, Debug, "Setting mouse position to ({}, {})", position.x, position.y);
+
+    if (!m_mouseLocked)
     {
-        NSWindow* window = (__bridge NSWindow*)m_nsWindow;
+        NSWindow* window = (NSWindow*)m_nsWindow;
         NSRect windowFrame = [window frame];
         NSRect contentFrame = [window.contentView frame];
         
@@ -180,13 +186,15 @@ void CocoaApplicationWindow::SetMousePosition(Vec2i position)
         CGWarpMouseCursorPosition(point);
         CGAssociateMouseAndMouseCursorPosition(true);
     }
+
+    m_mousePosition = position;
 }
 
 Vec2i CocoaApplicationWindow::GetMousePosition() const
 {
-    @autoreleasepool
+    if (!m_mouseLocked)
     {
-        NSWindow* window = (__bridge NSWindow*)m_nsWindow;
+        NSWindow* window = (NSWindow*)m_nsWindow;
         NSPoint mouseLocation = [NSEvent mouseLocation];
         NSRect windowFrame = [window frame];
         NSRect contentFrame = [window.contentView frame];
@@ -194,56 +202,46 @@ Vec2i CocoaApplicationWindow::GetMousePosition() const
         // Convert from screen coordinates to content coordinates
         CGFloat localX = mouseLocation.x - windowFrame.origin.x;
         CGFloat localY = contentFrame.size.height - (mouseLocation.y - windowFrame.origin.y);
-        
-        return Vec2i((int)localX, (int)localY);
+
+        m_mousePosition = Vec2i((int)localX, (int)localY);
     }
+    
+    return m_mousePosition;
 }
 
 Vec2i CocoaApplicationWindow::GetDimensions() const
 {
-    @autoreleasepool
-    {
-        NSWindow* window = (__bridge NSWindow*)m_nsWindow;
-        NSRect frame = [window.contentView frame];
-        return Vec2i((int)frame.size.width, (int)frame.size.height);
-    }
+    NSWindow* window = (NSWindow*)m_nsWindow;
+    NSRect frame = [window.contentView frame];
+    return Vec2i((int)frame.size.width, (int)frame.size.height);
 }
 
 void CocoaApplicationWindow::SetIsMouseLocked(bool locked)
 {
-    @autoreleasepool
+    m_mouseLocked = locked;
+    
+    if (locked)
     {
-        m_mouseLocked = locked;
-        
-        if (locked)
-        {
-            CGAssociateMouseAndMouseCursorPosition(false);
-            [NSCursor hide];
-        }
-        else
-        {
-            CGAssociateMouseAndMouseCursorPosition(true);
-            [NSCursor unhide];
-        }
+        CGAssociateMouseAndMouseCursorPosition(false);
+        [NSCursor hide];
+    }
+    else
+    {
+        CGAssociateMouseAndMouseCursorPosition(true);
+        [NSCursor unhide];
     }
 }
 
 bool CocoaApplicationWindow::HasMouseFocus() const
 {
-    @autoreleasepool
-    {
-        NSWindow* window = (__bridge NSWindow*)m_nsWindow;
-        return [window isKeyWindow];
-    }
+    NSWindow* window = (NSWindow*)m_nsWindow;
+    return [window isKeyWindow];
 }
 
 bool CocoaApplicationWindow::IsHighDPI() const
 {
-    @autoreleasepool
-    {
-        NSWindow* window = (__bridge NSWindow*)m_nsWindow;
-        return [window backingScaleFactor] > 1.0;
-    }
+    NSWindow* window = (NSWindow*)m_nsWindow;
+    return [window backingScaleFactor] > 1.0;
 }
 
 void* CocoaApplicationWindow::GetCAMetalLayer() const

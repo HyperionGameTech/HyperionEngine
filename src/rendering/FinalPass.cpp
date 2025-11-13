@@ -61,7 +61,7 @@ FinalPass::~FinalPass()
 void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     SafeDelete(std::move(m_uiLayerImageView));
 
@@ -101,7 +101,7 @@ void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
 void FinalPass::Create()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     Assert(m_swapchain != nullptr);
 
@@ -158,7 +158,7 @@ void FinalPass::Create()
 void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const uint32 frameIndex = frame->GetFrameIndex();
     const uint32 acquiredImageIndex = m_swapchain->GetAcquiredImageIndex();

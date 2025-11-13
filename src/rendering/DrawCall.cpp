@@ -71,7 +71,7 @@ DrawCallCollection::~DrawCallCollection()
 void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& renderProxy)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderProxy.mesh != nullptr && renderProxy.material != nullptr);
 
@@ -87,7 +87,7 @@ void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& r
 void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     // Auto-instancing: check if we already have a drawcall we can use for the given DrawCallID.
     auto indexMapIt = indexMap.Find(uint64(id));
@@ -162,7 +162,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
 EntityInstanceBatch* DrawCallCollection::TakeDrawCallBatch(DrawCallID id)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     const auto it = indexMap.Find(id.Value());
 
@@ -189,7 +189,7 @@ EntityInstanceBatch* DrawCallCollection::TakeDrawCallBatch(DrawCallID id)
 void DrawCallCollection::ResetDrawCalls()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(batchAllocator != nullptr);
 
@@ -221,7 +221,7 @@ void DrawCallCollection::ResetDrawCalls()
 uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* entity, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
 #ifdef HYP_DEBUG_MODE // Sanity checks
     // type check - cannot be a subclass of Entity, indices would get messed up

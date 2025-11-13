@@ -626,7 +626,7 @@ Array<Node*> Node::GetDescendantsArray() const
     // add all children to the list
     Array<Node*> descendants;
 
-    typedef void (*CollectFunc)(Array<Node*> & descendants, const Node& target, void* collectFunc);
+    typedef void (*CollectFunc)(Array<Node*>& descendants, const Node& target, void* collectFunc);
 
     CollectFunc collectFunc = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
     {
@@ -1118,7 +1118,7 @@ EditorDelegates* Node::GetEditorDelegates()
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread);
 
     if (EditorSubsystem* editorSubsystem = g_engineDriver->GetDefaultWorld()->GetSubsystem<EditorSubsystem>())
     {
@@ -1131,7 +1131,7 @@ EditorDelegates* Node::GetEditorDelegates()
 template <class Function>
 void Node::GetEditorDelegates(Function&& func)
 {
-    if (Threads::IsOnThread(g_gameThread))
+    if (IsOnThread(g_gameThread))
     {
         if (EditorSubsystem* editorSubsystem = g_engineDriver->GetDefaultWorld()->GetSubsystem<EditorSubsystem>())
         {
@@ -1140,7 +1140,7 @@ void Node::GetEditorDelegates(Function&& func)
     }
     else
     {
-        Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([weakThis = WeakHandleFromThis(), func = std::forward<Function>(func)]()
+        GetThreadById(g_gameThread)->GetScheduler().Enqueue([weakThis = WeakHandleFromThis(), func = std::forward<Function>(func)]()
             {
                 if (Handle<Node> strongThis = weakThis.Lock())
                 {

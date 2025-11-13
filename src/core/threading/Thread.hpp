@@ -33,7 +33,7 @@ class SchedulerBase;
 class Scheduler;
 class ThreadLocalStorage;
 
-enum class ThreadPriorityValue
+enum class ThreadPriorityValue : uint32
 {
     LOWEST,
     LOW,

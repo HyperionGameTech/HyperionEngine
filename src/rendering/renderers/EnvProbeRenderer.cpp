@@ -82,7 +82,7 @@ void EnvProbeRenderer::Shutdown()
 void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.envProbe != nullptr);
@@ -136,7 +136,7 @@ void ReflectionProbeRenderer::Shutdown()
 void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
@@ -666,7 +666,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
             // g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
             // // Enqueue on game thread, not safe to write on render thread.
-            // Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]() mutable
+            // GetThreadById(g_gameThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]() mutable
             //     {
             //         HYP_LOG(Rendering, Debug, "EnvProbe {} SH data computed:", envProbe->Id());
             //         for (uint32 i = 0; i < 9; i++)
