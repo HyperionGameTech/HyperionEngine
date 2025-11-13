@@ -352,7 +352,7 @@ void FullScreenPass::CreateFramebuffer()
 {
     HYP_SCOPE;
 
-    if (m_flags & FSP_EXTERNAL_FRAMEBUFFER)
+    if (m_flags & FSP_EXTERNAL_RENDERTARGET)
     {
         // will use RenderToFramebuffer() with other framebuffer one instead
         return;
@@ -410,7 +410,7 @@ void FullScreenPass::CreateFramebuffer()
     AttachmentRef attachment = m_framebuffer->AddAttachment(
         0,
         attachmentImage,
-        ShouldRenderHalfRes() ? LoadOperation::LOAD : LoadOperation::CLEAR,
+        ShouldRenderHalfRes() || (m_flags & FSP_RENDERTARGET_LOAD) ? LoadOperation::LOAD : LoadOperation::CLEAR,
         StoreOperation::STORE);
 
     DeferCreate(attachment);
@@ -666,7 +666,7 @@ void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     AssertDebug(renderSetup.IsValid());
 
-    AssertDebug(!(m_flags & FSP_EXTERNAL_FRAMEBUFFER), "Cannot use Render() with FSP_EXTERNAL_FRAMEBUFFER, use RenderToFramebuffer() instead");
+    AssertDebug(!(m_flags & FSP_EXTERNAL_RENDERTARGET), "Cannot use Render() with external target, use RenderToFramebuffer() instead");
     AssertDebug(m_framebuffer != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -689,6 +689,7 @@ void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
@@ -707,6 +708,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     for (int i = 0; i < framebuffer->NumAttachments(); i++)
     {
         AttachmentBase* attachment = framebuffer->GetAttachment(i);
+        AssertDebug(attachment != nullptr);
 
         if (attachment->GetLoadOperation() == LoadOperation::LOAD)
         {
@@ -744,6 +746,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 
     m_isFirstFrame = false;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void FullScreenPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
@@ -818,7 +821,7 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
 
-    AssertDebug(!(m_flags & FSP_EXTERNAL_FRAMEBUFFER), "Cannot use Begin()/End() with FSP_EXTERNAL_FRAMEBUFFER, use RenderToFramebuffer() instead");
+    AssertDebug(!(m_flags & FSP_EXTERNAL_RENDERTARGET), "Cannot use Begin()/End() with external target, use RenderToFramebuffer() instead");
     AssertDebug(m_framebuffer != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -856,7 +859,7 @@ void FullScreenPass::End(FrameBase* frame, const RenderSetup& renderSetup)
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
 
-    AssertDebug(!(m_flags & FSP_EXTERNAL_FRAMEBUFFER), "Cannot use Begin()/End() with FSP_EXTERNAL_FRAMEBUFFER, use RenderToFramebuffer() instead");
+    AssertDebug(!(m_flags & FSP_EXTERNAL_RENDERTARGET), "Cannot use Begin()/End() with external target, use RenderToFramebuffer() instead");
     AssertDebug(m_framebuffer != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();

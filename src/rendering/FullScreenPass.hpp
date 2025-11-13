@@ -28,7 +28,8 @@ enum class RenderPassStage : uint8;
 enum FullScreenPassFlags : uint32
 {
     FSP_NONE = 0x0,
-    FSP_EXTERNAL_FRAMEBUFFER = 0x1
+    FSP_EXTERNAL_RENDERTARGET = 0x1,    //!< Use external target, don't create our own.
+    FSP_RENDERTARGET_LOAD = 0x2          //!< Target should use LOAD op rather than CLEAR to preserve framebuffer contents.
 };
 
 HYP_MAKE_ENUM_FLAGS(FullScreenPassFlags);

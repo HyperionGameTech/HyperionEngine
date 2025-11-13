@@ -89,7 +89,7 @@ class DeferredPass final : public FullScreenPass
     friend class DeferredRenderer;
 
 public:
-    DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer);
+    DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer);
     DeferredPass(const DeferredPass& other) = delete;
     DeferredPass& operator=(const DeferredPass& other) = delete;
     virtual ~DeferredPass() override;
@@ -343,11 +343,19 @@ public:
 
     Handle<DeferredPass> indirectPass;
     Handle<DeferredPass> directPass;
+
+    FramebufferRef indirectPassFramebuffer;
+    FramebufferRef directPassFramebuffer;
+
     Handle<EnvGridPass> envGridRadiancePass;
     Handle<EnvGridPass> envGridIrradiancePass;
+
     Handle<ReflectionsPass> reflectionsPass;
+
     Handle<LightmapPass> lightmapPass;
+
     Handle<TonemapPass> tonemapPass;
+
     Handle<HBAO> hbao;
     Handle<FullScreenPass> combinePass;
     UniquePtr<PostProcessing> postProcessing;

@@ -222,12 +222,15 @@ static inline bool ShouldRecreatePipeline(
     return false;
 }
 
-DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(TF_RGBA16F, extent, gbuffer),
+DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer)
+    : FullScreenPass(nullptr, nullptr, framebuffer, TF_RGBA16F, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
       m_mode(mode),
       m_directLightGraphicsPipelines()
 {
-    SetBlendFunction(BlendFunction::Additive());
+    if (mode == DPM_DIRECT_LIGHTING)
+    {
+        SetBlendFunction(BlendFunction::Additive());
+    }
 }
 
 DeferredPass::~DeferredPass()
@@ -574,7 +577,7 @@ struct LightmapVolumeUniforms
 };
 
 LightmapPass::LightmapPass()
-    : FullScreenPass(FSP_EXTERNAL_FRAMEBUFFER)
+    : FullScreenPass(FSP_EXTERNAL_RENDERTARGET)
 {
 }
 
@@ -1340,6 +1343,52 @@ RaytracingPassData::~RaytracingPassData()
 
 #pragma region DeferredRenderer
 
+static FramebufferRef CreateDeferredIndirectPassFramebuffer(GBuffer* gbuffer)
+{
+    FramebufferRef indirectPassFramebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent(), RenderPassStage::SHADER);
+
+    TextureDesc textureDesc;
+    textureDesc.type = TT_TEX2D;
+    textureDesc.format = TF_RGBA16F;
+    textureDesc.extent = Vec3u { gbuffer->GetExtent(), 1 };
+    textureDesc.filterModeMin = TFM_NEAREST;
+    textureDesc.filterModeMag = TFM_NEAREST;
+    textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
+    textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
+
+    AttachmentRef attachment = indirectPassFramebuffer->AddAttachment(
+        0,
+        g_renderBackend->MakeImage(textureDesc),
+        LoadOperation::CLEAR,
+        StoreOperation::STORE);
+
+    Assert(indirectPassFramebuffer->Create());
+
+    attachment->GetImage()->SetDebugName(NAME("DeferredIndirectPassTarget"));
+
+    return indirectPassFramebuffer;
+}
+
+static FramebufferRef CreateDeferredDirectPassFramebuffer(GBuffer* gbuffer, const FramebufferRef& indirectPassFramebuffer)
+{
+    Assert(indirectPassFramebuffer != nullptr && indirectPassFramebuffer->IsCreated());
+
+    FramebufferRef directPassFramebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent(), RenderPassStage::SHADER);
+
+    // shared image between indirect / direct passes
+    AttachmentRef attachment = directPassFramebuffer->AddAttachment(
+        0,
+        indirectPassFramebuffer->GetAttachment(0)->GetImage(),
+        LoadOperation::LOAD, // LOAD op, keep indirect pass' data
+        StoreOperation::STORE);
+
+    Assert(directPassFramebuffer->Create());
+
+    attachment->GetImage()->SetDebugName(NAME("DeferredDirectPassTarget"));
+
+    return directPassFramebuffer;
+}
+
 DeferredRenderer::DeferredRenderer()
     : m_rendererConfig(RendererConfig::FromConfig())
 {
@@ -1393,11 +1442,11 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         HYP_LOG(Rendering, Info, "Creating renderer for view '{}' with GBuffer '{}'", view->Id(), gbuffer->GetExtent());
 
-        const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-        const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
+        const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+        CHECK_FRAMEBUFFER_SIZE(opaquePassFramebuffer);
 
-        CHECK_FRAMEBUFFER_SIZE(opaqueFbo);
-        CHECK_FRAMEBUFFER_SIZE(lightmapFbo);
+        const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
+        CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
 
         passData.envGridRadiancePass = CreateObject<EnvGridPass>(EGPM_RADIANCE, passData.viewport.extent, gbuffer);
         passData.envGridRadiancePass->Create();
@@ -1411,10 +1460,13 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.postProcessing = MakeUnique<PostProcessing>();
         passData.postProcessing->Create();
 
-        passData.indirectPass = CreateObject<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer);
+        passData.indirectPassFramebuffer = CreateDeferredIndirectPassFramebuffer(gbuffer);
+        passData.directPassFramebuffer = CreateDeferredDirectPassFramebuffer(gbuffer, passData.indirectPassFramebuffer);
+
+        passData.indirectPass = CreateObject<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.indirectPassFramebuffer);
         passData.indirectPass->Create();
 
-        passData.directPass = CreateObject<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer);
+        passData.directPass = CreateObject<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.directPassFramebuffer);
         passData.directPass->Create();
 
         passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
@@ -1425,8 +1477,8 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         passData.mipChain = CreateObject<Texture>(TextureDesc {
             TT_TEX2D,
-            opaqueFbo->GetAttachment(0)->GetFormat(),
-            Vec3u(opaqueFbo->GetExtent(), 1),
+            opaquePassFramebuffer->GetAttachment(0)->GetFormat(),
+            Vec3u(opaquePassFramebuffer->GetExtent(), 1),
             TFM_LINEAR_MIPMAP,
             TFM_LINEAR_MIPMAP,
             TWM_CLAMP_TO_EDGE });
@@ -1521,10 +1573,10 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
     FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
 
-    const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
 
     // depth attachment goes into separate slot
-    AttachmentBase* depthAttachment = opaqueFbo->GetAttachment(GTN_MAX - 1);
+    AttachmentBase* depthAttachment = opaquePassFramebuffer->GetAttachment(GTN_MAX - 1);
     Assert(depthAttachment != nullptr);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -1539,14 +1591,14 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
             // not including depth texture here (hence the - 1)
             for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
             {
-                descriptorSet->SetElement("GBufferTextures", gbufferElementIndex++, opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
+                descriptorSet->SetElement("GBufferTextures", gbufferElementIndex++, opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
             }
         }
         else
         {
             for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
             {
-                descriptorSet->SetElement(GBufferTextureNames[attachmentIndex], opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
+                descriptorSet->SetElement(GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
             }
         }
 
@@ -1588,7 +1640,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
         }
 
         descriptorSet->SetElement("DeferredResult", passData.combinePass->GetFinalImageView());
-        descriptorSet->SetElement("DeferredIndirectResultTexture", passData.indirectPass->GetFinalImageView());
+        descriptorSet->SetElement("DeferredIndirectResultTexture", passData.indirectPassFramebuffer->GetAttachment(0)->GetImageView());
 
         descriptorSet->SetElement("ReflectionProbeResultTexture", passData.reflectionsPass->GetFinalImageView());
 
@@ -1622,7 +1674,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("InTexture", passData.indirectPass->GetFinalImageView());
+        descriptorSet->SetElement("InTexture", passData.indirectPassFramebuffer->GetAttachment(0)->GetImageView());
     }
 
     DeferCreate(descriptorTable);
@@ -1708,16 +1760,22 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     gbuffer->Resize(newSize);
 
-    const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-    const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
+    const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    CHECK_FRAMEBUFFER_SIZE(opaquePassFramebuffer);
 
-    CHECK_FRAMEBUFFER_SIZE(opaqueFbo);
-    CHECK_FRAMEBUFFER_SIZE(lightmapFbo);
+    const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
+    CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
 
-    passData.hbao->Resize(newSize);
+    passData.indirectPassFramebuffer = CreateDeferredIndirectPassFramebuffer(gbuffer);
+    CHECK_FRAMEBUFFER_SIZE(passData.indirectPassFramebuffer);
+
+    passData.directPassFramebuffer = CreateDeferredDirectPassFramebuffer(gbuffer, passData.indirectPassFramebuffer);
+    CHECK_FRAMEBUFFER_SIZE(passData.passData.directPassFramebuffer);
 
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);
+
+    passData.hbao->Resize(newSize);
 
     passData.combinePass.Reset();
     CreateViewCombinePass(view, passData);
@@ -2081,13 +2139,13 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-    const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-    const FramebufferRef& translucentFbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
+    const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
+    const FramebufferRef& translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
-    CHECK_FRAMEBUFFER_SIZE(opaqueFbo);
-    CHECK_FRAMEBUFFER_SIZE(lightmapFbo);
-    CHECK_FRAMEBUFFER_SIZE(translucentFbo);
+    CHECK_FRAMEBUFFER_SIZE(opaquePassFramebuffer);
+    CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
+    CHECK_FRAMEBUFFER_SIZE(translucentPassFramebuffer);
 
     const bool doParticles = true;
     const bool doGaussianSplatting = false; // environment && environment->IsReady();
@@ -2166,11 +2224,11 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     passData.directPass->SetPushConstants(&deferredData, sizeof(deferredData));
 
     { // render opaque objects into separate framebuffer
-        frame->renderQueue << BeginFramebuffer(opaqueFbo);
+        frame->renderQueue << BeginFramebuffer(opaquePassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_OPAQUE));
 
-        frame->renderQueue << EndFramebuffer(opaqueFbo);
+        frame->renderQueue << EndFramebuffer(opaquePassFramebuffer);
     }
 
     if (useEnvGridIrradiance || useEnvGridRadiance)
@@ -2250,34 +2308,30 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         passData.ssgi->Render(frame, rs);
     }
 
-    passData.postProcessing->RenderPre(frame, rs);
-
-    // render indirect and direct lighting into the same framebuffer
-    const FramebufferRef& deferredPassFramebuffer = passData.indirectPass->GetFramebuffer();
-    CHECK_FRAMEBUFFER_SIZE(deferredPassFramebuffer);
+    passData.postProcessing->RenderPre(frame, rs);;
 
     { // deferred lighting on opaque objects
-        passData.indirectPass->RenderToFramebuffer(frame, rs, deferredPassFramebuffer);
-        passData.directPass->RenderToFramebuffer(frame, rs, deferredPassFramebuffer);
+        passData.indirectPass->RenderToFramebuffer(frame, rs, passData.indirectPassFramebuffer);
+        passData.directPass->RenderToFramebuffer(frame, rs, passData.directPassFramebuffer);
     }
 
     if (rpl.GetLightmapVolumes().NumCurrent())
     { // render objects to be lightmapped, separate from the opaque objects.
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
-        frame->renderQueue << BeginFramebuffer(lightmapFbo);
+        frame->renderQueue << BeginFramebuffer(lightmapPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_LIGHTMAP));
 
-        frame->renderQueue << EndFramebuffer(lightmapFbo);
+        frame->renderQueue << EndFramebuffer(lightmapPassFramebuffer);
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
-        const GpuImageRef& srcImage = deferredPassFramebuffer->GetAttachment(0)->GetImage();
+        const GpuImageRef& srcImage = passData.indirectPassFramebuffer->GetAttachment(0)->GetImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
     { // combined + translucent (forward pass)
-        frame->renderQueue << BeginFramebuffer(translucentFbo);
+        frame->renderQueue << BeginFramebuffer(translucentPassFramebuffer);
 
         { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
             const GraphicsPipelineRef& pipeline = passData.combinePass->GetGraphicsPipeline();
@@ -2305,7 +2359,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             // Apply lightmaps over the now shaded opaque objects.
 
             // @TODO: Use stencil buffer to separate by lightmap volume ID
-            passData.lightmapPass->RenderToFramebuffer(frame, newRs, translucentFbo);
+            passData.lightmapPass->RenderToFramebuffer(frame, newRs, translucentPassFramebuffer);
         }
 
         // begin translucent with forward rendering
@@ -2327,7 +2381,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         // render debug draw
         g_engineDriver->GetDebugDrawer()->Render(frame, rs);
 
-        frame->renderQueue << EndFramebuffer(translucentFbo);
+        frame->renderQueue << EndFramebuffer(translucentPassFramebuffer);
     }
 
     { // render depth pyramid
