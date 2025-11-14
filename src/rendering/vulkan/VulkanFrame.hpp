@@ -53,13 +53,13 @@ public:
 
     RendererResult RecreateFence();
 
+    void ResetRenderPassStates();
+
 private:
     using VulkanRenderPassesSet = HashSet<
         VulkanRenderPass*,
         &KeyBy_Identity<VulkanRenderPass*>,
         NodeAllocator<VulkanAllocator>>;
-
-    void UpdateRenderPasses();
 
     VulkanSemaphoreChain m_presentSemaphores;
     VulkanFenceRef m_queueSubmitFence;

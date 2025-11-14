@@ -107,8 +107,6 @@ RendererResult VulkanFrame::Submit(VulkanDeviceQueue* deviceQueue, VulkanCommand
     postRenderQueue.Execute(commandBuffer);
     commandBuffer->End();
 
-    UpdateRenderPasses();
-
     return commandBuffer->SubmitPrimary(deviceQueue, m_queueSubmitFence, &m_presentSemaphores);
 }
 
@@ -123,36 +121,24 @@ RendererResult VulkanFrame::RecreateFence()
     return m_queueSubmitFence->Create();
 }
 
-void VulkanFrame::UpdateRenderPasses()
+void VulkanFrame::ResetRenderPassStates()
 {
+#if 0
     for (VulkanRenderPass* renderPass : m_renderPasses)
     {
         for (VulkanAttachment* attachment : renderPass->GetAttachments())
         {
             AssertDebug(attachment != nullptr);
-            
+
             if (!attachment)
             {
                 continue;
             }
 
-            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
-            {
-                continue; // skip load op; we'll update for implicit transitions on the "parent" attachment (the one that does initial writing)
-            }
-
-            attachment->GetImage()->SetResourceState(attachment->IsDepthAttachment()
-                    ? PostRenderResourceStatesDepth[renderPass->GetRenderTargetType()]
-                    : PostRenderResourceStates[renderPass->GetRenderTargetType()]);
-
-            
-            /*const ResourceState expectedResourceState = attachment->IsDepthAttachment()
-                ? PreRenderResourceStatesDepth[0]
-                : PreRenderResourceStates[0];
-
-            attachment->GetImage()->SetResourceState(expectedResourceState);*/
+            const ResourceState currentState = attachment->GetImage()->GetResourceState();
         }
     }
+#endif
 
     m_renderPasses.Clear();
 }

@@ -715,17 +715,6 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
         {
             preRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET));
         }
-
-        // after rendering, if the attachment is not a render target (i.e. we're rendering to a texture for sampling),
-        // we need to transition it back to the appropriate state
-        // if (framebuffer->GetRenderTargetType() != RTT_RENDER_TARGET)
-        // {
-        // const ResourceState resourceStateAfterRender = (attachment->IsDepthAttachment())
-        //     ? RS_DEPTH_STENCIL
-        //     : RS_SHADER_RESOURCE;
-
-        // postRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), resourceStateAfterRender));
-        // }
     }
 
     if (preRenderBarriers.Any())

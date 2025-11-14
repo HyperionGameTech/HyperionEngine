@@ -758,9 +758,6 @@ FrameBase* VulkanRenderBackend::GetCurrentFrame() const
 
 FrameBase* VulkanRenderBackend::PrepareNextFrame()
 {
-    // reset transient memory for the next frame
-    g_vulkanArena->Reset();
-
     CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PrepareFrame(m_shouldRecreateSwapchain));
 
     VulkanFrame* frame = m_instance->GetSwapchain()->GetCurrentFrame();
@@ -816,6 +813,9 @@ void VulkanRenderBackend::PresentFrame(FrameBase* frame)
     m_textureCache->CleanupUnusedTextures();
 
     CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PresentFrame(&m_instance->GetDevice()->GetGraphicsQueue()));
+
+    // reset transient memory for the next frame
+    g_vulkanArena->Reset();
 
     m_instance->GetSwapchain()->NextFrame();
 }

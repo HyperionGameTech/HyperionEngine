@@ -133,9 +133,8 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
 {
     // Debug: ensure all images are in the PRESENT state
 #ifdef HYP_DEBUG_MODE
-    for (const GpuImageRef& image : m_images)
+    for (GpuImageBase* image : m_images)
     {
-        HYP_GFX_ASSERT(image.IsValid());
         HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
     }
 #endif
@@ -153,6 +152,8 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
     presentInfo.pResults = nullptr;
 
     VULKAN_CHECK(vkQueuePresentKHR(queue->queue, &presentInfo));
+
+    frame->ResetRenderPassStates();
 
     HYPERION_RETURN_OK;
 }
@@ -417,12 +418,13 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
     HYP_GFX_CHECK(singleTimeCommands->Execute());
 
+#ifdef HYP_DEBUG_MODE
     // Ensure all images are in the PRESENT state
-    for (const GpuImageRef& image : m_images)
+    for (GpuImageBase* image : m_images)
     {
-        HYP_GFX_ASSERT(image.IsValid());
         HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
     }
+#endif
 
     HYPERION_RETURN_OK;
 }

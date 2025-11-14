@@ -216,7 +216,7 @@ RendererResult VulkanRenderPass::Create()
         nextBinding = attachment->GetBinding() + 1;
 
         attachmentDescriptions.PushBack(attachment->GetVulkanAttachmentDescription());
-        
+
         if (attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             && attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
         {
@@ -317,6 +317,27 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         currentFrame->AddRenderPass(this);
     }
 
+#ifdef HYP_DEBUG_MODE
+    // checks for valid layouts
+    for (const VulkanAttachment* attachment : m_renderPassAttachments)
+    {
+        const ResourceState expectedState = attachment->IsDepthAttachment()
+            ? PreRenderResourceStatesDepth[int(attachment->GetLoadOperation() == LoadOperation::LOAD)]
+            : PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
+
+        const ResourceState currentState = attachment->GetImage()->GetResourceState();
+
+        if (expectedState != RS_UNDEFINED)
+        {
+            AssertDebug(
+                expectedState == currentState,
+                "Attachment expected layout {} but found {}",
+                EnumToString(expectedState),
+                EnumToString(currentState));
+        }
+    }
+#endif
+
     vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, contents);
 
     m_isRecording = true;
@@ -330,6 +351,14 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
     }
 
     vkCmdEndRenderPass(cmd->GetVulkanHandle());
+
+    for (VulkanAttachmentRef& attachment : m_renderPassAttachments)
+    {
+        attachment->GetImage()->SetResourceState(
+            attachment->IsDepthAttachment()
+                ? PostRenderResourceStatesDepth[m_renderTargetType]
+                : PostRenderResourceStates[m_renderTargetType]);
+    }
 
     m_isRecording = false;
 }
