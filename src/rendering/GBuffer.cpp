@@ -205,9 +205,12 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
         textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
 
-        framebuffer->AddAttachment(
+        GpuImageRef gpuImage = g_renderBackend->MakeImage(textureDesc);
+        gpuImage->SetDebugName(NAME_FMT("GBufferTarget_{}_{}", binding, EnumToString(rb)));
+
+        AttachmentRef attachment = framebuffer->AddAttachment(
             binding,
-            g_renderBackend->MakeImage(textureDesc),
+            gpuImage,
             LoadOperation::CLEAR,
             StoreOperation::STORE);
     };

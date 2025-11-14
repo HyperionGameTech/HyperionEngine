@@ -350,12 +350,11 @@ RendererResult VulkanInstance::Initialize(bool enableDebug)
 #endif
     createInfo.flags = 0;
 
-    if (g_appContext->IsA(CocoaAppContext::StaticClass()))
-    {
-        // for vulkan sdk 1.3.216 and above, enumerate portability extension is required for
-        // translation layers such as moltenvk.
-        createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-    }
+#if HYP_MOLTENVK
+    // for vulkan sdk 1.3.216 and above, enumerate portability extension is required for
+    // translation layers such as moltenvk.
+    createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 
     // Setup Vulkan extensions
     Array<const char*> extensionNames;

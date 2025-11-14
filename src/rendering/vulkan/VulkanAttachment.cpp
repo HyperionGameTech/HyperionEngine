@@ -15,44 +15,24 @@
 #include <VulkanAttachment.generated.inl>
 
 namespace hyperion {
+
 #pragma region Helpers
 
+extern VkImageLayout GetVkImageLayout(ResourceState state);
+
+HYP_DISABLE_OPTIMIZATION;
 static VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment)
 {
-    switch (loadOperation)
-    {
-    case LoadOperation::CLEAR:
-        return VK_IMAGE_LAYOUT_UNDEFINED;
-    case LoadOperation::LOAD:
-        return isDepthAttachment
-            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-            : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    default:
-        return VK_IMAGE_LAYOUT_UNDEFINED;
-    }
+    const int loadOperationIndex = loadOperation == LoadOperation::LOAD ? 1 : 0;
+
+    return GetVkImageLayout(isDepthAttachment ? PreRenderResourceStatesDepth[loadOperationIndex] : PreRenderResourceStates[loadOperationIndex]);
 }
 
 static VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDepthAttachment)
 {
-    switch (renderTargetType)
-    {
-    case RTT_NONE:
-        return VK_IMAGE_LAYOUT_UNDEFINED;
-    case RTT_PRESENT:
-        return isDepthAttachment
-            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-            : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    case RTT_SHADER_RESOURCE:
-        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    case RTT_RENDER_TARGET:
-        return isDepthAttachment
-            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-            : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    default:
-        HYP_UNREACHABLE();
-        return VK_IMAGE_LAYOUT_UNDEFINED;
-    }
+    return GetVkImageLayout(isDepthAttachment ? PostRenderResourceStatesDepth[renderTargetType] : PostRenderResourceStates[renderTargetType]);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 static VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
 {

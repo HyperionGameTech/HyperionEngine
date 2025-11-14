@@ -7,6 +7,7 @@
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanMemory.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -178,22 +179,23 @@ bool VulkanRenderPass::RemoveAttachment(const VulkanAttachment* attachment)
     return true;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 RendererResult VulkanRenderPass::Create()
 {
     CreateDependencies();
 
-    Array<VkAttachmentDescription> attachmentDescriptions;
+    Array<VkAttachmentDescription, VulkanAllocator> attachmentDescriptions;
     attachmentDescriptions.Reserve(m_renderPassAttachments.Size());
 
     VkAttachmentReference depthAttachmentReference {};
-    Array<VkAttachmentReference> colorAttachmentReferences;
+    Array<VkAttachmentReference, VulkanAllocator> colorAttachmentReferences;
 
     VkSubpassDescription subpassDescription {};
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.pDepthStencilAttachment = nullptr;
 
     uint32 nextBinding = 0;
-    HashSet<uint32> usedBindings;
+    HashSet<uint32, &KeyBy_Identity<uint32>, NodeAllocator<VulkanAllocator>> usedBindings;
 
     for (const VulkanAttachmentRef& attachment : m_renderPassAttachments)
     {
@@ -212,6 +214,12 @@ RendererResult VulkanRenderPass::Create()
         nextBinding = attachment->GetBinding() + 1;
 
         attachmentDescriptions.PushBack(attachment->GetVulkanAttachmentDescription());
+        
+        if (attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            && attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        {
+            HYP_BREAKPOINT;
+        }
 
         if (attachment->IsDepthAttachment())
         {
@@ -271,6 +279,7 @@ RendererResult VulkanRenderPass::Create()
 
     HYPERION_RETURN_OK;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* framebuffer)
 {
@@ -301,6 +310,26 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         break;
     }
 
+#ifdef HYP_DEBUG_MODE
+    for (VulkanAttachment* attachment : m_renderPassAttachments)
+    {
+        const ResourceState expectedResourceState = attachment->IsDepthAttachment()
+            ? PreRenderResourceStatesDepth[int(attachment->GetLoadOperation() == LoadOperation::LOAD)]
+            : PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
+
+        // don't bother checking undefined as that just means the driver can do whatever it wants with it
+        if (expectedResourceState != RS_UNDEFINED)
+        {
+            Assert(attachment->GetImage()->GetResourceState() == expectedResourceState,
+                "Expected render target attachment to be in resource state {} but got {}",
+                EnumToString(expectedResourceState),
+                EnumToString(attachment->GetImage()->GetResourceState()));
+        }
+
+        HYP_LOG_TEMP("Attachment {} resource state = {}", attachment->GetImage()->GetDebugName(), EnumToString(attachment->GetImage()->GetResourceState()));
+    }
+#endif
+
     vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, contents);
 
     m_isRecording = true;
@@ -314,6 +343,13 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
     }
 
     vkCmdEndRenderPass(cmd->GetVulkanHandle());
+
+    for (VulkanAttachment* attachment : m_renderPassAttachments)
+    {
+        attachment->GetImage()->SetResourceState(attachment->IsDepthAttachment()
+                ? PostRenderResourceStatesDepth[m_renderTargetType]
+                : PostRenderResourceStates[m_renderTargetType]);
+    }
 
     m_isRecording = false;
 }

@@ -74,6 +74,11 @@ RendererResult VulkanAttachmentMap::Create()
 
         if (!def.image->IsCreated())
         {
+            if (!def.image->GetDebugName().IsValid())
+            {
+                def.image->SetDebugName(NAME_FMT("{}_RT_{}", framebuffer->Id(), it.first));
+            }
+
             HYP_GFX_CHECK(def.image->Create());
         }
 
@@ -135,6 +140,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
             textureDesc.extent = Vec3u { newSize.x, newSize.y, 1 };
 
             newImage = CreateObject<VulkanGpuImage>(textureDesc);
+            newImage->SetDebugName(def.image->GetDebugName());
             HYP_GFX_ASSERT(newImage->Create());
 
             if (def.image.IsValid())
@@ -257,14 +263,22 @@ RendererResult VulkanFramebuffer::Create()
     attachmentImageViews.Reserve(m_attachmentMap.attachments.Size());
 
     uint32 numLayers = 1;
+    bool shouldClearFramebuffer = true;
 
     for (const auto& it : m_attachmentMap.attachments)
     {
-        HYP_GFX_ASSERT(it.second.attachment != nullptr);
-        HYP_GFX_ASSERT(it.second.attachment->GetImageView() != nullptr);
-        HYP_GFX_ASSERT(it.second.attachment->GetImageView()->IsCreated());
+        VulkanAttachment* attachment = it.second.attachment.Get();
+        HYP_GFX_ASSERT(attachment != nullptr);
 
-        attachmentImageViews.PushBack(VULKAN_CAST(it.second.attachment->GetImageView())->GetVulkanHandle());
+        if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+        {
+            shouldClearFramebuffer = false;
+        }
+
+        HYP_GFX_ASSERT(attachment->GetImageView() != nullptr);
+        HYP_GFX_ASSERT(attachment->GetImageView()->IsCreated());
+
+        attachmentImageViews.PushBack(VULKAN_CAST(attachment->GetImageView())->GetVulkanHandle());
     }
 
     VkFramebufferCreateInfo framebufferCreateInfo { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
@@ -280,29 +294,33 @@ RendererResult VulkanFramebuffer::Create()
         VULKAN_CHECK(vkCreateFramebuffer(GetRenderBackend()->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
     }
 
-    FrameBase* frame = GetRenderBackend()->GetCurrentFrame();
-
-    if (frame != nullptr)
+    if (shouldClearFramebuffer)
     {
-        RenderQueue& renderQueue = frame->renderQueue;
-        renderQueue << ClearFramebuffer(this);
+        FrameBase* frame = GetRenderBackend()->GetCurrentFrame();
 
-        return {};
-    }
-
-    UniquePtr<SingleTimeCommands> singleTimeCommands = GetRenderBackend()->GetSingleTimeCommands();
-
-    singleTimeCommands->Push([this](RenderQueue& renderQueue) -> RendererResult
+        // clear in current frame
+        if (frame != nullptr)
         {
+            RenderQueue& renderQueue = frame->renderQueue;
             renderQueue << ClearFramebuffer(this);
 
             return {};
-        });
+        }
 
-    RendererResult result = singleTimeCommands->Execute();
-    if (!result)
-    {
-        return HYP_MAKE_ERROR(RendererError, "Failed to clear framebuffer on create! Error was: {}", result.GetError().GetErrorCode(), result.GetError().GetMessage());
+        UniquePtr<SingleTimeCommands> singleTimeCommands = GetRenderBackend()->GetSingleTimeCommands();
+
+        singleTimeCommands->Push([this](RenderQueue& renderQueue) -> RendererResult
+            {
+                renderQueue << ClearFramebuffer(this);
+
+                return {};
+            });
+
+        RendererResult result = singleTimeCommands->Execute();
+        if (!result)
+        {
+            return HYP_MAKE_ERROR(RendererError, "Failed to clear framebuffer on create! Error was: {}", result.GetError().GetErrorCode(), result.GetError().GetMessage());
+        }
     }
 
     // ok
@@ -463,6 +481,7 @@ void VulkanFramebuffer::Clear(CommandBufferBase* commandBuffer)
     {
         const VulkanAttachmentRef& attachment = it.second.attachment;
         HYP_GFX_ASSERT(attachment.IsValid() && attachment->IsCreated());
+
         HYP_GFX_ASSERT(attachment->GetImage().IsValid());
 
         VkClearAttachment clearAttachment = {};

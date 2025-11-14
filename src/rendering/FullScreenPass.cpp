@@ -713,7 +713,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 
         if (attachment->GetLoadOperation() == LoadOperation::LOAD)
         {
-            preRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), RS_RENDER_TARGET));
+            preRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET));
         }
 
         // after rendering, if the attachment is not a render target (i.e. we're rendering to a texture for sampling),

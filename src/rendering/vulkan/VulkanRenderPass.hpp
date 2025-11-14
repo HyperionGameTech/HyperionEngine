@@ -17,6 +17,30 @@
 
 namespace hyperion {
 
+constexpr ResourceState PreRenderResourceStates[2] = { // CLEAR=0, LOAD=1
+    RS_UNDEFINED,       // CLEAR
+    RS_RENDER_TARGET    // LOAD
+};
+
+constexpr ResourceState PreRenderResourceStatesDepth[2] = { // CLEAR=0, LOAD=1
+    RS_UNDEFINED,    // CLEAR
+    RS_DEPTH_STENCIL // LOAD
+};
+
+constexpr ResourceState PostRenderResourceStates[RTT_MAX] = {
+    RS_UNDEFINED,       // RTT_NONE
+    RS_PRESENT,         // RTT_PRESENT
+    RS_SHADER_RESOURCE, // RTT_SHADER_RESOURCE
+    RS_RENDER_TARGET    // RTT_RENDER_TARGET
+};
+
+constexpr ResourceState PostRenderResourceStatesDepth[RTT_MAX] = {
+    RS_UNDEFINED,       // RTT_NONE
+    RS_DEPTH_STENCIL,   // RTT_PRESENT
+    RS_SHADER_RESOURCE, // RTT_SHADER_RESOURCE
+    RS_DEPTH_STENCIL    // RTT_RENDER_TARGET
+};
+
 enum RenderPassMode
 {
     RENDER_PASS_INLINE = 0,

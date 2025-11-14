@@ -2140,11 +2140,12 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     const uint32 frameIndex = frame->GetFrameIndex();
 
     const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-    const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-    const FramebufferRef& translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
-
     CHECK_FRAMEBUFFER_SIZE(opaquePassFramebuffer);
+
+    const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
     CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
+
+    const FramebufferRef& translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
     CHECK_FRAMEBUFFER_SIZE(translucentPassFramebuffer);
 
     const bool doParticles = true;
@@ -2309,22 +2310,32 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     }
 
     passData.postProcessing->RenderPre(frame, rs);
-    ;
 
     { // deferred lighting on opaque objects
         passData.indirectPass->RenderToFramebuffer(frame, rs, passData.indirectPassFramebuffer);
         passData.directPass->RenderToFramebuffer(frame, rs, passData.directPassFramebuffer);
     }
 
-    if (rpl.GetLightmapVolumes().NumCurrent())
-    { // render objects to be lightmapped, separate from the opaque objects.
-        // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
-        frame->renderQueue << BeginFramebuffer(lightmapPassFramebuffer);
+    //if (rpl.GetLightmapVolumes().NumCurrent())
+    //{
+    //    for (int attachmentIndex = 0; attachmentIndex < lightmapPassFramebuffer->NumAttachments(); attachmentIndex++)
+    //    {
+    //        AttachmentBase* attachment = lightmapPassFramebuffer->GetAttachment(attachmentIndex);
 
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_LIGHTMAP));
+    //        if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+    //        {
+    //            frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
+    //        }
+    //    }
+    //    
+    //    // render objects to be lightmapped, separate from the opaque objects.
+    //    // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
+    //    frame->renderQueue << BeginFramebuffer(lightmapPassFramebuffer);
 
-        frame->renderQueue << EndFramebuffer(lightmapPassFramebuffer);
-    }
+    //    ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_LIGHTMAP));
+
+    //    frame->renderQueue << EndFramebuffer(lightmapPassFramebuffer);
+    //}
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
         const GpuImageRef& srcImage = passData.indirectPassFramebuffer->GetAttachment(0)->GetImage();
@@ -2332,55 +2343,65 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     }
 
     { // combined + translucent (forward pass)
+        for (int attachmentIndex = 0; attachmentIndex < translucentPassFramebuffer->NumAttachments(); attachmentIndex++)
+        {
+            AttachmentBase* attachment = translucentPassFramebuffer->GetAttachment(attachmentIndex);
+
+            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+            {
+                frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
+            }
+        }
+        
         frame->renderQueue << BeginFramebuffer(translucentPassFramebuffer);
 
-        { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
-            const GraphicsPipelineRef& pipeline = passData.combinePass->GetGraphicsPipeline();
-            AssertDebug(pipeline != nullptr);
+        //{ // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
+        //    const GraphicsPipelineRef& pipeline = passData.combinePass->GetGraphicsPipeline();
+        //    AssertDebug(pipeline != nullptr);
 
-            frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
+        //    frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
 
-            frame->renderQueue << BindDescriptorTable(
-                pipeline->GetDescriptorTable(),
-                pipeline,
-                {},
-                frameIndex);
+        //    frame->renderQueue << BindDescriptorTable(
+        //        pipeline->GetDescriptorTable(),
+        //        pipeline,
+        //        {},
+        //        frameIndex);
 
-            frame->renderQueue << BindVertexBuffer(passData.combinePass->GetQuadMesh()->GetVertexBuffer());
-            frame->renderQueue << BindIndexBuffer(passData.combinePass->GetQuadMesh()->GetIndexBuffer());
-            frame->renderQueue << DrawIndexed(6);
-        }
+        //    frame->renderQueue << BindVertexBuffer(passData.combinePass->GetQuadMesh()->GetVertexBuffer());
+        //    frame->renderQueue << BindIndexBuffer(passData.combinePass->GetQuadMesh()->GetIndexBuffer());
+        //    frame->renderQueue << DrawIndexed(6);
+        //}
 
-        for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
-        {
-            RenderSetup newRs = rs.Fork();
-            newRs.lightmapVolume = lightmapVolume;
+        //for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
+        //{
+        //    RenderSetup newRs = rs.Fork();
+        //    newRs.lightmapVolume = lightmapVolume;
 
-            // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
-            // Apply lightmaps over the now shaded opaque objects.
+        //    // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
+        //    // Apply lightmaps over the now shaded opaque objects.
 
-            // @TODO: Use stencil buffer to separate by lightmap volume ID
-            passData.lightmapPass->RenderToFramebuffer(frame, newRs, translucentPassFramebuffer);
-        }
+        //    // @TODO: Use stencil buffer to separate by lightmap volume ID
+        //    passData.lightmapPass->RenderToFramebuffer(frame, newRs, translucentPassFramebuffer);
+        //}
 
-        // begin translucent with forward rendering
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_TRANSLUCENT));
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
+        //// begin translucent with forward rendering
+        //ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_TRANSLUCENT));
+        //ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
 
-        // if (doParticles)
-        // {
-        //     environment->GetParticleSystem()->Render(frame, rs);
-        // }
+        //// if (doParticles)
+        //// {
+        ////     environment->GetParticleSystem()->Render(frame, rs);
+        //// }
 
-        // if (doGaussianSplatting)
-        // {
-        //     environment->GetGaussianSplatting()->Render(frame, rs);
-        // }
+        //// if (doGaussianSplatting)
+        //// {
+        ////     environment->GetGaussianSplatting()->Render(frame, rs);
+        //// }
 
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_SKYBOX));
+        //ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_SKYBOX));
 
-        // render debug draw
-        g_engineDriver->GetDebugDrawer()->Render(frame, rs);
+        //// render debug draw
+        //g_engineDriver->GetDebugDrawer()->Render(frame, rs);
 
         frame->renderQueue << EndFramebuffer(translucentPassFramebuffer);
     }
