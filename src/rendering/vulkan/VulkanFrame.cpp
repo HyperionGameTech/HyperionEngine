@@ -6,6 +6,7 @@
 #include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderPass.hpp>
 
 #include <rendering/RenderDevice.hpp>
 #include <rendering/RenderObject.hpp>
@@ -106,6 +107,8 @@ RendererResult VulkanFrame::Submit(VulkanDeviceQueue* deviceQueue, VulkanCommand
     postRenderQueue.Execute(commandBuffer);
     commandBuffer->End();
 
+    UpdateRenderPasses();
+
     return commandBuffer->SubmitPrimary(deviceQueue, m_queueSubmitFence, &m_presentSemaphores);
 }
 
@@ -118,6 +121,40 @@ RendererResult VulkanFrame::RecreateFence()
 
     m_queueSubmitFence = CreateObject<VulkanFence>();
     return m_queueSubmitFence->Create();
+}
+
+void VulkanFrame::UpdateRenderPasses()
+{
+    for (VulkanRenderPass* renderPass : m_renderPasses)
+    {
+        for (VulkanAttachment* attachment : renderPass->GetAttachments())
+        {
+            AssertDebug(attachment != nullptr);
+            
+            if (!attachment)
+            {
+                continue;
+            }
+
+            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+            {
+                continue; // skip load op; we'll update for implicit transitions on the "parent" attachment (the one that does initial writing)
+            }
+
+            attachment->GetImage()->SetResourceState(attachment->IsDepthAttachment()
+                    ? PostRenderResourceStatesDepth[renderPass->GetRenderTargetType()]
+                    : PostRenderResourceStates[renderPass->GetRenderTargetType()]);
+
+            
+            /*const ResourceState expectedResourceState = attachment->IsDepthAttachment()
+                ? PreRenderResourceStatesDepth[0]
+                : PreRenderResourceStates[0];
+
+            attachment->GetImage()->SetResourceState(expectedResourceState);*/
+        }
+    }
+
+    m_renderPasses.Clear();
 }
 
 } // namespace hyperion

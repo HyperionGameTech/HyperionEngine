@@ -20,7 +20,6 @@ namespace hyperion {
 
 extern VkImageLayout GetVkImageLayout(ResourceState state);
 
-HYP_DISABLE_OPTIMIZATION;
 static VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment)
 {
     const int loadOperationIndex = loadOperation == LoadOperation::LOAD ? 1 : 0;
@@ -32,7 +31,6 @@ static VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDe
 {
     return GetVkImageLayout(isDepthAttachment ? PostRenderResourceStatesDepth[renderTargetType] : PostRenderResourceStates[renderTargetType]);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 static VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
 {
@@ -87,7 +85,9 @@ VulkanAttachment::VulkanAttachment(
     StoreOperation storeOperation,
     BlendFunction blendFunction)
     : AttachmentBase(image, framebuffer, loadOperation, storeOperation, blendFunction),
-      m_renderTargetType(renderTargetType)
+      m_renderTargetType(renderTargetType),
+      m_vkAttachmentReference {},
+      m_vkAttachmentDescription {}
 {
     m_imageView = CreateObject<VulkanGpuImageView>(image);
 }
@@ -107,39 +107,30 @@ RendererResult VulkanAttachment::Create()
 {
     HYP_GFX_ASSERT(m_image != nullptr);
 
+    m_vkAttachmentDescription = VkAttachmentDescription {
+        .format = ToVkFormat(m_image->GetTextureFormat()),
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = ToVkLoadOp(m_loadOperation),
+        .storeOp = ToVkStoreOp(m_storeOperation),
+        .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(m_loadOperation) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = GetInitialLayout(m_loadOperation, IsDepthAttachment()),
+        .finalLayout = GetFinalLayout(m_renderTargetType, IsDepthAttachment())
+    };
+
+    AssertDebug(HasBinding());
+
+    m_vkAttachmentReference = VkAttachmentReference {
+        .attachment = m_binding,
+        .layout = GetIntermediateLayout(IsDepthAttachment())
+    };
+
     if (!m_image->IsCreated())
     {
         return HYP_MAKE_ERROR(RendererError, "Image is expected to be initialized before initializing attachment");
     }
 
     return m_imageView->Create();
-}
-
-VkAttachmentDescription VulkanAttachment::GetVulkanAttachmentDescription() const
-{
-    return VkAttachmentDescription {
-        .format = ToVkFormat(GetFormat()),
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = ToVkLoadOp(GetLoadOperation()),
-        .storeOp = ToVkStoreOp(GetStoreOperation()),
-        .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(GetLoadOperation()) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = GetInitialLayout(GetLoadOperation(), IsDepthAttachment()),
-        .finalLayout = GetFinalLayout(m_renderTargetType, IsDepthAttachment())
-    };
-}
-
-VkAttachmentReference VulkanAttachment::GetVulkanHandle() const
-{
-    if (!HasBinding())
-    {
-        DebugLog(LogType::Warn, "Calling GetHandle() without a binding set on attachment ref -- binding will be set to %ul\n", GetBinding());
-    }
-
-    return VkAttachmentReference {
-        .attachment = GetBinding(),
-        .layout = GetIntermediateLayout(IsDepthAttachment())
-    };
 }
 
 #pragma endregion VulkanAttachment

@@ -37,7 +37,7 @@ public:
 
     virtual RendererResult Resize(const Vec3u& extent) override;
 
-    void SetResourceState(ResourceState newState);
+    virtual void SetResourceState(ResourceState newState) override;
 
     ResourceState GetSubResourceState(const ImageSubResource& subResource) const;
     void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState);

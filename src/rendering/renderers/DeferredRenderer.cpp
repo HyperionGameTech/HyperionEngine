@@ -2404,6 +2404,18 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         //g_engineDriver->GetDebugDrawer()->Render(frame, rs);
 
         frame->renderQueue << EndFramebuffer(translucentPassFramebuffer);
+
+        //// temp
+        //for (int attachmentIndex = 0; attachmentIndex < translucentPassFramebuffer->NumAttachments(); attachmentIndex++)
+        //{
+        //    AttachmentBase* attachment = translucentPassFramebuffer->GetAttachment(attachmentIndex);
+
+        //    if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+        //    {
+        //        frame->renderQueue << InsertBarrier(attachment->GetImage(), RS_SHADER_RESOURCE);
+        //    }
+        //}
+        
     }
 
     { // render depth pyramid

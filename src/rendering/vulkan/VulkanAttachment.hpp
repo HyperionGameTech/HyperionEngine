@@ -29,8 +29,15 @@ public:
         BlendFunction blendFunction = BlendFunction::None());
     virtual ~VulkanAttachment() override;
 
-    VkAttachmentReference GetVulkanHandle() const;
-    VkAttachmentDescription GetVulkanAttachmentDescription() const;
+    HYP_FORCE_INLINE const VkAttachmentReference& GetVulkanHandle() const
+    {
+        return m_vkAttachmentReference;
+    }
+
+    HYP_FORCE_INLINE const VkAttachmentDescription& GetVulkanAttachmentDescription() const
+    {
+        return m_vkAttachmentDescription;
+    }
 
     HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
     {
@@ -43,6 +50,9 @@ public:
 
 private:
     RenderTargetType m_renderTargetType;
+
+    VkAttachmentReference m_vkAttachmentReference;
+    VkAttachmentDescription m_vkAttachmentDescription;
 };
 
 } // namespace hyperion

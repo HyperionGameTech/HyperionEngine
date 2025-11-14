@@ -190,7 +190,7 @@ void DDGI::CreateUniformBuffer()
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DDGIUniforms));
-        DeferCreate(m_uniformBuffers[frameIndex]);
+        Assert(m_uniformBuffers[frameIndex]->Create());
     }
 }
 
@@ -220,13 +220,12 @@ void DDGI::CreateStorageBuffers()
             1,
             IU_STORAGE | IU_SAMPLED });
 
-        DeferCreate(m_irradianceImage);
+        Assert(m_irradianceImage->Create());
     }
 
     { // irradiance image view
         m_irradianceImageView = g_renderBackend->MakeImageView(m_irradianceImage);
-
-        DeferCreate(m_irradianceImageView);
+        Assert(m_irradianceImageView->Create());
     }
 
     { // depth image
@@ -246,13 +245,13 @@ void DDGI::CreateStorageBuffers()
             1,
             IU_STORAGE | IU_SAMPLED });
 
-        DeferCreate(m_depthImage);
+        Assert(m_depthImage->Create());
     }
 
     { // depth image view
         m_depthImageView = g_renderBackend->MakeImageView(m_depthImage);
 
-        DeferCreate(m_depthImageView);
+        Assert(m_depthImageView->Create());
     }
 }
 

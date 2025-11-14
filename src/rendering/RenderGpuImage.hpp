@@ -46,9 +46,9 @@ public:
         return m_resourceState;
     }
 
-    HYP_FORCE_INLINE void SetResourceState(ResourceState resourceState)
+    virtual void SetResourceState(ResourceState newState)
     {
-        m_resourceState = resourceState;
+        m_resourceState = newState;
     }
 
     HYP_FORCE_INLINE TextureType GetType() const

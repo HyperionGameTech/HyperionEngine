@@ -77,7 +77,7 @@ VkImageLayout GetVkImageLayout(ResourceState state)
     case RS_PRESENT:
         return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     default:
-        HYP_UNREACHABLE();
+        HYP_FAIL("Unknown ResourceState {}!", EnumToString(state));
     }
 }
 

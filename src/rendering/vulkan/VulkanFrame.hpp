@@ -3,11 +3,13 @@
 #pragma once
 
 #include <rendering/RenderFrame.hpp>
+#include <rendering/RenderObject.hpp>
 
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanSemaphore.hpp>
+#include <rendering/vulkan/VulkanMemory.hpp>
 
-#include <rendering/RenderObject.hpp>
+#include <core/containers/HashSet.hpp>
 
 namespace hyperion {
 
@@ -24,8 +26,13 @@ public:
     virtual ~VulkanFrame() override;
 
     virtual RendererResult Create() override;
-
     virtual RendererResult ResetFrameState() override;
+
+    HYP_FORCE_INLINE void AddRenderPass(VulkanRenderPass* renderPass)
+    {
+        HYP_GFX_ASSERT(renderPass != nullptr);
+        m_renderPasses.Add(renderPass);
+    }
 
     RendererResult Submit(VulkanDeviceQueue* deviceQueue, VulkanCommandBuffer* commandBuffer);
 
@@ -47,8 +54,17 @@ public:
     RendererResult RecreateFence();
 
 private:
+    using VulkanRenderPassesSet = HashSet<
+        VulkanRenderPass*,
+        &KeyBy_Identity<VulkanRenderPass*>,
+        NodeAllocator<VulkanAllocator>>;
+
+    void UpdateRenderPasses();
+
     VulkanSemaphoreChain m_presentSemaphores;
     VulkanFenceRef m_queueSubmitFence;
+
+    VulkanRenderPassesSet m_renderPasses;
 };
 
 } // namespace hyperion
