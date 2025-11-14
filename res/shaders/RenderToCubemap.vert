@@ -147,13 +147,14 @@ void main()
 
     mat4 projection_matrix = camera.projection;
 
-#ifdef ENV_PROBE
+#if ENV_PROBE
     v_camera_position = current_env_probe.world_position.xyz;
+    mat4 view_matrix = LookAt(v_camera_position, v_camera_position + forward_direction, up_direction);
 #else
     v_camera_position = camera.position.xyz;
+    mat4 view_matrix = camera.view;
 #endif
 
-    mat4 view_matrix = LookAt(v_camera_position, v_camera_position + forward_direction, up_direction);
 
 #ifdef INSTANCING
     v_object_index = OBJECT_INDEX;

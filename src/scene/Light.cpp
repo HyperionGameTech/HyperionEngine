@@ -6,11 +6,11 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+#include <scene/EntityTag.hpp>
+#include <scene/EntityManager.hpp>
 
 #include <scene/camera/Camera.hpp>
 #include <scene/camera/OrthoCamera.hpp>
-
-#include <scene/EntityTag.hpp>
 
 #include <shadows/ShadowMap.hpp>
 #include <shadows/ShadowMapAllocator.hpp>
@@ -60,7 +60,8 @@ static const ShaderProperty s_shadowMapFilterProperties[SMF_MAX] = {
 };
 
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_LIGHTS
-    | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS;
+    | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS
+    | ViewFlags::SKIP_CAMERAS;
 
 static constexpr Vec2u DefaultShadowMapDimensions[LT_MAX] = {
     Vec2u(1024, 1024), // LT_DIRECTIONAL
@@ -177,7 +178,9 @@ void Light::CreateShadowViews()
     AssertDebug(shadowMapFilter < std::size(s_shadowMapFilterProperties));
 
     // Per shadow view flags
-    Array<EnumFlags<ViewFlags>> shadowViewFlags = { ViewFlags::COLLECT_ALL_ENTITIES };
+    Array<EnumFlags<ViewFlags>> shadowViewFlags = {
+        ViewFlags::COLLECT_ALL_ENTITIES
+    };
 
     ShaderDefinition shaderDefinition;
 
@@ -219,7 +222,10 @@ void Light::CreateShadowViews()
     case LT_DIRECTIONAL:
     {
         // For directional lights, we have one for static objects and one for dynamic objects
-        shadowViewFlags = { ViewFlags::COLLECT_STATIC_ENTITIES, ViewFlags::COLLECT_DYNAMIC_ENTITIES };
+        shadowViewFlags = {
+            DefaultShadowViewFlags | ViewFlags::COLLECT_STATIC_ENTITIES,
+            DefaultShadowViewFlags | ViewFlags::COLLECT_DYNAMIC_ENTITIES
+        };
 
         // depth, depth^2 texture (for variance shadow map)
         ViewOutputTargetAttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
@@ -264,7 +270,7 @@ void Light::CreateShadowViews()
     if (!shadowMapCamera)
     {
         shadowMapCamera = CreateObject<Camera>(90.0f, -int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y), 0.001f, 250.0f);
-        shadowMapCamera->SetName(NAME_FMT("ShadowMapCamera_{}", GetName()));
+        shadowMapCamera->SetName(NAME_FMT("ShadowMapCamera_{}", Id())); // @FIXME Use name instead, ID is not persistent
 
         switch (m_type)
         {
@@ -323,24 +329,36 @@ void Light::UpdateShadowViews()
         const Handle<View>& shadowView = m_shadowViews[i];
         AssertDebug(shadowView != nullptr);
 
+        const Handle<Camera>& shadowCamera = shadowView->GetCamera();
+        AssertDebug(shadowCamera != nullptr);
+
         switch (m_type)
         {
         case LT_DIRECTIONAL:
             ShadowCameraHelper::UpdateShadowCameraDirectional(
-                shadowView->GetCamera(),
+                shadowCamera,
                 Vec3f::Zero(), // TODO: Center around camera
                 GetPosition(),
-                85.0f, /// TODO: add proper radius
+                85.0f, /// TODO: add proper radius for directional light.
                 m_shadowAabb);
 
             break;
         case LT_POINT:
             m_shadowAabb = GetAABB();
 
-            shadowView->GetCamera()->SetTranslation(m_position);
+            AssertDebug(FindChildByUUID(shadowCamera->GetUUID()) != nullptr);
+            AssertDebug(shadowCamera->HasTag<EntityTag::RECEIVES_UPDATE>());
+            HYP_LOG_TEMP("Update shadow camera for point light {}, position: {}", Id(), m_worldTransform.GetTranslation());
+
+            shadowCamera->SetTranslation(m_worldTransform.GetTranslation());
+            shadowCamera->SetToPerspectiveProjection(90.0f, 0.1f, m_radius);
+
+            // tmp
+            shadowCamera->SetNeedsRenderProxyUpdate();
 
             break;
         default:
+            HYP_LOG(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(m_type));
             break;
         }
     }
@@ -409,6 +427,8 @@ void Light::OnTransformUpdated(const Transform& transform)
     HYP_SCOPE;
 
     Entity::OnTransformUpdated(transform);
+
+    HYP_LOG(Scene, Debug, "Light {} transform updated, new position: {}", Id(), transform.GetTranslation());
 
     m_position = transform.GetTranslation();
 
@@ -656,7 +676,7 @@ BoundingBox Light::GetAABB() const
         return BoundingBox::Empty()
             .Union(rect.first)
             .Union(rect.second)
-            .Union(m_position + m_normal * m_radius);
+            .Union(m_worldTransform.GetTranslation() + m_normal * m_radius);
     }
 
     if (m_type == LT_POINT)

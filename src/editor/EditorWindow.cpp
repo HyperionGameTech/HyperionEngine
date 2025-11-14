@@ -19,11 +19,37 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorWindow::EditorWindow()
+    : m_title("Window"),
+      m_windowSize(800, 600)
 {
 }
 
 EditorWindow::~EditorWindow()
 {
+}
+
+void EditorWindow::SetTitle(const String& title)
+{
+    m_title = title;
+
+#ifdef HYP_LIBUI
+    if (m_window != nullptr)
+    {
+        uiWindowSetTitle(m_window, m_title.Data());
+    }
+#endif
+}
+
+void EditorWindow::SetWindowSize(const Vec2i& size)
+{
+    m_windowSize = size;
+
+#ifdef HYP_LIBUI
+    if (m_window != nullptr)
+    {
+        uiWindowSetContentSize(m_window, m_windowSize.x, m_windowSize.y);
+    }
+#endif
 }
 
 void EditorWindow::Show()
@@ -35,11 +61,17 @@ void EditorWindow::Show()
     {
         AssertDebug(m_window == nullptr);
 
-        m_window = uiNewWindow("Test Native UI", 400, 300, 0);
+        m_header->IncRefStrong(); // to keep this alive until window closing
+
+        m_window = uiNewWindow(m_title.Data(), m_windowSize.x, m_windowSize.y, 0);
         uiWindowOnClosing(m_window, [](uiWindow* w, void* data)
             {
+                EditorWindow* editorWindow = static_cast<EditorWindow*>(data);
+
                 // clear window pointer on close
-                static_cast<EditorWindow*>(data)->m_window = nullptr;
+                editorWindow->m_window = nullptr;
+
+                editorWindow->m_header->DecRefStrong();
 
                 // returning 1 destroys the window
                 return 1;
@@ -60,11 +92,27 @@ void EditorWindow::Show()
         return;
     }
 
-    GetThreadById(g_mainThread)->GetScheduler().Enqueue([strongRef = MakeStrongRef(this), showWindowImpl]()
+    GetThreadById(g_mainThread)->GetScheduler().Enqueue([strongRef = MakeStrongRef(this), showWindowImpl]() mutable
         {
             showWindowImpl();
         },
         TaskEnqueueFlags::FIRE_AND_FORGET);
+#endif
+}
+
+void EditorWindow::Close()
+{
+#ifdef HYP_LIBUI
+    if (!m_window)
+    {
+        return;
+    }
+
+    uiControlDestroy(uiControl(m_window));
+    m_window = nullptr;
+
+    // dec extra ref taken in Show()
+    m_header->DecRefStrong();
 #endif
 }
 

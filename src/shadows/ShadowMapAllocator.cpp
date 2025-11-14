@@ -89,9 +89,11 @@ void ShadowMapAllocator::Initialize()
         uint32(m_atlases.Size()),
         IU_SAMPLED | IU_STORAGE });
 
+    m_atlasImage->SetDebugName(NAME("ShadowMapAtlasImage"));
     HYP_GFX_ASSERT(m_atlasImage->Create());
 
     m_atlasImageView = g_renderBackend->MakeImageView(m_atlasImage);
+    m_atlasImageView->SetDebugName(NAME("ShadowMapAtlasImageView"));
     HYP_GFX_ASSERT(m_atlasImageView->Create());
 
     m_pointLightShadowMapImage = g_renderBackend->MakeImage(TextureDesc {
@@ -104,9 +106,11 @@ void ShadowMapAllocator::Initialize()
         MaxBoundOmniShadowMaps * 6,
         IU_SAMPLED | IU_STORAGE });
 
+    m_pointLightShadowMapImage->SetDebugName(NAME("PointLightShadowMapImage"));
     HYP_GFX_ASSERT(m_pointLightShadowMapImage->Create());
 
     m_pointLightShadowMapImageView = g_renderBackend->MakeImageView(m_pointLightShadowMapImage);
+    m_pointLightShadowMapImageView->SetDebugName(NAME("PointLightShadowMapImageView"));
     HYP_GFX_ASSERT(m_pointLightShadowMapImageView->Create());
 }
 

@@ -3298,6 +3298,48 @@ Handle<Node> EditorSubsystem::GetFocusedNode() const
     return m_focusedNode.Lock();
 }
 
+Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float offsetFromSurface) const
+{
+    HYP_SCOPE;
+
+    const Vec3f cameraPosition = m_camera->GetTranslation();
+    const Vec3f cameraDirection = m_camera->GetDirection();
+
+    Vec3f insertionPoint = cameraPosition + cameraDirection * desiredDistance;
+
+    const Ray ray { cameraPosition, cameraDirection };
+
+    RayTestResults results;
+
+    Handle<Scene> activeScene = m_activeScene.Lock();
+    if (!activeScene.IsValid())
+    {
+        return insertionPoint;
+    }
+
+    // raytest using scene's octree
+    if (activeScene->GetOctree().TestRay(ray, results, RTF_USE_BVH))
+    {
+        const RayHit& closestHit = results.Front();
+
+        if (closestHit.distance < desiredDistance)
+        {
+            // offset the object slightly to avoid clipping
+            insertionPoint = closestHit.hitpoint - cameraDirection * offsetFromSurface;
+
+            const float distanceFromCamera = (insertionPoint - cameraPosition).Length();
+
+            // min 1 world unit
+            if (distanceFromCamera < 1.0f)
+            {
+                insertionPoint = cameraPosition + cameraDirection * 1.0f;
+            }
+        }
+    }
+
+    return insertionPoint;
+}
+
 void EditorSubsystem::UpdateCamera(float delta)
 {
     HYP_SCOPE;

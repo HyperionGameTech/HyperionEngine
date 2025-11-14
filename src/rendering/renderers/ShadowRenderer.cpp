@@ -289,10 +289,11 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
         rpl.BeginRead();
         renderProxyLists.PushBack(&rpl);
 
-        if (!rpl.GetMeshEntities().GetDiff().NeedsUpdate() && !rpl.GetSkeletons().GetDiff().NeedsUpdate())
-        {
-            continue;
-        }
+        // // @TODO Add OR shadow matrix changed check! or simply invalidate on change and check if invalidated?
+        // if (!rpl.GetMeshEntities().GetDiff().NeedsUpdate() && !rpl.GetSkeletons().GetDiff().NeedsUpdate())
+        // {
+        //     continue;
+        // }
 
         RenderCollector& renderCollector = RenderApi::GetRenderCollector(shadowView);
         renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_LIGHTMAP)));

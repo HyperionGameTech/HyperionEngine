@@ -27,15 +27,6 @@ struct Camera
     float near;
     float far;
     float fov;
-    uint id;
-
-    vec4 _pad1;
-    vec4 _pad2;
-    vec4 _pad3;
-
-    mat4 _pad4;
-    mat4 _pad5;
-    mat4 _pad6;
 };
 
 struct Light

@@ -430,6 +430,18 @@ public:
     HYP_METHOD()
     Handle<Node> GetFocusedNode() const;
 
+    /*! \brief Calculate an appropriate position for inserting a new object into the scene.
+     *  Uses raycasting from the camera to find a suitable location that doesn't intersect with existing geometry.
+     *
+     *  \param desiredDistance The preferred distance from the camera. If no geometry is hit within this range,
+     *                         the position will be placed at this distance. Default is 5.0 units.
+     *  \param offsetFromSurface If geometry is hit, the object will be placed this distance in front of the surface
+     *                           to prevent clipping through. Default is 0.5 units.
+     *  \return The calculated world position for object insertion.
+     */
+    HYP_METHOD()
+    Vec3f CalculateSceneInsertionPoint(float desiredDistance = 5.0f, float offsetFromSurface = 0.5f) const;
+
     HYP_FORCE_INLINE EditorDelegates* GetEditorDelegates()
     {
         return m_editorDelegates;

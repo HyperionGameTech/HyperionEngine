@@ -13,7 +13,11 @@ layout(location = 7) in flat vec3 v_camera_position;
 layout(location = 11) in flat uint v_object_index;
 layout(location = 13) in flat uint v_cube_face_index;
 
+#ifdef MODE_SHADOWS
+layout(location = 0) out vec2 output_color;
+#else
 layout(location = 0) out vec4 output_color;
+#endif // !MODE_SHADOWS
 
 #ifdef WRITE_NORMALS
 layout(location = 1) out vec4 output_normals;
@@ -94,21 +98,19 @@ void main()
     vec3 N = normalize(v_normal);
     vec3 R = reflect(-V, N);
 
+#if HAS_ALBEDO_MAP
+    vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
     vec4 albedo = CURRENT_MATERIAL.albedo;
 
-    vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
+    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
 
-    if (HAS_TEXTURE(CURRENT_MATERIAL, AlbedoMap))
+    if (albedo_texture.a < 0.2)
     {
-        vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
-
-        if (albedo_texture.a < 0.2)
-        {
-            discard;
-        }
-
-        albedo *= albedo_texture;
+        discard;
     }
+
+    albedo *= albedo_texture;
+#endif
 
 #if defined(WRITE_MOMENTS) || defined(MODE_SHADOWS)
     // Write distance, mean distance for variance.
@@ -123,13 +125,12 @@ void main()
 
     moments.y += 0.25 * (HYP_FMATH_SQR(dx) + HYP_FMATH_SQR(dy));
 
-    output_color = vec4(moments, 0.0, 1.0);
+    output_color = vec2(v_camera_position.xy); // debugging //moments;
 #else
     vec4 previous_value = vec4(0.0);
 
     output_color.rgb = albedo.rgb;
     output_color.a = 1.0;
-#endif
 
 #ifdef WRITE_NORMALS
     output_normals = vec4(PackNormalVec2(N), 0.0, 1.0);
@@ -137,5 +138,6 @@ void main()
 
 #ifdef WRITE_MOMENTS
     output_moments = moments;
+#endif
 #endif
 }

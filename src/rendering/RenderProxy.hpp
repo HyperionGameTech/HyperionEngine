@@ -329,15 +329,6 @@ struct CameraShaderData
     float cameraNear;
     float cameraFar;
     float cameraFov;
-    uint32 id;
-
-    Vec4f _pad1;
-    Vec4f _pad2;
-    Vec4f _pad3;
-
-    Mat4f _pad4;
-    Mat4f _pad5;
-    Mat4f _pad6;
 };
 
 class RenderProxyCamera final : public IRenderProxy

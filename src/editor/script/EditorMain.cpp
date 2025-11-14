@@ -487,7 +487,10 @@ UIEventHandlerResult EditorMain::AddPointLight(const MouseEvent& event)
     light->SetIntensity(3.0f);
 
     light->SetName(activeScene->GetUniqueNodeName("PointLight"));
-    light->SetWorldTranslation(Vec3f(0.0f, 3.0f, 5.0f));
+
+    // Calculate appropriate insertion point in front of camera
+    const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+    light->SetWorldTranslation(insertionPoint);
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
@@ -565,7 +568,10 @@ UIEventHandlerResult EditorMain::AddSpotLight(const MouseEvent& event)
     light->SetSpotAngles(DefaultSpotAngles);
 
     light->SetName(activeScene->GetUniqueNodeName("SpotLight"));
-    light->SetWorldTranslation(Vec3f(0.0f, 5.0f, 5.0f));
+
+    // Calculate appropriate insertion point in front of camera
+    const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+    light->SetWorldTranslation(insertionPoint);
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
@@ -642,7 +648,10 @@ UIEventHandlerResult EditorMain::AddAreaRectLight(const MouseEvent& event)
     light->SetAreaSize(Vec2f(2.0f, 2.0f));
 
     light->SetName(activeScene->GetUniqueNodeName("AreaRectLight"));
-    light->SetWorldTranslation(Vec3f(0.0f, 5.0f, 0.0f));
+
+    // Calculate appropriate insertion point in front of camera
+    const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+    light->SetWorldTranslation(insertionPoint);
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
@@ -748,7 +757,11 @@ UIEventHandlerResult EditorMain::AddDirectionalLight(const MouseEvent& event)
     light->SetIntensity(1.0f);
 
     light->SetName(activeScene->GetUniqueNodeName("DirectionalLight"));
-    light->SetWorldTranslation(Vec3f(0.0f, 10.0f, 0.0f));
+
+    // Calculate appropriate insertion point in front of camera
+    // Use a larger distance for directional lights since they affect the entire scene
+    const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(10.0f, 0.5f);
+    light->SetWorldTranslation(insertionPoint);
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
@@ -832,7 +845,10 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
     reflectionProbe->AddComponent<BoundingBoxComponent>(boundingBoxComponent);
 
     reflectionProbe->SetName(activeScene->GetUniqueNodeName("ReflectionProbe"));
-    reflectionProbe->SetWorldTranslation(Vec3f(0.0f, 5.0f, 0.0f));
+
+    // Calculate appropriate insertion point in front of camera
+    const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+    reflectionProbe->SetWorldTranslation(insertionPoint);
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
@@ -994,6 +1010,10 @@ UIEventHandlerResult EditorMain::AddNode(const MouseEvent& event)
     Handle<Node> node = CreateObject<Node>(NAME("New Node"));
     InitObject(node);
 
+    // Calculate appropriate insertion point in front of camera
+    const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+    node->SetWorldTranslation(insertionPoint);
+
     Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
         NAME("AddNewNode"),
         Proc<EditorActionFunctions()>([node, currentFocusedNode, activeScene]() -> EditorActionFunctions
@@ -1063,6 +1083,10 @@ UIEventHandlerResult EditorMain::AddEntity(const MouseEvent& event)
 
     Handle<Entity> entity = CreateObject<Entity>(NAME("New Entity"));
     InitObject(entity);
+
+    // Calculate appropriate insertion point in front of camera
+    const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+    entity->SetWorldTranslation(insertionPoint);
 
     Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
         NAME("AddNewEntity"),

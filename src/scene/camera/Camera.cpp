@@ -791,7 +791,6 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     proxy->viewFrustum = m_frustum;
 
     CameraShaderData& bufferData = proxy->bufferData;
-    bufferData.id = Id().Value();
     bufferData.view = m_viewMat;
     bufferData.projection = m_projMat;
     bufferData.previousView = m_previousViewMatrix;
@@ -802,7 +801,10 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     bufferData.cameraFar = m_far;
     bufferData.cameraFov = m_fov;
 
-    // HYP_LOG_TEMP("Update camera {} render data, width: {}, height: {}", Id().Value(), m_width, m_height);
+    if (String(GetName().LookupString()).ToLower().Contains("shadowmapcamera"))
+    {
+        HYP_LOG_TEMP("Update camera {} render data, width: {}, height: {}, position: {}", Id().Value(), m_width, m_height, m_translation);
+    }
 }
 
 #pragma endregion Camera

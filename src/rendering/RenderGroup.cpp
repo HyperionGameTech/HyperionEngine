@@ -302,6 +302,14 @@ static void RenderAll(
 
     frame->renderQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
 
+    // temp debug
+    if (renderSetup.view && renderSetup.view->GetCamera() && String(*renderSetup.view->GetCamera()->GetName()).ToLower().Contains("shadowmapcamera"))
+    {
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
+        Assert(cameraProxy != nullptr);
+        HYP_LOG(Rendering, Debug, "Shadow map camera's buffer data says the position is: {}", cameraProxy->bufferData.cameraPosition);
+    }
+
     if (globalDescriptorSetIndex != ~0u)
     {
         frame->renderQueue << BindDescriptorSet(
@@ -523,6 +531,14 @@ static void RenderAll_Parallel(
     }
 
     rootQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
+
+    // temp debug
+    if (renderSetup.view && renderSetup.view->GetCamera() && String(*renderSetup.view->GetCamera()->GetName()).ToLower().Contains("shadowmapcamera"))
+    {
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
+        Assert(cameraProxy != nullptr);
+        HYP_LOG(Rendering, Debug, "Shadow map camera's buffer data says the position is: {}", cameraProxy->bufferData.cameraPosition);
+    }
 
     if (globalDescriptorSetIndex != ~0u)
     {
