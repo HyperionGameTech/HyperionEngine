@@ -302,7 +302,7 @@ void Light::CreateShadowViews()
         MeshAttributes {},
         MaterialAttributes {
             .shaderDefinition = shaderDefinition,
-            .cullFaces = shadowMapFilter == SMF_VSM ? FCM_BACK : FCM_FRONT });
+            .cullFaces = shadowMapFilter == SMF_VSM ? FCM_FRONT : FCM_BACK });
 
     for (int i = 0; i < int(shadowViewFlags.Size()); i++)
     {
