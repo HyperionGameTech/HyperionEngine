@@ -276,7 +276,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     ShaderProperties shaderProperties;
     shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), 0.94f));
-    shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), 64));
+    shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), 16));
 
     if (!envProbe->IsSkyProbe())
     {

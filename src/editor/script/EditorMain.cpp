@@ -806,86 +806,101 @@ UIEventHandlerResult EditorMain::AddDirectionalLight(const MouseEvent& event)
 UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
 {
     HYP_SCOPE;
-
-    // temp
+    
     Handle<TestNativeUI> testNativeUi = CreateObject<TestNativeUI>();
-    testNativeUi->Show();
-
-    return UIEventHandlerResult::OK;
-
-    HYP_LOG(Editor, Info, "Add Reflection Probe clicked");
-
-    EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
-    if (editorSubsystem == nullptr)
-    {
-        HYP_LOG(Editor, Error, "EditorSubsystem not found");
-
-        return UIEventHandlerResult::ERR;
-    }
-
-    const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
-    if (!currentProject.IsValid())
-    {
-        HYP_LOG(Editor, Error, "No project loaded; cannot add reflection probe");
-
-        return UIEventHandlerResult::ERR;
-    }
-
-    Handle<Scene> activeScene = editorSubsystem->GetActiveScene();
-    if (!activeScene.IsValid())
-    {
-        HYP_LOG(Editor, Error, "No active scene found");
-
-        return UIEventHandlerResult::ERR;
-    }
-
-    Handle<ReflectionProbe> reflectionProbe = activeScene->GetEntityManager()->AddEntity<ReflectionProbe>();
-
-    BoundingBoxComponent boundingBoxComponent;
-    boundingBoxComponent.localAabb = BoundingBox(Vec3f(-15.0f, 0.0f, -15.0f), Vec3f(15.0f, 15.0f, 15.0f));
-    boundingBoxComponent.worldAabb = BoundingBox(Vec3f(-15.0f, 0.0f, -15.0f), Vec3f(15.0f, 15.0f, 15.0f));
-
-    reflectionProbe->AddComponent<BoundingBoxComponent>(boundingBoxComponent);
-
-    reflectionProbe->SetName(activeScene->GetUniqueNodeName("ReflectionProbe"));
-
-    // Calculate appropriate insertion point in front of camera
-    const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
-    reflectionProbe->SetWorldTranslation(insertionPoint);
-
-    WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
-
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
-        NAME("AddReflectionProbe"),
-        Proc<EditorActionFunctions()>([reflectionProbe, previousFocusedNode, activeScene]() -> EditorActionFunctions
+    testNativeUi->OnAccepted.Bind([this, weakThis = MakeWeakRef(this)](AddReflectionProbeResult result)
+        {
+            auto impl = [this, weakThis, result]()
             {
-                return EditorActionFunctions {
-                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>([reflectionProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                Handle<EditorMain> strongThis = weakThis.Lock();
+                if (!strongThis)
+                {
+                    HYP_LOG(Editor, Error, "EditorMain reference expired!");
+
+                    return;
+                }
+
+                HYP_LOG(Editor, Info, "Add Reflection Probe clicked");
+
+                EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
+                if (editorSubsystem == nullptr)
+                {
+                    HYP_LOG(Editor, Error, "EditorSubsystem not found");
+
+                    return;
+                }
+
+                const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
+                if (!currentProject.IsValid())
+                {
+                    HYP_LOG(Editor, Error, "No project loaded; cannot add reflection probe");
+
+                    return;
+                }
+
+                Handle<Scene> activeScene = editorSubsystem->GetActiveScene();
+                if (!activeScene.IsValid())
+                {
+                    HYP_LOG(Editor, Error, "No active scene found");
+
+                    return;
+                }
+
+                BoundingBox aabb = BoundingBox(result.worldTranslation - result.probeVolumeDimensions * 0.5f, result.worldTranslation + result.probeVolumeDimensions * 0.5f);
+
+                Handle<ReflectionProbe> reflectionProbe = activeScene->GetEntityManager()->AddEntity<ReflectionProbe>(aabb, Vec2u(result.textureDimension));
+
+                BoundingBoxComponent boundingBoxComponent;
+                boundingBoxComponent.localAabb = aabb;
+                boundingBoxComponent.worldAabb = aabb;
+
+                reflectionProbe->AddComponent<BoundingBoxComponent>(boundingBoxComponent);
+
+                reflectionProbe->SetName(activeScene->GetUniqueNodeName("ReflectionProbe"));
+
+                // Calculate appropriate insertion point in front of camera
+                const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+                reflectionProbe->SetWorldTranslation(insertionPoint);
+
+                WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
+
+                Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+                    NAME("AddReflectionProbe"),
+                    Proc<EditorActionFunctions()>([reflectionProbe, previousFocusedNode, activeScene]() -> EditorActionFunctions
                         {
-                            activeScene->GetRoot()->AddChild(reflectionProbe);
-                            editorSubsystem->SetFocusedNode(reflectionProbe, true);
-                        }),
-                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>([reflectionProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
-                        {
-                            reflectionProbe->Remove();
+                            return EditorActionFunctions {
+                                .execute = Proc<void(EditorSubsystem*, EditorProject*)>([reflectionProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                                    {
+                                        activeScene->GetRoot()->AddChild(reflectionProbe);
+                                        editorSubsystem->SetFocusedNode(reflectionProbe, true);
+                                    }),
+                                .revert = Proc<void(EditorSubsystem*, EditorProject*)>([reflectionProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                                    {
+                                        reflectionProbe->Remove();
 
-                            if (editorSubsystem->GetFocusedNode() == reflectionProbe)
-                            {
-                                editorSubsystem->SetFocusedNode(nullptr, true);
+                                        if (editorSubsystem->GetFocusedNode() == reflectionProbe)
+                                        {
+                                            editorSubsystem->SetFocusedNode(nullptr, true);
 
-                                Handle<Node> focusedNode = previousFocusedNode.Lock();
-                                if (focusedNode.IsValid())
-                                {
-                                    editorSubsystem->SetFocusedNode(focusedNode, true);
-                                }
-                            }
-                        })
-                };
-            }));
+                                            Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                            if (focusedNode.IsValid())
+                                            {
+                                                editorSubsystem->SetFocusedNode(focusedNode, true);
+                                            }
+                                        }
+                                    })
+                            };
+                        }));
 
-    InitObject(action);
+                InitObject(action);
 
-    currentProject->GetActionStack()->Push(action);
+                currentProject->GetActionStack()->Push(action);
+            };
+
+            GetThreadById(g_gameThread)->GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
+        }).Detach();
+
+    testNativeUi->Show();
 
     return UIEventHandlerResult::OK;
 }

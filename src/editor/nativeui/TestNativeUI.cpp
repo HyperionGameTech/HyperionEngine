@@ -66,7 +66,7 @@ void TestNativeUI::Show_Internal()
     uiLabel* volumeXLabel = uiNewLabel("X:");
     uiBoxAppend(volumeXBox, uiControl(volumeXLabel), 0);
     uiEntry* volumeXEntry = uiNewEntry();
-    uiEntrySetText(volumeXEntry, "10.0");
+    uiEntrySetText(volumeXEntry, "50.0");
     uiBoxAppend(volumeXBox, uiControl(volumeXEntry), 1);
     uiBoxAppend(vbox, uiControl(volumeXBox), 0);
 
@@ -76,7 +76,7 @@ void TestNativeUI::Show_Internal()
     uiLabel* volumeYLabel = uiNewLabel("Y:");
     uiBoxAppend(volumeYBox, uiControl(volumeYLabel), 0);
     uiEntry* volumeYEntry = uiNewEntry();
-    uiEntrySetText(volumeYEntry, "10.0");
+    uiEntrySetText(volumeYEntry, "50.0");
     uiBoxAppend(volumeYBox, uiControl(volumeYEntry), 1);
     uiBoxAppend(vbox, uiControl(volumeYBox), 0);
 
@@ -86,7 +86,7 @@ void TestNativeUI::Show_Internal()
     uiLabel* volumeZLabel = uiNewLabel("Z:");
     uiBoxAppend(volumeZBox, uiControl(volumeZLabel), 0);
     uiEntry* volumeZEntry = uiNewEntry();
-    uiEntrySetText(volumeZEntry, "10.0");
+    uiEntrySetText(volumeZEntry, "50.0");
     uiBoxAppend(volumeZBox, uiControl(volumeZEntry), 1);
     uiBoxAppend(vbox, uiControl(volumeZBox), 0);
 
@@ -202,6 +202,7 @@ void TestNativeUI::Show_Internal()
             result.worldTranslation.z = float(atof(uiEntryText(dlgData->translationZEntry)));
 
             dlgData->self->OnAccepted(result);
+            dlgData->self->OnAccepted.RemoveAllDetached();
             dlgData->self->Close();
 
             delete dlgData;

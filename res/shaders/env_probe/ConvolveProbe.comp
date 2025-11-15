@@ -134,8 +134,8 @@ vec4 ConvolveProbe(uvec2 local_coord)
     return vec4(0.0);
 #endif
 
-    const int num_samples = NUM_SAMPLES;
-    const float lobe_size = LOBE_SIZE;
+    const int num_samples = 1;//NUM_SAMPLES;
+    const float lobe_size = 0.0;//LOBE_SIZE;
 
     const vec2 oct_coord = NormalizeOctahedralCoord(local_coord);
     const vec3 dir = normalize(DecodeOctahedralCoord(oct_coord));

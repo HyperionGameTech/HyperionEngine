@@ -280,8 +280,8 @@ void Light::CreateShadowViews()
             break;
         case LT_POINT:
             shadowMapCamera->SetFOV(90.0f);
-            shadowMapCamera->SetNear(0.1f);
-            shadowMapCamera->SetFar(250.0f);
+            shadowMapCamera->SetNear(0.01f);
+            shadowMapCamera->SetFar(m_radius);
 
             shadowMapCamera->AddCameraController(CreateObject<PerspectiveCameraController>());
 

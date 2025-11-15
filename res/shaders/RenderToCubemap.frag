@@ -107,9 +107,11 @@ void main()
     vec3 N = normalize(v_normal);
     vec3 R = reflect(-V, N);
 
+    vec4 albedo = vec4(1.0);
+
 #if HAS_ALBEDO_MAP
     vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
-    vec4 albedo = CURRENT_MATERIAL.albedo;
+    albedo = CURRENT_MATERIAL.albedo;
 
     vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
 
