@@ -231,6 +231,10 @@ void main()
             const vec3 world_to_light = position.xyz - light.position_intensity.xyz;
 
             shadow = GetPointShadow(light, world_to_light, NdotL);
+
+            // temp debug
+            output_color = vec4(shadow, shadow, shadow, 1.0);
+            return;
         }
 #elif defined(LIGHT_TYPE_DIRECTIONAL)
         if (bool(light.flags & LF_SHADOW))

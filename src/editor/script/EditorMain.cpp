@@ -24,6 +24,8 @@
 
 #include <scene/components/BoundingBoxComponent.hpp>
 
+#include <shadows/ShadowMap.hpp>
+
 #include <lightmapper/LightmapVolume.hpp>
 
 #include <system/MessageBox.hpp>
@@ -485,6 +487,7 @@ UIEventHandlerResult EditorMain::AddPointLight(const MouseEvent& event)
     light->SetColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
     light->SetRadius(10.0f);
     light->SetIntensity(3.0f);
+    //light->SetShadowMapFilter(SMF_VSM);
 
     light->SetName(activeScene->GetUniqueNodeName("PointLight"));
 

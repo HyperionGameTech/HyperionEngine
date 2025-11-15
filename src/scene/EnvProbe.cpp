@@ -215,7 +215,7 @@ void EnvProbe::CreateView()
             .imageType = TT_CUBEMAP,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE,
-            .clearColor = MathUtil::Infinity<Vec4f>() });
+            .clearColor = Vec4f(FLT16_MAX) });
     }
     else if (IsShadowProbe())
     {

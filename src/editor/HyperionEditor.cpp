@@ -107,7 +107,7 @@ void HyperionEditor::Init()
 
     GetWorld()->AddSubsystem(m_editorSubsystem);
 
-    GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
+    //GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
 
 #if  1
     Handle<Scene> scene = CreateObject<Scene>(SceneFlags::FOREGROUND);

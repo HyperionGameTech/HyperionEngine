@@ -152,8 +152,6 @@ void UISubsystem::Init()
         {
             PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
 
-            HYP_LOG_TEMP("UISubsystem: window resized to {}", windowSize);
-
             Handle<UISubsystem> subsystem = weakThis.Lock();
 
             if (!subsystem)

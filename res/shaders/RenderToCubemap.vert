@@ -81,21 +81,16 @@ const vec3 cubemap_directions[12] = vec3[](
 
 mat4 LookAt(vec3 pos, vec3 target, vec3 up)
 {
-    mat4 lookat;
+    vec3 f = normalize(pos - target);
+    vec3 s = normalize(cross(f, up));
+    vec3 u = cross(s, f);
 
-    vec3 dir = normalize(target - pos);
-
-    vec3 zaxis = dir;
-    vec3 xaxis = normalize(cross(dir, up));
-    vec3 yaxis = cross(xaxis, zaxis);
-
-    lookat[0] = vec4(xaxis, pos.x);
-    lookat[1] = vec4(yaxis, pos.y);
-    lookat[2] = vec4(zaxis, pos.z);
-    lookat[3] = vec4(0.0, 0.0, 0.0, 1.0);
-    lookat = transpose(lookat);
-
-    return lookat;
+    return mat4(
+        vec4(s.x, u.x, -f.x, 0.0),
+        vec4(s.y, u.y, -f.y, 0.0),
+        vec4(s.z, u.z, -f.z, 0.0),
+        vec4(-dot(s, pos), -dot(u, pos), dot(f, pos), 1.0)
+    );
 }
 
 #ifdef SKINNING
@@ -138,7 +133,7 @@ void main()
     normal_matrix = transpose(inverse(entity.model_matrix));
 #endif
 
-    v_position = position.xyz;
+    v_position = position.xyz / position.w;
     v_normal = (normal_matrix * vec4(a_normal, 0.0)).xyz;
     v_texcoord0 = vec2(a_texcoord0.x, 1.0 - a_texcoord0.y);
 
@@ -149,12 +144,11 @@ void main()
 
 #if ENV_PROBE
     v_camera_position = current_env_probe.world_position.xyz;
-    mat4 view_matrix = LookAt(v_camera_position, v_camera_position + forward_direction, up_direction);
 #else
     v_camera_position = camera.position.xyz;
-    mat4 view_matrix = camera.view;
 #endif
 
+    mat4 view_matrix = LookAt(v_camera_position, v_camera_position + forward_direction, up_direction);
 
 #ifdef INSTANCING
     v_object_index = OBJECT_INDEX;

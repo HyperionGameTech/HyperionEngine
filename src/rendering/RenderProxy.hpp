@@ -226,6 +226,10 @@ struct alignas(16) LightShaderData
     Vec4f dimensionsScale; // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
     Vec2f offsetUv;        // offset in the atlas texture array
     uint32 layerIndex;     // index of the atlas in the shadow map texture array, or cubemap index for point lights
+
+    Vec4f _pad0;
+    Vec4f _pad1;
+    Vec4f _pad2;
 };
 
 class RenderProxyLight final : public IRenderProxy
@@ -317,9 +321,9 @@ public:
 
 struct CameraShaderData
 {
-    Mat4f view;
-    Mat4f projection;
-    Mat4f previousView;
+    Mat4f viewMat;
+    Mat4f projMat;
+    Mat4f prevViewMat;
 
     Vec4u dimensions;
     Vec4f cameraPosition;
@@ -329,6 +333,11 @@ struct CameraShaderData
     float cameraNear;
     float cameraFar;
     float cameraFov;
+    float _pad;
+
+    Vec4f _pad1;
+    Vec4f _pad2;
+    Vec4f _pad3;
 };
 
 class RenderProxyCamera final : public IRenderProxy

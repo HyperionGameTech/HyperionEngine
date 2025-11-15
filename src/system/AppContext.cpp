@@ -382,8 +382,6 @@ int SDLAppContext::PollEvent(SystemEvent& event)
                 int width = sdlEvent.window.data1;
                 int height = sdlEvent.window.data2;
 
-                HYP_LOG_TEMP("SDLAppContext: Window resized to {}x{}", width, height);
-
                 event = SystemEvent(SystemEvent::WINDOW_RESIZED, PlatformEvent(sdlEvent));
                 event.GetEventData().Set(Vec2i(width, height));
 

@@ -225,7 +225,7 @@ struct alignas(2) Float16
 static_assert(sizeof(Float16) == 2, "float16 must be 2 bytes in size");
 
 #ifndef FLT16_MAX
-#define FLT16_MAX Float16::FromRaw(65504)
+#define FLT16_MAX Float16::FromRaw(0x7C00)
 #endif
 
 #ifndef FLT16_MIN

@@ -92,6 +92,15 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBu
 #endif
 #endif
 
+const vec3 face_debug_colors[6] = vec3[](
+    vec3(1.0, 0.0, 0.0),
+    vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 0.0, 1.0),
+    vec3(1.0, 1.0, 0.0),
+    vec3(1.0, 0.0, 1.0),
+    vec3(0.0, 1.0, 1.0)
+);
+
 void main()
 {
     vec3 V = normalize(v_camera_position - v_position);
@@ -125,7 +134,7 @@ void main()
 
     moments.y += 0.25 * (HYP_FMATH_SQR(dx) + HYP_FMATH_SQR(dy));
 
-    output_color = vec2(v_camera_position.xy); // debugging //moments;
+    output_color = moments;
 #else
     vec4 previous_value = vec4(0.0);
 

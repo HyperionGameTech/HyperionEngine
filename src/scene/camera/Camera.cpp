@@ -70,11 +70,7 @@ void CameraController::SetInputHandler(const Handle<InputHandlerBase>& inputHand
     }
 
     m_inputHandler = inputHandler;
-
-    if (IsInitCalled())
-    {
-        InitObject(m_inputHandler);
-    }
+    InitObject(m_inputHandler);
 }
 
 void CameraController::OnAdded(Camera* camera)
@@ -308,17 +304,6 @@ void Camera::Init()
         }
     }
 
-    for (const Handle<CameraController>& cameraController : m_cameraControllers)
-    {
-        InitObject(cameraController);
-    }
-
-    if (const Handle<CameraController>& cameraController = GetCameraController(); cameraController && !cameraController->IsA<NullCameraController>())
-    {
-        cameraController->OnAdded(this);
-        cameraController->OnActivated();
-    }
-
     UpdateMouseLocked();
 
     UpdateViewMatrix();
@@ -419,24 +404,21 @@ void Camera::AddCameraController(const Handle<CameraController>& cameraControlle
         m_cameraControllers.Insert(m_cameraControllers.Begin() + realIndex, cameraController);
     }
 
-    if (IsInitCalled())
+    InitObject(cameraController);
+
+    cameraController->OnAdded(this);
+
+    if (realIndex == m_cameraControllers.Size() - 1)
     {
-        InitObject(cameraController);
-
-        cameraController->OnAdded(this);
-
-        if (realIndex == m_cameraControllers.Size() - 1)
-        {
-            // newly added camera controller is the active one
-            cameraController->OnActivated();
-        }
-
-        UpdateMouseLocked();
-
-        UpdateViewMatrix();
-        UpdateProjectionMatrix();
-        UpdateViewProjectionMatrix();
+        // newly added camera controller is the active one
+        cameraController->OnActivated();
     }
+
+    UpdateMouseLocked();
+
+    UpdateViewMatrix();
+    UpdateProjectionMatrix();
+    UpdateViewProjectionMatrix();
 }
 
 bool Camera::RemoveCameraController(const Handle<CameraController>& cameraController)
@@ -753,7 +735,7 @@ void Camera::UpdateMouseLocked()
         }
     }
 
-    if (shouldLockMouse)
+    if (shouldLockMouse && IsInitCalled())
     {
         if (!m_mouseLockScope)
         {
@@ -791,20 +773,15 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     proxy->viewFrustum = m_frustum;
 
     CameraShaderData& bufferData = proxy->bufferData;
-    bufferData.view = m_viewMat;
-    bufferData.projection = m_projMat;
-    bufferData.previousView = m_previousViewMatrix;
+    bufferData.viewMat = m_viewMat;
+    bufferData.projMat = m_projMat;
+    bufferData.prevViewMat = m_previousViewMatrix;
     bufferData.dimensions = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 };
     bufferData.cameraPosition = Vec4f(m_translation, 1.0f);
     bufferData.cameraDirection = Vec4f(m_direction, 1.0f);
     bufferData.cameraNear = m_near;
     bufferData.cameraFar = m_far;
     bufferData.cameraFov = m_fov;
-
-    if (String(GetName().LookupString()).ToLower().Contains("shadowmapcamera"))
-    {
-        HYP_LOG_TEMP("Update camera {} render data, width: {}, height: {}, position: {}", Id().Value(), m_width, m_height, m_translation);
-    }
 }
 
 #pragma endregion Camera

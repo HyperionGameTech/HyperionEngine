@@ -195,7 +195,7 @@ void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSe
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
         Assert(cameraProxy != nullptr);
 
-        if (cameraProxy->bufferData.view != m_previousViewMatrix)
+        if (cameraProxy->bufferData.viewMat != m_previousViewMatrix)
         {
             RenderSetup newRenderSetup = renderSetup;
             newRenderSetup.passData = parentPass;
@@ -203,7 +203,7 @@ void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSe
             m_temporalBlending->ResetProgressiveBlending();
             m_temporalBlending->Render(frame, newRenderSetup);
 
-            m_previousViewMatrix = cameraProxy->bufferData.view;
+            m_previousViewMatrix = cameraProxy->bufferData.viewMat;
         }
     }
 

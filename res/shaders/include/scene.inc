@@ -27,6 +27,11 @@ struct Camera
     float near;
     float far;
     float fov;
+    float _pad0;
+
+    vec4 _pad1;
+    vec4 _pad2;
+    vec4 _pad3;
 };
 
 struct Light
@@ -51,6 +56,9 @@ struct Light
     vec2 offset_uv;
     uint layer_index; // atlas index, also used for point light shadow map index
 
+    vec4 _pad0;
+    vec4 _pad1;
+    vec4 _pad2;
 };
 
 // Maps to LightFlags

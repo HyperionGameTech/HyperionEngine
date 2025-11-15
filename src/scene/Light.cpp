@@ -11,6 +11,7 @@
 
 #include <scene/camera/Camera.hpp>
 #include <scene/camera/OrthoCamera.hpp>
+#include <scene/camera/PerspectiveCamera.hpp>
 
 #include <shadows/ShadowMap.hpp>
 #include <shadows/ShadowMapAllocator.hpp>
@@ -206,7 +207,7 @@ void Light::CreateShadowViews()
         attachmentDesc.imageType = TT_CUBEMAP;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
-        attachmentDesc.clearColor = MathUtil::Infinity<Vec4f>();
+        attachmentDesc.clearColor = Vec4f(10000.0f);
 
         ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
         depthAttachmentDesc.format = g_renderBackend->GetDefaultFormat(DIF_DEPTH);
@@ -233,7 +234,7 @@ void Light::CreateShadowViews()
         attachmentDesc.imageType = TT_TEX2D;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
-        attachmentDesc.clearColor = MathUtil::Infinity<Vec4f>();
+        attachmentDesc.clearColor = Vec4f(10000.0f);
 
         ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
         depthAttachmentDesc.format = g_renderBackend->GetDefaultFormat(DIF_DEPTH);
@@ -269,7 +270,7 @@ void Light::CreateShadowViews()
 
     if (!shadowMapCamera)
     {
-        shadowMapCamera = CreateObject<Camera>(90.0f, -int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y), 0.001f, 250.0f);
+        shadowMapCamera = CreateObject<Camera>(int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y));
         shadowMapCamera->SetName(NAME_FMT("ShadowMapCamera_{}", Id())); // @FIXME Use name instead, ID is not persistent
 
         switch (m_type)
@@ -278,8 +279,13 @@ void Light::CreateShadowViews()
             shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
             break;
         case LT_POINT:
+            shadowMapCamera->SetFOV(90.0f);
+            shadowMapCamera->SetNear(0.1f);
+            shadowMapCamera->SetFar(250.0f);
+
+            shadowMapCamera->AddCameraController(CreateObject<PerspectiveCameraController>());
+
             shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
-            shadowMapCamera->SetFar(m_radius);
             break;
         default:
             break;
@@ -346,15 +352,7 @@ void Light::UpdateShadowViews()
         case LT_POINT:
             m_shadowAabb = GetAABB();
 
-            AssertDebug(FindChildByUUID(shadowCamera->GetUUID()) != nullptr);
-            AssertDebug(shadowCamera->HasTag<EntityTag::RECEIVES_UPDATE>());
-            HYP_LOG_TEMP("Update shadow camera for point light {}, position: {}", Id(), m_worldTransform.GetTranslation());
-
-            shadowCamera->SetTranslation(m_worldTransform.GetTranslation());
-            shadowCamera->SetToPerspectiveProjection(90.0f, 0.1f, m_radius);
-
-            // tmp
-            shadowCamera->SetNeedsRenderProxyUpdate();
+            shadowCamera->SetTranslation(m_position);
 
             break;
         default:
@@ -427,8 +425,6 @@ void Light::OnTransformUpdated(const Transform& transform)
     HYP_SCOPE;
 
     Entity::OnTransformUpdated(transform);
-
-    HYP_LOG(Scene, Debug, "Light {} transform updated, new position: {}", Id(), transform.GetTranslation());
 
     m_position = transform.GetTranslation();
 

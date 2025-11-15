@@ -365,10 +365,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebug)
     }
 
 #ifdef HYP_DEBUG_MODE
-    if (enableDebug)
-    {
-        extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
+    extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
     HYP_LOG(RenderingBackend, Info, "Found {} extensions:", extensionNames.Size());

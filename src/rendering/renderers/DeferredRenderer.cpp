@@ -2177,7 +2177,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
         CameraShaderData& cameraBufferData = cameraProxy->bufferData;
 
-        if (cameraBufferData.projection[3][3] < MathUtil::epsilonF)
+        if (MathUtil::ApproxEqual(cameraBufferData.projMat[3][3], 0.0f))
         {
             const uint32 frameCounter = RenderApi::GetWorldBufferData()->frameCounter + 1;
 
