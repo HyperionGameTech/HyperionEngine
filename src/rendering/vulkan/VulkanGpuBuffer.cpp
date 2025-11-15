@@ -34,6 +34,21 @@ static inline VulkanRenderBackend* GetRenderBackend()
 
 #pragma region Helpers
 
+uint32 GetMinBufferAlignmentVulkan(GpuBufferType bufferType)
+{
+    switch (bufferType)
+    {
+    case GpuBufferType::CBUFF:
+        return static_cast<VulkanRenderBackend*>(g_renderBackend)->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
+        break;
+    case GpuBufferType::SSBO:
+        return static_cast<VulkanRenderBackend*>(g_renderBackend)->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.minStorageBufferOffsetAlignment;
+        break;
+    default:
+        return 0;
+    }
+}
+
 static uint32 FindMemoryType(uint32 vkTypeFilter, VkMemoryPropertyFlags vkMemoryPropertyFlags)
 {
     VkPhysicalDeviceMemoryProperties memProperties;

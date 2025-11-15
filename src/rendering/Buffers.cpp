@@ -9,6 +9,12 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanDevice.hpp>
+#include <rendering/vulkan/VulkanFeatures.hpp>
+#endif
+
 #include <core/utilities/ByteUtil.hpp>
 #include <core/reflection/TypeInfo.hpp>
 
@@ -164,7 +170,7 @@ GpuBufferHolderBase::~GpuBufferHolderBase()
     SafeDelete(std::move(m_gpuBuffer));
 }
 
-void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initialCount, SizeType size)
+void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initialCount, const String& bufferName)
 {
     HYP_SCOPE;
     // AssertOnThread(g_renderThread);
@@ -174,13 +180,10 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
         initialCount = 1;
     }
 
-    const SizeType structSize = TypeInfo_GetSize(*m_structTypeInfo);
-    AssertDebug(size == structSize, "Size does not match the expected size! Size = {}, Expected = {}", size, structSize);
-
-    const SizeType gpuBufferSize = MathUtil::NextMultiple(size * initialCount, structSize);
+    const SizeType gpuBufferSize = m_structSize * initialCount;
 
     m_gpuBuffer = g_renderBackend->MakeGpuBuffer(bufferType, gpuBufferSize);
-    m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", *m_structTypeInfo->name));
+    m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", bufferName.Empty() ? "<unnamed>" : *bufferName));
     DeferCreate(m_gpuBuffer);
 }
 

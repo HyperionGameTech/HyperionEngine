@@ -9,12 +9,13 @@
 #include <scene/Node.hpp>
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>
-
 #include <scene/EntityManager.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
+
 #include <lightmapper/LightmapVolume.hpp>
+
 #include <scene/animation/Skeleton.hpp>
 
 #include <scene/components/MeshComponent.hpp>

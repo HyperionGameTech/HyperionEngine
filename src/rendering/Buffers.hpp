@@ -132,18 +132,23 @@ private:
 class GpuBufferHolderBase
 {
 protected:
-    explicit GpuBufferHolderBase(const TypeInfo* structTypeInfo)
-        : m_structTypeInfo(structTypeInfo)
+    explicit GpuBufferHolderBase()
+        : m_structSize(0),
+          m_structAlignment(0)
     {
-        AssertDebug(m_structTypeInfo != nullptr);
     }
 
 public:
     virtual ~GpuBufferHolderBase();
 
-    HYP_FORCE_INLINE const TypeInfo* GetStructTypeInfo() const
+    HYP_FORCE_INLINE SizeType GetStructSize() const
     {
-        return m_structTypeInfo;
+        return m_structSize;
+    }
+
+    HYP_FORCE_INLINE SizeType GetStructAlignment() const
+    {
+        return m_structAlignment;
     }
 
     virtual SizeType Count() const = 0;
@@ -166,57 +171,49 @@ public:
     // Ensures capacity for the given index.
     virtual void EnsureCapacity(uint32 index) = 0;
 
-    void WriteBufferData(uint32 index, const void* ptr, SizeType size)
+    void WriteBufferData(uint32 index, const void* pStructData, SizeType size)
     {
-        AssertDebug(size == TypeInfo_GetSize(*m_structTypeInfo), "Size does not match the expected size! Size = {}, Expected = {}", size, TypeInfo_GetSize(*m_structTypeInfo));
+        AssertDebug(size <= m_structSize, "Size does not match the expected size! Size = {}, Expected = {}", size, m_structSize);
 
-        WriteBufferData_Internal(index, ptr);
+        WriteBufferData_Internal(index, pStructData);
     }
 
-    static void WriteBufferData_Static(GpuBufferHolderBase* gpuBufferHolder, uint32 index, void* bufferDataPtr, SizeType bufferSize)
+    static void WriteBufferData_Static(GpuBufferHolderBase* gpuBufferHolder, uint32 index, void* pStructData, SizeType bufferSize)
     {
         AssertDebug(gpuBufferHolder != nullptr);
-        AssertDebug(bufferSize == TypeInfo_GetSize(*gpuBufferHolder->m_structTypeInfo),
+        AssertDebug(bufferSize <= gpuBufferHolder->m_structSize,
             "Size does not match the expected size! Size = %llu, Expected = %llu",
             bufferSize,
-            TypeInfo_GetSize(*gpuBufferHolder->m_structTypeInfo));
+            gpuBufferHolder->m_structSize);
 
-        gpuBufferHolder->WriteBufferData_Internal(index, bufferDataPtr);
+        gpuBufferHolder->WriteBufferData_Internal(index, pStructData);
     }
 
     virtual void* GetCpuMapping(uint32 index) = 0;
 
 protected:
-    void CreateBuffers(GpuBufferType bufferType, SizeType count, SizeType size);
+    void CreateBuffers(GpuBufferType bufferType, SizeType count, const String& bufferName = String::empty);
     void CopyToGpuBuffer(
         FrameBase* frame,
         const Array<GpuBufferBase*>& stagingBuffers,
         const Array<uint32>& chunkStarts,
         const Array<uint32>& chunkEnds);
 
-    virtual void WriteBufferData_Internal(uint32 index, const void* ptr) = 0;
+    virtual void WriteBufferData_Internal(uint32 index, const void* pStructData) = 0;
 
-    const TypeInfo* m_structTypeInfo;
     GpuBufferRef m_gpuBuffer;
-};
-
-// Specialization for Memory pool init info to allocate larger blocks:
-template <class StructType>
-struct GpuBufferHolderMemoryPoolInitInfo
-{
-    static constexpr uint32 numBytesPerBlock = MathUtil::Max(MathUtil::NextPowerOf2(sizeof(StructType)), 1u << 14); // minimum 16KB blocks
-    static constexpr uint32 numElementsPerBlock = numBytesPerBlock / sizeof(StructType);
-    static constexpr uint32 numInitialElements = numElementsPerBlock;
+    SizeType m_structSize; // sizeof(StructType) but aligned to meet device alignment requirements.
+    SizeType m_structAlignment;
 };
 
 template <class StructType>
-class GpuBufferHolderMemoryPool final : public MemoryPool<StructType, GpuBufferHolderMemoryPoolInitInfo<StructType>>
+class GpuBufferHolderMemoryPool final : public MemoryPool<RenderAllocator>
 {
 public:
-    using Base = MemoryPool<StructType, GpuBufferHolderMemoryPoolInitInfo<StructType>>;
+    using Base = MemoryPool<RenderAllocator>;
 
-    GpuBufferHolderMemoryPool(Name poolName, uint32 initialCount = Base::InitInfo::numInitialElements)
-        : Base(poolName, initialCount, /* createInitialBlocks */ true, /* blockInitCtx */ nullptr)
+    GpuBufferHolderMemoryPool(uint32 elemSize, uint32 elemAlignment, uint32 initialCount = 1)
+        : Base(elemSize, elemAlignment, 64, initialCount)
     {
         for (Range<uint32>& dirtyRange : m_dirtyRanges)
         {
@@ -242,7 +239,7 @@ public:
     void EnsureGpuBufferCapacity(const GpuBufferRef& buffer, uint32 frameIndex)
     {
         bool wasResized = false;
-        HYP_GFX_ASSERT(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
+        HYP_GFX_ASSERT(buffer->EnsureCapacity(Base::NumAllocatedElements() * Base::m_elemSize, &wasResized));
 
         if (wasResized)
         {
@@ -272,35 +269,37 @@ public:
             uint32 blockIndex;
             uint32 bufferOffset;
             uint32 bufferSize;
-            void* dataPtr;
+            void* mem;
         };
 
         Array<DirtyBlockInfo> dirtyBlocks;
-        dirtyBlocks.Reserve((rangeEnd - rangeStart) / Base::numElementsPerBlock + 1);
+        dirtyBlocks.Reserve((rangeEnd - rangeStart) / Base::m_elemsPerBlock + 1);
 
         typename LinkedList<typename Base::Block>::Iterator blockIt = Base::m_blocks.Begin();
         typename LinkedList<typename Base::Block>::Iterator endIt = Base::m_blocks.End();
 
         for (uint32 blockIndex = 0; blockIndex < numBlocks && blockIt != endIt; ++blockIndex, ++blockIt)
         {
-            if (blockIndex < rangeStart / Base::numElementsPerBlock)
+            if (blockIndex < rangeStart / Base::m_elemsPerBlock)
             {
                 continue;
             }
 
-            if (blockIndex * Base::numElementsPerBlock >= rangeEnd)
+            if (blockIndex * Base::m_elemsPerBlock >= rangeEnd)
             {
                 break;
             }
 
-            const uint32 offset = blockIndex * Base::numElementsPerBlock;
-            const uint32 bufferOffset = offset * uint32(sizeof(StructType));
-            const uint32 bufferSize = Base::numElementsPerBlock * uint32(sizeof(StructType));
+            const uint32 offset = blockIndex * Base::m_elemsPerBlock;
+            const uint32 bufferOffset = offset * Base::m_elemSize;
+            const uint32 bufferSize = Base::m_elemsPerBlock * Base::m_elemSize;
 
-            dirtyBlocks.PushBack({ blockIndex,
+            dirtyBlocks.PushBack({
+                blockIndex,
                 bufferOffset,
                 bufferSize,
-                blockIt->buffer.GetPointer() });
+                blockIt->mem
+            });
         }
 
         if (dirtyBlocks.Empty())
@@ -311,8 +310,8 @@ public:
 
         // Batch blocks into staging buffers, packing non-contiguous ranges to minimize staging buffer count
         // Strategy: Fill staging buffers up to a size limit, allowing gaps for non-contiguous blocks
-        static constexpr uint32 maxStagingBufferSize = 1u << 20; // 1MB max per staging buffer
-        static constexpr uint32 maxGapSize = 1u << 16;           // 64KB max gap to tolerate (wastes some bandwidth but reduces buffer count)
+        static constexpr uint32 MaxStagingBufferSize = 1u << 20; // 1MB max per staging buffer
+        static constexpr uint32 MaxGapSize = 1u << 16;           // 64KB max gap to tolerate (wastes some bandwidth but reduces buffer count)
 
         struct StagingBatch
         {
@@ -354,7 +353,7 @@ public:
                 const uint32 wastedSpace = newTotalSize - newDataSize;
 
                 // Add to this batch if it doesn't exceed size limits and gap isn't too large
-                if (newTotalSize <= maxStagingBufferSize && wastedSpace <= maxGapSize)
+                if (newTotalSize <= MaxStagingBufferSize && wastedSpace <= MaxGapSize)
                 {
                     batch.blockIndices.PushBack(i);
                     batch.minOffset = newMinOffset;
@@ -390,7 +389,7 @@ public:
                 const DirtyBlockInfo& block = dirtyBlocks[blockIdx];
                 const uint32 stagingOffset = block.bufferOffset - startOffset;
 
-                stagingBuffer->Copy(stagingOffset, block.bufferSize, block.dataPtr);
+                stagingBuffer->Copy(stagingOffset, block.bufferSize, block.mem);
             }
 
             outStagingBuffers.PushBack(stagingBuffer);
@@ -407,15 +406,38 @@ protected:
     FixedArray<Range<uint32>, NumFramesInFlight> m_dirtyRanges;
 };
 
+#ifdef HYP_VULKAN
+extern uint32 GetMinBufferAlignmentVulkan(GpuBufferType);
+#endif
+
 template <class StructType, GpuBufferType BufferType>
 class GpuBufferHolder final : public GpuBufferHolderBase
 {
+    static inline uint32 GetElementAlignment()
+    {
+        uint32 structAlignment = alignof(StructType);
+
+#ifdef HYP_VULKAN
+        structAlignment = MathUtil::Max(structAlignment, GetMinBufferAlignmentVulkan(BufferType));
+#endif
+
+        return structAlignment;
+    }
+
+    static inline uint32 GetElementSize()
+    {
+        return ByteUtil::AlignAs(uint32(sizeof(StructType)), GetElementAlignment());
+    }
+
 public:
     explicit GpuBufferHolder(uint32 initialCount = 0)
-        : GpuBufferHolderBase(&TypeOf<StructType>()),
-          m_pool(NAME_FMT("GpuBufferData_{}", TypeInfo_GetName(*m_structTypeInfo)), initialCount)
+        : GpuBufferHolderBase(),
+          m_pool(GetElementSize(), GetElementAlignment(), initialCount)
     {
-        GpuBufferHolderBase::CreateBuffers(BufferType, initialCount, sizeof(StructType));
+        m_structSize = GetElementSize();
+        m_structAlignment = GetElementAlignment();
+
+        GpuBufferHolderBase::CreateBuffers(BufferType, initialCount, *TypeInfo_GetName(TypeOf<StructType>()));
     }
 
     GpuBufferHolder(const GpuBufferHolder& other) = delete;
@@ -430,7 +452,7 @@ public:
 
     virtual uint32 NumElementsPerBlock() const override
     {
-        return m_pool.numElementsPerBlock;
+        return m_pool.GetNumElementsPerBlock();
     }
 
     virtual void UpdateBufferSize(uint32 frameIndex) override
@@ -510,13 +532,13 @@ public:
     {
         AssertDebug(index < m_pool.NumAllocatedElements(), "Index out of bounds! Index = {}, Size = {}", index, m_pool.NumAllocatedElements());
 
-        return &m_pool.GetElement(index);
+        return &m_pool.GetElement<StructType>(index);
     }
 
 private:
-    virtual void WriteBufferData_Internal(uint32 index, const void* bufferDataPtr) override
+    virtual void WriteBufferData_Internal(uint32 index, const void* pStructData) override
     {
-        WriteBufferData(index, *reinterpret_cast<const StructType*>(bufferDataPtr));
+        WriteBufferData(index, *reinterpret_cast<const StructType*>(pStructData));
     }
 
     GpuBufferHolderMemoryPool<StructType> m_pool;

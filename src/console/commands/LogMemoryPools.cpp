@@ -22,18 +22,7 @@ public:
 protected:
     virtual Result Execute_Impl(const CommandLineArguments& args) override
     {
-        // Calculate memory pool usage
-        Array<Pair<MemoryPoolBase*, SizeType>> memoryUsagePerPool;
-        CalculateMemoryUsagePerPool(memoryUsagePerPool);
-
-        SizeType totalMemoryPoolUsage = 0;
-        for (SizeType i = 0; i < memoryUsagePerPool.Size(); i++)
-        {
-            HYP_LOG(Console, Debug, "Memory Usage for pool {} : {} MiB", memoryUsagePerPool[i].first->GetPoolName(), double(memoryUsagePerPool[i].second) / 1024 / 1024);
-            totalMemoryPoolUsage += memoryUsagePerPool[i].second;
-        }
-
-        HYP_LOG(Console, Debug, "Total Memory Usage for pools : {} MiB", double(totalMemoryPoolUsage) / 1024 / 1024);
+        // This needs to be reimplemented as our memory pools have been rewritten since this was made
 
         return {}; // ok
     }

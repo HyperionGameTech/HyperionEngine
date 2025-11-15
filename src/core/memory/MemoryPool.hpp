@@ -29,51 +29,14 @@ namespace memory {
 
 class MemoryPoolBase;
 
-template <class T>
-struct MemoryPoolInitInfo
-{
-    static constexpr uint32 numBytesPerBlock = MathUtil::NextPowerOf2(MathUtil::Max(sizeof(T), 4096));
-    static constexpr uint32 numElementsPerBlock = numBytesPerBlock / sizeof(T);
-    static constexpr uint32 numInitialElements = numElementsPerBlock;
-};
-
-template <class ElementType, class TInitInfo, void (*OnBlockAllocated)(void* ctx, ElementType* elements, uint32 startIndex, uint32 count) = nullptr>
 struct MemoryPoolBlock final
 {
-    static constexpr uint32 numElementsPerBlock = TInitInfo::numElementsPerBlock;
-
-    ValueStorage<ubyte, numElementsPerBlock * sizeof(ElementType)> buffer;
+    void* mem;
     AtomicVar<uint32> numElements { 0 };
 
-#ifdef HYP_ENABLE_MT_CHECK
-    FixedArray<DataRaceDetector, numElementsPerBlock> dataRaceDetectors;
-#endif
-
-    MemoryPoolBlock(void* ctx, uint32 blockIndex)
+    explicit MemoryPoolBlock(void* mem)
+        : mem(mem)
     {
-        Memory::MemSet(&buffer, 0, sizeof(buffer));
-
-        // Allow overloading assignment of elements
-        if (OnBlockAllocated != nullptr)
-        {
-            OnBlockAllocated(ctx, HYP_ALIGN_PTR_AS(buffer.GetPointer(), ElementType), blockIndex * numElementsPerBlock, numElementsPerBlock);
-        }
-        else
-        {
-            if constexpr (!IsPodTypeV<ElementType>)
-            {
-                // For non-POD types, default assign each element
-                for (uint32 i = 0; i < numElementsPerBlock; i++)
-                {
-                    new (HYP_ALIGN_PTR_AS(buffer.GetPointer(), ElementType) + i) ElementType();
-
-                    // if constexpr (std::is_copy_assignable_v<ElementType> || std::is_move_assignable_v<ElementType>)
-                    // {
-                    //     *(reinterpret_cast<ElementType*>(buffer.GetPointer()) + i) = ElementType {};
-                    // }
-                }
-            }
-        }
     }
 
     MemoryPoolBlock(const MemoryPoolBlock& other) = delete;
@@ -82,29 +45,13 @@ struct MemoryPoolBlock final
     MemoryPoolBlock(MemoryPoolBlock&& other) noexcept = delete;
     MemoryPoolBlock& operator=(MemoryPoolBlock&& other) noexcept = delete;
 
-    ~MemoryPoolBlock()
-    {
-        // Call destructors for each element in the block
-        if constexpr (!IsPodTypeV<ElementType>)
-        {
-            for (uint32 i = 0; i < numElementsPerBlock; i++)
-            {
-                HYP_ALIGN_PTR_AS(buffer.GetPointer(), ElementType)
-                [i].~ElementType();
-            }
-        }
-    }
+    ~MemoryPoolBlock() = default;
 
     HYP_FORCE_INLINE bool IsEmpty() const
     {
         return numElements.Get(MemoryOrder::ACQUIRE) == 0;
     }
 };
-
-class MemoryPoolManager;
-
-extern HYP_API MemoryPoolManager& GetMemoryPoolManager();
-extern HYP_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, SizeType>>& outBytesPerPool);
 
 class HYP_API MemoryPoolBase
 {
@@ -114,84 +61,84 @@ public:
     MemoryPoolBase(MemoryPoolBase&& other) noexcept = delete;
     MemoryPoolBase& operator=(MemoryPoolBase&& other) noexcept = delete;
 
-    HYP_FORCE_INLINE Name GetPoolName() const
-    {
-        return m_poolName;
-    }
-
 protected:
-    MemoryPoolBase(Name poolName, ThreadId ownerThreadId, SizeType (*getNumAllocatedBytes)(MemoryPoolBase*));
+    MemoryPoolBase();
     ~MemoryPoolBase();
 
-    Name m_poolName;
-    ThreadId m_ownerThreadId;
     IdGenerator m_idGenerator;
-
-private:
-    void RegisterMemoryPool();
 };
 
-template <class ElementType, class TInitInfo = MemoryPoolInitInfo<ElementType>, void (*OnBlockAllocated)(void* ctx, ElementType* elements, uint32 startIndex, uint32 count) = nullptr>
+template <class AllocatorType>
 class MemoryPool : MemoryPoolBase
 {
-public:
-    using InitInfo = TInitInfo;
-
-    static constexpr uint32 numElementsPerBlock = InitInfo::numElementsPerBlock;
+protected:
+    using Block = MemoryPoolBlock;
 
 protected:
-    using Block = MemoryPoolBlock<ElementType, TInitInfo, OnBlockAllocated>;
-
-protected:
-    static SizeType CalculateMemoryUsage(MemoryPoolBase* memoryPool)
-    {
-        return static_cast<MemoryPool*>(memoryPool)->NumAllocatedBytes();
-    }
-
     void CreateInitialBlocks()
     {
         m_numBlocks.Set(m_initialNumBlocks, MemoryOrder::RELEASE);
 
         for (uint32 i = 0; i < m_initialNumBlocks; i++)
         {
-            m_blocks.EmplaceBack(m_blockInitCtx, i);
+            void* mem = m_pAllocator->Allocate(m_elemSize * m_elemsPerBlock, m_elemAlignment);
+            HYP_CORE_ASSERT(mem != nullptr, "Allocation failed! Size: %u, Alignment: %u", m_elemSize * m_elemsPerBlock, m_elemAlignment);
+
+            m_blocks.EmplaceBack(mem);
         }
     }
 
 public:
-    static constexpr uint32 s_invalidIndex = ~0u;
+    static constexpr uint32 InvalidIndex = ~0u;
 
-    MemoryPool(Name poolName, uint32 initialCount = InitInfo::numInitialElements, bool createInitialBlocks = true, void* blockInitCtx = nullptr)
-        : MemoryPoolBase(poolName, ThreadId::Current(), &CalculateMemoryUsage),
-          m_initialNumBlocks((initialCount + numElementsPerBlock - 1) / numElementsPerBlock),
-          m_numBlocks(0),
-          m_blockInitCtx(blockInitCtx)
+    MemoryPool(uint32 elemSize, uint32 elemAlignment, uint32 elemsPerBlock = 64, uint32 initialCount = 0)
+        : MemoryPool(GetAllocatorInstance<AllocatorType>(), elemSize, elemAlignment, elemsPerBlock, initialCount)
     {
-        if (createInitialBlocks)
+    }
+
+    MemoryPool(AllocatorType* pAllocator, uint32 elemSize, uint32 elemAlignment, uint32 elemsPerBlock = 64, uint32 initialCount = 0)
+        : m_pAllocator(pAllocator),
+          m_elemSize(elemSize),
+          m_elemAlignment(elemAlignment),
+          m_elemsPerBlock(elemsPerBlock),
+          m_initialNumBlocks((initialCount + elemsPerBlock - 1) / elemsPerBlock),
+          m_numBlocks(0)
+    {
+        CreateInitialBlocks();
+    }
+
+    ~MemoryPool()
+    {
+        Mutex::Guard guard(m_blocksMutex);
+
+        for (auto it = m_blocks.Begin(); it != m_blocks.End(); ++it)
         {
-            CreateInitialBlocks();
+            m_pAllocator->Free(it->mem);
         }
     }
 
-    ~MemoryPool() = default;
-
     HYP_FORCE_INLINE SizeType NumAllocatedElements() const
     {
-        return m_numBlocks.Get(MemoryOrder::ACQUIRE) * numElementsPerBlock;
+        return m_numBlocks.Get(MemoryOrder::ACQUIRE) * m_elemsPerBlock;
     }
 
-    HYP_FORCE_INLINE SizeType NumAllocatedBytes() const
+    HYP_FORCE_INLINE uint32 GetNumElementsPerBlock() const
     {
-        return m_numBlocks.Get(MemoryOrder::ACQUIRE) * sizeof(Block);
+        return m_elemsPerBlock;
     }
-
+    
+    template <class ElementType>
     uint32 AcquireIndex(ElementType** outElementPtr = nullptr)
     {
         HYP_SCOPE;
 
+        HYP_CORE_ASSERT(sizeof(ElementType) <= m_elemSize);
+        HYP_CORE_ASSERT(alignof(ElementType) <= m_elemAlignment);
+
         const uint32 index = m_idGenerator.Next() - 1;
 
-        const uint32 blockIndex = index / numElementsPerBlock;
+        const uint32 blockIndex = index / m_elemsPerBlock;
+        const uint32 elementIndex = index % m_elemsPerBlock;
 
         if (blockIndex < m_initialNumBlocks)
         {
@@ -200,21 +147,21 @@ public:
 
             if (outElementPtr != nullptr)
             {
-                *outElementPtr = HYP_ALIGN_PTR_AS(block.buffer.GetPointer(), ElementType) + (index % numElementsPerBlock);
+                *outElementPtr = reinterpret_cast<ElementType*>(UIntPtr(block.mem) + m_elemSize * elementIndex);
             }
         }
         else
         {
             Mutex::Guard guard(m_blocksMutex);
 
-            if (index < numElementsPerBlock * m_numBlocks.Get(MemoryOrder::ACQUIRE))
+            if (index < m_elemsPerBlock * m_numBlocks.Get(MemoryOrder::ACQUIRE))
             {
                 Block& block = m_blocks[blockIndex];
                 block.numElements.Increment(1, MemoryOrder::RELEASE);
 
                 if (outElementPtr != nullptr)
                 {
-                    *outElementPtr = HYP_ALIGN_PTR_AS(block.buffer.GetPointer(), ElementType) + (index % numElementsPerBlock);
+                    *outElementPtr = reinterpret_cast<ElementType*>(UIntPtr(block.mem) + m_elemSize * elementIndex);
                 }
             }
             else
@@ -222,9 +169,12 @@ public:
                 // Add blocks until we can insert the element
                 uint32 currentBlockIndex = uint32(m_blocks.Size());
 
-                while (index >= numElementsPerBlock * m_numBlocks.Get(MemoryOrder::ACQUIRE))
+                while (index >= m_elemsPerBlock * m_numBlocks.Get(MemoryOrder::ACQUIRE))
                 {
-                    m_blocks.EmplaceBack(m_blockInitCtx, currentBlockIndex);
+                    void* mem = m_pAllocator->Allocate(m_elemSize * m_elemsPerBlock, m_elemAlignment);
+                    HYP_CORE_ASSERT(mem != nullptr, "Allocation failed! Size: %u, Alignment: %u", m_elemSize * m_elemsPerBlock, m_elemAlignment);
+
+                    m_blocks.EmplaceBack(mem);
 
                     m_numBlocks.Increment(1, MemoryOrder::RELEASE);
 
@@ -236,7 +186,7 @@ public:
 
                 if (outElementPtr != nullptr)
                 {
-                    *outElementPtr = HYP_ALIGN_PTR_AS(block.buffer.GetPointer(), ElementType) + (index % numElementsPerBlock);
+                    *outElementPtr = reinterpret_cast<ElementType*>(UIntPtr(block.mem) + m_elemSize * elementIndex);
                 }
             }
         }
@@ -250,7 +200,7 @@ public:
 
         m_idGenerator.ReleaseId(index + 1);
 
-        const uint32 blockIndex = index / numElementsPerBlock;
+        const uint32 blockIndex = index / m_elemsPerBlock;
 
         if (blockIndex < m_initialNumBlocks)
         {
@@ -262,7 +212,7 @@ public:
         {
             Mutex::Guard guard(m_blocksMutex);
 
-            HYP_CORE_ASSERT(index < numElementsPerBlock * m_numBlocks.Get(MemoryOrder::ACQUIRE));
+            HYP_CORE_ASSERT(index < m_elemsPerBlock * m_numBlocks.Get(MemoryOrder::ACQUIRE));
 
             Block& block = m_blocks[blockIndex];
             block.numElements.Decrement(1, MemoryOrder::RELEASE);
@@ -276,9 +226,9 @@ public:
     {
         HYP_SCOPE;
 
-        HYP_CORE_ASSERT(index != s_invalidIndex);
+        HYP_CORE_ASSERT(index != InvalidIndex);
 
-        const uint32 requiredBlocks = (index + numElementsPerBlock) / numElementsPerBlock;
+        const uint32 requiredBlocks = (index + m_elemsPerBlock) / m_elemsPerBlock;
 
         if (requiredBlocks <= m_numBlocks.Get(MemoryOrder::ACQUIRE))
         {
@@ -291,56 +241,68 @@ public:
 
         while (requiredBlocks > m_numBlocks.Get(MemoryOrder::ACQUIRE))
         {
-            m_blocks.EmplaceBack(m_blockInitCtx, currentBlockIndex);
+            void* mem = m_pAllocator->Allocate(m_elemSize * m_elemsPerBlock, m_elemAlignment);
+            HYP_CORE_ASSERT(mem != nullptr, "Allocation failed! Size: %u, Alignment: %u", m_elemSize * m_elemsPerBlock, m_elemAlignment);
+
+            m_blocks.EmplaceBack(mem);
+
             m_numBlocks.Increment(1, MemoryOrder::RELEASE);
 
             ++currentBlockIndex;
         }
     }
 
+    template <class ElementType>
     ElementType& GetElement(uint32 index)
     {
         HYP_SCOPE;
 
+#ifdef HYP_DEBUG_MODE
         HYP_CORE_ASSERT(index < NumAllocatedElements());
 
-        const uint32 blockIndex = index / numElementsPerBlock;
-        const uint32 elementIndex = index % numElementsPerBlock;
+        HYP_CORE_ASSERT(sizeof(ElementType) <= m_elemSize);
+        HYP_CORE_ASSERT(alignof(ElementType) <= m_elemAlignment);
+#endif
+        
+        const uint32 blockIndex = index / m_elemsPerBlock;
+        const uint32 elementIndex = index % m_elemsPerBlock;
 
         if (blockIndex < m_initialNumBlocks)
         {
             Block& block = m_blocks[blockIndex];
-            HYP_MT_CHECK_READ(block.dataRaceDetectors[elementIndex]);
 
-            return HYP_ALIGN_PTR_AS(block.buffer.GetPointer(), ElementType)[elementIndex];
+            return *reinterpret_cast<ElementType*>(UIntPtr(block.mem) + m_elemSize * elementIndex);
         }
         else
         {
             Mutex::Guard guard(m_blocksMutex);
 
             Block& block = m_blocks[blockIndex];
-            HYP_MT_CHECK_READ(block.dataRaceDetectors[elementIndex]);
 
-            return HYP_ALIGN_PTR_AS(block.buffer.GetPointer(), ElementType)[elementIndex];
+            return *reinterpret_cast<ElementType*>(UIntPtr(block.mem) + m_elemSize * elementIndex);
         }
     }
 
+    template <class ElementType>
     void SetElement(uint32 index, const ElementType& value)
     {
         HYP_SCOPE;
 
+#ifdef HYP_DEBUG_MODE
         HYP_CORE_ASSERT(index < NumAllocatedElements());
 
-        const uint32 blockIndex = index / numElementsPerBlock;
-        const uint32 elementIndex = index % numElementsPerBlock;
+        HYP_CORE_ASSERT(sizeof(ElementType) <= m_elemSize);
+        HYP_CORE_ASSERT(alignof(ElementType) <= m_elemAlignment);
+#endif
+
+        const uint32 blockIndex = index / m_elemsPerBlock;
+        const uint32 elementIndex = index % m_elemsPerBlock;
 
         if (blockIndex < m_initialNumBlocks)
         {
             Block& block = m_blocks[blockIndex];
-            HYP_MT_CHECK_RW(block.dataRaceDetectors[elementIndex]);
 
-            HYP_ALIGN_PTR_AS(block.buffer.GetPointer(), ElementType)
-            [elementIndex] = value;
+            *reinterpret_cast<ElementType*>(UIntPtr(block.mem) + m_elemSize * elementIndex) = value;
         }
         else
         {
@@ -349,10 +311,8 @@ public:
             HYP_CORE_ASSERT(blockIndex < m_numBlocks.Get(MemoryOrder::ACQUIRE));
 
             Block& block = m_blocks[blockIndex];
-            HYP_MT_CHECK_RW(block.dataRaceDetectors[elementIndex]);
 
-            HYP_ALIGN_PTR_AS(block.buffer.GetPointer(), ElementType)
-            [elementIndex] = value;
+            *reinterpret_cast<ElementType*>(UIntPtr(block.mem) + m_elemSize * elementIndex) = value;
         }
     }
 
@@ -400,6 +360,9 @@ public:
             {
                 HYP_CORE_ASSERT(&m_blocks.Back() == &*toRemove.Back());
 
+                Block& block = *toRemove.Back();
+                m_pAllocator->Free(block.mem);
+
                 m_blocks.Erase(toRemove.PopBack());
             }
         }
@@ -416,14 +379,19 @@ public:
     }
 
 protected:
+    AllocatorType* m_pAllocator;
+
+    uint32 m_elemSize;
+    uint32 m_elemAlignment;
+
+    uint32 m_elemsPerBlock;
+
     uint32 m_initialNumBlocks;
 
     LinkedList<Block> m_blocks;
     AtomicVar<uint32> m_numBlocks;
     // Needs to be locked when accessing blocks beyond initialNumBlocks or adding/removing blocks.
     Mutex m_blocksMutex;
-
-    void* m_blockInitCtx;
 };
 
 // struct MemoryPoolAllocator : Allocator<MemoryPoolAllocator>
@@ -433,9 +401,7 @@ protected:
 
 } // namespace memory
 
-using memory::CalculateMemoryUsagePerPool;
 using memory::MemoryPool;
 using memory::MemoryPoolBase;
-using memory::MemoryPoolInitInfo;
 
 } // namespace hyperion

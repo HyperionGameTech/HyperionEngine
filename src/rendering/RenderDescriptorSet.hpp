@@ -55,6 +55,8 @@ namespace RenderApi {
 uint32 RetrieveResourceBinding(const ObjectBase* resource);
 } // namespace RenderApi
 
+extern uint32 GetMinBufferAlignmentVulkan(GpuBufferType);
+
 template <class T>
 struct ShaderDataOffset
 {
@@ -687,12 +689,15 @@ protected:
 
                 if (layoutElement->size != 0 && layoutElement->size != ~0u)
                 {
-                    const uint32 remainder = ref->Size() % layoutElement->size;
+                    const uint32 minAlignment = GetMinBufferAlignmentVulkan(bufferType);
+                    const uint32 sizeAligned = minAlignment != 0 ? ByteUtil::AlignAs(ref->Size(), GetMinBufferAlignmentVulkan(bufferType)) : ref->Size();
+                    const uint32 layoutSizeAligned = minAlignment != 0 ? ByteUtil::AlignAs(layoutElement->size, GetMinBufferAlignmentVulkan(bufferType)) : layoutElement->size;
+                    const uint32 remainder = sizeAligned % layoutSizeAligned;
 
                     AssertDebug(
                         remainder == 0,
                         "Buffer size ({}) is not a multiplier of layout size ({}) for element {}",
-                        ref->Size(), layoutElement->size, Name(name));
+                        sizeAligned, layoutSizeAligned, Name(name));
                 }
             }
         }

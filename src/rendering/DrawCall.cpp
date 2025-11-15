@@ -331,11 +331,8 @@ EntityBatchAllocatorBase::EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHo
 {
     Assert(m_bufferHolder != nullptr);
 
-    const TypeInfo* structTypeInfo = m_bufferHolder->GetStructTypeInfo();
-    Assert(structTypeInfo != nullptr);
-
-    m_structSize = structTypeInfo->size;
-    m_structAlignment = structTypeInfo->alignment;
+    m_structSize = m_bufferHolder->GetStructSize();
+    m_structAlignment = m_bufferHolder->GetStructAlignment();
 }
 
 HYP_API EntityBatchAllocatorBase* GetEntityBatchAllocator(TypeId typeId)
