@@ -173,13 +173,6 @@ void GenerateLightmapsEditorTask::Process()
         return;
     }
 
-    if (!m_aabb.IsValid() || !m_aabb.IsFinite())
-    {
-        HYP_LOG(Editor, Error, "Invalid AABB provided for GenerateLightmapsEditorTask");
-
-        return;
-    }
-
     LightmapperSubsystem* lightmapperSubsystem = m_world->GetSubsystem<LightmapperSubsystem>();
 
     if (!lightmapperSubsystem)

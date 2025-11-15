@@ -314,9 +314,9 @@ void main()
     roughness = roughness_sample;
 #endif
 
-//#if DEBUG_REFLECTIONS
+#if DEBUG_REFLECTIONS
     roughness = 0.01;
-//#endif
+#endif
 
 #if HAS_AO_MAP
     ao = SAMPLE_TEXTURE(CURRENT_MATERIAL, AoMap, texcoord).r;

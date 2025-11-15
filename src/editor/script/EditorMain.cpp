@@ -849,13 +849,13 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
                 BoundingBox aabb = BoundingBox(result.worldTranslation - result.probeVolumeDimensions * 0.5f, result.worldTranslation + result.probeVolumeDimensions * 0.5f);
 
                 Handle<ReflectionProbe> reflectionProbe = activeScene->GetEntityManager()->AddEntity<ReflectionProbe>(aabb, Vec2u(result.textureDimension));
+                reflectionProbe->SetIsBaked(result.bakeLighting);
 
                 BoundingBoxComponent boundingBoxComponent;
                 boundingBoxComponent.localAabb = aabb;
                 boundingBoxComponent.worldAabb = aabb;
 
                 reflectionProbe->AddComponent<BoundingBoxComponent>(boundingBoxComponent);
-
                 reflectionProbe->SetName(activeScene->GetUniqueNodeName("ReflectionProbe"));
 
                 // Calculate appropriate insertion point in front of camera
@@ -873,6 +873,7 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
                                     {
                                         activeScene->GetRoot()->AddChild(reflectionProbe);
                                         editorSubsystem->SetFocusedNode(reflectionProbe, true);
+
                                     }),
                                 .revert = Proc<void(EditorSubsystem*, EditorProject*)>([reflectionProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
                                     {
@@ -895,6 +896,17 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
                 InitObject(action);
 
                 currentProject->GetActionStack()->Push(action);
+
+                // kickoff new lightmap generation task
+
+                // kickoff lightmap generation for the new volume
+                Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(Array<Handle<ObjectBase>> { reflectionProbe });
+                InitObject(generateLightmapsTask);
+
+                generateLightmapsTask->SetScene(activeScene);
+                generateLightmapsTask->SetWorld(MakeStrongRef(activeScene->GetWorld()));
+
+                editorSubsystem->AddTask(generateLightmapsTask);
             };
 
             GetThreadById(g_gameThread)->GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
@@ -984,9 +996,7 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
     generateLightmapsTask->SetScene(activeScene);
 
     Handle<World> worldHandle = MakeStrongRef(m_world);
-
     generateLightmapsTask->SetWorld(worldHandle);
-    generateLightmapsTask->SetAABB(lightmapVolumeAabb);
 
     editorSubsystem->AddTask(generateLightmapsTask);
 

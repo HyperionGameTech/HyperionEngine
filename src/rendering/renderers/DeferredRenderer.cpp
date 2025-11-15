@@ -192,7 +192,6 @@ static void GetDeferredShaderProperties(
 static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
     TypeId::ForType<SkyProbe>(),        // EPT_SKY
     TypeId::ForType<ReflectionProbe>(), // EPT_REFLECTION
-    TypeId::ForType<EnvProbe>(),        // EPT_SHADOW (@TODO: Remove)
     TypeId::ForType<EnvProbe>()         // EPT_AMBIENT (fixme when derived class)
 };
 
@@ -1886,12 +1885,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
         {
-            if (envProbe->IsControlledByEnvGrid())
-            {
-                // skip it if it is controlled by an EnvGrid, we don't handle them here
-                continue;
-            }
-
             if (envProbes[envProbe->GetEnvProbeType()].Contains(envProbe))
             {
                 continue;
@@ -1982,12 +1975,18 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         if (envProbes.Any())
         {
+            // check for dynamic env probes to render
             for (uint32 envProbeType = 0; envProbeType <= EPT_REFLECTION; envProbeType++)
             {
                 if (RendererBase* renderer = g_renderGlobalState->globalRenderers[GRT_ENV_PROBE][envProbeType])
                 {
                     for (EnvProbe* envProbe : envProbes[envProbeType])
                     {
+                        if (envProbe->IsBaked())
+                        {
+                            continue; // skip baked
+                        }
+
                         RenderSetup envProbeRs = newRs.Fork();
                         envProbeRs.envProbe = envProbe;
 

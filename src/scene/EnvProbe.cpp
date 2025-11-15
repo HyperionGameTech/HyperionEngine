@@ -25,6 +25,12 @@
 
 namespace hyperion {
 
+static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
+    EPF_NONE,               // sky
+    EPF_PARALLAX_CORRECTED, // reflection
+    EPF_BAKED               // ambient
+};
+
 static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
 {
     FixedArray<Mat4f, 6> viewMatrices;
@@ -40,6 +46,8 @@ static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const
     return viewMatrices;
 }
 
+#pragma region EnvProbe
+
 EnvProbe::EnvProbe()
     : EnvProbe(EPT_INVALID)
 {
@@ -54,12 +62,39 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec
     : m_aabb(aabb),
       m_dimensions(dimensions),
       m_envProbeType(envProbeType),
+      m_envProbeFlags(DefaultEnvProbeFlags[envProbeType]),
       m_cameraNear(0.05f),
       m_cameraFar(aabb.GetRadius()),
       m_needsRenderCounter(0)
 {
     m_entityInitInfo.canEverUpdate = true;
-    m_entityInitInfo.receivesUpdate = !IsControlledByEnvGrid();
+    m_entityInitInfo.receivesUpdate = !(m_envProbeFlags & EPF_BAKED);
+}
+
+void EnvProbe::SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags)
+{
+    const uint32 changedFlags = envProbeFlags ^ m_envProbeFlags;
+
+    if (!changedFlags)
+    {
+        return;
+    }
+
+    m_envProbeFlags = envProbeFlags;
+
+    if (changedFlags & EPF_BAKED)
+    {
+        if (envProbeFlags[EPF_BAKED])
+        {
+            SetReceivesUpdate(false);
+        }
+        else
+        {
+            SetReceivesUpdate(true);
+        }
+    }
+
+    SetNeedsRenderProxyUpdate();
 }
 
 bool EnvProbe::IsVisible(ObjId<Camera> cameraId) const
@@ -90,7 +125,7 @@ void EnvProbe::Init()
 {
     Entity::Init();
 
-    if (!IsControlledByEnvGrid())
+    if (!IsBaked())
     {
         m_camera = CreateObject<Camera>(
             90.0f,
@@ -104,27 +139,27 @@ void EnvProbe::Init()
         AddChild(m_camera);
 
         CreateView();
-    }
 
-    if (ShouldComputePrefilteredEnvMap())
-    {
-        if (!m_prefilteredEnvMap)
+        if (ShouldComputePrefilteredEnvMap())
         {
-            m_prefilteredEnvMap = CreateObject<Texture>(TextureDesc {
-                TT_TEX2D,
-                TF_RGBA8,
-                Vec3u { 128, 128, 1 },
-                TFM_LINEAR,
-                TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE,
-                1,
-                IU_STORAGE | IU_SAMPLED });
+            if (!m_prefilteredEnvMap)
+            {
+                m_prefilteredEnvMap = CreateObject<Texture>(TextureDesc {
+                    TT_TEX2D,
+                    TF_RGBA8,
+                    Vec3u { 128, 128, 1 },
+                    TFM_LINEAR,
+                    TFM_LINEAR,
+                    TWM_CLAMP_TO_EDGE,
+                    1,
+                    IU_STORAGE | IU_SAMPLED });
 
-            m_prefilteredEnvMap->SetName(NAME_FMT("{}_PrefilteredEnvMap", Id()));
-
-            Assert(InitObject(m_prefilteredEnvMap));
+                m_prefilteredEnvMap->SetName(NAME_FMT("{}_PrefilteredEnvMap", Id()));
+            }
         }
     }
+
+    InitObject(m_prefilteredEnvMap);
 
     SetReady(true);
 }
@@ -185,7 +220,7 @@ void EnvProbe::OnTransformUpdated(const Transform& transform)
 
 void EnvProbe::CreateView()
 {
-    if (IsControlledByEnvGrid())
+    if (IsBaked())
     {
         return;
     }
@@ -216,14 +251,6 @@ void EnvProbe::CreateView()
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE,
             .clearColor = Vec4f(FLT16_MAX) });
-    }
-    else if (IsShadowProbe())
-    {
-        outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-            .format = TF_R16,
-            .imageType = TT_CUBEMAP,
-            .loadOp = LoadOperation::CLEAR,
-            .storeOp = StoreOperation::STORE });
     }
 
     outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
@@ -296,7 +323,7 @@ void EnvProbe::SetOrigin(const Vec3f& origin)
         m_aabb.SetCenter(origin);
     }
 
-    if (IsInitCalled() && !IsControlledByEnvGrid())
+    if (IsInitCalled() && !IsBaked())
     {
         AssertDebug(m_camera != nullptr);
 
@@ -314,7 +341,7 @@ void EnvProbe::Update(float delta)
     AssertOnThread(g_gameThread);
     AssertReady();
 
-    if (IsControlledByEnvGrid())
+    if (IsBaked())
     {
         return;
     }
@@ -379,9 +406,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     bufferData.cameraFar = m_cameraFar;
     bufferData.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
     bufferData.visibilityBits = m_visibilityBits.ToUInt64();
-    bufferData.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
-        | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
-        | EnvProbeFlags::DIRTY;
+    bufferData.flags = uint32(m_envProbeFlags);
 
     const FixedArray<Mat4f, 6> viewMatrices = CreateCubemapMatrices(m_aabb, GetOrigin());
 
@@ -390,6 +415,32 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 
     bufferData.positionInGrid = m_positionInGrid;
 }
+
+void EnvProbe::DeserializeBakedTexture(const Handle<Texture>& texture)
+{
+    if (!IsBaked())
+    {
+        return;
+    }
+
+    if (m_prefilteredEnvMap != nullptr)
+    {
+        SafeDelete(std::move(m_prefilteredEnvMap));
+    }
+
+    m_prefilteredEnvMap = texture;
+
+    if (IsInitCalled())
+    {
+        InitObject(m_prefilteredEnvMap);
+    }
+}
+
+#pragma endregion EnvProbe
+
+#pragma region ReflectionProbe
+
+#pragma endregion ReflectionProbe
 
 #pragma region SkyProbe
 

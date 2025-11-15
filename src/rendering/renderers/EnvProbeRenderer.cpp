@@ -138,6 +138,8 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
+    AssertDebug(!envProbe->IsBaked());
+
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
 

@@ -48,10 +48,14 @@ void TestNativeUI::Show_Internal()
     uiBoxAppend(dimensionsBox, uiControl(dimensionsCombo), 1);
     uiBoxAppend(vbox, uiControl(dimensionsBox), 0);
 
-    // === Bake Lighting Checkbox ===
-    uiCheckbox* bakeLightingCheckbox = uiNewCheckbox("Bake Lighting");
-    uiCheckboxSetChecked(bakeLightingCheckbox, 0); // Default unchecked
-    uiBoxAppend(vbox, uiControl(bakeLightingCheckbox), 0);
+    // === Dynamic Cubemap Checkbox ===
+    uiCheckbox* isDynamicCheckbox = uiNewCheckbox("Is dynamic?");
+    uiCheckboxSetChecked(isDynamicCheckbox, 0); // Default unchecked
+    uiBoxAppend(vbox, uiControl(isDynamicCheckbox), 0);
+
+    // Help text
+    uiLabel* isDynamicCheckboxHelpText = uiNewLabel("If checked, the reflection probe will update in real-time to capture dynamic objects and lighting changes. Leave unchecked to bake lighting for static entities.");
+    uiBoxAppend(vbox, uiControl(isDynamicCheckboxHelpText), 0);
 
     // Add separator
     uiBoxAppend(vbox, uiControl(uiNewHorizontalSeparator()), 0);
@@ -140,7 +144,7 @@ void TestNativeUI::Show_Internal()
         TestNativeUI* self;
         uiWindow* window;
         uiCombobox* dimensionsCombo;
-        uiCheckbox* bakeLightingCheckbox;
+        uiCheckbox* isDynamicCheckbox;
         uiEntry* volumeXEntry;
         uiEntry* volumeYEntry;
         uiEntry* volumeZEntry;
@@ -153,7 +157,7 @@ void TestNativeUI::Show_Internal()
         this,
         window,
         dimensionsCombo,
-        bakeLightingCheckbox,
+        isDynamicCheckbox,
         volumeXEntry,
         volumeYEntry,
         volumeZEntry,
@@ -163,7 +167,8 @@ void TestNativeUI::Show_Internal()
     };
 
     uiButton* okButton = uiNewButton("OK");
-    uiButtonOnClicked(okButton, [](uiButton* b, void* data)
+    uiButtonOnClicked(
+        okButton, [](uiButton* b, void* data)
         {
             auto* dlgData = static_cast<DialogData*>(data);
 
@@ -189,7 +194,7 @@ void TestNativeUI::Show_Internal()
             }
 
             // Get bake lighting checkbox state
-            result.bakeLighting = uiCheckboxChecked(dlgData->bakeLightingCheckbox) != 0;
+            result.bakeLighting = uiCheckboxChecked(dlgData->isDynamicCheckbox) == 0;
 
             // Parse probe volume dimensions
             result.probeVolumeDimensions.x = float(atof(uiEntryText(dlgData->volumeXEntry)));
@@ -211,7 +216,8 @@ void TestNativeUI::Show_Internal()
     uiBoxAppend(buttonBox, uiControl(okButton), 1);
 
     uiButton* cancelButton = uiNewButton("Cancel");
-    uiButtonOnClicked(cancelButton, [](uiButton* b, void* data)
+    uiButtonOnClicked(
+        cancelButton, [](uiButton* b, void* data)
         {
             auto* dlgData = static_cast<DialogData*>(data);
 

@@ -24,13 +24,12 @@ class Light;
 class Camera;
 class RenderProxyEnvProbe;
 
-enum class EnvProbeFlags : uint32
+HYP_ENUM()
+enum EnvProbeFlags : uint32
 {
-    NONE = 0x0,
-    PARALLAX_CORRECTED = 0x1,
-    SHADOW = 0x2,
-    DIRTY = 0x4,
-    MAX = 0x7 // 3 bits after are used for shadow
+    EPF_NONE = 0x0,
+    EPF_PARALLAX_CORRECTED = 0x1,
+    EPF_BAKED = 0x2
 };
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
@@ -42,8 +41,6 @@ enum EnvProbeType : uint32
 
     EPT_SKY = 0,
     EPT_REFLECTION,
-
-    EPT_SHADOW,
 
     // These below types are controlled by EnvGrid
     EPT_AMBIENT,
@@ -88,6 +85,15 @@ public:
         return m_envProbeType;
     }
 
+    HYP_METHOD(Property = "EnvProbeFlags")
+    EnumFlags<EnvProbeFlags> GetEnvProbeFlags() const
+    {
+        return m_envProbeFlags;
+    }
+
+    HYP_METHOD(Property = "EnvProbeFlags")
+    void SetEnvProbeFlags(EnumFlags<EnvProbeFlags> envProbeFlags);
+
     HYP_METHOD()
     bool IsReflectionProbe() const
     {
@@ -101,26 +107,33 @@ public:
     }
 
     HYP_METHOD()
-    bool IsShadowProbe() const
-    {
-        return m_envProbeType == EPT_SHADOW;
-    }
-
-    HYP_METHOD()
     bool IsAmbientProbe() const
     {
         return m_envProbeType == EPT_AMBIENT;
     }
 
     HYP_METHOD()
-    bool IsControlledByEnvGrid() const
+    bool IsBaked() const
     {
-        return m_envProbeType == EPT_AMBIENT;
+        return m_envProbeFlags[EPF_BAKED];
+    }
+
+    HYP_METHOD()
+    void SetIsBaked(bool isBaked)
+    {
+        if (isBaked)
+        {
+            SetEnvProbeFlags(m_envProbeFlags | EPF_BAKED);
+        }
+        else
+        {
+            SetEnvProbeFlags(m_envProbeFlags & ~EPF_BAKED);
+        }
     }
 
     HYP_FORCE_INLINE bool ShouldComputePrefilteredEnvMap() const
     {
-        if (IsControlledByEnvGrid())
+        if (IsBaked())
         {
             return false;
         }
@@ -135,7 +148,7 @@ public:
 
     HYP_FORCE_INLINE bool ShouldComputeSphericalHarmonics() const
     {
-        if (IsControlledByEnvGrid())
+        if (IsBaked())
         {
             return false;
         }
@@ -257,6 +270,15 @@ protected:
 
     void CreateView();
 
+    HYP_METHOD(Property = "BakedTexture")
+    const Handle<Texture>& SerializeBakedTexture() const
+    {
+        return IsBaked() ? m_prefilteredEnvMap : Handle<Texture>::Null();
+    }
+
+    HYP_METHOD(Property = "BakedTexture", LoadOrder = 1)
+    void DeserializeBakedTexture(const Handle<Texture>& texture);
+
     Handle<View> m_view;
 
     HYP_FIELD(Property = "AABB")
@@ -267,6 +289,9 @@ protected:
 
     HYP_FIELD(Property = "EnvProbeType")
     EnvProbeType m_envProbeType;
+
+    HYP_FIELD(Property = "EnvProbeFlags")
+    EnumFlags<EnvProbeFlags> m_envProbeFlags;
 
     HYP_FIELD(Property = "SHData")
     EnvProbeSphericalHarmonics m_shData;

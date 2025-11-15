@@ -124,18 +124,6 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const BoundingBox& GetAABB() const
-    {
-        return m_aabb;
-    }
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE void SetAABB(const BoundingBox& aabb)
-    {
-        m_aabb = aabb;
-    }
-
-    HYP_METHOD()
     virtual void Process() override;
 
     HYP_METHOD()
@@ -151,7 +139,7 @@ private:
     Array<Handle<ObjectBase>> m_sources;
     Handle<World> m_world;
     Handle<Scene> m_scene;
-    BoundingBox m_aabb;
+
     Array<Task<void>*> m_tasks;
 };
 
