@@ -2495,7 +2495,12 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
             }
 
             blas = MeshBlasBuilder::Build(meshProxy->mesh, meshProxy->material);
-            Assert(blas != nullptr);
+
+            if (!blas)
+            {
+                HYP_LOG(Rendering, Error, "Failed to build BLAS for Mesh {}", meshProxy->mesh->GetName());
+                continue;
+            }
 
             blas->SetTransform(meshProxy->bufferData.modelMatrix);
 

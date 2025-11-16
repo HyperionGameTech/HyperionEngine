@@ -97,7 +97,7 @@ vec4 EnvProbeSample(
     vec3 coord, float lod)
 {
 #if ENV_PROBE_CUBEMAP
-    vec4 color = textureLod(samplerCube(tex, samp), coord, lod);
+    vec4 color = textureLod(samplerCube(tex, samp), normalize(coord), lod);
 #else
     vec4 color = textureLod(sampler2D(tex, samp), EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, lod);
 #endif

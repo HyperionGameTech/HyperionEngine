@@ -109,7 +109,7 @@ template <>
 class LightmapData<EnvProbe> : public LightmapDataBase
 {
 public:
-    using BitmapType = Bitmap_RGBA8;
+    using BitmapType = Bitmap_RGBA32F;
 
     LightmapData()
         : m_envProbe(nullptr)

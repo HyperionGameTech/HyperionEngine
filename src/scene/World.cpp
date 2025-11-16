@@ -439,15 +439,16 @@ const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsyst
 
     AssertOnThread(g_gameThread);
 
-    subsystem->SetWorld(this);
-
     const auto it = m_subsystems.Find(typeId);
-    Assert(it == m_subsystems.End(), "Subsystem of type {} already exists in World", *subsystem->InstanceClass()->GetName());
 
     if (it != m_subsystems.End())
     {
+        HYP_LOG(Scene, Warning, "Attempting to add Subsystem of type {}, but one already exists on World {}!", *subsystem->InstanceClass()->GetName(), GetName());
+
         return it->second;
     }
+
+    subsystem->SetWorld(this);
 
     auto insertResult = m_subsystems.Set(typeId, subsystem);
     Assert(insertResult.second);

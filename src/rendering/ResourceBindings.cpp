@@ -75,8 +75,6 @@ void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 {
     AssertDebug(envProbe != nullptr);
@@ -84,12 +82,6 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
     Assert(envProbe->IsA<SkyProbe>() || envProbe->IsA<ReflectionProbe>(),
         "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
-
-    IRenderProxy* proxy = RenderApi::GetRenderProxy(envProbe);
-    AssertDebug(proxy != nullptr);
-
-    RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
-    AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
 
     if (prev != ~0u)
     {
@@ -102,6 +94,16 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
     if (next != ~0u)
     {
+        IRenderProxy* proxy = RenderApi::GetRenderProxy(envProbe);
+        AssertDebug(proxy != nullptr);
+
+        if (!proxy)
+        {
+            return;
+        }
+
+        RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
+        AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
         AssertDebug(proxyCasted->texture != nullptr && proxyCasted->texture->IsReady());
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -111,7 +113,6 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         }
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 {
@@ -285,7 +286,12 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
         if (next != ~0u)
         {
             IRenderProxy* proxy = RenderApi::GetRenderProxy(material);
-            Assert(proxy != nullptr);
+            AssertDebug(proxy != nullptr);
+
+            if (!proxy)
+            {
+                return;
+            }
 
             RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
 

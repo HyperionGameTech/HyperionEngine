@@ -1071,7 +1071,6 @@ void EndFrame_GameThread()
     s_fullSemaphore.release();
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void BeginFrame_RenderThread()
 {
     HYP_SCOPE;
@@ -1230,7 +1229,6 @@ void BeginFrame_RenderThread()
         }
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void EndFrame_RenderThread()
 {

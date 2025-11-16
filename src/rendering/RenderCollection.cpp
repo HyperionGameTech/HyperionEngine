@@ -434,6 +434,7 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
     {
         if constexpr (!std::is_same_v<ProxyType, NullProxy>)
         {
+            HYP_LOG_TEMP("REmove proxy for {}", resource->Id());
             resourceTracker.RemoveProxy(ObjId<ElementType>(resource->Id()));
         }
     }

@@ -689,7 +689,6 @@ void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
@@ -755,7 +754,6 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 
     m_isFirstFrame = false;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void FullScreenPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {

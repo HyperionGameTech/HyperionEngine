@@ -322,7 +322,6 @@ SizeType SemanticAnalyzer::Helpers::ArgIndex(
         numSuppliedArgs);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     AstVisitor* visitor,
     Module* mod,
@@ -501,7 +500,6 @@ SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     // Types without generic parameters/instances are returned unchanged
     return const_cast<SymbolType*>(inputType);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 const SymbolType* SemanticAnalyzer::Helpers::GenericPromotion(
     AstVisitor* visitor,

@@ -180,7 +180,13 @@ void Entity::SetReceivesUpdate(bool receivesUpdate)
     }
 
     EntityManager* entityManager = GetEntityManager();
-    AssertDebug(entityManager != nullptr, "EntityManager is null for Entity {} while setting receives update", Id());
+
+    if (!entityManager)
+    {
+        m_entityInitInfo.receivesUpdate = receivesUpdate;
+
+        return;
+    }
 
     AssertOnThread(entityManager->GetOwnerThreadId());
 
