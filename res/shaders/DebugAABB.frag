@@ -32,7 +32,6 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 #include "include/material.inc"
 #include "include/packing.inc"
-#include "include/env_probe.inc"
 #include "include/scene.inc"
 #include "include/gbuffer.inc"
 
@@ -48,16 +47,6 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
-{
-    EnvProbe env_probes[];
-};
-
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
 HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
@@ -66,7 +55,6 @@ HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field
 #ifdef IMMEDIATE_MODE
 
 #include "include/brdf.inc"
-#include "deferred/DeferredLighting.glsl"
 
 #elif defined(INSTANCING)
 
@@ -85,6 +73,15 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffe
 #endif
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#include "include/env_probe.inc"
+
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
+{
+    EnvGrid env_grid;
+};
+
+#include "deferred/DeferredLighting.glsl"
 
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
 HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer

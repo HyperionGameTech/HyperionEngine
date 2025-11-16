@@ -44,21 +44,23 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 #include "../include/brdf.inc"
 #include "../include/aabb.inc"
 
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
 #define HYP_DEFERRED_NO_RT_RADIANCE // temp
+
+HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
+HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
 #include "../include/env_probe.inc"
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
 {
     EnvGrid env_grid;
 };
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
-{
-    EnvProbe env_probes[];
-};
 
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
+layout(push_constant) uniform PushConstant
+{
+    DeferredParams deferred_params;
+};
 
 #include "./DeferredLighting.glsl"
 
@@ -74,13 +76,6 @@ HYP_DESCRIPTOR_SRV(Global, VoxelGridTexture) uniform texture3D voxel_image;
 
 #include "./EnvGridVoxelConeTracing.glsl"
 #endif
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-layout(push_constant) uniform PushConstant
-{
-    DeferredParams deferred_params;
-};
 
 void main()
 {

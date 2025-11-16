@@ -31,8 +31,6 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 #include "include/Skeleton.glsl"
 #endif
 
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CameraShaderData
 {
     Camera camera;
@@ -48,6 +46,8 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvP
 };
 
 #endif
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef INSTANCING
 

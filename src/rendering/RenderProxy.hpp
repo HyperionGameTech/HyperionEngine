@@ -55,7 +55,7 @@ struct MeshRaytracingData
 class IRenderProxy
 {
 protected:
-    ~IRenderProxy() = default; // NOTE: non-virtual since we don't intend to delete via base pointer and to avoid vtable overhead.
+    virtual ~IRenderProxy() = default; // @TODO: Get rid of virtual dtor
 
 public:
     int version = 0;
@@ -122,6 +122,8 @@ public:
     LightmapVolume* lightmapVolume = nullptr;
     uint32 lightmapElementId = 0;
 
+    RenderableAttributeSet cachedAttributes;
+
     MeshInstanceData instanceData;
 
     MeshRaytracingData raytracingData;
@@ -137,6 +139,7 @@ public:
             && numIndices == other.numIndices
             && lightmapVolume == other.lightmapVolume
             && lightmapElementId == other.lightmapElementId
+            && cachedAttributes == other.cachedAttributes
             && instanceData == other.instanceData
             && Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) == 0;
     }
@@ -151,6 +154,7 @@ public:
             || numIndices != other.numIndices
             || lightmapVolume != other.lightmapVolume
             || lightmapElementId != other.lightmapElementId
+            || cachedAttributes != other.cachedAttributes
             || instanceData != other.instanceData
             || Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) != 0;
     }

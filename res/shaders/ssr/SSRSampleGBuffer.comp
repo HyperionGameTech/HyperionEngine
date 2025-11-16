@@ -41,11 +41,6 @@ HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
-{
-    EnvProbe current_env_probe;
-};
-
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
@@ -62,6 +57,13 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CameraShaderData
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/gbuffer.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#include "../include/env_probe.inc"
+
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+{
+    EnvProbe current_env_probe;
+};
 
 float IsoscelesTriangleOpposite(float adjacent_length, float cone_theta)
 {

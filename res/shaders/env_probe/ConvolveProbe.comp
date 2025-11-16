@@ -16,10 +16,18 @@ layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE) in;
 #include "../include/shared.inc"
 #include "../include/noise.inc"
 #include "../include/packing.inc"
-#include "../include/env_probe.inc"
 #include "../include/scene.inc"
 #include "../include/Octahedron.glsl"
 #include "../include/brdf.inc"
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#include "../include/env_probe.inc"
+
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+{
+    EnvProbe current_env_probe;
+};
 
 HYP_DESCRIPTOR_CBUFF(Global, SphereSamplesBuffer) uniform SphereSamplesBuffer
 {
@@ -48,12 +56,6 @@ HYP_DESCRIPTOR_CBUFF(ConvolveProbeDescriptorSet, UniformBuffer) uniform UniformB
     uvec4 light_indices[4];
 };
 
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
-{
-    EnvProbe current_env_probe;
-};
-
 HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
 {
     Light lights[];
@@ -76,7 +78,7 @@ vec4 SampleSky(vec3 dir)
     {
         uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
 
-        return Texture2D(sampler_linear, env_probe_textures[probe_texture_index], EncodeOctahedralCoord(normalize(dir)) * 0.5 + 0.5);
+        return EnvProbeSample(sampler_linear, env_probe_textures[probe_texture_index], dir, 0.0);
     }
 
     return vec4(0.0);

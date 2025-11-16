@@ -201,13 +201,13 @@ public:
 
     HYP_FORCE_INLINE const Handle<Texture>& GetPrefilteredEnvMap() const
     {
-        return m_prefilteredEnvMap;
+        return m_texture;
     }
 
     HYP_METHOD(Property = "BakedTexture")
     const Handle<Texture>& GetBakedTexture() const
     {
-        return IsBaked() ? m_prefilteredEnvMap : Handle<Texture>::Null();
+        return IsBaked() ? m_texture : Handle<Texture>::Null();
     }
 
     HYP_METHOD(Property = "BakedTexture", LoadOrder = 1)
@@ -307,7 +307,7 @@ protected:
     AtomicVar<int32> m_needsRenderCounter;
     HashCode m_octantHashCode;
 
-    Handle<Texture> m_prefilteredEnvMap;
+    Handle<Texture> m_texture;
 };
 
 HYP_CLASS()
@@ -356,13 +356,11 @@ public:
     HYP_METHOD()
     const Handle<Texture>& GetSkyboxCubemap() const
     {
-        return m_skyboxCubemap;
+        return m_texture;
     }
 
 private:
     void Init() override;
-
-    Handle<Texture> m_skyboxCubemap;
 };
 
 } // namespace hyperion

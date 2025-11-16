@@ -53,26 +53,11 @@ HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCube
 
 #include "../include/brdf.inc"
 
-#include "../include/env_probe.inc"
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
-{
-    EnvProbe env_probes[];
-};
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
-{
-    EnvProbe current_env_probe;
-};
 HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture) uniform texture2D ReflectionProbeResultTexture;
 
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
 HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
-#include "./DeferredLighting.glsl"
 #include "../include/shadows.inc"
 
 HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture) uniform texture2D IrradianceTexture;
@@ -89,6 +74,18 @@ HYP_DESCRIPTOR_CBUFF(LightmapVolume, LightmapVolumeUniforms) uniform LightmapVol
 };
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#include "../include/env_probe.inc"
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+{
+    EnvProbe current_env_probe;
+};
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
+{
+    EnvGrid env_grid;
+};
+
+#include "./DeferredLighting.glsl"
 
 void main()
 {

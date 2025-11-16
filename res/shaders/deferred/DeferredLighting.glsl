@@ -268,7 +268,11 @@ void ApplyReflectionProbe(uint probe_texture_index, vec3 probe_world_position, v
     R = EnvProbeCoordParallaxCorrected(probe_world_position, aabb_min, aabb_max, P, R);
 #endif
 
+#if ENV_PROBE_CUBEMAP
+    ibl = TextureCubeLod(sampler_linear, env_probe_textures[probe_texture_index], normalize(R), lod);
+#else
     ibl = Texture2DLod(sampler_linear, env_probe_textures[probe_texture_index], EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, lod);
+#endif
 }
 
 vec4 CalculateReflectionProbe(in EnvProbe probe, vec3 P, vec3 N, vec3 R, vec3 camera_position, float roughness)

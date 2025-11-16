@@ -38,21 +38,6 @@ HYP_DESCRIPTOR_SRV(View, EnvGridRadianceResultTexture) uniform texture2D env_gri
 HYP_DESCRIPTOR_SRV(View, EnvGridIrradianceResultTexture) uniform texture2D env_grid_irradiance_texture;
 HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture) uniform texture2D reflections_texture;
 
-#include "include/env_probe.inc"
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
-{
-    EnvProbe env_probes[];
-};
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
-{
-    EnvProbe current_env_probe;
-};
-
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
 HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
@@ -72,10 +57,6 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 
 #include "include/PhysicalCamera.inc"
 
-#define HYP_DEFERRED_NO_REFRACTION
-#include "./deferred/DeferredLighting.glsl"
-#undef HYP_DEFERRED_NO_REFRACTION
-
 vec2 texcoord = v_texcoord0;
 
 #define HYP_VCT_REFLECTIONS_ENABLED 1
@@ -93,6 +74,20 @@ HYP_DESCRIPTOR_SRV(Global, DDGIDepthTexture) uniform texture2D probe_depth;
 #include "include/DDGI.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#include "include/env_probe.inc"
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+{
+    EnvProbe current_env_probe;
+};
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
+{
+    EnvGrid env_grid;
+};
+
+#define HYP_DEFERRED_NO_REFRACTION
+#include "./deferred/DeferredLighting.glsl"
+#undef HYP_DEFERRED_NO_REFRACTION
 
 // clang-format on
 

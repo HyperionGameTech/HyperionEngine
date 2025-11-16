@@ -198,8 +198,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         { MaterialTextureKey::AO_MAP, ShaderProperty(PropNames::s_nameHasAoMap) }
     };
 
-    // set base attributes from mesh and material
-    attributes = RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() };
+    attributes = proxy.cachedAttributes;
 
     if (overrideAttributes)
     {

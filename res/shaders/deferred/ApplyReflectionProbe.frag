@@ -56,21 +56,17 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 #define HYP_DEFERRED_NO_RT_RADIANCE
 #define HYP_DEFERRED_NO_ENV_GRID
 
+#include "../include/BlueNoise.glsl"
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
 #include "../include/env_probe.inc"
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
-{
-    EnvProbe env_probes[];
-};
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
 #include "./DeferredLighting.glsl"
-#include "../include/BlueNoise.glsl"
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 layout(push_constant) uniform PushConstant
 {

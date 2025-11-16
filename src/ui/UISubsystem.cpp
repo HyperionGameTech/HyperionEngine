@@ -300,6 +300,7 @@ void UISubsystem::Update(float delta)
             meshProxy.material = meshComponent->material;
             meshProxy.skeleton = meshComponent->skeleton;
             meshProxy.numIndices = meshComponent->mesh->NumIndices();
+            meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
             meshProxy.instanceData = meshComponent->instanceData;
             meshProxy.bufferData.modelMatrix = transformComponent ? transformComponent->transform.GetMatrix() : Mat4f::Identity();
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;

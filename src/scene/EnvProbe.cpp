@@ -117,7 +117,7 @@ void EnvProbe::SetIsVisible(ObjId<Camera> cameraId, bool isVisible)
 EnvProbe::~EnvProbe()
 {
     SafeDelete(std::move(m_camera));
-    SafeDelete(std::move(m_prefilteredEnvMap));
+    SafeDelete(std::move(m_texture));
     SafeDelete(std::move(m_view));
 }
 
@@ -142,9 +142,9 @@ void EnvProbe::Init()
 
         if (ShouldComputePrefilteredEnvMap())
         {
-            if (!m_prefilteredEnvMap)
+            if (!m_texture)
             {
-                m_prefilteredEnvMap = CreateObject<Texture>(TextureDesc {
+                m_texture = CreateObject<Texture>(TextureDesc {
                     TT_TEX2D,
                     TF_RGBA8,
                     Vec3u { 128, 128, 1 },
@@ -154,12 +154,12 @@ void EnvProbe::Init()
                     1,
                     IU_STORAGE | IU_SAMPLED });
 
-                m_prefilteredEnvMap->SetName(NAME_FMT("{}_{}_PrefilteredEnvMap", InstanceClass()->GetName(), GetUUID()));
+                m_texture->SetName(NAME_FMT("{}_{}_PrefilteredEnvMap", InstanceClass()->GetName(), GetUUID()));
             }
         }
     }
 
-    InitObject(m_prefilteredEnvMap);
+    InitObject(m_texture);
 
     SetReady(true);
 }
@@ -398,12 +398,12 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 {
     proxy->envProbe = WeakHandleFromThis();
 
-    if (proxy->texture != m_prefilteredEnvMap)
+    if (proxy->texture != m_texture)
     {
-        // force texture to get rebound
-        proxy->forceRebind = true;
+        // force texture to get rebound if we already have a texture but it has changed
+        proxy->forceRebind = proxy->forceRebind || proxy->texture != nullptr;
 
-        proxy->texture = m_prefilteredEnvMap;
+        proxy->texture = m_texture;
     }
 
     EnvProbeShaderData& bufferData = proxy->bufferData;
@@ -431,16 +431,16 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
         return;
     }
 
-    if (m_prefilteredEnvMap != nullptr)
+    if (m_texture != nullptr)
     {
-        SafeDelete(std::move(m_prefilteredEnvMap));
+        SafeDelete(std::move(m_texture));
     }
 
-    m_prefilteredEnvMap = texture;
+    m_texture = texture;
 
     if (IsInitCalled())
     {
-        InitObject(m_prefilteredEnvMap);
+        InitObject(m_texture);
 
         SetNeedsRenderProxyUpdate();
     }
@@ -456,18 +456,16 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
 
 void SkyProbe::Init()
 {
-    EnvProbe::Init();
-
-    m_skyboxCubemap = CreateObject<Texture>(TextureDesc {
+    m_texture = CreateObject<Texture>(TextureDesc {
         TT_CUBEMAP,
         TF_R11G11B10F,
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         TFM_LINEAR,
         TFM_LINEAR });
 
-    m_prefilteredEnvMap->SetName(NAME_FMT("{}_SkyboxCubemap", Id()));
+    m_texture->SetName(NAME_FMT("{}_SkyboxCubemap", Id()));
 
-    InitObject(m_skyboxCubemap);
+    EnvProbe::Init();
 }
 
 #pragma endregion SkyProbe

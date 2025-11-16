@@ -1071,6 +1071,7 @@ void EndFrame_GameThread()
     s_fullSemaphore.release();
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void BeginFrame_RenderThread()
 {
     HYP_SCOPE;
@@ -1110,38 +1111,41 @@ void BeginFrame_RenderThread()
         vfd.rplShared->EndRead();
     }
 
-    for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
     {
-        for (ResourceData& elem : subtypeData.data)
+        HYP_NAMED_SCOPE("Resource bindings - select candidates");
+
+        for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
         {
-            AssertDebug(elem.resource != nullptr);
-
-            ResourceBinderBase** ppResourceBinder = &subtypeData.resourceBinders[0];
-
-            while (*ppResourceBinder != nullptr)
+            for (ResourceData& elem : subtypeData.data)
             {
+                AssertDebug(elem.resource != nullptr);
+
                 bool forceRebind = false;
+                IRenderProxy** ppProxy = nullptr;
 
-                if (subtypeData.hasProxyData)
+                if (subtypeData.hasProxyData && subtypeData.indicesPendingUpdate.Test(elem.resource->Id().ToIndex()))
                 {
-                    IRenderProxy* pProxy = subtypeData.proxies.Get(elem.resource->Id().ToIndex());
-                    AssertDebug(pProxy != nullptr);
+                    ppProxy = subtypeData.proxies.TryGet(elem.resource->Id().ToIndex());
+                    AssertDebug(ppProxy != nullptr);
 
-                    forceRebind = pProxy->forceRebind;
-                    pProxy->forceRebind = false; // swap
+                    forceRebind = (*ppProxy)->forceRebind;
+
+                    if (forceRebind)
+                    {
+                        HYP_LOG_TEMP("proxy rebind for {}", elem.resource->Id());
+                        (*ppProxy)->forceRebind = false; // swap
+                    }
                 }
 
-                ResourceBinderBase* pResourceBinder = *ppResourceBinder;
+                ResourceBinderBase** ppResourceBinder = &subtypeData.resourceBinders[0];
 
-                pResourceBinder->Consider(elem.resource, forceRebind);
-
-                // temp
-                if (forceRebind)
+                while (*ppResourceBinder != nullptr)
                 {
-                    HYP_LOG_TEMP("proxy rebind for {}", elem.resource->Id());
-                }
+                    ResourceBinderBase* pResourceBinder = *ppResourceBinder;
+                    pResourceBinder->Consider(elem.resource, forceRebind);
 
-                ++ppResourceBinder;
+                    ++ppResourceBinder;
+                }
             }
         }
     }
@@ -1226,6 +1230,7 @@ void BeginFrame_RenderThread()
         }
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void EndFrame_RenderThread()
 {

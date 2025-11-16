@@ -20,7 +20,6 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #include "../include/scene.inc"
 #include "../include/shared.inc"
 #include "../include/noise.inc"
-#include "../include/env_probe.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #define HYP_SSR_ROUGHNESS_MAX 1.0

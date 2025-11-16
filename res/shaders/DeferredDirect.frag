@@ -29,16 +29,11 @@ HYP_DESCRIPTOR_SRV(View, SSAOResultTexture) uniform texture2D ssao_gi_result;
 HYP_DESCRIPTOR_SRV(Global, RTRadianceResultTexture) uniform texture2D rt_radiance_final;
 
 #include "include/env_probe.inc"
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
-{
-    EnvProbe env_probes[];
-};
 
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
 HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS 1
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/shared.inc"
 #include "include/gbuffer.inc"
 #include "include/material.inc"

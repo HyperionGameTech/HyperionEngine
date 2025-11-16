@@ -75,6 +75,8 @@ void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
+
 void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 {
     AssertDebug(envProbe != nullptr);
@@ -100,27 +102,16 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
     if (next != ~0u)
     {
-        // @TODO Put the prefiltered env map texture on the RenderProxyEnvProbe so this is threadsafe when we update from lightmapper.
-        // also need to unbind and rebind or something when that changs.
-        AssertDebug(envProbe->GetPrefilteredEnvMap().IsValid());
-        AssertDebug(envProbe->GetPrefilteredEnvMap()->IsReady());
+        AssertDebug(proxyCasted->texture != nullptr && proxyCasted->texture->IsReady());
 
-        if (envProbe->GetPrefilteredEnvMap())
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-            {
-                g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-                    ->SetElement("EnvProbeTextures", next, g_renderBackend->GetTextureImageView(envProbe->GetPrefilteredEnvMap()));
-            }
-        }
-        else
-        {
-
-            HYP_LOG(Rendering, Error, "EnvProbe {} (class: {}) has no prefiltered env map set!\n", envProbe->Id(),
-                envProbe->InstanceClass()->GetName());
+            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("EnvProbeTextures", next, g_renderBackend->GetTextureImageView(MakeStrongRef(proxyCasted->texture)));
         }
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 {

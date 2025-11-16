@@ -886,6 +886,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.numIndices = meshComponent->mesh->NumIndices();
             meshProxy.lightmapVolume = meshComponent->lightmapVolume.GetUnsafe();
             meshProxy.lightmapElementId = meshComponent->lightmapElementId;
+            meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
             meshProxy.instanceData = meshComponent->instanceData;
             meshProxy.bufferData.modelMatrix = transformComponent ? transformComponent->transform.GetMatrix() : Mat4f::Identity();
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
