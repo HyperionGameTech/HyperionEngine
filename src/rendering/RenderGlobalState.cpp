@@ -1117,6 +1117,8 @@ void BeginFrame_RenderThread()
 
             while (*ppResourceBinder != nullptr)
             {
+                // @TODO Need a way to tell if we should update a binding (call OnBindingChanged for unbind then rebind) in case of ex : texture changes
+
                 (*ppResourceBinder)->Consider(elem.resource);
                 ++ppResourceBinder;
             }
@@ -1129,27 +1131,7 @@ void BeginFrame_RenderThread()
         resourceBinder->ApplyUpdates();
     }
 
-    //    HYP_LOG(Rendering, Debug, "Mesh entities: {} bound",
-    //        g_renderGlobalState->resourceBindings->meshEntityBinder.TotalBoundResources());
-    //    HYP_LOG(Rendering, Debug, "Ambient probes: {} bound",
-    //        g_renderGlobalState->resourceBindings->ambientProbeBinder.TotalBoundResources());
-    //    HYP_LOG(Rendering, Debug, "Reflection probes: {} bound",
-    //        g_renderGlobalState->resourceBindings->reflectionProbeBinder.TotalBoundResources());
-    //    HYP_LOG(Rendering, Debug, "Env grids: {} bound",
-    //        g_renderGlobalState->resourceBindings->envGridBinder.TotalBoundResources());
-    //    HYP_LOG(
-    //        Rendering, Debug, "Lights: {} bound", g_renderGlobalState->resourceBindings->lightBinder.TotalBoundResources());
-    //    HYP_LOG(Rendering, Debug, "Lightmap volumes: {} bound",
-    //        g_renderGlobalState->resourceBindings->lightmapVolumeBinder.TotalBoundResources());
-    //    HYP_LOG(Rendering, Debug, "Materials: {} bound",
-    //        g_renderGlobalState->resourceBindings->materialBinder.TotalBoundResources());
-    //    HYP_LOG(Rendering, Debug, "Textures: {} bound",
-    //        g_renderGlobalState->resourceBindings->textureBinder.TotalBoundResources());
-    //    HYP_LOG(Rendering, Debug, "Skeletons: {} bound",
-    //        g_renderGlobalState->resourceBindings->skeletonBinder.TotalBoundResources());
-
     // Build draw call lists
-
     for (auto it = fd.viewFrameData.Begin(); it != fd.viewFrameData.End(); ++it)
     {
         ViewFrameData& vfd = *it->second;

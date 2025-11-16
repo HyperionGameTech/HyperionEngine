@@ -104,6 +104,40 @@ HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RTRadianceUniforms) uniform RTRadi
 #define MAX_THROUGHPUT_LUMINANCE 10.0
 #define ROUGHNESS_FLOOR 0.05
 
+vec3 SampleGGX(vec2 xi, float roughness, vec3 N)
+{
+    float a = roughness * roughness;
+    
+    // Sample in polar coordinates
+    float phi = 2.0 * HYP_FMATH_PI * xi.x;
+    float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a*a - 1.0) * xi.y));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    
+    // Convert to cartesian
+    vec3 H;
+    H.x = sinTheta * cos(phi);
+    H.y = sinTheta * sin(phi);
+    H.z = cosTheta;
+    
+    // Transform to world space
+    vec3 T1, T2;
+    ComputeOrthonormalBasis(N, T1, T2);
+    return normalize(T1 * H.x + T2 * H.y + N * H.z);
+}
+
+float GGX_PDF(float NdotH, float HdotV, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float D = a2 / (HYP_FMATH_PI * pow(NdotH * NdotH * (a2 - 1.0) + 1.0, 2.0));
+    return (D * NdotH) / (4.0 * HdotV);
+}
+
+vec3 F_Schlick(vec3 f0, float cosTheta)
+{
+    return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
+}
+
 vec3 ClampLuminance(in vec3 c, float max_lum)
 {
     float lum = Luminance(c);
@@ -314,131 +348,103 @@ void main()
     vec3 finalColor = radiance;
 #elif defined(MODE_FULL)
     // full path tracing with diffuse/specular bounces
+    vec4 accumRadiance = vec4(0.0);
 
-    vec3 origin = ray.origin + N0 * RAY_OFFSET;
-    vec3 direction = normalize(N0);
+    for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++) {
+        vec2 rnd0 = vec2(RandomFloat(ray_seed), RandomFloat(ray_seed));
 
-    //// slight randomness to get more out of multisampling
-    //direction = normalize(direction + 0.001 * vec3(
-    //    SampleBlueNoise(int(ray_index * 3), 0, int(world_shader_data.frame_counter % 16), 16),
-    //    SampleBlueNoise(int(ray_index * 3 + 1), 0, int(world_shader_data.frame_counter % 16), 16),
-    //    SampleBlueNoise(int(ray_index * 3 + 2), 0, int(world_shader_data.frame_counter % 16), 16)
-    //));
+        // Start from the texel position, sample cosine-weighted hemisphere
+        vec3 direction = N0;//normalize(SampleCosineDir(rnd0, N0));
+        vec3 origin = ray.origin + N0 * RAY_OFFSET;
 
-    vec3 radiance = vec3(0.0);
-    vec3 beta = vec3(1.0);
+        vec3 Li = vec3(0.0);
+        vec3 beta = vec3(1.0);
 
-    for (int bounceIndex = 0; bounceIndex < NUM_BOUNCES; ++bounceIndex) {
-        // reset payload
-        payload.distance = -1.0;
-        payload.throughput = vec4(1.0);
-        payload.emissive = vec4(0.0);
-        payload.normal = vec3(0.0);
+        for (int bounceIndex = 0; bounceIndex < NUM_BOUNCES; ++bounceIndex) {
+            // prepare payload and trace
+            payload.distance = -1.0;
+            payload.throughput = vec4(1.0);
+            payload.emissive = vec4(0.0);
+            payload.normal = vec3(0.0);
 
-        traceRayEXT(tlas, flags, mask, 0, 0, 0, origin, tmin, direction, tmax, 0);
+            traceRayEXT(tlas, flags, mask, 0, 0, 0, origin, tmin, direction, tmax, 0);
 
-        if (payload.distance < 0.0) {
-            // miss -> sample environment
-            if (current_env_probe.texture_index != ~0u) {
-                uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-                vec3 env = Texture2D(sampler_linear, env_probe_textures[probe_texture_index], EncodeOctahedralCoord(normalize(direction)) * 0.5 + 0.5).rgb;
-                radiance += ClampLuminance(beta * env, MAX_SAMPLE_LUMINANCE);
-            }
-            break;
-        }
-
-        vec3 albedo = clamp(payload.throughput.rgb, vec3(0.0), vec3(1.0));
-        float metalness = payload.throughput.a;
-        float perceptual_roughness = clamp(payload.roughness, 0.0, 1.0);
-        float rough = max(ROUGHNESS_FLOOR, perceptual_roughness);
-
-        vec3 hitPos = origin + direction * payload.distance;
-        vec3 N = normalize(payload.normal);
-        vec3 V = normalize(-direction);
-        float NdotV = max(dot(N, V), 0.0);
-
-        // emissive
-        if (length(payload.emissive.rgb) > 0.0) {
-            radiance += ClampLuminance(beta * payload.emissive.rgb, MAX_SAMPLE_LUMINANCE);
-        }
-
-        // direct lighting (next-event estimation) for faster convergence (diffuse only)
-        for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++) {
-            const Light light = HYP_GET_LIGHT(light_index);
-            vec3 light_color = light.color.rgb * light.position_intensity.w;
-
-            if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL) {
-                vec3 L = normalize(light.position_intensity.xyz);
-                float shadow = 1.0 - CheckInShadow(hitPos, N, L);
-                float NdotL = max(dot(N, L), 0.0);
-                vec3 dl = beta * NdotL * shadow * light_color * (albedo * (1.0 - metalness) * HYP_FMATH_ONE_OVER_PI);
-                radiance += ClampLuminance(dl, MAX_SAMPLE_LUMINANCE);
-            } else if (light.type == HYP_LIGHT_TYPE_POINT) {
-                vec3 L = normalize(light.position_intensity.xyz - hitPos);
-                float d = length(light.position_intensity.xyz - hitPos);
-                float attenuation = 1.0 / (d * d);
-                float NdotL = max(dot(N, L), 0.0);
-                vec3 dl = beta * NdotL * attenuation * light_color * (albedo * (1.0 - metalness) * HYP_FMATH_ONE_OVER_PI);
-                radiance += ClampLuminance(dl, MAX_SAMPLE_LUMINANCE);
-            }
-        }
-
-        // Russian roulette termination
-        if (bounceIndex >= 3) {
-            float p = clamp(max(max(beta.r, beta.g), beta.b), 0.05, 0.99);
-            if (RandomFloat(ray_seed) > p) {
-                break;
-            }
-            beta /= vec3(p);
-        }
-
-        // choose next direction: specular or diffuse
-        // select specular probability from Fresnel at view angle (more stable than raw F0)
-        vec3 F0 = CalculateF0(albedo, metalness);
-        vec3 Fv = SchlickFresnelRoughness(F0, perceptual_roughness, NdotV);
-        float pSpec = clamp(Luminance(Fv), 0.05, 0.95);
-        float xi = RandomFloat(ray_seed);
-
-        if (xi < pSpec) {
-            // specular branch
-            // sample GGX half vector and compute reflection
-            vec2 Xi = vec2(RandomFloat(ray_seed), RandomFloat(ray_seed));
-            vec3 T1, T2; ComputeOrthonormalBasis(N, T1, T2);
-            vec3 Ht = ImportanceSampleGGX(Xi, vec3(0.0, 0.0, 1.0), rough);
-            vec3 H = normalize(T1 * Ht.x + T2 * Ht.y + N * Ht.z);
-            vec3 L = reflect(-V, H);
-
-            float NdotL = dot(N, L);
-            if (NdotL <= 0.0) {
+            // environment if miss
+            if (payload.distance < 0.0) {
+                if (current_env_probe.texture_index != ~0u) {
+                    uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
+                    vec3 env = Texture2D(sampler_linear, env_probe_textures[probe_texture_index], EncodeOctahedralCoord(normalize(direction)) * 0.5 + 0.5).rgb;
+                    Li += beta * env;
+                }
                 break;
             }
 
-            float NdotH = max(dot(N, H), 0.0);
-            float HdotV = max(dot(H, V), 0.0);
+            // hit data
+            vec3 hitPos = origin + direction * payload.distance;
+            vec3 N = normalize(payload.normal);
+            vec3 baseColor = clamp(payload.throughput.rgb, vec3(0.0), vec3(1.0));
+            float metalness = clamp(payload.throughput.a, 0.0, 1.0);
 
-            float D = DistributionGGX(N, H, rough);
-            float G = V_SmithGGXCorrelated(rough, NdotV, NdotL);
-            vec3 F = SchlickFresnelRoughness(F0, perceptual_roughness, HdotV);
+            // emissive contribution
+            if (any(greaterThan(payload.emissive.rgb, vec3(0.0)))) {
+                Li += beta * payload.emissive.rgb;
+            }
 
-            // BRDF = D * G * F / (4 * NdotL * NdotV)
-            // pdf = D * NdotH / (4 * HdotV)
-            // throughput = BRDF * NdotL / pdf
-            beta *= (F * G * HdotV) / (max(NdotV, 1e-4) * max(NdotH, 1e-4) * max(pSpec, 1e-3));
-            beta = ClampLuminance(beta, MAX_THROUGHPUT_LUMINANCE);
+            // Direct lighting (next event estimation) with Lambertian BRDF
+            vec3 diffuseColor = baseColor * (1.0 - metalness);
+            if (dot(diffuseColor, diffuseColor) > 0.0) {
+                for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++) {
+                    const Light light = HYP_GET_LIGHT(light_index);
 
-            direction = normalize(L);
-            origin = hitPos + N * RAY_OFFSET;
-        } else {
-            // diffuse branch
+                    if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL) {
+                        vec3 L = normalize(light.position_intensity.xyz);
+                        float visibility = 1.0 - CheckInShadow(hitPos, N, L);
+                        float NdotL = max(dot(N, L), 0.0);
+                        if (NdotL > 0.0 && visibility > 0.0) {
+                            vec3 light_color = light.color.rgb * light.position_intensity.w;
+                            Li += beta * diffuseColor * (NdotL * HYP_FMATH_ONE_OVER_PI) * light_color * visibility;
+                        }
+                    } else if (light.type == HYP_LIGHT_TYPE_POINT) {
+                        vec3 toLight = light.position_intensity.xyz - hitPos;
+                        float d2 = max(dot(toLight, toLight), 1e-6);
+                        float d = sqrt(d2);
+                        vec3 L = toLight / d;
+                        float visibility = 1.0 - CheckInShadow(hitPos, N, L);
+                        float NdotL = max(dot(N, L), 0.0);
+                        if (NdotL > 0.0 && visibility > 0.0) {
+                            vec3 light_color = light.color.rgb * light.position_intensity.w;
+                            float attenuation = 1.0 / d2;
+                            Li += beta * diffuseColor * (NdotL * HYP_FMATH_ONE_OVER_PI) * light_color * attenuation * visibility;
+                        }
+                    } else {
+                        // TODO: area/spotlights
+                    }
+                }
+            }
+
+            // Russian roulette
+            if (bounceIndex >= 3) {
+                float p = clamp(max(max(beta.r, beta.g), beta.b), 0.05, 0.99);
+                if (RandomFloat(ray_seed) > p) {
+                    break;
+                }
+                beta /= vec3(p);
+            }
+
+            // Sample next direction (cosine-weighted), throughput update for Lambertian: f*cos/pdf => diffuseColor
             vec2 rnd = vec2(RandomFloat(ray_seed), RandomFloat(ray_seed));
-            direction = normalize(SampleCosineDir(rnd, N));
-            origin = hitPos + N * RAY_OFFSET;
-            beta *= albedo * (1.0 - metalness) / max(1.0 - pSpec, 1e-3);
-            beta = ClampLuminance(beta, MAX_THROUGHPUT_LUMINANCE);
-        }
-    } // end bounces
+            vec3 wi = normalize(SampleCosineDir(rnd, N));
+            beta *= diffuseColor;
 
-    vec3 finalColor = radiance;
+            origin = hitPos + N * RAY_OFFSET;
+            direction = wi;
+        }
+
+        accumRadiance.rgb += Li;
+    }
+
+    vec3 finalColor = accumRadiance.rgb / float(NUM_SAMPLES);
+    
 #else
     vec3 finalColor = vec3(0.0);
 #endif
