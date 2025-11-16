@@ -398,6 +398,14 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 {
     proxy->envProbe = WeakHandleFromThis();
 
+    if (proxy->texture != m_prefilteredEnvMap)
+    {
+        // force texture to get rebound
+        proxy->forceRebind = true;
+
+        proxy->texture = m_prefilteredEnvMap;
+    }
+
     EnvProbeShaderData& bufferData = proxy->bufferData;
     bufferData.aabbMin = Vec4f(m_aabb.min, 1.0f);
     bufferData.aabbMax = Vec4f(m_aabb.max, 1.0f);

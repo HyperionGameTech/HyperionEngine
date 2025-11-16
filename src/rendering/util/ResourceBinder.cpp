@@ -1,8 +1,10 @@
 #include <HyperionPch.hpp>
+
 #include <core/reflection/Class.hpp>
 
+#include <rendering/RenderMemory.hpp>
+
 #include <rendering/util/ResourceBinder.hpp>
-#include <rendering/RenderGlobalState.hpp>
 
 namespace hyperion {
 

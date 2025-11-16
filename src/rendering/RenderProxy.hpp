@@ -56,6 +56,10 @@ class IRenderProxy
 {
 protected:
     ~IRenderProxy() = default; // NOTE: non-virtual since we don't intend to delete via base pointer and to avoid vtable overhead.
+
+public:
+    int version = 0;
+    bool forceRebind = false;
 };
 
 class NullProxy final : public IRenderProxy
@@ -176,6 +180,7 @@ class RenderProxyEnvProbe final : public IRenderProxy
 {
 public:
     WeakHandle<EnvProbe> envProbe;
+    Texture* texture = nullptr; // baked cubemap texture or prefiltered env
     EnvProbeShaderData bufferData {};
 };
 

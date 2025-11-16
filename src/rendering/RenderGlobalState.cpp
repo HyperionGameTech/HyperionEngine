@@ -27,17 +27,20 @@
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/EnvGridRenderer.hpp>
 
-#include <shadows/ShadowMapAllocator.hpp>
 #include <rendering/renderers/ShadowRenderer.hpp>
 
 #include <rendering/raytracing/DDGI.hpp>
+
+#include <shadows/ShadowMapAllocator.hpp>
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/Light.hpp>
-#include <lightmapper/LightmapVolume.hpp>
+
 #include <scene/animation/Skeleton.hpp>
+
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <core/reflection/Class.hpp>
 
@@ -1117,9 +1120,27 @@ void BeginFrame_RenderThread()
 
             while (*ppResourceBinder != nullptr)
             {
-                // @TODO Need a way to tell if we should update a binding (call OnBindingChanged for unbind then rebind) in case of ex : texture changes
+                bool forceRebind = false;
 
-                (*ppResourceBinder)->Consider(elem.resource);
+                if (subtypeData.hasProxyData)
+                {
+                    IRenderProxy* pProxy = subtypeData.proxies.Get(elem.resource->Id().ToIndex());
+                    AssertDebug(pProxy != nullptr);
+
+                    forceRebind = pProxy->forceRebind;
+                    pProxy->forceRebind = false; // swap
+                }
+
+                ResourceBinderBase* pResourceBinder = *ppResourceBinder;
+
+                pResourceBinder->Consider(elem.resource, forceRebind);
+
+                // temp
+                if (forceRebind)
+                {
+                    HYP_LOG_TEMP("proxy rebind for {}", elem.resource->Id());
+                }
+
                 ++ppResourceBinder;
             }
         }
@@ -1177,8 +1198,8 @@ void BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                i != Bitset::NotFound;
-                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                 i != Bitset::NotFound;
+                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {

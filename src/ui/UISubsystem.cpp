@@ -293,6 +293,8 @@ void UISubsystem::Update(float delta)
             AssertDebug(meshComponent != nullptr);
 
             RenderProxyMesh& meshProxy = *rpl.GetMeshEntities().SetProxy(entity->Id(), RenderProxyMesh());
+            meshProxy.version = *entity->GetRenderProxyVersionPtr();
+            meshProxy.forceRebind = false;
             meshProxy.entity = MakeWeakRef(entity);
             meshProxy.mesh = meshComponent->mesh;
             meshProxy.material = meshComponent->material;
