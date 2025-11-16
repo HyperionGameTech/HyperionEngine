@@ -318,6 +318,13 @@ void main()
     vec3 origin = ray.origin + N0 * RAY_OFFSET;
     vec3 direction = normalize(N0);
 
+    //// slight randomness to get more out of multisampling
+    //direction = normalize(direction + 0.001 * vec3(
+    //    SampleBlueNoise(int(ray_index * 3), 0, int(world_shader_data.frame_counter % 16), 16),
+    //    SampleBlueNoise(int(ray_index * 3 + 1), 0, int(world_shader_data.frame_counter % 16), 16),
+    //    SampleBlueNoise(int(ray_index * 3 + 2), 0, int(world_shader_data.frame_counter % 16), 16)
+    //));
+
     vec3 radiance = vec3(0.0);
     vec3 beta = vec3(1.0);
 
@@ -426,7 +433,7 @@ void main()
             vec2 rnd = vec2(RandomFloat(ray_seed), RandomFloat(ray_seed));
             direction = normalize(SampleCosineDir(rnd, N));
             origin = hitPos + N * RAY_OFFSET;
-            beta *= albedo * (1.0 - metalness) * HYP_FMATH_ONE_OVER_PI / max(1.0 - pSpec, 1e-3);
+            beta *= albedo * (1.0 - metalness) / max(1.0 - pSpec, 1e-3);
             beta = ClampLuminance(beta, MAX_THROUGHPUT_LUMINANCE);
         }
     } // end bounces
