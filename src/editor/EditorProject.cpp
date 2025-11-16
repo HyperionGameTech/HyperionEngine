@@ -387,7 +387,29 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
 Name EditorProject::GetNextDefaultProjectName_Impl(const String& defaultProjectName) const
 {
-    return CreateNameFromDynamicString(*defaultProjectName);
+    int currentCounter = 0;
+    String currentName = defaultProjectName;
+
+    Handle<AssetPackage> newPackage; // new package to be used by our project (root level)
+
+    do
+    {
+        newPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
+
+        const Handle<AssetPackage> tmpPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ false);
+
+        if (newPackage && tmpPackage == newPackage)
+        {
+            // we found it
+            return CreateNameFromDynamicString(currentName);
+        }
+
+        newPackage.Reset();
+        currentName = defaultProjectName + String::ToString(++currentCounter);
+    }
+    while (!newPackage);
+
+    return Name();
 }
 
 } // namespace hyperion
