@@ -97,6 +97,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
     if (next != ~0u)
     {
+        // @TODO Put the prefiltered env map texture on the RenderProxyEnvProbe so this is threadsafe when we update from lightmapper.
+        // also need to unbind and rebind or something when that changs.
         AssertDebug(envProbe->GetPrefilteredEnvMap().IsValid());
         AssertDebug(envProbe->GetPrefilteredEnvMap()->IsReady());
 

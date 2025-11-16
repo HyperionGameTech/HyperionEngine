@@ -447,7 +447,7 @@ Result LightmapData<EnvProbe>::Build()
     return {};
 }
 
-auto LightmapData<EnvProbe>::ToBitmapRadiance() const -> BitmapType
+auto LightmapData<EnvProbe>::ToBitmap() const -> BitmapType
 {
     Assert(m_envProbe != nullptr);
 
@@ -468,45 +468,6 @@ auto LightmapData<EnvProbe>::ToBitmapRadiance() const -> BitmapType
                 const uint32 bitmapY = face * dimensions.y + y;
 
                 Vec4f color = texels[texelIdx].radiance;
-
-                if (color.w <= 0.0f)
-                {
-                    continue;
-                }
-
-                color /= color.w;
-
-                AssertDebug(!MathUtil::IsNaN(color));
-
-                bitmap.GetPixelReference(x, bitmapY).SetRGBA(color);
-            }
-        }
-    }
-
-    return bitmap;
-}
-
-auto LightmapData<EnvProbe>::ToBitmapIrradiance() const -> BitmapType
-{
-    Assert(m_envProbe != nullptr);
-
-    const Vec2u dimensions = m_envProbe->GetDimensions();
-    const SizeType numTexelsPerFace = dimensions.x * dimensions.y;
-
-    Assert(texels.Size() == 6 * numTexelsPerFace, "Invalid cubemap size");
-
-    BitmapType bitmap(dimensions.x, dimensions.y * 6);
-
-    for (uint32 face = 0; face < 6; face++)
-    {
-        for (uint32 y = 0; y < dimensions.y; y++)
-        {
-            for (uint32 x = 0; x < dimensions.x; x++)
-            {
-                const uint32 texelIdx = face * numTexelsPerFace + y * dimensions.x + x;
-                const uint32 bitmapY = face * dimensions.y + y;
-
-                Vec4f color = texels[texelIdx].irradiance;
 
                 if (color.w <= 0.0f)
                 {

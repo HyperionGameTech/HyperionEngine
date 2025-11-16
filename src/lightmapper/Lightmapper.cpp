@@ -700,12 +700,12 @@ void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
     const Vec2u dimensions = m_envProbe->GetDimensions();
 
     // Convert lightmap data to bitmaps (6 faces stacked vertically)
-    LightmapData<EnvProbe>::BitmapType bitmap = lightmapData.ToBitmapRadiance();
+    LightmapData<EnvProbe>::BitmapType bitmap = lightmapData.ToBitmap();
 
     Handle<Texture> cubemap = CreateObject<Texture>(
         TextureDesc {
             TT_CUBEMAP,
-            TF_RGBA32F,
+            bitmap.GetFormat(),
             Vec3u { dimensions.x, dimensions.y, 1 },
             TFM_LINEAR,
             TFM_LINEAR,
