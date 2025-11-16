@@ -109,6 +109,8 @@ template <>
 class LightmapData<EnvProbe> : public LightmapDataBase
 {
 public:
+    using BitmapType = Bitmap_RGBA32F;
+
     LightmapData()
         : m_envProbe(nullptr)
     {
@@ -129,6 +131,9 @@ public:
     ~LightmapData() override = default;
 
     virtual Result Build() override;
+
+    BitmapType ToBitmapRadiance() const;
+    BitmapType ToBitmapIrradiance() const;
 
 protected:
     EnvProbe* m_envProbe;

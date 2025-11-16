@@ -230,7 +230,8 @@ void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const 
 
         switch (shadingType)
         {
-        case LightmapShadingType::RADIANCE:
+        case LightmapShadingType::FULL: // fallthrough
+        case LightmapShadingType::RADIANCE: 
             texel.radiance += Vec4f(hit.color, 1.0f);
             break;
         case LightmapShadingType::IRRADIANCE:
@@ -502,7 +503,20 @@ LightmapJob<EnvProbe>::~LightmapJob()
 
 void LightmapJob<EnvProbe>::Start_Internal()
 {
-    m_lightmapData = LightmapData<EnvProbe>(m_params.subElementsView, m_envProbe);
+    m_lightmapData = LightmapData<EnvProbe>(m_params.subElementsView, m_envProbe.Get());
+
+    if (Result result = m_lightmapData.Build(); result.HasError())
+    {
+        Stop(result.GetError());
+        return;
+    }
+
+    // Flatten texel indices for processing
+    m_texelIndices.Reserve(m_lightmapData.texels.Size());
+    for (uint32 i = 0; i < m_lightmapData.texels.Size(); i++)
+    {
+        m_texelIndices.PushBack(i);
+    }
 }
 
 void LightmapJob<EnvProbe>::Process_Internal(bool* outIsReadyToProcess)

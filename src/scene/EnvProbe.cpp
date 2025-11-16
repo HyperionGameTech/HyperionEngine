@@ -154,7 +154,7 @@ void EnvProbe::Init()
                     1,
                     IU_STORAGE | IU_SAMPLED });
 
-                m_prefilteredEnvMap->SetName(NAME_FMT("{}_PrefilteredEnvMap", Id()));
+                m_prefilteredEnvMap->SetName(NAME_FMT("{}_{}_PrefilteredEnvMap", InstanceClass()->GetName(), GetUUID()));
             }
         }
     }
@@ -416,7 +416,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     bufferData.positionInGrid = m_positionInGrid;
 }
 
-void EnvProbe::DeserializeBakedTexture(const Handle<Texture>& texture)
+void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
 {
     if (!IsBaked())
     {
@@ -433,6 +433,8 @@ void EnvProbe::DeserializeBakedTexture(const Handle<Texture>& texture)
     if (IsInitCalled())
     {
         InitObject(m_prefilteredEnvMap);
+
+        SetNeedsRenderProxyUpdate();
     }
 }
 

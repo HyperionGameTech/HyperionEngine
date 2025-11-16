@@ -44,6 +44,9 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <core/reflection/Class.hpp>
 
 #include <core/threading/TaskSystem.hpp>
@@ -182,8 +185,15 @@ void LightmapperBase::Initialize()
 
     Build();
 
+    const uint32 shadingTypesMask = GetShadingTypesMask();
+
     for (uint32 i = 0; i < uint32(LightmapShadingType::MAX); i++)
     {
+        if (!(shadingTypesMask & (1u << i)))
+        {
+            continue;
+        }
+
         switch (LightmapShadingType(i))
         {
         case LightmapShadingType::RADIANCE:
@@ -200,8 +210,9 @@ void LightmapperBase::Initialize()
             }
 
             break;
+        case LightmapShadingType::FULL: // fallthrough
         default:
-            HYP_UNREACHABLE();
+            break;
         }
 
         UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
@@ -413,25 +424,28 @@ void LightmapperBase::Build()
     uint32 numTriangles = 0;
     SizeType startIndex = 0;
 
-    for (SizeType index = 0; index < m_subElements.Size(); index++)
+    if (ShouldSplitIntoJobs())
     {
-        LightmapSubElement& subElement = m_subElements[index];
-
-        m_subElementsByEntity.Set(subElement.entity, &subElement);
-
-        if (idealTrianglesPerJob != 0 && numTriangles != 0 && numTriangles + subElement.mesh->NumIndices() / 3 > idealTrianglesPerJob)
+        for (SizeType index = 0; index < m_subElements.Size(); index++)
         {
-            UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, index + 1));
-            Assert(job != nullptr);
+            LightmapSubElement& subElement = m_subElements[index];
 
-            startIndex = index + 1;
+            m_subElementsByEntity.Set(subElement.entity, &subElement);
 
-            AddJob(std::move(job));
+            if (idealTrianglesPerJob != 0 && numTriangles != 0 && numTriangles + subElement.mesh->NumIndices() / 3 > idealTrianglesPerJob)
+            {
+                UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, index + 1));
+                Assert(job != nullptr);
 
-            numTriangles = 0;
+                startIndex = index + 1;
+
+                AddJob(std::move(job));
+
+                numTriangles = 0;
+            }
+
+            numTriangles += subElement.mesh->NumIndices() / 3;
         }
-
-        numTriangles += subElement.mesh->NumIndices() / 3;
     }
 
     if (startIndex < m_subElements.Size() - 1)
@@ -586,6 +600,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 
         subElement.material->SetBucket(RB_LIGHTMAP);
 
+        // @TODO remove this, we shouldn't need atlas texture on the individual materials anymore
         subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
         subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
 
@@ -676,7 +691,41 @@ void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
 
     const LightmapData<EnvProbe>& lightmapData = jobCasted->GetLightmapData();
 
-    // @TODO
+    if (!lightmapData.IsBuilt())
+    {
+        HYP_LOG(Lightmap, Warning, "Lightmap data for EnvProbe {} is not built, skipping texture creation", m_envProbe->Id());
+        return;
+    }
+
+    const Vec2u dimensions = m_envProbe->GetDimensions();
+
+    // Convert lightmap data to bitmaps (6 faces stacked vertically)
+    LightmapData<EnvProbe>::BitmapType bitmap = lightmapData.ToBitmapRadiance();
+
+    Handle<Texture> cubemap = CreateObject<Texture>(
+        TextureDesc {
+            TT_CUBEMAP,
+            TF_RGBA32F,
+            Vec3u { dimensions.x, dimensions.y, 1 },
+            TFM_LINEAR,
+            TFM_LINEAR,
+            TWM_CLAMP_TO_EDGE },
+        TextureData { ByteBuffer(bitmap.ToByteView()) });
+
+    cubemap->SetName(NAME_FMT("EnvProbe_{}_Baked", m_envProbe->GetUUID()));
+
+    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", cubemap->GetAsset()).Await(); result.HasError())
+    {
+        HYP_LOG(Lightmap, Error, "Failed to register radiance texture '{}' with asset registry: {}", cubemap->GetName(), result.GetError().GetMessage());
+    }
+
+    InitObject(cubemap);
+
+    // Set the baked texture on the EnvProbe
+    m_envProbe->SetBakedTexture(cubemap);
+    m_envProbe->SetIsBaked(true);
+
+    HYP_LOG(Lightmap, Info, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", m_envProbe->Id());
 }
 
 } // namespace hyperion

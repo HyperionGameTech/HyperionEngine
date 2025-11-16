@@ -204,6 +204,15 @@ public:
         return m_prefilteredEnvMap;
     }
 
+    HYP_METHOD(Property = "BakedTexture")
+    const Handle<Texture>& GetBakedTexture() const
+    {
+        return IsBaked() ? m_prefilteredEnvMap : Handle<Texture>::Null();
+    }
+
+    HYP_METHOD(Property = "BakedTexture", LoadOrder = 1)
+    void SetBakedTexture(const Handle<Texture>& texture);
+
     HYP_DEPRECATED HYP_FORCE_INLINE void SetNeedsRender(bool needsRender)
     {
         if (needsRender)
@@ -269,15 +278,6 @@ protected:
     virtual void Init() override;
 
     void CreateView();
-
-    HYP_METHOD(Property = "BakedTexture")
-    const Handle<Texture>& SerializeBakedTexture() const
-    {
-        return IsBaked() ? m_prefilteredEnvMap : Handle<Texture>::Null();
-    }
-
-    HYP_METHOD(Property = "BakedTexture", LoadOrder = 1)
-    void DeserializeBakedTexture(const Handle<Texture>& texture);
 
     Handle<View> m_view;
 

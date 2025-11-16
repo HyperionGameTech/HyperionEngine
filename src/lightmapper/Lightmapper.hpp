@@ -60,8 +60,9 @@ enum class LightmapTraceMode : int
 HYP_ENUM()
 enum class LightmapShadingType : int
 {
-    IRRADIANCE = 0,
-    RADIANCE,
+    IRRADIANCE = 0, // Bake irradiance only
+    RADIANCE,       // Bake radiance only (direct light)
+    FULL,           // Full scene bake
     MAX
 };
 
@@ -284,6 +285,18 @@ public:
     Delegate<void> OnComplete;
 
 protected:
+    /*! \brief Should the lightmapping process be split into multiple independent jobs? (i.e splitting scene into multiple lightmap atlases) */
+    virtual bool ShouldSplitIntoJobs() const
+    {
+        return false;
+    }
+
+    /*! \brief Get the bitmask of shading types this Lightmapper instance should bake for. */
+    virtual uint32 GetShadingTypesMask() const
+    {
+        return 1u << int(LightmapShadingType::FULL);
+    }
+
     virtual void Initialize_Internal()
     {
     }
@@ -360,6 +373,17 @@ public:
     virtual ~Lightmapper() override = default;
 
 protected:
+    virtual bool ShouldSplitIntoJobs() const override
+    {
+        return true;
+    }
+
+    virtual uint32 GetShadingTypesMask() const override
+    {
+        return (1u << int(LightmapShadingType::IRRADIANCE))
+            | (1u << int(LightmapShadingType::RADIANCE));
+    }
+
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
     {
         return MakeUnique<LightmapJob<LightmapVolume>>(std::move(params), m_volume);

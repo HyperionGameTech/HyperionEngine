@@ -5,6 +5,7 @@
 #include <lightmapper/LightmapData.hpp>
 
 #include <rendering/Mesh.hpp>
+#include <rendering/Texture.hpp>
 
 #include <scene/EnvProbe.hpp>
 
@@ -407,25 +408,34 @@ Result LightmapData<EnvProbe>::Build()
     AssertDebug(dimensions.Volume() > 0 && dimensions.x == dimensions.y,
         "EnvProbe lightmap dimensions must be square and non-zero! Dimensions: {}", dimensions);
 
-    const SizeType numTexels = 6 * dimensions.x * dimensions.y;
+    const SizeType numTexelsPerFace = SizeType(dimensions.x) * SizeType(dimensions.y);
+    const SizeType numTexelsTotal = 6 * numTexelsPerFace;
 
-    texels.Resize(numTexels);
+    texels.Resize(numTexelsTotal);
 
+    const Vec3f origin = m_envProbe->GetWorldTranslation();
+
+    // Use the same face orientation as render code (Texture::s_cubemapDirections)
     for (uint32 face = 0; face < 6; face++)
     {
+        const Vec3f forward = Texture::s_cubemapDirections[face].first;
+        const Vec3f up = Texture::s_cubemapDirections[face].second * Vec3f(-1.0f);
+        const Vec3f right = forward.Cross(up).Normalize();
+
         for (uint32 y = 0; y < dimensions.y; y++)
         {
             for (uint32 x = 0; x < dimensions.x; x++)
             {
-                const uint32 texelIdx = face * dimensions.x * dimensions.y + y * dimensions.x + x;
+                const uint32 texelIdx = face * uint32(numTexelsPerFace) + y * dimensions.x + x;
+
+                const float u = (float(x) + 0.5f) / float(dimensions.x) * 2.0f - 1.0f;
+                const float v = (float(y) + 0.5f) / float(dimensions.y) * 2.0f - 1.0f;
+
+                const Vec3f dir = (forward + right * u + up * v).Normalize();
 
                 LightmapTexel& texel = texels[texelIdx];
-
-                const Vec2f octahedralCoord = MathUtil::NormalizeOctahedralCoord(Vec2i { int(x), int(y) }, Vec2i { int(dimensions.x), int(dimensions.y) });
-                const Vec3f dir = MathUtil::DecodeOctahedralCoord(octahedralCoord).Normalize();
-
                 texel.ray = LightmapRay {
-                    Ray { Vec3f(0.0f), dir },
+                    Ray { origin, dir },
                     /* meshId */ ObjId<Mesh>::invalid,
                     /* triangleIndex */ ~0u,
                     /* texelIndex */ texelIdx
@@ -435,6 +445,84 @@ Result LightmapData<EnvProbe>::Build()
     }
 
     return {};
+}
+
+auto LightmapData<EnvProbe>::ToBitmapRadiance() const -> BitmapType
+{
+    Assert(m_envProbe != nullptr);
+
+    const Vec2u dimensions = m_envProbe->GetDimensions();
+    const SizeType numTexelsPerFace = dimensions.x * dimensions.y;
+
+    Assert(texels.Size() == 6 * numTexelsPerFace, "Invalid cubemap size");
+
+    BitmapType bitmap(dimensions.x, dimensions.y * 6);
+
+    for (uint32 face = 0; face < 6; face++)
+    {
+        for (uint32 y = 0; y < dimensions.y; y++)
+        {
+            for (uint32 x = 0; x < dimensions.x; x++)
+            {
+                const uint32 texelIdx = face * numTexelsPerFace + y * dimensions.x + x;
+                const uint32 bitmapY = face * dimensions.y + y;
+
+                Vec4f color = texels[texelIdx].radiance;
+
+                if (color.w <= 0.0f)
+                {
+                    continue;
+                }
+
+                color /= color.w;
+
+                AssertDebug(!MathUtil::IsNaN(color));
+
+                bitmap.GetPixelReference(x, bitmapY).SetRGBA(color);
+            }
+        }
+    }
+
+    return bitmap;
+}
+
+auto LightmapData<EnvProbe>::ToBitmapIrradiance() const -> BitmapType
+{
+    Assert(m_envProbe != nullptr);
+
+    const Vec2u dimensions = m_envProbe->GetDimensions();
+    const SizeType numTexelsPerFace = dimensions.x * dimensions.y;
+
+    Assert(texels.Size() == 6 * numTexelsPerFace, "Invalid cubemap size");
+
+    BitmapType bitmap(dimensions.x, dimensions.y * 6);
+
+    for (uint32 face = 0; face < 6; face++)
+    {
+        for (uint32 y = 0; y < dimensions.y; y++)
+        {
+            for (uint32 x = 0; x < dimensions.x; x++)
+            {
+                const uint32 texelIdx = face * numTexelsPerFace + y * dimensions.x + x;
+                const uint32 bitmapY = face * dimensions.y + y;
+
+                Vec4f color = texels[texelIdx].irradiance;
+
+                if (color.w <= 0.0f)
+                {
+                    continue;
+                }
+
+                color /= color.w;
+
+                AssertDebug(!MathUtil::IsNaN(color));
+
+                bitmap.GetPixelReference(x, bitmapY).SetRGBA(color);
+            }
+        }
+    }
+
+    return bitmap;
 }
 
 #pragma endregion LightmapData < EnvProbe>
