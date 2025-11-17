@@ -461,7 +461,11 @@ void SkyProbe::Init()
         TF_R11G11B10F,
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         TFM_LINEAR,
-        TFM_LINEAR });
+        TFM_LINEAR,
+        TWM_CLAMP_TO_EDGE,
+        1,
+        IU_STORAGE | IU_SAMPLED
+    });
 
     m_texture->SetName(NAME_FMT("{}_SkyboxCubemap", Id()));
 

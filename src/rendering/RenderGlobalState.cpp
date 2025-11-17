@@ -58,6 +58,7 @@
 
 // for EnumToString
 #include <core/reflection/Enum.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

@@ -582,8 +582,6 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
     {
         HYP_LOG_ONCE(Texture, Warning, "Unsupported bytes per component to use with Sample(): {}", bytesPerComponent);
 
-        HYP_BREAKPOINT;
-
         return Vec4f::Zero();
     }
 
@@ -603,8 +601,6 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
             index, textureData->imageData.Size(),
             coord, textureDesc.extent, NumFaces(),
             bytesPerComponent, numComponents);
-
-        HYP_BREAKPOINT;
 
         return Vec4f::Zero();
     }
@@ -699,8 +695,6 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
     }
 
     HYP_LOG_ONCE(Texture, Error, "Unsupported texture format to read on CPU: {}", int(textureDesc.format));
-
-    HYP_BREAKPOINT;
 
     return Vec4f::Zero();
 }

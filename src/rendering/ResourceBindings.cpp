@@ -1,4 +1,5 @@
 #include <HyperionPch.hpp>
+
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/renderers/EnvGridRenderer.hpp>
@@ -12,6 +13,11 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 
+#include <core/reflection/Class.hpp>
+
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <rendering/util/ResourceBinder.hpp>
 
 #include <scene/EnvGrid.hpp>
@@ -21,11 +27,6 @@
 #include <scene/animation/Skeleton.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
-
-#include <core/reflection/Class.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <engine/EngineGlobals.hpp>
 
