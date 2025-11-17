@@ -127,6 +127,7 @@ void SystemMessageBox::Show(bool showBlocking) const
         buttonTexts,
         buttonFuncs,
         futureValue.Promise());
+
 #else
     int buttonIndex = ShowMessageBox(
         int(m_type),

@@ -2445,7 +2445,7 @@ void UIObject::UpdateMaterial_Internal()
     MaterialTextures materialTextures = GetMaterialTextures();
 
     if (!currentMaterial.IsValid()
-        || (!currentMaterial->IsDynamic() && AllowMaterialUpdate()) // set to dynamic if we allow material updates
+        || (!currentMaterial->GetIsDynamic() && AllowMaterialUpdate()) // set to dynamic if we allow material updates
         || currentMaterial->GetRenderAttributes() != materialAttributes)
     {
         // need to get a new Material if attributes have changed
@@ -2464,7 +2464,7 @@ void UIObject::UpdateMaterial_Internal()
 
     if (parametersChanged || texturesChanged)
     {
-        if (!currentMaterial->IsDynamic())
+        if (!currentMaterial->GetIsDynamic())
         {
             HYP_LOG(UI, Warning,
                 "UIObject '{}' material is not dynamic, but parameters or textures have changed. Fetching a new material.\n"

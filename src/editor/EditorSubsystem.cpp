@@ -1024,7 +1024,8 @@ EditorSubsystem::EditorSubsystem()
 
                                 break;
                             }
-                            case GameStateMode::SIMULATING:
+                            case GameStateMode::SIMULATING: // fallthrough
+                            case GameStateMode::PAUSED:
                             {
                                 // unset manipulation widgets
                                 m_manipulationWidgetHolder.SetSelectedManipulationMode(EditorManipulationMode::NONE);

@@ -254,8 +254,8 @@ void ScriptSystem::Process(float delta)
 
     // Only update scripts if we're in simulation mode
     if (world->GetGameState().mode != GameStateMode::SIMULATING)
-    { // temp; removed for testing
-      // return;
+    {
+        return;
     }
 
     for (auto [entity, scriptComponent] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))

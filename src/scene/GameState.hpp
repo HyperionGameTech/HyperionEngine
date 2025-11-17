@@ -13,7 +13,8 @@ HYP_ENUM()
 enum class GameStateMode : uint32
 {
     EDITOR = 0,
-    SIMULATING = 1
+    SIMULATING,
+    PAUSED
 };
 
 HYP_STRUCT()
@@ -40,6 +41,12 @@ struct GameState
     HYP_FORCE_INLINE bool IsSimulating() const
     {
         return mode == GameStateMode::SIMULATING;
+    }
+    
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool IsPaused() const
+    {
+        return mode == GameStateMode::PAUSED;
     }
 };
 

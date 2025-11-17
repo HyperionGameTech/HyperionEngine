@@ -575,8 +575,12 @@ void World::StartSimulating()
 
     const GameStateMode previousGameStateMode = m_gameState.mode;
 
-    m_gameState.gameTime = 0.0f;
-    m_gameState.deltaTime = 0.0f;
+    if (previousGameStateMode == GameStateMode::EDITOR)
+    {
+        m_gameState.gameTime = 0.0f;
+        m_gameState.deltaTime = 0.0f;
+    }
+    
     m_gameState.mode = GameStateMode::SIMULATING;
 
     OnGameStateChange(this, previousGameStateMode, GameStateMode::SIMULATING);
@@ -594,6 +598,8 @@ void World::StopSimulating()
     }
 
     const GameStateMode previousGameStateMode = m_gameState.mode;
+    
+    // @TODO: Non-editor mode (pause)
 
     m_gameState.gameTime = 0.0f;
     m_gameState.deltaTime = 0.0f;

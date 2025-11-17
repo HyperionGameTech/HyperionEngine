@@ -778,7 +778,7 @@ public:
      *  objects.
      *  \return True if the Material is dynamic, false if it is static. */
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsDynamic() const
+    HYP_FORCE_INLINE bool GetIsDynamic() const
     {
         return m_isDynamic;
     }
