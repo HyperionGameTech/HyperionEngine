@@ -37,7 +37,7 @@ void AudioSystem::Process(float delta)
         return;
     }
 
-    if (GetEntityManager().GetScene()->IsAudioListener())
+    if (GetEntityManager().GetScene()->GetIsAudioListener())
     {
         if (Camera* camera = GetEntityManager().GetScene()->GetPrimaryCamera())
         {

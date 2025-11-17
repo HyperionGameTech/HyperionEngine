@@ -431,16 +431,15 @@ public:
 
         Base::m_resultValue.Set(std::move(value));
 
-        TaskCallbackChain& callbackChain = Base::GetCallbackChain();
+        TaskCallbackChain callbackChain = std::move(Base::GetCallbackChain());
 
         Base::GetNotifier().Release(1);
+        spinlock.UnlockWriter();
 
         if (callbackChain)
         {
             callbackChain();
         }
-
-        spinlock.UnlockWriter();
     }
 
     void Fulfill(const ReturnType& value)
@@ -452,16 +451,15 @@ public:
 
         Base::m_resultValue.Set(value);
 
-        TaskCallbackChain& callbackChain = Base::GetCallbackChain();
+        TaskCallbackChain callbackChain = std::move(Base::GetCallbackChain());
 
         Base::GetNotifier().Release(1);
+        spinlock.UnlockWriter();
 
         if (callbackChain)
         {
             callbackChain();
         }
-
-        spinlock.UnlockWriter();
     }
 
 protected:
@@ -510,16 +508,15 @@ public:
         Spinlock<SPMC> spinlock(&this->m_promiseFulfillLockState);
         spinlock.LockWriter();
 
-        TaskCallbackChain& callbackChain = Base::GetCallbackChain();
+        TaskCallbackChain callbackChain = std::move(Base::GetCallbackChain());
 
         Base::GetNotifier().Release(1);
+        spinlock.UnlockWriter(); // moved up here and used move because some of the callbacks may delete this
 
         if (callbackChain)
         {
             callbackChain();
         }
-
-        spinlock.UnlockWriter();
     }
 
 protected:
@@ -823,10 +820,14 @@ protected:
                                 delete executor;
                             });
                     }
+                    else
+                    {
+                        // already completed while waiting for the lock;
+                        // delete it now
+                        delete m_executor;
+                    }
 
                     spinlock.UnlockReader();
-
-                    // Task_DeferTaskDeletion(m_executor);
                 }
                 else
                 {
@@ -975,6 +976,12 @@ protected:
                             {
                                 delete executor;
                             });
+                    }
+                    else
+                    {
+                        // already completed while waiting for the lock;
+                        // delete it now
+                        delete m_executor;
                     }
 
                     spinlock.UnlockReader();

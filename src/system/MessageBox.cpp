@@ -8,6 +8,7 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <core/threading/Task.hpp>
+#include <core/threading/Threads.hpp>
 
 extern "C"
 {
@@ -108,16 +109,40 @@ SystemMessageBox& SystemMessageBox::Button(const String& text, Proc<void()>&& on
 void SystemMessageBox::Show(bool showBlocking) const
 {
     const char* buttonTexts[3] = {};
-    const void* buttonFuncs[3] = {};
 
     for (int i = 0; i < int(m_buttons.Size()); i++)
     {
         buttonTexts[i] = m_buttons[i].text.Data();
-        buttonFuncs[i] = &m_buttons[i].onClick;
     }
 
 #ifdef HYP_MACOS
+    const bool isOnMainThread = IsOnThread(g_mainThread);
+
     Task<void> futureValue;
+
+    const void* buttonFuncs[3] = {};
+    for (int i = 0; i < int(m_buttons.Size()); i++)
+    {
+        if (!m_buttons[i].onClick.IsValid())
+        {
+            buttonFuncs[i] = nullptr;
+
+            continue;
+        }
+
+        if (isOnMainThread)
+        {
+            buttonFuncs[i] = &m_buttons[i].onClick;
+        }
+        else
+        {
+            // unfortunately we need to const_cast and move here to move the Proc out of the const SystemMessageBox
+            // otherwise we would have an issue where we destruct the Proc then call it on the Obj-C side asynchronously
+            // when the button is clicked
+            // @FIXME ! this is ugly and needs a better solution
+            buttonFuncs[i] = new Proc<void()>(std::move(const_cast<SystemMessageBox*>(this)->m_buttons[i].onClick));
+        }
+    }
 
     int buttonIndex = ShowMessageBox(
         int(m_type),

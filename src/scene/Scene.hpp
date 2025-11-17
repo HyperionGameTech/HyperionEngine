@@ -180,7 +180,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsAudioListener() const
+    HYP_FORCE_INLINE bool GetIsAudioListener() const
     {
         return m_isAudioListener;
     }

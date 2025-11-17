@@ -218,10 +218,11 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
 
     const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
 
-    if (envProbe->ShouldComputePrefilteredEnvMap())
-    {
-        ComputePrefilteredEnvMap(frame, renderSetup, envProbe);
-    }
+    // FIXME : reenable when we set up each mip
+    // if (envProbe->ShouldComputePrefilteredEnvMap())
+    // {
+    //     ComputePrefilteredEnvMap(frame, renderSetup, envProbe);
+    // }
 
     if (envProbe->ShouldComputeSphericalHarmonics())
     {

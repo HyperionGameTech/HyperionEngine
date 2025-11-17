@@ -75,6 +75,7 @@ void SkydomeRenderer::Init()
     cameraNode->SetName(m_camera->GetName());
 
     m_envProbe = m_virtualScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
+    m_envProbe->SetEnvProbeFlags(m_envProbe->GetEnvProbeFlags() & ~EPF_PARALLAX_CORRECTED); // sky env probes are not parallax corrected, obviously
 
     Handle<Node> envProbeNode = m_virtualScene->GetRoot()->AddChild();
     envProbeNode->AddChild(m_envProbe);

@@ -25,6 +25,8 @@ int ShowMessageBox(
     __block NSString* messageString = [NSString stringWithUTF8String:message];
     __block NSString** buttonTextStrings = (NSString**)malloc(sizeof(NSString*) * 3);
 
+    __block const Proc<void()>** buttonFuncProcs = doAsyncCall ? (const Proc<void()>**)malloc(sizeof(const Proc<void()>*) * 3) : NULL;
+
     for (int i = 0; i < 3; i++)
     {
         if (buttonTexts[i] == NULL)
@@ -34,6 +36,18 @@ int ShowMessageBox(
         else
         {
             buttonTextStrings[i] = [NSString stringWithUTF8String:buttonTexts[i]];
+        }
+
+        if (doAsyncCall)
+        {
+            if (buttonFuncs != NULL)
+            {
+                buttonFuncProcs[i] = (const Proc<void()>*)buttonFuncs[i];
+            }
+            else
+            {
+                buttonFuncProcs[i] = NULL;
+            }
         }
     }
     
@@ -91,9 +105,11 @@ int ShowMessageBox(
 
             if (doAsyncCall)
             {
-                if (buttonFuncs != NULL && returnValue >= 0 && returnValue < 3)
+                Assert(promise != NULL);
+
+                if (returnValue >= 0 && returnValue < 3)
                 {
-                    const Proc<void()>* pProc = (const Proc<void()>*)buttonFuncs[returnValue];
+                    const Proc<void()>* pProc = buttonFuncProcs[returnValue];
                     if (pProc != NULL)
                     {
                         (*pProc)();
@@ -104,12 +120,27 @@ int ShowMessageBox(
                 {
                     promise->Fulfill();
                 }
+
+                // delete all funcs here - necessary hack for async, see more info in MessageBox.cpp
+                for (int i = 0; i < 3; i++)
+                {
+                    const Proc<void()>* pProc = buttonFuncProcs[i];
+                    if (pProc != NULL)
+                    {
+                        delete pProc;
+                    }
+                }
+
+                free(buttonFuncProcs);
+                buttonFuncProcs = NULL;
             }
         }
     };
     
     if (!doAsyncCall)
     {
+        AssertDebug([NSThread isMainThread]);
+        
         alertBlock();
     
         return returnValue;
