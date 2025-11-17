@@ -73,6 +73,9 @@ public:
     UIEventHandlerResult AddLightmapVolume(const MouseEvent& event);
 
     HYP_METHOD()
+    UIEventHandlerResult AddParticleVolume(const MouseEvent& event);
+
+    HYP_METHOD()
     UIEventHandlerResult AddNode(const MouseEvent& event);
 
     HYP_METHOD()

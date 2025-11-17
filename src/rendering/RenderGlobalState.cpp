@@ -29,6 +29,8 @@
 
 #include <rendering/renderers/ShadowRenderer.hpp>
 
+#include <rendering/renderers/ParticleVolumeRenderer.hpp>
+
 #include <rendering/raytracing/DDGI.hpp>
 
 #include <shadows/ShadowMapAllocator.hpp>
@@ -1204,8 +1206,8 @@ void BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                 i != Bitset::NotFound;
-                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                i != Bitset::NotFound;
+                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1412,7 +1414,7 @@ RenderGlobalState::RenderGlobalState()
 
     globalDescriptorTable->Create();
 
-    mainRenderer = PoolNew<DeferredRenderer>(*g_renderPool);
+    mainRenderer = new DeferredRenderer;
     mainRenderer->Initialize();
 
     for (uint32 i = 0; i < GRT_MAX; i++)
@@ -1421,14 +1423,18 @@ RenderGlobalState::RenderGlobalState()
     }
 
     globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
-    globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = PoolNew<ReflectionProbeRenderer>(*g_renderPool);
-    globalRenderers[GRT_ENV_PROBE][EPT_SKY] = PoolNew<ReflectionProbeRenderer>(*g_renderPool);
+    globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer;
+    globalRenderers[GRT_ENV_PROBE][EPT_SKY] = new ReflectionProbeRenderer;
 
-    globalRenderers[GRT_ENV_GRID].PushBack(PoolNew<EnvGridRenderer>(*g_renderPool));
+    globalRenderers[GRT_ENV_GRID].PushBack(new EnvGridRenderer);
 
     globalRenderers[GRT_SHADOW_MAP].ResizeZeroed(LT_MAX); // 1 ShadowMapRenderer per LightType
-    globalRenderers[GRT_SHADOW_MAP][LT_POINT] = PoolNew<PointShadowRenderer>(*g_renderPool);
-    globalRenderers[GRT_SHADOW_MAP][LT_DIRECTIONAL] = PoolNew<DirectionalShadowRenderer>(*g_renderPool);
+    globalRenderers[GRT_SHADOW_MAP][LT_POINT] = new PointShadowRenderer;
+    globalRenderers[GRT_SHADOW_MAP][LT_DIRECTIONAL] = new DirectionalShadowRenderer;
+
+    // one global particle volume renderer
+    globalRenderers[GRT_PARTICLE_VOLUME].ResizeZeroed(1);
+    globalRenderers[GRT_PARTICLE_VOLUME][0] = new ParticleVolumeRenderer;
 }
 
 RenderGlobalState::~RenderGlobalState()
@@ -1449,7 +1455,7 @@ RenderGlobalState::~RenderGlobalState()
             if (globalRenderers[i][j])
             {
                 globalRenderers[i][j]->Shutdown();
-                PoolDelete(*g_renderPool, globalRenderers[i][j]);
+                delete globalRenderers[i][j];
             }
         }
     }
@@ -1470,7 +1476,7 @@ RenderGlobalState::~RenderGlobalState()
     graphicsPipelineCache = nullptr;
 
     mainRenderer->Shutdown();
-    PoolDelete(*g_renderPool, mainRenderer);
+    delete mainRenderer;
     mainRenderer = nullptr;
 }
 

@@ -5,6 +5,7 @@
 #include <core/containers/HashMap.hpp>
 
 #include <rendering/Renderer.hpp>
+#include <rendering/RenderableAttributes.hpp>
 
 namespace hyperion {
 
@@ -35,12 +36,13 @@ private:
         GpuBufferRef noiseBuffer;    // float 128*128
 
         ComputePipelineRef updatePipeline;
-        GraphicsPipelineRef graphicsPipeline;
+        GraphicsPipelineCacheHandle graphicsPipelineHandle;
         DescriptorTableRef graphicsDescriptorTable;
         DescriptorTableRef computeDescriptorTable;
 
         ShaderRef particleShader;
         ShaderRef updateShader;
+        RenderableAttributeSet renderableAttributes;
 
         SizeType maxParticles = 0;
         bool hasPhysics = false;

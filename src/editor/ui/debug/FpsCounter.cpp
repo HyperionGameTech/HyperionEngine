@@ -33,6 +33,7 @@ extern EngineStatCounter<uint32> g_statMaterials;
 extern EngineStatCounter<uint32> g_statTextures;
 extern EngineStatCounter<uint32> g_statLights;
 extern EngineStatCounter<uint32> g_statLightmapVolumes;
+extern EngineStatCounter<uint32> g_statParticleVolumes;
 extern EngineStatCounter<uint32> g_statEnvProbes;
 extern EngineStatCounter<uint32> g_statEnvGrids;
 extern EngineStatCounter<uint32> g_statDebugDraws;
@@ -190,6 +191,11 @@ void FpsCounter::Update_Impl(float delta)
         if (snapshot[g_statLightmapVolumes].value > 0)
         {
             countersText += HYP_FORMAT(", LightmapVolumes: {}", snapshot[g_statLightmapVolumes].value);
+        }
+
+        if (snapshot[g_statParticleVolumes].value > 0)
+        {
+            countersText += HYP_FORMAT(", ParticleVolumes: {}", snapshot[g_statParticleVolumes].value);
         }
 
         if (snapshot[g_statEnvProbes].value > 0)

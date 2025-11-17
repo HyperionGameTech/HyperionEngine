@@ -24,6 +24,7 @@ class Light;
 class EnvProbe;
 class EnvGrid;
 class LightmapVolume;
+class ParticleVolume;
 struct CullData;
 class PassData;
 class RendererBase;
@@ -92,6 +93,7 @@ struct HYP_API RenderSetup
     EnvGrid* envGrid;
     Light* light;
     LightmapVolume* lightmapVolume;
+    ParticleVolume* particleVolume;
 
     PassData* passData;
 
@@ -106,6 +108,7 @@ private:
           envGrid(nullptr),
           light(nullptr),
           lightmapVolume(nullptr),
+          particleVolume(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -119,6 +122,7 @@ public:
           envGrid(nullptr),
           light(nullptr),
           lightmapVolume(nullptr),
+          particleVolume(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -132,6 +136,7 @@ public:
           envGrid(nullptr),
           light(nullptr),
           lightmapVolume(nullptr),
+          particleVolume(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -287,6 +292,8 @@ public:
 class HYP_API RendererBase
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     using PassDataMap = SparsePagedArray<Handle<PassData>, 16>;
 
     virtual ~RendererBase();

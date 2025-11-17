@@ -119,6 +119,7 @@ EngineStatCounter<uint32> g_statTextures("Rendering/Textures");
 EngineStatCounter<uint32> g_statMaterials("Rendering/Materials");
 EngineStatCounter<uint32> g_statLights("Rendering/Lights");
 EngineStatCounter<uint32> g_statLightmapVolumes("Rendering/LightmapVolumes");
+EngineStatCounter<uint32> g_statParticleVolumes("Rendering/ParticleVolumes");
 EngineStatCounter<uint32> g_statEnvProbes("Rendering/EnvProbes");
 EngineStatCounter<uint32> g_statEnvGrids("Rendering/EnvGrids");
 EngineStatCounter<uint32> g_statDebugDraws("Rendering/DebugDraws");
@@ -2080,12 +2081,12 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         }
 
         RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
-        // RenderProxyList already be in read state (see above)
 
         g_statViews++;
         g_statTextures += rpl.GetTextures().NumCurrent();
         g_statMaterials += rpl.GetMaterials().NumCurrent();
         g_statLightmapVolumes += rpl.GetLightmapVolumes().NumCurrent();
+        g_statParticleVolumes += rpl.GetParticleVolumes().NumCurrent();
         g_statLights += rpl.GetLights().NumCurrent();
         g_statEnvGrids += rpl.GetEnvGrids().NumCurrent();
         g_statEnvProbes += rpl.GetEnvProbes().NumCurrent();
@@ -2384,18 +2385,19 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         // begin translucent with forward rendering
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_TRANSLUCENT));
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
-
-        // if (doParticles)
-        // {
-        //     environment->GetParticleSystem()->Render(frame, rs);
-        // }
-
-        // if (doGaussianSplatting)
-        // {
-        //     environment->GetGaussianSplatting()->Render(frame, rs);
-        // }
-
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_SKYBOX));
+
+        // render particles
+        if (rpl.GetParticleVolumes().NumCurrent())
+        {
+            for (ParticleVolume* particleVolume : rpl.GetParticleVolumes())
+            {
+                RenderSetup newRs = rs.Fork();
+                newRs.particleVolume = particleVolume;
+
+                g_renderGlobalState->globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, newRs);
+            }
+        }
 
         // render debug draw
         g_engineDriver->GetDebugDrawer()->Render(frame, rs);

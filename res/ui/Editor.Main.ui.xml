@@ -27,6 +27,7 @@
                 </MenuItem>
                 <MenuItem name="ReflectionProbe" text="Reflection Probe" OnClick="AddReflectionProbe"></MenuItem>
                 <MenuItem name="LightmapVolume" text="Lightmap Volume" OnClick="AddLightmapVolume"></MenuItem>
+                <MenuItem name="ParticleVolume" text="Particle Volume" OnClick="AddParticleVolume"></MenuItem>
             </MenuItem>
 
             <MenuItem name="Build_MenuItem" size="auto 100%" text="Build" backgroundColor="#000000" borderRadius="5">
