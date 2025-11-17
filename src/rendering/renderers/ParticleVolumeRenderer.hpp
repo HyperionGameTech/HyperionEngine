@@ -25,6 +25,8 @@ public:
 
     void RenderFrame(FrameBase* frame, const RenderSetup& renderSetup) override;
 
+    int RunCleanupCycle(int maxIter = 10) override;
+
 protected:
     Handle<PassData> CreateViewPassData(View* view, PassDataExt& ext) override;
 
@@ -46,6 +48,11 @@ private:
 
         SizeType maxParticles = 0;
         bool hasPhysics = false;
+
+        // last frame this volume was used for rendering
+        uint32 fc = uint32(-1);
+
+        ~VolumeState();
     };
 
     struct Staging

@@ -1812,7 +1812,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
     Assert(rs.IsValid());
 
-    Array<RenderProxyList*, InlineAllocator<3, RenderAllocator>> renderProxyLists;
+    Array<RenderProxyList*, InlineAllocator<8, RenderAllocator>> renderProxyLists;
 
     HYP_DEFER({
         for (RenderProxyList* rpl : renderProxyLists)

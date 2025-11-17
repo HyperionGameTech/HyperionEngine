@@ -353,7 +353,9 @@ void Mesh::UploadGpuData()
             stagingBufferIndices->Copy(packedIndicesSize, indices.Data());
 
             FrameBase* frame = g_renderBackend->GetCurrentFrame();
-            RenderQueue& renderQueue = frame->renderQueue;
+
+            // use prerender queue to copy from staging buffers to gpu buffers
+            RenderQueue& renderQueue = frame->preRenderQueue;
 
             renderQueue << CopyBuffer(stagingBufferVertices, vertexBuffer, packedBufferSize);
             renderQueue << CopyBuffer(stagingBufferIndices, indexBuffer, packedIndicesSize);

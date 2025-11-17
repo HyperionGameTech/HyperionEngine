@@ -42,6 +42,22 @@
 
 namespace hyperion {
 
+// How many frames until we release resources for unused volumes?
+static constexpr uint32 DiscardFrames = 60;
+
+ParticleVolumeRenderer::VolumeState::~VolumeState()
+{
+    SafeDelete(std::move(updatePipeline));
+    SafeDelete(std::move(particleBuffer));
+    SafeDelete(std::move(indirectBuffer));
+    SafeDelete(std::move(noiseBuffer));
+    SafeDelete(std::move(computeDescriptorTable));
+    SafeDelete(std::move(graphicsDescriptorTable));
+    SafeDelete(std::move(updateShader));
+    SafeDelete(std::move(particleShader));
+    SafeDelete(std::move(updatePipeline));
+}
+
 ParticleVolumeRenderer::ParticleVolumeRenderer() = default;
 ParticleVolumeRenderer::~ParticleVolumeRenderer() = default;
 
@@ -53,14 +69,6 @@ void ParticleVolumeRenderer::Initialize()
 void ParticleVolumeRenderer::Shutdown()
 {
     HYP_SCOPE;
-
-    for (auto& it : m_volumeStates)
-    {
-        SafeDelete(std::move(it.second.updatePipeline));
-        SafeDelete(std::move(it.second.particleBuffer));
-        SafeDelete(std::move(it.second.indirectBuffer));
-        SafeDelete(std::move(it.second.noiseBuffer));
-    }
 
     if (m_staging.quadMesh.IsValid())
     {
@@ -134,7 +142,6 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     DeferCreate(state.particleBuffer);
 
     state.indirectBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
-    state.indirectBuffer->SetRequireCpuAccessible(true);
     DeferCreate(state.indirectBuffer);
 
     state.noiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(float) * 128 * 128);
@@ -219,11 +226,11 @@ void ParticleVolumeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& re
     HYP_DEFER({ rpl.EndRead(); });
 
     // Reset zero staging buffer state
-    frame->renderQueue << InsertBarrier(m_staging.zeroIndirectArgs, RS_COPY_SRC);
+    frame->preRenderQueue << InsertBarrier(m_staging.zeroIndirectArgs, RS_COPY_SRC);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderProxyParticleVolume* pProxy = static_cast<RenderProxyParticleVolume*>(RenderApi::GetRenderProxy(*it));
+    RenderProxyParticleVolume* pProxy = static_cast<RenderProxyParticleVolume*>(RenderApi::GetRenderProxy(particleVolume));
     AssertDebug(pProxy != nullptr);
 
     VolumeState& state = EnsureVolumeState(pProxy);
@@ -243,9 +250,13 @@ void ParticleVolumeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& re
     // zero indirect arguments (instance count)
     Assert(state.indirectBuffer->Size() == sizeof(IndirectDrawCommand));
 
-    frame->renderQueue << InsertBarrier(state.indirectBuffer, RS_COPY_DST);
-    frame->renderQueue << CopyBuffer(m_staging.zeroIndirectArgs, state.indirectBuffer, sizeof(IndirectDrawCommand));
-    frame->renderQueue << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
+    { // zero out indirect buffer (ahead of frame compute + rendering)
+        RenderQueue& rq = frame->preRenderQueue;
+
+        rq << InsertBarrier(state.indirectBuffer, RS_COPY_DST);
+        rq << CopyBuffer(m_staging.zeroIndirectArgs, state.indirectBuffer, sizeof(IndirectDrawCommand));
+        rq << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
+    }
 
     // bind and dispatch compute
     struct
@@ -263,74 +274,115 @@ void ParticleVolumeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& re
     pushConstants.origin = pProxy->bufferData.originStartSize;
     pushConstants.spawnRadius = pProxy->bufferData.spawnRadius;
     pushConstants.randomness = pProxy->bufferData.randomness;
-    pushConstants.avgLifespan = pProxy->bufferData.avgLifespan;
-    pushConstants.maxParticles = pProxy->bufferData.maxParticles;
     pushConstants.maxParticlesSqrt = pProxy->bufferData.maxParticlesSqrt;
     pushConstants.deltaTime = 0.016f; // TODO: real render delta
     pushConstants.globalCounter = m_counter;
 
     state.updatePipeline->SetPushConstants(&pushConstants, sizeof(pushConstants));
 
-    frame->renderQueue << BindComputePipeline(state.updatePipeline);
+    { // update gpu particles pass (compute, done before frame is rendered)
+        RenderQueue& rq = frame->preRenderQueue;
 
-    frame->renderQueue << BindDescriptorTable(
-        state.computeDescriptorTable,
-        state.updatePipeline,
-        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
-        frameIndex);
+        rq << BindComputePipeline(state.updatePipeline);
 
-    uint32 viewDescriptorSetIndex = state.computeDescriptorTable->GetDescriptorSetIndex("View");
-    if (viewDescriptorSetIndex != ~0u)
-    {
-        Assert(renderSetup.passData != nullptr);
-        frame->renderQueue << BindDescriptorSet(
-            renderSetup.passData->descriptorSets[frameIndex],
+        rq << BindDescriptorTable(
+            state.computeDescriptorTable,
             state.updatePipeline,
-            {},
-            viewDescriptorSetIndex);
+            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
+            frameIndex);
+
+        const uint32 viewDescriptorSetIndex = state.computeDescriptorTable->GetDescriptorSetIndex("View");
+
+        if (viewDescriptorSetIndex != ~0u)
+        {
+            Assert(renderSetup.passData != nullptr);
+            rq << BindDescriptorSet(
+                renderSetup.passData->descriptorSets[frameIndex],
+                state.updatePipeline,
+                {},
+                viewDescriptorSetIndex);
+        }
+
+        const SizeType maxParticles = pProxy->bufferData.maxParticles;
+        rq << DispatchCompute(state.updatePipeline, Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });
+
+        rq << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
     }
 
-    const SizeType maxParticles = pProxy->bufferData.maxParticles;
-    frame->renderQueue << DispatchCompute(state.updatePipeline, Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });
+    state.fc = RenderApi::GetFrameCounter();
 
-    frame->renderQueue << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
+    // this is rendered from translucent pass in DeferredRenderer
+    const FramebufferRef& framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
-    // acquire or reuse graphics pipeline from cache for current view framebuffers
-    const Span<const FramebufferRef> framebuffers = view->GetOutputTarget().GetFramebuffers();
-    if (!state.graphicsPipelineHandle.IsAlive())
+    if (!state.graphicsPipelineHandle.IsAlive()
+        // @TODO Just add an OnResize or something and remove this extra framebuffer check
+        || !(*state.graphicsPipelineHandle)->GetFramebuffers().Contains(framebuffer))
     {
         state.graphicsPipelineHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
             state.particleShader,
             state.graphicsDescriptorTable,
-            framebuffers,
+            Span<const FramebufferRef>(&framebuffer, 1),
             state.renderableAttributes);
     }
 
-    // draw
-    frame->renderQueue << BindGraphicsPipeline(*state.graphicsPipelineHandle, view->GetViewport());
+    { // draw particles pass
+        RenderQueue& rq = frame->renderQueue;
 
-    frame->renderQueue << BindDescriptorTable(
-        state.graphicsDescriptorTable,
-        *state.graphicsPipelineHandle,
-        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
-        frameIndex);
+        rq << BindGraphicsPipeline(*state.graphicsPipelineHandle, view->GetViewport());
 
-    viewDescriptorSetIndex = state.graphicsDescriptorTable->GetDescriptorSetIndex("View");
-
-    if (viewDescriptorSetIndex != ~0u)
-    {
-        Assert(renderSetup.passData != nullptr);
-
-        frame->renderQueue << BindDescriptorSet(
-            renderSetup.passData->descriptorSets[frameIndex],
+        rq << BindDescriptorTable(
+            state.graphicsDescriptorTable,
             *state.graphicsPipelineHandle,
-            {},
-            viewDescriptorSetIndex);
+            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
+            frameIndex);
+
+        const uint32 viewDescriptorSetIndex = state.graphicsDescriptorTable->GetDescriptorSetIndex("View");
+
+        if (viewDescriptorSetIndex != ~0u)
+        {
+            Assert(renderSetup.passData != nullptr);
+
+            rq << BindDescriptorSet(
+                renderSetup.passData->descriptorSets[frameIndex],
+                *state.graphicsPipelineHandle,
+                {},
+                viewDescriptorSetIndex);
+        }
+
+        rq << BindVertexBuffer(m_staging.quadMesh->GetVertexBuffer());
+        rq << BindIndexBuffer(m_staging.quadMesh->GetIndexBuffer());
+        rq << DrawIndexedIndirect(state.indirectBuffer, 0);
+    }
+}
+
+int ParticleVolumeRenderer::RunCleanupCycle(int maxIter)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    const uint32 currFrame = RenderApi::GetFrameCounter();
+
+    int numCycles = 0;
+
+    for (auto it = m_volumeStates.Begin(); it != m_volumeStates.End() && numCycles < maxIter;)
+    {
+        VolumeState& state = it->second;
+
+        const int64 frameDiff = int64(currFrame) - int64(state.fc);
+
+        if (frameDiff >= DiscardFrames)
+        {
+            it = m_volumeStates.Erase(it);
+
+            ++numCycles;
+
+            continue;
+        }
+
+        ++it;
     }
 
-    frame->renderQueue << BindVertexBuffer(m_staging.quadMesh->GetVertexBuffer());
-    frame->renderQueue << BindIndexBuffer(m_staging.quadMesh->GetIndexBuffer());
-    frame->renderQueue << DrawIndexedIndirect(state.indirectBuffer, 0);
+    return numCycles;
 }
 
 } // namespace hyperion

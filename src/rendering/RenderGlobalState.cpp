@@ -203,6 +203,12 @@ static ResourceBinder<LightmapVolume, &OnBindingChanged_Default<LightmapVolume>>
 };
 ResourceBinderBase* g_lightmapVolumeBinder = &s_lightmapVolumeBinder;
 
+static ResourceBindingAllocator<> s_particleVolumeBindingsAllocator;
+static ResourceBinder<ParticleVolume, &OnBindingChanged_Default<ParticleVolume>> s_particleVolumeBinder {
+    &s_particleVolumeBindingsAllocator
+};
+ResourceBinderBase* g_particleVolumeBinder = &s_particleVolumeBinder;
+
 static ResourceBindingAllocator<> s_materialBindingsAllocator;
 static ResourceBinder<Material, &OnBindingChanged_Material> s_materialBinder { &s_materialBindingsAllocator };
 ResourceBinderBase* g_materialBinder = &s_materialBinder;
@@ -224,6 +230,7 @@ static ResourceBinderBase* s_resourceBinders[] = {
     &s_envGridBinder,
     &s_lightBinder,
     &s_lightmapVolumeBinder,
+    &s_particleVolumeBinder,
     &s_materialBinder,
     &s_textureBinder,
     &s_skeletonBinder
@@ -1203,6 +1210,15 @@ void BeginFrame_RenderThread()
                 // nothing is bound for this type, skip
                 continue;
             }
+            
+            if (!subtypeData.gpuBufferHolder)
+            {
+                // in the loop below we only do anything if we have gpu data to update.
+                // short circuit here and just clear the bits without doing anything if we don't have a gpu buffer holder set.
+                subtypeData.indicesPendingUpdate.Clear();
+                
+                continue;
+            }
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
@@ -1217,7 +1233,6 @@ void BeginFrame_RenderThread()
                 ObjectBase* resource = subtypeData.data.Get(i).resource;
 
                 AssertDebug(subtypeData.hasProxyData);
-                AssertDebug(subtypeData.writeBufferDataFn != nullptr);
 
                 const uint32 bindingIndex = ResourceBinding_Retrieve(resource);
                 AssertDebug(bindingIndex != ~0u,
@@ -1228,7 +1243,6 @@ void BeginFrame_RenderThread()
                 AssertDebug(pProxy != nullptr);
 
                 subtypeData.SetGpuElem(bindingIndex, pProxy);
-
                 subtypeData.indicesPendingUpdate.Set(i, false);
             }
         }
@@ -1720,6 +1734,8 @@ DECLARE_RENDER_DATA_CONTAINER(AreaRectLight, RenderProxyLight, GRB_LIGHTS, &Writ
 DECLARE_RENDER_DATA_CONTAINER(SpotLight, RenderProxyLight, GRB_LIGHTS, &WriteBufferData_Light, &s_lightBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, GRB_LIGHTMAP_VOLUMES, nullptr, &s_lightmapVolumeBinder);
+
+DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, GRB_INVALID, nullptr, &s_particleVolumeBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, GRB_MATERIALS, nullptr, &s_materialBinder);
 

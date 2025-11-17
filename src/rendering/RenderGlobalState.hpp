@@ -50,6 +50,7 @@ extern ResourceBinderBase* g_reflectionProbeTextureBinder;
 extern ResourceBinderBase* g_envGridBinder;
 extern ResourceBinderBase* g_lightBinder;
 extern ResourceBinderBase* g_lightmapVolumeBinder;
+extern ResourceBinderBase* g_particleVolumeBinder;
 extern ResourceBinderBase* g_materialBinder;
 extern ResourceBinderBase* g_textureBinder;
 extern ResourceBinderBase* g_skeletonBinder;
