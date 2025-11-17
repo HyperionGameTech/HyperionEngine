@@ -117,28 +117,42 @@ Result EditorProject::CreatePackage()
         return {};
     }
 
-    Name packageName = GetName();
-
-    if (!packageName.IsValid())
+    if (m_name.IsValid())
     {
-        return HYP_MAKE_ERROR(Error, "Project name is not set");
+        // if name is already set, use that
+        // @NOTE: if package already exists at this path it will be used
+
+        m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(*m_name, /* createIfNotExist */ true);
+        return {};
     }
 
-    Handle<AssetRegistry> assetRegistry = g_assetManager->GetAssetRegistry();
+    int currentCounter = 0;
+    String currentName = s_defaultProjectName;
 
-    Handle<AssetPackage> rootPackage = assetRegistry->GetPackageFromPath(*packageName, true);
-    Assert(rootPackage.IsValid());
+    Handle<AssetPackage> newPackage; // new package to be used by our project (root level)
 
-    if (IsInitCalled())
+    do
     {
-        InitObject(rootPackage);
+        newPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
+
+        const Handle<AssetPackage> tmpPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ false);
+
+        if (newPackage && tmpPackage == newPackage)
+        {
+            m_package = newPackage;
+            m_name = CreateNameFromDynamicString(currentName);
+
+            OnPackageCreated(m_package);
+
+            return {};
+        }
+
+        newPackage.Reset();
+        currentName = s_defaultProjectName + String::ToString(++currentCounter);
     }
+    while (!newPackage);
 
-    m_package = rootPackage;
-
-    OnPackageCreated(m_package);
-
-    return {};
+    return HYP_MAKE_ERROR(Error, "Failed to create package");
 }
 
 void EditorProject::AddScene(const Handle<Scene>& scene)
@@ -208,16 +222,6 @@ Result EditorProject::Save()
 Result EditorProject::SaveAs(FilePath filepath)
 {
     HYP_SCOPE;
-
-    if (!m_name.IsValid())
-    {
-        m_name = GetNextDefaultProjectName(s_defaultProjectName);
-
-        if (!m_name.IsValid())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to generate a project name");
-        }
-    }
 
     if (!m_package.IsValid())
     {
@@ -383,33 +387,6 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     InitObject(project);
 
     return project;
-}
-
-Name EditorProject::GetNextDefaultProjectName_Impl(const String& defaultProjectName) const
-{
-    int currentCounter = 0;
-    String currentName = defaultProjectName;
-
-    Handle<AssetPackage> newPackage; // new package to be used by our project (root level)
-
-    do
-    {
-        newPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
-
-        const Handle<AssetPackage> tmpPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ false);
-
-        if (newPackage && tmpPackage == newPackage)
-        {
-            // we found it
-            return CreateNameFromDynamicString(currentName);
-        }
-
-        newPackage.Reset();
-        currentName = defaultProjectName + String::ToString(++currentCounter);
-    }
-    while (!newPackage);
-
-    return Name();
 }
 
 } // namespace hyperion

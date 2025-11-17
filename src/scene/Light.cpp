@@ -61,7 +61,7 @@ static const ShaderProperty s_shadowMapFilterProperties[SMF_MAX] = {
 };
 
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_LIGHTS
-    | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS
+    | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS
     | ViewFlags::SKIP_CAMERAS;
 
 static constexpr Vec2u DefaultShadowMapDimensions[LT_MAX] = {

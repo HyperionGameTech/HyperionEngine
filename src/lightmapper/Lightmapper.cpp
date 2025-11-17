@@ -154,7 +154,7 @@ void LightmapperBase::Initialize()
     ViewDesc viewDesc {
         .flags = ViewFlags::COLLECT_STATIC_ENTITIES
             | ViewFlags::NO_FRUSTUM_CULLING
-            | ViewFlags::SKIP_ENV_GRIDS | ViewFlags::SKIP_LIGHTMAP_VOLUMES
+            | ViewFlags::SKIP_ENV_GRIDS | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES
             | ViewFlags::RAYTRACING
             | ViewFlags::NO_DRAW_CALLS
             | ViewFlags::NOT_MULTI_BUFFERED,

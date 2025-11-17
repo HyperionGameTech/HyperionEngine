@@ -1033,6 +1033,11 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
+    if (m_flags & ViewFlags::SKIP_PARTICLE_VOLUMES)
+    {
+        return;
+    }
+
     for (const Handle<Scene>& scene : m_scenes)
     {
         Assert(scene.IsValid());

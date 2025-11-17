@@ -37,8 +37,12 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <asset/Assets.hpp>
+
 // test
 #include <editor/nativeui/TestNativeUI.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 #include <EditorMain.generated.inl>
 
@@ -1036,7 +1040,10 @@ UIEventHandlerResult EditorMain::AddParticleVolume(const MouseEvent& event)
         return UIEventHandlerResult::ERR;
     }
 
-    Handle<ParticleVolume> particleVolume = CreateObject<ParticleVolume>();
+    ParticleVolumeParams params {};
+    params.texture = g_assetManager->Load<Texture>("textures/spark.png").GetValue().ExtractAs<Handle<Texture>>();
+
+    Handle<ParticleVolume> particleVolume = CreateObject<ParticleVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 20.0f, 20.0f)), params);
     InitObject(particleVolume);
 
     const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);

@@ -138,21 +138,19 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     state.maxParticles = proxy->bufferData.maxParticles;
 
     state.particleBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, state.maxParticles * sizeof(ParticleShaderData));
-    state.particleBuffer->SetRequireCpuAccessible(true);
     DeferCreate(state.particleBuffer);
 
     state.indirectBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
     DeferCreate(state.indirectBuffer);
 
     state.noiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(float) * 128 * 128);
-    state.noiseBuffer->SetRequireCpuAccessible(true);
+    state.noiseBuffer->SetRequireCpuAccessible(true); // @TODO use a staging buffer to copy over instead of keeping it persistently CPU accessible
     CreateNoiseBuffer(state.noiseBuffer);
 
     // compute pipeline
     ShaderProperties properties;
 
-    // hasPhysics comes from entity params; if needed, read from WeakHandle
-    state.hasPhysics = false; // default, renderer can override when binding push constants
+    state.hasPhysics = false; // @TODO
     properties.Set(NAME("HAS_PHYSICS"), state.hasPhysics);
 
     state.updateShader = g_shaderManager->GetOrCreate(NAME("UpdateParticles"), properties);
@@ -200,6 +198,11 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     materialAttributes.flags = MAF_DEPTH_TEST; // depth test on, depth write off by default
 
     MeshAttributes meshAttributes {};
+    meshAttributes.vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0;
+    meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
+    meshAttributes.topology = TOP_TRIANGLES;
     state.renderableAttributes = RenderableAttributeSet(meshAttributes, materialAttributes);
 
     return state;

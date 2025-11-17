@@ -7,7 +7,6 @@
 #include <core/filesystem/FilePath.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
 
 #include <core/functional/Delegate.hpp>
 #include <core/functional/ScriptableDelegate.hpp>
@@ -105,9 +104,6 @@ public:
 
     HYP_METHOD()
     Result SaveAs(FilePath filepath);
-
-    HYP_METHOD(Scriptable)
-    Name GetNextDefaultProjectName(const String& defaultProjectName) const;
 
     HYP_METHOD()
     const Handle<EditorActionStack>& GetActionStack() const
