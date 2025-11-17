@@ -29,6 +29,7 @@ class LightmapVolume;
 class EnvGrid;
 class EnvProbe;
 class Texture;
+class ParticleVolume;
 class GBuffer;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
@@ -253,6 +254,7 @@ protected:
     void CollectCameras(RenderProxyList& rpl);
     void CollectLights(RenderProxyList& rpl);
     void CollectLightmapVolumes(RenderProxyList& rpl);
+    void CollectParticleVolumes(RenderProxyList& rpl);
     void CollectEnvGrids(RenderProxyList& rpl);
     void CollectEnvProbes(RenderProxyList& rpl);
     void CollectMeshEntities(RenderProxyList& rpl);

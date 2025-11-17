@@ -10,6 +10,7 @@
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
 #include <lightmapper/LightmapVolume.hpp>
+#include <particles/ParticleVolume.hpp>
 #include <scene/camera/Camera.hpp>
 #include <scene/animation/Skeleton.hpp>
 
@@ -357,6 +358,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
             CollectCameras(rpl);
             CollectLights(rpl);
             CollectLightmapVolumes(rpl);
+            CollectParticleVolumes(rpl);
             CollectEnvGrids(rpl);
             CollectEnvProbes(rpl);
             CollectMeshEntities(rpl);
@@ -1023,6 +1025,40 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
             }
 
             rpl.GetLightmapVolumes().Track(lightmapVolume->Id(), lightmapVolume, lightmapVolume->GetRenderProxyVersionPtr());
+        }
+    }
+}
+
+void View::CollectParticleVolumes(RenderProxyList& rpl)
+{
+    HYP_SCOPE;
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        Assert(scene.IsValid());
+        Assert(scene->IsReady());
+
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<ParticleVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            ParticleVolume* volume = static_cast<ParticleVolume*>(entity);
+
+            const BoundingBox volumeAabb = volume->GetWorldAABB();
+
+            if (!volumeAabb.IsValid() || !volumeAabb.IsFinite())
+            {
+                HYP_LOG(Scene, Warning, "ParticleVolume {} has an invalid AABB in view {}", volume->Id(), Id());
+                continue;
+            }
+
+            if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING) && m_camera.IsValid())
+            {
+                if (!m_camera->GetFrustum().ContainsAABB(volumeAabb))
+                {
+                    continue;
+                }
+            }
+
+            rpl.GetParticleVolumes().Track(volume->Id(), volume, volume->GetRenderProxyVersionPtr());
         }
     }
 }

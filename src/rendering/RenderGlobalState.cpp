@@ -42,6 +42,8 @@
 
 #include <lightmapper/LightmapVolume.hpp>
 
+#include <particles/ParticleVolume.hpp>
+
 #include <core/reflection/Class.hpp>
 
 #include <core/utilities/DeferredScope.hpp>

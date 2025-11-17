@@ -31,6 +31,8 @@
 
 #include <scene/animation/Skeleton.hpp>
 
+#include <particles/ParticleVolume.hpp>
+
 #include <lightmapper/LightmapVolume.hpp>
 
 #include <core/profiling/ProfileScope.hpp>

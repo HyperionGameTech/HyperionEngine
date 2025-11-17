@@ -33,6 +33,7 @@ class Camera;
 class View;
 class Texture;
 class LightmapVolume;
+class ParticleVolume;
 class Material;
 class Skeleton;
 class EnvProbe;
@@ -270,6 +271,30 @@ public:
     Array<Texture*> atlasRadianceTextures;
     uint32 numAtlases = 0;
     LightmapVolumeShaderData bufferData {};
+};
+
+struct ParticleVolumeShaderData
+{
+    Vec4f originStartSize; // xyz = origin, w = start size
+
+    float spawnRadius = 0.0f;
+    float randomness = 0.0f;
+    float avgLifespan = 0.0f;
+    uint32 maxParticles = 0;
+
+    float maxParticlesSqrt = 0.0f;
+    float _pad0 = 0.0f;
+    float _pad1 = 0.0f;
+    float _pad2 = 0.0f;
+};
+
+class RenderProxyParticleVolume final : public IRenderProxy
+{
+public:
+    WeakHandle<ParticleVolume> particleVolume;
+    Texture* particleTexture = nullptr;
+    BoundingBox worldAabb; // for culling/debug
+    ParticleVolumeShaderData bufferData {};
 };
 
 struct alignas(16) MaterialShaderData
