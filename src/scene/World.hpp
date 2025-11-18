@@ -24,12 +24,15 @@ namespace hyperion {
 class EditorDelegates;
 class View;
 class WorldGrid;
+class WorldGridLayer;
 
 namespace threading {
 class TaskBatch;
 } // namespace threading
 
 using threading::TaskBatch;
+
+struct WGLayerDesc;
 
 HYP_CLASS()
 class HYP_API World final : public ObjectBase
@@ -40,10 +43,14 @@ public:
     using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, DynamicNodeAllocator>;
 
     World();
+    explicit World(Name name);
+
     World(const World& other) = delete;
     World& operator=(const World& other) = delete;
+
     World(World&& other) noexcept = delete;
     World& operator=(World&& other) noexcept = delete;
+
     ~World() override;
 
     HYP_METHOD()
@@ -182,13 +189,24 @@ public:
 private:
     void Init() override;
 
-    HYP_FIELD(Property = "Name", Serialize = true)
+    Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);
+
+    HYP_METHOD(Property = "Scenes", Transient)
+    void SetScenes(const Array<Handle<Scene>>& scenes);
+
+    HYP_METHOD(Property = "StreamingLayers", Serialize)
+    void DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator>& streamingLayers);
+
+    HYP_METHOD(Property = "StreamingLayers", Serialize)
+    Array<WGLayerDesc, DynamicAllocator> SerializeStreamingLayers() const;
+
+    HYP_FIELD(Property = "Name", Serialize)
     Name m_name;
 
-    PhysicsWorld m_physicsWorld;
+    HYP_FIELD(Property = "Scenes", Transient)
+    Array<Handle<Scene>> m_scenes;
 
-    Array<Handle<Scene>, SceneAllocator> m_scenes;
-    Array<Handle<View>, SceneAllocator> m_views;
+    Array<Handle<View>> m_views;
 
     // Views, buffered so the render thread can safely read from it
     Array<Array<View*>, FixedAllocator<RingBufferDepth>> m_viewsPerFrame;
@@ -203,6 +221,8 @@ private:
     GameState m_gameState;
 
     TaskBatch* m_viewCollectionBatch;
+
+    PhysicsWorld m_physicsWorld;
 
     // additional views to process for the current frame
     Array<View*, SceneTempAllocator> m_processViews;

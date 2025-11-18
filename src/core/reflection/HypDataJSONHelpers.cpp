@@ -75,6 +75,10 @@ bool HypDataToJSON(
     {
         assetReference = value.Get<AssetReference>();
     }
+    else if (value.Is<AssetPath>() && opts.followAssetPaths >= ToJSONOptions::FollowAssetPathsMode::WITH_ATTRIBUTE)
+    {
+        assetReference = AssetReference(value.Get<AssetPath>());
+    }
     else if (value.Is<AssetObject>())
     {
         // Serialize AssetObject deriving classes by their asset reference if we're saving an Editor project.
@@ -268,6 +272,11 @@ bool HypDataToJSON(
                 newOpts.writeClassNames = true;
             }
 
+            if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::ALWAYS)
+            {
+                newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::NEVER;
+            }
+
             json::JSONValue jsonValue;
             if (!HypDataToJSON(element, jsonValue, newOpts))
             {
@@ -322,6 +331,11 @@ bool HypDataToJSON(
             if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->GetClass() != elementData.GetTypeInfo()->GetClass())
             {
                 newOpts.writeClassNames = true;
+            }
+
+            if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::ALWAYS)
+            {
+                newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::NEVER;
             }
 
             json::JSONValue jsonValue;
@@ -405,6 +419,11 @@ bool HypDataToJSON(
         if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer)
         {
             newOpts.writeClassNames = true;
+        }
+
+        if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::ALWAYS)
+        {
+            newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::NEVER;
         }
 
         return HypDataToJSON(HypData(activeValue), outJson, newOpts);
@@ -550,6 +569,11 @@ bool ObjectToJSON(
                     newOpts.writeClassNames = true;
                 }
 
+                if (opts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::ALWAYS && !property->GetAttribute(Attributes::g_attrFollowAssetPath).GetBool())
+                {
+                    newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::NEVER;
+                }
+
                 json::JSONValue jsonValue;
 
                 if (!HypDataToJSON(value, jsonValue, newOpts))
@@ -590,6 +614,11 @@ bool ObjectToJSON(
                 if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && field->GetTypeInfo().GetClass() != GetClass(value.GetTypeId()))
                 {
                     newOpts.writeClassNames = true;
+                }
+
+                if (opts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::ALWAYS && !field->GetAttribute(Attributes::g_attrFollowAssetPath).GetBool())
+                {
+                    newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::NEVER;
                 }
 
                 json::JSONValue jsonValue;
@@ -634,6 +663,11 @@ bool ObjectToJSON(
                 if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && staticField->GetTypeInfo().GetClass() != GetClass(value.GetTypeId()))
                 {
                     newOpts.writeClassNames = true;
+                }
+
+                if (opts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::ALWAYS && !staticField->GetAttribute(Attributes::g_attrFollowAssetPath).GetBool())
+                {
+                    newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::NEVER;
                 }
 
                 json::JSONValue jsonValue;
@@ -687,7 +721,6 @@ bool ObjectToJSON(
     return true;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, HypData& target)
 {
     auto resolveMember = [&target](const IHypMember& member, const json::JSONValue& value) -> bool
@@ -867,6 +900,14 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
     {
         AssetReference& assetReference = target.Get<AssetReference>();
 
+        // target wants an AssetPath, we can give it the AssetPath
+        if (targetClass == AssetPath::StaticClass())
+        {
+            target = HypData(assetReference.GetAssetPath());
+
+            return true;
+        }
+        
         if (assetReference.IsValid())
         {
             if (Handle<AssetObject> assetObject = assetReference.Resolve(); assetObject.IsValid())
@@ -893,7 +934,6 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
 
     return true;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, HypData& outHypData)
 {

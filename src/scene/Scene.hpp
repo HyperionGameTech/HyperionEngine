@@ -191,6 +191,18 @@ public:
         m_isAudioListener = isAudioListener;
     }
 
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Vec2i& GetStreamingCentroid() const
+    {
+        return m_streamingCentroid;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE void SetStreamingCenroid(const Vec2i& streamingCentroid)
+    {
+        m_streamingCentroid = streamingCentroid;
+    }
+
     void Update(float delta);
 
     HYP_METHOD()
@@ -238,6 +250,9 @@ private:
 
     HYP_FIELD(Property = "PreviousDelta", Transient)
     float m_previousDelta;
+
+    HYP_FIELD(Property = "StreamingCentroid")
+    Vec2i m_streamingCentroid;
 };
 
 } // namespace hyperion

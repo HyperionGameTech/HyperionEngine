@@ -18,6 +18,7 @@ namespace hyperion {
 
 class WorldGrid;
 class Scene;
+class AssetReference;
 
 HYP_ENUM()
 enum class StreamingCellState : uint32
@@ -93,6 +94,9 @@ public:
         return m_cellInfo;
     }
 
+    void AddAssetReference(const AssetReference& assetReference, bool shouldLoad = false);
+    void RemoveAssetReference(const AssetReference& assetReference);
+
     HYP_METHOD(Scriptable)
     void Update(float delta);
 
@@ -103,12 +107,17 @@ protected:
         return m_cellInfo.bounds;
     }
 
+    virtual void OnStreamStart_Impl() override;
+    virtual void OnLoaded_Impl() override;
+    virtual void OnRemoved_Impl() override;
+
     HYP_METHOD()
     virtual void Update_Impl(float delta)
     {
     }
 
     StreamingCellInfo m_cellInfo;
+    Array<AssetReference, DynamicAllocator> m_assetReferences;
 };
 
 } // namespace hyperion

@@ -14,36 +14,9 @@
 
 #include <core/HashCode.hpp>
 
+#include <asset/AssetReference.hpp>
+
 namespace hyperion {
-
-HYP_STRUCT()
-struct StreamableKey
-{
-    HYP_STRUCT_BODY(StreamableKey);
-
-    HYP_FIELD(Property = "Uuid", Serialize = true)
-    Uuid uuid = Uuid::Invalid();
-
-    HYP_FIELD(Property = "AssetPath", Serialize = true)
-    Name assetPath;
-
-    HYP_FORCE_INLINE bool operator==(const StreamableKey& other) const
-    {
-        return uuid == other.uuid
-            && assetPath == other.assetPath;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const StreamableKey& other) const
-    {
-        return !(*this == other);
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        return HashCode::GetHashCode(uuid)
-            .Combine(HashCode::GetHashCode(assetPath));
-    }
-};
 
 HYP_CLASS(Abstract)
 class HYP_API StreamableBase : public ObjectBase
@@ -52,18 +25,7 @@ class HYP_API StreamableBase : public ObjectBase
 
 public:
     StreamableBase() = default;
-    StreamableBase(const StreamableKey& key)
-        : m_key(key)
-    {
-    }
-
     virtual ~StreamableBase() = default;
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE const StreamableKey& GetKey() const
-    {
-        return m_key;
-    }
 
     HYP_METHOD(Scriptable)
     BoundingBox GetBoundingBox() const;
@@ -101,8 +63,6 @@ protected:
     {
         // do nothing
     }
-
-    StreamableKey m_key;
 };
 
 } // namespace hyperion

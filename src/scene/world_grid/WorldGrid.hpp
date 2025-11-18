@@ -3,6 +3,7 @@
 #pragma once
 
 #include <scene/world_grid/WorldGridState.hpp>
+#include <scene/world_grid/WorldGridLayer.hpp>
 
 #include <scene/Entity.hpp>
 
@@ -26,21 +27,71 @@ namespace hyperion {
 
 class Scene;
 class EntityManager;
-class WorldGridLayer;
 class StreamingManager;
+
+struct WGState;
+
+HYP_STRUCT()
+struct WGObject
+{
+    HYP_STRUCT_BODY(WGObject);
+
+    HYP_FIELD()
+    Vec2i coords;
+
+    HYP_FIELD(FollowAssetPath = true)
+    AssetPath path;
+
+    HYP_FORCE_INLINE bool operator==(const WGObject& other) const
+    {
+        return coords == other.coords
+            && path == other.path;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const WGObject& other) const
+    {
+        return !(*this == other);
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(coords)
+            .Combine(HashCode::GetHashCode(path));
+    }
+};
+
+HYP_STRUCT()
+struct WGLayerDesc
+{
+    HYP_STRUCT_BODY(WGLayerDesc);
+
+    HYP_FIELD()
+    Name className = NAME("WorldGridLayer");
+
+    HYP_FIELD()
+    WorldGridLayerInfo info;
+
+    HYP_FIELD()
+    Array<WGObject> objects;
+};
 
 HYP_CLASS()
 class HYP_API WorldGrid final : public ObjectBase
 {
     HYP_OBJECT_BODY(WorldGrid);
 
+    friend class World;
+
 public:
     WorldGrid();
-    WorldGrid(World* world);
+    explicit WorldGrid(World* world);
+
     WorldGrid(const WorldGrid& other) = delete;
     WorldGrid& operator=(const WorldGrid& other) = delete;
+
     WorldGrid(WorldGrid&& other) = delete;
     WorldGrid& operator=(WorldGrid&& other) = delete;
+
     ~WorldGrid() override;
 
     HYP_METHOD()
@@ -67,17 +118,12 @@ public:
 private:
     void Init() override;
 
-    // void CreatePatches();
-
-    void GetDesiredPatches(HashSet<Vec2i>& outPatchCoords) const;
+    void SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs);
+    Array<WGLayerDesc> GetStreamingLayerDescs() const;
 
     World* m_world;
 
-    // Array<WorldGridPatchDesc> m_patches;
-
     WorldGridState m_state;
-
-    HYP_FIELD(Property = "Layers", Serialize = true)
     Array<Handle<WorldGridLayer>> m_layers;
 };
 

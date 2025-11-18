@@ -40,14 +40,22 @@
 
 namespace hyperion {
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
-
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
 #define HYP_WORLD_ASYNC_VIEW_COLLECTION
 
+extern const GlobalConfig& CoreApi_GetGlobalConfig();
+
+static const Name s_nameStreamingLayerScenes = NAME("Scenes_Layer");
+static const Name s_nameUnnamedWorld = NAME("<unnamed world>");
+
 World::World()
+    : World(s_nameUnnamedWorld)
+{
+}
+
+World::World(Name name)
     : ObjectBase(),
-      m_name(Name::Unique("World")),
+      m_name(name),
       m_worldGrid(CreateObject<WorldGrid>(this)),
       m_raytracingView(nullptr),
       m_viewCollectionBatch(nullptr)
@@ -613,7 +621,7 @@ void World::AddScene(const Handle<Scene>& scene)
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
 
-    if (!scene.IsValid())
+    if (!scene)
     {
         return;
     }
@@ -650,6 +658,10 @@ void World::AddScene(const Handle<Scene>& scene)
                 view->AddScene(scene);
             }
         }
+
+        Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+        AssertDebug(scenesStreamingLayer != nullptr);
+        scenesStreamingLayer->InsertNewObject(scene, scene->GetStreamingCentroid());
     }
 
     m_scenes.PushBack(scene);
@@ -673,12 +685,14 @@ bool World::RemoveScene(Scene* scene)
 
     if (scene != nullptr)
     {
-        OnSceneRemoved(this, scene);
-
         scene->SetWorld(nullptr);
 
         if (IsReady())
         {
+            // @TODO Remove scene from streaming layer
+
+            OnSceneRemoved(this, scene);
+
             for (Subsystem* subsystem : m_subsystemsArray)
             {
                 subsystem->OnSceneDetached(scene);
@@ -694,6 +708,91 @@ bool World::RemoveScene(Scene* scene)
     SafeDelete(std::move(strongScene));
 
     return true;
+}
+
+void World::SetScenes(const Array<Handle<Scene>>& scenes)
+{
+    HYP_SCOPE;
+    // no thread assertion if not yet init since this is used for deserialization mainly
+
+    const bool isReady = IsReady();
+
+    if (isReady)
+    {
+        AssertOnThread(g_gameThread);
+    }
+
+    for (Handle<Scene>& scene : m_scenes)
+    {
+        scene->SetWorld(nullptr);
+
+        if (isReady)
+        {
+            // @TODO Remove scene from streaming layer
+
+            OnSceneRemoved(this, scene);
+
+            for (Subsystem* subsystem : m_subsystemsArray)
+            {
+                subsystem->OnSceneDetached(scene);
+            }
+
+            for (const Handle<View>& view : m_views)
+            {
+                view->RemoveScene(scene);
+            }
+        }
+
+        SafeDelete(std::move(scene));
+    }
+
+    m_scenes.Clear();
+
+    for (const Handle<Scene>& scene : scenes)
+    {
+        if (!scene)
+        {
+            continue;
+        }
+
+        if (m_scenes.Contains(scene))
+        {
+            continue; // prevent double add
+        }
+
+        scene->SetWorld(this);
+
+        if (isReady)
+        {
+            InitObject(scene);
+
+            OnSceneAdded(this, scene);
+
+            for (Subsystem* subsystem : m_subsystemsArray)
+            {
+                subsystem->OnSceneAttached(scene);
+            }
+
+            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+            {
+                for (const Handle<View>& view : m_views)
+                {
+                    if (!(view->GetFlags() & ViewFlags::ALL_WORLD_SCENES))
+                    {
+                        continue;
+                    }
+
+                    view->AddScene(scene);
+                }
+            }
+
+            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+            AssertDebug(scenesStreamingLayer != nullptr);
+            scenesStreamingLayer->InsertNewObject(scene, scene->GetStreamingCentroid());
+        }
+
+        m_scenes.PushBack(scene);
+    }
 }
 
 bool World::HasScene(ObjId<Scene> sceneId) const
@@ -825,6 +924,60 @@ Span<View* const> World::GetViews() const
     AssertOnThread(g_renderThread | g_gameThread);
 
     return m_viewsPerFrame[RenderApi::GetRingIndex()].ToSpan();
+}
+
+Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
+{
+    HYP_SCOPE;
+
+    AssertDebug(streamingLayerName.IsValid());
+    if (!streamingLayerName.IsValid())
+    {
+        return Handle<WorldGridLayer>::Null();
+    }
+
+    AssertDebug(m_worldGrid != nullptr);
+    if (!m_worldGrid)
+    {
+        return Handle<WorldGridLayer>::Null();
+    }
+
+    auto it = m_worldGrid->GetLayers().FindIf([streamingLayerName](const Handle<WorldGridLayer>& layer)
+        {
+            return layer->GetName() == streamingLayerName;
+        });
+
+    if (it != m_worldGrid->GetLayers().End())
+    {
+        return *it;
+    }
+
+    Handle<WorldGridLayer> layer = CreateObject<WorldGridLayer>(streamingLayerName);
+    m_worldGrid->AddLayer(layer);
+
+    return layer;
+}
+
+void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator>& streamingLayers)
+{
+    if (!m_worldGrid)
+    {
+        m_worldGrid = CreateObject<WorldGrid>(this);
+    }
+
+    m_worldGrid->SetStreamingLayersFromDescs(streamingLayers.ToSpan());
+}
+
+Array<WGLayerDesc, DynamicAllocator> World::SerializeStreamingLayers() const
+{
+    AssertDebug(m_worldGrid != nullptr);
+
+    if (!m_worldGrid)
+    {
+        return {};
+    }
+
+    return m_worldGrid->GetStreamingLayerDescs();
 }
 
 } // namespace hyperion

@@ -31,10 +31,18 @@ class JSONObject;
 
 struct ToJSONOptions
 {
+    enum FollowAssetPathsMode
+    {
+        NEVER = 0,
+        WITH_ATTRIBUTE, // with "FollowAssetPath" attribute evaluating to true
+        ALWAYS
+    };
+
     bool skipTransientProperties = true;
     bool saveAssetObjectsAsReferences = true;
     bool writeClassNames = false;
     bool writeClassNamesRecursively = false;
+    FollowAssetPathsMode followAssetPaths = WITH_ATTRIBUTE;
 };
 
 /*! \brief Converts a HypData to a JSONValue.

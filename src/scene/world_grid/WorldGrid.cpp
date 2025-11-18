@@ -167,9 +167,12 @@ bool WorldGrid::RemoveLayer(WorldGridLayer* layer)
 
     if (it != m_layers.End())
     {
-        (*it)->OnRemoved(this);
+        if (IsReady())
+        {
+            (*it)->OnRemoved(this);
 
-        g_streamingManager->RemoveWorldGridLayer(*it);
+            g_streamingManager->RemoveWorldGridLayer(*it);
+        }
 
         m_layers.Erase(it);
 
@@ -178,40 +181,100 @@ bool WorldGrid::RemoveLayer(WorldGridLayer* layer)
 
     return false;
 }
+;
+void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
+{
+    HYP_SCOPE;
 
-// void WorldGrid::CreatePatches()
-// {
-//     HYP_SCOPE;
+    const bool isReady = IsReady();
 
-//     Assert(m_streamingManager.IsValid());
+    if (isReady)
+    {
+        AssertOnThread(g_gameThread);
+    }
 
-//     m_patches.Clear();
-//     m_patches.Resize(m_params.gridSize.Volume());
+    if (isReady)
+    {
+        for (auto& layer : m_layers)
+        {
+            layer->OnRemoved(this);
 
-//     HYP_LOG(WorldGrid, Info, "Creating {} patches for world grid with size {}x{}", m_patches.Size(), m_params.gridSize.x, m_params.gridSize.y);
+            g_streamingManager->RemoveWorldGridLayer(layer);
+        }
+    }
 
-//     for (uint32 x = 0; x < m_params.gridSize.x; ++x)
-//     {
-//         for (uint32 z = 0; z < m_params.gridSize.y; ++z)
-//         {
-//             const Vec2i coord { int(x), int(z) };
+    m_layers.Clear();
 
-//             WorldGridPatchDesc& patchDesc = m_patches[x + z * m_params.gridSize.x];
-//             patchDesc.cellInfo = StreamingCellInfo {
-//                 .extent = m_params.cellSize,
-//                 .coord = coord,
-//                 .scale = m_params.scale,
-//                 .state = StreamingCellState::UNLOADED,
-//                 .neighbors = GetPatchNeighbors(coord)
-//             };
+    for (const WGLayerDesc& layerDesc : descs)
+    {
+        const Class* cls = GetClass(layerDesc.className);
 
-//             Handle<StreamingCell> patch = CreateObject<StreamingCell>(this, patchDesc.cellInfo);
-//             Assert(patch.IsValid());
+        if (!cls)
+        {
+            HYP_LOG(WorldGrid, Error, "Attempted to add layer of class '{}' but the class was not found!", layerDesc.className);
 
-//             patchDesc.patch = patch;
-//         }
-//     }
-// }
+            continue;
+        }
+
+        if (!cls->IsDerivedFrom(WorldGridLayer::StaticClass()))
+        {
+            HYP_LOG(WorldGrid, Error, "Attempted to add layer of class '{}' but it is not derived from WorldGridLayer!", cls->GetName());
+
+            continue;
+        }
+        
+        HypData instance;
+        if (!cls->CreateInstance(instance, /* allowAbstract */ false))
+        {
+            HYP_LOG(WorldGrid, Error, "Failed to create instance of layer class '{}'!", cls->GetName());
+
+            continue;
+        }
+
+        AssertDebug(instance.Is<Handle<WorldGridLayer>>());
+
+        Handle<WorldGridLayer>& layer = instance.Get<Handle<WorldGridLayer>>();
+        AssertDebug(layer != nullptr);
+
+        // setup layer members
+
+        layer->m_layerInfo = layerDesc.info;
+
+        for (const WGObject& object : layerDesc.objects)
+        {
+            layer->m_objectsByCoord[object.coords].PushBack(AssetReference(object.path));
+        }
+
+        if (isReady)
+        {
+            layer->OnAdded(this);
+
+            g_streamingManager->AddWorldGridLayer(layer);
+        }
+
+        m_layers.PushBack(std::move(layer));
+    }
+}
+
+Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
+{
+    Array<WGLayerDesc> descs;
+    descs.Reserve(m_layers.Size());
+
+    for (const Handle<WorldGridLayer>& layer : m_layers)
+    {
+        WGLayerDesc& layerDesc = descs.EmplaceBack();
+        layerDesc.className = layer->InstanceClass()->GetName();
+        layerDesc.info = layer->GetLayerInfo();
+
+        for (const KeyValuePair<Vec2i, Array<WGObject>>& pair : layer->m_objectsByCoord)
+        {
+            layerDesc.objects.Concat(pair.second);
+        }
+    }
+
+    return descs;
+}
 
 #pragma endregion WorldGrid
 

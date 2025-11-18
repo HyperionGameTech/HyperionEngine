@@ -10,7 +10,7 @@
 #include <asset/AssetObject.hpp>
 
 #include <scene/Scene.hpp>
-
+#include <scene/World.hpp>
 #include <scene/EntityManager.hpp>
 
 #include <scene/camera/Camera.hpp>
@@ -53,6 +53,7 @@ EditorProject::EditorProject(Name name)
     : m_name(name),
       m_lastSavedTime(~0ull)
 {
+    m_world = CreateObject<World>(NAME_FMT("{}_World", name));
     m_actionStack = CreateObject<EditorActionStack>(WeakHandleFromThis());
 }
 
@@ -62,6 +63,8 @@ EditorProject::~EditorProject()
 
 void EditorProject::Init()
 {
+    ObjectBase::Init();
+
     if (m_name.IsValid())
     {
         if (Result createPackageResult = CreatePackage(); createPackageResult.HasError())
@@ -77,12 +80,8 @@ void EditorProject::Init()
 
     InitObject(m_actionStack);
 
-    for (const Handle<Scene>& scene : m_scenes)
-    {
-        InitObject(scene);
-
-        OnSceneAdded(scene);
-    }
+    Assert(m_world != nullptr);
+    InitObject(m_world);
 
     SetReady(true);
 }
@@ -155,48 +154,33 @@ Result EditorProject::CreatePackage()
     return HYP_MAKE_ERROR(Error, "Failed to create package");
 }
 
-void EditorProject::AddScene(const Handle<Scene>& scene)
+void EditorProject::AddScene(const Handle<Scene>& scene, Vec2i streamingCoord)
 {
     HYP_SCOPE;
 
-    if (!scene.IsValid())
+    if (!scene)
     {
         return;
     }
 
-    if (m_scenes.Contains(scene))
-    {
-        return;
-    }
+    AssertDebug(m_world != nullptr);
 
-    m_scenes.PushBack(scene);
-
-    if (IsInitCalled())
-    {
-        OnSceneAdded(scene);
-    }
+    m_world->AddScene(scene);
+    // @TODO Do something with streaming coord
 }
 
-void EditorProject::RemoveScene(const Handle<Scene>& scene)
+void EditorProject::RemoveScene(Scene* scene)
 {
     HYP_SCOPE;
 
-    if (!scene.IsValid())
+    if (!scene)
     {
         return;
     }
+    
+    AssertDebug(m_world != nullptr);
 
-    if (!m_scenes.Contains(scene))
-    {
-        return;
-    }
-
-    if (IsInitCalled())
-    {
-        OnSceneRemoved(scene);
-    }
-
-    m_scenes.Erase(scene);
+    m_world->RemoveScene(scene);
 }
 
 FilePath EditorProject::GetProjectsDirectory() const

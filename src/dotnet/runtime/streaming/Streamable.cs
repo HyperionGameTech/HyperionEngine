@@ -3,25 +3,20 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name = "StreamableKey")]
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
-    public struct StreamableKey
+    [ClassBinding(Name = "WGObject")]
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WGObject
     {
-        [FieldOffset(0)]
-        public Uuid uuid;
+        public Vec2i coord;
+        public AssetPath name;
 
-        [FieldOffset(16)]
-        public Name name;
-
-        public StreamableKey()
+        public WGObject()
         {
-            this.uuid = Uuid.Invalid;
-            this.name = Name.Invalid;
         }
 
-        public StreamableKey(Uuid uuid, Name name)
+        public WGObject(Vec2i coord, AssetPath name)
         {
-            this.uuid = uuid;
+            this.coord = coord;
             this.name = name;
         }
     }

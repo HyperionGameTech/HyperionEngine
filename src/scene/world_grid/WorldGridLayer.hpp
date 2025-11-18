@@ -15,27 +15,30 @@
 namespace hyperion {
 
 class WorldGrid;
+class WGObject;
 class StreamingCell;
 struct StreamingCellInfo;
+class AssetObject;
+class AssetReference;
 
 HYP_STRUCT(Size = 80)
 struct WorldGridLayerInfo
 {
     HYP_STRUCT_BODY(WorldGridLayerInfo);
 
-    HYP_FIELD(Property = "GridSize", Serialize = true)
+    HYP_FIELD()
     Vec2u gridSize { 64, 64 };
 
-    HYP_FIELD(Property = "CellSize", Serialize = true)
+    HYP_FIELD()
     Vec3u cellSize { 32, 32, 32 };
 
-    HYP_FIELD(Property = "Offset", Serialize = true)
+    HYP_FIELD()
     Vec3f offset { 0.0f, 0.0f, 0.0f };
 
-    HYP_FIELD(Property = "Scale", Serialize = true)
+    HYP_FIELD()
     Vec3f scale { 1.0f, 1.0f, 1.0f };
 
-    HYP_FIELD(Property = "MaxDistance", Serialize = true)
+    HYP_FIELD()
     float maxDistance = 2.5f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -56,11 +59,14 @@ class HYP_API WorldGridLayer : public ObjectBase
 {
     HYP_OBJECT_BODY(WorldGridLayer);
 
+    friend class WorldGrid;
+
 public:
     WorldGridLayer() = default;
 
-    explicit WorldGridLayer(const WorldGridLayerInfo& layerInfo)
-        : m_layerInfo(layerInfo)
+    explicit WorldGridLayer(Name name, const WorldGridLayerInfo& layerInfo = {})
+        : m_name(name),
+          m_layerInfo(layerInfo)
     {
     }
 
@@ -71,6 +77,18 @@ public:
     WorldGridLayer& operator=(WorldGridLayer&& other) = delete;
 
     virtual ~WorldGridLayer() = default;
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE Name GetName() const
+    {
+        return m_name;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE void SetName(Name name)
+    {
+        m_name = name;
+    }
 
     HYP_METHOD()
     HYP_FORCE_INLINE const WorldGridLayerInfo& GetLayerInfo() const
@@ -86,6 +104,9 @@ public:
 
     HYP_METHOD(Scriptable)
     Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo);
+    
+    HYP_METHOD()
+    void InsertNewObject(const AssetObject* obj, const Vec2i& coord);
 
 protected:
     HYP_METHOD(Scriptable)
@@ -104,23 +125,16 @@ protected:
     HYP_METHOD()
     virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo);
 
-    HYP_METHOD(Scriptable)
-    virtual WorldGridLayerInfo CreateLayerInfo() const;
-
+    Name m_name;
     WorldGridLayerInfo m_layerInfo;
+    FlatMap<Vec2i, Array<AssetReference, DynamicAllocator>> m_objectsByCoord;
+    FlatMap<Vec2i, Array<AssetReference, DynamicAllocator>> m_transientObjectsByCoord;
 
 private:
     HYP_METHOD()
-    WorldGridLayerInfo CreateLayerInfo_Impl() const
-    {
-        // default implementation returns default object
-        return WorldGridLayerInfo {};
-    }
-
-    HYP_METHOD()
     virtual void Init_Impl()
     {
-        m_layerInfo = CreateLayerInfo();
+        ObjectBase::Init();
 
         SetReady(true);
     }

@@ -902,7 +902,7 @@ EditorSubsystem::EditorSubsystem()
 
                 WeakHandle<Scene> activeScene;
 
-                for (const Handle<Scene>& scene : project->GetScenes())
+                for (const Handle<Scene>& scene : project->GetWorld()->GetScenes())
                 {
                     Assert(scene.IsValid());
 
@@ -911,7 +911,7 @@ EditorSubsystem::EditorSubsystem()
                         activeScene = scene;
                     }
 
-                    GetWorld()->AddScene(scene);
+                    //GetWorld()->AddScene(scene);
 
                     m_delegateHandlers.Add(
                         scene->OnRootNodeChanged
@@ -924,7 +924,7 @@ EditorSubsystem::EditorSubsystem()
                 UpdateWatchedNodes();
 
                 m_delegateHandlers.Add(
-                    project->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](const Handle<Scene>& scene)
+                    project->GetWorld()->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](const Handle<Scene>& scene)
                         {
                             Assert(scene.IsValid());
 
@@ -933,7 +933,7 @@ EditorSubsystem::EditorSubsystem()
 
                             HYP_LOG(Editor, Info, "Project {} added scene: {}", *project->GetName(), *scene->GetName());
 
-                            GetWorld()->AddScene(scene);
+                            //GetWorld()->AddScene(scene);
 
                             m_delegateHandlers.Add(
                                 scene->OnRootNodeChanged
@@ -952,7 +952,7 @@ EditorSubsystem::EditorSubsystem()
                         }));
 
                 m_delegateHandlers.Add(
-                    project->OnSceneRemoved.Bind([this, projectWeak = project.ToWeak()](Scene* scene)
+                    project->GetWorld()->OnSceneRemoved.Bind([this, projectWeak = project.ToWeak()](Scene* scene)
                         {
                             Assert(scene != nullptr);
 
@@ -965,7 +965,7 @@ EditorSubsystem::EditorSubsystem()
 
                             StopWatchingNode(scene->GetRoot());
 
-                            GetWorld()->RemoveScene(scene);
+                            //GetWorld()->RemoveScene(scene);
 
                             // reinitialize scene selector on scene remove
                             InitActiveSceneSelection();
@@ -1081,7 +1081,7 @@ EditorSubsystem::EditorSubsystem()
 
                 SetActiveScene(WeakHandle<Scene>::empty);
 
-                for (const Handle<Scene>& scene : project->GetScenes())
+                for (const Handle<Scene>& scene : project->GetWorld()->GetScenes())
                 {
                     if (!scene.IsValid())
                     {
@@ -1094,11 +1094,11 @@ EditorSubsystem::EditorSubsystem()
 
                     StopWatchingNode(scene->GetRoot());
 
-                    GetWorld()->RemoveScene(scene);
+                    //GetWorld()->RemoveScene(scene);
                 }
 
-                m_delegateHandlers.Remove(&project->OnSceneAdded);
-                m_delegateHandlers.Remove(&project->OnSceneRemoved);
+                m_delegateHandlers.Remove(&project->GetWorld()->OnSceneAdded);
+                m_delegateHandlers.Remove(&project->GetWorld()->OnSceneRemoved);
 
                 m_delegateHandlers.Remove("SetBuildBVHFlag");
                 m_delegateHandlers.Remove("OnPackageAdded");
@@ -1253,6 +1253,12 @@ void EditorSubsystem::Update(float delta)
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
+
+    if (m_currentProject != nullptr)
+    {
+        // update the World contained in the current project (needs to happen even when not simulating in order to collect Views etc)
+        m_currentProject->GetWorld()->Update(delta);
+    }
 
     m_editorDelegates->Update();
 
@@ -2117,7 +2123,7 @@ void EditorSubsystem::UpdateWatchedNodes()
 
     if (GetWorld()->GetGameState().IsSimulating())
     {
-        for (const Handle<Scene>& scene : GetWorld()->GetScenes())
+        for (const Handle<Scene>& scene : m_currentProject->GetWorld()->GetScenes())
         {
             if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::DETACHED | SceneFlags::EDITOR | SceneFlags::UI)) == SceneFlags::FOREGROUND)
             {
@@ -2142,7 +2148,7 @@ void EditorSubsystem::UpdateWatchedNodes()
 
         if (m_currentProject.IsValid())
         {
-            for (const Handle<Scene>& scene : m_currentProject->GetScenes())
+            for (const Handle<Scene>& scene : m_currentProject->GetWorld()->GetScenes())
             {
                 StartWatchingNode(scene->GetRoot());
             }
@@ -2543,7 +2549,7 @@ void EditorSubsystem::InitActiveSceneSelection()
     }
 
     // Build each scene menu item
-    for (const Handle<Scene>& scene : m_currentProject->GetScenes())
+    for (const Handle<Scene>& scene : m_currentProject->GetWorld()->GetScenes())
     {
         if (!scene.IsValid())
         {

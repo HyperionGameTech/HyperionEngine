@@ -21,6 +21,7 @@
 namespace hyperion {
 
 class Scene;
+class World;
 class AssetCollector;
 class AssetPackage;
 class EditorActionStack;
@@ -63,6 +64,12 @@ public:
     HYP_METHOD()
     void SetName(Name name);
 
+    HYP_METHOD(Property = "World")
+    HYP_FORCE_INLINE const Handle<World>& GetWorld() const
+    {
+        return m_world;
+    }
+
     HYP_METHOD()
     HYP_FORCE_INLINE Time GetLastSavedTime() const
     {
@@ -75,12 +82,6 @@ public:
         return m_filepath;
     }
 
-    HYP_METHOD(Property = "Scenes")
-    HYP_FORCE_INLINE const Array<Handle<Scene>>& GetScenes() const
-    {
-        return m_scenes;
-    }
-
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<AssetPackage>& GetPackage() const
     {
@@ -88,10 +89,10 @@ public:
     }
 
     HYP_METHOD()
-    void AddScene(const Handle<Scene>& scene);
+    void AddScene(const Handle<Scene>& scene, Vec2i streamingCoord);
 
     HYP_METHOD()
-    void RemoveScene(const Handle<Scene>& scene);
+    void RemoveScene(Scene* scene);
 
     HYP_METHOD()
     FilePath GetProjectsDirectory() const;
@@ -115,12 +116,6 @@ public:
 
     HYP_METHOD()
     void Close();
-
-    HYP_FIELD()
-    ScriptableDelegate<void, const Handle<Scene>&> OnSceneAdded;
-
-    HYP_FIELD()
-    ScriptableDelegate<void, const Handle<Scene>&> OnSceneRemoved;
 
     HYP_FIELD()
     ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectSaved;
@@ -151,8 +146,8 @@ private:
     HYP_FIELD(Property = "FilePath")
     FilePath m_filepath;
 
-    HYP_FIELD(Property = "Scenes")
-    Array<Handle<Scene>> m_scenes;
+    HYP_FIELD(Property = "World")
+    Handle<World> m_world;
 
     HYP_FIELD(Transient)
     Handle<AssetPackage> m_package;
