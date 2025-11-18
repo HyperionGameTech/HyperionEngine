@@ -42,6 +42,7 @@ class TaskBatch;
 
 using threading::TaskBatch;
 
+HYP_ENUM()
 enum class ViewFlags : uint32
 {
     NONE = 0x0,

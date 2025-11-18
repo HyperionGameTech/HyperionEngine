@@ -60,7 +60,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 
     json::JSONArray entityManagersJson;
 
-    Handle<World> currentWorld = g_engineDriver->GetCurrentWorld();
+    World* currentWorld = g_engineDriver->GetCurrentWorld();
     if (!currentWorld)
     {
         return HYP_MAKE_ERROR(Error, "No current world; cannot run command");

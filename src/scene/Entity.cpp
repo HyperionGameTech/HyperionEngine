@@ -21,6 +21,7 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 
 #include <rendering/Mesh.hpp>
+#include <rendering/Material.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -247,14 +248,29 @@ void Entity::OnComponentAdded(AnyRef component)
 
     if (MeshComponent* meshComponent = component.TryGet<MeshComponent>())
     {
+        bool isInvalid = false;
+
         if (!meshComponent->mesh.IsValid())
         {
             HYP_LOG(Entity, Warning, "Entity {} has a MeshComponent with an invalid mesh", Id());
 
-            return;
+            isInvalid = true;
+        }
+
+        if (!meshComponent->material.IsValid())
+        {
+            HYP_LOG(Entity, Warning, "Entity {} has a MeshComponent with an invalid material", Id());
+
+            isInvalid = true;
         }
 
         InitObject(meshComponent->mesh);
+        InitObject(meshComponent->material);
+
+        if (isInvalid)
+        {
+            return;
+        }
 
         if (m_entityInitInfo.bvhDepth > 0)
         {
@@ -271,6 +287,8 @@ void Entity::OnComponentAdded(AnyRef component)
                 return;
             }
         }
+
+        SetNeedsRenderProxyUpdate();
 
         return;
     }

@@ -179,7 +179,7 @@ void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(descriptorSetIndex != ~0u);
 
     // Render each sub-view
-    DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderGlobalState->mainRenderer);
+    DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderGlobalState->globalRenderers[GRT_MAIN][0]);
     AssertDebug(dr != nullptr);
 
     frame->renderQueue << BindVertexBuffer(m_quadMesh->GetVertexBuffer());

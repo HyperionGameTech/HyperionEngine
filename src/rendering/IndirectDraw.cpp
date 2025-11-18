@@ -400,8 +400,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr);
 
     AssertDebug(m_batchAllocator != nullptr);

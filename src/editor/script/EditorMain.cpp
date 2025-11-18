@@ -43,6 +43,7 @@
 #include <editor/nativeui/TestNativeUI.hpp>
 
 #include <engine/EngineGlobals.hpp>
+#include <engine/EngineDriver.hpp>
 
 #include <EditorMain.generated.inl>
 
@@ -385,18 +386,40 @@ UIEventHandlerResult EditorMain::SimulateClicked(const MouseEvent& event)
 {
     HYP_SCOPE;
 
-    if (m_world->GetGameState().mode == GameStateMode::SIMULATING)
+    EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
+    if (editorSubsystem == nullptr)
+    {
+        HYP_LOG(Editor, Error, "EditorSubsystem not found");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
+
+    if (!currentProject)
+    {
+        HYP_LOG(Editor, Error, "No project active; cannot start/stop simulation");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    const Handle<World>& gameWorld = currentProject->GetWorld();
+    AssertDebug(gameWorld != nullptr);
+
+    if (gameWorld->GetGameState().mode == GameStateMode::SIMULATING)
     {
         HYP_LOG(Editor, Info, "Stop simulation");
 
-        m_world->StopSimulating();
+        gameWorld->StopSimulating();
+        g_engineDriver->SetCurrentWorld(nullptr);
 
         return UIEventHandlerResult::OK;
     }
 
     HYP_LOG(Editor, Info, "Start simulation");
 
-    m_world->StartSimulating();
+    g_engineDriver->SetCurrentWorld(gameWorld);
+    gameWorld->StartSimulating();
 
     return UIEventHandlerResult::OK;
 }

@@ -9,6 +9,8 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
 
@@ -104,9 +106,15 @@ public:
 
     HYP_METHOD(Scriptable)
     Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo);
-    
+
     HYP_METHOD()
-    void InsertNewObject(const AssetObject* obj, const Vec2i& coord);
+    void AddStreamingObject(const AssetObject* obj, const Vec2i& coord);
+
+    HYP_METHOD()
+    void RemoveStreamingObject(const AssetObject* obj);
+
+    Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsLoaded;
+    Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsUnloaded;
 
 protected:
     HYP_METHOD(Scriptable)
@@ -128,7 +136,6 @@ protected:
     Name m_name;
     WorldGridLayerInfo m_layerInfo;
     FlatMap<Vec2i, Array<AssetReference, DynamicAllocator>> m_objectsByCoord;
-    FlatMap<Vec2i, Array<AssetReference, DynamicAllocator>> m_transientObjectsByCoord;
 
 private:
     HYP_METHOD()

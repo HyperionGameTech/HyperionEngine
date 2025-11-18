@@ -89,7 +89,7 @@ public:
     }
 
     HYP_METHOD()
-    void AddScene(const Handle<Scene>& scene, Vec2i streamingCoord);
+    void AddScene(const Handle<Scene>& scene);
 
     HYP_METHOD()
     void RemoveScene(Scene* scene);

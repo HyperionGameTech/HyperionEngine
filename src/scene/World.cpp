@@ -4,8 +4,12 @@
 
 #include <scene/World.hpp>
 #include <scene/View.hpp>
-
 #include <scene/EntityManager.hpp>
+#include <scene/EntityTag.hpp>
+
+#include <scene/components/MeshComponent.hpp>
+#include <scene/components/TransformComponent.hpp>
+#include <scene/components/BoundingBoxComponent.hpp>
 
 #include <scene/world_grid/WorldGrid.hpp>
 
@@ -36,6 +40,10 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <asset/Assets.hpp>
+#include <asset/AssetObject.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <World.generated.inl>
 
 namespace hyperion {
@@ -53,13 +61,18 @@ World::World()
 {
 }
 
-World::World(Name name)
+World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     : ObjectBase(),
       m_name(name),
-      m_worldGrid(CreateObject<WorldGrid>(this)),
+      m_worldFlags(worldFlags),
       m_raytracingView(nullptr),
       m_viewCollectionBatch(nullptr)
 {
+    if (m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS)
+    {
+        Assert(m_worldFlags & WorldFlags::HAS_STREAMING, "Streaming layers require streaming to be enabled!");
+    }
+
     // set m_viewsPerFrame to initial size. It uses fixed allocator so it won't dynamically allocate any memory anyway
     m_viewsPerFrame.Resize(m_viewsPerFrame.Capacity());
     AssertDebug(m_viewsPerFrame.Size() == RingBufferDepth);
@@ -71,7 +84,7 @@ World::~World()
     {
         for (const Handle<Scene>& scene : m_scenes)
         {
-            if (!scene.IsValid())
+            if (!scene)
             {
                 continue;
             }
@@ -118,9 +131,13 @@ World::~World()
         m_viewCollectionBatch = nullptr;
     }
 
-    m_physicsWorld.Teardown();
+    if (m_physicsWorld)
+    {
+        m_physicsWorld->Teardown();
+        m_physicsWorld.Reset();
+    }
 
-    if (m_worldGrid.IsValid())
+    if (m_worldGrid)
     {
         m_worldGrid->Shutdown();
     }
@@ -134,17 +151,21 @@ void World::Init()
     m_viewCollectionBatch = new TaskBatch();
     m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
 
+    if (m_worldFlags & WorldFlags::HAS_STREAMING)
+    {
+        m_worldGrid = CreateObject<WorldGrid>(this);
+        InitObject(m_worldGrid);
+    }
+
     for (auto& it : m_subsystems)
     {
         const Handle<Subsystem>& subsystem = it.second;
-        Assert(subsystem.IsValid());
+        AssertDebug(subsystem != nullptr);
 
         InitObject(subsystem);
 
         subsystem->OnAddedToWorld();
     }
-
-    InitObject(m_worldGrid);
 
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
@@ -201,13 +222,21 @@ void World::Init()
                 view->AddScene(scene);
             }
         }
+
+        // add to streaming layer if applicable
+        if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+        {
+            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+            AssertDebug(scenesStreamingLayer != nullptr);
+            scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
+        }
     }
 
     for (const Handle<View>& view : m_views)
     {
         if (view->m_raytracingView.GetUnsafe() != m_raytracingView)
         {
-            if (view->m_raytracingView.IsValid())
+            if (view->m_raytracingView)
             {
                 HYP_LOG(Scene, Warning,
                     "View {} already has a raytracing View set! Was it added to multiple Worlds with raytracing enabled?",
@@ -225,11 +254,99 @@ void World::Init()
         InitObject(view);
     }
 
-    m_physicsWorld.Init();
+    if (m_worldFlags & WorldFlags::HAS_PHYSICS)
+    {
+        m_physicsWorld = CreateObject<PhysicsWorld>();
+        InitObject(m_physicsWorld);
+    }
 
     ObjectBase::Init();
 
     SetReady(true);
+}
+
+void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
+{
+    uint32 changedFlags = uint32(m_worldFlags) ^ uint32(flags);
+
+    if (changedFlags == 0)
+    {
+        return;
+    }
+
+    m_worldFlags = flags;
+
+    const bool isReady = IsReady();
+
+    if (isReady)
+    {
+        if (changedFlags & uint32(WorldFlags::HAS_PHYSICS))
+        {
+            if (m_worldFlags & WorldFlags::HAS_PHYSICS)
+            {
+                m_physicsWorld = CreateObject<PhysicsWorld>();
+                InitObject(m_physicsWorld);
+            }
+            else
+            {
+                if (m_physicsWorld)
+                {
+                    m_physicsWorld->Teardown();
+                    m_physicsWorld.Reset();
+                }
+            }
+        }
+
+        bool needToShutdownWorldGrid = false;
+
+        if (changedFlags & uint32(WorldFlags::HAS_STREAMING))
+        {
+            if (m_worldFlags & WorldFlags::HAS_STREAMING)
+            {
+                m_worldGrid = CreateObject<WorldGrid>(this);
+                InitObject(m_worldGrid);
+            }
+            else
+            {
+                if (m_worldGrid)
+                {
+                    needToShutdownWorldGrid = true;
+
+                    // have to turn off all streaming layers
+                    const EnumFlags<WorldFlags> streamingLayerFlagsBefore = m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS;
+                    m_worldFlags &= ~WorldFlags::ALL_STREAMING_LAYER_FLAGS;
+
+                    // add changed flags for all streaming layers that were on before -  we handle them below
+                    changedFlags |= uint32(m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS) ^ uint32(streamingLayerFlagsBefore);
+                }
+            }
+        }
+
+        if (changedFlags & uint32(WorldFlags::HAS_SCENE_STREAMING_LAYER))
+        {
+            if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+            {
+                Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+                AssertDebug(scenesStreamingLayer != nullptr);
+
+                for (const Handle<Scene>& scene : m_scenes)
+                {
+                    scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
+                }
+            }
+            else
+            {
+                // @TODO Need to load all scenes from the streaming layer into the world before removing it
+            }
+        }
+
+        // shutdown after disabling layers
+        if (needToShutdownWorldGrid)
+        {
+            m_worldGrid->Shutdown();
+            m_worldGrid.Reset();
+        }
+    }
 }
 
 void World::ProcessViewAsync(View* view)
@@ -287,12 +404,12 @@ void World::Update(float delta)
         m_viewsPerFrame[slot][i] = m_views[i].Get();
     }
 
-    Array<View*> processViews;
+    Array<View*, SceneAllocator> processViews;
     processViews.Resize(m_processViews.Size() + m_views.Size());
 
     for (SizeType i = 0; i < m_views.Size(); i++)
     {
-        AssertDebug(m_views[i].IsValid());
+        AssertDebug(m_views[i] != nullptr);
         AssertDebug(!m_processViews.Contains(m_views[i]));
 
         processViews[i] = m_views[i].Get();
@@ -308,12 +425,20 @@ void World::Update(float delta)
 
     m_gameState.deltaTime = delta;
 
-    m_worldGrid->Update(delta);
+    if (m_worldGrid)
+    {
+        m_worldGrid->Update(delta);
+    }
 
-    m_physicsWorld.Tick(delta);
+    if (m_physicsWorld)
+    {
+        m_physicsWorld->Tick(delta);
+    }
+
+    UpdateDirtyMeshEntities();
 
 #ifdef HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
-    Array<Task<void>> updateSubsystemTasks;
+    Array<Task<void>, SceneAllocator> updateSubsystemTasks;
 
     for (Subsystem* subsystem : m_subsystemsArray)
     {
@@ -357,14 +482,14 @@ void World::Update(float delta)
     }
 #endif
 
-    Array<EntityManager*> entityManagers;
+    Array<EntityManager*, SceneAllocator> entityManagers;
     entityManagers.Reserve(m_scenes.Size());
 
     for (uint32 index = 0; index < m_scenes.Size(); index++)
     {
         const Handle<Scene>& scene = m_scenes[index];
 
-        if (!scene.IsValid())
+        if (!scene)
         {
             continue;
         }
@@ -385,20 +510,23 @@ void World::Update(float delta)
     m_viewCollectionBatch->ResetState();
 #endif
 
-    for (EntityManager* entityManager : entityManagers)
+    if (entityManagers.Any())
     {
-        HYP_NAMED_SCOPE("Call BeginAsyncUpdate on EntityManager");
+        for (EntityManager* entityManager : entityManagers)
+        {
+            HYP_NAMED_SCOPE("Call BeginAsyncUpdate on EntityManager");
 
-        AssertDebug(entityManager->GetWorld() == this);
+            AssertDebug(entityManager->GetWorld() == this);
 
-        entityManager->BeginAsyncUpdate(delta);
-    }
+            entityManager->BeginAsyncUpdate(delta);
+        }
 
-    for (EntityManager* entityManager : entityManagers)
-    {
-        HYP_NAMED_SCOPE("Call EndAsyncUpdate on EntityManager");
+        for (EntityManager* entityManager : entityManagers)
+        {
+            HYP_NAMED_SCOPE("Call EndAsyncUpdate on EntityManager");
 
-        entityManager->EndAsyncUpdate();
+            entityManager->EndAsyncUpdate();
+        }
     }
 
     for (uint32 index = 0; index < processViews.Size(); index++)
@@ -463,7 +591,7 @@ const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsyst
 
     // fine to take reference since we use dynamic hash map allocator which doesn't invalidate references.
     const Handle<Subsystem>& newSubsystem = insertResult.first->second;
-    Assert(newSubsystem.IsValid());
+    AssertDebug(newSubsystem != nullptr);
 
     m_subsystemsArray.PushBack(newSubsystem.Get());
 
@@ -547,7 +675,7 @@ bool World::RemoveSubsystem(Subsystem* subsystem)
     {
         for (const Handle<Scene>& scene : m_scenes)
         {
-            if (!scene.IsValid())
+            if (!scene)
             {
                 continue;
             }
@@ -588,7 +716,7 @@ void World::StartSimulating()
         m_gameState.gameTime = 0.0f;
         m_gameState.deltaTime = 0.0f;
     }
-    
+
     m_gameState.mode = GameStateMode::SIMULATING;
 
     OnGameStateChange(this, previousGameStateMode, GameStateMode::SIMULATING);
@@ -606,7 +734,7 @@ void World::StopSimulating()
     }
 
     const GameStateMode previousGameStateMode = m_gameState.mode;
-    
+
     // @TODO: Non-editor mode (pause)
 
     m_gameState.gameTime = 0.0f;
@@ -616,7 +744,7 @@ void World::StopSimulating()
     OnGameStateChange(this, previousGameStateMode, GameStateMode::EDITOR);
 }
 
-void World::AddScene(const Handle<Scene>& scene)
+void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
@@ -659,15 +787,18 @@ void World::AddScene(const Handle<Scene>& scene)
             }
         }
 
-        Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
-        AssertDebug(scenesStreamingLayer != nullptr);
-        scenesStreamingLayer->InsertNewObject(scene, scene->GetStreamingCentroid());
+        if (addToStreamingLayer && (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER))
+        {
+            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+            AssertDebug(scenesStreamingLayer != nullptr);
+            scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
+        }
     }
 
     m_scenes.PushBack(scene);
 }
 
-bool World::RemoveScene(Scene* scene)
+bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
@@ -689,7 +820,12 @@ bool World::RemoveScene(Scene* scene)
 
         if (IsReady())
         {
-            // @TODO Remove scene from streaming layer
+            if (removeFromStreamingLayer && (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER))
+            {
+                Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+                AssertDebug(scenesStreamingLayer != nullptr);
+                scenesStreamingLayer->RemoveStreamingObject(scene);
+            }
 
             OnSceneRemoved(this, scene);
 
@@ -728,7 +864,13 @@ void World::SetScenes(const Array<Handle<Scene>>& scenes)
 
         if (isReady)
         {
-            // @TODO Remove scene from streaming layer
+            if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+            {
+                // Remove scene from streaming layer
+                Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+                AssertDebug(scenesStreamingLayer != nullptr);
+                scenesStreamingLayer->RemoveStreamingObject(scene);
+            }
 
             OnSceneRemoved(this, scene);
 
@@ -786,9 +928,12 @@ void World::SetScenes(const Array<Handle<Scene>>& scenes)
                 }
             }
 
-            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
-            AssertDebug(scenesStreamingLayer != nullptr);
-            scenesStreamingLayer->InsertNewObject(scene, scene->GetStreamingCentroid());
+            if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+            {
+                Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+                AssertDebug(scenesStreamingLayer != nullptr);
+                scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
+            }
         }
 
         m_scenes.PushBack(scene);
@@ -827,7 +972,7 @@ void World::AddView(const Handle<View>& view)
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
 
-    if (!view.IsValid())
+    if (!view)
     {
         return;
     }
@@ -838,7 +983,7 @@ void World::AddView(const Handle<View>& view)
     {
         if (view->m_raytracingView.GetUnsafe() != m_raytracingView)
         {
-            if (view->m_raytracingView.IsValid())
+            if (view->m_raytracingView)
             {
                 HYP_LOG(Scene, Warning,
                     "View {} already has a raytracing View set! Was it added to multiple Worlds with raytracing enabled?",
@@ -858,7 +1003,7 @@ void World::AddView(const Handle<View>& view)
         {
             for (const Handle<Scene>& scene : m_scenes)
             {
-                if (!scene.IsValid())
+                if (!scene)
                 {
                     continue;
                 }
@@ -893,7 +1038,7 @@ void World::RemoveView(View* view)
         {
             for (const Handle<Scene>& scene : m_scenes)
             {
-                if (!scene.IsValid())
+                if (!scene)
                 {
                     continue;
                 }
@@ -926,6 +1071,62 @@ Span<View* const> World::GetViews() const
     return m_viewsPerFrame[RenderApi::GetRingIndex()].ToSpan();
 }
 
+void World::UpdateDirtyMeshEntities()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_gameThread);
+
+    using UpdatedEntitySet = HashSet<Entity*, &KeyBy_Identity<Entity*>, NodeAllocator<SceneAllocator>>;
+
+    UpdatedEntitySet updatedEntities;
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        if (!scene)
+        {
+            continue;
+        }
+
+        EntityManager* entityManager = scene->GetEntityManager();
+        AssertDebug(entityManager != nullptr);
+
+        for (auto [entity, meshComponent, transformComponent, boundingBoxComponent, _] : entityManager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, TagComponent<EntityTag::UPDATE_RENDER_PROXY>>())
+        {
+            HYP_NAMED_SCOPE_FMT("Update draw data for Entity: {}", entity->GetName());
+
+            if (!meshComponent.mesh || !meshComponent.material)
+            {
+                HYP_LOG_ONCE(Entity, Warning, "Mesh or material not valid for Entity: {}", entity->GetName());
+
+                updatedEntities.Insert(entity);
+
+                continue;
+            }
+
+            entity->SetNeedsRenderProxyUpdate();
+
+            if (meshComponent.previousModelMatrix == transformComponent.transform.GetMatrix())
+            {
+                updatedEntities.Insert(entity);
+            }
+            else
+            {
+                meshComponent.previousModelMatrix = transformComponent.transform.GetMatrix();
+            }
+        }
+
+        if (updatedEntities.Any())
+        {
+            for (Entity* entity : updatedEntities)
+            {
+                entityManager->RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+            }
+
+            updatedEntities.Clear();
+        }
+    }
+}
+
 Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
 {
     HYP_SCOPE;
@@ -953,6 +1154,39 @@ Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
     }
 
     Handle<WorldGridLayer> layer = CreateObject<WorldGridLayer>(streamingLayerName);
+
+    m_delegateHandlers.Add(layer->OnStreamingObjectsLoaded.Bind([this](StreamingCell* cell, Array<const AssetObject*> objs)
+        {
+            AssertOnThread(g_gameThread);
+            for (const AssetObject* obj : objs)
+            {
+                if (obj->IsA(Scene::StaticClass()))
+                {
+                    const Scene* scene = ObjCast<Scene>(obj);
+
+                    AddScene(MakeStrongRef(scene), /* addToStreamingLayer */ false);
+
+                    continue;
+                }
+            }
+        }));
+
+    m_delegateHandlers.Add(layer->OnStreamingObjectsUnloaded.Bind([this](StreamingCell* cell, Array<const AssetObject*> objs)
+        {
+            AssertOnThread(g_gameThread);
+            for (const AssetObject* obj : objs)
+            {
+                if (obj->IsA(Scene::StaticClass()))
+                {
+                    const Scene* scene = ObjCast<Scene>(obj);
+
+                    RemoveScene(const_cast<Scene*>(scene), /* removeFromStreamingLayer */ false);
+
+                    continue;
+                }
+            }
+        }));
+
     m_worldGrid->AddLayer(layer);
 
     return layer;
@@ -962,6 +1196,15 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
 {
     if (!m_worldGrid)
     {
+        if (!(m_worldFlags & WorldFlags::HAS_STREAMING))
+        {
+            HYP_LOG(Scene, Warning,
+                "Attempted to deserialize streaming layers on World {} which does not have WorldGrid enabled!",
+                GetName());
+
+            return;
+        }
+
         m_worldGrid = CreateObject<WorldGrid>(this);
     }
 

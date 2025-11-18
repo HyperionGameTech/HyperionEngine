@@ -54,10 +54,9 @@ void StreamingCell::RemoveAssetReference(const AssetReference& assetReference)
     auto it = m_assetReferences.Find(assetReference);
     if (it != m_assetReferences.End())
     {
-        // @TODO Trigger appropriate callback if it was loaded
+        // Trigger appropriate callback if it was loaded
         if (it->IsLoaded())
         {
-
         }
 
         m_assetReferences.Erase(it);
@@ -89,11 +88,13 @@ void StreamingCell::OnStreamStart_Impl()
 
 void StreamingCell::OnLoaded_Impl()
 {
-    // @TODO Trigger any callbacks registered on the grid (e.g Add scene to world)
+    OnCellLoaded(this);
 }
 
 void StreamingCell::OnRemoved_Impl()
 {
+    OnCellUnloaded(this);
+
     for (AssetReference& assetReference : m_assetReferences)
     {
         if (!assetReference.IsValid() || !assetReference.IsLoaded())

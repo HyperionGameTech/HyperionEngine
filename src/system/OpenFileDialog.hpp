@@ -10,14 +10,15 @@
 #include <core/filesystem/FilePath.hpp>
 
 #include <core/utilities/Span.hpp>
-
 #include <core/utilities/Result.hpp>
+
+#include <core/functional/Proc.hpp>
 
 namespace hyperion {
 
 void ShowOpenFileDialog(
     UTF8StringView title, const FilePath& baseDir, Span<const ANSIStringView> extensions,
     bool allowMultiple, bool allowDirectories,
-    void (*callback)(TResult<Array<FilePath>>&& result));
+    Proc<void(TResult<Array<FilePath>>&& result)>&& callback);
 
 } // namespace hyperion

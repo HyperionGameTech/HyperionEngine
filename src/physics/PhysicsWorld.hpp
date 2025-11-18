@@ -7,17 +7,22 @@
 
 #include <core/math/Vector3.hpp>
 
+#include <core/reflection/ObjectBase.hpp>
+
 namespace hyperion {
 
-class HYP_API PhysicsWorldBase
+HYP_CLASS(Abstract)
+class HYP_API PhysicsWorldBase : public ObjectBase
 {
+    HYP_OBJECT_BODY(PhysicsWorldBase);
+
 public:
     static constexpr Vec3f earthGravity = Vec3f { 0.0f, -9.81f, 0.0f };
 
     PhysicsWorldBase() = default;
     PhysicsWorldBase(const PhysicsWorldBase& other) = delete;
     PhysicsWorldBase& operator=(const PhysicsWorldBase& other) = delete;
-    ~PhysicsWorldBase() = default;
+    virtual ~PhysicsWorldBase() override = default;
 
     HYP_FORCE_INLINE const Vec3f& GetGravity() const
     {
@@ -39,6 +44,17 @@ public:
         return m_rigidBodies;
     }
 
+    virtual void Init() override
+    {
+        ObjectBase::Init();
+    }
+
+    virtual void Teardown() = 0;
+    virtual void Tick(double delta) = 0;
+
+    virtual void AddRigidBody(const Handle<RigidBody>& rigidBody) = 0;
+    virtual void RemoveRigidBody(const Handle<RigidBody>& rigidBody) = 0;
+
 protected:
     Vec3f m_gravity = earthGravity;
 
@@ -54,9 +70,7 @@ public:
     {
     }
 
-    ~TPhysicsWorld()
-    {
-    }
+    ~TPhysicsWorld() override = default;
 
     HYP_FORCE_INLINE Adapter& GetAdapter()
     {
@@ -68,7 +82,7 @@ public:
         return m_adapter;
     }
 
-    void AddRigidBody(const Handle<RigidBody>& rigidBody)
+    void AddRigidBody(const Handle<RigidBody>& rigidBody) override
     {
         if (!rigidBody)
         {
@@ -83,7 +97,7 @@ public:
         }
     }
 
-    void RemoveRigidBody(const Handle<RigidBody>& rigidBody)
+    void RemoveRigidBody(const Handle<RigidBody>& rigidBody) override
     {
         if (!rigidBody)
         {
@@ -94,17 +108,17 @@ public:
         m_rigidBodies.Erase(rigidBody);
     }
 
-    void Init()
+    void Init() override
     {
         m_adapter.Init(this);
     }
 
-    void Teardown()
+    void Teardown() override
     {
         m_adapter.Teardown(this);
     }
 
-    void Tick(double delta)
+    void Tick(double delta) override
     {
         m_adapter.Tick(this, delta);
     }

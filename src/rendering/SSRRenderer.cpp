@@ -285,8 +285,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Screen Space Reflections");
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 

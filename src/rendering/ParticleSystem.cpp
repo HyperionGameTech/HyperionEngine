@@ -333,8 +333,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
     AssertOnThread(g_renderThread);
     AssertReady();
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     if (m_particleSpawners.GetItems().Empty())
     {
@@ -443,8 +442,7 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& renderSetup)
     AssertOnThread(g_renderThread);
     AssertReady();
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 

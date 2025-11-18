@@ -525,7 +525,7 @@ private:
     Handle<UIGrid> m_contentBrowserContents;
     Handle<UIObject> m_contentBrowserContentsEmpty;
 
-    Array<Handle<View>> m_views;
+    Array<Handle<View>> m_editorViews;
 
     DelegateHandlerSet m_delegateHandlers;
 };

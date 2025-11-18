@@ -221,8 +221,7 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Screen Space Global Illumination");
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 

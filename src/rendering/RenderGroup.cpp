@@ -223,7 +223,6 @@ static void ValidatePipelineState(const RenderSetup& renderSetup, const Graphics
 #if 0
     HYP_SCOPE;
 
-    Assert(renderSetup.IsValid());
     Assert(pipeline.IsValid());
 
     Assert(renderSetup.passData != nullptr);
@@ -765,8 +764,7 @@ void RenderGroup::PerformRendering(
     AssertOnThread(g_renderThread);
     AssertReady();
 
-    AssertDebug(renderSetup.IsValid(), "RenderSetup must be valid for rendering");
-    AssertDebug(renderSetup.HasView(), "RenderSetup must have a valid View for rendering");
+    AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData for rendering!");
 
     static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;

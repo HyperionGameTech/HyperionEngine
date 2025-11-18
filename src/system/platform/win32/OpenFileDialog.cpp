@@ -62,7 +62,7 @@ void ShowOpenFileDialog(
     Span<const ANSIStringView> extensions,
     bool allowMultiple,
     bool allowDirectories,
-    void (*callback)(TResult<Array<FilePath>>&& result))
+    Proc<void(TResult<Array<FilePath>>&& result)>&& callback)
 {
     WideString titleWide = String(title).ToWide();
     WideString baseDirWide = String(baseDir).ToWide();
@@ -148,7 +148,10 @@ void ShowOpenFileDialog(
                 }
             }
 
-            callback(std::move(results));
+            if (callback)
+            {
+                callback(std::move(results));
+            }
 
             return;
         }
@@ -165,14 +168,20 @@ void ShowOpenFileDialog(
                 continue;
             }
 
-            callback(HYP_MAKE_ERROR(Error, "Failed to handle open file dialog (error code: {}, message: {})", err, CommDlgErrorToString(err)));
+            if (callback)
+            {
+                callback(HYP_MAKE_ERROR(Error, "Failed to handle open file dialog (error code: {}, message: {})", err, CommDlgErrorToString(err)));
+            }
 
             return;
         }
     }
     while (retry && numRetries < maxRetries);
 
-    callback(HYP_MAKE_ERROR(Error, "Open file cancelled"));
+    if (callback)
+    {
+        callback(HYP_MAKE_ERROR(Error, "Open file cancelled"));
+    }
 }
 
 } // namespace hyperion

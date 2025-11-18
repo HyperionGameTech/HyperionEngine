@@ -177,8 +177,9 @@ void RaytracingReflections::UpdateUniforms(FrameBase* frame, const RenderSetup& 
 
 void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    HYP_NAMED_SCOPE("Ray traced reflections");
+    
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);

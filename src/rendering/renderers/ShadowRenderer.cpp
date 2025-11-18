@@ -179,8 +179,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.light != nullptr);
+    AssertDebug(renderSetup.world && renderSetup.light);
 
     Light* light = renderSetup.light;
     ShadowMap* shadowMap = nullptr;

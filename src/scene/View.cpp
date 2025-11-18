@@ -213,6 +213,8 @@ View::~View()
 
 void View::Init()
 {
+    ObjectBase::Init();
+
     Assert(m_camera.IsValid(), "Camera is not valid for View with Id #%u", Id().Value());
     InitObject(m_camera);
 

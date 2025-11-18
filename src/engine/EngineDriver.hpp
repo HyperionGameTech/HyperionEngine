@@ -45,24 +45,25 @@ struct EngineDelegates
 };
 
 HYP_CLASS()
-class EngineDriver final : public ObjectBase
+class HYP_API EngineDriver final : public ObjectBase
 {
     HYP_OBJECT_BODY(EngineDriver);
 
     friend struct RecreateSwapchain;
+    friend class GameThread;
 
 public:
     HYP_METHOD()
-    HYP_API static const Handle<EngineDriver>& GetInstance();
+    static const Handle<EngineDriver>& GetInstance();
 
-    HYP_API EngineDriver();
-    HYP_API ~EngineDriver() override;
-
-    HYP_METHOD()
-    const Handle<World>& GetCurrentWorld() const;
+    EngineDriver();
+    ~EngineDriver() override;
 
     HYP_METHOD()
-    void SetCurrentWorld(const Handle<World>& world);
+    World* GetCurrentWorld() const;
+
+    HYP_METHOD()
+    void SetCurrentWorld(World* world);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetDefaultWorld() const
@@ -100,22 +101,30 @@ public:
         return m_isShuttingDown.Get(MemoryOrder::SEQUENTIAL);
     }
 
-    HYP_API bool IsRenderLoopActive() const;
-    HYP_API bool StartRenderLoop();
+    void AddWorld(const Handle<World>& world);
+    void RemoveWorld(const World* world);
 
-    HYP_API void RenderNextFrame();
-    HYP_API void RequestStop();
+    bool IsRenderLoopActive() const;
+    bool StartRenderLoop();
+
+    void RenderNextFrame();
+    void RequestStop();
 
     void FinalizeStop();
 
+    Delegate<void, World*> OnCurrentWorldChanged;
+
 private:
-    HYP_API void Init() override;
+    void Init() override;
 
     void PreFrameUpdate(FrameBase* frame);
 
-    UniquePtr<RenderThread> m_renderThread;
+    void GameThreadUpdate(float delta);
 
-    Handle<World> m_world;
+    /*! \brief Enqueue the given World for rendering on the render thread. */
+    void EnqueueWorldRender(World* world);
+
+    UniquePtr<RenderThread> m_renderThread;
 
     Handle<DebugDrawer> m_debugDrawer;
 
@@ -123,8 +132,11 @@ private:
 
     UniquePtr<ScriptingService> m_scriptingService;
 
-    FixedArray<Handle<World>, RingBufferDepth> m_currentWorldBuffered;
+    Array<Handle<World>> m_worlds; // Game thread only
+    World* m_currentWorld;         // Game thread only
     Handle<World> m_defaultWorld;
+
+    Array<World*> m_worldsToRenderPerFrame[RingBufferDepth];
 
     EngineDelegates m_delegates;
 

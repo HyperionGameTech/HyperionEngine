@@ -346,8 +346,7 @@ void DeferredPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSe
     HYP_SCOPE;
     ENGINE_STAT_SCOPE(&s_deferredPassTimer);
 
-    AssertDebug(rs.IsValid());
-    AssertDebug(rs.HasView());
+    AssertDebug(rs.world && rs.view);
     AssertDebug(rs.passData != nullptr);
 
     const Viewport& viewport = rs.view->GetViewport();
@@ -710,8 +709,7 @@ void LightmapPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSe
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.lightmapVolume != nullptr);
+    AssertDebug(renderSetup.world && renderSetup.lightmapVolume);
 
     RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(renderSetup.lightmapVolume));
     Assert(proxy != nullptr);
@@ -892,8 +890,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(rs.IsValid());
-    AssertDebug(rs.HasView());
+    AssertDebug(rs.world && rs.view);
     AssertDebug(rs.passData != nullptr);
 
     const Viewport& viewport = rs.view->GetViewport();
@@ -1154,8 +1151,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(rs.IsValid());
-    AssertDebug(rs.HasView());
+    AssertDebug(rs.world && rs.view);
     AssertDebug(rs.passData != nullptr);
 
     const Viewport& viewport = rs.view->GetViewport();
@@ -1810,7 +1806,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
 
-    Assert(rs.IsValid());
+    AssertDebug(rs.world);
 
     Array<RenderProxyList*, InlineAllocator<8, RenderAllocator>> renderProxyLists;
 
@@ -1830,12 +1826,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     // For rendering EnvGrids and EnvProbes, we use a directional light from one of the Views that references it (if found)
     FlatMap<EnvGrid*, Light*> envGridLights;
     FlatMap<EnvProbe*, Light*> envProbeLights;
-
-    // Render UI to render targets
-    for (RendererBase* renderer : g_renderGlobalState->globalRenderers[GRT_UI])
-    {
-        renderer->RenderFrame(frame, rs);
-    }
 
     // init view pass data and collect global rendering resources
     // (env probes, env grids)
@@ -2108,8 +2098,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 {
     HYP_SCOPE;
 
-    Assert(rs.IsValid());
-    Assert(rs.HasView());
+    AssertDebug(rs.world && rs.view);
 
     uint32 slot = RenderApi::GetRingIndex();
     if (m_lastFrameData.frameId != slot)

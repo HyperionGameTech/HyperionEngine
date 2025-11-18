@@ -7,8 +7,12 @@
 
 #include <streaming/StreamingCell.hpp>
 
+#include <asset/Assets.hpp>
 #include <asset/AssetObject.hpp>
+#include <asset/AssetRegistry.hpp>
 #include <asset/AssetReference.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -25,6 +29,46 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
     HYP_SCOPE;
     Handle<StreamingCell> cell = CreateObject<StreamingCell>(cellInfo);
 
+    cell->OnCellLoaded
+        .Bind([this](StreamingCell* cell)
+            {
+                Array<const AssetObject*> objs;
+                objs.Reserve(cell->GetAssetReferences().Size());
+
+                for (const AssetReference& assetReference : cell->GetAssetReferences())
+                {
+                    AssertDebug(assetReference.IsLoaded());
+
+                    const Handle<AssetObject>& obj = assetReference.Resolve();
+                    AssertDebug(obj != nullptr);
+
+                    objs.PushBack(obj.Get());
+                }
+
+                OnStreamingObjectsLoaded(cell, std::move(objs));
+            })
+        .Detach();
+
+    cell->OnCellUnloaded
+        .Bind([this](StreamingCell* cell)
+            {
+                Array<const AssetObject*> objs;
+                objs.Reserve(cell->GetAssetReferences().Size());
+
+                for (const AssetReference& assetReference : cell->GetAssetReferences())
+                {
+                    AssertDebug(assetReference.IsLoaded());
+
+                    const Handle<AssetObject>& obj = assetReference.Resolve();
+                    AssertDebug(obj != nullptr);
+
+                    objs.PushBack(obj.Get());
+                }
+
+                OnStreamingObjectsUnloaded(cell, std::move(objs));
+            })
+        .Detach();
+
     auto objectsByCoordIt = m_objectsByCoord.Find(cellInfo.coord);
     if (objectsByCoordIt != m_objectsByCoord.End())
     {
@@ -34,17 +78,10 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
         }
     }
 
-    objectsByCoordIt = m_transientObjectsByCoord.Find(cellInfo.coord);
-    if (objectsByCoordIt != m_transientObjectsByCoord.End())
-    {
-        for (const AssetReference& assetReference : objectsByCoordIt->second)
-        {
-            cell->AddAssetReference(assetReference, /* shouldLoad */ false);
-        }
-    }
+    return cell;
 }
 
-void WorldGridLayer::InsertNewObject(const AssetObject* obj, const Vec2i& coord)
+void WorldGridLayer::AddStreamingObject(const AssetObject* obj, const Vec2i& coord)
 {
     HYP_SCOPE;
 
@@ -55,20 +92,51 @@ void WorldGridLayer::InsertNewObject(const AssetObject* obj, const Vec2i& coord)
         return;
     }
 
+    if (!obj->IsRegistered())
+    {
+        g_assetManager->GetAssetRegistry()->RegisterAsset(HYP_FORMAT("$Memory/Temp/{}", obj->GetUUID()), MakeStrongRef(obj));
+    }
+
     // @TODO needs to add to actual StreamingCell if already loaded!!
     // @TODO How will we update if the obj moves to a different path in editor?? - FIXME when we add some Delegate like OnAssetPathChanged to AssetObject
 
-    // if the object is transient we need to keep it persistently loaded...
-    // would be nice to find a good way to move transient object that get saved over to non-transient list so they can be unloaded
-    if (obj->IsTransient())
+    m_objectsByCoord[coord].EmplaceBack(obj->GetPath());
+}
+
+void WorldGridLayer::RemoveStreamingObject(const AssetObject* obj)
+{
+    HYP_SCOPE;
+
+    if (!obj)
     {
-        m_transientObjectsByCoord[coord].EmplaceBack(MakeStrongRef(obj));
+        HYP_LOG(Streaming, Error, "Cannot remove NULL object from layer!");
+
+        return;
     }
-    else
+
+    for (auto objectsIt = m_objectsByCoord.Begin(); objectsIt != m_objectsByCoord.End(); ++objectsIt)
     {
-        m_objectsByCoord[coord].EmplaceBack(obj->GetPath());
+        Array<AssetReference, DynamicAllocator>& assetsAtCoord = objectsIt->second;
+
+        for (SizeType i = 0; i < assetsAtCoord.Size(); ++i)
+        {
+            if (assetsAtCoord[i].GetAssetPath() == obj->GetPath())
+            {
+                assetsAtCoord.EraseAt(i);
+
+                if (assetsAtCoord.Empty())
+                {
+                    m_objectsByCoord.Erase(objectsIt);
+                }
+
+                return;
+            }
+        }
     }
-        
+
+    HYP_LOG(Streaming, Warning, "Object {} not found in layer {}", obj->GetName(), m_name);
+
+    // @TODO needs to remove from actual StreamingCell if already loaded!!
 }
 
 #pragma endregion WorldGridLayer

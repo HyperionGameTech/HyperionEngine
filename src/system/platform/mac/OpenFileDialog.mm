@@ -3,6 +3,8 @@
 
 #include <system/OpenFileDialog.hpp>
 
+#include <core/functional/Proc.hpp>
+
 #import "Util/BlockInvoker.h"
 
 namespace hyperion {
@@ -10,16 +12,24 @@ namespace hyperion {
 void ShowOpenFileDialog(
     UTF8StringView title, const FilePath& baseDir, Span<const ANSIStringView> extensions,
     bool allowMultiple, bool allowDirectories,
-    void(*callback)(TResult<Array<FilePath>>&& result))
+    Proc<void(TResult<Array<FilePath>>&& result)>&& callback)
 {
     __block dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+
+    __block Proc<void(TResult<Array<FilePath>>&& result)>* pCallback = callback.IsValid()
+        ? new Proc<void(TResult<Array<FilePath>>&& result)>(std::move(callback))
+        : nullptr;
     
     void (^openFileDialogBlock)(void) = ^{
         @autoreleasepool
         {
             auto invokeCallback = ^(TResult<Array<FilePath>>&& r)
             {
-                callback(std::move(r));
+                if (pCallback != nullptr)
+                {
+                    (*pCallback)(std::move(r));
+                    delete pCallback;
+                }
             };
             
             NSOpenPanel* panel = [NSOpenPanel openPanel];

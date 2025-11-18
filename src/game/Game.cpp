@@ -43,23 +43,25 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(GameThread);
 
+static const Name s_nameMainWorld = NAME("MainWorld");
+
 Game::Game()
 {
 }
 
-Game::~Game() = default;
+Game::~Game()
+{
+    if (m_world)
+    {
+        g_engineDriver->RemoveWorld(m_world);
+    }
+}
 
 void Game::Update(float delta)
 {
     HYP_SCOPE;
 
-    g_engineDriver->SetCurrentWorld(m_world);
-
-    g_engineDriver->GetScriptingService()->Update();
-
     Logic(delta);
-
-    m_world->Update(delta);
 }
 
 void Game::Init()
@@ -67,8 +69,13 @@ void Game::Init()
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
 
-    m_world = CreateObject<World>();
+    if (!m_world)
+    {
+        m_world = CreateObject<World>(s_nameMainWorld, WorldFlags::DEFAULT);
+    }
+
     InitObject(m_world);
+    g_engineDriver->AddWorld(m_world);
 
     Handle<UIStage> uiStage = CreateObject<UIStage>(g_gameThread);
 

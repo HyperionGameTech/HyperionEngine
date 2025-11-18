@@ -130,10 +130,11 @@ enum GlobalRendererType : uint32
 {
     GRT_NONE = ~0u, //!< Not a global renderer type
 
-    GRT_ENV_PROBE = 0,   //!< Global renderer instances for different EnvProbe classes
+    GRT_MAIN = 0,        //!< Main world renderer (DeferredRenderer)
+    GRT_UI,              //!< Globally registered UIRenderer instances to be used by FinalPass to draw the UI onto the backbuffer.
+    GRT_ENV_PROBE,       //!< Global renderer instances for different EnvProbe classes
     GRT_ENV_GRID,        //!< Global renderer instance for EnvGrids
     GRT_SHADOW_MAP,      //!< Shadow map renderers, e.g. PointLightShadowRenderer, DirectionalLightShadowRenderer
-    GRT_UI,              //!< Globally registered UIRenderer instances to be used by FinalPass to draw the UI onto the backbuffer.
     GRT_PARTICLE_VOLUME, //!< Global renderer instance for ParticleVolumes
 
     GRT_MAX
@@ -173,7 +174,6 @@ public:
 
     DescriptorTableRef globalDescriptorTable;
 
-    RendererBase* mainRenderer;
     Array<RendererBase*> globalRenderers[GRT_MAX];
 
     GlobalGpuBuffers gpuBuffers;

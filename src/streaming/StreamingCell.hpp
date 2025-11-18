@@ -10,9 +10,11 @@
 #include <core/math/Vector2.hpp>
 #include <core/math/BoundingBox.hpp>
 
-#include <streaming/Streamable.hpp>
+#include <core/functional/Delegate.hpp>
 
 #include <core/HashCode.hpp>
+
+#include <streaming/Streamable.hpp>
 
 namespace hyperion {
 
@@ -94,11 +96,19 @@ public:
         return m_cellInfo;
     }
 
+    HYP_FORCE_INLINE Span<const AssetReference> GetAssetReferences() const
+    {
+        return Span<const AssetReference>(m_assetReferences.Data(), m_assetReferences.Size());
+    }
+
     void AddAssetReference(const AssetReference& assetReference, bool shouldLoad = false);
     void RemoveAssetReference(const AssetReference& assetReference);
 
     HYP_METHOD(Scriptable)
     void Update(float delta);
+
+    Delegate<void, StreamingCell*> OnCellLoaded;
+    Delegate<void, StreamingCell*> OnCellUnloaded;
 
 protected:
     HYP_METHOD()

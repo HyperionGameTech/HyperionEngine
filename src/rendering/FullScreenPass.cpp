@@ -599,7 +599,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
+    AssertDebug(renderSetup.world);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -664,7 +664,7 @@ void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
+    AssertDebug(renderSetup.world);
 
     AssertDebug(!(m_flags & FSP_EXTERNAL_RENDERTARGET), "Cannot use Render() with external target, use RenderToFramebuffer() instead");
     AssertDebug(m_framebuffer != nullptr);
@@ -694,7 +694,8 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
+    AssertDebug(renderSetup.world);
+    
     AssertDebug(framebuffer != nullptr);
 
     // are we responsible for starting/ending framebuffer recording?
@@ -825,8 +826,7 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     AssertDebug(!(m_flags & FSP_EXTERNAL_RENDERTARGET), "Cannot use Begin()/End() with external target, use RenderToFramebuffer() instead");
     AssertDebug(m_framebuffer != nullptr);
@@ -863,8 +863,7 @@ void FullScreenPass::End(FrameBase* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     AssertDebug(!(m_flags & FSP_EXTERNAL_RENDERTARGET), "Cannot use Begin()/End() with external target, use RenderToFramebuffer() instead");
     AssertDebug(m_framebuffer != nullptr);

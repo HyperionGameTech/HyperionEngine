@@ -531,8 +531,7 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSet
         return;
     }
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.envGrid != nullptr);
+    AssertDebug(renderSetup.world && renderSetup.envGrid);
 
     LegacyEnvGrid* envGrid = ObjCast<LegacyEnvGrid>(renderSetup.envGrid);
     AssertDebug(envGrid != nullptr);
@@ -643,7 +642,7 @@ void EnvGridRenderer::RenderProbe(FrameBase* frame, const RenderSetup& renderSet
 {
     HYP_SCOPE;
 
-    AssertDebug(renderSetup.IsValid());
+    AssertDebug(renderSetup.world);
 
     LegacyEnvGrid* envGrid = ObjCast<LegacyEnvGrid>(renderSetup.envGrid);
     AssertDebug(envGrid != nullptr);
@@ -702,8 +701,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
 
     AssertDebug(probe != nullptr);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     LegacyEnvGrid* envGrid = ObjCast<LegacyEnvGrid>(renderSetup.envGrid);
     AssertDebug(envGrid != nullptr);
@@ -908,8 +906,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, con
 {
     HYP_SCOPE;
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     LegacyEnvGrid* envGrid = ObjCast<LegacyEnvGrid>(renderSetup.envGrid);
     AssertDebug(envGrid != nullptr);
@@ -1035,8 +1032,7 @@ void EnvGridRenderer::OffsetVoxelGrid(FrameBase* frame, const RenderSetup& rende
 {
     HYP_SCOPE;
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view && renderSetup.envGrid);
 
     LegacyEnvGrid* envGrid = ObjCast<LegacyEnvGrid>(renderSetup.envGrid);
     AssertDebug(envGrid != nullptr);
@@ -1081,8 +1077,7 @@ void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& renderS
 {
     HYP_SCOPE;
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view && renderSetup.envGrid);
 
     LegacyEnvGrid* envGrid = ObjCast<LegacyEnvGrid>(renderSetup.envGrid);
     AssertDebug(envGrid != nullptr);

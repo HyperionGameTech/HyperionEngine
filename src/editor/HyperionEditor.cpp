@@ -8,6 +8,8 @@
 #include <editor/EditorState.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderGlobalState.hpp>
+#include <rendering/Texture.hpp>
 
 #include <engine/DebugDrawer.hpp>
 
@@ -15,7 +17,6 @@
 #include <scene/Light.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
-#include <rendering/Texture.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
@@ -86,6 +87,9 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
+
+static const Name s_nameEditorWorld = NAME("EditorWorld");
+
 namespace editor {
 
 #pragma region HyperionEditor
@@ -93,6 +97,7 @@ namespace editor {
 HyperionEditor::HyperionEditor()
     : Game()
 {
+    m_world = CreateObject<World>(s_nameEditorWorld, WorldFlags::EDITOR_WORLD);
 }
 
 HyperionEditor::~HyperionEditor()
@@ -105,12 +110,11 @@ void HyperionEditor::Init()
 
     m_editorSubsystem = CreateObject<EditorSubsystem>();
 
-    GetWorld()->SetName(NAME("EditorWorld"));
     GetWorld()->AddSubsystem(m_editorSubsystem);
 
-    //GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
+    // GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
 
-#if  1
+#if 1
     Handle<Scene> scene = CreateObject<Scene>(SceneFlags::FOREGROUND);
     scene->SetName(NAME("myScene"));
     m_editorSubsystem->GetCurrentProject()->GetWorld()->AddScene(scene);

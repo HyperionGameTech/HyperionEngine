@@ -84,8 +84,7 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSe
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.envProbe != nullptr);
+    AssertDebug(renderSetup.world && renderSetup.envProbe);
 
     EnvProbe* envProbe = renderSetup.envProbe;
     AssertDebug(envProbe != nullptr);
@@ -140,8 +139,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
 
     AssertDebug(!envProbe->IsBaked());
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     View* view = renderSetup.view;
     AssertDebug(view != nullptr);
@@ -256,8 +254,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 {
     HYP_SCOPE;
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     View* view = renderSetup.view;
     AssertDebug(view != nullptr);

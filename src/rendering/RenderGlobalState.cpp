@@ -293,6 +293,11 @@ static void ResourceBinding_Assign(ObjectBase* resource, uint32 binding)
     }
 
     bindings.bindingIndices.Emplace(resourceId.ToIndex(), binding);
+
+    HYP_LOG_TEMP("Assigned resource binding for resource of type '{}' with ID {} to binding index {}",
+        *resource->InstanceClass()->GetName(),
+        resourceId,
+        binding);
 }
 
 static uint32 ResourceBinding_Retrieve(const ObjectBase* resource)
@@ -1210,13 +1215,13 @@ void BeginFrame_RenderThread()
                 // nothing is bound for this type, skip
                 continue;
             }
-            
+
             if (!subtypeData.gpuBufferHolder)
             {
                 // in the loop below we only do anything if we have gpu data to update.
                 // short circuit here and just clear the bits without doing anything if we don't have a gpu buffer holder set.
                 subtypeData.indicesPendingUpdate.Clear();
-                
+
                 continue;
             }
 
@@ -1305,8 +1310,6 @@ void EndFrame_RenderThread()
     }
 
     int numCleanupCycles = FrameCleanupBudget;
-    numCleanupCycles -= g_renderGlobalState->mainRenderer->RunCleanupCycle(numCleanupCycles);
-
     for (uint32 i = 0; i < GRT_MAX && numCleanupCycles > 0; i++)
     {
         for (uint32 j = 0; j < g_renderGlobalState->globalRenderers[i].Size() && numCleanupCycles > 0; j++)
@@ -1428,13 +1431,13 @@ RenderGlobalState::RenderGlobalState()
 
     globalDescriptorTable->Create();
 
-    mainRenderer = new DeferredRenderer;
-    mainRenderer->Initialize();
-
     for (uint32 i = 0; i < GRT_MAX; i++)
     {
         globalRenderers[i] = Array<RendererBase*>();
     }
+
+    globalRenderers[GRT_MAIN].PushBack(new DeferredRenderer);
+    globalRenderers[GRT_MAIN][0]->Initialize();
 
     globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
     globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer;
@@ -1488,10 +1491,6 @@ RenderGlobalState::~RenderGlobalState()
 
     PoolDelete(*g_renderPool, graphicsPipelineCache);
     graphicsPipelineCache = nullptr;
-
-    mainRenderer->Shutdown();
-    delete mainRenderer;
-    mainRenderer = nullptr;
 }
 
 void RenderGlobalState::UpdateBuffers(FrameBase* frame)

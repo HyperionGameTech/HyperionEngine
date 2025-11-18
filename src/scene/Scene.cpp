@@ -199,8 +199,8 @@ void Scene::Init()
     m_entityManager->SetWorld(m_world);
 
     AddSystemIfApplicable<WorldAABBUpdaterSystem>();
-    AddSystemIfApplicable<EntityMeshDirtyStateSystem>();
-    AddSystemIfApplicable<EntityRenderProxySystem_Mesh>();
+    // AddSystemIfApplicable<EntityMeshDirtyStateSystem>();
+    // AddSystemIfApplicable<EntityRenderProxySystem_Mesh>();
     AddSystemIfApplicable<VisibilityStateUpdaterSystem>();
     AddSystemIfApplicable<LightmapSystem>();
     AddSystemIfApplicable<AnimationSystem>();

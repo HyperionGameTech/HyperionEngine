@@ -312,14 +312,34 @@ struct HashSetBucket
 template <class Allocator>
 struct PooledNodeAllocator
 {
+    using AllocatorType = Allocator;
+
     template <class Value>
     struct Impl
     {
         using Node = HashSetElement<Value>;
         using Bucket = HashSetBucket<Value>;
 
-        Node* m_freeNodesHead = nullptr;
+        Node* m_freeNodesHead;
         Array<Node, Allocator> m_pool;
+
+        Impl()
+            : m_freeNodesHead(nullptr),
+              m_pool()
+        {
+        }
+
+        explicit Impl(Allocator* pAllocator)
+            : m_freeNodesHead(nullptr),
+              m_pool(pAllocator)
+        {
+        }
+
+        Impl(const Impl& other) = delete;
+        Impl& operator=(const Impl& other) = delete;
+
+        Impl(Impl&& other) noexcept = delete;
+        Impl& operator=(Impl&& other) noexcept = delete;
 
         template <class Ty>
         Node* Allocate(Ty&& value, Span<Bucket> buckets)
@@ -428,39 +448,60 @@ struct PooledNodeAllocator
 template <class Allocator>
 struct NodeAllocator
 {
+    using AllocatorType = Allocator;
+
     template <class Value>
     struct Impl
     {
         using Node = HashSetElement<Value>;
         using Bucket = HashSetBucket<Value>;
 
-        template <class Ty>
-        Node* Allocate(Ty&& value, Span<Bucket> buckets)
-        {
-            void* mem = Allocator().Allocate(sizeof(Node), alignof(Node));
-            HYP_CORE_ASSERT(mem != nullptr);
+        Allocator* m_pAllocator;
 
+        Impl()
+            : m_pAllocator(GetDefaultAllocatorInstance<Allocator>())
+        {
+            HYP_CORE_ASSERT(m_pAllocator != nullptr);
+        }
+
+        explicit Impl(Allocator* pAllocator)
+            : m_pAllocator(pAllocator)
+        {
+            HYP_CORE_ASSERT(m_pAllocator != nullptr);
+        }
+
+        Impl(const Impl& other) = delete;
+        Impl& operator=(const Impl& other) = delete;
+
+        Impl(Impl&& other) noexcept = delete;
+        Impl& operator=(Impl&& other) noexcept = delete;
+
+        template <class Ty>
+        Node* Allocate(Ty&& value, Span<Bucket> /*buckets*/)
+        {
+            void* mem = m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+            HYP_CORE_ASSERT(mem != nullptr);
             return new (mem) Node(std::forward<Ty>(value));
         }
 
         HYP_FORCE_INLINE void Free(Node* node)
         {
-            if (node != nullptr)
+            if (!node)
             {
-                node->~Node();
-
-                Allocator().Free(node);
+                return;
             }
+            node->~Node();
+            m_pAllocator->Free(node);
         }
 
-        HYP_FORCE_INLINE void Reserve(SizeType capacity, Span<Bucket> buckets)
-        {
-            return; // No-op for dynamic allocation
-        }
-
-        HYP_FORCE_INLINE void Swap(Impl& other, Span<Bucket> buckets)
+        HYP_FORCE_INLINE void Reserve(SizeType /*capacity*/, Span<Bucket> /*buckets*/)
         {
             // No-op for dynamic allocation
+        }
+
+        HYP_FORCE_INLINE void Swap(Impl& other, Span<Bucket> /*buckets*/)
+        {
+            std::swap(m_pAllocator, other.m_pAllocator);
         }
     };
 };
@@ -691,17 +732,9 @@ public:
     using InsertResult = Pair<Iterator, bool>;
 
     HashSet();
-
-    HashSet(std::initializer_list<Value> initializerList)
-        : HashSet()
-    {
-        Array<Value> temp(initializerList);
-
-        for (auto&& item : temp)
-        {
-            Set(std::move(item));
-        }
-    }
+    HashSet(std::initializer_list<Value> initializerList);
+    explicit HashSet(typename NodeAllocatorType::AllocatorType* pAllocator);
+    HashSet(typename NodeAllocatorType::AllocatorType* pAllocator, std::initializer_list<Value> initializerList);
 
     HashSet(const HashSet& other);
     HashSet& operator=(const HashSet& other);
@@ -1044,6 +1077,34 @@ HashSet<Value, KeyBy, NodeAllocatorType>::HashSet()
     : m_size(0)
 {
     m_buckets.ResizeZeroed(InitialBucketSize);
+}
+
+template <class Value, auto KeyBy, class NodeAllocatorType>
+HashSet<Value, KeyBy, NodeAllocatorType>::HashSet(std::initializer_list<Value> initializerList)
+    : HashSet()
+{
+    for (const auto& item : initializerList)
+    {
+        Insert(item);
+    }
+}
+
+template <class Value, auto KeyBy, class NodeAllocatorType>
+HashSet<Value, KeyBy, NodeAllocatorType>::HashSet(typename NodeAllocatorType::AllocatorType* pAllocator)
+    : m_size(0),
+      m_nodeAllocator(pAllocator)
+{
+    m_buckets.ResizeZeroed(InitialBucketSize);
+}
+
+template <class Value, auto KeyBy, class NodeAllocatorType>
+HashSet<Value, KeyBy, NodeAllocatorType>::HashSet(typename NodeAllocatorType::AllocatorType* pAllocator, std::initializer_list<Value> initializerList)
+    : HashSet(pAllocator)
+{
+    for (const auto& item : initializerList)
+    {
+        Insert(item);
+    }
 }
 
 template <class Value, auto KeyBy, class NodeAllocatorType>

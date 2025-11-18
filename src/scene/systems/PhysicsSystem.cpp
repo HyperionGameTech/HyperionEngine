@@ -35,7 +35,7 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
         rigidBodyComponent.flags |= RigidBodyComponentFlags::INIT;
 
-        GetEntityManager().GetScene()->GetWorld()->GetPhysicsWorld().AddRigidBody(rigidBodyComponent.rigidBody);
+        GetEntityManager().GetScene()->GetWorld()->GetPhysicsWorld()->AddRigidBody(rigidBodyComponent.rigidBody);
     }
 }
 
@@ -52,7 +52,7 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
 
     if (rigidBodyComponent.rigidBody)
     {
-        GetEntityManager().GetScene()->GetWorld()->GetPhysicsWorld().RemoveRigidBody(rigidBodyComponent.rigidBody);
+        GetEntityManager().GetScene()->GetWorld()->GetPhysicsWorld()->RemoveRigidBody(rigidBodyComponent.rigidBody);
     }
 }
 

@@ -406,7 +406,7 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
 
     Assert(CanRender());
 
-    AssertDebug(renderSetup.IsValid());
+    AssertDebug(renderSetup.world);
 
     const uint32 frameIndex = frame->GetFrameIndex();
     const uint32 previousFrameIndex = (frame->GetFrameIndex() + NumFramesInFlight - 1) % NumFramesInFlight;

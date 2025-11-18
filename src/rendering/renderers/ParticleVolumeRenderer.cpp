@@ -212,11 +212,10 @@ void ParticleVolumeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& re
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
+    
+    HYP_NAMED_SCOPE("Render particle volume");
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
-
-    AssertDebug(renderSetup.particleVolume != nullptr);
+    AssertDebug(renderSetup.world && renderSetup.view && renderSetup.particleVolume);
 
     ParticleVolume* particleVolume = renderSetup.particleVolume;
 

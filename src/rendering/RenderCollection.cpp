@@ -886,8 +886,7 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView(), "RenderSetup must have a View attached");
+    AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData to perform occlusion culling");
 
     static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
@@ -938,8 +937,7 @@ void RenderCollector::ExecuteDrawCalls(
     uint32 bucketBits,
     bool commit)
 {
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView(), "RenderSetup must have a View attached");
+    AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.view->IsReady());
 
     if (renderSetup.view->GetFlags() & ViewFlags::GBUFFER)

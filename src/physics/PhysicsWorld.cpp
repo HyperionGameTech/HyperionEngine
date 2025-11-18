@@ -4,6 +4,8 @@
 
 #include <physics/PhysicsWorld.hpp>
 
+#include <PhysicsWorld.generated.inl>
+
 namespace hyperion {
 
 } // namespace hyperion

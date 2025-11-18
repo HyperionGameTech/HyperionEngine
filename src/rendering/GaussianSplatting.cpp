@@ -227,8 +227,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
 
     Assert(IsReady());
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     const uint32 numPoints = static_cast<uint32>(m_model->points.Size());
 
@@ -669,8 +668,7 @@ void GaussianSplatting::Render(FrameBase* frame, const RenderSetup& renderSetup)
     AssertReady();
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     if (!m_gaussianSplattingInstance)
     {

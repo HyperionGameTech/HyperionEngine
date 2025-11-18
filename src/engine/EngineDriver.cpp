@@ -247,7 +247,8 @@ const Handle<EngineDriver>& EngineDriver::GetInstance()
 }
 
 EngineDriver::EngineDriver()
-    : m_isShuttingDown(false),
+    : m_currentWorld(nullptr),
+      m_isShuttingDown(false),
       m_shouldRecreateSwapchain(false)
 {
 }
@@ -309,35 +310,105 @@ HYP_API void EngineDriver::Init()
     m_defaultWorld = CreateObject<World>();
     m_defaultWorld->SetName(NAME("DefaultWorld"));
 
-    for (Handle<World>& currentWorld : m_currentWorldBuffered)
-    {
-        currentWorld = m_defaultWorld;
-    }
-
     SetReady(true);
 }
 
-const Handle<World>& EngineDriver::GetCurrentWorld() const
+World* EngineDriver::GetCurrentWorld() const
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_gameThread);
 
-    return m_currentWorldBuffered[RenderApi::GetRingIndex()];
+    return m_currentWorld;
 }
 
-void EngineDriver::SetCurrentWorld(const Handle<World>& world)
+void EngineDriver::SetCurrentWorld(World* world)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_gameThread);
 
-    if (!world)
+    if (world == m_currentWorld)
     {
-        m_currentWorldBuffered[RenderApi::GetRingIndex()] = m_defaultWorld;
-
         return;
     }
 
-    m_currentWorldBuffered[RenderApi::GetRingIndex()] = world;
+    if (world)
+    {
+        AssertDebug(!(world->GetWorldFlags() & WorldFlags::EDITOR_WORLD), "Cannot set an editor world as the current world!");
+        AssertDebug(m_worlds.FindAs(world) != m_worlds.End(), "World must be added to the engine before it can be set as the current world!");
+    }
+
+    m_currentWorld = world;
+
+    OnCurrentWorldChanged(m_currentWorld);
+}
+
+void EngineDriver::EnqueueWorldRender(World* world)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_gameThread);
+
+    AssertDebug(world != nullptr && world->IsReady());
+
+    const uint32 slot = RenderApi::GetRingIndex();
+
+    auto& worldsToRender = m_worldsToRenderPerFrame[slot];
+
+    if (!worldsToRender.Contains(world))
+    {
+        if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+        {
+            // editor world gets rendered first
+            worldsToRender.PushFront(world);
+            return;
+        }
+
+        worldsToRender.PushBack(world);
+    }
+}
+
+void EngineDriver::AddWorld(const Handle<World>& world)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_gameThread);
+
+    if (!world)
+    {
+        return;
+    }
+
+    InitObject(world);
+
+    if (!m_worlds.Contains(world))
+    {
+        m_worlds.PushBack(world);
+    }
+}
+
+void EngineDriver::RemoveWorld(const World* world)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_gameThread);
+
+    if (!world)
+    {
+        return;
+    }
+
+    auto it = m_worlds.FindIf([world](const Handle<World>& other)
+        {
+            return other.Get() == world;
+        });
+
+    if (it != m_worlds.End())
+    {
+        if (m_currentWorld == world)
+        {
+            SetCurrentWorld(nullptr);
+        }
+
+        SafeDelete(std::move(*it));
+        m_worlds.Erase(it);
+    }
 }
 
 bool EngineDriver::IsRenderLoopActive() const
@@ -415,8 +486,8 @@ void EngineDriver::FinalizeStop()
 
         SetGlobalNetRequestThread(nullptr);
     }
-
-    SafeDelete(std::move(m_currentWorldBuffered));
+    
+    SafeDelete(std::move(m_worlds));
 
     m_debugDrawer.Reset();
     m_finalPass.Reset();
@@ -451,16 +522,43 @@ HYP_API void EngineDriver::RenderNextFrame()
 
     PreFrameUpdate(frame);
 
-    const Handle<World>& currentWorld = m_currentWorldBuffered[RenderApi::GetRingIndex()];
+    auto& worldsToRender = m_worldsToRenderPerFrame[RenderApi::GetRingIndex()];
 
-    if (currentWorld && currentWorld->IsReady())
+    if (worldsToRender.Any())
     {
-        g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
+        uint32 numViewsRendered = 0;
 
-        RenderSetup rs { currentWorld, nullptr };
-        g_renderGlobalState->mainRenderer->RenderFrame(frame, rs);
+        RendererBase* mainRenderer = g_renderGlobalState->globalRenderers[GRT_MAIN][0];
+        AssertDebug(mainRenderer != nullptr);
 
-        m_finalPass->Render(frame, rs);
+        for (World* world : worldsToRender)
+        {
+            AssertDebug(world != nullptr && world->IsReady());
+
+            // @FIXME: will overwrite !!!
+            g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
+
+            RenderSetup rs { world, nullptr };
+
+#if HYP_EDITOR
+            // for editor world, render UI as well
+            if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+            {
+                if (RendererBase* uiRenderer = g_renderGlobalState->globalRenderers[GRT_UI][0])
+                {
+                    uiRenderer->RenderFrame(frame, rs);
+                }
+            }
+#endif
+
+            if (world->GetViews().Size() != 0)
+            {
+                mainRenderer->RenderFrame(frame, rs);
+                numViewsRendered += world->GetViews().Size();
+            }
+        }
+
+        m_finalPass->Render(frame, RenderSetup());
     }
 
     g_renderGlobalState->UpdateBuffers(frame);
@@ -473,6 +571,25 @@ void EngineDriver::PreFrameUpdate(FrameBase* frame)
     HYP_SCOPE;
 
     AssertOnThread(g_renderThread);
+}
+
+void EngineDriver::GameThreadUpdate(float delta)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_gameThread);
+
+    m_scriptingService->Update();
+
+    const uint32 slot = RenderApi::GetRingIndex();
+
+    m_worldsToRenderPerFrame[slot].Clear();
+
+    for (World* world : m_worlds)
+    {
+        world->Update(delta);
+
+        EnqueueWorldRender(world);
+    }
 }
 
 #pragma endregion EngineDriver

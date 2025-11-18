@@ -13,6 +13,18 @@
 
 namespace hyperion {
 
+static inline PhysicsWorld* GetPhysicsWorld()
+{
+    World* currentWorld = g_engineDriver->GetCurrentWorld();
+    
+    if (!currentWorld)
+    {
+        return nullptr;
+    }
+    
+    return static_cast<PhysicsWorld*>(currentWorld->GetPhysicsWorld().Get());
+}
+
 RigidBody::RigidBody()
     : RigidBody(nullptr, {})
 {
@@ -44,25 +56,19 @@ void RigidBody::SetShape(const Handle<PhysicsShape>& shape)
 {
     m_shape = shape;
 
-    if (IsInitCalled())
-    {
-        g_engineDriver->GetCurrentWorld()->GetPhysicsWorld().GetAdapter().OnChangePhysicsShape(this);
-    }
+    GetPhysicsWorld()->GetAdapter().OnChangePhysicsShape(this);
 }
 
 void RigidBody::SetPhysicsMaterial(const PhysicsMaterial& physicsMaterial)
 {
     m_physicsMaterial = physicsMaterial;
 
-    if (IsInitCalled())
-    {
-        g_engineDriver->GetCurrentWorld()->GetPhysicsWorld().GetAdapter().OnChangePhysicsMaterial(this);
-    }
+    GetPhysicsWorld()->GetAdapter().OnChangePhysicsMaterial(this);
 }
 
 void RigidBody::ApplyForce(const Vector3& force)
 {
-    g_engineDriver->GetCurrentWorld()->GetPhysicsWorld().GetAdapter().ApplyForceToBody(this, force);
+    GetPhysicsWorld()->GetAdapter().ApplyForceToBody(this, force);
 }
 
 } // namespace hyperion

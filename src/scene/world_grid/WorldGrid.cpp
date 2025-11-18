@@ -180,8 +180,7 @@ bool WorldGrid::RemoveLayer(WorldGridLayer* layer)
     }
 
     return false;
-}
-;
+};
 void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
 {
     HYP_SCOPE;
@@ -222,7 +221,7 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
 
             continue;
         }
-        
+
         HypData instance;
         if (!cls->CreateInstance(instance, /* allowAbstract */ false))
         {
@@ -276,10 +275,7 @@ Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
 
             for (const AssetReference& assetReference : assetReferences)
             {
-                layerDesc.objects.PushBack(WGObject {
-                    coord,
-                    assetReference.GetAssetPath()
-                });
+                layerDesc.objects.PushBack(WGObject { coord, assetReference.GetAssetPath() });
             }
         }
     }

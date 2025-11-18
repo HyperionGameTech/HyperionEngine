@@ -28,6 +28,8 @@
 
 #include <core/reflection/Class.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
+
 #include <engine/EngineGlobals.hpp>
 
 #include <HyperionEngine.hpp>
@@ -53,12 +55,12 @@ EditorProject::EditorProject(Name name)
     : m_name(name),
       m_lastSavedTime(~0ull)
 {
-    m_world = CreateObject<World>(NAME_FMT("{}_World", name));
     m_actionStack = CreateObject<EditorActionStack>(WeakHandleFromThis());
 }
 
 EditorProject::~EditorProject()
 {
+    SafeDelete(std::move(m_world));
 }
 
 void EditorProject::Init()
@@ -80,7 +82,11 @@ void EditorProject::Init()
 
     InitObject(m_actionStack);
 
-    Assert(m_world != nullptr);
+    if (!m_world)
+    {
+        m_world = CreateObject<World>(NAME_FMT("{}_World", m_name));
+    }
+
     InitObject(m_world);
 
     SetReady(true);
@@ -154,7 +160,7 @@ Result EditorProject::CreatePackage()
     return HYP_MAKE_ERROR(Error, "Failed to create package");
 }
 
-void EditorProject::AddScene(const Handle<Scene>& scene, Vec2i streamingCoord)
+void EditorProject::AddScene(const Handle<Scene>& scene)
 {
     HYP_SCOPE;
 
@@ -165,8 +171,7 @@ void EditorProject::AddScene(const Handle<Scene>& scene, Vec2i streamingCoord)
 
     AssertDebug(m_world != nullptr);
 
-    m_world->AddScene(scene);
-    // @TODO Do something with streaming coord
+    m_world->AddScene(scene, /* addToStreamingLayer */ true);
 }
 
 void EditorProject::RemoveScene(Scene* scene)
@@ -177,10 +182,10 @@ void EditorProject::RemoveScene(Scene* scene)
     {
         return;
     }
-    
+
     AssertDebug(m_world != nullptr);
 
-    m_world->RemoveScene(scene);
+    m_world->RemoveScene(scene, /* removeFromStreamingLayer */ true);
 }
 
 FilePath EditorProject::GetProjectsDirectory() const

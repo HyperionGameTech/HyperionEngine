@@ -205,8 +205,7 @@ void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup
 {
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
 

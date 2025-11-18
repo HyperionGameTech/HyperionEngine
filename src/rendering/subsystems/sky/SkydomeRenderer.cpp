@@ -54,7 +54,7 @@ void SkydomeRenderer::Init()
 
     m_virtualScene = CreateObject<Scene>(SceneFlags::NONE);
     m_virtualScene->SetOwnerThreadId(g_gameThread);
-    m_virtualScene->SetName(Name::Unique("SkydomeRendererScene"));
+    m_virtualScene->SetName(NAME("SkydomeRendererScene"));
     InitObject(m_virtualScene);
 
     Handle<Node> cameraNode = m_virtualScene->GetRoot()->AddChild();
@@ -66,7 +66,7 @@ void SkydomeRenderer::Init()
 
     m_virtualScene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(m_camera);
 
-    m_camera->SetName(Name::Unique("SkydomeRendererCamera"));
+    m_camera->SetName(NAME("SkydomeRendererCamera"));
     m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f::UnitZ(), Vec3f::Zero(), Vec3f::UnitY()));
 
     InitObject(m_camera);

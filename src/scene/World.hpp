@@ -25,6 +25,9 @@ class EditorDelegates;
 class View;
 class WorldGrid;
 class WorldGridLayer;
+class PhysicsWorldBase;
+
+enum GlobalRendererType : uint32;
 
 namespace threading {
 class TaskBatch;
@@ -33,6 +36,24 @@ class TaskBatch;
 using threading::TaskBatch;
 
 struct WGLayerDesc;
+
+HYP_ENUM()
+enum class WorldFlags : uint32
+{
+    NONE = 0x0,
+
+    EDITOR_WORLD = 0x1, //!< If set, the World is an editor world. (single world created for the editor environment itself)
+
+    HAS_PHYSICS = 0x2,   //!< If set, the World has a PhysicsWorld associated with it and will perform physics simulation.
+    HAS_STREAMING = 0x4, //!< If set, the World has a grid for spatial partitioning and streaming.
+
+    HAS_SCENE_STREAMING_LAYER = 0x100, //!< If set, the World has a streaming layer for loading/unloading Scenes based on the WorldGrid.
+    ALL_STREAMING_LAYER_FLAGS = HAS_SCENE_STREAMING_LAYER,
+
+    DEFAULT = HAS_PHYSICS | HAS_STREAMING | ALL_STREAMING_LAYER_FLAGS
+};
+
+HYP_MAKE_ENUM_FLAGS(WorldFlags);
 
 HYP_CLASS()
 class HYP_API World final : public ObjectBase
@@ -43,7 +64,7 @@ public:
     using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, DynamicNodeAllocator>;
 
     World();
-    explicit World(Name name);
+    explicit World(Name name, EnumFlags<WorldFlags> worldFlags = WorldFlags::DEFAULT);
 
     World(const World& other) = delete;
     World& operator=(const World& other) = delete;
@@ -65,6 +86,15 @@ public:
         m_name = name;
     }
 
+    HYP_METHOD(Property = "WorldFlags", Serialize)
+    HYP_FORCE_INLINE EnumFlags<WorldFlags> GetWorldFlags() const
+    {
+        return m_worldFlags;
+    }
+
+    HYP_METHOD(Property = "WorldFlags", Serialize)
+    void SetWorldFlags(EnumFlags<WorldFlags> flags);
+
     /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
      *  This version of the function allows the caller to specify the thread the Scene uses for entity management.
      *  If the Scene does not exist for the given thread mask, it will be created.
@@ -73,12 +103,8 @@ public:
      */
     const Handle<Scene>& GetDetachedScene(const ThreadId& threadId);
 
-    HYP_FORCE_INLINE PhysicsWorld& GetPhysicsWorld()
-    {
-        return m_physicsWorld;
-    }
-
-    HYP_FORCE_INLINE const PhysicsWorld& GetPhysicsWorld() const
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<PhysicsWorldBase>& GetPhysicsWorld()
     {
         return m_physicsWorld;
     }
@@ -136,10 +162,10 @@ public:
     void StopSimulating();
 
     HYP_METHOD()
-    void AddScene(const Handle<Scene>& scene);
+    void AddScene(const Handle<Scene>& scene, bool addToStreamingLayer = true);
 
     HYP_METHOD()
-    bool RemoveScene(Scene* scene);
+    bool RemoveScene(Scene* scene, bool removeFromStreamingLayer = true);
 
     /*! \brief Get the number of Scenes in the World. Must be called on the game thread.
      *  \return The number of Scenes in the World. */
@@ -189,19 +215,24 @@ public:
 private:
     void Init() override;
 
+    void UpdateDirtyMeshEntities();
+
     Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);
 
     HYP_METHOD(Property = "Scenes", Transient)
     void SetScenes(const Array<Handle<Scene>>& scenes);
 
-    HYP_METHOD(Property = "StreamingLayers", Serialize)
+    HYP_METHOD(Property = "StreamingLayers", Serialize, LoadOrder = 100)
     void DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator>& streamingLayers);
 
-    HYP_METHOD(Property = "StreamingLayers", Serialize)
+    HYP_METHOD(Property = "StreamingLayers", Serialize, LoadOrder = 100)
     Array<WGLayerDesc, DynamicAllocator> SerializeStreamingLayers() const;
 
     HYP_FIELD(Property = "Name", Serialize)
     Name m_name;
+
+    HYP_FIELD(Property = "WorldFlags", Serialize)
+    EnumFlags<WorldFlags> m_worldFlags;
 
     HYP_FIELD(Property = "Scenes", Transient)
     Array<Handle<Scene>> m_scenes;
@@ -222,10 +253,12 @@ private:
 
     TaskBatch* m_viewCollectionBatch;
 
-    PhysicsWorld m_physicsWorld;
+    Handle<PhysicsWorldBase> m_physicsWorld;
 
     // additional views to process for the current frame
     Array<View*, SceneTempAllocator> m_processViews;
+
+    DelegateHandlerSet m_delegateHandlers;
 };
 
 } // namespace hyperion

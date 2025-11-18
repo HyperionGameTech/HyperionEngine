@@ -402,9 +402,8 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
     AssertOnThread(g_renderThread);
 
-    Assert(renderSetup.IsValid());
-    Assert(renderSetup.HasView());
-    Assert(renderSetup.passData != nullptr);
+    AssertDebug(renderSetup.world && renderSetup.view);
+    AssertDebug(renderSetup.passData != nullptr);
 
     UpdatePipelineState(frame, renderSetup);
     UpdateUniforms(frame, renderSetup);

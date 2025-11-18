@@ -123,7 +123,9 @@ void GameThread::operator()()
         g_editorState->Update(counter.delta);
 #endif
 
-        if (m_game.IsValid())
+        g_engineDriver->GameThreadUpdate(counter.delta);
+
+        if (m_game)
         {
             m_game->Update(counter.delta);
         }

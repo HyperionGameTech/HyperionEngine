@@ -900,18 +900,26 @@ EditorSubsystem::EditorSubsystem()
                 m_manipulationWidgetHolder.Initialize();
                 m_manipulationWidgetHolder.SetCurrentProject(project);
 
+                g_engineDriver->AddWorld(project->GetWorld());
+
                 WeakHandle<Scene> activeScene;
 
                 for (const Handle<Scene>& scene : project->GetWorld()->GetScenes())
                 {
                     Assert(scene.IsValid());
 
+                    // add to all editor views
+                    for (const Handle<View>& view : m_editorViews)
+                    {
+                        view->AddScene(scene);
+                    }
+
                     if (!activeScene.IsValid())
                     {
                         activeScene = scene;
                     }
 
-                    //GetWorld()->AddScene(scene);
+                    // GetWorld()->AddScene(scene);
 
                     m_delegateHandlers.Add(
                         scene->OnRootNodeChanged
@@ -924,7 +932,7 @@ EditorSubsystem::EditorSubsystem()
                 UpdateWatchedNodes();
 
                 m_delegateHandlers.Add(
-                    project->GetWorld()->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](const Handle<Scene>& scene)
+                    project->GetWorld()->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
                         {
                             Assert(scene.IsValid());
 
@@ -933,7 +941,13 @@ EditorSubsystem::EditorSubsystem()
 
                             HYP_LOG(Editor, Info, "Project {} added scene: {}", *project->GetName(), *scene->GetName());
 
-                            //GetWorld()->AddScene(scene);
+                            // Add scene to all editor views
+                            for (const Handle<View>& view : m_editorViews)
+                            {
+                                view->AddScene(scene);
+                            }
+
+                            // GetWorld()->AddScene(scene);
 
                             m_delegateHandlers.Add(
                                 scene->OnRootNodeChanged
@@ -952,7 +966,7 @@ EditorSubsystem::EditorSubsystem()
                         }));
 
                 m_delegateHandlers.Add(
-                    project->GetWorld()->OnSceneRemoved.Bind([this, projectWeak = project.ToWeak()](Scene* scene)
+                    project->GetWorld()->OnSceneRemoved.Bind([this, projectWeak = project.ToWeak()](World*, Scene* scene)
                         {
                             Assert(scene != nullptr);
 
@@ -963,9 +977,15 @@ EditorSubsystem::EditorSubsystem()
 
                             m_delegateHandlers.Remove(&scene->OnRootNodeChanged);
 
+                            // remove from all editor views
+                            for (const Handle<View>& view : m_editorViews)
+                            {
+                                view->RemoveScene(scene);
+                            }
+
                             StopWatchingNode(scene->GetRoot());
 
-                            //GetWorld()->RemoveScene(scene);
+                            // GetWorld()->RemoveScene(scene);
 
                             // reinitialize scene selector on scene remove
                             InitActiveSceneSelection();
@@ -1069,6 +1089,8 @@ EditorSubsystem::EditorSubsystem()
     OnProjectClosing
         .Bind([this](const Handle<EditorProject>& project)
             {
+                g_engineDriver->RemoveWorld(project->GetWorld());
+
                 // Shutdown to reinitialize widget holder after project is opened
                 m_manipulationWidgetHolder.Shutdown();
 
@@ -1090,11 +1112,17 @@ EditorSubsystem::EditorSubsystem()
 
                     HYP_LOG(Editor, Info, "Closing project {} scene: {}", *project->GetName(), *scene->GetName());
 
+                    // remove from all editor views
+                    for (const Handle<View>& view : m_editorViews)
+                    {
+                        view->RemoveScene(scene);
+                    }
+
                     m_delegateHandlers.Remove(&scene->OnRootNodeChanged);
 
                     StopWatchingNode(scene->GetRoot());
 
-                    //GetWorld()->RemoveScene(scene);
+                    // GetWorld()->RemoveScene(scene);
                 }
 
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneAdded);
@@ -1254,12 +1282,6 @@ void EditorSubsystem::Update(float delta)
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
 
-    if (m_currentProject != nullptr)
-    {
-        // update the World contained in the current project (needs to happen even when not simulating in order to collect Views etc)
-        m_currentProject->GetWorld()->Update(delta);
-    }
-
     m_editorDelegates->Update();
 
     UpdateCamera(delta);
@@ -1298,7 +1320,7 @@ void EditorSubsystem::Update(float delta)
     RenderProxyList& pickRpl = g_editorState->GetPickCache().GetRenderProxyList();
     pickRpl.GetMeshes().Advance();
 
-    for (const Handle<View>& view : m_views)
+    for (const Handle<View>& view : m_editorViews)
     {
         if (!(view->GetViewDesc().flags & ViewFlags::GBUFFER))
         {
@@ -1423,12 +1445,12 @@ void EditorSubsystem::CreateHighlightNode()
 
 void EditorSubsystem::InitViewport()
 {
-    for (const Handle<View>& view : m_views)
+    for (const Handle<View>& view : m_editorViews)
     {
         GetWorld()->RemoveView(view);
     }
 
-    SafeDelete(std::move(m_views));
+    SafeDelete(std::move(m_editorViews));
 
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
@@ -1501,7 +1523,10 @@ void EditorSubsystem::InitViewport()
     m_camera->SetDimensions(Vec2i(viewportSize));
 
     ViewDesc viewDesc {
-        .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::ENABLE_READBACK | ViewFlags::MATCH_CAMERA_DIMENSIONS,
+        .flags = ViewFlags::DEFAULT
+            | ViewFlags::GBUFFER
+            | ViewFlags::ENABLE_READBACK
+            | ViewFlags::MATCH_CAMERA_DIMENSIONS,
         .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
         .outputTargetDesc = { .extent = viewportSize },
         .camera = m_camera,
@@ -1513,9 +1538,20 @@ void EditorSubsystem::InitViewport()
 
     HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewportSize);
 
+    // add all current project scenes to the view
+    if (m_currentProject != nullptr)
+    {
+        for (const Handle<Scene>& scene : m_currentProject->GetWorld()->GetScenes())
+        {
+            Assert(scene != nullptr);
+
+            view->AddScene(scene);
+        }
+    }
+
     GetWorld()->AddView(view);
 
-    m_views.PushBack(view);
+    m_editorViews.PushBack(view);
 
     m_delegateHandlers.Remove(&sceneImageObject->OnSizeChange);
     m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak(), cameraWeak = m_camera.ToWeak()]()
@@ -1587,7 +1623,7 @@ void EditorSubsystem::InitViewport()
                 RayTestResults results;
 
                 bool hasHits = false;
-                for (const Handle<View>& view : m_views)
+                for (const Handle<View>& view : m_editorViews)
                 {
                     if (view->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
                     {
@@ -2968,7 +3004,7 @@ void EditorSubsystem::ShowOpenProjectDialog()
         GetResourceDirectory(),
         { "hypproj" },
         /* allowMultiple */ false, /* allowDirectories */ true,
-        [](TResult<Array<FilePath>>&& result)
+        [weakThis = MakeWeakRef(this)](TResult<Array<FilePath>>&& result) mutable
         {
             if (result.HasError())
             {
@@ -2982,8 +3018,15 @@ void EditorSubsystem::ShowOpenProjectDialog()
                 return;
             }
 
-            GetThreadById(g_gameThread)->GetScheduler().Enqueue([projectFilepath = std::move(result.GetValue()[0])]()
+            GetThreadById(g_gameThread)->GetScheduler().Enqueue([weakThis = std::move(weakThis), projectFilepath = std::move(result.GetValue()[0])]() mutable
                 {
+                    Handle<EditorSubsystem> strongThis = weakThis.Lock();
+                    if (!strongThis)
+                    {
+                        HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowOpenProjectDialog");
+                        return;
+                    }
+
                     TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
 
                     if (loadProjectResult.HasError())
@@ -3000,14 +3043,7 @@ void EditorSubsystem::ShowOpenProjectDialog()
                         return;
                     }
 
-                    if (EditorSubsystem* editorSubsystem = g_engineDriver->GetCurrentWorld()->GetSubsystem<EditorSubsystem>())
-                    {
-                        editorSubsystem->OpenProject(project);
-
-                        return;
-                    }
-
-                    HYP_LOG(Editor, Fatal, "EditorSubsystem does not exist!");
+                    strongThis->OpenProject(project);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
         });

@@ -178,8 +178,7 @@ void TemporalAA::Render(FrameBase* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Temporal AA");
 
-    AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
+    AssertDebug(renderSetup.world && renderSetup.view);
 
     UpdatePipelineState(frame, renderSetup);
 

@@ -81,8 +81,7 @@ struct RendererConfig : public ConfigBase<RendererConfig>
     virtual ~RendererConfig() override = default;
 };
 
-/*! \brief Describes the setup for rendering a frame. All RenderSetups must have a valid World set. Passed to almost all Render() functions throughout the renderer.
- *  Most of the time you'll want a RenderSetup with a View as well, but compute-only passes can use a RenderSetup without a view. Use HasView() to check if a view is set. */
+/*! \brief Describes the setup for rendering a frame.  */
 struct HYP_API RenderSetup
 {
     friend const RenderSetup& NullRenderSetup();
@@ -99,8 +98,7 @@ struct HYP_API RenderSetup
 
     RenderSetup* prev;
 
-private:
-    // Private constructor for null RenderSetup
+public:
     RenderSetup()
         : world(nullptr),
           view(nullptr),
@@ -114,8 +112,7 @@ private:
     {
     }
 
-public:
-    RenderSetup(World* world)
+    explicit RenderSetup(World* world)
         : world(world),
           view(nullptr),
           envProbe(nullptr),
@@ -151,21 +148,8 @@ public:
 
     ~RenderSetup() = default;
 
-    /*! \see IsValid() */
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return IsValid();
-    }
-
-    /*! \see IsValid() */
-    HYP_FORCE_INLINE bool operator!() const
-    {
-        return !IsValid();
-    }
-
-    /*! \brief Returns true if this RenderSetup is useable for rendering.
-     *  This means it has a valid World set. If you need to check if a View is set, use HasView() instead. */
-    HYP_FORCE_INLINE bool IsValid() const
+    /*! \brief Returns true if this RenderSetup has a valid World set. */
+    HYP_FORCE_INLINE bool HasWorld() const
     {
         return world != nullptr;
     }

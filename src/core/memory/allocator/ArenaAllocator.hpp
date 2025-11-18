@@ -39,8 +39,8 @@ public:
     TArena(const TArena& other) = delete;
     TArena& operator=(const TArena& other) = delete;
 
-    TArena(TArena&& other) noexcept;
-    TArena& operator=(TArena&& other) noexcept;
+    TArena(TArena&& other) noexcept = delete;
+    TArena& operator=(TArena&& other) noexcept = delete;
 
     ~TArena() = default;
 
@@ -106,47 +106,20 @@ TArena<AllocatorType>::TArena(AllocatorType* pAllocator, SizeType size)
 }
 
 template <class AllocatorType>
-TArena<AllocatorType>::TArena(TArena&& other) noexcept
-    : m_buffer(std::move(other.m_buffer)),
-      m_offset(other.m_offset)
-{
-    other.m_offset = 0;
-}
-
-template <class AllocatorType>
-TArena<AllocatorType>& TArena<AllocatorType>::operator=(TArena&& other) noexcept
-{
-    if (this == &other)
-    {
-        return *this;
-    }
-
-    m_buffer = std::move(other.m_buffer);
-    m_offset = other.m_offset;
-
-    other.m_offset = 0;
-
-    return *this;
-}
-
-template <class AllocatorType>
 void* TArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
 {
     HYP_CORE_ASSERT(alignment != 0 && ((alignment & (alignment - 1)) == 0),
         "Arena requires power-of-two, non-zero alignment");
 
-    ubyte* base = static_cast<ubyte*>(static_cast<void*>(m_buffer.Data()));
-    const uintptr_t baseAddr = reinterpret_cast<uintptr_t>(base);
-    const uintptr_t current = baseAddr + static_cast<uintptr_t>(m_offset);
-    const uintptr_t aligned = ByteUtil::AlignAs(current, static_cast<uintptr_t>(alignment));
-    const SizeType alignedOffset = static_cast<SizeType>(aligned - baseAddr);
+    ubyte* base = reinterpret_cast<ubyte*>(m_buffer.Data());
 
-    // Use subtraction form to avoid overflow.
+    const UIntPtr baseAddr = reinterpret_cast<UIntPtr>(base);
+    const UIntPtr current = baseAddr + static_cast<UIntPtr>(m_offset);
+    const UIntPtr aligned = ByteUtil::AlignAs(current, static_cast<UIntPtr>(alignment));
+    const SizeType alignedOffset = SizeType(aligned - baseAddr);
+
     if (size > m_buffer.Size() - alignedOffset)
     {
-        HYP_CORE_ASSERT(false,
-            "Arena out of memory: requested=%llu, align=%llu, remaining=%llu",
-            size, alignment, m_buffer.Size() - alignedOffset);
         return nullptr;
     }
 
