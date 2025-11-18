@@ -267,9 +267,20 @@ Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
         layerDesc.className = layer->InstanceClass()->GetName();
         layerDesc.info = layer->GetLayerInfo();
 
-        for (const KeyValuePair<Vec2i, Array<WGObject>>& pair : layer->m_objectsByCoord)
+        for (const KeyValuePair<Vec2i, Array<AssetReference, DynamicAllocator>>& pair : layer->m_objectsByCoord)
         {
-            layerDesc.objects.Concat(pair.second);
+            const Vec2i& coord = pair.first;
+            const Array<AssetReference, DynamicAllocator>& assetReferences = pair.second;
+
+            layerDesc.objects.Reserve(layerDesc.objects.Size() + assetReferences.Size());
+
+            for (const AssetReference& assetReference : assetReferences)
+            {
+                layerDesc.objects.PushBack(WGObject {
+                    coord,
+                    assetReference.GetAssetPath()
+                });
+            }
         }
     }
 
