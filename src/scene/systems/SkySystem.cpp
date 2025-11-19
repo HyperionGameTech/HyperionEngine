@@ -15,7 +15,7 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
 
-#include <rendering/subsystems/sky/SkydomeRenderer.hpp>
+#include <scene/sky/DynamicSkySubsystem.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -107,59 +107,19 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
     }
     else
     {
-        skyComponent.subsystem = world->AddSubsystem<SkydomeRenderer>();
+        skyComponent.subsystem = world->AddSubsystem<DynamicSkySubsystem>();
 
-        Handle<Mesh> mesh = meshComponent ? meshComponent->mesh : Handle<Mesh>::empty;
-        Handle<Material> material = meshComponent ? meshComponent->material : Handle<Material>::empty;
+        // if (meshComponent)
+        // {
+        //     meshComponent->mesh = std::move(mesh);
+        //     meshComponent->material = std::move(material);
 
-        if (!mesh.IsValid())
-        {
-            mesh = MeshBuilder::Cube();
-            mesh->SetFlags(MF_VIEW_INDEPENDENT);
-            mesh->SetName(NAME("Skybox_Mesh"));
-
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes/Skydome", mesh->GetAsset());
-
-            InitObject(mesh);
-        }
-
-        if (!material)
-        {
-            const Handle<Texture>& cubemapTexture = ObjCast<SkyProbe>(skyComponent.subsystem->GetEnvProbe())->GetSkyboxCubemap();
-            Assert(cubemapTexture.IsValid());
-
-            cubemapTexture->SetName(NAME("Skybox_Cubemap"));
-
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures/Skydome", cubemapTexture->GetAsset());
-
-            MaterialAttributes materialAttributes {};
-            materialAttributes.shaderDefinition = ShaderDefinition {
-                NAME("Skybox"),
-                ShaderProperties(mesh->GetVertexAttributes())
-            };
-            materialAttributes.bucket = RB_SKYBOX;
-            // flip cull faces.
-            materialAttributes.cullFaces = FCM_FRONT;
-            // enable depth test but not write. we want skybox to be behind everything else, but rendered last to avoid overdraw.
-            materialAttributes.flags = MAF_DEPTH_TEST;
-
-            material = CreateObject<Material>(NAME("SkyboxMaterial"), materialAttributes);
-            material->SetTexture(MaterialTextureKey::ALBEDO_MAP, cubemapTexture);
-
-            InitObject(material);
-        }
-
-        if (meshComponent)
-        {
-            meshComponent->mesh = std::move(mesh);
-            meshComponent->material = std::move(material);
-
-            mgr.AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
-        }
-        else
-        {
-            mgr.AddComponent<MeshComponent>(entity, MeshComponent { std::move(mesh), std::move(material) });
-        }
+        //     mgr.AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+        // }
+        // else
+        // {
+        //     mgr.AddComponent<MeshComponent>(entity, MeshComponent { std::move(mesh), std::move(material) });
+        // }
     }
 }
 

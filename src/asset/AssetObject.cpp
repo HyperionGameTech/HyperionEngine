@@ -104,12 +104,12 @@ void AssetDataResourceBase::Initialize()
     Handle<AssetObject> assetObject = m_assetObject.Lock();
     Assert(assetObject.IsValid());
 
-//    if (IsDataLoaded())
-//    {
-//        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded", assetObject->GetName());
-//
-//        return;
-//    }
+    //    if (IsDataLoaded())
+    //    {
+    //        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded", assetObject->GetName());
+    //
+    //        return;
+    //    }
 
     if (assetObject->IsTransient())
     {
@@ -236,7 +236,7 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 
 AssetObject::AssetObject()
     : m_resource(&GetNullResource()),
-      m_flags(AOF_NONE),
+      m_flags(AssetObjectFlags::NONE),
       m_pool(nullptr)
 {
 }
@@ -244,7 +244,7 @@ AssetObject::AssetObject()
 AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
       m_resource(&GetNullResource()),
-      m_flags(AOF_NONE),
+      m_flags(AssetObjectFlags::NONE),
       m_pool(nullptr)
 {
 }
@@ -272,7 +272,7 @@ void AssetObject::Init()
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
         resource->m_assetObject = WeakHandleFromThis();
 
-        if ((m_flags[AOF_PERSISTENT] || DebugDisableUnload) && !m_persistentResource)
+        if ((m_flags[AssetObjectFlags::PERSISTENT] || DebugDisableUnload) && !m_persistentResource)
         {
             m_persistentResource = ResourceHandle(*m_resource);
         }
@@ -287,7 +287,7 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
 
     if (setFlag)
     {
-        m_flags[AOF_PERSISTENT] = persistentlyLoaded;
+        m_flags[AssetObjectFlags::PERSISTENT] = persistentlyLoaded;
     }
 
     if (persistentlyLoaded)
@@ -313,7 +313,7 @@ void AssetObject::SetIsTransient(bool isTransient)
 {
     HYP_SCOPE;
 
-    m_flags[AOF_TRANSIENT] = isTransient;
+    m_flags[AssetObjectFlags::TRANSIENT] = isTransient;
 
     if (IsTransient())
     {
@@ -325,7 +325,7 @@ void AssetObject::SetIsTransient(bool isTransient)
     }
     else
     {
-        SetIsPersistentlyLoaded(m_flags[AOF_PERSISTENT], /* setFlag */ false);
+        SetIsPersistentlyLoaded(m_flags[AssetObjectFlags::PERSISTENT], /* setFlag */ false);
     }
 }
 
@@ -333,7 +333,7 @@ void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
 {
     HYP_SCOPE;
 
-    m_flags[AOF_TRANSIENT_BY_PROXY] = isTransientByProxy;
+    m_flags[AssetObjectFlags::TRANSIENT_BY_PROXY] = isTransientByProxy;
 
     if (IsTransient())
     {
@@ -345,7 +345,7 @@ void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
     }
     else
     {
-        SetIsPersistentlyLoaded(m_flags[AOF_PERSISTENT], /* setFlag */ false);
+        SetIsPersistentlyLoaded(m_flags[AssetObjectFlags::PERSISTENT], /* setFlag */ false);
     }
 }
 

@@ -13,13 +13,14 @@
 namespace hyperion {
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API SkydomeRenderer : public Subsystem
+class HYP_API DynamicSkySubsystem : public Subsystem
 {
-    HYP_OBJECT_BODY(SkydomeRenderer);
+    HYP_OBJECT_BODY(DynamicSkySubsystem);
 
 public:
-    SkydomeRenderer(Vec2u dimensions = { 1024, 1024 });
-    virtual ~SkydomeRenderer() override;
+    DynamicSkySubsystem();
+    explicit DynamicSkySubsystem(Vec2u dimensions);
+    virtual ~DynamicSkySubsystem() override;
 
     HYP_FORCE_INLINE const Handle<Texture>& GetCubemap() const
     {
@@ -40,10 +41,15 @@ private:
 
     Vec2u m_dimensions;
     Handle<Texture> m_cubemap;
-    Handle<Camera> m_camera;
 
-    Handle<Scene> m_virtualScene;
+    // For rendering the sky into the cubemap
+    Handle<Camera> m_camera;
+    Handle<Scene> m_renderScene;
     Handle<EnvProbe> m_envProbe;
+
+    // Stuff that gets added to world
+    Handle<Entity> m_skyboxEntity;
+    Handle<Scene> m_visScene;
 };
 
 } // namespace hyperion

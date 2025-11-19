@@ -31,7 +31,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/subsystems/sky/SkydomeRenderer.hpp>
+#include <scene/sky/DynamicSkySubsystem.hpp>
 
 #include <core/reflection/Class.hpp>
 

@@ -299,11 +299,11 @@ public:
     HYP_METHOD()
     void SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
     {
-        const bool wasPersistent = m_flags[AOF_PERSISTENT];
+        const bool wasPersistent = m_flags[AssetObjectFlags::PERSISTENT];
 
         m_flags = flags;
 
-        const bool isPersistent = m_flags[AOF_PERSISTENT];
+        const bool isPersistent = m_flags[AssetObjectFlags::PERSISTENT];
 
         if (wasPersistent != isPersistent)
         {
@@ -323,7 +323,7 @@ public:
     HYP_METHOD()
     bool IsTransient() const
     {
-        return bool(m_flags & (AOF_TRANSIENT | AOF_TRANSIENT_BY_PROXY));
+        return bool(m_flags & (AssetObjectFlags::TRANSIENT | AssetObjectFlags::TRANSIENT_BY_PROXY));
     }
 
     HYP_METHOD()

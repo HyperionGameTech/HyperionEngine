@@ -114,9 +114,11 @@ void HyperionEditor::Init()
 
     // GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
 
-#if 0
+#if 1
     Handle<Scene> scene = CreateObject<Scene>(NAME("MyScene"));
     m_editorSubsystem->GetCurrentProject()->GetWorld()->AddScene(scene);
+
+    m_editorSubsystem->GetCurrentProject()->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
 
     // add sun
     Handle<Node> sunNode = scene->GetRoot()->AddChild();
@@ -129,18 +131,6 @@ void HyperionEditor::Init()
 
     sunNode->AddChild(sunEntity);
 
-    // Add Skybox
-    Handle<Entity> skyboxEntity = scene->GetEntityManager()->AddEntity();
-
-    scene->GetEntityManager()->AddComponent<SkyComponent>(skyboxEntity, SkyComponent {});
-    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skyboxEntity, BoundingBoxComponent { BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)) });
-
-    Handle<Node> skydomeNode = scene->GetRoot()->AddChild();
-    skydomeNode->AddChild(skyboxEntity);
-    skydomeNode->SetName(NAME("Sky"));
-
-    scene->GetEntityManager()->GetComponent<TransformComponent>(skyboxEntity) = TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) };
-    scene->GetEntityManager()->GetComponent<VisibilityStateComponent>(skyboxEntity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
     // Test assets
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/sponza/sponza.obj");

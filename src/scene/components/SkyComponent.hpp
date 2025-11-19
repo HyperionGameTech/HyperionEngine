@@ -8,7 +8,7 @@
 
 namespace hyperion {
 
-class SkydomeRenderer;
+class DynamicSkySubsystem;
 
 HYP_STRUCT(Component, Label = "Sky Component", Description = "Controls the rendering of a dynamic skydome.", Editor = true)
 struct SkyComponent
@@ -16,7 +16,7 @@ struct SkyComponent
     HYP_STRUCT_BODY(SkyComponent);
 
     HYP_FIELD(NoScriptBindings, Transient)
-    Handle<SkydomeRenderer> subsystem;
+    Handle<DynamicSkySubsystem> subsystem;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

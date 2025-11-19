@@ -165,7 +165,7 @@ HYP_NODISCARD Name CreateFriendlyName(Name name)
 
 /*! \brief Is the AssetObject located in a transient package that allows us to move it elsewhere?
  *  Only Engine-defined transient packages (e.g $Memory, $Import, $Temp) enable this behaviour. */
-static bool CanMoveAssetToNonTransientPackage(const AssetObject* assetObject)
+static bool CanRelocateTransientAsset(const AssetObject* assetObject)
 {
     if (!assetObject)
     {
@@ -182,6 +182,11 @@ static bool CanMoveAssetToNonTransientPackage(const AssetObject* assetObject)
     if (!package->IsTransient())
     {
         return false; // don't move if not in transient package
+    }
+
+    if (assetObject->GetAssetFlags() & AssetObjectFlags::TRANSIENT)
+    {
+        return false; // explicitly transient asset; don't move
     }
 
     const ANSIString packagePath = package->BuildPackagePath();
@@ -1049,7 +1054,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
             // If TRANSIENT (not BY PROXY), skip saving this asset
-            if ((assetObject->GetAssetFlags() & (AOF_TRANSIENT | AOF_TRANSIENT_BY_PROXY)) == AOF_TRANSIENT)
+            if ((assetObject->GetAssetFlags() & (AssetObjectFlags::TRANSIENT | AssetObjectFlags::TRANSIENT_BY_PROXY)) == AssetObjectFlags::TRANSIENT)
             {
                 continue;
             }
@@ -2626,7 +2631,7 @@ void AssetRegistry::RegisterAssetsRecursively(
             }
         }
 
-        if (assetObject && CanMoveAssetToNonTransientPackage(assetObject))
+        if (assetObject && CanRelocateTransientAsset(assetObject))
         {
             const String packagePathWithSubpath = getObjectSubpath
                 ? packagePath + "/" + getObjectSubpath(*assetObject)
