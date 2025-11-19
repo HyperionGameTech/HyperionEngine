@@ -1018,8 +1018,6 @@ FBOMResult FBOMReader::ReadObject(
 
                         if (FBOMResult err = Deserialize(context, outObject, *outObject.m_deserializedObject); !err.IsOK())
                         {
-                            HYP_LOG_TEMP("Error deserializing object of type {}: {}", objectType.ToString(false), err.message);
-                            HYP_BREAKPOINT;
                             outObject.m_deserializedObject.Reset();
 
                             return err;

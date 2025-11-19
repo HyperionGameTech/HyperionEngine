@@ -511,8 +511,6 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
                 TByteBuffer<RenderAllocator> byteBuffer;
                 byteBuffer.SetSize(stagingBuffer->Size());
 
-                HYP_LOG_TEMP("Reading {} bytes from staging buffer", byteBuffer.Size());
-
                 stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());
 
                 SafeDelete(std::move(stagingBuffer));

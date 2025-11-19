@@ -67,6 +67,9 @@ struct WGLayerDesc
 
     HYP_FIELD()
     Name className = NAME("WorldGridLayer");
+    
+    HYP_FIELD()
+    Name layerName;
 
     HYP_FIELD()
     WorldGridLayerInfo info;
@@ -113,7 +116,6 @@ public:
     }
 
     void Shutdown();
-    void Update(float delta);
 
 private:
     void Init() override;

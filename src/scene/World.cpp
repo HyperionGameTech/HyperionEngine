@@ -156,7 +156,11 @@ void World::Init()
 
     if (m_worldFlags & WorldFlags::HAS_STREAMING)
     {
-        m_worldGrid = CreateObject<WorldGrid>(this);
+        if (!m_worldGrid)
+        {
+            m_worldGrid = CreateObject<WorldGrid>(this);
+        }
+        
         InitObject(m_worldGrid);
     }
 
@@ -306,8 +310,11 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
         {
             if (m_worldFlags & WorldFlags::HAS_STREAMING)
             {
-                m_worldGrid = CreateObject<WorldGrid>(this);
-                InitObject(m_worldGrid);
+                if (!m_worldGrid)
+                {
+                    m_worldGrid = CreateObject<WorldGrid>(this);
+                    InitObject(m_worldGrid);
+                }
             }
             else
             {
@@ -423,11 +430,6 @@ void World::Update(float delta)
     m_processViews.Clear();
 
     m_gameState.deltaTime = delta;
-
-    if (m_worldGrid)
-    {
-        m_worldGrid->Update(delta);
-    }
 
     if (m_physicsWorld)
     {
@@ -1181,7 +1183,17 @@ Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
 
 void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator>& streamingLayers)
 {
-    if (!m_worldGrid)
+    if (m_worldGrid != nullptr)
+    {
+        for (const Handle<WorldGridLayer>& layer : m_worldGrid->GetLayers())
+        {
+            m_delegateHandlers.Remove(&layer->OnStreamingObjectsLoaded);
+            m_delegateHandlers.Remove(&layer->OnStreamingObjectsUnloaded);
+            
+            // @TODO remove Scenes if layer is scene streaming layer?
+        }
+    }
+    else
     {
         if (!(m_worldFlags & WorldFlags::HAS_STREAMING))
         {
@@ -1195,21 +1207,18 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
         m_worldGrid = CreateObject<WorldGrid>(this);
     }
 
-    for (const Handle<WorldGridLayer>& layer : m_worldGrid->GetLayers())
-    {
-        m_delegateHandlers.Remove(&layer->OnStreamingObjectsLoaded);
-        m_delegateHandlers.Remove(&layer->OnStreamingObjectsUnloaded);
-
-        // @TODO remove Scenes if layer is scene streaming layer?
-    }
-
     m_worldGrid->SetStreamingLayersFromDescs(streamingLayers.ToSpan());
-
+    
     for (const Handle<WorldGridLayer>& layer : m_worldGrid->GetLayers())
     {
         BindStreamingDelegates(m_delegateHandlers, this, layer);
 
         // @TODO if scene streaming is enabled and we're Init()'d, stream them in!
+    }
+    
+    if (IsInitCalled())
+    {
+        InitObject(m_worldGrid);
     }
 }
 

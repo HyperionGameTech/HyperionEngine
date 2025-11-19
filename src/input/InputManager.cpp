@@ -132,7 +132,6 @@ void InputManager::CheckEvent(SystemEvent* event)
 
         break;
     case SystemEvent::MOUSEBUTTON_DOWN:
-        HYP_LOG_TEMP("Mouse button down: {}", event->GetMouseButtons().enumValue);
         for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
         {
             MouseButtonDown(MouseButtonKey(index));
@@ -140,7 +139,6 @@ void InputManager::CheckEvent(SystemEvent* event)
 
         break;
     case SystemEvent::MOUSEBUTTON_UP:
-        HYP_LOG_TEMP("Mouse button up: {}", event->GetMouseButtons().enumValue);
         for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
         {
             MouseButtonUp(MouseButtonKey(index));

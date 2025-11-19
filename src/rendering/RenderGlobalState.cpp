@@ -293,11 +293,6 @@ static void ResourceBinding_Assign(ObjectBase* resource, uint32 binding)
     }
 
     bindings.bindingIndices.Emplace(resourceId.ToIndex(), binding);
-
-    HYP_LOG_TEMP("Assigned resource binding for resource of type '{}' with ID {} to binding index {}",
-        *resource->InstanceClass()->GetName(),
-        resourceId,
-        binding);
 }
 
 static uint32 ResourceBinding_Retrieve(const ObjectBase* resource)
@@ -1148,7 +1143,6 @@ void BeginFrame_RenderThread()
 
                     if (forceRebind)
                     {
-                        HYP_LOG_TEMP("proxy rebind for {}", elem.resource->Id());
                         (*ppProxy)->forceRebind = false; // swap
                     }
                 }

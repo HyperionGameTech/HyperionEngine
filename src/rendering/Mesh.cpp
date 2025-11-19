@@ -191,7 +191,7 @@ void Mesh::SetMeshAsset(const AssetReference& assetReference)
 
         if (!asset->IsRegistered())
         {
-            if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
+            if (Result renameResult = asset->Rename(NAME_FMT("{}_MeshAsset", m_name)); renameResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
             }
@@ -399,7 +399,7 @@ Result Mesh::Rename(Name name)
     {
         if (!asset->IsRegistered())
         {
-            if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
+            if (Result renameResult = asset->Rename(NAME_FMT("{}_MeshAsset", m_name)); renameResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
             }
@@ -421,7 +421,7 @@ void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
 
     m_aabb = meshData.CalculateAABB();
 
-    Handle<MeshAsset> asset = CreateObject<MeshAsset>(GetName(), meshDesc, meshData);
+    Handle<MeshAsset> asset = CreateObject<MeshAsset>(NAME_FMT("{}_MeshAsset", m_name), meshDesc, meshData);
     m_meshAsset = TAssetReference<MeshAsset>(asset);
 
     if (IsInitCalled())

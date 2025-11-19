@@ -65,17 +65,11 @@ static void RegisterImportedAsset(const Handle<EditorProject>& project, const Ha
     subpackageNames.Reverse();
 
     String newPath = projectPackage->BuildPackagePath() + '/' + String::Join(subpackageNames, '/', &Name::LookupString);
-    HYP_LOG(Editor, Info, "Adding imported asset '{}' to project package '{}'", *assetObject->GetName(), newPath);
+    HYP_LOG(Editor, Debug, "Adding imported asset '{}' to project package '{}'", *assetObject->GetName(), newPath);
 
     if (Result registerAssetResult = registry->RegisterAsset(newPath, assetObject).Await(); registerAssetResult.HasError())
     {
         HYP_LOG(Editor, Error, "Failed to register imported asset '{}' at path '{}': {}", assetObject->GetName(), newPath, registerAssetResult.GetError().GetMessage());
-    }
-
-    // debug
-    if (assetObject->GetName() == "Skybox_Mesh")
-    {
-        HYP_BREAKPOINT;
     }
 }
 

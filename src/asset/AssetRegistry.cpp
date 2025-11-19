@@ -2193,8 +2193,6 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 {
                     const String parentPackagePathString = String::Join(parentPackageParts, '/');
 
-                    HYP_LOG_TEMP("Parent package path for package at '{}' is '{}'", packagePath, parentPackagePathString);
-
                     // check if parent package already exists first
                     parentPackage = GetPackageFromPath(parentPackagePathString, /* createIfNotExist */ false);
 
@@ -2597,12 +2595,12 @@ void AssetRegistry::RegisterAssetsRecursively(
         Optional<AssetReference> tmpAssetReference;
         const AssetReference* pAssetReference = nullptr;
 
-        // add dependency if current is an AssetObject or AssetReference and not a subpackage
-        // of inPackage
         if (current.Is<AssetObject>())
         {
             assetObject = MakeStrongRef(&current.Get<AssetObject>());
             Assert(assetObject != nullptr);
+
+            pAssetReference = &tmpAssetReference.Emplace(assetObject);
         }
         else if (current.Is<AssetPath>() && shouldFollowAssetPaths)
         {
@@ -2628,14 +2626,8 @@ void AssetRegistry::RegisterAssetsRecursively(
             }
         }
 
-        if (assetObject)
+        if (assetObject && CanMoveAssetToNonTransientPackage(assetObject))
         {
-            // tmp debug
-            if (assetObject->GetName() == "Skybox_Mesh")
-            {
-                HYP_BREAKPOINT;
-            }
-
             const String packagePathWithSubpath = getObjectSubpath
                 ? packagePath + "/" + getObjectSubpath(*assetObject)
                 : String(packagePath);
@@ -2643,26 +2635,26 @@ void AssetRegistry::RegisterAssetsRecursively(
             Handle<AssetPackage> newPackage = GetPackageFromPath(packagePathWithSubpath, /* createIfNotExist */ true);
             Assert(newPackage != nullptr);
 
-            if (assetObject->IsTransient() || !assetObject->IsRegistered())
+            Handle<AssetPackage> prevPackage = assetObject->GetPackage();
+
+            // try to move it
+            if (Result result = newPackage->AddAssetObject(assetObject).Await(); result.HasError())
             {
-                Handle<AssetPackage> prevPackage = assetObject->GetPackage();
+                HYP_LOG(Assets, Error, "Failed to relocate transient {} {} located in package '{}' to '{}': {}",
+                    assetObject->InstanceClass()->GetName(),
+                    assetObject->GetName(),
+                    prevPackage ? prevPackage->BuildPackagePath() : "<no package>",
+                    newPackage->BuildPackagePath(),
+                    result.GetError().GetMessage());
 
-                if (CanMoveAssetToNonTransientPackage(assetObject))
-                {
-                    // move it there!
-                    if (Result result = newPackage->AddAssetObject(assetObject).Await(); result.HasError())
-                    {
-                        HYP_LOG(Assets, Error, "Failed to relocate transient {} {} located in package '{}' to '{}': {}",
-                            assetObject->InstanceClass()->GetName(),
-                            assetObject->GetName(),
-                            prevPackage ? prevPackage->BuildPackagePath() : "<no package>",
-                            newPackage->BuildPackagePath(),
-                            result.GetError().GetMessage());
-
-                        return;
-                    }
-                }
+                return;
             }
+
+            HYP_LOG(Assets, Debug, "Moved {} {} located in transient package {} to {}",
+                assetObject->InstanceClass()->GetName(),
+                assetObject->GetName(),
+                prevPackage ? prevPackage->BuildPackagePath() : "<no package>",
+                newPackage->BuildPackagePath());
 
             if (!newPackage->IsSubpackageOf(*inPackage))
             {
@@ -2748,8 +2740,18 @@ void AssetRegistry::RegisterAssetsRecursively(
             }
         }
 
-        const TypeId typeId = current.GetTypeId();
-        const Class* cls = GetClass(typeId);
+        const Class* cls = GetClass(current.GetTypeId());
+
+        const HypData* pHypData = &current;
+        HypData tmpHypData;
+
+        if (assetObject != nullptr)
+        {
+            tmpHypData = HypData(assetObject);
+            pHypData = &tmpHypData;
+
+            cls = assetObject->InstanceClass();
+        }
 
         if (!cls) // no Class; not an object we can iterate over.
         {
@@ -2781,13 +2783,13 @@ void AssetRegistry::RegisterAssetsRecursively(
             case HypMemberType::TYPE_PROPERTY:
             {
                 const Property* property = static_cast<const Property*>(&member);
-                memberData = property->Get(current);
+                memberData = property->Get(*pHypData);
                 break;
             }
             case HypMemberType::TYPE_FIELD:
             {
                 const Field* field = static_cast<const Field*>(&member);
-                memberData = field->Get(current);
+                memberData = field->Get(*pHypData);
                 break;
             }
             default:

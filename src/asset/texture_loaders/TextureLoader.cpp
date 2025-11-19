@@ -136,7 +136,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
                 &newByteBuffer.Data()[i * newFaceOffsetStep]);
         }
 
-        HYP_LOG_TEMP("Converted texture '{}' from 3 to 4 components", assetName);
+        HYP_LOG(Texture, Debug, "Converted texture '{}' from 3 to 4 components", assetName);
 
         textureData.imageData = std::move(newByteBuffer);
     }

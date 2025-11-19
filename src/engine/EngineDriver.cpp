@@ -307,8 +307,8 @@ HYP_API void EngineDriver::Init()
     m_debugDrawer = CreateObject<DebugDrawer>();
     InitObject(m_debugDrawer);
 
-    m_defaultWorld = CreateObject<World>();
-    m_defaultWorld->SetName(NAME("DefaultWorld"));
+    m_defaultWorld = CreateObject<World>(NAME("DefaultWorld"), WorldFlags::NONE);
+    InitObject(m_defaultWorld);
 
     SetReady(true);
 }
@@ -486,7 +486,7 @@ void EngineDriver::FinalizeStop()
 
         SetGlobalNetRequestThread(nullptr);
     }
-    
+
     SafeDelete(std::move(m_worlds));
 
     m_debugDrawer.Reset();

@@ -28,6 +28,15 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
 {
     HYP_SCOPE;
     Handle<StreamingCell> cell = CreateObject<StreamingCell>(cellInfo);
+    
+    auto objectsByCoordIt = m_objectsByCoord.Find(cellInfo.coord);
+    if (objectsByCoordIt != m_objectsByCoord.End())
+    {
+        for (const AssetReference& assetReference : objectsByCoordIt->second)
+        {
+            cell->AddAssetReference(assetReference, /* shouldLoad */ false);
+        }
+    }
 
     cell->OnCellLoaded
         .Bind([this](StreamingCell* cell)
@@ -45,7 +54,7 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
                     objs.PushBack(obj.Get());
                 }
 
-                OnStreamingObjectsLoaded(cell, std::move(objs));
+                OnStreamingObjectsLoaded(cell, objs);
             })
         .Detach();
 
@@ -65,18 +74,9 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
                     objs.PushBack(obj.Get());
                 }
 
-                OnStreamingObjectsUnloaded(cell, std::move(objs));
+                OnStreamingObjectsUnloaded(cell, objs);
             })
         .Detach();
-
-    auto objectsByCoordIt = m_objectsByCoord.Find(cellInfo.coord);
-    if (objectsByCoordIt != m_objectsByCoord.End())
-    {
-        for (const AssetReference& assetReference : objectsByCoordIt->second)
-        {
-            cell->AddAssetReference(assetReference, /* shouldLoad */ false);
-        }
-    }
 
     return cell;
 }

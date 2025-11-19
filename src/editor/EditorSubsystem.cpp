@@ -71,6 +71,10 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
+// temp
+#include <scene/camera/streaming/CameraStreamingVolume.hpp>
+#include <streaming/StreamingManager.hpp>
+
 #include <ui/font/FontAtlas.hpp>
 
 // temp
@@ -400,7 +404,7 @@ void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera
     }
     else
     {
-        HYP_LOG_TEMP("Ray plane test returned no hit. plane point : {}, plane normal {}", dragData.planePoint, dragData.planeNormal);
+        HYP_LOG(Editor, Debug, "Ray plane test returned no hit. plane point : {}, plane normal {}", dragData.planePoint, dragData.planeNormal);
         return;
     }
 
@@ -899,6 +903,13 @@ EditorSubsystem::EditorSubsystem()
 
                 m_manipulationWidgetHolder.Initialize();
                 m_manipulationWidgetHolder.SetCurrentProject(project);
+
+                // TEMP DEBUG!
+
+                auto streamingVolume = CreateObject<CameraStreamingVolume>();
+                streamingVolume->SetBoundingBox(BoundingBox(-100.0f, +100.0f));
+                InitObject(streamingVolume);
+                g_streamingManager->AddStreamingVolume(streamingVolume);
 
                 g_engineDriver->AddWorld(project->GetWorld());
 
@@ -3297,7 +3308,7 @@ void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debu
         m_debugOverlayContainers[placement]->AddChildUIObject(listViewItem);
     }
 
-    HYP_LOG_TEMP("Added debug overlay: {}", debugOverlay->GetName());
+    HYP_LOG(Editor, Debug, "Added debug overlay: {}", debugOverlay->GetName());
 }
 
 bool EditorSubsystem::RemoveDebugOverlay(StringHash name)

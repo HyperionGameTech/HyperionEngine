@@ -76,9 +76,14 @@ void StreamingCell::OnStreamStart_Impl()
 
         if (!assetReference.IsLoaded())
         {
+            HYP_LOG(Streaming, Debug, "OnStreamStart: Loading AssetReference {} for {} at {}",
+                assetReference.GetAssetPath().ToString(),
+                InstanceClass()->GetName(),
+                m_cellInfo.coord);
+            
             if (!assetReference.Resolve())
             {
-                HYP_LOG(Streaming, Warning, "Failed to resolve AssetReference {} in OnStreamStart", assetReference.GetAssetPath());
+                HYP_LOG(Streaming, Warning, "Failed to resolve AssetReference {} in OnStreamStart", assetReference.GetAssetPath().ToString());
 
                 continue;
             }
@@ -88,11 +93,21 @@ void StreamingCell::OnStreamStart_Impl()
 
 void StreamingCell::OnLoaded_Impl()
 {
+    HYP_LOG(Streaming, Debug, "OnLoaded: {} loaded at {} with {} AssetReferences",
+        InstanceClass()->GetName(),
+        m_cellInfo.coord,
+        m_assetReferences.Size());
+    
     OnCellLoaded(this);
 }
 
 void StreamingCell::OnRemoved_Impl()
 {
+    HYP_LOG(Streaming, Debug, "OnRemoved: {} removed at {} with {} AssetReferences",
+        InstanceClass()->GetName(),
+        m_cellInfo.coord,
+        m_assetReferences.Size());
+    
     OnCellUnloaded(this);
 
     for (AssetReference& assetReference : m_assetReferences)

@@ -214,8 +214,6 @@ public:
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, Material::StaticClass(), materialData))
         {
-            HYP_LOG_TEMP("Error deserializing Material instance: {}", err.message);
-            HYP_BREAKPOINT;
             return err;
         }
 

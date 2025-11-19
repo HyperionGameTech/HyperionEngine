@@ -302,7 +302,7 @@ public:
         return m_notifier;
     }
 
-    void Stop()
+    void Stop() override
     {
         m_threadPool->Stop();
 
@@ -422,7 +422,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
             tasks.PopBack().Execute();
         }
     }
-
+    
     for (auto it = m_layers.Begin(); it != m_layers.End();)
     {
         LayerData& layerData = *it;
@@ -441,8 +441,15 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
             continue;
         }
 
-        const Handle<WorldGridLayer>& layer = layerData.layer;
-        Assert(layer.IsValid());
+        WorldGridLayer* layer = layerData.layer;
+        AssertDebug(layer != nullptr);
+        
+        if (!layer)
+        {
+            ++it;
+            
+            continue;
+        }
 
         StreamingCellCollection<StreamingAllocator>& cells = layerData.cells;
         Array<StreamingCellUpdate, StreamingAllocator>& cellUpdateQueue = layerData.cellUpdateQueue;
@@ -453,7 +460,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
-            if (!volume.IsValid())
+            if (!volume)
             {
                 continue;
             }
@@ -471,7 +478,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
             if (it == desiredCells.End())
             {
-                Assert(cellRuntimeInfo.cell.IsValid());
+                AssertDebug(cellRuntimeInfo.cell != nullptr);
 
                 // Lock so we can use it safely in the loop below for pushing to queue.
                 if (!cells.SetCellLockState(cellRuntimeInfo.coord, true))
@@ -493,7 +500,13 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         {
             for (const Handle<StreamingCell>& cell : cellsToRemove)
             {
-                Assert(cell.IsValid());
+                AssertDebug(cell != nullptr);
+                
+                if (!cell)
+                {
+                    continue;
+                }
+                
                 AssertDebug(cells.IsCellLocked(cell->GetPatchInfo().coord),
                     "StreamingCell with coord {} is not locked for unloading!",
                     cell->GetPatchInfo().coord);
@@ -507,7 +520,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         {
             for (const Vec2i& coord : cellsToAdd)
             {
-                Assert(!cells.HasCell(coord), "StreamingCell with coord {} already exists!", coord);
+                AssertDebug(!cells.HasCell(coord), "StreamingCell with coord {} already exists!", coord);
 
                 cellUpdateQueue.PushBack(StreamingCellUpdate { coord, StreamingCellState::WAITING });
             }
@@ -540,7 +553,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
         {
         case StreamingCellState::WAITING:
         {
-            Assert(!cells.HasCell(update.coord), "StreamingCell with coord {} already exists!", update.coord);
+            AssertDebug(!cells.HasCell(update.coord), "StreamingCell with coord {} already exists!", update.coord);
 
             StreamingCellInfo cellInfo;
             cellInfo.coord = update.coord;
@@ -555,7 +568,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
             Handle<StreamingCell> cell = layerData.layer->CreateStreamingCell(cellInfo);
 
-            if (!cell.IsValid())
+            if (!cell)
             {
                 HYP_LOG(Streaming, Error, "Failed to create StreamingCell for coord: {}", update.coord);
 
@@ -565,7 +578,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
             InitObject(cell);
 
             const bool wasCellAdded = cells.AddCell(cell, StreamingCellState::WAITING, /* lock */ true);
-            Assert(wasCellAdded, "Failed to add StreamingCell with coord: {}", update.coord);
+            AssertDebug(wasCellAdded, "Failed to add StreamingCell with coord: {}", update.coord);
 
             PostCellUpdateToGameThread(cell, StreamingCellState::WAITING);
 
@@ -609,16 +622,16 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
             bool isOk = true;
 
             isOk &= cells.HasCell(update.coord);
-            Assert(isOk, "StreamingCell with coord {} does not exist!", update.coord);
+            AssertDebug(isOk, "StreamingCell with coord {} does not exist!", update.coord);
 
             // Locked here - see StreamingManagerThread::DoWork where we lock before pushing UNLOADING state.
 
             isOk &= cells.IsCellLocked(update.coord);
-            Assert(isOk, "StreamingCell with coord {} for layer {} is not locked for unloading!",
+            AssertDebug(isOk, "StreamingCell with coord {} for layer {} is not locked for unloading!",
                 update.coord, layerData.layer->InstanceClass()->GetName());
 
             Handle<StreamingCell> cell = cells.GetCell(update.coord);
-            Assert(cell.IsValid(), "StreamingCell with coord {} for layer {} is not valid!",
+            AssertDebug(cell.IsValid(), "StreamingCell with coord {} for layer {} is not valid!",
                 update.coord, layerData.layer->InstanceClass()->GetName());
 
             isOk &= cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::UNLOADING);
@@ -632,10 +645,6 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
             AssertDebug(isOk, "Failed to remove StreamingCell with coord: {} for layer: {}",
                 cell->GetPatchInfo().coord,
                 layerData.layer->InstanceClass()->GetName());
-
-            // HYP_LOG(Streaming, Debug, "Removed StreamingCell at coord: {} for layer: {} on thread: {}",
-            //     cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName().LookupString(),
-            //     CurrentThreadId().GetName());
 
             layerData.Lock();
 
@@ -654,9 +663,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
             break;
         }
         default:
-        {
             break;
-        }
         }
     }
 
@@ -760,9 +767,11 @@ void StreamingManager::RemoveStreamingVolume(StreamingVolumeBase* volume)
 void StreamingManager::AddWorldGridLayer(const Handle<WorldGridLayer>& layer)
 {
     HYP_SCOPE;
-    // AssertOnThread(g_gameThread);
-
-    Assert(layer.IsValid());
+    
+    if (!layer)
+    {
+        return;
+    }
 
     m_thread->AddWorldGridLayer(layer);
 }
@@ -770,7 +779,6 @@ void StreamingManager::AddWorldGridLayer(const Handle<WorldGridLayer>& layer)
 void StreamingManager::RemoveWorldGridLayer(WorldGridLayer* layer)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
 
     if (!layer)
     {

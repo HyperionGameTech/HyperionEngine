@@ -586,9 +586,9 @@ UIEventHandlerResult UIStage::OnInputEvent(
         const Vec2i mousePosition = inputManager->GetMousePosition(); // event.GetEventData().Get<Vec2i>();
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
-
-        HYP_LOG(UI, Debug, "Mouse move event: position: {}, previous position: {}, buttons: {}, object mouse states size: {}",
-            mousePosition, previousMousePosition, mouseButtons.enumValue, m_objectMouseStates.Size());
+//
+//        HYP_LOG(UI, Debug, "Mouse move event: position: {}, previous position: {}, buttons: {}, object mouse states size: {}",
+//            mousePosition, previousMousePosition, mouseButtons.enumValue, m_objectMouseStates.Size());
 
         if (mouseButtons != MouseButtonState::NONE)
         { // mouse drag event

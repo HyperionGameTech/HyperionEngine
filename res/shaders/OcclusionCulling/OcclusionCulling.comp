@@ -126,7 +126,7 @@ void main()
     aabb.min = entity.world_aabb_min.xyz;
 
     uint cull_bits = 0x7F;
-    bool skip_check = bool(GET_OBJECT_BUCKET(entity) & (OBJECT_MASK_SKY | OBJECT_MASK_UI));
+    bool skip_check = bool(GET_OBJECT_BUCKET(entity) & OBJECT_MASK_SKY);
 
     is_visible = skip_check;
 

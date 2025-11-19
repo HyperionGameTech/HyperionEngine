@@ -1808,6 +1808,12 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
     AssertDebug(rs.world);
 
+    if (rs.world->GetViews().Size() == 0)
+    {
+        // No views to render
+        return;
+    }
+
     Array<RenderProxyList*, InlineAllocator<8, RenderAllocator>> renderProxyLists;
 
     HYP_DEFER({

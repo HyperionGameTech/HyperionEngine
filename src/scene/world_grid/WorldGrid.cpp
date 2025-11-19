@@ -74,14 +74,6 @@ void WorldGrid::Init()
 
     ObjectBase::Init();
 
-    // Add a default layer if none are provided
-    if (m_layers.Empty())
-    {
-        HYP_LOG(WorldGrid, Info, "No layers provided to WorldGrid, creating default layer");
-
-        m_layers.PushBack(CreateObject<WorldGridLayer>());
-    }
-
     for (const Handle<WorldGridLayer>& layer : m_layers)
     {
         InitObject(layer);
@@ -112,14 +104,6 @@ void WorldGrid::Shutdown()
     }
 
     SetReady(false);
-}
-
-void WorldGrid::Update(float delta)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
-
-    AssertReady();
 }
 
 void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)
@@ -187,11 +171,8 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
     if (isReady)
     {
         AssertOnThread(g_gameThread);
-    }
-
-    if (isReady)
-    {
-        for (auto& layer : m_layers)
+        
+        for (Handle<WorldGridLayer>& layer : m_layers)
         {
             layer->OnRemoved(this);
 
@@ -231,6 +212,8 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
 
         Handle<WorldGridLayer>& layer = instance.Get<Handle<WorldGridLayer>>();
         AssertDebug(layer != nullptr);
+        
+        layer->SetName(layerDesc.layerName);
 
         // setup layer members
 
@@ -243,6 +226,8 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
 
         if (isReady)
         {
+            InitObject(layer);
+            
             layer->OnAdded(this);
 
             g_streamingManager->AddWorldGridLayer(layer);
@@ -261,6 +246,7 @@ Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
     {
         WGLayerDesc& layerDesc = descs.EmplaceBack();
         layerDesc.className = layer->InstanceClass()->GetName();
+        layerDesc.layerName = layer->GetName();
         layerDesc.info = layer->GetLayerInfo();
 
         for (const KeyValuePair<Vec2i, Array<AssetReference, DynamicAllocator>>& pair : layer->m_objectsByCoord)
