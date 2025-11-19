@@ -467,7 +467,6 @@ bool HypDataToJSON(
 
     return false;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 bool ObjectToJSON(
     const Class* cls,
@@ -722,6 +721,7 @@ bool ObjectToJSON(
 
     return true;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, HypData& target)
 {

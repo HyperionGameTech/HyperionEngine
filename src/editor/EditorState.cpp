@@ -71,6 +71,12 @@ static void RegisterImportedAsset(const Handle<EditorProject>& project, const Ha
     {
         HYP_LOG(Editor, Error, "Failed to register imported asset '{}' at path '{}': {}", assetObject->GetName(), newPath, registerAssetResult.GetError().GetMessage());
     }
+
+    // debug
+    if (assetObject->GetName() == "Skybox_Mesh")
+    {
+        HYP_BREAKPOINT;
+    }
 }
 
 static void RegisterPackageAssets(const Handle<EditorProject>& project, const Handle<AssetPackage>& package)

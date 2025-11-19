@@ -133,12 +133,16 @@ void AssetDataResourceBase::Initialize()
 void AssetDataResourceBase::Destroy()
 {
     HYP_SCOPE;
-    // temp debug
-    Assert(m_refCount == 0);
 
     AssetObject* assetObject = m_assetObject.GetUnsafe();
 
     HYP_LOG(Assets, Debug, "Unloading asset '{}'", assetObject->IsRegistered() ? *assetObject->GetPath().ToString() : *assetObject->GetName());
+
+    // temp debug
+    if (assetObject->GetName() == "Skybox_Mesh")
+    {
+        HYP_BREAKPOINT;
+    }
 
     if (!GetAssetRef().HasValue())
     {

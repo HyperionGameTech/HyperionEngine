@@ -537,6 +537,11 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
 
         InitObject(assetObject);
 
+        HYP_LOG(Assets, Debug, "Added {} '{}' to package '{}'",
+            assetObject->InstanceClass()->GetName(),
+            assetObject->GetName(),
+            BuildPackagePath());
+
         // if (doSaveAsset)
         // {
         //     AssertDebug(!assetObject->IsTransient());
@@ -627,6 +632,11 @@ Task<Result> AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObj
             parentPackage->OnAssetObjectRemoved(assetObject, false);
             parentPackage = parentPackage->GetParentPackage().Lock();
         }
+
+        HYP_LOG(Assets, Debug, "Removed {} '{}' from package '{}'",
+            assetObject->InstanceClass()->GetName(),
+            assetObject->GetName(),
+            BuildPackagePath());
 
         /// TODO: remove the file
 
@@ -2620,6 +2630,12 @@ void AssetRegistry::RegisterAssetsRecursively(
 
         if (assetObject)
         {
+            // tmp debug
+            if (assetObject->GetName() == "Skybox_Mesh")
+            {
+                HYP_BREAKPOINT;
+            }
+
             const String packagePathWithSubpath = getObjectSubpath
                 ? packagePath + "/" + getObjectSubpath(*assetObject)
                 : String(packagePath);
@@ -2627,7 +2643,7 @@ void AssetRegistry::RegisterAssetsRecursively(
             Handle<AssetPackage> newPackage = GetPackageFromPath(packagePathWithSubpath, /* createIfNotExist */ true);
             Assert(newPackage != nullptr);
 
-            if (assetObject->IsTransient())
+            if (assetObject->IsTransient() || !assetObject->IsRegistered())
             {
                 Handle<AssetPackage> prevPackage = assetObject->GetPackage();
 
