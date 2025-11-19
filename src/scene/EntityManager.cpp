@@ -652,9 +652,9 @@ bool EntityManager::RemoveEntity(Entity* entity)
 
             if (componentEntitySetsIt != m_componentEntitySets.End())
             {
-                for (TypeId entitySetTypeId : componentEntitySetsIt->second)
+                for (EntitySetId entitySetId : componentEntitySetsIt->second)
                 {
-                    EntitySetBase& entitySet = *m_entitySets.At(entitySetTypeId);
+                    EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
 
                     entitySet.RemoveEntity(entity);
                 }
@@ -751,9 +751,9 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
                 if (componentEntitySetsIt != m_componentEntitySets.End())
                 {
-                    for (TypeId entitySetTypeId : componentEntitySetsIt->second)
+                    for (EntitySetId entitySetId : componentEntitySetsIt->second)
                     {
-                        EntitySetBase& entitySet = *m_entitySets.At(entitySetTypeId);
+                        EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
 
                         entitySet.OnEntityUpdated(entity);
                     }
@@ -842,9 +842,9 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
                 if (componentEntitySetsIt != other->m_componentEntitySets.End())
                 {
-                    for (TypeId entitySetTypeId : componentEntitySetsIt->second)
+                    for (EntitySetId entitySetId : componentEntitySetsIt->second)
                     {
-                        EntitySetBase& entitySet = *other->m_entitySets.At(entitySetTypeId);
+                        EntitySetBase& entitySet = *other->m_entitySets.At(entitySetId);
 
                         entitySet.OnEntityUpdated(entity);
                     }
@@ -925,9 +925,9 @@ void EntityManager::AddComponent(Entity* entity, const HypData& componentData)
 
         if (componentEntitySetsIt != m_componentEntitySets.End())
         {
-            for (TypeId entitySetTypeId : componentEntitySetsIt->second)
+            for (EntitySetId entitySetId : componentEntitySetsIt->second)
             {
-                EntitySetBase& entitySet = *m_entitySets.At(entitySetTypeId);
+                EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
 
                 entitySet.OnEntityUpdated(entity);
             }
@@ -1005,9 +1005,9 @@ void EntityManager::AddComponent(Entity* entity, HypData&& componentData)
 
         if (componentEntitySetsIt != m_componentEntitySets.End())
         {
-            for (TypeId entitySetTypeId : componentEntitySetsIt->second)
+            for (EntitySetId entitySetId : componentEntitySetsIt->second)
             {
-                EntitySetBase& entitySet = *m_entitySets.At(entitySetTypeId);
+                EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
 
                 entitySet.OnEntityUpdated(entity);
             }
@@ -1108,9 +1108,9 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
 
     if (componentEntitySetsIt != m_componentEntitySets.End())
     {
-        for (TypeId entitySetTypeId : componentEntitySetsIt->second)
+        for (EntitySetId entitySetId : componentEntitySetsIt->second)
         {
-            EntitySetBase& entitySet = *m_entitySets.At(entitySetTypeId);
+            EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
 
             entitySet.OnEntityUpdated(entity);
         }
@@ -1349,8 +1349,26 @@ void EntityManager::BeginAsyncUpdate(float delta)
         AssertDebug(currentTaskBatch != nullptr);
 
         AssertDebug(currentTaskBatch->IsCompleted(), "TaskBatch for SystemExecutionGroup is not completed: {} tasks enqueued", currentTaskBatch->numEnqueued);
-
         currentTaskBatch->ResetState();
+
+        bool anySystemsToProcess = false;
+
+        for (const auto& pair : systemExecutionGroup.GetSystems())
+        {
+            SystemBase* system = pair.second;
+
+            if (system->NeedsUpdateThisFrame())
+            {
+                anySystemsToProcess = true;
+                break;
+            }
+        }
+
+        if (!anySystemsToProcess)
+        {
+            // skip it; nothing to do this frame
+            continue;
+        }
 
         // Add tasks to batches before kickoff
         systemExecutionGroup.StartProcessing(delta);
@@ -1506,6 +1524,12 @@ void SystemExecutionGroup::StartProcessing(float delta)
     for (auto& it : m_systems)
     {
         SystemBase* system = it.second.Get();
+
+        if (!system->NeedsUpdateThisFrame())
+        {
+            // skip this system; it doesn't need updating this frame
+            continue;
+        }
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)
         HYP_LOG(Entity, Debug, "\t\tSystem: {}", system->GetName());

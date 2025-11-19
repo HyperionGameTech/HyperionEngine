@@ -30,6 +30,8 @@
 #include <scene/components/ScriptComponent.hpp>
 #include <scene/ComponentInterface.hpp>
 
+#include <scene/sky/DynamicSkySubsystem.hpp>
+
 #include <scene/world_grid/terrain/TerrainWorldGridPlugin.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 
@@ -118,7 +120,7 @@ void HyperionEditor::Init()
     Handle<Scene> scene = CreateObject<Scene>(NAME("MyScene"));
     m_editorSubsystem->GetCurrentProject()->GetWorld()->AddScene(scene);
 
-    m_editorSubsystem->GetCurrentProject()->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
+    // m_editorSubsystem->GetCurrentProject()->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
 
     // add sun
     Handle<Node> sunNode = scene->GetRoot()->AddChild();

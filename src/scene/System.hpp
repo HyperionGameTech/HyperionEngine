@@ -15,6 +15,7 @@
 #include <core/reflection/Handle.hpp>
 
 #include <scene/ComponentContainer.hpp>
+#include <scene/EntitySetHelpers.hpp>
 
 namespace hyperion {
 
@@ -22,19 +23,20 @@ class EntityManager;
 class Scene;
 class World;
 
-enum class SceneFlags : uint32;
-
 class SystemComponentDescriptors : HashSet<ComponentInfo, &ComponentInfo::typeId>
 {
 public:
+    EntitySetId entitySetId; // can be 0 if inited dynamically (from Span<ComponentInfo>)
+
     template <class... ComponentDescriptors>
     SystemComponentDescriptors(ComponentDescriptors&&... componentDescriptors)
-        : HashSet({ std::forward<ComponentDescriptors>(componentDescriptors)... })
+        : HashSet({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
+          entitySetId(GetEntitySetId<typename ComponentDescriptors::Type...>())
     {
         Assert(Size() == sizeof...(ComponentDescriptors), "Duplicate component descriptors found");
     }
 
-    SystemComponentDescriptors(Span<ComponentInfo> componentInfos)
+    explicit SystemComponentDescriptors(Span<ComponentInfo> componentInfos)
     {
         for (ComponentInfo& componentInfo : componentInfos)
         {
@@ -74,6 +76,15 @@ public:
     {
         return true;
     }
+
+    /*! \brief Checks if the System needs to be updated this frame.
+     *  Allows Systems to skip processing if they have no entities to act on, allowing for better performance
+     *  and less tasks being spun up.
+     *  By default, will check if AllowUpdate() is true and if any of the components this System acts on
+     *  exist in the EntityManager.
+     * \return True if the System needs to be updated this frame, false otherwise.
+     */
+    virtual bool NeedsUpdateThisFrame() const;
 
     /*! \brief Returns true if this System requires the game thread to execute, false otherwise.
      *  \details Use this to ensure that the System can access game thread-only resources or perform operations

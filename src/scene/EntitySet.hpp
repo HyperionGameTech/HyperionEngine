@@ -14,6 +14,7 @@
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <scene/Entity.hpp>
+#include <scene/EntitySetHelpers.hpp>
 #include <scene/EntityContainer.hpp>
 #include <scene/ComponentContainer.hpp>
 

@@ -714,9 +714,9 @@ public:
 
             if (componentEntitySetsIt != m_componentEntitySets.End())
             {
-                for (TypeId entitySetTypeId : componentEntitySetsIt->second)
+                for (EntitySetId entitySetId : componentEntitySetsIt->second)
                 {
-                    EntitySetBase& entitySet = *m_entitySets.At(entitySetTypeId);
+                    EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
 
                     entitySet.OnEntityUpdated(entity);
                 }
@@ -798,9 +798,9 @@ public:
 
             if (componentEntitySetsIt != m_componentEntitySets.End())
             {
-                for (TypeId entitySetTypeId : componentEntitySetsIt->second)
+                for (EntitySetId entitySetId : componentEntitySetsIt->second)
                 {
-                    EntitySetBase& entitySet = *m_entitySets.At(entitySetTypeId);
+                    EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
 
                     entitySet.OnEntityUpdated(entityHandle);
                 }
@@ -841,14 +841,14 @@ public:
     {
         Mutex::Guard guard(m_entitySetsMutex);
 
-        static const TypeId entitySetTypeId = TypeId::ForType<EntitySet<Components...>>();
+        const EntitySetId entitySetId = GetEntitySetId<Components...>();
 
-        auto entitySetsIt = m_entitySets.Find(entitySetTypeId);
+        auto entitySetsIt = m_entitySets.Find(entitySetId);
 
         if (entitySetsIt == m_entitySets.End())
         {
             auto entitySetsInsertResult = m_entitySets.Set(
-                entitySetTypeId,
+                entitySetId,
                 MakeUnique<EntitySet<Components...>>(m_entities, GetContainer<Components>()...));
 
             Assert(entitySetsInsertResult.second); // Make sure the element was inserted (it shouldn't already exist)
@@ -869,12 +869,26 @@ public:
                         componentEntitySetsIt = componentEntitySetsInsertResult.first;
                     }
 
-                    componentEntitySetsIt->second.Insert(entitySetTypeId);
+                    componentEntitySetsIt->second.Insert(entitySetId);
                 }
             }
         }
 
         return static_cast<EntitySet<Components...>&>(*entitySetsIt->second);
+    }
+
+    EntitySetBase* TryGetEntitySet(EntitySetId entitySetId)
+    {
+        Mutex::Guard guard(m_entitySetsMutex);
+
+        auto entitySetsIt = m_entitySets.Find(entitySetId);
+
+        if (entitySetsIt == m_entitySets.End())
+        {
+            return nullptr;
+        }
+
+        return entitySetsIt->second.Get();
     }
 
     HYP_METHOD()
@@ -1081,9 +1095,9 @@ private:
     DataRaceDetector m_containersDataRaceDetector;
     EntityContainer m_entities;
     DataRaceDetector m_entitiesDataRaceDetector;
-    HashMap<TypeId, UniquePtr<EntitySetBase>> m_entitySets;
-    mutable Mutex m_entitySetsMutex;
-    TypeMap<HashSet<TypeId>> m_componentEntitySets;
+    HashMap<EntitySetId, UniquePtr<EntitySetBase>> m_entitySets;
+    mutable Mutex m_entitySetsMutex; // @TODO : try to remove?
+    TypeMap<HashSet<EntitySetId>> m_componentEntitySets;
 
     Array<SystemExecutionGroup> m_systemExecutionGroups;
 

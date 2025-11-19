@@ -44,4 +44,25 @@ void SystemBase::InitComponentInfos_Internal()
     }
 }
 
+bool SystemBase::NeedsUpdateThisFrame() const
+{
+    if (!AllowUpdate())
+    {
+        return false;
+    }
+
+    EntityManager& entityManager = GetEntityManager();
+
+    // if init'd dynamically, we can't rely on the EntitySetId being valid
+    const EntitySetId entitySetId = GetComponentDescriptors().entitySetId;
+    if (uint64(entitySetId) != 0)
+    {
+        const EntitySetBase* entitySet = entityManager.TryGetEntitySet(entitySetId);
+        return entitySet != nullptr && entitySet->Size() != 0;
+    }
+
+    // just return true for now, this could be changed later
+    return true;
+}
+
 } // namespace hyperion
