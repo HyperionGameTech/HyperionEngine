@@ -271,7 +271,7 @@ void Light::CreateShadowViews()
     if (!shadowMapCamera)
     {
         shadowMapCamera = CreateObject<Camera>(int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y));
-        shadowMapCamera->SetName(NAME_FMT("ShadowMapCamera_{}", Id())); // @FIXME Use name instead, ID is not persistent
+        shadowMapCamera->SetName(NAME_FMT("ShadowMapCamera_{}", GetName()));
 
         switch (m_type)
         {

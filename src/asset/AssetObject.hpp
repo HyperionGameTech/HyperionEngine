@@ -165,12 +165,12 @@ protected:
 };
 
 HYP_ENUM()
-enum AssetObjectFlags : uint32
+enum class AssetObjectFlags : uint32
 {
-    AOF_NONE = 0x0,
-    AOF_PERSISTENT = 0x1,        //!< Asset is persistently loaded in memory
-    AOF_TRANSIENT = 0x2,         //!< Asset is not saved to disk
-    AOF_TRANSIENT_BY_PROXY = 0x4 //!< Same as above, but is transient due to parent package being transient (will change if asset is moved to a non-transient package)
+    NONE = 0x0,
+    PERSISTENT = 0x1,        //!< Asset is persistently loaded in memory
+    TRANSIENT = 0x2,         //!< Asset is not saved to disk
+    TRANSIENT_BY_PROXY = 0x4 //!< Same as above, but is transient due to parent package being transient (will change if asset is moved to a non-transient package)
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);

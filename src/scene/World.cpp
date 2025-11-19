@@ -160,7 +160,7 @@ void World::Init()
         {
             m_worldGrid = CreateObject<WorldGrid>(this);
         }
-        
+
         InitObject(m_worldGrid);
     }
 
@@ -231,7 +231,7 @@ void World::Init()
         }
 
         // add to streaming layer if applicable
-        if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+        if ((m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
         {
             Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
             AssertDebug(scenesStreamingLayer != nullptr);
@@ -341,6 +341,11 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
 
                 for (const Handle<Scene>& scene : m_scenes)
                 {
+                    if (!(scene->GetSceneFlags() & SceneFlags::STREAMED))
+                    {
+                        continue;
+                    }
+
                     scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
                 }
             }
@@ -752,6 +757,19 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
         return;
     }
 
+    if (addToStreamingLayer)
+    {
+        if (!(scene->GetSceneFlags() & SceneFlags::STREAMED))
+        {
+            HYP_LOG(Scene, Warning,
+                "Adding Scene {} to World {}'s streaming layer, but the Scene is not marked as STREAMED! ",
+                scene->GetName(),
+                GetName());
+
+            addToStreamingLayer = false;
+        }
+    }
+
     scene->SetWorld(this);
 
     if (IsReady())
@@ -778,7 +796,7 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
             }
         }
 
-        if (addToStreamingLayer && (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER))
+        if (addToStreamingLayer && (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
         {
             Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
             AssertDebug(scenesStreamingLayer != nullptr);
@@ -1189,7 +1207,7 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
         {
             m_delegateHandlers.Remove(&layer->OnStreamingObjectsLoaded);
             m_delegateHandlers.Remove(&layer->OnStreamingObjectsUnloaded);
-            
+
             // @TODO remove Scenes if layer is scene streaming layer?
         }
     }
@@ -1208,14 +1226,14 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
     }
 
     m_worldGrid->SetStreamingLayersFromDescs(streamingLayers.ToSpan());
-    
+
     for (const Handle<WorldGridLayer>& layer : m_worldGrid->GetLayers())
     {
         BindStreamingDelegates(m_delegateHandlers, this, layer);
 
         // @TODO if scene streaming is enabled and we're Init()'d, stream them in!
     }
-    
+
     if (IsInitCalled())
     {
         InitObject(m_worldGrid);

@@ -52,9 +52,9 @@ void SkydomeRenderer::Init()
     g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_cubemap);
     InitObject(m_cubemap);
 
-    m_virtualScene = CreateObject<Scene>(SceneFlags::NONE);
+    m_virtualScene = CreateObject<Scene>(NAME("SkydomeRendererScene"), SceneFlags::HAS_OCTREE);
+    m_virtualScene->SetAssetFlags(AssetObjectFlags::AOF_TRANSIENT);
     m_virtualScene->SetOwnerThreadId(g_gameThread);
-    m_virtualScene->SetName(NAME("SkydomeRendererScene"));
     InitObject(m_virtualScene);
 
     Handle<Node> cameraNode = m_virtualScene->GetRoot()->AddChild();

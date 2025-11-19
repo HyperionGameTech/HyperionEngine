@@ -904,13 +904,6 @@ EditorSubsystem::EditorSubsystem()
                 m_manipulationWidgetHolder.Initialize();
                 m_manipulationWidgetHolder.SetCurrentProject(project);
 
-                // TEMP DEBUG!
-
-                auto streamingVolume = CreateObject<CameraStreamingVolume>();
-                streamingVolume->SetBoundingBox(BoundingBox(-100.0f, +100.0f));
-                InitObject(streamingVolume);
-                g_streamingManager->AddStreamingVolume(streamingVolume);
-
                 g_engineDriver->AddWorld(project->GetWorld());
 
                 WeakHandle<Scene> activeScene;
@@ -1208,8 +1201,7 @@ void EditorSubsystem::OnAddedToWorld()
         HYP_FAIL("EditorSubsystem requires UISubsystem to be initialized");
     }
 
-    m_editorScene = CreateObject<Scene>(nullptr, SceneFlags::FOREGROUND | SceneFlags::EDITOR);
-    m_editorScene->SetName(NAME("EditorScene"));
+    m_editorScene = CreateObject<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
     GetWorld()->AddScene(m_editorScene);
 
     Handle<Node> cameraNode = m_editorScene->GetRoot()->AddChild();
@@ -3356,13 +3348,13 @@ Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float
     RayTestResults results;
 
     Handle<Scene> activeScene = m_activeScene.Lock();
-    if (!activeScene.IsValid())
+    if (!activeScene)
     {
         return insertionPoint;
     }
 
     // raytest using scene's octree
-    if (activeScene->GetOctree().TestRay(ray, results, RTF_USE_BVH))
+    if ((activeScene->GetSceneFlags() & SceneFlags::HAS_OCTREE) && activeScene->GetOctree().TestRay(ray, results, RTF_USE_BVH))
     {
         const RayHit& closestHit = results.Front();
 

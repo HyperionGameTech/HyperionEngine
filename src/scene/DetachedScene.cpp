@@ -47,9 +47,7 @@ public:
 private:
     Handle<Scene> CreateSceneForThread(const ThreadId& threadId)
     {
-        Handle<Scene> scene = CreateObject<Scene>(nullptr, threadId, SceneFlags::DETACHED);
-        scene->SetName(NAME_FMT("DetachedSceneForThread_{}", threadId.GetName()));
-
+        Handle<Scene> scene = CreateObject<Scene>(NAME_FMT("DetachedSceneForThread_{}", threadId.GetName()), threadId, SceneFlags::DETACHED);
         InitObject(scene);
 
         return scene;

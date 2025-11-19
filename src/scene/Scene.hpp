@@ -43,10 +43,15 @@ HYP_ENUM()
 enum class SceneFlags : uint32
 {
     NONE = 0x0,
-    FOREGROUND = 0x1,
-    DETACHED = 0x2,
-    UI = 0x8,
-    EDITOR = 0x10
+    FOREGROUND = 0x1, //!< Scene is a foreground scene (i.e., it is rendered normally).
+    DETACHED = 0x2,   //!< Scene is not attached to any World.
+    UI = 0x8,         //!< Scene is created for UI (see UIStage).
+    EDITOR = 0x10,    //!< Scene is an editor-owned scene.
+
+    STREAMED = 0x20,   //!< Allow streaming the scene in and out of the World dynamically, based on StreamingVolume proximity.
+    HAS_OCTREE = 0x40, //!< Scene uses an octree for spatial partitioning.
+
+    DEFAULT = FOREGROUND | STREAMED | HAS_OCTREE
 };
 
 HYP_MAKE_ENUM_FLAGS(SceneFlags);
@@ -89,9 +94,9 @@ class HYP_API Scene final : public AssetObject
 public:
     Scene();
 
-    Scene(EnumFlags<SceneFlags> flags);
-    Scene(World* world, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
-    Scene(World* world, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
+    explicit Scene(EnumFlags<SceneFlags> flags);
+    explicit Scene(Name name, EnumFlags<SceneFlags> flags = SceneFlags::DEFAULT);
+    explicit Scene(Name name, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags = SceneFlags::DEFAULT);
 
     Scene(const Scene& other) = delete;
     Scene& operator=(const Scene& other) = delete;

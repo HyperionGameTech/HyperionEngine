@@ -115,8 +115,7 @@ void HyperionEditor::Init()
     // GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
 
 #if 0
-    Handle<Scene> scene = CreateObject<Scene>(SceneFlags::FOREGROUND);
-    scene->SetName(NAME("myScene"));
+    Handle<Scene> scene = CreateObject<Scene>(NAME("MyScene"));
     m_editorSubsystem->GetCurrentProject()->GetWorld()->AddScene(scene);
 
     // add sun

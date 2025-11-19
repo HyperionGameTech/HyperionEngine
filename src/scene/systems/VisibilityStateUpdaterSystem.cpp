@@ -26,6 +26,14 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
 
     VisibilityStateComponent& visibilityStateComponent = GetEntityManager().GetComponent<VisibilityStateComponent>(entity);
 
+    if (!(GetEntityManager().GetScene()->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+    {
+        visibilityStateComponent.octantId = OctantId::Invalid();
+        visibilityStateComponent.visibilityState = nullptr;
+
+        return;
+    }
+
     if (visibilityStateComponent.octantId != OctantId::Invalid())
     {
         return;
@@ -72,13 +80,16 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
 
     VisibilityStateComponent& visibilityStateComponent = GetEntityManager().GetComponent<VisibilityStateComponent>(entity);
 
-    SceneOctree& octree = GetEntityManager().GetScene()->GetOctree();
-
-    const SceneOctree::Result removeResult = octree.Remove(entity);
-
-    if (removeResult.HasError())
+    if (GetEntityManager().GetScene()->GetSceneFlags() & SceneFlags::HAS_OCTREE)
     {
-        HYP_LOG(Scene, Warning, "Failed to remove Entity #{} from octree: {}", entity->Id(), removeResult.GetError().GetMessage());
+        SceneOctree& octree = GetEntityManager().GetScene()->GetOctree();
+
+        const SceneOctree::Result removeResult = octree.Remove(entity);
+
+        if (removeResult.HasError())
+        {
+            HYP_LOG(Scene, Warning, "Failed to remove Entity #{} from octree: {}", entity->Id(), removeResult.GetError().GetMessage());
+        }
     }
 
     visibilityStateComponent.octantId = OctantId::Invalid();
@@ -87,6 +98,11 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
 
 void VisibilityStateUpdaterSystem::Process(float delta)
 {
+    if (!(GetEntityManager().GetScene()->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+    {
+        return;
+    }
+
     SceneOctree& octree = GetEntityManager().GetScene()->GetOctree();
 
     HashSet<WeakHandle<Entity>> updatedEntities;

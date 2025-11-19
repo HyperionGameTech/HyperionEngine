@@ -42,6 +42,9 @@
 
 namespace hyperion {
 
+static const Name s_nameUnnamedScene = NAME("<unnamed scene>");
+static const Name s_nameSceneRoot = NAME("<ROOT>");
+
 void Scene_OnPostLoad(Scene& scene)
 {
     scene.SetOwnerThreadId(g_gameThread);
@@ -118,31 +121,31 @@ SceneValidationResult SceneValidation::ValidateScene(const Scene* scene)
 #pragma region Scene
 
 Scene::Scene()
-    : Scene(nullptr, ThreadId::Current(), {})
+    : Scene(s_nameUnnamedScene, ThreadId::Current(), SceneFlags::DEFAULT)
 {
 }
 
 Scene::Scene(EnumFlags<SceneFlags> flags)
-    : Scene(nullptr, ThreadId::Current(), flags)
+    : Scene(s_nameUnnamedScene, ThreadId::Current(), flags)
 {
 }
 
-Scene::Scene(World* world, EnumFlags<SceneFlags> flags)
-    : Scene(world, ThreadId::Current(), flags)
+Scene::Scene(Name name, EnumFlags<SceneFlags> flags)
+    : Scene(name, ThreadId::Current(), flags)
 {
 }
 
-Scene::Scene(World* world, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
-    : AssetObject(Name::Unique("Scene")),
+Scene::Scene(Name name, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
+    : AssetObject(name),
       m_sceneFlags(flags),
       m_ownerThreadId(ownerThreadId),
-      m_world(world),
+      m_world(nullptr),
       m_isAudioListener(false),
       m_entityManager(CreateObject<EntityManager>(ownerThreadId, this)),
       m_octree(m_entityManager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
       m_previousDelta(0.01667f)
 {
-    m_root = CreateObject<Node>(NAME("<ROOT>"), Transform::identity, this);
+    m_root = CreateObject<Node>(s_nameSceneRoot, Transform::identity, this);
 }
 
 Scene::~Scene()
@@ -199,8 +202,6 @@ void Scene::Init()
     m_entityManager->SetWorld(m_world);
 
     AddSystemIfApplicable<WorldAABBUpdaterSystem>();
-    // AddSystemIfApplicable<EntityMeshDirtyStateSystem>();
-    // AddSystemIfApplicable<EntityRenderProxySystem_Mesh>();
     AddSystemIfApplicable<VisibilityStateUpdaterSystem>();
     AddSystemIfApplicable<LightmapSystem>();
     AddSystemIfApplicable<AnimationSystem>();
@@ -293,6 +294,7 @@ void Scene::Update(float delta)
 
     AssertReady();
 
+    if (m_sceneFlags & SceneFlags::HAS_OCTREE)
     {
         HYP_NAMED_SCOPE("Update octree");
 

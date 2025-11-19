@@ -423,9 +423,8 @@ void TerrainStreamingCell::OnRemoved_Impl()
 #pragma region TerrainWorldGridLayer
 
 TerrainWorldGridLayer::TerrainWorldGridLayer()
-    : m_scene(CreateObject<Scene>(SceneFlags::FOREGROUND))
+    : m_scene(CreateObject<Scene>(NAME("TerrainScene"), SceneFlags::FOREGROUND))
 {
-    m_scene->SetName(Name::Unique("TerrainWorldGridScene"));
 }
 
 TerrainWorldGridLayer::~TerrainWorldGridLayer()

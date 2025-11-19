@@ -102,8 +102,6 @@ void WorldGrid::Shutdown()
 
         layer->OnRemoved(this);
     }
-
-    SetReady(false);
 }
 
 void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)

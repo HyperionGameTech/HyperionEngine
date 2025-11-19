@@ -274,7 +274,12 @@ bool View::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
     for (const Handle<Scene>& scene : m_scenes)
     {
-        Assert(scene.IsValid());
+        AssertDebug(scene != nullptr);
+
+        if (!scene || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+        {
+            continue;
+        }
 
         if (scene->GetOctree().TestRay(ray, outResults, flags))
         {
@@ -335,6 +340,13 @@ void View::UpdateVisibility()
 
     for (const Handle<Scene>& scene : m_scenes)
     {
+        AssertDebug(scene != nullptr);
+
+        if (!scene || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+        {
+            continue;
+        }
+
         scene->GetOctree().CalculateVisibility(m_camera);
     }
 }
@@ -552,8 +564,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
     for (const Handle<Scene>& scene : m_scenes)
     {
-        Assert(scene.IsValid());
-        Assert(scene->IsReady());
+        AssertDebug(scene && scene->IsReady());
 
         if (scene->GetSceneFlags() & SceneFlags::DETACHED)
         {
@@ -570,7 +581,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
         switch (uint32(m_flags) & uint32(ViewFlags::COLLECT_ALL_ENTITIES))
         {
         case uint32(ViewFlags::COLLECT_ALL_ENTITIES):
-            if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
+            if ((m_flags & ViewFlags::NO_FRUSTUM_CULLING) || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
             {
                 for (auto [entity, meshComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
@@ -664,7 +675,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             break;
 
         case uint32(ViewFlags::COLLECT_STATIC_ENTITIES):
-            if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
+            if ((m_flags & ViewFlags::NO_FRUSTUM_CULLING) || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
             {
                 for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, TagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
@@ -758,7 +769,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             break;
 
         case uint32(ViewFlags::COLLECT_DYNAMIC_ENTITIES):
-            if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
+            if ((m_flags & ViewFlags::NO_FRUSTUM_CULLING) || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
             {
                 for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, TagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
@@ -873,12 +884,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             auto&& [meshComponent, transformComponent, boundingBoxComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent>(entity);
 
             AssertDebug(meshComponent != nullptr);
-
-            AssertDebug(meshComponent->mesh != nullptr);
-            AssertDebug(meshComponent->mesh->IsReady());
-
-            AssertDebug(meshComponent->material != nullptr);
-            AssertDebug(meshComponent->material->IsReady());
+            AssertDebug(meshComponent->mesh && meshComponent->mesh->IsReady());
+            AssertDebug(meshComponent->material && meshComponent->material->IsReady());
 
             RenderProxyMesh& meshProxy = *rpl.GetMeshEntities().SetProxy(entity->Id(), RenderProxyMesh());
             meshProxy.version = *entity->GetRenderProxyVersionPtr();
