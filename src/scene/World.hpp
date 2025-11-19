@@ -219,14 +219,21 @@ private:
 
     Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);
 
-    HYP_METHOD(Property = "Scenes", Transient)
-    void SetScenes(const Array<Handle<Scene>>& scenes);
+    /// Serialization ///
+
+    HYP_METHOD(Property = "NonStreamingScenes", Serialize)
+    void DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes);
+
+    HYP_METHOD(Property = "NonStreamingScenes", Serialize)
+    Array<Handle<Scene>> SerializeNonStreamingScenes() const;
 
     HYP_METHOD(Property = "StreamingLayers", Serialize, LoadOrder = 100)
     void DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator>& streamingLayers);
 
     HYP_METHOD(Property = "StreamingLayers", Serialize, LoadOrder = 100)
     Array<WGLayerDesc, DynamicAllocator> SerializeStreamingLayers() const;
+
+    /// Serialization ///
 
     HYP_FIELD(Property = "Name", Serialize)
     Name m_name;

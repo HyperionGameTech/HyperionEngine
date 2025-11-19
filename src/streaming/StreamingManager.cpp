@@ -732,9 +732,11 @@ StreamingManager::~StreamingManager()
 void StreamingManager::AddStreamingVolume(const Handle<StreamingVolumeBase>& volume)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
 
-    Assert(volume.IsValid());
+    if (!volume)
+    {
+        return;
+    }
 
     volume->RegisterNotifier(&m_thread->GetNotifier());
 
@@ -744,7 +746,6 @@ void StreamingManager::AddStreamingVolume(const Handle<StreamingVolumeBase>& vol
 void StreamingManager::RemoveStreamingVolume(StreamingVolumeBase* volume)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
 
     if (!volume)
     {

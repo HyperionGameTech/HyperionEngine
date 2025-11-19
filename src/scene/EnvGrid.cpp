@@ -7,10 +7,10 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+#include <scene/EntityManager.hpp>
 
 #include <scene/camera/Camera.hpp>
 
-#include <scene/EntityManager.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
 #include <rendering/Texture.hpp>
@@ -18,19 +18,17 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 
 #include <engine/DebugDrawer.hpp>
-
-#include <rendering/RenderDescriptorSet.hpp>
+#include <engine/EngineGlobals.hpp>
+#include <engine/EngineDriver.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
-
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineDriver.hpp>
 
 #include <EnvGrid.generated.inl>
 

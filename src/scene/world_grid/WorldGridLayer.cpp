@@ -94,12 +94,22 @@ void WorldGridLayer::AddStreamingObject(const AssetObject* obj, const Vec2i& coo
 
     if (!obj->IsRegistered())
     {
-        g_assetManager->GetAssetRegistry()->RegisterAsset(HYP_FORMAT("$Memory/Temp/{}", obj->GetUUID()), MakeStrongRef(obj));
+        // @TODO change this; either ensure registered before calling this, or import to temp location which will be added to this package upon save / RegisterAssetsRecursively()
+        //g_assetManager->GetAssetRegistry()->RegisterAsset(HYP_FORMAT("$Import/Objects/Types/{}/{}", obj->InstanceClass()->GetName(), obj->GetName()), MakeStrongRef(obj));
+        g_assetManager->GetAssetRegistry()->RegisterAsset(HYP_FORMAT("$Temp/{}", obj->GetUUID()), MakeStrongRef(obj));
     }
 
     // @TODO needs to add to actual StreamingCell if already loaded!!
     // @TODO How will we update if the obj moves to a different path in editor?? - FIXME when we add some Delegate like OnAssetPathChanged to AssetObject
 
+    if (obj->IsTransient())
+    {
+        // transient assets must be kept in memory as their path may change if they are saved
+        m_objectsByCoord[coord].EmplaceBack(MakeStrongRef(obj));
+        return;
+    }
+
+    // don't keep transient assets in memory; store path instead.
     m_objectsByCoord[coord].EmplaceBack(obj->GetPath());
 }
 

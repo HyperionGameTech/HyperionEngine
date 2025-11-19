@@ -13,6 +13,7 @@
 #include <core/math/BoundingSphere.hpp>
 
 #include <core/threading/Semaphore.hpp>
+#include <core/threading/Mutex.hpp>
 
 namespace hyperion {
 
@@ -47,6 +48,9 @@ public:
     void RegisterNotifier(StreamingNotifier* notifier)
     {
         Assert(notifier != nullptr);
+
+        Mutex::Guard guard(m_notifiersMtx);
+
         Assert(!m_notifiers.Contains(notifier));
 
         m_notifiers.PushBack(notifier);
@@ -58,6 +62,8 @@ public:
         {
             return;
         }
+
+        Mutex::Guard guard(m_notifiersMtx);
 
         m_notifiers.Erase(notifier);
     }
@@ -105,6 +111,7 @@ protected:
     void NotifyUpdate();
 
 private:
+    Mutex m_notifiersMtx;
     Array<StreamingNotifier*> m_notifiers;
 };
 

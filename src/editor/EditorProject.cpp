@@ -65,21 +65,16 @@ EditorProject::~EditorProject()
 
 void EditorProject::Init()
 {
+    HYP_SCOPE;
+
     ObjectBase::Init();
 
-    if (m_name.IsValid())
+    if (Result createPackageResult = CreatePackage(); createPackageResult.HasError())
     {
-        if (Result createPackageResult = CreatePackage(); createPackageResult.HasError())
-        {
-            HYP_LOG(Editor, Error, "Failed to create asset package for project '{}': {}", m_name, createPackageResult.GetError().GetMessage());
-        }
+        HYP_LOG(Editor, Error, "Failed to create asset package for project '{}': {}", m_name.IsValid() ? *m_name : "<unnamed project>", createPackageResult.GetError().GetMessage());
     }
 
-    if (m_package)
-    {
-        InitObject(m_package);
-    }
-
+    InitObject(m_package);
     InitObject(m_actionStack);
 
     if (!m_world)
@@ -107,6 +102,9 @@ void EditorProject::SetName(Name name)
     }
     else if (IsInitCalled())
     {
+        AssertDebug(m_world != nullptr);
+        m_world->SetName(NAME_FMT("{}_World", m_name));
+
         if (Result createPackageResult = CreatePackage(); createPackageResult.HasError())
         {
             HYP_LOG(Editor, Error, "Failed to create asset package for project '{}': {}", m_name, createPackageResult.GetError().GetMessage());
@@ -128,23 +126,21 @@ Result EditorProject::CreatePackage()
         // @NOTE: if package already exists at this path it will be used
 
         m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(*m_name, /* createIfNotExist */ true);
+        OnPackageCreated(m_package);
+
         return {};
     }
 
     int currentCounter = 0;
     String currentName = s_defaultProjectName;
 
-    Handle<AssetPackage> newPackage; // new package to be used by our project (root level)
-
     do
     {
-        newPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
+        Handle<AssetPackage> tmpPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ false);
 
-        const Handle<AssetPackage> tmpPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ false);
-
-        if (newPackage && tmpPackage == newPackage)
+        if (!tmpPackage)
         {
-            m_package = newPackage;
+            m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
             m_name = CreateNameFromDynamicString(currentName);
 
             OnPackageCreated(m_package);
@@ -152,10 +148,9 @@ Result EditorProject::CreatePackage()
             return {};
         }
 
-        newPackage.Reset();
         currentName = s_defaultProjectName + String::ToString(++currentCounter);
     }
-    while (!newPackage);
+    while (true);
 
     return HYP_MAKE_ERROR(Error, "Failed to create package");
 }

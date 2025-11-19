@@ -111,8 +111,6 @@ void WorldGrid::Shutdown()
         layer->OnRemoved(this);
     }
 
-    g_streamingManager->Stop();
-
     SetReady(false);
 }
 
@@ -122,8 +120,6 @@ void WorldGrid::Update(float delta)
     AssertOnThread(g_gameThread);
 
     AssertReady();
-
-    g_streamingManager->Update(delta);
 }
 
 void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)
@@ -180,7 +176,8 @@ bool WorldGrid::RemoveLayer(WorldGridLayer* layer)
     }
 
     return false;
-};
+}
+
 void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
 {
     HYP_SCOPE;

@@ -358,8 +358,10 @@ HYP_API void DestroyEngine()
 
     CoreApi_Shutdown();
 
-    g_assetManager.Reset();
+    g_streamingManager->Stop();
     g_streamingManager.Reset();
+
+    g_assetManager.Reset();
     g_editorState.Reset();
 
     delete g_shaderCompiler;

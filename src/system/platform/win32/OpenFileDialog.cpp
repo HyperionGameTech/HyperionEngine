@@ -9,6 +9,8 @@
 
 #include <core/filesystem/FilePath.hpp>
 
+#include <core/functional/Proc.hpp>
+
 #include <core/io/ByteWriter.hpp>
 
 static const wchar_t* CommDlgErrorToString(DWORD err)

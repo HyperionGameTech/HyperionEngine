@@ -11,6 +11,8 @@ namespace hyperion {
 
 void StreamingVolumeBase::NotifyUpdate()
 {
+    Mutex::Guard guard(m_notifiersMtx);
+
     for (StreamingNotifier* notifier : m_notifiers)
     {
         Assert(notifier != nullptr);

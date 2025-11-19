@@ -48,6 +48,7 @@ static thread_local HashSet<Pair<TypeId, const void*>> s_serializedObjects;
 // otherwise we won't know to deserialize it as a Dog.
 static constexpr bool ForceWriteClassNamesWhenTypesDiffer = true;
 
+HYP_DISABLE_OPTIMIZATION;
 bool HypDataToJSON(
     const HypData& value,
     json::JSONValue& outJson,
@@ -466,6 +467,7 @@ bool HypDataToJSON(
 
     return false;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 bool ObjectToJSON(
     const Class* cls,

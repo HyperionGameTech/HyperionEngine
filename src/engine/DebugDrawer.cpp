@@ -16,11 +16,9 @@
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/Mesh.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
-
-#include <rendering/Mesh.hpp>
 
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>

@@ -580,6 +580,8 @@ void EngineDriver::GameThreadUpdate(float delta)
 
     m_scriptingService->Update();
 
+    g_streamingManager->Update(delta);
+
     const uint32 slot = RenderApi::GetRingIndex();
 
     m_worldsToRenderPerFrame[slot].Clear();

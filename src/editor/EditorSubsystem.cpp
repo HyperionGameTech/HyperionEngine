@@ -934,12 +934,10 @@ EditorSubsystem::EditorSubsystem()
                 m_delegateHandlers.Add(
                     project->GetWorld()->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
                         {
-                            Assert(scene.IsValid());
+                            Assert(scene != nullptr);
 
                             Handle<EditorProject> project = projectWeak.Lock();
-                            Assert(project.IsValid());
-
-                            HYP_LOG(Editor, Info, "Project {} added scene: {}", *project->GetName(), *scene->GetName());
+                            Assert(project != nullptr);
 
                             // Add scene to all editor views
                             for (const Handle<View>& view : m_editorViews)
@@ -956,7 +954,7 @@ EditorSubsystem::EditorSubsystem()
                                             UpdateWatchedNodes();
                                         }));
 
-                            if (!m_activeScene.IsValid())
+                            if (!m_activeScene)
                             {
                                 SetActiveScene(scene);
                             }
@@ -971,7 +969,7 @@ EditorSubsystem::EditorSubsystem()
                             Assert(scene != nullptr);
 
                             Handle<EditorProject> project = projectWeak.Lock();
-                            Assert(project.IsValid());
+                            Assert(project != nullptr);
 
                             HYP_LOG(Editor, Info, "Project {} removed scene: {}", *project->GetName(), *scene->GetName());
 
@@ -2968,8 +2966,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     {
         OnProjectClosing(m_currentProject);
 
-        m_currentProject->SetEditorSubsystem(WeakHandle<EditorSubsystem>::empty);
-
+        m_currentProject->SetEditorSubsystem(WeakHandle<EditorSubsystem>::Null());
         m_currentProject->Close();
     }
 
@@ -2977,7 +2974,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     {
         if (project.IsValid())
         {
-            project->SetEditorSubsystem(WeakHandleFromThis());
+            project->SetEditorSubsystem(MakeWeakRef(this));
         }
 
         InitObject(project);

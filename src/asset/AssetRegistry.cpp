@@ -46,6 +46,12 @@ static const ThreadId& s_assetRegistryThread = g_gameThread;
 // otherwise a mutex will be used to allow multi-threaded access.
 static constexpr bool UseSingleThread = false;
 
+static constexpr const StringHash PredefinedTransientPackageNames[] = {
+    "$Memory",
+    "$Temp",
+    "$Import"
+};
+
 extern HYP_API const FilePath& GetResourceDirectory();
 
 StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage)
@@ -155,6 +161,42 @@ HYP_NODISCARD Name CreateFriendlyName(Name name)
     }
 
     return CreateNameFromDynamicString(StringUtil::ToPascalCase(friendlyNameStr, true));
+}
+
+/*! \brief Is the AssetObject located in a transient package that allows us to move it elsewhere?
+ *  Only Engine-defined transient packages (e.g $Memory, $Import, $Temp) enable this behaviour. */
+static bool CanMoveAssetToNonTransientPackage(const AssetObject* assetObject)
+{
+    if (!assetObject)
+    {
+        return false;
+    }
+
+    Handle<AssetPackage> package = assetObject->GetPackage();
+
+    if (!package)
+    {
+        return true; // not located in any package; fine to move
+    }
+
+    if (!package->IsTransient())
+    {
+        return false; // don't move if not in transient package
+    }
+
+    const ANSIString packagePath = package->BuildPackagePath();
+    const ANSIStringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
+    const StringHash substrHash = StringHash(substr);
+
+    for (StringHash transientPackageName : PredefinedTransientPackageNames)
+    {
+        if (substrHash == transientPackageName)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 #pragma region AssetPackage
@@ -412,7 +454,29 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
 
     if (assetObject->IsRegistered())
     {
-        HYP_LOG(Assets, Warning, "AssetObject '{}' already belongs to another package!", assetObject->GetName());
+        Handle<AssetPackage> currentPackage = assetObject->GetPackage();
+        AssertDebug(currentPackage != nullptr);
+
+        if (currentPackage)
+        {
+            HYP_LOG(Assets, Info, "AssetObject '{}' belongs to package {} and will be removed from it before being added to package {}",
+                assetObject->GetName(),
+                currentPackage->BuildPackagePath(),
+                BuildPackagePath());
+
+            if (Result result = currentPackage->RemoveAssetObject(assetObject).Await(); result.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to remove AssetObject {} from package {}! Error was: {}",
+                    assetObject->GetName(),
+                    currentPackage->BuildPackagePath(),
+                    result.GetError().GetMessage());
+
+                Task<Result> future;
+                future.Fulfill(result);
+
+                return future;
+            }
+        }
     }
 
     auto impl = [this, assetObject = MakeStrongRef(assetObject)]() -> Result
@@ -1030,8 +1094,13 @@ void AssetPackage::AddDependency(const AssetPath& dependency)
         {
             Handle<AssetPackage> dependencyPackage = registry->GetPackageFromPath(dependency.ToString(), /* createIfNotExist */ false);
 
-            if (dependencyPackage.IsValid())
+            if (dependencyPackage)
             {
+                if (dependencyPackage->IsTransient())
+                {
+                    HYP_LOG(Assets, Warning, "Adding dependency on transient package '{}'; may cause loading to fail or other errors.", dependencyPackage->BuildPackagePath());
+                }
+
                 // Check if the dependency package depends on us (circular dependency)
                 const AssetPath thisPath = AssetPath(BuildPackagePath());
 
@@ -2471,7 +2540,6 @@ Task<Result> AssetRegistry::RegisterAsset(const UTF8StringView& path, const Hand
     return future;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void AssetRegistry::RegisterAssetsRecursively(
     const UTF8StringView& packagePath,
     const HypData& target,
@@ -2490,6 +2558,8 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     HashSet<const ObjectBase*> visited; // to avoid infinite recursion
 
+    bool shouldFollowAssetPaths = false;
+
     Proc<void(const Handle<AssetPackage>&, const HypData&)> iterate;
     iterate = [&](const Handle<AssetPackage>& inPackage, const HypData& current) -> void
     {
@@ -2504,7 +2574,7 @@ void AssetRegistry::RegisterAssetsRecursively(
             ObjectBase* pObject = current.TryGet<ObjectBase*>().GetOr(nullptr);
             if (pObject && !visited.Insert(pObject).second)
             {
-                HYP_LOG_TEMP("Already visited {} with ID {}, skipping to avoid infinite recursion",
+                HYP_LOG(Assets, Info, "Already visited {} with ID {}, skipping to avoid infinite recursion",
                     pObject->InstanceClass() ? *pObject->InstanceClass()->GetName() : "<no class>", pObject->Id());
 
                 return;
@@ -2514,19 +2584,69 @@ void AssetRegistry::RegisterAssetsRecursively(
         Handle<AssetPackage> parentPackage = inPackage;
         Handle<AssetObject> assetObject;
 
+        Optional<AssetReference> tmpAssetReference;
+        const AssetReference* pAssetReference = nullptr;
+
         // add dependency if current is an AssetObject or AssetReference and not a subpackage
         // of inPackage
         if (current.Is<AssetObject>())
         {
             assetObject = MakeStrongRef(&current.Get<AssetObject>());
             Assert(assetObject != nullptr);
+        }
+        else if (current.Is<AssetPath>() && shouldFollowAssetPaths)
+        {
+            pAssetReference = &tmpAssetReference.Emplace(current.Get<AssetPath>());
+        }
+        else if (current.Is<AssetReference>())
+        {
+            pAssetReference = &current.Get<AssetReference>();
+        }
 
+        if (pAssetReference && !pAssetReference->IsValid())
+        {
+            pAssetReference = nullptr;
+        }
+
+        if (pAssetReference && !assetObject)
+        {
+            assetObject = pAssetReference->Resolve();
+
+            if (!assetObject)
+            {
+                HYP_LOG(Assets, Warning, "AssetReference {} failed to resolve!", pAssetReference->GetAssetPath().ToString());
+            }
+        }
+
+        if (assetObject)
+        {
             const String packagePathWithSubpath = getObjectSubpath
                 ? packagePath + "/" + getObjectSubpath(*assetObject)
                 : String(packagePath);
 
             Handle<AssetPackage> newPackage = GetPackageFromPath(packagePathWithSubpath, /* createIfNotExist */ true);
             Assert(newPackage != nullptr);
+
+            if (assetObject->IsTransient())
+            {
+                Handle<AssetPackage> prevPackage = assetObject->GetPackage();
+
+                if (CanMoveAssetToNonTransientPackage(assetObject))
+                {
+                    // move it there!
+                    if (Result result = newPackage->AddAssetObject(assetObject).Await(); result.HasError())
+                    {
+                        HYP_LOG(Assets, Error, "Failed to relocate transient {} {} located in package '{}' to '{}': {}",
+                            assetObject->InstanceClass()->GetName(),
+                            assetObject->GetName(),
+                            prevPackage ? prevPackage->BuildPackagePath() : "<no package>",
+                            newPackage->BuildPackagePath(),
+                            result.GetError().GetMessage());
+
+                        return;
+                    }
+                }
+            }
 
             if (!newPackage->IsSubpackageOf(*inPackage))
             {
@@ -2535,28 +2655,25 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             parentPackage = std::move(newPackage);
         }
-        else if (current.Is<AssetReference>())
+        else if (pAssetReference)
         {
-            const AssetReference& assetReference = current.Get<AssetReference>();
+            Array<Name> chain = pAssetReference->GetAssetPath().GetChain();
 
-            if (assetReference.IsValid())
+            if (chain.Size() > 1) // has at least one package in chain
             {
-                Array<Name> chain = assetReference.GetAssetPath().GetChain();
+                chain.PopBack(); // remove asset name
 
-                if (chain.Size() > 1) // has at least one package in chain
+                const String packagePath = String::Join(chain, '/', &Name::ToString);
+                const Handle<AssetPackage> referencedPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false);
+
+                if (referencedPackage.IsValid() && !referencedPackage->IsSubpackageOf(*inPackage))
                 {
-                    chain.PopBack(); // remove asset name
-
-                    const String packagePath = String::Join(chain, '/', &Name::ToString);
-                    const Handle<AssetPackage> referencedPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false);
-
-                    if (referencedPackage.IsValid() && !referencedPackage->IsSubpackageOf(*inPackage))
-                    {
-                        inPackage->AddDependency(AssetPath(packagePath));
-                    }
+                    inPackage->AddDependency(AssetPath(packagePath));
                 }
             }
         }
+
+        shouldFollowAssetPaths = false;
 
         if (current.Is<GenericArrayWrapper>()) // array needs special handling: iterate over elements (if possible)
         {
@@ -2649,14 +2766,14 @@ void AssetRegistry::RegisterAssetsRecursively(
             {
                 const Property* property = static_cast<const Property*>(&member);
                 memberData = property->Get(current);
+                break;
             }
-            break;
             case HypMemberType::TYPE_FIELD:
             {
                 const Field* field = static_cast<const Field*>(&member);
                 memberData = field->Get(current);
+                break;
             }
-            break;
             default:
                 HYP_UNREACHABLE();
                 break;
@@ -2673,6 +2790,8 @@ void AssetRegistry::RegisterAssetsRecursively(
                 // skip members with Serialize=false on class
                 continue;
             }
+
+            shouldFollowAssetPaths = member.GetAttribute(Attributes::g_attrFollowAssetPath).GetBool();
 
             iterate(parentPackage, memberData);
         }
@@ -2694,7 +2813,6 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     iterate(rootPackage, target);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 Handle<AssetObject> AssetRegistry::GetAssetFromPath(const UTF8StringView& path) const
 {
