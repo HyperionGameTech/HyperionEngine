@@ -23,6 +23,12 @@ class NetRequestThread;
 
 using net::NetRequestThread;
 
+namespace threading {
+class TaskBatch;
+} // namespace threading
+
+using threading::TaskBatch;
+
 class Game;
 class GameThread;
 class RenderGlobalState;
@@ -139,6 +145,8 @@ private:
     Array<World*> m_worldsToRenderPerFrame[RingBufferDepth];
 
     EngineDelegates m_delegates;
+
+    TaskBatch* m_viewCollectionBatch;
 
     AtomicVar<bool> m_isShuttingDown;
     bool m_shouldRecreateSwapchain;

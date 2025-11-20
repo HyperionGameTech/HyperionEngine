@@ -200,11 +200,11 @@ public:
 
     /*! \brief Adds a View for processing asynchronously for this frame. */
     void ProcessViewAsync(View* view);
-    DelegateHandler ProcessViewAsync(View* view, Proc<void()>&& onComplete);
 
-    /*! \brief Perform any necessary game thread specific updates to the World.
-     * The main logic loop of the engine happens here. Each Scene in the World is updated,
-     * and within each Scene, each Entity, etc. */
+    void CollectViews(Array<View*, SceneAllocator>& outViews);
+    void CollectScenes(Array<Scene*, SceneAllocator>& outScenes);
+    void CollectSubsystems(Array<Subsystem*, SceneAllocator>& outSubsystems);
+
     void Update(float delta);
 
     Delegate<void, World*, GameStateMode, GameStateMode> OnGameStateChange;
@@ -257,8 +257,6 @@ private:
     Handle<WorldGrid> m_worldGrid;
 
     GameState m_gameState;
-
-    TaskBatch* m_viewCollectionBatch;
 
     Handle<PhysicsWorldBase> m_physicsWorld;
 

@@ -332,6 +332,11 @@ public:
         return m_scene;
     }
 
+    HYP_FORCE_INLINE EnumFlags<EntityManagerFlags> GetEntityManagerFlags() const
+    {
+        return m_flags;
+    }
+
     HYP_FORCE_INLINE EntityContainer& GetEntities()
     {
         return m_entities;

@@ -65,8 +65,7 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     : ObjectBase(),
       m_name(name),
       m_worldFlags(worldFlags),
-      m_raytracingView(nullptr),
-      m_viewCollectionBatch(nullptr)
+      m_raytracingView(nullptr)
 {
     if (m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS)
     {
@@ -127,14 +126,6 @@ World::~World()
         subsystem->OnRemovedFromWorld();
     }
 
-    if (m_viewCollectionBatch)
-    {
-        AssertDebug(m_viewCollectionBatch->IsCompleted());
-
-        delete m_viewCollectionBatch;
-        m_viewCollectionBatch = nullptr;
-    }
-
     if (m_physicsWorld)
     {
         m_physicsWorld->Teardown();
@@ -150,9 +141,6 @@ World::~World()
 void World::Init()
 {
     HYP_SCOPE;
-
-    m_viewCollectionBatch = new TaskBatch();
-    m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
 
     if (m_worldFlags & WorldFlags::HAS_STREAMING)
     {
@@ -382,59 +370,9 @@ void World::ProcessViewAsync(View* view)
     m_processViews.PushBack(view);
 }
 
-DelegateHandler World::ProcessViewAsync(View* view, Proc<void()>&& onComplete)
-{
-    if (!view)
-    {
-        return {};
-    }
-
-    if (!onComplete.IsValid())
-    {
-        ProcessViewAsync(view);
-
-        return {};
-    }
-
-    ProcessViewAsync(view);
-
-    return m_viewCollectionBatch->OnComplete.Bind(std::move(onComplete));
-}
-
-HYP_DISABLE_OPTIMIZATION;
-
 void World::Update(float delta)
 {
     HYP_SCOPE;
-
-    const uint32 slot = RenderApi::GetRingIndex();
-
-    // set buffered Views for current frame index
-    m_viewsPerFrame[slot].Resize(m_views.Size());
-
-    for (SizeType i = 0; i < m_views.Size(); i++)
-    {
-        m_viewsPerFrame[slot][i] = m_views[i].Get();
-    }
-
-    Array<View*, SceneAllocator> processViews;
-    processViews.Resize(m_processViews.Size() + m_views.Size());
-
-    for (SizeType i = 0; i < m_views.Size(); i++)
-    {
-        AssertDebug(m_views[i] != nullptr);
-        AssertDebug(!m_processViews.Contains(m_views[i]));
-
-        processViews[i] = m_views[i].Get();
-    }
-
-    for (SizeType i = m_views.Size(); i < processViews.Size(); i++)
-    {
-        processViews[i] = m_processViews[i - m_views.Size()];
-    }
-
-    // Clear additional Views to process for next frame
-    m_processViews.Clear();
 
     m_gameState.deltaTime = delta;
 
@@ -445,133 +383,69 @@ void World::Update(float delta)
 
     UpdateDirtyMeshEntities();
 
-#ifdef HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
-    Array<Task<void>, SceneAllocator> updateSubsystemTasks;
-
-    for (Subsystem* subsystem : m_subsystemsArray)
-    {
-        if (subsystem->RequiresUpdateOnGameThread())
-        {
-            continue;
-        }
-
-        subsystem->PreUpdate(delta);
-
-        updateSubsystemTasks.PushBack(TaskSystem::GetInstance().Enqueue([subsystem, delta]
-            {
-                HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
-
-                subsystem->Update(delta);
-            }));
-    }
-
-    for (Subsystem* subsystem : m_subsystemsArray)
-    {
-        if (!subsystem->RequiresUpdateOnGameThread())
-        {
-            continue;
-        }
-
-        subsystem->PreUpdate(delta);
-        subsystem->Update(delta);
-    }
-
-    for (Task<void>& task : updateSubsystemTasks)
-    {
-        task.Await();
-    }
-
-    updateSubsystemTasks.Clear();
-#else
-    for (Subsystem* subsystem : m_subsystemsArray)
-    {
-        subsystem->PreUpdate(delta);
-        subsystem->Update(delta);
-    }
-#endif
-
-    Array<EntityManager*, SceneAllocator> entityManagers;
-    entityManagers.Reserve(m_scenes.Size());
-
-    for (uint32 index = 0; index < m_scenes.Size(); index++)
-    {
-        const Handle<Scene>& scene = m_scenes[index];
-
-        if (!scene)
-        {
-            continue;
-        }
-
-        // sanity checks
-        Assert(scene->GetWorld() == this);
-        Assert(!(scene->GetSceneFlags() & SceneFlags::DETACHED));
-
-        scene->Update(delta);
-
-        entityManagers.PushBack(scene->GetEntityManager().Get());
-    }
-
-#ifdef HYP_WORLD_ASYNC_VIEW_COLLECTION
-    AssertDebug(m_viewCollectionBatch != nullptr);
-    AssertDebug(m_viewCollectionBatch->IsCompleted());
-
-    m_viewCollectionBatch->ResetState();
-#endif
-
-    if (entityManagers.Any())
-    {
-        for (EntityManager* entityManager : entityManagers)
-        {
-            HYP_NAMED_SCOPE("Call BeginAsyncUpdate on EntityManager");
-
-            AssertDebug(entityManager->GetWorld() == this);
-
-            entityManager->BeginAsyncUpdate(delta);
-        }
-
-        for (EntityManager* entityManager : entityManagers)
-        {
-            HYP_NAMED_SCOPE("Call EndAsyncUpdate on EntityManager");
-
-            entityManager->EndAsyncUpdate();
-        }
-    }
-
-    for (uint32 index = 0; index < processViews.Size(); index++)
-    {
-        HYP_NAMED_SCOPE("Per-view entity collection");
-
-        View* view = processViews[index];
-        Assert(view != nullptr);
-
-        view->UpdateViewport();
-        // View must be updated on the game thread as it mutates the scene's octree state
-        view->UpdateVisibility();
-
-#ifdef HYP_WORLD_ASYNC_VIEW_COLLECTION
-        view->BeginAsyncCollection(*m_viewCollectionBatch);
-#else
-        view->CollectSync();
-#endif
-    }
-
-#ifdef HYP_WORLD_ASYNC_VIEW_COLLECTION
-    TaskSystem::GetInstance().EnqueueBatch(m_viewCollectionBatch);
-    m_viewCollectionBatch->AwaitCompletion();
-
-    for (uint32 index = 0; index < processViews.Size(); index++)
-    {
-        processViews[index]->EndAsyncCollection();
-    }
-#endif
-
     m_gameState.gameTime += delta;
-
-    WorldShaderData* bufferData = RenderApi::GetWorldBufferData();
-    bufferData->gameTime = m_gameState.gameTime;
-    bufferData->frameCounter = RenderApi::GetFrameCounter();
 }
-HYP_ENABLE_OPTIMIZATION;
+
+void World::CollectViews(Array<View*, SceneAllocator>& outViews)
+{
+    const uint32 slot = RenderApi::GetRingIndex();
+
+    // set buffered Views for current frame index
+    m_viewsPerFrame[slot].Resize(m_views.Size());
+
+    for (SizeType i = 0; i < m_views.Size(); i++)
+    {
+        m_viewsPerFrame[slot][i] = m_views[i].Get();
+    }
+
+    if (m_views.Empty() && m_processViews.Empty())
+    {
+        return;
+    }
+
+    SizeType offset = outViews.Size();
+    outViews.Resize(offset + m_processViews.Size() + m_views.Size());
+
+    for (SizeType i = 0; i < m_views.Size(); i++)
+    {
+        AssertDebug(m_views[i] != nullptr);
+        AssertDebug(!m_processViews.Contains(m_views[i]));
+
+        outViews[offset + i] = m_views[i].Get();
+    }
+
+    offset += m_views.Size();
+
+    for (SizeType i = 0; i < m_processViews.Size(); i++)
+    {
+        outViews[offset + i] = m_processViews[i];
+    }
+
+    // Clear additional Views to process for next frame
+    m_processViews.Clear();
+}
+
+void World::CollectScenes(Array<Scene*, SceneAllocator>& outScenes)
+{
+    const SizeType offset = outScenes.Size();
+    outScenes.Resize(offset + m_scenes.Size());
+
+    for (SizeType i = 0; i < m_scenes.Size(); i++)
+    {
+        outScenes[offset + i] = m_scenes[i];
+    }
+}
+
+void World::CollectSubsystems(Array<Subsystem*, SceneAllocator>& outSubsystems)
+{
+    const SizeType offset = outSubsystems.Size();
+    outSubsystems.Resize(offset + m_subsystemsArray.Size());
+
+    for (SizeType i = 0; i < m_subsystemsArray.Size(); i++)
+    {
+        outSubsystems[offset + i] = m_subsystemsArray[i];
+    }
+}
 
 const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem)
 {

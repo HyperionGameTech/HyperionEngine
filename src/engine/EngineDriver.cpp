@@ -38,12 +38,17 @@
 #include <util/MeshBuilder.hpp>
 
 #include <scene/World.hpp>
+#include <scene/View.hpp>
+#include <scene/Scene.hpp>
+#include <scene/EntityManager.hpp>
+
 #include <rendering/Texture.hpp>
 
 #include <core/debug/StackDump.hpp>
 #include <system/SystemEvent.hpp>
 
 #include <core/threading/Threads.hpp>
+#include <core/threading/TaskSystem.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -66,9 +71,9 @@
 
 #include <HyperionEngine.hpp>
 
-#define HYP_LOG_FRAMES_PER_SECOND
+#define HYP_PROCESS_VIEWS_ASYNC 1
+#define HYP_PROCESS_SUBSYSTEMS_ASYNC 1
 
-// temp, move this
 #ifdef HYP_LIBUI
 #include <ui.h>
 #endif
@@ -249,7 +254,8 @@ const Handle<EngineDriver>& EngineDriver::GetInstance()
 EngineDriver::EngineDriver()
     : m_currentWorld(nullptr),
       m_isShuttingDown(false),
-      m_shouldRecreateSwapchain(false)
+      m_shouldRecreateSwapchain(false),
+      m_viewCollectionBatch(nullptr)
 {
 }
 
@@ -309,6 +315,9 @@ HYP_API void EngineDriver::Init()
 
     m_defaultWorld = CreateObject<World>(NAME("DefaultWorld"), WorldFlags::NONE);
     InitObject(m_defaultWorld);
+
+    m_viewCollectionBatch = new TaskBatch();
+    m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
 
     SetReady(true);
 }
@@ -469,6 +478,14 @@ void EngineDriver::FinalizeStop()
         m_scriptingService.Reset();
     }
 
+    if (m_viewCollectionBatch)
+    {
+        AssertDebug(m_viewCollectionBatch->IsCompleted());
+
+        delete m_viewCollectionBatch;
+        m_viewCollectionBatch = nullptr;
+    }
+
     // must stop before net request thread
     StopProfilerConnectionThread();
 
@@ -517,6 +534,7 @@ void EngineDriver::FinalizeStop()
 HYP_API void EngineDriver::RenderNextFrame()
 {
     HYP_PROFILE_BEGIN;
+    AssertOnThread(g_renderThread);
 
     FrameBase* frame = g_renderBackend->PrepareNextFrame();
 
@@ -534,9 +552,6 @@ HYP_API void EngineDriver::RenderNextFrame()
         for (World* world : worldsToRender)
         {
             AssertDebug(world != nullptr && world->IsReady());
-
-            // @FIXME: will overwrite !!!
-            g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
 
             RenderSetup rs { world, nullptr };
 
@@ -569,8 +584,9 @@ HYP_API void EngineDriver::RenderNextFrame()
 void EngineDriver::PreFrameUpdate(FrameBase* frame)
 {
     HYP_SCOPE;
-
     AssertOnThread(g_renderThread);
+
+    g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
 }
 
 void EngineDriver::GameThreadUpdate(float delta)
@@ -586,11 +602,153 @@ void EngineDriver::GameThreadUpdate(float delta)
 
     m_worldsToRenderPerFrame[slot].Clear();
 
+    Array<View*, SceneAllocator> viewsToProcess;
+    Array<Scene*, SceneAllocator> scenesToProcess;
+    Array<Subsystem*, SceneAllocator> subsystemsToProcess;
+
     for (World* world : m_worlds)
     {
+        world->CollectViews(viewsToProcess);
+        world->CollectScenes(scenesToProcess);
+        world->CollectSubsystems(subsystemsToProcess);
+
         world->Update(delta);
 
         EnqueueWorldRender(world);
+    }
+
+#if HYP_PROCESS_SUBSYSTEMS_ASYNC
+    Array<Task<void>, SceneAllocator> updateSubsystemTasks;
+
+    for (Subsystem* subsystem : subsystemsToProcess)
+    {
+        if (subsystem->RequiresUpdateOnGameThread())
+        {
+            continue;
+        }
+
+        subsystem->PreUpdate(delta);
+
+        updateSubsystemTasks.PushBack(TaskSystem::GetInstance().Enqueue([subsystem, delta]
+            {
+                HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
+
+                subsystem->Update(delta);
+            }));
+    }
+
+    for (Subsystem* subsystem : subsystemsToProcess)
+    {
+        if (!subsystem->RequiresUpdateOnGameThread())
+        {
+            continue;
+        }
+
+        subsystem->PreUpdate(delta);
+        subsystem->Update(delta);
+    }
+
+    for (Task<void>& task : updateSubsystemTasks)
+    {
+        task.Await();
+    }
+
+    updateSubsystemTasks.Clear();
+#else
+    for (Subsystem* subsystem : m_subsystemsArray)
+    {
+        subsystem->PreUpdate(delta);
+        subsystem->Update(delta);
+    }
+#endif
+
+    Array<EntityManager*, SceneAllocator> entityManagers;
+    entityManagers.Reserve(scenesToProcess.Size());
+
+    for (uint32 index = 0; index < scenesToProcess.Size(); index++)
+    {
+        Scene* scene = scenesToProcess[index];
+        AssertDebug(scene != nullptr);
+
+        if (!scene)
+        {
+            continue;
+        }
+
+        Assert(!(scene->GetSceneFlags() & SceneFlags::DETACHED));
+
+        scene->Update(delta);
+
+        entityManagers.PushBack(scene->GetEntityManager().Get());
+    }
+
+    if (entityManagers.Any())
+    {
+        for (EntityManager* entityManager : entityManagers)
+        {
+            entityManager->BeginAsyncUpdate(delta);
+        }
+
+        // update non-async EntityManagers first so we can process them while async ones are processing in the background
+        for (EntityManager* entityManager : entityManagers)
+        {
+            if (!(entityManager->GetEntityManagerFlags() & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION))
+            {
+                // actually executes the ones that need to execute on the game thread
+                entityManager->EndAsyncUpdate();
+            }
+        }
+
+        for (EntityManager* entityManager : entityManagers)
+        {
+            if (entityManager->GetEntityManagerFlags() & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION)
+            {
+                entityManager->EndAsyncUpdate();
+            }
+        }
+    }
+
+    for (uint32 index = 0; index < viewsToProcess.Size(); index++)
+    {
+        HYP_NAMED_SCOPE("Per-view entity collection");
+
+        View* view = viewsToProcess[index];
+        Assert(view != nullptr);
+
+        view->UpdateViewport();
+        // View must be updated on the game thread as it mutates the scene's octree state
+        view->UpdateVisibility();
+
+#if HYP_PROCESS_VIEWS_ASYNC
+        view->BeginAsyncCollection(*m_viewCollectionBatch);
+#else
+        view->CollectSync();
+#endif
+    }
+
+#if HYP_PROCESS_VIEWS_ASYNC
+    TaskSystem::GetInstance().EnqueueBatch(m_viewCollectionBatch);
+    m_viewCollectionBatch->AwaitCompletion();
+
+    for (uint32 index = 0; index < viewsToProcess.Size(); index++)
+    {
+        viewsToProcess[index]->EndAsyncCollection();
+    }
+#endif
+
+#if HYP_PROCESS_VIEWS_ASYNC
+    AssertDebug(m_viewCollectionBatch != nullptr);
+    AssertDebug(m_viewCollectionBatch->IsCompleted());
+
+    m_viewCollectionBatch->ResetState();
+#endif
+
+    // write buffered render data
+    if (m_currentWorld)
+    {
+        WorldShaderData* bufferData = RenderApi::GetWorldBufferData();
+        bufferData->gameTime = m_currentWorld->GetGameState().gameTime;
+        bufferData->frameCounter = RenderApi::GetFrameCounter();
     }
 }
 
