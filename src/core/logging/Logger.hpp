@@ -217,6 +217,7 @@ public:
 
     static constexpr uint32 maxChannels = sizeof(ChannelMask) * CHAR_BIT;
 
+    HYP_METHOD()
     static const Handle<Logger>& GetInstance();
 
     Logger();
@@ -246,6 +247,9 @@ public:
 
     void Log(const LogChannel& channel, const LogMessage& message);
     void LogFatal(const LogChannel& channel, const LogMessage& message);
+
+    HYP_METHOD()
+    void LogScript(const LogChannel& channel, LogLevel level, const String& message);
 
     void (*fatalErrorHook)(const char*);
 

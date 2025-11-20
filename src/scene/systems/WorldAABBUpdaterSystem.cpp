@@ -32,14 +32,6 @@ void WorldAABBUpdaterSystem::OnEntityRemoved(Entity* entity)
     SystemBase::OnEntityRemoved(entity);
 }
 
-bool WorldAABBUpdaterSystem::NeedsUpdateThisFrame() const
-{
-    /*const auto* es = GetEntityManager().TryGetEntitySet<BoundingBoxComponent, TransformComponent, TagComponent<EntityTag::UPDATE_AABB>>();
-    return es && es->GetElements().Any();*/
-
-    return true;
-}
-
 void WorldAABBUpdaterSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     for (Scene* scene : scenes)

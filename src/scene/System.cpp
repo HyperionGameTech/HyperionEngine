@@ -34,9 +34,4 @@ void SystemBase::InitComponentInfos_Internal()
     }
 }
 
-bool SystemBase::NeedsUpdateThisFrame() const
-{
-    return true;
-}
-
 } // namespace hyperion

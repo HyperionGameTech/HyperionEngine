@@ -30,6 +30,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineStats.hpp>
 
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
@@ -39,6 +40,8 @@
 #include <ScriptSystem.generated.inl>
 
 namespace hyperion {
+
+EngineStatTimer g_scriptUpdateTimer("Script/Update");
 
 constexpr bool g_enableScriptReloading = true;
 
@@ -253,13 +256,6 @@ void ScriptSystem::OnEntityRemoved(Entity* entity)
     EntityScripting::DeinitEntityScriptComponent(entity, scriptComponent);
 }
 
-bool ScriptSystem::NeedsUpdateThisFrame() const
-{
-    return SystemBase::NeedsUpdateThisFrame();
-    // const auto* es = GetEntityManager().TryGetEntitySet<ScriptComponent>();
-    // return es && es->GetElements().Any();
-}
-
 void ScriptSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     World* world = GetWorld();
@@ -272,8 +268,10 @@ void ScriptSystem::Process(float delta, Span<Handle<Scene>> scenes)
     // Only update scripts if we're in simulation mode
     if (world->GetGameState().mode != GameStateMode::SIMULATING)
     {
-        //return;
+        // return;
     }
+
+    ENGINE_STAT_SCOPE(&g_scriptUpdateTimer);
 
     for (Scene* scene : scenes)
     {
@@ -288,6 +286,8 @@ void ScriptSystem::Process(float delta, Span<Handle<Scene>> scenes)
             {
                 continue;
             }
+
+            HYP_LOG(Script, Debug, "ScriptSystem: Updating script for {} : {}", entity->Id(), scriptComponent.assetReference.GetAssetPath().ToString());
 
             InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", float(delta));
         }

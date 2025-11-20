@@ -53,13 +53,6 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
     }
 }
 
-bool PhysicsSystem::NeedsUpdateThisFrame() const
-{
-    return SystemBase::NeedsUpdateThisFrame();
-    // const auto* es = GetEntityManager().TryGetEntitySet<RigidBodyComponent, TransformComponent>();
-    // return es && es->GetElements().Any();
-}
-
 void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     for (Scene* scene : scenes)

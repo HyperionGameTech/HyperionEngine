@@ -24,6 +24,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineStats.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorState.hpp>
@@ -35,7 +36,7 @@ namespace hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(GameThread);
 
-static constexpr float gameThreadTargetTicksPerSecond = 120.0f;
+EngineStatTimer g_gameThreadUpdateTimer("GameThread/Update");
 
 GameThread::GameThread()
     : Thread(g_gameThread, ThreadPriorityValue::HIGHEST)
@@ -81,6 +82,8 @@ void GameThread::operator()()
 
     while (!m_stopRequested.Get(MemoryOrder::RELAXED))
     {
+        ENGINE_STAT_SCOPE(&g_gameThreadUpdateTimer);
+
 #if HYP_GAME_THREAD_LOCKED
         if (counter.Waiting())
         {

@@ -91,6 +91,8 @@ extern const GlobalConfig& CoreApi_GetGlobalConfig();
 extern FilePath CoreApi_GetExecutablePath();
 extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
+EngineStatTimer g_renderThreadUpdateTimer("Frame/RenderThreadUpdate");
+
 #pragma region RenderThread
 
 class RenderThread final : public Thread<Scheduler>
@@ -154,6 +156,8 @@ private:
 
         while (m_isRunning.Get(MemoryOrder::RELAXED))
         {
+            ENGINE_STAT_SCOPE(&g_renderThreadUpdateTimer);
+
 #ifdef HYP_LIBUI
             uiMainSteps();
 #endif
@@ -591,11 +595,7 @@ void EngineDriver::PreFrameUpdate(FrameBase* frame)
 
 void EngineDriver::GameThreadUpdate(float delta)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
-
     m_scriptingService->Update();
-
     g_streamingManager->Update(delta);
 
     const uint32 slot = RenderApi::GetRingIndex();
@@ -604,19 +604,19 @@ void EngineDriver::GameThreadUpdate(float delta)
 
     Array<View*, SceneAllocator> viewsToProcess;
     Array<Subsystem*, SceneAllocator> subsystemsToProcess;
-    
+
     TaskBatch worldUpdateTaskBatch;
     TaskBatch* pCurrBatch = &worldUpdateTaskBatch;
 
     for (uint32 i = 0; i < uint32(m_worlds.Size()); i++)
     {
         World* world = m_worlds[i];
-        
+
         world->CollectViews(viewsToProcess);
         world->CollectSubsystems(subsystemsToProcess);
-        
+
         world->BeginUpdate(*pCurrBatch, delta);
-        
+
         if (i != uint32(m_worlds.Size() - 1))
         {
             // get the tail to pass to the next world's BeginUpdate()
@@ -625,10 +625,10 @@ void EngineDriver::GameThreadUpdate(float delta)
                 pCurrBatch = pCurrBatch->nextBatch;
             }
         }
-        
+
         EnqueueWorldRender(world);
     }
-    
+
     // Update worlds and their systems asynchronously - execution defined by
     // component descriptors on systems.
     TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);

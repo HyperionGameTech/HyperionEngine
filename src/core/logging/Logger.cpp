@@ -725,6 +725,19 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
     HYP_UNREACHABLE();
 }
 
+void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& message)
+{
+    constexpr UTF8StringView NewlineChunk = UTF8StringView("\n");
+    
+    UTF8StringView sv[2] = { UTF8StringView(message), NewlineChunk };
+    
+    LogMessage lm;
+    lm.level = level;
+    lm.chunks = sv;
+
+    Log(channel, lm);
+}
+
 #pragma endregion Logger
 
 } // namespace logging

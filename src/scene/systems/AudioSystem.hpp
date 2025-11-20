@@ -20,8 +20,6 @@ public:
 
     virtual void OnEntityAdded(Entity* entity) override;
 
-    virtual bool NeedsUpdateThisFrame() const;
-
     virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
 
 private:

@@ -56,13 +56,6 @@ void LightmapSystem::OnEntityRemoved(Entity* entity)
     entity->GetEntityManager()->RemoveTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
 }
 
-bool LightmapSystem::NeedsUpdateThisFrame() const
-{
-    return SystemBase::NeedsUpdateThisFrame();
-    // const auto* es = GetEntityManager().TryGetEntitySet<MeshComponent, TagComponent<EntityTag::LIGHTMAP_ELEMENT>>();
-    // return es && es->GetElements().Any();
-}
-
 void LightmapSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     for (Scene* scene : scenes)

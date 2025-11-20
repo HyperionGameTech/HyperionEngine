@@ -106,6 +106,8 @@ static uint32 s_frameIndex[2] = { 0 };
 static std::counting_semaphore<RingBufferDepth> s_fullSemaphore { 0 };
 static std::counting_semaphore<RingBufferDepth> s_freeSemaphore { RingBufferDepth };
 
+EngineStatTimer g_renderCpuSyncTimer("Render/Sync");
+
 enum
 {
     PRODUCER,
@@ -1088,7 +1090,11 @@ void BeginFrame_RenderThread()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    s_fullSemaphore.acquire();
+    {
+        ENGINE_STAT_SCOPE(&g_renderCpuSyncTimer);
+
+        s_fullSemaphore.acquire();
+    }
 
     const uint32 slot = s_frameIndex[CONSUMER];
     FrameData& fd = s_frameData[slot];

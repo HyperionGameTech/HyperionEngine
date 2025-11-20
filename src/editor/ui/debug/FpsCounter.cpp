@@ -38,6 +38,11 @@ extern EngineStatCounter<uint32> g_statEnvProbes;
 extern EngineStatCounter<uint32> g_statEnvGrids;
 extern EngineStatCounter<uint32> g_statDebugDraws;
 
+extern EngineStatTimer g_gameThreadUpdateTimer;
+extern EngineStatTimer g_renderThreadUpdateTimer;
+extern EngineStatTimer g_renderCpuSyncTimer;
+extern EngineStatTimer g_scriptUpdateTimer;
+
 #pragma region FpsCounter
 
 const Array<Pair<int, Color>> FpsCounter::s_fpsColors = {
@@ -152,12 +157,16 @@ void FpsCounter::Update_Impl(float delta)
         const int avgFps = int(snapshot[StatIdFps].avg);
 
         m_fpsTextElement->SetText(HYP_FORMAT(
-            "{} fps, {} ms/frame (avg: {}, min: {}, max: {})",
+            "{} fps, {} ms/frame (avg: {}, min: {}, max: {})  GT: {}ms  RT: {}ms  RT(sync): {}ms  SCR: {}ms",
             avgFps,
             snapshot[StatIdMsPerFrame].value,
             snapshot[StatIdMsPerFrame].avg,
             snapshot[StatIdMsPerFrame].min,
-            snapshot[StatIdMsPerFrame].max));
+            snapshot[StatIdMsPerFrame].max,
+            g_gameThreadUpdateTimer.GetValue(),
+            g_renderThreadUpdateTimer.GetValue(),
+            g_renderCpuSyncTimer.GetValue(),
+            g_scriptUpdateTimer.GetValue()));
 
         m_fpsTextElement->SetTextColor(GetFpsColor(avgFps));
     }

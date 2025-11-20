@@ -49,6 +49,8 @@ public:
     HYP_DEF_STL_BEGIN_END(HashSet::Begin(), HashSet::End())
 };
 
+/*! \brief A system is attached to a World and batch processes entities with specific components each tick.
+ *  Systems are grouped into SystemExecutionGroups which define how and when they are executed (e.g., on the game thread, in parallel, etc.). */
 HYP_CLASS(Abstract)
 class HYP_API SystemBase : public ObjectBase
 {
@@ -77,15 +79,6 @@ public:
     {
         return true;
     }
-
-    /*! \brief Checks if the System needs to be updated this frame.
-     *  Allows Systems to skip processing if they have no entities to act on, allowing for better performance
-     *  and less tasks being spun up.
-     *  By default, will check if AllowUpdate() is true and if any of the components this System acts on
-     *  exist in the EntityManager.
-     * \return True if the System needs to be updated this frame, false otherwise.
-     */
-    virtual bool NeedsUpdateThisFrame() const;
 
     /*! \brief Returns true if this System requires the game thread to execute, false otherwise.
      *  \details Use this to ensure that the System can access game thread-only resources or perform operations
@@ -225,8 +218,7 @@ protected:
     }
 
     /*! \brief Set a callback to be called once after the System has processed.
-     *  The callback will be called on the EntityManager's owner thread and will not be parallelized, ensuring proper synchronization.
-     *  After the callback has been called, it will be reset.
+     *  The callback will be called on the game thread after the System has finished processing, so it is safe to add/remove components within the callback.
      *
      *  \param fn The callback to call after the System has processed. */
     template <class Func>
