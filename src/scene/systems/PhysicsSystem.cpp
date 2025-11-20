@@ -14,6 +14,13 @@
 
 namespace hyperion {
 
+bool PhysicsSystem::ShouldCreateForScene(Scene* scene) const
+{
+    static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::FOREGROUND;
+
+    return (scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED | ExpectedFlags)) == ExpectedFlags;
+}
+
 void PhysicsSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);

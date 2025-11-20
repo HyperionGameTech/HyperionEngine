@@ -2,8 +2,10 @@
 
 #include <HyperionPch.hpp>
 
-#include <scene/systems/AnimationSystem.hpp>
+#include <scene/Scene.hpp>
 #include <scene/EntityManager.hpp>
+
+#include <scene/systems/AnimationSystem.hpp>
 
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Skeleton.hpp>
@@ -16,6 +18,11 @@
 #include <AnimationSystem.generated.inl>
 
 namespace hyperion {
+
+bool AnimationSystem::ShouldCreateForScene(Scene* scene) const
+{
+    return !(scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED));
+}
 
 void AnimationSystem::OnEntityAdded(Entity* entity)
 {

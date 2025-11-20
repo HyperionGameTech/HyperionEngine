@@ -25,6 +25,8 @@ public:
 
     virtual ~PhysicsSystem() override = default;
 
+    virtual bool ShouldCreateForScene(Scene* scene) const override;
+
     virtual void OnEntityAdded(Entity* entity) override;
     virtual void OnEntityRemoved(Entity* entity) override;
 

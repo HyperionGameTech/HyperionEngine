@@ -16,6 +16,13 @@
 
 namespace hyperion {
 
+bool AudioSystem::ShouldCreateForScene(Scene* scene) const
+{
+    static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::FOREGROUND;
+
+    return (scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED | ExpectedFlags)) == ExpectedFlags;
+}
+
 void AudioSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);

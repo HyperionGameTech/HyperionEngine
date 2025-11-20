@@ -15,6 +15,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Entity);
 
+// @TODO move to Entity.cpp ?
+
 void WorldAABBUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);

@@ -21,6 +21,8 @@ public:
 
     virtual ~AudioSystem() override = default;
 
+    virtual bool ShouldCreateForScene(Scene* scene) const override;
+
     virtual void OnEntityAdded(Entity* entity) override;
 
     virtual bool NeedsUpdateThisFrame() const;

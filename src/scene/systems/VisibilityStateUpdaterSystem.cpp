@@ -17,7 +17,9 @@ namespace hyperion {
 
 bool VisibilityStateUpdaterSystem::ShouldCreateForScene(Scene* scene) const
 {
-    return !(scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED));
+    static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::HAS_OCTREE;
+
+    return (scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED | ExpectedFlags)) == ExpectedFlags;
 }
 
 void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
