@@ -50,6 +50,12 @@ void AnimationSystem::OnEntityRemoved(Entity* entity)
     }
 }
 
+bool AnimationSystem::NeedsUpdateThisFrame() const
+{
+    const auto* es = GetEntityManager().TryGetEntitySet<AnimationComponent, MeshComponent>();
+    return es && es->GetElements().Any();
+}
+
 void AnimationSystem::Process(float delta)
 {
     HYP_SCOPE;

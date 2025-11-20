@@ -23,6 +23,8 @@ public:
 
     virtual void OnEntityAdded(Entity* entity) override;
 
+    virtual bool NeedsUpdateThisFrame() const;
+
     virtual void Process(float delta) override;
 
 private:

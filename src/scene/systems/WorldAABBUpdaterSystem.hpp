@@ -26,6 +26,8 @@ public:
     virtual void OnEntityAdded(Entity* entity) override;
     virtual void OnEntityRemoved(Entity* entity) override;
 
+    virtual bool NeedsUpdateThisFrame() const override;
+
     virtual void Process(float delta) override;
 
 private:

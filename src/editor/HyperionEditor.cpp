@@ -20,7 +20,6 @@
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
-#include <scene/components/SkyComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/AudioComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
@@ -120,7 +119,7 @@ void HyperionEditor::Init()
     Handle<Scene> scene = CreateObject<Scene>(NAME("MyScene"));
     m_editorSubsystem->GetCurrentProject()->GetWorld()->AddScene(scene);
 
-    // m_editorSubsystem->GetCurrentProject()->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
+    m_editorSubsystem->GetCurrentProject()->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
 
     // add sun
     Handle<Node> sunNode = scene->GetRoot()->AddChild();

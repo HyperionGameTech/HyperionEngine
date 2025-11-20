@@ -243,6 +243,12 @@ void ScriptSystem::OnEntityRemoved(Entity* entity)
     EntityScripting::DeinitEntityScriptComponent(entity, scriptComponent);
 }
 
+bool ScriptSystem::NeedsUpdateThisFrame() const
+{
+    const auto* es = GetEntityManager().TryGetEntitySet<ScriptComponent>();
+    return es && es->GetElements().Any();
+}
+
 void ScriptSystem::Process(float delta)
 {
     World* world = GetWorld();

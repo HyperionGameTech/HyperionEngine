@@ -141,7 +141,7 @@ Scene::Scene(Name name, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
       m_ownerThreadId(ownerThreadId),
       m_world(nullptr),
       m_isAudioListener(false),
-      m_entityManager(CreateObject<EntityManager>(ownerThreadId, this)),
+      m_entityManager(CreateObject<EntityManager>(ownerThreadId, this, (flags & SceneFlags::PARALLEL_SYSTEM_EXECUTION) ? EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION : EntityManagerFlags::NONE)),
       m_octree(m_entityManager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
       m_previousDelta(0.01667f)
 {
@@ -205,7 +205,6 @@ void Scene::Init()
     AddSystemIfApplicable<VisibilityStateUpdaterSystem>();
     AddSystemIfApplicable<LightmapSystem>();
     AddSystemIfApplicable<AnimationSystem>();
-    AddSystemIfApplicable<SkySystem>();
     AddSystemIfApplicable<AudioSystem>();
     AddSystemIfApplicable<PhysicsSystem>();
     AddSystemIfApplicable<ScriptSystem>();

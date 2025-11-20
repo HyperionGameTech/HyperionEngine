@@ -56,6 +56,12 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
     }
 }
 
+bool PhysicsSystem::NeedsUpdateThisFrame() const
+{
+    const auto* es = GetEntityManager().TryGetEntitySet<RigidBodyComponent, TransformComponent>();
+    return es && es->GetElements().Any();
+}
+
 void PhysicsSystem::Process(float delta)
 {
     for (auto [entity, rigidBodyComponent, transformComponent] : GetEntityManager().GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))

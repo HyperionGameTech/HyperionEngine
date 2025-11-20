@@ -888,8 +888,8 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData to perform occlusion culling");
 
-    static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
-    const bool performOcclusionCulling = isIndirectRenderingEnabled && renderSetup.passData->cullData.depthPyramidImageView != nullptr;
+    static const bool s_isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
+    const bool performOcclusionCulling = s_isIndirectRenderingEnabled && renderSetup.passData->cullData.depthPyramidImageView != nullptr;
 
     if (performOcclusionCulling)
     {

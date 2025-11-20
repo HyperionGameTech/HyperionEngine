@@ -1367,13 +1367,13 @@ void EntityManager::BeginAsyncUpdate(float delta)
         if (!anySystemsToProcess)
         {
             // skip it; nothing to do this frame
-            continue;
+            //continue;
         }
 
         // Add tasks to batches before kickoff
         systemExecutionGroup.StartProcessing(delta);
 
-        if (systemExecutionGroup.RequiresGameThread())
+        if (systemExecutionGroup.RequiresGameThread() || !(m_flags & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION))
         {
             if (m_rootSynchronousExecutionGroup != nullptr)
             {
@@ -1422,7 +1422,7 @@ void EntityManager::EndAsyncUpdate()
 
     for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
     {
-        if (!systemExecutionGroup.AllowUpdate() || systemExecutionGroup.RequiresGameThread())
+        if (!systemExecutionGroup.AllowUpdate() || systemExecutionGroup.RequiresGameThread() || !(m_flags & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION))
         {
             continue;
         }
@@ -1528,7 +1528,7 @@ void SystemExecutionGroup::StartProcessing(float delta)
         if (!system->NeedsUpdateThisFrame())
         {
             // skip this system; it doesn't need updating this frame
-            continue;
+            //continue;
         }
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)

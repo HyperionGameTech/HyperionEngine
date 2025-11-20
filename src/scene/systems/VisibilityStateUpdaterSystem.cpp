@@ -96,6 +96,20 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
     visibilityStateComponent.visibilityState = nullptr;
 }
 
+bool VisibilityStateUpdaterSystem::NeedsUpdateThisFrame() const
+{
+    /*if (!(GetEntityManager().GetScene()->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+    {
+        return false;
+    }
+
+    const auto* es = GetEntityManager().TryGetEntitySet<VisibilityStateComponent, BoundingBoxComponent, TagComponent<EntityTag::UPDATE_VISIBILITY_STATE>>();
+
+    return es && es->GetElements().Any();*/
+
+    return true;
+}
+
 void VisibilityStateUpdaterSystem::Process(float delta)
 {
     if (!(GetEntityManager().GetScene()->GetSceneFlags() & SceneFlags::HAS_OCTREE))

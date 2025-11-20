@@ -30,6 +30,12 @@ void AudioSystem::OnEntityAdded(Entity* entity)
     }
 }
 
+bool AudioSystem::NeedsUpdateThisFrame() const
+{
+    const auto* es = GetEntityManager().TryGetEntitySet<AudioComponent, TransformComponent>();
+    return es && es->GetElements().Any();
+}
+
 void AudioSystem::Process(float delta)
 {
     if (!AudioManager::GetInstance().IsInitialized())

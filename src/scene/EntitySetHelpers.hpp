@@ -8,7 +8,10 @@
 
 namespace hyperion {
 
-enum class EntitySetId : uint64;
+using EntitySetId = uint64;
+
+// stub type used to skip for entity set id creation
+struct VoidComponentType;
 
 template <class... Components>
 constexpr EntitySetId GetEntitySetId()
@@ -25,6 +28,11 @@ constexpr EntitySetId GetEntitySetId()
     HashCode hashCode;
     for (const TypeId& typeId : componentTypeIds)
     {
+        if (typeId == TypeId::ForType<VoidComponentType>())
+        {
+            continue;
+        }
+
         hashCode.Add(typeId);
     }
 

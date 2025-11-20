@@ -31,7 +31,7 @@ public:
     template <class... ComponentDescriptors>
     SystemComponentDescriptors(ComponentDescriptors&&... componentDescriptors)
         : HashSet({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
-          entitySetId(GetEntitySetId<typename ComponentDescriptors::Type...>())
+          entitySetId(GetEntitySetId<std::conditional_t<bool(ComponentDescriptors::rwFlags & ComponentRWFlags::READ_WRITE), typename ComponentDescriptors::Type, VoidComponentType>...>())
     {
         Assert(Size() == sizeof...(ComponentDescriptors), "Duplicate component descriptors found");
     }
@@ -136,7 +136,7 @@ public:
             const ComponentInfo& componentInfo = GetComponentInfo(componentTypeId);
 
             // skip observe-only components
-            if (!(componentInfo.rwFlags & ComponentRWFlags::READ) && !(componentInfo.rwFlags & ComponentRWFlags::WRITE))
+            if (!(componentInfo.rwFlags & ComponentRWFlags::READ_WRITE))
             {
                 continue;
             }

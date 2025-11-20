@@ -107,7 +107,7 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
     }
     else
     {
-        skyComponent.subsystem = world->AddSubsystem<DynamicSkySubsystem>();
+        //skyComponent.subsystem = world->AddSubsystem<DynamicSkySubsystem>();
 
         // if (meshComponent)
         // {

@@ -36,12 +36,12 @@ enum class ComponentRWFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ComponentRWFlags)
 
-template <class T, ComponentRWFlags RWFlags = ComponentRWFlags::READ_WRITE, bool ReceivesEvents = true>
+template <class T, EnumFlags<ComponentRWFlags> RWFlags = ComponentRWFlags::READ_WRITE, bool ReceivesEvents = true>
 struct ComponentDescriptor
 {
     using Type = T;
 
-    constexpr static ComponentRWFlags rwFlags = RWFlags;
+    constexpr static EnumFlags<ComponentRWFlags> rwFlags = RWFlags;
     constexpr static bool receivesEvents = ReceivesEvents;
 };
 

@@ -401,6 +401,8 @@ DelegateHandler World::ProcessViewAsync(View* view, Proc<void()>&& onComplete)
     return m_viewCollectionBatch->OnComplete.Bind(std::move(onComplete));
 }
 
+HYP_DISABLE_OPTIMIZATION;
+
 void World::Update(float delta)
 {
     HYP_SCOPE;
@@ -569,6 +571,7 @@ void World::Update(float delta)
     bufferData->gameTime = m_gameState.gameTime;
     bufferData->frameCounter = RenderApi::GetFrameCounter();
 }
+HYP_ENABLE_OPTIMIZATION;
 
 const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem)
 {

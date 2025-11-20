@@ -55,20 +55,7 @@ DynamicSkySubsystem::~DynamicSkySubsystem()
 
 void DynamicSkySubsystem::Init()
 {
-    m_cubemap = CreateObject<Texture>(TextureDesc {
-        TT_CUBEMAP,
-        TF_R11G11B10F,
-        Vec3u { m_dimensions.x, m_dimensions.y, 1 },
-        TFM_LINEAR_MIPMAP,
-        TFM_LINEAR });
-
-    m_cubemap->SetName(NAME("Skydome_Cubemap"));
-    m_cubemap->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
-
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_cubemap);
-    InitObject(m_cubemap);
-
-    { // sky rendering stuff
+    { // atmospheric scattering capture setup
         m_renderScene = CreateObject<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::HAS_OCTREE);
         m_renderScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
         m_renderScene->SetOwnerThreadId(g_gameThread);
@@ -78,25 +65,20 @@ void DynamicSkySubsystem::Init()
 
         m_camera = m_renderScene->GetEntityManager()->AddEntity<Camera>(
             90.0f,
-            -int(m_dimensions.x), int(m_dimensions.y),
+            int(m_dimensions.x), int(m_dimensions.y),
             0.1f, 10000.0f);
 
         m_renderScene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(m_camera);
 
         m_camera->SetName(NAME("DynamicSkyCaptureCamera"));
         m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f::UnitZ(), Vec3f::Zero(), Vec3f::UnitY()));
-
         InitObject(m_camera);
-
-        cameraNode->AddChild(m_camera);
-        cameraNode->SetName(m_camera->GetName());
+        m_renderScene->GetRoot()->AddChild(m_camera);
 
         m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
         m_envProbe->SetEnvProbeFlags(m_envProbe->GetEnvProbeFlags() & ~EPF_PARALLAX_CORRECTED); // sky env probes are not parallax corrected, obviously
-
-        Handle<Node> envProbeNode = m_renderScene->GetRoot()->AddChild();
-        envProbeNode->AddChild(m_envProbe);
         InitObject(m_envProbe);
+        m_renderScene->GetRoot()->AddChild(m_envProbe);
 
         auto domeNodeAsset = g_assetManager->Load<Node>("models/inv_sphere.obj");
 
@@ -110,51 +92,47 @@ void DynamicSkySubsystem::Init()
         }
     }
 
-    {
-        m_visScene = CreateObject<Scene>(NAME("SkyVisScene"), SceneFlags::FOREGROUND);
-        m_visScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
+    { // skybox entity setup (renders the captured texture to a box)
+        m_skyboxEntity = CreateObject<Entity>();
+        m_skyboxEntity->SetName(NAME("Skybox"));
+        m_skyboxEntity->Scale(150.0f);
+        InitObject(m_skyboxEntity);
 
-        m_skyboxEntity = m_visScene->GetEntityManager()->AddEntity();
-        m_visScene->GetEntityManager()->AddComponent<BoundingBoxComponent>(m_skyboxEntity, BoundingBoxComponent { BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)) });
-        m_visScene->GetEntityManager()->GetComponent<TransformComponent>(m_skyboxEntity) = TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) };
-        m_visScene->GetEntityManager()->GetComponent<VisibilityStateComponent>(m_skyboxEntity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
-
-        Handle<Mesh> mesh;
-        Handle<Material> material;
-
-        if (!mesh.IsValid())
+        if (VisibilityStateComponent* vis = m_skyboxEntity->TryGetComponent<VisibilityStateComponent>())
         {
-            mesh = MeshBuilder::Cube();
-            mesh->SetFlags(MF_VIEW_INDEPENDENT);
-            mesh->SetName(NAME("Skybox_Mesh"));
-
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes/Skydome", mesh->GetAsset());
-
-            InitObject(mesh);
+            vis->flags |= VisibilityStateFlags::ALWAYS_VISIBLE;
+        }
+        else
+        {
+            m_skyboxEntity->AddComponent<VisibilityStateComponent>(VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE });
         }
 
-        if (!material)
-        {
-            MaterialAttributes materialAttributes {};
-            materialAttributes.shaderDefinition = ShaderDefinition {
-                NAME("Skybox"),
-                ShaderProperties(mesh->GetVertexAttributes())
-            };
+        Handle<Mesh> mesh = MeshBuilder::Cube();
+        mesh->SetFlags(MF_VIEW_INDEPENDENT);
+        mesh->SetName(NAME("SkyboxMesh"));
+        InitObject(mesh);
 
-            materialAttributes.bucket = RB_SKYBOX;
-            // flip cull faces.
-            materialAttributes.cullFaces = FCM_FRONT;
-            // enable depth test but not write. we want skybox to be behind everything else, but rendered last to avoid overdraw.
-            materialAttributes.flags = MAF_DEPTH_TEST;
+        MaterialAttributes materialAttributes {};
+        materialAttributes.shaderDefinition = ShaderDefinition {
+            NAME("Skybox"),
+            ShaderProperties(mesh->GetVertexAttributes())
+        };
 
-            material = CreateObject<Material>(NAME("SkyboxMaterial"), materialAttributes);
-            material->SetTexture(MaterialTextureKey::ALBEDO_MAP, m_cubemap);
+        materialAttributes.bucket = RB_SKYBOX;
+        // flip cull faces.
+        materialAttributes.cullFaces = FCM_FRONT;
+        // enable depth test but not write. we want skybox to be behind everything else, but rendered last to avoid overdraw.
+        materialAttributes.flags = MAF_DEPTH_TEST;
 
-            InitObject(material);
-        }
+        Handle<Material> material = CreateObject<Material>(NAME("SkyboxMaterial"), materialAttributes);
+        material->SetTexture(MaterialTextureKey::ALBEDO_MAP, m_envProbe->GetPrefilteredEnvMap());
+        InitObject(material);
 
         // add MeshComponent to skybox entity
-        m_visScene->GetEntityManager()->AddComponent<MeshComponent>(m_skyboxEntity, MeshComponent { mesh, material });
+        m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
+
+        m_visScene = CreateObject<Scene>(NAME("SkyVisScene"), SceneFlags::NONE);
+        m_visScene->GetRoot()->AddChild(m_skyboxEntity);
     }
 }
 
@@ -174,6 +152,27 @@ void DynamicSkySubsystem::OnRemovedFromWorld()
 {
     GetWorld()->RemoveScene(m_renderScene);
     GetWorld()->RemoveScene(m_visScene);
+}
+
+void DynamicSkySubsystem::OnSceneAttached(const Handle<Scene>& scene)
+{
+    if (scene == m_renderScene)
+    {
+        return;
+    }
+
+    Assert(m_skyboxEntity);
+    //scene->GetRoot()->AddChild(m_skyboxEntity);
+}
+
+void DynamicSkySubsystem::OnSceneDetached(Scene* scene)
+{
+    if (scene == m_renderScene)
+    {
+        return;
+    }
+
+    //scene->GetRoot()->RemoveChild(m_skyboxEntity);
 }
 
 void DynamicSkySubsystem::Update(float delta)

@@ -32,6 +32,14 @@ void WorldAABBUpdaterSystem::OnEntityRemoved(Entity* entity)
     SystemBase::OnEntityRemoved(entity);
 }
 
+bool WorldAABBUpdaterSystem::NeedsUpdateThisFrame() const
+{
+    /*const auto* es = GetEntityManager().TryGetEntitySet<BoundingBoxComponent, TransformComponent, TagComponent<EntityTag::UPDATE_AABB>>();
+    return es && es->GetElements().Any();*/
+
+    return true;
+}
+
 void WorldAABBUpdaterSystem::Process(float delta)
 {
     HashMap<WeakHandle<Entity>, bool> updatedEntities;

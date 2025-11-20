@@ -34,6 +34,8 @@ public:
 
     virtual void OnAddedToWorld() override;
     virtual void OnRemovedFromWorld() override;
+    virtual void OnSceneAttached(const Handle<Scene>& scene) override;
+    virtual void OnSceneDetached(Scene* scene) override;
     virtual void Update(float delta) override;
 
 private:

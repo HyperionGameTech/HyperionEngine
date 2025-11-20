@@ -877,6 +877,23 @@ public:
         return static_cast<EntitySet<Components...>&>(*entitySetsIt->second);
     }
 
+    template <class... Components>
+    EntitySet<Components...>* TryGetEntitySet()
+    {
+        Mutex::Guard guard(m_entitySetsMutex);
+
+        const EntitySetId entitySetId = GetEntitySetId<Components...>();
+
+        auto entitySetsIt = m_entitySets.Find(entitySetId);
+
+        if (entitySetsIt == m_entitySets.End())
+        {
+            return nullptr;
+        }
+
+        return static_cast<EntitySet<Components...>*>(entitySetsIt->second.Get());
+    }
+
     EntitySetBase* TryGetEntitySet(EntitySetId entitySetId)
     {
         Mutex::Guard guard(m_entitySetsMutex);

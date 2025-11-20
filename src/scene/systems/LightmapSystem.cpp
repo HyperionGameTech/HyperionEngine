@@ -54,14 +54,14 @@ void LightmapSystem::OnEntityRemoved(Entity* entity)
     GetEntityManager().RemoveTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
 }
 
+bool LightmapSystem::NeedsUpdateThisFrame() const
+{
+    const auto* es = GetEntityManager().TryGetEntitySet<MeshComponent, TagComponent<EntityTag::LIGHTMAP_ELEMENT>>();
+    return es && es->GetElements().Any();
+}
+
 void LightmapSystem::Process(float delta)
 {
-    auto lightmapVolumesView = GetEntityManager().GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos());
-    if (lightmapVolumesView.GetElements().Empty())
-    {
-        return; // no point in processing if there are no volumes in this Scene
-    }
-
     for (auto [entity, meshComponent, _] : GetEntityManager().GetEntitySet<MeshComponent, TagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
     {
         if (meshComponent.lightmapVolumeUuid == Uuid::Invalid())
