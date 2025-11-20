@@ -236,7 +236,7 @@ public:
     void CollectViews(Array<View*, SceneAllocator>& outViews);
     void CollectSubsystems(Array<Subsystem*, SceneAllocator>& outSubsystems);
 
-    void BeginUpdate(float delta);
+    void BeginUpdate(TaskBatch& inBatch, float delta);
     void EndUpdate();
 
     Delegate<void, World*, GameStateMode, GameStateMode> OnGameStateChange;

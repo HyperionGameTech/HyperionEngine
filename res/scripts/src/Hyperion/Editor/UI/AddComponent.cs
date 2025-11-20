@@ -4,9 +4,9 @@ namespace Hyperion.Editor.UI;
 
 public class AddComponent : UIEventHandler
 {
-    public override void Init(Entity entity)
+    public override void OnAdded(Entity entity)
     {
-        base.Init(entity);
+        base.OnAdded(entity);
     }
 
     [UIEvent(AllowNested = true)]

@@ -621,10 +621,10 @@ public:
      *  If the Material has already been initialized, the Textures are initialized.
      *  Otherwise, they will be initialized when the Material is initialized.
      *  \param textures The textures to set on this Material. */
-    HYP_METHOD(Property = "Textures")
+    HYP_METHOD(Property = "Textures", NoScriptBindings)
     void SetTextures(const MaterialTextures& textures);
 
-    HYP_METHOD(Property = "Textures")
+    HYP_METHOD(Property = "Textures", NoScriptBindings)
     HYP_FORCE_INLINE const MaterialTextures& GetTextures() const
     {
         return m_textures;

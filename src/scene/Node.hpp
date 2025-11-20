@@ -946,13 +946,14 @@ protected:
     void GetEditorDelegates(Function&& func);
 #endif
 
-    HYP_METHOD(Property = "Children")
+    HYP_METHOD(Property = "Children", NoScriptBindings, Serialize)
     void SetChildren(const NodeList& children); // use setter so we can manage parent pointers
-
-    EnumFlags<NodeFlags> m_nodeFlags = NodeFlags::NONE;
 
     HYP_FIELD(Property = "Name", Editor = true, Label = "Name", Description = "The name of the node.")
     Name m_name;
+
+    HYP_FIELD(Property = "NodeFlags", Serialize)
+    EnumFlags<NodeFlags> m_nodeFlags;
 
     HYP_FIELD(Property = "Parent", Transient)
     Node* m_parentNode;

@@ -15,7 +15,7 @@ namespace hyperion {
 
 #define HYP_SYSTEMS_PARALLEL_EXECUTION
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
-#define HYP_SYSTEM_LOG_PERFORMANCE
+//#define HYP_SYSTEM_LOG_PERFORMANCE
 
 SystemExecutionGroup::SystemExecutionGroup(bool requiresGameThread, bool allowUpdate)
     : m_requiresGameThread(requiresGameThread),
@@ -115,12 +115,6 @@ void SystemExecutionGroup::StartProcessing(float delta, Span<Handle<Scene>> scen
     for (auto& it : m_systems)
     {
         SystemBase* system = it.second.Get();
-
-        if (!system->NeedsUpdateThisFrame())
-        {
-            // skip this system; it doesn't need updating this frame
-            // continue;
-        }
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)
         HYP_LOG(Entity, Debug, "\t\tSystem: {}", system->GetName());

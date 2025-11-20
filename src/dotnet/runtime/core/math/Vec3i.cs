@@ -3,10 +3,16 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Vec3i")]
+    [ClassBinding(Name = "Vec3i")]
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 16)]
     public struct Vec3i
     {
+        public static readonly Vec3i Zero = new Vec3i(0, 0, 0);
+        public static readonly Vec3i One = new Vec3i(1, 1, 1);
+        public static readonly Vec3i UnitX = new Vec3i(1, 0, 0);
+        public static readonly Vec3i UnitY = new Vec3i(0, 1, 0);
+        public static readonly Vec3i UnitZ = new Vec3i(0, 0, 1);
+
         [FieldOffset(0)]
         public int x;
         [FieldOffset(4)]
@@ -120,32 +126,32 @@ namespace Hyperion
             }
         }
 
-        public static Vec3i operator+(Vec3i left, Vec3i right)
+        public static Vec3i operator +(Vec3i left, Vec3i right)
         {
             return new Vec3i(left.x + right.x, left.y + right.y, left.z + right.z);
         }
 
-        public static Vec3i operator-(Vec3i left, Vec3i right)
+        public static Vec3i operator -(Vec3i left, Vec3i right)
         {
             return new Vec3i(left.x - right.x, left.y - right.y, left.z - right.z);
         }
 
-        public static Vec3i operator*(Vec3i left, Vec3i right)
+        public static Vec3i operator *(Vec3i left, Vec3i right)
         {
             return new Vec3i(left.x * right.x, left.y * right.y, left.z * right.z);
         }
 
-        public static Vec3i operator*(Vec3i left, int right)
+        public static Vec3i operator *(Vec3i left, int right)
         {
             return new Vec3i(left.x * right, left.y * right, left.z * right);
         }
 
-        public static Vec3i operator/(Vec3i left, Vec3i right)
+        public static Vec3i operator /(Vec3i left, Vec3i right)
         {
             return new Vec3i(left.x / right.x, left.y / right.y, left.z / right.z);
         }
 
-        public static Vec3i operator/(Vec3i left, int right)
+        public static Vec3i operator /(Vec3i left, int right)
         {
             return new Vec3i(left.x / right, left.y / right, left.z / right);
         }

@@ -67,14 +67,14 @@
         </Panel>
 
         <Panel name="Main_Content" size="100%" tag:side="center">
+                    <Script assembly="Hyperion.Editor.UI.dll" class="ContentBrowser" />
+                    
             <Image name="Scene_Image" size="100%" />
         </Panel>
 
         <Panel name="Bottom_Panel" size="100% 200" padding="5 5" tag:side="bottom">
             <TabView name="Bottom_Panel_TabView" size="100%">
                 <Tab name="Assets_Tab" text="Assets">
-                    <Script assembly="Hyperion.Editor.UI.dll" class="ContentBrowser" />
-                    
                     <Grid size="100% fill" padding="0 2" cols="12">
                         <GridRow size="100%">
                             <GridColumn size="100%" colsize="2" padding="1">

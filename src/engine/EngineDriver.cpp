@@ -604,19 +604,35 @@ void EngineDriver::GameThreadUpdate(float delta)
 
     Array<View*, SceneAllocator> viewsToProcess;
     Array<Subsystem*, SceneAllocator> subsystemsToProcess;
+    
+    TaskBatch worldUpdateTaskBatch;
+    TaskBatch* pCurrBatch = &worldUpdateTaskBatch;
 
-    for (World* world : m_worlds)
+    for (uint32 i = 0; i < uint32(m_worlds.Size()); i++)
     {
+        World* world = m_worlds[i];
+        
         world->CollectViews(viewsToProcess);
         world->CollectSubsystems(subsystemsToProcess);
-
+        
+        world->BeginUpdate(*pCurrBatch, delta);
+        
+        if (i != uint32(m_worlds.Size() - 1))
+        {
+            // get the tail to pass to the next world's BeginUpdate()
+            while (pCurrBatch->nextBatch != nullptr)
+            {
+                pCurrBatch = pCurrBatch->nextBatch;
+            }
+        }
+        
         EnqueueWorldRender(world);
     }
-
-    for (World* world : m_worlds)
-    {
-        world->BeginUpdate(delta);
-    }
+    
+    // Update worlds and their systems asynchronously - execution defined by
+    // component descriptors on systems.
+    TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);
+    worldUpdateTaskBatch.AwaitCompletion();
 
     for (World* world : m_worlds)
     {

@@ -3,10 +3,16 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Vec3f")]
+    [ClassBinding(Name = "Vec3f")]
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 16)]
     public struct Vec3f
     {
+        public static readonly Vec3f Zero = new Vec3f(0.0f, 0.0f, 0.0f);
+        public static readonly Vec3f One = new Vec3f(1.0f, 1.0f, 1.0f);
+        public static readonly Vec3f UnitX = new Vec3f(1.0f, 0.0f, 0.0f);
+        public static readonly Vec3f UnitY = new Vec3f(0.0f, 1.0f, 0.0f);
+        public static readonly Vec3f UnitZ = new Vec3f(0.0f, 0.0f, 1.0f);
+
         [FieldOffset(0)]
         public float x;
         [FieldOffset(4)]
@@ -183,32 +189,32 @@ namespace Hyperion
             return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y) + (z - other.z) * (z - other.z);
         }
 
-        public static Vec3f operator+(Vec3f left, Vec3f right)
+        public static Vec3f operator +(Vec3f left, Vec3f right)
         {
             return new Vec3f(left.x + right.x, left.y + right.y, left.z + right.z);
         }
 
-        public static Vec3f operator-(Vec3f left, Vec3f right)
+        public static Vec3f operator -(Vec3f left, Vec3f right)
         {
             return new Vec3f(left.x - right.x, left.y - right.y, left.z - right.z);
         }
 
-        public static Vec3f operator*(Vec3f left, Vec3f right)
+        public static Vec3f operator *(Vec3f left, Vec3f right)
         {
             return new Vec3f(left.x * right.x, left.y * right.y, left.z * right.z);
         }
 
-        public static Vec3f operator*(Vec3f left, float right)
+        public static Vec3f operator *(Vec3f left, float right)
         {
             return new Vec3f(left.x * right, left.y * right, left.z * right);
         }
 
-        public static Vec3f operator/(Vec3f left, Vec3f right)
+        public static Vec3f operator /(Vec3f left, Vec3f right)
         {
             return new Vec3f(left.x / right.x, left.y / right.y, left.z / right.z);
         }
 
-        public static Vec3f operator/(Vec3f left, float right)
+        public static Vec3f operator /(Vec3f left, float right)
         {
             return new Vec3f(left.x / right, left.y / right, left.z / right);
         }

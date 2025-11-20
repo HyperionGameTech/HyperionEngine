@@ -44,16 +44,15 @@ enum class SceneFlags : uint32
 {
     NONE = 0x0,
 
-    FOREGROUND = 0x1,                   //!< Scene is a foreground scene (i.e., it is rendered normally).
-    DETACHED = 0x2,                     //!< Scene is not attached to any World.
-    UI = 0x8,                           //!< Scene is created for UI (see UIStage).
-    EDITOR = 0x10,                      //!< Scene is an editor-owned scene.
+    FOREGROUND = 0x1, //!< Scene is a foreground scene (i.e., it is rendered normally).
+    DETACHED = 0x2,   //!< Scene is not attached to any World.
+    UI = 0x8,         //!< Scene is created for UI (see UIStage).
+    EDITOR = 0x10,    //!< Scene is an editor-owned scene.
 
-    STREAMED = 0x20,                    //!< Allow streaming the scene in and out of the World dynamically, based on StreamingVolume proximity.
-    HAS_OCTREE = 0x40,                  //!< Scene uses an octree for spatial partitioning.
-    PARALLEL_SYSTEM_EXECUTION = 0x80,   //!< Enable asynchronous System processing for the Scene's EntityManager. Useful when there are lots of Systems but may add overhead if there are few
+    STREAMED = 0x20,   //!< Allow streaming the scene in and out of the World dynamically, based on StreamingVolume proximity.
+    HAS_OCTREE = 0x40, //!< Scene uses an octree for spatial partitioning.
 
-    DEFAULT = FOREGROUND | STREAMED | HAS_OCTREE | PARALLEL_SYSTEM_EXECUTION
+    DEFAULT = FOREGROUND | STREAMED | HAS_OCTREE
 };
 
 HYP_MAKE_ENUM_FLAGS(SceneFlags);

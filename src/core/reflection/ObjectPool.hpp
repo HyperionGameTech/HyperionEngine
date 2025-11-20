@@ -37,6 +37,11 @@ class Class;
 
 HYP_API extern void ReleaseObject(ObjectHeader* header);
 
+#ifdef HYP_DOTNET
+HYP_API extern void Object_IncScriptObjectRef(class ObjectBase* ptr);
+HYP_API extern void Object_DecScriptObjectRef(class ObjectBase* ptr);
+#endif
+
 class ObjectContainerBase
 {
     friend class ObjectPool;

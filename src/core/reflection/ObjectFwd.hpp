@@ -70,9 +70,6 @@ struct IsObject<T, std::enable_if_t<ImplementationExistsV<typename T::ClassInfo:
 template <class T>
 constexpr bool IsObjectV = IsObject<T>::value;
 
-template <class T>
-using IsObject_t = typename IsObject<T>::Type;
-
 enum class ObjectInitializerFlags : uint32
 {
     NONE = 0x0,
@@ -176,11 +173,6 @@ private:
     void* m_ptr;
     const Class* m_class;
 };
-
-#ifdef HYP_DOTNET
-HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr);
-HYP_API void Object_DecScriptObjectRef(ObjectBase* ptr);
-#endif
 
 struct ObjectInitializerGuardBase
 {

@@ -41,8 +41,6 @@ enum EnvProbeType : uint32
 
     EPT_SKY = 0,
     EPT_REFLECTION,
-
-    // These below types are controlled by EnvGrid
     EPT_AMBIENT,
 
     EPT_MAX

@@ -49,9 +49,8 @@ using threading::TaskBatch;
 enum class EntityManagerFlags : uint32
 {
     NONE = 0x0,
-    PARALLEL_SYSTEM_EXECUTION = 0x1,
 
-    DEFAULT = PARALLEL_SYSTEM_EXECUTION
+    DEFAULT = NONE
 };
 
 HYP_MAKE_ENUM_FLAGS(EntityManagerFlags)
@@ -61,8 +60,7 @@ class Scene;
 struct HypData;
 class Node;
 
-class EntityManager;
-/*! \brief The EntityManager is responsible for managing Entities, their components, and Systems within a Scene. */
+/*! \brief The EntityManager is responsible for managing Entities and their components within a single Scene. */
 HYP_CLASS()
 class HYP_API EntityManager final : public ObjectBase
 {
@@ -72,7 +70,7 @@ class HYP_API EntityManager final : public ObjectBase
 
     // Allow Entity destructor to call RemoveEntity().
     friend class Entity;
-    
+
     friend class World;
 
 public:
@@ -729,37 +727,6 @@ public:
         return entitySetsIt->second.Get();
     }
 
-    template <class SystemType>
-    SystemType* GetSystem() const
-    {
-        for (const SystemExecutionGroup* systemExecutionGroup : m_systemExecutionGroups)
-        {
-            if (SystemType* system = systemExecutionGroup->GetSystem<SystemType>())
-            {
-                return system;
-            }
-        }
-
-        return nullptr;
-    }
-
-    HYP_METHOD()
-    SystemBase* GetSystemByTypeId(TypeId systemTypeId) const
-    {
-        for (const SystemExecutionGroup* systemExecutionGroup : m_systemExecutionGroups)
-        {
-            for (const auto& it : systemExecutionGroup->GetSystems())
-            {
-                if (it.first == systemTypeId)
-                {
-                    return it.second;
-                }
-            }
-        }
-
-        return nullptr;
-    }
-
     template <class Callback>
     HYP_FORCE_INLINE void ForEachEntity(Callback&& callback) const
     {
@@ -849,7 +816,6 @@ private:
 
     void NotifySystemOfExistingEntities(const Handle<SystemBase>& system);
     void NotifySystemOfAllEntitiesRemoved(const Handle<SystemBase>& system);
-
     void NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const TypeMap<ComponentId>& componentIds);
     void NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<ComponentId>& componentIds);
 
@@ -860,8 +826,6 @@ private:
     bool RemoveEntity(Entity* entity);
 
     bool IsEntityInitializedForSystem(SystemBase* system, const Entity* entity) const;
-
-    void GetSystemClasses(Array<const Class*>& outClasses) const;
 
     ThreadId m_ownerThreadId;
     World* m_world;

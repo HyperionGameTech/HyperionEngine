@@ -99,7 +99,7 @@ public class FileInfoUIElementFactory : UIElementFactoryBase
         button.SetText(fileInfo.Name);
         button.SetBorderRadius(0);
         button.SetBackgroundColor(new Color(0));
-        
+
         return button;
     }
 
@@ -121,11 +121,11 @@ public class FileBrowserDialog : UIEventHandler
     private Stack<string> pathStack = new Stack<string>();
     private string filter = "*.obj";
 
-    public override void Init(Entity entity)
+    public override void OnAdded(Entity entity)
     {
-        base.Init(entity);
+        base.OnAdded(entity);
 
-        Logger.Log(LogType.Info, "FileBrowserDialog initialized");
+        Logger.Log(LogType.Info, "FileBrowserDialog added");
     }
 
     [UIEvent(AllowNested = true)]

@@ -395,7 +395,7 @@ void World::ProcessViewAsync(View* view)
     m_processViews.PushBack(view);
 }
 
-void World::BeginUpdate(float delta)
+void World::BeginUpdate(TaskBatch& inBatch, float delta)
 {
     HYP_SCOPE;
 
@@ -416,7 +416,7 @@ void World::BeginUpdate(float delta)
 
     m_rootSynchronousExecutionGroup = nullptr;
 
-    TaskBatch* rootTaskBatch = nullptr;
+    TaskBatch* firstTaskBatch = nullptr;
     TaskBatch* lastTaskBatch = nullptr;
 
     // Prepare task dependencies
@@ -435,25 +435,6 @@ void World::BeginUpdate(float delta)
         AssertDebug(currentTaskBatch->IsCompleted(), "TaskBatch for SystemExecutionGroup is not completed: {} tasks enqueued", currentTaskBatch->numEnqueued);
         currentTaskBatch->ResetState();
 
-        bool anySystemsToProcess = false;
-
-        for (const auto& pair : systemExecutionGroup.GetSystems())
-        {
-            SystemBase* system = pair.second;
-
-            if (system->NeedsUpdateThisFrame())
-            {
-                anySystemsToProcess = true;
-                break;
-            }
-        }
-
-        if (!anySystemsToProcess)
-        {
-            // skip it; nothing to do this frame
-            // continue;
-        }
-
         // Add tasks to batches before kickoff
         systemExecutionGroup.StartProcessing(delta, m_scenes.ToSpan());
 
@@ -471,9 +452,9 @@ void World::BeginUpdate(float delta)
             continue;
         }
 
-        if (!rootTaskBatch)
+        if (!firstTaskBatch)
         {
-            rootTaskBatch = currentTaskBatch;
+            firstTaskBatch = currentTaskBatch;
         }
 
         if (lastTaskBatch != nullptr)
@@ -491,11 +472,18 @@ void World::BeginUpdate(float delta)
     }
 
     // Kickoff first task
-    if (rootTaskBatch != nullptr && (rootTaskBatch->executors.Any() || rootTaskBatch->nextBatch != nullptr))
+    if (firstTaskBatch != nullptr)
     {
-#ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
-        TaskSystem::GetInstance().EnqueueBatch(rootTaskBatch);
-#endif
+        AssertDebug(inBatch.nextBatch == nullptr);
+        
+        if (firstTaskBatch->executors.Any())
+        {
+            inBatch.nextBatch = firstTaskBatch;
+        }
+        else if (firstTaskBatch->nextBatch != nullptr)
+        {
+            inBatch.nextBatch = firstTaskBatch->nextBatch;
+        }
     }
 }
 

@@ -25,7 +25,7 @@ struct ParticleVolumeParams
     Handle<Texture> texture;
 
     HYP_FIELD(Serialize = true)
-    SizeType maxParticles = 256u;
+    uint32 maxParticles = 256u;
 
     HYP_FIELD(Serialize = true)
     Vec3f origin = Vec3f::Zero();
@@ -68,7 +68,7 @@ public:
     }
 
     HYP_METHOD()
-    void SetParams(const ParticleVolumeParams& params);
+    void SetParams(const ParticleVolumeParams& newParams);
 
     void UpdateRenderProxy(RenderProxyParticleVolume* proxy);
 

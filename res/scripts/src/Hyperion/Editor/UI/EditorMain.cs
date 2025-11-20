@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Hyperion;
-using Hyperion.Editor.UI.Overlays;
 
 namespace Hyperion.Editor.UI;
 

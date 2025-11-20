@@ -85,6 +85,7 @@ String NodeTag::ToString() const
 
 Node::Node(Name name, const Transform& localTransform, Scene* scene)
     : m_name(name.IsValid() ? name : NAME("<unnamed>")),
+      m_nodeFlags(NodeFlags::NONE),
       m_parentNode(nullptr),
       m_localTransform(localTransform),
       m_scene(scene != nullptr ? scene : GetDetachedSceneForCurrentThread()),

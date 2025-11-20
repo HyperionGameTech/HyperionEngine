@@ -108,10 +108,10 @@ public:
     Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo);
 
     HYP_METHOD()
-    void AddStreamingObject(const AssetObject* obj, const Vec2i& coord);
+    void AddStreamingObject(const AssetObject* assetObject, const Vec2i& coord);
 
     HYP_METHOD()
-    void RemoveStreamingObject(const AssetObject* obj);
+    void RemoveStreamingObject(const AssetObject* assetObject);
 
     Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsLoaded;
     Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsUnloaded;

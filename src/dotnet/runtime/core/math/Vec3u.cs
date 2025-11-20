@@ -3,10 +3,16 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Vec3u")]
+    [ClassBinding(Name = "Vec3u")]
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 16)]
     public struct Vec3u
     {
+        public static readonly Vec3u Zero = new Vec3u(0, 0, 0);
+        public static readonly Vec3u One = new Vec3u(1, 1, 1);
+        public static readonly Vec3u UnitX = new Vec3u(1, 0, 0);
+        public static readonly Vec3u UnitY = new Vec3u(0, 1, 0);
+        public static readonly Vec3u UnitZ = new Vec3u(0, 0, 1);
+
         [FieldOffset(0)]
         public uint x;
         [FieldOffset(4)]
@@ -120,32 +126,32 @@ namespace Hyperion
             }
         }
 
-        public static Vec3u operator+(Vec3u left, Vec3u right)
+        public static Vec3u operator +(Vec3u left, Vec3u right)
         {
             return new Vec3u(left.x + right.x, left.y + right.y, left.z + right.z);
         }
 
-        public static Vec3u operator-(Vec3u left, Vec3u right)
+        public static Vec3u operator -(Vec3u left, Vec3u right)
         {
             return new Vec3u(left.x - right.x, left.y - right.y, left.z - right.z);
         }
 
-        public static Vec3u operator*(Vec3u left, Vec3u right)
+        public static Vec3u operator *(Vec3u left, Vec3u right)
         {
             return new Vec3u(left.x * right.x, left.y * right.y, left.z * right.z);
         }
 
-        public static Vec3u operator*(Vec3u left, uint right)
+        public static Vec3u operator *(Vec3u left, uint right)
         {
             return new Vec3u(left.x * right, left.y * right, left.z * right);
         }
 
-        public static Vec3u operator/(Vec3u left, Vec3u right)
+        public static Vec3u operator /(Vec3u left, Vec3u right)
         {
             return new Vec3u(left.x / right.x, left.y / right.y, left.z / right.z);
         }
 
-        public static Vec3u operator/(Vec3u left, uint right)
+        public static Vec3u operator /(Vec3u left, uint right)
         {
             return new Vec3u(left.x / right, left.y / right, left.z / right);
         }

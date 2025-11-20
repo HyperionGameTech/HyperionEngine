@@ -272,7 +272,7 @@ void ScriptSystem::Process(float delta, Span<Handle<Scene>> scenes)
     // Only update scripts if we're in simulation mode
     if (world->GetGameState().mode != GameStateMode::SIMULATING)
     {
-        return;
+        //return;
     }
 
     for (Scene* scene : scenes)

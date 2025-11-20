@@ -42,7 +42,6 @@ ParticleVolume::~ParticleVolume()
 
 void ParticleVolume::Init()
 {
-    HYP_SCOPE;
     Entity::Init();
 
     InitObject(m_params.texture);
@@ -50,12 +49,9 @@ void ParticleVolume::Init()
     SetReady(true);
 }
 
-void ParticleVolume::SetParams(const ParticleVolumeParams& params)
+void ParticleVolume::SetParams(const ParticleVolumeParams& newParams)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
-
-    m_params = params;
+    m_params = newParams;
 
     SetNeedsRenderProxyUpdate();
 }
@@ -65,14 +61,14 @@ void ParticleVolume::UpdateRenderProxy(RenderProxyParticleVolume* proxy)
     AssertDebug(proxy != nullptr);
 
     proxy->particleVolume = WeakHandleFromThis();
-    
+
     if (proxy->particleTexture != m_params.texture)
     {
         proxy->forceRebind = true;
-        
+
         proxy->particleTexture = m_params.texture;
     }
-    
+
     proxy->worldAabb = GetWorldAABB();
 
     proxy->bufferData.originStartSize = Vec4f(m_params.origin, m_params.startSize);

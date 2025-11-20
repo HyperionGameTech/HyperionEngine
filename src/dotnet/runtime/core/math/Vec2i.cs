@@ -3,10 +3,15 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Vec2i")]
+    [ClassBinding(Name = "Vec2i")]
     [StructLayout(LayoutKind.Explicit, Size = 8, Pack = 8)]
     public struct Vec2i
     {
+        public static readonly Vec2i Zero = new Vec2i(0, 0);
+        public static readonly Vec2i One = new Vec2i(1, 1);
+        public static readonly Vec2i UnitX = new Vec2i(1, 0);
+        public static readonly Vec2i UnitY = new Vec2i(0, 1);
+
         [FieldOffset(0)]
         public int x;
         [FieldOffset(4)]
@@ -94,32 +99,32 @@ namespace Hyperion
             }
         }
 
-        public static Vec2i operator+(Vec2i left, Vec2i right)
+        public static Vec2i operator +(Vec2i left, Vec2i right)
         {
             return new Vec2i(left.x + right.x, left.y + right.y);
         }
 
-        public static Vec2i operator-(Vec2i left, Vec2i right)
+        public static Vec2i operator -(Vec2i left, Vec2i right)
         {
             return new Vec2i(left.x - right.x, left.y - right.y);
         }
 
-        public static Vec2i operator*(Vec2i left, Vec2i right)
+        public static Vec2i operator *(Vec2i left, Vec2i right)
         {
             return new Vec2i(left.x * right.x, left.y * right.y);
         }
 
-        public static Vec2i operator*(Vec2i left, int right)
+        public static Vec2i operator *(Vec2i left, int right)
         {
             return new Vec2i(left.x * right, left.y * right);
         }
 
-        public static Vec2i operator/(Vec2i left, Vec2i right)
+        public static Vec2i operator /(Vec2i left, Vec2i right)
         {
             return new Vec2i(left.x / right.x, left.y / right.y);
         }
 
-        public static Vec2i operator/(Vec2i left, int right)
+        public static Vec2i operator /(Vec2i left, int right)
         {
             return new Vec2i(left.x / right, left.y / right);
         }

@@ -3,10 +3,17 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Vec4i")]
+    [ClassBinding(Name = "Vec4i")]
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 16)]
     public struct Vec4i
     {
+        public static readonly Vec4i Zero = new Vec4i(0, 0, 0, 0);
+        public static readonly Vec4i One = new Vec4i(1, 1, 1, 1);
+        public static readonly Vec4i UnitX = new Vec4i(1, 0, 0, 0);
+        public static readonly Vec4i UnitY = new Vec4i(0, 1, 0, 0);
+        public static readonly Vec4i UnitZ = new Vec4i(0, 0, 1, 0);
+        public static readonly Vec4i UnitW = new Vec4i(0, 0, 0, 1);
+
         [FieldOffset(0)]
         public int x;
         [FieldOffset(4)]
@@ -146,32 +153,32 @@ namespace Hyperion
             }
         }
 
-        public static Vec4i operator+(Vec4i left, Vec4i right)
+        public static Vec4i operator +(Vec4i left, Vec4i right)
         {
             return new Vec4i(left.x + right.x, left.y + right.y, left.z + right.z, left.w + right.w);
         }
 
-        public static Vec4i operator-(Vec4i left, Vec4i right)
+        public static Vec4i operator -(Vec4i left, Vec4i right)
         {
             return new Vec4i(left.x - right.x, left.y - right.y, left.z - right.z, left.w - right.w);
         }
 
-        public static Vec4i operator*(Vec4i left, Vec4i right)
+        public static Vec4i operator *(Vec4i left, Vec4i right)
         {
             return new Vec4i(left.x * right.x, left.y * right.y, left.z * right.z, left.w * right.w);
         }
 
-        public static Vec4i operator*(Vec4i left, int right)
+        public static Vec4i operator *(Vec4i left, int right)
         {
             return new Vec4i(left.x * right, left.y * right, left.z * right, left.w * right);
         }
 
-        public static Vec4i operator/(Vec4i left, Vec4i right)
+        public static Vec4i operator /(Vec4i left, Vec4i right)
         {
             return new Vec4i(left.x / right.x, left.y / right.y, left.z / right.z, left.w / right.w);
         }
 
-        public static Vec4i operator/(Vec4i left, int right)
+        public static Vec4i operator /(Vec4i left, int right)
         {
             return new Vec4i(left.x / right, left.y / right, left.z / right, left.w / right);
         }

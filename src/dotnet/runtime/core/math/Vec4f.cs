@@ -3,10 +3,17 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Vec4f")]
+    [ClassBinding(Name = "Vec4f")]
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 16)]
     public struct Vec4f
     {
+        public static readonly Vec4f Zero = new Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+        public static readonly Vec4f One = new Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+        public static readonly Vec4f UnitX = new Vec4f(1.0f, 0.0f, 0.0f, 0.0f);
+        public static readonly Vec4f UnitY = new Vec4f(0.0f, 1.0f, 0.0f, 0.0f);
+        public static readonly Vec4f UnitZ = new Vec4f(0.0f, 0.0f, 1.0f, 0.0f);
+        public static readonly Vec4f UnitW = new Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+
         [FieldOffset(0)]
         public float x;
         [FieldOffset(4)]
@@ -167,7 +174,7 @@ namespace Hyperion
         public Vec4f Normalize()
         {
             float length = Length();
-            
+
             if (length == 0)
             {
                 return new Vec4f(0, 0, 0, 0);
@@ -176,32 +183,32 @@ namespace Hyperion
             return new Vec4f(x / length, y / length, z / length, w / length);
         }
 
-        public static Vec4f operator+(Vec4f left, Vec4f right)
+        public static Vec4f operator +(Vec4f left, Vec4f right)
         {
             return new Vec4f(left.x + right.x, left.y + right.y, left.z + right.z, left.w + right.w);
         }
 
-        public static Vec4f operator-(Vec4f left, Vec4f right)
+        public static Vec4f operator -(Vec4f left, Vec4f right)
         {
             return new Vec4f(left.x - right.x, left.y - right.y, left.z - right.z, left.w - right.w);
         }
 
-        public static Vec4f operator*(Vec4f left, Vec4f right)
+        public static Vec4f operator *(Vec4f left, Vec4f right)
         {
             return new Vec4f(left.x * right.x, left.y * right.y, left.z * right.z, left.w * right.w);
         }
 
-        public static Vec4f operator*(Vec4f left, float right)
+        public static Vec4f operator *(Vec4f left, float right)
         {
             return new Vec4f(left.x * right, left.y * right, left.z * right, left.w * right);
         }
 
-        public static Vec4f operator/(Vec4f left, Vec4f right)
+        public static Vec4f operator /(Vec4f left, Vec4f right)
         {
             return new Vec4f(left.x / right.x, left.y / right.y, left.z / right.z, left.w / right.w);
         }
 
-        public static Vec4f operator/(Vec4f left, float right)
+        public static Vec4f operator /(Vec4f left, float right)
         {
             return new Vec4f(left.x / right, left.y / right, left.z / right, left.w / right);
         }

@@ -3,10 +3,15 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Vec2f")]
+    [ClassBinding(Name = "Vec2f")]
     [StructLayout(LayoutKind.Explicit, Size = 8, Pack = 8)]
     public struct Vec2f
     {
+        public static readonly Vec2f Zero = new Vec2f(0.0f, 0.0f);
+        public static readonly Vec2f One = new Vec2f(1.0f, 1.0f);
+        public static readonly Vec2f UnitX = new Vec2f(1.0f, 0.0f);
+        public static readonly Vec2f UnitY = new Vec2f(0.0f, 1.0f);
+
         [FieldOffset(0)]
         public float x;
         [FieldOffset(4)]
@@ -116,32 +121,32 @@ namespace Hyperion
             return new Vec2f(x / length, y / length);
         }
 
-        public static Vec2f operator+(Vec2f left, Vec2f right)
+        public static Vec2f operator +(Vec2f left, Vec2f right)
         {
             return new Vec2f(left.x + right.x, left.y + right.y);
         }
 
-        public static Vec2f operator-(Vec2f left, Vec2f right)
+        public static Vec2f operator -(Vec2f left, Vec2f right)
         {
             return new Vec2f(left.x - right.x, left.y - right.y);
         }
 
-        public static Vec2f operator*(Vec2f left, Vec2f right)
+        public static Vec2f operator *(Vec2f left, Vec2f right)
         {
             return new Vec2f(left.x * right.x, left.y * right.y);
         }
 
-        public static Vec2f operator*(Vec2f left, float right)
+        public static Vec2f operator *(Vec2f left, float right)
         {
             return new Vec2f(left.x * right, left.y * right);
         }
 
-        public static Vec2f operator/(Vec2f left, Vec2f right)
+        public static Vec2f operator /(Vec2f left, Vec2f right)
         {
             return new Vec2f(left.x / right.x, left.y / right.y);
         }
 
-        public static Vec2f operator/(Vec2f left, float right)
+        public static Vec2f operator /(Vec2f left, float right)
         {
             return new Vec2f(left.x / right, left.y / right);
         }

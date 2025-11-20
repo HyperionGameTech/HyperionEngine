@@ -1376,11 +1376,6 @@ bool EntityManager::IsEntityInitializedForSystem(SystemBase* system, const Entit
     return it->second.FindAs(entity) != it->second.End();
 }
 
-void EntityManager::GetSystemClasses(Array<const Class*>& outClasses) const
-{
-    HYP_NOT_IMPLEMENTED();
-}
-
 #pragma endregion EntityManager
 
 } // namespace hyperion

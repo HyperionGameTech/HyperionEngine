@@ -28,7 +28,7 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
 {
     HYP_SCOPE;
     Handle<StreamingCell> cell = CreateObject<StreamingCell>(cellInfo);
-    
+
     auto objectsByCoordIt = m_objectsByCoord.Find(cellInfo.coord);
     if (objectsByCoordIt != m_objectsByCoord.End())
     {
@@ -81,43 +81,43 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
     return cell;
 }
 
-void WorldGridLayer::AddStreamingObject(const AssetObject* obj, const Vec2i& coord)
+void WorldGridLayer::AddStreamingObject(const AssetObject* assetObject, const Vec2i& coord)
 {
     HYP_SCOPE;
 
-    if (!obj)
+    if (!assetObject)
     {
         HYP_LOG(Streaming, Error, "Cannot insert NULL object into layer!");
 
         return;
     }
 
-    if (!obj->IsRegistered())
+    if (!assetObject->IsRegistered())
     {
-        // @TODO change this; either ensure registered before calling this, or import to temp location which will be added to this package upon save / RegisterAssetsRecursively()
-        //g_assetManager->GetAssetRegistry()->RegisterAsset(HYP_FORMAT("$Import/Objects/Types/{}/{}", obj->InstanceClass()->GetName(), obj->GetName()), MakeStrongRef(obj));
-        g_assetManager->GetAssetRegistry()->RegisterAsset(HYP_FORMAT("$Temp/{}", obj->GetUUID()), MakeStrongRef(obj));
+        // register in $Temp package if not already registered
+        // When AssetRegistry::RegisterAssetsRecursively is called, these will be moved to their proper packages/paths (i.e project package)
+        g_assetManager->GetAssetRegistry()->RegisterAsset(HYP_FORMAT("$Temp/{}", assetObject->GetUUID()), MakeStrongRef(assetObject));
     }
 
-    // @TODO needs to add to actual StreamingCell if already loaded!!
     // @TODO How will we update if the obj moves to a different path in editor?? - FIXME when we add some Delegate like OnAssetPathChanged to AssetObject
 
-    if (obj->IsTransient())
+    if (assetObject->IsTransient())
     {
         // transient assets must be kept in memory as their path may change if they are saved
-        m_objectsByCoord[coord].EmplaceBack(MakeStrongRef(obj));
+        m_objectsByCoord[coord].EmplaceBack(MakeStrongRef(assetObject));
+
         return;
     }
 
     // don't keep transient assets in memory; store path instead.
-    m_objectsByCoord[coord].EmplaceBack(obj->GetPath());
+    m_objectsByCoord[coord].EmplaceBack(assetObject->GetPath());
 }
 
-void WorldGridLayer::RemoveStreamingObject(const AssetObject* obj)
+void WorldGridLayer::RemoveStreamingObject(const AssetObject* assetObject)
 {
     HYP_SCOPE;
 
-    if (!obj)
+    if (!assetObject)
     {
         HYP_LOG(Streaming, Error, "Cannot remove NULL object from layer!");
 
@@ -130,7 +130,7 @@ void WorldGridLayer::RemoveStreamingObject(const AssetObject* obj)
 
         for (SizeType i = 0; i < assetsAtCoord.Size(); ++i)
         {
-            if (assetsAtCoord[i].GetAssetPath() == obj->GetPath())
+            if (assetsAtCoord[i].GetAssetPath() == assetObject->GetPath())
             {
                 assetsAtCoord.EraseAt(i);
 
@@ -144,7 +144,7 @@ void WorldGridLayer::RemoveStreamingObject(const AssetObject* obj)
         }
     }
 
-    HYP_LOG(Streaming, Warning, "Object {} not found in layer {}", obj->GetName(), m_name);
+    HYP_LOG(Streaming, Warning, "Object {} not found in layer {}", assetObject->GetName(), m_name);
 
     // @TODO needs to remove from actual StreamingCell if already loaded!!
 }

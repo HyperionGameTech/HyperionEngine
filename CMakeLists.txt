@@ -496,7 +496,7 @@ endif()
 
 
 # Disable .NET support by default (comment to enable)
-set(HYP_NO_DOTNET 1)
+# set(HYP_NO_DOTNET 1)
 
 if(NOT HYP_NO_DOTNET)
     # if dotnet headers exist, set HYP_DOTNET to 1
