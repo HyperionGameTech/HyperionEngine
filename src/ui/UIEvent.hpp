@@ -33,11 +33,6 @@ public:
 
     virtual ~UIMouseEvent() override = default;
 
-    virtual InputManager* GetInputManager() override
-    {
-        return m_mouseEvent.inputManager;
-    }
-
     virtual MouseEvent* GetMouseEvent() override
     {
         return &m_mouseEvent;

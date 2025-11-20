@@ -28,6 +28,7 @@ class GameThread;
 class RenderThread;
 class MainThread;
 class EngineStats;
+class InputManager;
 
 #ifdef HYP_VULKAN
 class VulkanRenderBackend;
@@ -48,6 +49,7 @@ extern MaterialCache* g_materialSystem;
 extern SafeDeleter* g_safeDeleter;
 extern RenderGlobalState* g_renderGlobalState;
 extern ShaderCompiler* g_shaderCompiler;
+extern Handle<InputManager> g_inputManager;
 
 extern MainThread* g_mainThreadInstance;
 extern GameThread* g_gameThreadInstance;

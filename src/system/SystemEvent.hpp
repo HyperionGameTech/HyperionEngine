@@ -163,7 +163,7 @@ public:
     HYP_FORCE_INLINE EnumFlags<MouseButtonState> GetMouseButtons() const
     {
         const EnumFlags<MouseButtonState>* mouseButtonState = m_eventData.TryGet<EnumFlags<MouseButtonState>>();
-        AssertDebug(mouseButtonState != nullptr);
+        // AssertDebug(mouseButtonState != nullptr);
 
         if (!mouseButtonState)
         {
@@ -173,7 +173,10 @@ public:
         return *mouseButtonState;
     }
 
-    HYP_FORCE_INLINE Vec2i GetWindowResizeDimensions() const
+    MouseEvent ToMouseEvent() const;
+    MouseEvent ToMouseEvent(const Vec2f& surfaceSize) const;
+
+    Vec2i GetWindowResizeDimensions() const
     {
         if (m_eventType != WINDOW_RESIZED)
         {

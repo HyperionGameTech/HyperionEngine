@@ -750,7 +750,7 @@ void Camera::UpdateMouseLocked()
     {
         if (!m_mouseLockScope)
         {
-            m_mouseLockScope = g_appContext->GetInputManager()->AcquireMouseLock();
+            m_mouseLockScope = g_inputManager->AcquireMouseLock();
 
             return;
         }

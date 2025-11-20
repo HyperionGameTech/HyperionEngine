@@ -245,12 +245,6 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<InputManager>& GetInputManager() const
-    {
-        return m_inputManager;
-    }
-
-    HYP_METHOD()
     virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) = 0;
 
     HYP_METHOD()
@@ -264,7 +258,6 @@ public:
 protected:
     ApplicationWindow* m_mainWindow;
     Array<Handle<ApplicationWindow>> m_windows;
-    Handle<InputManager> m_inputManager;
     ANSIString m_name;
     Handle<Game> m_game;
 };

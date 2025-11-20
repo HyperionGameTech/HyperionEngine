@@ -304,6 +304,11 @@ struct alignas(alignof(T) * 4) HYP_API Vec3
         return x < y ? (x < z ? x : z) : (y < z ? y : z);
     }
 
+    HYP_FORCE_INLINE constexpr bool IsZero() const
+    {
+        return (x == 0 && y == 0 && z == 0);
+    }
+
     template <class Ty>
     constexpr explicit operator Vec3<Ty>() const
     {

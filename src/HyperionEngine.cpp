@@ -132,6 +132,7 @@ MaterialCache* g_materialSystem;
 SafeDeleter* g_safeDeleter;
 RenderGlobalState* g_renderGlobalState;
 ShaderCompiler* g_shaderCompiler;
+Handle<InputManager> g_inputManager;
 
 MainThread* g_mainThreadInstance;
 GameThread* g_gameThreadInstance;
@@ -264,8 +265,11 @@ extern "C"
         g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
         g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
 
+        g_inputManager = CreateObject<InputManager>();
+
         g_logger = CreateObject<Logger>();
         g_logger->fatalErrorHook = &HandleFatalError;
+
         InitObject(g_logger);
 
         LogChannelRegistrar::GetInstance().RegisterAll();

@@ -142,8 +142,6 @@ const Handle<AppContextBase>& AppContextBase::GetInstance()
 AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& arguments)
     : m_mainWindow(nullptr)
 {
-    m_inputManager = CreateObject<InputManager>();
-
     m_name = std::move(name);
 
     if (m_name.Empty())
@@ -167,7 +165,7 @@ void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
     }
 
     m_mainWindow = window;
-    m_inputManager->SetWindow(m_mainWindow);
+    g_inputManager->SetWindow(m_mainWindow);
 
     if (RenderApi::IsInit())
     {
@@ -206,7 +204,7 @@ void AppContextBase::RemoveWindow(ApplicationWindow* window)
         if (m_mainWindow == window)
         {
             m_mainWindow = nullptr;
-            m_inputManager->SetWindow(nullptr);
+            g_inputManager->SetWindow(nullptr);
 
             OnCurrentWindowChanged(nullptr);
         }

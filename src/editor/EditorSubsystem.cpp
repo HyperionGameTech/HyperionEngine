@@ -1809,7 +1809,7 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
-            if (!event.inputManager->IsMouseLocked() && IsHoveringGizmo())
+            if (!g_inputManager->IsMouseLocked() && IsHoveringGizmo())
             {
                 // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
                 Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
@@ -1831,14 +1831,12 @@ void EditorSubsystem::InitViewport()
             activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
 
             // handle move before we reset mouse pos
-            if (event.inputManager->IsMouseLocked())
+            if (g_inputManager->IsMouseLocked())
             {
                 const Vec2f position = uiStage->GetAbsolutePosition();
                 const Vec2i size = uiStage->GetActualSize();
 
-                // @TODO : refactor, we're calling SetMousePosition() on game thread which is causing warnings on macOS
-                // since this is a UI event we should call this on the UI thread (main)
-                event.inputManager->SetMousePosition(Vec2i(position + Vec2f(size) * 0.5f));
+                g_inputManager->SetMousePosition(Vec2i(position + Vec2f(size) * 0.5f));
 
                 return UIEventHandlerResult::OK;
             }

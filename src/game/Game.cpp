@@ -68,9 +68,9 @@ void Game::Init()
     InitObject(m_world);
     g_engineDriver->AddWorld(m_world);
 
-    Handle<UIStage> uiStage = CreateObject<UIStage>(g_gameThread);
+    // Handle<UIStage> uiStage = CreateObject<UIStage>(g_gameThread);
 
-    m_uiSubsystem = m_world->AddSubsystem(CreateObject<UISubsystem>(uiStage));
+    // m_uiSubsystem = m_world->AddSubsystem(CreateObject<UISubsystem>(uiStage));
 }
 
 void Game::HandleEvent(SystemEvent&& event)
@@ -87,7 +87,7 @@ void Game::OnInputEvent(const SystemEvent& event)
 
     AssertOnThread(g_gameThread);
 
-    m_uiSubsystem->GetUIStage()->OnInputEvent(g_appContext->GetInputManager().Get(), event);
+    // m_uiSubsystem->GetUIStage()->OnInputEvent(g_appContext->GetInputManager().Get(), event);
 }
 
 } // namespace hyperion

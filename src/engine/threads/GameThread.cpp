@@ -132,7 +132,7 @@ void GameThread::operator()()
             {
                 for (SystemEvent& event : events)
                 {
-                    g_appContext->GetInputManager()->CheckEvent(&event);
+                    g_inputManager->CheckEvent(&event);
 
                     m_game->HandleEvent(std::move(event));
                 }

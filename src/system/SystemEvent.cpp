@@ -1,10 +1,13 @@
-#include "core/threading/Task.hpp"
 #include <HyperionPch.hpp>
 
 #include <system/SystemEvent.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/threads/MainThread.hpp>
+
+#include <input/InputManager.hpp>
+
+#include <core/threading/Task.hpp>
 
 namespace hyperion {
 
@@ -60,6 +63,41 @@ static EnumFlags<MouseButtonState> GetMouseButtonState(int sdlButton)
     // }
 
     return mouseButtonState;
+}
+
+MouseEvent SystemEvent::ToMouseEvent() const
+{
+    Vec2i absolutePosition = m_eventData.Get<Vec2i>();
+
+    MouseEvent me {
+        .mouseButtons = GetMouseButtons(),
+        .absolutePosition = absolutePosition,
+        .previousPosition = Vec2f(g_inputManager->GetPreviousMousePosition()),
+        .position = Vec2f(absolutePosition),
+    };
+
+    return me;
+}
+
+MouseEvent SystemEvent::ToMouseEvent(const Vec2f& surfaceSize) const
+{
+    Vec2i absolutePosition = m_eventData.Get<Vec2i>();
+
+    Vec2f relativePosition = Vec2f(absolutePosition);
+
+    if (!relativePosition.IsZero())
+    {
+        relativePosition = Vec2f(absolutePosition) / surfaceSize;
+    }
+
+    MouseEvent me {
+        .mouseButtons = GetMouseButtons(),
+        .absolutePosition = absolutePosition,
+        .previousPosition = Vec2f(g_inputManager->GetPreviousMousePosition()),
+        .position = relativePosition,
+    };
+
+    return me;
 }
 
 #endif

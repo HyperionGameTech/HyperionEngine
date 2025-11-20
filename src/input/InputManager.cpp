@@ -7,6 +7,8 @@
 #include <system/AppContext.hpp>
 #include <system/SystemEvent.hpp>
 
+#include <engine/EngineGlobals.hpp>
+
 #include <core/utilities/DeferredScope.hpp>
 
 #include <core/threading/Threads.hpp>
@@ -75,7 +77,7 @@ InputMouseLockScope& InputMouseLockScope::operator=(InputMouseLockScope&& other)
 
     if (mouseLockState)
     {
-        mouseLockState->inputManager->RemoveMouseLockState(mouseLockState);
+        g_inputManager->RemoveMouseLockState(mouseLockState);
     }
 
     mouseLockState = other.mouseLockState;
@@ -88,7 +90,7 @@ InputMouseLockScope::~InputMouseLockScope()
 {
     if (mouseLockState)
     {
-        mouseLockState->inputManager->RemoveMouseLockState(mouseLockState);
+        g_inputManager->RemoveMouseLockState(mouseLockState);
     }
 }
 
@@ -96,7 +98,7 @@ void InputMouseLockScope::Reset()
 {
     if (mouseLockState)
     {
-        mouseLockState->inputManager->RemoveMouseLockState(mouseLockState);
+        g_inputManager->RemoveMouseLockState(mouseLockState);
 
         mouseLockState = nullptr;
     }
@@ -171,7 +173,6 @@ void InputManager::PushMouseLockState(bool mouseLocked)
     Mutex::Guard guard(m_mouseLockStatesMutex);
 
     InputMouseLockState& mouseLockState = m_mouseLockStates.PushBack(InputMouseLockState {
-        this,
         mouseLocked });
 
     ApplyMouseLockState(&mouseLockState);
@@ -195,7 +196,7 @@ InputMouseLockScope InputManager::AcquireMouseLock()
 {
     Mutex::Guard guard(m_mouseLockStatesMutex);
 
-    InputMouseLockState& mouseLockState = m_mouseLockStates.PushBack(InputMouseLockState { this, true });
+    InputMouseLockState& mouseLockState = m_mouseLockStates.PushBack(InputMouseLockState { true });
 
     ApplyMouseLockState(&mouseLockState);
 
@@ -377,7 +378,9 @@ void InputManager::RemoveMouseLockState(const InputMouseLockState* mouseLockStat
 
     Mutex::Guard guard(m_mouseLockStatesMutex);
 
-    auto it = m_mouseLockStates.Find(*mouseLockState);
+    InputMouseLockState* mouseLock = const_cast<InputMouseLockState*>(mouseLockState);
+
+    auto it = m_mouseLockStates.Find(*(mouseLock));
     Assert(it != m_mouseLockStates.End());
 
     auto eraseIt = m_mouseLockStates.Erase(it);
