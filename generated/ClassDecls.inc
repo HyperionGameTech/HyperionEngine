@@ -64,6 +64,7 @@ HYP_API extern const Class* g_clsConsoleUI;
 HYP_API extern const Class* g_clsConvexHullPhysicsShape;
 HYP_API extern const Class* g_clsDebugDrawer;
 HYP_API extern const Class* g_clsDebugDrawerConfig;
+HYP_API extern const Class* g_clsDefaultGame;
 HYP_API extern const Class* g_clsDefaultImageFormat;
 HYP_API extern const Class* g_clsDeferredPass;
 HYP_API extern const Class* g_clsDeferredRendererPassData;

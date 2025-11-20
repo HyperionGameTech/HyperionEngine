@@ -123,6 +123,7 @@ SafeDeleter* g_safeDeleter;
 IRenderBackend* g_renderBackend;
 RenderGlobalState* g_renderGlobalState;
 ShaderCompiler* g_shaderCompiler;
+Handle<InputManager> g_inputManager;
 
 static void HandleFatalError(const char* message)
 {
@@ -191,6 +192,8 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
     g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
     g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
+
+    g_inputManager = CreateObject<InputManager>();
 
     g_logger = CreateObject<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;

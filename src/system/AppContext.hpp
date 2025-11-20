@@ -157,11 +157,6 @@ public:
 
     void SetMainWindow(const Handle<ApplicationWindow>& window);
 
-    HYP_FORCE_INLINE const Handle<InputManager>& GetInputManager() const
-    {
-        return m_inputManager;
-    }
-
     virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) = 0;
     virtual int PollEvent(SystemEvent& event) = 0;
 
@@ -169,7 +164,6 @@ public:
 
 protected:
     Handle<ApplicationWindow> m_mainWindow;
-    Handle<InputManager> m_inputManager;
     ANSIString m_name;
     Handle<Game> m_game;
 };

@@ -31,13 +31,10 @@ enum class MouseButtonState : uint32
 
 HYP_MAKE_ENUM_FLAGS(MouseButtonState)
 
-HYP_STRUCT(Size = 56)
+HYP_STRUCT(Size = 48)
 struct MouseEvent
 {
     HYP_STRUCT_BODY(MouseEvent);
-
-    HYP_FIELD()
-    InputManager* inputManager = nullptr;
 
     HYP_FIELD()
     Vec2f position;
@@ -60,19 +57,16 @@ struct MouseEvent
 
 struct InputMouseLockState
 {
-    InputManager* inputManager = nullptr;
     bool locked = false;
 
     HYP_FORCE_INLINE bool operator==(const InputMouseLockState& other) const
     {
-        return inputManager == other.inputManager
-            && locked == other.locked;
+        return locked == other.locked;
     }
 
     HYP_FORCE_INLINE bool operator!=(const InputMouseLockState& other) const
     {
-        return inputManager != other.inputManager
-            || locked != other.locked;
+        return locked != other.locked;
     }
 };
 

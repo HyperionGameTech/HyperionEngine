@@ -313,6 +313,11 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
         return x < y ? (x < z ? (x < w ? x : w) : (z < w ? z : w)) : (y < z ? (y < w ? y : w) : (z < w ? z : w));
     }
 
+    HYP_FORCE_INLINE constexpr bool IsZero() const
+    {
+        return (x == 0 && y == 0 && z == 0 && w == 0);
+    }
+
     static Vec4 Abs(const Vec4&);
     static Vec4 Min(const Vec4& a, const Vec4& b);
     static Vec4 Max(const Vec4& a, const Vec4& b);

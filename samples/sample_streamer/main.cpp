@@ -7,6 +7,8 @@
 #include <HyperionEngine.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <game/DefaultGame.hpp>
+
 using namespace hyperion;
 
 int main(int argc, char** argv)
@@ -15,10 +17,11 @@ int main(int argc, char** argv)
     {
         return 1;
     }
-    
-    Handle<HyperionEditor> editorInstance = CreateObject<HyperionEditor>();
-    
-    App::GetInstance().LaunchGame(editorInstance);
-    
+
+    // Handle<HyperionEditor> editorInstance = CreateObject<HyperionEditor>();
+    Handle<game::DefaultGame> defaultGame = CreateObject<game::DefaultGame>();
+
+    App::GetInstance().LaunchGame(defaultGame);
+
     return 0;
 }

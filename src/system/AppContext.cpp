@@ -59,8 +59,6 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
 
 AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& arguments)
 {
-    m_inputManager = CreateObject<InputManager>();
-
     m_name = std::move(name);
 
     if (m_name.Empty())
@@ -77,7 +75,7 @@ AppContextBase::~AppContextBase() = default;
 void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
 {
     m_mainWindow = window;
-    m_inputManager->SetWindow(m_mainWindow.Get());
+    g_inputManager->SetWindow(m_mainWindow.Get());
 
     OnCurrentWindowChanged(m_mainWindow.Get());
 }

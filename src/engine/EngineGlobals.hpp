@@ -24,6 +24,7 @@ class IRenderBackend;
 class ShaderCompiler;
 class EditorState;
 class StreamingManager;
+class InputManager;
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 
@@ -40,6 +41,7 @@ extern SafeDeleter* g_safeDeleter;
 extern IRenderBackend* g_renderBackend;
 extern RenderGlobalState* g_renderGlobalState;
 extern ShaderCompiler* g_shaderCompiler;
+extern Handle<InputManager> g_inputManager;
 
 #endif
 

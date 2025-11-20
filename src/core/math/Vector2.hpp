@@ -623,6 +623,11 @@ struct alignas(alignof(float) * 2) HYP_API Vec2<float>
         return x < y ? x : y;
     }
 
+    HYP_FORCE_INLINE constexpr bool IsZero() const
+    {
+        return (x == 0 && y == 0);
+    }
+
     float Distance(const Vec2& other) const;
     float DistanceSquared(const Vec2& other) const;
 

@@ -1648,7 +1648,7 @@ void EditorSubsystem::InitViewport()
             // prevent click being triggered on release once mouse has been dragged
             m_shouldCancelNextClick = true;
 
-            if (!event.inputManager->IsMouseLocked() && IsHoveringManipulationWidget())
+            if (!g_inputManager->IsMouseLocked() && IsHoveringManipulationWidget())
             {
                 // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
                 Handle<EditorManipulationWidgetBase> manipulationWidget = m_hoveredManipulationWidget.Lock();
@@ -1670,12 +1670,12 @@ void EditorSubsystem::InitViewport()
             m_camera->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
 
             // handle move before we reset mouse pos
-            if (event.inputManager->IsMouseLocked())
+            if (g_inputManager->IsMouseLocked())
             {
                 const Vec2f position = uiImage->GetAbsolutePosition();
                 const Vec2i size = uiImage->GetActualSize();
 
-                event.inputManager->SetMousePosition(Vec2i(position + Vec2f(size) * 0.5f));
+                g_inputManager->SetMousePosition(Vec2i(position + Vec2f(size) * 0.5f));
 
                 return UIEventHandlerResult::OK;
             }

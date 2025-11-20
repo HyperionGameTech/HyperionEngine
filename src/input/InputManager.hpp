@@ -106,13 +106,13 @@ public:
     HYP_METHOD()
     HYP_API void SetMousePosition(Vec2i position);
 
-    const Vec2i& GetPreviousMousePosition() const
+    HYP_FORCE_INLINE const Vec2i& GetPreviousMousePosition() const
     {
         return m_previousMousePosition;
     }
 
     HYP_METHOD()
-    const Vec2i& GetWindowSize() const
+    HYP_FORCE_INLINE const Vec2i& GetWindowSize() const
     {
         return m_windowSize;
     }

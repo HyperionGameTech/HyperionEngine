@@ -15,7 +15,7 @@
 #include <core/Types.hpp>
 #include <core/Constants.hpp>
 
-#define HYP_ENABLE_VSYNC 0
+#define HYP_ENABLE_VSYNC 1
 
 namespace hyperion {
 

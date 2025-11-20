@@ -9,7 +9,7 @@ namespace hyperion {
 
 #pragma region InputHandlerBase Reflection Data
 
-HYP_BEGIN_CLASS(InputHandlerBase, 56, 3, NAME("ObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(InputHandlerBase, 59, 3, NAME("ObjectBase"), ClassAttribute("abstract", true))
     Method(NAME(HYP_STR(OnKeyDown)), &InputHandlerBase::OnKeyDown, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(OnKeyUp)), &InputHandlerBase::OnKeyUp, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     Method(NAME(HYP_STR(OnMouseDown)), &InputHandlerBase::OnMouseDown, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
@@ -152,7 +152,7 @@ namespace hyperion {
 
 #pragma region NullInputHandler Reflection Data
 
-HYP_BEGIN_CLASS(NullInputHandler, 58, 0, NAME("InputHandlerBase"))
+HYP_BEGIN_CLASS(NullInputHandler, 60, 0, NAME("InputHandlerBase"))
 HYP_END_CLASS
 
 #pragma endregion NullInputHandler Reflection Data

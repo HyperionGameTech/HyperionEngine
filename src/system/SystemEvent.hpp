@@ -137,7 +137,7 @@ public:
     EnumFlags<MouseButtonState> GetMouseButtons() const
     {
         const EnumFlags<MouseButtonState>* mouseButtonState = m_eventData.TryGet<EnumFlags<MouseButtonState>>();
-        AssertDebug(mouseButtonState != nullptr);
+        // AssertDebug(mouseButtonState != nullptr);
 
         if (!mouseButtonState)
         {
@@ -146,6 +146,9 @@ public:
 
         return *mouseButtonState;
     }
+
+    MouseEvent ToMouseEvent() const;
+    MouseEvent ToMouseEvent(const Vec2f& surfaceSize) const;
 
     Vec2i GetWindowResizeDimensions() const
     {
