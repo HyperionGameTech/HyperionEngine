@@ -260,7 +260,7 @@ bool ScriptSystem::NeedsUpdateThisFrame() const
     // return es && es->GetElements().Any();
 }
 
-void ScriptSystem::Process(float delta, Span<Scene*> scenes)
+void ScriptSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     World* world = GetWorld();
 
@@ -277,6 +277,11 @@ void ScriptSystem::Process(float delta, Span<Scene*> scenes)
 
     for (Scene* scene : scenes)
     {
+        if (!ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
         for (auto [entity, scriptComponent] : scene->GetEntityManager()->GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
         {
             if (!(scriptComponent.flags & ScriptComponentFlags::INITIALIZED))

@@ -28,9 +28,8 @@
 namespace hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
-static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
+// static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
 
-#define HYP_SYSTEMS_PARALLEL_EXECUTION
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 // #define HYP_SYSTEM_LOG_PERFORMANCE
 
@@ -104,8 +103,7 @@ EntityManager::EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFl
     : m_ownerThreadId(ownerThreadId),
       m_world(scene != nullptr ? scene->GetWorld() : nullptr),
       m_scene(scene),
-      m_flags(flags),
-      m_rootSynchronousExecutionGroup(nullptr)
+      m_flags(flags)
 {
     Assert(scene != nullptr);
 
@@ -122,21 +120,27 @@ EntityManager::EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFl
 
         m_containers.Set(componentInterface->GetTypeInfo().id, std::move(componentContainer));
     }
+
+    if (m_world != nullptr)
+    {
+        for (SystemExecutionGroup& group : m_world->GetSystemExecutionGroups())
+        {
+            m_systemExecutionGroups.PushBack(&group);
+        }
+    }
 }
 
 EntityManager::~EntityManager()
 {
 }
 
-void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
+void EntityManager::NotifySystemOfExistingEntities(const Handle<SystemBase>& system)
 {
     HYP_SCOPE;
 
     Assert(m_world != nullptr, "EntityManager must be associated with a World before initializing systems.");
 
     Assert(system.IsValid());
-
-    InitObject(system);
 
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
@@ -171,7 +175,7 @@ void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
     }
 }
 
-void EntityManager::ShutdownSystem(const Handle<SystemBase>& system)
+void EntityManager::NotifySystemOfAllEntitiesRemoved(const Handle<SystemBase>& system)
 {
     HYP_SCOPE;
 
@@ -220,9 +224,9 @@ void EntityManager::Init()
 
     Array<Handle<SystemBase>> systems;
 
-    for (SystemExecutionGroup& group : m_systemExecutionGroups)
+    for (SystemExecutionGroup* group : m_systemExecutionGroups)
     {
-        for (auto& systemIt : group.GetSystems())
+        for (auto& systemIt : group->GetSystems())
         {
             const Handle<SystemBase>& system = systemIt.second;
             Assert(system.IsValid());
@@ -243,7 +247,7 @@ void EntityManager::Init()
         for (const Handle<SystemBase>& system : systems)
         {
             // Initialize the system
-            InitializeSystem(system);
+            NotifySystemOfExistingEntities(system);
         }
     }
 
@@ -315,9 +319,9 @@ void EntityManager::Shutdown()
         {
             Array<Handle<SystemBase>> systems;
 
-            for (SystemExecutionGroup& group : m_systemExecutionGroups)
+            for (SystemExecutionGroup* group : m_systemExecutionGroups)
             {
-                for (auto& systemIt : group.GetSystems())
+                for (auto& systemIt : group->GetSystems())
                 {
                     const Handle<SystemBase>& system = systemIt.second;
                     Assert(system.IsValid());
@@ -329,7 +333,7 @@ void EntityManager::Shutdown()
             for (const Handle<SystemBase>& system : systems)
             {
                 // Shutdown the system
-                ShutdownSystem(system);
+                NotifySystemOfAllEntitiesRemoved(system);
             }
         }
     }
@@ -351,9 +355,9 @@ void EntityManager::SetWorld(World* world)
     // If EntityManager is initialized we need to notify all of our systems that the world has changed.
     Array<Handle<SystemBase>> systems;
 
-    for (SystemExecutionGroup& group : m_systemExecutionGroups)
+    for (SystemExecutionGroup* group : m_systemExecutionGroups)
     {
-        for (auto& systemIt : group.GetSystems())
+        for (auto& systemIt : group->GetSystems())
         {
             const Handle<SystemBase>& system = systemIt.second;
             Assert(system.IsValid());
@@ -378,17 +382,37 @@ void EntityManager::SetWorld(World* world)
 
         for (const Handle<SystemBase>& system : systems)
         {
-            ShutdownSystem(system);
+            NotifySystemOfAllEntitiesRemoved(system);
         }
     }
 
     m_world = world;
+    m_systemExecutionGroups.Clear();
 
     if (m_world != nullptr)
-    { // notify systems of entity added for the new world
+    {
+        for (SystemExecutionGroup& group : m_world->GetSystemExecutionGroups())
+        {
+            m_systemExecutionGroups.PushBack(&group);
+        }
+
+        systems.Clear();
+
+        for (SystemExecutionGroup* group : m_systemExecutionGroups)
+        {
+            for (auto& systemIt : group->GetSystems())
+            {
+                const Handle<SystemBase>& system = systemIt.second;
+                Assert(system.IsValid());
+
+                systems.PushBack(system);
+            }
+        }
+
+        // notify systems of entity added for the new world
         for (const Handle<SystemBase>& system : systems)
         {
-            InitializeSystem(system);
+            NotifySystemOfExistingEntities(system);
         }
 
         for (auto& subtypeData : m_entities.GetSubtypeData())
@@ -1241,9 +1265,9 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
         return;
     }
 
-    for (SystemExecutionGroup& group : m_systemExecutionGroups)
+    for (SystemExecutionGroup* group : m_systemExecutionGroups)
     {
-        for (auto& systemIt : group.GetSystems())
+        for (auto& systemIt : group->GetSystems())
         {
             if (systemIt.second->ActsOnComponents(componentIds.Keys(), true))
             {
@@ -1283,9 +1307,9 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<C
 
     WeakHandle<Entity> entityWeak = MakeWeakRef(entity);
 
-    for (SystemExecutionGroup& group : m_systemExecutionGroups)
+    for (SystemExecutionGroup* group : m_systemExecutionGroups)
     {
-        for (auto& systemIt : group.GetSystems())
+        for (auto& systemIt : group->GetSystems())
         {
             if (systemIt.second->ActsOnComponents(componentIds.Keys(), true))
             {
@@ -1315,7 +1339,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<C
     }
 }
 
-void EntityManager::BeginAsyncUpdate(float delta)
+void EntityManager::UpdateEntities(float delta)
 {
     HYP_SCOPE;
     AssertOnThread(m_ownerThreadId);
@@ -1329,134 +1353,6 @@ void EntityManager::BeginAsyncUpdate(float delta)
 
         entity->Update(delta);
     }
-
-    m_rootSynchronousExecutionGroup = nullptr;
-
-    TaskBatch* rootTaskBatch = nullptr;
-    TaskBatch* lastTaskBatch = nullptr;
-
-    // Prepare task dependencies
-    for (SizeType index = 0; index < m_systemExecutionGroups.Size(); index++)
-    {
-        SystemExecutionGroup& systemExecutionGroup = m_systemExecutionGroups[index];
-
-        if (!systemExecutionGroup.AllowUpdate())
-        {
-            continue;
-        }
-
-        TaskBatch* currentTaskBatch = systemExecutionGroup.GetTaskBatch();
-        AssertDebug(currentTaskBatch != nullptr);
-
-        AssertDebug(currentTaskBatch->IsCompleted(), "TaskBatch for SystemExecutionGroup is not completed: {} tasks enqueued", currentTaskBatch->numEnqueued);
-        currentTaskBatch->ResetState();
-
-        bool anySystemsToProcess = false;
-
-        for (const auto& pair : systemExecutionGroup.GetSystems())
-        {
-            SystemBase* system = pair.second;
-
-            if (system->NeedsUpdateThisFrame())
-            {
-                anySystemsToProcess = true;
-                break;
-            }
-        }
-
-        if (!anySystemsToProcess)
-        {
-            // skip it; nothing to do this frame
-            //continue;
-        }
-
-        // Add tasks to batches before kickoff
-        systemExecutionGroup.StartProcessing(delta);
-
-        if (systemExecutionGroup.RequiresGameThread() || !(m_flags & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION))
-        {
-            if (m_rootSynchronousExecutionGroup != nullptr)
-            {
-                m_rootSynchronousExecutionGroup->GetTaskBatch()->nextBatch = currentTaskBatch;
-            }
-            else
-            {
-                m_rootSynchronousExecutionGroup = &systemExecutionGroup;
-            }
-
-            continue;
-        }
-
-        if (!rootTaskBatch)
-        {
-            rootTaskBatch = currentTaskBatch;
-        }
-
-        if (lastTaskBatch != nullptr)
-        {
-            if (currentTaskBatch->executors.Any())
-            {
-                lastTaskBatch->nextBatch = currentTaskBatch;
-                lastTaskBatch = currentTaskBatch;
-            }
-        }
-        else
-        {
-            lastTaskBatch = currentTaskBatch;
-        }
-    }
-
-    // Kickoff first task
-    if (rootTaskBatch != nullptr && (rootTaskBatch->executors.Any() || rootTaskBatch->nextBatch != nullptr))
-    {
-#ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
-        TaskSystem::GetInstance().EnqueueBatch(rootTaskBatch);
-#endif
-    }
-}
-
-void EntityManager::EndAsyncUpdate()
-{
-    HYP_SCOPE;
-    AssertOnThread(m_ownerThreadId);
-
-    for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
-    {
-        if (!systemExecutionGroup.AllowUpdate() || systemExecutionGroup.RequiresGameThread() || !(m_flags & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION))
-        {
-            continue;
-        }
-
-        systemExecutionGroup.FinishProcessing();
-    }
-
-    if (m_rootSynchronousExecutionGroup != nullptr)
-    {
-        m_rootSynchronousExecutionGroup->FinishProcessing(/* executeBlocking */ true);
-
-        m_rootSynchronousExecutionGroup = nullptr;
-    }
-
-#if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
-    for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
-    {
-        const PerformanceClock& performanceClock = systemExecutionGroup.GetPerformanceClock();
-        const double elapsedTimeMs = performanceClock.Elapsed() / 1000.0;
-
-#ifdef HYP_SYSTEMS_LAG_SPIKE_DETECTION
-        if (elapsedTimeMs >= SystemExecutionGroupLagSpikeThreshold)
-        {
-            HYP_LOG(Entity, Warning, "SystemExecutionGroup spike detected: {} ms", elapsedTimeMs);
-        }
-#endif
-#ifdef HYP_SYSTEM_LOG_PERFORMANCE
-        for (const auto& it : systemExecutionGroup.GetPerformanceClocks())
-        {
-            HYP_LOG(Entity, Debug, "\tSystem {} performance: {}", it.first->GetName(), it.second.Elapsed() / 1000.0);
-        }
-#endif
-    }
-#endif
 }
 
 bool EntityManager::IsEntityInitializedForSystem(SystemBase* system, const Entity* entity) const
@@ -1486,110 +1382,5 @@ void EntityManager::GetSystemClasses(Array<const Class*>& outClasses) const
 }
 
 #pragma endregion EntityManager
-
-#pragma region SystemExecutionGroup
-
-SystemExecutionGroup::SystemExecutionGroup(bool requiresGameThread, bool allowUpdate)
-    : m_requiresGameThread(requiresGameThread),
-      m_allowUpdate(allowUpdate),
-      m_taskBatch(MakeUnique<TaskBatch>())
-{
-}
-
-SystemExecutionGroup::~SystemExecutionGroup()
-{
-}
-
-void SystemExecutionGroup::StartProcessing(float delta)
-{
-    HYP_SCOPE;
-
-    AssertDebug(AllowUpdate());
-
-#ifdef HYP_DEBUG_MODE
-    m_performanceClock.Start();
-
-    for (auto& it : m_systems)
-    {
-        SystemBase* system = it.second.Get();
-
-        m_performanceClocks.Set(system, PerformanceClock());
-    }
-#endif
-
-#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)
-    HYP_LOG(Entity, Debug, "Starting SystemExecutionGroup processing with {} systems", m_systems.Size());
-#endif
-
-    for (auto& it : m_systems)
-    {
-        SystemBase* system = it.second.Get();
-
-        if (!system->NeedsUpdateThisFrame())
-        {
-            // skip this system; it doesn't need updating this frame
-            //continue;
-        }
-
-#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)
-        HYP_LOG(Entity, Debug, "\t\tSystem: {}", system->GetName());
-#endif
-
-        m_taskBatch->AddTask([this, system, delta]
-            {
-                HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
-
-#ifdef HYP_DEBUG_MODE
-                PerformanceClock& performanceClock = m_performanceClocks[system];
-                performanceClock.Start();
-#endif
-
-                system->Process(delta);
-
-#ifdef HYP_DEBUG_MODE
-                performanceClock.Stop();
-#endif
-            });
-    }
-}
-
-void SystemExecutionGroup::FinishProcessing(bool executeBlocking)
-{
-    AssertDebug(AllowUpdate());
-
-#ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
-    if (executeBlocking)
-    {
-        m_taskBatch->ExecuteBlocking(/* executeDependentBatches */ true);
-    }
-    else
-    {
-        m_taskBatch->AwaitCompletion();
-    }
-#else
-    m_taskBatch->ExecuteBlocking(/* executeDependentBatches */ true);
-#endif
-
-    for (auto& it : m_systems)
-    {
-        SystemBase* system = it.second.Get();
-
-        if (system->m_afterProcessProcs.Any())
-        {
-            for (auto& proc : system->m_afterProcessProcs)
-            {
-                proc();
-            }
-
-            system->m_afterProcessProcs.Clear();
-        }
-    }
-
-#ifdef HYP_DEBUG_MODE
-    m_performanceClock.Stop();
-#endif
-}
-
-#pragma endregion SystemExecutionGroup
 
 } // namespace hyperion

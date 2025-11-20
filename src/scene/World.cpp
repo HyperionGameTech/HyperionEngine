@@ -6,6 +6,15 @@
 #include <scene/View.hpp>
 #include <scene/EntityManager.hpp>
 #include <scene/EntityTag.hpp>
+#include <scene/SystemExecutionGroup.hpp>
+
+#include <scene/systems/WorldAABBUpdaterSystem.hpp>
+#include <scene/systems/VisibilityStateUpdaterSystem.hpp>
+#include <scene/systems/LightmapSystem.hpp>
+#include <scene/systems/AnimationSystem.hpp>
+#include <scene/systems/AudioSystem.hpp>
+#include <scene/systems/PhysicsSystem.hpp>
+#include <scene/systems/ScriptSystem.hpp>
 
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
@@ -51,6 +60,13 @@ namespace hyperion {
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
 #define HYP_WORLD_ASYNC_VIEW_COLLECTION
 
+#define HYP_SYSTEMS_PARALLEL_EXECUTION
+// #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
+// #define HYP_SYSTEM_LOG_PERFORMANCE
+
+// if the number of systems in a group is less than this value, they will be executed sequentially
+static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
+
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
 static const Name s_nameStreamingLayerScenes = NAME("Scenes_Layer");
@@ -65,7 +81,8 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     : ObjectBase(),
       m_name(name),
       m_worldFlags(worldFlags),
-      m_raytracingView(nullptr)
+      m_raytracingView(nullptr),
+      m_rootSynchronousExecutionGroup(nullptr)
 {
     if (m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS)
     {
@@ -151,6 +168,14 @@ void World::Init()
 
         InitObject(m_worldGrid);
     }
+
+    AddSystem(CreateObject<WorldAABBUpdaterSystem>());
+    AddSystem(CreateObject<VisibilityStateUpdaterSystem>());
+    AddSystem(CreateObject<LightmapSystem>());
+    AddSystem(CreateObject<AnimationSystem>());
+    AddSystem(CreateObject<AudioSystem>());
+    AddSystem(CreateObject<PhysicsSystem>());
+    AddSystem(CreateObject<ScriptSystem>());
 
     for (auto& it : m_subsystems)
     {
@@ -370,20 +395,153 @@ void World::ProcessViewAsync(View* view)
     m_processViews.PushBack(view);
 }
 
-void World::Update(float delta)
+void World::BeginUpdate(float delta)
 {
     HYP_SCOPE;
 
     m_gameState.deltaTime = delta;
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        AssertDebug(scene != nullptr);
+        scene->Update(delta);
+    }
 
     if (m_physicsWorld)
     {
         m_physicsWorld->Tick(delta);
     }
 
+    m_gameState.gameTime += delta;
+
+    m_rootSynchronousExecutionGroup = nullptr;
+
+    TaskBatch* rootTaskBatch = nullptr;
+    TaskBatch* lastTaskBatch = nullptr;
+
+    // Prepare task dependencies
+    for (SizeType index = 0; index < m_systemExecutionGroups.Size(); index++)
+    {
+        SystemExecutionGroup& systemExecutionGroup = m_systemExecutionGroups[index];
+
+        if (!systemExecutionGroup.AllowUpdate())
+        {
+            continue;
+        }
+
+        TaskBatch* currentTaskBatch = systemExecutionGroup.GetTaskBatch();
+        AssertDebug(currentTaskBatch != nullptr);
+
+        AssertDebug(currentTaskBatch->IsCompleted(), "TaskBatch for SystemExecutionGroup is not completed: {} tasks enqueued", currentTaskBatch->numEnqueued);
+        currentTaskBatch->ResetState();
+
+        bool anySystemsToProcess = false;
+
+        for (const auto& pair : systemExecutionGroup.GetSystems())
+        {
+            SystemBase* system = pair.second;
+
+            if (system->NeedsUpdateThisFrame())
+            {
+                anySystemsToProcess = true;
+                break;
+            }
+        }
+
+        if (!anySystemsToProcess)
+        {
+            // skip it; nothing to do this frame
+            // continue;
+        }
+
+        // Add tasks to batches before kickoff
+        systemExecutionGroup.StartProcessing(delta, m_scenes.ToSpan());
+
+        if (systemExecutionGroup.RequiresGameThread())
+        {
+            if (m_rootSynchronousExecutionGroup != nullptr)
+            {
+                m_rootSynchronousExecutionGroup->GetTaskBatch()->nextBatch = currentTaskBatch;
+            }
+            else
+            {
+                m_rootSynchronousExecutionGroup = &systemExecutionGroup;
+            }
+
+            continue;
+        }
+
+        if (!rootTaskBatch)
+        {
+            rootTaskBatch = currentTaskBatch;
+        }
+
+        if (lastTaskBatch != nullptr)
+        {
+            if (currentTaskBatch->executors.Any())
+            {
+                lastTaskBatch->nextBatch = currentTaskBatch;
+                lastTaskBatch = currentTaskBatch;
+            }
+        }
+        else
+        {
+            lastTaskBatch = currentTaskBatch;
+        }
+    }
+
+    // Kickoff first task
+    if (rootTaskBatch != nullptr && (rootTaskBatch->executors.Any() || rootTaskBatch->nextBatch != nullptr))
+    {
+#ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
+        TaskSystem::GetInstance().EnqueueBatch(rootTaskBatch);
+#endif
+    }
+}
+
+void World::EndUpdate()
+{
+    HYP_SCOPE;
+
+    for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
+    {
+        if (!systemExecutionGroup.AllowUpdate() || systemExecutionGroup.RequiresGameThread())
+        {
+            continue;
+        }
+
+        systemExecutionGroup.FinishProcessing();
+    }
+
+    if (m_rootSynchronousExecutionGroup != nullptr)
+    {
+        m_rootSynchronousExecutionGroup->FinishProcessing(/* executeBlocking */ true);
+
+        m_rootSynchronousExecutionGroup = nullptr;
+    }
+
     UpdateDirtyMeshEntities();
 
-    m_gameState.gameTime += delta;
+#if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
+    for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
+    {
+        const PerformanceClock& performanceClock = systemExecutionGroup.GetPerformanceClock();
+        const double elapsedTimeMs = performanceClock.Elapsed() / 1000.0;
+
+#ifdef HYP_SYSTEMS_LAG_SPIKE_DETECTION
+        if (elapsedTimeMs >= SystemExecutionGroupLagSpikeThreshold)
+        {
+            HYP_LOG(Entity, Warning, "SystemExecutionGroup spike detected: {} ms", elapsedTimeMs);
+        }
+#endif
+#ifdef HYP_SYSTEM_LOG_PERFORMANCE
+        for (const auto& it : systemExecutionGroup.GetPerformanceClocks())
+        {
+            HYP_LOG(Entity, Debug, "\tSystem {} performance: {}", it.first->GetName(), it.second.Elapsed() / 1000.0);
+        }
+#endif
+    }
+#endif
 }
 
 void World::CollectViews(Array<View*, SceneAllocator>& outViews)
@@ -423,17 +581,6 @@ void World::CollectViews(Array<View*, SceneAllocator>& outViews)
 
     // Clear additional Views to process for next frame
     m_processViews.Clear();
-}
-
-void World::CollectScenes(Array<Scene*, SceneAllocator>& outScenes)
-{
-    const SizeType offset = outScenes.Size();
-    outScenes.Resize(offset + m_scenes.Size());
-
-    for (SizeType i = 0; i < m_scenes.Size(); i++)
-    {
-        outScenes[offset + i] = m_scenes[i];
-    }
 }
 
 void World::CollectSubsystems(Array<Subsystem*, SceneAllocator>& outSubsystems)
@@ -1127,6 +1274,60 @@ Array<WGLayerDesc, DynamicAllocator> World::SerializeStreamingLayers() const
     }
 
     return m_worldGrid->GetStreamingLayerDescs();
+}
+
+SystemBase* World::AddSystem(const Handle<SystemBase>& system)
+{
+    Assert(system.IsValid());
+    Assert(system->m_world == nullptr || system->m_world == this);
+
+    system->InitComponentInfos_Internal();
+
+    bool wasAdded = false;
+
+    if (system->AllowParallelExecution())
+    {
+        for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
+        {
+            if (systemExecutionGroup.IsValidForSystem(system.Get()))
+            {
+                if (systemExecutionGroup.AddSystem(system))
+                {
+                    wasAdded = true;
+
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!wasAdded)
+    {
+        SystemExecutionGroup& systemExecutionGroup = m_systemExecutionGroups.EmplaceBack(system->RequiresGameThread(), system->AllowUpdate());
+
+        if (systemExecutionGroup.AddSystem(system))
+        {
+            wasAdded = true;
+        }
+    }
+
+    system->m_world = this;
+
+    // If the World is initialized, call Initialize() on the System.
+    if (IsInitCalled() && wasAdded)
+    {
+        InitObject(system);
+
+        for (const Handle<Scene>& scene : m_scenes)
+        {
+            if (scene != nullptr)
+            {
+                scene->GetEntityManager()->NotifySystemOfExistingEntities(system);
+            }
+        }
+    }
+
+    return system;
 }
 
 } // namespace hyperion

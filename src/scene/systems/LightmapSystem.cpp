@@ -63,10 +63,15 @@ bool LightmapSystem::NeedsUpdateThisFrame() const
     // return es && es->GetElements().Any();
 }
 
-void LightmapSystem::Process(float delta, Span<Scene*> scenes)
+void LightmapSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     for (Scene* scene : scenes)
     {
+        if (!ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
         for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, TagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
         {
             if (meshComponent.lightmapVolumeUuid == Uuid::Invalid())

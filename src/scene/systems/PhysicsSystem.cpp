@@ -14,7 +14,7 @@
 
 namespace hyperion {
 
-bool PhysicsSystem::ShouldCreateForScene(Scene* scene) const
+bool PhysicsSystem::ShouldProcessScene(Scene* scene) const
 {
     static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::FOREGROUND;
 
@@ -60,10 +60,15 @@ bool PhysicsSystem::NeedsUpdateThisFrame() const
     // return es && es->GetElements().Any();
 }
 
-void PhysicsSystem::Process(float delta, Span<Scene*> scenes)
+void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     for (Scene* scene : scenes)
     {
+        if (!ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
         for (auto [entity, rigidBodyComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
         {
             Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;

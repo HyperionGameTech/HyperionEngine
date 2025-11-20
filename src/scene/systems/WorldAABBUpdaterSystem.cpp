@@ -40,10 +40,15 @@ bool WorldAABBUpdaterSystem::NeedsUpdateThisFrame() const
     return true;
 }
 
-void WorldAABBUpdaterSystem::Process(float delta, Span<Scene*> scenes)
+void WorldAABBUpdaterSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     for (Scene* scene : scenes)
     {
+        if (!ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
         HashMap<WeakHandle<Entity>, bool> updatedEntities;
 
         for (auto [entity, boundingBoxComponent, transformComponent, _] : scene->GetEntityManager()->GetEntitySet<BoundingBoxComponent, TransformComponent, TagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos()))

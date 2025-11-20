@@ -16,11 +16,6 @@ class WorldAABBUpdaterSystem : public SystemBase
     HYP_OBJECT_BODY(WorldAABBUpdaterSystem);
 
 public:
-    WorldAABBUpdaterSystem(EntityManager& entityManager)
-        : SystemBase(entityManager)
-    {
-    }
-
     virtual ~WorldAABBUpdaterSystem() override = default;
 
     virtual void OnEntityAdded(Entity* entity) override;
@@ -28,7 +23,7 @@ public:
 
     virtual bool NeedsUpdateThisFrame() const override;
 
-    virtual void Process(float delta, Span<Scene*> scenes) override;
+    virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
 
 private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override

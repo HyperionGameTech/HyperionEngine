@@ -57,12 +57,13 @@ class HYP_API SystemBase : public ObjectBase
 public:
     friend class EntityManager;
     friend class SystemExecutionGroup;
+    friend class World;
 
     virtual ~SystemBase() override = default;
 
     Name GetName() const;
 
-    virtual bool ShouldCreateForScene(Scene* scene) const
+    virtual bool ShouldProcessScene(Scene* scene) const
     {
         return true;
     }
@@ -211,7 +212,12 @@ public:
     {
     }
 
-    virtual void Process(float delta, Span<Scene*> scenes) = 0;
+    virtual void Process(float delta, Span<Handle<Scene>> scenes) = 0;
+
+    HYP_FORCE_INLINE World* GetWorld() const
+    {
+        return m_world;
+    }
 
 protected:
     SystemBase()
@@ -236,9 +242,7 @@ protected:
 
     virtual SystemComponentDescriptors GetComponentDescriptors() const = 0;
 
-    Scene* GetScene() const;
-    World* GetWorld() const;
-
+    World* m_world = nullptr;
     DelegateHandlerSet m_delegateHandlers;
 
 private:

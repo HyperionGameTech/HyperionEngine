@@ -18,21 +18,16 @@ class PhysicsSystem : public SystemBase
     HYP_OBJECT_BODY(PhysicsSystem);
 
 public:
-    PhysicsSystem(EntityManager& entityManager)
-        : SystemBase(entityManager)
-    {
-    }
-
     virtual ~PhysicsSystem() override = default;
 
-    virtual bool ShouldCreateForScene(Scene* scene) const override;
+    virtual bool ShouldProcessScene(Scene* scene) const override;
 
     virtual void OnEntityAdded(Entity* entity) override;
     virtual void OnEntityRemoved(Entity* entity) override;
 
     virtual bool NeedsUpdateThisFrame() const override;
 
-    virtual void Process(float delta, Span<Scene*> scenes) override;
+    virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
 
 private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override

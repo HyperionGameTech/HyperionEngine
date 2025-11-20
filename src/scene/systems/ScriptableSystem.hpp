@@ -41,8 +41,16 @@ public:
     HYP_METHOD(Scriptable)
     void Shutdown() override;
 
+    void Process(float delta, Span<Handle<Scene>> scenes) override final
+    {
+        for (const Handle<Scene>& scene : scenes)
+        {
+            ProcessScene(scene, delta);
+        }
+    }
+
     HYP_METHOD(Scriptable)
-    void Process(float delta) override;
+    void ProcessScene(const Handle<Scene>& scene, float delta);
 
 private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
@@ -102,7 +110,7 @@ private:
         SystemBase::Shutdown();
     }
 
-    void Process_Impl(float delta)
+    void ProcessScene_Impl(const Handle<Scene>& scene, float delta)
     {
         HYP_PURE_VIRTUAL();
     }

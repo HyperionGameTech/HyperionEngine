@@ -88,7 +88,8 @@ namespace Hyperion
         /// <summary>
         /// Processes the system logic for the current tick. This method is called on each tick if AllowUpdate() returns true.
         /// </summary>
+        /// <param name="scene">The scene being processed.</param>
         /// <param name="delta">The time elapsed since the last tick, in seconds.</param>
-        public abstract void Process(float delta);
+        public abstract void ProcessScene(Scene scene, float delta);
     }
 }

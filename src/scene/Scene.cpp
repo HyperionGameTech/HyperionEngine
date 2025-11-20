@@ -198,14 +198,6 @@ void Scene::Init()
 
     m_entityManager->SetWorld(m_world);
 
-    AddSystemIfApplicable<WorldAABBUpdaterSystem>();
-    AddSystemIfApplicable<VisibilityStateUpdaterSystem>();
-    AddSystemIfApplicable<LightmapSystem>();
-    AddSystemIfApplicable<AnimationSystem>();
-    AddSystemIfApplicable<AudioSystem>();
-    AddSystemIfApplicable<PhysicsSystem>();
-    AddSystemIfApplicable<ScriptSystem>();
-
     // Scene must be ready before entity manager is initialized
     // (OnEntityAdded() calls on Systems may require this)
     SetReady(true);
@@ -300,6 +292,11 @@ void Scene::Update(float delta)
         m_octree.PerformUpdates();
         m_octree.NextVisibilityState();
     }
+
+    if (EntityManager* entityManager = m_entityManager)
+    {
+        entityManager->UpdateEntities(delta);
+    }
 }
 
 void Scene::SetRoot(const Handle<Node>& root)
@@ -386,19 +383,6 @@ Name Scene::GetUniqueNodeName(UTF8StringView baseName) const
     }
 
     return CreateNameFromDynamicString(uniqueName);
-}
-
-template <class SystemType>
-void Scene::AddSystemIfApplicable()
-{
-    Handle<SystemType> system = CreateObject<SystemType>(*m_entityManager);
-
-    if (!system->ShouldCreateForScene(this))
-    {
-        return;
-    }
-
-    m_entityManager->AddSystem(system);
 }
 
 #pragma endregion Scene

@@ -36,6 +36,7 @@
 #include <scene/ComponentContainer.hpp>
 #include <scene/System.hpp>
 #include <scene/EntityTag.hpp>
+#include <scene/SystemExecutionGroup.hpp>
 
 namespace hyperion {
 
@@ -60,193 +61,6 @@ class Scene;
 struct HypData;
 class Node;
 
-/*! \brief A group of Systems that are able to be processed concurrently, as they do not share any dependencies.
- */
-class HYP_API SystemExecutionGroup
-{
-public:
-    SystemExecutionGroup(bool requiresGameThread = false, bool allowUpdate = true);
-    SystemExecutionGroup(const SystemExecutionGroup&) = delete;
-    SystemExecutionGroup& operator=(const SystemExecutionGroup&) = delete;
-    SystemExecutionGroup(SystemExecutionGroup&&) noexcept = default;
-    SystemExecutionGroup& operator=(SystemExecutionGroup&&) noexcept = default;
-    ~SystemExecutionGroup();
-
-    HYP_FORCE_INLINE bool RequiresGameThread() const
-    {
-        return m_requiresGameThread;
-    }
-
-    HYP_FORCE_INLINE bool AllowUpdate() const
-    {
-        return m_allowUpdate;
-    }
-
-    HYP_FORCE_INLINE TypeMap<Handle<SystemBase>>& GetSystems()
-    {
-        return m_systems;
-    }
-
-    HYP_FORCE_INLINE const TypeMap<Handle<SystemBase>>& GetSystems() const
-    {
-        return m_systems;
-    }
-
-    HYP_FORCE_INLINE TaskBatch* GetTaskBatch() const
-    {
-        return m_taskBatch.Get();
-    }
-
-#ifdef HYP_DEBUG_MODE
-    HYP_FORCE_INLINE const PerformanceClock& GetPerformanceClock() const
-    {
-        return m_performanceClock;
-    }
-
-    HYP_FORCE_INLINE const FlatMap<SystemBase*, PerformanceClock>& GetPerformanceClocks() const
-    {
-        return m_performanceClocks;
-    }
-#endif
-
-    /*! \brief Checks if the SystemExecutionGroup is valid for the given System.
-     *
-     *  \param[in] systemPtr The System to check.
-     *
-     *  \return True if the SystemExecutionGroup is valid for the given System, false otherwise.
-     */
-    bool IsValidForSystem(const SystemBase* systemPtr) const
-    {
-        Assert(systemPtr != nullptr);
-
-        // If the system does not allow update calls, and we don't as well, return true as there will be no overlap.
-        if (!AllowUpdate())
-        {
-            return !systemPtr->AllowUpdate();
-        }
-
-        // If the system requires to execute on game thread and the SystemExecutionGroup does not, it is not valid
-        // and if the system does not require to execute on game thread and the SystemExecutionGroup does, it is not valid (it could be better parallelized)
-        if (systemPtr->RequiresGameThread() != RequiresGameThread())
-        {
-            return false;
-        }
-
-        const Array<TypeId>& componentTypeIds = systemPtr->GetComponentTypeIds();
-
-        for (const auto& it : m_systems)
-        {
-            const SystemBase* otherSystem = it.second.Get();
-
-            for (TypeId componentTypeId : componentTypeIds)
-            {
-                const ComponentInfo& componentInfo = systemPtr->GetComponentInfo(componentTypeId);
-
-                if (componentInfo.rwFlags & ComponentRWFlags::WRITE)
-                {
-                    if (otherSystem->HasComponentTypeId(componentTypeId, true))
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    // This System is read-only for this component, so it can be processed with other Systems
-                    if (otherSystem->HasComponentTypeId(componentTypeId, false))
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /*! \brief Checks if the SystemExecutionGroup has a System of the given type.
-     *
-     *  \tparam SystemType The type of the System to check for.
-     *
-     *  \return True if the SystemExecutionGroup has a System of the given type, false otherwise.
-     */
-    template <class SystemType>
-    HYP_FORCE_INLINE bool HasSystem() const
-    {
-        static const TypeId typeId = TypeId::ForType<SystemType>();
-
-        return m_systems.Find(typeId) != m_systems.End();
-    }
-
-    /*! \brief Adds a System to the SystemExecutionGroup.
-     *
-     *  \param[in] system The System to add.
-     */
-    SystemBase* AddSystem(const Handle<SystemBase>& system)
-    {
-        Assert(system.IsValid());
-        Assert(IsValidForSystem(system.Get()), "System is not valid for this SystemExecutionGroup");
-
-        const TypeId typeId = GetTypeIdForClass(system->InstanceClass());
-
-        auto it = m_systems.Find(typeId);
-        Assert(it == m_systems.End(), "System already exists");
-
-        auto insertResult = m_systems.Set(typeId, system);
-
-        return insertResult.first->second;
-    }
-
-    template <class SystemType>
-    SystemType* GetSystem() const
-    {
-        static const TypeId typeId = TypeId::ForType<SystemType>();
-
-        const auto it = m_systems.Find(typeId);
-
-        if (it == m_systems.End() || !it->second.IsValid())
-        {
-            return Handle<SystemType>::empty;
-        }
-
-        return ObjCast<SystemType>(*it->second);
-    }
-
-    /*! \brief Removes a System from the SystemExecutionGroup.
-     *
-     *  \tparam SystemType The type of the System to remove.
-     *
-     *  \return True if the System was removed, false otherwise.
-     */
-    template <class SystemType>
-    bool RemoveSystem()
-    {
-        static const TypeId typeId = TypeId::ForType<SystemType>();
-
-        return m_systems.Erase(typeId);
-    }
-
-    /*! \brief Start processing all Systems in the SystemExecutionGroup.
-     *
-     *  \param[in] delta The delta time value
-     */
-    void StartProcessing(float delta);
-
-    /*! \brief Waits on all processing tasks to complete */
-    void FinishProcessing(bool executeBlocking = false);
-
-private:
-    bool m_requiresGameThread;
-    bool m_allowUpdate;
-
-    TypeMap<Handle<SystemBase>> m_systems;
-    UniquePtr<TaskBatch> m_taskBatch;
-
-#ifdef HYP_DEBUG_MODE
-    PerformanceClock m_performanceClock;
-    FlatMap<SystemBase*, PerformanceClock> m_performanceClocks;
-#endif
-};
-
 class EntityManager;
 /*! \brief The EntityManager is responsible for managing Entities, their components, and Systems within a Scene. */
 HYP_CLASS()
@@ -258,6 +72,8 @@ class HYP_API EntityManager final : public ObjectBase
 
     // Allow Entity destructor to call RemoveEntity().
     friend class Entity;
+    
+    friend class World;
 
 public:
     static constexpr ComponentId invalidComponentId = 0;
@@ -913,23 +729,12 @@ public:
         return entitySetsIt->second.Get();
     }
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE SystemBase* AddSystem(const Handle<SystemBase>& system)
-    {
-        if (!system.IsValid())
-        {
-            return nullptr;
-        }
-
-        return AddSystemToExecutionGroup(system);
-    }
-
     template <class SystemType>
     SystemType* GetSystem() const
     {
-        for (const SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
+        for (const SystemExecutionGroup* systemExecutionGroup : m_systemExecutionGroups)
         {
-            if (SystemType* system = systemExecutionGroup.GetSystem<SystemType>())
+            if (SystemType* system = systemExecutionGroup->GetSystem<SystemType>())
             {
                 return system;
             }
@@ -941,9 +746,9 @@ public:
     HYP_METHOD()
     SystemBase* GetSystemByTypeId(TypeId systemTypeId) const
     {
-        for (const SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
+        for (const SystemExecutionGroup* systemExecutionGroup : m_systemExecutionGroups)
         {
-            for (const auto& it : systemExecutionGroup.GetSystems())
+            for (const auto& it : systemExecutionGroup->GetSystems())
             {
                 if (it.first == systemTypeId)
                 {
@@ -976,8 +781,7 @@ public:
 
     void Shutdown();
 
-    void BeginAsyncUpdate(float delta);
-    void EndAsyncUpdate();
+    void UpdateEntities(float delta);
 
     template <class Component>
     HYP_FORCE_INLINE ComponentContainer<Component>& GetContainer()
@@ -1043,57 +847,8 @@ private:
         ((HasTag<EntityTag(Indices + 1)>(entity) ? (void)(outMask |= (1u << uint32(Indices))) : void()), ...);
     }
 
-    SystemBase* AddSystemToExecutionGroup(const Handle<SystemBase>& system)
-    {
-        Assert(system.IsValid());
-        Assert(system->m_entityManager == nullptr || system->m_entityManager == this);
-
-        system->InitComponentInfos_Internal();
-
-        bool wasAdded = false;
-
-        if ((m_flags & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION) && system->AllowParallelExecution())
-        {
-            for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
-            {
-                if (systemExecutionGroup.IsValidForSystem(system.Get()))
-                {
-                    if (systemExecutionGroup.AddSystem(system))
-                    {
-                        wasAdded = true;
-
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (!wasAdded)
-        {
-            SystemExecutionGroup& systemExecutionGroup = m_systemExecutionGroups.EmplaceBack(system->RequiresGameThread(), system->AllowUpdate());
-
-            if (systemExecutionGroup.AddSystem(system))
-            {
-                wasAdded = true;
-            }
-        }
-
-        system->m_entityManager = this;
-
-        // If the EntityManager is initialized, call Initialize() on the System.
-        if (IsInitCalled() && wasAdded)
-        {
-            if (m_world != nullptr)
-            {
-                InitializeSystem(system);
-            }
-        }
-
-        return system;
-    }
-
-    void InitializeSystem(const Handle<SystemBase>& system);
-    void ShutdownSystem(const Handle<SystemBase>& system);
+    void NotifySystemOfExistingEntities(const Handle<SystemBase>& system);
+    void NotifySystemOfAllEntitiesRemoved(const Handle<SystemBase>& system);
 
     void NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const TypeMap<ComponentId>& componentIds);
     void NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<ComponentId>& componentIds);
@@ -1121,9 +876,7 @@ private:
     mutable Mutex m_entitySetsMutex; // @TODO : try to remove?
     TypeMap<HashSet<EntitySetId>> m_componentEntitySets;
 
-    Array<SystemExecutionGroup> m_systemExecutionGroups;
-
-    SystemExecutionGroup* m_rootSynchronousExecutionGroup;
+    Array<SystemExecutionGroup*> m_systemExecutionGroups;
 
     HashMap<SystemBase*, HashSet<Entity*>> m_systemEntityMap;
     mutable Mutex m_systemEntityMapMutex;

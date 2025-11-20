@@ -19,7 +19,7 @@
 
 namespace hyperion {
 
-bool AnimationSystem::ShouldCreateForScene(Scene* scene) const
+bool AnimationSystem::ShouldProcessScene(Scene* scene) const
 {
     return !(scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED));
 }
@@ -64,12 +64,17 @@ bool AnimationSystem::NeedsUpdateThisFrame() const
     // return es && es->GetElements().Any();
 }
 
-void AnimationSystem::Process(float delta, Span<Scene*> scenes)
+void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
 
     for (Scene* scene : scenes)
     {
+        if (!ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
         for (auto [entity, animationComponent, meshComponent] : scene->GetEntityManager()->GetEntitySet<AnimationComponent, MeshComponent>().GetScopedView(GetComponentInfos()))
         {
             if (!meshComponent.skeleton)

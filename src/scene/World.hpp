@@ -5,6 +5,7 @@
 #include <scene/Scene.hpp>
 #include <scene/Subsystem.hpp>
 #include <scene/GameState.hpp>
+#include <scene/SystemExecutionGroup.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -189,6 +190,37 @@ public:
     HYP_METHOD()
     void RemoveView(View* view);
 
+    /*! \brief Adds a System to the World.
+     *  \param[in] system The System to add.
+     */
+    SystemBase* AddSystem(const Handle<SystemBase>& system);
+
+    template <class SystemType>
+    HYP_FORCE_INLINE SystemType* GetSystem() const
+    {
+        static const TypeId typeId = TypeId::ForType<SystemType>();
+
+        for (const SystemExecutionGroup& group : m_systemExecutionGroups)
+        {
+            if (group.HasSystem<SystemType>())
+            {
+                return group.GetSystem<SystemType>();
+            }
+        }
+
+        return nullptr;
+    }
+
+    HYP_FORCE_INLINE Array<SystemExecutionGroup>& GetSystemExecutionGroups()
+    {
+        return m_systemExecutionGroups;
+    }
+
+    HYP_FORCE_INLINE const Array<SystemExecutionGroup>& GetSystemExecutionGroups() const
+    {
+        return m_systemExecutionGroups;
+    }
+
     /*! \brief Get Views attached to this World. Buffered so it is safe to access from either the render thread or game thread. */
     Span<View* const> GetViews() const;
 
@@ -202,10 +234,10 @@ public:
     void ProcessViewAsync(View* view);
 
     void CollectViews(Array<View*, SceneAllocator>& outViews);
-    void CollectScenes(Array<Scene*, SceneAllocator>& outScenes);
     void CollectSubsystems(Array<Subsystem*, SceneAllocator>& outSubsystems);
 
-    void Update(float delta);
+    void BeginUpdate(float delta);
+    void EndUpdate();
 
     Delegate<void, World*, GameStateMode, GameStateMode> OnGameStateChange;
 
@@ -243,6 +275,9 @@ private:
 
     HYP_FIELD(Property = "Scenes", Transient)
     Array<Handle<Scene>> m_scenes;
+
+    Array<SystemExecutionGroup> m_systemExecutionGroups;
+    SystemExecutionGroup* m_rootSynchronousExecutionGroup;
 
     Array<Handle<View>> m_views;
 

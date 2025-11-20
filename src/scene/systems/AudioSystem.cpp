@@ -16,7 +16,7 @@
 
 namespace hyperion {
 
-bool AudioSystem::ShouldCreateForScene(Scene* scene) const
+bool AudioSystem::ShouldProcessScene(Scene* scene) const
 {
     static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::FOREGROUND;
 
@@ -39,11 +39,12 @@ void AudioSystem::OnEntityAdded(Entity* entity)
 
 bool AudioSystem::NeedsUpdateThisFrame() const
 {
-    const auto* es = GetEntityManager().TryGetEntitySet<AudioComponent, TransformComponent>();
-    return es && es->GetElements().Any();
+    return SystemBase::NeedsUpdateThisFrame();
+    //    const auto* es = GetEntityManager().TryGetEntitySet<AudioComponent, TransformComponent>();
+    //    return es && es->GetElements().Any();
 }
 
-void AudioSystem::Process(float delta, Span<Scene*> scenes)
+void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     if (!AudioManager::GetInstance().IsInitialized())
     {
@@ -52,6 +53,11 @@ void AudioSystem::Process(float delta, Span<Scene*> scenes)
 
     for (Scene* scene : scenes)
     {
+        if (!ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
         if (scene->GetIsAudioListener())
         {
             if (Camera* camera = scene->GetPrimaryCamera())

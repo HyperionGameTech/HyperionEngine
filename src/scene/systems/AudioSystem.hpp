@@ -14,20 +14,15 @@ class AudioSystem : public SystemBase
     HYP_OBJECT_BODY(AudioSystem);
 
 public:
-    AudioSystem(EntityManager& entityManager)
-        : SystemBase(entityManager)
-    {
-    }
-
     virtual ~AudioSystem() override = default;
 
-    virtual bool ShouldCreateForScene(Scene* scene) const override;
+    virtual bool ShouldProcessScene(Scene* scene) const override;
 
     virtual void OnEntityAdded(Entity* entity) override;
 
     virtual bool NeedsUpdateThisFrame() const;
 
-    virtual void Process(float delta) override;
+    virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
 
 private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
@@ -40,4 +35,3 @@ private:
 };
 
 } // namespace hyperion
-

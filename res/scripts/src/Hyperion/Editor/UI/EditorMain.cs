@@ -39,7 +39,7 @@ public class CustomSystem : ScriptableSystem
         Logger.Log(LogType.Info, "CustomSystem Init called");
     }
 
-    public override void Process(float delta)
+    public override void ProcessScene(Scene scene, float delta)
     {
     }
 }

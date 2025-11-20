@@ -603,18 +603,24 @@ void EngineDriver::GameThreadUpdate(float delta)
     m_worldsToRenderPerFrame[slot].Clear();
 
     Array<View*, SceneAllocator> viewsToProcess;
-    Array<Scene*, SceneAllocator> scenesToProcess;
     Array<Subsystem*, SceneAllocator> subsystemsToProcess;
 
     for (World* world : m_worlds)
     {
         world->CollectViews(viewsToProcess);
-        world->CollectScenes(scenesToProcess);
         world->CollectSubsystems(subsystemsToProcess);
 
-        world->Update(delta);
-
         EnqueueWorldRender(world);
+    }
+
+    for (World* world : m_worlds)
+    {
+        world->BeginUpdate(delta);
+    }
+
+    for (World* world : m_worlds)
+    {
+        world->EndUpdate();
     }
 
 #if HYP_PROCESS_SUBSYSTEMS_ASYNC
@@ -661,52 +667,6 @@ void EngineDriver::GameThreadUpdate(float delta)
         subsystem->Update(delta);
     }
 #endif
-
-    Array<EntityManager*, SceneAllocator> entityManagers;
-    entityManagers.Reserve(scenesToProcess.Size());
-
-    for (uint32 index = 0; index < scenesToProcess.Size(); index++)
-    {
-        Scene* scene = scenesToProcess[index];
-        AssertDebug(scene != nullptr);
-
-        if (!scene)
-        {
-            continue;
-        }
-
-        Assert(!(scene->GetSceneFlags() & SceneFlags::DETACHED));
-
-        scene->Update(delta);
-
-        entityManagers.PushBack(scene->GetEntityManager().Get());
-    }
-
-    if (entityManagers.Any())
-    {
-        for (EntityManager* entityManager : entityManagers)
-        {
-            entityManager->BeginAsyncUpdate(delta);
-        }
-
-        // update non-async EntityManagers first so we can process them while async ones are processing in the background
-        for (EntityManager* entityManager : entityManagers)
-        {
-            if (!(entityManager->GetEntityManagerFlags() & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION))
-            {
-                // actually executes the ones that need to execute on the game thread
-                entityManager->EndAsyncUpdate();
-            }
-        }
-
-        for (EntityManager* entityManager : entityManagers)
-        {
-            if (entityManager->GetEntityManagerFlags() & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION)
-            {
-                entityManager->EndAsyncUpdate();
-            }
-        }
-    }
 
     for (uint32 index = 0; index < viewsToProcess.Size(); index++)
     {

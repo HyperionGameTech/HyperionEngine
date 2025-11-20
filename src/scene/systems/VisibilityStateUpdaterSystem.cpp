@@ -15,7 +15,7 @@
 
 namespace hyperion {
 
-bool VisibilityStateUpdaterSystem::ShouldCreateForScene(Scene* scene) const
+bool VisibilityStateUpdaterSystem::ShouldProcessScene(Scene* scene) const
 {
     static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::HAS_OCTREE;
 
@@ -29,14 +29,6 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
     EntityManager& entityManager = *entity->GetEntityManager();
 
     VisibilityStateComponent& visibilityStateComponent = entityManager.GetComponent<VisibilityStateComponent>(entity);
-
-    if (!(entityManager.GetScene()->GetSceneFlags() & SceneFlags::HAS_OCTREE))
-    {
-        visibilityStateComponent.octantId = OctantId::Invalid();
-        visibilityStateComponent.visibilityState = nullptr;
-
-        return;
-    }
 
     if (visibilityStateComponent.octantId != OctantId::Invalid())
     {
@@ -86,16 +78,13 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
 
     VisibilityStateComponent& visibilityStateComponent = entityManager.GetComponent<VisibilityStateComponent>(entity);
 
-    if (entityManager.GetScene()->GetSceneFlags() & SceneFlags::HAS_OCTREE)
+    SceneOctree& octree = entityManager.GetScene()->GetOctree();
+
+    const SceneOctree::Result removeResult = octree.Remove(entity);
+
+    if (removeResult.HasError())
     {
-        SceneOctree& octree = entityManager.GetScene()->GetOctree();
-
-        const SceneOctree::Result removeResult = octree.Remove(entity);
-
-        if (removeResult.HasError())
-        {
-            HYP_LOG(Scene, Warning, "Failed to remove Entity #{} from octree: {}", entity->Id(), removeResult.GetError().GetMessage());
-        }
+        HYP_LOG(Scene, Warning, "Failed to remove Entity #{} from octree: {}", entity->Id(), removeResult.GetError().GetMessage());
     }
 
     visibilityStateComponent.octantId = OctantId::Invalid();
@@ -116,13 +105,13 @@ bool VisibilityStateUpdaterSystem::NeedsUpdateThisFrame() const
     return true;
 }
 
-void VisibilityStateUpdaterSystem::Process(float delta, Span<Scene*> scenes)
+void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     for (Scene* scene : scenes)
     {
-        if (!(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+        if (!ShouldProcessScene(scene))
         {
-            return;
+            continue;
         }
 
         SceneOctree& octree = scene->GetOctree();
@@ -213,7 +202,7 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Scene*> scenes)
                 HYP_LOG(Scene, Warning, "Updating visibility states for a lot of entities ({})! This will have a performance impact if it happens frequently."
                                         "\n\tMaybe the Scene's octree should have a different bounding size or be broken into multiple Scenes."
                                         "\n\tScene name: {}, flags: {}",
-                    updatedEntities.Size(), GetScene()->GetName(), uint32(GetScene()->GetSceneFlags()));
+                    updatedEntities.Size(), scene->GetName(), uint32(scene->GetSceneFlags()));
             }
 #endif
 
