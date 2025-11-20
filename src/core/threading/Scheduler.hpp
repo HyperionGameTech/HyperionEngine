@@ -14,6 +14,8 @@
 #include <core/threading/Thread.hpp>
 #include <core/threading/Task.hpp>
 #include <core/threading/Threads.hpp>
+#include <core/threading/Mutex.hpp>
+#include <core/threading/ConditionVariable.hpp>
 
 #include <core/utilities/FunctionTraits.hpp>
 #include <core/Defines.hpp>
@@ -22,8 +24,6 @@
 
 #include <utility>
 #include <type_traits>
-#include <mutex>
-#include <condition_variable>
 
 namespace hyperion {
 namespace threading {
@@ -53,12 +53,10 @@ public:
 
     void WakeUpOwnerThread()
     {
-        m_hasTasks.notify_all();
+        m_hasTasksCV.NotifyAll();
     }
 
     void RequestStop();
-
-    virtual void Await(TaskID id) = 0;
 
     virtual TaskID EnqueueTaskExecutor(TaskExecutorBase* executorPtr, TaskCompleteNotifier* notifier, OnTaskCompletedCallback&& callback = nullptr, const StaticMessage& debugName = StaticMessage()) = 0;
 
@@ -76,15 +74,15 @@ protected:
     {
     }
 
-    bool WaitForTasks(std::unique_lock<std::mutex>& lock);
+    bool WaitForTasks(Mutex& mtx);
 
     uint32 m_idCounter = 0;
     AtomicVar<uint32> m_numEnqueued { 0 };
     AtomicVar<bool> m_stopRequested { false };
 
-    mutable std::mutex m_mutex;
-    std::condition_variable m_hasTasks;
-    std::condition_variable m_taskExecuted;
+    mutable Mutex m_mutex;
+    ConditionVariable m_hasTasksCV;
+    ConditionVariable m_taskExecutedCV;
 
     ThreadId m_ownerThread;
 };
@@ -104,7 +102,7 @@ public:
         TaskCompleteNotifier* notifier = nullptr;
 
         // Condition variable to notify when the task has been executed (owned by the scheduler)
-        std::condition_variable* taskExecuted = nullptr;
+        ConditionVariable* pTaskExecutedCV = nullptr;
 
         // Callback to be executed after the task is completed
         OnTaskCompletedCallback callback;
@@ -120,14 +118,14 @@ public:
             : executor(other.executor),
               ownsExecutor(other.ownsExecutor),
               notifier(other.notifier),
-              taskExecuted(other.taskExecuted),
+              pTaskExecutedCV(other.pTaskExecutedCV),
               callback(std::move(other.callback)),
               debugName(std::move(other.debugName))
         {
             other.executor = nullptr;
             other.ownsExecutor = false;
             other.notifier = nullptr;
-            other.taskExecuted = nullptr;
+            other.pTaskExecutedCV = nullptr;
         }
 
         ScheduledTask& operator=(ScheduledTask&& other) noexcept
@@ -145,14 +143,14 @@ public:
             executor = other.executor;
             ownsExecutor = other.ownsExecutor;
             notifier = other.notifier;
-            taskExecuted = other.taskExecuted;
+            pTaskExecutedCV = other.pTaskExecutedCV;
             callback = std::move(other.callback);
             debugName = std::move(other.debugName);
 
             other.executor = nullptr;
             other.ownsExecutor = false;
             other.notifier = nullptr;
-            other.taskExecuted = nullptr;
+            other.pTaskExecutedCV = nullptr;
 
             return *this;
         }
@@ -181,7 +179,7 @@ public:
                 callback();
             }
 
-            taskExecuted->notify_all();
+            pTaskExecutedCV->NotifyAll();
         }
 
         void Execute()
@@ -199,7 +197,7 @@ public:
                 callback();
             }
 
-            taskExecuted->notify_all();
+            pTaskExecutedCV->NotifyAll();
         }
     };
 
@@ -243,24 +241,27 @@ public:
     auto Enqueue(const StaticMessage& debugName, Function&& fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
     {
         using ReturnType = typename FunctionTraits<Function>::ReturnType;
+        
+        TaskExecutorInstance<ReturnType>* executor;
 
-        std::unique_lock lock(m_mutex);
+        {
+            Mutex::Guard guard(m_mutex);
 
-        TaskExecutorInstance<ReturnType>* executor = new TaskExecutorInstance<ReturnType>(std::forward<Function>(fn));
+            executor = new TaskExecutorInstance<ReturnType>(std::forward<Function>(fn));
 
-        ScheduledTask scheduledTask;
-        scheduledTask.executor = executor;
-        scheduledTask.ownsExecutor = (flags & TaskEnqueueFlags::FIRE_AND_FORGET);
-        scheduledTask.notifier = &executor->GetNotifier();
-        scheduledTask.taskExecuted = &m_taskExecuted;
-        scheduledTask.callback = OnTaskCompletedCallback(&executor->GetCallbackChain());
-        scheduledTask.debugName = debugName;
+            ScheduledTask scheduledTask;
+            scheduledTask.executor = executor;
+            scheduledTask.ownsExecutor = (flags & TaskEnqueueFlags::FIRE_AND_FORGET);
+            scheduledTask.notifier = &executor->GetNotifier();
+            scheduledTask.pTaskExecutedCV = &m_taskExecutedCV;
+            scheduledTask.callback = OnTaskCompletedCallback(&executor->GetCallbackChain());
+            scheduledTask.debugName = debugName;
 
-        Enqueue_Internal(std::move(scheduledTask));
-
+            Enqueue_Internal(std::move(scheduledTask));
+        }
+        
         Task<ReturnType> task(executor->GetTaskID(), this, executor, !(flags & TaskEnqueueFlags::FIRE_AND_FORGET));
 
-        lock.unlock();
         WakeUpOwnerThread();
 
         return task;
@@ -275,59 +276,27 @@ public:
      *  \param debugName A StaticMessage instance containing the name of the task (for debugging) */
     virtual TaskID EnqueueTaskExecutor(TaskExecutorBase* executorPtr, TaskCompleteNotifier* notifier, OnTaskCompletedCallback&& callback = nullptr, const StaticMessage& debugName = StaticMessage()) override
     {
-        std::unique_lock lock(m_mutex);
+        TaskID taskId;
 
-        ScheduledTask scheduledTask;
-        scheduledTask.executor = executorPtr;
-        scheduledTask.ownsExecutor = false;
-        scheduledTask.notifier = notifier;
-        scheduledTask.taskExecuted = &m_taskExecuted;
-        scheduledTask.callback = std::move(callback);
-        scheduledTask.debugName = debugName;
+        {
+            Mutex::Guard guard(m_mutex);
 
-        Enqueue_Internal(std::move(scheduledTask));
+            ScheduledTask scheduledTask;
+            scheduledTask.executor = executorPtr;
+            scheduledTask.ownsExecutor = false;
+            scheduledTask.notifier = notifier;
+            scheduledTask.pTaskExecutedCV = &m_taskExecutedCV;
+            scheduledTask.callback = std::move(callback);
+            scheduledTask.debugName = debugName;
 
-        const TaskID taskId = executorPtr->GetTaskID();
+            Enqueue_Internal(std::move(scheduledTask));
 
-        lock.unlock();
+            taskId = executorPtr->GetTaskID();
+        }
 
         WakeUpOwnerThread();
 
         return taskId;
-    }
-
-    /*! \brief Wait until the given task has been executed (no longer in the queue). */
-    virtual void Await(TaskID id) override
-    {
-        HYP_CORE_ASSERT(!IsOnThread(m_ownerThread));
-
-        std::unique_lock lock(m_mutex);
-
-        if (m_queue.Empty())
-        {
-            return;
-        }
-
-        if (!AnyOf(m_queue, [id](const auto& item)
-                {
-                    return item.executor->GetTaskID() == id;
-                }))
-        {
-            return;
-        }
-
-        m_taskExecuted.wait(lock, [this, id]
-            {
-                if (m_queue.Empty())
-                {
-                    return true;
-                }
-
-                return !AnyOf(m_queue, [id](const auto& item)
-                    {
-                        return item.executor->GetTaskID() == id;
-                    });
-            });
     }
 
     /*! \brief Remove a function from the owner thread's queue, if it exists
@@ -339,7 +308,7 @@ public:
             return false;
         }
 
-        std::unique_lock lock(m_mutex);
+        Mutex::Guard guard(m_mutex);
 
         if (Dequeue_Internal(id))
         {
@@ -358,7 +327,7 @@ public:
 
         TaskExecutorBase* executorCasted = static_cast<TaskExecutorBase*>(executor);
 
-        std::unique_lock lock(m_mutex);
+        Mutex::Guard guard(m_mutex);
 
         const auto it = m_queue.FindIf([id](const ScheduledTask& item)
             {
@@ -397,7 +366,7 @@ public:
 
     virtual bool HasWorkAssignedFromThread(ThreadId threadId) const override
     {
-        std::unique_lock lock(m_mutex);
+        Mutex::Guard guard(m_mutex);
 
         return AnyOf(m_queue, [threadId](const ScheduledTask& item)
             {
@@ -405,40 +374,23 @@ public:
             });
     }
 
-    // /* Move all the next pending task in the queue to an external container. */
-    // template <class Container>
-    // void AcceptNext(Container &outContainer)
-    // {
-    //     HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
-
-    //     std::unique_lock lock(m_mutex);
-
-    //     if (m_queue.Any()) {
-    //         auto &front = m_queue.Front();
-    //         outContainer.Push(std::move(front));
-    //         m_queue.PopFront();
-
-    //         m_numEnqueued.Decrement(1u, MemoryOrder::RELEASE);
-    //     }
-    // }
-
     /* Move all tasks in the queue to an external container. */
     template <class Container>
     void AcceptAll(Container& outContainer)
     {
         HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
 
-        std::unique_lock lock(m_mutex);
-
-        for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
         {
-            outContainer.Add(std::move(*it));
-            m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
+            Mutex::Guard guard(m_mutex);
+
+            for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
+            {
+                outContainer.Add(std::move(*it));
+                m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
+            }
+
+            m_queue.Clear();
         }
-
-        m_queue.Clear();
-
-        lock.unlock();
 
         WakeUpOwnerThread();
     }
@@ -451,22 +403,22 @@ public:
     {
         HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
 
-        std::unique_lock lock(m_mutex);
-
-        if (!SchedulerBase::WaitForTasks(lock))
         {
-            return false;
+            Mutex::Guard guard(m_mutex);
+
+            if (!SchedulerBase::WaitForTasks(m_mutex))
+            {
+                return false;
+            }
+
+            for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
+            {
+                outContainer.Push(std::move(*it));
+                m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
+            }
+
+            m_queue.Clear();
         }
-
-        for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
-        {
-            outContainer.Push(std::move(*it));
-            m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
-        }
-
-        m_queue.Clear();
-
-        lock.unlock();
 
         WakeUpOwnerThread();
 
@@ -483,19 +435,19 @@ public:
             !m_stopRequested.Get(MemoryOrder::RELAXED),
             "Scheduler::Flush() called after stop requested");
 
-        std::unique_lock lock(m_mutex);
-
-        while (m_queue.Any())
         {
-            ScheduledTask& front = m_queue.Front();
+            Mutex::Guard guard(m_mutex);
 
-            front.ExecuteWithLambda(lambda);
+            while (m_queue.Any())
+            {
+                ScheduledTask& front = m_queue.Front();
 
-            m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
-            m_queue.PopFront();
+                front.ExecuteWithLambda(lambda);
+
+                m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
+                m_queue.PopFront();
+            }
         }
-
-        lock.unlock();
 
         WakeUpOwnerThread();
     }

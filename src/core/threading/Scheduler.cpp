@@ -18,7 +18,7 @@ void SchedulerBase::RequestStop()
     }
 }
 
-bool SchedulerBase::WaitForTasks(std::unique_lock<std::mutex>& lock)
+bool SchedulerBase::WaitForTasks(Mutex& mtx)
 {
     // must be locked before calling this function
 
@@ -27,17 +27,10 @@ bool SchedulerBase::WaitForTasks(std::unique_lock<std::mutex>& lock)
         return false;
     }
 
-    m_hasTasks.wait(
-        lock,
-        [this]()
-        {
-            if (m_stopRequested.Get(MemoryOrder::RELAXED))
-            {
-                return true;
-            }
-
-            return m_numEnqueued.Get(MemoryOrder::ACQUIRE) != 0;
-        });
+    while (!m_stopRequested.Get(MemoryOrder::RELAXED) && m_numEnqueued.Get(MemoryOrder::ACQUIRE) == 0)
+    {
+        m_hasTasksCV.Wait(mtx);
+    }
 
     return !m_stopRequested.Get(MemoryOrder::RELAXED);
 }
