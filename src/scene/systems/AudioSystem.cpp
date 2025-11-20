@@ -27,7 +27,7 @@ void AudioSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    AudioComponent& audioComponent = GetEntityManager().GetComponent<AudioComponent>(entity);
+    AudioComponent& audioComponent = entity->GetEntityManager()->GetComponent<AudioComponent>(entity);
 
     if (audioComponent.audioSource.IsValid())
     {
@@ -43,104 +43,107 @@ bool AudioSystem::NeedsUpdateThisFrame() const
     return es && es->GetElements().Any();
 }
 
-void AudioSystem::Process(float delta)
+void AudioSystem::Process(float delta, Span<Scene*> scenes)
 {
     if (!AudioManager::GetInstance().IsInitialized())
     {
         return;
     }
 
-    if (GetEntityManager().GetScene()->GetIsAudioListener())
+    for (Scene* scene : scenes)
     {
-        if (Camera* camera = GetEntityManager().GetScene()->GetPrimaryCamera())
+        if (scene->GetIsAudioListener())
         {
-            AudioManager::GetInstance().SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
-            AudioManager::GetInstance().SetListenerPosition(camera->GetTranslation());
-        }
-    }
-
-    for (auto [entity, audioComponent, transformComponent] : GetEntityManager().GetEntitySet<AudioComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
-    {
-        if (!audioComponent.audioSource.IsValid())
-        {
-            audioComponent.playbackState.status = APS_STOPPED;
-            audioComponent.playbackState.currentTime = 0.0f;
-
-            continue;
-        }
-
-        if (audioComponent.playbackState.status == APS_PLAYING)
-        {
-            switch (audioComponent.playbackState.loopMode)
+            if (Camera* camera = scene->GetPrimaryCamera())
             {
-            case ALM_ONCE:
-                if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
-                {
-                    audioComponent.playbackState.status = APS_STOPPED;
-                    audioComponent.playbackState.currentTime = 0.0f;
+                AudioManager::GetInstance().SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
+                AudioManager::GetInstance().SetListenerPosition(camera->GetTranslation());
+            }
+        }
 
-                    audioComponent.audioSource->Stop();
-                }
+        for (auto [entity, audioComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<AudioComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+        {
+            if (!audioComponent.audioSource.IsValid())
+            {
+                audioComponent.playbackState.status = APS_STOPPED;
+                audioComponent.playbackState.currentTime = 0.0f;
 
                 continue;
+            }
 
-                break;
-            case ALM_REPEAT:
-                if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
+            if (audioComponent.playbackState.status == APS_PLAYING)
+            {
+                switch (audioComponent.playbackState.loopMode)
                 {
-                    audioComponent.playbackState.currentTime = 0.0f;
+                case ALM_ONCE:
+                    if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
+                    {
+                        audioComponent.playbackState.status = APS_STOPPED;
+                        audioComponent.playbackState.currentTime = 0.0f;
+
+                        audioComponent.audioSource->Stop();
+                    }
+
+                    continue;
+
+                    break;
+                case ALM_REPEAT:
+                    if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
+                    {
+                        audioComponent.playbackState.currentTime = 0.0f;
+                    }
+
+                    break;
                 }
 
-                break;
+                audioComponent.playbackState.currentTime += delta * audioComponent.playbackState.speed;
+
+                switch (audioComponent.audioSource->GetState())
+                {
+                case AudioSourceState::PLAYING:
+                    break;
+                case AudioSourceState::PAUSED: // fallthrough
+                case AudioSourceState::STOPPED:
+                    audioComponent.audioSource->SetPitch(audioComponent.playbackState.speed);
+                    audioComponent.audioSource->SetLoop(audioComponent.playbackState.loopMode == ALM_REPEAT);
+
+                    audioComponent.audioSource->Play();
+                    break;
+                default:
+                    break;
+                }
+
+                const Vec3f& position = transformComponent.transform.GetTranslation();
+
+                if (!MathUtil::ApproxEqual(position, audioComponent.lastPosition))
+                {
+                    const Vec3f positionChange = position - audioComponent.lastPosition;
+                    const float timeChange = (audioComponent.timer + delta) - audioComponent.timer;
+                    const Vec3f velocity = positionChange / timeChange;
+
+                    audioComponent.audioSource->SetPosition(position);
+                    audioComponent.audioSource->SetVelocity(velocity);
+
+                    audioComponent.lastPosition = position;
+                }
             }
-
-            audioComponent.playbackState.currentTime += delta * audioComponent.playbackState.speed;
-
-            switch (audioComponent.audioSource->GetState())
+            else if (audioComponent.playbackState.status == APS_PAUSED)
             {
-            case AudioSourceState::PLAYING:
-                break;
-            case AudioSourceState::PAUSED: // fallthrough
-            case AudioSourceState::STOPPED:
-                audioComponent.audioSource->SetPitch(audioComponent.playbackState.speed);
-                audioComponent.audioSource->SetLoop(audioComponent.playbackState.loopMode == ALM_REPEAT);
-
-                audioComponent.audioSource->Play();
-                break;
-            default:
-                break;
+                if (audioComponent.audioSource->GetState() != AudioSourceState::PAUSED)
+                {
+                    audioComponent.audioSource->Pause();
+                }
             }
-
-            const Vec3f& position = transformComponent.transform.GetTranslation();
-
-            if (!MathUtil::ApproxEqual(position, audioComponent.lastPosition))
+            else if (audioComponent.playbackState.status == APS_STOPPED)
             {
-                const Vec3f positionChange = position - audioComponent.lastPosition;
-                const float timeChange = (audioComponent.timer + delta) - audioComponent.timer;
-                const Vec3f velocity = positionChange / timeChange;
-
-                audioComponent.audioSource->SetPosition(position);
-                audioComponent.audioSource->SetVelocity(velocity);
-
-                audioComponent.lastPosition = position;
+                if (audioComponent.audioSource->GetState() != AudioSourceState::STOPPED)
+                {
+                    audioComponent.audioSource->Stop();
+                }
             }
+
+            audioComponent.timer += delta; // @TODO: prevent overflow
         }
-        else if (audioComponent.playbackState.status == APS_PAUSED)
-        {
-            if (audioComponent.audioSource->GetState() != AudioSourceState::PAUSED)
-            {
-                audioComponent.audioSource->Pause();
-            }
-        }
-        else if (audioComponent.playbackState.status == APS_STOPPED)
-        {
-            if (audioComponent.audioSource->GetState() != AudioSourceState::STOPPED)
-            {
-                audioComponent.audioSource->Stop();
-            }
-        }
-
-        audioComponent.timer += delta; // @TODO: prevent overflow
     }
 }
 

@@ -17,7 +17,7 @@ class ScriptSystem final : public SystemBase
     HYP_OBJECT_BODY(ScriptSystem);
 
 public:
-    ScriptSystem(EntityManager& entityManager);
+    ScriptSystem();
     virtual ~ScriptSystem() override = default;
 
     // This system does not support parallel execution because scripts may modify
@@ -37,7 +37,7 @@ public:
 
     virtual bool NeedsUpdateThisFrame() const override;
 
-    virtual void Process(float delta) override;
+    virtual void Process(float delta, Span<Scene*> scenes) override;
 
 private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
@@ -54,4 +54,3 @@ private:
 };
 
 } // namespace hyperion
-

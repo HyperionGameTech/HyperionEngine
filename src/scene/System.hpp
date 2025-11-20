@@ -31,7 +31,7 @@ public:
     template <class... ComponentDescriptors>
     SystemComponentDescriptors(ComponentDescriptors&&... componentDescriptors)
         : HashSet({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
-          entitySetId(GetEntitySetId<std::conditional_t<bool(ComponentDescriptors::rwFlags & ComponentRWFlags::READ_WRITE), typename ComponentDescriptors::Type, VoidComponentType>...>())
+          entitySetId(GetEntitySetId<std::conditional_t<bool(ComponentDescriptors::rwFlags& ComponentRWFlags::READ_WRITE), typename ComponentDescriptors::Type, VoidComponentType>...>())
     {
         Assert(Size() == sizeof...(ComponentDescriptors), "Duplicate component descriptors found");
     }
@@ -211,23 +211,11 @@ public:
     {
     }
 
-    virtual void Process(float delta) = 0;
+    virtual void Process(float delta, Span<Scene*> scenes) = 0;
 
 protected:
     SystemBase()
-        : m_entityManager(nullptr)
     {
-    }
-
-    SystemBase(EntityManager& entityManager)
-        : m_entityManager(&entityManager)
-    {
-    }
-
-    HYP_FORCE_INLINE EntityManager& GetEntityManager() const
-    {
-        AssertDebug(m_entityManager != nullptr);
-        return *m_entityManager;
     }
 
     /*! \brief Set a callback to be called once after the System has processed.
@@ -251,7 +239,6 @@ protected:
     Scene* GetScene() const;
     World* GetWorld() const;
 
-    EntityManager* m_entityManager;
     DelegateHandlerSet m_delegateHandlers;
 
 private:

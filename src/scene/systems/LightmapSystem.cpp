@@ -4,6 +4,8 @@
 
 #include <scene/systems/LightmapSystem.hpp>
 #include <scene/EntityManager.hpp>
+#include <scene/Scene.hpp>
+#include <scene/Entity.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
 
@@ -19,22 +21,22 @@ void LightmapSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    MeshComponent& meshComponent = GetEntityManager().GetComponent<MeshComponent>(entity);
+    MeshComponent& meshComponent = entity->GetEntityManager()->GetComponent<MeshComponent>(entity);
 
     if (meshComponent.lightmapVolumeUuid == Uuid::Invalid())
     {
         meshComponent.lightmapVolume.Reset();
 
-        GetEntityManager().RemoveTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
+        entity->GetEntityManager()->RemoveTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
 
         return;
     }
 
-    GetEntityManager().AddTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
+    entity->GetEntityManager()->AddTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
 
     if (!meshComponent.lightmapVolume.IsValid())
     {
-        if (!AssignLightmapVolume(meshComponent))
+        if (!AssignLightmapVolume(entity->GetScene(), meshComponent))
         {
             HYP_LOG(Lightmap, Warning, "MeshComponent has volume Uuid: {} could not be assigned to a LightmapVolume",
                 meshComponent.lightmapVolumeUuid);
@@ -48,41 +50,45 @@ void LightmapSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    MeshComponent& meshComponent = GetEntityManager().GetComponent<MeshComponent>(entity);
+    MeshComponent& meshComponent = entity->GetEntityManager()->GetComponent<MeshComponent>(entity);
     meshComponent.lightmapVolume.Reset();
 
-    GetEntityManager().RemoveTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
+    entity->GetEntityManager()->RemoveTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
 }
 
 bool LightmapSystem::NeedsUpdateThisFrame() const
 {
-    const auto* es = GetEntityManager().TryGetEntitySet<MeshComponent, TagComponent<EntityTag::LIGHTMAP_ELEMENT>>();
-    return es && es->GetElements().Any();
+    return SystemBase::NeedsUpdateThisFrame();
+    // const auto* es = GetEntityManager().TryGetEntitySet<MeshComponent, TagComponent<EntityTag::LIGHTMAP_ELEMENT>>();
+    // return es && es->GetElements().Any();
 }
 
-void LightmapSystem::Process(float delta)
+void LightmapSystem::Process(float delta, Span<Scene*> scenes)
 {
-    for (auto [entity, meshComponent, _] : GetEntityManager().GetEntitySet<MeshComponent, TagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
+    for (Scene* scene : scenes)
     {
-        if (meshComponent.lightmapVolumeUuid == Uuid::Invalid())
+        for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, TagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
         {
-            continue;
-        }
-
-        if (!meshComponent.lightmapVolume.IsValid())
-        {
-            if (!AssignLightmapVolume(meshComponent))
+            if (meshComponent.lightmapVolumeUuid == Uuid::Invalid())
             {
-                HYP_LOG(Lightmap, Warning, "MeshComponent has volume uuid: {} could not be assigned to a LightmapVolume",
-                    meshComponent.lightmapVolumeUuid);
+                continue;
+            }
+
+            if (!meshComponent.lightmapVolume.IsValid())
+            {
+                if (!AssignLightmapVolume(scene, meshComponent))
+                {
+                    HYP_LOG(Lightmap, Warning, "MeshComponent has volume uuid: {} could not be assigned to a LightmapVolume",
+                        meshComponent.lightmapVolumeUuid);
+                }
             }
         }
     }
 }
 
-bool LightmapSystem::AssignLightmapVolume(MeshComponent& meshComponent)
+bool LightmapSystem::AssignLightmapVolume(Scene* scene, MeshComponent& meshComponent)
 {
-    for (auto [entity, _] : GetEntityManager().GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
     {
         LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
         Assert(lightmapVolume != nullptr);

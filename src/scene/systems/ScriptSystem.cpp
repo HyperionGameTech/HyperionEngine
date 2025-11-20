@@ -119,8 +119,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     }
 }
 
-ScriptSystem::ScriptSystem(EntityManager& entityManager)
-    : SystemBase(entityManager)
+ScriptSystem::ScriptSystem()
 {
     // @FIXME: Issue with reloaded assemblies that spawn native objects having their classes change.
 
@@ -137,39 +136,50 @@ ScriptSystem::ScriptSystem(EntityManager& entityManager)
                         return;
                     }
 
-                    for (auto [entity, scriptComponent] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
+                    World* world = GetWorld();
+                    Assert(world != nullptr);
+
+                    if (!world)
                     {
-                        const Handle<ScriptAsset>& scriptAsset = scriptComponent.assetReference.Resolve();
-                        Assert(scriptAsset != nullptr);
+                        return;
+                    }
 
-                        ResourceHandle resourceHandle(*scriptAsset->GetResource());
-
-                        ScriptData* scriptData = scriptAsset->GetScriptData();
-                        Assert(scriptData != nullptr);
-
-                        if (Memory::StrCmp(script.assemblyPath.Data(), scriptData->assemblyPath.Data(), MathUtil::Min(ArraySize(script.assemblyPath), ArraySize(scriptData->assemblyPath))) == 0)
+                    for (Scene* scene : world->GetScenes())
+                    {
+                        for (auto [entity, scriptComponent] : scene->GetEntityManager()->GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
                         {
-                            HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity->Id());
+                            const Handle<ScriptAsset>& scriptAsset = scriptComponent.assetReference.Resolve();
+                            Assert(scriptAsset != nullptr);
 
-                            // Reload the script
-                            scriptComponent.flags |= ScriptComponentFlags::RELOADING;
+                            ResourceHandle resourceHandle(*scriptAsset->GetResource());
 
-                            scriptData->uuid = script.uuid;
-                            scriptData->compileStatus = script.compileStatus;
-                            scriptData->hotReloadVersion = script.hotReloadVersion;
-                            scriptData->lastModifiedTimestamp = script.lastModifiedTimestamp;
+                            ScriptData* scriptData = scriptAsset->GetScriptData();
+                            Assert(scriptData != nullptr);
 
-                            resourceHandle.Reset();
+                            if (Memory::StrCmp(script.assemblyPath.Data(), scriptData->assemblyPath.Data(), MathUtil::Min(ArraySize(script.assemblyPath), ArraySize(scriptData->assemblyPath))) == 0)
+                            {
+                                HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity->Id());
 
-                            EntityScripting::DeinitEntityScriptComponent(entity, scriptComponent);
+                                // Reload the script
+                                scriptComponent.flags |= ScriptComponentFlags::RELOADING;
 
-                            scriptComponent.assembly.Reset();
+                                scriptData->uuid = script.uuid;
+                                scriptData->compileStatus = script.compileStatus;
+                                scriptData->hotReloadVersion = script.hotReloadVersion;
+                                scriptData->lastModifiedTimestamp = script.lastModifiedTimestamp;
 
-                            EntityScripting::InitEntityScriptComponent(entity, scriptComponent);
+                                resourceHandle.Reset();
 
-                            scriptComponent.flags &= ~ScriptComponentFlags::RELOADING;
+                                EntityScripting::DeinitEntityScriptComponent(entity, scriptComponent);
 
-                            HYP_LOG(Script, Info, "ScriptSystem: Script reloaded for entity #{}", entity->Id());
+                                scriptComponent.assembly.Reset();
+
+                                EntityScripting::InitEntityScriptComponent(entity, scriptComponent);
+
+                                scriptComponent.flags &= ~ScriptComponentFlags::RELOADING;
+
+                                HYP_LOG(Script, Info, "ScriptSystem: Script reloaded for entity #{}", entity->Id());
+                            }
                         }
                     }
                 }));
@@ -229,7 +239,7 @@ void ScriptSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    ScriptComponent& scriptComponent = GetEntityManager().GetComponent<ScriptComponent>(entity);
+    ScriptComponent& scriptComponent = entity->GetEntityManager()->GetComponent<ScriptComponent>(entity);
 
     EntityScripting::InitEntityScriptComponent(entity, scriptComponent);
 }
@@ -238,18 +248,19 @@ void ScriptSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    ScriptComponent& scriptComponent = GetEntityManager().GetComponent<ScriptComponent>(entity);
+    ScriptComponent& scriptComponent = entity->GetEntityManager()->GetComponent<ScriptComponent>(entity);
 
     EntityScripting::DeinitEntityScriptComponent(entity, scriptComponent);
 }
 
 bool ScriptSystem::NeedsUpdateThisFrame() const
 {
-    const auto* es = GetEntityManager().TryGetEntitySet<ScriptComponent>();
-    return es && es->GetElements().Any();
+    return SystemBase::NeedsUpdateThisFrame();
+    // const auto* es = GetEntityManager().TryGetEntitySet<ScriptComponent>();
+    // return es && es->GetElements().Any();
 }
 
-void ScriptSystem::Process(float delta)
+void ScriptSystem::Process(float delta, Span<Scene*> scenes)
 {
     World* world = GetWorld();
 
@@ -264,14 +275,17 @@ void ScriptSystem::Process(float delta)
         return;
     }
 
-    for (auto [entity, scriptComponent] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
+    for (Scene* scene : scenes)
     {
-        if (!(scriptComponent.flags & ScriptComponentFlags::INITIALIZED))
+        for (auto [entity, scriptComponent] : scene->GetEntityManager()->GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
         {
-            continue;
-        }
+            if (!(scriptComponent.flags & ScriptComponentFlags::INITIALIZED))
+            {
+                continue;
+            }
 
-        InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", float(delta));
+            InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", float(delta));
+        }
     }
 }
 
@@ -292,14 +306,25 @@ void ScriptSystem::HandleGameStateChanged(GameStateMode gameStateMode, GameState
 
 void ScriptSystem::CallScriptMethod(UTF8StringView methodName)
 {
-    for (auto [entity, scriptComponent] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
-    {
-        if (!(scriptComponent.flags & ScriptComponentFlags::INITIALIZED))
-        {
-            continue;
-        }
+    World* world = GetWorld();
+    AssertDebug(world != nullptr);
 
-        InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, *methodName);
+    if (!world)
+    {
+        return;
+    }
+
+    for (Scene* scene : world->GetScenes())
+    {
+        for (auto [entity, scriptComponent] : scene->GetEntityManager()->GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
+        {
+            if (!(scriptComponent.flags & ScriptComponentFlags::INITIALIZED))
+            {
+                continue;
+            }
+
+            InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, *methodName);
+        }
     }
 }
 

@@ -37,7 +37,7 @@ public:
 
     virtual bool NeedsUpdateThisFrame() const override;
 
-    virtual void Process(float delta) override;
+    virtual void Process(float delta, Span<Scene*> scenes) override;
 
 private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override

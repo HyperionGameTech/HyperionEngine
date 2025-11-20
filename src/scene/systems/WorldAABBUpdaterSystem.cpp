@@ -15,18 +15,16 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Entity);
 
-// @TODO move to Entity.cpp ?
-
 void WorldAABBUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    if (ProcessEntity(entity, GetEntityManager().GetComponent<BoundingBoxComponent>(entity), GetEntityManager().GetComponent<TransformComponent>(entity)))
+    if (ProcessEntity(entity, entity->GetEntityManager()->GetComponent<BoundingBoxComponent>(entity), entity->GetEntityManager()->GetComponent<TransformComponent>(entity)))
     {
-        GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE>(entity);
+        entity->GetEntityManager()->AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE>(entity);
     }
 
-    GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity);
+    entity->GetEntityManager()->RemoveTag<EntityTag::UPDATE_AABB>(entity);
 }
 
 void WorldAABBUpdaterSystem::OnEntityRemoved(Entity* entity)
@@ -42,33 +40,36 @@ bool WorldAABBUpdaterSystem::NeedsUpdateThisFrame() const
     return true;
 }
 
-void WorldAABBUpdaterSystem::Process(float delta)
+void WorldAABBUpdaterSystem::Process(float delta, Span<Scene*> scenes)
 {
-    HashMap<WeakHandle<Entity>, bool> updatedEntities;
-
-    for (auto [entity, boundingBoxComponent, transformComponent, _] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, TagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos()))
+    for (Scene* scene : scenes)
     {
-        const bool wasWorldAabbChanged = ProcessEntity(entity, boundingBoxComponent, transformComponent);
+        HashMap<WeakHandle<Entity>, bool> updatedEntities;
 
-        updatedEntities[MakeWeakRef(entity)] = wasWorldAabbChanged;
-    }
+        for (auto [entity, boundingBoxComponent, transformComponent, _] : scene->GetEntityManager()->GetEntitySet<BoundingBoxComponent, TransformComponent, TagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos()))
+        {
+            const bool wasWorldAabbChanged = ProcessEntity(entity, boundingBoxComponent, transformComponent);
 
-    if (updatedEntities.Any())
-    {
-        AfterProcess([this, updatedEntities = std::move(updatedEntities)]()
-            {
-                for (const auto& [entityWeak, wasWorldAabbChanged] : updatedEntities)
+            updatedEntities[MakeWeakRef(entity)] = wasWorldAabbChanged;
+        }
+
+        if (updatedEntities.Any())
+        {
+            AfterProcess([this, scene, updatedEntities = std::move(updatedEntities)]()
                 {
-                    Entity* entity = entityWeak.GetUnsafe(); // don't use ptr so it's fine to use GetUnsafe()
-
-                    if (wasWorldAabbChanged)
+                    for (const auto& [entityWeak, wasWorldAabbChanged] : updatedEntities)
                     {
-                        GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE>(entity);
-                    }
+                        Entity* entity = entityWeak.GetUnsafe(); // don't use ptr so it's fine to use GetUnsafe()
 
-                    GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity);
-                }
-            });
+                        if (wasWorldAabbChanged)
+                        {
+                            scene->GetEntityManager()->AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE>(entity);
+                        }
+
+                        scene->GetEntityManager()->RemoveTag<EntityTag::UPDATE_AABB>(entity);
+                    }
+                });
+        }
     }
 }
 

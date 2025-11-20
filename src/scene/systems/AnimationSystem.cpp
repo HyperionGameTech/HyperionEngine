@@ -30,7 +30,7 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
 
     SystemBase::OnEntityAdded(entity);
 
-    const MeshComponent& meshComponent = GetEntityManager().GetComponent<MeshComponent>(entity);
+    const MeshComponent& meshComponent = entity->GetEntityManager()->GetComponent<MeshComponent>(entity);
     InitObject(meshComponent.skeleton);
 
     if (meshComponent.skeleton.IsValid())
@@ -48,8 +48,8 @@ void AnimationSystem::OnEntityRemoved(Entity* entity)
 
     SystemBase::OnEntityRemoved(entity);
 
-    const AnimationComponent& animationComponent = GetEntityManager().GetComponent<AnimationComponent>(entity);
-    const MeshComponent& meshComponent = GetEntityManager().GetComponent<MeshComponent>(entity);
+    const AnimationComponent& animationComponent = entity->GetEntityManager()->GetComponent<AnimationComponent>(entity);
+    const MeshComponent& meshComponent = entity->GetEntityManager()->GetComponent<MeshComponent>(entity);
 
     if (meshComponent.skeleton.IsValid())
     {
@@ -59,70 +59,74 @@ void AnimationSystem::OnEntityRemoved(Entity* entity)
 
 bool AnimationSystem::NeedsUpdateThisFrame() const
 {
-    const auto* es = GetEntityManager().TryGetEntitySet<AnimationComponent, MeshComponent>();
-    return es && es->GetElements().Any();
+    return SystemBase::NeedsUpdateThisFrame();
+    // const auto* es = GetEntityManager().TryGetEntitySet<AnimationComponent, MeshComponent>();
+    // return es && es->GetElements().Any();
 }
 
-void AnimationSystem::Process(float delta)
+void AnimationSystem::Process(float delta, Span<Scene*> scenes)
 {
     HYP_SCOPE;
 
-    for (auto [entity, animationComponent, meshComponent] : GetEntityManager().GetEntitySet<AnimationComponent, MeshComponent>().GetScopedView(GetComponentInfos()))
+    for (Scene* scene : scenes)
     {
-        if (!meshComponent.skeleton)
+        for (auto [entity, animationComponent, meshComponent] : scene->GetEntityManager()->GetEntitySet<AnimationComponent, MeshComponent>().GetScopedView(GetComponentInfos()))
         {
-            continue;
-        }
-
-        AnimationPlaybackState& playbackState = animationComponent.playbackState;
-
-        if (playbackState.status == AnimationPlaybackStatus::PLAYING)
-        {
-            const Handle<SkeletonAsset>& skeletonAsset = meshComponent.skeleton->GetAsset();
-            Assert(skeletonAsset != nullptr);
-
-            auto resourceHandleIt = m_resourceHandles.Find(meshComponent.skeleton.Get());
-            if (resourceHandleIt == m_resourceHandles.End())
+            if (!meshComponent.skeleton)
             {
-                resourceHandleIt = m_resourceHandles.Insert(meshComponent.skeleton.Get(), ResourceHandle(*skeletonAsset->GetResource())).first;
-            }
-
-            SkeletonData* skeletonData = skeletonAsset->GetSkeletonData();
-            Assert(skeletonData != nullptr);
-
-            if (playbackState.animationIndex == ~0u)
-            {
-                playbackState = {};
-
                 continue;
             }
 
-            Animation* animation = skeletonData->GetAnimation(playbackState.animationIndex);
-            if (!animation)
+            AnimationPlaybackState& playbackState = animationComponent.playbackState;
+
+            if (playbackState.status == AnimationPlaybackStatus::PLAYING)
             {
-                HYP_LOG(Animation, Warning, "AnimationComponent has a playing animation but the associated Skeleton asset has no such animation (index {})", playbackState.animationIndex);
+                const Handle<SkeletonAsset>& skeletonAsset = meshComponent.skeleton->GetAsset();
+                Assert(skeletonAsset != nullptr);
 
-                playbackState = {};
-
-                continue;
-            }
-
-            playbackState.currentTime += delta * playbackState.speed;
-
-            if (playbackState.currentTime > animation->GetLength())
-            {
-                playbackState.currentTime = 0.0f;
-
-                if (playbackState.loopMode == AnimationLoopMode::ONCE)
+                auto resourceHandleIt = m_resourceHandles.Find(meshComponent.skeleton.Get());
+                if (resourceHandleIt == m_resourceHandles.End())
                 {
-                    playbackState.status = AnimationPlaybackStatus::STOPPED;
-                    playbackState.currentTime = 0.0f;
+                    resourceHandleIt = m_resourceHandles.Insert(meshComponent.skeleton.Get(), ResourceHandle(*skeletonAsset->GetResource())).first;
                 }
+
+                SkeletonData* skeletonData = skeletonAsset->GetSkeletonData();
+                Assert(skeletonData != nullptr);
+
+                if (playbackState.animationIndex == ~0u)
+                {
+                    playbackState = {};
+
+                    continue;
+                }
+
+                Animation* animation = skeletonData->GetAnimation(playbackState.animationIndex);
+                if (!animation)
+                {
+                    HYP_LOG(Animation, Warning, "AnimationComponent has a playing animation but the associated Skeleton asset has no such animation (index {})", playbackState.animationIndex);
+
+                    playbackState = {};
+
+                    continue;
+                }
+
+                playbackState.currentTime += delta * playbackState.speed;
+
+                if (playbackState.currentTime > animation->GetLength())
+                {
+                    playbackState.currentTime = 0.0f;
+
+                    if (playbackState.loopMode == AnimationLoopMode::ONCE)
+                    {
+                        playbackState.status = AnimationPlaybackStatus::STOPPED;
+                        playbackState.currentTime = 0.0f;
+                    }
+                }
+
+                animation->ApplyBlended(meshComponent.skeleton, playbackState.currentTime, 0.5f);
+
+                meshComponent.skeleton->SetNeedsRenderProxyUpdate();
             }
-
-            animation->ApplyBlended(meshComponent.skeleton, playbackState.currentTime, 0.5f);
-
-            meshComponent.skeleton->SetNeedsRenderProxyUpdate();
         }
     }
 }
