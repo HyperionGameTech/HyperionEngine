@@ -12,6 +12,8 @@
 
 namespace hyperion {
 
+static constexpr const char* WildcardImport = "*";
+
 AstModuleImportPart::AstModuleImportPart(
     const String& left,
     const Array<RC<AstModuleImportPart>>& rightParts,
@@ -27,6 +29,33 @@ void AstModuleImportPart::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
+
+    if (m_left == WildcardImport)
+    {
+        // Import all nested modules
+        for (Module* nested : mod->CollectNestedModules())
+        {
+            AstImport::CopyModules(
+                visitor,
+                nested,
+                false);
+        }
+
+        // Import all identifiers and types
+        Scope& scope = mod->scopeTree.Top();
+
+        for (const RC<Identifier>& ident : scope.identifierTable.identifiers)
+        {
+            m_foundSymbols.PushBack(Symbol(ident));
+        }
+
+        for (const SymbolType* type : scope.identifierTable.symbolTypes)
+        {
+            m_foundSymbols.PushBack(Symbol(type));
+        }
+
+        return;
+    }
 
     Symbol foundSymbol;
 

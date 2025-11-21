@@ -633,6 +633,7 @@ public:
     bool IsNullType() const;
     bool IsNullableType() const;
     bool IsVarArgsType() const;
+    bool IsArrayType() const;
     bool IsString() const;
 
     /*! \brief Is this type an uninstantiated generic parameter? (e.g. T) */

@@ -376,6 +376,11 @@ SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
         mod->CacheTypeInstance(cacheKey, tempInstance);
 
+        // Add SelfType alias
+        SymbolType* selfTypeAlias = SymbolType::Alias("SelfType", AliasTypeInfo { tempInstance });
+        selfTypeAlias->Register(visitor->GetCompilationUnit());
+        mod->scopeTree.Top().identifierTable.AddSymbolType(selfTypeAlias);
+
         const GenericInstanceTypeInfo& gi = inputType->GetGenericInstanceInfo();
 
         const SymbolType* varargElemType = GetVarArgType(gi.m_genericArgs);

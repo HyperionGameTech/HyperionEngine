@@ -539,6 +539,22 @@ bool SymbolType::TypeCompatible(
 
     if (right.IsVarArgsType())
     {
+        // Allow passing VarArgs as Array
+        if (IsArrayType())
+        {
+            // Check element type compatibility
+            if (m_genericInstanceInfo.m_genericArgs.Size() == 1 && right.GetGenericInstanceInfo().m_genericArgs.Size() == 1)
+            {
+                const SymbolType* arrayElemType = m_genericInstanceInfo.m_genericArgs[0].m_type;
+                const SymbolType* varArgsElemType = right.GetGenericInstanceInfo().m_genericArgs[0].m_type;
+
+                if (arrayElemType && varArgsElemType)
+                {
+                    return arrayElemType->TypeCompatible(*varArgsElemType, strictNumbers, strictAny, strictEnum, outIncompatibilities);
+                }
+            }
+        }
+
         // cannot assign anything from varargs without explicit cast or unpacking.
         ADD_INCOMPATIBILITY(IT_VARARGS, "right-hand side of expression is variadic and cannot be used for direct assignment");
 
@@ -1038,6 +1054,11 @@ bool SymbolType::IsNullableType() const
 bool SymbolType::IsVarArgsType() const
 {
     return IsOrHasBase(*BuiltinTypes::s_varArgsBaseType);
+}
+
+bool SymbolType::IsArrayType() const
+{
+    return IsOrHasBase(*BuiltinTypes::s_arrayBaseType);
 }
 
 bool SymbolType::IsString() const

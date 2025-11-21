@@ -2977,14 +2977,37 @@ RC<AstFileImport> Parser::ParseFileImport()
 
 RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allowBraces)
 {
+    static const String s_wildcardImportToken = "*";
+
     const SourceLocation location = CurrentLocation();
 
     Array<RC<AstModuleImportPart>> parts;
 
-    if (Token ident = Expect(TK_IDENT, true))
+    Token ident = Match(TK_IDENT, true);
+
+    if (!ident)
+    {
+        if (Token wildcard = MatchOperator(s_wildcardImportToken, true))
+        {
+            ident = wildcard;
+        }
+    }
+
+    if (ident)
     {
         if (Match(TK_DOUBLE_COLON, true))
         {
+            if (ident.GetValue() == s_wildcardImportToken)
+            {
+                m_compilationUnit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_unexpected_token,
+                    ident.GetLocation(),
+                    ident.GetValue()));
+
+                return nullptr;
+            }
+
             if (Match(TK_OPEN_BRACE, true))
             {
                 while (!Match(TK_CLOSE_BRACE, false))
