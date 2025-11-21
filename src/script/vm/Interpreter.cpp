@@ -496,6 +496,8 @@ using BCRegister = uint8;
 
 #pragma region ScriptApi
 
+static const Name s_nameToString = NAME("ToString");
+
 static const String s_nullString = "null";
 static const String s_boolStrings[2] = { "false", "true" };
 
@@ -812,9 +814,9 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
         return true;
     }
 
-    constexpr SizeType bufSize = 256;
+    constexpr SizeType StringBufferSize = 256;
 
-    char buf[bufSize] = { 0 };
+    char buf[StringBufferSize] = { 0 };
 
     if (!data.IsValid())
     {
@@ -830,8 +832,6 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
         return true;
     }
-
-    constexpr int maxArrayDepth = 2;
 
     if (GenericArrayWrapper* pArray = data.TryGet<GenericArrayWrapper>().TryGet())
     {
@@ -894,7 +894,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
     if (const Class* cls = GetClass(data.GetTypeId()))
     {
-        const Method* toStringMethod = cls->GetMethod("ToString");
+        const Method* toStringMethod = cls->GetMethod(s_nameToString);
 
         if (toStringMethod != nullptr)
         {
@@ -921,12 +921,12 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
             }
         }
 
-        constexpr const char* objectFormatString = "<%s @ %p>";
+        constexpr const char* ObjectFormatString = "<%s @ %p>";
 
         int n = std::snprintf(
             buf,
-            bufSize,
-            objectFormatString,
+            StringBufferSize,
+            ObjectFormatString,
             cls->GetName().LookupString(),
             data.ToRef().GetPointer());
 
@@ -938,9 +938,9 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
             return true;
         }
 
-        if (static_cast<SizeType>(n) >= bufSize)
+        if (SizeType(n) >= StringBufferSize)
         {
-            const SizeType newBufSize = static_cast<SizeType>(n) + 1;
+            const SizeType newBufSize = SizeType(n) + 1;
 
             char* newBuf = static_cast<char*>(Memory::Allocate(newBufSize));
             Assert(newBuf != nullptr);
@@ -948,7 +948,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
             n = std::snprintf(
                 newBuf,
                 newBufSize,
-                objectFormatString,
+                ObjectFormatString,
                 cls->GetName().LookupString(),
                 data.ToRef().GetPointer());
 
