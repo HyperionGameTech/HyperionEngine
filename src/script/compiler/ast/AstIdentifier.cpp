@@ -60,6 +60,11 @@ void AstIdentifier::PerformLookup(AstVisitor* visitor, Module* mod)
         // if the identifier was not found, check if it is global
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
     }
+    else if (const SymbolType* globalType = visitor->GetCompilationUnit()->GetGlobalModule()->LookupSymbolType(m_name))
+    {
+        m_properties.m_foundType = globalType;
+        m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
+    }
     else if (mod->LookupNestedModule(m_name) != nullptr)
     {
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_MODULE);

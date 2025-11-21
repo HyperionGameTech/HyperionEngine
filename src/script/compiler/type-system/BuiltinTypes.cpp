@@ -282,6 +282,15 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             GenericInstanceTypeInfo {
                 { { "@return", BuiltinTypes::s_uint64Type },
                     { "self", BuiltinTypes::s_stringType } } }) });
+
+    stringTypeNonConst->GetStaticMembers().PushBack(SymbolTypeMember {
+        "$invoke",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_stringType },
+                    { "val", BuiltinTypes::s_anyType } } }) });
 #pragma endregion String
 
 #define REGISTER_GLOBAL_TYPE(type)                                      \

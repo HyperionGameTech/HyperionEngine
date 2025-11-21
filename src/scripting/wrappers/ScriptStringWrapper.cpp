@@ -22,9 +22,15 @@ HYP_BEGIN_STRUCT(Script_String, -1, 0, {})
     Method(NAME("Length"), +[](const Script_String& str) -> uint64
         {
             return str.Length();
+        }),
+    Method(NAME("$invoke"), +[](const HypData& value) -> Script_String
+        {
+            return ToString(value);
         })
 HYP_END_STRUCT
 // clang-format on
+
+HYP_REGISTER_STATIC_CLASS(Script_String);
 
 } // namespace hyperion
 

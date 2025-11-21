@@ -44,6 +44,8 @@ HYP_BEGIN_STRUCT(Script_Array, -1, 0, {})
 HYP_END_STRUCT
 // clang-format on
 
+HYP_REGISTER_STATIC_CLASS(Script_Array);
+
 } // namespace hyperion
 
 #endif

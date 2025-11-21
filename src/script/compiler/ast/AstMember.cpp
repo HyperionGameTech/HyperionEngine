@@ -26,6 +26,24 @@
 
 namespace hyperion {
 
+static constexpr const char* StringClassName = "Script_String";
+
+static String GetClassNameForType(const SymbolType* type)
+{
+    if (!type)
+    {
+        return String::empty;
+    }
+
+    // Handle builtin types
+    if (type->IsString())
+    {
+        return StringClassName;
+    }
+
+    return type->GetName();
+}
+
 AstMember::AstMember(
     const String& fieldName,
     const RC<AstExpression>& target,
@@ -227,13 +245,13 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
 
     if (isStaticMember)
     {
-        Assert(m_targetType != nullptr && m_targetType->IsObject());
+        Assert(m_targetType != nullptr);
 
         const uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        const String className = m_targetType->GetName();
+        const String className = GetClassNameForType(m_targetType);
 
-        chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(className)));
+        chunk->Append(BytecodeUtil::Make<LoadClass>(rp, StringHash(className)));
     }
     else if (m_target != nullptr)
     {

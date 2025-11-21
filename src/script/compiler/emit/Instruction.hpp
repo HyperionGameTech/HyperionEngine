@@ -253,12 +253,12 @@ struct ConstNull : public Buildable
 struct LoadClass final : public Buildable
 {
     RegIndex reg;
-    Name className;
+    StringHash nameHash;
 
     LoadClass() = default;
-    LoadClass(RegIndex reg, Name className)
+    LoadClass(RegIndex reg, StringHash nameHash)
         : reg(reg),
-          className(className)
+          nameHash(nameHash)
     {
     }
 };

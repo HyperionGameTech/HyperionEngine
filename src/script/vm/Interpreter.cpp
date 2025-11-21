@@ -1298,7 +1298,7 @@ public:
 
     SCRIPT_INLINE void OpLoadClass(BCRegister reg, uint64 nameHash)
     {
-        Name name = Name(NameID(nameHash));
+        Name name = Name(StringHash(nameHash));
         const Class* cls = ClassRegistry::GetInstance().GetClass(name);
         if (!cls)
         {

@@ -273,7 +273,7 @@ void CodeGenerator::Visit(LoadClass* node)
     m_ibs.Put(Instructions::LOAD_CLASS);
     m_ibs.Put(node->reg);
 
-    const uint64 nameHashValue = (uint64)node->className.hashCode;
+    const uint64 nameHashValue = (uint64)node->nameHash.hashCode;
     m_ibs.Put(reinterpret_cast<const ubyte*>(&nameHashValue), sizeof(nameHashValue));
 }
 

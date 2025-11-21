@@ -3,6 +3,7 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstNewExpression.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Keywords.hpp>
 
@@ -78,6 +79,27 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
                 argsWithSelf.PushFront(std::move(selfArg));
             }
+        }
+    }
+
+    // check if we are calling a type directly (static invoke)
+    if (const SymbolType* heldType = m_expr->GetHeldType())
+    {
+        SymbolTypeMember staticInvokeMember;
+        uint32 staticInvokeIndex = ~0u;
+
+        if (heldType->FindStaticMember("$invoke", staticInvokeMember, staticInvokeIndex))
+        {
+            // transform into static member call
+            m_overrideExpr.Reset(new AstCallExpression(
+                RC<AstMember>(new AstMember("$invoke", CloneAstNode(m_expr), m_location)),
+                CloneAllAstNodes(argsWithSelf),
+                false,
+                m_location));
+
+            m_overrideExpr->Visit(visitor, mod);
+
+            return;
         }
     }
 
