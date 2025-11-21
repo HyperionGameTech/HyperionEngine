@@ -42,6 +42,12 @@ namespace logging {
 static volatile int32 s_maxLogChannelId = -1;
 static bool s_registerAllCalled = false;
 
+const LogCategory LogCategory::Debug = LogCategory(LogLevel::DEBUG, 10000, LogCategory::LCF_ENABLED_IF_DEBUG_MODE);
+const LogCategory LogCategory::Warning = LogCategory(LogLevel::WARNING, 1000);
+const LogCategory LogCategory::Info = LogCategory(LogLevel::INFO, 100);
+const LogCategory LogCategory::Error = LogCategory(LogLevel::ERR, 10);
+const LogCategory LogCategory::Fatal = LogCategory(LogLevel::FATAL, 1, LogCategory::LCF_ENABLED | LogCategory::LCF_FATAL);
+
 HYP_API Logger& GetLogger()
 {
     Assert(g_logger != nullptr);
@@ -728,9 +734,9 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
 void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& message)
 {
     constexpr UTF8StringView NewlineChunk = UTF8StringView("\n");
-    
+
     UTF8StringView sv[2] = { UTF8StringView(message), NewlineChunk };
-    
+
     LogMessage lm;
     lm.level = level;
     lm.chunks = sv;
@@ -746,7 +752,7 @@ namespace logging {
 
 HYP_API void LogTemp(Logger& logger, const char* str)
 {
-    LogDynamic<Debug(), HYP_MAKE_CONST_ARG(&g_logChannel_Temp)>(logger, str);
+    LogDynamic<HYP_MAKE_CONST_ARG(&LogCategory::Debug), HYP_MAKE_CONST_ARG(&g_logChannel_Temp)>(logger, str);
 }
 
 } // namespace logging

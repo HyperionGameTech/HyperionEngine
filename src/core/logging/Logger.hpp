@@ -259,7 +259,7 @@ private:
 
 struct LogOnceHelper
 {
-    template <auto LogOnceFileName, int32 LogOnceLineNumber, auto LogOnceFunctionName, LogCategory Category, auto ChannelArg, auto LogOnceFormatString, class... LogOnceArgTypes>
+    template <auto LogOnceFileName, int32 LogOnceLineNumber, auto LogOnceFunctionName, auto CategoryArg, auto ChannelArg, auto LogOnceFormatString, class... LogOnceArgTypes>
     static void ExecuteLogOnce(Logger& logger, LogOnceArgTypes&&... args)
     {
         static volatile int64 timesExecutedCounter = 0;
@@ -268,18 +268,20 @@ struct LogOnceHelper
 
         if (count == 0)
         {
-            LogStatic<Category, ChannelArg, LogOnceFormatString>(logger, std::forward<LogOnceArgTypes>(args)...);
+            LogStatic<CategoryArg, ChannelArg, LogOnceFormatString>(logger, std::forward<LogOnceArgTypes>(args)...);
         }
         else if ((uint32(count) & (uint32(count) - 1)) == 0)
         {
-            LogStatic<Category, ChannelArg, LogOnceFormatString.template Concat<HYP_STATIC_STRING("\t... and {} more like this\n")>()>(logger, std::forward<LogOnceArgTypes>(args)..., uint32(count));
+            LogStatic<CategoryArg, ChannelArg, LogOnceFormatString.template Concat<HYP_STATIC_STRING("\t... and {} more like this\n")>()>(logger, std::forward<LogOnceArgTypes>(args)..., uint32(count));
         }
     }
 };
 
-template <LogCategory Category, auto ChannelArg, auto FormatString, class... Args>
+template <auto CategoryArg, auto ChannelArg, auto FormatString, class... Args>
 inline void LogStatic(Logger& logger, Args&&... args)
 {
+    static const LogCategory& Category = *HYP_GET_CONST_ARG(CategoryArg);
+
     if constexpr (!Category.IsEnabled())
     {
         return;
@@ -321,9 +323,11 @@ inline void LogStatic(Logger& logger, Args&&... args)
     }
 }
 
-template <LogCategory Category, auto FormatString, class... Args>
+template <auto CategoryArg, auto FormatString, class... Args>
 inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&... args)
 {
+    static const LogCategory& Category = *HYP_GET_CONST_ARG(CategoryArg);
+
     if constexpr (!Category.IsEnabled())
     {
         return;
@@ -348,9 +352,11 @@ inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&.
     }
 }
 
-template <LogCategory Category, auto ChannelArg>
+template <auto CategoryArg, auto ChannelArg>
 inline void LogDynamic(Logger& logger, const char* str)
 {
+    static const LogCategory& Category = *HYP_GET_CONST_ARG(CategoryArg);
+
     if constexpr (!Category.IsEnabled())
     {
         return;

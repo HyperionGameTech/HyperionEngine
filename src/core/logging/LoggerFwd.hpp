@@ -17,6 +17,7 @@ namespace logging {
 class Logger;
 class LogChannel;
 
+HYP_ENUM()
 enum LogLevel : uint32
 {
     DEBUG = 0,
@@ -28,13 +29,21 @@ enum LogLevel : uint32
     MAX
 };
 
+HYP_STRUCT()
 struct LogCategory
 {
+    HYP_STRUCT_BODY(LogCategory);
+
     enum LogCategoryFlags : uint8
     {
         LCF_NONE = 0x0,
         LCF_ENABLED = 0x1,
-        LCF_FATAL = 0x2,
+#ifdef HYP_DEBUG_MODE
+        LCF_ENABLED_IF_DEBUG_MODE = LCF_ENABLED,
+#else
+        LCF_ENABLED_IF_DEBUG_MODE = LCF_NONE,
+#endif
+        LCF_FATAL = 0x4,
 
         LCF_DEFAULT = LCF_ENABLED
     };
@@ -91,48 +100,45 @@ struct LogCategory
         return (GetFlags() & LCF_ENABLED) != 0;
     }
 
+    HYP_FIELD()
+    static const LogCategory Debug;
+
+    HYP_FIELD()
+    static const LogCategory Warning;
+
+    HYP_FIELD()
+    static const LogCategory Info;
+
+    HYP_FIELD()
+    static const LogCategory Error;
+
+    HYP_FIELD()
+    static const LogCategory Fatal;
+
     uint32 value;
 };
 
-#ifdef HYP_DEBUG_MODE
-constexpr LogCategory Debug()
-{
-    return LogCategory(LogLevel::DEBUG, 10000, LogCategory::LCF_ENABLED);
-}
-#else
-constexpr LogCategory Debug()
-{
-    return LogCategory(LogLevel::DEBUG, 10000, LogCategory::LCF_NONE);
-}
-#endif
+#define DEFINE_LOG_CATEGORY_GLOBAL(name)    \
+    static inline const LogCategory& name() \
+    {                                       \
+        return LogCategory::name;           \
+    }
 
-constexpr LogCategory Warning()
-{
-    return LogCategory(LogLevel::WARNING, 1000);
-}
+DEFINE_LOG_CATEGORY_GLOBAL(Debug);
+DEFINE_LOG_CATEGORY_GLOBAL(Warning);
+DEFINE_LOG_CATEGORY_GLOBAL(Info);
+DEFINE_LOG_CATEGORY_GLOBAL(Error);
+DEFINE_LOG_CATEGORY_GLOBAL(Fatal);
 
-constexpr LogCategory Info()
-{
-    return LogCategory(LogLevel::INFO, 100);
-}
+#undef DEFINE_LOG_CATEGORY_GLOBAL
 
-constexpr LogCategory Error()
-{
-    return LogCategory(LogLevel::ERR, 10);
-}
-
-constexpr LogCategory Fatal()
-{
-    return LogCategory(LogLevel::FATAL, 1, LogCategory::LCF_ENABLED | LogCategory::LCF_FATAL);
-}
-
-template <LogCategory Category, auto ChannelArg, auto FormatString, class... Args>
+template <auto CategoryArg, auto ChannelArg, auto FormatString, class... Args>
 inline void LogStatic(Logger& logger, Args&&... args);
 
-template <LogCategory Category, auto FormatString, class... Args>
+template <auto Category, auto FormatString, class... Args>
 inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&... args);
 
-template <LogCategory Category, auto ChannelArg>
+template <auto CategoryArg, auto ChannelArg>
 inline void LogDynamic(Logger& logger, const char* str);
 
 HYP_API extern void LogTemp(Logger& logger, const char* str);
@@ -152,10 +158,10 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 #endif
 
 #define HYP_LOG(channel, category, fmt, ...) \
-    hyperion::logging::LogStatic<hyperion::logging::category(), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(hyperion::logging::GetLogger(), ##__VA_ARGS__)
+    hyperion::logging::LogStatic<HYP_MAKE_CONST_ARG(&LogCategory::category), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(hyperion::logging::GetLogger(), ##__VA_ARGS__)
 
 #define HYP_LOG_DYNAMIC(channel, category, str) \
-    hyperion::logging::LogDynamic<hyperion::logging::category(), HYP_MAKE_CONST_ARG(&g_logChannel_##channel)>(hyperion::logging::GetLogger(), str)
+    hyperion::logging::LogDynamic<HYP_MAKE_CONST_ARG(&LogCategory::category), HYP_MAKE_CONST_ARG(&g_logChannel_##channel)>(hyperion::logging::GetLogger(), str)
 
 #ifdef HYP_DEBUG_MODE
 #define HYP_LOG_TEMP(fmt, ...) \

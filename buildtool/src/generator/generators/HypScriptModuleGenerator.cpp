@@ -204,11 +204,6 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                         return HYP_MAKE_ERROR(Error, "Cannot generate script bindings for non-function type");
                     }
 
-                    if (member.cxxType->isStatic)
-                    {
-                        continue; // not yet supported
-                    }
-
                     const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(member.cxxType.Get());
 
                     if (!functionType)
@@ -249,7 +244,15 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                         methodArgNames.PushBack(parameter->name);
                     }
 
-                    writer.WriteString(HYP_FORMAT("    {}({}) -> {};\n", managedName, methodArgDecls.Any() ? String::Join(methodArgDecls, ", ") : "", returnTypeMapping.typeName));
+                    writer.WriteString("    ");
+
+                    // static functions
+                    if (member.cxxType->isStatic)
+                    {
+                        writer.WriteString("static ");
+                    }
+
+                    writer.WriteString(HYP_FORMAT("{}({}) -> {};\n", managedName, methodArgDecls.Any() ? String::Join(methodArgDecls, ", ") : "", returnTypeMapping.typeName));
 
                     continue;
                 }
@@ -267,12 +270,19 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                         fieldTypeMapping = res.GetValue();
                     }
 
-                    writer.WriteString(HYP_FORMAT("    {} : {};\n", managedName, fieldTypeMapping.typeName));
+                    writer.WriteString("    ");
+
+                    if (member.cxxType->isStatic)
+                    {
+                        writer.WriteString("static ");
+                    }
+
+                    writer.WriteString(HYP_FORMAT("{} : {};\n", managedName, fieldTypeMapping.typeName));
 
                     continue;
                 }
 
-                /* @TODO: Delegates, static members */
+                /* @TODO: Delegates */
             }
         }
         else if (cls->type == ClassDefinitionType::ENUM)
