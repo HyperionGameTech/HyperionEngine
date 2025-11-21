@@ -74,7 +74,7 @@ protected:
     {
     }
 
-    bool WaitForTasks(Mutex& mtx);
+    void WaitForTasks(Mutex& mtx, bool* outStopRequested);
 
     uint32 m_idCounter = 0;
     AtomicVar<uint32> m_numEnqueued { 0 };
@@ -89,6 +89,8 @@ protected:
 
 class Scheduler final : public SchedulerBase
 {
+    friend class TaskThreadPool;
+
 public:
     struct ScheduledTask
     {
@@ -241,7 +243,7 @@ public:
     auto Enqueue(const StaticMessage& debugName, Function&& fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
     {
         using ReturnType = typename FunctionTraits<Function>::ReturnType;
-        
+
         TaskExecutorInstance<ReturnType>* executor;
 
         {
@@ -259,7 +261,7 @@ public:
 
             Enqueue_Internal(std::move(scheduledTask));
         }
-        
+
         Task<ReturnType> task(executor->GetTaskID(), this, executor, !(flags & TaskEnqueueFlags::FIRE_AND_FORGET));
 
         WakeUpOwnerThread();
@@ -374,55 +376,32 @@ public:
             });
     }
 
-    /* Move all tasks in the queue to an external container. */
-    template <class Container>
-    void AcceptAll(Container& outContainer)
+    bool TryPop(ScheduledTask& outTask)
     {
-        HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
+        Mutex::Guard guard(m_mutex);
 
+        if (m_queue.Empty())
         {
-            Mutex::Guard guard(m_mutex);
-
-            for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
-            {
-                outContainer.Add(std::move(*it));
-                m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
-            }
-
-            m_queue.Clear();
+            return false;
         }
 
-        WakeUpOwnerThread();
-    }
-
-    /*! \brief Move all tasks in the queue to an external container. Blocks the current thread until there are tasks to execute, or the scheduler is stopped.
-     * @returns a boolean value indicating whether or not the scheduler was stopped.
-     */
-    template <class Container>
-    bool WaitForTasks(Container& outContainer)
-    {
-        HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
-
-        {
-            Mutex::Guard guard(m_mutex);
-
-            if (!SchedulerBase::WaitForTasks(m_mutex))
-            {
-                return false;
-            }
-
-            for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
-            {
-                outContainer.Push(std::move(*it));
-                m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
-            }
-
-            m_queue.Clear();
-        }
-
-        WakeUpOwnerThread();
+        outTask = std::move(m_queue.Front());
+        m_queue.PopFront();
+        m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
 
         return true;
+    }
+
+    /*! \brief Blocks the current thread until there are tasks to execute, or the scheduler is stopped.
+     * @param outStopRequested Pointer to a boolean that will be set to true if the scheduler was stopped.
+     */
+    void WaitForTasks(bool* outStopRequested)
+    {
+        HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
+
+        Mutex::Guard guard(m_mutex);
+
+        SchedulerBase::WaitForTasks(m_mutex, outStopRequested);
     }
 
     /*! \brief Execute all scheduled tasks. May only be called from the creation thread. */
@@ -452,7 +431,49 @@ public:
         WakeUpOwnerThread();
     }
 
+    /* Move all tasks in the queue to an external container. */
+    template <class Container>
+    void AcceptAll(Container& outContainer)
+    {
+        HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
+
+        {
+            Mutex::Guard guard(m_mutex);
+
+            for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
+            {
+                outContainer.Add(std::move(*it));
+                m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
+            }
+
+            m_queue.Clear();
+        }
+
+        WakeUpOwnerThread();
+    }
+
 private:
+    /*! \brief Attempt to steal a task from the back of the queue.
+     *  Used by ThreadPool to steal work from other schedulers.
+     * @param outTask The stolen task, if any.
+     * @returns true if a task was stolen, false otherwise. */
+    bool TryStealFrom(ScheduledTask& outTask)
+    {
+        Mutex::Guard guard(m_mutex);
+
+        if (m_queue.Empty())
+        {
+            return false;
+        }
+
+        // Steal from back
+        outTask = std::move(m_queue.Back());
+        m_queue.PopBack();
+        m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
+
+        return true;
+    }
+
     void Enqueue_Internal(ScheduledTask&& scheduledTask)
     {
         const TaskID taskId { ++m_idCounter };

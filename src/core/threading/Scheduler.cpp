@@ -18,13 +18,18 @@ void SchedulerBase::RequestStop()
     }
 }
 
-bool SchedulerBase::WaitForTasks(Mutex& mtx)
+void SchedulerBase::WaitForTasks(Mutex& mtx, bool* outStopRequested)
 {
     // must be locked before calling this function
 
     if (m_stopRequested.Get(MemoryOrder::RELAXED))
     {
-        return false;
+        if (outStopRequested)
+        {
+            *outStopRequested = true;
+        }
+
+        return;
     }
 
     while (!m_stopRequested.Get(MemoryOrder::RELAXED) && m_numEnqueued.Get(MemoryOrder::ACQUIRE) == 0)
@@ -32,7 +37,10 @@ bool SchedulerBase::WaitForTasks(Mutex& mtx)
         m_hasTasksCV.Wait(mtx);
     }
 
-    return !m_stopRequested.Get(MemoryOrder::RELAXED);
+    if (outStopRequested)
+    {
+        *outStopRequested = m_stopRequested.Get(MemoryOrder::RELAXED);
+    }
 }
 
 } // namespace threading

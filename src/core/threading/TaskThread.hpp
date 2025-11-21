@@ -14,6 +14,7 @@ namespace hyperion {
 namespace threading {
 
 class ThreadId;
+class TaskThreadPool;
 
 class HYP_API TaskThread : public Thread<Scheduler>
 {
@@ -24,6 +25,16 @@ public:
     virtual ~TaskThread() override = default;
 
     void SetPriority(ThreadPriorityValue priority);
+
+    HYP_FORCE_INLINE void SetOwnerPool(TaskThreadPool* pool)
+    {
+        m_ownerPool = pool;
+    }
+
+    HYP_FORCE_INLINE TaskThreadPool* GetOwnerPool() const
+    {
+        return m_ownerPool;
+    }
 
     HYP_FORCE_INLINE bool IsFree() const
     {
@@ -52,7 +63,7 @@ protected:
 
     AtomicVar<uint32> m_numTasks;
 
-    Queue<Scheduler::ScheduledTask> m_taskQueue;
+    TaskThreadPool* m_ownerPool = nullptr;
 };
 
 } // namespace threading

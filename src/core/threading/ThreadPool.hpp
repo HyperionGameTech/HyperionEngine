@@ -117,6 +117,8 @@ public:
         {
             UniquePtr<ThreadBase>& thread = m_threads.PushBack(MakeUnique<TaskThreadType>(CreateTaskThreadId(baseName, threadIndex)));
 
+            static_cast<TaskThread*>(thread.Get())->SetOwnerPool(this);
+
             m_threadMask |= thread->Id().GetMask();
         }
     }
@@ -149,6 +151,9 @@ public:
     /*! \brief Get the next available task thread from the pool using round-robin scheduling.
      *  Avoids deadlocks by not returning the current thread if called from a task thread. */
     virtual TaskThread* GetNextTaskThread();
+
+    /*! \brief Attempt to steal a task from any thread in the pool, excluding the thief. */
+    bool TryStealTask(TaskThread* thief, Scheduler::ScheduledTask& outTask);
 
     /*! \brief Enqueue a task to the pool with optional debug name and flags.
      *  \param debugName Debug name for profiling/logging

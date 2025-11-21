@@ -127,6 +127,8 @@ TaskThreadPool::TaskThreadPool(Array<UniquePtr<TaskThread>>&& threads)
 
     for (UniquePtr<TaskThread>& thread : threads)
     {
+        thread->SetOwnerPool(this);
+
         m_threadMask |= thread->Id().GetMask();
         m_threads.PushBack(std::move(thread));
     }
@@ -196,6 +198,38 @@ TaskThread* TaskThreadPool::GetNextTaskThread()
     while (!taskThread->IsRunning() && !taskThread->IsFree());
 
     return taskThread;
+}
+
+bool TaskThreadPool::TryStealTask(TaskThread* thief, Scheduler::ScheduledTask& outTask)
+{
+    const uint32 numThreads = uint32(m_threads.Size());
+
+    if (numThreads <= 1)
+    {
+        return false;
+    }
+
+    // Start stealing from a random offset to reduce contention
+    // Using cycle counter as a pseudo-random offset
+    const uint32 startIndex = m_cycle.Get(MemoryOrder::RELAXED) % numThreads;
+
+    for (uint32 i = 0; i < numThreads; i++)
+    {
+        const uint32 index = (startIndex + i) % numThreads;
+        TaskThread* victim = static_cast<TaskThread*>(m_threads[index].Get());
+
+        if (victim == thief)
+        {
+            continue;
+        }
+
+        if (victim->GetScheduler().TryStealFrom(outTask))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 #pragma endregion TaskThreadPool
