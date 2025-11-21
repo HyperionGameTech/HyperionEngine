@@ -284,6 +284,16 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
                     { "self", BuiltinTypes::s_stringType } } }) });
 
     stringTypeNonConst->GetStaticMembers().PushBack(SymbolTypeMember {
+        "Join",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_stringType },
+                    { "elems", SymbolType::GenericInstance(BuiltinTypes::s_arrayType, {}, {}, GenericInstanceTypeInfo { { { "type", BuiltinTypes::s_anyType } } }) },
+                    { "sep", BuiltinTypes::s_stringType } } }) });
+
+    stringTypeNonConst->GetStaticMembers().PushBack(SymbolTypeMember {
         "$invoke",
         SymbolType::GenericInstance(
             BuiltinTypes::s_functionType,

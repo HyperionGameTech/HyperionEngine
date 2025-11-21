@@ -3,6 +3,7 @@
 
 #include <script/vm/Value.hpp>
 #include <script/vm/String.hpp>
+#include <script/vm/Array.hpp>
 
 #include <core/reflection/ClassUtils.hpp>
 #include <core/reflection/ClassRegistry.hpp>
@@ -22,6 +23,22 @@ HYP_BEGIN_STRUCT(Script_String, -1, 0, {})
     Method(NAME("Length"), +[](const Script_String& str) -> uint64
         {
             return str.Length();
+        }),
+    Method(NAME("Join"), +[](const Array<HypData>& elems, const Script_String& sep) -> Script_String
+        {
+            Script_String result;
+
+            for (SizeType i = 0; i < elems.Size(); ++i)
+            {
+                result += ToString(elems[i]);
+
+                if (i != elems.Size() - 1)
+                {
+                    result += sep;
+                }
+            }
+
+            return result;
         }),
     Method(NAME("$invoke"), +[](const HypData& value) -> Script_String
         {

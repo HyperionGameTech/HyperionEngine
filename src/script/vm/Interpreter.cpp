@@ -995,6 +995,8 @@ String ScriptApi_ValueToString(const HypData& data, int currDepth)
 
         switch (vmData->type)
         {
+        case Script_VMData::VALUE_REF:
+            return Script_String("<Reference>");
         case Script_VMData::FUNCTION:
             return Script_String("<Function>");
         case Script_VMData::NATIVE_FUNCTION:
@@ -1006,6 +1008,8 @@ String ScriptApi_ValueToString(const HypData& data, int currDepth)
             return Script_String("<Stack frame>");
         case Script_VMData::TRY_CATCH_INFO:
             return Script_String("<Try catch info>");
+        case Script_VMData::INVALID_STATE_OBJECT:
+            return Script_String("<Invalid>");
         default:
             HYP_UNREACHABLE();
         }
