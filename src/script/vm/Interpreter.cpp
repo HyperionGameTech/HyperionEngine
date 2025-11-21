@@ -488,7 +488,7 @@
 
 namespace hyperion {
 
-using Script_Array = Array<HypData, DynamicAllocator>;
+using ScriptArray = Array<HypData, DynamicAllocator>;
 
 extern const char* LookupTypeName(const TypeId& typeId);
 
@@ -746,7 +746,7 @@ const char* ScriptApi_GetTypeString(TypeId typeId)
     {
         return "string";
     }
-    else if (typeId == TypeId::ForType<Script_Array>())
+    else if (typeId == TypeId::ForType<ScriptArray>())
     {
         return "array";
     }
@@ -1201,7 +1201,7 @@ public:
             return;
         }
 
-        if (Script_Array* array = src.TryGet<Script_Array>().TryGet())
+        if (ScriptArray* array = src.TryGet<ScriptArray>().TryGet())
         {
             if (key.flags & Number::FLAG_SIGNED)
             {
@@ -1339,13 +1339,13 @@ public:
     {
         HypData& src = *Deref(instance->thread.m_regs[dstReg]);
 
-        if (!src.Is<Script_Array>())
+        if (!src.Is<ScriptArray>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", GetTypeString(src)));
             return;
         }
 
-        Script_Array& array = src.Get<Script_Array>();
+        ScriptArray& array = src.Get<ScriptArray>();
 
         if (index >= array.Size())
         {
@@ -1366,13 +1366,13 @@ public:
     {
         HypData& src = *Deref(instance->thread.m_regs[dstReg]);
 
-        if (!src.Is<Script_Array>())
+        if (!src.Is<ScriptArray>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", GetTypeString(src)));
             return;
         }
 
-        Script_Array& array = src.Get<Script_Array>();
+        ScriptArray& array = src.Get<ScriptArray>();
 
         Number index;
         HypData& indexRegisterValue = instance->thread.m_regs[indexReg];
@@ -1520,7 +1520,7 @@ public:
         // temp special case for arrays
         else if (GenericArrayWrapper* array = src.TryGet<GenericArrayWrapper>().TryGet())
         {
-            cls = GetClass(TypeId::ForType<Script_Array>());
+            cls = GetClass(TypeId::ForType<ScriptArray>());
         }
         else
         {
@@ -1598,13 +1598,13 @@ public:
     {
         HypData& dst = *Deref(instance->thread.m_regs[dstReg]);
 
-        if (!dst.Is<Script_Array>())
+        if (!dst.Is<ScriptArray>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("PUSH_ARRAY", GetTypeString(dst)));
             return;
         }
 
-        Script_Array& array = dst.Get<Script_Array>();
+        ScriptArray& array = dst.Get<ScriptArray>();
 
         array.PushBack(ScriptApi_ShallowCopy(*Deref(instance->thread.m_regs[srcReg]), vm->GetGC()));
     }
@@ -1740,7 +1740,7 @@ public:
     SCRIPT_INLINE void OpNewArray(BCRegister dst, uint32 size)
     {
         // assign register value to the allocated object
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(Script_Array(size));
+        instance->thread.m_regs[dst] = ScriptApi_MakeValue(ScriptArray(size));
     }
 
     SCRIPT_INLINE void OpBeginClass(BCRegister reg)
@@ -4031,7 +4031,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, HypData&& value, uint
                 previousAddr.call.varargsPush = varargsAmt - 1;
 
                 // create an array to hold variadic args
-                Script_Array arr;
+                ScriptArray arr;
                 arr.Resize(varargsAmt);
 
                 for (int i = varargsAmt - 1; i >= 0; i--)

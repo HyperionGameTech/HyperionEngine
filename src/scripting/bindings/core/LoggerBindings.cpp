@@ -29,23 +29,23 @@ extern "C"
         switch (LogLevel(logLevel))
         {
         case LogLevel::DEBUG:
-            logging::LogStatic_Channel<logging::Debug(), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Debug()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
 
             break;
         case LogLevel::INFO:
-            logging::LogStatic_Channel<logging::Info(), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Info()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
 
             break;
         case LogLevel::WARNING:
-            logging::LogStatic_Channel<logging::Warning(), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Warning()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
 
             break;
         case LogLevel::ERR:
-            logging::LogStatic_Channel<logging::Error(), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Error()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
 
             break;
         case LogLevel::FATAL:
-            logging::LogStatic_Channel<logging::Fatal(), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Fatal()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
 
             break;
         }

@@ -255,6 +255,11 @@ const char* Name::LookupString() const
     return GetRegistry()->LookupStringForName(*this).Data();
 }
 
+Name Name::FromString(const char* str)
+{
+    return CreateNameFromDynamicString(str);
+}
+
 String Name::ToString() const
 {
     const char* str = LookupString();

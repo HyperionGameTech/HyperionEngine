@@ -32,6 +32,7 @@ struct BuiltinTypes
     static const SymbolType* s_doubleType;
     static const SymbolType* s_boolType;
     static const SymbolType* s_stringType;
+    static const SymbolType* s_nameType;
     static const SymbolType* s_varArgsType;
     static const SymbolType* s_functionType;
     static const SymbolType* s_nullType;

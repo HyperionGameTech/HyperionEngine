@@ -26,7 +26,8 @@
 
 namespace hyperion {
 
-static constexpr const char* StringClassName = "Script_String";
+static constexpr const char* StringClassName = "String";
+static constexpr const char* NameClassName = "Name";
 
 static String GetClassNameForType(const SymbolType* type)
 {
@@ -39,6 +40,11 @@ static String GetClassNameForType(const SymbolType* type)
     if (type->IsString())
     {
         return StringClassName;
+    }
+
+    if (type->IsName())
+    {
+        return NameClassName;
     }
 
     return type->GetName();

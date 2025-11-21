@@ -31,6 +31,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Core);
 HYP_DECLARE_LOG_CHANNEL(Misc);
 HYP_DECLARE_LOG_CHANNEL(Temp);
+HYP_DECLARE_LOG_CHANNEL(Script);
 
 HYP_API ANSIStringView GetCurrentThreadName()
 {
@@ -41,12 +42,6 @@ namespace logging {
 
 static volatile int32 s_maxLogChannelId = -1;
 static bool s_registerAllCalled = false;
-
-const LogCategory LogCategory::Debug = LogCategory(LogLevel::DEBUG, 10000, LogCategory::LCF_ENABLED_IF_DEBUG_MODE);
-const LogCategory LogCategory::Warning = LogCategory(LogLevel::WARNING, 1000);
-const LogCategory LogCategory::Info = LogCategory(LogLevel::INFO, 100);
-const LogCategory LogCategory::Error = LogCategory(LogLevel::ERR, 10);
-const LogCategory LogCategory::Fatal = LogCategory(LogLevel::FATAL, 1, LogCategory::LCF_ENABLED | LogCategory::LCF_FATAL);
 
 HYP_API Logger& GetLogger()
 {
@@ -731,17 +726,43 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
     HYP_UNREACHABLE();
 }
 
-void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& message)
+void Logger::LogScript(const LogChannel& channel, const LogCategory& category, const String& message)
 {
     constexpr UTF8StringView NewlineChunk = UTF8StringView("\n");
+
+    const LogChannel* pChannel = &channel;
+
+    if (channel.id == ~0u)
+    {
+        // default to script channel if not set
+        pChannel = &g_logChannel_Script;
+    }
+    else if (channel.id >= Logger::maxChannels)
+    {
+        // log channel overflow! revert to Log_Misc
+        pChannel = &g_logChannel_Misc;
+    }
+
+    if (!IsChannelEnabled(*pChannel))
+    {
+        return;
+    }
+
+    if (!category.IsEnabled())
+    {
+        return;
+    }
 
     UTF8StringView sv[2] = { UTF8StringView(message), NewlineChunk };
 
     LogMessage lm;
-    lm.level = level;
+    lm.level = category.GetLevel();
+    lm.timestamp = uint64(Time::Now());
     lm.chunks = sv;
 
-    Log(channel, lm);
+    // don't handle fatal here; scripts shouldn't be able to cause fatal errors
+
+    Log(*pChannel, lm);
 }
 
 #pragma endregion Logger

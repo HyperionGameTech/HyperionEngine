@@ -126,6 +126,9 @@ struct Name
         return Name { 0 };
     }
 
+    HYP_METHOD()
+    HYP_API static Name FromString(const char* str);
+
     HYP_METHOD(NoScriptBindings)
     HYP_API String ToString() const;
 };

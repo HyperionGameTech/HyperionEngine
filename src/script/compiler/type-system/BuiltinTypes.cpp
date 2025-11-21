@@ -3,6 +3,7 @@
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstString.hpp>
+#include <script/compiler/ast/AstName.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstHashMap.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
@@ -142,6 +143,10 @@ const SymbolType* BuiltinTypes::s_stringType = SymbolType::Primitive(
 const SymbolType* BuiltinTypes::s_nullType = SymbolType::Primitive(
     "<null>",
     RC<AstNil>(new AstNil(SourceLocation::Eof())));
+
+const SymbolType* BuiltinTypes::s_nameType = SymbolType::Primitive(
+    "Name",
+    RC<AstName>(new AstName("", SourceLocation::Eof())));
 
 const SymbolType* BuiltinTypes::s_varArgsType = SymbolType::Generic(
     "VarArgs",
@@ -303,6 +308,20 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
                     { "val", BuiltinTypes::s_anyType } } }) });
 #pragma endregion String
 
+#pragma region Name
+    // HAX - we need to cast away const-ness here because we want to add members to the name type
+    SymbolType* nameTypeNonConst = const_cast<SymbolType*>(BuiltinTypes::s_nameType);
+
+    nameTypeNonConst->GetStaticMembers().PushBack(SymbolTypeMember {
+        "FromString",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_nameType },
+                    { "val", BuiltinTypes::s_stringType } } }) });
+#pragma endregion Name
+
 #define REGISTER_GLOBAL_TYPE(type)                                      \
     do                                                                  \
     {                                                                   \
@@ -333,6 +352,7 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_floatType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_doubleType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_boolType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_nameType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_stringType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_nullType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_varArgsType);
@@ -444,9 +464,6 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     vec4fType->Register(compilationUnit);
 
-    SymbolType* nameType = SymbolType::Primitive("Name", nullptr);
-    nameType->Register(compilationUnit);
-
     SymbolType* byteBufferType = SymbolType::Object("ByteBuffer", nullptr, {}, {});
     byteBufferType->Register(compilationUnit);
 
@@ -465,6 +482,7 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
         BuiltinTypes::s_floatType,
         BuiltinTypes::s_doubleType,
         BuiltinTypes::s_boolType,
+        BuiltinTypes::s_nameType,
         BuiltinTypes::s_stringType,
         BuiltinTypes::s_functionType,
         BuiltinTypes::s_arrayType,
@@ -482,7 +500,6 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
         vec4iType,
         vec4uType,
         vec4fType,
-        nameType,
         byteBufferType
     };
 

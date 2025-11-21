@@ -12,21 +12,21 @@
 
 namespace hyperion {
 
-HYP_API const Class* g_clsScript_String = nullptr;
+HYP_API const Class* g_clsString = nullptr;
 
 // clang-format off
-HYP_BEGIN_STRUCT(Script_String, -1, 0, {})
-    Method(NAME("operator+"), +[](const Script_String& a, const Script_String& b) -> Script_String
+HYP_BEGIN_STRUCT(String, -1, 0, {})
+    Method(NAME("operator+"), +[](const String& a, const String& b) -> String
         {
             return a + b;
         }),
-    Method(NAME("Length"), +[](const Script_String& str) -> uint64
+    Method(NAME("Length"), +[](const String& str) -> uint64
         {
             return str.Length();
         }),
-    Method(NAME("Join"), +[](const Array<HypData>& elems, const Script_String& sep) -> Script_String
+    Method(NAME("Join"), +[](const Array<HypData>& elems, const String& sep) -> String
         {
-            Script_String result;
+            String result;
 
             for (SizeType i = 0; i < elems.Size(); ++i)
             {
@@ -40,14 +40,14 @@ HYP_BEGIN_STRUCT(Script_String, -1, 0, {})
 
             return result;
         }),
-    Method(NAME("$invoke"), +[](const HypData& value) -> Script_String
+    Method(NAME("$invoke"), +[](const HypData& value) -> String
         {
             return ToString(value);
         })
 HYP_END_STRUCT
 // clang-format on
 
-HYP_REGISTER_STATIC_CLASS(Script_String);
+HYP_REGISTER_STATIC_CLASS(String);
 
 } // namespace hyperion
 

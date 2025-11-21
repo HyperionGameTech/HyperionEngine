@@ -37,6 +37,8 @@ public:
     utf::Char32 ReadEscapeCode();
     /** Reads a string literal and returns the token */
     Token ReadStringLiteral();
+    /** Reads a name literal (e.g. :foo or :"quoted") and returns the token */
+    Token ReadNameLiteral();
     /** Reads a number literal and returns the token */
     Token ReadNumberLiteral();
     /** Reads a hex number literal and returns the token */
@@ -49,8 +51,6 @@ public:
     Token ReadDocumentation();
     /** Reads an operator and returns the token */
     Token ReadOperator();
-    /** Read a directive returns the token */
-    Token ReadDirective();
     /** Reads the name, and returns the either identifier or keyword token */
     Token ReadIdentifier();
 

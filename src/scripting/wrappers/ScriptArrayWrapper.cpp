@@ -11,32 +11,32 @@
 
 namespace hyperion {
 
-using Script_Array = Array<HypData, DynamicAllocator>;
+using ScriptArray = Array<HypData, DynamicAllocator>;
 
-HYP_API const Class* g_clsScript_Array = nullptr;
+HYP_API const Class* g_clsScriptArray = nullptr;
 
 // clang-format off
-HYP_BEGIN_STRUCT(Script_Array, -1, 0, {})
+HYP_BEGIN_STRUCT(ScriptArray, -1, 0, {})
     Method(NAME("Size"), &Type::Size),
-    Method(NAME("PushBack"), +[](Script_Array& array, const HypData& arg) -> AnyRef
+    Method(NAME("PushBack"), +[](ScriptArray& array, const HypData& arg) -> AnyRef
         {
             return AnyRef(array.PushBack(arg));
         }),
-    Method(NAME("PopBack"), +[](Script_Array& array) -> HypData
+    Method(NAME("PopBack"), +[](ScriptArray& array) -> HypData
         {
             Assert(!array.Empty());
             return array.PopBack();
         }),
-    Method(NAME("Clear"), &Script_Array::Clear),
-    Method(NAME("Resize"), &Script_Array::Resize),
-    Method(NAME("Reserve"), &Script_Array::Reserve),
-    Method(NAME("Empty"), &Script_Array::Empty),
-    Method(NAME("Front"), +[](Script_Array& array) -> AnyRef
+    Method(NAME("Clear"), &ScriptArray::Clear),
+    Method(NAME("Resize"), &ScriptArray::Resize),
+    Method(NAME("Reserve"), &ScriptArray::Reserve),
+    Method(NAME("Empty"), &ScriptArray::Empty),
+    Method(NAME("Front"), +[](ScriptArray& array) -> AnyRef
         {
             Assert(!array.Empty());
             return AnyRef(array.Front());
         }),
-    Method(NAME("Back"), +[](Script_Array& array) -> AnyRef
+    Method(NAME("Back"), +[](ScriptArray& array) -> AnyRef
         {
             Assert(!array.Empty());
             return AnyRef(array.Back());
@@ -44,7 +44,7 @@ HYP_BEGIN_STRUCT(Script_Array, -1, 0, {})
 HYP_END_STRUCT
 // clang-format on
 
-HYP_REGISTER_STATIC_CLASS(Script_Array);
+HYP_REGISTER_STATIC_CLASS(ScriptArray);
 
 } // namespace hyperion
 

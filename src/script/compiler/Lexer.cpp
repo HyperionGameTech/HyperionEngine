@@ -120,7 +120,7 @@ Token Lexer::NextToken()
     }
     else if (ch[0] == '#')
     {
-        return ReadDirective();
+        return ReadNameLiteral();
     }
     else if (utf::IsAlphabetical(ch[0]) || ch[0] == '_' || ch[0] == '$')
     {
@@ -208,7 +208,8 @@ Token Lexer::NextToken()
 
             return Token(TK_DEFINE, ":=", location);
         }
-        else
+
+        // single ':' -> plain colon token
         {
             int posChange = 0;
             m_sourceStream.Next(posChange);
@@ -218,6 +219,7 @@ Token Lexer::NextToken()
             return Token(TK_COLON, ":", location);
         }
     }
+    
     else if (ch[0] == '?')
     {
         int posChange = 0;
@@ -801,38 +803,6 @@ Token Lexer::ReadOperator()
     return Token::EMPTY;
 }
 
-Token Lexer::ReadDirective()
-{
-    SourceLocation location = m_sourceLocation;
-
-    // read '#'
-    int posChange = 0;
-    m_sourceStream.Next(posChange);
-
-    m_sourceLocation.GetColumn()++;
-
-    // store the name
-    String value;
-
-    // the character as a utf-32 character
-    Char32 ch = m_sourceStream.Peek();
-
-    while (utf::IsDecimal(ch) || ch == (Char32)('_') || utf::IsAlphabetical(ch))
-    {
-        int posChange = 0;
-        ch = m_sourceStream.Next(posChange);
-
-        m_sourceLocation.GetColumn()++;
-
-        // append the raw bytes
-        value.Append(ch);
-        // set ch to be the next character in the buffer
-        ch = m_sourceStream.Peek();
-    }
-
-    return Token(TK_DIRECTIVE, value, location);
-}
-
 Token Lexer::ReadIdentifier()
 {
     SourceLocation location = m_sourceLocation;
@@ -935,6 +905,76 @@ Token Lexer::ReadIdentifier()
     }
 
     return Token(Keyword::IsKeyword(value) ? TK_KEYWORD : TK_IDENT, value, location);
+}
+
+Token Lexer::ReadNameLiteral()
+{
+    // starting location should be at the '#'
+    SourceLocation location = m_sourceLocation;
+
+    // consume '#'
+    int posChange = 0;
+    m_sourceStream.Next(posChange);
+    m_sourceLocation.GetColumn()++;
+
+    String value;
+
+    Char32 nextCh = m_sourceStream.Peek();
+
+    // quoted name: :"..." or :'...'
+    if (nextCh == '"' || nextCh == '\'')
+    {
+        // consume delimiter
+        Char32 delim = m_sourceStream.Next(posChange);
+        m_sourceLocation.GetColumn()++;
+
+        Char32 ch = m_sourceStream.Next(posChange);
+        m_sourceLocation.GetColumn()++;
+
+        while (ch != delim)
+        {
+            if (ch == (Char32)'\\')
+            {
+                // escape sequence
+                Char32 esc = ReadEscapeCode();
+                value.Append(esc);
+            }
+            else
+            {
+                value.Append(ch);
+            }
+
+            ch = m_sourceStream.Next(posChange);
+            m_sourceLocation.GetColumn()++;
+
+            if (!m_sourceStream.HasNext())
+            {
+                m_compilationUnit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_unterminated_string_literal,
+                    m_sourceLocation));
+
+                break;
+            }
+        }
+
+        return Token(TK_NAME_LITERAL, value, location);
+    }
+
+    // unquoted: read identifier rules
+    Char32 ch = m_sourceStream.Peek();
+
+    while (utf::IsDecimal(ch) || utf::IsAlphabetical(ch) || ch == '_' || ch == '$')
+    {
+        int pos = 0;
+        ch = m_sourceStream.Next(pos);
+        m_sourceLocation.GetColumn()++;
+
+        value.Append(ch);
+        ch = m_sourceStream.Peek();
+    }
+
+    return Token(TK_NAME_LITERAL, value, location);
 }
 
 bool Lexer::HasNext()

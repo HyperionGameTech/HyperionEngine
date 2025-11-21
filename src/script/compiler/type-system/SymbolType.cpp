@@ -1066,6 +1066,11 @@ bool SymbolType::IsString() const
     return TypeEqual(*BuiltinTypes::s_stringType);
 }
 
+bool SymbolType::IsName() const
+{
+    return TypeEqual(*BuiltinTypes::s_nameType);
+}
+
 bool SymbolType::IsGenericParameter() const
 {
     return m_typeClass == TYPE_GENERIC_PARAMETER;

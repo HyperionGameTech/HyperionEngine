@@ -492,7 +492,7 @@ RC<AstStatement> Parser::ParseStatement(
             res = ParseExpression();
         }
     }
-    else if (Match(TK_DIRECTIVE, false))
+    else if (Match(TK_NAME_LITERAL, false))
     {
         res = ParseDirective();
     }
@@ -559,7 +559,7 @@ RC<AstModuleDeclaration> Parser::ParseModuleDeclaration()
 
 RC<AstDirective> Parser::ParseDirective()
 {
-    if (Token token = Expect(TK_DIRECTIVE, true))
+    if (Token token = Expect(TK_NAME_LITERAL, true))
     {
         // the arguments will be held in an array expression
         Array<String> args;
@@ -638,6 +638,10 @@ RC<AstExpression> Parser::ParseTerm(
     else if (Match(TK_STRING))
     {
         expr = ParseStringLiteral();
+    }
+    else if (Match(TK_NAME_LITERAL))
+    {
+        expr = ParseNameLiteral();
     }
     else if (Match(TK_IDENT))
     {
@@ -1152,6 +1156,18 @@ RC<AstString> Parser::ParseStringLiteral()
     if (Token token = Expect(TK_STRING, true))
     {
         return RC<AstString>(new AstString(
+            token.GetValue(),
+            token.GetLocation()));
+    }
+
+    return nullptr;
+}
+
+RC<AstName> Parser::ParseNameLiteral()
+{
+    if (Token token = Expect(TK_NAME_LITERAL, true))
+    {
+        return RC<AstName>(new AstName(
             token.GetValue(),
             token.GetLocation()));
     }

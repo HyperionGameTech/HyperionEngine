@@ -24,8 +24,6 @@ String Token::TokenTypeToString(TokenClass tokenClass)
         return "keyword";
     case TK_OPERATOR:
         return "operator";
-    case TK_DIRECTIVE:
-        return "directive";
     case TK_NEWLINE:
         return "newline";
     case TK_COMMA:
@@ -34,6 +32,8 @@ String Token::TokenTypeToString(TokenClass tokenClass)
         return ";";
     case TK_COLON:
         return ":";
+    case TK_NAME_LITERAL:
+        return "name-literal";
     case TK_DOUBLE_COLON:
         return "::";
     case TK_DEFINE:
@@ -93,7 +93,7 @@ Token::Token(const Token& other)
 
 bool Token::IsContinuationToken() const
 {
-    return m_tokenClass == TK_DIRECTIVE || m_tokenClass == TK_COMMA || m_tokenClass == TK_COLON || m_tokenClass == TK_DOT || m_tokenClass == TK_RIGHT_ARROW || m_tokenClass == TK_OPEN_PARENTH || m_tokenClass == TK_OPEN_BRACKET || m_tokenClass == TK_OPEN_BRACE;
+    return m_tokenClass == TK_COMMA || m_tokenClass == TK_COLON || m_tokenClass == TK_DOT || m_tokenClass == TK_RIGHT_ARROW || m_tokenClass == TK_OPEN_PARENTH || m_tokenClass == TK_OPEN_BRACKET || m_tokenClass == TK_OPEN_BRACE;
 }
 
 } // namespace hyperion

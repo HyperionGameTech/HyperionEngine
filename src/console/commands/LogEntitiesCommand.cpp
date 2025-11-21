@@ -20,7 +20,6 @@
 
 #include <scene/EntityManager.hpp>
 #include <scene/ComponentInterface.hpp>
-#include <scene/components/NodeLinkComponent.hpp>
 #include <scene/components/UIComponent.hpp>
 
 #include <ui/UIObject.hpp>

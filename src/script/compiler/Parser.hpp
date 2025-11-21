@@ -24,6 +24,7 @@
 #include <script/compiler/ast/AstUnsignedInteger.hpp>
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstString.hpp>
+#include <script/compiler/ast/AstName.hpp>
 #include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstUnaryExpression.hpp>
 #include <script/compiler/ast/AstTernaryExpression.hpp>
@@ -88,6 +89,7 @@ public:
     RC<AstConstant> ParseIntegerLiteral();
     RC<AstFloat> ParseFloatLiteral();
     RC<AstString> ParseStringLiteral();
+    RC<AstName> ParseNameLiteral();
     RC<AstIdentifier> ParseIdentifier(bool allowKeyword = false);
     RC<AstArgument> ParseArgument(RC<AstExpression> expr);
     RC<AstArgumentList> ParseArguments(bool requireParentheses = true);
