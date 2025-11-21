@@ -64,7 +64,8 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
                         *m_exprType,
                         /* strictNumbers */ false,
                         /* strictAny */ false,
-                        /* strictEnum */ false))
+                        /* strictEnum */ false,
+                        /* strictNull */ true))
                 {
                     // insert cast
                     m_overrideExpr.Reset(new AstAsExpression(

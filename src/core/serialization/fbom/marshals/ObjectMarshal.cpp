@@ -201,9 +201,10 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
         return { FBOMResult::FBOM_OK };
     }
 
-    const TypeInfo& typeInfo = TypeInfo::ForClass(cls);
+    const TypeInfo* pTypeInfo = cls->GetTypeInfo();
+    AssertDebug(pTypeInfo != nullptr);
 
-    HypData targetData { AnyRef(&typeInfo, const_cast<void*>(in.GetPointer())) };
+    HypData targetData { AnyRef(pTypeInfo, const_cast<void*>(in.GetPointer())) };
 
     out = FBOMObject(FBOMObjectType(cls));
 

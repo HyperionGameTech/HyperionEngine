@@ -597,6 +597,9 @@ struct TypeInfo
 
     HYP_API static const TypeInfo& ForClass(const Class* cls);
 
+    /*! \brief Not added to cache, needs to be deleted by caller */
+    HYP_API static TypeInfo* ForDynamicClass(const Class* cls);
+
     template <class T>
     static const TypeInfo& ForType()
     {

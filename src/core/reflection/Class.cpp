@@ -666,7 +666,7 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
       m_objectContainer(nullptr)
 {
     // needs to be set after name is set
-    m_typeInfo = &TypeInfo::ForClass(this);
+    m_typeInfo = (m_flags & ClassFlags::DYNAMIC) ? TypeInfo::ForDynamicClass(this) : &TypeInfo::ForClass(this);
     AssertDebug(m_typeInfo != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
@@ -781,6 +781,13 @@ Class::~Class()
     for (StaticField* constantPtr : m_staticFields)
     {
         delete constantPtr;
+    }
+
+    // for dynamic classes, we own the TypeInfo and need to delete it manually
+    if (IsDynamic())
+    {
+        delete m_typeInfo;
+        m_typeInfo = nullptr;
     }
 }
 

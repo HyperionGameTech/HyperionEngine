@@ -269,6 +269,16 @@ const TypeInfo& TypeInfo::ForClass(const Class* cls)
         return Void();
     }
 
+    // get the one stored on the class if it exists
+    if (const TypeInfo* pExisting = cls->GetTypeInfo())
+    {
+        return *pExisting;
+    }
+
+    // we don't want to cache dynamic classes as they can be destroyed at runtime
+    AssertDebug(!cls->IsDynamic());
+
+    // look in our cache
     Mutex::Guard guard(GetTypeInfoCacheMutex());
 
     const auto it = GetTypeInfoCache().Find(cls->GetTypeId());
@@ -320,6 +330,52 @@ const TypeInfo& TypeInfo::ForClass(const Class* cls)
     }
 
     return *pTypeInfo;
+}
+
+TypeInfo* TypeInfo::ForDynamicClass(const Class* cls)
+{
+    if (!cls)
+    {
+        return nullptr;
+    }
+
+    if (const TypeInfo* pExisting = cls->GetTypeInfo())
+    {
+        return const_cast<TypeInfo*>(pExisting);
+    }
+
+    AssertDebug(cls->IsDynamic());
+
+    TypeInfo* pTypeInfo = new TypeInfo();
+    pTypeInfo->id = cls->GetTypeId();
+    pTypeInfo->name = cls->GetName();
+    pTypeInfo->size = uint16(cls->GetSize());
+    pTypeInfo->alignment = uint16(cls->GetAlignment());
+    pTypeInfo->flags = TypeInfoFlags::NONE;
+
+    AssertDebug(pTypeInfo->name.IsValid());
+
+    if (cls->IsClassType())
+    {
+        pTypeInfo->flags |= TypeInfoFlags::CLASS_TYPE;
+    }
+
+    if (cls->IsStructType())
+    {
+        pTypeInfo->flags |= TypeInfoFlags::STRUCT_TYPE;
+    }
+
+    if (cls->IsEnumType())
+    {
+        pTypeInfo->flags |= TypeInfoFlags::ENUM_TYPE;
+    }
+
+    if (cls->IsPodType())
+    {
+        pTypeInfo->flags |= TypeInfoFlags::POD_TYPE;
+    }
+
+    return pTypeInfo;
 }
 
 #pragma endregion TypeInfo

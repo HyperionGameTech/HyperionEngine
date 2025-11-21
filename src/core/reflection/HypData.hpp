@@ -1221,11 +1221,27 @@ struct HypDataHelperDecl<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>>
 template <class T>
 struct HypDataHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> : HypDataHelper<Handle<T>>
 {
-    using ConvertibleFrom = Tuple<>;
+    using ConvertibleFrom = Tuple<AnyRef>;
+
+    HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
+    {
+        return HypDataHelper<Handle<T>>::Is(value);
+    }
 
     HYP_FORCE_INLINE T& Get(const AnyHandle& value) const
     {
         return *HypDataHelper<Handle<T>>::Get(value);
+    }
+
+    HYP_FORCE_INLINE bool Is(const AnyRef& value) const
+    {
+        return value.Is<T>();
+    }
+
+    HYP_FORCE_INLINE T& Get(const AnyRef& value) const
+    {
+        HYP_CORE_ASSERT(value.HasValue(), "Tried to get HypData value from null pointer");
+        return value.Get<T>();
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const T& value) const

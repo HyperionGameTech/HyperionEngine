@@ -447,6 +447,7 @@ bool SymbolType::TypeCompatible(
     bool strictNumbers,
     bool strictAny,
     bool strictEnum,
+    bool strictNull,
     SymbolTypeIncompatibilities* outIncompatibilities) const
 {
     if (m_typeClass == TYPE_ALIAS)
@@ -465,6 +466,7 @@ bool SymbolType::TypeCompatible(
             strictNumbers,
             strictAny,
             strictEnum,
+            strictNull,
             outIncompatibilities);
     }
 
@@ -484,6 +486,7 @@ bool SymbolType::TypeCompatible(
             strictNumbers,
             strictAny,
             strictEnum,
+            strictNull,
             outIncompatibilities);
     }
 
@@ -550,7 +553,7 @@ bool SymbolType::TypeCompatible(
 
                 if (arrayElemType && varArgsElemType)
                 {
-                    return arrayElemType->TypeCompatible(*varArgsElemType, strictNumbers, strictAny, strictEnum, outIncompatibilities);
+                    return arrayElemType->TypeCompatible(*varArgsElemType, strictNumbers, strictAny, strictEnum, strictNull, outIncompatibilities);
                 }
             }
         }
@@ -570,7 +573,7 @@ bool SymbolType::TypeCompatible(
 
     if (IsNullType())
     {
-        if (!right.IsNullableType())
+        if (strictNull && !right.IsNullableType())
         {
             ADD_INCOMPATIBILITY(IT_NULLABLE_MISMATCH, "null is only compatible with nullable types");
 
@@ -582,7 +585,7 @@ bool SymbolType::TypeCompatible(
 
     if (right.IsNullType())
     {
-        if (!IsNullableType())
+        if (strictNull && !IsNullableType())
         {
             ADD_INCOMPATIBILITY(IT_NULLABLE_MISMATCH, "null is only compatible with nullable types");
 
@@ -610,6 +613,7 @@ bool SymbolType::TypeCompatible(
             strictNumbers,
             strictAny,
             strictEnum,
+            strictNull,
             outIncompatibilities);
     }
 
@@ -631,6 +635,7 @@ bool SymbolType::TypeCompatible(
             strictNumbers,
             strictAny,
             strictEnum,
+            strictNull,
             outIncompatibilities);
     }
 

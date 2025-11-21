@@ -232,6 +232,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
             /* strictNumbers */ true,
             /* strictAny */ true,
             /* strictEnum */ true,
+            /* strictNull */ true,
             &incompatibilities))
     {
         return;
@@ -548,7 +549,8 @@ const SymbolType* SemanticAnalyzer::Helpers::GenericPromotion(
                             *rptrUnalias,
                             /* strictNumbers */ true,
                             /* strictAny */ true,
-                            /* strictEnum */ true))
+                            /* strictEnum */ true,
+                            /* strictNull */ true))
                     {
                         return promotedType->GetUnaliased();
                     }
@@ -995,6 +997,7 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
     const SymbolType* symbolType,
     const SymbolType* assignmentType,
     bool strictEnum,
+    bool strictNull,
     const SourceLocation& location)
 {
     Assert(symbolType != nullptr);
@@ -1015,6 +1018,7 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
             /* strictNumbers */ true,
             /* strictAny */ true,
             /* strictEnum */ strictEnum,
+            /* strictNull */ strictNull,
             &incompatibilities))
     {
         if (incompatibilities.Any())

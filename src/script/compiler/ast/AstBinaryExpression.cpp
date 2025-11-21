@@ -231,6 +231,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
             leftType,
             rightType,
             /* strictEnum */ true,
+            /* strictNull */ true,
             m_location);
     }
     else
@@ -240,7 +241,8 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
                 *rightType,
                 /* strictNumbers */ false,
                 /* strictAny */ false,
-                /* strictEnum */ false))
+                /* strictEnum */ false,
+                /* strictNull */ true))
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,

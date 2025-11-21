@@ -246,11 +246,12 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                             m_symbolType,
                             m_realAssignment->GetExprType(),
                             /* strictEnum */ false,
+                            /* strictNull */ !(m_flags & IdentifierFlags::LAX),
                             m_realAssignment->GetLocation());
                     }
 
                     // insert cast if needed
-                    if (doLiteralConversion || !m_realAssignment->GetExprType()->TypeEqual(*m_symbolType))
+                    if ((doLiteralConversion || !m_realAssignment->GetExprType()->TypeEqual(*m_symbolType)) && !(m_flags & IdentifierFlags::LAX))
                     {
                         RC<AstAsExpression> asExpr(new AstAsExpression(
                             CloneAstNode(m_realAssignment),

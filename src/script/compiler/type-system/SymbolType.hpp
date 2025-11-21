@@ -592,6 +592,7 @@ public:
         bool strictNumbers,
         bool strictAny,
         bool strictEnum,
+        bool strictNull,
         SymbolTypeIncompatibilities* outIncompatibilities = nullptr) const;
 
     const SymbolType* FindMember(UTF8StringView name) const;

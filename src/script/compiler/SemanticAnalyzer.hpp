@@ -102,6 +102,7 @@ public:
             const SymbolType* symbolType,
             const SymbolType* assignmentType,
             bool strictEnum,
+            bool strictNull,
             const SourceLocation& location);
     };
 

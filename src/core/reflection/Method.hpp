@@ -50,9 +50,10 @@ HYP_FORCE_INLINE decltype(auto) CallMethod_Impl(FunctionType fn, HypData** args,
 
         if (!condition)
         {
-            HYP_FAIL("Unexpected argument of type {} at index {}",
+            HYP_FAIL("Unexpected argument of type {} at index {} (expected {})",
                 TypeInfo_GetName(*args[Index]->GetTypeInfo()),
-                Index);
+                Index,
+                TypeNameHelper<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>::value.Data());
         }
 
         return condition;
