@@ -17,6 +17,7 @@
 #include <util/img/ImageUtil.hpp>
 
 #include <stb_image.h>
+#include <stb_image_resize.h>
 
 #include <TextureLoader.generated.inl>
 
@@ -60,6 +61,77 @@ static const stbi_io_callbacks s_callbacks {
         return int(state->stream.Eof());
     }
 };
+
+HYP_DISABLE_OPTIMIZATION;
+static void GenerateMipLevels(TextureDesc& desc, TextureData& outData)
+{
+    // should have base mip in texture data already
+    Assert(outData.imageData.Size() == desc.GetMipByteSize(0));
+
+    const uint32 numMipLevels = desc.NumMips();
+
+    uint32 prevMipSize = desc.GetMipByteSize(0);
+
+    uint32 byteOffset = prevMipSize;
+
+    for (uint32 mipLevel = 1; mipLevel < numMipLevels; mipLevel++)
+    {
+        // mipOffsets holds offset[N - 1] = size[N]
+        desc.mipOffsets[mipLevel - 1] = byteOffset;
+
+        const SizeType prevMipStart = mipLevel == 1 ? 0 : desc.mipOffsets[mipLevel - 2];
+        const SizeType prevMipEnd = prevMipStart + prevMipSize;
+
+        ConstByteView prevMipBytes = outData.imageData.ToByteView().Slice(prevMipStart, prevMipEnd);
+        AssertDebug(prevMipBytes.Size() == desc.GetMipByteSize(mipLevel - 1));
+
+        const Vec3u prevMipExtent = desc.GetMipExtent(mipLevel - 1);
+        const Vec3u mipExtent = desc.GetMipExtent(mipLevel);
+
+        const uint32 mipSize = desc.GetMipByteSize(mipLevel);
+
+        ByteBuffer tempBuffer;
+        tempBuffer.SetSize(mipSize, false);
+
+        int result = 0;
+
+        if (desc.IsSrgb())
+        {
+            result = stbir_resize_uint8_srgb(
+                prevMipBytes.Data(), prevMipExtent.x, prevMipExtent.y,
+                0,
+                tempBuffer.Data(), mipExtent.x, mipExtent.y,
+                0,
+                NumComponents(desc.format),
+                NumComponents(desc.format) == 4 ? 3 : -1,
+                0);
+        }
+        else
+        {
+            result = stbir_resize_uint8(
+                prevMipBytes.Data(), prevMipExtent.x, prevMipExtent.y,
+                0,
+                tempBuffer.Data(), mipExtent.x, mipExtent.y,
+                0,
+                NumComponents(desc.format));
+        }
+
+        prevMipSize = mipSize;
+
+        if (result == 0)
+        {
+            HYP_LOG(Texture, Error, "Mip generation failed at level {} (extent: {})", mipLevel, mipExtent);
+
+            return;
+        }
+
+        outData.imageData.SetSize(outData.imageData.Size() + mipSize, false);
+        outData.imageData.Write(mipSize, byteOffset, tempBuffer.Data());
+
+        byteOffset += mipSize;
+    }
+}
+HYP_ENABLE_OPTIMIZATION;
 
 AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 {
@@ -109,8 +181,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         TWM_REPEAT
     };
 
-    TextureData textureData;
-    textureData.imageData = ByteBuffer(imageBytesCount, imageBytes);
+    ByteBuffer baseMipData = ByteBuffer(imageBytesCount, imageBytes);
 
     const uint32 numComponents = NumComponents(data.format);
 
@@ -132,14 +203,19 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
             ImageUtil::ConvertBPP(
                 textureDesc.extent.x, textureDesc.extent.y, textureDesc.extent.z,
                 numComponents, 4,
-                &textureData.imageData.Data()[i * faceOffsetStep],
+                &baseMipData.Data()[i * faceOffsetStep],
                 &newByteBuffer.Data()[i * newFaceOffsetStep]);
         }
 
         HYP_LOG(Texture, Debug, "Converted texture '{}' from 3 to 4 components", assetName);
 
-        textureData.imageData = std::move(newByteBuffer);
+        baseMipData = std::move(newByteBuffer);
     }
+
+    TextureData textureData;
+    textureData.imageData = std::move(baseMipData);
+
+    GenerateMipLevels(textureDesc, textureData);
 
     Handle<Texture> texture = CreateObject<Texture>(textureDesc, textureData);
 

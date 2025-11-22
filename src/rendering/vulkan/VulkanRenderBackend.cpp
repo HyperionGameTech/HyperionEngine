@@ -933,7 +933,7 @@ GpuImageViewRef VulkanRenderBackend::MakeImageView(const GpuImageRef& image)
 
 GpuImageViewRef VulkanRenderBackend::MakeImageView(const GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
 {
-    return CreateObject<VulkanGpuImageView>(VulkanGpuImageRef(image), mipIndex, numMips, faceIndex, numLayers);
+    return CreateObject<VulkanGpuImageView>(VulkanGpuImageRef(image), mipIndex, numMips, layerIndex, numLayers);
 }
 
 SamplerRef VulkanRenderBackend::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
@@ -1000,7 +1000,7 @@ const GpuImageViewRef& VulkanRenderBackend::GetTextureImageView(const Handle<Tex
     subResource.numLevels = MathUtil::Min(numMips, texture->GetTextureDesc().NumMips());
     subResource.baseMipLevel = MathUtil::Min(mipIndex, numMips - 1);
     subResource.numLayers = MathUtil::Min(numLayers, texture->GetTextureDesc().NumArrayLayers());
-    subResource.baseArrayLayer = MathUtil::Min(faceIndex, numLayers - 1);
+    subResource.baseArrayLayer = MathUtil::Min(layerIndex, numLayers - 1);
 
     const GpuImageViewRef& imageView = m_textureCache->GetOrCreate(texture, subResource);
     HYP_GFX_ASSERT(imageView.IsValid());

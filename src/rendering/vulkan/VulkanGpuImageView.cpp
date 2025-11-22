@@ -37,7 +37,7 @@ VulkanGpuImageView::VulkanGpuImageView(
     uint32 numMips,
     uint32 layerIndex,
     uint32 numLayers)
-    : GpuImageViewBase(image, mipIndex, numMips, faceIndex, numLayers),
+    : GpuImageViewBase(image, mipIndex, numMips, layerIndex, numLayers),
       m_handle(VK_NULL_HANDLE)
 {
 }
@@ -66,7 +66,7 @@ RendererResult VulkanGpuImageView::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot create image view on uninitialized image");
     }
 
-    if (m_faceIndex >= m_image->NumArrayLayers())
+    if (m_layerIndex >= m_image->NumArrayLayers())
     {
         return HYP_MAKE_ERROR(RendererError, "Face index out of bounds");
     }
@@ -91,11 +91,8 @@ RendererResult VulkanGpuImageView::Create()
     viewInfo.subresourceRange.aspectMask = ToVkImageAspect(m_image->GetTextureFormat());
     viewInfo.subresourceRange.baseMipLevel = m_mipIndex;
     viewInfo.subresourceRange.levelCount = m_numMips != 0 ? m_numMips : m_image->NumMips();
-    viewInfo.subresourceRange.baseArrayLayer = m_faceIndex;
-    viewInfo.subresourceRange.layerCount = m_numFaces != 0 ? m_numFaces : m_image->NumArrayLayers();
-
-    // HYP_GFX_ASSERT(mipmapLayer < numMipmaps, "mipmap layer out of bounds");
-    // HYP_GFX_ASSERT(faceLayer < m_numFaces, "face layer out of bounds");
+    viewInfo.subresourceRange.baseArrayLayer = m_layerIndex;
+    viewInfo.subresourceRange.layerCount = m_numLayers != 0 ? m_numLayers : m_image->NumArrayLayers();
 
     VULKAN_CHECK_MSG(
         vkCreateImageView(GetRenderBackend()->GetDevice()->GetDevice(), &viewInfo, nullptr, &m_handle),

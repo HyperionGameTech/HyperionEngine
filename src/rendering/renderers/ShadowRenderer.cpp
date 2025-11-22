@@ -321,7 +321,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
             frame->renderQueue << InsertBarrier(framebufferImage, RS_COPY_SRC);
             frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, subResource);
 
-            for (uint32 layerIndex = 0; faceIndex < numLayers; faceIndex++)
+            for (uint32 layerIndex = 0; layerIndex < numLayers; layerIndex++)
             {
                 frame->renderQueue << Blit(
                     framebufferImage,
@@ -332,10 +332,10 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
                         atlasElement.offsetCoords.y,
                         atlasElement.offsetCoords.x + atlasElement.dimensions.x,
                         atlasElement.offsetCoords.y + atlasElement.dimensions.y },
-                    0,                                     /* srcMip */
-                    subResource.baseMipLevel,              /* dstMip */
-                    faceIndex,                             /* srcFace */
-                    subResource.baseArrayLayer + faceIndex /* dstFace */
+                    0,                                      /* srcMip */
+                    subResource.baseMipLevel,               /* dstMip */
+                    layerIndex,                             /* srcFace */
+                    subResource.baseArrayLayer + layerIndex /* dstFace */
                 );
             }
 

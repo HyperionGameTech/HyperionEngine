@@ -210,14 +210,15 @@ struct CreateTextureGpuImage : RenderCommand
                 {
                     // need to copy each mip from the staging buffer at the offsets in desc
                     uint32 byteOffset = 0;
-                    uint32 prevMipOffset = 0;
 
                     const uint32 numMips = textureDesc.NumMips();
 
                     for (uint8 mipIndex = 0; mipIndex < uint8(numMips + 1); mipIndex++)
                     {
-                        uint32 currentMipOffset = mipIndex == 0 ? 0 : mipOffsets[mipIndex - 1];
+                        const uint32 currentMipOffset = mipIndex == 0 ? 0 : mipOffsets[mipIndex - 1];
                         const uint32 currentMipSize = mipOffsets[mipIndex] - currentMipOffset;
+
+                        AssertDebug(byteOffset + currentMipSize <= stagingBuffer->Size());
 
                         renderQueue << CopyBufferToImage(
                             stagingBuffer,
@@ -226,9 +227,7 @@ struct CreateTextureGpuImage : RenderCommand
                             /* dstMipIndex */ mipIndex,
                             /* dstArrayLayer */ 0);
 
-
                         byteOffset += currentMipSize;
-                        prevMipOffset = currentMipOffset;
                     }
                 }
                 else

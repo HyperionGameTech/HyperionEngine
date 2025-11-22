@@ -1757,7 +1757,7 @@ static float* stbir__add_empty_ring_buffer_entry(stbir__info* stbir_info, int n)
     }
 
     ring_buffer = stbir__get_ring_buffer_entry(stbir_info->ring_buffer, ring_buffer_index, stbir_info->ring_buffer_length_bytes / sizeof(float));
-    Memory::Set(ring_buffer, 0, stbir_info->ring_buffer_length_bytes);
+    memset(ring_buffer, 0, stbir_info->ring_buffer_length_bytes);
 
     return ring_buffer;
 }
@@ -1991,7 +1991,7 @@ static void stbir__decode_and_resample_downsample(stbir__info* stbir_info, int n
     // Decode the nth scanline from the source image into the decode buffer.
     stbir__decode_scanline(stbir_info, n);
 
-    Memory::Set(stbir_info->horizontal_buffer, 0, stbir_info->output_w * stbir_info->channels * sizeof(float));
+    memset(stbir_info->horizontal_buffer, 0, stbir_info->output_w * stbir_info->channels * sizeof(float));
 
     // Now resample it into the horizontal buffer.
     if (stbir__use_width_upsampling(stbir_info))
@@ -2216,7 +2216,7 @@ static void stbir__resample_vertical_upsample(stbir__info* stbir_info, int n)
 
     STBIR_ASSERT(stbir__use_height_upsampling(stbir_info));
 
-    Memory::Set(encode_buffer, 0, output_w * sizeof(float) * channels);
+    memset(encode_buffer, 0, output_w * sizeof(float) * channels);
 
     // I tried reblocking this for better cache usage of encode_buffer
     // (using x_outer, k, x_inner), but it lost speed. -- stb
@@ -2666,7 +2666,7 @@ static int stbir__resize_allocated(stbir__info* info,
     if (tempmem_size_in_bytes < memory_required)
         return 0;
 
-    Memory::Set(tempmem, 0, tempmem_size_in_bytes);
+    memset(tempmem, 0, tempmem_size_in_bytes);
 
     info->input_data = input_data;
     info->input_stride_bytes = width_stride_input;
