@@ -268,7 +268,7 @@ void ScriptSystem::Process(float delta, Span<Handle<Scene>> scenes)
     // Only update scripts if we're in simulation mode
     if (world->GetGameState().mode != GameStateMode::SIMULATING)
     {
-        // return;
+        return;
     }
 
     ENGINE_STAT_SCOPE(&g_scriptUpdateTimer);
@@ -286,8 +286,6 @@ void ScriptSystem::Process(float delta, Span<Handle<Scene>> scenes)
             {
                 continue;
             }
-
-            HYP_LOG(Script, Debug, "ScriptSystem: Updating script for {} : {}", entity->Id(), scriptComponent.assetReference.GetAssetPath().ToString());
 
             InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", float(delta));
         }

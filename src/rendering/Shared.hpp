@@ -490,7 +490,7 @@ struct TextureDesc
     EnumFlags<ImageUsage> imageUsage = IU_SAMPLED;
 
     HYP_FIELD(Property = "MipOffsets", Serialize)
-    FixedArray<uint32, MaxMips> mipOffsets; // first elem is the size of mip 0 (and offset of mip 1)
+    FixedArray<uint32, MaxMips> mipOffsets = { 0 }; // first elem is the size of mip 0 (and offset of mip 1)
 
     HYP_FORCE_INLINE bool operator==(const TextureDesc& other) const = default;
     HYP_FORCE_INLINE bool operator!=(const TextureDesc& other) const = default;
@@ -605,8 +605,7 @@ struct TextureDesc
 
         return uint32(mipExtent.x * mipExtent.y * mipExtent.z)
             * BytesPerComponent(format)
-            * NumComponents(format)
-            * NumArrayLayers();
+            * NumComponents(format);
     }
 
     HashCode GetHashCode() const

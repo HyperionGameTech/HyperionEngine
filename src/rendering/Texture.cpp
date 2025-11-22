@@ -33,6 +33,8 @@
 
 #include <Texture.generated.inl>
 
+#include <stb_image_resize.h>
+
 namespace hyperion {
 
 class Texture;
@@ -206,39 +208,62 @@ struct CreateTextureGpuImage : RenderCommand
 
             if (textureDesc.HasMipMaps() && imageData != placeholderBuffer.TryGet())
             {
-                if (mipOffsets[0] != 0) // has stored mip offsets
+                const bool hasPreGeneratedMips = textureDesc.mipOffsets[0] != 0;
+
+                if (hasPreGeneratedMips)
                 {
-                    // need to copy each mip from the staging buffer at the offsets in desc
-                    uint32 byteOffset = 0;
-
                     const uint32 numMips = textureDesc.NumMips();
+                    const uint32 numArrayLayers = textureDesc.NumArrayLayers();
 
-                    for (uint8 mipIndex = 0; mipIndex < uint8(numMips + 1); mipIndex++)
+                    for (uint8 mipIndex = 0; mipIndex < uint8(numMips); mipIndex++)
                     {
-                        const uint32 currentMipOffset = mipIndex == 0 ? 0 : mipOffsets[mipIndex - 1];
-                        const uint32 currentMipSize = mipOffsets[mipIndex] - currentMipOffset;
+                        const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex);
 
-                        AssertDebug(byteOffset + currentMipSize <= stagingBuffer->Size());
+                        uint32 mipBlockStart = 0;
+                        if (mipIndex != 0)
+                        {
+                            mipBlockStart = mipOffsets[mipIndex - 1];
 
-                        renderQueue << CopyBufferToImage(
-                            stagingBuffer,
-                            image,
-                            /* byteOffset */ byteOffset,
-                            /* dstMipIndex */ mipIndex,
-                            /* dstArrayLayer */ 0);
+                            AssertDebug(mipBlockStart != 0);
+                        }
 
-                        byteOffset += currentMipSize;
+                        for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
+                        {
+                            uint32 finalOffset = mipBlockStart + (layerIndex * mipSize);
+
+                            AssertDebug(finalOffset + mipSize <= stagingBuffer->Size());
+
+                            renderQueue << CopyBufferToImage(
+                                stagingBuffer,
+                                image,
+                                /* byteOffset */ finalOffset,
+                                /* dstMipIndex */ mipIndex,
+                                /* dstArrayLayer */ layerIndex);
+                        }
                     }
                 }
                 else
                 {
-                    // runtime mip generation
-                    renderQueue << CopyBufferToImage(stagingBuffer, image);
+                    // runtime mip generation fallback
+                    const uint32 numArrayLayers = textureDesc.NumArrayLayers();
+                    const uint32 mipSize = textureDesc.GetMipByteSize(0);
+
+                    for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
+                    {
+                        renderQueue << CopyBufferToImage(
+                            stagingBuffer,
+                            image,
+                            layerIndex * mipSize, // Offset assumes simple Layer packing for Mip 0
+                            0,
+                            layerIndex);
+                    }
+
                     renderQueue << GenerateMipmaps(image);
                 }
             }
             else
             {
+                // No mips, just base level
                 renderQueue << CopyBufferToImage(stagingBuffer, image);
             }
 
@@ -443,12 +468,107 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
     m_assetReference = TAssetReference<TextureAsset>(asset);
 }
 
-void Texture::GenerateMipmaps()
+void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
 {
-    HYP_SCOPE;
-    AssertReady();
+    const uint32 numMipLevels = desc.NumMips();
+    const uint32 numArrayLayers = desc.NumArrayLayers();
 
-    TextureMipmapRenderer::RenderMipmaps(HandleFromThis());
+    if (numMipLevels <= 1)
+    {
+        return;
+    }
+
+    const bool canGenerateMips = (desc.format >= TF_R16F && desc.format <= TF_RGBA32F)
+        || (desc.format >= TF_R8 && desc.format <= TF_RGBA8);
+
+    if (!canGenerateMips)
+    {
+        return;
+    }
+
+    // base mip size
+    const uint32 baseMipSize = desc.GetMipByteSize(0) * numArrayLayers;
+    AssertDebug(data.imageData.Size() == baseMipSize);
+
+    uint32 totalSize = baseMipSize;
+
+    for (uint32 mip = 1; mip < numMipLevels; mip++)
+    {
+        totalSize += desc.GetMipByteSize(mip) * numArrayLayers;
+    }
+
+    data.imageData.SetSize(totalSize);
+
+    uint32 srcBlockStart = 0;
+    uint32 dstWriteOffset = baseMipSize;
+
+    for (uint32 dstMipLevel = 1; dstMipLevel < numMipLevels; dstMipLevel++)
+    {
+        uint32 srcMipLevel = dstMipLevel - 1;
+
+        const uint32 srcMipSize = desc.GetMipByteSize(srcMipLevel);
+        const uint32 dstMipSize = desc.GetMipByteSize(dstMipLevel);
+
+        const Vec3u srcExtent = desc.GetMipExtent(srcMipLevel);
+        const Vec3u dstExtent = desc.GetMipExtent(dstMipLevel);
+
+        // mipOffsets stores the start of the block for given mip level but skips the first elem
+        // so we can check if we have pregenerated mips by doing mipOffsets[0] != 0
+        desc.mipOffsets[dstMipLevel - 1] = dstWriteOffset;
+
+        uint32 currentBlockStart = dstWriteOffset;
+
+        for (uint32 layer = 0; layer < numArrayLayers; layer++)
+        {
+            uint32 readOffset = srcBlockStart + (layer * srcMipSize);
+
+            ConstByteView srcView = data.imageData.ToByteView().Slice(readOffset, readOffset + srcMipSize);
+
+            ByteBuffer tempBuffer;
+            tempBuffer.SetSize(dstMipSize, false);
+
+            int result = 0;
+            const int numChannels = NumComponents(desc.format);
+
+            if (desc.format >= TF_R16F && desc.format <= TF_RGBA32F)
+            {
+                AssertDebug(srcView.Size() % sizeof(float) == 0 && tempBuffer.Size() % sizeof(float) == 0);
+
+                result = stbir_resize_float(
+                    reinterpret_cast<const float*>(srcView.Data()),
+                    srcExtent.x, srcExtent.y, 0,
+                    reinterpret_cast<float*>(tempBuffer.Data()),
+                    dstExtent.x, dstExtent.y, 0,
+                    numChannels);
+            }
+            else if (desc.IsSrgb())
+            {
+                result = stbir_resize_uint8_srgb(
+                    srcView.Data(), srcExtent.x, srcExtent.y, 0,
+                    tempBuffer.Data(), dstExtent.x, dstExtent.y, 0,
+                    numChannels, numChannels == 4 ? 3 : -1, 0);
+            }
+            else
+            {
+                result = stbir_resize_uint8(
+                    srcView.Data(), srcExtent.x, srcExtent.y, 0,
+                    tempBuffer.Data(), dstExtent.x, dstExtent.y, 0,
+                    numChannels);
+            }
+
+            if (result == 0)
+            {
+                HYP_LOG(Texture, Error, "Mip generation failed at level {} layer {}", dstMipLevel, layer);
+                return;
+            }
+
+            data.imageData.Write(dstMipSize, dstWriteOffset, tempBuffer.Data());
+
+            dstWriteOffset += dstMipSize;
+        }
+
+        srcBlockStart = currentBlockStart;
+    }
 }
 
 void Texture::Readback(ByteBuffer& outByteBuffer)

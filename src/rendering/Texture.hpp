@@ -117,7 +117,7 @@ public:
         return m_gpuImage;
     }
 
-    void GenerateMipmaps();
+    static void GenerateMipmaps(TextureDesc& desc, TextureData& data);
 
     /*! \brief Blocking call to readback GPU image data into a CPU-side buffer. Must be called on the render thread.
      *  Do not use frequently as this will stall the gpu */

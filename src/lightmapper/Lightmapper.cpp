@@ -702,15 +702,22 @@ void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
     // Convert lightmap data to bitmaps (6 faces stacked vertically)
     LightmapData<EnvProbe>::BitmapType bitmap = lightmapData.ToBitmap();
 
-    Handle<Texture> cubemap = CreateObject<Texture>(
-        TextureDesc {
-            TT_CUBEMAP,
-            bitmap.GetFormat(),
-            Vec3u { dimensions.x, dimensions.y, 1 },
-            TFM_LINEAR,
-            TFM_LINEAR,
-            TWM_CLAMP_TO_EDGE },
-        TextureData { ByteBuffer(bitmap.ToByteView()) });
+    TextureDesc textureDesc {
+        TT_CUBEMAP,
+        bitmap.GetFormat(),
+        Vec3u { dimensions.x, dimensions.y, 1 },
+        TFM_LINEAR_MIPMAP,
+        TFM_LINEAR,
+        TWM_CLAMP_TO_EDGE
+    };
+
+    TextureData textureData {
+        ByteBuffer(bitmap.ToByteView())
+    };
+
+    Texture::GenerateMipmaps(textureDesc, textureData);
+
+    Handle<Texture> cubemap = CreateObject<Texture>(textureDesc, std::move(textureData));
 
     cubemap->SetName(NAME_FMT("EnvProbe_{}_Baked", m_envProbe->GetUUID()));
 
