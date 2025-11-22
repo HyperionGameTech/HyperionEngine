@@ -122,7 +122,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
     GpuImageViewRef textureImageView = g_renderBackend->GetTextureImageView(texture);
     Assert(textureImageView.IsValid());
 
-    const uint32 numMipLevels = texture->GetTextureDesc().NumMipmaps();
+    const uint32 numMipLevels = texture->GetTextureDesc().NumMips();
     const Vec3u extent = texture->GetExtent();
 
     Array<GpuImageViewRef> mipImageViews;
@@ -143,7 +143,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
         const uint32 mipWidth = MathUtil::Max(1u, extent.x >> mipLevel);
         const uint32 mipHeight = MathUtil::Max(1u, extent.y >> mipLevel);
 
-        GpuImageViewRef mipImageView = g_renderBackend->MakeImageView(texture->GetGpuImage(), mipLevel, 1, 0, texture->NumFaces());
+        GpuImageViewRef mipImageView = g_renderBackend->MakeImageView(texture->GetGpuImage(), mipLevel, 1, 0, texture->NumArrayLayers());
         DeferCreate(mipImageView);
 
         const DescriptorSetRef& generateMipmapsDescriptorSet = descriptorTable->GetDescriptorSet("GenerateMipmapsDescriptorSet", 0);

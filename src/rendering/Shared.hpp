@@ -463,6 +463,8 @@ struct TextureDesc
 {
     HYP_STRUCT_BODY(TextureDesc);
 
+    static constexpr uint32 MaxMips = 16;
+
     HYP_FIELD(Property = "Type", Serialize)
     TextureType type = TT_TEX2D;
 
@@ -487,21 +489,29 @@ struct TextureDesc
     HYP_FIELD(Property = "ImageUsage", Serialize)
     EnumFlags<ImageUsage> imageUsage = IU_SAMPLED;
 
+    HYP_FIELD(Property = "MipOffsets", Serialize)
+    FixedArray<uint32, MaxMips> mipOffsets; // first elem is the size of mip 0 (and offset of mip 1)
+
     HYP_FORCE_INLINE bool operator==(const TextureDesc& other) const = default;
     HYP_FORCE_INLINE bool operator!=(const TextureDesc& other) const = default;
 
-    HYP_FORCE_INLINE bool HasMipmaps() const
+    HYP_FORCE_INLINE bool HasMipMaps() const
     {
         return filterModeMin == TFM_NEAREST_MIPMAP
             || filterModeMin == TFM_LINEAR_MIPMAP
             || filterModeMin == TFM_MINMAX_MIPMAP;
     }
 
-    HYP_FORCE_INLINE uint32 NumMipmaps() const
+    uint32 NumMips() const
     {
-        return HasMipmaps()
-            ? uint32(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y, extent.z))) + 1
+        return HasMipMaps()
+            ? MathUtil::Min(MaxMips, uint32(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y, extent.z))) + 1)
             : 1;
+    }
+
+    HYP_FORCE_INLINE bool HasStoredMips() const
+    {
+        return mipOffsets[0] != 0;
     }
 
     HYP_FORCE_INLINE bool IsDepthStencil() const
@@ -551,27 +561,55 @@ struct TextureDesc
         return type == TT_TEX2D;
     }
 
-    HYP_FORCE_INLINE uint32 NumFaces() const
+    uint32 NumArrayLayers() const
     {
-        const uint32 numArrayLayers = numLayers;
-
         if (IsTextureCube() || IsTextureCubeArray())
         {
-            return 6 * numArrayLayers;
+            return 6 * numLayers;
         }
 
-        return numArrayLayers;
+        return numLayers;
     }
 
-    HYP_FORCE_INLINE uint32 GetByteSize() const
+    Vec3u GetMipExtent(uint8 mipIndex) const
+    {
+        const uint32 numMips = NumMips();
+        if (mipIndex >= numMips)
+        {
+            return Vec3u::Zero();
+        }
+
+        return Vec3u(
+            MathUtil::Max(extent.x >> mipIndex, 1u),
+            MathUtil::Max(extent.y >> mipIndex, 1u),
+            MathUtil::Max(extent.z >> mipIndex, 1u));
+    }
+
+    uint32 GetByteSize() const
     {
         return uint32(extent.x * extent.y * extent.z)
             * BytesPerComponent(format)
             * NumComponents(format)
-            * NumFaces();
+            * NumArrayLayers();
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    uint32 GetMipByteSize(uint8 mipIndex) const
+    {
+        const uint32 numMips = NumMips();
+        if (mipIndex >= numMips)
+        {
+            return 0;
+        }
+
+        const Vec3u mipExtent = GetMipExtent(mipIndex);
+
+        return uint32(mipExtent.x * mipExtent.y * mipExtent.z)
+            * BytesPerComponent(format)
+            * NumComponents(format)
+            * NumArrayLayers();
+    }
+
+    HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(type);
@@ -581,6 +619,7 @@ struct TextureDesc
         hc.Add(filterModeMag);
         hc.Add(wrapMode);
         hc.Add(numLayers);
+        hc.Add(mipOffsets);
 
         return hc;
     }

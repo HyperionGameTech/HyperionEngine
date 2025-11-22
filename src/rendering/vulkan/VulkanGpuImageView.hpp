@@ -22,8 +22,8 @@ public:
         const VulkanGpuImageRef& image,
         uint32 mipIndex,
         uint32 numMips,
-        uint32 faceIndex,
-        uint32 numFaces);
+        uint32 layerIndex,
+        uint32 numLayers);
 
     virtual ~VulkanGpuImageView() override;
 

@@ -96,18 +96,21 @@ struct CreateTextureGpuImage : RenderCommand
 
         const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
 
-        const ByteBuffer* imageData = &textureData->imageData;
-        LinkedList<ByteBuffer> placeholderBuffers;
+        const uint32 mip0Size = textureDesc.HasStoredMips()
+            ? textureDesc.mipOffsets[0]
+            : uint32(textureData->imageData.Size());
+
+        ConstByteView mip0Slice = textureData->imageData.ToByteView().Slice(0, mip0Size);
 
         if (textureDesc != image->GetTextureDesc())
         {
             HYP_LOG(Streaming, Warning, "Streamed texture data TextureDesc not equal to Image's TextureDesc!");
         }
 
-        if (imageData->Size() != image->GetByteSize())
+        if (mip0Slice.Size() != image->GetByteSize())
         {
             HYP_LOG(Streaming, Warning, "Streamed texture data buffer size mismatch for texture asset {}! Expected: {}, Got: {}",
-                textureAsset->GetName(), image->GetByteSize(), imageData->Size());
+                textureAsset->GetName(), image->GetByteSize(), mip0Slice.Size());
 
             return false;
         }
@@ -126,17 +129,22 @@ struct CreateTextureGpuImage : RenderCommand
             Assert(textureData != nullptr);
 
             const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
-
             const ByteBuffer* imageData = &textureData->imageData;
-            LinkedList<ByteBuffer> placeholderBuffers;
+
+            Span<const uint32> mipOffsets = textureDesc.mipOffsets.ToSpan();
+
+            Optional<ByteBuffer> placeholderBuffer;
 
             if (!CheckImageData())
             {
                 // throw an error in debug mode
                 AssertDebug(false, "Image contains invalid data!");
 
+                static const uint32 s_placeholderMipOffsets[TextureDesc::MaxMips] {0};
+                mipOffsets = { s_placeholderMipOffsets, TextureDesc::MaxMips };
+
                 // fill some placeholder data with zeros so we don't crash
-                ByteBuffer* placeholderBuffer = &placeholderBuffers.EmplaceBack();
+                imageData = &placeholderBuffer.Emplace();
                 placeholderBuffer->SetSize(image->GetByteSize());
 
                 const TextureFormat nonSrgbFormat = ChangeFormatSrgb(image->GetTextureFormat(), false);
@@ -181,8 +189,6 @@ struct CreateTextureGpuImage : RenderCommand
                     // no FillPlaceholderBuffer method defined
                     break;
                 }
-
-                imageData = placeholderBuffer;
             }
 
             GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData->Size());
@@ -197,11 +203,44 @@ struct CreateTextureGpuImage : RenderCommand
             RenderQueue& renderQueue = frame->preRenderQueue;
 
             renderQueue << InsertBarrier(image, RS_COPY_DST);
-            renderQueue << CopyBufferToImage(stagingBuffer, image);
 
-            if (textureDesc.HasMipmaps())
+            if (textureDesc.HasMipMaps() && imageData != placeholderBuffer.TryGet())
             {
-                renderQueue << GenerateMipmaps(image);
+                if (mipOffsets[0] != 0) // has stored mip offsets
+                {
+                    // need to copy each mip from the staging buffer at the offsets in desc
+                    uint32 byteOffset = 0;
+                    uint32 prevMipOffset = 0;
+
+                    const uint32 numMips = textureDesc.NumMips();
+
+                    for (uint8 mipIndex = 0; mipIndex < uint8(numMips + 1); mipIndex++)
+                    {
+                        uint32 currentMipOffset = mipIndex == 0 ? 0 : mipOffsets[mipIndex - 1];
+                        const uint32 currentMipSize = mipOffsets[mipIndex] - currentMipOffset;
+
+                        renderQueue << CopyBufferToImage(
+                            stagingBuffer,
+                            image,
+                            /* byteOffset */ byteOffset,
+                            /* dstMipIndex */ mipIndex,
+                            /* dstArrayLayer */ 0);
+
+
+                        byteOffset += currentMipSize;
+                        prevMipOffset = currentMipOffset;
+                    }
+                }
+                else
+                {
+                    // runtime mip generation
+                    renderQueue << CopyBufferToImage(stagingBuffer, image);
+                    renderQueue << GenerateMipmaps(image);
+                }
+            }
+            else
+            {
+                renderQueue << CopyBufferToImage(stagingBuffer, image);
             }
 
             renderQueue << InsertBarrier(image, initialState);
@@ -227,12 +266,12 @@ struct CreateTextureGpuImage : RenderCommand
 
 Texture::Texture()
     : Texture(TextureDesc {
-          TT_TEX2D,
-          TF_RGBA8,
-          Vec3u { 1, 1, 1 },
-          TFM_NEAREST,
-          TFM_NEAREST,
-          TWM_CLAMP_TO_EDGE })
+        TT_TEX2D,
+        TF_RGBA8,
+        Vec3u { 1, 1, 1 },
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE })
 {
 }
 
@@ -532,9 +571,9 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    if (faceIndex >= NumFaces())
+    if (faceIndex >= NumArrayLayers())
     {
-        HYP_LOG_ONCE(Texture, Error, "Face index out of bounds: {} >= {}", faceIndex, NumFaces());
+        HYP_LOG_ONCE(Texture, Error, "Face index out of bounds: {} >= {}", faceIndex, NumArrayLayers());
 
         HYP_BREAKPOINT;
 
@@ -590,14 +629,19 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         + coord.y * (textureDesc.extent.x * bytesPerComponent * numComponents)
         + coord.x * bytesPerComponent * numComponents;
 
-    if (index + (bytesPerComponent * numComponents) > textureData->imageData.Size())
+    const uint32 mip0Size = textureDesc.HasStoredMips()
+        ? textureDesc.mipOffsets[0]
+        : uint32(textureData->imageData.Size());
+
+    if (index + (bytesPerComponent * numComponents) > mip0Size)
     {
-        HYP_LOG_ONCE(Texture, Warning, "Sample() call would attempt to read out of bounds of data for Texture {} ({})!\n"
-                                       "Texture format: {}, Texel index: {}, texture data buffer size: {}, coord: {}, dimensions: {}, num faces: {}, bytes per component: {}, num components: {}",
+        HYP_LOG_ONCE(Texture, Warning,
+            "Sample() call would attempt to read out of bounds of data for Texture {} ({})!\n"
+            "Texture format: {}, Texel index: {}, texture data buffer size: {}, coord: {}, dimensions: {}, num faces: {}, bytes per component: {}, num components: {}",
             GetName(), Id(),
             EnumToString(textureDesc.format),
-            index, textureData->imageData.Size(),
-            coord, textureDesc.extent, NumFaces(),
+            index, mip0Size,
+            coord, textureDesc.extent, NumArrayLayers(),
             bytesPerComponent, numComponents);
 
         return Vec4f::Zero();

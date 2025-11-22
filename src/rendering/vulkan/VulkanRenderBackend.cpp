@@ -931,9 +931,9 @@ GpuImageViewRef VulkanRenderBackend::MakeImageView(const GpuImageRef& image)
     return CreateObject<VulkanGpuImageView>(VulkanGpuImageRef(image));
 }
 
-GpuImageViewRef VulkanRenderBackend::MakeImageView(const GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 faceIndex, uint32 numFaces)
+GpuImageViewRef VulkanRenderBackend::MakeImageView(const GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
 {
-    return CreateObject<VulkanGpuImageView>(VulkanGpuImageRef(image), mipIndex, numMips, faceIndex, numFaces);
+    return CreateObject<VulkanGpuImageView>(VulkanGpuImageRef(image), mipIndex, numMips, faceIndex, numLayers);
 }
 
 SamplerRef VulkanRenderBackend::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
@@ -989,7 +989,7 @@ GpuTlasRef VulkanRenderBackend::MakeTLAS()
     return CreateObject<VulkanGpuTlas>();
 }
 
-const GpuImageViewRef& VulkanRenderBackend::GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex, uint32 numMips, uint32 faceIndex, uint32 numFaces)
+const GpuImageViewRef& VulkanRenderBackend::GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
 {
     if (!texture.IsValid())
     {
@@ -997,10 +997,10 @@ const GpuImageViewRef& VulkanRenderBackend::GetTextureImageView(const Handle<Tex
     }
 
     ImageSubResource subResource {};
-    subResource.numLevels = MathUtil::Min(numMips, texture->GetTextureDesc().NumMipmaps());
+    subResource.numLevels = MathUtil::Min(numMips, texture->GetTextureDesc().NumMips());
     subResource.baseMipLevel = MathUtil::Min(mipIndex, numMips - 1);
-    subResource.numLayers = MathUtil::Min(numFaces, texture->GetTextureDesc().NumFaces());
-    subResource.baseArrayLayer = MathUtil::Min(faceIndex, numFaces - 1);
+    subResource.numLayers = MathUtil::Min(numLayers, texture->GetTextureDesc().NumArrayLayers());
+    subResource.baseArrayLayer = MathUtil::Min(faceIndex, numLayers - 1);
 
     const GpuImageViewRef& imageView = m_textureCache->GetOrCreate(texture, subResource);
     HYP_GFX_ASSERT(imageView.IsValid());
@@ -1068,9 +1068,9 @@ QueryImageCapabilitiesResult VulkanRenderBackend::QueryImageCapabilities(const T
     const bool isSrgb = textureDesc.IsSrgb();
     const bool isBlended = textureDesc.imageUsage[IU_BLENDED];
 
-    const bool hasMipmaps = textureDesc.HasMipmaps();
-    const uint32 numMipmaps = textureDesc.NumMipmaps();
-    const uint32 numFaces = textureDesc.NumFaces();
+    const bool hasMipmaps = textureDesc.HasMipMaps();
+    const uint32 numMipmaps = textureDesc.NumMips();
+    const uint32 numLayers = textureDesc.NumArrayLayers();
 
     VkFormat vkFormat = ToVkFormat(format);
     VkImageType vkImageType = ToVkImageType(type);

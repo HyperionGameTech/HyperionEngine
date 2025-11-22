@@ -570,9 +570,21 @@ private:
 class CopyBufferToImage final : public CmdBase
 {
 public:
-    CopyBufferToImage(GpuBufferBase* buffer, GpuImageBase* image)
-        : m_buffer(buffer),
-          m_image(image)
+    CopyBufferToImage(GpuBufferBase* srcBuffer, GpuImageBase* dstImage)
+        : m_srcBuffer(srcBuffer),
+          m_dstImage(dstImage),
+          m_srcBufferOffset(0),
+          m_dstMipIndex(UINT8_MAX),
+          m_dstArrayLayer(UINT16_MAX)
+    {
+    }
+
+    CopyBufferToImage(GpuBufferBase* srcBuffer, GpuImageBase* dstImage, uint32 srcBufferOffset, uint32 dstMipIndex, uint32 dstArrayLayer)
+        : m_srcBuffer(srcBuffer),
+          m_dstImage(dstImage),
+          m_srcBufferOffset(srcBufferOffset),
+          m_dstMipIndex(dstMipIndex),
+          m_dstArrayLayer(dstArrayLayer)
     {
     }
 
@@ -580,15 +592,24 @@ public:
     {
         CopyBufferToImage* cmdCasted = static_cast<CopyBufferToImage*>(cmd);
 
-        cmdCasted->m_image->CopyFromBuffer(commandBuffer, cmdCasted->m_buffer);
+        cmdCasted->m_dstImage->CopyFromBuffer(
+            commandBuffer,
+            cmdCasted->m_srcBuffer,
+            cmdCasted->m_srcBufferOffset,
+            cmdCasted->m_dstMipIndex,
+            cmdCasted->m_dstArrayLayer);
 
         static_assert(std::is_trivially_destructible_v<CopyBufferToImage>);
         // cmdCasted->~CopyBufferToImage();
     }
 
 private:
-    GpuBufferBase* m_buffer;
-    GpuImageBase* m_image;
+    GpuBufferBase* m_srcBuffer;
+    GpuImageBase* m_dstImage;
+
+    uint32 m_srcBufferOffset;
+    uint8 m_dstMipIndex;
+    uint16 m_dstArrayLayer;
 };
 
 class CopyBuffer final : public CmdBase

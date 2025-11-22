@@ -105,7 +105,7 @@ void DepthPyramidRenderer::Create()
         const Vec3u& imageExtent = m_depthImageView->GetImage()->GetExtent();
         const Vec3u& depthPyramidExtent = m_depthPyramid->GetExtent();
 
-        const uint32 numMipLevels = m_depthPyramid->NumMipmaps();
+        const uint32 numMipLevels = m_depthPyramid->NumMips();
 
         m_mipImageViews.Clear();
         m_mipImageViews.Reserve(numMipLevels);
@@ -134,7 +134,7 @@ void DepthPyramidRenderer::Create()
             HYP_GFX_ASSERT(mipUniformBuffer->Create());
             mipUniformBuffer->Copy(sizeof(DepthPyramidUniforms), &uniforms);
 
-            GpuImageViewRef& mipImageView = m_mipImageViews.PushBack(g_renderBackend->MakeImageView(m_depthPyramid, mipLevel, 1, 0, m_depthPyramid->NumFaces()));
+            GpuImageViewRef& mipImageView = m_mipImageViews.PushBack(g_renderBackend->MakeImageView(m_depthPyramid, mipLevel, 1, 0, m_depthPyramid->NumArrayLayers()));
             mipImageView->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_ImageView", mipLevel));
             HYP_GFX_ASSERT(mipImageView->Create());
         }

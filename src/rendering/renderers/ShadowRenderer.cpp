@@ -303,25 +303,25 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
             const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
             Assert(framebufferImage.IsValid());
 
-            const uint32 numFaces = framebufferImage->NumFaces();
+            const uint32 numLayers = framebufferImage->NumArrayLayers();
 
-            Assert((atlasElement.layerIndex * numFaces) + numFaces <= shadowMapImage->NumFaces(),
+            Assert((atlasElement.layerIndex * numLayers) + numLayers <= shadowMapImage->NumArrayLayers(),
                 "Atlas element has layer index = {} and num faces = {} ({} x {} + {} = {}), but shadow map atlas has total num faces = {}",
-                atlasElement.layerIndex, numFaces,
-                atlasElement.layerIndex, numFaces, numFaces, (atlasElement.layerIndex * numFaces) + numFaces,
-                shadowMapImage->NumFaces());
+                atlasElement.layerIndex, numLayers,
+                atlasElement.layerIndex, numLayers, numLayers, (atlasElement.layerIndex * numLayers) + numLayers,
+                shadowMapImage->NumArrayLayers());
 
             const ImageSubResource subResource {
-                .baseArrayLayer = (atlasElement.layerIndex * numFaces),
+                .baseArrayLayer = (atlasElement.layerIndex * numLayers),
                 .baseMipLevel = 0,
-                .numLayers = numFaces,
+                .numLayers = numLayers,
                 .numLevels = 1
             };
 
             frame->renderQueue << InsertBarrier(framebufferImage, RS_COPY_SRC);
             frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, subResource);
 
-            for (uint32 faceIndex = 0; faceIndex < numFaces; faceIndex++)
+            for (uint32 layerIndex = 0; faceIndex < numLayers; faceIndex++)
             {
                 frame->renderQueue << Blit(
                     framebufferImage,

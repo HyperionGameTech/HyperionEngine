@@ -62,9 +62,9 @@ public:
         return GetTextureDesc().type;
     }
 
-    HYP_FORCE_INLINE uint32 NumFaces() const
+    HYP_FORCE_INLINE uint32 NumArrayLayers() const
     {
-        return GetTextureDesc().NumFaces();
+        return GetTextureDesc().NumArrayLayers();
     }
 
     HYP_FORCE_INLINE bool IsTextureCube() const
@@ -102,9 +102,9 @@ public:
         return GetTextureDesc().filterModeMag;
     }
 
-    HYP_FORCE_INLINE bool HasMipmaps() const
+    HYP_FORCE_INLINE bool HasMipMaps() const
     {
-        return GetTextureDesc().HasMipmaps();
+        return GetTextureDesc().HasMipMaps();
     }
 
     HYP_FORCE_INLINE TextureWrapMode GetWrapMode() const

@@ -61,9 +61,9 @@ public:
         return m_textureDesc.numLayers;
     }
 
-    HYP_FORCE_INLINE uint32 NumFaces() const
+    HYP_FORCE_INLINE uint32 NumArrayLayers() const
     {
-        return m_textureDesc.NumFaces();
+        return m_textureDesc.NumArrayLayers();
     }
 
     HYP_FORCE_INLINE TextureFilterMode GetMinFilterMode() const
@@ -101,14 +101,14 @@ public:
         m_textureDesc.format = format;
     }
 
-    HYP_FORCE_INLINE bool HasMipmaps() const
+    HYP_FORCE_INLINE bool HasMipMaps() const
     {
-        return m_textureDesc.HasMipmaps();
+        return m_textureDesc.HasMipMaps();
     }
 
-    HYP_FORCE_INLINE uint32 NumMipmaps() const
+    HYP_FORCE_INLINE uint32 NumMips() const
     {
-        return m_textureDesc.NumMipmaps();
+        return m_textureDesc.NumMips();
     }
 
     /*! \brief Returns the byte-size of the image, computed using the TextureDesc */
@@ -170,7 +170,10 @@ public:
 
     virtual void CopyFromBuffer(
         CommandBufferBase* commandBuffer,
-        const GpuBufferBase* srcBuffer) const = 0;
+        const GpuBufferBase* srcBuffer,
+        uint32 bufferOffset = 0,
+        uint8 dstMipIndex = UINT8_MAX,
+        uint16 dstArrayLayer = UINT16_MAX) const = 0;
 
     virtual void CopyToBuffer(
         CommandBufferBase* commandBuffer,

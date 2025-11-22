@@ -338,7 +338,7 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridRendere
 
         const DescriptorTableDeclaration* generateVoxelGridMipmapsDescriptorTableDecl = generateVoxelGridMipmapsShader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        const uint32 numVoxelGridMipLevels = envGrid->GetVoxelGridTexture()->GetTextureDesc().NumMipmaps();
+        const uint32 numVoxelGridMipLevels = envGrid->GetVoxelGridTexture()->GetTextureDesc().NumMips();
         pd.voxelGridMips.Resize(numVoxelGridMipLevels);
 
         for (uint32 mipLevel = 0; mipLevel < numVoxelGridMipLevels; mipLevel++)
@@ -346,7 +346,7 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridRendere
             pd.voxelGridMips[mipLevel] = g_renderBackend->MakeImageView(
                 envGrid->GetVoxelGridTexture()->GetGpuImage(),
                 mipLevel, 1,
-                0, envGrid->GetVoxelGridTexture()->NumFaces());
+                0, envGrid->GetVoxelGridTexture()->NumArrayLayers());
 
             DeferCreate(pd.voxelGridMips[mipLevel]);
 
@@ -1176,7 +1176,7 @@ void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& renderS
     { // Generate mipmaps for the voxel grid
         frame->renderQueue << InsertBarrier(envGrid->GetVoxelGridTexture()->GetGpuImage(), RS_SHADER_RESOURCE);
 
-        const uint32 numMipLevels = envGrid->GetVoxelGridTexture()->GetTextureDesc().NumMipmaps();
+        const uint32 numMipLevels = envGrid->GetVoxelGridTexture()->GetTextureDesc().NumMips();
 
         const Vec3u voxelImageExtent = envGrid->GetVoxelGridTexture()->GetExtent();
         Vec3u mipExtent = voxelImageExtent;

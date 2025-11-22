@@ -118,16 +118,16 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     {
         // convert to bytes per pixel = 4
         const uint32 size = textureDesc.GetByteSize();
-        const uint32 faceOffsetStep = size / textureDesc.NumFaces();
+        const uint32 faceOffsetStep = size / textureDesc.NumArrayLayers();
 
         textureDesc.format = FormatChangeNumComponents(data.format, 4);
 
         const uint32 newSize = textureDesc.GetByteSize();
-        const uint32 newFaceOffsetStep = newSize / textureDesc.NumFaces();
+        const uint32 newFaceOffsetStep = newSize / textureDesc.NumArrayLayers();
 
         ByteBuffer newByteBuffer(textureDesc.GetByteSize());
 
-        for (uint32 i = 0; i < textureDesc.NumFaces(); i++)
+        for (uint32 i = 0; i < textureDesc.NumArrayLayers(); i++)
         {
             ImageUtil::ConvertBPP(
                 textureDesc.extent.x, textureDesc.extent.y, textureDesc.extent.z,

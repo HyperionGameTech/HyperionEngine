@@ -240,7 +240,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
 
         frame->renderQueue << Blit(framebufferImage, dstImage);
 
-        if (dstImage->HasMipmaps())
+        if (dstImage->HasMipMaps())
         {
             frame->renderQueue << GenerateMipmaps(dstImage);
         }
@@ -373,7 +373,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
         convolveProbeComputePipeline,
         Vec3u { (prefilteredEnvMap->GetExtent().x + 7) / 8, (prefilteredEnvMap->GetExtent().y + 7) / 8, 1 });
 
-    if (prefilteredEnvMap->GetTextureDesc().HasMipmaps())
+    if (prefilteredEnvMap->GetTextureDesc().HasMipMaps())
     {
         frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_COPY_DST);
         frame->renderQueue << GenerateMipmaps(prefilteredEnvMap->GetGpuImage());

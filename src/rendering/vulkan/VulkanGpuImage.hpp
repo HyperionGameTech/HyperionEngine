@@ -85,7 +85,10 @@ public:
 
     virtual void CopyFromBuffer(
         CommandBufferBase* commandBuffer,
-        const GpuBufferBase* srcBuffer) const override;
+        const GpuBufferBase* srcBuffer,
+        uint32 srcBufferOffset = 0,
+        uint8 dstMipIndex = UINT8_MAX,
+        uint16 dstArrayLayer = UINT16_MAX) const override;
 
     virtual void CopyToBuffer(
         CommandBufferBase* commandBuffer,
