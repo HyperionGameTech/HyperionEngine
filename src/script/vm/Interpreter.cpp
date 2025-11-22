@@ -22,6 +22,8 @@
 
 #include <core/reflection/TypeInfo.hpp>
 
+#include <core/memory/pool/Pool.hpp>
+
 #include <core/debug/Debug.hpp>
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
@@ -46,445 +48,7 @@
 #define SCRIPT_INLINE HYP_FORCE_INLINE
 #endif
 
-#define HYP_NUMERIC_OPERATION(a, b, oper)                                         \
-    do                                                                            \
-    {                                                                             \
-        switch (numericType)                                                      \
-        {                                                                         \
-        case NT_I8:                                                               \
-            if (a.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                     \
-                result.i = static_cast<int8>(a.u);                                \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;          \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.i = a.i;                                                   \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;          \
-            }                                                                     \
-            if (b.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                     \
-                result.i oper## = static_cast<int8>(b.u);                         \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;          \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.i oper## = b.i;                                            \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;          \
-            }                                                                     \
-            break;                                                                \
-        case NT_I16:                                                              \
-            if (a.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                     \
-                result.i = static_cast<int16>(a.u);                               \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;         \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.i = a.i;                                                   \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;         \
-            }                                                                     \
-            if (b.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                     \
-                result.i oper## = static_cast<int16>(b.u);                        \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;         \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.i oper## = b.i;                                            \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;         \
-            }                                                                     \
-            break;                                                                \
-        case NT_I32:                                                              \
-            if (a.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                     \
-                result.i = static_cast<int32>(a.u);                               \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;         \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.i = a.i;                                                   \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;         \
-            }                                                                     \
-            if (b.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                     \
-                result.i oper## = static_cast<int32>(b.u);                        \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;         \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.i oper## = b.i;                                            \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;         \
-            }                                                                     \
-            break;                                                                \
-        case NT_I64:                                                              \
-            if (a.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                     \
-                result.i = static_cast<int64>(a.u);                               \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;         \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.i = a.i;                                                   \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;         \
-            }                                                                     \
-            if (b.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                     \
-                result.i oper## = static_cast<int64>(b.u);                        \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;         \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.i oper## = b.i;                                            \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;         \
-            }                                                                     \
-            break;                                                                \
-        case NT_U8:                                                               \
-            if (a.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.u = static_cast<uint8>(a.i);                               \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;        \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.u = static_cast<uint8>(a.u);                               \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;        \
-            }                                                                     \
-            if (b.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.u oper## = static_cast<uint8>(b.i);                        \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;        \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.u oper## = static_cast<uint8>(b.u);                        \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;        \
-            }                                                                     \
-            break;                                                                \
-        case NT_U16:                                                              \
-            if (a.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.u = static_cast<uint16>(a.i);                              \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;       \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.u = static_cast<uint16>(a.u);                              \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;       \
-            }                                                                     \
-            if (b.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.u oper## = static_cast<uint16>(b.i);                       \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;       \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.u oper## = static_cast<uint16>(b.u);                       \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;       \
-            }                                                                     \
-            break;                                                                \
-        case NT_U32:                                                              \
-            if (a.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.u = static_cast<uint32>(a.i);                              \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.u = static_cast<uint32>(a.u);                              \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       \
-            }                                                                     \
-            if (b.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.u oper## = static_cast<uint32>(b.i);                       \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.u oper## = static_cast<uint32>(b.u);                       \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       \
-            }                                                                     \
-            break;                                                                \
-        case NT_U64:                                                              \
-            if (a.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.u = static_cast<uint64>(a.i);                              \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.u = a.u;                                                   \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       \
-            }                                                                     \
-            if (b.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.u oper## = static_cast<uint64>(b.i);                       \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.u oper## = b.u;                                            \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       \
-            }                                                                     \
-            break;                                                                \
-        case NT_F32:                                                              \
-            if (a.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.f = static_cast<float>(a.i);                               \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
-            }                                                                     \
-            else if (a.flags & Number::FLAG_UNSIGNED)                             \
-            {                                                                     \
-                result.f = static_cast<float>(a.u);                               \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.f = static_cast<float>(a.f);                               \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
-            }                                                                     \
-            if (b.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.f oper## = static_cast<float>(b.i);                        \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
-            }                                                                     \
-            else if (a.flags & Number::FLAG_UNSIGNED)                             \
-            {                                                                     \
-                result.f oper## = static_cast<float>(b.u);                        \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.f oper## = static_cast<float>(b.f);                        \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
-            }                                                                     \
-            break;                                                                \
-        case NT_F64:                                                              \
-            if (a.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.f = static_cast<double>(a.i);                              \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
-            }                                                                     \
-            else if (a.flags & Number::FLAG_UNSIGNED)                             \
-            {                                                                     \
-                result.f = static_cast<double>(a.u);                              \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.f = a.f;                                                   \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
-            }                                                                     \
-            if (b.flags & Number::FLAG_SIGNED)                                    \
-            {                                                                     \
-                result.f oper## = static_cast<double>(b.i);                       \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
-            }                                                                     \
-            else if (a.flags & Number::FLAG_UNSIGNED)                             \
-            {                                                                     \
-                result.f oper## = static_cast<double>(b.u);                       \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                result.f oper## = b.f;                                            \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
-            }                                                                     \
-            break;                                                                \
-        default:                                                                  \
-            Assert(false, "Invalid type, should not reach this state.");          \
-            break;                                                                \
-        }                                                                         \
-    }                                                                             \
-    while (0)
-
-#define HYP_NUMERIC_OPERATION_BITWISE(a, b, oper)                                     \
-    do                                                                                \
-    {                                                                                 \
-        switch (numericType)                                                          \
-        {                                                                             \
-        case NT_I8:                                                                   \
-            if (a.flags & Number::FLAG_UNSIGNED)                                      \
-            {                                                                         \
-                result.i = static_cast<int8>(a.u);                                    \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;              \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.i = a.i;                                                       \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;              \
-            }                                                                         \
-            if (b.flags & Number::FLAG_UNSIGNED)                                      \
-            {                                                                         \
-                result.i oper## = static_cast<int8>(b.u);                             \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;              \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.i oper## = b.i;                                                \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;              \
-            }                                                                         \
-            break;                                                                    \
-        case NT_I16:                                                                  \
-            if (a.flags & Number::FLAG_UNSIGNED)                                      \
-            {                                                                         \
-                result.i = static_cast<int16>(a.u);                                   \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;             \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.i = a.i;                                                       \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;             \
-            }                                                                         \
-            if (b.flags & Number::FLAG_UNSIGNED)                                      \
-            {                                                                         \
-                result.i oper## = static_cast<int16>(b.u);                            \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;             \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.i oper## = b.i;                                                \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;             \
-            }                                                                         \
-            break;                                                                    \
-        case NT_I32:                                                                  \
-            if (a.flags & Number::FLAG_UNSIGNED)                                      \
-            {                                                                         \
-                result.i = static_cast<int32>(a.u);                                   \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;             \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.i = a.i;                                                       \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;             \
-            }                                                                         \
-            if (b.flags & Number::FLAG_UNSIGNED)                                      \
-            {                                                                         \
-                result.i oper## = static_cast<int32>(b.u);                            \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;             \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.i oper## = b.i;                                                \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;             \
-            }                                                                         \
-            break;                                                                    \
-        case NT_I64:                                                                  \
-            if (a.flags & Number::FLAG_UNSIGNED)                                      \
-            {                                                                         \
-                result.i = static_cast<int64>(a.u);                                   \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;             \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.i = a.i;                                                       \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;             \
-            }                                                                         \
-            if (b.flags & Number::FLAG_UNSIGNED)                                      \
-            {                                                                         \
-                result.i oper## = static_cast<int64>(b.u);                            \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;             \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.i oper## = b.i;                                                \
-                result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;             \
-            }                                                                         \
-            break;                                                                    \
-        case NT_U8:                                                                   \
-            if (a.flags & Number::FLAG_SIGNED)                                        \
-            {                                                                         \
-                result.u = static_cast<uint8>(a.i);                                   \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;            \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.u = static_cast<uint8>(a.u);                                   \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;            \
-            }                                                                         \
-            if (b.flags & Number::FLAG_SIGNED)                                        \
-            {                                                                         \
-                result.u oper## = static_cast<uint8>(b.i);                            \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;            \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.u oper## = static_cast<uint8>(b.u);                            \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;            \
-            }                                                                         \
-            break;                                                                    \
-        case NT_U16:                                                                  \
-            if (a.flags & Number::FLAG_SIGNED)                                        \
-            {                                                                         \
-                result.u = static_cast<uint16>(a.i);                                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;           \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.u = static_cast<uint16>(a.u);                                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;           \
-            }                                                                         \
-            if (b.flags & Number::FLAG_SIGNED)                                        \
-            {                                                                         \
-                result.u oper## = static_cast<uint16>(b.i);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;           \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.u oper## = static_cast<uint16>(b.u);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;           \
-            }                                                                         \
-            break;                                                                    \
-        case NT_U32:                                                                  \
-            if (a.flags & Number::FLAG_SIGNED)                                        \
-            {                                                                         \
-                result.u = static_cast<uint32>(a.i);                                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;           \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.u = static_cast<uint32>(a.u);                                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;           \
-            }                                                                         \
-            if (b.flags & Number::FLAG_SIGNED)                                        \
-            {                                                                         \
-                result.u oper## = static_cast<uint32>(b.i);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;           \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.u oper## = static_cast<uint32>(b.u);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;           \
-            }                                                                         \
-            break;                                                                    \
-        case NT_U64:                                                                  \
-            if (a.flags & Number::FLAG_SIGNED)                                        \
-            {                                                                         \
-                result.u = static_cast<uint64>(a.i);                                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;           \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.u = a.u;                                                       \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;           \
-            }                                                                         \
-            if (b.flags & Number::FLAG_SIGNED)                                        \
-            {                                                                         \
-                result.u oper## = static_cast<uint64>(b.i);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;           \
-            }                                                                         \
-            else                                                                      \
-            {                                                                         \
-                result.u oper## = b.u;                                                \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;           \
-            }                                                                         \
-            break;                                                                    \
-        default:                                                                      \
-            vm->ThrowException(instance, Script_Exception::InvalidBitwiseArgument()); \
-            break;                                                                    \
-        }                                                                             \
-    }                                                                                 \
-    while (0)
+#include <script/vm/inl/Interpreter.inl>
 
 namespace hyperion {
 
@@ -492,7 +56,19 @@ using ScriptArray = Array<HypData, DynamicAllocator>;
 
 extern const char* LookupTypeName(const TypeId& typeId);
 
-using BCRegister = uint8;
+using RegisterIndex = uint8;
+
+HYP_API extern Pool* g_scriptPool;
+
+static inline void* ScriptAlloc(SizeType size, SizeType alignment = 1)
+{
+    return g_scriptPool->Allocate(size, alignment);
+}
+
+static inline void ScriptFree(void* ptr)
+{
+    g_scriptPool->Free(ptr);
+}
 
 #pragma region ScriptApi
 
@@ -681,7 +257,7 @@ HypData ScriptApi_ShallowCopy(HypData& refValue, Script_GC* gc)
             newHypData.value.Set<NormalizedType<decltype(val)>>(val);
         });
 
-    return HypData(std::move(newHypData));
+    return newHypData;
 }
 
 bool ScriptApi_ShouldValuePassByRef(const HypData& value)
@@ -1030,7 +606,7 @@ Script_RegisterMemory::Script_RegisterMemory()
 
 #pragma region Script_StaticMemory
 
-const uint16 Script_StaticMemory::staticSize = 65535;
+const uint16 Script_StaticMemory::staticSize = 2048;
 
 Script_StaticMemory::Script_StaticMemory()
     : m_data(new HypData[staticSize])
@@ -1086,37 +662,37 @@ public:
         Assert(instance != nullptr);
     }
 
-    SCRIPT_INLINE void OpLoadI32(BCRegister reg, int32 i32)
+    SCRIPT_INLINE void OpLoadI32(RegisterIndex reg, int32 i32)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(i32);
     }
 
-    SCRIPT_INLINE void OpLoadI64(BCRegister reg, int64 i64)
+    SCRIPT_INLINE void OpLoadI64(RegisterIndex reg, int64 i64)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(i64);
     }
 
-    SCRIPT_INLINE void OpLoadU32(BCRegister reg, uint32 u32)
+    SCRIPT_INLINE void OpLoadU32(RegisterIndex reg, uint32 u32)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(u32);
     }
 
-    SCRIPT_INLINE void OpLoadU64(BCRegister reg, uint64 u64)
+    SCRIPT_INLINE void OpLoadU64(RegisterIndex reg, uint64 u64)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(u64);
     }
 
-    SCRIPT_INLINE void OpLoadF32(BCRegister reg, float32 f32)
+    SCRIPT_INLINE void OpLoadF32(RegisterIndex reg, float32 f32)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(f32);
     }
 
-    SCRIPT_INLINE void OpLoadF64(BCRegister reg, float64 f64)
+    SCRIPT_INLINE void OpLoadF64(RegisterIndex reg, float64 f64)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(f64);
     }
 
-    SCRIPT_INLINE void OpLoadOffset(BCRegister reg, uint16 offset)
+    SCRIPT_INLINE void OpLoadOffset(RegisterIndex reg, uint16 offset)
     {
         Script_StackMemory& stackMemory = instance->thread.m_stack;
 
@@ -1134,7 +710,7 @@ public:
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
-    SCRIPT_INLINE void OpLoadIndex(BCRegister reg, uint16 index)
+    SCRIPT_INLINE void OpLoadIndex(RegisterIndex reg, uint16 index)
     {
         Script_StackMemory& stackMemory = instance->thread.m_stack;
 
@@ -1152,7 +728,7 @@ public:
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
-    SCRIPT_INLINE void OpLoadStatic(BCRegister reg, uint16 index)
+    SCRIPT_INLINE void OpLoadStatic(RegisterIndex reg, uint16 index)
     {
         // read value from static memory
         // at the index into the the register
@@ -1163,12 +739,12 @@ public:
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
-    SCRIPT_INLINE void OpLoadConstantString(BCRegister reg, uint32 len, const char* str)
+    SCRIPT_INLINE void OpLoadConstantString(RegisterIndex reg, uint32 len, const char* str)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(str != nullptr ? Script_String(str, str + len) : Script_String());
     }
 
-    SCRIPT_INLINE void OpLoadAddr(BCRegister reg, Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpLoadAddr(RegisterIndex reg, Script_FunctionAddress addr)
     {
         Script_VMData vmData;
         vmData.type = Script_VMData::ADDRESS;
@@ -1177,7 +753,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(vmData);
     }
 
-    SCRIPT_INLINE void OpLoadFunc(BCRegister reg, Script_FunctionAddress addr, uint8 nargs, uint8 flags)
+    SCRIPT_INLINE void OpLoadFunc(RegisterIndex reg, Script_FunctionAddress addr, uint8 nargs, uint8 flags)
     {
         Script_VMData vmData;
         vmData.type = Script_VMData::FUNCTION;
@@ -1188,7 +764,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(vmData);
     }
 
-    SCRIPT_INLINE void OpLoadArrayIdx(BCRegister dstReg, BCRegister srcReg, BCRegister indexReg)
+    SCRIPT_INLINE void OpLoadArrayIdx(RegisterIndex dstReg, RegisterIndex srcReg, RegisterIndex indexReg)
     {
         HypData& src = *Deref(instance->thread.m_regs[srcReg]);
 
@@ -1252,14 +828,14 @@ public:
         vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", GetTypeString(src)));
     }
 
-    SCRIPT_INLINE void OpLoadOffsetRef(BCRegister reg, uint16 offset)
+    SCRIPT_INLINE void OpLoadOffsetRef(RegisterIndex reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
         HypData newRef = ScriptApi_MakeTrackedRef(Deref(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset]), vm->GetGC());
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
-    SCRIPT_INLINE void OpLoadIndexRef(BCRegister reg, uint16 index)
+    SCRIPT_INLINE void OpLoadIndexRef(RegisterIndex reg, uint16 index)
     {
         Script_StackMemory& stackMemory = instance->thread.m_stack;
 
@@ -1273,34 +849,34 @@ public:
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
-    SCRIPT_INLINE void OpLoadRef(BCRegister dstReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpLoadRef(RegisterIndex dstReg, RegisterIndex srcReg)
     {
         HypData newRef = ScriptApi_MakeTrackedRef(Deref(instance->thread.m_regs[srcReg]), vm->GetGC());
         instance->thread.m_regs[dstReg] = std::move(newRef);
     }
 
-    SCRIPT_INLINE void OpLoadDeref(BCRegister dstReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpLoadDeref(RegisterIndex dstReg, RegisterIndex srcReg)
     {
         HypData& src = *Deref(instance->thread.m_regs[srcReg]); // double deref to get the actual value
         instance->thread.m_regs[dstReg] = ScriptApi_ShallowCopy(*Deref(src), vm->GetGC());
     }
 
-    SCRIPT_INLINE void OpLoadNull(BCRegister reg)
+    SCRIPT_INLINE void OpLoadNull(RegisterIndex reg)
     {
         instance->thread.m_regs[reg] = HypData();
     }
 
-    SCRIPT_INLINE void OpLoadTrue(BCRegister reg)
+    SCRIPT_INLINE void OpLoadTrue(RegisterIndex reg)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(true);
     }
 
-    SCRIPT_INLINE void OpLoadFalse(BCRegister reg)
+    SCRIPT_INLINE void OpLoadFalse(RegisterIndex reg)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(false);
     }
 
-    SCRIPT_INLINE void OpLoadClass(BCRegister reg, uint64 nameHash)
+    SCRIPT_INLINE void OpLoadClass(RegisterIndex reg, uint64 nameHash)
     {
         Name name = Name(StringHash(nameHash));
         const Class* cls = ClassRegistry::GetInstance().GetClass(name);
@@ -1316,26 +892,26 @@ public:
         instance->thread.m_regs[reg] = std::move(classValue);
     }
 
-    SCRIPT_INLINE void OpMovOffset(uint16 offset, BCRegister reg)
+    SCRIPT_INLINE void OpMovOffset(uint16 offset, RegisterIndex reg)
     {
         // copy value from register to stack value at (sp - offset)
         AssignValue(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset], ScriptApi_ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()), true);
     }
 
-    SCRIPT_INLINE void OpMovIndex(uint16 index, BCRegister reg)
+    SCRIPT_INLINE void OpMovIndex(uint16 index, RegisterIndex reg)
     {
         // copy value from register to stack value at index
         AssignValue(instance->thread.m_stack[index], ScriptApi_ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()), true);
     }
 
-    SCRIPT_INLINE void OpMovStatic(uint16 index, BCRegister reg)
+    SCRIPT_INLINE void OpMovStatic(uint16 index, RegisterIndex reg)
     {
         Assert(index < vm->m_staticMemory.staticSize);
 
         vm->m_staticMemory[index] = std::move(instance->thread.m_regs[reg]);
     }
 
-    SCRIPT_INLINE void OpMovArrayIdx(BCRegister dstReg, uint32 index, BCRegister srcReg)
+    SCRIPT_INLINE void OpMovArrayIdx(RegisterIndex dstReg, uint32 index, RegisterIndex srcReg)
     {
         HypData& src = *Deref(instance->thread.m_regs[dstReg]);
 
@@ -1362,7 +938,7 @@ public:
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
-    SCRIPT_INLINE void OpMovArrayIdxReg(BCRegister dstReg, BCRegister indexReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpMovArrayIdxReg(RegisterIndex dstReg, RegisterIndex indexReg, RegisterIndex srcReg)
     {
         HypData& src = *Deref(instance->thread.m_regs[dstReg]);
 
@@ -1435,12 +1011,12 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpMov(BCRegister dstReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpMov(RegisterIndex dstReg, RegisterIndex srcReg)
     {
         instance->thread.m_regs[dstReg] = std::move(instance->thread.m_regs[srcReg]);
     }
 
-    SCRIPT_INLINE void OpCheckHasMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
+    SCRIPT_INLINE void OpCheckHasMember(RegisterIndex dstReg, RegisterIndex srcReg, uint64 hash)
     {
         HypData& src = *Deref(instance->thread.m_regs[srcReg]);
         HypData& result = instance->thread.m_regs[dstReg];
@@ -1467,7 +1043,7 @@ public:
         result = ScriptApi_MakeValue(false);
     }
 
-    SCRIPT_INLINE void OpSetField(BCRegister dstReg, uint64 hash, BCRegister srcReg)
+    SCRIPT_INLINE void OpSetField(RegisterIndex dstReg, uint64 hash, RegisterIndex srcReg)
     {
         HypData* pValue = Deref(instance->thread.m_regs[dstReg]);
 
@@ -1501,7 +1077,7 @@ public:
         field->Set(*pValue, *Deref(instance->thread.m_regs[srcReg]));
     }
 
-    SCRIPT_INLINE void OpGetMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
+    SCRIPT_INLINE void OpGetMember(RegisterIndex dstReg, RegisterIndex srcReg, uint64 hash)
     {
         HypData& src = *Deref(instance->thread.m_regs[srcReg]);
 
@@ -1583,7 +1159,7 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpPush(BCRegister reg)
+    SCRIPT_INLINE void OpPush(RegisterIndex reg)
     {
         // Move value from register to top of stack
         instance->thread.m_stack.Push(ScriptApi_ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()));
@@ -1594,7 +1170,7 @@ public:
         instance->thread.m_stack.Pop();
     }
 
-    SCRIPT_INLINE void OpPushArray(BCRegister dstReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpPushArray(RegisterIndex dstReg, RegisterIndex srcReg)
     {
         HypData& dst = *Deref(instance->thread.m_regs[dstReg]);
 
@@ -1656,7 +1232,7 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpCall(BCRegister reg, uint8_t nargs)
+    SCRIPT_INLINE void OpCall(RegisterIndex reg, uint8_t nargs)
     {
         vm->Invoke(instance, std::move(instance->thread.m_regs[reg]), nargs);
     }
@@ -1713,7 +1289,7 @@ public:
         --instance->thread.m_exceptionState.m_tryCounter;
     }
 
-    SCRIPT_INLINE void OpNew(BCRegister dst, BCRegister src) // come back to this
+    SCRIPT_INLINE void OpNew(RegisterIndex dst, RegisterIndex src) // come back to this
     {
         // read value from register
         HypData& classValue = *Deref(instance->thread.m_regs[src]);
@@ -1737,13 +1313,13 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(std::move(hypData));
     }
 
-    SCRIPT_INLINE void OpNewArray(BCRegister dst, uint32 size)
+    SCRIPT_INLINE void OpNewArray(RegisterIndex dst, uint32 size)
     {
         // assign register value to the allocated object
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(ScriptArray(size));
     }
 
-    SCRIPT_INLINE void OpBeginClass(BCRegister reg)
+    SCRIPT_INLINE void OpBeginClass(RegisterIndex reg)
     {
         Script_Stream* bs = &instance->stream;
 
@@ -1751,13 +1327,13 @@ public:
         uint16 nameLen;
         bs->Read(&nameLen);
 
-        char* nameStr = (char*)std::malloc(nameLen + 1);
+        char* nameStr = (char*)ScriptAlloc(nameLen + 1);
         nameStr[nameLen] = '\0';
         bs->Read(nameStr, nameLen);
 
         // Create a new class with the given name
         Name className = CreateNameFromDynamicString(nameStr);
-        std::free(nameStr);
+        ScriptFree(nameStr);
 
         // Read type id
         TypeId::ValueType typeIdValue;
@@ -1795,7 +1371,7 @@ public:
                 uint16 memberNameLen;
                 bs->Read(&memberNameLen);
 
-                char* memberNameStr = (char*)std::malloc(memberNameLen + 1);
+                char* memberNameStr = (char*)ScriptAlloc(memberNameLen + 1);
                 memberNameStr[memberNameLen] = '\0';
                 bs->Read(memberNameStr, memberNameLen);
 
@@ -1815,12 +1391,12 @@ public:
                     uint16 attrNameLen;
                     bs->Read(&attrNameLen);
 
-                    char* attrNameStr = (char*)std::malloc(attrNameLen + 1);
+                    char* attrNameStr = (char*)ScriptAlloc(attrNameLen + 1);
                     attrNameStr[attrNameLen] = '\0';
                     bs->Read(attrNameStr, attrNameLen);
 
                     attr.name = CreateNameFromDynamicString(attrNameStr);
-                    std::free(attrNameStr);
+                    ScriptFree(attrNameStr);
 
                     // Read attribute type
                     uint8 attrType;
@@ -1969,7 +1545,7 @@ public:
                     break;
                 }
 
-                std::free(memberNameStr);
+                ScriptFree(memberNameStr);
             }
         }
 
@@ -2005,7 +1581,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeTrackedRef(&classValue, vm->GetGC());
     }
 
-    SCRIPT_INLINE void OpCmp(BCRegister lhsReg, BCRegister rhsReg)
+    SCRIPT_INLINE void OpCmp(RegisterIndex lhsReg, RegisterIndex rhsReg)
     {
         // dropout early for comparing something against itself
         if (lhsReg == rhsReg)
@@ -2068,7 +1644,7 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpCmpZ(BCRegister reg)
+    SCRIPT_INLINE void OpCmpZ(RegisterIndex reg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[reg]);
@@ -2100,9 +1676,9 @@ public:
     }
 
     SCRIPT_INLINE void OpAdd(
-        BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+        RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2127,9 +1703,9 @@ public:
     }
 
     SCRIPT_INLINE void OpSub(
-        BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+        RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2154,9 +1730,9 @@ public:
     }
 
     SCRIPT_INLINE void OpMul(
-        BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+        RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2181,9 +1757,9 @@ public:
     }
 
     SCRIPT_INLINE void OpDiv(
-        BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+        RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2221,9 +1797,9 @@ public:
     }
 
     SCRIPT_INLINE void OpMod(
-        BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+        RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2292,9 +1868,9 @@ public:
     }
 
     SCRIPT_INLINE void OpAnd(
-        BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+        RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2319,9 +1895,9 @@ public:
     }
 
     SCRIPT_INLINE void OpOr(
-        BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+        RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2346,9 +1922,9 @@ public:
     }
 
     SCRIPT_INLINE void OpXor(
-        BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+        RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2372,9 +1948,9 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpShl(BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+    SCRIPT_INLINE void OpShl(RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2398,9 +1974,9 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpShr(BCRegister lhsReg,
-        BCRegister rhsReg,
-        BCRegister dstReg)
+    SCRIPT_INLINE void OpShr(RegisterIndex lhsReg,
+        RegisterIndex rhsReg,
+        RegisterIndex dstReg)
     {
         // load values from registers
         HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
@@ -2424,7 +2000,7 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpNot(BCRegister reg)
+    SCRIPT_INLINE void OpNot(RegisterIndex reg)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[reg]);
@@ -2447,7 +2023,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(num);
     }
 
-    SCRIPT_INLINE void OpThrow(BCRegister reg)
+    SCRIPT_INLINE void OpThrow(RegisterIndex reg)
     {
         // load value from register
         HypData* value = Deref(instance->thread.m_regs[reg]);
@@ -2457,7 +2033,7 @@ public:
         vm->ThrowException(instance, Script_Exception("User exception"));
     }
 
-    SCRIPT_INLINE void OpExportSymbol(BCRegister reg, uint64 hash)
+    SCRIPT_INLINE void OpExportSymbol(RegisterIndex reg, uint64 hash)
     {
         HypData& srcValue = *Deref(instance->thread.m_regs[reg]);
 
@@ -2471,7 +2047,7 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpNeg(BCRegister reg)
+    SCRIPT_INLINE void OpNeg(RegisterIndex reg)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[reg]);
@@ -2523,7 +2099,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastU8(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastU8(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[src]);
@@ -2556,7 +2132,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastU16(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastU16(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[src]);
@@ -2589,7 +2165,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastU32(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastU32(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[src]);
@@ -2621,7 +2197,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastU64(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastU64(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[src]);
@@ -2653,7 +2229,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastI8(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastI8(RegisterIndex dst, RegisterIndex src)
     {
         HypData& value = *Deref(instance->thread.m_regs[src]);
         Number num;
@@ -2684,7 +2260,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastI16(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastI16(RegisterIndex dst, RegisterIndex src)
     {
         HypData& value = *Deref(instance->thread.m_regs[src]);
         Number num;
@@ -2715,7 +2291,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastI32(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastI32(RegisterIndex dst, RegisterIndex src)
     {
         HypData& value = *Deref(instance->thread.m_regs[src]);
         Number num;
@@ -2746,7 +2322,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastI64(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastI64(RegisterIndex dst, RegisterIndex src)
     {
         HypData& value = *Deref(instance->thread.m_regs[src]);
         Number num;
@@ -2777,7 +2353,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastF32(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastF32(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[src]);
@@ -2809,7 +2385,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastF64(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastF64(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[src]);
@@ -2841,7 +2417,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastBool(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastBool(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[src]);
@@ -2871,7 +2447,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    SCRIPT_INLINE void OpCastString(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastString(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
         HypData& value = *Deref(instance->thread.m_regs[src]);
@@ -2888,7 +2464,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_ShallowCopy(value, vm->GetGC());
     }
 
-    SCRIPT_INLINE void OpCastDynamic(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastDynamic(RegisterIndex dst, RegisterIndex src)
     {
         // dst register holds ClassRef object
         HypData& classValue = *Deref(instance->thread.m_regs[dst]);
@@ -2935,7 +2511,7 @@ SCRIPT_INLINE static void HandleInstruction(
         uint8 subcmd;
         bs->Read(&subcmd);
 
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         const uint8 dataType = GET_LOAD_DTYPE(subcmd);
@@ -3047,9 +2623,9 @@ SCRIPT_INLINE static void HandleInstruction(
 
         case LSRC_ARRAYIDX:
         {
-            BCRegister arrayReg;
+            RegisterIndex arrayReg;
             bs->Read(&arrayReg);
-            BCRegister indexReg;
+            RegisterIndex indexReg;
             bs->Read(&indexReg);
             handler->OpLoadArrayIdx(reg, arrayReg, indexReg);
         }
@@ -3057,7 +2633,7 @@ SCRIPT_INLINE static void HandleInstruction(
 
         case LSRC_MEMBER:
         {
-            BCRegister objReg;
+            RegisterIndex objReg;
             bs->Read(&objReg);
             uint64 hash;
             bs->Read(&hash);
@@ -3067,7 +2643,7 @@ SCRIPT_INLINE static void HandleInstruction(
 
         case LSRC_REGISTER:
         {
-            BCRegister srcReg;
+            RegisterIndex srcReg;
             bs->Read(&srcReg);
 
             if (isRef)
@@ -3102,11 +2678,11 @@ SCRIPT_INLINE static void HandleInstruction(
         // Handle array store operations first
         if (isArrayStore)
         {
-            BCRegister arrayReg;
+            RegisterIndex arrayReg;
             bs->Read(&arrayReg);
             uint32 index;
             bs->Read(&index);
-            BCRegister srcReg;
+            RegisterIndex srcReg;
             bs->Read(&srcReg);
             handler->OpMovArrayIdx(arrayReg, index, srcReg);
         }
@@ -3118,7 +2694,7 @@ SCRIPT_INLINE static void HandleInstruction(
             {
                 uint16 offset;
                 bs->Read(&offset);
-                BCRegister srcReg;
+                RegisterIndex srcReg;
                 bs->Read(&srcReg);
                 handler->OpMovOffset(offset, srcReg);
             }
@@ -3128,7 +2704,7 @@ SCRIPT_INLINE static void HandleInstruction(
             {
                 uint16 index;
                 bs->Read(&index);
-                BCRegister srcReg;
+                RegisterIndex srcReg;
                 bs->Read(&srcReg);
                 handler->OpMovIndex(index, srcReg);
             }
@@ -3138,7 +2714,7 @@ SCRIPT_INLINE static void HandleInstruction(
             {
                 uint16 index;
                 bs->Read(&index);
-                BCRegister srcReg;
+                RegisterIndex srcReg;
                 bs->Read(&srcReg);
                 handler->OpMovStatic(index, srcReg);
             }
@@ -3149,9 +2725,9 @@ SCRIPT_INLINE static void HandleInstruction(
                 {
                 case MSRC_REGISTER:
                 {
-                    BCRegister dstReg;
+                    RegisterIndex dstReg;
                     bs->Read(&dstReg);
-                    BCRegister srcReg;
+                    RegisterIndex srcReg;
                     bs->Read(&srcReg);
                     handler->OpMov(dstReg, srcReg);
                 }
@@ -3159,11 +2735,11 @@ SCRIPT_INLINE static void HandleInstruction(
 
                 case MSRC_ARRAYIDX:
                 {
-                    BCRegister dstReg;
+                    RegisterIndex dstReg;
                     bs->Read(&dstReg);
                     uint32 index;
                     bs->Read(&index);
-                    BCRegister srcReg;
+                    RegisterIndex srcReg;
                     bs->Read(&srcReg);
                     handler->OpMovArrayIdx(dstReg, index, srcReg);
                 }
@@ -3171,11 +2747,11 @@ SCRIPT_INLINE static void HandleInstruction(
 
                 case MSRC_ARRAYIDX_REG:
                 {
-                    BCRegister dstReg;
+                    RegisterIndex dstReg;
                     bs->Read(&dstReg);
-                    BCRegister indexReg;
+                    RegisterIndex indexReg;
                     bs->Read(&indexReg);
-                    BCRegister srcReg;
+                    RegisterIndex srcReg;
                     bs->Read(&srcReg);
                     handler->OpMovArrayIdxReg(dstReg, indexReg, srcReg);
                 }
@@ -3183,11 +2759,11 @@ SCRIPT_INLINE static void HandleInstruction(
 
                 case MSRC_MEMBER:
                 {
-                    BCRegister dstReg;
+                    RegisterIndex dstReg;
                     bs->Read(&dstReg);
                     uint64 hash;
                     bs->Read(&hash);
-                    BCRegister srcReg;
+                    RegisterIndex srcReg;
                     bs->Read(&srcReg);
                     handler->OpSetField(dstReg, hash, srcReg);
                 }
@@ -3205,9 +2781,9 @@ SCRIPT_INLINE static void HandleInstruction(
         uint8 subcmd;
         bs->Read(&subcmd);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
-        BCRegister srcReg;
+        RegisterIndex srcReg;
         bs->Read(&srcReg);
 
         const uint8 castType = GET_CAST_TYPE(subcmd);
@@ -3261,7 +2837,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case LOAD_OFFSET:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
         uint16 offset;
         bs->Read(&offset);
@@ -3274,14 +2850,14 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case LOAD_STRING:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
         // get string length
         uint32 len;
         bs->Read(&len);
 
         // read string based on length
-        char* str = new char[len + 1];
+        char* str = (char*)ScriptAlloc(len + 1);
         str[len] = '\0';
         bs->Read(str, len);
 
@@ -3290,19 +2866,19 @@ SCRIPT_INLINE static void HandleInstruction(
             len,
             str);
 
-        delete[] str;
+        ScriptFree(str);
 
         break;
     }
     case LOAD_ARRAYIDX:
     {
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
-        BCRegister srcReg;
+        RegisterIndex srcReg;
         bs->Read(&srcReg);
 
-        BCRegister indexReg;
+        RegisterIndex indexReg;
         bs->Read(&indexReg);
 
         handler->OpLoadArrayIdx(
@@ -3314,7 +2890,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case LOAD_OFFSET_REF:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         uint16 offset;
@@ -3326,7 +2902,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case LOAD_FUNC:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         Script_FunctionAddress addr;
@@ -3344,7 +2920,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case LOAD_CLASS:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         uint64 nameHash;
@@ -3356,8 +2932,8 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case REF:
     {
-        BCRegister dstReg;
-        BCRegister srcReg;
+        RegisterIndex dstReg;
+        RegisterIndex srcReg;
 
         bs->Read(&dstReg);
         bs->Read(&srcReg);
@@ -3368,8 +2944,8 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case DEREF:
     {
-        BCRegister dstReg;
-        BCRegister srcReg;
+        RegisterIndex dstReg;
+        RegisterIndex srcReg;
 
         bs->Read(&dstReg);
         bs->Read(&srcReg);
@@ -3383,7 +2959,7 @@ SCRIPT_INLINE static void HandleInstruction(
         uint16 offset;
         bs->Read(&offset);
 
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         handler->OpMovOffset(offset, reg);
@@ -3394,7 +2970,7 @@ SCRIPT_INLINE static void HandleInstruction(
     {
         uint16 index;
         bs->Read(&index);
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         handler->OpMovIndex(index, reg);
@@ -3406,7 +2982,7 @@ SCRIPT_INLINE static void HandleInstruction(
         uint16 index;
         bs->Read(&index);
 
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         handler->OpMovStatic(index, reg);
@@ -3415,13 +2991,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case MOV_ARRAYIDX:
     {
-        BCRegister dst;
+        RegisterIndex dst;
         bs->Read(&dst);
 
         uint32 index;
         bs->Read(&index);
 
-        BCRegister src;
+        RegisterIndex src;
         bs->Read(&src);
 
         handler->OpMovArrayIdx(dst, index, src);
@@ -3430,13 +3006,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case MOV_ARRAYIDX_REG:
     {
-        BCRegister dst;
+        RegisterIndex dst;
         bs->Read(&dst);
 
-        BCRegister indexReg;
+        RegisterIndex indexReg;
         bs->Read(&indexReg);
 
-        BCRegister src;
+        RegisterIndex src;
         bs->Read(&src);
 
         handler->OpMovArrayIdxReg(dst, indexReg, src);
@@ -3445,10 +3021,10 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case MOV:
     {
-        BCRegister dst;
+        RegisterIndex dst;
         bs->Read(&dst);
 
-        BCRegister src;
+        RegisterIndex src;
         bs->Read(&src);
 
         handler->OpMov(dst, src);
@@ -3457,10 +3033,10 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case CHECK_HAS_MEMBER:
     {
-        BCRegister dst;
+        RegisterIndex dst;
         bs->Read(&dst);
 
-        BCRegister src;
+        RegisterIndex src;
         bs->Read(&src);
 
         uint64 hash;
@@ -3472,7 +3048,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case PUSH:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         handler->OpPush(reg);
@@ -3487,10 +3063,10 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case PUSH_ARRAY:
     {
-        BCRegister dst;
+        RegisterIndex dst;
         bs->Read(&dst);
 
-        BCRegister src;
+        RegisterIndex src;
         bs->Read(&src);
 
         handler->OpPushArray(dst, src);
@@ -3562,7 +3138,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case CALL:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         uint8 nargs;
@@ -3595,10 +3171,10 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case NEW:
     {
-        BCRegister dst;
+        RegisterIndex dst;
         bs->Read(&dst);
 
-        BCRegister src;
+        RegisterIndex src;
         bs->Read(&src);
 
         handler->OpNew(dst, src);
@@ -3607,7 +3183,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case NEW_ARRAY:
     {
-        BCRegister dst;
+        RegisterIndex dst;
         bs->Read(&dst);
 
         uint32 size;
@@ -3619,10 +3195,10 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case CMP:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
         handler->OpCmp(lhsReg, rhsReg);
@@ -3631,7 +3207,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case BEGIN_CLASS:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         handler->OpBeginClass(reg);
@@ -3640,7 +3216,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case CMPZ:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         handler->OpCmpZ(reg);
@@ -3649,13 +3225,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case ADD:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpAdd(lhsReg, rhsReg, dstReg);
@@ -3664,13 +3240,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case SUB:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpSub(lhsReg, rhsReg, dstReg);
@@ -3679,13 +3255,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case MUL:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpMul(lhsReg, rhsReg, dstReg);
@@ -3694,13 +3270,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case DIV:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpDiv(lhsReg, rhsReg, dstReg);
@@ -3709,13 +3285,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case MOD:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpMod(lhsReg, rhsReg, dstReg);
@@ -3724,13 +3300,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case AND:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpAnd(lhsReg, rhsReg, dstReg);
@@ -3739,13 +3315,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case OR:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpOr(lhsReg, rhsReg, dstReg);
@@ -3754,13 +3330,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case XOR:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpXor(lhsReg, rhsReg, dstReg);
@@ -3769,13 +3345,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case SHL:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpShl(lhsReg, rhsReg, dstReg);
@@ -3784,13 +3360,13 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case SHR:
     {
-        BCRegister lhsReg;
+        RegisterIndex lhsReg;
         bs->Read(&lhsReg);
 
-        BCRegister rhsReg;
+        RegisterIndex rhsReg;
         bs->Read(&rhsReg);
 
-        BCRegister dstReg;
+        RegisterIndex dstReg;
         bs->Read(&dstReg);
 
         handler->OpShr(lhsReg, rhsReg, dstReg);
@@ -3799,7 +3375,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case NEG:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         handler->OpNeg(reg);
@@ -3808,7 +3384,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case NOT:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         handler->OpNot(reg);
@@ -3817,7 +3393,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case THROW:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         handler->OpThrow(reg);
@@ -3862,7 +3438,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case BINDATA:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
 
         uint32 len;
@@ -3901,7 +3477,7 @@ SCRIPT_INLINE static void HandleInstruction(
     }
     case EXPORT:
     {
-        BCRegister reg;
+        RegisterIndex reg;
         bs->Read(&reg);
         uint64 hash;
         bs->Read(&hash);

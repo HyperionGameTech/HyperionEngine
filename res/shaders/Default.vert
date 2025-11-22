@@ -11,7 +11,6 @@ layout(location = 3) out vec2 v_texcoord1;
 layout(location = 4) out vec3 v_tangent;
 layout(location = 5) out vec3 v_bitangent;
 layout(location = 7) out flat vec3 v_camera_position;
-layout(location = 8) out mat3 v_tbn_matrix;
 layout(location = 11) out vec4 v_position_ndc;
 layout(location = 12) out vec4 v_previous_position_ndc;
 layout(location = 15) out flat uint v_object_index;
@@ -29,6 +28,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "include/scene.inc"
+#include "include/shared.inc"
 
 #include "include/Entity.glsl"
 
@@ -116,9 +116,13 @@ void main()
     v_texcoord0 = vec2(a_texcoord0.x, 1.0 - a_texcoord0.y);
     v_texcoord1 = a_texcoord1.xy;
     v_camera_position = camera.position.xyz;
-    v_tangent = (normal_matrix * vec4(a_tangent, 0.0)).xyz;
-    v_bitangent = (normal_matrix * vec4(a_bitangent, 0.0)).xyz;
-    v_tbn_matrix = mat3(v_tangent, v_bitangent, v_normal);
+
+    vec3 tangent;
+    vec3 bitangent;
+    ComputeOrthonormalBasis(a_normal, tangent, bitangent);
+
+    v_tangent = (normal_matrix * vec4(tangent, 0.0)).xyz;
+    v_bitangent = (normal_matrix * vec4(bitangent, 0.0)).xyz;
 
     mat4 jitter_matrix = mat4(1.0);
     jitter_matrix[3][0] += camera.jitter.x;

@@ -442,6 +442,7 @@ bool SymbolType::TypeEqual(const SymbolType& other) const
         outIncompatibilities->PushBack({ type, details }); \
     }
 
+HYP_DISABLE_OPTIMIZATION;
 bool SymbolType::TypeCompatible(
     const SymbolType& right,
     bool strictNumbers,
@@ -785,6 +786,7 @@ bool SymbolType::TypeCompatible(
 
     return false;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 const SymbolType* SymbolType::FindMember(UTF8StringView name) const
 {

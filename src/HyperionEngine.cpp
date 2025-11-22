@@ -69,14 +69,15 @@ HYP_DECLARE_LOG_CHANNEL(Engine);
 
 #pragma region Memory Pools
 
-static constexpr SizeType ObjectPoolBlockSize = 16 * 1024 * 1024;
-static constexpr SizeType RenderPoolBlockSize = 16 * 1024 * 1024;
-static constexpr SizeType FramePoolBlockSize = 4 * 1024 * 1024;
+static constexpr SizeType ObjectPoolBlockSize = 64 * 1024 * 1024;
+static constexpr SizeType RenderPoolBlockSize = 64 * 1024 * 1024;
+static constexpr SizeType FramePoolBlockSize = 1 * 1024 * 1024;
 static constexpr SizeType ScenePoolBlockSize = 8 * 1024 * 1024;
 static constexpr SizeType TaskPoolBlockSize = 4 * 1024 * 1024;
 static constexpr SizeType ResourcePoolBlockSize = 8 * 1024 * 1024;
 static constexpr SizeType AssetPoolBlockSize = 16 * 1024 * 1024;
 static constexpr SizeType StreamingPoolBlockSize = 16 * 1024 * 1024;
+static constexpr SizeType ScriptPoolBlockSize = 16 * 1024 * 1024;
 
 static constexpr SizeType SceneArenaSize = 1 * 1024 * 1024;
 static constexpr SizeType RenderArenaSize = 1 * 1024 * 1024;
@@ -90,6 +91,7 @@ HYP_API Pool* g_taskPool;
 HYP_API Pool* g_resourcePool;
 HYP_API Pool* g_assetPool;
 HYP_API Pool* g_streamingPool;
+HYP_API Pool* g_scriptPool;
 
 HYP_API TArena<RenderAllocator>* g_renderArena;
 HYP_API TArena<SceneAllocator>* g_sceneArena;
@@ -217,6 +219,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     g_resourcePool = new Pool(ResourcePoolBlockSize, PF_THREAD_SAFE);
     g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE);
     g_streamingPool = new Pool(StreamingPoolBlockSize, PF_THREAD_SAFE);
+    g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_gameThread);
 
     g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
     g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
@@ -392,6 +395,9 @@ HYP_API void DestroyEngine()
 
     delete g_streamingPool;
     g_streamingPool = nullptr;
+
+    delete g_scriptPool;
+    g_scriptPool = nullptr;
 
     delete g_taskPool;
     g_taskPool = nullptr;

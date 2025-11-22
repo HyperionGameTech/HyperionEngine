@@ -14,7 +14,6 @@ layout(location = 3) in vec2 v_texcoord1;
 layout(location = 4) in vec3 v_tangent;
 layout(location = 5) in vec3 v_bitangent;
 layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 8) in mat3 v_tbn_matrix;
 layout(location = 11) in vec4 v_position_ndc;
 layout(location = 12) in vec4 v_previous_position_ndc;
 layout(location = 15) in flat uint v_object_index;
@@ -120,12 +119,14 @@ readonly buffer MaterialsBuffer
 
 void main()
 {
+    mat3 tbn_matrix = mat3(normalize(v_tangent), normalize(v_bitangent), normalize(v_normal));
+
     vec3 view_vector = normalize(v_camera_position - v_position);
     vec3 normal = normalize(v_normal);
     float NdotV = dot(normal, view_vector);
 
-    vec3 tangent_view = transpose(v_tbn_matrix) * view_vector;
-    vec3 tangent_position = v_tbn_matrix * v_position;
+    vec3 tangent_view = transpose(tbn_matrix) * view_vector;
+    vec3 tangent_position = tbn_matrix * v_position;
 
     vec3 reflection_vector = reflect(view_vector, normal);
 
@@ -161,7 +162,7 @@ void main()
 
 #if HAS_NORMAL_MAP
     normals_texture = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, NormalMap, v_position, normal) * 2.0 - 1.0;
-    normal = normalize(v_tbn_matrix * normals_texture.rgb);
+    normal = normalize(tbn_matrix * normals_texture.rgb);
 #endif
 
     // if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP)) {

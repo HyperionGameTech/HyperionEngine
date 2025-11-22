@@ -14,7 +14,6 @@ layout(location = 3) in vec2 v_texcoord1;
 layout(location = 4) in vec3 v_tangent;
 layout(location = 5) in vec3 v_bitangent;
 layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 8) in mat3 v_tbn_matrix;
 layout(location = 11) in vec4 v_position_ndc;
 layout(location = 12) in vec4 v_previous_position_ndc;
 layout(location = 15) in flat uint v_object_index;
@@ -119,13 +118,12 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBu
 
 void main()
 {
+    mat3 tbn_matrix = mat3(normalize(v_tangent), normalize(v_bitangent), normalize(v_normal));
+
     vec3 view_vector = normalize(v_camera_position - v_position);
     vec3 N = normalize(v_normal);
     const vec3 P = v_position.xyz;
     const vec3 V = normalize(camera.position.xyz - P);
-
-    vec3 tangent_view = transpose(v_tbn_matrix) * view_vector;
-    vec3 tangent_position = v_tbn_matrix * v_position;
 
     gbuffer_albedo = CURRENT_MATERIAL.albedo;
 
@@ -140,6 +138,7 @@ void main()
     vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
 
 #if HAS_PARALLAX_MAP
+    vec3 tangent_view = transpose(tbn_matrix) * view_vector;
     vec2 parallax_texcoord = ParallaxMappedTexCoords(
         CURRENT_MATERIAL.parallax_height,
         texcoord,
@@ -167,11 +166,8 @@ void main()
 
 #if HAS_NORMAL_MAP
     normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
-    normals_texture.xy *= normal_map_intensity;
-    normals_texture.xyz = normalize(normals_texture.xyz);
 
-    N = v_tbn_matrix * normals_texture.xyz;
-    N = normalize(N);
+    N = normalize(tbn_matrix * normals_texture.xyz);
 #endif
 
 #if SHADING_TYPE_FORWARD

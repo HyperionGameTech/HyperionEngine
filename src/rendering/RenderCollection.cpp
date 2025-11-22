@@ -533,7 +533,7 @@ void RenderProxyList::BeginWrite()
         while (HYP_UNLIKELY(rwMarkerState & ReadMask))
         {
             HYP_LOG(Rendering, Debug, "Busy-waiting for read marker to be released! "
-                 "If this is occuring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
+                                      "If this is occuring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
 
             rwMarkerState = rwMarker.Get(MemoryOrder::ACQUIRE);
             HYP_WAIT_IDLE();
@@ -581,7 +581,7 @@ void RenderProxyList::BeginRead()
             if (HYP_UNLIKELY(rwMarkerState & WriteFlag))
             {
                 HYP_LOG(Rendering, Debug, "Waiting for write marker to be released. "
-                             "If this is occurring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
+                                          "If this is occurring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
 
                 rwMarker.Decrement(2, MemoryOrder::RELAXED);
 

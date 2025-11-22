@@ -483,7 +483,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(member.GetType(), m_location)),
                     m_location)),
-                RC<AstNil>(new AstNil(m_location)),                  // placeholder; set later
+                nullptr,                  // placeholder; set later
                 IdentifierFlags::PLACEHOLDER | IdentifierFlags::LAX, // don't emit errors for null assignment
                 m_location)));
         }

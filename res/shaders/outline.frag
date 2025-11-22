@@ -9,7 +9,6 @@ layout(location = 2) in vec2 v_texcoord0;
 layout(location = 4) in vec3 v_tangent;
 layout(location = 5) in vec3 v_bitangent;
 layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 8) in mat3 v_tbn_matrix;
 layout(location = 12) in vec3 v_view_space_position;
 
 layout(location = 0) out vec4 gbuffer_albedo;

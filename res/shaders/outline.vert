@@ -11,8 +11,7 @@ layout(location = 1) out vec3 v_normal;
 layout(location = 2) out vec2 v_texcoord0;
 layout(location = 4) out vec3 v_tangent;
 layout(location = 5) out vec3 v_bitangent;
-layout(location = 7) out flat vec3 v_camera_position;
-layout(location = 8) out mat3 v_tbn_matrix;
+layout(location = 7) out flat vec3 v_camera_position
 layout(location = 12) out vec3 v_view_space_position;
 layout(location = 13) out uint v_object_index;
 
@@ -56,7 +55,6 @@ void main()
 
     v_tangent = normalize(normal_matrix * vec4(a_tangent, 0.0)).xyz;
     v_bitangent = normalize(normal_matrix * vec4(a_bitangent, 0.0)).xyz;
-    v_tbn_matrix = mat3(v_tangent, v_bitangent, v_normal);
 
     v_view_space_position = (camera.view * position).xyz;
 

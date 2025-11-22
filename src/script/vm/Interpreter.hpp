@@ -11,12 +11,10 @@
 
 #include <core/Types.hpp>
 
-#include <array>
 #include <limits>
 #include <cstdint>
 #include <cstdio>
 
-#define MAIN_THREAD m_threads[0]
 namespace hyperion {
 
 /*! \brief Table for type promotion for binops. */
@@ -48,11 +46,11 @@ extern String ScriptApi_ValueToString(const HypData& data, int currDepth = 0);
 
 class Script_GC;
 
-static constexpr uint32 VM_NUM_REGISTERS = 8;
-
 struct Script_RegisterMemory
 {
-    HypData data[VM_NUM_REGISTERS];
+    static constexpr uint32 NumRegisters = 8;
+
+    HypData data[NumRegisters];
     int flags = 0;
 
     Script_RegisterMemory();
