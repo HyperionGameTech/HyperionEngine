@@ -3986,6 +3986,18 @@ void Script_Interpreter::Invoke(Script_Instance* instance, HypData&& value, uint
             Script_VMData* vmData = GetVMData(deref);
             Assert(vmData != nullptr && vmData->nativeFunc != nullptr);
 
+            if (vmData->nativeFunc->GetFlags() & MethodFlags::MEMBER)
+            {
+                AssertDebug(nargs >= 1);
+
+                if (argsHypData[0]->IsNull())
+                {
+                    // throw exception if target is null
+                    ThrowException(instance, Script_Exception::NullReferenceException());
+                    return;
+                }
+            }
+
             HypData resultHypData = vmData->nativeFunc->Invoke(Span<HypData*>(argsHypData, nargs));
 
             // set register 0 to the result

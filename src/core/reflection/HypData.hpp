@@ -1473,21 +1473,27 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
 
     HYP_FORCE_INLINE bool Is(const AnyRef& value) const
     {
-        return value.Is<T>();
+        // allow null pointers
+        return !value.HasValue() || value.Is<T>();
     }
 
     HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
     {
-        return value.Is<T>();
+        return !value || value.Is<T>();
     }
 
     HYP_FORCE_INLINE bool Is(const RC<void>& value) const
     {
-        return value.Is<T>();
+        return !value || value.Is<T>();
     }
 
     HYP_FORCE_INLINE T* Get(const AnyRef& value) const
     {
+        if (!value.HasValue())
+        {
+            return nullptr;
+        }
+
         HYP_CORE_ASSERT(value.Is<T>());
 
         return static_cast<T*>(value.GetPointer());
@@ -1495,6 +1501,11 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
 
     HYP_FORCE_INLINE T* Get(const AnyHandle& value) const
     {
+        if (!value)
+        {
+            return nullptr;
+        }
+
         HYP_CORE_ASSERT(value.Is<T>());
 
         return value.TryGet<T>();
@@ -1502,6 +1513,11 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
 
     HYP_FORCE_INLINE T* Get(const RC<void>& value) const
     {
+        if (!value)
+        {
+            return nullptr;
+        }
+
         HYP_CORE_ASSERT(value.Is<T>());
 
         return value.CastUnchecked<T>();

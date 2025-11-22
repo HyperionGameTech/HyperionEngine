@@ -641,11 +641,6 @@ bool SymbolType::TypeCompatible(
 
     if (m_typeClass != right.m_typeClass)
     {
-        HYP_BREAKPOINT;
-        ADD_INCOMPATIBILITY(
-            IT_TYPE_CLASS_MISMATCH,
-            String("Incompatible type classes: ") + SymbolTypeClassToString(m_typeClass) + " <-> " + SymbolTypeClassToString(right.m_typeClass));
-
         return false;
     }
 
