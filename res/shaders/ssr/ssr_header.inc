@@ -1,4 +1,6 @@
+#ifdef COMPUTE_SHADER
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+#endif
 
 #ifndef OUTPUT_FORMAT
 #if defined(OUTPUT_RGBA8)

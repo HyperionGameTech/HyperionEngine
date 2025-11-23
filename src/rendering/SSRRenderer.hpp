@@ -112,7 +112,7 @@ private:
 
     void CreateUniformBuffers();
     void CreateBlueNoiseBuffer();
-    void CreateComputePipelines();
+    void CreatePasses();
 
     SSRRendererConfig m_config;
 
@@ -126,8 +126,8 @@ private:
 
     GpuBufferRef m_uniformBuffer;
 
-    ComputePipelineRef m_writeUvs;
-    ComputePipelineRef m_sampleGbuffer;
+    Handle<FullScreenPass> m_writeUvs;
+    Handle<FullScreenPass> m_sampleGbuffer;
 
     UniquePtr<TemporalBlending> m_temporalBlending;
 

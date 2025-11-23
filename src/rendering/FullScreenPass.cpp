@@ -695,7 +695,6 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.world);
-    
     AssertDebug(framebuffer != nullptr);
 
     // are we responsible for starting/ending framebuffer recording?
