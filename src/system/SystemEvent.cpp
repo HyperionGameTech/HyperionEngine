@@ -60,10 +60,12 @@ MouseEvent SystemEvent::ToMouseEvent() const
 {
     Vec2i absolutePosition = m_eventData.Get<Vec2i>();
 
+    Vec2f previousPosition = Vec2f(g_inputManager->GetPreviousMousePosition());
+
     MouseEvent me {
         .mouseButtons = GetMouseButtons(),
         .absolutePosition = absolutePosition,
-        .previousPosition = Vec2f(g_inputManager->GetPreviousMousePosition()),
+        .previousPosition = previousPosition,
         .position = Vec2f(absolutePosition),
     };
 

@@ -34,9 +34,6 @@ public:
     Handle<Scene> m_defaultScene;
     Handle<Camera> m_camera;
 
-private:
-    bool m_mouseLocked = false;
-
 protected:
     virtual void Init() override;
 

@@ -149,19 +149,19 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsShiftDown() const
     {
-        return IsKeyDown(KeyCode::LEFT_SHIFT) || IsKeyDown(KeyCode::RIGHT_SHIFT);
+        return IsKeyDown(KeyCode::KEY_LSHIFT) || IsKeyDown(KeyCode::KEY_RSHIFT);
     }
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsAltDown() const
     {
-        return IsKeyDown(KeyCode::LEFT_ALT) || IsKeyDown(KeyCode::RIGHT_ALT);
+        return IsKeyDown(KeyCode::KEY_LALT) || IsKeyDown(KeyCode::KEY_RALT);
     }
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsCtrlDown() const
     {
-        return IsKeyDown(KeyCode::LEFT_CTRL) || IsKeyDown(KeyCode::RIGHT_CTRL);
+        return IsKeyDown(KeyCode::KEY_LCTRL) || IsKeyDown(KeyCode::KEY_RCTRL);
     }
 
     HYP_METHOD()

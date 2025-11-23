@@ -82,6 +82,7 @@ void DefaultGame::Init()
     GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
 
     m_camera = CreateObject<Camera>();
+    m_camera->SetFOV(85.0f);
     m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
 
     InitObject(m_camera);
@@ -122,17 +123,17 @@ void DefaultGame::Init()
     sunNode->AddChild(sunEntity);
 
     // Add Skybox
-    Handle<Entity> skyboxEntity = scene->GetEntityManager()->AddEntity();
+    // Handle<Entity> skyboxEntity = scene->GetEntityManager()->AddEntity();
 
-    scene->GetEntityManager()->AddComponent<SkyComponent>(skyboxEntity, SkyComponent {});
-    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skyboxEntity, BoundingBoxComponent { BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)) });
+    // scene->GetEntityManager()->AddComponent<SkyComponent>(skyboxEntity, SkyComponent {});
+    // scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skyboxEntity, BoundingBoxComponent { BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)) });
 
-    Handle<Node> skydomeNode = scene->GetRoot()->AddChild();
-    skydomeNode->AddChild(skyboxEntity);
-    skydomeNode->SetName(NAME("Sky"));
+    // Handle<Node> skydomeNode = scene->GetRoot()->AddChild();
+    // skydomeNode->AddChild(skyboxEntity);
+    // skydomeNode->SetName(NAME("Sky"));
 
-    scene->GetEntityManager()->GetComponent<TransformComponent>(skyboxEntity) = TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) };
-    scene->GetEntityManager()->GetComponent<VisibilityStateComponent>(skyboxEntity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
+    // scene->GetEntityManager()->GetComponent<TransformComponent>(skyboxEntity) = TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) };
+    // scene->GetEntityManager()->GetComponent<VisibilityStateComponent>(skyboxEntity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
 
     Handle<FirstPersonCameraController> cameraController = CreateObject<FirstPersonCameraController>();
 
@@ -214,38 +215,42 @@ void DefaultGame::Logic(float delta)
 
 void DefaultGame::OnInputEvent(const SystemEvent& event)
 {
+    const float movementSpeed = 25.0f;
+
     Game::OnInputEvent(event);
 
+    const float deltaTime = GetWorld()->GetGameState().deltaTime;
+
     SystemEventType eventType = event.GetType();
+
+    Vec3f movementVector;
 
     if (eventType == sys::SystemEventType::EVENT_KEYDOWN)
     {
         switch (event.GetKeyCode())
         {
         case hyperion::KeyCode::KEY_W:
+            movementVector.z = 1.0f;
             break;
         case hyperion::KeyCode::KEY_A:
+            movementVector.x = -1.0f;
             break;
         case hyperion::KeyCode::KEY_S:
+            movementVector.z = -1.0f;
             break;
         case hyperion::KeyCode::KEY_D:
+            movementVector.x = 1.0f;
+            break;
+        case hyperion::KeyCode::KEY_ESCAPE:
+            g_inputManager->PopMouseLockState();
             break;
         default:;
         }
     }
+
     else if (eventType == SystemEventType::EVENT_MOUSEBUTTON_DOWN)
     {
-
-        m_mouseLocked = !m_mouseLocked;
-
-        if (!m_mouseLocked)
-        {
-            g_inputManager->PopMouseLockState();
-        }
-        else
-        {
-            g_inputManager->PushMouseLockState(m_mouseLocked);
-        }
+        g_inputManager->PushMouseLockState(true);
     }
 
     else if (eventType == SystemEventType::EVENT_MOUSEMOTION)
@@ -253,6 +258,7 @@ void DefaultGame::OnInputEvent(const SystemEvent& event)
         m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event.ToMouseEvent());
     }
 
+    m_camera->SetTranslation(m_camera->GetTranslation() + ((Vec3f(deltaTime) * movementVector) * m_camera->GetDirection()) * Vec3f(movementSpeed));
     // m_camera->GetCameraController()->GetInputHandler();
 }
 

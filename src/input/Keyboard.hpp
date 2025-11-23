@@ -12,7 +12,7 @@ class InputManager;
 HYP_ENUM()
 enum class KeyCode : uint16
 {
-    UNKNOWN = UINT16_MAX,
+    KEY_UNKNOWN = UINT16_MAX,
 
     KEY_A = 97,
     KEY_B,
@@ -65,29 +65,29 @@ enum class KeyCode : uint16
     KEY_F11,
     KEY_F12,
 
-    LEFT_CTRL = 224,
-    LEFT_SHIFT = 225,
-    LEFT_ALT = 226,
-    RIGHT_CTRL = 228,
-    RIGHT_SHIFT = 229,
-    RIGHT_ALT = 230,
+    KEY_LCTRL = 224,
+    KEY_LSHIFT = 225,
+    KEY_LALT = 226,
+    KEY_RCTRL = 228,
+    KEY_RSHIFT = 229,
+    KEY_RALT = 230,
 
-    SPACE = 32,
-    COMMA = 44,
-    DASH = 45,
-    PERIOD = 46,
-    RETURN = 13,
-    TAB = 258,
-    BACKSPACE = 8,
-    CAPSLOCK = 280,
-    TILDE = 96,
+    KEY_SPACE = 32,
+    KEY_COMMA = 44,
+    KEY_DASH = 45,
+    KEY_PERIOD = 46,
+    KEY_RETURN = 13,
+    KEY_TAB = 258,
+    KEY_BACKSPACE = 8,
+    KEY_CAPSLOCK = 280,
+    KEY_TILDE = 96,
 
-    ARROW_RIGHT = 79,
-    ARROW_LEFT = 80,
-    ARROW_DOWN = 81,
-    ARROW_UP = 82,
+    KEY_RIGHT = 79,
+    KEY_LEFT = 80,
+    KEY_DOWN = 81,
+    KEY_UP = 82,
 
-    ESC = 27
+    KEY_ESCAPE = 27
 };
 
 HYP_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, char& outChar);
@@ -101,7 +101,7 @@ struct KeyboardEvent
     InputManager* inputManager = nullptr;
 
     HYP_FIELD()
-    KeyCode keyCode = KeyCode::UNKNOWN;
+    KeyCode keyCode = KeyCode::KEY_UNKNOWN;
 };
 
 } // namespace hyperion
