@@ -36,7 +36,6 @@ protected:
 
     Handle<Scene> m_defaultScene;
     Handle<Camera> m_camera;
-    bool m_mouseLocked = false;
 };
 } // namespace game
 

@@ -80,6 +80,7 @@ void DefaultGame::OnLaunch_Impl()
     GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
 
     m_camera = CreateObject<Camera>();
+    m_camera->SetFOV(85.0f);
     m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
 
     InitObject(m_camera);
@@ -198,38 +199,41 @@ void DefaultGame::OnUpdate_Impl(float delta)
 
 void DefaultGame::OnInputEvent(const SystemEvent& event)
 {
+    const float movementSpeed = 25.0f;
+
     Game::OnInputEvent(event);
 
+    const float deltaTime = GetWorld()->GetGameState().deltaTime;
+
     SystemEvent::EventType eventType = event.GetType();
+
+    Vec3f movementVector;
 
     if (eventType == sys::SystemEventType::SYSTEM_EVENT_KEYDOWN)
     {
         switch (event.GetKeyCode())
         {
         case hyperion::KeyCode::KEY_W:
+            movementVector.z = 1.0f;
             break;
         case hyperion::KeyCode::KEY_A:
+            movementVector.x = -1.0f;
             break;
         case hyperion::KeyCode::KEY_S:
+            movementVector.z = -1.0f;
             break;
         case hyperion::KeyCode::KEY_D:
+            movementVector.x = 1.0f;
+            break;
+        case hyperion::KeyCode::KEY_ESCAPE:
+            g_inputManager->PopMouseLockState();
             break;
         default:;
         }
     }
     else if (eventType == SystemEventType::SYSTEM_EVENT_MOUSEBUTTON_DOWN)
     {
-
-        m_mouseLocked = !m_mouseLocked;
-
-        if (!m_mouseLocked)
-        {
-            g_inputManager->PopMouseLockState();
-        }
-        else
-        {
-            g_inputManager->PushMouseLockState(m_mouseLocked);
-        }
+        g_inputManager->PushMouseLockState(true);
     }
 
     else if (eventType == SystemEventType::SYSTEM_EVENT_MOUSEMOTION)
@@ -237,6 +241,7 @@ void DefaultGame::OnInputEvent(const SystemEvent& event)
         m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event.ToMouseEvent());
     }
 
+    m_camera->SetTranslation(m_camera->GetTranslation() + ((Vec3f(deltaTime) * movementVector) * m_camera->GetDirection()) * Vec3f(movementSpeed));
     // m_camera->GetCameraController()->GetInputHandler();
 }
 

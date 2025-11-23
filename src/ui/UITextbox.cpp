@@ -41,26 +41,26 @@ UITextbox::UITextbox()
 
                 switch (eventData.keyCode)
                 {
-                case KeyCode::ARROW_LEFT:
+                case KeyCode::KEY_LEFT:
                     if (m_characterIndex > 0)
                     {
                         --m_characterIndex;
                     }
 
                     return UIEventHandlerResult::STOP_BUBBLING;
-                case KeyCode::ARROW_RIGHT:
+                case KeyCode::KEY_RIGHT:
                     if (m_characterIndex < uint32(GetText().Length()))
                     {
                         ++m_characterIndex;
                     }
 
                     return UIEventHandlerResult::STOP_BUBBLING;
-                case KeyCode::RETURN:
+                case KeyCode::KEY_RETURN:
                     SubmitTextChange();
                     Blur();
 
                     return UIEventHandlerResult::STOP_BUBBLING;
-                case KeyCode::ESC:
+                case KeyCode::KEY_ESCAPE:
                     SetText_Internal(m_prevText);
                     Blur();
 

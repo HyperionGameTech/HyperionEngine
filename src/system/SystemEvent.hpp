@@ -154,7 +154,7 @@ public:
 
         if (!keyCode)
         {
-            return KeyCode::UNKNOWN;
+            return KeyCode::KEY_UNKNOWN;
         }
 
         return *keyCode;

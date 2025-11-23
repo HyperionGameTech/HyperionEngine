@@ -226,7 +226,7 @@ void ConsoleUI::Init()
     OnKeyDown
         .Bind([this](const KeyboardEvent& eventData) -> UIEventHandlerResult
             {
-                if (eventData.keyCode == KeyCode::TILDE || eventData.keyCode == KeyCode::ESC)
+                if (eventData.keyCode == KeyCode::KEY_TILDE || eventData.keyCode == KeyCode::KEY_ESCAPE)
                 {
                     // let the parent handle these keys
                     Blur();
@@ -362,7 +362,7 @@ void ConsoleUI::Init()
     m_textbox->OnKeyDown
         .Bind([this](const KeyboardEvent& eventData) -> UIEventHandlerResult
             {
-                if (eventData.keyCode == KeyCode::TILDE || eventData.keyCode == KeyCode::ESC)
+                if (eventData.keyCode == KeyCode::KEY_TILDE || eventData.keyCode == KeyCode::KEY_ESCAPE)
                 {
                     // let the parent handle this key
                     Blur();
@@ -370,7 +370,7 @@ void ConsoleUI::Init()
                     return UIEventHandlerResult::OK;
                 }
 
-                if (eventData.keyCode == KeyCode::RETURN)
+                if (eventData.keyCode == KeyCode::KEY_RETURN)
                 {
                     const String& text = m_textbox->GetText();
 
@@ -400,7 +400,7 @@ void ConsoleUI::Init()
                         m_textbox->Focus();
                     }
                 }
-                else if (eventData.keyCode == KeyCode::ARROW_UP)
+                else if (eventData.keyCode == KeyCode::KEY_UP)
                 {
                     // @TODO Only cycle through COMMAND items..
                     if (m_historyListView && m_historyListView->GetListViewItems().Any())
@@ -413,7 +413,7 @@ void ConsoleUI::Init()
                         }
                     }
                 }
-                else if (eventData.keyCode == KeyCode::ARROW_DOWN)
+                else if (eventData.keyCode == KeyCode::KEY_DOWN)
                 {
                     if (m_historyListView && m_historyListView->GetListViewItems().Any())
                     {
@@ -433,7 +433,7 @@ void ConsoleUI::Init()
                         }
                     }
                 }
-                else if (eventData.keyCode == KeyCode::ESC)
+                else if (eventData.keyCode == KeyCode::KEY_ESCAPE)
                 {
                     m_textbox->SetText("");
                     m_currentCommandText.Clear();

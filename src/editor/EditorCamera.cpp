@@ -36,10 +36,10 @@ static Bitset CreateWasdBitset(bool includeArrowKeys = true)
 
     if (includeArrowKeys)
     {
-        bits.Set(uint32(KeyCode::ARROW_LEFT), true);
-        bits.Set(uint32(KeyCode::ARROW_RIGHT), true);
-        bits.Set(uint32(KeyCode::ARROW_UP), true);
-        bits.Set(uint32(KeyCode::ARROW_DOWN), true);
+        bits.Set(uint32(KeyCode::KEY_LEFT), true);
+        bits.Set(uint32(KeyCode::KEY_RIGHT), true);
+        bits.Set(uint32(KeyCode::KEY_UP), true);
+        bits.Set(uint32(KeyCode::KEY_DOWN), true);
     }
 
     return bits;
@@ -65,7 +65,7 @@ bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
     {
         if (controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
         {
-            if (evt.keyCode == KeyCode::ESC)
+            if (evt.keyCode == KeyCode::KEY_ESCAPE)
             {
                 controller->SetMode(EditorCameraControllerMode::INACTIVE);
                 return true;
@@ -89,7 +89,7 @@ bool EditorCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
     {
         if (controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
         {
-            if (evt.keyCode == KeyCode::ESC)
+            if (evt.keyCode == KeyCode::KEY_ESCAPE)
             {
                 controller->SetMode(EditorCameraControllerMode::INACTIVE);
                 return true;
@@ -173,8 +173,8 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 
-    const bool isAltPressed = IsKeyDown(KeyCode::LEFT_ALT) || IsKeyDown(KeyCode::RIGHT_ALT);
-    const bool isCtrlPressed = IsKeyDown(KeyCode::LEFT_CTRL) || IsKeyDown(KeyCode::RIGHT_CTRL);
+    const bool isAltPressed = IsKeyDown(KeyCode::KEY_LALT) || IsKeyDown(KeyCode::KEY_RALT);
+    const bool isCtrlPressed = IsKeyDown(KeyCode::KEY_LCTRL) || IsKeyDown(KeyCode::KEY_RCTRL);
     const bool isMoveKeyPressed = (GetKeyStates() & g_wasdBits).Count() != 0;
 
     constexpr EnumFlags<MouseButtonState> leftAndRightButtons = MouseButtonState::LEFT | MouseButtonState::RIGHT;

@@ -609,18 +609,18 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
 
     switch (keyboardEvent.keyCode)
     {
-    case KeyCode::ARROW_LEFT:
-    case KeyCode::ARROW_RIGHT:
-    case KeyCode::ARROW_UP:
-    case KeyCode::ARROW_DOWN: // fallthrough
+    case KeyCode::KEY_LEFT:
+    case KeyCode::KEY_RIGHT:
+    case KeyCode::KEY_UP:
+    case KeyCode::KEY_DOWN: // fallthrough
     {
         const Bitset& keyStates = camera->GetCameraController()->GetInputHandler()->GetKeyStates();
 
-        const bool snapMovement = keyStates.Test(uint32(KeyCode::LEFT_ALT)) || keyStates.Test(uint32(KeyCode::RIGHT_ALT));
+        const bool snapMovement = keyStates.Test(uint32(KeyCode::KEY_LALT)) || keyStates.Test(uint32(KeyCode::KEY_RALT));
 
         float step = 1.0f;
 
-        if (keyStates.Test(uint32(KeyCode::LEFT_SHIFT)) || keyStates.Test(uint32(KeyCode::RIGHT_SHIFT)))
+        if (keyStates.Test(uint32(KeyCode::KEY_LSHIFT)) || keyStates.Test(uint32(KeyCode::KEY_RSHIFT)))
         {
             // use larger step with shift held down
             step *= 10.0f;
@@ -640,19 +640,19 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
 
         switch (keyboardEvent.keyCode)
         {
-        case KeyCode::ARROW_LEFT:
+        case KeyCode::KEY_LEFT:
             moveVec = nodeSideVector;
 
             break;
-        case KeyCode::ARROW_RIGHT:
+        case KeyCode::KEY_RIGHT:
             moveVec = -nodeSideVector;
 
             break;
-        case KeyCode::ARROW_UP:
+        case KeyCode::KEY_UP:
             moveVec = nodeForwardVector;
 
             break;
-        case KeyCode::ARROW_DOWN:
+        case KeyCode::KEY_DOWN:
             moveVec = -nodeForwardVector;
 
             break;
@@ -1995,7 +1995,7 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
         {
             // On escape press, stop simulating if we're currently simulating
-            if (event.keyCode == KeyCode::ESC && GetWorld()->GetGameState().IsSimulating())
+            if (event.keyCode == KeyCode::KEY_ESCAPE && GetWorld()->GetGameState().IsSimulating())
             {
                 GetWorld()->StopSimulating();
 
