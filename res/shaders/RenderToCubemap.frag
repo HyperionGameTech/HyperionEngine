@@ -20,7 +20,7 @@ layout(location = 0) out vec4 output_color;
 #endif // !MODE_SHADOWS
 
 #ifdef WRITE_NORMALS
-layout(location = 1) out vec4 output_normals;
+layout(location = 1) out vec2 output_normals;
 #ifdef WRITE_MOMENTS
 layout(location = 2) out vec2 output_moments;
 #endif // WRITE_MOMENTS
@@ -144,7 +144,7 @@ void main()
     output_color.a = 1.0;
 
 #ifdef WRITE_NORMALS
-    output_normals = vec4(PackNormalVec2(N), 0.0, 1.0);
+    output_normals = PackNormalVec2(N);
 #endif
 
 #ifdef WRITE_MOMENTS

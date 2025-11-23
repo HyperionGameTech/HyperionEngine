@@ -6,7 +6,7 @@
 #include "../include/BlueNoise.glsl"
 #include "../include/Octahedron.glsl"
 
-#define HYP_VCT_USE_ROUGHNESS_SCATTERING
+//#define HYP_VCT_USE_ROUGHNESS_SCATTERING
 
 vec4 FetchVoxel(vec3 position, float lod)
 {

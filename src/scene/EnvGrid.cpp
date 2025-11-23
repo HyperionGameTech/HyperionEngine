@@ -40,7 +40,7 @@ static constexpr Vec2u ShProbeDimensions { 256, 256 };
 
 static constexpr Vec2u LightFieldProbeDimensions { 32, 32 };
 static constexpr TextureFormat LightFieldColorFormat = TF_RGBA8;
-static constexpr TextureFormat LightFieldDepthFormat = TF_R16F;
+static constexpr TextureFormat LightFieldDepthFormat = TF_RG16F;
 static constexpr uint32 IrradianceOctahedronSize = 8;
 
 static constexpr Vec3u VoxelGridDimensions { 256, 256, 256 };
@@ -132,7 +132,7 @@ void LegacyEnvGrid::Init()
 
     m_camera = CreateObject<Camera>(
         90.0f,
-        -int(probeDimensions.x), int(probeDimensions.y),
+        -int(FramebufferDimensions.x), int(FramebufferDimensions.y),
         0.01f, m_aabb.GetRadius() * 2.0f);
 
     m_camera->SetName(Name::Unique("EnvGridCamera"));
@@ -227,11 +227,11 @@ void LegacyEnvGrid::Init()
                 LoadOperation::CLEAR,
                 StoreOperation::STORE },
             ViewOutputTargetAttachmentDesc {
-                TF_R16F,
+                TF_RG16F,
                 TT_CUBEMAP,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE,
-                MathUtil::Infinity<Vec4f>() }, // @TODO Review
+                Vec4f(1000.0f) },
             ViewOutputTargetAttachmentDesc {
                 g_renderBackend->GetDefaultFormat(DIF_DEPTH),
                 TT_CUBEMAP,
@@ -245,7 +245,7 @@ void LegacyEnvGrid::Init()
             | ViewFlags::NO_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_GRIDS
             | ViewFlags::NOT_MULTI_BUFFERED,
-        .viewport = Viewport { .extent = probeDimensions, .position = Vec2i::Zero() },
+        .viewport = Viewport { .extent = FramebufferDimensions, .position = Vec2i::Zero() },
         .outputTargetDesc = outputTargetDesc,
         .scenes = { m_scene },
         .camera = m_camera,
@@ -312,10 +312,11 @@ void LegacyEnvGrid::Update(float delta)
     AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    static const ConfigurationValue& s_configDebugDrawProbes = CoreApi_GetGlobalConfig().Get("Rendering.Debug.DebugDrawer.EnvGridProbes");
+#ifdef HYP_DEBUG_MODE
+    static const ConfigurationValue& s_cfgDebugDrawProbes = CoreApi_GetGlobalConfig().Get("Rendering.Debug.DebugDrawer.EnvGridProbes");
 
     // Debug draw
-    if (s_configDebugDrawProbes.ToBool(false))
+    if (s_cfgDebugDrawProbes.ToBool(false))
     {
         DebugDrawCommandList& debugDrawer = g_engineDriver->GetDebugDrawer()->CreateCommandList();
 
@@ -331,6 +332,7 @@ void LegacyEnvGrid::Update(float delta)
             debugDrawer.ambientProbe(probe->GetOrigin(), 0.25f, *probe);
         }
     }
+#endif
 
     bool shouldRecollectEntites = false;
 
@@ -339,35 +341,33 @@ void LegacyEnvGrid::Update(float delta)
         shouldRecollectEntites = true;
     }
 
-    BoundingBoxComponent* boundingBoxComponent = GetEntityManager()->TryGetComponent<BoundingBoxComponent>(this);
-    if (!boundingBoxComponent)
+    if (GetScene()->GetSceneFlags() & SceneFlags::HAS_OCTREE)
     {
-        HYP_LOG(EnvGrid, Error, "EnvGrid {} does not have a BoundingBoxComponent, cannot update", Id());
-        return;
-    }
+        const BoundingBox aabb = GetWorldAABB();
 
-    SceneOctree const* octree = &GetScene()->GetOctree();
-    octree->GetFittingOctant(boundingBoxComponent->worldAabb, octree);
+        SceneOctree const* octree = &GetScene()->GetOctree();
+        octree->GetFittingOctant(aabb, octree);
 
-    // clang-format off
-    const HashCode octantHashCode = octree->GetOctantID().GetHashCode()
-        .Add(octree->GetEntryListHash<EntityTag::STATIC>())
-        .Add(octree->GetEntryListHash<EntityTag::DYNAMIC>())
-        .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
-    // clang-format on
+        // clang-format off
+        const HashCode octantHashCode = octree->GetOctantID().GetHashCode()
+            .Add(octree->GetEntryListHash<EntityTag::STATIC>())
+            .Add(octree->GetEntryListHash<EntityTag::DYNAMIC>())
+            .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
+        // clang-format on
 
-    if (octantHashCode != m_cachedOctantHashCode)
-    {
-        HYP_LOG(EnvGrid, Debug, "EnvGrid octant hash code changed ({} != {}), updating probes", m_cachedOctantHashCode.Value(), octantHashCode.Value());
+        if (octantHashCode != m_cachedOctantHashCode)
+        {
+            HYP_LOG(EnvGrid, Debug, "EnvGrid octant hash code changed ({} != {}), updating probes", m_cachedOctantHashCode.Value(), octantHashCode.Value());
 
-        m_cachedOctantHashCode = octantHashCode;
+            m_cachedOctantHashCode = octantHashCode;
 
-        shouldRecollectEntites = true;
-    }
+            shouldRecollectEntites = true;
+        }
 
-    if (!shouldRecollectEntites)
-    {
-        return;
+        if (!shouldRecollectEntites)
+        {
+            return;
+        }
     }
 
     for (uint32 index = 0; index < m_envProbeCollection.numProbes; index++)

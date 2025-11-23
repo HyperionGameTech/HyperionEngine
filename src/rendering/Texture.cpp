@@ -242,24 +242,24 @@ struct CreateTextureGpuImage : RenderCommand
                         }
                     }
                 }
-                else
-                {
-                    // runtime mip generation fallback
-                    const uint32 numArrayLayers = textureDesc.NumArrayLayers();
-                    const uint32 mipSize = textureDesc.GetMipByteSize(0);
+                //else
+                //{
+                //    // runtime mip generation fallback
+                //    const uint32 numArrayLayers = textureDesc.NumArrayLayers();
+                //    const uint32 mipSize = textureDesc.GetMipByteSize(0);
 
-                    for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
-                    {
-                        renderQueue << CopyBufferToImage(
-                            stagingBuffer,
-                            image,
-                            layerIndex * mipSize, // Offset assumes simple Layer packing for Mip 0
-                            0,
-                            layerIndex);
-                    }
+                //    for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
+                //    {
+                //        renderQueue << CopyBufferToImage(
+                //            stagingBuffer,
+                //            image,
+                //            layerIndex * mipSize, // Offset assumes simple Layer packing for Mip 0
+                //            0,
+                //            layerIndex);
+                //    }
 
-                    renderQueue << GenerateMipmaps(image);
-                }
+                //    renderQueue << GenerateMipmaps(image);
+                //}
             }
             else
             {
@@ -666,7 +666,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
                   stagingBuffer = std::move(stagingBuffer),
                   callback = std::move(callback)](...) mutable
             {
-                TByteBuffer<RenderAllocator> byteBuffer;
+                ByteBuffer byteBuffer;
                 byteBuffer.SetSize(stagingBuffer->Size());
 
                 stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());

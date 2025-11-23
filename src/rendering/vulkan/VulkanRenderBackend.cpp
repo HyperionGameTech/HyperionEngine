@@ -996,11 +996,14 @@ const GpuImageViewRef& VulkanRenderBackend::GetTextureImageView(const Handle<Tex
         return GpuImageViewRef::empty;
     }
 
+    const uint32 maxMipLevel = texture->GetTextureDesc().NumMips() - 1;
+    const uint32 maxArrayLayer = texture->GetTextureDesc().NumArrayLayers() - 1;
+
     ImageSubResource subResource {};
-    subResource.numLevels = MathUtil::Min(numMips, texture->GetTextureDesc().NumMips());
-    subResource.baseMipLevel = MathUtil::Min(mipIndex, numMips - 1);
-    subResource.numLayers = MathUtil::Min(numLayers, texture->GetTextureDesc().NumArrayLayers());
-    subResource.baseArrayLayer = MathUtil::Min(layerIndex, numLayers - 1);
+    subResource.numLevels = MathUtil::Min(numMips, maxMipLevel + 1);
+    subResource.baseMipLevel = MathUtil::Min(mipIndex, maxMipLevel);
+    subResource.numLayers = MathUtil::Min(numLayers, maxArrayLayer + 1);
+    subResource.baseArrayLayer = MathUtil::Min(layerIndex, maxArrayLayer);
 
     const GpuImageViewRef& imageView = m_textureCache->GetOrCreate(texture, subResource);
     HYP_GFX_ASSERT(imageView.IsValid());

@@ -89,39 +89,6 @@ layout(push_constant) uniform PushConstant
 #define CURRENT_TILE sh_tiles[(sample_index.x * NUM_SAMPLES_Y) + sample_index.y]
 #endif
 
-vec3 MapXYSToDirection(uint face_index, vec2 uv)
-{
-    vec3 dir = vec3(0.0);
-
-    float u = uv.x;
-    float v = uv.y;
-
-    // +x, -x, +y, -y, +z, -z
-    switch (face_index)
-    {
-    case 0:
-        dir = normalize(vec3(1.0, -v, -u));
-        break;
-    case 1:
-        dir = normalize(vec3(-1.0, -v, u));
-        break;
-    case 2:
-        dir = normalize(vec3(u, 1.0, v));
-        break;
-    case 3:
-        dir = normalize(vec3(u, -1.0, -v));
-        break;
-    case 4:
-        dir = normalize(vec3(u, -v, 1.0));
-        break;
-    case 5:
-        dir = normalize(vec3(u, -v, -1.0));
-        break;
-    }
-
-    return dir;
-}
-
 float AreaIntegral(float x, float y)
 {
     return atan(x * y, sqrt(x * x + y * y + 1.0));

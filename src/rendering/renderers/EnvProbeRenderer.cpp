@@ -90,7 +90,7 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSe
     AssertDebug(envProbe != nullptr);
 
     RenderSetup rs = renderSetup;
-    rs.view = envProbe->GetView().Get();
+    rs.view = envProbe->GetView();
     rs.passData = FetchViewPassData(rs.view);
     rs.envProbe = renderSetup.prev ? renderSetup.prev->envProbe : nullptr;
 
@@ -191,7 +191,8 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi::GetRenderProxy(envProbe));
     AssertDebug(envProbeProxy != nullptr);
 
-    if (!rpl.GetMeshEntities().GetDiff().NeedsUpdate()
+    if (envProbe->IsA(ReflectionProbe::StaticClass())
+        && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
         && !rpl.GetLights().GetDiff().NeedsUpdate()
         && pd->cachedProbeOrigin == envProbeProxy->bufferData.worldPosition.GetXYZ())
     {
@@ -216,18 +217,17 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
 
     const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
 
-    // FIXME : reenable when we set up each mip
-    // if (envProbe->ShouldComputePrefilteredEnvMap())
-    // {
-    //     ComputePrefilteredEnvMap(frame, renderSetup, envProbe);
-    // }
+    if (envProbe->ShouldComputePrefilteredEnvMap())
+    {
+        ComputePrefilteredEnvMap(frame, renderSetup, envProbe);
+    }
 
     if (envProbe->ShouldComputeSphericalHarmonics())
     {
         ComputeSH(frame, renderSetup, envProbe);
     }
 
-    if (SkyProbe* skyProbe = ObjCast<SkyProbe>(envProbe))
+    /*if (SkyProbe* skyProbe = ObjCast<SkyProbe>(envProbe))
     {
         Assert(skyProbe->GetSkyboxCubemap().IsValid());
 
@@ -247,7 +247,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
 
         frame->renderQueue << InsertBarrier(framebufferImage, RS_SHADER_RESOURCE);
         frame->renderQueue << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
-    }
+    }*/
 }
 
 void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
@@ -269,59 +269,12 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     struct ConvolveProbeUniforms
     {
         Vec2u outImageDimensions;
+        Vec2u inImageDimensions;
         Vec4f worldPosition;
-        uint32 numBoundLights;
-        alignas(16) uint32 lightIndices[16];
     };
-
-    ShaderProperties shaderProperties;
-    shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), 0.94f));
-    shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), 16));
-
-    if (!envProbe->IsSkyProbe())
-    {
-        shaderProperties.Set(ShaderProperty(NAME("LIGHTING")));
-    }
-
-    ShaderRef convolveProbeShader = g_shaderManager->GetOrCreate(NAME("ConvolveProbe"), shaderProperties);
-
-    if (!convolveProbeShader)
-    {
-        HYP_FAIL("Failed to create ConvolveProbe shader");
-    }
 
     const Handle<Texture>& prefilteredEnvMap = envProbe->GetPrefilteredEnvMap();
     Assert(prefilteredEnvMap.IsValid());
-
-    ConvolveProbeUniforms uniforms;
-    uniforms.outImageDimensions = prefilteredEnvMap->GetExtent().GetXY();
-    uniforms.worldPosition = envProbeProxy->bufferData.worldPosition;
-
-    const uint32 maxBoundLights = ArraySize(uniforms.lightIndices);
-    uint32 numBoundLights = 0;
-
-    for (Light* light : rpl.GetLights())
-    {
-        const LightType lightType = light->GetLightType();
-
-        if (lightType != LT_DIRECTIONAL && lightType != LT_POINT)
-        {
-            continue;
-        }
-
-        if (numBoundLights >= maxBoundLights)
-        {
-            break;
-        }
-
-        uniforms.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
-    }
-
-    uniforms.numBoundLights = numBoundLights;
-
-    GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
-    Assert(uniformBuffer->Create());
-    uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
     const ViewOutputTarget& outputTarget = view->GetOutputTarget();
     AssertDebug(outputTarget.IsValid());
@@ -330,63 +283,123 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     AssertDebug(framebuffer.IsValid());
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
-    AttachmentBase* normalsAttachment = framebuffer->GetAttachment(1);
-    AttachmentBase* momentsAttachment = framebuffer->GetAttachment(2);
-
     AssertDebug(colorAttachment != nullptr);
-    AssertDebug(normalsAttachment != nullptr);
-    AssertDebug(momentsAttachment != nullptr);
 
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(convolveProbeShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-    descriptorTable->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}", envProbe->Id().Value()));
+    ConvolveProbeUniforms uniforms {};
+    uniforms.outImageDimensions = Vec2u::Zero(); // set for each mip pass
+    uniforms.inImageDimensions = colorAttachment->GetImage()->GetExtent().GetXY();
+    uniforms.worldPosition = envProbeProxy->bufferData.worldPosition;
 
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    const Vec2u extent = prefilteredEnvMap->GetExtent().GetXY();
+    const uint32 numMips = uint32(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y))) + 1;
+
+    Array<DescriptorTableRef> descriptorTables;
+    descriptorTables.Resize(numMips);
+
+    Array<ComputePipelineRef> pipelines;
+    pipelines.Resize(numMips);
+
+    for (uint32 mipIndex = 0; mipIndex < numMips; mipIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ConvolveProbeDescriptorSet", frameIndex);
-        AssertDebug(descriptorSet != nullptr);
+        const float roughness = float(mipIndex) / float(numMips - 1);
+        const float perceptualRoughness = roughness * roughness;
 
-        descriptorSet->SetElement("UniformBuffer", uniformBuffer);
-        descriptorSet->SetElement("ColorTexture", colorAttachment->GetImageView());
-        descriptorSet->SetElement("NormalsTexture", normalsAttachment ? normalsAttachment->GetImageView() : g_renderGlobalState->placeholderData->GetImageViewCube1x1R8());
-        descriptorSet->SetElement("MomentsTexture", momentsAttachment ? momentsAttachment->GetImageView() : g_renderGlobalState->placeholderData->GetImageViewCube1x1R8());
-        descriptorSet->SetElement("SamplerLinear", g_renderGlobalState->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement("SamplerNearest", g_renderGlobalState->placeholderData->GetSamplerNearest());
-        descriptorSet->SetElement("OutImage", g_renderBackend->GetTextureImageView(prefilteredEnvMap));
-    }
+        ShaderProperties shaderProperties;
+        shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), perceptualRoughness));
+        shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), 2048));
 
-    Assert(descriptorTable->Create());
+        ShaderRef shader = g_shaderManager->GetOrCreate(NAME("ConvolveProbe"), shaderProperties);
 
-    ComputePipelineRef convolveProbeComputePipeline = g_renderBackend->MakeComputePipeline(convolveProbeShader, descriptorTable);
-    Assert(convolveProbeComputePipeline->Create());
+        if (!shader)
+        {
+            HYP_FAIL("Failed to create ConvolveProbe shader");
+        }
 
-    frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_UNORDERED_ACCESS);
+        const Vec2u mipExtent = mipIndex == 0
+            ? extent
+            : Vec2u(MathUtil::Max(extent.x >> mipIndex, 1u), MathUtil::Max(extent.y >> mipIndex, 1u));
 
-    frame->renderQueue << BindComputePipeline(convolveProbeComputePipeline);
+        GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        Assert(uniformBuffer->Create());
 
-    frame->renderQueue << BindDescriptorTable(
-        descriptorTable,
-        convolveProbeComputePipeline,
-        { { "Global", { { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
-        frame->GetFrameIndex());
+        uniforms.outImageDimensions = mipExtent;
 
-    frame->renderQueue << DispatchCompute(
-        convolveProbeComputePipeline,
-        Vec3u { (prefilteredEnvMap->GetExtent().x + 7) / 8, (prefilteredEnvMap->GetExtent().y + 7) / 8, 1 });
+        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-    if (prefilteredEnvMap->GetTextureDesc().HasMipMaps())
-    {
-        frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_COPY_DST);
-        frame->renderQueue << GenerateMipmaps(prefilteredEnvMap->GetGpuImage());
+        DescriptorTableRef& descriptorTable = descriptorTables[mipIndex];
+            
+        descriptorTable = g_renderBackend->MakeDescriptorTable(shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+        descriptorTable->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}_{}", envProbe->Id().Value(), mipIndex));
+
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        {
+            const GpuImageViewRef& imageView = g_renderBackend->GetTextureImageView(prefilteredEnvMap, mipIndex, 1);
+            Assert(imageView != nullptr);
+
+            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ConvolveProbeDescriptorSet", frameIndex);
+            AssertDebug(descriptorSet != nullptr);
+
+            descriptorSet->SetElement("UniformBuffer", uniformBuffer);
+            descriptorSet->SetElement("ColorTexture", colorAttachment->GetImageView());
+            descriptorSet->SetElement("SamplerLinear", g_renderGlobalState->placeholderData->GetSamplerLinear());
+            descriptorSet->SetElement("SamplerNearest", g_renderGlobalState->placeholderData->GetSamplerNearest());
+            descriptorSet->SetElement("OutImage", imageView);
+        }
+
+        Assert(descriptorTable->Create());
+
+        ComputePipelineRef& pipeline = pipelines[mipIndex];
+
+        pipeline = g_renderBackend->MakeComputePipeline(shader, descriptorTable);
+        Assert(pipeline->Create());
     }
 
     frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE);
 
+    for (uint32 mipIndex = 0; mipIndex < numMips; mipIndex++)
+    {
+        const Vec2u mipExtent = mipIndex == 0
+            ? extent
+            : Vec2u(MathUtil::Max(extent.x >> mipIndex, 1u), MathUtil::Max(extent.y >> mipIndex, 1u));
+
+        frame->renderQueue << InsertBarrier(
+            prefilteredEnvMap->GetGpuImage(),
+            RS_UNORDERED_ACCESS,
+            ImageSubResource {
+                .baseArrayLayer = 0,
+                .baseMipLevel = mipIndex,
+                .numLayers = 6,
+                .numLevels = 1
+            });
+
+        frame->renderQueue << BindComputePipeline(pipelines[mipIndex]);
+
+        frame->renderQueue << BindDescriptorTable(
+            descriptorTables[mipIndex],
+            pipelines[mipIndex],
+            { { "Global", { { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+            frame->GetFrameIndex());
+
+        frame->renderQueue << DispatchCompute(
+            pipelines[mipIndex],
+            Vec3u { (mipExtent.x + 7) / 8, (mipExtent.y + 7) / 8, 6 });
+
+        frame->renderQueue << InsertBarrier(
+            prefilteredEnvMap->GetGpuImage(),
+            RS_SHADER_RESOURCE,
+            ImageSubResource {
+                .baseArrayLayer = 0,
+                .baseMipLevel = mipIndex,
+                .numLayers = 6,
+                .numLevels = 1
+            });
+    }
+
     DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([delegateHandle, uniformBuffer = std::move(uniformBuffer), convolveProbeComputePipeline = std::move(convolveProbeComputePipeline), descriptorTable = std::move(descriptorTable)](...) mutable
+    *delegateHandle = frame->OnFrameEnd.Bind([delegateHandle, pipelines = std::move(pipelines), descriptorTables = std::move(descriptorTables)](...) mutable
         {
-            SafeDelete(std::move(uniformBuffer));
-            SafeDelete(std::move(convolveProbeComputePipeline));
-            SafeDelete(std::move(descriptorTable));
+            SafeDelete(std::move(pipelines));
+            SafeDelete(std::move(descriptorTables));
 
             delete delegateHandle;
         });

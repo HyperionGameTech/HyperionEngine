@@ -57,12 +57,12 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
     EnvGrid env_grid;
 };
 
+#include "./DeferredLighting.glsl"
+
 layout(push_constant) uniform PushConstant
 {
     DeferredParams deferred_params;
 };
-
-#include "./DeferredLighting.glsl"
 
 #if defined(MODE_RADIANCE) || defined(IRRADIANCE_MODE_VOXEL)
 HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
@@ -79,11 +79,12 @@ HYP_DESCRIPTOR_SRV(Global, VoxelGridTexture) uniform texture3D voxel_image;
 
 void main()
 {
+#if 1
     uvec2 screen_resolution = uvec2(deferred_params.screen_width, deferred_params.screen_height);
     vec2 pixel_size = 1.0 / vec2(screen_resolution);
     vec2 texcoord = v_texcoord;
     // vec2 texcoord = min(v_texcoord + (pixel_size * float(world_shader_data.frame_counter & 1)), vec2(1.0));
-    uvec2 pixel_coord = uvec2(texcoord * vec2(screen_resolution) - 0.5);
+    uvec2 pixel_coord = uvec2(texcoord * vec2(screen_resolution - 1));
 
     vec3 irradiance = vec3(0.0);
 
@@ -120,5 +121,7 @@ void main()
     vec4 radiance = ComputeVoxelRadiance(P, N, V, roughness, pixel_coord, screen_resolution, world_shader_data.frame_counter, ivec3(env_grid.density.xyz), voxel_grid_aabb);
 
     color_output = radiance;
+#endif
+
 #endif
 }

@@ -40,7 +40,7 @@ ivec4 imod(ivec4 a, ivec4 b)
     return (a % b + b) % b;
 }
 
-#define fmod(x, y) ((x) - (y) * floor((x) / (y)))
+#define fmod(x, y) ((x) - (y)*floor((x) / (y)))
 
 #define round(x) floor((x) + 0.5)
 
@@ -479,33 +479,26 @@ vec4 YCoCgToRGB(in vec4 ycocg)
     return vec4(r, g, b, ycocg.a);
 }
 
+//// Cubemap utilities
+
+// pairs of cubemap forward direction and up direction (interleaved order)
+const vec3 g_cubemapDirections[12] = vec3[](
+    vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
+    vec3(-1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, -1.0),
+    vec3(0.0, -1.0, 0.0), vec3(0.0, 0.0, 1.0),
+    vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0));
+
 vec3 GetCubemapCoord(uint face, vec2 uv)
 {
-    vec3 dir = vec3(0.0);
+    vec3 forward = g_cubemapDirections[face * 2];
+    vec3 up = g_cubemapDirections[face * 2 + 1];
+    vec3 right = cross(forward, up);
 
-    switch (face)
-    {
-    case 0:
-        dir = vec3(1.0, -uv.y, -uv.x);
-        break; // POSITIVE X
-    case 1:
-        dir = vec3(-1.0, -uv.y, uv.x);
-        break; // NEGATIVE X
-    case 2:
-        dir = vec3(uv.x, 1.0, uv.y);
-        break; // POSITIVE Y
-    case 3:
-        dir = vec3(uv.x, -1.0, -uv.y);
-        break; // NEGATIVE Y
-    case 4:
-        dir = vec3(uv.x, -uv.y, 1.0);
-        break; // POSITIVE Z
-    case 5:
-        dir = vec3(uv.x, -uv.y, -1.0);
-        break; // NEGATIVE Z
-    }
+    vec2 coord = uv * 2.0 - 1.0;
 
-    return dir;
+    return normalize(forward - right * coord.x - up * coord.y);
 }
 
 uint GetCubemapFaceIndex(vec3 dir)
@@ -530,5 +523,7 @@ uint GetCubemapFaceIndex(vec3 dir)
 
     return face;
 }
+
+///// End cubemap utilities
 
 #endif

@@ -187,7 +187,7 @@ public:
     void SetOrigin(const Vec3f& origin);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Camera>& GetCamera() const
+    HYP_FORCE_INLINE Camera* GetCamera() const
     {
         return m_camera;
     }
@@ -270,14 +270,12 @@ protected:
 
     HYP_FORCE_INLINE void Invalidate()
     {
-        m_octantHashCode = HashCode();
+        m_cachedOctantHashCodes.Clear();
     }
 
     virtual void Init() override;
 
     void CreateView();
-
-    Handle<View> m_view;
 
     HYP_FIELD(Property = "AABB")
     BoundingBox m_aabb;
@@ -297,13 +295,14 @@ protected:
     float m_cameraNear;
     float m_cameraFar;
 
-    Handle<Camera> m_camera;
+    Camera* m_camera;
+    Handle<View> m_view;
 
     Bitset m_visibilityBits;
 
     bool m_needsUpdate;
     AtomicVar<int32> m_needsRenderCounter;
-    HashCode m_octantHashCode;
+    HashMap<ObjId<Scene>, HashCode> m_cachedOctantHashCodes;
 
     Handle<Texture> m_texture;
 };

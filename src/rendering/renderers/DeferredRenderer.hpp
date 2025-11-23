@@ -245,7 +245,8 @@ protected:
 private:
     virtual bool UsesTemporalBlending() const override
     {
-        return m_mode == EGPM_RADIANCE;
+        return false;
+        //m_mode == EGPM_RADIANCE;
     }
 
     virtual bool ShouldRenderHalfRes() const override

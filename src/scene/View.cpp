@@ -507,7 +507,7 @@ void View::AddScene(const Handle<Scene>& scene)
 {
     HYP_SCOPE;
 
-    if (!scene.IsValid())
+    if (!scene)
     {
         return;
     }
@@ -1112,6 +1112,35 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
             }
 
             rpl.GetEnvGrids().Track(envGrid->Id(), envGrid, envGrid->GetRenderProxyVersionPtr());
+        }
+    }
+
+    ResourceTrackerDiff envGridsDiff = rpl.GetEnvGrids().GetDiff();
+
+    if (envGridsDiff.NeedsUpdate())
+    {
+        Array<EnvGrid*> added;
+        rpl.GetEnvGrids().GetAdded(added, /* includeChanged */ true);
+
+        for (EnvGrid* envGrid : added)
+        {
+            if (!envGrid->IsA(LegacyEnvGrid::StaticClass()))
+            {
+                continue;
+            }
+
+            LegacyEnvGrid* legacyEnvGrid = static_cast<LegacyEnvGrid*>(envGrid);
+
+            for (uint32 probeIndex = 0; probeIndex < legacyEnvGrid->GetEnvProbeCollection().numProbes; probeIndex++)
+            {
+                EnvProbe* probe = legacyEnvGrid->GetEnvProbeCollection().GetEnvProbeDirect(probeIndex);
+                if (!probe)
+                {
+                    continue;
+                }
+
+                rpl.GetEnvProbes().Track(probe->Id(), probe, probe->GetRenderProxyVersionPtr());
+            }
         }
     }
 }

@@ -7,6 +7,7 @@
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
 #include <scene/Light.hpp>
+#include <scene/EntityManager.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -65,7 +66,9 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec
       m_envProbeFlags(DefaultEnvProbeFlags[envProbeType]),
       m_cameraNear(0.05f),
       m_cameraFar(aabb.GetRadius()),
-      m_needsRenderCounter(0)
+      m_needsRenderCounter(0),
+      m_camera(nullptr),
+      m_view(nullptr)
 {
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = !(m_envProbeFlags & EPF_BAKED);
@@ -116,9 +119,15 @@ void EnvProbe::SetIsVisible(ObjId<Camera> cameraId, bool isVisible)
 
 EnvProbe::~EnvProbe()
 {
-    SafeDelete(std::move(m_camera));
+    AssertDebug(m_view == nullptr);
+
     SafeDelete(std::move(m_texture));
-    SafeDelete(std::move(m_view));
+
+    if (m_camera)
+    {
+        RemoveChild(m_camera);
+        m_camera = nullptr;
+    }
 }
 
 void EnvProbe::Init()
@@ -127,16 +136,18 @@ void EnvProbe::Init()
 
     if (!IsBaked())
     {
-        m_camera = CreateObject<Camera>(
+        Handle<Camera> camera = CreateObject<Camera>(
             90.0f,
             -int(m_dimensions.x), int(m_dimensions.y),
             m_cameraNear, m_cameraFar);
 
-        m_camera->SetName(NAME("EnvProbeCamera"));
-        m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
+        camera->SetName(NAME("EnvProbeCamera"));
+        camera->SetViewMatrix(Mat4f::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
 
-        InitObject(m_camera);
-        AddChild(m_camera);
+        InitObject(camera);
+        AddChild(camera);
+
+        m_camera = camera;
 
         CreateView();
 
@@ -147,8 +158,8 @@ void EnvProbe::Init()
                 m_texture = CreateObject<Texture>(TextureDesc {
                     TT_TEX2D,
                     TF_RGBA8,
-                    Vec3u { 128, 128, 1 },
-                    TFM_LINEAR,
+                    Vec3u { m_dimensions, 1 },
+                    TFM_LINEAR_MIPMAP,
                     TFM_LINEAR,
                     TWM_CLAMP_TO_EDGE,
                     1,
@@ -190,7 +201,7 @@ void EnvProbe::OnAddedToScene(Scene* scene)
 {
     Entity::OnAddedToScene(scene);
 
-    if (m_view.IsValid())
+    if (m_view)
     {
         m_view->AddScene(MakeStrongRef(scene));
     }
@@ -202,7 +213,7 @@ void EnvProbe::OnRemovedFromScene(Scene* scene)
 {
     Entity::OnRemovedFromScene(scene);
 
-    if (m_view.IsValid())
+    if (m_view)
     {
         m_view->RemoveScene(scene);
     }
@@ -224,6 +235,9 @@ void EnvProbe::CreateView()
     {
         return;
     }
+
+    AssertDebug(m_view == nullptr);
+    AssertDebug(m_camera != nullptr);
 
     ViewOutputTargetDesc outputTargetDesc {
         .extent = Vec2u(m_dimensions),
@@ -289,8 +303,9 @@ void EnvProbe::CreateView()
                 .cullFaces = FCM_NONE })
     };
 
-    m_view = CreateObject<View>(viewDesc);
-    InitObject(m_view);
+    Handle<View> view = CreateObject<View>(viewDesc);
+    InitObject(view);
+    m_view = view;
 }
 
 void EnvProbe::SetAABB(const BoundingBox& aabb)
@@ -346,52 +361,120 @@ void EnvProbe::Update(float delta)
         return;
     }
 
-    HashCode octantHashCode = HashCode(0);
+    const BoundingBox worldAabb = GetWorldAABB();
+
+    bool needsUpdate = false;
+
+    Array<ObjId<Scene>, SceneTempAllocator> cacheKeysToRemove;
+    cacheKeysToRemove.Reserve(m_cachedOctantHashCodes.Size());
+
+    for (const KeyValuePair<ObjId<Scene>, HashCode>& kvp : m_cachedOctantHashCodes)
+    {
+        cacheKeysToRemove.PushBack(kvp.first);
+    }
 
     for (const Handle<Scene>& scene : m_view->GetScenes())
     {
-        AssertDebug(scene.IsValid());
-
-        const SceneOctree& octree = scene->GetOctree();
-
-        SceneOctree const* octant = &octree;
-
-        if (!octant)
+        auto applyFrustumCheck = [&]()
         {
-            continue;
-        }
+            // don't bother with the check for sky
+            if (IsA(SkyProbe::StaticClass()))
+            {
+                needsUpdate = true;
+                return;
+            }
 
-        if (OnlyCollectStaticEntities())
+            for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>())
+            {
+                Camera* camera = static_cast<Camera*>(entity);
+
+                if (camera->GetFrustum().ContainsAABB(worldAabb))
+                {
+                    needsUpdate = true;
+                    return;
+                }
+            };
+        };
+
+        cacheKeysToRemove.Erase(scene->Id());
+
+        if (scene->GetSceneFlags() & SceneFlags::HAS_OCTREE)
         {
-            // clang-format off
-            octantHashCode.Add(octant->GetOctantID().GetHashCode()
-                .Add(octant->GetEntryListHash<EntityTag::STATIC>())
-                .Add(octant->GetEntryListHash<EntityTag::LIGHT>()));
-            // clang-format on
+            HashCode octantHashCode = HashCode(0);
+
+            const SceneOctree& octree = scene->GetOctree();
+
+            SceneOctree const* octant = &octree;
+
+            if (!octant)
+            {
+                continue;
+            }
+
+            if (OnlyCollectStaticEntities())
+            {
+                // clang-format off
+                octantHashCode.Add(octant->GetOctantID().GetHashCode()
+                    .Add(octant->GetEntryListHash<EntityTag::STATIC>())
+                    .Add(octant->GetEntryListHash<EntityTag::LIGHT>()));
+                // clang-format on
+            }
+            else
+            {
+                // clang-format off
+                octantHashCode.Add(octree.GetOctantID().GetHashCode()
+                    .Add(octree.GetEntryListHash<EntityTag::NONE>()));
+                // clang-format on
+            }
+
+            auto it = m_cachedOctantHashCodes.Find(scene->Id());
+
+            if (it == m_cachedOctantHashCodes.End())
+            {
+                if (!needsUpdate)
+                    applyFrustumCheck();
+
+                m_cachedOctantHashCodes[scene->Id()] = octantHashCode;
+
+                continue;
+            }
+
+            if (it->second != octantHashCode)
+            {
+                if (!needsUpdate)
+                    applyFrustumCheck();
+
+                it->second = octantHashCode;
+
+                continue;
+            }
         }
         else
         {
-            // clang-format off
-            octantHashCode.Add(octree.GetOctantID().GetHashCode()
-                .Add(octree.GetEntryListHash<EntityTag::NONE>()));
-            // clang-format on
+            if (!needsUpdate)
+                applyFrustumCheck();
         }
     }
 
-    if (m_octantHashCode == octantHashCode)
+    if (cacheKeysToRemove.Any())
     {
-        // return early so we don't need to set up async View collection
+        for (ObjId<Scene> id : cacheKeysToRemove)
+        {
+            m_cachedOctantHashCodes.Erase(id);
+        }
+    }
+
+    if (!needsUpdate)
+    {
         return;
     }
 
-    Assert(m_camera.IsValid());
+    Assert(m_camera != nullptr);
     m_camera->Update(delta);
 
     GetWorld()->ProcessViewAsync(m_view);
 
     SetNeedsRender(true);
-
-    m_octantHashCode = octantHashCode;
 }
 
 void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
@@ -458,9 +541,9 @@ void SkyProbe::Init()
 {
     m_texture = CreateObject<Texture>(TextureDesc {
         TT_CUBEMAP,
-        TF_R11G11B10F,
+        TF_RGBA16F, // @TODO smaller format
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
-        TFM_LINEAR,
+        TFM_LINEAR_MIPMAP,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         1,

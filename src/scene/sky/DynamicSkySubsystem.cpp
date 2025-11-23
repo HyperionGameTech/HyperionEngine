@@ -37,7 +37,7 @@
 
 namespace hyperion {
 
-static constexpr Vec2u DefaultSkyCubemapDimensions = Vec2u { 1024, 1024 };
+static constexpr Vec2u DefaultSkyCubemapDimensions = Vec2u { 128, 128 };
 
 DynamicSkySubsystem::DynamicSkySubsystem()
     : DynamicSkySubsystem(DefaultSkyCubemapDimensions)
@@ -56,7 +56,7 @@ DynamicSkySubsystem::~DynamicSkySubsystem()
 void DynamicSkySubsystem::Init()
 {
     { // atmospheric scattering capture setup
-        m_renderScene = CreateObject<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::HAS_OCTREE);
+        m_renderScene = CreateObject<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
         m_renderScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
         m_renderScene->SetOwnerThreadId(g_gameThread);
         InitObject(m_renderScene);
@@ -74,11 +74,6 @@ void DynamicSkySubsystem::Init()
         m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f::UnitZ(), Vec3f::Zero(), Vec3f::UnitY()));
         InitObject(m_camera);
         m_renderScene->GetRoot()->AddChild(m_camera);
-
-        m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
-        m_envProbe->SetEnvProbeFlags(m_envProbe->GetEnvProbeFlags() & ~EPF_PARALLAX_CORRECTED); // sky env probes are not parallax corrected, obviously
-        InitObject(m_envProbe);
-        m_renderScene->GetRoot()->AddChild(m_envProbe);
 
         auto domeNodeAsset = g_assetManager->Load<Node>("models/inv_sphere.obj");
 
@@ -124,15 +119,22 @@ void DynamicSkySubsystem::Init()
         // enable depth test but not write. we want skybox to be behind everything else, but rendered last to avoid overdraw.
         materialAttributes.flags = MAF_DEPTH_TEST;
 
+        m_visScene = CreateObject<Scene>(NAME("SkyVisScene"), SceneFlags::FOREGROUND);
+        m_visScene->GetRoot()->AddChild(m_skyboxEntity);
+
+        m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
+        m_envProbe->SetEnvProbeFlags(m_envProbe->GetEnvProbeFlags() & ~EPF_PARALLAX_CORRECTED); // sky env probes are not parallax corrected, obviously
+        InitObject(m_envProbe);
+        m_visScene->GetRoot()->AddChild(m_envProbe);
+
+        m_envProbe->GetView()->AddScene(m_renderScene);
+
         Handle<Material> material = CreateObject<Material>(NAME("SkyboxMaterial"), materialAttributes);
         material->SetTexture(MaterialTextureKey::ALBEDO_MAP, m_envProbe->GetPrefilteredEnvMap());
         InitObject(material);
 
         // add MeshComponent to skybox entity
         m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
-
-        m_visScene = CreateObject<Scene>(NAME("SkyVisScene"), SceneFlags::NONE);
-        m_visScene->GetRoot()->AddChild(m_skyboxEntity);
     }
 }
 
@@ -177,6 +179,12 @@ void DynamicSkySubsystem::OnSceneDetached(Scene* scene)
 
 void DynamicSkySubsystem::Update(float delta)
 {
+    if (!m_envProbe)
+    {
+        return;
+    }
+
+    m_envProbe->Update(delta);
 }
 
 } // namespace hyperion

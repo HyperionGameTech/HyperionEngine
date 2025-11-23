@@ -536,35 +536,44 @@ void World::CollectViews(Array<View*, SceneAllocator>& outViews)
 {
     const uint32 slot = RenderApi::GetRingIndex();
 
-    // set buffered Views for current frame index
-    m_viewsPerFrame[slot].Resize(m_views.Size());
-
-    for (SizeType i = 0; i < m_views.Size(); i++)
-    {
-        m_viewsPerFrame[slot][i] = m_views[i].Get();
-    }
+    m_viewsPerFrame[slot].Resize(m_views.Size() + m_processViews.Size());
 
     if (m_views.Empty() && m_processViews.Empty())
     {
         return;
     }
 
-    SizeType offset = outViews.Size();
-    outViews.Resize(offset + m_processViews.Size() + m_views.Size());
+    { // set buffered Views for current frame index
+        for (SizeType i = 0; i < m_views.Size(); i++)
+        {
+            m_viewsPerFrame[slot][i] = m_views[i].Get();
+        }
 
-    for (SizeType i = 0; i < m_views.Size(); i++)
-    {
-        AssertDebug(m_views[i] != nullptr);
-        AssertDebug(!m_processViews.Contains(m_views[i]));
-
-        outViews[offset + i] = m_views[i].Get();
+        const SizeType offset = m_views.Size();
+        for (SizeType i = 0; i < m_processViews.Size(); i++)
+        {
+            m_viewsPerFrame[slot][offset + i] = m_processViews[i];
+        }
     }
 
-    offset += m_views.Size();
+    { // add all views to outViews
+        SizeType offset = outViews.Size();
+        outViews.Resize(offset + m_processViews.Size() + m_views.Size());
 
-    for (SizeType i = 0; i < m_processViews.Size(); i++)
-    {
-        outViews[offset + i] = m_processViews[i];
+        for (SizeType i = 0; i < m_views.Size(); i++)
+        {
+            AssertDebug(m_views[i] != nullptr);
+            AssertDebug(!m_processViews.Contains(m_views[i]));
+
+            outViews[offset + i] = m_views[i].Get();
+        }
+
+        offset += m_views.Size();
+
+        for (SizeType i = 0; i < m_processViews.Size(); i++)
+        {
+            outViews[offset + i] = m_processViews[i];
+        }
     }
 
     // Clear additional Views to process for next frame

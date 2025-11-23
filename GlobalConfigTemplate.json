@@ -16,7 +16,7 @@
       "Reflections": {
         "Enabled": false
       },
-      "GlobalIllumination": {
+      "GI": {
         "Enabled": true
       }
     },

@@ -1844,11 +1844,11 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         renderProxyLists.PushBack(&rpl);
 
-        const Handle<PassData>& pd = FetchViewPassData(view);
-        Assert(pd != nullptr);
-
         if (view->GetFlags() & ViewFlags::GBUFFER)
         {
+            const Handle<PassData>& pd = FetchViewPassData(view);
+            Assert(pd != nullptr);
+
             DeferredRendererPassData* pdCasted = ObjCast<DeferredRendererPassData>(pd.Get());
             Assert(pdCasted != nullptr);
 
@@ -1863,6 +1863,9 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         }
         else if (view->GetFlags() & ViewFlags::RAYTRACING)
         {
+            const Handle<PassData>& pd = FetchViewPassData(view);
+            Assert(pd != nullptr);
+
             RaytracingPassData* pdCasted = ObjCast<RaytracingPassData>(pd.Get());
             Assert(pdCasted != nullptr);
 

@@ -17,7 +17,6 @@ layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE) in;
 #include "../include/noise.inc"
 #include "../include/packing.inc"
 #include "../include/scene.inc"
-#include "../include/Octahedron.glsl"
 #include "../include/brdf.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -35,100 +34,18 @@ HYP_DESCRIPTOR_CBUFF(Global, SphereSamplesBuffer) uniform SphereSamplesBuffer
 };
 
 HYP_DESCRIPTOR_SRV(ConvolveProbeDescriptorSet, ColorTexture) uniform textureCube color_texture;
-HYP_DESCRIPTOR_SRV(ConvolveProbeDescriptorSet, NormalsTexture) uniform textureCube normals_texture;
-HYP_DESCRIPTOR_SRV(ConvolveProbeDescriptorSet, MomentsTexture) uniform textureCube depth_texture;
 
 HYP_DESCRIPTOR_SAMPLER(ConvolveProbeDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
 HYP_DESCRIPTOR_SAMPLER(ConvolveProbeDescriptorSet, SamplerNearest) uniform sampler sampler_nearest;
 
-HYP_DESCRIPTOR_UAV(ConvolveProbeDescriptorSet, OutImage, format = rgba8) uniform image2D out_image;
+HYP_DESCRIPTOR_UAV(ConvolveProbeDescriptorSet, OutImage, format = rgba8) uniform imageCube out_image;
 
 HYP_DESCRIPTOR_CBUFF(ConvolveProbeDescriptorSet, UniformBuffer) uniform UniformBuffer
 {
-    uvec2 image_dimensions;
-    uint _pad0;
-    uint _pad1;
+    uvec2 out_image_dimensions;
+    uvec2 in_image_dimensions;
     vec4 world_position;
-    uint num_bound_lights;
-    uint _pad2;
-    uint _pad3;
-    uint _pad4;
-    uvec4 light_indices[4];
 };
-
-HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
-{
-    Light lights[];
-};
-
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
-
-#include "../include/shadows.inc"
-#include "../include/Octahedron.glsl"
-
-vec2 NormalizeOctahedralCoord(uvec2 local_coord)
-{
-    return (vec2(local_coord) + vec2(0.5)) * (vec2(2.0) / vec2(image_dimensions)) - vec2(1.0);
-}
-
-vec4 SampleSky(vec3 dir)
-{
-    if (current_env_probe.texture_index != ~0u)
-    {
-        uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-
-        return EnvProbeSample(sampler_linear, env_probe_textures[probe_texture_index], dir, 0.0);
-    }
-
-    return vec4(0.0);
-}
-
-vec4 CalculateDirectLighting(uint light_index, in vec4 albedo, in vec3 P, in vec3 N, in vec3 V)
-{
-    Light light = lights[light_index];
-
-    const vec4 light_color = light.color;
-    const vec4 light_position_intensity = light.position_intensity;
-    const uint light_type = light.type;
-
-    vec3 L = light_position_intensity.xyz;
-    const vec3 world_to_light = P - L;
-
-    L = mix(L, world_to_light, bvec3(bool(light_type)));
-    L = normalize(L);
-
-    float NdotL = max(0.0001, dot(N, L));
-
-    float shadow = 1.0;
-    float attenuation = 1.0;
-
-    const vec2 radiusFalloff = unpackHalf2x16(light.radius_falloff);
-    const float radius = radiusFalloff.x;
-    const float falloff = radiusFalloff.y;
-
-    switch (light_type)
-    {
-    case HYP_LIGHT_TYPE_DIRECTIONAL:
-        if (bool(light.flags & LF_SHADOW))
-        {
-            shadow = GetShadowStandard(light, P, vec2(0.0), NdotL);
-        }
-        break;
-    case HYP_LIGHT_TYPE_POINT:
-        if (bool(light.flags & LF_SHADOW))
-        {
-            shadow = GetPointShadow(light, world_to_light, NdotL);
-        }
-
-        attenuation = GetSquareFalloffAttenuation(P, light_position_intensity.xyz, radius);
-        break;
-    default:
-        return vec4(0.0);
-    }
-
-    return vec4(light_color.rgb * vec3(NdotL * shadow * attenuation /** light_position_intensity.w*/), 1.0);
-}
 
 vec4 ConvolveProbe(uvec2 local_coord)
 {
@@ -136,11 +53,12 @@ vec4 ConvolveProbe(uvec2 local_coord)
     return vec4(0.0);
 #endif
 
-    const int num_samples = 1;//NUM_SAMPLES;
-    const float lobe_size = 0.0;//LOBE_SIZE;
+    const int num_samples = NUM_SAMPLES;
+    const float lobe_size = LOBE_SIZE;
 
-    const vec2 oct_coord = NormalizeOctahedralCoord(local_coord);
-    const vec3 dir = normalize(DecodeOctahedralCoord(oct_coord));
+    uint face = gl_GlobalInvocationID.z;
+
+    const vec3 dir = normalize(GetCubemapCoord(face, (vec2(local_coord) + 0.5) / vec2(out_image_dimensions)));
 
     vec4 sum_radiance = vec4(0.0);
 
@@ -151,35 +69,7 @@ vec4 ConvolveProbe(uvec2 local_coord)
         vec3 offset = sphere_samples[i % 4096].xyz;
         vec3 sample_dir = normalize(dir + vec3(lobe_size) * offset);
 
-        // Non-accurate lighting calculation for simplicity
-
-        vec4 albedo = TextureCube(sampler_linear, color_texture, sample_dir);
-        vec3 normal = normalize(UnpackNormalVec2(TextureCube(sampler_nearest, normals_texture, sample_dir).rg));
-        vec2 dist_dist2 = TextureCube(sampler_nearest, depth_texture, sample_dir).rg;
-        vec4 position = vec4(world_position.xyz + sample_dir * dist_dist2.r, 1.0);
-
-#ifdef LIGHTING
-        // Sample the sky in the direction of the normal to get a rough approximation of indirect lighting.
-        vec3 rnd = vec3(RandomFloat(seed), RandomFloat(seed), RandomFloat(seed));
-        vec3 irradiance_dir = RandomInHemisphere(rnd, normal);
-
-        vec4 irradiance = SampleSky(irradiance_dir) * albedo * 0.25;
-
-        vec4 radiance = vec4(0.0);
-
-        for (uint j = 0; j < num_bound_lights; j++)
-        {
-            uint light_index = light_indices[j / 4][j % 4];
-
-            radiance += CalculateDirectLighting(light_index, albedo, position.xyz, normal, -sample_dir);
-        }
-
-        radiance.a = 1.0;
-
-        vec4 color = irradiance + radiance * albedo;
-#else
-        vec4 color = albedo;
-#endif
+        vec4 color = TextureCube(sampler_linear, color_texture, sample_dir);
 
         sum_radiance += color;
     }
@@ -191,14 +81,15 @@ vec4 ConvolveProbe(uvec2 local_coord)
 
 void main(void)
 {
-    if (any(greaterThanEqual(gl_GlobalInvocationID.xy, image_dimensions)))
+    if (any(greaterThanEqual(gl_GlobalInvocationID.xy, out_image_dimensions)))
     {
         return;
     }
 
     const uvec2 coord = gl_GlobalInvocationID.xy;
+    vec2 uv = (vec2(coord) + 0.5) / vec2(out_image_dimensions);
 
     vec4 color = ConvolveProbe(coord);
 
-    imageStore(out_image, ivec2(coord), color);
+    imageStore(out_image, ivec3(coord, int(gl_GlobalInvocationID.z)), color);
 }

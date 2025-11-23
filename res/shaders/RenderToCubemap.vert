@@ -24,6 +24,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "include/scene.inc"
+#include "include/shared.inc"
 
 #include "include/Entity.glsl"
 
@@ -69,15 +70,6 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffe
 };
 
 #endif
-
-// pairs of cubemap forward direction and up direction (interleaved order)
-const vec3 cubemap_directions[12] = vec3[](
-    vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
-    vec3(-1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, -1.0),
-    vec3(0.0, -1.0, 0.0), vec3(0.0, 0.0, 1.0),
-    vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0));
 
 mat4 LookAt(vec3 pos, vec3 target, vec3 up)
 {
@@ -137,18 +129,19 @@ void main()
     v_normal = (normal_matrix * vec4(a_normal, 0.0)).xyz;
     v_texcoord0 = vec2(a_texcoord0.x, 1.0 - a_texcoord0.y);
 
-    const vec3 forward_direction = cubemap_directions[gl_ViewIndex * 2];
-    const vec3 up_direction = cubemap_directions[gl_ViewIndex * 2 + 1];
+    const vec3 forward_direction = g_cubemapDirections[gl_ViewIndex * 2];
+    const vec3 up_direction = g_cubemapDirections[gl_ViewIndex * 2 + 1];
 
     mat4 projection_matrix = camera.projection;
 
 #if ENV_PROBE
     v_camera_position = current_env_probe.world_position.xyz;
+    mat4 view_matrix = current_env_probe.face_view_matrices[gl_ViewIndex];
 #else
     v_camera_position = camera.position.xyz;
+    mat4 view_matrix = LookAt(v_camera_position, v_camera_position + forward_direction, up_direction);
 #endif
 
-    mat4 view_matrix = LookAt(v_camera_position, v_camera_position + forward_direction, up_direction);
 
 #ifdef INSTANCING
     v_object_index = OBJECT_INDEX;

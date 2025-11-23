@@ -910,7 +910,12 @@ EditorSubsystem::EditorSubsystem()
 
                 for (const Handle<Scene>& scene : project->GetWorld()->GetScenes())
                 {
-                    Assert(scene.IsValid());
+                    Assert(scene != nullptr);
+
+                    if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+                    {
+                        continue;
+                    }
 
                     // add to all editor views
                     for (const Handle<View>& view : m_editorViews)
@@ -923,14 +928,17 @@ EditorSubsystem::EditorSubsystem()
                         activeScene = scene;
                     }
 
-                    // GetWorld()->AddScene(scene);
-
                     m_delegateHandlers.Add(
                         scene->OnRootNodeChanged
                             .Bind([this](const Handle<Node>& newRoot, const Handle<Node>& prevRoot)
                                 {
                                     UpdateWatchedNodes();
                                 }));
+                }
+
+                for (const Handle<View>& view : m_editorViews)
+                {
+                    project->GetWorld()->AddView(view);
                 }
 
                 UpdateWatchedNodes();
@@ -940,6 +948,11 @@ EditorSubsystem::EditorSubsystem()
                         {
                             Assert(scene != nullptr);
 
+                            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+                            {
+                                return;
+                            }
+
                             Handle<EditorProject> project = projectWeak.Lock();
                             Assert(project != nullptr);
 
@@ -948,8 +961,6 @@ EditorSubsystem::EditorSubsystem()
                             {
                                 view->AddScene(scene);
                             }
-
-                            // GetWorld()->AddScene(scene);
 
                             m_delegateHandlers.Add(
                                 scene->OnRootNodeChanged
@@ -1127,6 +1138,11 @@ EditorSubsystem::EditorSubsystem()
                     // GetWorld()->RemoveScene(scene);
                 }
 
+                for (const Handle<View>& view : m_editorViews)
+                {
+                    project->GetWorld()->RemoveView(view);
+                }
+
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneAdded);
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneRemoved);
 
@@ -1264,6 +1280,11 @@ void EditorSubsystem::OnAddedToWorld()
 void EditorSubsystem::OnRemovedFromWorld()
 {
     HYP_SCOPE;
+
+    for (const Handle<View>& view : m_editorViews)
+    {
+        view->RemoveScene(m_editorScene);
+    }
 
     GetWorld()->RemoveScene(m_editorScene);
 
@@ -1448,7 +1469,10 @@ void EditorSubsystem::InitViewport()
 {
     for (const Handle<View>& view : m_editorViews)
     {
-        GetWorld()->RemoveView(view);
+        if (m_currentProject != nullptr)
+        {
+            m_currentProject->GetWorld()->RemoveView(view);
+        }
     }
 
     SafeDelete(std::move(m_editorViews));
@@ -1537,6 +1561,9 @@ void EditorSubsystem::InitViewport()
     Handle<View> view = CreateObject<View>(viewDesc);
     InitObject(view);
 
+    // view needs editor scene so we can see things like manipulation widgets
+    view->AddScene(m_editorScene);
+
     HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewportSize);
 
     // add all current project scenes to the view
@@ -1546,11 +1573,16 @@ void EditorSubsystem::InitViewport()
         {
             Assert(scene != nullptr);
 
+            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+            {
+                continue;
+            }
+
             view->AddScene(scene);
         }
-    }
 
-    GetWorld()->AddView(view);
+        m_currentProject->GetWorld()->AddView(view);
+    }
 
     m_editorViews.PushBack(view);
 

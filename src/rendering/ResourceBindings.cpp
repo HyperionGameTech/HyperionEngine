@@ -172,7 +172,7 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
                 ->SetElement("LightFieldDepthTexture", g_renderBackend->GetTextureImageView(legacyEnvGrid->GetLightFieldDepthTexture()));
         }
 
-        return;
+        break;
     }
     default:
         break;
