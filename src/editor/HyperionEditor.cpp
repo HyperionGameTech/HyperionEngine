@@ -152,9 +152,6 @@ void HyperionEditor::Init()
 
                 scene->GetRoot()->AddChild(node);
 
-                auto envGrid = CreateObject<LegacyEnvGrid>(BoundingBox(Vec3f(-50, -10, -50), Vec3f(50, 50, 50)), EnvGridOptions { ENV_GRID_TYPE_LIGHT_FIELD, { 8, 4, 8 }, EnvGridFlags::USE_VOXEL_GRID });
-                scene->GetRoot()->AddChild(envGrid);
-
                 if (auto& zombieAsset = results["zombie"]; zombieAsset.IsValid())
                 {
                     Handle<Node> zombie = zombieAsset.ExtractAs<Node>();

@@ -1068,7 +1068,7 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
             {
                 if (!m_camera->GetFrustum().ContainsAABB(volumeAabb))
                 {
-                    continue;
+                    //continue;
                 }
             }
 

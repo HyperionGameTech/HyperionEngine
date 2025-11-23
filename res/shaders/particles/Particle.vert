@@ -20,9 +20,13 @@ HYP_ATTRIBUTE(2) vec2 a_texcoord0;
 
 #include "./Particle.glsl"
 
+#ifndef MAX_PARTICLES
+#define MAX_PARTICLES 1024
+#endif
+
 HYP_DESCRIPTOR_SSBO(ParticleDescriptorSet, ParticlesBuffer, standard = std430) buffer ParticlesBuffer
 {
-    ParticleShaderData instances[];
+    ParticleShaderData instances[MAX_PARTICLES];
 };
 
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer

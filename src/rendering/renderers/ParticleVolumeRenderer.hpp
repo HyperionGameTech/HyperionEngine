@@ -33,9 +33,9 @@ protected:
 private:
     struct VolumeState
     {
-        GpuBufferRef particleBuffer; // SSBO of ParticleShaderData
-        GpuBufferRef indirectBuffer; // struct IndirectDrawCommand
-        GpuBufferRef noiseBuffer;    // float 128*128
+        GpuBufferRef particleBuffer;    // SSBO of ParticleShaderData
+        GpuBufferRef indirectBuffer;    // struct IndirectDrawCommand
+        Handle<Texture> noiseMap;       // 128x128
 
         ComputePipelineRef updatePipeline;
         GraphicsPipelineCacheHandle graphicsPipelineHandle;

@@ -33,9 +33,13 @@ HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D gbuffer_depth_te
 
 #include "./Particle.glsl"
 
-HYP_DESCRIPTOR_SSBO(UpdateParticlesDescriptorSet, ParticlesBuffer, standard = std430) buffer ParticlesBuffer
+#ifndef MAX_PARTICLES
+#define MAX_PARTICLES 1024
+#endif
+
+HYP_DESCRIPTOR_SSBO(UpdateParticlesDescriptorSet, ParticlesBuffer, standard = std140) buffer ParticlesBuffer
 {
-    ParticleShaderData instances[];
+    ParticleShaderData instances[MAX_PARTICLES];
 };
 
 #define HYP_PARTICLE_NOISE_MAP_EXTENT 128
@@ -56,10 +60,7 @@ HYP_DESCRIPTOR_SSBO(UpdateParticlesDescriptorSet, IndirectDrawCommandsBuffer, st
     IndirectDrawCommand indirect_draw_command;
 };
 
-HYP_DESCRIPTOR_SSBO(UpdateParticlesDescriptorSet, NoiseBuffer, standard = scalar) buffer NoiseBuffer
-{
-    float noise_values[HYP_PARTICLE_NOISE_MAP_SIZE];
-};
+HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, NoiseMap) uniform texture2D noise_map;
 
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 {
@@ -86,22 +87,34 @@ push_constants;
 
 vec3 GetNoiseValue()
 {
-    const uint base_offset = gl_GlobalInvocationID.x * 3u;
+    const uint baseOffset = gl_GlobalInvocationID.x * 3u;
 
     const uvec3 indices = uvec3(
-        (push_constants.global_counter + base_offset) % HYP_PARTICLE_NOISE_MAP_SIZE,
-        (push_constants.global_counter + base_offset + 1u) % HYP_PARTICLE_NOISE_MAP_SIZE,
-        (push_constants.global_counter + base_offset + 2u) % HYP_PARTICLE_NOISE_MAP_SIZE);
+        (push_constants.global_counter + baseOffset) % HYP_PARTICLE_NOISE_MAP_SIZE,
+        (push_constants.global_counter + baseOffset + 1u) % HYP_PARTICLE_NOISE_MAP_SIZE,
+        (push_constants.global_counter + baseOffset + 2u) % HYP_PARTICLE_NOISE_MAP_SIZE);
 
-    return vec3(noise_values[indices[0]], noise_values[indices[1]], noise_values[indices[2]]) * 2.0 - 1.0;
+    vec2 uv0 = vec2(float(indices.x % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5, float(indices.x / HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
+    vec2 uv1 = vec2(float(indices.y % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5, float(indices.y / HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
+    vec2 uv2 = vec2(float(indices.z % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5, float(indices.z / HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
+
+    vec3 noiseValue = vec3(
+        Texture2D(sampler_linear, noise_map, uv0).r * 2.0 - 1.0,
+        Texture2D(sampler_linear, noise_map, uv1).r * 2.0 - 1.0,
+        Texture2D(sampler_linear, noise_map, uv2).r * 2.0 - 1.0);
+
+    return noiseValue;
 }
+
+const float s_maxParticlesSqrt = sqrt(max(float(MAX_PARTICLES), 1.0));
+const bool s_fadeAlpha = false;
 
 void main()
 {
     const uint id = gl_GlobalInvocationID.x;
     const uint index = id;
 
-    if (id >= push_constants.max_particles)
+    if (id >= MAX_PARTICLES)
     {
         return;
     }
@@ -110,45 +123,45 @@ void main()
 
     ParticleShaderData particle = instances[index];
 
-    vec3 next_position = particle.position.xyz + (particle.velocity.xyz * push_constants.delta_time);
+    vec3 nextPos = particle.position.xyz + (particle.velocity.xyz * push_constants.delta_time);
 
     float has_gravity = 1.0;
+    const float avg_lifespan = max(push_constants.avg_lifespan, 0.01);
 
-    vec3 noise_value = GetNoiseValue();
-    vec3 random_direction = normalize(noise_value);
-    vec3 starting_velocity = random_direction; // vec3(1.0, 5.0, 1.0);// * (noise_value.y * push_constants.randomness);
+    vec3 noiseValue = GetNoiseValue();
+    vec3 randDir = normalize(noiseValue);
+    vec3 startingVelocity = randDir; // vec3(1.0, 5.0, 1.0);// * (noiseValue.y * push_constants.randomness);
 
-    vec3 starting_position = push_constants.origin.xyz;
+    vec3 startingPos = push_constants.origin.xyz;
 
-    vec2 position_index = vec2(mod(float(id), push_constants.max_particles_sqrt), float(id) / push_constants.max_particles_sqrt);
-    starting_position += vec3(sin(position_index.x / float(push_constants.max_particles) * HYP_FMATH_PI), 0.0, cos(position_index.y / float(push_constants.max_particles) * HYP_FMATH_PI)) * push_constants.randomness * (noise_value.y * 0.5 + 0.5) * push_constants.spawn_radius;
+    vec2 posIdx = vec2(mod(float(id), s_maxParticlesSqrt), float(id) / s_maxParticlesSqrt);
+    startingPos += vec3(sin(posIdx.x / float(MAX_PARTICLES) * HYP_FMATH_PI), 0.0, cos(posIdx.y / float(MAX_PARTICLES) * HYP_FMATH_PI)) * push_constants.randomness * (noiseValue.y * 0.5 + 0.5) * push_constants.spawn_radius;
 
-    float starting_lifetime = push_constants.avg_lifespan;
-    starting_lifetime += noise_value.z * push_constants.randomness * (push_constants.avg_lifespan * 0.5);
+    float startingLifetime = avg_lifespan;
+    startingLifetime += noiseValue.z * push_constants.randomness * (avg_lifespan * 0.5);
 
     float lifetime = particle.attributes.x;
 
-    const float lifetime_ratio = clamp(lifetime / push_constants.avg_lifespan, 0.0, 1.0);
+    const float lifetime_ratio = clamp(lifetime / avg_lifespan, 0.0, 1.0);
 
-    const float current_scale = particle.position.a;
-    const float final_scale = particle.velocity.a;
-    const float starting_scale = push_constants.origin.a; // clamp(1.0 + (noise_value.z * push_constants.randomness), 0.01, 5.0);
-    const float starting_final_scale = starting_scale * ((noise_value.y + 1.0) * push_constants.randomness);
-    const float next_scale = mix(current_scale, final_scale, lifetime_ratio);
+    const float currentScale = particle.position.a;
+    const float finalScale = particle.velocity.a;
+    const float startingScale = push_constants.origin.a; // clamp(1.0 + (noiseValue.z * push_constants.randomness), 0.01, 5.0);
+    const float startingFinalScale = startingScale * ((noiseValue.y + 1.0) * push_constants.randomness);
+    const float nextScale = mix(currentScale, finalScale, lifetime_ratio);
 
     // reset the particle if lifetime has expired
-    float is_alive = step(0.0, lifetime);
-    particle.position.xyz = mix(starting_position, next_position, is_alive);
-    particle.position.a = mix(starting_scale, next_scale, is_alive);
-    particle.velocity.xyz = mix(starting_velocity, particle.velocity.xyz - (vec3(0, 9.81, 0) * push_constants.delta_time * has_gravity), is_alive);
-    particle.velocity.a = mix(starting_final_scale, final_scale, is_alive);
+    float isAlive = step(0.0, lifetime);
+    particle.position.xyz = mix(startingPos, nextPos, isAlive);
+    particle.position.a = mix(startingScale, nextScale, isAlive);
+    particle.velocity.xyz = mix(startingVelocity, particle.velocity.xyz - (vec3(0, 9.81, 0) * push_constants.delta_time * has_gravity), isAlive);
+    particle.velocity.a = mix(startingFinalScale, finalScale, isAlive);
 
-    lifetime = mix(starting_lifetime, lifetime - push_constants.delta_time, is_alive);
+    lifetime = mix(startingLifetime, lifetime - push_constants.delta_time, isAlive);
     particle.attributes.x = lifetime;
 
-    const bool fade_alpha = true;
-    const float alpha = mix(1.0, lifetime_ratio, float(fade_alpha));
-    particle.color = mix(vec4(0.0), vec4(1.0, 1.0, 1.0, alpha), is_alive);
+    //const float alpha = mix(1.0, lifetime_ratio, float(s_fadeAlpha));
+    //particle.color = mix(vec4(0.0), vec4(1.0, 1.0, 1.0, alpha), isAlive);
 
     // for depth-buffer based collisions:
     // get particle position in screen space,
@@ -159,20 +172,20 @@ void main()
     // if there is a collision, push the particle in the direction of the gbuffers' normal
 
 #ifdef HAS_PHYSICS
-    vec4 particle_position_ndc = camera.projection * camera.view * vec4(particle.position.xyz, 1.0);
-    particle_position_ndc /= particle_position_ndc.w;
+    vec4 posNDC = camera.projection * camera.view * vec4(particle.position.xyz, 1.0);
+    posNDC /= posNDC.w;
 
-    vec2 particle_uv = particle_position_ndc.xy * 0.5 + 0.5;
+    vec2 particleUV = posNDC.xy * 0.5 + 0.5;
 
-    const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, particle_uv).r;
+    const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, particleUV).r;
 
-    vec4 position_world_space = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), particle_uv, depth);
-    position_world_space /= position_world_space.w;
+    vec4 posWS = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), particleUV, depth);
+    posWS /= posWS.w;
 
-    if (distance(position_world_space.xyz, particle.position.xyz) <= 1.0)
+    if (distance(posWS.xyz, particle.position.xyz) <= 1.0)
     {
         // has collision
-        const vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, particle_uv));
+        const vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, particleUV));
 
         particle.velocity.xyz = reflect(normal, normalize(particle.velocity.xyz));
     }
@@ -180,5 +193,5 @@ void main()
 
     instances[index] = particle;
 
-    atomicAdd(indirect_draw_command.instance_count, 1u); // uint(is_alive));
+    atomicAdd(indirect_draw_command.instance_count, 1u); // uint(isAlive));
 }

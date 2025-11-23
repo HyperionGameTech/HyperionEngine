@@ -31,7 +31,7 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler texture_sampler;
 void main()
 {
     vec4 color = Texture2D(texture_sampler, albedo_texture, v_texcoord0);
-    color *= v_color;
+    //color *= v_color;
 
     GBufferMaterialParams materialParams;
     materialParams.roughness = 0.0;
@@ -40,6 +40,6 @@ void main()
     materialParams.ao = 1.0;
     materialParams.mask = OBJECT_MASK_TRANSLUCENT | OBJECT_MASK_PARTICLE;
 
-    gbuffer_albedo = vec4(1.0, 0.0, 0.0, 1.0);///color;
+    gbuffer_albedo = color;
     gbuffer_material = GBufferPackMaterialParams(materialParams);
 }

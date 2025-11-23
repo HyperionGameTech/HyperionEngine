@@ -50,7 +50,7 @@ ParticleVolumeRenderer::VolumeState::~VolumeState()
     SafeDelete(std::move(updatePipeline));
     SafeDelete(std::move(particleBuffer));
     SafeDelete(std::move(indirectBuffer));
-    SafeDelete(std::move(noiseBuffer));
+    SafeDelete(std::move(noiseMap));
     SafeDelete(std::move(computeDescriptorTable));
     SafeDelete(std::move(graphicsDescriptorTable));
     SafeDelete(std::move(updateShader));
@@ -111,17 +111,29 @@ void ParticleVolumeRenderer::EnsureStaging()
     }
 }
 
-static void CreateNoiseBuffer(const GpuBufferRef& noiseBuffer)
+static void CreateNoiseMap(Handle<Texture>& tex)
 {
     static constexpr uint32 Seed = 0xff;
 
+    TextureDesc textureDesc {};
+    textureDesc.extent = Vec3u { 128, 128, 1 };
+    textureDesc.type = TT_TEX2D;
+    textureDesc.format = TF_R8;
+    textureDesc.filterModeMin = TFM_LINEAR;
+    textureDesc.filterModeMag = TFM_LINEAR;
+
+    TextureData textureData;
+
     Bitmap_R8 noiseMap = SimplexNoiseGenerator(Seed).CreateBitmap(128, 128, 1024.0f);
+    textureData.imageData = ByteBuffer(noiseMap.ToByteView());
 
-    Array<float> unpacked = noiseMap.GetUnpackedFloats();
-    Assert(noiseBuffer->Size() == unpacked.ByteSize());
-    DeferCreate(noiseBuffer);
+    if (tex)
+    {
+        SafeDelete(std::move(tex));
+    }
 
-    noiseBuffer->Copy(unpacked.ByteSize(), unpacked.Data());
+    tex = CreateObject<Texture>(textureDesc, textureData);
+    InitObject(tex);
 }
 
 ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(RenderProxyParticleVolume* proxy)
@@ -143,15 +155,13 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     state.indirectBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
     DeferCreate(state.indirectBuffer);
 
-    state.noiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(float) * 128 * 128);
-    state.noiseBuffer->SetRequireCpuAccessible(true); // @TODO use a staging buffer to copy over instead of keeping it persistently CPU accessible
-    CreateNoiseBuffer(state.noiseBuffer);
+    CreateNoiseMap(state.noiseMap);
 
     // compute pipeline
     ShaderProperties properties;
-
-    state.hasPhysics = false; // @TODO
+    state.hasPhysics = proxy->particleVolume.GetUnsafe()->GetParams().hasPhysics;
     properties.Set(NAME("HAS_PHYSICS"), state.hasPhysics);
+    properties.Set(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles)));
 
     state.updateShader = g_shaderManager->GetOrCreate(NAME("UpdateParticles"), properties);
     Assert(state.updateShader.IsValid());
@@ -165,7 +175,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
         descriptorSet->SetElement("ParticlesBuffer", state.particleBuffer);
         descriptorSet->SetElement("IndirectDrawCommandsBuffer", state.indirectBuffer);
-        descriptorSet->SetElement("NoiseBuffer", state.noiseBuffer);
+        descriptorSet->SetElement("NoiseMap", g_renderBackend->GetTextureImageView(state.noiseMap));
     }
 
     DeferCreate(state.computeDescriptorTable);
@@ -174,7 +184,10 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     DeferCreate(state.updatePipeline);
 
     // graphics pipeline
-    state.particleShader = g_shaderManager->GetOrCreate(NAME("Particle"));
+    properties = ShaderProperties();
+    properties.Set(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles)));
+
+    state.particleShader = g_shaderManager->GetOrCreate(NAME("Particle"), properties);
     Assert(state.particleShader.IsValid());
 
     state.graphicsDescriptorTable = g_renderBackend->MakeDescriptorTable(state.particleShader->GetCompiledShader()->GetDescriptorTableDeclaration());
@@ -190,10 +203,10 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
     DeferCreate(state.graphicsDescriptorTable);
 
-    // set default particle graphics attributes (translucent + additive blending)
+    // set default particle graphics attributes (translucent)
     MaterialAttributes materialAttributes {};
     materialAttributes.bucket = RB_TRANSLUCENT;
-    materialAttributes.blendFunction = BlendFunction::Additive();
+    materialAttributes.blendFunction = BlendFunction::AlphaBlending();
     materialAttributes.cullFaces = FCM_FRONT;
     materialAttributes.flags = MAF_DEPTH_TEST; // depth test on, depth write off by default
 
@@ -276,6 +289,8 @@ void ParticleVolumeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& re
     pushConstants.origin = pProxy->bufferData.originStartSize;
     pushConstants.spawnRadius = pProxy->bufferData.spawnRadius;
     pushConstants.randomness = pProxy->bufferData.randomness;
+    pushConstants.avgLifespan = pProxy->bufferData.avgLifespan;
+    pushConstants.maxParticles = pProxy->bufferData.maxParticles;
     pushConstants.maxParticlesSqrt = pProxy->bufferData.maxParticlesSqrt;
     pushConstants.deltaTime = 0.016f; // TODO: real render delta
     pushConstants.globalCounter = m_counter;
