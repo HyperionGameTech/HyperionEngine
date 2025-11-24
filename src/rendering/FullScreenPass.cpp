@@ -782,11 +782,11 @@ void FullScreenPass::RenderToFramebuffer_Internal(FrameBase* frame, const Render
     }
     else
     {
-        if (renderSetup.view != nullptr)
+        /*if (renderSetup.view != nullptr)
         {
             frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, renderSetup.view->GetViewport());
         }
-        else
+        else*/
         {
             frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
         }

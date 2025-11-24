@@ -381,7 +381,9 @@ void LightmapperBase::Build()
     m_subElements.Clear();
     m_subElementsByEntity.Clear();
 
-    for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    const bool onlyOverlappingElements = OnlyOverlappingElements();
+
+    for (auto [entity, meshComponent, transformComponent, boundingBoxComponent, _] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, TagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
         if (entity->InstanceClass() != Entity::StaticClass())
         {
@@ -389,26 +391,22 @@ void LightmapperBase::Build()
             continue;
         }
 
-        if (!meshComponent.mesh.IsValid())
+        if (!meshComponent.mesh || !meshComponent.material)
         {
-            HYP_LOG(Lightmap, Info, "Skip entity with invalid mesh on MeshComponent");
-
-            continue;
-        }
-
-        if (!meshComponent.material.IsValid())
-        {
-            HYP_LOG(Lightmap, Info, "Skip entity with invalid material on MeshComponent");
-
             continue;
         }
 
         // Only process opaque and translucent materials
         if (meshComponent.material->GetBucket() != RB_OPAQUE && meshComponent.material->GetBucket() != RB_TRANSLUCENT)
         {
-            HYP_LOG(Lightmap, Info, "Skip entity with bucket that is not opaque or translucent");
-
             continue;
+        }
+
+        const BoundingBox& worldAabb = boundingBoxComponent.worldAabb;
+
+        if (!onlyOverlappingElements && !m_aabb.Overlaps(worldAabb))
+        {
+            continue; // must be inside volume to be considered
         }
 
         m_subElements.PushBack(LightmapSubElement {
@@ -416,7 +414,8 @@ void LightmapperBase::Build()
             meshComponent.mesh,
             meshComponent.material,
             transformComponent.transform,
-            boundingBoxComponent.worldAabb });
+            boundingBoxComponent.worldAabb
+        });
     }
 
     Build_Internal();

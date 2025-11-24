@@ -174,7 +174,7 @@ void SSRRenderer::CreatePasses()
         DeferCreate(writeUvsShaderDescriptorTable);
 
         // Create framebuffer for UVs texture
-        FramebufferRef writeUvsFramebuffer = g_renderBackend->MakeFramebuffer(m_currentExtent);
+        FramebufferRef writeUvsFramebuffer = g_renderBackend->MakeFramebuffer(m_uvsTexture->GetExtent().GetXY());
         writeUvsFramebuffer->AddAttachment(
             0,
             m_uvsTexture->GetGpuImage(),
@@ -193,7 +193,7 @@ void SSRRenderer::CreatePasses()
             writeUvsShaderDescriptorTable,
             writeUvsFramebuffer,
             m_uvsTexture->GetFormat(),
-            m_currentExtent,
+            m_uvsTexture->GetExtent().GetXY(),
             nullptr);
 
         InitObject(m_writeUvs);
@@ -227,7 +227,7 @@ void SSRRenderer::CreatePasses()
         DeferCreate(sampleGbufferShaderDescriptorTable);
 
         // Create framebuffer for sampled result texture
-        FramebufferRef sampleGbufferFramebuffer = g_renderBackend->MakeFramebuffer(m_currentExtent);
+        FramebufferRef sampleGbufferFramebuffer = g_renderBackend->MakeFramebuffer(m_sampledResultTexture->GetExtent().GetXY());
         sampleGbufferFramebuffer->AddAttachment(
             0,
             m_sampledResultTexture->GetGpuImage(),
@@ -246,7 +246,7 @@ void SSRRenderer::CreatePasses()
             sampleGbufferShaderDescriptorTable,
             sampleGbufferFramebuffer,
             SsrFormat,
-            m_currentExtent,
+            m_sampledResultTexture->GetExtent().GetXY(),
             nullptr);
 
         InitObject(m_sampleGbuffer);
@@ -303,7 +303,7 @@ void SSRRenderer::UpdatePipelineState(FrameBase* frame, const RenderSetup& rende
         m_uvsTexture = CreateObject<Texture>(TextureDesc {
             TT_TEX2D,
             TF_RGBA16F,
-            Vec3u(m_currentExtent, 1),
+            Vec3u(m_currentExtent / 2, 1), // use half res for UVs tex
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,

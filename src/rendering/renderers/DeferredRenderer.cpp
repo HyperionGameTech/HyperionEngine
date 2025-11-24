@@ -1007,7 +1007,7 @@ constexpr FixedArray<CubemapType, CMT_MAX> CubemapTypes {
 };
 
 ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView, const GpuImageViewRef& deferredResultImageView)
-    : FullScreenPass(TF_RGBA16F, extent, gbuffer),
+    : FullScreenPass(TF_R10G10B10A2, extent, gbuffer),
       m_mipChainImageView(mipChainImageView),
       m_deferredResultImageView(deferredResultImageView),
       m_cachedSsrTexture(nullptr),

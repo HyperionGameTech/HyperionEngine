@@ -297,6 +297,12 @@ protected:
         return 1u << int(LightmapShadingType::FULL);
     }
 
+    /*! \brief Should we consider only elements overlapping our AABB for lightmapping? */
+    virtual bool OnlyOverlappingElements() const
+    {
+        return true;
+    }
+
     virtual void Initialize_Internal()
     {
     }

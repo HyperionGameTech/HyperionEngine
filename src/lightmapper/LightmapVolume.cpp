@@ -37,18 +37,21 @@
 namespace hyperion {
 
 constexpr Vec2u DefaultAtlasDimensions = Vec2u(4096, 4096);
-constexpr TextureFormat AtlasTextureFormat = TF_RGBA8;
+constexpr TextureFormat AtlasTextureFormats[LTT_MAX] = {
+    TF_RGBA8,     // Irradiance
+    TF_R11G11B10F // Radiance
+};
 
 #pragma region Render commands
 
-struct BakeLightmapAtlasTexture : RenderCommand
+struct LightmapVolumeAtlasBlit : RenderCommand
 {
     WeakHandle<LightmapVolume> lightmapVolumeWeak;
     Array<LightmapElement> lightmapElements;
     Array<Handle<Texture>> atlasTextures;
     HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
 
-    BakeLightmapAtlasTexture(
+    LightmapVolumeAtlasBlit(
         const WeakHandle<LightmapVolume>& lightmapVolumeWeak,
         const Array<LightmapElement>& lightmapElements,
         Array<Handle<Texture>>&& atlasTextures,
@@ -60,7 +63,7 @@ struct BakeLightmapAtlasTexture : RenderCommand
     {
     }
 
-    virtual ~BakeLightmapAtlasTexture() override
+    virtual ~LightmapVolumeAtlasBlit() override
     {
         SafeDelete(std::move(atlasTextures));
 
@@ -437,20 +440,13 @@ void LightmapVolume::UpdateAtlasTextures(
 
     LightmapVolumeAtlas& atlas = m_atlases[atlasIndex];
 
-    // Calculate the size of the atlas texture in bytes
-    constexpr uint32 BytesPerPixel = BytesPerComponent(AtlasTextureFormat) * NumComponents(AtlasTextureFormat);
-
-    const SizeType atlasWidth = atlas.atlasDimensions.x;
-    const SizeType atlasHeight = atlas.atlasDimensions.y;
-    const SizeType atlasDataSize = atlasWidth * atlasHeight * BytesPerPixel;
-
     Handle<Texture>& radianceTexture = m_radianceAtlasTextures[atlasIndex];
     if (!radianceTexture)
     {
         radianceTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
-                AtlasTextureFormat,
+                AtlasTextureFormats[LTT_RADIANCE],
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
@@ -472,7 +468,7 @@ void LightmapVolume::UpdateAtlasTextures(
         irradianceTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
-                AtlasTextureFormat,
+                AtlasTextureFormats[LTT_IRRADIANCE],
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
@@ -496,7 +492,7 @@ void LightmapVolume::UpdateAtlasTextures(
     atlasTextures[LTT_RADIANCE] = radianceTexture;
 
     PUSH_RENDER_COMMAND(
-        BakeLightmapAtlasTexture,
+        LightmapVolumeAtlasBlit,
         WeakHandleFromThis(),
         atlas.elements,
         std::move(atlasTextures),
