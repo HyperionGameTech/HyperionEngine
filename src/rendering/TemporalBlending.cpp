@@ -63,7 +63,7 @@ struct RecreateTemporalBlendingFramebuffer : RenderCommand
 TemporalBlending::TemporalBlending(
     const Vec2u& extent,
     TemporalBlendTechnique technique,
-    TemporalBlendFeedback feedback,
+    double feedback,
     const GpuImageViewRef& inputImageView,
     GBuffer* gbuffer)
     : TemporalBlending(
@@ -80,7 +80,7 @@ TemporalBlending::TemporalBlending(
     const Vec2u& extent,
     TextureFormat imageFormat,
     TemporalBlendTechnique technique,
-    TemporalBlendFeedback feedback,
+    double feedback,
     const FramebufferRef& inputFramebuffer,
     GBuffer* gbuffer)
     : m_extent(extent),
@@ -98,7 +98,7 @@ TemporalBlending::TemporalBlending(
     const Vec2u& extent,
     TextureFormat imageFormat,
     TemporalBlendTechnique technique,
-    TemporalBlendFeedback feedback,
+    double feedback,
     const GpuImageViewRef& inputImageView,
     GBuffer* gbuffer)
     : m_extent(extent),
@@ -193,7 +193,7 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
     static const Name s_feedbackTypes[] = { NAME("LOW"), NAME("MEDIUM"), NAME("HIGH") };
 
     shaderProperties.Set(ShaderProperty(NAME("TEMPORAL_BLEND_TECHNIQUE"), int(m_technique)));
-    shaderProperties.Set(ShaderProperty(NAME("FEEDBACK"), s_feedbackTypes[MathUtil::Min(uint32(m_feedback), ArraySize(s_feedbackTypes) - 1)]));
+    shaderProperties.Set(ShaderProperty(NAME("FEEDBACK"), float(m_feedback)));
 
     return shaderProperties;
 }

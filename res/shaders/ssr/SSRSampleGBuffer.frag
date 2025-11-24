@@ -194,6 +194,7 @@ void main(void)
 #endif
 
         reflection_sample = accum_color;
+        reflection_sample.a = min(accum_color.a, 1.0);
 
         reflection_sample.a *= alpha;
     }

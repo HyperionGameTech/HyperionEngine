@@ -720,11 +720,12 @@ void EngineDriver::GameThreadUpdate(float delta)
 #endif
 
     // write buffered render data
+    WorldShaderData* bufferData = RenderApi::GetWorldBufferData();
+    bufferData->frameCounter = RenderApi::GetFrameCounter();
+
     if (m_currentWorld)
     {
-        WorldShaderData* bufferData = RenderApi::GetWorldBufferData();
         bufferData->gameTime = m_currentWorld->GetGameState().gameTime;
-        bufferData->frameCounter = RenderApi::GetFrameCounter();
     }
 }
 

@@ -46,31 +46,30 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
     HYP_FIELD(Description = "Where to start and end fading the SSR effect based on the screen edges.")
     Vec2f screenEdgeFade = { 0.96f, 0.99f };
 
-    HYP_FIELD(JsonIgnore)
-    Vec2u extent;
+    HYP_FIELD(Description = "Resolution scale multiplier for SSR render targets. Lower values improve performance.")
+    float resolutionScale = 1.0f;
 
     virtual ~SSRRendererConfig() override = default;
 
     bool Validate() const
     {
-        return extent.x * extent.y != 0
-            && rayStep > 0.0f
-            && numIterations > 0;
+        return rayStep > 0.0f
+            && numIterations > 0
+            && resolutionScale > 0.0f;
     }
 
     void PostLoadCallback()
     {
-        extent = Vec2u { 1280, 720 };
-
         switch (quality)
         {
         case 0:
-            extent /= 4;
+            resolutionScale = 0.25f;
             break;
         case 1:
-            extent /= 2;
+            resolutionScale = 0.5f;
             break;
         default:
+            resolutionScale = 1.0f;
             break;
         }
     }
@@ -110,9 +109,10 @@ public:
 private:
     ShaderProperties GetShaderProperties() const;
 
-    void CreateUniformBuffers();
     void CreateBlueNoiseBuffer();
     void CreatePasses();
+
+    void UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup);
 
     SSRRendererConfig m_config;
 
@@ -125,6 +125,8 @@ private:
     Handle<Texture> m_sampledResultTexture;
 
     GpuBufferRef m_uniformBuffer;
+
+    Vec2u m_currentExtent;
 
     Handle<FullScreenPass> m_writeUvs;
     Handle<FullScreenPass> m_sampleGbuffer;

@@ -136,7 +136,7 @@ void SSGI::Create()
             m_config.extent,
             SsgiFormat,
             TemporalBlendTechnique::TECHNIQUE_1,
-            TemporalBlendFeedback::HIGH,
+            DefaultTemporalBlendingFeedback,
             g_renderBackend->GetTextureImageView(m_resultTexture),
             m_gbuffer);
 

@@ -97,7 +97,7 @@ RendererResult VulkanAttachmentMap::Create()
     // frame may be nullptr if we are creating a swapchain
     if (frame != nullptr)
     {
-        RenderQueue& renderQueue = frame->renderQueue;
+        RenderQueue& renderQueue = frame->preRenderQueue;
 
         TransitionFramebufferAttachments(renderQueue, framebuffer, attachmentDefs.ToSpan());
 
@@ -377,7 +377,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
         nullptr,
         &m_handle));
 
-    RenderQueue& renderQueue = g_renderBackend->GetCurrentFrame()->renderQueue;
+    RenderQueue& renderQueue = g_renderBackend->GetCurrentFrame()->preRenderQueue;
     renderQueue << ClearFramebuffer(this);
 
     HYPERION_RETURN_OK;

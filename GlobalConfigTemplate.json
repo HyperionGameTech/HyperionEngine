@@ -5,8 +5,8 @@
     "SSR": {
       "Enabled": true,
       "Quality": 2,
-      "RoughnessScattering": true,
-      "ConeTracing": false,
+      "RoughnessScattering": false,
+      "ConeTracing": true,
       "RayStep": 1.500000,
       "NumIterations": 64,
       "EyeFade": [0.990000, 0.995000],

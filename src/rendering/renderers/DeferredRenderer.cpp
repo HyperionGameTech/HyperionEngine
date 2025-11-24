@@ -1010,6 +1010,7 @@ ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageV
     : FullScreenPass(TF_RGBA16F, extent, gbuffer),
       m_mipChainImageView(mipChainImageView),
       m_deferredResultImageView(deferredResultImageView),
+      m_cachedSsrTexture(nullptr),
       m_isFirstFrame(true)
 {
     SetBlendFunction(BlendFunction(
@@ -1097,36 +1098,6 @@ void ReflectionsPass::CreateSSRRenderer()
 {
     m_ssrRenderer = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mipChainImageView, m_deferredResultImageView);
     m_ssrRenderer->Create();
-
-    ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
-    Assert(renderTextureToScreenShader.IsValid());
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(m_ssrRenderer->GetFinalResultTexture()));
-    }
-
-    DeferCreate(descriptorTable);
-
-    m_renderSsrToScreenPass = CreateObject<FullScreenPass>(
-        renderTextureToScreenShader,
-        std::move(descriptorTable),
-        m_imageFormat,
-        m_extent,
-        m_gbuffer);
-
-    // Use alpha blending to blend SSR into the reflection probes
-    m_renderSsrToScreenPass->SetBlendFunction(BlendFunction(
-        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
-
-    m_renderSsrToScreenPass->Create();
 }
 
 void ReflectionsPass::Resize_Internal(Vec2u newSize)
@@ -1265,10 +1236,68 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     if (ShouldRenderSSR())
     {
-        m_renderSsrToScreenPass->RenderToFramebuffer(frame, rs, GetFramebuffer());
+        const Handle<Texture>& ssrTexture = m_ssrRenderer->GetFinalResultTexture();
+
+        // Create or update render-to-screen pass if needed
+        if (!m_renderSsrToScreenPass || !ssrTexture.IsValid() || m_cachedSsrTexture != ssrTexture)
+        {
+            SafeDelete(std::move(m_renderSsrToScreenPass));
+
+            if (ssrTexture.IsValid())
+            {
+                ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
+                Assert(renderTextureToScreenShader.IsValid());
+
+                DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+                    renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration());
+
+                for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+                {
+                    const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
+                    Assert(descriptorSet != nullptr);
+
+                    descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(ssrTexture));
+                }
+
+                DeferCreate(descriptorTable);
+
+                FramebufferRef renderSsrToScreenFramebuffer = g_renderBackend->MakeFramebuffer(m_extent);
+                renderSsrToScreenFramebuffer->AddAttachment(
+                    0,
+                    GetFramebuffer()->GetAttachment(0)->GetImage(),
+                    LoadOperation::LOAD, // LOAD to store into the output target,
+                    StoreOperation::STORE);
+
+                Assert(renderSsrToScreenFramebuffer->Create());
+
+                m_renderSsrToScreenPass = CreateObject<FullScreenPass>(
+                    renderTextureToScreenShader,
+                    std::move(descriptorTable),
+                    renderSsrToScreenFramebuffer,
+                    m_imageFormat,
+                    m_extent,
+                    m_gbuffer);
+
+                // Use alpha blending to blend SSR into the reflection probes
+                m_renderSsrToScreenPass->SetBlendFunction(BlendFunction(
+                    BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+                    BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
+
+                InitObject(m_renderSsrToScreenPass);
+                m_renderSsrToScreenPass->Create();
+
+                m_cachedSsrTexture = ssrTexture;
+            }
+        }
     }
 
     frame->renderQueue << EndFramebuffer(GetFramebuffer());
+
+    if (m_renderSsrToScreenPass)
+    {
+        // write SSR into our output target
+        m_renderSsrToScreenPass->Render(frame, rs);
+    }
 
     if (ShouldRenderHalfRes())
     {
@@ -1606,13 +1635,20 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
         descriptorSet->SetElement("TAAResultTexture", g_renderBackend->GetTextureImageView(passData.temporalAa->GetResultTexture()));
 
-        if (passData.reflectionsPass->ShouldRenderSSR())
+        // Set SSR texture - use placeholder if not available yet
+        Texture* ssrTexture = passData.reflectionsPass->ShouldRenderSSR()
+            ? passData.reflectionsPass->GetSSRRenderer()->GetFinalResultTexture()
+            : nullptr;
+
+        if (ssrTexture)
         {
-            descriptorSet->SetElement("SSRResultTexture", g_renderBackend->GetTextureImageView(passData.reflectionsPass->GetSSRRenderer()->GetFinalResultTexture()));
+            descriptorSet->SetElement("SSRResultTexture", g_renderBackend->GetTextureImageView(MakeStrongRef(ssrTexture)));
+            passData.cachedSsrTexture = ssrTexture;
         }
         else
         {
             descriptorSet->SetElement("SSRResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            passData.cachedSsrTexture = nullptr;
         }
 
         if (passData.ssgi)
@@ -2204,6 +2240,29 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     deferredData.screenWidth = view->GetViewport().extent.x;  // rpl.viewport.extent.x;
     deferredData.screenHeight = view->GetViewport().extent.y; // rpl.viewport.extent.y;
+
+    // Update SSR texture descriptor if it has changed
+    if (passData.reflectionsPass->ShouldRenderSSR() && passData.reflectionsPass->GetSSRRenderer())
+    {
+        Texture* currentSsrTexture = passData.reflectionsPass->GetSSRRenderer()->GetFinalResultTexture();
+
+        if (passData.cachedSsrTexture != currentSsrTexture)
+        {
+            // SSR texture has changed - update all frame descriptors
+            for (uint32 i = 0; i < NumFramesInFlight; i++)
+            {
+                if (!currentSsrTexture)
+                {
+                    passData.descriptorSets[i]->SetElement("SSRResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+                    continue;
+                }
+
+                passData.descriptorSets[i]->SetElement("SSRResultTexture", g_renderBackend->GetTextureImageView(MakeStrongRef(currentSsrTexture)));
+            }
+
+            passData.cachedSsrTexture = currentSsrTexture;
+        }
+    }
 
     PerformOcclusionCulling(frame, rs, renderCollector);
 

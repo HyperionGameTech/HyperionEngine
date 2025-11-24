@@ -376,6 +376,8 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
             m_cachedPipelines->Add(attributes, slot);
         });
 
+    Assert(framebuffers.Size() > 0, "Cannot create a graphics pipeline with no framebuffers");
+
     GraphicsPipelineRef graphicsPipeline = g_renderBackend->MakeGraphicsPipeline(
         shader,
         table,

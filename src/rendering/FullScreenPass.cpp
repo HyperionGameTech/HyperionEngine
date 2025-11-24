@@ -110,13 +110,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-          shader,
-          descriptorTable,
-          FramebufferRef::Null(),
-          imageFormat,
-          extent,
-          gbuffer,
-          flags)
+        shader,
+        descriptorTable,
+        FramebufferRef::Null(),
+        imageFormat,
+        extent,
+        gbuffer,
+        flags)
 {
 }
 
@@ -127,13 +127,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-          shader,
-          DescriptorTableRef::Null(),
-          FramebufferRef::Null(),
-          imageFormat,
-          extent,
-          gbuffer,
-          flags)
+        shader,
+        DescriptorTableRef::Null(),
+        FramebufferRef::Null(),
+        imageFormat,
+        extent,
+        gbuffer,
+        flags)
 {
 }
 
@@ -366,7 +366,7 @@ void FullScreenPass::CreateFramebuffer()
 
         if (m_framebuffer->GetExtent() == m_extent)
         {
-            // already created with correct extent
+            // already set with correct extent, just create if not already
             DeferCreate(m_framebuffer);
 
             return;
@@ -466,7 +466,7 @@ void FullScreenPass::CreateTemporalBlending()
         m_extent,
         TF_RGBA8,
         TemporalBlendTechnique::TECHNIQUE_3,
-        TemporalBlendFeedback::LOW,
+        DefaultTemporalBlendingFeedback,
         ShouldRenderHalfRes()
             ? m_mergeHalfResTexturesPass->GetFinalImageView()
             : GetAttachment(0)->GetImageView(),
@@ -764,6 +764,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(FrameBase* frame, const Render
     if (!m_isFirstFrame && m_renderTextureToScreenPass != nullptr)
     {
         RenderPreviousTextureToScreen(frame, renderSetup);
+        /// @FIXME: Needs to insert barrier and end render pass before continuing!
     }
 
     const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline();
@@ -840,6 +841,7 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
     if (!m_isFirstFrame && m_renderTextureToScreenPass != nullptr)
     {
         RenderPreviousTextureToScreen(frame, renderSetup);
+        /// @FIXME: Needs to insert barrier and end render pass before continuing!
     }
 
     if (ShouldRenderHalfRes())

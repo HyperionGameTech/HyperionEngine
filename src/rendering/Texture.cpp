@@ -142,7 +142,7 @@ struct CreateTextureGpuImage : RenderCommand
                 // throw an error in debug mode
                 AssertDebug(false, "Image contains invalid data!");
 
-                static const uint32 s_placeholderMipOffsets[TextureDesc::MaxMips] {0};
+                static const uint32 s_placeholderMipOffsets[TextureDesc::MaxMips] { 0 };
                 mipOffsets = { s_placeholderMipOffsets, TextureDesc::MaxMips };
 
                 // fill some placeholder data with zeros so we don't crash
@@ -242,11 +242,11 @@ struct CreateTextureGpuImage : RenderCommand
                         }
                     }
                 }
-                //else
+                // else
                 //{
-                //    // runtime mip generation fallback
-                //    const uint32 numArrayLayers = textureDesc.NumArrayLayers();
-                //    const uint32 mipSize = textureDesc.GetMipByteSize(0);
+                //     // runtime mip generation fallback
+                //     const uint32 numArrayLayers = textureDesc.NumArrayLayers();
+                //     const uint32 mipSize = textureDesc.GetMipByteSize(0);
 
                 //    for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
                 //    {
@@ -638,7 +638,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
         return;
     }
 
-    RenderQueue& renderQueue = currentFrame->renderQueue;
+    RenderQueue& renderQueue = currentFrame->preRenderQueue;
 
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 

@@ -66,12 +66,16 @@ bool GraphicsPipelineBase::MatchesSignature(
     const Array<const FramebufferBase*>& framebuffers,
     const RenderableAttributeSet& attributes) const
 {
+    // check shader:
+    // if shader presence differs, no match
     if (!shader != !m_shader)
     {
         return false;
     }
 
-    if (m_framebuffers.Size() != framebuffers.Size())
+    // if ANY framebuffer is provided, check that the sizes match
+    // (if no framebuffers are provided, we skip this check, assuming the caller doesn't care about framebuffer matching)
+    if (framebuffers.Size() != 0 && m_framebuffers.Size() != framebuffers.Size())
     {
         return false;
     }
@@ -89,11 +93,14 @@ bool GraphicsPipelineBase::MatchesSignature(
         return false;
     }
 
-    for (SizeType i = 0; i < m_framebuffers.Size(); i++)
+    if (framebuffers.Size() != 0)
     {
-        if (m_framebuffers[i].Get() != framebuffers[i])
+        for (SizeType i = 0; i < m_framebuffers.Size(); i++)
         {
-            return false;
+            if (m_framebuffers[i].Get() != framebuffers[i])
+            {
+                return false;
+            }
         }
     }
 

@@ -30,7 +30,7 @@
 
 namespace hyperion {
 
-static constexpr bool UseTemporalBlending = true;
+static constexpr bool UseTemporalBlending = false;
 static constexpr TextureFormat SsrFormat = TF_RGBA8;
 
 struct SSRUniforms
@@ -98,6 +98,8 @@ SSRRenderer::~SSRRenderer()
 {
     SafeDelete(std::move(m_writeUvs));
     SafeDelete(std::move(m_sampleGbuffer));
+    SafeDelete(std::move(m_uvsTexture));
+    SafeDelete(std::move(m_sampledResultTexture));
 
     if (m_temporalBlending)
     {
@@ -109,56 +111,6 @@ SSRRenderer::~SSRRenderer()
 
 void SSRRenderer::Create()
 {
-    m_uvsTexture = CreateObject<Texture>(TextureDesc {
-        TT_TEX2D,
-        TF_RGBA16F,
-        Vec3u(m_config.extent, 1),
-        TFM_NEAREST,
-        TFM_NEAREST,
-        TWM_CLAMP_TO_EDGE,
-        1,
-        IU_ATTACHMENT | IU_SAMPLED });
-
-    m_uvsTexture->SetName(NAME("SSRTexture_UVs"));
-    InitObject(m_uvsTexture);
-
-    m_sampledResultTexture = CreateObject<Texture>(TextureDesc {
-        TT_TEX2D,
-        SsrFormat,
-        Vec3u(m_config.extent, 1),
-        TFM_NEAREST,
-        TFM_NEAREST,
-        TWM_CLAMP_TO_EDGE,
-        1,
-        IU_ATTACHMENT | IU_SAMPLED });
-
-    m_uvsTexture->SetName(NAME("SSRTexture_SampledResult"));
-    InitObject(m_sampledResultTexture);
-
-    CreateUniformBuffers();
-
-    if (UseTemporalBlending)
-    {
-        m_temporalBlending = MakeUnique<TemporalBlending>(
-            m_config.extent,
-            SsrFormat,
-            TemporalBlendTechnique::TECHNIQUE_2,
-            TemporalBlendFeedback::HIGH,
-            g_renderBackend->GetTextureImageView(m_sampledResultTexture),
-            m_gbuffer);
-
-        m_temporalBlending->Create();
-    }
-
-    CreatePasses();
-
-    // m_onGbufferResolutionChanged = m_gbuffer->OnGBufferResolutionChanged.Bind([this](Vec2u newSize)
-    // {
-    //     SafeDelete(std::move(m_writeUvs));
-    //     SafeDelete(std::move(m_sampleGbuffer));
-
-    //     CreatePasses();
-    // });
 }
 
 const Handle<Texture>& SSRRenderer::GetFinalResultTexture() const
@@ -192,26 +144,6 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
     return shaderProperties;
 }
 
-void SSRRenderer::CreateUniformBuffers()
-{
-    SSRUniforms uniforms {};
-    uniforms.dimensions = Vec4u(m_config.extent, 0, 0);
-    uniforms.rayStep = m_config.rayStep;
-    uniforms.numIterations = m_config.numIterations;
-    uniforms.maxRayDistance = 1000.0f;
-    uniforms.distanceBias = 0.02f;
-    uniforms.offset = 0.25f;
-    uniforms.eyeFadeStart = m_config.eyeFade.x;
-    uniforms.eyeFadeEnd = m_config.eyeFade.y;
-    uniforms.screenEdgeFadeStart = m_config.screenEdgeFade.x;
-    uniforms.screenEdgeFadeEnd = m_config.screenEdgeFade.y;
-
-    m_uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
-    m_uniformBuffer->SetDebugName(NAME("SSR_UniformBuffer"));
-
-    PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniformBuffer);
-}
-
 void SSRRenderer::CreatePasses()
 {
     const ShaderProperties shaderProperties = GetShaderProperties();
@@ -242,7 +174,7 @@ void SSRRenderer::CreatePasses()
         DeferCreate(writeUvsShaderDescriptorTable);
 
         // Create framebuffer for UVs texture
-        FramebufferRef writeUvsFramebuffer = g_renderBackend->MakeFramebuffer(m_config.extent);
+        FramebufferRef writeUvsFramebuffer = g_renderBackend->MakeFramebuffer(m_currentExtent);
         writeUvsFramebuffer->AddAttachment(
             0,
             m_uvsTexture->GetGpuImage(),
@@ -251,12 +183,17 @@ void SSRRenderer::CreatePasses()
 
         DeferCreate(writeUvsFramebuffer);
 
+        if (m_writeUvs)
+        {
+            SafeDelete(std::move(m_writeUvs));
+        }
+
         m_writeUvs = CreateObject<FullScreenPass>(
             writeUvsShader,
             writeUvsShaderDescriptorTable,
             writeUvsFramebuffer,
             m_uvsTexture->GetFormat(),
-            m_config.extent,
+            m_currentExtent,
             nullptr);
 
         InitObject(m_writeUvs);
@@ -290,7 +227,7 @@ void SSRRenderer::CreatePasses()
         DeferCreate(sampleGbufferShaderDescriptorTable);
 
         // Create framebuffer for sampled result texture
-        FramebufferRef sampleGbufferFramebuffer = g_renderBackend->MakeFramebuffer(m_config.extent);
+        FramebufferRef sampleGbufferFramebuffer = g_renderBackend->MakeFramebuffer(m_currentExtent);
         sampleGbufferFramebuffer->AddAttachment(
             0,
             m_sampledResultTexture->GetGpuImage(),
@@ -299,16 +236,112 @@ void SSRRenderer::CreatePasses()
 
         DeferCreate(sampleGbufferFramebuffer);
 
+        if (m_writeUvs)
+        {
+            SafeDelete(std::move(m_sampleGbuffer));
+        }
+
         m_sampleGbuffer = CreateObject<FullScreenPass>(
             sampleGbufferShader,
             sampleGbufferShaderDescriptorTable,
             sampleGbufferFramebuffer,
             SsrFormat,
-            m_config.extent,
+            m_currentExtent,
             nullptr);
 
         InitObject(m_sampleGbuffer);
         m_sampleGbuffer->Create();
+    }
+}
+
+void SSRRenderer::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
+{
+    HYP_SCOPE;
+
+    const Vec2u renderTargetExtent = Vec2u(Vec2f(renderSetup.view->GetOutputTarget().GetFramebuffer()->GetExtent()) * m_config.resolutionScale);
+
+    // Check if we need to recreate textures and passes
+    const bool needsRecreate = !m_writeUvs
+        || !m_sampleGbuffer
+        || !m_uvsTexture
+        || !m_sampledResultTexture
+        || m_currentExtent != renderTargetExtent;
+
+    if (needsRecreate)
+    {
+        m_currentExtent = renderTargetExtent;
+
+        // Clean up old resources
+        SafeDelete(std::move(m_writeUvs));
+        SafeDelete(std::move(m_sampleGbuffer));
+        SafeDelete(std::move(m_uniformBuffer));
+
+        if (m_temporalBlending)
+        {
+            m_temporalBlending.Reset();
+        }
+
+        // Create uniform buffer with current settings
+        SSRUniforms uniforms {};
+        uniforms.dimensions = Vec4u(m_currentExtent, 0, 0);
+        uniforms.rayStep = m_config.rayStep;
+        uniforms.numIterations = m_config.numIterations;
+        uniforms.maxRayDistance = 1000.0f;
+        uniforms.distanceBias = 0.02f;
+        uniforms.offset = 0.25f;
+        uniforms.eyeFadeStart = m_config.eyeFade.x;
+        uniforms.eyeFadeEnd = m_config.eyeFade.y;
+        uniforms.screenEdgeFadeStart = m_config.screenEdgeFade.x;
+        uniforms.screenEdgeFadeEnd = m_config.screenEdgeFade.y;
+
+        m_uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        m_uniformBuffer->SetDebugName(NAME("SSR_UniformBuffer"));
+
+        PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniformBuffer);
+
+        // Create textures
+        m_uvsTexture = CreateObject<Texture>(TextureDesc {
+            TT_TEX2D,
+            TF_RGBA16F,
+            Vec3u(m_currentExtent, 1),
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
+            1,
+            IU_ATTACHMENT | IU_SAMPLED });
+
+        m_uvsTexture->SetName(NAME("SSRTexture_UVs"));
+        InitObject(m_uvsTexture);
+
+        m_sampledResultTexture = CreateObject<Texture>(TextureDesc {
+            TT_TEX2D,
+            SsrFormat,
+            Vec3u(m_currentExtent, 1),
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
+            1,
+            IU_ATTACHMENT | IU_SAMPLED });
+
+        m_sampledResultTexture->SetName(NAME("SSRTexture_SampledResult"));
+        InitObject(m_sampledResultTexture);
+
+        // Create temporal blending
+        if (UseTemporalBlending)
+        {
+            m_temporalBlending = MakeUnique<TemporalBlending>(
+                m_currentExtent,
+                SsrFormat,
+                TemporalBlendTechnique::TECHNIQUE_3,
+                0.98,
+                g_renderBackend->GetTextureImageView(m_sampledResultTexture),
+                m_gbuffer);
+
+            m_temporalBlending->Create();
+        }
+
+        // Create passes
+        CreatePasses();
     }
 }
 
@@ -317,6 +350,8 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
     HYP_NAMED_SCOPE("Screen Space Reflections");
 
     AssertDebug(renderSetup.world && renderSetup.view);
+
+    UpdatePipelineState(frame, renderSetup);
 
     // PASS 1 -- write UVs
     m_writeUvs->Render(frame, renderSetup);

@@ -246,7 +246,7 @@ private:
     virtual bool UsesTemporalBlending() const override
     {
         return false;
-        //m_mode == EGPM_RADIANCE;
+        // m_mode == EGPM_RADIANCE;
     }
 
     virtual bool ShouldRenderHalfRes() const override
@@ -323,6 +323,7 @@ private:
     UniquePtr<SSRRenderer> m_ssrRenderer;
 
     Handle<FullScreenPass> m_renderSsrToScreenPass;
+    Texture* m_cachedSsrTexture;
 
     bool m_isFirstFrame;
 };
@@ -367,6 +368,8 @@ public:
 
     UniquePtr<RaytracingReflections> raytracingReflections;
     UniquePtr<DDGI> ddgi;
+
+    Texture* cachedSsrTexture = nullptr;
 };
 
 HYP_CLASS(NoScriptBindings)

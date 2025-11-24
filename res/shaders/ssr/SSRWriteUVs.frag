@@ -67,64 +67,79 @@ mat4 proj = camera.projection;
 mat4 inverse_proj = inverse(proj);
 mat4 inverse_view = inverse(view);
 
+#define MAX_ROUGHNESS 0.4 // max roughness to apply SSR to
+#define SSR_THICKNESS 0.5
+
 bool TraceRays(
     vec3 ray_origin,
     vec3 ray_direction,
+    float jitter,
+    float surface_roughness,
     out vec2 hit_pixel,
     out vec3 hit_point,
     out float hit_weight,
     out float num_iterations)
 {
-    bool intersect = false;
+    ray_direction = normalize(ray_direction);
+    vec3 ray_step = ssr_params.ray_step * ray_direction;
+    vec3 marching_position = ray_origin;
+    
+    const int max_iterations = int(ssr_params.num_iterations);
+    const float distance_bias = ssr_params.distance_bias;
+    
     num_iterations = 0.0;
     hit_weight = 0.0;
     hit_pixel = vec2(0.0);
     hit_point = vec3(0.0);
 
-    vec3 ray_step = ssr_params.ray_step * normalize(ray_direction);
-    vec3 marching_position = ray_origin;
-    float depth_from_screen;
-    float step_delta;
-
-    vec4 view_space_position;
-
+    // Initial march phase - use early exit
     int i = 0;
-
-    for (; i < ssr_params.num_iterations; i++)
+    for (; i < max_iterations; i++)
     {
         marching_position += ray_step;
 
         hit_pixel = GetProjectedPositionFromView(proj, marching_position);
-        view_space_position = ReconstructViewSpacePositionFromDepth(inverse_proj, hit_pixel, Texture2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r);
+        
+        if (hit_pixel != saturate(hit_pixel)) return false;
+        
+        float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r;
+        vec4 view_space_position = ReconstructViewSpacePositionFromDepth(inverse_proj, hit_pixel, depth);
 
-        step_delta = marching_position.z - view_space_position.z;
-
-        intersect = step_delta > 0.0;
+        float step_delta = marching_position.z - view_space_position.z;
         num_iterations += 1.0;
 
-        if (intersect)
+        // check maximum ray distance (view-space)
+        if (ssr_params.max_ray_distance > 0.0)
         {
-            break;
+            float traveled = distance(ray_origin, marching_position);
+            if (traveled > ssr_params.max_ray_distance) break;
         }
-    }
 
-    if (intersect)
-    {
-        // binary search
-        for (; i < ssr_params.num_iterations; i++)
+        //float thickness = max(SSR_THICKNESS * (1.0 + surface_roughness), distance_bias) + ssr_params.offset;
+
+        if (step_delta > 0.0)
         {
-            ray_step *= 0.5;
-            marching_position = marching_position - ray_step * sign(step_delta);
-
-            hit_pixel = GetProjectedPositionFromView(proj, marching_position);
-            view_space_position = ReconstructViewSpacePositionFromDepth(inverse_proj, hit_pixel, Texture2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r);
-
-            step_delta = abs(marching_position.z) - view_space_position.z;
-
-            if (abs(step_delta) < ssr_params.distance_bias)
+            // Binary search refinement (use signed step_delta consistently)
+            for (int j = 0; j < 4; j++)
             {
-                return true;
+                ray_step *= 0.5;
+                marching_position -= ray_step * sign(step_delta);
+
+                hit_pixel = GetProjectedPositionFromView(proj, marching_position);
+                depth = Texture2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r;
+                view_space_position = ReconstructViewSpacePositionFromDepth(inverse_proj, hit_pixel, depth);
+
+                step_delta = marching_position.z - view_space_position.z;
+
+                if (abs(step_delta) < distance_bias)
+                {
+                    hit_point = view_space_position.xyz;
+                    return true;
+                }
             }
+
+            hit_point = view_space_position.xyz;
+            return true;
         }
     }
 
@@ -166,7 +181,7 @@ void main(void)
 
     const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
 
-    if (depth > 0.99999 || roughness > 0.4)
+    if (depth > 0.99999 || roughness > MAX_ROUGHNESS)
     {
         out_color = vec4(0.0);
         return;
@@ -187,19 +202,19 @@ void main(void)
 
     vec3 ray_origin;
 
-#ifdef ROUGHNESS_SCATTERING
-#define NUM_SAMPLES 8
+
+#define NUM_SAMPLES 32
     vec2 rnd = vec2(
         SampleBlueNoise(int(coord.x), int(coord.y), int(world_shader_data.frame_counter % NUM_SAMPLES) * 2, NUM_SAMPLES * 2),
         SampleBlueNoise(int(coord.x), int(coord.y), int(world_shader_data.frame_counter % NUM_SAMPLES) * 2 + 1, NUM_SAMPLES * 2));
-
+#ifdef ROUGHNESS_SCATTERING
     vec3 H = ImportanceSampleGGX(rnd, view_space_normal, roughness);
     H = tangent * H.x + bitangent * H.y + view_space_normal * H.z;
     H = normalize(H);
 
     vec3 ray_direction = reflect(-V, H);
 #else
-    vec3 ray_direction = view_space_normal;
+    vec3 ray_direction = reflect(-V, view_space_normal);
 #endif
 
     ray_origin = P + ray_direction * 0.001;
@@ -216,14 +231,14 @@ void main(void)
     float hit_weight;
     float num_iterations;
 
-    bool intersect = TraceRays(ray_origin, ray_direction, hit_pixel, hit_point, hit_weight, num_iterations);
+    bool intersect = TraceRays(ray_origin, ray_direction, rnd.x, roughness, hit_pixel, hit_point, hit_weight, num_iterations);
 
     float dist = distance(ray_origin, hit_point);
 
     float alpha = CalculateAlpha(num_iterations, hit_pixel, hit_point, dist, ray_direction) * float(intersect);
 
     alpha *= float(hit_pixel == saturate(hit_pixel));
-    alpha *= 1.0 - (roughness / 0.4);
+    alpha *= 1.0 - (roughness / MAX_ROUGHNESS);
 
     hit_pixel = saturate(hit_pixel);
     hit_pixel *= float(alpha > HYP_FMATH_EPSILON);

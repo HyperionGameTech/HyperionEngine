@@ -287,9 +287,7 @@ void RaytracingReflections::CreateTemporalBlending()
         IsPathTracer()
             ? TemporalBlendTechnique::TECHNIQUE_4 // progressive blending
             : TemporalBlendTechnique::TECHNIQUE_1,
-        IsPathTracer()
-            ? TemporalBlendFeedback::HIGH
-            : TemporalBlendFeedback::HIGH,
+        DefaultTemporalBlendingFeedback,
         g_renderBackend->GetTextureImageView(m_texture),
         m_gbuffer);
 

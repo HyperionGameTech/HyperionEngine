@@ -20,6 +20,8 @@ struct RenderSetup;
 
 enum TextureFormat : uint32;
 
+static constexpr double DefaultTemporalBlendingFeedback = 0.92;
+
 enum class TemporalBlendTechnique
 {
     TECHNIQUE_0,
@@ -30,13 +32,6 @@ enum class TemporalBlendTechnique
     TECHNIQUE_4 // Progressive blending for path tracing
 };
 
-enum class TemporalBlendFeedback
-{
-    LOW,
-    MEDIUM,
-    HIGH
-};
-
 class TemporalBlending
 {
 public:
@@ -45,7 +40,7 @@ public:
     TemporalBlending(
         const Vec2u& extent,
         TemporalBlendTechnique technique,
-        TemporalBlendFeedback feedback,
+        double feedback,
         const GpuImageViewRef& inputImageView,
         GBuffer* gbuffer);
 
@@ -53,7 +48,7 @@ public:
         const Vec2u& extent,
         TextureFormat imageFormat,
         TemporalBlendTechnique technique,
-        TemporalBlendFeedback feedback,
+        double feedback,
         const FramebufferRef& inputFramebuffer,
         GBuffer* gbuffer);
 
@@ -61,7 +56,7 @@ public:
         const Vec2u& extent,
         TextureFormat imageFormat,
         TemporalBlendTechnique technique,
-        TemporalBlendFeedback feedback,
+        double feedback,
         const GpuImageViewRef& inputImageView,
         GBuffer* gbuffer);
 
@@ -74,7 +69,7 @@ public:
         return m_technique;
     }
 
-    HYP_FORCE_INLINE TemporalBlendFeedback GetFeedback() const
+    HYP_FORCE_INLINE double GetFeedback() const
     {
         return m_feedback;
     }
@@ -107,7 +102,7 @@ private:
     Vec2u m_extent;
     TextureFormat m_imageFormat;
     TemporalBlendTechnique m_technique;
-    TemporalBlendFeedback m_feedback;
+    double m_feedback;
     GBuffer* m_gbuffer;
 
     uint16 m_blendingFrameCounter;
