@@ -316,20 +316,6 @@ void main()
 
     uint mask = v_object_mask;
 
-    //  FIXME! Sampling should be done in ApplyLightmap.frag
-    // #if SHADING_TYPE_LIGHTMAPPED
-    //     vec4 lm_irradiance = vec4(0.0);
-    //     vec4 lm_radiance = vec4(0.0);
-
-    //     mask |= (OBJECT_MASK_LIGHTMAP_IRRADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP)));
-    //     mask |= (OBJECT_MASK_LIGHTMAP_RADIANCE * uint(HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP)));
-
-    //     lm_irradiance = mix(lm_irradiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_IRRADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_IRRADIANCE)));
-    //     lm_radiance = mix(lm_radiance, SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_RADIANCE_MAP, vec2(v_texcoord1)), bvec4(bool(mask & OBJECT_MASK_LIGHTMAP_RADIANCE)));
-
-    //     gbuffer_albedo_lightmap = (lm_irradiance + lm_radiance) * float(bool(mask & OBJECT_MASK_LIGHTMAP));
-    // #endif
-
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;
     materialParams.metalness = metalness;

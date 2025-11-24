@@ -243,7 +243,8 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     if (isRwTexture)
     {
-        m_usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /* allow readback */
+        m_usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+            | VK_IMAGE_USAGE_TRANSFER_DST_BIT
             | VK_IMAGE_USAGE_STORAGE_BIT;
     }
     else
@@ -253,11 +254,14 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     if (hasMipmaps)
     {
-        /* Mipmapped image needs linear blitting. */
-        vkFormatFeatures |= VK_FORMAT_FEATURE_BLIT_DST_BIT
-            | VK_FORMAT_FEATURE_BLIT_SRC_BIT;
+        if (!m_textureDesc.HasStoredMips())
+        {
+            /* Runtime mipmapped image needs linear blitting. */
+            vkFormatFeatures |= VK_FORMAT_FEATURE_BLIT_DST_BIT
+                | VK_FORMAT_FEATURE_BLIT_SRC_BIT;
 
-        m_usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            m_usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
 
         switch (GetMinFilterMode())
         {

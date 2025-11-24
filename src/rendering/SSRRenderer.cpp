@@ -31,7 +31,8 @@
 namespace hyperion {
 
 static constexpr bool UseTemporalBlending = false;
-static constexpr TextureFormat SsrFormat = TF_RGBA8;
+static constexpr TextureFormat SsrFormat = TF_R10G10B10A2;
+static constexpr TextureFormat SsrUVsFormat = TF_R11G11B10F;
 
 struct SSRUniforms
 {
@@ -125,21 +126,6 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
     ShaderProperties shaderProperties;
     shaderProperties.Set(NAME("CONE_TRACING"), m_config.coneTracing);
     shaderProperties.Set(NAME("ROUGHNESS_SCATTERING"), m_config.roughnessScattering);
-
-    switch (SsrFormat)
-    {
-    case TF_RGBA8:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8")));
-        break;
-    case TF_RGBA16F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F")));
-        break;
-    case TF_RGBA32F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F")));
-        break;
-    default:
-        HYP_FAIL("Invalid SSR format type");
-    }
 
     return shaderProperties;
 }
@@ -302,8 +288,8 @@ void SSRRenderer::UpdatePipelineState(FrameBase* frame, const RenderSetup& rende
         // Create textures
         m_uvsTexture = CreateObject<Texture>(TextureDesc {
             TT_TEX2D,
-            TF_RGBA16F,
-            Vec3u(m_currentExtent / 2, 1), // use half res for UVs tex
+            SsrUVsFormat, // store hit UVs in RG, and mask / alpha in B
+            Vec3u(m_currentExtent / 2, 1),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
@@ -355,6 +341,10 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     // PASS 1 -- write UVs
     m_writeUvs->Render(frame, renderSetup);
+
+    // // shouldn't need this? renderpass should handle transitions?
+    // frame->renderQueue << InsertBarrier(m_uvsTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+
     // PASS 2 - sample textures
     m_sampleGbuffer->Render(frame, renderSetup);
 

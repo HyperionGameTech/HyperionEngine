@@ -444,6 +444,8 @@ private:
     template <class Func, class FutureType = void>
     void PostTask(Func&& fn, Task<FutureType>* pOutFuture = nullptr);
 
+    void PruneTransientPackages();
+
     Handle<AssetPackage> GetPackageFromPath_Internal(
         const UTF8StringView& path,
         AssetRegistryPathType pathType,
@@ -458,6 +460,7 @@ private:
 
     // timer for when we should prune transient packages
     LockstepGameCounter m_pruneTimer;
+    threading::TaskBatch* m_pruneTaskBatch;
 
     Scheduler* m_scheduler;
 };

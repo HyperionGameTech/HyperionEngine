@@ -1131,7 +1131,6 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
-
     HYP_DEFER({ rpl.EndRead(); });
 
     if (ShouldRenderSSR())
@@ -1261,22 +1260,23 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
                 DeferCreate(descriptorTable);
 
-                FramebufferRef renderSsrToScreenFramebuffer = g_renderBackend->MakeFramebuffer(m_extent);
-                renderSsrToScreenFramebuffer->AddAttachment(
-                    0,
-                    GetFramebuffer()->GetAttachment(0)->GetImage(),
-                    LoadOperation::LOAD, // LOAD to store into the output target,
-                    StoreOperation::STORE);
+                // FramebufferRef renderSsrToScreenFramebuffer = g_renderBackend->MakeFramebuffer(m_extent);
+                // renderSsrToScreenFramebuffer->AddAttachment(
+                //     0,
+                //     GetFramebuffer()->GetAttachment(0)->GetImage(),
+                //     LoadOperation::LOAD,
+                //     StoreOperation::STORE);
 
-                Assert(renderSsrToScreenFramebuffer->Create());
+                // Assert(renderSsrToScreenFramebuffer->Create());
 
                 m_renderSsrToScreenPass = CreateObject<FullScreenPass>(
                     renderTextureToScreenShader,
                     std::move(descriptorTable),
-                    renderSsrToScreenFramebuffer,
+                    GetFramebuffer(),
                     m_imageFormat,
                     m_extent,
-                    m_gbuffer);
+                    m_gbuffer,
+                    FSP_EXTERNAL_RENDERTARGET);
 
                 // Use alpha blending to blend SSR into the reflection probes
                 m_renderSsrToScreenPass->SetBlendFunction(BlendFunction(
@@ -1289,15 +1289,11 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 m_cachedSsrTexture = ssrTexture;
             }
         }
+
+        m_renderSsrToScreenPass->RenderToFramebuffer(frame, rs, GetFramebuffer());
     }
 
     frame->renderQueue << EndFramebuffer(GetFramebuffer());
-
-    if (m_renderSsrToScreenPass)
-    {
-        // write SSR into our output target
-        m_renderSsrToScreenPass->Render(frame, rs);
-    }
 
     if (ShouldRenderHalfRes())
     {
@@ -2302,7 +2298,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         }
     }
 
-    if (useReflectionProbes)
+    if (useReflectionProbes || passData.reflectionsPass->ShouldRenderSSR())
     {
         passData.reflectionsPass->SetPushConstants(&deferredData, sizeof(deferredData));
         passData.reflectionsPass->Render(frame, rs);
@@ -2371,6 +2367,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         passData.directPass->RenderToFramebuffer(frame, rs, passData.directPassFramebuffer);
     }
 
+    // @TODO Move to inside of deferred lighting pass to share attachments
     if (rpl.GetLightmapVolumes().NumCurrent())
     {
         for (int attachmentIndex = 0; attachmentIndex < lightmapPassFramebuffer->NumAttachments(); attachmentIndex++)
@@ -2398,6 +2395,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     }
 
     { // combined + translucent (forward pass)
+        // insert barriers for load operations where needed
         for (int attachmentIndex = 0; attachmentIndex < translucentPassFramebuffer->NumAttachments(); attachmentIndex++)
         {
             AttachmentBase* attachment = translucentPassFramebuffer->GetAttachment(attachmentIndex);
@@ -2434,15 +2432,13 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
             // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
             // Apply lightmaps over the now shaded opaque objects.
-
-            // @TODO: Use stencil buffer to separate by lightmap volume ID
             passData.lightmapPass->RenderToFramebuffer(frame, newRs, translucentPassFramebuffer);
         }
 
         // begin translucent with forward rendering
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_TRANSLUCENT));
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_SKYBOX));
+        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
 
         // render particles
         if (rpl.GetParticleVolumes().NumCurrent())

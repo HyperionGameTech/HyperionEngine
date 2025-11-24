@@ -243,5 +243,5 @@ void main(void)
     hit_pixel = saturate(hit_pixel);
     hit_pixel *= float(alpha > HYP_FMATH_EPSILON);
 
-    out_color = vec4(hit_pixel, 0.0, alpha);
+    out_color = vec4(hit_pixel, alpha, 1.0);
 }

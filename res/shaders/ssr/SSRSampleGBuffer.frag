@@ -98,7 +98,7 @@ void main(void)
 
     vec4 uv_sample = Texture2D(sampler_nearest, ssr_uv_image, texcoord);
     const vec2 uv = uv_sample.xy;
-    const float alpha = uv_sample.w;
+    const float alpha = uv_sample.z;
 
     vec4 reflection_sample = vec4(0.0);
     float roughness = 0.0;
@@ -138,7 +138,7 @@ void main(void)
         
         const vec4 hit_data = Texture2D(sampler_nearest, ssr_uv_image, sample_texcoord);
         const vec2 hit_uv = hit_data.xy;
-        const float hit_mask = hit_data.w;
+        const float hit_mask = hit_data.z;
         const vec2 delta_p = (hit_uv - texcoord);
 
         float adjacent_length = length(delta_p);

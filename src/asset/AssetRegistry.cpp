@@ -1390,12 +1390,25 @@ AssetRegistry::AssetRegistry()
 AssetRegistry::AssetRegistry(const String& rootPath)
     : m_rootPath(rootPath),
       m_scheduler(new Scheduler(s_assetRegistryThread)),
-      m_pruneTimer { 30.0 } // every 30 seconds
+      m_pruneTimer { 30.0 }, // every 30 seconds
+      m_pruneTaskBatch(nullptr)
 {
 }
 
 AssetRegistry::~AssetRegistry()
 {
+    if (m_pruneTaskBatch != nullptr)
+    {
+        if (!m_pruneTaskBatch->IsCompleted())
+        {
+            HYP_LOG(Assets, Warning, "Waiting for prune task batch to complete before destroying AssetRegistry...");
+            m_pruneTaskBatch->AwaitCompletion();
+        }
+
+        delete m_pruneTaskBatch;
+        m_pruneTaskBatch = nullptr;
+    }
+
     delete m_scheduler;
 }
 
@@ -1424,6 +1437,73 @@ void AssetRegistry::Init()
 #endif
 }
 
+void AssetRegistry::PruneTransientPackages()
+{
+    if (m_pruneTaskBatch != nullptr)
+    {
+        // wait for previous prune to finish before starting a new one
+        if (!m_pruneTaskBatch->IsCompleted())
+        {
+            HYP_LOG(Assets, Warning, "Previous prune task batch is still running, is it stuck?");
+            return;
+        }
+    }
+
+    if (!m_pruneTaskBatch)
+    {
+        TaskThreadPool* assetWorkerThreadPool = g_assetManager->GetThreadPool();
+        AssertDebug(assetWorkerThreadPool != nullptr);
+
+        m_pruneTaskBatch = new TaskBatch;
+        m_pruneTaskBatch->pool = assetWorkerThreadPool;
+    }
+    else
+    {
+        m_pruneTaskBatch->ResetState();
+    }
+
+    { // collect tasks
+        Mutex::Guard guard(m_mutex);
+        for (const Handle<AssetPackage>& package : m_packages)
+        {
+            if (!package || !package->IsTransient())
+            {
+                continue;
+            }
+
+            m_pruneTaskBatch->AddTask([weakThis = MakeWeakRef(this), packageWeak = MakeWeakRef(package)]()
+                {
+                    constexpr bool ShouldRemoveEmptyRootPackages = false;
+
+                    Handle<AssetPackage> package = packageWeak.Lock();
+                    if (!package)
+                    {
+                        return;
+                    }
+
+                    bool shouldDestroy = false;
+                    package->Prune(&shouldDestroy);
+
+                    if (ShouldRemoveEmptyRootPackages && shouldDestroy)
+                    {
+                        Handle<AssetRegistry> registry = weakThis.Lock();
+
+                        if (registry)
+                        {
+                            // Remove the now empty package from the registry
+                            registry->RemovePackage(package);
+                        }
+                    }
+                });
+        }
+    }
+
+    if (m_pruneTaskBatch->executors.Size() > 0)
+    {
+        TaskSystem::GetInstance().EnqueueBatch(m_pruneTaskBatch);
+    }
+}
+
 void AssetRegistry::Update(float delta)
 {
     HYP_SCOPE;
@@ -1435,62 +1515,7 @@ void AssetRegistry::Update(float delta)
     {
         m_pruneTimer.NextTick();
 
-        TaskThreadPool* assetWorkerThreadPool = g_assetManager->GetThreadPool();
-        AssertDebug(assetWorkerThreadPool != nullptr);
-
-        TaskBatch* taskBatch = new TaskBatch;
-        taskBatch->pool = assetWorkerThreadPool;
-        taskBatch->OnComplete.Bind([taskBatch]()
-                                 {
-                                     delete taskBatch;
-                                 })
-            .Detach();
-
-        { // collect tasks
-            Mutex::Guard guard(m_mutex);
-            for (const Handle<AssetPackage>& package : m_packages)
-            {
-                if (!package || !package->IsTransient())
-                {
-                    continue;
-                }
-
-                taskBatch->AddTask([weakThis = MakeWeakRef(this), packageWeak = MakeWeakRef(package)]()
-                    {
-                        constexpr bool ShouldRemoveEmptyRootPackages = false;
-
-                        Handle<AssetPackage> package = packageWeak.Lock();
-                        if (!package)
-                        {
-                            return;
-                        }
-
-                        bool shouldDestroy = false;
-                        package->Prune(&shouldDestroy);
-
-                        if (ShouldRemoveEmptyRootPackages && shouldDestroy)
-                        {
-                            Handle<AssetRegistry> registry = weakThis.Lock();
-
-                            if (registry)
-                            {
-                                // Remove the now empty package from the registry
-                                registry->RemovePackage(package);
-                            }
-                        }
-                    });
-            }
-        }
-
-        if (taskBatch->executors.Size() > 0)
-        {
-            TaskSystem::GetInstance().EnqueueBatch(taskBatch);
-        }
-        else
-        {
-            // nothing to do
-            delete taskBatch;
-        }
+        PruneTransientPackages();
     }
 
     if (m_scheduler->NumEnqueued() > 0)
