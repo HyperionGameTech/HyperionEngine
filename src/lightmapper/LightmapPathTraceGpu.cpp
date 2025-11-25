@@ -129,12 +129,12 @@ LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
 
     for (GpuBufferRef& raysBuffer : m_raysBuffers)
     {
-        raysBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * (512 * 512), alignof(Vec4f));
+        raysBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * (lightmapper->GetConfig().maxRaysPerFrame), alignof(Vec4f));
         raysBuffer->SetRequireCpuAccessible(true);
     }
 
     // ATOMIC_COUNTER type allows readback to cpu.
-    m_hitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * (512 * 512), alignof(Vec4f));
+    m_hitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * (lightmapper->GetConfig().maxRaysPerFrame), alignof(Vec4f));
 
     m_readyNotification = MakeRefCountedPtr<GpuLightmapperReadyNotification>();
 }

@@ -118,16 +118,16 @@ struct LightmapperConfig : public ConfigBase<LightmapperConfig>
             valid = false;
         }
 
-        if (maxRaysPerFrame == 0 || maxRaysPerFrame > 1024 * 1024)
+        if (maxRaysPerFrame == 0)
         {
-            AddError(HYP_MAKE_ERROR(Error, "Max rays per frame must be greater than zero and less than or equal to 1024*1024"));
+            AddError(HYP_MAKE_ERROR(Error, "Max rays per frame must be greater than zero"));
 
             valid = false;
         }
 
-        if (idealTrianglesPerJob == 0 || idealTrianglesPerJob > 100000)
+        if (idealTrianglesPerJob == 0)
         {
-            AddError(HYP_MAKE_ERROR(Error, "Ideal triangles per job must be greater than zero and less than or equal to 100000"));
+            AddError(HYP_MAKE_ERROR(Error, "Ideal triangles per job must be greater than zero"));
 
             valid = false;
         }

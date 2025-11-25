@@ -59,6 +59,11 @@ public:
     EditorTaskManager();
     ~EditorTaskManager();
 
+    uint32 NumRunningTasks() const
+    {
+        return uint32(m_tasks.Size());
+    }
+
     void AddTask(const Handle<EditorTaskBase>& task);
 
     void Tick(float delta);

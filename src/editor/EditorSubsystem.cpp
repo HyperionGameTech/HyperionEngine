@@ -889,6 +889,21 @@ EditorSubsystem::EditorSubsystem()
 
                 if (tasksMenuItem != nullptr)
                 {
+                    const uint32 numRunningTasks = m_taskManager.NumRunningTasks();
+
+                    if (numRunningTasks == 0)
+                    {
+                        tasksMenuItem->SetText("No running tasks");
+                    }
+                    else if (numRunningTasks == 1)
+                    {
+                        tasksMenuItem->SetText("1 running task");
+                    }
+                    else
+                    {
+                        tasksMenuItem->SetText(HYP_FORMAT("{} running task(s)", numRunningTasks));
+                    }
+
                     if (UIObjectSpawnContext context { tasksMenuItem })
                     {
                         Handle<UIGrid> taskGrid = context.CreateUIObject<UIGrid>(NAME("Task_Grid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
@@ -942,6 +957,29 @@ EditorSubsystem::EditorSubsystem()
     m_taskManager.OnTaskRemoved
         .Bind([this](RunningEditorTask& runningTask)
             {
+                UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
+                Assert(uiSubsystem != nullptr);
+
+                Handle<UIMenuItem> tasksMenuItem = ObjCast<UIMenuItem>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")));
+
+                if (tasksMenuItem != nullptr)
+                {
+                    const uint32 numRunningTasks = m_taskManager.NumRunningTasks();
+
+                    if (numRunningTasks == 0)
+                    {
+                        tasksMenuItem->SetText("No running tasks");
+                    }
+                    else if (numRunningTasks == 1)
+                    {
+                        tasksMenuItem->SetText("1 running task");
+                    }
+                    else
+                    {
+                        tasksMenuItem->SetText(HYP_FORMAT("{} running task(s)", numRunningTasks));
+                    }
+                }
+
                 if (const Handle<UIObject>& uiObject = runningTask.GetUIObject())
                 {
                     uiObject->RemoveFromParent();

@@ -43,8 +43,8 @@ namespace hyperion {
 
 constexpr Vec2u DefaultAtlasDimensions = Vec2u(4096, 4096);
 constexpr TextureFormat AtlasTextureFormats[LTT_MAX] = {
-    TF_RGBA8,   // Irradiance
-    TF_RGBA16   // Radiance
+    TF_R11G11B10F,  // Radiance
+    TF_R11G11B10F   // Irradiance
 };
 
 static Name GenerateElementTextureName(const Uuid& volumeUuid, uint32 elementIndex, LightmapTextureType textureType)
