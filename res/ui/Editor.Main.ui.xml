@@ -71,7 +71,8 @@
         </Panel>
 
         <Panel name="Bottom_Panel" size="100% 200" padding="5 5" tag:side="bottom">
-            <TabView name="Bottom_Panel_TabView" size="100%">
+
+            <TabView name="Bottom_Panel_TabView" size="100% fill">
                 <Tab name="Assets_Tab" text="Assets">
                     <Script assembly="Hyperion.Editor.UI.dll" class="ContentBrowser" />
                     
@@ -101,6 +102,15 @@
                     </Grid>
                 </Tab>
             </TabView>
+
+            <Panel name="Status_Bar" position="0 0" size="100% 25" originAlignment="bottomleft" parentAlignment="bottomleft" padding="5 0" depth="1">
+                <MenuBar name="Status_Bar_MenuBar" position="0 0" size="100%" depth="1" direction="1">
+                    <MenuItem name="Status_MenuItem" text="Ready" size="auto 100%" />
+                    <Spacer />
+                    <MenuItem name="Tasks_MenuItem" text="No running tasks" size="auto 100%">
+                    </MenuItem>
+                </MenuBar>
+            </Panel>
         </Panel>
     </DockableContainer>
 </Panel>

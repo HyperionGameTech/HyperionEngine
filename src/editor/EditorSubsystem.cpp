@@ -3199,32 +3199,6 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
 
     // For long running tasks, enqueues the task in the scheduler
     task->Commit();
-
-    // auto CreateTaskUIObject = [](const Handle<UIObject> &parent, const Class *taskClass) -> Handle<UIObject>
-    // {
-    //     Assert(parent != nullptr);
-    //     Assert(taskClass != nullptr);
-
-    //     return parent->CreateUIObject<UIPanel>(Vec2i::Zero(), UIObjectSize({ 400, UIObjectSize::PIXEL }, { 300, UIObjectSize::PIXEL }));
-    // };
-
-    // const Handle<UIObject> &uiObject = task->GetUIObject();
-
-    // if (!uiObject) {
-    //     if (IsOnThread(ThreadName::THREAD_GAME)) {
-    //         GetThreadById(ThreadName::THREAD_GAME)->GetScheduler().Enqueue([this, task, CreateTaskUIObject]()
-    //         {
-    //             task->SetUIObject(CreateTaskUIObject(GetUIStage(), task->InstanceClass()));
-    //         });
-    //     } else {
-    //         task->SetUIObject(CreateTaskUIObject(GetUIStage(), task->InstanceClass()));
-    //     }
-    // }
-
-    // Mutex::Guard guard(m_tasksMutex);
-
-    // m_tasks.Insert(Uuid(), task);
-    // m_numTasks.Increment(1, MemoryOrder::RELAXED);
 }
 
 void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shouldSelectInOutline)

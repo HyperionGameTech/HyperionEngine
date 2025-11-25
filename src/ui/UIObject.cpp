@@ -2187,7 +2187,7 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
 
             break;
         case UIObjectSize::PERCENT:
-            actualSize[componentIndex] = MathUtil::Floor(float(inSize.GetValue()[componentIndex]) * 0.01f * float(parentSize[componentIndex]));
+            actualSize[componentIndex] = MathUtil::Floor(double(inSize.GetValue()[componentIndex]) * 0.01 * double(parentSize[componentIndex]));
 
             // Reduce size due to parent object's padding
             actualSize[componentIndex] -= parentPadding[componentIndex] * 2;
@@ -2199,7 +2199,9 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
         case UIObjectSize::FILL:
             if (!isInner)
             {
-                actualSize[componentIndex] = MathUtil::Max(parentSize[componentIndex] - m_position[componentIndex] - parentPadding[componentIndex] * 2 - horizontalScrollbarSize[componentIndex] - verticalScrollbarSize[componentIndex], 0);
+                actualSize[componentIndex] = MathUtil::Max(
+                    parentSize[componentIndex] - m_position[componentIndex] - parentPadding[componentIndex] * 2 - horizontalScrollbarSize[componentIndex] - verticalScrollbarSize[componentIndex],
+                    0);
             }
 
             break;
