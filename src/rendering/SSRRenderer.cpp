@@ -30,9 +30,10 @@
 
 namespace hyperion {
 
-static constexpr bool UseTemporalBlending = false;
+static constexpr bool UseTemporalBlending = true;
 static constexpr TextureFormat SsrFormat = TF_R10G10B10A2;
-static constexpr TextureFormat SsrUVsFormat = TF_R11G11B10F;
+static constexpr TextureFormat SsrUVsFormat = TF_RGBA16F; // store hit UVs in RG, and mask / alpha in B
+static constexpr double SsrUVsResolutionScale = 0.4;
 
 struct SSRUniforms
 {
@@ -288,8 +289,11 @@ void SSRRenderer::UpdatePipelineState(FrameBase* frame, const RenderSetup& rende
         // Create textures
         m_uvsTexture = CreateObject<Texture>(TextureDesc {
             TT_TEX2D,
-            SsrUVsFormat, // store hit UVs in RG, and mask / alpha in B
-            Vec3u(m_currentExtent / 2, 1),
+            SsrUVsFormat,
+            Vec3u {
+                uint32(MathUtil::Ceil(m_currentExtent.x * SsrUVsResolutionScale)),
+                uint32(MathUtil::Ceil(m_currentExtent.y * SsrUVsResolutionScale)),
+                1 },
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
@@ -317,9 +321,9 @@ void SSRRenderer::UpdatePipelineState(FrameBase* frame, const RenderSetup& rende
         {
             m_temporalBlending = MakeUnique<TemporalBlending>(
                 m_currentExtent,
-                SsrFormat,
-                TemporalBlendTechnique::TECHNIQUE_3,
-                0.98,
+                TF_RGBA8,
+                TemporalBlendTechnique::TECHNIQUE_1,
+                0.95,
                 g_renderBackend->GetTextureImageView(m_sampledResultTexture),
                 m_gbuffer);
 
