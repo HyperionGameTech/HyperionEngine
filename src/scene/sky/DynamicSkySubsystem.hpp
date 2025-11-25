@@ -10,6 +10,8 @@
 
 #include <scene/camera/Camera.hpp>
 
+#include <util/GameCounter.hpp>
+
 namespace hyperion {
 
 HYP_CLASS(NoScriptBindings)
@@ -52,6 +54,8 @@ private:
     // Stuff that gets added to world
     Handle<Entity> m_skyboxEntity;
     Handle<Scene> m_visScene;
+
+    LockstepGameCounter m_updateTimer;
 };
 
 } // namespace hyperion

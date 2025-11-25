@@ -110,13 +110,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-        shader,
-        descriptorTable,
-        FramebufferRef::Null(),
-        imageFormat,
-        extent,
-        gbuffer,
-        flags)
+          shader,
+          descriptorTable,
+          FramebufferRef::Null(),
+          imageFormat,
+          extent,
+          gbuffer,
+          flags)
 {
 }
 
@@ -127,13 +127,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-        shader,
-        DescriptorTableRef::Null(),
-        FramebufferRef::Null(),
-        imageFormat,
-        extent,
-        gbuffer,
-        flags)
+          shader,
+          DescriptorTableRef::Null(),
+          FramebufferRef::Null(),
+          imageFormat,
+          extent,
+          gbuffer,
+          flags)
 {
 }
 
@@ -319,14 +319,14 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
 
     m_extent = newSize;
 
+    // throw away graphics pipeline cache handle to force recreation.
+    m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
+
     if (!m_framebuffer.IsValid())
     {
         // Not created yet; skip
         return;
     }
-
-    // throw away graphics pipeline cache handle to force recreation.
-    m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
 
     SafeDelete(std::move(m_framebuffer));
 
@@ -701,39 +701,21 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     bool shouldStartRecording = !framebuffer->IsDeferredRecording();
     bool shouldEndRecording = shouldStartRecording;
 
-    Array<InsertBarrier, RenderTempAllocator> preRenderBarriers;
-    Array<InsertBarrier, RenderTempAllocator> postRenderBarriers;
-
-    // we need to insert a barrier if any attachments are LOAD operations
-    for (int i = 0; i < framebuffer->NumAttachments(); i++)
-    {
-        AttachmentBase* attachment = framebuffer->GetAttachment(i);
-        AssertDebug(attachment != nullptr);
-
-        if (attachment->GetLoadOperation() == LoadOperation::LOAD)
-        {
-            preRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET));
-        }
-    }
-
-    if (preRenderBarriers.Any())
-    {
-        if (framebuffer->IsDeferredRecording())
-        {
-            // if we need to insert barriers we need to do it outside of the pass
-            frame->renderQueue << EndFramebuffer(framebuffer);
-
-            shouldStartRecording = true; // we need to start new recording but should preserve the state (it was already recording)
-        }
-
-        for (const InsertBarrier& cmd : preRenderBarriers)
-        {
-            frame->renderQueue << cmd;
-        }
-    }
-
     if (shouldStartRecording)
     {
+        // insert pre-render barriers for load operations if the framebuffer is not being recorded already
+
+        for (int i = 0; i < framebuffer->NumAttachments(); i++)
+        {
+            AttachmentBase* attachment = framebuffer->GetAttachment(i);
+            AssertDebug(attachment != nullptr);
+
+            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+            {
+                frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
+            }
+        }
+
         frame->renderQueue << BeginFramebuffer(framebuffer);
     }
 
@@ -742,14 +724,6 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     if (shouldEndRecording)
     {
         frame->renderQueue << EndFramebuffer(framebuffer);
-    }
-
-    if (postRenderBarriers.Any())
-    {
-        for (const InsertBarrier& cmd : postRenderBarriers)
-        {
-            frame->renderQueue << cmd;
-        }
     }
 
     m_isFirstFrame = false;

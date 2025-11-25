@@ -101,7 +101,10 @@ public:
     HYP_API void BeginWrite();
     HYP_API void EndWrite();
 
-    HYP_API void BeginRead();
+    /*! \brief Waits for write lock to unlock and sets the list in read mode. If pOutSuccess is provided, it will be set to true on lock acquired.
+        However if the lock cannot be acquired after a number of loops, it will be set to false and will not perform any other action. If pOutSuccess
+        is not provided, the busy wait will spin indefinitely. (for backwards compatibility with previous behaviour) */
+    HYP_API void BeginRead(bool* pOutSuccess = nullptr);
     HYP_API void EndRead();
 
     template <SizeType Index>
@@ -172,7 +175,7 @@ public:
 
     // marker to set to locked when game thread is writing to this list.
     // this only really comes into play with non-buffered Views that do not double/triple buffer their RenderProxyLists
-    AtomicVar<uint64> rwMarker { 0 };
+    volatile int64 rwMarker = 0;
     uint32 readDepth = 0;
 };
 

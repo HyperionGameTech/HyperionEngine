@@ -52,16 +52,20 @@ bool LightmapSystem::AssignLightmapVolume(Scene* scene, LightmapElementComponent
         LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
         Assert(lightmapVolume != nullptr);
 
-        if (lightmapVolume->GetUUID() == lightmapElementComponent.lightmapVolumeUuid)
+        if (lightmapVolume->GetUUID() == lightmapElementComponent.lightmapVolumeUuid
+            && lightmapElementComponent.lightmapVolume.GetUnsafe() != lightmapVolume)
         {
             const LightmapElement* lightmapElement = lightmapVolume->GetElement(lightmapElementComponent.lightmapElementId);
 
             if (!lightmapElement)
             {
+                HYP_BREAKPOINT;
                 return false;
             }
 
             lightmapElementComponent.lightmapVolume = MakeWeakRef(lightmapVolume);
+
+            entity->SetNeedsRenderProxyUpdate();
 
             return true;
         }

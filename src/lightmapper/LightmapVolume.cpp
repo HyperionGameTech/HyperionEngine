@@ -43,8 +43,8 @@ namespace hyperion {
 
 constexpr Vec2u DefaultAtlasDimensions = Vec2u(4096, 4096);
 constexpr TextureFormat AtlasTextureFormats[LTT_MAX] = {
-    TF_R11G11B10F,  // Radiance
-    TF_R11G11B10F   // Irradiance
+    TF_R11G11B10F, // Radiance
+    TF_R11G11B10F  // Irradiance
 };
 
 static Name GenerateElementTextureName(const Uuid& volumeUuid, uint32 elementIndex, LightmapTextureType textureType)
@@ -439,9 +439,12 @@ void LightmapVolume::OnAddedToWorld(World* world)
     {
         for (auto [entity, lightmapElementComponent] : scene->GetEntityManager()->GetEntitySet<LightmapElementComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
         {
-            if (lightmapElementComponent.lightmapVolumeUuid == m_uuid)
+            if (lightmapElementComponent.lightmapVolumeUuid == m_uuid
+                && !lightmapElementComponent.lightmapVolume.IsValid())
             {
                 lightmapElementComponent.lightmapVolume = MakeWeakRef(this);
+
+                entity->SetNeedsRenderProxyUpdate();
             }
         }
     }
@@ -455,9 +458,12 @@ void LightmapVolume::OnRemovedFromWorld(World* world)
     {
         for (auto [entity, lightmapElementComponent] : scene->GetEntityManager()->GetEntitySet<LightmapElementComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
         {
-            if (lightmapElementComponent.lightmapVolumeUuid == m_uuid)
+            if (lightmapElementComponent.lightmapVolumeUuid == m_uuid
+                && lightmapElementComponent.lightmapVolume.IsValid())
             {
                 lightmapElementComponent.lightmapVolume.Reset();
+
+                entity->SetNeedsRenderProxyUpdate();
             }
         }
     }

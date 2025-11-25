@@ -238,20 +238,21 @@ RendererResult VulkanRenderPass::Create()
             depthAttachmentReference = attachment->GetVulkanHandle();
             subpassDescription.pDepthStencilAttachment = &depthAttachmentReference;
 
-            m_vkClearValues.PushBack(VkClearValue {
-                .depthStencil = { 1.0f, 0 } });
+            VkClearValue& clearValue = m_vkClearValues.EmplaceBack();
+            clearValue.depthStencil = { 1.0f, 0 };
         }
         else
         {
             colorAttachmentReferences.PushBack(attachment->GetVulkanHandle());
 
-            m_vkClearValues.PushBack(VkClearValue {
-                .color = {
-                    .float32 = {
-                        attachment->GetClearColor().x,
-                        attachment->GetClearColor().y,
-                        attachment->GetClearColor().z,
-                        attachment->GetClearColor().w } } });
+            VkClearValue& clearValue = m_vkClearValues.EmplaceBack();
+            clearValue.color = {
+                .float32 = {
+                    attachment->GetClearColor().x,
+                    attachment->GetClearColor().y,
+                    attachment->GetClearColor().z,
+                    attachment->GetClearColor().w }
+            };
         }
     }
 

@@ -287,13 +287,22 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 {
     HYP_SCOPE;
 
-    const RenderableAttributeSet renderableAttributes {
-        MeshAttributes { .vertexAttributes = shaderProperties.GetRequiredVertexAttributes() },
-        MaterialAttributes {
-            .fillMode = FM_FILL,
-            .blendFunction = m_blendFunction,
-            .flags = MAF_NONE }
+    const MeshAttributes meshAttributes {
+        .vertexAttributes = shaderProperties.GetRequiredVertexAttributes()
     };
+
+    const MaterialAttributes materialAttributes {
+        .fillMode = FM_FILL,
+        .blendFunction = m_blendFunction,
+        .flags = MAF_STENCIL_TEST,
+        .stencilFunction = StencilFunction {
+            .passOp = SO_KEEP,
+            .failOp = SO_KEEP,
+            .depthFailOp = SO_KEEP,
+            .compareOp = SCO_EQUAL }
+    };
+
+    const RenderableAttributeSet renderableAttributes { meshAttributes, materialAttributes };
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
@@ -325,7 +334,7 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
         descriptorSet->SetElement("LTCBRDFTexture", g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
     }
 
-    DeferCreate(descriptorTable);
+    Assert(descriptorTable->Create());
 
     return g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
         shader,
@@ -372,6 +381,9 @@ void DeferredPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSe
         break;
     case DPM_INDIRECT_LIGHTING:
     {
+        // stencil state: only render where stencil == 0 (non-lightmapped geometry)
+        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+
         // check needs invalidation
         ShaderProperties shaderProperties;
         GetDeferredShaderProperties(m_mode, shaderProperties, &rpl);
@@ -384,12 +396,18 @@ void DeferredPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSe
 
         FullScreenPass::RenderToFramebuffer_Internal(frame, rs, framebuffer);
 
+        // reset stencil state
+        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+
         return;
     }
     default:
         HYP_UNREACHABLE();
         return;
     }
+
+    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 
     const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
 
@@ -494,6 +512,9 @@ void DeferredPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSe
             prevLightType = lightType;
         }
     }
+
+    // reset stencil state
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 }
 
 #pragma endregion DeferredPass
@@ -576,7 +597,7 @@ struct LightmapVolumeUniforms
 };
 
 LightmapPass::LightmapPass()
-    : FullScreenPass(FSP_EXTERNAL_RENDERTARGET)
+    : FullScreenPass(TF_RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
 {
 }
 
@@ -727,7 +748,7 @@ void LightmapPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSe
     for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
     {
         // only draw elems in the volume with a stencil reference of the atlas index (+1)
-        frame->renderQueue << SetStencilState(atlasIndex + 1, 0xF, 0x0);
+        frame->renderQueue << SetStencilState(atlasIndex + 1, LightmapStencilMask, 0x0);
 
         frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
 
@@ -768,7 +789,7 @@ void LightmapPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSe
     }
 
     // reset stencil state back to default
-    frame->renderQueue << SetStencilState(0);
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 
     m_isFirstFrame = false;
 }
@@ -1364,9 +1385,9 @@ RaytracingPassData::~RaytracingPassData()
 
 #pragma region DeferredRenderer
 
-static FramebufferRef CreateDeferredIndirectPassFramebuffer(GBuffer* gbuffer)
+static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 {
-    FramebufferRef indirectPassFramebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent());
+    FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent());
 
     TextureDesc textureDesc;
     textureDesc.type = TT_TEX2D;
@@ -1377,35 +1398,24 @@ static FramebufferRef CreateDeferredIndirectPassFramebuffer(GBuffer* gbuffer)
     textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
     textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
 
-    AttachmentRef attachment = indirectPassFramebuffer->AddAttachment(
+    AttachmentRef colorAttachment = framebuffer->AddAttachment(
         0,
         g_renderBackend->MakeImage(textureDesc),
         LoadOperation::CLEAR,
         StoreOperation::STORE);
 
-    Assert(indirectPassFramebuffer->Create());
-
-    attachment->GetImage()->SetDebugName(NAME("DeferredIndirectPassTarget"));
-
-    return indirectPassFramebuffer;
-}
-
-static FramebufferRef CreateDeferredDirectPassFramebuffer(GBuffer* gbuffer, const FramebufferRef& indirectPassFramebuffer)
-{
-    Assert(indirectPassFramebuffer != nullptr && indirectPassFramebuffer->IsCreated());
-
-    FramebufferRef directPassFramebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent());
-
-    // shared image between indirect / direct passes
-    AttachmentRef attachment = directPassFramebuffer->AddAttachment(
-        0,
-        indirectPassFramebuffer->GetAttachment(0)->GetImage(),
-        LoadOperation::LOAD, // LOAD op, keep indirect pass' data
+    // depth for stencil testing
+    AttachmentRef depthAttachment = framebuffer->AddAttachment(
+        1,
+        gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage(),
+        LoadOperation::LOAD,
         StoreOperation::STORE);
 
-    Assert(directPassFramebuffer->Create());
+    Assert(framebuffer->Create());
 
-    return directPassFramebuffer;
+    colorAttachment->GetImage()->SetDebugName(NAME("DeferredShadingTarget_Color"));
+
+    return framebuffer;
 }
 
 DeferredRenderer::DeferredRenderer()
@@ -1479,13 +1489,12 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.postProcessing = MakeUnique<PostProcessing>();
         passData.postProcessing->Create();
 
-        passData.indirectPassFramebuffer = CreateDeferredIndirectPassFramebuffer(gbuffer);
-        passData.directPassFramebuffer = CreateDeferredDirectPassFramebuffer(gbuffer, passData.indirectPassFramebuffer);
+        passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
 
-        passData.indirectPass = CreateObject<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.indirectPassFramebuffer);
+        passData.indirectPass = CreateObject<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
         passData.indirectPass->Create();
 
-        passData.directPass = CreateObject<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.directPassFramebuffer);
+        passData.directPass = CreateObject<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
         passData.directPass->Create();
 
         passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
@@ -1666,7 +1675,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
         }
 
         descriptorSet->SetElement("DeferredResult", passData.combinePass->GetFinalImageView());
-        descriptorSet->SetElement("DeferredIndirectResultTexture", passData.indirectPassFramebuffer->GetAttachment(0)->GetImageView());
+        descriptorSet->SetElement("DeferredIndirectResultTexture", passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
         descriptorSet->SetElement("ReflectionProbeResultTexture", passData.reflectionsPass->GetFinalImageView());
 
@@ -1700,7 +1709,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("InTexture", passData.indirectPassFramebuffer->GetAttachment(0)->GetImageView());
+        descriptorSet->SetElement("InTexture", passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
     }
 
     DeferCreate(descriptorTable);
@@ -1792,11 +1801,8 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
     CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
 
-    passData.indirectPassFramebuffer = CreateDeferredIndirectPassFramebuffer(gbuffer);
-    CHECK_FRAMEBUFFER_SIZE(passData.indirectPassFramebuffer);
-
-    passData.directPassFramebuffer = CreateDeferredDirectPassFramebuffer(gbuffer, passData.indirectPassFramebuffer);
-    CHECK_FRAMEBUFFER_SIZE(passData.passData.directPassFramebuffer);
+    passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
+    CHECK_FRAMEBUFFER_SIZE(passData.deferredShadingFramebuffer);
 
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);
@@ -2283,6 +2289,28 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         frame->renderQueue << EndFramebuffer(opaquePassFramebuffer);
     }
 
+    // render lightmap volume objects
+    if (rpl.GetLightmapVolumes().NumCurrent())
+    {
+        for (int attachmentIndex = 0; attachmentIndex < lightmapPassFramebuffer->NumAttachments(); attachmentIndex++)
+        {
+            AttachmentBase* attachment = lightmapPassFramebuffer->GetAttachment(attachmentIndex);
+
+            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+            {
+                frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
+            }
+        }
+
+        // render objects to be lightmapped, separate from the opaque objects.
+        // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
+        frame->renderQueue << BeginFramebuffer(lightmapPassFramebuffer);
+
+        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_LIGHTMAP));
+
+        frame->renderQueue << EndFramebuffer(lightmapPassFramebuffer);
+    }
+
     if (useEnvGridIrradiance || useEnvGridRadiance)
     {
         if (useEnvGridIrradiance)
@@ -2363,34 +2391,37 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     passData.postProcessing->RenderPre(frame, rs);
 
     { // deferred lighting on opaque objects
-        passData.indirectPass->RenderToFramebuffer(frame, rs, passData.indirectPassFramebuffer);
-        passData.directPass->RenderToFramebuffer(frame, rs, passData.directPassFramebuffer);
-    }
+        // transition depth buffer for depth/stencil test
+        frame->renderQueue << InsertBarrier(
+            passData.deferredShadingFramebuffer->GetAttachment(1)->GetImage(),
+            RS_DEPTH_STENCIL);
 
-    // @TODO Move to inside of deferred lighting pass to share attachments
-    if (rpl.GetLightmapVolumes().NumCurrent())
-    {
-        for (int attachmentIndex = 0; attachmentIndex < lightmapPassFramebuffer->NumAttachments(); attachmentIndex++)
+        frame->renderQueue << BeginFramebuffer(passData.deferredShadingFramebuffer);
+
+        passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+
+        passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+
+        // apply baked lighting over lightmapped objects
+        for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
         {
-            AttachmentBase* attachment = lightmapPassFramebuffer->GetAttachment(attachmentIndex);
+            RenderSetup newRs = rs.Fork();
+            newRs.lightmapVolume = lightmapVolume;
 
-            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
-            {
-                frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
-            }
+            // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
+            // Apply lightmaps over the now shaded opaque objects.
+            passData.lightmapPass->RenderToFramebuffer(frame, newRs, passData.deferredShadingFramebuffer);
         }
 
-        // render objects to be lightmapped, separate from the opaque objects.
-        // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
-        frame->renderQueue << BeginFramebuffer(lightmapPassFramebuffer);
+        frame->renderQueue << EndFramebuffer(passData.deferredShadingFramebuffer);
 
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_LIGHTMAP));
-
-        frame->renderQueue << EndFramebuffer(lightmapPassFramebuffer);
+        frame->renderQueue << InsertBarrier(
+            passData.deferredShadingFramebuffer->GetAttachment(1)->GetImage(),
+            RS_SHADER_RESOURCE);
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
-        const GpuImageRef& srcImage = passData.indirectPassFramebuffer->GetAttachment(0)->GetImage();
+        const GpuImageRef& srcImage = passData.deferredShadingFramebuffer->GetAttachment(0)->GetImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
@@ -2423,16 +2454,6 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             frame->renderQueue << BindVertexBuffer(passData.combinePass->GetQuadMesh()->GetVertexBuffer());
             frame->renderQueue << BindIndexBuffer(passData.combinePass->GetQuadMesh()->GetIndexBuffer());
             frame->renderQueue << DrawIndexed(6);
-        }
-
-        for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
-        {
-            RenderSetup newRs = rs.Fork();
-            newRs.lightmapVolume = lightmapVolume;
-
-            // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
-            // Apply lightmaps over the now shaded opaque objects.
-            passData.lightmapPass->RenderToFramebuffer(frame, newRs, translucentPassFramebuffer);
         }
 
         // begin translucent with forward rendering

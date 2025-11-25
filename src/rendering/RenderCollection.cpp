@@ -146,8 +146,6 @@ static const Name s_nameHasAoMap = NAME("HAS_AO_MAP");
 
 } // namespace PropNames
 
-constexpr uint8 LightmapStencilMask = (1u << LightmapVolume::MaxAtlases) - 1;
-
 // Get the stencil reference value to set for a lightmapped object,
 // based on its associated atlas index.
 static constexpr inline uint8 GetLightmapStencilValue(LightmapElementId lightmapElementId)
@@ -529,13 +527,13 @@ void RenderProxyList::BeginWrite()
 {
     if (isShared)
     {
-        uint64 rwMarkerState = rwMarker.BitOr(WriteFlag, MemoryOrder::ACQUIRE);
+        uint64 rwMarkerState = AtomicBitOr(&rwMarker, WriteFlag);
         while (HYP_UNLIKELY(rwMarkerState & ReadMask))
         {
             HYP_LOG(Rendering, Debug, "Busy-waiting for read marker to be released! "
                                       "If this is occuring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
 
-            rwMarkerState = rwMarker.Get(MemoryOrder::ACQUIRE);
+            rwMarkerState = AtomicAdd(&rwMarker, 0);
             HYP_WAIT_IDLE();
         }
     }
@@ -564,26 +562,36 @@ void RenderProxyList::EndWrite()
 
     if (isShared)
     {
-        rwMarker.BitAnd(~WriteFlag, MemoryOrder::RELEASE);
+        AtomicBitAnd(&rwMarker, ~WriteFlag);
     }
 }
 
-void RenderProxyList::BeginRead()
+void RenderProxyList::BeginRead(bool* pOutSuccess)
 {
+    constexpr uint32 MaxSpinsBeforeFail = 32;
+    
     if (isShared)
     {
-        uint64 rwMarkerState;
+        int64 rwMarkerState;
+        uint32 numSpins = 0;
 
         do
         {
-            rwMarkerState = rwMarker.Increment(2, MemoryOrder::ACQUIRE);
+            rwMarkerState = AtomicAdd(&rwMarker, 2);
 
             if (HYP_UNLIKELY(rwMarkerState & WriteFlag))
             {
                 HYP_LOG(Rendering, Debug, "Waiting for write marker to be released. "
                                           "If this is occurring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
 
-                rwMarker.Decrement(2, MemoryOrder::RELAXED);
+                AtomicSub(&rwMarker, 2);
+                
+                if (pOutSuccess != nullptr && ++numSpins >= MaxSpinsBeforeFail)
+                {
+                    // fail state; stop spinning
+                    *pOutSuccess = false;
+                    return;
+                }
 
                 // spin to wait for write flag to be released
                 HYP_WAIT_IDLE();
@@ -598,6 +606,11 @@ void RenderProxyList::BeginRead()
 
     AssertDebug(state != CS_WRITING);
     state = CS_READING;
+    
+    if (pOutSuccess)
+    {
+        *pOutSuccess = true;
+    }
 }
 
 void RenderProxyList::EndRead()
@@ -606,7 +619,7 @@ void RenderProxyList::EndRead()
 
     if (isShared)
     {
-        uint64 rwMarkerState = rwMarker.Decrement(2, MemoryOrder::ACQUIRE_RELEASE);
+        int64 rwMarkerState = AtomicSub(&rwMarker, 2);
         AssertDebug(rwMarkerState & ReadMask, "Invalid state, expected read mask to be set when calling EndRead()");
 
         /// FIXME: If BeginRead() is called on other thread between the check and setting state to CS_DONE,

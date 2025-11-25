@@ -346,8 +346,7 @@ public:
     Handle<DeferredPass> indirectPass;
     Handle<DeferredPass> directPass;
 
-    FramebufferRef indirectPassFramebuffer;
-    FramebufferRef directPassFramebuffer;
+    FramebufferRef deferredShadingFramebuffer;
 
     Handle<EnvGridPass> envGridRadiancePass;
     Handle<EnvGridPass> envGridIrradiancePass;

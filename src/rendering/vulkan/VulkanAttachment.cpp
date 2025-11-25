@@ -113,7 +113,7 @@ RendererResult VulkanAttachment::Create()
         .loadOp = ToVkLoadOp(m_loadOperation),
         .storeOp = ToVkStoreOp(m_storeOperation),
         .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(m_loadOperation) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .stencilStoreOp = IsDepthAttachment() ? ToVkStoreOp(m_storeOperation) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .initialLayout = GetInitialLayout(m_loadOperation, IsDepthAttachment()),
         .finalLayout = GetFinalLayout(m_renderTargetType, IsDepthAttachment())
     };

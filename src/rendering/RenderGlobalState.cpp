@@ -1113,8 +1113,16 @@ void BeginFrame_RenderThread()
             vfd.viewData = GetViewData(vfd.view);
             vfd.viewData->AddRef();
         }
+        
+        bool readLockAcquired = false;
+        vfd.rplShared->BeginRead(&readLockAcquired);
 
-        vfd.rplShared->BeginRead();
+        if (!readLockAcquired)
+        {
+            HYP_LOG(Rendering, Warning, "Read lock for RenderProxyList could not be acquired, may result in invalid resource bindings or stale pointers!!!");
+            
+            continue;
+        }
 
 #ifdef HYP_DEBUG_MODE
         vfd.rplShared->debugIsSynced = true;

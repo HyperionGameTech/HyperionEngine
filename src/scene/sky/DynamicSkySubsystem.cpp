@@ -38,6 +38,7 @@
 namespace hyperion {
 
 static constexpr Vec2u DefaultSkyCubemapDimensions = Vec2u { 128, 128 };
+static constexpr LockstepGameCounter::TickUnit DynamicSkyUpdateTimer = LockstepGameCounter::TickUnit(1.0f); // update every second
 
 DynamicSkySubsystem::DynamicSkySubsystem()
     : DynamicSkySubsystem(DefaultSkyCubemapDimensions)
@@ -45,7 +46,8 @@ DynamicSkySubsystem::DynamicSkySubsystem()
 }
 
 DynamicSkySubsystem::DynamicSkySubsystem(Vec2u dimensions)
-    : m_dimensions(dimensions)
+    : m_dimensions(dimensions),
+      m_updateTimer { DynamicSkyUpdateTimer }
 {
 }
 
@@ -127,6 +129,8 @@ void DynamicSkySubsystem::Init()
         InitObject(m_envProbe);
         m_visScene->GetRoot()->AddChild(m_envProbe);
 
+        m_envProbe->SetReceivesUpdate(false); // we will update manually, no automatic updates
+
         m_envProbe->GetView()->AddScene(m_renderScene);
 
         Handle<Material> material = CreateObject<Material>(NAME("SkyboxMaterial"), materialAttributes);
@@ -164,7 +168,7 @@ void DynamicSkySubsystem::OnSceneAttached(const Handle<Scene>& scene)
     }
 
     Assert(m_skyboxEntity);
-    //scene->GetRoot()->AddChild(m_skyboxEntity);
+    // scene->GetRoot()->AddChild(m_skyboxEntity);
 }
 
 void DynamicSkySubsystem::OnSceneDetached(Scene* scene)
@@ -174,7 +178,7 @@ void DynamicSkySubsystem::OnSceneDetached(Scene* scene)
         return;
     }
 
-    //scene->GetRoot()->RemoveChild(m_skyboxEntity);
+    // scene->GetRoot()->RemoveChild(m_skyboxEntity);
 }
 
 void DynamicSkySubsystem::Update(float delta)
@@ -184,7 +188,12 @@ void DynamicSkySubsystem::Update(float delta)
         return;
     }
 
-    m_envProbe->Update(delta);
+    if (!m_updateTimer.Waiting())
+    {
+        m_updateTimer.NextTick();
+
+        m_envProbe->Update(delta);
+    }
 }
 
 } // namespace hyperion

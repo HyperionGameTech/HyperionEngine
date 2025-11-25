@@ -231,7 +231,7 @@ void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const 
         switch (shadingType)
         {
         case LightmapShadingType::FULL: // fallthrough
-        case LightmapShadingType::RADIANCE: 
+        case LightmapShadingType::RADIANCE:
             texel.radiance += Vec4f(hit.color, 1.0f);
             break;
         case LightmapShadingType::IRRADIANCE:
@@ -255,13 +255,6 @@ void LightmapJobBase::Process()
     {
         return;
     }
-
-    View* view = m_params.view;
-    Assert(view != nullptr);
-
-    view->UpdateViewport();
-    view->UpdateVisibility();
-    view->CollectSync();
 
     if (numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) >= MaxConcurrentRenderingTasksPerJob)
     {
@@ -403,7 +396,7 @@ void LightmapJob<LightmapVolume>::Start_Internal()
         if (!m_params.subElementsView)
         {
             HYP_LOG(Lightmap, Warning, "Lightmap job {}: No sub-elements to process!", m_uuid);
-            
+
             m_lightmapDataBuilt = true;
 
             return;

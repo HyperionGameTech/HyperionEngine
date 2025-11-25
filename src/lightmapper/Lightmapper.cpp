@@ -415,8 +415,7 @@ void LightmapperBase::Build()
             meshComponent.mesh,
             meshComponent.material,
             transformComponent.transform,
-            boundingBoxComponent.worldAabb
-        });
+            boundingBoxComponent.worldAabb });
     }
 
     Build_Internal();
@@ -462,6 +461,10 @@ void LightmapperBase::Update(float delta)
     HYP_SCOPE;
 
     uint32 numJobs = m_numJobs.Get(MemoryOrder::ACQUIRE);
+
+//    m_view->UpdateViewport();
+//    m_view->UpdateVisibility();
+//    m_view->CollectSync();
 
     Mutex::Guard guard(m_queueMutex);
 
@@ -661,7 +664,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
                 entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
             }
 
-            entityManager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+            entity->SetNeedsRenderProxyUpdate();
         };
 
         if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))

@@ -198,4 +198,6 @@ private:
     Array<LightmapVolumeAtlas, DynamicAllocator> m_atlases;
 };
 
+constexpr uint8 LightmapStencilMask = (1u << LightmapVolume::MaxAtlases) - 1;
+
 } // namespace hyperion

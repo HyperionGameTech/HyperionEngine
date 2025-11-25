@@ -289,8 +289,7 @@ void EnvProbe::CreateView()
         .flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
             | ViewFlags::NO_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_PROBES
-            | ViewFlags::SKIP_ENV_GRIDS
-            | ViewFlags::NOT_MULTI_BUFFERED,
+            | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = m_dimensions, .position = Vec2i::Zero() },
         .outputTargetDesc = outputTargetDesc,
         .scenes = {},
