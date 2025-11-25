@@ -16,7 +16,11 @@ struct GpuLightmapperReadyNotification;
 class HYP_API LightmapRenderer_GpuPathTracing : public ILightmapRenderer
 {
 public:
-    LightmapRenderer_GpuPathTracing(LightmapperBase* lightmapper, const Handle<Scene>& scene, LightmapShadingType shadingType);
+    LightmapRenderer_GpuPathTracing(
+        LightmapperBase* lightmapper,
+        const Handle<Scene>& scene,
+        LightmapShadingType shadingType,
+        uint32 maxRaysPerFrame);
     LightmapRenderer_GpuPathTracing(const LightmapRenderer_GpuPathTracing& other) = delete;
     LightmapRenderer_GpuPathTracing& operator=(const LightmapRenderer_GpuPathTracing& other) = delete;
     LightmapRenderer_GpuPathTracing(LightmapRenderer_GpuPathTracing&& other) noexcept = delete;

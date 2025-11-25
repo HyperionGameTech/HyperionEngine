@@ -117,7 +117,8 @@ struct SetGpuLightmapperReady : RenderCommand
 LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
     LightmapperBase* lightmapper,
     const Handle<Scene>& scene,
-    LightmapShadingType shadingType)
+    LightmapShadingType shadingType,
+    uint32 maxRaysPerFrame)
     : ILightmapRenderer(lightmapper),
       m_scene(scene),
       m_shadingType(shadingType)
@@ -129,12 +130,12 @@ LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
 
     for (GpuBufferRef& raysBuffer : m_raysBuffers)
     {
-        raysBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * (lightmapper->GetConfig().maxRaysPerFrame), alignof(Vec4f));
+        raysBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * maxRaysPerFrame, alignof(Vec4f));
         raysBuffer->SetRequireCpuAccessible(true);
     }
 
     // ATOMIC_COUNTER type allows readback to cpu.
-    m_hitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * (lightmapper->GetConfig().maxRaysPerFrame), alignof(Vec4f));
+    m_hitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * maxRaysPerFrame, alignof(Vec4f));
 
     m_readyNotification = MakeRefCountedPtr<GpuLightmapperReadyNotification>();
 }

@@ -316,7 +316,7 @@ protected:
     }
 
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
-    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType);
+    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType, uint32 maxRaysPerFrame);
 
     /// ===== CPU tracing only =====
     void BuildResourceCache();
@@ -348,14 +348,12 @@ protected:
     {
         Mutex::Guard guard(m_queueMutex);
 
-        m_queue.Push(std::move(job));
+        m_queue.PushBack(std::move(job));
 
         m_numJobs.Increment(1, MemoryOrder::RELEASE);
     }
 
-    Array<UniquePtr<ILightmapRenderer>> m_lightmapRenderers;
-
-    Queue<UniquePtr<LightmapJobBase>> m_queue;
+    Array<UniquePtr<LightmapJobBase>> m_queue;
     Mutex m_queueMutex;
     AtomicVar<uint32> m_numJobs;
 };

@@ -106,9 +106,7 @@ struct LightmapRender : RenderCommand
                 Array<LightmapHit> hitsBuffer;
                 hitsBuffer.Resize(previousRays.Size());
 
-                AssertDebug(job->GetParams().renderers != nullptr);
-
-                for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
+                for (const UniquePtr<ILightmapRenderer>& lightmapRenderer : job->GetParams().renderers)
                 {
                     AssertDebug(lightmapRenderer != nullptr);
 
@@ -123,9 +121,7 @@ struct LightmapRender : RenderCommand
 
         if (rays.Any())
         {
-            AssertDebug(job->GetParams().renderers != nullptr);
-
-            for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
+            for (const UniquePtr<ILightmapRenderer>& lightmapRenderer : job->GetParams().renderers)
             {
                 AssertDebug(lightmapRenderer != nullptr);
 
@@ -243,7 +239,7 @@ void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const 
     }
 }
 
-void LightmapJobBase::Process()
+uint32 LightmapJobBase::Process(uint32 maxRays)
 {
     Assert(IsRunning());
     Assert(!m_result.HasError(), "Unhandled error in lightmap job: {}", *m_result.GetError().GetMessage());
@@ -253,14 +249,14 @@ void LightmapJobBase::Process()
 
     if (!isReadyToProcess)
     {
-        return;
+        return 0;
     }
 
     if (numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) >= MaxConcurrentRenderingTasksPerJob)
     {
         // Wait for current rendering tasks to complete before enqueueing new ones.
 
-        return;
+        return 0;
     }
 
     { // cpu tracing only
@@ -276,7 +272,7 @@ void LightmapJobBase::Process()
                 {
                     // Skip this call
 
-                    return;
+                    return 0;
                 }
             }
 
@@ -312,12 +308,10 @@ void LightmapJobBase::Process()
 
         Stop();
 
-        return;
+        return 0;
     }
 
-    AssertDebug(m_params.renderers != nullptr);
-    Array<UniquePtr<ILightmapRenderer>>& lightmapRenderers = *m_params.renderers;
-
+    Array<UniquePtr<ILightmapRenderer>>& lightmapRenderers = m_params.renderers;
     AssertDebug(lightmapRenderers[0] != nullptr);
 
     // @TODO: Radiance map won't need as many samples as irradiance due to having less variance in directions,
@@ -331,16 +325,16 @@ void LightmapJobBase::Process()
         {
             HYP_LOG(Lightmap, Info, "Waiting for lightmap renderers to be ready...");
 
-            return;
+            return 0;
         }
     }
 
-    const SizeType maxRays = MathUtil::Min(lightmapRenderers[0]->MaxRaysPerFrame(), m_params.config->maxRaysPerFrame);
+    const SizeType calculatedMaxRays = MathUtil::Min(maxRays, lightmapRenderers[0]->MaxRaysPerFrame(), m_texelIndices.Size() * m_params.config->numSamples);
 
     Array<LightmapRay> rays;
-    rays.Reserve(maxRays);
+    rays.Reserve(calculatedMaxRays);
 
-    GatherRays(maxRays, rays);
+    GatherRays(calculatedMaxRays, rays);
 
     for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
     {
@@ -362,7 +356,11 @@ void LightmapJobBase::Process()
 
     const uint32 rayOffset = uint32(m_texelIndex % (m_texelIndices.Size() * m_params.config->numSamples));
 
+    const uint32 numRays = uint32(rays.Size());
+
     PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), rayOffset);
+
+    return numRays;
 }
 
 #pragma endregion LightmapJobBase

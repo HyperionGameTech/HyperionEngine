@@ -45,7 +45,7 @@ struct LightmapJobParams
     Span<LightmapSubElement> subElementsView;
     HashMap<Handle<Entity>, LightmapSubElement*>* subElementsByEntity;
 
-    Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
+    Array<UniquePtr<ILightmapRenderer>> renderers;
 };
 
 class HYP_API LightmapJobBase
@@ -105,13 +105,13 @@ public:
         m_previousFrameRays = rays;
     }
 
-    HYP_FORCE_INLINE const Result& GetResult() const
+    const Result& GetResult() const
     {
         return m_result;
     }
 
     void Start();
-    void Process();
+    uint32 Process(uint32 maxRays = ~0u);
 
     void AddTask(TaskBatch* taskBatch);
 

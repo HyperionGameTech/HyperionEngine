@@ -75,9 +75,7 @@
 
 namespace hyperion {
 
-#pragma region Render commands
-
-#pragma endregion Render commands
+static constexpr uint32 TileSize = 32;
 
 #pragma region LightmapperConfig
 
@@ -109,8 +107,6 @@ LightmapperBase::LightmapperBase(LightmapperConfig&& config, const Handle<Scene>
 
 LightmapperBase::~LightmapperBase()
 {
-    m_lightmapRenderers = {};
-
     m_queue.Clear();
 
     if (m_view != nullptr)
@@ -185,6 +181,11 @@ void LightmapperBase::Initialize()
     Initialize_Internal();
 
     Build();
+}
+
+LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
+{
+    Array<UniquePtr<ILightmapRenderer>> lightmapRenderers;
 
     const uint32 shadingTypesMask = GetShadingTypesMask();
 
@@ -216,8 +217,8 @@ void LightmapperBase::Initialize()
             break;
         }
 
-        UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
-        lightmapRenderer = CreateRenderer(LightmapShadingType(i));
+        UniquePtr<ILightmapRenderer>& lightmapRenderer = lightmapRenderers.EmplaceBack();
+        lightmapRenderer = CreateRenderer(LightmapShadingType(i), TileSize * TileSize * m_config.numSamples);
 
         if (!lightmapRenderer)
         {
@@ -227,29 +228,26 @@ void LightmapperBase::Initialize()
         lightmapRenderer->Create();
     }
 
-    Assert(m_lightmapRenderers.Any());
-}
+    Assert(lightmapRenderers.Any());
 
-LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
-{
     LightmapJobParams jobParams {
         &m_config,
         m_scene,
         m_view,
         m_subElements.ToSpan().Slice(startIndex, endIndex - startIndex),
         &m_subElementsByEntity,
-        &m_lightmapRenderers
+        std::move(lightmapRenderers)
     };
 
     return jobParams;
 }
 
-UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType shadingType)
+UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType shadingType, uint32 maxRaysPerFrame)
 {
     switch (m_config.traceMode)
     {
     case LightmapTraceMode::GPU_PATH_TRACING:
-        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType);
+        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType, maxRaysPerFrame);
     case LightmapTraceMode::CPU_PATH_TRACING:
         return MakeUnique<LightmapRenderer_CpuPathTracing>(this, m_accelerationStructure.Get(), m_threadPool, m_scene, shadingType);
     default:
@@ -468,21 +466,36 @@ void LightmapperBase::Update(float delta)
 
     Mutex::Guard guard(m_queueMutex);
 
-    Assert(!m_queue.Empty());
-    LightmapJobBase* job = m_queue.Front().Get();
-
-    // Start job if not started
-    if (!job->IsRunning())
+    for (auto it = m_queue.Begin(); it != m_queue.End() && numRaysProcessed < IdealRaysPerFrame;)
     {
-        job->Start();
+        LightmapJobBase* job = it->Get();
+
+        if (job->IsRunning())
+        {
+            numRaysProcessed += job->Process(MathUtil::Max(0, int64(IdealRaysPerFrame) - int64(numRaysProcessed)));
+        }
+        else if (numRaysProcessed + (job->GetTexelIndices().Size() * m_config.numSamples) <= IdealRaysPerFrame)
+        {
+            job->Start();
+
+            AssertDebug(job->IsRunning());
+
+            numRaysProcessed += job->Process(MathUtil::Max(0, int64(IdealRaysPerFrame) - int64(numRaysProcessed)));
+        }
+
+        if (job->IsCompleted())
+        {
+            HandleCompletedJob(job);
+
+            it = m_queue.Erase(it);
+
+            continue;
+        }
+
+        ++it;
     }
 
-    job->Process();
-
-    if (job->IsCompleted())
-    {
-        HandleCompletedJob(job);
-    }
+    HYP_LOG(Lightmap, Debug, "Processing {} primary rays this frame", numRaysProcessed);
 }
 
 void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
@@ -491,7 +504,6 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
     AssertOnThread(g_gameThread);
 
     HYP_DEFER({
-        m_queue.Pop();
         m_numJobs.Decrement(1, MemoryOrder::RELEASE);
     });
 
@@ -585,7 +597,6 @@ void Lightmapper<LightmapVolume>::Build()
     m_lightmapElementId = lightmapElement.id;
     AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
-    const uint32 tileSize = 64;
     const uint32 width = m_lightmapData.width;
     const uint32 height = m_lightmapData.height;
 
@@ -604,7 +615,7 @@ void Lightmapper<LightmapVolume>::Build()
         const uint32 x = i % width;
         const uint32 y = i / width;
 
-        const Vec2i tileCoord { int(x / tileSize), int(y / tileSize) };
+        const Vec2i tileCoord { int(x / TileSize), int(y / TileSize) };
         tileBuckets[tileCoord].PushBack(i);
     }
 
