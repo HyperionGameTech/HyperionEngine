@@ -224,7 +224,7 @@ void UIMenuItem::UpdateDropDownMenu()
         }
     }
 
-    m_dropDownMenu->UpdateSize();
+    m_dropDownMenu->SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
 }
 
 void UIMenuItem::UpdateSubItemsDropDownMenu()
