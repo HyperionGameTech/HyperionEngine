@@ -26,7 +26,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 UIMenuItem::UIMenuItem()
 {
-    SetBorderRadius(0);
+    SetBorderRadius(5);
     SetPadding({ 5, 2 });
     SetBackgroundColor(Color::Transparent());
 
@@ -76,8 +76,9 @@ void UIMenuItem::Init()
     Handle<UIPanel> dropDownMenu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDown", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
     dropDownMenu->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     dropDownMenu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
+    dropDownMenu->SetPadding({ 2, 2 });
     dropDownMenu->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
-    dropDownMenu->SetBackgroundColor(Vec4f { 0.0f, 0.0f, 0.0f, 0.0f });
+    dropDownMenu->SetBackgroundColor(Vec4f { 0.1f, 0.1f, 0.1f, 0.95f });
     m_dropDownMenu = dropDownMenu;
 }
 
@@ -175,6 +176,8 @@ void UIMenuItem::SetIconTexture(const Handle<Texture>& texture)
 
         m_textElement->SetPosition(Vec2i { 0, 0 });
     }
+
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, false);
 }
 
 void UIMenuItem::SetText(const String& text)
@@ -186,7 +189,7 @@ void UIMenuItem::SetText(const String& text)
         m_textElement->SetText(m_text);
     }
 
-    UpdateSize();
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, false);
 }
 
 void UIMenuItem::UpdateDropDownMenu()
@@ -261,9 +264,10 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
     m_subItemsDropDownMenu->AddChildUIObject(selectedSubItem->GetDropDownMenuElement());
     m_subItemsDropDownMenu->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 300, UIObjectSize::PIXEL }));
     m_subItemsDropDownMenu->SetPosition(Vec2i { int(selectedSubItem->GetAbsolutePosition().x) + m_dropDownMenu->GetActualSize().x, int(selectedSubItem->GetAbsolutePosition().y) });
-    m_subItemsDropDownMenu->SetIsVisible(true);
     m_subItemsDropDownMenu->SetDepth(100);
     m_subItemsDropDownMenu->Focus();
+
+    m_subItemsDropDownMenu->SetIsVisible(true);
 
     m_subItemsDropDownMenu->OnClick.RemoveAllDetached();
     m_subItemsDropDownMenu->OnClick
@@ -377,7 +381,6 @@ UIMenuBar::UIMenuBar()
     : m_dropDirection(UIMenuBarDropDirection::DOWN),
       m_selectedMenuItemIndex(~0u)
 {
-    SetBorderRadius(0);
     SetPadding({ 5, 2 });
 }
 
@@ -395,6 +398,7 @@ void UIMenuBar::Init()
     m_container->SetOriginAlignment(m_dropDirection == UIMenuBarDropDirection::DOWN ? UIObjectAlignment::TOP_LEFT : UIObjectAlignment::BOTTOM_LEFT);
     m_container->SetPadding({ 1, 1 });
     m_container->SetDepth(100);
+    m_container->SetBackgroundColor(Vec4f { 0.05f, 0.12f, 0.2f, 1.0f });
 
     // @TODO: OnRemoved_Internal() , remove m_container from stage
 
@@ -536,8 +540,10 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 
         m_container->SetSize(UIObjectSize({ dropDownMenuElement->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
         m_container->SetPosition(GetDropDownMenuPosition(menuItem));
-        m_container->SetIsVisible(true);
+        m_container->UpdateSize();
         m_container->Focus();
+
+        m_container->SetIsVisible(true);
     }
 }
 

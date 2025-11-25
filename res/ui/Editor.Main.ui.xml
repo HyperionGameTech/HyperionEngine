@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <Panel name="Main_Panel" position="0 0" size="100%" textSize="12">
     <Script class="EditorMain" />
+    
     <MenuBar name="Main_MenuBar" position="0 0" size="100% 25" originAlignment="topleft" parentAlignment="topleft" padding="5 2" depth="1">
         <MenuItem name="File_MenuItem" text="File" size="auto 100%">
             <MenuItem name="New_MenuItem" text="New Project..."></MenuItem>
@@ -12,11 +13,17 @@
             <MenuItem name="Undo_MenuItem" text="Undo" OnClick="UndoClicked" OnComputedVisibilityChange="UpdateUndoMenuItem"></MenuItem>
             <MenuItem name="Redo_MenuItem" text="Redo" OnClick="RedoClicked" OnComputedVisibilityChange="UpdateRedoMenuItem"></MenuItem>
         </MenuItem>
+
+        <MenuItem name="Build_MenuItem" text="Build" size="auto 100%">
+            <MenuItem name="Generate_Lightmaps_Button" OnClick="RebuildLightmaps">
+                Rebuild Lightmaps
+            </MenuItem>
+        </MenuItem>
     </MenuBar>
 
-    <Panel name="Main_Toolbar" position="0 25" size="100% 40">
-        <MenuBar name="Tools_MenuBar" position="0 0" size="auto 100%" depth="10">
-            <MenuItem name="Add_MenuItem" text="Add" size="auto 100%" backgroundColor="#000000" borderRadius="5">
+    <Panel name="Main_Toolbar" position="0 25" size="100% 30" padding="5 0">
+        <MenuBar name="Tools_MenuBar" position="0 0" size="auto 100%" padding="5 5" borderRadius="5" backgroundColor="#101012">
+            <MenuItem name="Add_MenuItem" text="Add" size="auto 100%">
                 <MenuItem name="Node_MenuItem" text="Empty Node" OnClick="AddNode"></MenuItem>
                 <MenuItem name="Node_MenuItem" text="Basic Entity" OnClick="AddEntity"></MenuItem>
                 <MenuItem name="Light_MenuItem" text="Light">
@@ -30,17 +37,11 @@
                 <MenuItem name="ParticleVolume" text="Particle Volume" OnClick="AddParticleVolume"></MenuItem>
             </MenuItem>
 
-            <MenuItem name="Build_MenuItem" size="auto 100%" text="Build" backgroundColor="#000000" borderRadius="5">
-                <MenuItem name="Generate_Lightmaps_Button" OnClick="RebuildLightmaps">
-                    Rebuild Lightmaps
-                </MenuItem>
+            <MenuItem name="Simulate_Button" size="auto 100%" OnClick="SimulateClicked">
+                Play/Stop
             </MenuItem>
 
-            <MenuItem name="Simulate_Button" size="auto 100%" OnClick="SimulateClicked" backgroundColor="#000000" borderRadius="5">
-                Simulate
-            </MenuItem>
-
-            <MenuItem name="SetActiveScene_MenuItem" text="Active Scene: None" enabled="false" size="auto 100%" backgroundColor="#000000" borderRadius="5">
+            <MenuItem name="SetActiveScene_MenuItem" text="Active Scene: None" enabled="false" size="auto 100%">
                 
             </MenuItem>
         </MenuBar>

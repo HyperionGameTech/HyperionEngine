@@ -23,7 +23,7 @@ UITextbox::UITextbox()
       m_characterIndex(0),
       clearOnSubmit(false)
 {
-    SetBorderRadius(4);
+    SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::ALL);
     SetPadding({ 5, 2 });
     SetTextColor(Color::Black());

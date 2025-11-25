@@ -217,9 +217,9 @@ UIText::UIText()
             {
                 if (GetComputedVisibility())
                 {
-                    SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, false);
-                    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
-                    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
+                    UpdateSize(false);
+                    UpdateMaterial(false);
+                    UpdateMeshData(false);
                 }
 
                 return UIEventHandlerResult::OK;
@@ -229,7 +229,7 @@ UIText::UIText()
     OnEnabled
         .Bind([this]()
             {
-                SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
+                UpdateMaterial(false);
 
                 return UIEventHandlerResult::OK;
             })
@@ -238,7 +238,7 @@ UIText::UIText()
     OnDisabled
         .Bind([this]()
             {
-                SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
+                UpdateMaterial(false);
 
                 return UIEventHandlerResult::OK;
             })
@@ -267,10 +267,9 @@ void UIText::SetText(const String& text)
         return;
     }
 
-    UpdateSize();
-
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
+    UpdateSize(false);
+    UpdateMaterial(false);
+    UpdateMeshData(false);
 }
 
 const Handle<FontAtlas>& UIText::GetFontAtlasOrDefault() const
@@ -300,10 +299,9 @@ void UIText::SetFontAtlas(const Handle<FontAtlas>& fontAtlas)
         return;
     }
 
-    UpdateSize();
-
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
+    UpdateSize(false);
+    UpdateMaterial(false);
+    UpdateMeshData(false);
 }
 
 Vec2f UIText::GetCharacterOffset(int characterIndex) const
@@ -421,7 +419,7 @@ void UIText::UpdateMeshData_Internal()
     meshComponent.instanceData.SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
     meshComponent.instanceData.SetBufferData(4, instanceProperties.Data(), instanceProperties.Size());
 
-    GetScene()->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
+    GetEntity()->SetNeedsRenderProxyUpdate();
 }
 
 void UIText::UpdateMaterial_Internal()
@@ -522,9 +520,9 @@ void UIText::OnFontAtlasUpdate_Internal()
 
     UIObject::OnFontAtlasUpdate_Internal();
 
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, false);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
+    UpdateSize(false);
+    UpdateMaterial(false);
+    UpdateMeshData(false);
 }
 
 void UIText::OnTextSizeUpdate_Internal()
@@ -533,9 +531,9 @@ void UIText::OnTextSizeUpdate_Internal()
 
     UIObject::OnTextSizeUpdate_Internal();
 
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, false);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
+    UpdateSize(false);
+    UpdateMaterial(false);
+    UpdateMeshData(false);
 }
 
 Vec2i UIText::GetParentBounds() const

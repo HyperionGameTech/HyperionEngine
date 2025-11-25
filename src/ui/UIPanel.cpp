@@ -19,8 +19,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 UIPanel::UIPanel()
     : m_isScrollEnabled(SA_ALL)
 {
-    SetBorderRadius(0);
-    SetBackgroundColor(Color(0.025f, 0.025f, 0.025f, 1.0f));
+    SetBackgroundColor(Color(0.01f, 0.01f, 0.012f, 1.0f));
     SetTextColor(Color(0xFFFFFFFFu));
 
     m_onScrollHandler = OnScroll.Bind([this](const MouseEvent& eventData) -> UIEventHandlerResult

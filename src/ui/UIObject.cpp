@@ -117,8 +117,8 @@ UIObject::UIObject(const ThreadId& ownerThreadId)
       m_depth(0),
       m_textSize(-1.0f),
       m_computedTextSize(-1.0f),
-      m_borderRadius(5),
-      m_borderFlags(UIObjectBorderFlags::NONE),
+      m_borderRadius(0),
+      m_borderFlags(UIObjectBorderFlags::ALL),
       m_focusState(UIObjectFocusState::NONE),
       m_isVisible(true),
       m_computedVisibility(false),
@@ -329,7 +329,6 @@ void UIObject::SetDeferredUpdate(EnumFlags<UIObjectUpdateType> updateType, bool 
         updateType |= updateType << 16;
     }
 
-    // Try to use selective update system if available
     UIStage* rootStage = GetStage();
     while (rootStage && rootStage->GetStage())
     {
@@ -342,7 +341,6 @@ void UIObject::SetDeferredUpdate(EnumFlags<UIObjectUpdateType> updateType, bool 
     }
     else
     {
-        // Fallback to original system
         m_deferredUpdates |= updateType;
     }
 }
@@ -2448,7 +2446,7 @@ void UIObject::UpdateMeshData_Internal()
     meshComponent->instanceData.SetBufferData(3, &instanceSizes, 1);
     meshComponent->instanceData.SetBufferData(4, &instanceProperties, 1);
 
-    scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
+    GetEntity()->SetNeedsRenderProxyUpdate();
 }
 
 void UIObject::UpdateMaterial(bool updateChildren)
@@ -2510,7 +2508,7 @@ void UIObject::UpdateMaterial_Internal()
         SafeDelete(std::move(currentMaterial));
         meshComponent->material = std::move(newMaterial);
 
-        scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
+        GetEntity()->SetNeedsRenderProxyUpdate();
 
         return;
     }
@@ -2530,7 +2528,7 @@ void UIObject::UpdateMaterial_Internal()
             SafeDelete(std::move(currentMaterial));
             meshComponent->material = CreateMaterial();
 
-            scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
+            GetEntity()->SetNeedsRenderProxyUpdate();
 
             // return, new material would have the updated parameters and textures
             // so we don't need to set them again

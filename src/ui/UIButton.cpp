@@ -16,7 +16,7 @@ namespace hyperion {
 
 UIButton::UIButton()
 {
-    SetBorderRadius(5);
+    SetBorderRadius(8);
     SetBorderFlags(UIObjectBorderFlags::ALL);
     SetPadding({ 10, 5 });
     SetBackgroundColor(Vec4f { 0.25f, 0.25f, 0.25f, 1.0f });

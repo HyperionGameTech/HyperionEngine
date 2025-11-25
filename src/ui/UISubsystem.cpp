@@ -179,7 +179,7 @@ void UISubsystem::Init()
     };
 
     ViewDesc viewDesc {
-        .flags = ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS),
+        .flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS)),
         .viewport = Viewport { .extent = windowSize2, .position = Vec2i::Zero() },
         .outputTargetDesc = outputTargetDesc,
         .scenes = { m_uiStage->GetScene() },
@@ -243,10 +243,10 @@ void UISubsystem::Update(float delta)
 
     m_uiStage->CollectObjects([&rpl](UIObject* uiObject)
         {
-            Assert(uiObject != nullptr);
+            AssertDebug(uiObject != nullptr);
 
             const Handle<Entity>& entity = uiObject->GetEntity();
-            Assert(entity != nullptr);
+            AssertDebug(entity != nullptr);
 
             MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
 
