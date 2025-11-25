@@ -19,7 +19,7 @@ layout(location = 2) in vec2 v_texcoord0;
 layout(location = 3) in vec4 v_color;
 
 layout(location = 0) out vec4 gbuffer_albedo;
-layout(location = 2) out uvec2 gbuffer_material;
+layout(location = 2) out uvec4 gbuffer_material;
 
 HYP_DESCRIPTOR_SRV(ParticleDescriptorSet, ParticleTexture) uniform texture2D albedo_texture;
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler texture_sampler;
@@ -33,13 +33,10 @@ void main()
     vec4 color = Texture2D(texture_sampler, albedo_texture, v_texcoord0);
     //color *= v_color;
 
-    GBufferMaterialParams materialParams;
-    materialParams.roughness = 0.0;
-    materialParams.metalness = 0.0;
-    materialParams.transmission = 0.0;
-    materialParams.ao = 1.0;
-    materialParams.mask = OBJECT_MASK_TRANSLUCENT | OBJECT_MASK_PARTICLE;
-
     gbuffer_albedo = color;
-    gbuffer_material = GBufferPackMaterialParams(materialParams);
+
+    gbuffer_material.x = OBJECT_MASK_TRANSLUCENT | OBJECT_MASK_PARTICLE;
+    gbuffer_material.y = 0u;
+    gbuffer_material.z = 0u;
+    gbuffer_material.w = 0u;
 }

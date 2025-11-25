@@ -222,17 +222,18 @@ void main(void)
 
     const vec2 texcoord = saturate((vec2(coord) + 0.5) / (vec2(ssr_params.dimension.xy)));
 
-    uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
+    const uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
+    const vec4 normalSample = Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord);
 
     GBufferMaterialParams materialParams;
-    GBufferUnpackMaterialParams(materialData, materialParams);
+    GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
     const float roughness = materialParams.roughness;
 
     const float perceptual_roughness = sqrt(roughness);
     const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
 
-    const vec3 N = DecodeNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    const vec3 N = DecodeNormal(normalSample);
     const vec3 view_space_normal = normalize((view * vec4(N, 0.0)).xyz);
 
     vec4 accum_result = vec4(0.0);

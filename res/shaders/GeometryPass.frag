@@ -325,7 +325,13 @@ void main()
 
     gbuffer_normals = GBufferPackNormal(N);
 
-    gbuffer_material.xy = GBufferPackMaterialParams(materialParams);
+    float roughnessAndMetalPacked;
+    uint maskPacked;
+    GBufferPackMaterialParams(materialParams, roughnessAndMetalPacked, maskPacked);
+    
+    gbuffer_normals.x = roughnessAndMetalPacked;
+    gbuffer_material.x = maskPacked;
+    gbuffer_material.y = 0u;
 #ifdef SHADING_TYPE_LIGHTMAPPED
     gbuffer_material.z = floatBitsToUint(v_texcoord1.x);
     gbuffer_material.w = floatBitsToUint(v_texcoord1.y);

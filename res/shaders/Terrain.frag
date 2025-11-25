@@ -184,14 +184,6 @@ void main()
 
     vec2 velocity = vec2(((v_position_ndc.xy / v_position_ndc.w) * 0.5 + 0.5) - ((v_previous_position_ndc.xy / v_previous_position_ndc.w) * 0.5 + 0.5));
 
-    GBufferMaterialParams materialParams;
-    materialParams.roughness = roughness;
-    materialParams.metalness = metalness;
-    materialParams.transmission = transmission;
-    materialParams.ao = ao;
-    materialParams.mask = GET_OBJECT_BUCKET(entity) | OBJECT_MASK_TERRAIN;
-
     gbuffer_normals = GBufferPackNormal(normal);
-    gbuffer_material = GBufferPackMaterialParams(materialParams);
     gbuffer_velocity = velocity;
 }

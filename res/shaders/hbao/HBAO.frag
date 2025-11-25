@@ -234,13 +234,6 @@ void TraceAO_New(vec2 uv, out float occlusion)
                 vec4 new_color_0 = Texture2D(sampler_linear, gbuffer_albedo_texture, new_uv.xy);
                 vec4 new_color_1 = Texture2D(sampler_linear, gbuffer_albedo_texture, new_uv.zw);
 
-                const vec4 material_0 = Texture2D(sampler_nearest, gbuffer_material_texture, new_uv.xy);
-                const vec4 material_1 = Texture2D(sampler_nearest, gbuffer_material_texture, new_uv.zw);
-
-                // metallic surfaces do not reflect diffuse light
-                new_color_0 *= (1.0 - material_0.g);
-                new_color_1 *= (1.0 - material_1.g);
-
                 slice_light[0] += vec4(new_color_0) * total_impact.x;
                 slice_light[1] += vec4(new_color_1) * total_impact.y;
 #endif

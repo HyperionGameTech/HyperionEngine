@@ -172,10 +172,11 @@ void main(void)
     const uvec2 coord = uvec2(gl_FragCoord.xy);
     const vec2 texcoord = v_texcoord;
 
-    uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
+    const uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
+    const vec4 normalSample = Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord);
 
     GBufferMaterialParams materialParams;
-    GBufferUnpackMaterialParams(materialData, materialParams);
+    GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
     const float roughness = materialParams.roughness;
 
@@ -187,7 +188,7 @@ void main(void)
         return;
     }
 
-    vec3 N =  GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    vec3 N =  GBufferUnpackNormal(normalSample);
 
     vec3 P = ReconstructViewSpacePositionFromDepth(inverse_proj, texcoord, depth).xyz;
     vec3 V = normalize(vec3(0.0) - P);

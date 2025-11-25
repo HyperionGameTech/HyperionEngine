@@ -84,7 +84,9 @@ void main()
     uvec2 pixel_coord = uvec2(texcoord * vec2(screen_resolution) - 0.5);
 
     const float depth = Texture2DLod(sampler_nearest, gbuffer_depth_texture, texcoord, 0.0).r;
-    const vec3 N =  GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    const vec4 normalSample = Texture2DLod(sampler_nearest, gbuffer_normals_texture, texcoord, 0.0);
+
+    const vec3 N =  GBufferUnpackNormal(normalSample);
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), texcoord, depth).xyz;
     const vec3 V = normalize(camera.position.xyz - P);
     const vec3 R = normalize(reflect(-V, N));
@@ -92,7 +94,7 @@ void main()
     uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
 
     GBufferMaterialParams materialParams;
-    GBufferUnpackMaterialParams(materialData, materialParams);
+    GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
     float roughness = materialParams.roughness;
 

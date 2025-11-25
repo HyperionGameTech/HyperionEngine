@@ -22,7 +22,7 @@ layout(location = 18) in flat uint v_env_probe_type;
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
-layout(location = 2) out uvec2 gbuffer_material;
+layout(location = 2) out uvec4 gbuffer_material;
 layout(location = 3) out vec2 gbuffer_velocity;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -150,5 +150,16 @@ void main()
     materialParams.mask = GET_OBJECT_BUCKET(entity);
 #endif
 
-    gbuffer_material = GBufferPackMaterialParams(materialParams);
+    float roughnessAndMetalPacked;
+    uint maskPacked;
+    GBufferPackMaterialParams(materialParams, roughnessAndMetalPacked, maskPacked);
+    
+    gbuffer_normals.x = roughnessAndMetalPacked;
+
+    gbuffer_material.x = maskPacked;
+    gbuffer_material.z = 0u;
+    gbuffer_material.w = 0u;
+    gbuffer_material.y = 0u;
+
+    gbuffer_velocity = velocity;
 }

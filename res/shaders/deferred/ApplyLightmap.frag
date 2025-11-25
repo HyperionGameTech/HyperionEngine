@@ -89,17 +89,17 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
 
 void main()
 {
-    vec4 albedo = Texture2D(GBufferSampler, gbuffer_albedo_texture, texcoord);
+    const vec4 albedo = Texture2D(GBufferSampler, gbuffer_albedo_texture, texcoord);
+    const vec4 normalSample = Texture2D(GBufferSampler, gbuffer_normals_texture, texcoord);
 
-    uvec4 materialData = texture(usampler2D(gbuffer_material_texture, GBufferSampler), texcoord);
+    const uvec4 materialData = texture(usampler2D(gbuffer_material_texture, GBufferSampler), texcoord);
 
     GBufferMaterialParams materialParams;
-    GBufferUnpackMaterialParams(materialData.xy, materialParams);
+    GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
-    const float transmission = materialParams.transmission;
-    const float ao = materialParams.ao;
+    const float ao = 1.0; // @TODO
 
     const mat4 inverse_proj = inverse(camera.projection);
     const mat4 inverse_view = inverse(camera.view);

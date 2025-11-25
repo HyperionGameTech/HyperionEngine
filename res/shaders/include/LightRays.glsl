@@ -98,12 +98,7 @@ float LightRays2(vec2 uv, vec2 ss_L, vec3 P, vec3 camera_position)
     {
         march_uv -= delta_uv;
 
-        uvec2 materialData = texture(usampler2D(gbuffer_material_texture, sampler_nearest), march_uv).rg; /* r = roughness, g = metalness, b = transmission, a = AO */
-
-        GBufferMaterialParams materialParams;
-        GBufferUnpackMaterialParams(materialData, materialParams);
-
-        const uint mask = materialParams.mask;
+        const uint mask = texture(usampler2D(gbuffer_material_texture, sampler_nearest), march_uv).r;
 
         bool occluded = !bool(mask & (0x01 | 0x02));
         float occlusion = float(occluded);

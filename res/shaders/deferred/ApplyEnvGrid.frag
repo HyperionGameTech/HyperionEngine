@@ -92,7 +92,9 @@ void main()
     const mat4 inverse_view = inverse(camera.view);
 
     const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
-    const vec3 N = DecodeNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    const vec4 normalSample = Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+
+    const vec3 N = GBufferUnpackNormal(normalSample);
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     const vec3 V = normalize(camera.position.xyz - P);
 
@@ -100,7 +102,7 @@ void main()
     uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
 
     GBufferMaterialParams materialParams;
-    GBufferUnpackMaterialParams(materialData, materialParams);
+    GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
     float roughness = materialParams.roughness;
 

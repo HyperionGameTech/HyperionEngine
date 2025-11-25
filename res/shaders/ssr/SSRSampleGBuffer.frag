@@ -112,7 +112,8 @@ void main(void)
     }
 
     vec3 P = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), texcoord, depth).xyz;
-    vec3 N =  GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    const vec4 normalSample = Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    vec3 N =  GBufferUnpackNormal(normalSample);
     vec3 V = normalize(camera.position.xyz - P);
 
     if (alpha > HYP_FMATH_EPSILON)
@@ -120,7 +121,7 @@ void main(void)
         uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
 
         GBufferMaterialParams materialParams;
-        GBufferUnpackMaterialParams(materialData, materialParams);
+        GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
         roughness = materialParams.roughness;
         roughness = clamp(roughness, 0.001, 0.999);

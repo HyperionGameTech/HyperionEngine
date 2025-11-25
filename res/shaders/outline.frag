@@ -13,7 +13,7 @@ layout(location = 12) in vec3 v_view_space_position;
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
-layout(location = 2) out uvec2 gbuffer_material;
+layout(location = 2) out uvec4 gbuffer_material;
 
 #include "include/scene.inc"
 #include "include/material.inc"
@@ -27,5 +27,5 @@ void main()
 
     gbuffer_albedo = vec4(1.0);
     gbuffer_normals = vec4(0.0);
-    gbuffer_material = uvec2(0);
+    gbuffer_material = uvec4(0);
 }

@@ -36,25 +36,20 @@ struct GBufferMaterialParams
     uint mask;
 };
 
-uvec2 GBufferPackMaterialParams(in GBufferMaterialParams params)
+void GBufferPackMaterialParams(in GBufferMaterialParams params, out float roughnessAndMetalPacked, out uint mask)
 {
-    uvec2 vec = uvec2(0);
-    vec.x = HYP_QUANTIZE(params.roughness, 6)
-        | (HYP_QUANTIZE(params.metalness, 6) << 6)
-        | (HYP_QUANTIZE(params.transmission, 6) << 12)
-        | (HYP_QUANTIZE(1.0 - params.ao, 4) << 18)
-        | ((params.mask & 0x3FFu) << 22);
-
-    return vec;
+    // max. 10 bits for roughness / metal packed - stored in normals target (r10g10b10a2)
+    roughnessAndMetalPacked = float(HYP_QUANTIZE(params.roughness, 6) | (HYP_QUANTIZE(params.metalness, 4) << 6)) / 1023.0;
+    mask = params.mask & 0x3FFu;
 }
 
-void GBufferUnpackMaterialParams(in uvec2 vec, out GBufferMaterialParams params)
+void GBufferUnpackMaterialParams(in float roughnessAndMetalPacked, in uint mask, out GBufferMaterialParams params)
 {
-    params.roughness = HYP_UNQUANTIZE(vec.x & 0x3Fu, 6);
-    params.metalness = HYP_UNQUANTIZE((vec.x >> 6) & 0x3Fu, 6);
-    params.transmission = HYP_UNQUANTIZE((vec.x >> 12) & 0x3Fu, 6);
-    params.ao = 1.0 - HYP_UNQUANTIZE((vec.x >> 18) & 0xFu, 4);
-    params.mask = (vec.x >> 22) & 0x3FFu;
+    uint roughnessAndMetalU32 = uint(round(roughnessAndMetalPacked * 1023.0));
+
+    params.roughness = HYP_UNQUANTIZE(roughnessAndMetalU32 & 0x3Fu, 6);
+    params.metalness = HYP_UNQUANTIZE((roughnessAndMetalU32 >> 6) & 0xFu, 4);
+    params.mask = mask & 0x3FFu;
 }
 
 vec4 GBufferPackNormal(in vec3 normal)
