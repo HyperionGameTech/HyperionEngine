@@ -626,19 +626,33 @@ void UIObject::UpdateSize_Internal(bool updateChildren)
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
     SetEntityAABB(CalculateAABB());
 
-    Array<UIObject*> deferredChildren;
+    // Separate children into groups based on their sizing mode:
+    // - percentChildren: Children using PERCENT sizing (depend on parent size)
+    // - fillChildren: Children using FILL sizing (depend on remaining space after siblings)
+    // - Regular children: Process immediately
+    Array<UIObject*> percentChildren;
+    Array<UIObject*> fillChildren;
 
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-        ForEachChildUIObject([this, updateChildren, &deferredChildren](UIObject* child)
+        ForEachChildUIObject([this, updateChildren, &percentChildren, &fillChildren](UIObject* child)
             {
-                if (child->GetSize().GetAllFlags() & (UIObjectSize::FILL | UIObjectSize::PERCENT))
+                const uint64 allFlags = child->GetSize().GetAllFlags();
+
+                if (allFlags & UIObjectSize::FILL)
                 {
-                    deferredChildren.PushBack(child);
+                    // FILL children must be processed last, after all siblings have been sized
+                    fillChildren.PushBack(child);
+                }
+                else if (allFlags & UIObjectSize::PERCENT)
+                {
+                    // PERCENT children depend on parent size but not on siblings
+                    percentChildren.PushBack(child);
                 }
                 else if (updateChildren)
                 {
+                    // Regular children (PIXEL, AUTO) can be sized immediately
                     child->UpdateSize_Internal(updateChildren);
                 }
 
@@ -656,9 +670,16 @@ void UIObject::UpdateSize_Internal(bool updateChildren)
         SetEntityAABB(CalculateAABB());
     }
 
-    // FILL needs to update the size of the children
-    // after the parent has updated its size
-    for (UIObject* child : deferredChildren)
+    // Process PERCENT children after the parent has been sized
+    // but before FILL children, so FILL can account for their size
+    for (UIObject* child : percentChildren)
+    {
+        child->UpdateSize_Internal(updateChildren);
+    }
+
+    // Process FILL children last, after all siblings have been sized
+    // This allows them to calculate the remaining space correctly
+    for (UIObject* child : fillChildren)
     {
         child->UpdateSize_Internal(updateChildren);
     }
@@ -2199,8 +2220,41 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
         case UIObjectSize::FILL:
             if (!isInner)
             {
+                // Calculate remaining space by accounting for all sibling elements
+                int usedSpace = 0;
+
+                if (parentUiObject != nullptr)
+                {
+                    // Sum up the size of all sibling elements that affect layout
+                    parentUiObject->ForEachChildUIObject([this, componentIndex, &usedSpace](UIObject* sibling)
+                        {
+                            // Skip self
+                            if (sibling == this)
+                            {
+                                return IterationResult::CONTINUE;
+                            }
+
+                            // Skip children that don't affect parent size or are absolutely positioned
+                            if (!sibling->AffectsParentSize() || sibling->IsPositionAbsolute())
+                            {
+                                return IterationResult::CONTINUE;
+                            }
+
+                            // Add the sibling's size plus its position offset
+                            const Vec2i siblingSize = sibling->GetActualSize();
+                            const Vec2i siblingPos = sibling->GetPosition();
+
+                            // For horizontal (componentIndex 0) or vertical (componentIndex 1)
+                            usedSpace = MathUtil::Max(usedSpace, siblingPos[componentIndex] + siblingSize[componentIndex]);
+
+                            return IterationResult::CONTINUE;
+                        },
+                        false);
+                }
+
+                // Calculate remaining space: parent size - used space by siblings - padding - scrollbars
                 actualSize[componentIndex] = MathUtil::Max(
-                    parentSize[componentIndex] - m_position[componentIndex] - parentPadding[componentIndex] * 2 - horizontalScrollbarSize[componentIndex] - verticalScrollbarSize[componentIndex],
+                    parentSize[componentIndex] - usedSpace - parentPadding[componentIndex] * 2 - horizontalScrollbarSize[componentIndex] - verticalScrollbarSize[componentIndex],
                     0);
             }
 

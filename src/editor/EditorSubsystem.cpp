@@ -111,21 +111,6 @@ extern FilePath CoreApi_GetExecutablePath();
 
 #pragma region RunningEditorTask
 
-Handle<UIObject> RunningEditorTask::CreateUIObject(UIStage* uiStage) const
-{
-    Assert(uiStage != nullptr);
-
-    Handle<UIPanel> panel = uiStage->CreateUIObject<UIPanel>(NAME("EditorTaskPanel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::FILL }));
-    panel->SetBackgroundColor(Color(0xFF0000FF)); // testing
-
-    Handle<UIText> taskTitle = uiStage->CreateUIObject<UIText>(NAME("Task_Title"), Vec2i::Zero(), UIObjectSize(UIObjectSize::AUTO));
-    taskTitle->SetTextSize(16.0f);
-    taskTitle->SetText(m_task->InstanceClass()->GetName().LookupString());
-    panel->AddChildUIObject(taskTitle);
-
-    return panel;
-}
-
 #pragma endregion RunningEditorTask
 
 #pragma region GenerateLightmapsEditorTask
@@ -893,6 +878,76 @@ EditorSubsystem::EditorSubsystem()
       m_manipulationWidgetHolder(this)
 {
     m_editorDelegates = new EditorDelegates();
+
+    m_taskManager.OnTaskAdded
+        .Bind([this](RunningEditorTask& runningTask)
+            {
+                UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
+                Assert(uiSubsystem != nullptr);
+
+                Handle<UIMenuItem> tasksMenuItem = ObjCast<UIMenuItem>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")));
+
+                if (tasksMenuItem != nullptr)
+                {
+                    if (UIObjectSpawnContext context { tasksMenuItem })
+                    {
+                        Handle<UIGrid> taskGrid = context.CreateUIObject<UIGrid>(NAME("Task_Grid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+                        taskGrid->SetNumColumns(12);
+
+                        Handle<UIGridRow> taskGridRow = taskGrid->AddRow();
+                        taskGridRow->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+
+                        Handle<UIGridColumn> taskGridColumnLeft = taskGridRow->AddColumn();
+                        taskGridColumnLeft->SetColumnSize(8);
+                        taskGridColumnLeft->AddChildUIObject(runningTask.CreateUIObject(uiSubsystem->GetUIStage()));
+
+                        Handle<UIGridColumn> taskGridColumnRight = taskGridRow->AddColumn();
+                        taskGridColumnRight->SetColumnSize(4);
+
+                        Handle<UIButton> cancelButton = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+                        cancelButton->SetText("Cancel");
+                        cancelButton->OnClick
+                            .Bind(
+                                [taskWeak = MakeWeakRef(runningTask.GetTask())](...)
+                                {
+                                    if (Handle<EditorTaskBase> task = taskWeak.Lock())
+                                    {
+                                        task->Cancel();
+                                    }
+
+                                    return UIEventHandlerResult::OK;
+                                })
+                            .Detach();
+
+                        taskGridColumnRight->AddChildUIObject(cancelButton);
+
+                        runningTask.SetUIObject(taskGrid);
+
+                        tasksMenuItem->AddChildUIObject(taskGrid);
+
+                        // testing
+                        Handle<Texture> dummyIconTexture;
+
+                        if (auto dummyIconTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/editor/icons/loading.png"))
+                        {
+                            dummyIconTexture = dummyIconTextureAsset->Result();
+                        }
+
+                        tasksMenuItem->SetIconTexture(dummyIconTexture);
+                    }
+                }
+            })
+        .Detach();
+
+    m_taskManager.OnTaskRemoved
+        .Bind([this](RunningEditorTask& runningTask)
+            {
+                if (const Handle<UIObject>& uiObject = runningTask.GetUIObject())
+                {
+                    uiObject->RemoveFromParent();
+                }
+            })
+        .Detach();
 
     OnProjectOpened
         .Bind([this](const Handle<EditorProject>& project)
@@ -3139,66 +3194,7 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
 
     AssertOnThread(g_gameThread);
 
-    UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    Assert(uiSubsystem != nullptr);
-
-    // @TODO Auto remove tasks that aren't on the game thread when they have completed
-
-    RunningEditorTask& runningTask = m_tasks.EmplaceBack(task);
-
-    Handle<UIMenuItem> tasksMenuItem = ObjCast<UIMenuItem>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")));
-
-    if (tasksMenuItem != nullptr)
-    {
-        if (UIObjectSpawnContext context { tasksMenuItem })
-        {
-            Handle<UIGrid> taskGrid = context.CreateUIObject<UIGrid>(NAME("Task_Grid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-            taskGrid->SetNumColumns(12);
-
-            Handle<UIGridRow> taskGridRow = taskGrid->AddRow();
-            taskGridRow->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-
-            Handle<UIGridColumn> taskGridColumnLeft = taskGridRow->AddColumn();
-            taskGridColumnLeft->SetColumnSize(8);
-            taskGridColumnLeft->AddChildUIObject(runningTask.CreateUIObject(uiSubsystem->GetUIStage()));
-
-            Handle<UIGridColumn> taskGridColumnRight = taskGridRow->AddColumn();
-            taskGridColumnRight->SetColumnSize(4);
-
-            Handle<UIButton> cancelButton = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-            cancelButton->SetText("Cancel");
-            cancelButton->OnClick
-                .Bind(
-                    [taskWeak = task.ToWeak()](...)
-                    {
-                        if (Handle<EditorTaskBase> task = taskWeak.Lock())
-                        {
-                            task->Cancel();
-                        }
-
-                        return UIEventHandlerResult::OK;
-                    })
-                .Detach();
-            taskGridColumnRight->AddChildUIObject(cancelButton);
-
-            runningTask.m_uiObject = taskGrid;
-
-            tasksMenuItem->AddChildUIObject(taskGrid);
-
-            // testing
-            Handle<Texture> dummyIconTexture;
-
-            if (auto dummyIconTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/editor/icons/loading.png"))
-            {
-                dummyIconTexture = dummyIconTextureAsset->Result();
-            }
-
-            tasksMenuItem->SetIconTexture(dummyIconTexture);
-        }
-    }
-
-    // For long running tasks, enqueues the task in the scheduler
-    task->Commit();
+    m_taskManager.AddTask(task);
 }
 
 void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shouldSelectInOutline)
@@ -3391,43 +3387,7 @@ void EditorSubsystem::UpdateTasks(float delta)
 {
     HYP_SCOPE;
 
-    for (auto it = m_tasks.Begin(); it != m_tasks.End();)
-    {
-        auto& task = it->GetTask();
-
-        if (task->IsCommitted())
-        {
-            if (TickableEditorTask* tickableTask = ObjCast<TickableEditorTask>(task.Get()))
-            {
-                if (tickableTask->GetTimer().Waiting())
-                {
-                    ++it;
-
-                    continue;
-                }
-
-                tickableTask->GetTimer().NextTick();
-                tickableTask->Tick(tickableTask->GetTimer().delta);
-            }
-
-            if (task->IsCompleted())
-            {
-                task->OnComplete();
-
-                // Remove the UIObject for the task from this stage
-                if (const Handle<UIObject>& taskUiObject = it->GetUIObject())
-                {
-                    taskUiObject->RemoveFromParent();
-                }
-
-                it = m_tasks.Erase(it);
-
-                continue;
-            }
-        }
-
-        ++it;
-    }
+    m_taskManager.Tick(delta);
 }
 
 void EditorSubsystem::UpdateDebugOverlays(float delta)

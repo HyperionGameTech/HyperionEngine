@@ -5,6 +5,7 @@
 #include <editor/ui/EditorUI.hpp>
 #include <editor/EditorActionStack.hpp>
 #include <editor/EditorTask.hpp>
+#include <editor/EditorTaskManager.hpp>
 
 #include <scene/Subsystem.hpp>
 
@@ -50,39 +51,6 @@ class AppContextBase;
 } // namespace sys
 
 using sys::AppContextBase;
-
-class RunningEditorTask
-{
-public:
-    friend class EditorSubsystem;
-
-    RunningEditorTask(const Handle<EditorTaskBase>& task)
-        : m_task(task)
-    {
-    }
-
-    RunningEditorTask(const Handle<EditorTaskBase>& task, const Handle<UIObject>& uiObject)
-        : m_task(task),
-          m_uiObject(uiObject)
-    {
-    }
-
-    HYP_FORCE_INLINE const Handle<EditorTaskBase>& GetTask() const
-    {
-        return m_task;
-    }
-
-    HYP_FORCE_INLINE const Handle<UIObject>& GetUIObject() const
-    {
-        return m_uiObject;
-    }
-
-    Handle<UIObject> CreateUIObject(UIStage* uiStage) const;
-
-private:
-    Handle<EditorTaskBase> m_task;
-    Handle<UIObject> m_uiObject;
-};
 
 HYP_CLASS()
 class GenerateLightmapsEditorTask : public TickableEditorTask
@@ -494,7 +462,7 @@ private:
     Handle<EditorProject> m_currentProject;
     WeakHandle<Scene> m_activeScene;
 
-    Array<RunningEditorTask> m_tasks;
+    EditorTaskManager m_taskManager;
 
     EditorManipulationWidgetHolder m_manipulationWidgetHolder;
 
