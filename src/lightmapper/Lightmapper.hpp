@@ -340,8 +340,7 @@ protected:
     /// ============================
 
 protected:
-private:
-    void Build();
+    virtual void Build();
 
     LightmapJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
 
@@ -363,6 +362,8 @@ private:
 
 template <class T>
 class Lightmapper;
+
+enum class LightmapElementId : uint32;
 
 template <>
 class Lightmapper<LightmapVolume> : public LightmapperBase
@@ -392,13 +393,16 @@ protected:
 
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
     {
-        return MakeUnique<LightmapJob<LightmapVolume>>(std::move(params), m_volume);
+        return MakeUnique<LightmapJob<LightmapVolume>>(std::move(params), m_volume, &m_lightmapData);
     }
 
     virtual void Initialize_Internal() override;
     virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
+    virtual void Build() override;
 
     Handle<LightmapVolume> m_volume;
+    LightmapData<LightmapVolume> m_lightmapData;
+    LightmapElementId m_lightmapElementId;
 };
 
 template <>

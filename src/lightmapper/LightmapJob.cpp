@@ -263,7 +263,7 @@ void LightmapJobBase::Process()
         return;
     }
 
-    {
+    { // cpu tracing only
         Mutex::Guard guard(m_currentTasksMutex);
 
         if (m_currentTasks.Any())
@@ -369,120 +369,31 @@ void LightmapJobBase::Process()
 
 #pragma region LightmapJob < LightmapVolume>
 
-LightmapJob<LightmapVolume>::LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume)
+LightmapJob<LightmapVolume>::LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* lightmapData)
     : LightmapJobBase(std::move(params)),
       m_volume(volume),
-      m_lightmapDataBuilt(false),
+      m_lightmapData(lightmapData),
       m_lightmapElement(nullptr)
 {
     Assert(m_volume != nullptr);
+    Assert(m_lightmapData != nullptr);
 }
 
 LightmapJob<LightmapVolume>::~LightmapJob()
 {
-    if (m_lightmapElement != nullptr)
-    {
-        delete m_lightmapElement;
-    }
+    // m_lightmapElement is now managed externally or not used in the same way
 }
 
 void LightmapJob<LightmapVolume>::Start_Internal()
 {
-    if (!m_lightmapDataBuilt)
-    {
-        m_lightmapData = LightmapData<LightmapVolume>(m_params.subElementsView, m_volume);
-
-        // No elements to process
-        if (!m_params.subElementsView)
-        {
-            HYP_LOG(Lightmap, Warning, "Lightmap job {}: No sub-elements to process!", m_uuid);
-
-            m_lightmapDataBuilt = true;
-
-            return;
-        }
-
-        HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
-
-        m_buildTask = TaskSystem::GetInstance().Enqueue([this]() -> Result
-            {
-                return m_lightmapData.Build();
-            },
-            TaskThreadPoolName::THREAD_POOL_BACKGROUND);
-    }
+    // Data is already built globally
 }
 
 void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
 {
     if (outIsReadyToProcess)
     {
-        *outIsReadyToProcess = m_lightmapDataBuilt;
-    }
-
-    if (m_lightmapDataBuilt)
-    {
-        return;
-    }
-
-    // wait for our lightmap data to finish building
-
-    Assert(m_buildTask.IsValid());
-
-    if (!m_buildTask.IsCompleted())
-    {
-        // return early so we don't block - we need to wait for build task to complete before processing
-        return;
-    }
-
-    if (Result result = m_buildTask.Await(); result.HasError())
-    {
-        Stop(result.GetError());
-
-        return;
-    }
-
-    if (m_lightmapData.IsBuilt())
-    {
-        LightmapElement lightmapElement;
-        if (!m_volume->AddElement({ m_lightmapData.width, m_lightmapData.height }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
-        {
-            Stop(HYP_MAKE_ERROR(Error, "Failed to add LightmapElement to LightmapVolume for lightmap job {}! UV map size: {}",
-                m_uuid, Vec2u(m_lightmapData.width, m_lightmapData.height)));
-
-            return;
-        }
-
-        if (m_lightmapElement != nullptr)
-        {
-            *m_lightmapElement = std::move(lightmapElement);
-        }
-        else
-        {
-            m_lightmapElement = new LightmapElement(std::move(lightmapElement));
-        }
-
-        // Flatten texel indices, grouped by mesh IDs to prevent unnecessary loading/unloading
-        m_texelIndices.Reserve(m_lightmapData.texels.Size());
-
-        for (const auto& it : m_lightmapData.meshToUvIndices)
-        {
-            m_texelIndices.Concat(it.second);
-        }
-
-        // Free up memory
-        m_lightmapData.meshToUvIndices.Clear();
-
-        m_lightmapDataBuilt = true;
-
-        if (outIsReadyToProcess)
-        {
-            *outIsReadyToProcess = true;
-        }
-    }
-    else
-    {
-        // Mark as ready to stop further processing
-        Stop(HYP_MAKE_ERROR(Error, "Failed to build UV map for lightmap job {}", m_uuid));
+        *outIsReadyToProcess = true;
     }
 }
 

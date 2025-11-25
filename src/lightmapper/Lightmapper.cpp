@@ -513,7 +513,8 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 
 Lightmapper<LightmapVolume>::Lightmapper(LightmapperConfig&& config, const Handle<LightmapVolume>& volume)
     : LightmapperBase(std::move(config), MakeStrongRef(volume->GetScene()), volume->GetWorldAABB()),
-      m_volume(volume)
+      m_volume(volume),
+      m_lightmapElementId(InvalidLightmapElementId)
 {
 }
 
@@ -522,163 +523,252 @@ void Lightmapper<LightmapVolume>::Initialize_Internal()
     // no-op
 }
 
+void Lightmapper<LightmapVolume>::Build()
+{
+    HYP_SCOPE;
+
+    EntityManager& mgr = *m_scene->GetEntityManager();
+
+    m_subElements.Clear();
+    m_subElementsByEntity.Clear();
+
+    const bool onlyOverlappingElements = OnlyOverlappingElements();
+
+    for (auto [entity, meshComponent, transformComponent, boundingBoxComponent, _] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, TagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    {
+        if (entity->InstanceClass() != Entity::StaticClass())
+        {
+            continue;
+        }
+
+        if (!meshComponent.mesh || !meshComponent.material)
+        {
+            continue;
+        }
+
+        if (meshComponent.material->GetBucket() != RB_OPAQUE && meshComponent.material->GetBucket() != RB_TRANSLUCENT)
+        {
+            continue;
+        }
+
+        const BoundingBox& worldAabb = boundingBoxComponent.worldAabb;
+
+        if (!onlyOverlappingElements && !m_aabb.Overlaps(worldAabb))
+        {
+            continue;
+        }
+
+        m_subElements.PushBack(LightmapSubElement {
+            MakeStrongRef(entity),
+            meshComponent.mesh,
+            meshComponent.material,
+            transformComponent.transform,
+            boundingBoxComponent.worldAabb });
+    }
+
+    // Build global data
+    m_lightmapData = LightmapData<LightmapVolume>(m_subElements.ToSpan(), m_volume);
+
+    if (Result result = m_lightmapData.Build(); result.HasError())
+    {
+        HYP_LOG(Lightmap, Error, "Failed to build lightmap data: {}", result.GetError().GetMessage());
+        return;
+    }
+
+    LightmapElement lightmapElement;
+    if (!m_volume->AddElement({ m_lightmapData.width, m_lightmapData.height }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+    {
+        HYP_LOG(Lightmap, Error, "Failed to add element to volume!");
+        return;
+    }
+
+    m_lightmapElementId = lightmapElement.id;
+    AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
+
+    const uint32 tileSize = 64;
+    const uint32 width = m_lightmapData.width;
+    const uint32 height = m_lightmapData.height;
+
+    HashMap<Vec2i, Array<uint32>> tileBuckets;
+
+    for (uint32 i = 0; i < m_lightmapData.texels.Size(); i++)
+    {
+        const LightmapTexel& texel = m_lightmapData.texels[i];
+
+        if (!texel.ray.meshId.IsValid())
+        {
+            continue;
+        }
+
+        // calculate tile coord based on texel index
+        const uint32 x = i % width;
+        const uint32 y = i / width;
+
+        const Vec2i tileCoord { int(x / tileSize), int(y / tileSize) };
+        tileBuckets[tileCoord].PushBack(i);
+    }
+
+    HYP_LOG(Lightmap, Info, "Dispatching {} tile jobs for {} valid texels", tileBuckets.Size(), m_lightmapData.texels.Size());
+
+    for (auto& it : tileBuckets)
+    {
+        UniquePtr<LightmapJob<LightmapVolume>> job = MakeUnique<LightmapJob<LightmapVolume>>(
+            CreateLightmapJobParams(0, m_subElements.Size()),
+            m_volume,
+            &m_lightmapData);
+
+        job->SetTexelIndices(std::move(it.second));
+        AddJob(std::move(job));
+    }
+}
+
 void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
 {
     HYP_SCOPE;
 
-    LightmapJob<LightmapVolume>* jobCasted = static_cast<LightmapJob<LightmapVolume>*>(job);
-
-    const LightmapData<LightmapVolume>& lightmapData = jobCasted->GetLightmapData();
-
-    LightmapElement* lightmapElement = jobCasted->GetLightmapElement();
-
-    if (lightmapElement == nullptr)
+    if (m_numJobs.Get(MemoryOrder::ACQUIRE) == 1)
     {
-        HYP_LOG(Lightmap, Debug, "Lightmap element is null, skipping building LightmapElement textures for job {}", job->GetUUID());
+        AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
-        return;
-    }
-
-    if (!m_volume->BuildElementTextures(lightmapData, lightmapElement->id))
-    {
-        HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", lightmapElement->id);
-
-        return;
-    }
-
-    HYP_LOG(Lightmap, Debug, "Lightmap job {}: Building element with id {}, UV offset: {}, Scale: {}", job->GetUUID(), lightmapElement->id,
-        lightmapElement->offsetUv, lightmapElement->scale);
-
-    for (SizeType subElementIndex = 0; subElementIndex < job->GetSubElements().Size(); subElementIndex++)
-    {
-        LightmapSubElement& subElement = job->GetSubElements()[subElementIndex];
-
-        auto updateMeshData = [&]()
+        if (!m_volume->BuildElementTextures(m_lightmapData, m_lightmapElementId))
         {
-            const Handle<Mesh>& mesh = subElement.mesh;
-            Assert(mesh.IsValid());
-
-            Assert(subElementIndex < lightmapData.GetMeshData().Size());
-
-            const LightmapMeshData& lightmapMeshData = lightmapData.GetMeshData()[subElementIndex];
-            Assert(lightmapMeshData.mesh == mesh);
-
-            MeshDesc newMeshDesc;
-            newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
-            newMeshDesc.numVertices = uint32(lightmapMeshData.vertices.Size());
-            newMeshDesc.numIndices = uint32(lightmapMeshData.indices.Size());
-
-            MeshData newMeshData;
-            newMeshData.vertexData = lightmapMeshData.vertices;
-            newMeshData.indexData = ByteBuffer(lightmapMeshData.indices.ToByteView());
-
-            for (SizeType i = 0; i < newMeshData.vertexData.Size(); i++)
-            {
-                Vec2f& lightmapUv = newMeshData.vertexData[i].texcoord1;
-                lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
-                lightmapUv *= lightmapElement->scale;
-                lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
-            }
-
-            mesh->SetMeshData(newMeshDesc, newMeshData);
-        };
-
-        updateMeshData();
-
-        bool isNewMaterial = false;
-
-        if (subElement.material)
-        {
-            Handle<Material> clonedMaterial = subElement.material->Clone();
-            SafeDelete(std::move(subElement.material));
-
-            subElement.material = clonedMaterial;
-        }
-        else
-        {
-            subElement.material = CreateObject<Material>();
+            HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", m_lightmapElementId);
+            return;
         }
 
-        isNewMaterial = true;
+        const LightmapElement* lightmapElement = m_volume->GetElement(m_lightmapElementId);
+        Assert(lightmapElement != nullptr);
 
-        subElement.material->SetBucket(RB_LIGHTMAP);
+        HYP_LOG(Lightmap, Debug, "Lightmap baking complete! Building element with id {}, UV offset: {}, Scale: {}", m_lightmapElementId,
+            lightmapElement->offsetUv, lightmapElement->scale);
 
-        // @TODO remove this, we shouldn't need atlas texture on the individual materials anymore
-        subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
-        subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
-
-        auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()), lightmapElementId = lightmapElement->id, volume = m_volume, subElement = subElement, newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
+        // Update meshes
+        for (SizeType subElementIndex = 0; subElementIndex < m_subElements.Size(); subElementIndex++)
         {
-            Handle<EntityManager> entityManager = entityManagerWeak.Lock();
+            LightmapSubElement& subElement = m_subElements[subElementIndex];
 
-            if (!entityManager)
+            auto updateMeshData = [&]()
             {
-                HYP_LOG(Lightmap, Error, "Failed to lock EntityManager while updating lightmap element");
+                const Handle<Mesh>& mesh = subElement.mesh;
+                Assert(mesh.IsValid());
 
-                return;
-            }
+                Assert(subElementIndex < m_lightmapData.GetMeshData().Size());
 
-            const Handle<Entity>& entity = subElement.entity;
+                const LightmapMeshData& lightmapMeshData = m_lightmapData.GetMeshData()[subElementIndex];
+                Assert(lightmapMeshData.mesh == mesh);
 
-            if (entityManager->HasComponent<MeshComponent>(entity))
-            {
-                MeshComponent& meshComponent = entityManager->GetComponent<MeshComponent>(entity);
+                MeshDesc newMeshDesc;
+                newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
+                newMeshDesc.numVertices = uint32(lightmapMeshData.vertices.Size());
+                newMeshDesc.numIndices = uint32(lightmapMeshData.indices.Size());
 
-                if (newMaterial.IsValid())
+                MeshData newMeshData;
+                newMeshData.vertexData = lightmapMeshData.vertices;
+                newMeshData.indexData = ByteBuffer(lightmapMeshData.indices.ToByteView());
+
+                for (SizeType i = 0; i < newMeshData.vertexData.Size(); i++)
                 {
+                    Vec2f& lightmapUv = newMeshData.vertexData[i].texcoord1;
+                    lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
+                    lightmapUv *= lightmapElement->scale;
+                    lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
+                }
+
+                mesh->SetMeshData(newMeshDesc, newMeshData);
+            };
+
+            updateMeshData();
+
+            bool isNewMaterial = false;
+
+            if (subElement.material)
+            {
+                Handle<Material> clonedMaterial = subElement.material->Clone();
+                SafeDelete(std::move(subElement.material));
+
+                subElement.material = clonedMaterial;
+            }
+            else
+            {
+                subElement.material = CreateObject<Material>();
+            }
+
+            isNewMaterial = true;
+
+            subElement.material->SetBucket(RB_LIGHTMAP);
+
+            subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
+            subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
+
+            auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()), lightmapElementId = m_lightmapElementId, volume = m_volume, subElement = subElement, newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
+            {
+                Handle<EntityManager> entityManager = entityManagerWeak.Lock();
+
+                if (!entityManager)
+                {
+                    return;
+                }
+
+                const Handle<Entity>& entity = subElement.entity;
+
+                if (entityManager->HasComponent<MeshComponent>(entity))
+                {
+                    MeshComponent& meshComponent = entityManager->GetComponent<MeshComponent>(entity);
+
+                    if (newMaterial.IsValid())
+                    {
+                        InitObject(newMaterial);
+
+                        SafeDelete(std::move(meshComponent.material));
+
+                        meshComponent.material = std::move(newMaterial);
+                    }
+                }
+                else
+                {
+                    Assert(newMaterial.IsValid());
                     InitObject(newMaterial);
 
-                    SafeDelete(std::move(meshComponent.material));
+                    MeshComponent meshComponent {};
+                    meshComponent.mesh = subElement.mesh;
+                    meshComponent.material = newMaterial;
 
-                    meshComponent.material = std::move(newMaterial);
+                    entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
                 }
-            }
-            else
-            {
-                Assert(newMaterial.IsValid());
-                InitObject(newMaterial);
 
-                MeshComponent meshComponent {};
-                meshComponent.mesh = subElement.mesh;
-                meshComponent.material = newMaterial;
+                if (entityManager->HasComponent<LightmapElementComponent>(entity))
+                {
+                    LightmapElementComponent& lightmapElementComponent = entityManager->GetComponent<LightmapElementComponent>(entity);
 
-                entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
-            }
+                    lightmapElementComponent.lightmapVolume = volume.ToWeak();
+                    lightmapElementComponent.lightmapElementId = lightmapElementId;
+                    lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
+                }
+                else
+                {
+                    LightmapElementComponent lightmapElementComponent;
 
-            if (entityManager->HasComponent<LightmapElementComponent>(entity))
-            {
-                LightmapElementComponent& lightmapElementComponent = entityManager->GetComponent<LightmapElementComponent>(entity);
+                    lightmapElementComponent.lightmapVolume = volume.ToWeak();
+                    lightmapElementComponent.lightmapElementId = lightmapElementId;
+                    lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
 
-                lightmapElementComponent.lightmapVolume = volume.ToWeak();
-                lightmapElementComponent.lightmapElementId = lightmapElementId;
-                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
-            }
-            else
-            {
-                LightmapElementComponent lightmapElementComponent;
-
-                lightmapElementComponent.lightmapVolume = volume.ToWeak();
-                lightmapElementComponent.lightmapElementId = lightmapElementId;
-                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
-
-                entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
-            }
+                    entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
+                }
 
             entity->SetNeedsRenderProxyUpdate();
         };
 
-        if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
-        {
-            // If we are on the same thread, we can update the mesh component immediately
-            updateMeshComponent();
-        }
-        else
-        {
-            // Enqueue the update to be performed on the owner thread
-            ThreadBase* thread = GetThreadById(m_scene->GetEntityManager()->GetOwnerThreadId());
-            Assert(thread != nullptr);
+            if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
+            {
+                updateMeshComponent();
+            }
+            else
+            {
+                ThreadBase* thread = GetThreadById(m_scene->GetEntityManager()->GetOwnerThreadId());
+                Assert(thread != nullptr);
 
-            thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
+                thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
+            }
         }
     }
 }

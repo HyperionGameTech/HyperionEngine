@@ -41,7 +41,7 @@
 
 namespace hyperion {
 
-constexpr Vec2u DefaultAtlasDimensions = Vec2u(4096, 4096);
+constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
 constexpr TextureFormat AtlasTextureFormats[LTT_MAX] = {
     TF_R11G11B10F, // Radiance
     TF_R11G11B10F  // Irradiance
@@ -296,6 +296,9 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, b
             AssertDebug(elementIndex < UINT16_MAX);
 
             outElement.id = LightmapElementId(uint32((atlasIndex << 16) | elementIndex));
+
+            // ensure ID is also stored in elements
+            pAtlas->elements[elementIndex].id = outElement.id;
 
             if (isNewAtlas)
             {

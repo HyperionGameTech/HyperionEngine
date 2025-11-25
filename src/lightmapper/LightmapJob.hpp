@@ -191,7 +191,7 @@ template <>
 class LightmapJob<LightmapVolume> : public LightmapJobBase
 {
 public:
-    LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume);
+    LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* lightmapData);
     virtual ~LightmapJob() override;
 
     HYP_FORCE_INLINE const Handle<LightmapVolume>& GetVolume() const
@@ -201,12 +201,17 @@ public:
 
     virtual LightmapData<LightmapVolume>& GetLightmapData() override
     {
-        return m_lightmapData;
+        return *m_lightmapData;
     }
 
     HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
     {
         return m_lightmapElement;
+    }
+
+    void SetTexelIndices(Array<uint32>&& texelIndices)
+    {
+        m_texelIndices = std::move(texelIndices);
     }
 
 protected:
@@ -215,9 +220,7 @@ protected:
 
     Handle<LightmapVolume> m_volume;
 
-    LightmapData<LightmapVolume> m_lightmapData;
-    Task<Result> m_buildTask;
-    bool m_lightmapDataBuilt;
+    LightmapData<LightmapVolume>* m_lightmapData;
 
     LightmapElement* m_lightmapElement;
 };
