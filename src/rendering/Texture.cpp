@@ -413,6 +413,27 @@ const Handle<TextureAsset>& Texture::GetAsset() const
     return m_assetReference.Resolve();
 }
 
+void Texture::SetAsset(const Handle<TextureAsset>& asset)
+{
+    if (!asset && !m_assetReference.IsValid())
+    {
+        // both invalid
+        return;
+    }
+
+    if (asset && IsInitCalled())
+    {
+        InitObject(asset);
+
+        if (!asset->IsRegistered())
+        {
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
+        }
+    }
+
+    m_assetReference = TAssetReference<TextureAsset>(asset);
+}
+
 const TextureDesc& Texture::GetTextureDesc() const
 {
     static const TextureDesc s_defaultTextureDesc {};
@@ -459,6 +480,8 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
 
     if (IsInitCalled())
     {
+        InitObject(asset);
+
         if (!asset->IsRegistered())
         {
             g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
@@ -661,11 +684,14 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
         renderQueue << InsertBarrier(m_gpuImage, RS_SHADER_RESOURCE);
     }
 
-    currentFrame->OnFrameEnd
-        .Bind([gpuImageRef = MakeStrongRef(m_gpuImage), /* hold a strong reference to our buffer to ensure it is kept alive */
-                  stagingBuffer = std::move(stagingBuffer),
+    DelegateHandler* delegateHandle = new DelegateHandler();
+    *delegateHandle = currentFrame->OnFrameEnd
+        .Bind([delegateHandle, name = GetName(), gpuImageRef = MakeStrongRef(m_gpuImage), /* hold a strong reference to our buffer to ensure it is kept alive */
+                  stagingBuffer = MakeStrongRef(stagingBuffer),
                   callback = std::move(callback)](...) mutable
             {
+                HYP_LOG(Texture, Debug, "Finish readback for texture {}", name);
+
                 ByteBuffer byteBuffer;
                 byteBuffer.SetSize(stagingBuffer->Size());
 
@@ -675,8 +701,11 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
                 SafeDelete(std::move(gpuImageRef));
 
                 callback(std::move(byteBuffer));
-            })
-        .Detach();
+
+                delete delegateHandle;
+            });
+
+    SafeDelete(std::move(stagingBuffer));
 }
 
 Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)

@@ -34,15 +34,16 @@ enum LightmapTextureType : uint32
     LTT_MAX
 };
 
+enum class LightmapElementId : uint32;
+static constexpr LightmapElementId InvalidLightmapElementId = LightmapElementId(~0u);
+
 HYP_STRUCT(NoScriptBindings)
 struct LightmapElement
 {
     HYP_STRUCT_BODY(LightmapElement);
 
-    using Id = uint32;
-
     HYP_FIELD(Serialize = true)
-    uint32 id = ~0u;
+    LightmapElementId id = InvalidLightmapElementId;
 
     HYP_FIELD(Serialize = true)
     Vec2f offsetUv;
@@ -59,23 +60,23 @@ struct LightmapElement
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return id != ~0u;
+        return id != InvalidLightmapElementId;
     }
 
     HYP_FORCE_INLINE uint16 GetAtlasIndex() const
     {
-        return uint16((id >> 16) & 0xFFFFu);
+        return uint16((uint32(id) >> 16) & 0xFFFFu);
     }
 
     HYP_FORCE_INLINE uint16 GetElementIndex() const
     {
-        return uint16(id & 0xFFFFu);
+        return uint16(uint32(id) & 0xFFFFu);
     }
 
-    static constexpr inline void GetAtlasAndElementIndex(Id elementId, uint16& outAtlasIndex, uint16& outElementIndex)
+    static constexpr inline void GetAtlasAndElementIndex(LightmapElementId elementId, uint16& outAtlasIndex, uint16& outElementIndex)
     {
-        outAtlasIndex = uint16((elementId >> 16) & 0xFFFFu);
-        outElementIndex = uint16(elementId & 0xFFFFu);
+        outAtlasIndex = uint16((uint32(elementId) >> 16) & 0xFFFFu);
+        outElementIndex = uint16(uint32(elementId) & 0xFFFFu);
     }
 };
 
@@ -118,12 +119,6 @@ public:
     LightmapVolume(const LightmapVolume& other) = delete;
     LightmapVolume& operator=(const LightmapVolume& other) = delete;
     ~LightmapVolume() override;
-
-    HYP_METHOD(Property = "UUID")
-    HYP_FORCE_INLINE const Uuid& GetUUID() const
-    {
-        return m_uuid;
-    }
 
     HYP_FORCE_INLINE Span<const Handle<Texture>> GetAtlasTextures(LightmapTextureType type) const
     {
@@ -176,21 +171,22 @@ public:
     /*! \brief Add a LightmapElement to this volume. */
     bool AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
 
-    const LightmapElement* GetElement(LightmapElement::Id elementId) const;
+    const LightmapElement* GetElement(LightmapElementId elementId) const;
 
-    bool BuildElementTextures(const LightmapData<LightmapVolume>& lightmapData, LightmapElement::Id elementId);
+    bool BuildElementTextures(const LightmapData<LightmapVolume>& lightmapData, LightmapElementId elementId);
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
+
+protected:
+    void OnAddedToWorld(World* world) override;
+    void OnRemovedFromWorld(World* world) override;
 
 private:
     void Init() override;
 
     void UpdateAtlasTextures(
         uint16 atlasIndex,
-        HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures);
-
-    HYP_FIELD(Property = "UUID")
-    Uuid m_uuid;
+        HashMap<LightmapElementId, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures);
 
     HYP_FIELD(Property = "RadianceAtlasTextures")
     Array<Handle<Texture>, FixedAllocator<MaxAtlases>> m_radianceAtlasTextures;

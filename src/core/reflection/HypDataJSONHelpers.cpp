@@ -403,6 +403,14 @@ bool HypDataToJSON(
 
         ITypeInfoVariantHandler* handler = static_cast<ITypeInfoVariantHandler*>(typeInfo.extendedInfo.handler);
 
+        if (handler->GetCurrentTypeIndex(value) == Variant<std::nullptr_t>::invalidTypeIndex)
+        {
+            // no value set, fine
+            outJson = json::JSONNull();
+
+            return true;
+        }
+
         AnyRef activeValue = handler->GetValue(value);
 
         if (!activeValue.HasValue())

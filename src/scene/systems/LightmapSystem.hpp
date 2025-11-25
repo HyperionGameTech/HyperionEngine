@@ -3,14 +3,14 @@
 #pragma once
 
 #include <scene/System.hpp>
-#include <scene/components/MeshComponent.hpp>
+#include <scene/components/LightmapElementComponent.hpp>
 #include <scene/EntityTag.hpp>
 
 namespace hyperion {
 
 class LightmapVolume;
 
-HYP_CLASS(NoScriptBindings, Description = "Associates an Entity with a MeshComponent with the assigned LightmapVolume, if applicable.")
+HYP_CLASS(NoScriptBindings)
 class LightmapSystem : public SystemBase
 {
     HYP_OBJECT_BODY(LightmapSystem);
@@ -28,15 +28,14 @@ private:
     {
         return {
             // writes to entities with these components
-            ComponentDescriptor<MeshComponent, ComponentRWFlags::READ_WRITE> {},
-            ComponentDescriptor<TagComponent<EntityTag::LIGHTMAP_ELEMENT>, ComponentRWFlags::READ_WRITE, false> {},
+            ComponentDescriptor<LightmapElementComponent, ComponentRWFlags::READ_WRITE> {},
 
             // used to assign entities to LightmapVolumes
             ComponentDescriptor<EntityType<LightmapVolume>, ComponentRWFlags::READ, false> {}
         };
     }
 
-    bool AssignLightmapVolume(Scene* scene, MeshComponent& meshComponent);
+    bool AssignLightmapVolume(Scene* scene, LightmapElementComponent& lightmapElementComponent);
 };
 
 } // namespace hyperion

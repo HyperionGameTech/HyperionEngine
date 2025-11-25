@@ -47,6 +47,7 @@ public:
     virtual Result Rename(Name name) override;
 
     const Handle<TextureAsset>& GetAsset() const;
+    void SetAsset(const Handle<TextureAsset>& asset);
 
     HYP_METHOD(Property = "AssetReference")
     const AssetReference& GetAssetReference() const

@@ -1,0 +1,34 @@
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
+
+#pragma once
+
+#include <core/reflection/Handle.hpp>
+
+#include <core/utilities/Uuid.hpp>
+
+#include <core/HashCode.hpp>
+
+namespace hyperion {
+
+class LightmapVolume;
+
+enum class LightmapElementId : uint32;
+
+HYP_STRUCT(Component, NoScriptBindings)
+struct HYP_API LightmapElementComponent
+{
+    HYP_STRUCT_BODY(LightmapElementComponent);
+
+    HYP_FIELD()
+    Uuid lightmapVolumeUuid;
+
+    HYP_FIELD()
+    LightmapElementId lightmapElementId;
+
+    HYP_FIELD(Transient)
+    WeakHandle<LightmapVolume> lightmapVolume;
+
+    LightmapElementComponent();
+};
+
+} // namespace hyperion

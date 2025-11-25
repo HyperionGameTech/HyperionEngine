@@ -23,7 +23,7 @@ class LightmapVolume;
 
 using MeshComponentUserData = UserData<32, 16>;
 
-HYP_STRUCT(Component, Size = 240, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
+HYP_STRUCT(Component, Size = 208, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
 struct MeshComponent
 {
     HYP_STRUCT_BODY(MeshComponent);
@@ -58,27 +58,12 @@ struct MeshComponent
 
     // 208
 
-    HYP_FIELD(Transient)
-    WeakHandle<LightmapVolume> lightmapVolume;
-
-    // 216
-
-    HYP_FIELD(Transient)
-    Uuid lightmapVolumeUuid = Uuid::Invalid();
-
-    // 232
-
-    HYP_FIELD(Transient)
-    uint32 lightmapElementId = ~0u;
-
     MeshComponent(const Handle<Mesh>& mesh = nullptr, const Handle<Material>& material = nullptr, const Handle<Skeleton>& skeleton = nullptr)
         : mesh(mesh),
           material(material),
           skeleton(skeleton),
           instanceData(),
-          previousModelMatrix(Mat4f::Identity()),
-          lightmapVolumeUuid(Uuid::Invalid()),
-          lightmapElementId(~0u)
+          previousModelMatrix(Mat4f::Identity())
     {
     }
 
@@ -87,9 +72,7 @@ struct MeshComponent
           material(other.material),
           skeleton(other.skeleton),
           instanceData(other.instanceData),
-          previousModelMatrix(other.previousModelMatrix),
-          lightmapVolumeUuid(other.lightmapVolumeUuid),
-          lightmapElementId(other.lightmapElementId)
+          previousModelMatrix(other.previousModelMatrix)
     {
     }
 
@@ -105,9 +88,7 @@ struct MeshComponent
         return mesh == other.mesh
             && material == other.material
             && skeleton == other.skeleton
-            && instanceData == other.instanceData
-            && lightmapVolumeUuid == other.lightmapVolumeUuid
-            && lightmapElementId == other.lightmapElementId;
+            && instanceData == other.instanceData;
     }
 
     HYP_FORCE_INLINE bool operator!=(const MeshComponent& other) const
@@ -128,8 +109,6 @@ struct MeshComponent
         hashCode.Add(material);
         hashCode.Add(skeleton);
         hashCode.Add(instanceData);
-        hashCode.Add(lightmapVolumeUuid);
-        hashCode.Add(lightmapElementId);
 
         return hashCode;
     }

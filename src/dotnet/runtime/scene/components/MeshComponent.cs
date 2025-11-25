@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name="MeshComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 240, Pack = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 208, Pack = 16)]
     public unsafe struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
@@ -25,21 +25,11 @@ namespace Hyperion
         [FieldOffset(176)] // aligned by 16
         private fixed byte userData[32];
 
-        [FieldOffset(208)]
-        private WeakHandle<LightmapVolume> lightmapVolumeHandle;
-
-        [FieldOffset(216)]
-        private Uuid lightmapVolumeUUID;
-
-        [FieldOffset(232)]
-        private uint lightmapElementId;
-
         public void Dispose()
         {
             meshHandle.Dispose();
             materialHandle.Dispose();
             skeletonHandle.Dispose();
-            lightmapVolumeHandle.Dispose();
         }
 
         public Mesh? Mesh
@@ -102,27 +92,6 @@ namespace Hyperion
                 }
 
                 skeletonHandle = new Handle<Skeleton>(value);
-            }
-        }
-
-        public LightmapVolume? LightmapVolume
-        {
-            get
-            {
-                return lightmapVolumeHandle.Lock().GetValue();
-            }
-            set
-            {
-                lightmapVolumeHandle.Dispose();
-
-                if (value == null)
-                {
-                    lightmapVolumeHandle = WeakHandle<LightmapVolume>.Empty;
-                    
-                    return;
-                }
-
-                lightmapVolumeHandle = new WeakHandle<LightmapVolume>(value);
             }
         }
 

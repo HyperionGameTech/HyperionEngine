@@ -41,8 +41,6 @@ MeshComponent& MeshComponent::operator=(const MeshComponent& other)
     skeleton = other.skeleton;
     instanceData = other.instanceData;
     previousModelMatrix = other.previousModelMatrix;
-    lightmapVolumeUuid = other.lightmapVolumeUuid;
-    lightmapElementId = other.lightmapElementId;
 
     return *this;
 }
@@ -52,11 +50,8 @@ MeshComponent::MeshComponent(MeshComponent&& other) noexcept
       material(std::move(other.material)),
       skeleton(std::move(other.skeleton)),
       instanceData(std::move(other.instanceData)),
-      previousModelMatrix(std::move(other.previousModelMatrix)),
-      lightmapVolumeUuid(std::move(other.lightmapVolumeUuid)),
-      lightmapElementId(other.lightmapElementId)
+      previousModelMatrix(std::move(other.previousModelMatrix))
 {
-    other.lightmapElementId = ~0u;
 }
 
 MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
@@ -86,10 +81,6 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
     skeleton = std::move(other.skeleton);
     instanceData = std::move(other.instanceData);
     previousModelMatrix = std::move(other.previousModelMatrix);
-    lightmapVolumeUuid = std::move(other.lightmapVolumeUuid);
-    lightmapElementId = other.lightmapElementId;
-
-    other.lightmapElementId = ~0u;
 
     return *this;
 }

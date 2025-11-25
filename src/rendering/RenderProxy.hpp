@@ -108,6 +108,8 @@ struct EntityShaderData
 
 static_assert(sizeof(EntityShaderData) == 256);
 
+enum class LightmapElementId : uint32;
+
 /*! \brief Proxy for a renderable Entity with a valid Mesh and Material assigned */
 class RenderProxyMesh final : public IRenderProxy
 {
@@ -121,7 +123,7 @@ public:
     uint32 numIndices = 0;
 
     LightmapVolume* lightmapVolume = nullptr;
-    uint32 lightmapElementId = 0;
+    LightmapElementId lightmapElementId = LightmapElementId(~0u);
 
     RenderableAttributeSet cachedAttributes;
 
@@ -152,7 +154,6 @@ public:
             || material != other.material
             || numIndices != other.numIndices
             || skeleton != other.skeleton
-            || numIndices != other.numIndices
             || lightmapVolume != other.lightmapVolume
             || lightmapElementId != other.lightmapElementId
             || cachedAttributes != other.cachedAttributes

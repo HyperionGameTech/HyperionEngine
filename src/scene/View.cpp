@@ -5,15 +5,8 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/Light.hpp>
-#include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
-#include <lightmapper/LightmapVolume.hpp>
-#include <particles/ParticleVolume.hpp>
-#include <scene/camera/Camera.hpp>
-#include <scene/animation/Skeleton.hpp>
-
 #include <scene/EntityManager.hpp>
 #include <scene/EntityTag.hpp>
 
@@ -21,13 +14,22 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
-#include <scene/components/SkyComponent.hpp>
+#include <scene/components/LightmapElementComponent.hpp>
+
+#include <lightmapper/LightmapVolume.hpp>
+
+#include <particles/ParticleVolume.hpp>
+
+#include <scene/camera/Camera.hpp>
+#include <scene/animation/Skeleton.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/Mesh.hpp>
+#include <rendering/Material.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -881,7 +883,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
         {
             AssertDebug(entity->InstanceClass() == Entity::StaticClass());
 
-            auto&& [meshComponent, transformComponent, boundingBoxComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent>(entity);
+            auto&& [meshComponent, transformComponent, boundingBoxComponent, lightmapElementComponent]
+                = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent, LightmapElementComponent>(entity);
 
             AssertDebug(meshComponent != nullptr);
             AssertDebug(meshComponent->mesh && meshComponent->mesh->IsReady());
@@ -895,8 +898,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.material = meshComponent->material;
             meshProxy.skeleton = meshComponent->skeleton;
             meshProxy.numIndices = meshComponent->mesh->NumIndices();
-            meshProxy.lightmapVolume = meshComponent->lightmapVolume.GetUnsafe();
-            meshProxy.lightmapElementId = meshComponent->lightmapElementId;
+            meshProxy.lightmapVolume = lightmapElementComponent ? lightmapElementComponent->lightmapVolume.GetUnsafe() : nullptr;
+            meshProxy.lightmapElementId = lightmapElementComponent ? lightmapElementComponent->lightmapElementId : InvalidLightmapElementId;
             meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
             meshProxy.instanceData = meshComponent->instanceData;
             meshProxy.bufferData.modelMatrix = transformComponent ? transformComponent->transform.GetMatrix() : Mat4f::Identity();
@@ -1068,7 +1071,7 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
             {
                 if (!m_camera->GetFrustum().ContainsAABB(volumeAabb))
                 {
-                    //continue;
+                    // continue;
                 }
             }
 
@@ -1181,16 +1184,6 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
             }
 
             rpl.GetEnvProbes().Track(probe->Id(), probe, probe->GetRenderProxyVersionPtr());
-        }
-
-        for (auto [entity, skyComponent] : scene->GetEntityManager()->GetEntitySet<SkyComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-        {
-            if (skyComponent.subsystem)
-            {
-                AssertDebug(skyComponent.subsystem->GetEnvProbe()->IsA<SkyProbe>());
-
-                rpl.GetEnvProbes().Track(skyComponent.subsystem->GetEnvProbe()->Id(), skyComponent.subsystem->GetEnvProbe(), skyComponent.subsystem->GetEnvProbe()->GetRenderProxyVersionPtr());
-            }
         }
     }
 }

@@ -43,6 +43,7 @@
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
+#include <scene/components/LightmapElementComponent.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -628,10 +629,6 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 
                     meshComponent.material = std::move(newMaterial);
                 }
-
-                meshComponent.lightmapVolume = volume.ToWeak();
-                meshComponent.lightmapElementId = lightmapElementId;
-                meshComponent.lightmapVolumeUuid = volume->GetUUID();
             }
             else
             {
@@ -641,11 +638,27 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
                 MeshComponent meshComponent {};
                 meshComponent.mesh = subElement.mesh;
                 meshComponent.material = newMaterial;
-                meshComponent.lightmapVolume = volume.ToWeak();
-                meshComponent.lightmapElementId = lightmapElementId;
-                meshComponent.lightmapVolumeUuid = volume->GetUUID();
 
                 entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
+            }
+
+            if (entityManager->HasComponent<LightmapElementComponent>(entity))
+            {
+                LightmapElementComponent& lightmapElementComponent = entityManager->GetComponent<LightmapElementComponent>(entity);
+
+                lightmapElementComponent.lightmapVolume = volume.ToWeak();
+                lightmapElementComponent.lightmapElementId = lightmapElementId;
+                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
+            }
+            else
+            {
+                LightmapElementComponent lightmapElementComponent;
+
+                lightmapElementComponent.lightmapVolume = volume.ToWeak();
+                lightmapElementComponent.lightmapElementId = lightmapElementId;
+                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
+
+                entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
             }
 
             entityManager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);

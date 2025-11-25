@@ -150,9 +150,9 @@ constexpr uint8 LightmapStencilMask = (1u << LightmapVolume::MaxAtlases) - 1;
 
 // Get the stencil reference value to set for a lightmapped object,
 // based on its associated atlas index.
-static constexpr inline uint8 GetLightmapStencilValue(LightmapElement::Id lightmapElementId)
+static constexpr inline uint8 GetLightmapStencilValue(LightmapElementId lightmapElementId)
 {
-    if (lightmapElementId == ~0u)
+    if (lightmapElementId == InvalidLightmapElementId)
     {
         return 0; // invalid element
     }

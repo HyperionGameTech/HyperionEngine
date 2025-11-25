@@ -24,7 +24,6 @@
 #include <scene/components/AudioComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
-#include <scene/components/ReflectionProbeComponent.hpp>
 #include <scene/components/RigidBodyComponent.hpp>
 #include <scene/components/ScriptComponent.hpp>
 #include <scene/ComponentInterface.hpp>
