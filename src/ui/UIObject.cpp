@@ -282,27 +282,30 @@ void UIObject::Update_Internal(float delta)
 
     if (m_deferredUpdates)
     {
-        bool updatedPositionOrSize = false;
-
         { // lock updates within scope; process clamped size at end
             UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
 
             if (m_deferredUpdates & (UIObjectUpdateType::UPDATE_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_SIZE))
             {
                 UpdateSize(m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_SIZE);
-                updatedPositionOrSize = true;
+
+                m_deferredUpdates |= UIObjectUpdateType::UPDATE_CLAMPED_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE;
             }
 
             if (m_deferredUpdates & (UIObjectUpdateType::UPDATE_POSITION | UIObjectUpdateType::UPDATE_CHILDREN_POSITION))
             {
                 UpdatePosition(m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_POSITION);
-                updatedPositionOrSize = true;
+
+                m_deferredUpdates |= UIObjectUpdateType::UPDATE_CLAMPED_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE;
             }
         }
 
-        if (updatedPositionOrSize || (m_deferredUpdates & (UIObjectUpdateType::UPDATE_CLAMPED_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE)))
+        if (m_deferredUpdates & (UIObjectUpdateType::UPDATE_CLAMPED_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE))
         {
-            UpdateClampedSize(updatedPositionOrSize || (m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE));
+            UpdateClampedSize(m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE);
+
+            m_deferredUpdates |= UIObjectUpdateType::UPDATE_MESH_DATA | UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA;
+            m_deferredUpdates |= UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY | UIObjectUpdateType::UPDATE_CHILDREN_COMPUTED_VISIBILITY;
         }
 
         if (m_deferredUpdates & (UIObjectUpdateType::UPDATE_MATERIAL | UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL))
@@ -521,9 +524,9 @@ void UIObject::UpdatePosition(bool updateChildren)
             /* deep */ false);
     }
 
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
+    UpdateClampedSize();
+
+    // SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
 }
 
 UIObjectSize UIObject::GetSize() const
@@ -608,8 +611,8 @@ void UIObject::UpdateSize(bool updateChildren)
             });
     }
 
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
+    UpdateClampedSize();
+    // SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
 }
 
 void UIObject::UpdateSize_Internal(bool updateChildren)
@@ -699,8 +702,6 @@ void UIObject::UpdateSize_Internal(bool updateChildren)
         /* deep */ false);
 
     OnSizeChange();
-
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
 }
 
 void UIObject::UpdateClampedSize(bool updateChildren)
@@ -736,9 +737,6 @@ void UIObject::UpdateClampedSize(bool updateChildren)
         m_actualSizeClamped = Vec2i::Zero();
     }
 
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
-
     if (updateChildren)
     {
         ForEachChildUIObject([](UIObject* child)
@@ -749,6 +747,9 @@ void UIObject::UpdateClampedSize(bool updateChildren)
             },
             /* deep */ false);
     }
+
+    UpdateComputedVisibility(false);
+    UpdateMeshData(false);
 }
 
 void UIObject::UpdateNodeTransform()
@@ -2979,8 +2980,8 @@ void UIObject::SetStage_Internal(UIStage* stage)
 
     UpdateComputedTextSize();
 
-    UpdateSize(false);
-    UpdatePosition(false);
+    UpdateSize();
+    UpdatePosition();
 
     ForEachChildUIObject([this, stage](UIObject* uiObject)
         {
