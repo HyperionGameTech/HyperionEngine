@@ -75,9 +75,10 @@
 
 namespace hyperion {
 
-static constexpr uint32 TileSize = 256;
+static constexpr uint32 TileSize = 32;
 static constexpr uint32 IdealRaysPerFrame = 1000000;
-static constexpr double IdealGpuMemUsageMB = 1024;
+static constexpr double IdealGpuMemUsageMB = 1024 * 3;
+static constexpr uint32 MaxConcurrentJobs = ~0u;
 
 // for LightmapVolume gpu trace job
 static inline double GetEstimatedGPUMemUsageForJob(const LightmapperConfig& config)
@@ -478,23 +479,16 @@ void LightmapperBase::Update(float delta)
 {
     HYP_SCOPE;
 
-    if (m_updateTimer.Waiting())
+   /* if (m_updateTimer.Waiting())
     {
         m_updateTimer.NextTick();
 
         return;
-    }
-
-    uint32 numJobs = m_numJobs.Get(MemoryOrder::ACQUIRE);
-
-//    m_view->UpdateViewport();
-//    m_view->UpdateVisibility();
-//    m_view->CollectSync();
-
-    static constexpr uint32 MaxConcurrentJobs = 4;
+    }*/
 
     uint32 numRaysProcessed = 0;
     uint32 numRunningJobs = 0;
+    uint32 numProcessedJobs = 0;
   
     double gpuMemUsagePerJobMB = GetEstimatedGPUMemUsageForJob(m_config);
     AssertDebug(gpuMemUsagePerJobMB <= IdealGpuMemUsageMB);
@@ -525,22 +519,8 @@ void LightmapperBase::Update(float delta)
         if (job->IsRunning())
         {
             numRaysProcessed += job->Process(MathUtil::Max(0, int64(IdealRaysPerFrame) - int64(numRaysProcessed)));
-        }
-        else if (numRaysProcessed + (job->GetTexelIndices().Size() * m_config.numSamples) <= IdealRaysPerFrame
-            && currentGpuMemUsageMB + gpuMemUsagePerJobMB <= IdealGpuMemUsageMB
-            && numRunningJobs < MaxConcurrentJobs)
-        {
-            job->Start();
 
-            AssertDebug(job->IsRunning());
-
-            if (m_config.traceMode == LightmapTraceMode::GPU_PATH_TRACING)
-            {
-                currentGpuMemUsageMB += gpuMemUsagePerJobMB;
-            }
-
-            numRaysProcessed += job->Process(MathUtil::Max(0, int64(IdealRaysPerFrame) - int64(numRaysProcessed)));
-            numRunningJobs++;
+            ++numProcessedJobs;
         }
 
         if (job->IsCompleted())
@@ -557,7 +537,29 @@ void LightmapperBase::Update(float delta)
         ++it;
     }
 
-    HYP_LOG(Lightmap, Debug, "Processing {} primary rays this frame", numRaysProcessed);
+    // spin up new jobs
+    for (auto it = m_queue.Begin(); it != m_queue.End();)
+    {
+        LightmapJobBase* job = it->Get();
+
+        if (!job->IsRunning() && !job->IsCompleted())
+        {
+            if (numRunningJobs < MaxConcurrentJobs
+                && (m_config.traceMode != LightmapTraceMode::GPU_PATH_TRACING || currentGpuMemUsageMB + gpuMemUsagePerJobMB <= IdealGpuMemUsageMB))
+            {
+                job->Start();
+
+                if (m_config.traceMode == LightmapTraceMode::GPU_PATH_TRACING)
+                {
+                    currentGpuMemUsageMB += gpuMemUsagePerJobMB;
+                }
+
+                numRunningJobs++;
+            }
+        }
+
+        ++it;
+    }
 }
 
 void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)

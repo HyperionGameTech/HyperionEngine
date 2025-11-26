@@ -181,6 +181,7 @@ void LightmapRenderer_GpuPathTracing::Create()
 void LightmapRenderer_GpuPathTracing::CleanJobData(LightmapJobBase* job)
 {
     auto jobDataIt = m_jobData.Find(job);
+
     if (jobDataIt == m_jobData.End())
     {
         return;
@@ -189,6 +190,7 @@ void LightmapRenderer_GpuPathTracing::CleanJobData(LightmapJobBase* job)
     SafeDelete(std::move(jobDataIt->second.UniformBuffers));
     SafeDelete(std::move(jobDataIt->second.RayBuffers));
     SafeDelete(std::move(jobDataIt->second.HitsBufferGpu));
+    SafeDelete(std::move(jobDataIt->second.Sets));
 
     m_jobData.Erase(jobDataIt);
 }
