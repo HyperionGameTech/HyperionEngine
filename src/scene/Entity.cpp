@@ -125,11 +125,11 @@ void Entity::Init()
 
     if (BoundingBoxComponent* boundingBoxComponent = m_entityManager->TryGetComponent<BoundingBoxComponent>(this))
     {
-        SetEntityAABB(boundingBoxComponent->localAabb);
+        SetLocalBounds(boundingBoxComponent->localAabb);
     }
     else
     {
-        SetEntityAABB(BoundingBox::Empty());
+        SetLocalBounds(BoundingBox::Empty());
     }
 
     if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))
@@ -295,7 +295,7 @@ void Entity::OnComponentAdded(AnyRef component)
 
     if (BoundingBoxComponent* boundingBoxComponent = component.TryGet<BoundingBoxComponent>())
     {
-        SetEntityAABB(boundingBoxComponent->localAabb);
+        SetLocalBounds(boundingBoxComponent->localAabb);
 
         return;
     }
@@ -305,7 +305,7 @@ void Entity::OnComponentRemoved(AnyRef component)
 {
     if (BoundingBoxComponent* boundingBoxComponent = component.TryGet<BoundingBoxComponent>())
     {
-        SetEntityAABB(BoundingBox::Empty());
+        SetLocalBounds(BoundingBox::Empty());
 
         return;
     }

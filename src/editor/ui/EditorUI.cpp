@@ -7,6 +7,7 @@
 #include <ui/UIDataSource.hpp>
 
 #include <core/reflection/Class.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -14,20 +15,20 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(TypeId typeId)
+HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(const TypeInfo& typeInfo)
 {
-    Handle<UIElementFactoryBase> factory = UIElementFactoryRegistry::GetInstance().GetFactory(typeId);
+    Handle<UIElementFactoryBase> factory = UIElementFactoryRegistry::GetInstance().GetFactory(typeInfo);
 
     if (!factory)
     {
-        if (const Class* cls = GetClass(typeId))
+        if (const Class* cls = typeInfo.GetClass())
         {
-            factory = UIElementFactoryRegistry::GetInstance().GetFactory(TypeId::ForType<HypData>());
+            factory = UIElementFactoryRegistry::GetInstance().GetFactory(TypeOf<HypData>());
         }
 
         if (!factory)
         {
-            HYP_LOG(Editor, Warning, "No factory registered for TypeId {}", typeId.Value());
+            HYP_LOG(Editor, Warning, "No factory registered for type: {}", typeInfo.name);
 
             return nullptr;
         }

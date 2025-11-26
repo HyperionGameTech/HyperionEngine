@@ -1,6 +1,6 @@
 #include <HyperionPch.hpp>
 
-#include <editor/ui/property_panels/TransformEditorPropertyPanel.hpp>
+#include <editor/ui/edit/EditTransform.hpp>
 #include <editor/ui/EditorUI.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -14,22 +14,22 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <TransformEditorPropertyPanel.generated.inl>
+#include <EditTransform.generated.inl>
 
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-TransformEditorPropertyPanel::TransformEditorPropertyPanel()
+EditTransform::EditTransform()
     : EditorPropertyPanelBase()
 {
 }
 
-TransformEditorPropertyPanel::~TransformEditorPropertyPanel() = default;
+EditTransform::~EditTransform() = default;
 
-void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const Property* property)
+void EditTransform::Build_Impl(const HypData& hypData, const Property* property)
 {
-    HYP_NAMED_SCOPE("TransformEditorPropertyPanel::Build");
+    HYP_NAMED_SCOPE("EditTransform::Build");
 
     Assert(hypData.IsValid());
 
@@ -49,7 +49,7 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const Prop
         .Bind([nodeWeak = node.ToWeak(), property](const HypData& value) -> UIEventHandlerResult
             {
                 Handle<Node> node = nodeWeak.Lock();
-                if (!node)
+                if (!node || !property->CanSet())
                 {
                     return UIEventHandlerResult::ERR;
                 }
@@ -83,7 +83,7 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const Prop
 
             m_delegateHandlers.Add(translationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
                 {
-                    Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
+                    Handle<EditTransform> strongThis = weakThis.Lock();
                     if (!strongThis)
                     {
                         return UIEventHandlerResult::OK;
@@ -117,7 +117,7 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const Prop
 
             m_delegateHandlers.Add(rotationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
                 {
-                    Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
+                    Handle<EditTransform> strongThis = weakThis.Lock();
                     if (!strongThis)
                     {
                         return UIEventHandlerResult::OK;
@@ -151,7 +151,7 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const Prop
 
             m_delegateHandlers.Add(scaleElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
                 {
-                    Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
+                    Handle<EditTransform> strongThis = weakThis.Lock();
                     if (!strongThis)
                     {
                         return UIEventHandlerResult::OK;

@@ -16,6 +16,7 @@
 
 #include <core/threading/DataRaceDetector.hpp>
 
+#include <core/reflection/TypeInfoFwd.hpp>
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -42,7 +43,7 @@ class HYP_API UIElementFactoryRegistry
 public:
     static UIElementFactoryRegistry& GetInstance();
 
-    Handle<UIElementFactoryBase> GetFactory(TypeId typeId);
+    Handle<UIElementFactoryBase> GetFactory(const TypeInfo& typeInfo);
 
     template <class... Types>
     Array<Handle<UIElementFactoryBase>> GetFactories()
@@ -50,11 +51,11 @@ public:
         Array<Handle<UIElementFactoryBase>> factories;
         factories.Reserve(sizeof...(Types));
 
-        const FixedArray<TypeId, sizeof...(Types)> typeIds = { TypeId::ForType<Types>()... };
+        const FixedArray<const TypeInfo*, sizeof...(Types)> typeInfos = { &TypeOf<Types>()... };
 
-        for (TypeId typeId : typeIds)
+        for (const TypeInfo* pTypeInfo : typeInfos)
         {
-            Handle<UIElementFactoryBase> factory = GetFactory(typeId);
+            Handle<UIElementFactoryBase> factory = GetFactory(*pTypeInfo);
             Assert(factory != nullptr);
 
             factories.PushBack(factory);

@@ -48,15 +48,19 @@ HYP_API const Name g_attrSize = NAME("size");
 HYP_API const Name g_attrNoScriptBindings = NAME("noscriptbindings");
 HYP_API const Name g_attrCommand = NAME("command");
 HYP_API const Name g_attrAbstract = NAME("abstract");
-HYP_API const Name g_attrDescription = NAME("description");
 HYP_API const Name g_attrCompressed = NAME("compressed");
-HYP_API const Name g_attrEditor = NAME("editor");
 HYP_API const Name g_attrProperty = NAME("property");
 HYP_API const Name g_attrLoadOrder = NAME("loadorder");
 HYP_API const Name g_attrJsonPath = NAME("jsonpath");
 HYP_API const Name g_attrJsonIgnore = NAME("jsonignore");
 HYP_API const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
 HYP_API const Name g_attrFollowAssetPath = NAME("followassetpath");
+
+HYP_API const Name g_attrEditor = NAME("editor");
+HYP_API const Name g_attrEditOrder = NAME("editorder");
+HYP_API const Name g_attrEditEnabled = NAME("editenabled");
+HYP_API const Name g_attrLabel = NAME("label");
+HYP_API const Name g_attrDescription = NAME("description");
 
 } // namespace Attributes
 

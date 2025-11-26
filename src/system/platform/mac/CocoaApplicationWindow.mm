@@ -170,8 +170,6 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 
 void CocoaApplicationWindow::SetMousePosition(Vec2i position)
 {
-    HYP_LOG(Core, Debug, "Setting mouse position to ({}, {})", position.x, position.y);
-
     if (!m_mouseLocked)
     {
         NSWindow* window = (NSWindow*)m_nsWindow;

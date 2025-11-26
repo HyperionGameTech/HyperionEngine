@@ -1472,7 +1472,7 @@ private:
     template <class Lambda>
     void ForEachParentUIObject(Lambda&& lambda) const;
 
-    void SetEntityAABB(const BoundingBox& aabb);
+    void SetLocalBounds(const BoundingBox& aabb);
 
     void UpdateClampedSize(bool updateChildren = true);
 
@@ -1485,6 +1485,7 @@ private:
     bool m_isVisible : 1;
     bool m_computedVisibility : 1;
     bool m_isEnabled : 1;
+    bool m_isParentDisabled : 1;
     bool m_acceptsFocus : 1;
     bool m_affectsParentSize : 1;
     bool m_isPositionAbsolute : 1;

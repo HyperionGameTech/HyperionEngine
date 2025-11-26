@@ -52,6 +52,7 @@
 namespace hyperion {
 
 // #define HYP_MATERIAL_DEBUG 1
+// #define HYP_GRAPHICS_PIPELINE_TIMING_DEBUG 1
 
 extern EngineStatCounter<uint32> g_statDrawCalls;
 extern EngineStatCounter<uint32> g_statInstancedDrawCalls;
@@ -132,8 +133,10 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
     Assert(pd != nullptr);
     Assert(batchAllocator != nullptr);
 
+#if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
     PerformanceClock clock;
     clock.Start();
+#endif
 
     Handle<View> view = pd->view.Lock();
     Assert(view.IsValid());
@@ -176,8 +179,11 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
         { &view->GetOutputTarget().GetFramebuffer(m_renderableAttributes.GetMaterialAttributes().bucket), 1 },
         m_renderableAttributes);
 
+#if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
     clock.Stop();
+
     HYP_LOG(Rendering, Debug, "Created graphics pipeline ({} ms)", clock.ElapsedMs());
+#endif
 
     return cacheHandle;
 }

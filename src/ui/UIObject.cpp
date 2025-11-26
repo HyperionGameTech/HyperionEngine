@@ -123,6 +123,7 @@ UIObject::UIObject(const ThreadId& ownerThreadId)
       m_isVisible(true),
       m_computedVisibility(false),
       m_isEnabled(true),
+      m_isParentDisabled(false),
       m_acceptsFocus(true),
       m_affectsParentSize(true),
       m_isPositionAbsolute(false),
@@ -359,7 +360,9 @@ void UIObject::OnAttached_Internal(UIObject* parent)
     UpdateSize(/* updateChildren */ false);
     UpdatePosition(/* updateChildren */ true);
 
-    if (m_isEnabled && !parent->IsEnabled())
+    m_isParentDisabled = !parent->IsEnabled();
+
+    if (m_isEnabled && m_isParentDisabled)
     {
         OnDisabled();
     }
@@ -382,7 +385,10 @@ void UIObject::OnRemoved_Internal()
 
     if (UIObject* parent = GetParentUIObject())
     {
-        if (m_isEnabled && !parent->IsEnabled())
+        const bool wasParentDisabled = !parent->IsEnabled();
+        m_isParentDisabled = false;
+
+        if (m_isEnabled && wasParentDisabled)
         {
             OnEnabled();
         }
@@ -622,7 +628,7 @@ void UIObject::UpdateSize_Internal(bool updateChildren)
     m_deferredUpdates &= ~(UIObjectUpdateType::UPDATE_SIZE | (updateChildren ? UIObjectUpdateType::UPDATE_CHILDREN_SIZE : UIObjectUpdateType::NONE));
 
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
-    SetEntityAABB(CalculateAABB());
+    SetLocalBounds(CalculateAABB());
 
     // Separate children into groups based on their sizing mode:
     // - percentChildren: Children using PERCENT sizing (depend on parent size)
@@ -665,7 +671,7 @@ void UIObject::UpdateSize_Internal(bool updateChildren)
     if (needsUpdateAfterChildren)
     {
         UpdateActualSizes(UpdateSizePhase::AFTER_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
-        SetEntityAABB(CalculateAABB());
+        SetLocalBounds(CalculateAABB());
     }
 
     // Process PERCENT children after the parent has been sized
@@ -939,7 +945,7 @@ bool UIObject::AcceptsFocus() const
 {
     HYP_SCOPE;
 
-    if (!m_isEnabled || !m_acceptsFocus)
+    if (!m_acceptsFocus)
     {
         return false;
     }
@@ -948,7 +954,7 @@ bool UIObject::AcceptsFocus() const
 
     ForEachParentUIObject([&acceptsFocus](UIObject* parent)
         {
-            if (!parent->m_isEnabled || !parent->m_acceptsFocus)
+            if (!parent->m_acceptsFocus)
             {
                 acceptsFocus = false;
 
@@ -1329,26 +1335,7 @@ void UIObject::UpdateComputedVisibility(bool updateChildren)
 
 bool UIObject::IsEnabled() const
 {
-    if (!m_isEnabled)
-    {
-        return false;
-    }
-
-    bool isEnabled = true;
-
-    ForEachParentUIObject([&isEnabled](UIObject* parent)
-        {
-            if (!parent->m_isEnabled)
-            {
-                isEnabled = false;
-
-                return IterationResult::STOP;
-            }
-
-            return IterationResult::CONTINUE;
-        });
-
-    return isEnabled;
+    return m_isEnabled && !m_isParentDisabled;
 }
 
 void UIObject::SetIsEnabled(bool isEnabled)
@@ -1362,7 +1349,7 @@ void UIObject::SetIsEnabled(bool isEnabled)
 
     m_isEnabled = isEnabled;
 
-    if (isEnabled)
+    if (isEnabled && !m_isParentDisabled)
     {
         OnEnabled();
     }
@@ -1371,18 +1358,17 @@ void UIObject::SetIsEnabled(bool isEnabled)
         OnDisabled();
     }
 
-    ForEachChildUIObject([isEnabled](UIObject* child)
+    ForEachChildUIObject([this, isEnabled](UIObject* child)
         {
-            if (child->m_isEnabled)
+            child->m_isParentDisabled = !isEnabled || m_isParentDisabled;
+
+            if (child->m_isEnabled && !child->m_isParentDisabled)
             {
-                if (isEnabled)
-                {
-                    child->OnEnabled();
-                }
-                else
-                {
-                    child->OnDisabled();
-                }
+                child->OnEnabled();
+            }
+            else
+            {
+                child->OnDisabled();
             }
 
             return IterationResult::CONTINUE;
@@ -1783,7 +1769,7 @@ BoundingBox UIObject::GetLocalAABB() const
     return BoundingBox::Empty();
 }
 
-void UIObject::SetEntityAABB(const BoundingBox& aabb)
+void UIObject::SetLocalBounds(const BoundingBox& aabb)
 {
     HYP_SCOPE;
 
@@ -1796,7 +1782,7 @@ void UIObject::SetEntityAABB(const BoundingBox& aabb)
 
         if (const Handle<Node>& node = GetNode())
         {
-            node->SetEntityAABB(aabb);
+            node->SetLocalBounds(aabb);
 
             transform = node->GetWorldTransform();
         }

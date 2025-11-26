@@ -9,13 +9,13 @@
 namespace hyperion {
 
 HYP_CLASS()
-class HYP_API TransformEditorPropertyPanel : public EditorPropertyPanelBase
+class HYP_API EditBoundingBox : public EditorPropertyPanelBase
 {
-    HYP_OBJECT_BODY(TransformEditorPropertyPanel);
+    HYP_OBJECT_BODY(EditBoundingBox);
 
 public:
-    TransformEditorPropertyPanel();
-    virtual ~TransformEditorPropertyPanel() override;
+    EditBoundingBox();
+    virtual ~EditBoundingBox() override;
 
     virtual void Build_Impl(const HypData& hypData, const Property* property) override;
 };

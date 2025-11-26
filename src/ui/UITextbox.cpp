@@ -135,10 +135,31 @@ UITextbox::UITextbox()
             })
         .Detach();
 
-    OnKeyUp.Bind([this](const KeyboardEvent& eventData) -> UIEventHandlerResult
-               {
-                   return UIEventHandlerResult::STOP_BUBBLING;
-               })
+    OnKeyUp
+        .Bind([this](const KeyboardEvent& eventData) -> UIEventHandlerResult
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            })
+        .Detach();
+
+    OnEnabled
+        .Bind([this]()
+            {
+                SetAcceptsFocus(true);
+                UpdateMaterial(false);
+
+                return UIEventHandlerResult::OK;
+            })
+        .Detach();
+
+    OnDisabled
+        .Bind([this]()
+            {
+                SetAcceptsFocus(false);
+                UpdateMaterial(false);
+
+                return UIEventHandlerResult::OK;
+            })
         .Detach();
 }
 
@@ -205,9 +226,19 @@ void UITextbox::SetText_Internal(const String& text)
 
 void UITextbox::SetPlaceholder(const String& placeholder)
 {
+    if (m_placeholder == placeholder)
+    {
+        return;
+    }
+
     m_placeholder = placeholder;
 
     UpdateTextColor();
+
+    if (m_textElement && ShouldDisplayPlaceholder())
+    {
+        m_textElement->SetText(m_placeholder);
+    }
 }
 
 void UITextbox::Update_Internal(float delta)
@@ -301,12 +332,10 @@ void UITextbox::UpdateTextColor()
 
     if (ShouldDisplayPlaceholder())
     {
-        m_textElement->SetText(m_placeholder);
         m_textElement->SetTextColor(GetPlaceholderTextColor());
     }
     else
     {
-        m_textElement->SetText(m_text);
         m_textElement->SetTextColor(m_textColor);
     }
 }
@@ -325,9 +354,35 @@ void UITextbox::SubmitTextChange()
 
         if (clearOnSubmit)
         {
-            SetText_Internal("");
+            SetText_Internal(String::empty);
+            SetCurrentValue(HypData(String::empty));
+        }
+        else
+        {
+            SetCurrentValue(HypData(text));
         }
     }
+}
+
+MaterialParameters UITextbox::GetMaterialParameters() const
+{
+    MaterialParameters params = UIPanel::GetMaterialParameters();
+
+    if (IsEnabled())
+    {
+        params[MaterialParameterKey::MATERIAL_KEY_ALBEDO] = MaterialParameter(GetBackgroundColor());
+    }
+    else
+    {
+        Color disabledColor = GetBackgroundColor();
+        disabledColor.SetRed(disabledColor.GetRed() * 0.5f);
+        disabledColor.SetGreen(disabledColor.GetGreen() * 0.5f);
+        disabledColor.SetBlue(disabledColor.GetBlue() * 0.5f);
+
+        params[MaterialParameterKey::MATERIAL_KEY_ALBEDO] = MaterialParameter(disabledColor);
+    }
+
+    return params;
 }
 
 #pragma region UITextbox

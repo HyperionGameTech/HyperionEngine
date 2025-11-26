@@ -1195,6 +1195,7 @@ static void ForEachPermutation(
             }
         }
 
+#ifdef HYP_SHADER_COMPILER_LOGGING
         HYP_LOG(ShaderCompiler, Info,
             "\tShader value group {} has {} permutations:", valueGroup.name,
             currentGroupCombinations.Size());
@@ -1203,6 +1204,7 @@ static void ForEachPermutation(
         {
             HYP_LOG(ShaderCompiler, Debug, "\t\t{}", properties.ToString());
         }
+#endif
 
         *currentCombinations = std::move(currentGroupCombinations);
     }
@@ -1740,7 +1742,9 @@ bool ShaderCompiler::LoadOrCompileBatch(
 
     if (outputFilePath.Exists())
     {
+#ifdef HYP_SHADER_COMPILER_LOGGING
         HYP_LOG(ShaderCompiler, Info, "Attempting to load compiled shader {}...", outputFilePath);
+#endif
 
         if (!LoadBatchFromFile(outputFilePath, batch))
         {
@@ -2469,10 +2473,6 @@ bool ShaderCompiler::CompileBundle(
     // =============================================
     if (additionalVersions.Any())
     {
-        HYP_LOG(ShaderCompiler, Info,
-            "With additional requested properties: {}",
-            additionalVersions.ToString());
-
         const auto mergeAdditionalVersion = [](ShaderProperties& target, const ShaderProperty& additional) -> Result
         {
             auto targetIt = target.Find(StringHash(additional.name));
@@ -2838,6 +2838,7 @@ bool ShaderCompiler::CompileBundle(
 
     byteWriter.Close();
 
+#ifdef HYP_SHADER_COMPILER_LOGGING
     if (numCompiledPermutations.Get(MemoryOrder::RELAXED) != 0)
     {
         HYP_LOG(ShaderCompiler, Info,
@@ -2845,6 +2846,7 @@ bool ShaderCompiler::CompileBundle(
             numCompiledPermutations.Get(MemoryOrder::RELAXED), shaderBundleDecl.name,
             finalOutputPath);
     }
+#endif
 
     return true;
 }
@@ -2941,11 +2943,13 @@ bool ShaderCompiler::GetCompiledShader(
 
     out = *it;
 
+#ifdef HYP_SHADER_COMPILER_LOGGING
     HYP_LOG(ShaderCompiler, Debug,
         "Selected shader {} with properties: {}, attributes: {}",
         name,
         finalProperties.ToString(),
         finalProperties.GetRequiredVertexAttributes().ToString());
+#endif
 
     Assert(out.GetDefinition().IsValid());
 

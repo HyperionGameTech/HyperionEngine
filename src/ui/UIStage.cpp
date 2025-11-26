@@ -585,9 +585,9 @@ UIEventHandlerResult UIStage::OnInputEvent(
         const Vec2i mousePosition = inputManager->GetMousePosition(); // event.GetEventData().Get<Vec2i>();
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
-//
-//        HYP_LOG(UI, Debug, "Mouse move event: position: {}, previous position: {}, buttons: {}, object mouse states size: {}",
-//            mousePosition, previousMousePosition, mouseButtons.enumValue, m_objectMouseStates.Size());
+        //
+        //        HYP_LOG(UI, Debug, "Mouse move event: position: {}, previous position: {}, buttons: {}, object mouse states size: {}",
+        //            mousePosition, previousMousePosition, mouseButtons.enumValue, m_objectMouseStates.Size());
 
         if (mouseButtons != MouseButtonState::NONE)
         { // mouse drag event
@@ -615,9 +615,6 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         }
 
                         UIEventHandlerResult currentResult = uiObject->OnMouseDrag(mouseEvent);
-
-                        HYP_LOG(UI, Debug, "Drag mouse on {} : position: {}, previous position: {}, absolute position: {}",
-                            uiObject->GetName(), mouseEvent.position, mouseEvent.previousPosition, mouseEvent.absolutePosition);
 
                         mouseDragEventHandlerResult |= currentResult;
 
@@ -718,19 +715,19 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     mouseHoverEventHandlerResult |= currentResult;
 
-                    //                    BoundingBoxComponent& boundingBoxComponent = uiObject->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(uiObject->GetEntity());
+                    BoundingBoxComponent& boundingBoxComponent = uiObject->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(uiObject->GetEntity());
 
-                    //                    HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Text Size: {}, Node AABB: {}, Has children: {}, Size clamped: {}, Depth: {}",
-                    //                        uiObject->InstanceClass()->GetName(),
-                    //                        uiObject->GetName(),
-                    //                        uiObject->GetText(),
-                    //                        uiObject->GetActualSize(),
-                    //                        uiObject->GetActualInnerSize(),
-                    //                        uiObject->GetTextSize(),
-                    //                        uiObject->GetNode()->GetWorldAABB().GetExtent(),
-                    //                        uiObject->HasChildUIObjects(),
-                    //                        uiObject->GetActualSizeClamped(),
-                    //                        uiObject->GetComputedDepth());
+                    HYP_LOG(UI, Debug, "Mouse hover on {}: {}, clamped aabb: {}",
+                        uiObject->InstanceClass()->GetName(),
+                        uiObject->GetName(),
+                        //    uiObject->GetText(),
+                        //    uiObject->GetActualSize(),
+                        //    uiObject->GetActualInnerSize(),
+                        //    uiObject->GetTextSize(),
+                        uiObject->GetAABBClamped().GetExtent());
+                    //    uiObject->HasChildUIObjects(),
+                    //    uiObject->GetActualSizeClamped(),
+                    //    uiObject->GetComputedDepth());
 
                     if (mouseHoverEventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
                     {
