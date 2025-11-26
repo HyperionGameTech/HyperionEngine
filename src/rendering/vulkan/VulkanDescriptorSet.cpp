@@ -184,8 +184,6 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        HYP_LOG(RenderingBackend, Debug, "Destroying descriptor set with layout: {}\tDebug name: {}", m_layout.GetName().LookupString(), GetDebugName().LookupString());
-
         GetRenderBackend()->DestroyDescriptorSet(m_handle, m_vkDescriptorPool);
 
         m_handle = VK_NULL_HANDLE;
@@ -453,8 +451,6 @@ void VulkanDescriptorSet::Update(bool force)
 RendererResult VulkanDescriptorSet::Create()
 {
     HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE && m_vkDescriptorPool == VK_NULL_HANDLE);
-
-    HYP_LOG(RenderingBackend, Debug, "Created descriptor set with layout: {}\tDebug name: {}", m_layout.GetName().LookupString(), GetDebugName().LookupString());
 
     if (!m_layout.IsValid())
     {

@@ -283,8 +283,6 @@ RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
         VkDescriptorPool& descriptorPool = m_vkDescriptorPools[i];
         HYP_GFX_ASSERT(descriptorPool != VK_NULL_HANDLE);
 
-        HYP_LOG(RenderingBackend, Debug, "Destroying Vulkan descriptor pool {} ({})", (void*)descriptorPool, i);
-
         const uint32 usageCount = m_descriptorPoolUsageCounts[i];
 
         if (usageCount > 0)
@@ -452,8 +450,6 @@ RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* de
 
     HYP_GFX_ASSERT(m_descriptorPoolUsageCounts[descriptorPoolIndex] > 0, "miscount of descriptor pool usage counts; should never be less than 0");
     --m_descriptorPoolUsageCounts[descriptorPoolIndex];
-
-    HYP_LOG(RenderingBackend, Debug, "Descriptor pool {} current usage count: {} descriptor sets", descriptorPoolIndex, m_descriptorPoolUsageCounts[descriptorPoolIndex]);
 
     return RendererResult {};
 }

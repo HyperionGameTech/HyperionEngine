@@ -700,14 +700,14 @@ Transform Node::GetRelativeTransform(const Transform& parentTransform) const
     return parentTransform.GetInverse() * m_worldTransform;
 }
 
-void Node::SetEntityAABB(const BoundingBox& aabb)
+void Node::SetLocalBounds(const BoundingBox& aabb)
 {
-    if (m_entityAabb == aabb)
+    if (m_localBounds == aabb)
     {
         return;
     }
 
-    m_entityAabb = aabb;
+    m_localBounds = aabb;
 
 #ifdef HYP_EDITOR
     GetEditorDelegates([this](EditorDelegates* editorDelegates)
@@ -741,7 +741,7 @@ BoundingBox Node::GetLocalAABBExcludingSelf() const
 
 BoundingBox Node::GetLocalAABB() const
 {
-    BoundingBox aabb = m_entityAabb.IsValid() ? m_entityAabb : BoundingBox::Zero();
+    BoundingBox aabb = m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero();
 
     for (const Handle<Node>& child : GetChildren())
     {
@@ -761,7 +761,7 @@ BoundingBox Node::GetLocalAABB() const
 
 BoundingBox Node::GetWorldAABB() const
 {
-    BoundingBox aabb = m_worldTransform * (m_entityAabb.IsValid() ? m_entityAabb : BoundingBox::Zero());
+    BoundingBox aabb = m_worldTransform * (m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero());
 
     for (const Handle<Node>& child : GetChildren())
     {

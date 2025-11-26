@@ -2376,7 +2376,8 @@ void EditorSubsystem::InitDetailView()
 
             UIDataSourceBase* dataSource = detailsListView->GetDataSource();
 
-            HashMap<String, Property*> propertiesByName;
+            Array<Pair<Property*, int>> propertiesWithSortOrder;
+            Array<Property*> propertiesWithoutSortOrder;
 
             for (auto it = cls->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != cls->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
             {
@@ -2392,7 +2393,14 @@ void EditorSubsystem::InitDetailView()
                         continue;
                     }
 
-                    propertiesByName[property->GetName().LookupString()] = property;
+                    if (const ClassAttributeValue& attr = property->GetAttribute(Attributes::g_attrEditOrder); attr.IsValid())
+                    {
+                        propertiesWithSortOrder.EmplaceBack(property, attr.GetInt());
+
+                        continue;
+                    }
+
+                    propertiesWithoutSortOrder.PushBack(property);
                 }
                 else
                 {
@@ -2400,22 +2408,44 @@ void EditorSubsystem::InitDetailView()
                 }
             }
 
-            for (auto& it : propertiesByName)
+            // sort properties with sort order
+            std::sort(
+                propertiesWithSortOrder.Begin(),
+                propertiesWithSortOrder.End(),
+                [](const Pair<Property*, int>& a, const Pair<Property*, int>& b)
+                {
+                    return a.second < b.second;
+                });
+
+            Array<Property*> allProperties;
+            allProperties.Reserve(propertiesWithSortOrder.Size() + propertiesWithoutSortOrder.Size());
+
+            for (const Pair<Property*, int>& pair : propertiesWithSortOrder)
+            {
+                allProperties.PushBack(pair.first);
+            }
+
+            for (Property* property : propertiesWithoutSortOrder)
+            {
+                allProperties.PushBack(property);
+            }
+
+            for (Property* property : allProperties)
             {
                 EditorNodePropertyRef nodePropertyRef;
                 nodePropertyRef.node = node.ToWeak();
-                nodePropertyRef.property = it.second;
+                nodePropertyRef.property = property;
 
-                if (const ClassAttributeValue& attr = it.second->GetAttribute("label"))
+                if (const ClassAttributeValue& attr = property->GetAttribute(Attributes::g_attrLabel))
                 {
                     nodePropertyRef.title = attr.GetString();
                 }
                 else
                 {
-                    nodePropertyRef.title = it.first;
+                    nodePropertyRef.title = *property->GetName();
                 }
 
-                if (const ClassAttributeValue& attr = it.second->GetAttribute("description"))
+                if (const ClassAttributeValue& attr = property->GetAttribute(Attributes::g_attrDescription))
                 {
                     nodePropertyRef.description = attr.GetString();
                 }

@@ -62,7 +62,10 @@ protected:
     }
 
     virtual void Update_Internal(float delta) override;
+
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focusState) override;
+
+    virtual MaterialParameters GetMaterialParameters() const override;
 
     void UpdateCursor();
     void UpdateTextColor();
@@ -71,7 +74,7 @@ protected:
     {
         return GetText().Length() == 0 && m_placeholder.Length() != 0;
     }
-    
+
     // Set text without broadcasting update
     void SetText_Internal(const String& text);
     void SubmitTextChange();
@@ -88,4 +91,3 @@ protected:
 };
 
 } // namespace hyperion
-

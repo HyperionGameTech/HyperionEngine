@@ -43,7 +43,7 @@ static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData
 
     const Class* propertyPanelClass = nullptr;
 
-    if (const ClassAttributeValue& attr = property->GetAttribute("editorpropertypanelclass"))
+    if (const ClassAttributeValue& attr = property->GetAttribute(Attributes::g_attrEditor); attr.IsValid() && attr.IsString())
     {
         const Class* cls = GetClass(CreateNameFromDynamicString(attr.GetString()));
 
@@ -78,17 +78,12 @@ static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData
             return nullptr;
         }
 
-        const ClassAttributeValue& attr = cls->GetAttribute("editorpropertypanelclass");
+        const ClassAttributeValue& attr = cls->GetAttribute(Attributes::g_attrEditor);
 
-        if (attr.IsValid())
+        // allow "editor" to be a string representing the class name to use (can be bool as well to just signal usage of default)
+        if (attr.IsValid() && attr.IsString())
         {
-            if (!attr.IsString())
-            {
-                HYP_LOG(Editor, Error, "Editor property panel class attribute \"editorpropertypanelclass\" must be a string");
-
-                return nullptr;
-            }
-
+            // find class with name given in attribute for Editor=""
             propertyPanelClass = GetClass(CreateNameFromDynamicString(attr.GetString()));
 
             if (!propertyPanelClass)
@@ -168,7 +163,7 @@ public:
         {
             if (Property* property = static_cast<Property*>(&*it))
             {
-                if (!property->GetAttribute(Attributes::g_attrEditor))
+                if (!property->GetAttribute(Attributes::g_attrEditor).GetBool(false))
                 {
                     continue;
                 }
@@ -186,6 +181,8 @@ public:
             }
         }
 
+        // create ui elements for each property defined with "Editor" attribute (can be a string, indicating the property panel class to use,
+        // or just a bool to indicate usage of default i.e. Editor=true)
         for (auto& it : propertiesByName)
         {
             const String& propertyName = it.first;
@@ -194,18 +191,38 @@ public:
             Handle<UIGridRow> row = grid->AddRow();
             Handle<UIGridColumn> column = row->AddColumn();
 
-            // Create property panel instance. Use "EditorPropertyPanelClass" on the property's attribute if it exists,
-            // otherwise, we'll fall back down to the class of the property
-
-            Handle<UIObject> uiObject = CreatePropertyPanel(parent, value, property);
-            if (!uiObject)
+            // First, try to create property panel instance. Use "Editor" on the property's attribute if it exists and is a string,
+            // otherwise, we'll attempt to use the "Editor" attribute on the property's Class.
+            Handle<UIObject> propertyPanel = CreatePropertyPanel(parent, value, property);
+            if (propertyPanel)
             {
-                HYP_LOG(Editor, Error, "Failed to create property panel for property \"{}\" of class \"{}\"", propertyName, cls->GetName());
-
+                column->AddChildUIObject(propertyPanel);
                 continue;
             }
 
-            column->AddChildUIObject(uiObject);
+            // no property panel, use factory for class (if it exists)
+            const Class* propertyClass = GetClass(property->GetTypeId());
+            AssertDebug(propertyClass != nullptr);
+
+            Handle<UIElementFactoryBase> factory = UIElementFactoryRegistry::GetInstance().GetFactory(*propertyClass->GetTypeInfo());
+            if (factory)
+            {
+                HypData propertyValue = property->Get(target);
+                Handle<UIObject> element = factory->CreateUIObject(parent, propertyValue, /* context */ {});
+                if (element)
+                {
+                    column->AddChildUIObject(element);
+                    continue;
+                }
+            }
+
+            // no factory, just show text saying we couldn't create the property editor
+            Handle<UIText> unsupportedText = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            unsupportedText->SetTextColor(Vec4f { 1.0f, 0.0f, 0.0f, 1.0f });
+            unsupportedText->SetIsEnabled(false);
+            unsupportedText->SetTextSize(8);
+            unsupportedText->SetText(HYP_FORMAT("No editor for property \"{}\"", property->GetName()));
+            column->AddChildUIObject(unsupportedText);
         }
 
         return grid;
@@ -725,15 +742,15 @@ public:
 
                 if (componentInterface->GetClass())
                 {
-                    if (!componentInterface->GetClass()->GetAttribute("editor", true))
+                    if (!componentInterface->GetClass()->GetAttribute(Attributes::g_attrEditor).GetBool(true))
                     {
-                        // Skip components that are not meant to be edited in the editor
+                        // Skip components that are not meant to be edited in the editor (editor = false)
                         continue;
                     }
 
-                    const ClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("editorpropertypanelclass");
+                    const ClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute(Attributes::g_attrEditor);
 
-                    if (attr.IsValid())
+                    if (attr.IsValid() && attr.IsString())
                     {
                         propertyPanelClass = GetClass(CreateNameFromDynamicString(attr.GetString()));
 
@@ -1072,45 +1089,71 @@ public:
             return nullptr;
         }
 
-        Handle<UIObject> propertyPanel = CreatePropertyPanel(parent, HypData(node), value.property);
-
-        if (!propertyPanel)
-        {
-            HYP_LOG(Editor, Error, "Failed to create property panel for property \"{}\" on node \"{}\"", value.title, node->GetName().LookupString());
-
-            return nullptr;
-        }
-
         Handle<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        grid->SetPadding({ 5, 5 });
 
         Handle<UIGridRow> headerRow = grid->AddRow();
         Handle<UIGridColumn> headerColumn = headerRow->AddColumn();
-        headerColumn->SetPadding({ 0, 5 });
+        headerColumn->SetPadding({ 0, 2 });
 
         Handle<UIText> headerText = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-
         headerText->SetText(value.title);
-        headerText->SetTextSize(14);
+        headerText->SetTextColor(Vec4f { 0.8f, 0.8f, 0.8f, 1.0f });
+        headerText->SetTextSize(10);
         headerColumn->AddChildUIObject(headerText);
 
         if (value.description.HasValue())
         {
             Handle<UIGridRow> descriptionRow = grid->AddRow();
             Handle<UIGridColumn> descriptionColumn = descriptionRow->AddColumn();
-            descriptionColumn->SetPadding({ 0, 5 });
+            descriptionColumn->SetPadding({ 0, 2 });
 
             Handle<UIText> descriptionText = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-            descriptionText->SetTextSize(11);
+            descriptionText->SetTextSize(8);
+            descriptionText->SetTextColor(Vec4f { 0.6f, 0.6f, 0.6f, 1.0f });
             descriptionText->SetText(*value.description);
             descriptionColumn->AddChildUIObject(descriptionText);
         }
 
         Handle<UIGridRow> contentRow = grid->AddRow();
         Handle<UIGridColumn> contentColumn = contentRow->AddColumn();
-        contentColumn->SetPadding({ 0, 5 });
 
-        contentColumn->AddChildUIObject(propertyPanel);
+        // set enabled state based on edit enabled attribute (if present)
+        if (const ClassAttributeValue& editEnabledAttributeValue = value.property->GetAttribute(Attributes::g_attrEditEnabled); editEnabledAttributeValue.IsValid() && !editEnabledAttributeValue.GetBool(true))
+        {
+            contentColumn->SetIsEnabled(editEnabledAttributeValue.GetBool());
+        }
+
+        Handle<UIObject> propertyPanel = CreatePropertyPanel(parent, HypData(node), value.property);
+
+        // handle property panel defined
+        if (propertyPanel)
+        {
+            contentColumn->AddChildUIObject(propertyPanel);
+
+            return grid;
+        }
+
+        // no property panel, use factory for class (if it exists)
+        Handle<UIElementFactoryBase> factory = UIElementFactoryRegistry::GetInstance().GetFactory(value.property->GetTypeInfo());
+        if (factory)
+        {
+            HypData propertyValue = value.property->Get(HypData(node));
+            Handle<UIObject> element = factory->CreateUIObject(parent, propertyValue, /* context */ {});
+            if (element)
+            {
+                contentColumn->AddChildUIObject(element);
+
+                return grid;
+            }
+        }
+
+        // no factory, just show text saying we couldn't create the property editor
+        Handle<UIText> unsupportedText = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+        unsupportedText->SetTextColor(Vec4f { 0.8f, 0.2f, 0.2f, 1.0f });
+        unsupportedText->SetIsEnabled(false);
+        unsupportedText->SetTextSize(8);
+        unsupportedText->SetText(HYP_FORMAT("No editor for property \"{}\"", value.property->GetName()));
+        contentColumn->AddChildUIObject(unsupportedText);
 
         return grid;
     }

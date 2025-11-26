@@ -151,8 +151,6 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         return; // already exists
     }
 
-    HYP_LOG(Editor, Debug, "Adding mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
-
     // Load the stuff in
     if (!mesh->GetAsset())
     {

@@ -977,15 +977,21 @@ HYP_API extern const Name g_attrSize;
 HYP_API extern const Name g_attrNoScriptBindings;
 HYP_API extern const Name g_attrCommand;
 HYP_API extern const Name g_attrAbstract;
-HYP_API extern const Name g_attrDescription;
 HYP_API extern const Name g_attrCompressed;
-HYP_API extern const Name g_attrEditor;
 HYP_API extern const Name g_attrProperty;
 HYP_API extern const Name g_attrLoadOrder;
 HYP_API extern const Name g_attrJsonPath;
 HYP_API extern const Name g_attrJsonIgnore;
 HYP_API extern const Name g_attrScriptableDelegate;
 HYP_API extern const Name g_attrFollowAssetPath;
+
+/// ===== Editor-specific attributes =====
+HYP_API extern const Name g_attrEditor;
+HYP_API extern const Name g_attrEditOrder;
+HYP_API extern const Name g_attrEditEnabled;
+HYP_API extern const Name g_attrLabel;
+HYP_API extern const Name g_attrDescription;
+/// ======================================
 
 } // namespace Attributes
 

@@ -25,14 +25,14 @@ ParticleVolume::ParticleVolume()
 ParticleVolume::ParticleVolume(const BoundingBox& aabb)
     : Entity()
 {
-    m_entityAabb = aabb;
+    m_localBounds = aabb;
 }
 
 ParticleVolume::ParticleVolume(const BoundingBox& aabb, const ParticleVolumeParams& params)
     : Entity(),
       m_params(params)
 {
-    m_entityAabb = aabb;
+    m_localBounds = aabb;
 }
 
 ParticleVolume::~ParticleVolume()

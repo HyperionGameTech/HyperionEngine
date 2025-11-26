@@ -5,6 +5,8 @@
 #include <ui/UIDataSource.hpp>
 #include <ui/UIObject.hpp>
 
+#include <core/reflection/TypeInfo.hpp>
+
 #include <UIDataSource.generated.inl>
 
 namespace hyperion {
@@ -74,23 +76,28 @@ UIElementFactoryRegistry& UIElementFactoryRegistry::GetInstance()
     return instance;
 }
 
-Handle<UIElementFactoryBase> UIElementFactoryRegistry::GetFactory(TypeId typeId)
+Handle<UIElementFactoryBase> UIElementFactoryRegistry::GetFactory(const TypeInfo& typeInfo)
 {
-    auto it = m_elementFactories.Find(typeId);
+    if (!typeInfo.IsValid())
+    {
+        return nullptr;
+    }
+
+    auto it = m_elementFactories.Find(typeInfo.id);
 
     if (it == m_elementFactories.End())
     {
-        const Class* cls = GetClass(typeId);
+        const Class* cls = typeInfo.GetClass();
 
         if (cls != nullptr)
         {
-            // slow path (using derived types to look up chain)
+            // slow path (using derived types to look up chain and find the most derived type's factory)
             int subclassIndex = -1;
             for (auto jt = m_elementFactories.Begin(); jt != m_elementFactories.End(); ++jt)
             {
                 if (IsA(GetClass(jt->first), cls))
                 {
-                    const int currSubclassIndex = GetSubclassIndex(jt->first, typeId);
+                    const int currSubclassIndex = GetSubclassIndex(jt->first, typeInfo.id);
                     if (currSubclassIndex < subclassIndex || (currSubclassIndex > 0 && subclassIndex < 0))
                     {
                         subclassIndex = currSubclassIndex;

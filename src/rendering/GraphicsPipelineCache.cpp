@@ -35,6 +35,8 @@
 
 namespace hyperion {
 
+// #define HYP_GRAPHICS_PIPELINE_TIMING_DEBUG 1
+
 // discard a graphics pipeline that hasn't been used after this number of frames
 static constexpr uint32 GraphicsPipelineDiscardFrames = 32;
 
@@ -369,7 +371,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
         {
             Mutex::Guard guard(m_mutex);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
             HYP_LOG(Rendering, Debug, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), attributes.GetHashCode().Value());
 #endif
             // cache it now that it's been created so it can be reused
@@ -440,8 +442,10 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
 {
     HYP_SCOPE;
 
+#if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
     PerformanceClock clock;
     clock.Start();
+#endif
 
     Mutex::Guard guard(m_mutex);
 
@@ -451,7 +455,9 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
 
     if (!pipelines)
     {
+#if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
         HYP_LOG(Rendering, Warning, "GraphicsPipelineCache cache miss ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
+#endif
 
         return {};
     }
@@ -468,13 +474,17 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
                                                                             }),
                 attributes))
         {
+#if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
             HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
+#endif
 
             return GraphicsPipelineCacheHandle(pPipeline);
         }
     }
 
+#if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
     HYP_LOG(Rendering, Warning, "GraphicsPipelineCache cache miss ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
+#endif
 
     return {};
 }

@@ -15,7 +15,6 @@ void TestNativeUI::Show_Internal()
     SetWindowSize(Vec2i(400, 450));
 
 #ifdef HYP_LIBUI
-    // Create "Add Reflection Probe" dialog using libui-ng
     uiWindow* window = m_window;
     AssertDebug(window != nullptr);
 

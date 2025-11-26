@@ -7,6 +7,7 @@
 #include <core/containers/String.hpp>
 
 #include <core/reflection/Handle.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/Defines.hpp>
 
@@ -25,12 +26,12 @@ struct EditorNodePropertyRef
 
 class UIElementFactoryBase;
 
-HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(TypeId typeId);
+HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(const TypeInfo& typeInfo);
 
 template <class T>
 static Handle<UIElementFactoryBase> GetEditorUIElementFactory()
 {
-    return GetEditorUIElementFactory(TypeId::ForType<T>());
+    return GetEditorUIElementFactory(TypeOf<T>());
 }
 
 } // namespace hyperion
