@@ -105,11 +105,7 @@ void LightmapRenderer_CpuPathTracing::Create()
 {
 }
 
-void LightmapRenderer_CpuPathTracing::UpdateRays(Span<const LightmapRay> rays)
-{
-}
-
-void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits)
+void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits)
 {
     AssertOnThread(g_renderThread);
 

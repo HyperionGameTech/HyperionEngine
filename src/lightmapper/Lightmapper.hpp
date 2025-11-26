@@ -26,6 +26,8 @@
 #include <lightmapper/LightmapData.hpp>
 #include <lightmapper/LightmapJob.hpp>
 
+#include <util/GameCounter.hpp>
+
 namespace hyperion {
 
 namespace threading {
@@ -181,9 +183,9 @@ public:
     }
 
     virtual void Create() = 0;
-    virtual void PrepareJob(LightmapJobBase* job) {};
-    virtual void UpdateRays(Span<const LightmapRay> rays) = 0;
-    virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits) = 0;
+    virtual void PrepareJob(LightmapJobBase* job) {}
+    virtual void CleanJobData(LightmapJobBase* job) {}
+    virtual void ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits) = 0;
     virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
 
 protected:
@@ -318,6 +320,8 @@ protected:
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType, uint32 maxRaysPerFrame);
 
+    void CreateLightmapRenderers();
+
     /// ===== CPU tracing only =====
     void BuildResourceCache();
     void BuildAccelerationStructures();
@@ -338,6 +342,10 @@ protected:
     ResourceCache m_resourceCache;
     LightmapThreadPool* m_threadPool;
     /// ============================
+
+    Array<UniquePtr<ILightmapRenderer>> m_lightmapRenderers;
+
+    LockstepGameCounter m_updateTimer;
 
 protected:
     virtual void Build();

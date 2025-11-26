@@ -106,11 +106,11 @@ struct LightmapRender : RenderCommand
                 Array<LightmapHit> hitsBuffer;
                 hitsBuffer.Resize(previousRays.Size());
 
-                for (const UniquePtr<ILightmapRenderer>& lightmapRenderer : job->GetParams().renderers)
+                for (const UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
                 {
                     AssertDebug(lightmapRenderer != nullptr);
 
-                    lightmapRenderer->ReadHitsBuffer(frame, hitsBuffer);
+                    lightmapRenderer->ReadHitsBuffer(frame, job, hitsBuffer);
 
                     job->IntegrateRayHits(previousRays, hitsBuffer, lightmapRenderer->GetShadingType());
                 }
@@ -121,7 +121,7 @@ struct LightmapRender : RenderCommand
 
         if (rays.Any())
         {
-            for (const UniquePtr<ILightmapRenderer>& lightmapRenderer : job->GetParams().renderers)
+            for (const UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
             {
                 AssertDebug(lightmapRenderer != nullptr);
 
@@ -148,7 +148,8 @@ LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
     : m_params(std::move(params)),
       m_texelIndex(0),
       m_lastLoggedPercentage(0),
-      numConcurrentRenderingTasks(0)
+      numConcurrentRenderingTasks(0),
+      m_wasStarted(false)
 {
 }
 
@@ -164,6 +165,7 @@ LightmapJobBase::~LightmapJobBase()
 
 void LightmapJobBase::Start()
 {
+    m_wasStarted = true;
     m_runningSemaphore.Produce(1, [this](bool)
         {
             Start_Internal();
@@ -186,7 +188,7 @@ void LightmapJobBase::Stop(const Error& error)
 
 bool LightmapJobBase::IsCompleted() const
 {
-    return !m_runningSemaphore.IsInSignalState();
+    return !m_runningSemaphore.IsInSignalState() && m_wasStarted;
 }
 
 void LightmapJobBase::AddTask(TaskBatch* taskBatch)
@@ -311,13 +313,10 @@ uint32 LightmapJobBase::Process(uint32 maxRays)
         return 0;
     }
 
-    Array<UniquePtr<ILightmapRenderer>>& lightmapRenderers = m_params.renderers;
-    AssertDebug(lightmapRenderers[0] != nullptr);
-
     // @TODO: Radiance map won't need as many samples as irradiance due to having less variance in directions,
     // we should separate LightmapJob to be per- shading type, so the radiance one can finish earlier.
 
-    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
+    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *m_params.renderers)
     {
         AssertDebug(lightmapRenderer != nullptr);
 
@@ -329,17 +328,12 @@ uint32 LightmapJobBase::Process(uint32 maxRays)
         }
     }
 
-    const SizeType calculatedMaxRays = MathUtil::Min(maxRays, lightmapRenderers[0]->MaxRaysPerFrame(), m_texelIndices.Size() * m_params.config->numSamples);
+    const SizeType calculatedMaxRays = MathUtil::Min(maxRays, (*m_params.renderers)[0]->MaxRaysPerFrame(), m_texelIndices.Size() * m_params.config->numSamples);
 
     Array<LightmapRay> rays;
     rays.Reserve(calculatedMaxRays);
 
     GatherRays(calculatedMaxRays, rays);
-
-    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
-    {
-        lightmapRenderer->UpdateRays(rays);
-    }
 
     const double percentage = double(m_texelIndex) / double(m_texelIndices.Size() * m_params.config->numSamples) * 100.0;
 
@@ -384,7 +378,6 @@ LightmapJob<LightmapVolume>::~LightmapJob()
 
 void LightmapJob<LightmapVolume>::Start_Internal()
 {
-    // Data is already built globally
 }
 
 void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)

@@ -113,8 +113,6 @@ void main()
     GBufferMaterialParams materialParams;
     materialParams.roughness = 0.0;
     materialParams.metalness = 0.0;
-    materialParams.transmission = 0.0;
-    materialParams.ao = 1.0;
 
     gbuffer_albedo = vec4(0.0, 1.0, 0.0, 1.0);
     gbuffer_normals = GBufferPackNormal(normal);

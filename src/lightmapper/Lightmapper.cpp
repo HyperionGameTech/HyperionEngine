@@ -75,7 +75,23 @@
 
 namespace hyperion {
 
-static constexpr uint32 TileSize = 32;
+static constexpr uint32 TileSize = 256;
+static constexpr uint32 IdealRaysPerFrame = 1000000;
+static constexpr double IdealGpuMemUsageMB = 1024;
+
+// for LightmapVolume gpu trace job
+static inline double GetEstimatedGPUMemUsageForJob(const LightmapperConfig& config)
+{
+    double usage = 0.0;
+
+    constexpr double RaysBufferSizeMB = (TileSize * TileSize * sizeof(Vec4f) * 2) / 1024.0 / 1024.0;
+    constexpr double HitsBufferSizeMB = (TileSize * TileSize * sizeof(LightmapHit)) / 1024.0 / 1024.0;
+
+    usage += RaysBufferSizeMB * config.numSamples * NumFramesInFlight;
+    usage += HitsBufferSizeMB;
+
+    return usage;
+}
 
 #pragma region LightmapperConfig
 
@@ -101,7 +117,8 @@ LightmapperBase::LightmapperBase(LightmapperConfig&& config, const Handle<Scene>
       m_scene(scene),
       m_aabb(aabb),
       m_threadPool(nullptr),
-      m_numJobs { 0 }
+      m_numJobs { 0 },
+      m_updateTimer { 1.0 } // every second
 {
 }
 
@@ -168,6 +185,8 @@ void LightmapperBase::Initialize()
     m_view->UpdateVisibility();
     m_view->CollectSync();
 
+    CreateLightmapRenderers();
+
     /// If cpu path tracing, set up thread pool and stuff
     if (m_config.traceMode == LightmapTraceMode::CPU_PATH_TRACING)
     {
@@ -185,7 +204,34 @@ void LightmapperBase::Initialize()
 
 LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
 {
-    Array<UniquePtr<ILightmapRenderer>> lightmapRenderers;
+    LightmapJobParams jobParams {
+        &m_config,
+        m_scene,
+        m_view,
+        m_subElements.ToSpan().Slice(startIndex, endIndex - startIndex),
+        &m_subElementsByEntity,
+        &m_lightmapRenderers
+    };
+
+    return jobParams;
+}
+
+UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType shadingType, uint32 maxRaysPerFrame)
+{
+    switch (m_config.traceMode)
+    {
+    case LightmapTraceMode::GPU_PATH_TRACING:
+        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType, maxRaysPerFrame);
+    case LightmapTraceMode::CPU_PATH_TRACING:
+        return MakeUnique<LightmapRenderer_CpuPathTracing>(this, m_accelerationStructure.Get(), m_threadPool, m_scene, shadingType);
+    default:
+        HYP_UNREACHABLE();
+    }
+}
+
+void LightmapperBase::CreateLightmapRenderers()
+{
+    m_lightmapRenderers.Clear();
 
     const uint32 shadingTypesMask = GetShadingTypesMask();
 
@@ -217,7 +263,7 @@ LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, 
             break;
         }
 
-        UniquePtr<ILightmapRenderer>& lightmapRenderer = lightmapRenderers.EmplaceBack();
+        UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
         lightmapRenderer = CreateRenderer(LightmapShadingType(i), TileSize * TileSize * m_config.numSamples);
 
         if (!lightmapRenderer)
@@ -226,32 +272,6 @@ LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, 
         }
 
         lightmapRenderer->Create();
-    }
-
-    Assert(lightmapRenderers.Any());
-
-    LightmapJobParams jobParams {
-        &m_config,
-        m_scene,
-        m_view,
-        m_subElements.ToSpan().Slice(startIndex, endIndex - startIndex),
-        &m_subElementsByEntity,
-        std::move(lightmapRenderers)
-    };
-
-    return jobParams;
-}
-
-UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType shadingType, uint32 maxRaysPerFrame)
-{
-    switch (m_config.traceMode)
-    {
-    case LightmapTraceMode::GPU_PATH_TRACING:
-        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType, maxRaysPerFrame);
-    case LightmapTraceMode::CPU_PATH_TRACING:
-        return MakeUnique<LightmapRenderer_CpuPathTracing>(this, m_accelerationStructure.Get(), m_threadPool, m_scene, shadingType);
-    default:
-        HYP_UNREACHABLE();
     }
 }
 
@@ -458,15 +478,47 @@ void LightmapperBase::Update(float delta)
 {
     HYP_SCOPE;
 
+    if (m_updateTimer.Waiting())
+    {
+        m_updateTimer.NextTick();
+
+        return;
+    }
+
     uint32 numJobs = m_numJobs.Get(MemoryOrder::ACQUIRE);
 
 //    m_view->UpdateViewport();
 //    m_view->UpdateVisibility();
 //    m_view->CollectSync();
 
+    static constexpr uint32 MaxConcurrentJobs = 4;
+
+    uint32 numRaysProcessed = 0;
+    uint32 numRunningJobs = 0;
+  
+    double gpuMemUsagePerJobMB = GetEstimatedGPUMemUsageForJob(m_config);
+    AssertDebug(gpuMemUsagePerJobMB <= IdealGpuMemUsageMB);
+
+    double currentGpuMemUsageMB = 0.0;
+
     Mutex::Guard guard(m_queueMutex);
 
-    for (auto it = m_queue.Begin(); it != m_queue.End() && numRaysProcessed < IdealRaysPerFrame;)
+    if (m_config.traceMode == LightmapTraceMode::GPU_PATH_TRACING)
+    {
+        // tally up estimated gpu mem usage
+        for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
+        {
+            LightmapJobBase* job = it->Get();
+
+            if (job->IsRunning() || job->IsCompleted())
+            {
+                currentGpuMemUsageMB += gpuMemUsagePerJobMB;
+                numRunningJobs++;
+            }
+        }
+    }
+
+    for (auto it = m_queue.Begin(); it != m_queue.End();)
     {
         LightmapJobBase* job = it->Get();
 
@@ -474,13 +526,21 @@ void LightmapperBase::Update(float delta)
         {
             numRaysProcessed += job->Process(MathUtil::Max(0, int64(IdealRaysPerFrame) - int64(numRaysProcessed)));
         }
-        else if (numRaysProcessed + (job->GetTexelIndices().Size() * m_config.numSamples) <= IdealRaysPerFrame)
+        else if (numRaysProcessed + (job->GetTexelIndices().Size() * m_config.numSamples) <= IdealRaysPerFrame
+            && currentGpuMemUsageMB + gpuMemUsagePerJobMB <= IdealGpuMemUsageMB
+            && numRunningJobs < MaxConcurrentJobs)
         {
             job->Start();
 
             AssertDebug(job->IsRunning());
 
+            if (m_config.traceMode == LightmapTraceMode::GPU_PATH_TRACING)
+            {
+                currentGpuMemUsageMB += gpuMemUsagePerJobMB;
+            }
+
             numRaysProcessed += job->Process(MathUtil::Max(0, int64(IdealRaysPerFrame) - int64(numRaysProcessed)));
+            numRunningJobs++;
         }
 
         if (job->IsCompleted())
@@ -488,6 +548,8 @@ void LightmapperBase::Update(float delta)
             HandleCompletedJob(job);
 
             it = m_queue.Erase(it);
+
+            --numRunningJobs;
 
             continue;
         }
@@ -515,6 +577,11 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
     }
 
     HandleCompletedJob_Internal(job);
+
+    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : m_lightmapRenderers)
+    {
+        lightmapRenderer->CleanJobData(job);
+    }
 
     HYP_LOG(Lightmap, Debug, "Tracing completed for lightmapping job {} ({} subelements)", job->GetUUID(), job->GetSubElements().Size());
 }
@@ -766,8 +833,8 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
                     entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
                 }
 
-            entity->SetNeedsRenderProxyUpdate();
-        };
+                entity->SetNeedsRenderProxyUpdate();
+            };
 
             if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
             {

@@ -31,8 +31,6 @@ struct GBufferMaterialParams
 {
     float roughness;
     float metalness;
-    float transmission;
-    float ao;
     uint mask;
 };
 

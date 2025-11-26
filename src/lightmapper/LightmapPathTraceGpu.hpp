@@ -45,22 +45,30 @@ public:
     virtual bool CanRender() const override;
 
     virtual void Create() override;
-    virtual void UpdateRays(Span<const LightmapRay> rays) override;
-    virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits) override;
+    virtual void CleanJobData(LightmapJobBase* job) override;
+    virtual void ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits) override;
     virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
 
 private:
-    void CreateUniformBuffer();
-    void UpdatePipelineState(FrameBase* frame);
-    void UpdateUniforms(FrameBase* frame, uint32 rayOffset);
+    struct JobData
+    {
+        FixedArray<GpuBufferRef, NumFramesInFlight> UniformBuffers;
+        FixedArray<GpuBufferRef, NumFramesInFlight> RayBuffers;
+        FixedArray<DescriptorSetRef, NumFramesInFlight> Sets;
+        GpuBufferRef HitsBufferGpu;
+        bool IsCreated = false;
+    };
+
+    void UpdatePipelineState(FrameBase* frame, LightmapJobBase* job);
+    void CreateBuffers(LightmapJobBase* job);
+    void CreateAccelerationStructures();
+    void UpdateUniforms(FrameBase* frame, LightmapJobBase* job, uint32 rayOffset);
 
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;
+    uint32 m_maxRaysPerFrame;
 
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_raysBuffers;
-
-    GpuBufferRef m_hitsBufferGpu;
+    HashMap<LightmapJobBase*, JobData, DynamicNodeAllocator> m_jobData;
 
     RC<GpuLightmapperReadyNotification> m_readyNotification;
 

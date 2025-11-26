@@ -319,8 +319,6 @@ void main()
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;
     materialParams.metalness = metalness;
-    materialParams.transmission = transmission;
-    materialParams.ao = ao;
     materialParams.mask = mask;
 
     gbuffer_normals = GBufferPackNormal(N);

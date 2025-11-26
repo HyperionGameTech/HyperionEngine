@@ -2391,7 +2391,6 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     passData.postProcessing->RenderPre(frame, rs);
 
     { // deferred lighting on opaque objects
-        // transition depth buffer for depth/stencil test
         frame->renderQueue << InsertBarrier(
             passData.deferredShadingFramebuffer->GetAttachment(1)->GetImage(),
             RS_DEPTH_STENCIL);
@@ -2414,10 +2413,6 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         }
 
         frame->renderQueue << EndFramebuffer(passData.deferredShadingFramebuffer);
-
-        frame->renderQueue << InsertBarrier(
-            passData.deferredShadingFramebuffer->GetAttachment(1)->GetImage(),
-            RS_SHADER_RESOURCE);
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission

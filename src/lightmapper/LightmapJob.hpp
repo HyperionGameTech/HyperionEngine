@@ -45,7 +45,7 @@ struct LightmapJobParams
     Span<LightmapSubElement> subElementsView;
     HashMap<Handle<Entity>, LightmapSubElement*>* subElementsByEntity;
 
-    Array<UniquePtr<ILightmapRenderer>> renderers;
+    Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
 };
 
 class HYP_API LightmapJobBase
@@ -180,6 +180,8 @@ protected:
     uint32 m_texelIndex;
 
     double m_lastLoggedPercentage;
+
+    bool m_wasStarted;
 
     Result m_result;
 };

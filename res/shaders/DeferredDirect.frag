@@ -147,7 +147,7 @@ void main()
         float shadow = 1.0;
 
         const vec4 ssao_data = Texture2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
-        ao = min(mix(1.0, ssao_data.a, bool(deferred_params.flags & DEFERRED_FLAGS_HBAO_ENABLED)), materialParams.ao);
+        ao = mix(1.0, ssao_data.a, bool(deferred_params.flags & DEFERRED_FLAGS_HBAO_ENABLED));
 
         vec4 area_light_radiance;
 

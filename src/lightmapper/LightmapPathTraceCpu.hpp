@@ -67,8 +67,7 @@ public:
     }
 
     virtual void Create() override;
-    virtual void UpdateRays(Span<const LightmapRay> rays) override;
-    virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits) override;
+    virtual void ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits) override;
     virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
 
 private:
@@ -90,8 +89,8 @@ private:
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;
 
+    /// TODO Move to per-job data (if we keep cpu tracing)
     Array<LightmapHit, DynamicAllocator> m_hitsBuffer;
-
     Array<LightmapRay, DynamicAllocator> m_currentRays;
 
     AtomicVar<uint32> m_numTracingTasks;

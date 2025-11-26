@@ -121,52 +121,76 @@ LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
     uint32 maxRaysPerFrame)
     : ILightmapRenderer(lightmapper),
       m_scene(scene),
-      m_shadingType(shadingType)
+      m_shadingType(shadingType),
+      m_maxRaysPerFrame(maxRaysPerFrame)
 {
-    for (GpuBufferRef& uniformBuffer : m_uniformBuffers)
-    {
-        uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms));
-    }
-
-    for (GpuBufferRef& raysBuffer : m_raysBuffers)
-    {
-        raysBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * maxRaysPerFrame, alignof(Vec4f));
-        raysBuffer->SetRequireCpuAccessible(true);
-    }
-
-    // ATOMIC_COUNTER type allows readback to cpu.
-    m_hitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * maxRaysPerFrame, alignof(Vec4f));
-
     m_readyNotification = MakeRefCountedPtr<GpuLightmapperReadyNotification>();
 }
 
 LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
 {
     SafeDelete(std::move(m_tlas));
-    SafeDelete(std::move(m_uniformBuffers));
-    SafeDelete(std::move(m_raysBuffers));
-    SafeDelete(std::move(m_hitsBufferGpu));
     SafeDelete(std::move(m_raytracingPipeline));
+
+    for (KeyValuePair<LightmapJobBase*, JobData>& it : m_jobData)
+    {
+        SafeDelete(std::move(it.second.UniformBuffers));
+        SafeDelete(std::move(it.second.RayBuffers));
+        SafeDelete(std::move(it.second.HitsBufferGpu));
+    }
 }
 
-void LightmapRenderer_GpuPathTracing::CreateUniformBuffer()
+void LightmapRenderer_GpuPathTracing::CreateBuffers(LightmapJobBase* job)
 {
+    JobData& jd = m_jobData[job];
+
+    for (GpuBufferRef& uniformBuffer : jd.UniformBuffers)
+    {
+        uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms));
+    }
+
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms));
+        jd.UniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms));
 
-        PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, m_uniformBuffers[frameIndex]);
+        PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, jd.UniformBuffers[frameIndex]);
+    }
+
+    for (GpuBufferRef& rayBuffer : jd.RayBuffers)
+    {
+        rayBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * m_maxRaysPerFrame, alignof(Vec4f));
+        rayBuffer->SetRequireCpuAccessible(true);
+    }
+
+    // ATOMIC_COUNTER type allows readback to cpu.
+    jd.HitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxRaysPerFrame, alignof(Vec4f));
+
+    DeferCreate(jd.HitsBufferGpu);
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        DeferCreate(jd.RayBuffers[frameIndex]);
     }
 }
 
 void LightmapRenderer_GpuPathTracing::Create()
 {
-    Assert(m_scene.IsValid());
-
-    Assert(m_scene->GetWorld() != nullptr);
-    Assert(m_scene->GetWorld()->IsReady());
-
     PUSH_RENDER_COMMAND(SetGpuLightmapperReady, m_readyNotification);
+}
+
+void LightmapRenderer_GpuPathTracing::CleanJobData(LightmapJobBase* job)
+{
+    auto jobDataIt = m_jobData.Find(job);
+    if (jobDataIt == m_jobData.End())
+    {
+        return;
+    }
+
+    SafeDelete(std::move(jobDataIt->second.UniformBuffers));
+    SafeDelete(std::move(jobDataIt->second.RayBuffers));
+    SafeDelete(std::move(jobDataIt->second.HitsBufferGpu));
+
+    m_jobData.Erase(jobDataIt);
 }
 
 bool LightmapRenderer_GpuPathTracing::CanRender() const
@@ -174,12 +198,8 @@ bool LightmapRenderer_GpuPathTracing::CanRender() const
     return m_readyNotification != nullptr && m_readyNotification->IsInSignalState();
 }
 
-void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
+void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
 {
-    HYP_SCOPE;
-
-    Assert(m_lightmapper != nullptr);
-
     if (!m_tlas)
     {
         /// Create acceleration structure
@@ -187,19 +207,6 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
     }
     else if (m_tlas->IsCreated())
     {
-        RTUpdateStateFlags updateStateFlags = RTUpdateStateFlagBits::RT_UPDATE_STATE_FLAGS_NONE;
-        m_tlas->UpdateStructure(updateStateFlags);
-
-        if (updateStateFlags)
-        {
-            Assert(m_raytracingPipeline != nullptr);
-
-            const DescriptorSetRef& descriptorSet = m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet("RTRadianceDescriptorSet", frame->GetFrameIndex());
-            Assert(descriptorSet != nullptr);
-
-            descriptorSet->Update(true);
-        }
-
         return; // already created
     }
 
@@ -251,19 +258,25 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
     }
 
     HYP_GFX_ASSERT(m_tlas->Create());
+}
 
-    /// Buffers
-    CreateUniformBuffer();
+void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame, LightmapJobBase* job)
+{
+    HYP_SCOPE;
 
-    DeferCreate(m_hitsBufferGpu);
+    Assert(m_lightmapper != nullptr);
 
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    JobData& jd = m_jobData[job];
+
+    if (jd.IsCreated)
     {
-        DeferCreate(m_raysBuffers[frameIndex]);
+        return;
     }
 
-    /// Shader
+    /// Buffers
+    CreateBuffers(job);
 
+    /// Shader
     ShaderProperties shaderProperties;
 
     switch (m_shadingType)
@@ -282,38 +295,64 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
     }
 
     ShaderRef shader = g_shaderManager->GetOrCreate(NAME("LightmapPathTracer"), shaderProperties);
-    Assert(shader.IsValid());
+    Assert(shader);
 
-    /// Descriptors
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+    const DescriptorSetDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration()->FindDescriptorSetDeclaration("RTRadianceDescriptorSet");
+    Assert(decl != nullptr);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet", frameIndex);
-        Assert(descriptorSet != nullptr);
+        DescriptorSetRef& descriptorSet = jd.Sets[frameIndex];
+        descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(decl));
 
         descriptorSet->SetElement("TLAS", m_tlas);
         descriptorSet->SetElement("MeshDescriptionsBuffer", m_tlas->GetMeshDescriptionsBuffer());
-        descriptorSet->SetElement("HitsBuffer", m_hitsBufferGpu);
-        descriptorSet->SetElement("RaysBuffer", m_raysBuffers[frameIndex]);
+        descriptorSet->SetElement("HitsBuffer", jd.HitsBufferGpu);
+        descriptorSet->SetElement("RaysBuffer", jd.RayBuffers[frameIndex]);
 
         descriptorSet->SetElement("LightsBuffer", g_renderGlobalState->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
         descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
-        descriptorSet->SetElement("RTRadianceUniforms", m_uniformBuffers[frameIndex]);
+        descriptorSet->SetElement("RTRadianceUniforms", jd.UniformBuffers[frameIndex]);
+
+        Assert(descriptorSet->Create());
     }
 
-    DeferCreate(descriptorTable);
-
     /// Pipeline
-    Assert(m_raytracingPipeline == nullptr);
+    if (!m_raytracingPipeline)
+    {
+        // TEMP; refactor pipeline stuff to not need this!!! wasteful
+        const DescriptorTableDeclaration* descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        Assert(descriptorTableDecl != nullptr);
 
-    m_raytracingPipeline = g_renderBackend->MakeRaytracingPipeline(shader, descriptorTable);
-    DeferCreate(m_raytracingPipeline);
+        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
+
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        {
+            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet", frameIndex);
+            Assert(descriptorSet != nullptr);
+
+            descriptorSet->SetElement("TLAS", m_tlas);
+            descriptorSet->SetElement("MeshDescriptionsBuffer", m_tlas->GetMeshDescriptionsBuffer());
+            descriptorSet->SetElement("HitsBuffer", jd.HitsBufferGpu);
+            descriptorSet->SetElement("RaysBuffer", jd.RayBuffers[frameIndex]);
+
+            descriptorSet->SetElement("LightsBuffer", g_renderGlobalState->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+            descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+
+            descriptorSet->SetElement("RTRadianceUniforms", jd.UniformBuffers[frameIndex]);
+        }
+
+        Assert(descriptorTable->Create());
+
+        m_raytracingPipeline = g_renderBackend->MakeRaytracingPipeline(shader, descriptorTable);
+        Assert(m_raytracingPipeline->Create());
+    }
+
+    jd.IsCreated = true;
 }
 
-void LightmapRenderer_GpuPathTracing::UpdateUniforms(FrameBase* frame, uint32 rayOffset)
+void LightmapRenderer_GpuPathTracing::UpdateUniforms(FrameBase* frame, LightmapJobBase* job, uint32 rayOffset)
 {
     RTRadianceUniforms uniforms {};
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
@@ -346,18 +385,17 @@ void LightmapRenderer_GpuPathTracing::UpdateUniforms(FrameBase* frame, uint32 ra
 
     uniforms.numBoundLights = numBoundLights;
 
-    m_uniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
+    JobData& jd = m_jobData[job];
+    jd.UniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 }
 
-void LightmapRenderer_GpuPathTracing::UpdateRays(Span<const LightmapRay> rays)
-{
-}
-
-void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits)
+void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits)
 {
     Assert(m_tlas != nullptr);
 
-    const GpuBufferRef& hitsBuffer = m_hitsBufferGpu;
+    JobData& jd = m_jobData[job];
+
+    const GpuBufferRef& hitsBuffer = jd.HitsBufferGpu;
 
     if (!hitsBuffer || !hitsBuffer->IsCreated())
     {
@@ -403,7 +441,7 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
     const uint32 frameIndex = frame->GetFrameIndex();
     const uint32 previousFrameIndex = (frame->GetFrameIndex() + NumFramesInFlight - 1) % NumFramesInFlight;
 
-    UpdatePipelineState(frame);
+    CreateAccelerationStructures();
 
     if (!m_tlas->IsCreated())
     {
@@ -411,7 +449,11 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
         return;
     }
 
-    UpdateUniforms(frame, rayOffset);
+    UpdatePipelineState(frame, job);
+
+    UpdateUniforms(frame, job, rayOffset);
+
+    JobData& jd = m_jobData[job];
 
     Assert(m_tlas && m_tlas->IsCreated());
 
@@ -425,8 +467,8 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
             rayData[i * 2 + 1] = Vec4f(rays[i].ray.direction, 0.0f);
         }
 
-        Assert(m_raysBuffers[frame->GetFrameIndex()]->Size() >= rayData.ByteSize());
-        m_raysBuffers[frame->GetFrameIndex()]->Copy(rayData.ByteSize(), rayData.Data());
+        Assert(jd.RayBuffers[frame->GetFrameIndex()]->Size() >= rayData.ByteSize());
+        jd.RayBuffers[frame->GetFrameIndex()]->Copy(rayData.ByteSize(), rayData.Data());
 
         // bool raysBufferResized = false;
 
@@ -464,13 +506,17 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
                 { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
-    frame->renderQueue << InsertBarrier(m_hitsBufferGpu, RS_UNORDERED_ACCESS);
+    frame->renderQueue << BindDescriptorSet(
+        jd.Sets[frame->GetFrameIndex()],
+        m_raytracingPipeline);
+
+    frame->renderQueue << InsertBarrier(jd.HitsBufferGpu, RS_UNORDERED_ACCESS);
 
     frame->renderQueue << TraceRays(
         m_raytracingPipeline,
         Vec3u { uint32(rays.Size()), 1, 1 });
 
-    frame->renderQueue << InsertBarrier(m_hitsBufferGpu, RS_UNORDERED_ACCESS);
+    frame->renderQueue << InsertBarrier(jd.HitsBufferGpu, RS_UNORDERED_ACCESS);
 }
 
 #pragma endregion LightmapRenderer_GpuPathTracing

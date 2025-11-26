@@ -128,13 +128,14 @@ void main()
     vec3 ibl = vec3(0.0);
 
     const vec4 ssao_data = Texture2D(HYP_SAMPLER_NEAREST, ssao_gi_result, v_texcoord0);
-    ao = min(mix(1.0, ssao_data.a, bool(deferred_params.flags & DEFERRED_FLAGS_HBAO_ENABLED)), materialParams.ao);
+    ao = mix(1.0, ssao_data.a, bool(deferred_params.flags & DEFERRED_FLAGS_HBAO_ENABLED));
 
     const vec3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
 
     const float perceptual_roughness = sqrt(roughness);
 
     reflections = Texture2D(HYP_SAMPLER_LINEAR, reflections_texture, texcoord);
+    
 
 #ifdef ENV_GRID_REFLECTIONS
     vec4 env_grid_radiance = Texture2D(HYP_SAMPLER_LINEAR, env_grid_radiance_texture, texcoord);

@@ -701,10 +701,10 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     bool shouldStartRecording = !framebuffer->IsDeferredRecording();
     bool shouldEndRecording = shouldStartRecording;
 
-    if (shouldStartRecording)
-    {
-        // insert pre-render barriers for load operations if the framebuffer is not being recorded already
+    Array<InsertBarrier> preRenderBarriers;
 
+    if (!framebuffer->IsDeferredRecording())
+    {
         for (int i = 0; i < framebuffer->NumAttachments(); i++)
         {
             AttachmentBase* attachment = framebuffer->GetAttachment(i);
@@ -712,10 +712,21 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 
             if (attachment->GetLoadOperation() == LoadOperation::LOAD)
             {
-                frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
+                preRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET));
             }
         }
+    }
 
+    if (preRenderBarriers.Any())
+    {
+        for (InsertBarrier& ib : preRenderBarriers)
+        {
+            frame->renderQueue << ib;
+        }
+    }
+
+    if (shouldStartRecording)
+    {
         frame->renderQueue << BeginFramebuffer(framebuffer);
     }
 
