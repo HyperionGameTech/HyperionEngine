@@ -29,8 +29,6 @@ class VulkanDescriptorSetLayoutWrapper;
 
 class VulkanDescriptorSetManager;
 
-VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper& layout);
-
 class VulkanTextureCache;
 
 struct VulkanDynamicFunctions
@@ -156,15 +154,11 @@ public:
         return OnSwapchainRecreated;
     }
 
-    HYP_API RendererResult CreateDescriptorSet(const RC<VulkanDescriptorSetLayoutWrapper>& layout,
-        VkDescriptorSet& outVkDescriptorSet,
-        VkDescriptorPool& outVkDescriptorPool);
+    HYP_API RendererResult CreateDescriptorSet(VkDescriptorSetLayout vkDescriptorSetLayout, VkDescriptorSet& outVkDescriptorSet, VkDescriptorPool& outVkDescriptorPool);
 
-    HYP_API RendererResult DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet,
-        VkDescriptorPool vkDescriptorPool);
+    HYP_API RendererResult DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool);
 
-    HYP_API RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout,
-        RC<VulkanDescriptorSetLayoutWrapper>& outRef);
+    HYP_API RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, VkDescriptorSetLayout& out);
 
     VkSurfaceKHR CreateVkSurface(ApplicationWindow* window, VulkanInstance* instance);
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);

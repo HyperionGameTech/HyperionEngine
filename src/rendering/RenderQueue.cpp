@@ -68,7 +68,9 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsP
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
 
-    m_bindIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
+    AssertDebug(pipeline && pipeline->GetShader());
+
+    m_bindIndex = pipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 
@@ -93,7 +95,9 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePi
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
 
-    m_bindIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
+    AssertDebug(pipeline && pipeline->GetShader());
+
+    m_bindIndex = pipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 
@@ -118,7 +122,9 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, Raytracin
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
 
-    m_bindIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
+    AssertDebug(pipeline && pipeline->GetShader());
+
+    m_bindIndex = pipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 

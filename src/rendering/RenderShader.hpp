@@ -81,9 +81,9 @@ public:
     ShaderBase() = default;
     virtual ~ShaderBase() override = default;
 
-    HYP_FORCE_INLINE const RC<CompiledShader>& GetCompiledShader() const
+    HYP_FORCE_INLINE CompiledShader* GetCompiledShader() const
     {
-        return m_compiledShader;
+        return m_compiledShader.Get();
     }
 
     virtual bool IsCreated() const = 0;

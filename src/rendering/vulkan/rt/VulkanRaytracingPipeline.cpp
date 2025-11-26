@@ -10,6 +10,8 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
+#include <rendering/shader_compiler/ShaderCompiler.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/math/MathUtil.hpp>
@@ -30,11 +32,37 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
+template <>
+Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanRaytracingPipeline>(const VulkanRaytracingPipeline& pipeline)
+{
+    Array<VkDescriptorSetLayout> usedLayouts;
+
+    VulkanShader* shader = VULKAN_CAST(pipeline.GetShader().Get());
+    AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
+
+    const DescriptorTableDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    Assert(decl != nullptr);
+
+    for (const DescriptorSetDeclaration& setDecl : decl->elements)
+    {
+        VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+        Assert(GetRenderBackend()->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
+
+        Assert(layout != VK_NULL_HANDLE);
+
+        usedLayouts.PushBack(layout);
+    }
+
+    return usedLayouts;
+}
+
 static constexpr VkShaderStageFlags PushConstantStageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
     | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
     | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
     | VK_SHADER_STAGE_MISS_BIT_KHR
     | VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+
+#pragma region VulkanRaytracingPipeline
 
 VulkanRaytracingPipeline::VulkanRaytracingPipeline()
     : VulkanPipelineBase(),
@@ -89,7 +117,7 @@ RendererResult VulkanRaytracingPipeline::Create()
 
     const uint32 maxSetLayouts = GetRenderBackend()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
-    Array<VkDescriptorSetLayout> usedLayouts = GetPipelineVulkanDescriptorSetLayouts(*this);
+    Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
 
     if (usedLayouts.Size() > maxSetLayouts)
     {
@@ -317,5 +345,7 @@ void VulkanRaytracingPipeline::SetPushConstants(const void* data, SizeType size)
 {
     VulkanPipelineBase::SetPushConstants(data, size);
 }
+
+#pragma endregion VulkanRaytracingPipeline
 
 } // namespace hyperion

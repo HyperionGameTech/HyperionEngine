@@ -11,6 +11,8 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
+#include <rendering/shader_compiler/ShaderCompiler.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -31,6 +33,32 @@ static inline VulkanRenderBackend* GetRenderBackend()
 {
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
+
+template <>
+Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanComputePipeline>(const VulkanComputePipeline& pipeline)
+{
+    Array<VkDescriptorSetLayout> usedLayouts;
+
+    VulkanShader* shader = VULKAN_CAST(pipeline.GetShader().Get());
+    AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
+
+    const DescriptorTableDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    Assert(decl != nullptr);
+
+    for (const DescriptorSetDeclaration& setDecl : decl->elements)
+    {
+        VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+        Assert(GetRenderBackend()->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
+
+        Assert(layout != VK_NULL_HANDLE);
+
+        usedLayouts.PushBack(layout);
+    }
+
+    return usedLayouts;
+}
+
+#pragma region VulkanComputePipeline
 
 VulkanComputePipeline::VulkanComputePipeline()
     : VulkanPipelineBase(),
@@ -99,15 +127,17 @@ RendererResult VulkanComputePipeline::Create()
 {
     /* Push constants */
     const VkPushConstantRange pushConstantRanges[] = {
-        { .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+        {
+            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
             .offset = 0,
-            .size = uint32(GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
+            .size = uint32(GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
+        }
     };
 
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    const Array<VkDescriptorSetLayout> usedLayouts = GetPipelineVulkanDescriptorSetLayouts(*this);
+    const Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
     const uint32 maxSetLayouts = GetRenderBackend()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
 #if 0
@@ -198,5 +228,7 @@ void VulkanComputePipeline::SetDebugName(Name name)
 }
 
 #endif
+
+#pragma endregion VulkanComputePipeline
 
 } // namespace hyperion

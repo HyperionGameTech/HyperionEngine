@@ -9,27 +9,8 @@
 
 namespace hyperion {
 
-VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper& layout);
-
 template <class PipelineType>
-static inline Array<VkDescriptorSetLayout> GetPipelineVulkanDescriptorSetLayouts(const PipelineType& pipeline)
-{
-    Assert(pipeline.GetDescriptorTable().IsValid(), "Invalid DescriptorTable provided to Pipeline");
-
-    Array<VkDescriptorSetLayout> usedLayouts;
-
-    for (const DescriptorSetRef& descriptorSet : pipeline.GetDescriptorTable()->GetSets()[0])
-    {
-        VulkanDescriptorSetRef vulkanDescriptorSet = VulkanDescriptorSetRef(descriptorSet);
-
-        Assert(vulkanDescriptorSet != nullptr);
-        Assert(vulkanDescriptorSet->GetVulkanLayoutWrapper() != nullptr);
-
-        usedLayouts.PushBack(GetVkDescriptorSetLayout(*vulkanDescriptorSet->GetVulkanLayoutWrapper()));
-    }
-
-    return usedLayouts;
-}
+Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts(const PipelineType& pipeline);
 
 class VulkanPipelineBase
 {

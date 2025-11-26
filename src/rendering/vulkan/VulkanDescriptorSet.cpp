@@ -140,6 +140,7 @@ static inline void PopulateDynamicOffsets(
 VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
     : DescriptorSetBase(layout),
       m_handle(VK_NULL_HANDLE),
+      m_vkDescriptorSetLayout(VK_NULL_HANDLE),
       m_vkDescriptorPool(VK_NULL_HANDLE)
 {
     // Initial layout of elements
@@ -188,11 +189,9 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
         GetRenderBackend()->DestroyDescriptorSet(m_handle, m_vkDescriptorPool);
 
         m_handle = VK_NULL_HANDLE;
+        m_vkDescriptorSetLayout = VK_NULL_HANDLE;
         m_vkDescriptorPool = VK_NULL_HANDLE;
     }
-
-    // Release reference to layout
-    m_vkLayoutWrapper.Reset();
 }
 
 void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
@@ -462,7 +461,7 @@ RendererResult VulkanDescriptorSet::Create()
         return HYP_MAKE_ERROR(RendererError, "Descriptor set layout is not valid: {}", 0, m_layout.GetName().LookupString());
     }
 
-    HYP_GFX_CHECK(GetRenderBackend()->GetOrCreateVkDescriptorSetLayout(m_layout, m_vkLayoutWrapper));
+    HYP_GFX_CHECK(GetRenderBackend()->GetOrCreateVkDescriptorSetLayout(m_layout, m_vkDescriptorSetLayout));
 
     if (m_layout.IsTemplate())
     {
@@ -471,7 +470,7 @@ RendererResult VulkanDescriptorSet::Create()
 
     RendererResult result;
 
-    HYPERION_PASS_ERRORS(GetRenderBackend()->CreateDescriptorSet(m_vkLayoutWrapper, m_handle, m_vkDescriptorPool), result);
+    HYPERION_PASS_ERRORS(GetRenderBackend()->CreateDescriptorSet(m_vkDescriptorSetLayout, m_handle, m_vkDescriptorPool), result);
 
     if (!result)
     {

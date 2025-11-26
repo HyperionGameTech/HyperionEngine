@@ -50,9 +50,9 @@ public:
         return m_handle;
     }
 
-    HYP_FORCE_INLINE VulkanDescriptorSetLayoutWrapper* GetVulkanLayoutWrapper() const
+    HYP_FORCE_INLINE VkDescriptorSetLayout GetVulkanLayout() const
     {
-        return m_vkLayoutWrapper.Get();
+        return m_vkDescriptorSetLayout;
     }
 
     virtual bool IsCreated() const override;
@@ -78,9 +78,9 @@ protected:
 
     VkDescriptorSet m_handle;
     VkDescriptorPool m_vkDescriptorPool;
-    ElementCache m_cachedElements;
-    RC<VulkanDescriptorSetLayoutWrapper> m_vkLayoutWrapper;
+    VkDescriptorSetLayout m_vkDescriptorSetLayout;
     Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos;
+    ElementCache m_cachedElements;
 };
 
 HYP_CLASS(NoScriptBindings)

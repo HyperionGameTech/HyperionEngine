@@ -93,102 +93,84 @@ public:
 
 #pragma region Vulkan struct wrappers
 
-class VulkanDescriptorSetLayoutWrapper final
+static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout)
 {
-    VkDescriptorSetLayout m_handle;
-    VulkanDevice* m_device;
+    static constexpr VkDescriptorBindingFlags BindlessFlags = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
 
-public:
-    VulkanDescriptorSetLayoutWrapper(VulkanDevice* device)
-        : m_handle(VK_NULL_HANDLE),
-          m_device(device)
-    {
-    }
+    Array<VkDescriptorSetLayoutBinding> bindings;
+    bindings.Reserve(layout.GetElements().Size());
 
-    ~VulkanDescriptorSetLayoutWrapper()
+    Array<VkDescriptorBindingFlags> bindingFlags;
+    bindingFlags.Reserve(layout.GetElements().Size());
+
+    for (const auto& it : layout.GetElements())
     {
-        if (m_handle != VK_NULL_HANDLE)
+        const Name name = it.first;
+        const DescriptorSetLayoutElement& element = it.second;
+
+        uint32 descriptorCount = element.count;
+
+        if (element.IsBindless())
         {
-            vkDestroyDescriptorSetLayout(
-                m_device->GetDevice(),
-                m_handle,
-                nullptr);
-
-            m_handle = VK_NULL_HANDLE;
-        }
-    }
-
-    HYP_FORCE_INLINE VkDescriptorSetLayout GetVulkanHandle() const
-    {
-        return m_handle;
-    }
-
-    RendererResult Create(VulkanDevice* device, const DescriptorSetLayout& layout)
-    {
-        HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE);
-
-        static constexpr VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-
-        Array<VkDescriptorSetLayoutBinding> bindings;
-        bindings.Reserve(layout.GetElements().Size());
-
-        Array<VkDescriptorBindingFlags> bindingFlags;
-        bindingFlags.Reserve(layout.GetElements().Size());
-
-        for (const auto& it : layout.GetElements())
-        {
-            const Name name = it.first;
-            const DescriptorSetLayoutElement& element = it.second;
-
-            uint32 descriptorCount = element.count;
-
-            if (element.IsBindless())
-            {
-                descriptorCount = MaxBindlessResources;
-            }
-
-            // if (descriptorCount > 1 && !m_device->GetFeatures().SupportsDynamicDescriptorIndexing()) {
-            //     return HYP_MAKE_ERROR(RendererError, "Device does not support descriptor indexing, cannot create descriptor set with element {} that uses an array of elements", 0, name);
-            // }
-
-            VkDescriptorSetLayoutBinding binding {};
-            binding.descriptorCount = descriptorCount;
-            binding.descriptorType = ToVkDescriptorType(element.type);
-            binding.pImmutableSamplers = nullptr;
-            binding.stageFlags = VK_SHADER_STAGE_ALL;
-            binding.binding = element.binding;
-
-            bindings.PushBack(binding);
-
-            VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-
-            if (element.IsBindless())
-            {
-                flags |= bindlessFlags;
-            }
-
-            bindingFlags.PushBack(flags);
+            descriptorCount = MaxBindlessResources;
         }
 
-        VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
-        extendedInfo.bindingCount = uint32(bindingFlags.Size());
-        extendedInfo.pBindingFlags = bindingFlags.Data();
+        // if (descriptorCount > 1 && !m_device->GetFeatures().SupportsDynamicDescriptorIndexing()) {
+        //     return HYP_MAKE_ERROR(RendererError, "Device does not support descriptor indexing, cannot create descriptor set with element {} that uses an array of elements", 0, name);
+        // }
 
-        VkDescriptorSetLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        layoutInfo.pBindings = bindings.Data();
-        layoutInfo.bindingCount = uint32(bindings.Size());
-        layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        layoutInfo.pNext = &extendedInfo;
+        VkDescriptorSetLayoutBinding binding {};
+        binding.descriptorCount = descriptorCount;
+        binding.descriptorType = ToVkDescriptorType(element.type);
+        binding.pImmutableSamplers = nullptr;
+        binding.stageFlags = VK_SHADER_STAGE_ALL;
+        binding.binding = element.binding;
 
-        VULKAN_CHECK(vkCreateDescriptorSetLayout(
+        bindings.PushBack(binding);
+
+        VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+
+        if (element.IsBindless())
+        {
+            flags |= BindlessFlags;
+        }
+
+        bindingFlags.PushBack(flags);
+    }
+
+    VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
+    extendedInfo.bindingCount = uint32(bindingFlags.Size());
+    extendedInfo.pBindingFlags = bindingFlags.Data();
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+    layoutInfo.pBindings = bindings.Data();
+    layoutInfo.bindingCount = uint32(bindings.Size());
+    layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+    layoutInfo.pNext = &extendedInfo;
+
+    VkDescriptorSetLayout handle = VK_NULL_HANDLE;
+
+    VkResult result = vkCreateDescriptorSetLayout(
+        device->GetDevice(),
+        &layoutInfo,
+        nullptr,
+        &handle);
+
+    Assert(result == VK_SUCCESS && handle != VK_NULL_HANDLE);
+
+    return handle;
+}
+
+static void DestroyVkDescriptorSetLayout(VulkanDevice* device, VkDescriptorSetLayout layout)
+{
+    if (layout != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorSetLayout(
             device->GetDevice(),
-            &layoutInfo,
-            nullptr,
-            &m_handle));
-
-        return RendererResult {};
+            layout,
+            nullptr);
     }
-};
+}
 
 #pragma endregion Vulkan struct wrappers
 
@@ -258,7 +240,7 @@ public:
     RendererResult Destroy(VulkanDevice* device);
 
     RendererResult CreateDescriptorSet(VulkanDevice* device,
-        const RC<VulkanDescriptorSetLayoutWrapper>& layout,
+        VkDescriptorSetLayout layout,
         VkDescriptorSet& outVkDescriptorSet,
         VkDescriptorPool& outVkDescriptorPool);
 
@@ -266,14 +248,14 @@ public:
         VkDescriptorSet vkDescriptorSet,
         VkDescriptorPool vkDescriptorPool);
 
-    RC<VulkanDescriptorSetLayoutWrapper> GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout);
+    VkDescriptorSetLayout GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout);
 
 private:
     VkDescriptorPool GetDescriptorPool();
     RendererResult CreateDescriptorPool(VkDescriptorPool& outDescriptorPool);
 
     Mutex m_mutex;
-    HashMap<HashCode, Weak<VulkanDescriptorSetLayoutWrapper>> m_vkDescriptorSetLayouts;
+    HashMap<HashCode, VkDescriptorSetLayout> m_vkDescriptorSetLayouts;
 
     Array<VkDescriptorPool> m_vkDescriptorPools;
     Array<uint32> m_descriptorPoolUsageCounts;
@@ -385,14 +367,13 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool
 }
 
 RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(VulkanDevice* device,
-    const RC<VulkanDescriptorSetLayoutWrapper>& layout,
+    VkDescriptorSetLayout layout,
     VkDescriptorSet& outVkDescriptorSet,
     VkDescriptorPool& outVkDescriptorPool)
 {
-    HYP_GFX_ASSERT(layout != nullptr);
-    HYP_GFX_ASSERT(layout->GetVulkanHandle() != VK_NULL_HANDLE);
+    HYP_GFX_ASSERT(layout != VK_NULL_HANDLE);
 
-    VkDescriptorSetLayout layouts[] = { layout->GetVulkanHandle() };
+    VkDescriptorSetLayout layouts[] = { layout };
 
     outVkDescriptorPool = GetDescriptorPool();
     int descriptorPoolIndex = int(m_vkDescriptorPools.Size() - 1);
@@ -477,11 +458,11 @@ RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* de
     return RendererResult {};
 }
 
-RC<VulkanDescriptorSetLayoutWrapper> VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout)
+VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout)
 {
     const HashCode hashCode = layout.GetHashCode();
 
-    RC<VulkanDescriptorSetLayoutWrapper> vkDescriptorSetLayout;
+    VkDescriptorSetLayout handle = VK_NULL_HANDLE;
 
     Mutex::Guard guard(m_mutex);
 
@@ -489,21 +470,20 @@ RC<VulkanDescriptorSetLayoutWrapper> VulkanDescriptorSetManager::GetOrCreateVkDe
 
     if (it != m_vkDescriptorSetLayouts.End())
     {
-        vkDescriptorSetLayout = it->second.Lock();
+        handle = it->second;
     }
 
-    if (vkDescriptorSetLayout != nullptr)
+    if (handle != VK_NULL_HANDLE)
     {
-        return vkDescriptorSetLayout;
+        return handle;
     }
 
-    vkDescriptorSetLayout = MakeRefCountedPtr<VulkanDescriptorSetLayoutWrapper>(device);
+    handle = CreateVkDescriptorSetLayout(device, layout);
+    HYP_GFX_ASSERT(handle != VK_NULL_HANDLE);
 
-    HYP_GFX_ASSERT(vkDescriptorSetLayout->Create(device, layout));
+    m_vkDescriptorSetLayouts.Set(hashCode, handle);
 
-    m_vkDescriptorSetLayouts.Set(hashCode, vkDescriptorSetLayout);
-
-    return vkDescriptorSetLayout;
+    return handle;
 }
 
 #pragma endregion VulkanDescriptorSetManager
@@ -1139,9 +1119,9 @@ QueryImageCapabilitiesResult VulkanRenderBackend::QueryImageCapabilities(const T
     HYP_NOT_IMPLEMENTED();
 }
 
-RendererResult VulkanRenderBackend::CreateDescriptorSet(const RC<VulkanDescriptorSetLayoutWrapper>& layout, VkDescriptorSet& outVkDescriptorSet, VkDescriptorPool& outVkDescriptorPool)
+RendererResult VulkanRenderBackend::CreateDescriptorSet(VkDescriptorSetLayout vkDescriptorSetLayout, VkDescriptorSet& outVkDescriptorSet, VkDescriptorPool& outVkDescriptorPool)
 {
-    return m_descriptorSetManager->CreateDescriptorSet(m_instance->GetDevice(), layout, outVkDescriptorSet, outVkDescriptorPool);
+    return m_descriptorSetManager->CreateDescriptorSet(m_instance->GetDevice(), vkDescriptorSetLayout, outVkDescriptorSet, outVkDescriptorPool);
 }
 
 RendererResult VulkanRenderBackend::DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool)
@@ -1149,11 +1129,11 @@ RendererResult VulkanRenderBackend::DestroyDescriptorSet(VkDescriptorSet vkDescr
     return m_descriptorSetManager->DestroyDescriptorSet(m_instance->GetDevice(), vkDescriptorSet, vkDescriptorPool);
 }
 
-RendererResult VulkanRenderBackend::GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, RC<VulkanDescriptorSetLayoutWrapper>& outRef)
+RendererResult VulkanRenderBackend::GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, VkDescriptorSetLayout& out)
 {
-    outRef = m_descriptorSetManager->GetOrCreateVkDescriptorSetLayout(m_instance->GetDevice(), layout);
+    out = m_descriptorSetManager->GetOrCreateVkDescriptorSetLayout(m_instance->GetDevice(), layout);
 
-    if (outRef.IsValid())
+    if (out != VK_NULL_HANDLE)
     {
         return RendererResult {};
     }
@@ -1337,11 +1317,6 @@ RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExten
 }
 
 #pragma endregion VulkanRenderBackend
-
-VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper& layout)
-{
-    return layout.GetVulkanHandle();
-}
 
 } // namespace hyperion
 

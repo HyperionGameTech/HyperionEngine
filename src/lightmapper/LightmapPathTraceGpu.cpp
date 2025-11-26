@@ -323,31 +323,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame, Ligh
     /// Pipeline
     if (!m_raytracingPipeline)
     {
-        // TEMP; refactor pipeline stuff to not need this!!! wasteful
-        const DescriptorTableDeclaration* descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-        Assert(descriptorTableDecl != nullptr);
-
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet", frameIndex);
-            Assert(descriptorSet != nullptr);
-
-            descriptorSet->SetElement("TLAS", m_tlas);
-            descriptorSet->SetElement("MeshDescriptionsBuffer", m_tlas->GetMeshDescriptionsBuffer());
-            descriptorSet->SetElement("HitsBuffer", jd.HitsBufferGpu);
-            descriptorSet->SetElement("RaysBuffer", jd.RayBuffers[frameIndex]);
-
-            descriptorSet->SetElement("LightsBuffer", g_renderGlobalState->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
-            descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-
-            descriptorSet->SetElement("RTRadianceUniforms", jd.UniformBuffers[frameIndex]);
-        }
-
-        Assert(descriptorTable->Create());
-
-        m_raytracingPipeline = g_renderBackend->MakeRaytracingPipeline(shader, descriptorTable);
+        m_raytracingPipeline = g_renderBackend->MakeRaytracingPipeline(shader, DescriptorTableRef::Null());
         Assert(m_raytracingPipeline->Create());
     }
 
@@ -471,46 +447,28 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
 
         Assert(jd.RayBuffers[frame->GetFrameIndex()]->Size() >= rayData.ByteSize());
         jd.RayBuffers[frame->GetFrameIndex()]->Copy(rayData.ByteSize(), rayData.Data());
-
-        // bool raysBufferResized = false;
-
-        // HYP_GFX_ASSERT(m_raysBuffers[frame->GetFrameIndex()]->EnsureCapacity(rayData.ByteSize(), &raysBufferResized));
-        // m_raysBuffers[frame->GetFrameIndex()]->Copy(rayData.ByteSize(), rayData.Data());
-
-        // if (raysBufferResized)
-        //{
-        //     m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet("RTRadianceDescriptorSet", frame->GetFrameIndex())->SetElement("RaysBuffer", m_raysBuffers[frame->GetFrameIndex()]);
-        // }
-
-        // bool hitsBufferResized = false;
-
-        ///*HYP_GFX_ASSERT(m_hitsBuffers[frame->GetFrameIndex()]->EnsureCapacity(rays.Size() * sizeof(LightmapHit), &hitsBufferResized));
-        // m_hitsBuffers[frame->GetFrameIndex()]->Memset(rays.Size() * sizeof(LightmapHit), 0);
-
-        // if (hitsBufferResized) {
-        //     m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet("RTRadianceDescriptorSet", frame->GetFrameIndex())
-        //         ->SetElement("HitsBuffer", m_hitsBuffers[frame->GetFrameIndex()]);
-        // }*/
-
-        // if (raysBufferResized || hitsBufferResized)
-        //{
-        //     m_raytracingPipeline->GetDescriptorTable()->Update(frame->GetFrameIndex());
-        // }
     }
+
+    constexpr StringHash GlobalSetName = "Global";
+    constexpr StringHash MaterialSetName = "Material";
+
+    const DescriptorTableDeclaration& decl = *m_raytracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     frame->renderQueue << BindRaytracingPipeline(m_raytracingPipeline);
 
-    frame->renderQueue << BindDescriptorTable(
-        m_raytracingPipeline->GetDescriptorTable(),
+    frame->renderQueue << BindDescriptorSet(
+        g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(GlobalSetName, frame->GetFrameIndex()),
         m_raytracingPipeline,
-        { { "Global",
-            { { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
-        frame->GetFrameIndex());
+        {
+            { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+            { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) }
+        });
 
     frame->renderQueue << BindDescriptorSet(
-        jd.Sets[frame->GetFrameIndex()],
+        g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(MaterialSetName, frame->GetFrameIndex()),
         m_raytracingPipeline);
+
+    frame->renderQueue << BindDescriptorSet(jd.Sets[frame->GetFrameIndex()], m_raytracingPipeline);
 
     frame->renderQueue << InsertBarrier(jd.HitsBufferGpu, RS_UNORDERED_ACCESS);
 

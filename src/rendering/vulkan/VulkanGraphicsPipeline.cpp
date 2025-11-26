@@ -35,6 +35,30 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
+template <>
+Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(const VulkanGraphicsPipeline& pipeline)
+{
+    Array<VkDescriptorSetLayout> usedLayouts;
+
+    VulkanShader* shader = VULKAN_CAST(pipeline.GetShader().Get());
+    AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
+
+    const DescriptorTableDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    Assert(decl != nullptr);
+
+    for (const DescriptorSetDeclaration& setDecl : decl->elements)
+    {
+        VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+        Assert(GetRenderBackend()->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
+
+        Assert(layout != VK_NULL_HANDLE);
+
+        usedLayouts.PushBack(layout);
+    }
+
+    return usedLayouts;
+}
+
 #pragma region Helpers
 
 static VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode)
@@ -354,7 +378,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         return HYP_MAKE_ERROR(RendererError, "No descriptor table set for pipeline");
     }
 
-    Array<VkDescriptorSetLayout> usedLayouts = GetPipelineVulkanDescriptorSetLayouts(*this);
+    Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
 
     for (VkDescriptorSetLayout vkDescriptorSetLayout : usedLayouts)
     {
