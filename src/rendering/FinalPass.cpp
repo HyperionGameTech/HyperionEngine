@@ -39,6 +39,8 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #pragma region FinalPass
 
+// @TODO refactor to not hold swapchain -- just use caching like other systems to detect need to recreate
+
 FinalPass::FinalPass(const SwapchainRef& swapchain)
     : m_swapchain(swapchain),
       m_dirtyFrameIndices(0)

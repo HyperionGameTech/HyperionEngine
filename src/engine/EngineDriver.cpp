@@ -97,9 +97,25 @@ EngineStatTimer g_renderThreadUpdateTimer("Frame/RenderThreadUpdate");
 
 class RenderThread final : public Thread<Scheduler>
 {
+    static ThreadId GetRenderThreadId(bool useSeparateThread)
+    {
+        /// TEMP HACK!!! Need to make g_renderThread non const and NOT set until here!
+        if (useSeparateThread)
+        {
+            const_cast<StaticThreadId&>(g_renderThread) = StaticThreadId(NAME("Render"));
+        }
+        else
+        {
+            const_cast<StaticThreadId&>(g_renderThread) = g_mainThread;
+        }
+
+        return g_renderThread;
+    }
+
 public:
-    RenderThread()
-        : Thread(g_renderThread, ThreadPriorityValue::HIGHEST),
+    explicit RenderThread(bool useSeparateThread)
+        : Thread(GetRenderThreadId(useSeparateThread), ThreadPriorityValue::HIGHEST),
+          m_useSeparateThread(useSeparateThread),
           m_isRunning(false)
     {
     }
@@ -108,18 +124,21 @@ public:
     {
         Assert(m_isRunning.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
 
-        // Must be current thread
-        AssertOnThread(g_renderThread);
-
-        SetCurrentThreadObject(this);
-        m_scheduler.SetOwnerThread(Id());
-
         signal(SIGINT, HandleSignal);
         signal(SIGSEGV, HandleSignal);
 
-        (*this)();
+        g_renderThreadInstance = this;
 
-        return true;
+        if (!m_useSeparateThread)
+        {
+            SetCurrentThreadObject(this);
+
+            // call on main thread
+            (*this)();
+            return true;
+        }
+
+        return Thread::Start();
     }
 
     void Stop() override
@@ -135,11 +154,14 @@ public:
 private:
     virtual void operator()() override
     {
+        RenderApi::Init();
+
+        
+        /// HAX !!! We should only upload gpu resources on first use for debug draer
+        InitObject(g_engineDriver->GetDebugDrawer());
+
         SystemEvent event;
-
         Queue<Scheduler::ScheduledTask> tasks;
-
-        g_renderThreadInstance = this;
 
 #ifdef HYP_LIBUI
         uiInitOptions options = {};
@@ -188,9 +210,12 @@ private:
         uiUninit();
 #endif
 
+        RenderApi::Shutdown();
+
         g_renderThreadInstance = nullptr;
     }
 
+    bool m_useSeparateThread;
     AtomicVar<bool> m_isRunning;
 };
 
@@ -275,17 +300,16 @@ HYP_API void EngineDriver::Init()
     // Set ready to false after render thread stops running.
     HYP_DEFER({ SetReady(false); });
 
-    m_renderThread = MakeUnique<RenderThread>();
+    bool useSeparateRenderThread = false;
 
-    Assert(g_renderBackend != nullptr);
+    if (CoreApi_GetCommandLineArguments()["Headless"].ToBool(false))
+    {
+        // in headless mode, don't block the caller thread; on Hyp_Initialize() call,
+        // we need to create a separate thread for rendering.
+        useSeparateRenderThread = true;
+    }
 
-    g_renderBackend->GetOnSwapchainRecreatedDelegate()
-        .Bind([this](SwapchainBase* swapchain)
-            {
-                m_finalPass = MakeUnique<FinalPass>(swapchain->HandleFromThis());
-                m_finalPass->Create();
-            })
-        .Detach();
+    m_renderThread = MakeUnique<RenderThread>(useSeparateRenderThread);
 
 #ifdef HYP_EDITOR
     // Create script compilation service
@@ -311,11 +335,7 @@ HYP_API void EngineDriver::Init()
             /* enabled */ true });
     }
 
-    m_finalPass = MakeUnique<FinalPass>(g_renderBackend->GetSwapchain()->HandleFromThis());
-    m_finalPass->Create();
-
     m_debugDrawer = CreateObject<DebugDrawer>();
-    InitObject(m_debugDrawer);
 
     m_defaultWorld = CreateObject<World>(NAME("DefaultWorld"), WorldFlags::NONE);
     InitObject(m_defaultWorld);
@@ -449,8 +469,6 @@ bool EngineDriver::StartRenderLoop()
 
     m_renderThread->Start();
 
-    RenderApi::Shutdown();
-
     return true;
 }
 
@@ -511,7 +529,6 @@ void EngineDriver::FinalizeStop()
     SafeDelete(std::move(m_worlds));
 
     m_debugDrawer.Reset();
-    m_finalPass.Reset();
 
     // delete remaining enqueued deletions.
     // loop until all deletions are done
@@ -577,7 +594,7 @@ HYP_API void EngineDriver::RenderNextFrame()
             }
         }
 
-        m_finalPass->Render(frame, RenderSetup());
+        g_renderGlobalState->finalPass->Render(frame, RenderSetup());
     }
 
     g_renderGlobalState->UpdateBuffers(frame);

@@ -341,8 +341,6 @@ extern "C"
             HYP_LOG(Engine, Info, "Running in headless mode");
         }
 
-        RenderApi::Init();
-
         InitObject(g_engineDriver);
 
         return 1;

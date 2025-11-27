@@ -20,6 +20,22 @@ class World;
 class UIStage;
 class UIRenderer;
 
+HYP_STRUCT()
+struct UIEntityInstanceBatch : EntityInstanceBatch
+{
+    HYP_FIELD()
+    Vec4f texcoords[MaxEntitiesPerBatch];
+
+    HYP_FIELD()
+    Vec4f offsets[MaxEntitiesPerBatch];
+
+    HYP_FIELD()
+    Vec4f sizes[MaxEntitiesPerBatch];
+
+    HYP_FIELD()
+    Vec4u properties[MaxEntitiesPerBatch];
+};
+
 HYP_CLASS(NoScriptBindings)
 class HYP_API UISubsystem : public Subsystem
 {

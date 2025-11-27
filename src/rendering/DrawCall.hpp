@@ -3,8 +3,10 @@
 #pragma once
 
 #include <core/Defines.hpp>
+
 #include <core/reflection/ObjId.hpp>
 #include <core/reflection/Handle.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
@@ -32,11 +34,21 @@ HYP_API extern GpuBufferHolderMap* GetGpuBufferHolderMap();
 
 static constexpr uint32 MaxEntitiesPerBatch = 60;
 
-struct alignas(16) EntityInstanceBatch
+HYP_STRUCT()
+struct EntityInstanceBatch
 {
+    HYP_STRUCT_BODY(EntityInstanceBatch);
+    
+    HYP_FIELD()
     uint32 batchIndex;
+
+    HYP_FIELD()
     uint32 numEntities;
-    alignas(16) uint32 indices[MaxEntitiesPerBatch];
+
+    HYP_FIELD()
+    Vec4u indices[MaxEntitiesPerBatch / 4];
+
+    HYP_FIELD()
     Mat4f transforms[MaxEntitiesPerBatch];
 };
 
@@ -208,6 +220,23 @@ class EntityBatchAllocatorBase
 public:
     virtual ~EntityBatchAllocatorBase() = default;
 
+    EntityBatchAllocatorBase(const EntityBatchAllocatorBase& other)
+        : m_bufferHolder(other.m_bufferHolder),
+          m_structSize(other.m_structSize),
+          m_structAlignment(other.m_structAlignment)
+    {
+    }
+
+    EntityBatchAllocatorBase(EntityBatchAllocatorBase&& other) noexcept
+        : m_bufferHolder(other.m_bufferHolder),
+          m_structSize(other.m_structSize),
+          m_structAlignment(other.m_structAlignment)
+    {
+        other.m_bufferHolder = nullptr;
+        other.m_structSize = 0;
+        other.m_structAlignment = 0;
+    }
+
     HYP_FORCE_INLINE SizeType GetStructSize() const
     {
         return m_structSize;
@@ -229,6 +258,9 @@ public:
     }
 
     virtual EntityInstanceBatch* AcquireBatch() const = 0;
+
+    virtual EntityBatchAllocatorBase* NewCopy() const = 0;
+    virtual EntityBatchAllocatorBase* NewMove() = 0;
 
 protected:
     explicit EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHolder);
@@ -301,6 +333,9 @@ public:
     {
     }
 
+    TEntityBatchAllocator(const TEntityBatchAllocator& other) = default;
+    TEntityBatchAllocator(TEntityBatchAllocator&& other) noexcept = default;
+
     ~TEntityBatchAllocator() = default;
 
     virtual EntityInstanceBatch* AcquireBatch() const override
@@ -312,20 +347,19 @@ public:
 
         return batch;
     }
-};
 
-HYP_API extern EntityBatchAllocatorBase* GetEntityBatchAllocator(TypeId typeId);
-HYP_API extern EntityBatchAllocatorBase* SetEntityBatchAllocator(TypeId typeId, UniquePtr<EntityBatchAllocatorBase>&& impl);
-
-template <class EntityInstanceBatchType>
-EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
-{
-    if (EntityBatchAllocatorBase* batchAllocator = GetEntityBatchAllocator(TypeId::ForType<EntityInstanceBatchType>()))
+    virtual EntityBatchAllocatorBase* NewCopy() const override
     {
-        return batchAllocator;
+        return PoolNew<TEntityBatchAllocator>(*g_renderPool, *this);
     }
 
-    return SetEntityBatchAllocator(TypeId::ForType<EntityInstanceBatchType>(), MakeUnique<TEntityBatchAllocator<EntityInstanceBatchType>>());
-}
+    virtual EntityBatchAllocatorBase* NewMove() override
+    {
+        return PoolNew<TEntityBatchAllocator>(*g_renderPool, std::move(*this));
+    }
+};
+
+EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeInfo& typeInfo);
+HYP_NODISCARD bool SetEntityBatchAllocator(const TypeInfo& typeInfo, EntityBatchAllocatorBase* pBatchAllocator);
 
 } // namespace hyperion

@@ -45,14 +45,6 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
-struct alignas(16) UIEntityInstanceBatch : EntityInstanceBatch
-{
-    Vec4f texcoords[MaxEntitiesPerBatch];
-    Vec4f offsets[MaxEntitiesPerBatch];
-    Vec4f sizes[MaxEntitiesPerBatch];
-    Vec4u properties[MaxEntitiesPerBatch];
-};
-
 #pragma region Render commands
 
 struct AddUIRendererForView : RenderCommand
@@ -75,7 +67,38 @@ struct AddUIRendererForView : RenderCommand
         }
 
         UIRenderer* uiRenderer = PoolNew<UIRenderer>(*g_renderPool, view);
-        uiRenderer->renderCollector.batchAllocator = view->GetViewDesc().batchAllocator;
+
+        EntityBatchAllocatorBase* pBatchAllocator = nullptr;
+
+        const Class* batchAllocatorClass = view->GetViewDesc().batchAllocatorClass;
+        if (batchAllocatorClass != nullptr)
+        {
+            EntityBatchAllocatorBase* batchAllocator = GetEntityBatchAllocator(*batchAllocatorClass->GetTypeInfo());
+            
+            if (!batchAllocator)
+            {
+                HypData data;
+                if (!batchAllocatorClass->CreateInstance(data))
+                {
+                    HYP_FAIL("Failed to create instance of {}!", batchAllocatorClass->GetName());
+                }
+
+                Assert(data.Is<EntityBatchAllocatorBase>());
+                
+                pBatchAllocator = data.Get<EntityBatchAllocatorBase>().NewMove();
+                Assert(pBatchAllocator != nullptr);
+
+                if (!SetEntityBatchAllocator(*batchAllocatorClass->GetTypeInfo(), pBatchAllocator))
+                {
+                    PoolDelete(*g_renderPool, pBatchAllocator);
+                    pBatchAllocator = nullptr;
+                }
+            }
+
+            AssertDebug(batchAllocatorInstance.Is<EntityBatchAllocator>());
+
+            uiRenderer->renderCollector.batchAllocator = pBatchAllocator;
+        }
 
         g_renderGlobalState->AddRenderer(GRT_UI, uiRenderer);
 
@@ -118,7 +141,7 @@ struct SetFinalPassImageView : RenderCommand
             imageView = g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d);
         }
 
-        g_engineDriver->GetFinalPass()->SetUILayerImageView(imageView);
+        g_renderGlobalState->finalPass->SetUILayerImageView(imageView);
 
         HYPERION_RETURN_OK;
     }
@@ -184,7 +207,7 @@ void UISubsystem::Init()
         .outputTargetDesc = outputTargetDesc,
         .scenes = { m_uiStage->GetScene() },
         .camera = m_uiStage->GetCamera(),
-        .batchAllocator = GetOrCreateEntityBatchAllocator<UIEntityInstanceBatch>()
+        .batchAllocator = UIEntityInstanceBatch::StaticClass()
     };
 
     m_view = CreateObject<View>(viewDesc);

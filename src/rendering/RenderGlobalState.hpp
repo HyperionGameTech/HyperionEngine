@@ -38,6 +38,7 @@ struct WorldShaderData;
 struct RenderStats;
 struct RenderStatsCounts;
 struct Viewport;
+class FinalPass;
 class ResourceBinderBase;
 
 namespace RenderApi {
@@ -181,6 +182,8 @@ public:
     MaterialDescriptorSetManager* materialDescriptorSetManager;
 
     GraphicsPipelineCache* graphicsPipelineCache;
+
+    FinalPass* finalPass;
 
 private:
     void CreateBlueNoiseBuffer();

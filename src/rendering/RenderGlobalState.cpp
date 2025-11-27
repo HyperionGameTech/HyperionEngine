@@ -20,6 +20,8 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderSwapchain.hpp>
+#include <rendering/FinalPass.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
@@ -843,6 +845,9 @@ void Init()
     g_renderGlobalState = PoolNew<RenderGlobalState>(*g_renderPool);
     g_renderGlobalState->materialDescriptorSetManager->CreateFallbackMaterialDescriptorSet();
 
+    g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool, MakeStrongRef(g_renderBackend->GetSwapchain()));
+    g_renderGlobalState->finalPass->Create();
+
     ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
     registry.InvokeAll(*s_resources);
 
@@ -1392,7 +1397,8 @@ RenderGlobalState::RenderGlobalState()
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
       materialDescriptorSetManager(PoolNew<MaterialDescriptorSetManager>(*g_renderPool)),
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
-      bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool))
+      bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
+      finalPass(nullptr)
 {
     AssertOnThread(g_renderThread);
 
@@ -1484,6 +1490,9 @@ RenderGlobalState::~RenderGlobalState()
             }
         }
     }
+
+    PoolDelete(*g_renderPool, finalPass);
+    finalPass = nullptr;
 
     PoolDelete(*g_renderPool, shadowMapAllocator);
     shadowMapAllocator = nullptr;

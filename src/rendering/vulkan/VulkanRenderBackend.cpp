@@ -21,6 +21,8 @@
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/RenderGlobalState.hpp>
+#include <rendering/FinalPass.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
 
@@ -751,6 +753,12 @@ FrameBase* VulkanRenderBackend::PrepareNextFrame()
         CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PrepareFrame(m_shouldRecreateSwapchain));
 
         frame = m_instance->GetSwapchain()->GetCurrentFrame();
+        
+        // Recreate FinalPass
+        PoolDelete(*g_renderPool, g_renderGlobalState->finalPass);
+
+        g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool, m_instance->GetSwapchain());
+        g_renderGlobalState->finalPass->Create();
 
         OnSwapchainRecreated(m_instance->GetSwapchain());
     }

@@ -18,6 +18,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <DrawCall.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
@@ -323,8 +325,8 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
 
 #pragma region TEntityBatchAllocator
 
-static TypeMap<UniquePtr<EntityBatchAllocatorBase>> s_drawCallCollectionImplMap = {};
-static Mutex s_drawCallCollectionImplMapMutex = {};
+// @TODO should be deleted at render thread exit (needs deletion using g_renderPool)
+static TypeMap<EntityBatchAllocatorBase*> s_drawCallCollectionImplMap = {};
 
 EntityBatchAllocatorBase::EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHolder)
     : m_bufferHolder(bufferHolder)
@@ -338,22 +340,29 @@ EntityBatchAllocatorBase::EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHo
     m_structAlignment = structTypeInfo->alignment;
 }
 
-HYP_API EntityBatchAllocatorBase* GetEntityBatchAllocator(TypeId typeId)
+EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeInfo& typeInfo)
 {
-    Mutex::Guard guard(s_drawCallCollectionImplMapMutex);
+    AssertOnThread(g_renderThread);
 
-    auto it = s_drawCallCollectionImplMap.Find(typeId);
+    auto it = s_drawCallCollectionImplMap.Find(typeInfo.id);
 
-    return it != s_drawCallCollectionImplMap.End() ? it->second.Get() : nullptr;
+    return it != s_drawCallCollectionImplMap.End() ? it->second : nullptr;
 }
 
-HYP_API EntityBatchAllocatorBase* SetEntityBatchAllocator(TypeId typeId, UniquePtr<EntityBatchAllocatorBase>&& impl)
+bool SetEntityBatchAllocator(const TypeInfo& typeInfo, EntityBatchAllocatorBase* pBatchAllocator)
 {
-    Mutex::Guard guard(s_drawCallCollectionImplMapMutex);
+    AssertOnThread(g_renderThread);
 
-    auto it = s_drawCallCollectionImplMap.Set(typeId, std::move(impl)).first;
+    Assert(pBatchAllocator != nullptr);
 
-    return it->second.Get();
+    auto it = s_drawCallCollectionImplMap.Find(typeInfo.id);
+
+    if (it != s_drawCallCollectionImplMap.End())
+    {
+        return false;
+    }
+
+    return true;
 }
 
 #pragma endregion TEntityBatchAllocator

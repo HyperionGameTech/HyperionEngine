@@ -82,11 +82,6 @@ public:
         return m_debugDrawer;
     }
 
-    HYP_FORCE_INLINE FinalPass* GetFinalPass() const
-    {
-        return m_finalPass.Get();
-    }
-
     HYP_FORCE_INLINE ScriptingService* GetScriptingService() const
     {
         return m_scriptingService.Get();
@@ -133,8 +128,6 @@ private:
     UniquePtr<RenderThread> m_renderThread;
 
     Handle<DebugDrawer> m_debugDrawer;
-
-    UniquePtr<FinalPass> m_finalPass;
 
     UniquePtr<ScriptingService> m_scriptingService;
 
