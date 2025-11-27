@@ -71,32 +71,7 @@ struct AddUIRendererForView : RenderCommand
         EntityBatchAllocatorBase* pBatchAllocator = nullptr;
 
         const Class* batchAllocatorClass = view->GetViewDesc().batchAllocatorClass;
-        if (batchAllocatorClass != nullptr)
-        {
-            EntityBatchAllocatorBase* batchAllocator = GetEntityBatchAllocator(*batchAllocatorClass->GetTypeInfo());
-            
-            if (!batchAllocator)
-            {
-                HypData data;
-                if (!batchAllocatorClass->CreateInstance(data))
-                {
-                    HYP_FAIL("Failed to create instance of {}!", batchAllocatorClass->GetName());
-                }
-
-                Assert(data.Is<EntityBatchAllocatorBase>());
-                
-                pBatchAllocator = data.Get<EntityBatchAllocatorBase>().NewMove();
-                Assert(pBatchAllocator != nullptr);
-
-                if (!SetEntityBatchAllocator(*batchAllocatorClass->GetTypeInfo(), pBatchAllocator))
-                {
-                    PoolDelete(*g_renderPool, pBatchAllocator);
-                    pBatchAllocator = nullptr;
-                }
-            }
-
-            uiRenderer->renderCollector.batchAllocator = pBatchAllocator;
-        }
+        uiRenderer->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(batchAllocatorClass);
 
         g_renderGlobalState->AddRenderer(GRT_UI, uiRenderer);
 

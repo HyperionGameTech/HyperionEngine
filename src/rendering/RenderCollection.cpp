@@ -569,7 +569,7 @@ void RenderProxyList::EndWrite()
 void RenderProxyList::BeginRead(bool* pOutSuccess)
 {
     constexpr uint32 MaxSpinsBeforeFail = 32;
-    
+
     if (isShared)
     {
         int64 rwMarkerState;
@@ -585,7 +585,7 @@ void RenderProxyList::BeginRead(bool* pOutSuccess)
                                           "If this is occurring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
 
                 AtomicSub(&rwMarker, 2);
-                
+
                 if (pOutSuccess != nullptr && ++numSpins >= MaxSpinsBeforeFail)
                 {
                     // fail state; stop spinning
@@ -606,7 +606,7 @@ void RenderProxyList::BeginRead(bool* pOutSuccess)
 
     AssertDebug(state != CS_WRITING);
     state = CS_READING;
-    
+
     if (pOutSuccess)
     {
         *pOutSuccess = true;
@@ -676,7 +676,7 @@ static inline void DeleteOnRenderThread(Func&& function)
 RenderCollector::RenderCollector()
     : parallelRenderingStateHead(nullptr),
       parallelRenderingStateTail(nullptr),
-      batchAllocator(GetOrCreateEntityBatchAllocator<EntityInstanceBatch>()),
+      batchAllocator(nullptr),
       renderGroupFlags(RenderGroupFlags::DEFAULT)
 {
 }
@@ -1297,6 +1297,11 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
+
+    if (!batchAllocator)
+    {
+        batchAllocator = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
+    }
 
     static const bool uniquePerMaterial = g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial;
 

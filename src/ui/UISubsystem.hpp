@@ -10,6 +10,7 @@
 #include <core/functional/Delegate.hpp>
 
 #include <rendering/RenderObject.hpp>
+#include <rendering/DrawCall.hpp>
 
 namespace hyperion {
 
@@ -20,9 +21,7 @@ class World;
 class UIStage;
 class UIRenderer;
 
-static constexpr uint32 MaxEntitiesPerBatch = 60;
-
-HYP_STRUCT()
+HYP_STRUCT(NoScriptBindings)
 struct UIEntityInstanceBatch : EntityInstanceBatch
 {
     HYP_STRUCT_BODY(UIEntityInstanceBatch);

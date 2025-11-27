@@ -46,6 +46,8 @@ constexpr uint32 MaxBindlessResources = 4096;
 
 constexpr uint32 NumGBufferTargets = 5;
 
+constexpr uint32 MaxEntitiesPerBatch = 60;
+
 template <class... T>
 constexpr bool ResolutionFailureV = false;
 

@@ -54,7 +54,7 @@ CocoaAppContext::~CocoaAppContext()
 {
 }
 
-Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions)
+Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
     Handle<CocoaApplicationWindow> window = CreateObject<CocoaApplicationWindow>(windowOptions.title, windowOptions.size);
     window->Initialize(windowOptions);

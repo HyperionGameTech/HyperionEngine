@@ -59,7 +59,6 @@ namespace sys {
 
 CocoaApplicationWindow::CocoaApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size),
-      m_nsWindow(nullptr),
       m_windowDelegate(nullptr),
       m_metalLayer(nullptr),
       m_mouseLocked(false)
@@ -84,17 +83,17 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
         m_windowDelegate = nullptr;
     }
     
-    if (m_nsWindow)
+    if (m_hwnd)
     {
-        NSWindow* window = (NSWindow*)m_nsWindow;
+        NSWindow* window = (NSWindow*)m_hwnd;
         [window close];
         [window release];
 
-        m_nsWindow = nullptr;
+        m_hwnd = nullptr;
     }
 }
 
-void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
+void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
 {
     m_title = windowOptions.title;
     m_size = windowOptions.size;
@@ -161,7 +160,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         [window makeKeyAndOrderFront:nil];
     }
     
-    m_nsWindow = (void*)window;
+    m_hwnd = (void*)window;
     m_windowDelegate = (void*)delegate;
     
     HYP_LOG(Core, Debug, "CocoaApplicationWindow initialized: {} ({}x{})", 
@@ -172,7 +171,7 @@ void CocoaApplicationWindow::SetMousePosition(Vec2i position)
 {
     if (!m_mouseLocked)
     {
-        NSWindow* window = (NSWindow*)m_nsWindow;
+        NSWindow* window = (NSWindow*)m_hwnd;
         NSRect windowFrame = [window frame];
         NSRect contentFrame = [window.contentView frame];
         
@@ -192,7 +191,7 @@ Vec2i CocoaApplicationWindow::GetMousePosition() const
 {
     if (!m_mouseLocked)
     {
-        NSWindow* window = (NSWindow*)m_nsWindow;
+        NSWindow* window = (NSWindow*)m_hwnd;
         NSPoint mouseLocation = [NSEvent mouseLocation];
         NSRect windowFrame = [window frame];
         NSRect contentFrame = [window.contentView frame];
@@ -209,7 +208,7 @@ Vec2i CocoaApplicationWindow::GetMousePosition() const
 
 Vec2i CocoaApplicationWindow::GetDimensions() const
 {
-    NSWindow* window = (NSWindow*)m_nsWindow;
+    NSWindow* window = (NSWindow*)m_hwnd;
     NSRect frame = [window.contentView frame];
     return Vec2i((int)frame.size.width, (int)frame.size.height);
 }
@@ -232,13 +231,13 @@ void CocoaApplicationWindow::SetIsMouseLocked(bool locked)
 
 bool CocoaApplicationWindow::HasMouseFocus() const
 {
-    NSWindow* window = (NSWindow*)m_nsWindow;
+    NSWindow* window = (NSWindow*)m_hwnd;
     return [window isKeyWindow];
 }
 
 bool CocoaApplicationWindow::IsHighDPI() const
 {
-    NSWindow* window = (NSWindow*)m_nsWindow;
+    NSWindow* window = (NSWindow*)m_hwnd;
     return [window backingScaleFactor] > 1.0;
 }
 

@@ -32,22 +32,25 @@ struct MeshInstanceData;
 
 HYP_API extern GpuBufferHolderMap* GetGpuBufferHolderMap();
 
-HYP_STRUCT()
+HYP_STRUCT(NoScriptBindings)
 struct EntityInstanceBatch
 {
     HYP_STRUCT_BODY(EntityInstanceBatch);
-    
+
     HYP_FIELD()
     uint32 batchIndex;
 
     HYP_FIELD()
     uint32 numEntities;
 
-    HYP_FIELD()
-    Vec4u indices[MaxEntitiesPerBatch / 4];
+    uint32 _pad0;
+    uint32 _pad1;
 
     HYP_FIELD()
-    Mat4f transforms[MaxEntitiesPerBatch];
+    FixedArray<uint32, MaxEntitiesPerBatch> indices;
+
+    HYP_FIELD()
+    FixedArray<Mat4f, MaxEntitiesPerBatch> transforms;
 };
 
 static_assert(sizeof(EntityInstanceBatch) == 4096);
@@ -357,24 +360,30 @@ public:
     }
 };
 
-EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeInfo& typeInfo);
-HYP_NODISCARD bool SetEntityBatchAllocator(const TypeInfo& typeInfo, EntityBatchAllocatorBase* pBatchAllocator);
+EntityBatchAllocatorBase* GetEntityBatchAllocator(const Class* cls);
+HYP_NODISCARD bool SetEntityBatchAllocator(const Class* cls, EntityBatchAllocatorBase* pBatchAllocator);
+
+EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const Class* cls);
 
 template <class T>
 static inline EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
 {
+    using EntityBatchAllocatorType = TEntityBatchAllocator<T>;
+
+    static_assert(std::is_base_of_v<EntityInstanceBatch, T>, "T must be a derived struct type of EntityInstanceBatch");
+
     AssertOnThread(g_renderThread);
 
-    EntityBatchAllocatorBase* pBatchAllocator = GetEntityBatchAllocator(TypeOf<T>());
+    EntityBatchAllocatorBase* pBatchAllocator = GetEntityBatchAllocator(T::StaticClass());
 
     if (pBatchAllocator)
     {
         return pBatchAllocator;
     }
 
-    pBatchAllocator = static_cast<EntityBatchAllocatorBase*>(PoolNew<T>(*g_renderPool));
-    
-    if (!SetEntityBatchAllocator(TypeOf<T>(), pBatchAllocator))
+    pBatchAllocator = static_cast<EntityBatchAllocatorBase*>(PoolNew<EntityBatchAllocatorType>(*g_renderPool));
+
+    if (!SetEntityBatchAllocator(T::StaticClass(), pBatchAllocator))
     {
         PoolDelete(*g_renderPool, pBatchAllocator);
         pBatchAllocator = nullptr;

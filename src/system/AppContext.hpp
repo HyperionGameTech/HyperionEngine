@@ -135,7 +135,7 @@ public:
 
     virtual bool IsHighDPI() const override;
 
-    void Initialize(WindowOptions windowOptions);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND)nullptr);
 };
 
 HYP_CLASS()
@@ -164,7 +164,7 @@ public:
         return m_inputManager;
     }
 
-    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr) = 0;
+    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) = 0;
     virtual int PollEvent(SystemEvent& event) = 0;
 
     Delegate<void, ApplicationWindow*> OnCurrentWindowChanged;
@@ -185,7 +185,7 @@ public:
     SDLAppContext(ANSIString name, const CommandLineArguments& arguments);
     ~SDLAppContext() override;
 
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
 
     int PollEvent(SystemEvent& event) override;
 };
@@ -199,7 +199,7 @@ public:
     Win32ApplicationWindow(ANSIString title, Vec2i size);
     ~Win32ApplicationWindow() override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND)nullptr);
 
     void SetMousePosition(Vec2i position) override;
     Vec2i GetMousePosition() const override;
@@ -234,7 +234,7 @@ public:
     Win32AppContext(ANSIString name, const CommandLineArguments& arguments);
     ~Win32AppContext() override;
 
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
 
     int PollEvent(SystemEvent& event) override;
 };
@@ -248,7 +248,7 @@ public:
     CocoaApplicationWindow(ANSIString title, Vec2i size);
     ~CocoaApplicationWindow() override;
 
-    void Initialize(WindowOptions windowOptions);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND)nullptr);
 
     void SetMousePosition(Vec2i position) override;
     Vec2i GetMousePosition() const override;
@@ -290,7 +290,7 @@ public:
     CocoaAppContext(ANSIString name, const CommandLineArguments& arguments);
     ~CocoaAppContext() override;
 
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
 
     int PollEvent(SystemEvent& event) override;
 };

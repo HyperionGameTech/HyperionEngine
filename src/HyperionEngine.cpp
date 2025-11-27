@@ -440,13 +440,13 @@ extern "C"
         return App::GetInstance().GetAppContext();
     }
 
-    HYP_API ApplicationWindow* Hyp_CreateWindow(AppContextBase* pCtx, WindowOptions* pWindowOptions, HWND parentHWND)
+    HYP_API ApplicationWindow* Hyp_CreateWindow(AppContextBase* pCtx, WindowOptions* pWindowOptions, HWND parentHwnd)
     {
         Assert(pCtx != nullptr);
 
         WindowOptions windowOptions = pWindowOptions ? *pWindowOptions : WindowOptions {};
 
-        Handle<ApplicationWindow> window = pCtx->CreateSystemWindow(windowOptions, parentHWND);
+        Handle<ApplicationWindow> window = pCtx->CreateSystemWindow(windowOptions, parentHwnd);
 
         if (!window)
         {

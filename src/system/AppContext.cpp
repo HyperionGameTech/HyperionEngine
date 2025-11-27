@@ -99,7 +99,7 @@ SDLApplicationWindow::~SDLApplicationWindow()
     SDL_DestroyWindow(static_cast<SDL_Window*>(m_windowHandle));
 }
 
-void SDLApplicationWindow::Initialize(WindowOptions windowOptions)
+void SDLApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
 {
     uint32 sdlFlags = 0;
 
@@ -207,7 +207,7 @@ SDLApplicationWindow::SDLApplicationWindow(ANSIString title, Vec2i size)
 
 SDLApplicationWindow::~SDLApplicationWindow() = default;
 
-void SDLApplicationWindow::Initialize(WindowOptions windowOptions)
+void SDLApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -275,7 +275,7 @@ SDLAppContext::~SDLAppContext()
     SDL_Quit();
 }
 
-Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND)
+Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
     Handle<SDLApplicationWindow> window = CreateObject<SDLApplicationWindow>(windowOptions.title, windowOptions.size);
     window->Initialize(windowOptions);
@@ -411,7 +411,7 @@ SDLAppContext::SDLAppContext(ANSIString name, const CommandLineArguments& argume
 
 SDLAppContext::~SDLAppContext() = default;
 
-Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND)
+Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -446,7 +446,7 @@ Win32ApplicationWindow::~Win32ApplicationWindow()
     UnregisterClassW(m_title.ToWide().Data(), m_hinst);
 }
 
-void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHWND)
+void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
 {
     m_title = windowOptions.title;
     m_size = windowOptions.size;
@@ -462,17 +462,17 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
     RegisterClassW(&wc);
 
     DWORD style = WS_VISIBLE;
-    
+
     if (!(windowOptions.flags & WindowFlags::HEADLESS))
     {
         style |= WS_OVERLAPPEDWINDOW;
     }
 
-    if (parentHWND != nullptr)
+    if (parentHwnd != nullptr)
     {
         style |= WS_CHILD;
     }
-    
+
     RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };
     AdjustWindowRect(&r, style, FALSE);
 
@@ -480,7 +480,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         wTitle.Data(), wTitle.Data(), style,
         CW_USEDEFAULT, CW_USEDEFAULT,
         r.right - r.left, r.bottom - r.top,
-        parentHWND, nullptr, m_hinst, this);
+        parentHwnd, nullptr, m_hinst, this);
 
     UpdateWindow(m_hwnd);
 }
@@ -578,7 +578,7 @@ Win32ApplicationWindow::~Win32ApplicationWindow()
     HYP_NOT_IMPLEMENTED();
 }
 
-void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
+void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -621,10 +621,10 @@ Win32AppContext::Win32AppContext(ANSIString name, const CommandLineArguments& ar
 
 Win32AppContext::~Win32AppContext() = default;
 
-Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND)
+Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
     Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(windowOptions.title, windowOptions.size);
-    window->Initialize(windowOptions, parentHWND);
+    window->Initialize(windowOptions, parentHwnd);
 
     SetMainWindow(window);
 
@@ -866,7 +866,7 @@ CocoaApplicationWindow::CocoaApplicationWindow(ANSIString title, Vec2i size)
 
 CocoaApplicationWindow::~CocoaApplicationWindow() = default;
 
-void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
+void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -916,7 +916,7 @@ CocoaAppContext::CocoaAppContext(ANSIString name, const CommandLineArguments& ar
 
 CocoaAppContext::~CocoaAppContext() = default;
 
-Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND)
+Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
     HYP_NOT_IMPLEMENTED();
 }

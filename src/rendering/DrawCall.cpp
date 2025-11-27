@@ -367,6 +367,40 @@ bool SetEntityBatchAllocator(const TypeInfo& typeInfo, EntityBatchAllocatorBase*
     return true;
 }
 
+EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const Class* cls)
+{
+    if (!cls)
+    {
+        return nullptr;
+    }
+    
+    EntityBatchAllocatorBase* pBatchAllocator = nullptr;
+
+    EntityBatchAllocatorBase* batchAllocator = GetEntityBatchAllocator(*cls->GetTypeInfo());
+    
+    if (!batchAllocator)
+    {
+        HypData data;
+        if (!cls->CreateInstance(data))
+        {
+            HYP_FAIL("Failed to create instance of {}!", cls->GetName());
+        }
+
+        Assert(data.Is<EntityBatchAllocatorBase>());
+        
+        pBatchAllocator = data.Get<EntityBatchAllocatorBase>().NewMove();
+        Assert(pBatchAllocator != nullptr);
+
+        if (!SetEntityBatchAllocator(*cls->GetTypeInfo(), pBatchAllocator))
+        {
+            PoolDelete(*g_renderPool, pBatchAllocator);
+            pBatchAllocator = nullptr;
+        }
+    }
+
+    return pBatchAllocator;
+}
+
 #pragma endregion TEntityBatchAllocator
 
 } // namespace hyperion

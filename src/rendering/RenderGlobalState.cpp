@@ -589,9 +589,9 @@ static ViewData* GetViewData(View* view)
         ViewData* vd = PoolNew<ViewData>(*g_renderPool);
         vd->view = view;
 
-        if (view->GetViewDesc().batchAllocator != nullptr)
+        if (view->GetViewDesc().batchAllocatorClass != nullptr)
         {
-            vd->renderCollector.batchAllocator = view->GetViewDesc().batchAllocator;
+            vd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(view->GetViewDesc().batchAllocatorClass);
         }
         else
         {

@@ -53,7 +53,7 @@ extern "C"
 
     HYP_API AppContextBase* Hyp_GetAppContext();
 
-    HYP_API ApplicationWindow* Hyp_CreateWindow(AppContextBase* pCtx, WindowOptions* pWindowOptions, HWND parentHWND);
+    HYP_API ApplicationWindow* Hyp_CreateWindow(AppContextBase* pCtx, WindowOptions* pWindowOptions, HWND parentHwnd);
     HYP_API void Hyp_DestroyWindow(AppContextBase* pCtx, ApplicationWindow* pWindow);
     HYP_API HWND Hyp_GetHWND(ApplicationWindow* pWindow);
 }
