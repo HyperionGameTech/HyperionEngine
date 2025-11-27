@@ -41,7 +41,8 @@ namespace sys {
 
 ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
     : m_title(std::move(title)),
-      m_size(size)
+      m_size(size),
+      m_hwnd(nullptr)
 {
 }
 
@@ -127,7 +128,7 @@ void SDLApplicationWindow::Initialize(WindowOptions windowOptions)
         SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
     }
 
-    m_windowHandle = SDL_CreateWindow(
+    m_hwnd = SDL_CreateWindow(
         m_title.Data(),
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
@@ -135,12 +136,12 @@ void SDLApplicationWindow::Initialize(WindowOptions windowOptions)
         int(m_size.y),
         sdlFlags);
 
-    Assert(m_windowHandle != nullptr, "Failed to initialize window: %s", SDL_GetError());
+    Assert(m_hwnd != nullptr, "Failed to initialize window: %s", SDL_GetError());
 }
 
 void SDLApplicationWindow::SetMousePosition(Vec2i position)
 {
-    SDL_WarpMouseInWindow(static_cast<SDL_Window*>(m_windowHandle), position.x, position.y);
+    SDL_WarpMouseInWindow(static_cast<SDL_Window*>(m_hwnd), position.x, position.y);
 }
 
 Vec2i SDLApplicationWindow::GetMousePosition() const
@@ -154,7 +155,7 @@ Vec2i SDLApplicationWindow::GetMousePosition() const
 Vec2i SDLApplicationWindow::GetDimensions() const
 {
     int width, height;
-    SDL_GetWindowSize(static_cast<SDL_Window*>(m_windowHandle), &width, &height);
+    SDL_GetWindowSize(static_cast<SDL_Window*>(m_hwnd), &width, &height);
 
     return Vec2i { width, height };
 }
@@ -175,12 +176,12 @@ bool SDLApplicationWindow::HasMouseFocus() const
 {
     const SDL_Window* focusWindow = SDL_GetMouseFocus();
 
-    return focusWindow == static_cast<SDL_Window*>(m_windowHandle);
+    return focusWindow == static_cast<SDL_Window*>(m_hwnd);
 }
 
 bool SDLApplicationWindow::IsHighDPI() const
 {
-    const int displayIndex = SDL_GetWindowDisplayIndex(static_cast<SDL_Window*>(m_windowHandle));
+    const int displayIndex = SDL_GetWindowDisplayIndex(static_cast<SDL_Window*>(m_hwnd));
 
     if (displayIndex < 0)
     {
@@ -274,7 +275,7 @@ SDLAppContext::~SDLAppContext()
     SDL_Quit();
 }
 
-Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions)
+Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND)
 {
     Handle<SDLApplicationWindow> window = CreateObject<SDLApplicationWindow>(windowOptions.title, windowOptions.size);
     window->Initialize(windowOptions);
@@ -410,7 +411,7 @@ SDLAppContext::SDLAppContext(ANSIString name, const CommandLineArguments& argume
 
 SDLAppContext::~SDLAppContext() = default;
 
-Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions)
+Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -445,7 +446,7 @@ Win32ApplicationWindow::~Win32ApplicationWindow()
     UnregisterClassW(m_title.ToWide().Data(), m_hinst);
 }
 
-void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
+void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHWND)
 {
     m_title = windowOptions.title;
     m_size = windowOptions.size;
@@ -460,7 +461,18 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
 
     RegisterClassW(&wc);
 
-    DWORD style = WS_OVERLAPPEDWINDOW;
+    DWORD style = WS_VISIBLE;
+    
+    if (!(windowOptions.flags & WindowFlags::HEADLESS))
+    {
+        style |= WS_OVERLAPPEDWINDOW;
+    }
+
+    if (parentHWND != nullptr)
+    {
+        style |= WS_CHILD;
+    }
+    
     RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };
     AdjustWindowRect(&r, style, FALSE);
 
@@ -468,9 +480,8 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
         wTitle.Data(), wTitle.Data(), style,
         CW_USEDEFAULT, CW_USEDEFAULT,
         r.right - r.left, r.bottom - r.top,
-        nullptr, nullptr, m_hinst, this);
+        parentHWND, nullptr, m_hinst, this);
 
-    ShowWindow(m_hwnd, SW_SHOW);
     UpdateWindow(m_hwnd);
 }
 
@@ -610,10 +621,10 @@ Win32AppContext::Win32AppContext(ANSIString name, const CommandLineArguments& ar
 
 Win32AppContext::~Win32AppContext() = default;
 
-Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions opts)
+Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND)
 {
-    Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(opts.title, opts.size);
-    window->Initialize(opts);
+    Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(windowOptions.title, windowOptions.size);
+    window->Initialize(windowOptions, parentHWND);
 
     SetMainWindow(window);
 
@@ -905,7 +916,7 @@ CocoaAppContext::CocoaAppContext(ANSIString name, const CommandLineArguments& ar
 
 CocoaAppContext::~CocoaAppContext() = default;
 
-Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions)
+Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND)
 {
     HYP_NOT_IMPLEMENTED();
 }

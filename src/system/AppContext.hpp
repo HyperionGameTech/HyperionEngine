@@ -26,6 +26,10 @@
 
 namespace hyperion {
 
+#ifndef HYP_WINDOWS
+using HWND = void*;
+#endif
+
 class Game;
 
 #ifdef HYP_VULKAN
@@ -84,6 +88,11 @@ public:
         return m_inputEventSink;
     }
 
+    HYP_FORCE_INLINE HWND GetHWND() const
+    {
+        return m_hwnd;
+    }
+
     virtual void SetMousePosition(Vec2i position) = 0;
     virtual Vec2i GetMousePosition() const = 0;
 
@@ -104,6 +113,7 @@ protected:
     ANSIString m_title;
     Vec2i m_size;
     InputEventSink m_inputEventSink;
+    HWND m_hwnd;
 };
 
 HYP_CLASS()
@@ -126,14 +136,6 @@ public:
     virtual bool IsHighDPI() const override;
 
     void Initialize(WindowOptions windowOptions);
-
-    void* GetInternalWindowHandle() const
-    {
-        return m_windowHandle;
-    }
-
-private:
-    void* m_windowHandle = nullptr;
 };
 
 HYP_CLASS()
@@ -162,7 +164,7 @@ public:
         return m_inputManager;
     }
 
-    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) = 0;
+    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr) = 0;
     virtual int PollEvent(SystemEvent& event) = 0;
 
     Delegate<void, ApplicationWindow*> OnCurrentWindowChanged;
@@ -183,7 +185,7 @@ public:
     SDLAppContext(ANSIString name, const CommandLineArguments& arguments);
     ~SDLAppContext() override;
 
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr) override;
 
     int PollEvent(SystemEvent& event) override;
 };
@@ -197,7 +199,7 @@ public:
     Win32ApplicationWindow(ANSIString title, Vec2i size);
     ~Win32ApplicationWindow() override;
 
-    void Initialize(WindowOptions windowOptions);
+    void Initialize(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr);
 
     void SetMousePosition(Vec2i position) override;
     Vec2i GetMousePosition() const override;
@@ -208,11 +210,6 @@ public:
     bool HasMouseFocus() const override;
 
 #ifdef HYP_WINDOWS
-    HYP_FORCE_INLINE HWND GetHWND() const
-    {
-        return m_hwnd;
-    }
-
     HYP_FORCE_INLINE HINSTANCE GetHINSTANCE() const
     {
         return m_hinst;
@@ -223,7 +220,6 @@ private:
     LRESULT WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 private:
-    HWND m_hwnd = nullptr;
     HINSTANCE m_hinst = nullptr;
     bool m_mouseLocked = false;
 #endif
@@ -238,7 +234,7 @@ public:
     Win32AppContext(ANSIString name, const CommandLineArguments& arguments);
     ~Win32AppContext() override;
 
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr) override;
 
     int PollEvent(SystemEvent& event) override;
 };
@@ -267,7 +263,7 @@ public:
 #ifdef HYP_MACOS
     HYP_FORCE_INLINE void* GetNSWindow() const
     {
-        return m_nsWindow;
+        return m_hwnd;
     }
 
     void* GetCAMetalLayer() const;
@@ -278,7 +274,6 @@ public:
     }
 
 private:
-    void* m_nsWindow = nullptr;
     void* m_windowDelegate = nullptr;
     void* m_metalLayer = nullptr;
     bool m_mouseLocked = false;
@@ -295,7 +290,7 @@ public:
     CocoaAppContext(ANSIString name, const CommandLineArguments& arguments);
     ~CocoaAppContext() override;
 
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHWND = (HWND)nullptr) override;
 
     int PollEvent(SystemEvent& event) override;
 };

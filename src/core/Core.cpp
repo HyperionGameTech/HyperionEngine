@@ -61,6 +61,8 @@ const CommandLineArgumentDefinitions& CoreApi_DefaultCommandLineArgumentDefiniti
 
 bool CoreApi_Initialize(int argc, char** argv)
 {
+    Assert(argv != nullptr);
+
     TypeInfo_Initialize();
 
     s_commandLineArguments = CommandLineArguments(argv[0]);

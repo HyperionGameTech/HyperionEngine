@@ -11,7 +11,7 @@ using namespace hyperion;
 
 int main(int argc, char** argv)
 {
-    if (!hyperion::InitializeEngine(argc, argv))
+    if (!Hyp_Initialize(argc, argv))
     {
         return 1;
     }
@@ -19,6 +19,8 @@ int main(int argc, char** argv)
     Handle<HyperionEditor> editorInstance = CreateObject<HyperionEditor>();
     
     App::GetInstance().LaunchGame(editorInstance);
+
+    Hyp_Shutdown();
     
     return 0;
 }

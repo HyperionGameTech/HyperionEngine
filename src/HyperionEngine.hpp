@@ -26,11 +26,36 @@ class CommandLineArguments;
 
 using cli::CommandLineArguments;
 
+namespace sys {
+
+class AppContextBase;
+class ApplicationWindow;
+struct WindowOptions;
+
+} // namespace sys
+
+using sys::AppContextBase;
+using sys::ApplicationWindow;
+using sys::WindowOptions;
+
 HYP_API const FilePath& GetResourceDirectory();
 HYP_API const FilePath& GetCacheDirectory();
 HYP_API const FilePath& GetTempDirectory();
 
-HYP_API bool InitializeEngine(int argc, char** argv);
-HYP_API void DestroyEngine();
+#ifndef HYP_WINDOWS
+using HWND = void*;
+#endif
+
+extern "C"
+{
+    HYP_API int Hyp_Initialize(int argc, char** argv);
+    HYP_API void Hyp_Shutdown();
+
+    HYP_API AppContextBase* Hyp_GetAppContext();
+
+    HYP_API ApplicationWindow* Hyp_CreateWindow(AppContextBase* pCtx, WindowOptions* pWindowOptions, HWND parentHWND);
+    HYP_API void Hyp_DestroyWindow(AppContextBase* pCtx, ApplicationWindow* pWindow);
+    HYP_API HWND Hyp_GetHWND(ApplicationWindow* pWindow);
+}
 
 } // namespace hyperion

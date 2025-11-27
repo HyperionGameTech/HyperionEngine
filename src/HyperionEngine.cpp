@@ -27,6 +27,7 @@
 #include <console/ConsoleCommandManager.hpp>
 
 #include <system/MessageBox.hpp>
+#include <system/App.hpp>
 #include <system/AppContext.hpp>
 
 #include <streaming/StreamingManager.hpp>
@@ -51,8 +52,6 @@
 #include <audio/AudioManager.hpp>
 
 #include <script/HypScript.hpp>
-
-#include <streaming/StreamingManager.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineMemory.hpp>
@@ -199,229 +198,286 @@ HYP_API const FilePath& GetTempDirectory()
     return s_resourceDirectory.path;
 }
 
-HYP_API bool InitializeEngine(int argc, char** argv)
+extern "C"
 {
-    SetCurrentThreadId(g_mainThread);
-
-    // load generated class declarations
-    InitializeClassDeclarations();
-
-    g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
-    g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
-
-    for (uint32 i = 0; i < RingBufferDepth; i++)
+    HYP_API int Hyp_Initialize(int argc, char** argv)
     {
-        g_framePools[i] = new Pool(FramePoolBlockSize, PF_NONE);
-    }
+        if (!argv)
+        {
+            static const char* s_defaultArgV[] = { "" };
 
-    g_scenePool = new Pool(ScenePoolBlockSize, PF_THREAD_SAFE);
-    g_taskPool = new Pool(TaskPoolBlockSize, PF_THREAD_SAFE);
-    g_resourcePool = new Pool(ResourcePoolBlockSize, PF_THREAD_SAFE);
-    g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE);
-    g_streamingPool = new Pool(StreamingPoolBlockSize, PF_THREAD_SAFE);
-    g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_gameThread);
+            argv = const_cast<char**>(s_defaultArgV);
+            argc = 1;
+        }
 
-    g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
-    g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
-    g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
+        SetCurrentThreadId(g_mainThread);
 
-    g_logger = CreateObject<Logger>();
-    g_logger->fatalErrorHook = &HandleFatalError;
+        // load generated class declarations
+        InitializeClassDeclarations();
 
-    InitObject(g_logger);
+        g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
+        g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
 
-    LogChannelRegistrar::GetInstance().RegisterAll();
+        for (uint32 i = 0; i < RingBufferDepth; i++)
+        {
+            g_framePools[i] = new Pool(FramePoolBlockSize, PF_NONE);
+        }
 
-    NameRegistry_Initialize();
+        g_scenePool = new Pool(ScenePoolBlockSize, PF_THREAD_SAFE);
+        g_taskPool = new Pool(TaskPoolBlockSize, PF_THREAD_SAFE);
+        g_resourcePool = new Pool(ResourcePoolBlockSize, PF_THREAD_SAFE);
+        g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE);
+        g_streamingPool = new Pool(StreamingPoolBlockSize, PF_THREAD_SAFE);
+        g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_gameThread);
 
-    ClassRegistry::GetInstance().Initialize();
-    HypScript::GetInstance().Initialize();
+        g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
+        g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
+        g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
 
-    if (!CoreApi_Initialize(argc, argv))
-    {
-        return false;
-    }
+        g_logger = CreateObject<Logger>();
+        g_logger->fatalErrorHook = &HandleFatalError;
 
-    EngineStats_Initialize();
+        InitObject(g_logger);
 
-    const FilePath basePath = FilePath(CoreApi_GetCommandLineArguments().GetCommand()).BasePath();
-    CoreApi_SetExecutablePath(basePath);
+        LogChannelRegistrar::GetInstance().RegisterAll();
 
-    dotnet::DotNetSystem::GetInstance().Initialize(basePath);
-    ConsoleCommandManager::GetInstance().Initialize();
-    AudioManager::GetInstance().Initialize();
-    TaskSystem::GetInstance().Start();
+        NameRegistry_Initialize();
+
+        ClassRegistry::GetInstance().Initialize();
+        HypScript::GetInstance().Initialize();
+
+        SystemMessageBox(MessageBoxType::WARNING).Title("Test!").Text("Here!!!").Show();
+
+        if (!CoreApi_Initialize(argc, argv))
+        {
+            return 0;
+        }
+
+        SystemMessageBox(MessageBoxType::WARNING).Title("Test!").Text("Here 2!!!").Show();
+
+        EngineStats_Initialize();
+
+        const FilePath basePath = FilePath(CoreApi_GetCommandLineArguments().GetCommand()).BasePath();
+        CoreApi_SetExecutablePath(basePath);
+
+        dotnet::DotNetSystem::GetInstance().Initialize(basePath);
+        ConsoleCommandManager::GetInstance().Initialize();
+        AudioManager::GetInstance().Initialize();
+        TaskSystem::GetInstance().Start();
 
 #ifdef HYP_VULKAN
-    g_renderBackend = new VulkanRenderBackend();
+        g_renderBackend = new VulkanRenderBackend();
 #else
 #error Unsupported rendering backend
 #endif
 
-    ConfigurationTable renderGlobalConfigOverrides;
+        ConfigurationTable renderGlobalConfigOverrides;
 
-    g_engineDriver = CreateObject<EngineDriver>();
+        g_engineDriver = CreateObject<EngineDriver>();
 
-    g_streamingManager = CreateObject<StreamingManager>();
-    InitObject(g_streamingManager);
-    g_streamingManager->Start();
+        g_streamingManager = CreateObject<StreamingManager>();
+        InitObject(g_streamingManager);
+        g_streamingManager->Start();
 
-    g_assetManager = CreateObject<AssetManager>();
-    InitObject(g_assetManager);
+        g_assetManager = CreateObject<AssetManager>();
+        InitObject(g_assetManager);
 
 #ifdef HYP_EDITOR
-    g_editorState = CreateObject<EditorState>();
-    InitObject(g_editorState);
+        g_editorState = CreateObject<EditorState>();
+        InitObject(g_editorState);
 #endif
 
-    g_shaderManager = new ShaderManager;
-    g_materialSystem = new MaterialCache;
-    g_safeDeleter = new SafeDeleter;
+        g_shaderManager = new ShaderManager;
+        g_materialSystem = new MaterialCache;
+        g_safeDeleter = new SafeDeleter;
 
-    g_shaderCompiler = new ShaderCompiler;
-    if (!g_shaderCompiler->LoadShaderDefinitions())
-    {
-        HYP_LOG(Engine, Error, "Failed to load shader definitions!");
-    }
+        g_shaderCompiler = new ShaderCompiler;
+        if (!g_shaderCompiler->LoadShaderDefinitions())
+        {
+            HYP_LOG(Engine, Error, "Failed to load shader definitions!");
+        }
 
-    ComponentInterfaceRegistry::GetInstance().Initialize();
+        ComponentInterfaceRegistry::GetInstance().Initialize();
 
-    const CommandLineArguments& cliArgs = CoreApi_GetCommandLineArguments();
+        const CommandLineArguments& cliArgs = CoreApi_GetCommandLineArguments();
 
 #ifdef HYP_WINDOWS
-    g_appContext = CreateObject<Win32AppContext>("Hyperion", cliArgs);
+        g_appContext = CreateObject<Win32AppContext>("Hyperion", cliArgs);
 #elif defined(HYP_MACOS)
-    g_appContext = CreateObject<CocoaAppContext>("Hyperion", cliArgs);
+        g_appContext = CreateObject<CocoaAppContext>("Hyperion", cliArgs);
 #elif defined(HYP_SDL)
-    g_appContext = CreateObject<SDLAppContext>("Hyperion", cliArgs);
+        g_appContext = CreateObject<SDLAppContext>("Hyperion", cliArgs);
 #else
-    HYP_FAIL("AppContext not implemented for this platform");
+        HYP_FAIL("AppContext not implemented for this platform");
 #endif
 
-    Vec2i resolution = { 1280, 720 };
+        Vec2i resolution = { 1280, 720 };
 
-    EnumFlags<WindowFlags> windowFlags = WindowFlags::HIGH_DPI;
+        EnumFlags<WindowFlags> windowFlags = WindowFlags::HIGH_DPI;
 
-    if (cliArgs["Headless"].ToBool())
-    {
-        windowFlags |= WindowFlags::HEADLESS;
+        if (cliArgs["Headless"].ToBool())
+        {
+            windowFlags |= WindowFlags::HEADLESS;
+        }
+
+        if (cliArgs["ResX"].IsNumber())
+        {
+            resolution.x = cliArgs["ResX"].ToInt32();
+        }
+
+        if (cliArgs["ResY"].IsNumber())
+        {
+            resolution.y = cliArgs["ResY"].ToInt32();
+        }
+
+        if (!(windowFlags & WindowFlags::HEADLESS))
+        {
+            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
+
+            g_appContext->SetMainWindow(g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags }));
+        }
+        else
+        {
+            HYP_LOG(Engine, Info, "Running in headless mode");
+        }
+
+        RenderApi::Init();
+
+        InitObject(g_engineDriver);
+
+        return 1;
     }
 
-    if (cliArgs["ResX"].IsNumber())
+    HYP_API void Hyp_Shutdown()
     {
-        resolution.x = cliArgs["ResX"].ToInt32();
+        AssertOnThread(g_mainThread);
+
+        Assert(
+            g_engineDriver != nullptr,
+            "Hyperion not initialized!");
+
+        g_engineDriver->FinalizeStop();
+
+        dotnet::DotNetSystem::GetInstance().Shutdown();
+        ComponentInterfaceRegistry::GetInstance().Shutdown();
+        ConsoleCommandManager::GetInstance().Shutdown();
+        AudioManager::GetInstance().Shutdown();
+
+        if (TaskSystem::GetInstance().IsRunning())
+        {
+            TaskSystem::GetInstance().Stop();
+        }
+
+        EngineStats_Shutdown();
+
+        NameRegistry_Shutdown();
+
+        CoreApi_Shutdown();
+
+        g_streamingManager->Stop();
+        g_streamingManager.Reset();
+
+        g_assetManager.Reset();
+        g_editorState.Reset();
+
+        delete g_shaderCompiler;
+        g_shaderCompiler = nullptr;
+
+        delete g_shaderManager;
+        g_shaderManager = nullptr;
+
+        delete g_materialSystem;
+        g_materialSystem = nullptr;
+
+        g_engineDriver.Reset();
+
+        delete g_renderBackend;
+        g_renderBackend = nullptr;
+
+        delete g_renderArena;
+        g_renderArena = nullptr;
+
+        delete g_sceneArena;
+        g_sceneArena = nullptr;
+
+        delete g_streamingArena;
+        g_streamingArena = nullptr;
+
+        delete g_scenePool;
+        g_scenePool = nullptr;
+
+        delete g_streamingPool;
+        g_streamingPool = nullptr;
+
+        delete g_scriptPool;
+        g_scriptPool = nullptr;
+
+        delete g_taskPool;
+        g_taskPool = nullptr;
+
+        delete g_resourcePool;
+        g_resourcePool = nullptr;
+
+        delete g_assetPool;
+        g_assetPool = nullptr;
+
+        for (uint32 i = 0; i < RingBufferDepth; i++)
+        {
+            delete g_framePools[i];
+            g_framePools[i] = nullptr;
+        }
+
+        delete g_renderPool;
+        g_renderPool = nullptr;
+
+        delete g_objectPool;
+        g_objectPool = nullptr;
+
+        delete g_safeDeleter;
+        g_safeDeleter = nullptr;
     }
 
-    if (cliArgs["ResY"].IsNumber())
+    HYP_API AppContextBase* Hyp_GetAppContext()
     {
-        resolution.y = cliArgs["ResY"].ToInt32();
+        return App::GetInstance().GetAppContext();
     }
 
-    if (!(windowFlags & WindowFlags::HEADLESS))
+    HYP_API ApplicationWindow* Hyp_CreateWindow(AppContextBase* pCtx, WindowOptions* pWindowOptions, HWND parentHWND)
     {
-        HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
+        Assert(pCtx != nullptr);
 
-        g_appContext->SetMainWindow(g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags }));
-    }
-    else
-    {
-        HYP_LOG(Engine, Info, "Running in headless mode");
-    }
+        WindowOptions windowOptions = pWindowOptions ? *pWindowOptions : WindowOptions {};
 
-    RenderApi::Init();
+        Handle<ApplicationWindow> window = pCtx->CreateSystemWindow(windowOptions, parentHWND);
 
-    InitObject(g_engineDriver);
+        if (!window)
+        {
+            return nullptr;
+        }
 
-    return true;
-}
+        // hand over management of the ref
+        ApplicationWindow* pWindow = (ApplicationWindow*)window.ptr;
+        window.ptr = nullptr;
 
-HYP_API void DestroyEngine()
-{
-    AssertOnThread(g_mainThread);
-
-    Assert(
-        g_engineDriver != nullptr,
-        "Hyperion not initialized!");
-
-    g_engineDriver->FinalizeStop();
-
-    dotnet::DotNetSystem::GetInstance().Shutdown();
-    ComponentInterfaceRegistry::GetInstance().Shutdown();
-    ConsoleCommandManager::GetInstance().Shutdown();
-    AudioManager::GetInstance().Shutdown();
-
-    if (TaskSystem::GetInstance().IsRunning())
-    {
-        TaskSystem::GetInstance().Stop();
+        return pWindow;
     }
 
-    EngineStats_Shutdown();
-
-    NameRegistry_Shutdown();
-
-    CoreApi_Shutdown();
-
-    g_streamingManager->Stop();
-    g_streamingManager.Reset();
-
-    g_assetManager.Reset();
-    g_editorState.Reset();
-
-    delete g_shaderCompiler;
-    g_shaderCompiler = nullptr;
-
-    delete g_shaderManager;
-    g_shaderManager = nullptr;
-
-    delete g_materialSystem;
-    g_materialSystem = nullptr;
-
-    g_engineDriver.Reset();
-
-    delete g_renderBackend;
-    g_renderBackend = nullptr;
-
-    delete g_renderArena;
-    g_renderArena = nullptr;
-
-    delete g_sceneArena;
-    g_sceneArena = nullptr;
-
-    delete g_streamingArena;
-    g_streamingArena = nullptr;
-
-    delete g_scenePool;
-    g_scenePool = nullptr;
-
-    delete g_streamingPool;
-    g_streamingPool = nullptr;
-
-    delete g_scriptPool;
-    g_scriptPool = nullptr;
-
-    delete g_taskPool;
-    g_taskPool = nullptr;
-
-    delete g_resourcePool;
-    g_resourcePool = nullptr;
-
-    delete g_assetPool;
-    g_assetPool = nullptr;
-
-    for (uint32 i = 0; i < RingBufferDepth; i++)
+    HYP_API void Hyp_DestroyWindow(AppContextBase* pCtx, ApplicationWindow* pWindow)
     {
-        delete g_framePools[i];
-        g_framePools[i] = nullptr;
+        Assert(pCtx != nullptr && pWindow != nullptr);
+
+        pWindow->GetObjectHeader_Internal()->DecRefStrong();
     }
 
-    delete g_renderPool;
-    g_renderPool = nullptr;
+    HYP_API HWND Hyp_GetHWND(ApplicationWindow* pWindow)
+    {
+        if (!pWindow)
+        {
+            return nullptr;
+        }
 
-    delete g_objectPool;
-    g_objectPool = nullptr;
-
-    delete g_safeDeleter;
-    g_safeDeleter = nullptr;
+        return pWindow->GetHWND();
+    }
 }
 
 } // namespace hyperion
