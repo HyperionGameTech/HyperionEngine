@@ -268,7 +268,7 @@ void EnvProbe::CreateView()
     }
 
     outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-        .format = g_renderBackend->GetDefaultFormat(DIF_DEPTH),
+        .format = TF_DEPTH_32F,
         .imageType = TT_CUBEMAP,
         .loadOp = LoadOperation::CLEAR,
         .storeOp = StoreOperation::STORE });

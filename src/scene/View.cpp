@@ -241,6 +241,7 @@ void View::Init()
         for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.outputTargetDesc.attachments.Size(); ++attachmentIndex)
         {
             const ViewOutputTargetAttachmentDesc& attachmentDesc = m_viewDesc.outputTargetDesc.attachments[attachmentIndex];
+            AssertDebug(attachmentDesc.format != TF_NONE);
 
             AttachmentRef attachment = framebuffer->AddAttachment(
                 attachmentIndex,
@@ -883,8 +884,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
         {
             AssertDebug(entity->InstanceClass() == Entity::StaticClass());
 
-            auto&& [meshComponent, transformComponent, boundingBoxComponent, lightmapElementComponent]
-                = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent, LightmapElementComponent>(entity);
+            auto&& [meshComponent, transformComponent, boundingBoxComponent, lightmapElementComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent, LightmapElementComponent>(entity);
 
             AssertDebug(meshComponent != nullptr);
             AssertDebug(meshComponent->mesh && meshComponent->mesh->IsReady());

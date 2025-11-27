@@ -1386,7 +1386,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
             if (previousDrawState.IsValid())
             {
                 // take a batch for reuse if a draw call was using one
-                if ((batch = previousDrawState.TakeDrawCallBatch(drawCallId)) != nullptr)
+                if ((batch = previousDrawState.RecycleDrawBatch(drawCallId)) != nullptr)
                 {
                     const uint32 batchIndex = batch->batchIndex;
                     AssertDebug(batchIndex != ~0u);

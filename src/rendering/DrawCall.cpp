@@ -33,6 +33,9 @@ HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
     return g_renderGlobalState->gpuBufferHolders;
 }
 
+// Register allocator for the batch type used if none other is specified
+HYP_REGISTER_DRAW_BATCH_TYPE(EntityInstanceBatch);
+
 #pragma region DrawCallCollection
 
 DrawCallCollection::DrawCallCollection(DrawCallCollection&& other) noexcept
@@ -161,7 +164,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
     }
 }
 
-EntityInstanceBatch* DrawCallCollection::TakeDrawCallBatch(DrawCallID id)
+EntityInstanceBatch* DrawCallCollection::RecycleDrawBatch(DrawCallID id)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -325,8 +328,21 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
 
 #pragma region TEntityBatchAllocator
 
-// @TODO should be deleted at render thread exit (needs deletion using g_renderPool)
-static TypeMap<EntityBatchAllocatorBase*> s_drawCallCollectionImplMap = {};
+static HashMap<TypeId, EntityBatchAllocatorBase*> s_entityBatchAllocatorMap;
+
+using CreateFnMap = HashMap<TypeId, PFNCreateEntityBatchAllocator>;
+
+static Mutex& GetEntityBatchAllocatorCreateFnMapMutex()
+{
+    static Mutex s_entityBatchAllocatorCreateFnMapMutex;
+    return s_entityBatchAllocatorCreateFnMapMutex;
+}
+
+static CreateFnMap& GetEntityBatchAllocatorCreateFnMap()
+{
+    static CreateFnMap s_entityBatchAllocatorCreateFnMap;
+    return s_entityBatchAllocatorCreateFnMap;
+}
 
 EntityBatchAllocatorBase::EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHolder)
     : m_bufferHolder(bufferHolder)
@@ -340,58 +356,87 @@ EntityBatchAllocatorBase::EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHo
     m_structAlignment = structTypeInfo->alignment;
 }
 
-EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeInfo& typeInfo)
+EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId)
 {
+    if (!typeId)
+    {
+        return nullptr;
+    }
+
     AssertOnThread(g_renderThread);
 
-    auto it = s_drawCallCollectionImplMap.Find(typeInfo.id);
+    auto it = s_entityBatchAllocatorMap.Find(typeId);
 
-    return it != s_drawCallCollectionImplMap.End() ? it->second : nullptr;
+    if (it != s_entityBatchAllocatorMap.End())
+    {
+        return it->second;
+    }
+
+    Mutex& mtx = GetEntityBatchAllocatorCreateFnMapMutex();
+    CreateFnMap& funcs = GetEntityBatchAllocatorCreateFnMap();
+
+    Mutex::Guard guard(mtx);
+
+    auto createFnIt = funcs.Find(typeId);
+    AssertDebug(createFnIt != funcs.End());
+
+    EntityBatchAllocatorBase* pBatchAllocator = createFnIt->second();
+    AssertDebug(pBatchAllocator != nullptr);
+
+    s_entityBatchAllocatorMap.Set(typeId, pBatchAllocator);
+
+    return pBatchAllocator;
 }
 
-bool SetEntityBatchAllocator(const TypeInfo& typeInfo, EntityBatchAllocatorBase* pBatchAllocator)
+HYP_NODISCARD static bool SetEntityBatchAllocator(const TypeId& typeId, EntityBatchAllocatorBase* pBatchAllocator)
 {
-    AssertOnThread(g_renderThread);
-
-    Assert(pBatchAllocator != nullptr);
-
-    auto it = s_drawCallCollectionImplMap.Find(typeInfo.id);
-
-    if (it != s_drawCallCollectionImplMap.End())
+    if (!typeId || !pBatchAllocator)
     {
         return false;
     }
 
-    s_drawCallCollectionImplMap.Set(typeInfo.id, pBatchAllocator);
+    AssertOnThread(g_renderThread);
+
+    auto it = s_entityBatchAllocatorMap.Find(typeId);
+    if (it != s_entityBatchAllocatorMap.End())
+    {
+        return false;
+    }
+
+    s_entityBatchAllocatorMap.Set(typeId, pBatchAllocator);
 
     return true;
 }
 
-EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const Class* cls)
+EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId)
 {
-    if (!cls)
+    if (!typeId)
     {
         return nullptr;
     }
-    
-    EntityBatchAllocatorBase* pBatchAllocator = nullptr;
 
-    EntityBatchAllocatorBase* batchAllocator = GetEntityBatchAllocator(*cls->GetTypeInfo());
-    
-    if (!batchAllocator)
+    EntityBatchAllocatorBase* pBatchAllocator = GetEntityBatchAllocator(typeId);
+
+    if (!pBatchAllocator)
     {
-        HypData data;
-        if (!cls->CreateInstance(data))
-        {
-            HYP_FAIL("Failed to create instance of {}!", cls->GetName());
-        }
+        Mutex& mtx = GetEntityBatchAllocatorCreateFnMapMutex();
+        CreateFnMap& funcs = GetEntityBatchAllocatorCreateFnMap();
 
-        Assert(data.Is<EntityBatchAllocatorBase>());
-        
-        pBatchAllocator = data.Get<EntityBatchAllocatorBase>().NewMove();
-        Assert(pBatchAllocator != nullptr);
+        Mutex::Guard guard(mtx);
 
-        if (!SetEntityBatchAllocator(*cls->GetTypeInfo(), pBatchAllocator))
+        PFNCreateEntityBatchAllocator createFn = nullptr;
+
+        auto createFnIt = funcs.Find(typeId);
+        AssertDebug(createFnIt != funcs.End());
+
+        createFn = createFnIt->second;
+        AssertDebug(createFn != nullptr);
+
+        pBatchAllocator = createFn();
+        AssertDebug(pBatchAllocator != nullptr);
+        AssertDebug(pBatchAllocator->GetGpuBufferHolder() == nullptr);
+
+        if (!SetEntityBatchAllocator(typeId, pBatchAllocator))
         {
             PoolDelete(*g_renderPool, pBatchAllocator);
             pBatchAllocator = nullptr;
@@ -399,6 +444,27 @@ EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const Class* cls)
     }
 
     return pBatchAllocator;
+}
+
+void RegisterEntityBatchAllocator(const TypeId& typeId, EntityBatchAllocatorBase* (*createFn)())
+{
+    if (!typeId || !createFn)
+    {
+        return;
+    }
+
+    Mutex& mtx = GetEntityBatchAllocatorCreateFnMapMutex();
+    CreateFnMap& funcs = GetEntityBatchAllocatorCreateFnMap();
+
+    Mutex::Guard guard(mtx);
+
+    auto it = funcs.Find(typeId);
+    if (it != funcs.End())
+    {
+        return;
+    }
+
+    funcs.Set(typeId, createFn);
 }
 
 #pragma endregion TEntityBatchAllocator

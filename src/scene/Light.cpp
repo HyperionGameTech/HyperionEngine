@@ -210,7 +210,7 @@ void Light::CreateShadowViews()
         attachmentDesc.clearColor = Vec4f(10000.0f);
 
         ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        depthAttachmentDesc.format = g_renderBackend->GetDefaultFormat(DIF_DEPTH);
+        depthAttachmentDesc.format = TF_DEPTH_32F;
         depthAttachmentDesc.imageType = TT_CUBEMAP;
         depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
         depthAttachmentDesc.storeOp = StoreOperation::STORE;
@@ -237,7 +237,7 @@ void Light::CreateShadowViews()
         attachmentDesc.clearColor = Vec4f(10000.0f);
 
         ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        depthAttachmentDesc.format = g_renderBackend->GetDefaultFormat(DIF_DEPTH);
+        depthAttachmentDesc.format = TF_DEPTH_32F;
         depthAttachmentDesc.imageType = TT_TEX2D;
         depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
         depthAttachmentDesc.storeOp = StoreOperation::STORE;

@@ -246,14 +246,10 @@ extern "C"
         ClassRegistry::GetInstance().Initialize();
         HypScript::GetInstance().Initialize();
 
-        SystemMessageBox(MessageBoxType::WARNING).Title("Test!").Text("Here!!!").Show();
-
         if (!CoreApi_Initialize(argc, argv))
         {
             return 0;
         }
-
-        SystemMessageBox(MessageBoxType::WARNING).Title("Test!").Text("Here 2!!!").Show();
 
         EngineStats_Initialize();
 

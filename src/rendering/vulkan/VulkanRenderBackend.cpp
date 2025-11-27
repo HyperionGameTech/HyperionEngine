@@ -692,12 +692,6 @@ RendererResult VulkanRenderBackend::Initialize()
             IS_SRV));
 
     m_defaultFormats.Set(
-        DIF_DEPTH,
-        m_instance->GetDevice()->GetFeatures().FindSupportedFormat(
-            { { TF_DEPTH_24, TF_DEPTH_16, TF_DEPTH_32F } },
-            IS_DEPTH));
-
-    m_defaultFormats.Set(
         DIF_NORMALS,
         m_instance->GetDevice()->GetFeatures().FindSupportedFormat(
             { { TF_RGBA16F, TF_RGBA32F, TF_RGBA8 } },
@@ -753,7 +747,7 @@ FrameBase* VulkanRenderBackend::PrepareNextFrame()
         CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PrepareFrame(m_shouldRecreateSwapchain));
 
         frame = m_instance->GetSwapchain()->GetCurrentFrame();
-        
+
         // Recreate FinalPass
         PoolDelete(*g_renderPool, g_renderGlobalState->finalPass);
 

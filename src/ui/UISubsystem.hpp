@@ -27,16 +27,16 @@ struct UIEntityInstanceBatch : EntityInstanceBatch
     HYP_STRUCT_BODY(UIEntityInstanceBatch);
 
     HYP_FIELD()
-    Vec4f texcoords[MaxEntitiesPerBatch];
+    FixedArray<Vec4f, MaxEntitiesPerBatch> texcoords;
 
     HYP_FIELD()
-    Vec4f offsets[MaxEntitiesPerBatch];
+    FixedArray<Vec4f, MaxEntitiesPerBatch> offsets;
 
     HYP_FIELD()
-    Vec4f sizes[MaxEntitiesPerBatch];
+    FixedArray<Vec4f, MaxEntitiesPerBatch> sizes;
 
     HYP_FIELD()
-    Vec4u properties[MaxEntitiesPerBatch];
+    FixedArray<Vec4u, MaxEntitiesPerBatch> properties;
 };
 
 HYP_CLASS(NoScriptBindings)

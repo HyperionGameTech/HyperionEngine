@@ -233,7 +233,7 @@ void LegacyEnvGrid::Init()
                 StoreOperation::STORE,
                 Vec4f(1000.0f) },
             ViewOutputTargetAttachmentDesc {
-                g_renderBackend->GetDefaultFormat(DIF_DEPTH),
+                TF_DEPTH_32F,
                 TT_CUBEMAP,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE } },

@@ -589,9 +589,9 @@ static ViewData* GetViewData(View* view)
         ViewData* vd = PoolNew<ViewData>(*g_renderPool);
         vd->view = view;
 
-        if (view->GetViewDesc().batchAllocatorClass != nullptr)
+        if (view->GetViewDesc().entityBatchClass != nullptr)
         {
-            vd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(view->GetViewDesc().batchAllocatorClass);
+            vd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(view->GetViewDesc().entityBatchClass->GetTypeId());
         }
         else
         {
@@ -1118,14 +1118,14 @@ void BeginFrame_RenderThread()
             vfd.viewData = GetViewData(vfd.view);
             vfd.viewData->AddRef();
         }
-        
+
         bool readLockAcquired = false;
         vfd.rplShared->BeginRead(&readLockAcquired);
 
         if (!readLockAcquired)
         {
             HYP_LOG(Rendering, Warning, "Read lock for RenderProxyList could not be acquired, may result in invalid resource bindings or stale pointers!!!");
-            
+
             continue;
         }
 

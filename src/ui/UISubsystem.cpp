@@ -45,6 +45,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
+HYP_REGISTER_DRAW_BATCH_TYPE(UIEntityInstanceBatch);
+
 #pragma region Render commands
 
 struct AddUIRendererForView : RenderCommand
@@ -70,8 +72,12 @@ struct AddUIRendererForView : RenderCommand
 
         EntityBatchAllocatorBase* pBatchAllocator = nullptr;
 
-        const Class* batchAllocatorClass = view->GetViewDesc().batchAllocatorClass;
-        uiRenderer->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(batchAllocatorClass);
+        const Class* entityBatchClass = view->GetViewDesc().entityBatchClass;
+        
+        if (entityBatchClass != nullptr)
+        {
+            uiRenderer->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(entityBatchClass->GetTypeId());
+        }
 
         g_renderGlobalState->AddRenderer(GRT_UI, uiRenderer);
 
@@ -171,7 +177,7 @@ void UISubsystem::Init()
 
     ViewOutputTargetDesc outputTargetDesc {
         .extent = windowSize2,
-        .attachments = { { TF_RGBA16F }, { g_renderBackend->GetDefaultFormat(DIF_DEPTH) } }
+        .attachments = { { TF_RGBA16F }, { TF_DEPTH_32F } }
     };
 
     ViewDesc viewDesc {
@@ -180,7 +186,7 @@ void UISubsystem::Init()
         .outputTargetDesc = outputTargetDesc,
         .scenes = { m_uiStage->GetScene() },
         .camera = m_uiStage->GetCamera(),
-        .batchAllocatorClass = UIEntityInstanceBatch::StaticClass()
+        .entityBatchClass = UIEntityInstanceBatch::StaticClass()
     };
 
     m_view = CreateObject<View>(viewDesc);

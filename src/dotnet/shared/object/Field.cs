@@ -19,7 +19,7 @@ namespace Hyperion
             get
             {
                 Name name = new Name(0);
-                HypField_GetName(ptr, out name);
+                Field_GetName(ptr, out name);
                 return name;
             }
         }
@@ -29,7 +29,7 @@ namespace Hyperion
             get
             {
                 TypeId typeId;
-                HypField_GetTypeId(ptr, out typeId);
+                Field_GetTypeId(ptr, out typeId);
                 return typeId;
             }
         }
@@ -38,7 +38,7 @@ namespace Hyperion
         {
             get
             {
-                return HypField_GetOffset(ptr);
+                return Field_GetOffset(ptr);
             }
         }
 
@@ -62,7 +62,7 @@ namespace Hyperion
             try
             {
                 targetData.SetValue(target);
-                HypField_Get(ptr, ref targetData, out outData);
+                Field_Get(ptr, ref targetData, out outData);
 
                 result = outData.GetValue();
             }
@@ -79,16 +79,16 @@ namespace Hyperion
             return result;
         }
 
-        [DllImport("hyperion", EntryPoint = "HypField_GetName")]
-        private static extern void HypField_GetName([In] IntPtr fieldPtr, [Out] out Name name);
+        [DllImport("hyperion", EntryPoint = "Field_GetName")]
+        private static extern void Field_GetName([In] IntPtr fieldPtr, [Out] out Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypField_GetTypeId")]
-        private static extern void HypField_GetTypeId([In] IntPtr fieldPtr, [Out] out TypeId typeId);
+        [DllImport("hyperion", EntryPoint = "Field_GetTypeId")]
+        private static extern void Field_GetTypeId([In] IntPtr fieldPtr, [Out] out TypeId typeId);
 
-        [DllImport("hyperion", EntryPoint = "HypField_GetOffset")]
-        private static extern uint HypField_GetOffset([In] IntPtr fieldPtr);
+        [DllImport("hyperion", EntryPoint = "Field_GetOffset")]
+        private static extern uint Field_GetOffset([In] IntPtr fieldPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypField_Get")]
-        private static extern void HypField_Get([In] IntPtr fieldPtr, [In] ref HypDataBuffer targetData, [Out] out HypDataBuffer outData);
+        [DllImport("hyperion", EntryPoint = "Field_Get")]
+        private static extern void Field_Get([In] IntPtr fieldPtr, [In] ref HypDataBuffer targetData, [Out] out HypDataBuffer outData);
     }
 }

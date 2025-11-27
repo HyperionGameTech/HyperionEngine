@@ -106,7 +106,7 @@ struct ViewDesc
     int priority = 0;
     float resolutionScale = 1.0f;
     Optional<RenderableAttributeSet> overrideAttributes;
-    const Class* batchAllocatorClass = nullptr;
+    const Class* entityBatchClass = nullptr;
     TextureFormat readbackTextureFormat = TF_R10G10B10A2; //!< If ENABLE_READBACK is set, the format of the texture we copy the output to.
 };
 

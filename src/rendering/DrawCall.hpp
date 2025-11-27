@@ -216,9 +216,12 @@ struct InstancedDrawCallStorage
     }
 };
 
+HYP_STRUCT(NoScriptBindings)
 class EntityBatchAllocatorBase
 {
 public:
+    HYP_STRUCT_BODY(EntityBatchAllocatorBase);
+
     virtual ~EntityBatchAllocatorBase() = default;
 
     EntityBatchAllocatorBase(const EntityBatchAllocatorBase& other)
@@ -260,9 +263,6 @@ public:
 
     virtual EntityInstanceBatch* AcquireBatch() const = 0;
 
-    virtual EntityBatchAllocatorBase* NewCopy() const = 0;
-    virtual EntityBatchAllocatorBase* NewMove() = 0;
-
 protected:
     explicit EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHolder);
 
@@ -301,7 +301,7 @@ struct DrawCallCollection
     void PushRenderProxy(DrawCallID id, const RenderProxyMesh& renderProxy);
     void PushRenderProxyInstanced(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy);
 
-    EntityInstanceBatch* TakeDrawCallBatch(DrawCallID id);
+    EntityInstanceBatch* RecycleDrawBatch(DrawCallID id);
 
     void ResetDrawCalls();
 
@@ -322,15 +322,15 @@ struct DrawCallCollection
     InstancedDrawCallIndexMap indexMap;
 };
 
-template <class EntityInstanceBatchType>
+template <class BatchType>
 class TEntityBatchAllocator final : public EntityBatchAllocatorBase
 {
 public:
-    static_assert(std::is_base_of_v<EntityInstanceBatch, EntityInstanceBatchType>, "EntityInstanceBatchType must be a derived struct type of EntityInstanceBatch");
-    static_assert(offsetof(EntityInstanceBatchType, indices) == 16, "offsetof for member `indices` of the derived EntityInstanceBatch type must be 16 or shader calculations will be incorrect!");
+    static_assert(std::is_base_of_v<EntityInstanceBatch, BatchType>, "BatchType must be a derived struct type of EntityInstanceBatch");
+    static_assert(offsetof(BatchType, indices) == 16, "offsetof for member `indices` of the derived EntityInstanceBatch type must be 16 or shader calculations will be incorrect!");
 
     TEntityBatchAllocator()
-        : EntityBatchAllocatorBase(GetGpuBufferHolderMap()->GetOrCreate<EntityInstanceBatchType>())
+        : EntityBatchAllocatorBase(GetGpuBufferHolderMap()->GetOrCreate<BatchType>())
     {
     }
 
@@ -341,55 +341,42 @@ public:
 
     virtual EntityInstanceBatch* AcquireBatch() const override
     {
-        EntityInstanceBatchType* batch;
-        const uint32 batchIndex = reinterpret_cast<GpuBufferHolder<EntityInstanceBatchType, GpuBufferType::SSBO>*>(m_bufferHolder)->AcquireIndex(&batch);
+        BatchType* batch;
+        const uint32 batchIndex = reinterpret_cast<GpuBufferHolder<BatchType, GpuBufferType::SSBO>*>(m_bufferHolder)->AcquireIndex(&batch);
 
         batch->batchIndex = batchIndex;
 
         return batch;
     }
-
-    virtual EntityBatchAllocatorBase* NewCopy() const override
-    {
-        return PoolNew<TEntityBatchAllocator>(*g_renderPool, *this);
-    }
-
-    virtual EntityBatchAllocatorBase* NewMove() override
-    {
-        return PoolNew<TEntityBatchAllocator>(*g_renderPool, std::move(*this));
-    }
 };
 
-EntityBatchAllocatorBase* GetEntityBatchAllocator(const Class* cls);
-HYP_NODISCARD bool SetEntityBatchAllocator(const Class* cls, EntityBatchAllocatorBase* pBatchAllocator);
+using PFNCreateEntityBatchAllocator = EntityBatchAllocatorBase* (*)();
 
-EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const Class* cls);
+EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId);
+EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId);
 
 template <class T>
 static inline EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
 {
-    using EntityBatchAllocatorType = TEntityBatchAllocator<T>;
-
-    static_assert(std::is_base_of_v<EntityInstanceBatch, T>, "T must be a derived struct type of EntityInstanceBatch");
-
-    AssertOnThread(g_renderThread);
-
-    EntityBatchAllocatorBase* pBatchAllocator = GetEntityBatchAllocator(T::StaticClass());
-
-    if (pBatchAllocator)
-    {
-        return pBatchAllocator;
-    }
-
-    pBatchAllocator = static_cast<EntityBatchAllocatorBase*>(PoolNew<EntityBatchAllocatorType>(*g_renderPool));
-
-    if (!SetEntityBatchAllocator(T::StaticClass(), pBatchAllocator))
-    {
-        PoolDelete(*g_renderPool, pBatchAllocator);
-        pBatchAllocator = nullptr;
-    }
-
-    return pBatchAllocator;
+    return GetOrCreateEntityBatchAllocator(TypeId::ForType<T>());
 }
+
+// used internally
+void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn);
+
+#define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                          \
+    namespace {                                                                                          \
+    struct BatchType##AllocatorRegistrationHelper                                                        \
+    {                                                                                                    \
+        BatchType##AllocatorRegistrationHelper()                                                         \
+        {                                                                                                \
+            RegisterEntityBatchAllocator(TypeId::ForType<BatchType>(), []() -> EntityBatchAllocatorBase* \
+                {                                                                                        \
+                    return PoolNew<TEntityBatchAllocator<BatchType>>(*g_renderPool);                     \
+                });                                                                                      \
+        }                                                                                                \
+    };                                                                                                   \
+    static BatchType##AllocatorRegistrationHelper s_##BatchType##AllocatorRegistrationHelper;            \
+    }
 
 } // namespace hyperion

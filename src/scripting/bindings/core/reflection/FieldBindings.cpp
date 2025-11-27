@@ -11,7 +11,7 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void HypField_GetName(const Field* field, Name* outName)
+    HYP_EXPORT void Field_GetName(const Field* field, Name* outName)
     {
         if (!field || !outName)
         {
@@ -21,7 +21,7 @@ extern "C"
         *outName = field->GetName();
     }
 
-    HYP_EXPORT void HypField_GetTypeId(const Field* field, TypeId* outTypeId)
+    HYP_EXPORT void Field_GetTypeId(const Field* field, TypeId* outTypeId)
     {
         if (!field || !outTypeId)
         {
@@ -31,7 +31,7 @@ extern "C"
         *outTypeId = field->GetTypeId();
     }
 
-    HYP_EXPORT uint32 HypField_GetOffset(const Field* field)
+    HYP_EXPORT uint32 Field_GetOffset(const Field* field)
     {
         if (!field)
         {
@@ -41,7 +41,7 @@ extern "C"
         return field->GetOffset();
     }
 
-    HYP_EXPORT void HypField_Get(const Field* field, const HypData* targetData, HypData* outData)
+    HYP_EXPORT void Field_Get(const Field* field, const HypData* targetData, HypData* outData)
     {
         Assert(field != nullptr);
         Assert(targetData != nullptr);
