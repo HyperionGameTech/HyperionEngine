@@ -95,8 +95,6 @@ struct AddUIRendererForView : RenderCommand
                 }
             }
 
-            AssertDebug(batchAllocatorInstance.Is<EntityBatchAllocator>());
-
             uiRenderer->renderCollector.batchAllocator = pBatchAllocator;
         }
 
@@ -207,7 +205,7 @@ void UISubsystem::Init()
         .outputTargetDesc = outputTargetDesc,
         .scenes = { m_uiStage->GetScene() },
         .camera = m_uiStage->GetCamera(),
-        .batchAllocator = UIEntityInstanceBatch::StaticClass()
+        .batchAllocatorClass = UIEntityInstanceBatch::StaticClass()
     };
 
     m_view = CreateObject<View>(viewDesc);

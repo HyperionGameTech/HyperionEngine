@@ -32,8 +32,6 @@ struct MeshInstanceData;
 
 HYP_API extern GpuBufferHolderMap* GetGpuBufferHolderMap();
 
-static constexpr uint32 MaxEntitiesPerBatch = 60;
-
 HYP_STRUCT()
 struct EntityInstanceBatch
 {
@@ -361,5 +359,28 @@ public:
 
 EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeInfo& typeInfo);
 HYP_NODISCARD bool SetEntityBatchAllocator(const TypeInfo& typeInfo, EntityBatchAllocatorBase* pBatchAllocator);
+
+template <class T>
+static inline EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
+{
+    AssertOnThread(g_renderThread);
+
+    EntityBatchAllocatorBase* pBatchAllocator = GetEntityBatchAllocator(TypeOf<T>());
+
+    if (pBatchAllocator)
+    {
+        return pBatchAllocator;
+    }
+
+    pBatchAllocator = static_cast<EntityBatchAllocatorBase*>(PoolNew<T>(*g_renderPool));
+    
+    if (!SetEntityBatchAllocator(TypeOf<T>(), pBatchAllocator))
+    {
+        PoolDelete(*g_renderPool, pBatchAllocator);
+        pBatchAllocator = nullptr;
+    }
+
+    return pBatchAllocator;
+}
 
 } // namespace hyperion

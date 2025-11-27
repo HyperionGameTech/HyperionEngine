@@ -20,9 +20,13 @@ class World;
 class UIStage;
 class UIRenderer;
 
+static constexpr uint32 MaxEntitiesPerBatch = 60;
+
 HYP_STRUCT()
 struct UIEntityInstanceBatch : EntityInstanceBatch
 {
+    HYP_STRUCT_BODY(UIEntityInstanceBatch);
+
     HYP_FIELD()
     Vec4f texcoords[MaxEntitiesPerBatch];
 

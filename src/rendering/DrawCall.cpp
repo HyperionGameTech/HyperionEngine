@@ -362,6 +362,8 @@ bool SetEntityBatchAllocator(const TypeInfo& typeInfo, EntityBatchAllocatorBase*
         return false;
     }
 
+    s_drawCallCollectionImplMap.Set(typeInfo.id, pBatchAllocator);
+
     return true;
 }
 
