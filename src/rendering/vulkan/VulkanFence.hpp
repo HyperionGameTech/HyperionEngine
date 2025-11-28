@@ -28,7 +28,7 @@ public:
     }
 
     RendererResult Create();
-    RendererResult WaitForGPU(bool timeoutLoop = false);
+    RendererResult Wait(bool timeoutLoop = false);
     RendererResult Reset();
 
 private:

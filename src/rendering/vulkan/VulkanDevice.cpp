@@ -24,7 +24,11 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physical, VkSurfaceKHR surface)
       m_physical(physical),
       m_surface(surface),
       m_allocator(VK_NULL_HANDLE),
-      m_features(MakeUnique<VulkanFeatures>())
+      m_features(MakeUnique<VulkanFeatures>()),
+      m_queueGraphics(nullptr),
+      m_queueTransfer(nullptr),
+      m_queuePresent(nullptr),
+      m_queueCompute(nullptr)
 {
     m_features->SetPhysicalDevice(m_physical);
 
@@ -33,7 +37,42 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physical, VkSurfaceKHR surface)
 
 VulkanDevice::~VulkanDevice()
 {
-    HYP_GFX_ASSERT(m_device == VK_NULL_HANDLE, "Expected device to be destroyed before destructor hits!");
+    HashSet<VulkanDeviceQueue*> queuesToDestroy;
+    queuesToDestroy.Add(m_queueGraphics);
+    queuesToDestroy.Add(m_queueTransfer);
+    queuesToDestroy.Add(m_queuePresent);
+    queuesToDestroy.Add(m_queueCompute);
+
+    for (VulkanDeviceQueue* queue : queuesToDestroy)
+    {
+        if (!queue)
+        {
+            continue;
+        }
+
+        for (VkCommandPool commandPool : queue->commandPools)
+        {
+            vkDestroyCommandPool(m_device, commandPool, nullptr);
+        }
+
+        queue->commandPools = {};
+
+        PoolDelete(*g_renderPool, queue);
+    }
+
+    m_queueGraphics = nullptr;
+    m_queueTransfer = nullptr;
+    m_queuePresent = nullptr;
+    m_queueCompute = nullptr;
+
+    if (m_device != VK_NULL_HANDLE)
+    {
+        /* By the time this destructor is called there should never
+         * be a running queue, but just in case we will wait until
+         * all the queues on our device are stopped. */
+        vkDeviceWaitIdle(m_device);
+        vkDestroyDevice(m_device, nullptr);
+    }
 }
 
 void VulkanDevice::SetRenderSurface(const VkSurfaceKHR& surface)
@@ -346,28 +385,28 @@ RendererResult VulkanDevice::DestroyAllocator()
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanDevice::Wait() const
+RendererResult VulkanDevice::WaitIdle() const
 {
     RendererResult result = RendererResult {};
 
-    if (m_queueGraphics.queue != VK_NULL_HANDLE)
+    if (m_queueGraphics)
     {
-        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queueGraphics.queue), result);
+        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queueGraphics->queue), result);
     }
 
-    if (m_queueTransfer.queue != VK_NULL_HANDLE)
+    if (m_queueTransfer)
     {
-        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queueTransfer.queue), result);
+        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queueTransfer->queue), result);
     }
 
-    if (m_queueCompute.queue != VK_NULL_HANDLE)
+    if (m_queueCompute)
     {
-        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queueCompute.queue), result);
+        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queueCompute->queue), result);
     }
 
-    if (m_queuePresent.queue != VK_NULL_HANDLE)
+    if (m_queuePresent)
     {
-        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queuePresent.queue), result);
+        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queuePresent->queue), result);
     }
 
     VULKAN_PASS_ERRORS(vkDeviceWaitIdle(m_device), result);
@@ -473,61 +512,91 @@ RendererResult VulkanDevice::Create(uint32 requiredQueueFamilies)
     m_features->SetDeviceFeatures(this);
 
     { // Create device queues
-        m_queueGraphics = VulkanDeviceQueue {
+        VulkanDeviceQueue queueGraphics {
             .type = VulkanDeviceQueueType::GRAPHICS,
-            .queue = GetQueue(m_queueFamilyIndices.graphicsFamily.Get())
+            .queue = GetQueue(m_queueFamilyIndices.graphicsFamily.Get()),
+            .familyIndex = m_queueFamilyIndices.graphicsFamily.Get()
         };
 
-        m_queueTransfer = VulkanDeviceQueue {
+        VulkanDeviceQueue queueTransfer {
             .type = VulkanDeviceQueueType::TRANSFER,
-            .queue = GetQueue(m_queueFamilyIndices.transferFamily.Get())
+            .queue = GetQueue(m_queueFamilyIndices.transferFamily.Get()),
+            .familyIndex = m_queueFamilyIndices.transferFamily.Get()
         };
 
-        m_queuePresent = VulkanDeviceQueue {
+        VulkanDeviceQueue queuePresent {
             .type = VulkanDeviceQueueType::PRESENT,
-            .queue = GetQueue(m_queueFamilyIndices.presentFamily.Get())
+            .queue = GetQueue(m_queueFamilyIndices.presentFamily.Get()),
+            .familyIndex = m_queueFamilyIndices.presentFamily.Get()
         };
 
-        m_queueCompute = VulkanDeviceQueue {
+        VulkanDeviceQueue queueCompute {
             .type = VulkanDeviceQueueType::COMPUTE,
-            .queue = GetQueue(m_queueFamilyIndices.computeFamily.Get())
+            .queue = GetQueue(m_queueFamilyIndices.computeFamily.Get()),
+            .familyIndex = m_queueFamilyIndices.computeFamily.Get()
         };
 
-        VulkanDeviceQueue* queuesWithCommandBuffers[] = { &m_queueGraphics, &m_queueTransfer, &m_queueCompute };
+        VulkanDeviceQueue* allQueues[] = {
+            &queueGraphics,
+            &queueTransfer,
+            &queuePresent,
+            &queueCompute
+        };
 
-        for (auto& it : queuesWithCommandBuffers)
+        VulkanDeviceQueue** deviceQueueMembers[] = {
+            &m_queueGraphics,
+            &m_queueTransfer,
+            &m_queuePresent,
+            &m_queueCompute
+        };
+
+        HashMap<VkQueue, VulkanDeviceQueue*> mapFamilyIndexToDeviceQueue;
+        for (int i = 0; i < HYP_ARRAY_SIZE(allQueues); i++)
         {
-            for (uint32 commandBufferIndex = 0; commandBufferIndex < it->commandPools.Size(); commandBufferIndex++)
+            VulkanDeviceQueue* pDeviceQueue = allQueues[i];
+            VulkanDeviceQueue** ppDeviceQueue = deviceQueueMembers[i];
+
+            auto insertResult = mapFamilyIndexToDeviceQueue.Insert(pDeviceQueue->queue, pDeviceQueue);
+
+            if (insertResult.second)
             {
-                uint32 familyIndex = 0;
+                // is unique; set member
+                *ppDeviceQueue = PoolNew<VulkanDeviceQueue>(*g_renderPool, std::move(*pDeviceQueue));
+                AssertDebug(*ppDeviceQueue != nullptr);
 
-                switch (it->type)
-                {
-                case VulkanDeviceQueueType::GRAPHICS:
-                    familyIndex = m_queueFamilyIndices.graphicsFamily.Get();
-                    break;
-                case VulkanDeviceQueueType::TRANSFER:
-                    familyIndex = m_queueFamilyIndices.transferFamily.Get();
-                    break;
-                case VulkanDeviceQueueType::COMPUTE:
-                    familyIndex = m_queueFamilyIndices.computeFamily.Get();
-                    break;
-                case VulkanDeviceQueueType::PRESENT:
-                    familyIndex = m_queueFamilyIndices.presentFamily.Get();
-                    break;
-                default:
-                    HYP_UNREACHABLE();
-                }
+                allQueues[i] = *ppDeviceQueue; // swap out for the pooled one
+                insertResult.first->second = *ppDeviceQueue;
+            }
+            else
+            {
+                AssertDebug(insertResult.first->second != nullptr);
 
+                // reuse existing queue
+                *ppDeviceQueue = insertResult.first->second;
+            }
+        }
+
+        for (const auto& it : mapFamilyIndexToDeviceQueue)
+        {
+            VulkanDeviceQueue* pDeviceQueue = it.second;
+
+            for (uint32 commandBufferIndex = 0; commandBufferIndex < pDeviceQueue->commandPools.Size(); commandBufferIndex++)
+            {
                 VkCommandPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-                poolInfo.queueFamilyIndex = familyIndex;
+                poolInfo.queueFamilyIndex = pDeviceQueue->familyIndex;
                 poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
                 VULKAN_CHECK_MSG(
-                    vkCreateCommandPool(GetDevice(), &poolInfo, nullptr, &it->commandPools[commandBufferIndex]),
+                    vkCreateCommandPool(GetDevice(), &poolInfo, nullptr, &pDeviceQueue->commandPools[commandBufferIndex]),
                     "Could not create Vulkan command pool");
             }
         }
+
+        // debug
+        Assert(m_queueGraphics != nullptr && m_queueGraphics->commandPools[0] != VK_NULL_HANDLE);
+        Assert(m_queueTransfer != nullptr && m_queueTransfer->commandPools[0] != VK_NULL_HANDLE);
+        Assert(m_queuePresent != nullptr && m_queuePresent->commandPools[0] != VK_NULL_HANDLE);
+        Assert(m_queueCompute != nullptr && m_queueCompute->commandPools[0] != VK_NULL_HANDLE);
     }
 
     HYPERION_RETURN_OK;
@@ -541,30 +610,6 @@ VkQueue VulkanDevice::GetQueue(uint32 queueFamilyIndex, uint32 queueIndex)
     vkGetDeviceQueue(m_device, queueFamilyIndex, queueIndex, &queue);
 
     return queue;
-}
-
-void VulkanDevice::Destroy()
-{
-    VulkanDeviceQueue* queues[] = { &m_queueGraphics, &m_queueTransfer, &m_queueCompute, &m_queuePresent };
-
-    for (VulkanDeviceQueue* queue : queues)
-    {
-        for (VkCommandPool commandPool : queue->commandPools)
-        {
-            vkDestroyCommandPool(m_device, commandPool, nullptr);
-        }
-
-        queue->commandPools = {};
-    }
-
-    if (m_device != VK_NULL_HANDLE)
-    {
-        /* By the time this destructor is called there should never
-         * be a running queue, but just in case we will wait until
-         * all the queues on our device are stopped. */
-        vkDeviceWaitIdle(m_device);
-        vkDestroyDevice(m_device, nullptr);
-    }
 }
 
 } // namespace hyperion

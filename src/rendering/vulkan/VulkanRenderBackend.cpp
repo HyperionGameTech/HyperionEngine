@@ -667,7 +667,7 @@ RendererResult VulkanRenderBackend::Initialize()
         HYP_LOG(RenderingBackend, Debug, "Vulkan debug layers enabled");
     }
 
-    const bool enableDebug = s_cfgDebugLayers.ToBool(false);
+    const bool enableDebug = true; // s_cfgDebugLayers.ToBool(false);
 #else
     const bool enableDebug = false;
 #endif
@@ -713,7 +713,7 @@ RendererResult VulkanRenderBackend::Destroy()
 
     m_asyncCompute.Reset();
 
-    HYP_GFX_CHECK(m_instance->GetDevice()->Wait());
+    HYP_GFX_CHECK(m_instance->GetDevice()->WaitIdle());
 
     PoolDelete(*g_renderPool, m_instance);
     m_instance = nullptr;
@@ -737,32 +737,32 @@ FrameBase* VulkanRenderBackend::PrepareNextFrame()
 
     if (m_shouldRecreateSwapchain)
     {
+        // CHECK_FRAME_RESULT(m_instance->GetDevice()->WaitIdle());
+        // CHECK_FRAME_RESULT(m_instance->RecreateSwapchain());
+
+        // CHECK_FRAME_RESULT(m_instance->GetSwapchain()->GetCurrentFrame()->RecreateFence());
+
+        // // Need to prepare frame again now that swapchain has been recreated.
+        // CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PrepareFrame(m_shouldRecreateSwapchain));
+
+        // frame = m_instance->GetSwapchain()->GetCurrentFrame();
+
+        // // Recreate FinalPass
+        // PoolDelete(*g_renderPool, g_renderGlobalState->finalPass);
+
+        // g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool, m_instance->GetSwapchain());
+        // g_renderGlobalState->finalPass->Create();
+
+        // OnSwapchainRecreated(m_instance->GetSwapchain());
+
         m_shouldRecreateSwapchain = false;
-
-        CHECK_FRAME_RESULT(m_instance->GetDevice()->Wait());
-        CHECK_FRAME_RESULT(m_instance->RecreateSwapchain());
-
-        CHECK_FRAME_RESULT(m_instance->GetSwapchain()->GetCurrentFrame()->RecreateFence());
-
-        // Need to prepare frame again now that swapchain has been recreated.
-        CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PrepareFrame(m_shouldRecreateSwapchain));
-
-        frame = m_instance->GetSwapchain()->GetCurrentFrame();
-
-        // Recreate FinalPass
-        PoolDelete(*g_renderPool, g_renderGlobalState->finalPass);
-
-        g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool, m_instance->GetSwapchain());
-        g_renderGlobalState->finalPass->Create();
-
-        OnSwapchainRecreated(m_instance->GetSwapchain());
     }
 
     AssertDebug(frame != nullptr);
 
     if (m_asyncCompute->IsSupported())
     {
-        //CHECK_FRAME_RESULT(m_asyncCompute->PrepareForFrame(frame));
+        CHECK_FRAME_RESULT(m_asyncCompute->PrepareForFrame(frame));
     }
 
     return frame;
@@ -776,11 +776,11 @@ void VulkanRenderBackend::PresentFrame(FrameBase* frame)
     VulkanCommandBuffer* vulkanCommandBuffer = vulkanSwapchain->GetCurrentCommandBuffer();
     VulkanAsyncCompute* vulkanAsyncCompute = m_asyncCompute.Get();
 
-    CHECK_FRAME_RESULT(vulkanFrame->Submit(&vulkanDevice->GetGraphicsQueue(), vulkanCommandBuffer));
+    CHECK_FRAME_RESULT(vulkanFrame->Submit(vulkanDevice->GetPresentQueue(), vulkanCommandBuffer));
 
     if (vulkanAsyncCompute->IsSupported())
     {
-        //CHECK_FRAME_RESULT(vulkanAsyncCompute->Submit(vulkanFrame));
+        CHECK_FRAME_RESULT(vulkanAsyncCompute->Submit(vulkanFrame));
     }
 #ifdef HYP_DEBUG_MODE
     else if (!vulkanAsyncCompute->renderQueue.IsEmpty())
@@ -793,21 +793,17 @@ void VulkanRenderBackend::PresentFrame(FrameBase* frame)
 
 #ifdef HYP_DEBUG_MODE
     {
-        auto& presentQueue = vulkanDevice->GetPresentQueue();
-        auto& graphicsQueue = vulkanDevice->GetGraphicsQueue();
+        auto* presentQueue = vulkanDevice->GetPresentQueue();
+        auto* graphicsQueue = vulkanDevice->GetGraphicsQueue();
 
         HYP_LOG(RenderingBackend, Debug, "FRAME INDEX {} ", frame->GetFrameIndex());
-        HYP_LOG(RenderingBackend, Debug, "Presenting: graphicsQueue={}, presentQueue={}", (void*)graphicsQueue.queue, (void*)presentQueue.queue);
+        HYP_LOG(RenderingBackend, Debug, "Presenting: graphicsQueue={}, presentQueue={}", (void*)graphicsQueue->queue, (void*)presentQueue->queue);
 
-        const auto& signalSemaphores = vulkanFrame->GetPresentSemaphores().GetSignalSemaphoresView();
-        HYP_LOG(RenderingBackend, Debug, "Present will wait on {} semaphores:", signalSemaphores.size());
-        for (size_t i = 0; i < signalSemaphores.size(); ++i)
-        {
-            HYP_LOG(RenderingBackend, Debug, "\tpresent wait semaphore[{}] = {}", i, (void*)signalSemaphores[i]);
-        }
+        VkSemaphore signalSemaphore = vulkanFrame->GetRenderFinishedSemaphore()->GetVulkanHandle();
+        HYP_LOG(RenderingBackend, Debug, "Present will wait on semaphore: {}", (void*)signalSemaphore);
     }
 #endif
-    CHECK_FRAME_RESULT(vulkanSwapchain->PresentFrame(&vulkanDevice->GetGraphicsQueue()));
+    CHECK_FRAME_RESULT(vulkanSwapchain->PresentFrame(vulkanDevice->GetPresentQueue()));
 
     // reset transient memory for the next frame
     g_vulkanArena->Reset();

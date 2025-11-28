@@ -265,6 +265,16 @@ public:
     {
         return m_hwnd;
     }
+    
+    HYP_FORCE_INLINE void* GetNSView() const
+    {
+        return m_nsView;
+    }
+    
+    HYP_FORCE_INLINE bool IsEmbeddedView() const
+    {
+        return m_isEmbeddedView;
+    }
 
     void* GetCAMetalLayer() const;
 
@@ -276,7 +286,9 @@ public:
 private:
     void* m_windowDelegate = nullptr;
     void* m_metalLayer = nullptr;
+    void* m_nsView = nullptr;
     bool m_mouseLocked = false;
+    bool m_isEmbeddedView = false;
     mutable Vec2i m_mousePosition = Vec2i::Zero();
 #endif
 };

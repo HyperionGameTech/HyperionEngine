@@ -25,6 +25,11 @@ public:
     explicit VulkanFrame(uint32 frameIndex);
     virtual ~VulkanFrame() override;
 
+    virtual bool IsCreated() const override
+    {
+        return m_queueSubmitFence.IsValid();
+    }
+
     virtual RendererResult Create() override;
     virtual RendererResult ResetFrameState() override;
 
@@ -41,14 +46,14 @@ public:
         return m_queueSubmitFence;
     }
 
-    HYP_FORCE_INLINE VulkanSemaphoreChain& GetPresentSemaphores()
+    HYP_FORCE_INLINE const VulkanSemaphoreRef& GetImageAvailableSemaphore() const
     {
-        return m_presentSemaphores;
+        return m_imageAvailableSemaphore;
     }
 
-    HYP_FORCE_INLINE const VulkanSemaphoreChain& GetPresentSemaphores() const
+    HYP_FORCE_INLINE const VulkanSemaphoreRef& GetRenderFinishedSemaphore() const
     {
-        return m_presentSemaphores;
+        return m_renderFinishedSemaphore;
     }
 
     RendererResult RecreateFence();
@@ -61,9 +66,9 @@ private:
         &KeyBy_Identity<VulkanRenderPass*>,
         NodeAllocator<VulkanAllocator>>;
 
-    VulkanSemaphoreChain m_presentSemaphores;
+    VulkanSemaphoreRef m_imageAvailableSemaphore;
+    VulkanSemaphoreRef m_renderFinishedSemaphore;
     VulkanFenceRef m_queueSubmitFence;
-
     VulkanRenderPassesSet m_renderPasses;
 };
 

@@ -12,17 +12,22 @@ namespace hyperion {
 HYP_ENUM()
 enum class VulkanDeviceQueueType : uint8
 {
+    INVALID = 0,
+
     GRAPHICS,
     COMPUTE,
     TRANSFER,
-    PRESENT
+    PRESENT,
+
+    MAX
 };
 
 struct VulkanDeviceQueue
 {
-    VulkanDeviceQueueType type;
-    VkQueue queue;
-    FixedArray<VkCommandPool, 8> commandPools;
+    VulkanDeviceQueueType type = VulkanDeviceQueueType::INVALID;
+    VkQueue queue = VK_NULL_HANDLE;
+    uint32 familyIndex = 0;
+    FixedArray<VkCommandPool, 8> commandPools {};
 };
 
 } // namespace hyperion

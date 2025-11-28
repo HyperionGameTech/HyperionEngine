@@ -224,6 +224,8 @@ VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type)
 
 RendererResult VulkanSingleTimeCommands::Execute()
 {
+    AssertOnThread(g_renderThread);
+
     VulkanFrameRef tempFrame;
     VulkanCommandBufferRef commandBuffer;
     VulkanFenceRef fence;
@@ -237,7 +239,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     m_functions.Clear();
 
-    tempFrame = VulkanFrameRef(GetRenderBackend()->MakeFrame(0));
+    tempFrame = VULKAN_CAST(GetRenderBackend()->MakeFrame(0));
     HYP_GFX_CHECK(tempFrame->Create());
 
     renderQueue.Prepare(tempFrame);
@@ -245,7 +247,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
     tempFrame->UpdateUsedDescriptorSets();
 
     commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-    HYP_GFX_CHECK(commandBuffer->Create(GetRenderBackend()->GetDevice()->GetGraphicsQueue().commandPools[0]));
+    HYP_GFX_CHECK(commandBuffer->Create(GetRenderBackend()->GetDevice()->GetGraphicsQueue()->commandPools[0]));
 
     HYP_GFX_CHECK(commandBuffer->Begin());
 
@@ -260,11 +262,15 @@ RendererResult VulkanSingleTimeCommands::Execute()
     HYP_GFX_CHECK(fence->Reset());
 
     // Submit to the queue
-    VulkanDeviceQueue& queueGraphics = GetRenderBackend()->GetDevice()->GetGraphicsQueue();
+    VulkanDeviceQueue* queueGraphics = GetRenderBackend()->GetDevice()->GetGraphicsQueue();
 
-    HYP_GFX_CHECK(commandBuffer->SubmitPrimary(&queueGraphics, fence, nullptr));
+    HYP_GFX_CHECK(commandBuffer->SubmitPrimary(queueGraphics, fence, nullptr, nullptr));
 
-    HYP_GFX_CHECK(fence->WaitForGPU());
+    HYP_GFX_CHECK(fence->Wait());
+
+    fence.Reset();
+    commandBuffer.Reset();
+    tempFrame.Reset();
 
     return {};
 }

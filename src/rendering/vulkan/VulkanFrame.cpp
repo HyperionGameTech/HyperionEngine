@@ -28,35 +28,40 @@ static inline VulkanRenderBackend* GetRenderBackend()
 }
 
 VulkanFrame::VulkanFrame()
-    : FrameBase(0),
-      m_presentSemaphores({}, {})
+    : FrameBase(0)
 {
 }
 
 VulkanFrame::VulkanFrame(uint32 frameIndex)
-    : FrameBase(frameIndex),
-      m_presentSemaphores(
-          { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT },
-          { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT })
+    : FrameBase(frameIndex)
 {
     FrameBase::m_frameIndex = frameIndex;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 VulkanFrame::~VulkanFrame()
 {
+    SafeDelete(std::move(m_imageAvailableSemaphore));
+    SafeDelete(std::move(m_renderFinishedSemaphore));
     SafeDelete(std::move(m_queueSubmitFence));
 }
-HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanFrame::Create()
 {
-    HYP_GFX_CHECK(m_presentSemaphores.Create());
+    if (IsCreated())
+    {
+        return {};
+    }
+
+    m_imageAvailableSemaphore = CreateObject<VulkanSemaphore>();
+    HYP_GFX_CHECK(m_imageAvailableSemaphore->Create());
+
+    m_renderFinishedSemaphore = CreateObject<VulkanSemaphore>();
+    HYP_GFX_CHECK(m_renderFinishedSemaphore->Create());
 
     m_queueSubmitFence = CreateObject<VulkanFence>();
     HYP_GFX_CHECK(m_queueSubmitFence->Create());
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanFrame::ResetFrameState()
@@ -91,6 +96,8 @@ RendererResult VulkanFrame::ResetFrameState()
 
 RendererResult VulkanFrame::Submit(VulkanDeviceQueue* deviceQueue, VulkanCommandBuffer* commandBuffer)
 {
+    AssertOnThread(g_renderThread);
+
     preRenderQueue.Prepare(this);
     renderQueue.Prepare(this);
     postRenderQueue.Prepare(this);
@@ -109,7 +116,15 @@ RendererResult VulkanFrame::Submit(VulkanDeviceQueue* deviceQueue, VulkanCommand
     postRenderQueue.Execute(commandBuffer);
     commandBuffer->End();
 
-    return commandBuffer->SubmitPrimary(deviceQueue, m_queueSubmitFence, &m_presentSemaphores);
+    AssertDebug(m_imageAvailableSemaphore.IsValid()
+        && m_renderFinishedSemaphore.IsValid()
+        && m_queueSubmitFence.IsValid());
+
+    return commandBuffer->SubmitPrimary(
+        deviceQueue,
+        m_queueSubmitFence,
+        m_imageAvailableSemaphore,
+        m_renderFinishedSemaphore);
 }
 
 RendererResult VulkanFrame::RecreateFence()

@@ -53,7 +53,7 @@ RendererResult VulkanFence::Create()
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanFence::WaitForGPU(bool timeoutLoop)
+RendererResult VulkanFence::Wait(bool timeoutLoop)
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 

@@ -58,7 +58,15 @@ extern "C"
     HYP_API ApplicationWindow* Hyp_CreateWindow(AppContextBase* pCtx, WindowOptions* pWindowOptions, HWND parentHwnd);
     HYP_API void Hyp_DestroyWindow(AppContextBase* pCtx, ApplicationWindow* pWindow);
     HYP_API int Hyp_SetMainWindow(AppContextBase* pCtx, ApplicationWindow* pWindow);
+    HYP_API ApplicationWindow* Hyp_GetMainWindow(AppContextBase* pCtx);
     HYP_API HWND Hyp_GetHWND(ApplicationWindow* pWindow);
+
+#ifdef HYP_MACOS
+    /// @brief Get the NSView associated with an embedded Cocoa window
+    /// @param pWindow The application window
+    /// @return The NSView pointer, or nullptr if not an embedded view
+    HYP_API void* Hyp_GetNSView(ApplicationWindow* pWindow);
+#endif
 
     HYP_API Game* Hyp_CreateGame(const char* gameClassName);
     HYP_API void Hyp_DestroyGame(Game* pGame);

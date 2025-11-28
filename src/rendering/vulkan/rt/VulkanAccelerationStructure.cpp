@@ -343,7 +343,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     HYP_GFX_CHECK(fence->Reset());
 
     VulkanCommandBufferRef commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-    HYP_GFX_CHECK(commandBuffer->Create(GetRenderBackend()->GetDevice()->GetGraphicsQueue().commandPools[0]));
+    HYP_GFX_CHECK(commandBuffer->Create(GetRenderBackend()->GetDevice()->GetGraphicsQueue()->commandPools[0]));
 
     HYP_GFX_CHECK(commandBuffer->Begin());
 
@@ -355,7 +355,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     HYP_GFX_CHECK(commandBuffer->End());
 
-    HYP_GFX_CHECK(commandBuffer->SubmitPrimary(&GetRenderBackend()->GetDevice()->GetGraphicsQueue(), fence, nullptr));
+    HYP_GFX_CHECK(commandBuffer->SubmitPrimary(GetRenderBackend()->GetDevice()->GetGraphicsQueue(), fence, nullptr, nullptr));
 
     SafeDelete(std::move(commandBuffer));
     SafeDelete(std::move(fence));

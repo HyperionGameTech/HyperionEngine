@@ -50,7 +50,13 @@ namespace Hyperion.Editor
         private static extern int Hyp_SetMainWindow(IntPtr pCtx, IntPtr pWindow);
 
         [DllImport("hyperion")]
+        private static extern IntPtr Hyp_GetMainWindow(IntPtr pCtx);
+
+        [DllImport("hyperion")]
         private static extern IntPtr Hyp_GetHWND(IntPtr pWindow);
+
+        [DllImport("hyperion")]
+        private static extern IntPtr Hyp_GetNSView(IntPtr pWindow);
 
         [DllImport("hyperion")]
         private static extern IntPtr Hyp_CreateGame(IntPtr pGameClassName);
@@ -128,23 +134,22 @@ namespace Hyperion.Editor
             windowOptions.height = (int)Bounds.Height > 0 ? (int)Bounds.Height : 600;
             windowOptions.flags = WindowFlags.Headless;
 
-            mWindow = Hyp_CreateWindow(mCtx, ref windowOptions, parent.Handle);
+            // mWindow = Hyp_CreateWindow(mCtx, ref windowOptions, parent.Handle);
 
+            // if (mWindow == IntPtr.Zero)
+            // {
+            //     throw new Exception("Failed to create window");
+            // }
+
+            // if (Hyp_SetMainWindow(mCtx, mWindow) == 0)
+            // {
+            //     throw new Exception("Failed to set main window");
+            // }
+
+            mWindow = Hyp_GetMainWindow(mCtx);
             if (mWindow == IntPtr.Zero)
             {
-                throw new Exception("Failed to create window");
-            }
-
-            if (Hyp_SetMainWindow(mCtx, mWindow) == 0)
-            {
-                throw new Exception("Failed to set main window");
-            }
-
-            IntPtr hwnd = Hyp_GetHWND(mWindow);
-
-            if (hwnd == IntPtr.Zero)
-            {
-                throw new Exception("Failed to get HWND from Hyperion");
+                throw new Exception("Failed to get main window from Hyperion");
             }
 
             IntPtr pStr = Marshal.StringToHGlobalAnsi("HyperionEditor");
@@ -164,10 +169,36 @@ namespace Hyperion.Editor
 
             if (OperatingSystem.IsWindows())
             {
+                IntPtr hwnd = Hyp_GetHWND(mWindow);
+
+                if (hwnd == IntPtr.Zero)
+                {
+                    throw new Exception("Failed to get HWND from Hyperion");
+                }
+
                 return new PlatformHandle(hwnd, "HWND");
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                IntPtr nsView = Hyp_GetNSView(mWindow);
+
+                if (nsView == IntPtr.Zero)
+                {
+                    throw new Exception("Failed to get NSView from Hyperion");
+                }
+
+                return new PlatformHandle(nsView, "NSView");
             }
             else
             {
+                // Linux/X11
+                IntPtr hwnd = Hyp_GetHWND(mWindow);
+
+                if (hwnd == IntPtr.Zero)
+                {
+                    throw new Exception("Failed to get window handle from Hyperion");
+                }
+
                 return new PlatformHandle(hwnd, "XID");
             }
         }

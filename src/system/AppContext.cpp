@@ -76,6 +76,8 @@ AppContextBase::~AppContextBase() = default;
 
 void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
 {
+    AssertOnThread(g_mainThread);
+
     m_mainWindow = window;
     m_inputManager->SetWindow(m_mainWindow.Get());
 
@@ -475,7 +477,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
 
     if (parentHwnd != nullptr)
     {
-        //style |= WS_CHILD;
+        // style |= WS_CHILD;
     }
 
     RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };
@@ -635,8 +637,6 @@ Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions wind
 {
     Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     window->Initialize(windowOptions, parentHwnd);
-
-    SetMainWindow(window);
 
     return window;
 }

@@ -53,13 +53,14 @@ class VulkanDevice final : public DeviceBase
 
 public:
     VulkanDevice(VkPhysicalDevice physical, VkSurfaceKHR surface);
+
     VulkanDevice(const VulkanDevice&) = delete;
     VulkanDevice& operator=(const VulkanDevice&) = delete;
+
     VulkanDevice(VulkanDevice&&) noexcept = delete;
     VulkanDevice& operator=(VulkanDevice&&) noexcept = delete;
-    virtual ~VulkanDevice() override;
 
-    void Destroy();
+    virtual ~VulkanDevice() override;
 
     void SetRenderSurface(const VkSurfaceKHR& surface);
     void SetWantedExtensions(const ExtensionMap& extensions);
@@ -88,42 +89,22 @@ public:
         return *m_features;
     }
 
-    VulkanDeviceQueue& GetGraphicsQueue()
+    VulkanDeviceQueue* GetGraphicsQueue() const
     {
         return m_queueGraphics;
     }
 
-    const VulkanDeviceQueue& GetGraphicsQueue() const
-    {
-        return m_queueGraphics;
-    }
-
-    VulkanDeviceQueue& GetTransferQueue()
+    VulkanDeviceQueue* GetTransferQueue() const
     {
         return m_queueTransfer;
     }
 
-    const VulkanDeviceQueue& GetTransferQueue() const
-    {
-        return m_queueTransfer;
-    }
-
-    VulkanDeviceQueue& GetPresentQueue()
+    VulkanDeviceQueue* GetPresentQueue() const
     {
         return m_queuePresent;
     }
 
-    const VulkanDeviceQueue& GetPresentQueue() const
-    {
-        return m_queuePresent;
-    }
-
-    VulkanDeviceQueue& GetComputeQueue()
-    {
-        return m_queueCompute;
-    }
-
-    const VulkanDeviceQueue& GetComputeQueue() const
+    VulkanDeviceQueue* GetComputeQueue() const
     {
         return m_queueCompute;
     }
@@ -134,7 +115,7 @@ public:
     RendererResult CheckDeviceSuitable(const ExtensionMap& unsupportedExtensions);
 
     /*! \brief Wait for the device to be idle */
-    RendererResult Wait() const;
+    RendererResult WaitIdle() const;
 
     /*! \brief Check if the set required extensions extensions are supported. Any unsupported extensions are returned. */
     ExtensionMap GetUnsupportedExtensions();
@@ -150,10 +131,10 @@ private:
     UniquePtr<VulkanFeatures> m_features;
     QueueFamilyIndices m_queueFamilyIndices;
 
-    VulkanDeviceQueue m_queueGraphics;
-    VulkanDeviceQueue m_queueTransfer;
-    VulkanDeviceQueue m_queuePresent;
-    VulkanDeviceQueue m_queueCompute;
+    VulkanDeviceQueue* m_queueGraphics;
+    VulkanDeviceQueue* m_queueTransfer;
+    VulkanDeviceQueue* m_queuePresent;
+    VulkanDeviceQueue* m_queueCompute;
 
     ExtensionMap m_wantedExtensions;
 };

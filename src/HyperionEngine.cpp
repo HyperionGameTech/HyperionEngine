@@ -220,9 +220,7 @@ extern "C"
 
         if (CoreApi_GetCommandLineArguments()["Headless"].ToBool(false))
         {
-            // in headless mode, don't block the caller thread; on Hyp_Initialize() call,
-            // we need to create a separate thread for rendering.
-
+            // headless mode creates a separate thread for rendering
             g_renderThread = StaticThreadId(NAME("Render"));
         }
         else
@@ -334,16 +332,16 @@ extern "C"
             resolution.y = cliArgs["ResY"].ToInt32();
         }
 
-        if (!(windowFlags & WindowFlags::HEADLESS))
-        {
-            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
+        //        if (!(windowFlags & WindowFlags::HEADLESS))
+        //        {
+        //            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
 
-            g_appContext->SetMainWindow(g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags }));
-        }
-        else
-        {
-            HYP_LOG(Engine, Info, "Running in headless mode");
-        }
+        g_appContext->SetMainWindow(g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags }));
+        //        }
+        //        else
+        //        {
+        //            HYP_LOG(Engine, Info, "Running in headless mode");
+        //        }
 
         InitObject(g_engineDriver);
 
@@ -471,7 +469,6 @@ extern "C"
             return nullptr;
         }
 
-
         // hand over management of the ref
         ApplicationWindow* pWindow = static_cast<ApplicationWindow*>(window.ptr);
         window.ptr = nullptr;
@@ -496,13 +493,41 @@ extern "C"
         return pWindow->GetHWND();
     }
 
+#ifdef HYP_MACOS
+    HYP_API void* Hyp_GetNSView(ApplicationWindow* pWindow)
+    {
+        if (!pWindow)
+        {
+            return nullptr;
+        }
+
+        CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(pWindow);
+
+        if (!cocoaWindow)
+        {
+            return nullptr;
+        }
+
+        return cocoaWindow->GetNSView();
+    }
+#endif
+
     HYP_API int Hyp_SetMainWindow(AppContextBase* pCtx, ApplicationWindow* pWindow)
     {
-        Assert(pCtx != nullptr);
+        AssertOnThread(g_mainThread);
 
+        Assert(pCtx != nullptr);
         pCtx->SetMainWindow(MakeStrongRef(pWindow));
 
         return 1;
+    }
+
+    HYP_API ApplicationWindow* Hyp_GetMainWindow(AppContextBase* pCtx)
+    {
+        AssertOnThread(g_mainThread);
+
+        Assert(pCtx != nullptr);
+        return pCtx->GetMainWindow();
     }
 
     HYP_API Game* Hyp_CreateGame(const char* gameClassName)

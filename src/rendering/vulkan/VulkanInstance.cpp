@@ -280,6 +280,7 @@ VulkanInstance::VulkanInstance()
 
 VulkanInstance::~VulkanInstance()
 {
+    HYP_BREAKPOINT;
     if (m_instance == VK_NULL_HANDLE)
     {
         return;

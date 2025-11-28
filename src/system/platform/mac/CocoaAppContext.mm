@@ -57,9 +57,13 @@ CocoaAppContext::~CocoaAppContext()
 Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
     Handle<CocoaApplicationWindow> window = CreateObject<CocoaApplicationWindow>(windowOptions.title, windowOptions.dimensions);
-    window->Initialize(windowOptions);
+    window->Initialize(windowOptions, parentHwnd);
     
-    SetMainWindow(window);
+    // Only set as main window if this is not an embedded view
+    if (parentHwnd == nullptr)
+    {
+        SetMainWindow(window);
+    }
     
     return window;
 }

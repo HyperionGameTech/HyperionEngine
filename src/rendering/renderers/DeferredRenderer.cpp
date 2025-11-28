@@ -240,6 +240,8 @@ DeferredPass::~DeferredPass()
 
 void DeferredPass::Create()
 {
+    AssertOnThread(g_renderThread);
+
     FullScreenPass::Create();
 
     // linear transform cosines texture data
@@ -250,7 +252,7 @@ void DeferredPass::Create()
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE);
 
-        DeferCreate(m_ltcSampler);
+        Assert(m_ltcSampler->Create());
 
         ByteBuffer ltcMatrixData(sizeof(s_ltcMatrix), s_ltcMatrix);
 
@@ -885,7 +887,7 @@ void EnvGridPass::CreatePipeline()
         DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
             shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
-        DeferCreate(descriptorTable);
+        Assert(descriptorTable->Create());
 
         GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
             shader,
@@ -1093,7 +1095,7 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
         DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
             shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
-        DeferCreate(descriptorTable);
+        Assert(descriptorTable->Create());
 
         GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
             shader,
@@ -1446,6 +1448,7 @@ void DeferredRenderer::Shutdown()
 Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
     HYP_SCOPE;
+    AssertOnThread(g_renderThread);
 
     Assert(view != nullptr);
 
@@ -1593,6 +1596,7 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredRend
 void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPassData& passData)
 {
     HYP_SCOPE;
+    AssertOnThread(g_renderThread);
 
     const DescriptorSetDeclaration* decl = g_renderGlobalState->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("View");
     Assert(decl != nullptr);
@@ -1712,7 +1716,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
         descriptorSet->SetElement("InTexture", passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
     }
 
-    DeferCreate(descriptorTable);
+    Assert(descriptorTable->Create());
 
     passData.combinePass = CreateObject<FullScreenPass>(
         renderTextureToScreenShader,
@@ -1727,6 +1731,8 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
 
 void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredRendererPassData& passData)
 {
+    AssertOnThread(g_renderThread);
+
     if (!g_renderBackend->GetRenderConfig().raytracing)
     {
         return;

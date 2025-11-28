@@ -27,8 +27,8 @@ class FrameBase : public ObjectBase
 public:
     virtual ~FrameBase() override = default;
 
+    virtual bool IsCreated() const = 0;
     virtual RendererResult Create() = 0;
-
     virtual RendererResult ResetFrameState() = 0;
 
     void UpdateUsedDescriptorSets();

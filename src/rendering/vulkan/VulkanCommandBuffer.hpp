@@ -6,6 +6,7 @@
 
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
 #include <rendering/vulkan/VulkanFence.hpp>
+#include <rendering/vulkan/VulkanSemaphore.hpp>
 
 #include <core/containers/FixedArray.hpp>
 
@@ -15,7 +16,6 @@
 
 namespace hyperion {
 
-class VulkanSemaphoreChain;
 class VulkanRenderPass;
 struct VulkanDeviceQueue;
 class VulkanPipelineBase;
@@ -89,7 +89,8 @@ public:
     RendererResult SubmitPrimary(
         VulkanDeviceQueue* queue,
         VulkanFence* fence,
-        VulkanSemaphoreChain* semaphoreChain);
+        VulkanSemaphore* waitSemaphore,
+        VulkanSemaphore* signalSemaphore);
 
     RendererResult SubmitSecondary(VulkanCommandBuffer* primary);
 

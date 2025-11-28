@@ -35,6 +35,7 @@ static constexpr bool UseSrgbFormat = true;
 static constexpr bool UseHdrFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
+HYP_DISABLE_OPTIMIZATION;
 static RendererResult HandleNextFrame(
     VulkanSwapchain* swapchain,
     VulkanFrame* frame,
@@ -45,23 +46,27 @@ static RendererResult HandleNextFrame(
         GetRenderBackend()->GetDevice()->GetDevice(),
         swapchain->GetVulkanHandle(),
         UINT64_MAX,
-        frame->GetPresentSemaphores().GetWaitSemaphores()[0].Get().GetVulkanHandle(),
+        frame->GetImageAvailableSemaphore()->GetVulkanHandle(),
         VK_NULL_HANDLE,
         index);
 
     if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
     {
         outNeedsRecreate = true;
+        HYP_BREAKPOINT; // debug
 
         return {};
     }
-    else if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
+
+    if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
     {
+        HYP_BREAKPOINT;
         return HYP_MAKE_ERROR(RendererError, "Failed to acquire next image", int(vkResult));
     }
 
     return {};
 }
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma region Swapchain
 
@@ -76,6 +81,7 @@ VulkanSwapchain::VulkanSwapchain()
 
 VulkanSwapchain::~VulkanSwapchain()
 {
+    HYP_BREAKPOINT; // debug
     if (m_handle == VK_NULL_HANDLE)
     {
         return;
@@ -102,25 +108,12 @@ void VulkanSwapchain::NextFrame()
 
 RendererResult VulkanSwapchain::PrepareFrame(bool& outNeedsRecreate)
 {
-    static const auto handleFrameResult = [](VkResult result, bool& outNeedsRecreate) -> RendererResult
-    {
-        if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
-        {
-            outNeedsRecreate = true;
+    outNeedsRecreate = false;
 
-            HYPERION_RETURN_OK;
-        }
+    VulkanFrame* frame = GetCurrentFrame();
 
-        VULKAN_CHECK(result);
-
-        HYPERION_RETURN_OK;
-    };
-
-    const VulkanFrameRef& frame = GetCurrentFrame();
-
-    HYP_GFX_CHECK(frame->GetFence()->WaitForGPU(true));
-
-    HYP_GFX_CHECK(handleFrameResult(frame->GetFence()->GetLastFrameResult(), outNeedsRecreate));
+    HYP_GFX_CHECK(frame->GetFence()->Wait(true));
+    VULKAN_CHECK(frame->GetFence()->GetLastFrameResult());
 
     HYP_GFX_CHECK(frame->ResetFrameState());
 
@@ -129,10 +122,10 @@ RendererResult VulkanSwapchain::PrepareFrame(bool& outNeedsRecreate)
     HYPERION_RETURN_OK;
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
 {
+    AssertOnThread(g_renderThread);
+
     // Debug: ensure all images are in the PRESENT state
 #ifdef HYP_DEBUG_MODE
     for (GpuImageBase* image : m_images)
@@ -141,25 +134,25 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
     }
 #endif
 
-    const VulkanFrameRef& frame = GetCurrentFrame();
+    VulkanFrame* frame = GetCurrentFrame();
 
-    const auto& signalSemaphores = frame->GetPresentSemaphores().GetSignalSemaphoresView();
+    VkSemaphore signalSemaphores[] = { frame->GetRenderFinishedSemaphore()->GetVulkanHandle() };
 
     VkPresentInfoKHR presentInfo { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-    presentInfo.waitSemaphoreCount = uint32(signalSemaphores.size());
-    presentInfo.pWaitSemaphores = signalSemaphores.data();
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &m_handle;
     presentInfo.pImageIndices = &m_acquiredImageIndex;
     presentInfo.pResults = nullptr;
 
     VULKAN_CHECK(vkQueuePresentKHR(queue->queue, &presentInfo));
+    HYP_LOG_TEMP("Presenting on queue {} for frame index {}", (void*)queue->queue, frame->GetFrameIndex());
 
     frame->ResetRenderPassStates();
 
     HYPERION_RETURN_OK;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanSwapchain::Create()
 {
@@ -179,6 +172,7 @@ RendererResult VulkanSwapchain::Create()
 
     if (m_extent.x * m_extent.y == 0)
     {
+        HYP_BREAKPOINT;
         return HYP_MAKE_ERROR(RendererError, "Failed to retrieve swapchain resolution!");
     }
 
@@ -258,7 +252,7 @@ RendererResult VulkanSwapchain::Create()
         HYP_GFX_CHECK(framebuffer->Create());
     }
 
-    VulkanDeviceQueue* queue = &GetRenderBackend()->GetDevice()->GetGraphicsQueue();
+    VulkanDeviceQueue* queue = GetRenderBackend()->GetDevice()->GetPresentQueue();
 
     for (uint32 frameIndex = 0; frameIndex < uint32(m_frames.Size()); frameIndex++)
     {

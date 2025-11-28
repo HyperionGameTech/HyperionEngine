@@ -150,39 +150,52 @@ RendererResult VulkanCommandBuffer::Reset()
 RendererResult VulkanCommandBuffer::SubmitPrimary(
     VulkanDeviceQueue* queue,
     VulkanFence* fence,
-    VulkanSemaphoreChain* semaphoreChain)
+    VulkanSemaphore* waitSemaphore,
+    VulkanSemaphore* signalSemaphore)
 {
+    AssertOnThread(g_renderThread);
+
     m_boundDescriptorSets.Clear();
     ResetStencilState();
 
+    VkSemaphore waitSemaphores[1] = { VK_NULL_HANDLE };
+    VkSemaphore signalSemaphores[1] = { VK_NULL_HANDLE };
+    VkPipelineStageFlags waitStages[1] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
     VkSubmitInfo submitInfo { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 
-    if (semaphoreChain != nullptr)
+    if (waitSemaphore != nullptr)
     {
-        submitInfo.waitSemaphoreCount = uint32(semaphoreChain->GetWaitSemaphoresView().size());
-        submitInfo.pWaitSemaphores = semaphoreChain->GetWaitSemaphoresView().data();
-        submitInfo.signalSemaphoreCount = uint32(semaphoreChain->GetSignalSemaphoresView().size());
-        submitInfo.pSignalSemaphores = semaphoreChain->GetSignalSemaphoresView().data();
-        submitInfo.pWaitDstStageMask = semaphoreChain->GetWaitSemaphoreStagesView().data();
+        waitSemaphores[0] = waitSemaphore->GetVulkanHandle();
+
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
     }
     else
     {
         submitInfo.waitSemaphoreCount = 0;
         submitInfo.pWaitSemaphores = nullptr;
+        submitInfo.pWaitDstStageMask = nullptr;
+    }
+
+    if (signalSemaphore != nullptr)
+    {
+        signalSemaphores[0] = signalSemaphore->GetVulkanHandle();
+
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+    }
+    else
+    {
         submitInfo.signalSemaphoreCount = 0;
         submitInfo.pSignalSemaphores = nullptr;
-        submitInfo.pWaitDstStageMask = nullptr;
     }
 
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_handle;
 
-    HYP_GFX_ASSERT(fence != nullptr);
-    HYP_GFX_ASSERT(fence->GetVulkanHandle() != VK_NULL_HANDLE);
-
-    VULKAN_CHECK_MSG(
-        vkQueueSubmit(queue->queue, 1, &submitInfo, fence->GetVulkanHandle()),
-        "Failed to submit command buffer");
+    VULKAN_CHECK(vkQueueSubmit(queue->queue, 1, &submitInfo, fence->GetVulkanHandle()));
 
 #ifdef HYP_DEBUG_MODE
     HYP_LOG(RenderingBackend, Debug, "vkQueueSubmit on queue {}: waitCount={}, signalCount={}", (void*)queue->queue, submitInfo.waitSemaphoreCount, submitInfo.signalSemaphoreCount);

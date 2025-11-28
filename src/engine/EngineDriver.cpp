@@ -98,9 +98,8 @@ EngineStatTimer g_renderThreadUpdateTimer("Frame/RenderThreadUpdate");
 class RenderThread final : public Thread<Scheduler>
 {
 public:
-    explicit RenderThread(bool useSeparateThread)
+    RenderThread()
         : Thread(g_renderThread, ThreadPriorityValue::HIGHEST),
-          m_useSeparateThread(useSeparateThread),
           m_isRunning(false)
     {
     }
@@ -114,11 +113,11 @@ public:
 
         g_renderThreadInstance = this;
 
-        if (!m_useSeparateThread)
+        // invoke thread operation on main thread.
+        if (m_id == g_mainThread)
         {
             SetCurrentThreadObject(this);
 
-            // call on main thread
             (*this)();
             return true;
         }
@@ -141,7 +140,6 @@ private:
     {
         RenderApi::Init();
 
-        
         /// HAX !!! We should only upload gpu resources on first use for debug draer
         InitObject(g_engineDriver->GetDebugDrawer());
 
@@ -171,9 +169,13 @@ private:
 
             RenderApi::BeginFrame_RenderThread();
 
-            while (g_appContext->PollEvent(event))
+            // if we're the main thread, we're responsible for handling input events.
+            if (m_id == g_mainThread)
             {
-                g_appContext->GetMainWindow()->GetInputEventSink().Push(std::move(event));
+                while (g_appContext->PollEvent(event))
+                {
+                    g_appContext->GetMainWindow()->GetInputEventSink().Push(std::move(event));
+                }
             }
 
             if (uint32 numEnqueued = m_scheduler.NumEnqueued())
@@ -200,7 +202,6 @@ private:
         g_renderThreadInstance = nullptr;
     }
 
-    bool m_useSeparateThread;
     AtomicVar<bool> m_isRunning;
 };
 
@@ -282,19 +283,7 @@ HYP_API void EngineDriver::Init()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    // Set ready to false after render thread stops running.
-    HYP_DEFER({ SetReady(false); });
-
-    if (CoreApi_GetCommandLineArguments()["Headless"].ToBool(false))
-    {
-        // in headless mode, don't block the caller thread; on Hyp_Initialize() call,
-        // we need to create a separate thread for rendering.
-        m_renderThread = MakeUnique<RenderThread>(true);
-    }
-    else
-    {
-        m_renderThread = MakeUnique<RenderThread>(false);
-    }
+    m_renderThread = MakeUnique<RenderThread>();
 
 #ifdef HYP_EDITOR
     // Create script compilation service

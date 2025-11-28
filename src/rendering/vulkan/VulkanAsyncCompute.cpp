@@ -50,7 +50,7 @@ RendererResult VulkanAsyncCompute::Create()
 
     HYP_GFX_ASSERT(GetRenderBackend()->GetDevice()->GetQueueFamilyIndices().IsComplete());
 
-    VulkanDeviceQueue* queue = &GetRenderBackend()->GetDevice()->GetComputeQueue();
+    VulkanDeviceQueue* queue = GetRenderBackend()->GetDevice()->GetComputeQueue();
 
     m_isSupported = GetRenderBackend()->GetDevice()->GetQueueFamilyIndices().computeFamily.HasValue();
 
@@ -58,7 +58,7 @@ RendererResult VulkanAsyncCompute::Create()
     {
         HYP_LOG(RenderingBackend, Warning, "Dedicated compute queue not supported, using graphics queue for compute operations");
 
-        queue = &GetRenderBackend()->GetDevice()->GetGraphicsQueue();
+        queue = GetRenderBackend()->GetDevice()->GetGraphicsQueue();
     }
 
     for (const VulkanCommandBufferRef& commandBuffer : m_commandBuffers)
@@ -88,9 +88,9 @@ RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
     renderQueue.Execute(m_commandBuffers[frameIndex]);
     HYP_GFX_CHECK(m_commandBuffers[frameIndex]->End());
 
-    VulkanDeviceQueue& computeQueue = GetRenderBackend()->GetDevice()->GetComputeQueue();
+    VulkanDeviceQueue* computeQueue = GetRenderBackend()->GetDevice()->GetComputeQueue();
 
-    return m_commandBuffers[frameIndex]->SubmitPrimary(&computeQueue, m_fences[frameIndex], nullptr);
+    return m_commandBuffers[frameIndex]->SubmitPrimary(computeQueue, m_fences[frameIndex], nullptr, nullptr);
 }
 
 RendererResult VulkanAsyncCompute::PrepareForFrame(VulkanFrame* frame)
@@ -110,7 +110,7 @@ RendererResult VulkanAsyncCompute::WaitForFence(VulkanFrame* frame)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RendererResult result = m_fences[frameIndex]->WaitForGPU();
+    RendererResult result = m_fences[frameIndex]->Wait();
 
     if (!result)
     {
