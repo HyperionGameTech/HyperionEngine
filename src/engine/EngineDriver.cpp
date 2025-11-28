@@ -289,13 +289,10 @@ HYP_API void EngineDriver::Init()
     {
         // in headless mode, don't block the caller thread; on Hyp_Initialize() call,
         // we need to create a separate thread for rendering.
-
-        g_renderThread = StaticThreadId(NAME("Render"));
         m_renderThread = MakeUnique<RenderThread>(true);
     }
     else
     {
-        g_renderThread = g_mainThread;
         m_renderThread = MakeUnique<RenderThread>(false);
     }
 

@@ -7,5 +7,6 @@
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Ribbon.Avalonia/Styles/Fluent/Ribbon.Avalonia.xaml" />
     </Application.Styles>
 </Application>

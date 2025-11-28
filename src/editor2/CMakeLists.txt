@@ -93,6 +93,7 @@ if(DOTNET_EXECUTABLE)
     file(APPEND ${EDITOR_CSPROJ_PATH} "      <IncludeAssets Condition=\"'\$(Configuration)' != 'Debug'\">None</IncludeAssets>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "      <PrivateAssets Condition=\"'\$(Configuration)' != 'Debug'\">All</PrivateAssets>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    </PackageReference>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Ribbon.Avalonia\" Version=\"*\" />\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "  </ItemGroup>\n")
 
     file(GLOB_RECURSE EDITOR_CS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/managed/*.cs")

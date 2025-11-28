@@ -98,6 +98,9 @@ static_assert(MaxFramesBeforeDiscard >= MinSafeDeleteCycles,
 // iterations per frame for cleaning up unused resources for passes
 static constexpr int FrameCleanupBudget = 16;
 
+// size of render thread arena in bytes (reset every frame)
+static constexpr SizeType RenderArenaSize = 1 * 1024 * 1024;
+
 // thread-local frame index for the game and render threads
 // @NOTE: thread local so initialized to 0 on each thread by default
 static thread_local uint32* s_threadFrameIndex;
@@ -811,6 +814,9 @@ void Init()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
+
+    AssertDebug(g_renderArena == nullptr);
+    g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
 
     s_resources = PoolNew<ResourceContainer>(*g_renderPool);
 

@@ -80,7 +80,6 @@ static constexpr SizeType StreamingPoolBlockSize = 16 * 1024 * 1024;
 static constexpr SizeType ScriptPoolBlockSize = 16 * 1024 * 1024;
 
 static constexpr SizeType SceneArenaSize = 1 * 1024 * 1024;
-static constexpr SizeType RenderArenaSize = 1 * 1024 * 1024;
 static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024;
 
 HYP_API Pool* g_objectPool;
@@ -214,6 +213,23 @@ extern "C"
         // load generated class declarations
         InitializeClassDeclarations();
 
+        if (!CoreApi_Initialize(argc, argv))
+        {
+            return 0;
+        }
+
+        if (CoreApi_GetCommandLineArguments()["Headless"].ToBool(false))
+        {
+            // in headless mode, don't block the caller thread; on Hyp_Initialize() call,
+            // we need to create a separate thread for rendering.
+
+            g_renderThread = StaticThreadId(NAME("Render"));
+        }
+        else
+        {
+            g_renderThread = g_mainThread;
+        }
+
         g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
         g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
 
@@ -230,12 +246,10 @@ extern "C"
         g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_gameThread);
 
         g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
-        g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
         g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
 
         g_logger = CreateObject<Logger>();
         g_logger->fatalErrorHook = &HandleFatalError;
-
         InitObject(g_logger);
 
         LogChannelRegistrar::GetInstance().RegisterAll();
@@ -244,11 +258,6 @@ extern "C"
 
         ClassRegistry::GetInstance().Initialize();
         HypScript::GetInstance().Initialize();
-
-        if (!CoreApi_Initialize(argc, argv))
-        {
-            return 0;
-        }
 
         EngineStats_Initialize();
 

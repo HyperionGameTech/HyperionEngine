@@ -40,10 +40,9 @@ ConfigurationTable::ConfigurationTable(const String& configName, const String& s
       m_name(configName)
 {
     // try to read from config file
-    if (auto result = Read(m_rootObject); result.HasError())
+    if (Result result = Read(m_rootObject); result.HasError())
     {
-        HYP_LOG(Config, Error, "Failed to read configuration file at {}: {}", GetFilePath(), result.GetError().GetMessage());
-
+        m_errors.PushBack(result.GetError());
         return;
     }
 

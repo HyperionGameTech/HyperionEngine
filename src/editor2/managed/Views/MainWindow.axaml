@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ribbon="clr-namespace:Ribbon.Avalonia;assembly=Ribbon.Avalonia"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
         xmlns:local="clr-namespace:Hyperion.Editor"
         x:Class="Hyperion.Editor.MainWindow" Title="Hyperion Editor">
@@ -9,29 +10,31 @@
     
 
     <Grid RowDefinitions="Auto, *, Auto">
-        <!-- Menu Bar -->
-        <Menu Grid.Row="0">
-            <MenuItem Header="_File">
-                <MenuItem Header="_New Scene" />
-                <MenuItem Header="_Open Scene..." />
-                <Separator />
-                <MenuItem Header="_Save" />
-                <MenuItem Header="Save _As..." />
-                <Separator />
-                <MenuItem Header="_Exit" />
-            </MenuItem>
-            <MenuItem Header="_Edit">
-                <MenuItem Header="_Undo" />
-                <MenuItem Header="_Redo" />
-                <Separator />
-                <MenuItem Header="Cu_t" />
-                <MenuItem Header="_Copy" />
-                <MenuItem Header="_Paste" />
-            </MenuItem>
-            <MenuItem Header="_View" />
-            <MenuItem Header="_Window" />
-            <MenuItem Header="_Help" />
-        </Menu>
+        <!-- Ribbon -->
+        <ribbon:Ribbon Grid.Row="0">
+            <ribbon:RibbonTab Header="Home">
+                <ribbon:RibbonTab.Groups>
+                    <ribbon:RibbonGroupBox Header="Scene">
+                        <ribbon:RibbonButton Content="New" />
+                        <ribbon:RibbonButton Content="Open" />
+                        <ribbon:RibbonButton Content="Save" />
+                    </ribbon:RibbonGroupBox>
+                    <ribbon:RibbonGroupBox Header="Edit">
+                        <ribbon:RibbonButton Content="Undo" />
+                        <ribbon:RibbonButton Content="Redo" />
+                    </ribbon:RibbonGroupBox>
+                </ribbon:RibbonTab.Groups>
+            </ribbon:RibbonTab>
+            <ribbon:RibbonTab Header="View">
+                <ribbon:RibbonTab.Groups>
+                    <ribbon:RibbonGroupBox Header="Windows">
+                        <ribbon:RibbonButton Content="Hierarchy" />
+                        <ribbon:RibbonButton Content="Inspector" />
+                        <ribbon:RibbonButton Content="Content Browser" />
+                    </ribbon:RibbonGroupBox>
+                </ribbon:RibbonTab.Groups>
+            </ribbon:RibbonTab>
+        </ribbon:Ribbon>
 
         <!-- Main Content Area -->
         <Grid Grid.Row="1" ColumnDefinitions="300, 4, *, 4, 350">
@@ -42,15 +45,6 @@
                     <TextBlock Text="Hierarchy" FontWeight="Bold" />
                 </Border>
                 <TreeView Grid.Row="1">
-                    <TreeViewItem Header="Scene Root" IsExpanded="True">
-                        <TreeViewItem Header="Main Camera" />
-                        <TreeViewItem Header="Directional Light" />
-                        <TreeViewItem Header="Environment">
-                            <TreeViewItem Header="Skybox" />
-                            <TreeViewItem Header="Terrain" />
-                        </TreeViewItem>
-                        <TreeViewItem Header="Player" />
-                    </TreeViewItem>
                 </TreeView>
             </Grid>
 
@@ -80,24 +74,13 @@
                     <TabItem Header="Content Browser">
                         <Grid ColumnDefinitions="200, *">
                             <TreeView Grid.Column="0">
-                                <TreeViewItem Header="Assets" IsExpanded="True">
-                                    <TreeViewItem Header="Materials" />
-                                    <TreeViewItem Header="Models" />
-                                    <TreeViewItem Header="Textures" />
-                                    <TreeViewItem Header="Scripts" />
-                                </TreeViewItem>
                             </TreeView>
                             <ListBox Grid.Column="1" Background="Transparent">
-                                <ListBoxItem>Material_01.mat</ListBoxItem>
-                                <ListBoxItem>PlayerModel.fbx</ListBoxItem>
-                                <ListBoxItem>Grass_Diffuse.png</ListBoxItem>
                             </ListBox>
                         </Grid>
                     </TabItem>
                     <TabItem Header="Console">
                         <ListBox>
-                            <ListBoxItem Foreground="Green">[INFO] Engine initialized successfully.</ListBoxItem>
-                            <ListBoxItem Foreground="Yellow">[WARN] Texture 'missing.png' not found.</ListBoxItem>
                         </ListBox>
                     </TabItem>
                 </TabControl>
@@ -112,44 +95,6 @@
                 </Border>
                 <ScrollViewer Grid.Row="1">
                     <StackPanel Margin="10" Spacing="10">
-                        <!-- Transform Component -->
-                        <Expander Header="Transform" IsExpanded="True">
-                            <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto, Auto, Auto" Margin="5">
-                                <TextBlock Text="Position" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
-                                <TextBox Text="0.0, 0.0, 0.0" Grid.Row="0" Grid.Column="1" Margin="0,0,0,5"/>
-
-                                <TextBlock Text="Rotation" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
-                                <TextBox Text="0.0, 0.0, 0.0" Grid.Row="1" Grid.Column="1" Margin="0,0,0,5"/>
-
-                                <TextBlock Text="Scale" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
-                                <TextBox Text="1.0, 1.0, 1.0" Grid.Row="2" Grid.Column="1" Margin="0,0,0,5"/>
-                            </Grid>
-                        </Expander>
-
-                        <!-- Mesh Renderer Component -->
-                        <Expander Header="Mesh Renderer" IsExpanded="True">
-                            <StackPanel Margin="5" Spacing="5">
-                                <Grid ColumnDefinitions="Auto, *">
-                                    <TextBlock Text="Mesh" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <ComboBox Grid.Column="1" SelectedIndex="0">
-                                        <ComboBoxItem>Cube</ComboBoxItem>
-                                        <ComboBoxItem>Sphere</ComboBoxItem>
-                                        <ComboBoxItem>Capsule</ComboBoxItem>
-                                    </ComboBox>
-                                </Grid>
-                                <Grid ColumnDefinitions="Auto, *">
-                                    <TextBlock Text="Material" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <ComboBox Grid.Column="1" SelectedIndex="0">
-                                        <ComboBoxItem>Default Material</ComboBoxItem>
-                                        <ComboBoxItem>Red Plastic</ComboBoxItem>
-                                    </ComboBox>
-                                </Grid>
-                                <CheckBox Content="Cast Shadows" IsChecked="True" />
-                                <CheckBox Content="Receive Shadows" IsChecked="True" />
-                            </StackPanel>
-                        </Expander>
-                        
-                        <Button Content="Add Component" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
