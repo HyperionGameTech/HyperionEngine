@@ -42,10 +42,12 @@ VulkanFrame::VulkanFrame(uint32 frameIndex)
     FrameBase::m_frameIndex = frameIndex;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 VulkanFrame::~VulkanFrame()
 {
     SafeDelete(std::move(m_queueSubmitFence));
 }
+HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanFrame::Create()
 {

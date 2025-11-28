@@ -47,6 +47,9 @@ RendererResult VulkanSemaphore::Create()
     VULKAN_CHECK_MSG(
         vkCreateSemaphore(GetRenderBackend()->GetDevice()->GetDevice(), &semaphoreInfo, nullptr, &m_semaphore),
         "Failed to create semaphore");
+#ifdef HYP_DEBUG_MODE
+    DebugLog(LogType::Debug, "Created Vulkan semaphore %p\n", (void*)m_semaphore);
+#endif
 
     return {};
 }
@@ -106,6 +109,9 @@ VulkanSemaphoreChain::~VulkanSemaphoreChain()
 
     for (auto& semaphore : m_signalSemaphores)
     {
+#ifdef HYP_DEBUG_MODE
+        DebugLog(LogType::Debug, "Destroying Vulkan semaphore %p\n", (void*)semaphore.m_ref);
+#endif
         decRef(semaphore);
     }
 

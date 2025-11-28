@@ -431,6 +431,7 @@ RendererResult VulkanInstance::CreateDevice(VkPhysicalDevice physicalDevice)
     HYPERION_RETURN_OK;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 RendererResult VulkanInstance::CreateSwapchain()
 {
     if (m_surface == VK_NULL_HANDLE)
@@ -464,5 +465,6 @@ RendererResult VulkanInstance::RecreateSwapchain()
 
     HYPERION_RETURN_OK;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion

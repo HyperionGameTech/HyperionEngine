@@ -16,9 +16,13 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 
+#include <core/logging/Logger.hpp>
+
 #include <VulkanCommandBuffer.generated.inl>
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern IRenderBackend* g_renderBackend;
 
@@ -179,6 +183,24 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
     VULKAN_CHECK_MSG(
         vkQueueSubmit(queue->queue, 1, &submitInfo, fence->GetVulkanHandle()),
         "Failed to submit command buffer");
+
+#ifdef HYP_DEBUG_MODE
+    HYP_LOG(RenderingBackend, Debug, "vkQueueSubmit on queue {}: waitCount={}, signalCount={}", (void*)queue->queue, submitInfo.waitSemaphoreCount, submitInfo.signalSemaphoreCount);
+    if (submitInfo.waitSemaphoreCount)
+    {
+        for (uint32 i = 0; i < submitInfo.waitSemaphoreCount; ++i)
+        {
+            HYP_LOG(RenderingBackend, Debug, "\twait semaphore[{}] = {}", i, (void*)submitInfo.pWaitSemaphores[i]);
+        }
+    }
+    if (submitInfo.signalSemaphoreCount)
+    {
+        for (uint32 i = 0; i < submitInfo.signalSemaphoreCount; ++i)
+        {
+            HYP_LOG(RenderingBackend, Debug, "\tsignal semaphore[{}] = {}", i, (void*)submitInfo.pSignalSemaphores[i]);
+        }
+    }
+#endif
 
     HYPERION_RETURN_OK;
 }

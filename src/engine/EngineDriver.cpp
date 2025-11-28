@@ -310,8 +310,6 @@ HYP_API void EngineDriver::Init()
     SetGlobalNetRequestThread(netRequestThread);
     netRequestThread->Start();
 
-    // g_streamingManager->Start();
-
     // must start after net request thread
     if (CoreApi_GetCommandLineArguments()["Profile"])
     {

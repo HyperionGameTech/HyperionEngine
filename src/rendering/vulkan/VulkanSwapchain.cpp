@@ -129,6 +129,8 @@ RendererResult VulkanSwapchain::PrepareFrame(bool& outNeedsRecreate)
     HYPERION_RETURN_OK;
 }
 
+HYP_DISABLE_OPTIMIZATION;
+
 RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
 {
     // Debug: ensure all images are in the PRESENT state
@@ -157,6 +159,7 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
 
     HYPERION_RETURN_OK;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanSwapchain::Create()
 {

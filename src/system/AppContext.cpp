@@ -103,19 +103,19 @@ void SDLApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHw
 {
     uint32 sdlFlags = 0;
 
-    if (!(windowOptions.flags & WindowFlags::NO_GFX))
+    if (!(windowOptions.flags & uint32(WindowFlags::NO_GFX)))
     {
 #if HYP_VULKAN
         sdlFlags |= SDL_WINDOW_VULKAN;
 #endif
     }
 
-    if (windowOptions.flags & WindowFlags::HIGH_DPI)
+    if (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
     {
         sdlFlags |= SDL_WINDOW_ALLOW_HIGHDPI;
     }
 
-    if (windowOptions.flags & WindowFlags::HEADLESS)
+    if (windowOptions.flags & uint32(WindowFlags::HEADLESS))
     {
         sdlFlags |= SDL_WINDOW_HIDDEN;
     }
@@ -475,7 +475,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
 
     if (parentHwnd != nullptr)
     {
-        style |= WS_CHILD;
+        //style |= WS_CHILD;
     }
 
     RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };

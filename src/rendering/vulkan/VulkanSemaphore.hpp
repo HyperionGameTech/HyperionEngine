@@ -122,6 +122,9 @@ struct VulkanSemaphoreRefHolder
         {
             /* ref->semaphore should have had Destroy() called on it by now,
              * or else an assertion error will be thrown on destructor call. */
+#ifdef HYP_DEBUG_MODE
+            DebugLog(LogType::Debug, "Deleting VulkanSemaphoreRef %p (ref count reached zero)\n", (void*)m_ref->semaphore.GetVulkanHandle());
+#endif
             delete m_ref;
             /* ref = nullptr; ?? */
         }

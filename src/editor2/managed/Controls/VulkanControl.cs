@@ -31,34 +31,34 @@ namespace Hyperion.Editor
 
     public class VulkanViewport : NativeControlHost
     {
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern int Hyp_Initialize(int argc, IntPtr argv);
 
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern void Hyp_Shutdown();
 
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern IntPtr Hyp_GetAppContext();
 
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern IntPtr Hyp_CreateWindow(IntPtr pCtx, ref WindowOptions pWindowOptions, IntPtr parentHwnd);
 
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern void Hyp_DestroyWindow(IntPtr pCtx, IntPtr pWindow);
 
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern int Hyp_SetMainWindow(IntPtr pCtx, IntPtr pWindow);
 
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern IntPtr Hyp_GetHWND(IntPtr pWindow);
 
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern IntPtr Hyp_CreateGame(IntPtr pGameClassName);
 
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern void Hyp_DestroyGame(IntPtr pGame);
 
-        [DllImport("hyperion.dll")]
+        [DllImport("hyperion")]
         private static extern int Hyp_LaunchGame(IntPtr pGame);
 
         private IntPtr mCtx = IntPtr.Zero;
@@ -70,7 +70,8 @@ namespace Hyperion.Editor
             // create argv for Hyp_Initialize if needed
             List<string> args = [
                 Environment.ProcessPath ?? "",
-                "-Headless=true"
+                "-Headless=true",
+                "-Detached=true"
             ];
 
             int argc = args.Count;
@@ -128,6 +129,16 @@ namespace Hyperion.Editor
             windowOptions.flags = WindowFlags.Headless;
 
             mWindow = Hyp_CreateWindow(mCtx, ref windowOptions, parent.Handle);
+
+            if (mWindow == IntPtr.Zero)
+            {
+                throw new Exception("Failed to create window");
+            }
+
+            if (Hyp_SetMainWindow(mCtx, mWindow) == 0)
+            {
+                throw new Exception("Failed to set main window");
+            }
 
             IntPtr hwnd = Hyp_GetHWND(mWindow);
 

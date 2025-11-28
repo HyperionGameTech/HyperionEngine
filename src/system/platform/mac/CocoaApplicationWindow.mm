@@ -96,7 +96,7 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
 void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
 {
     m_title = windowOptions.title;
-    m_size = windowOptions.size;
+    m_size = windowOptions.dimensions;
 
     NSRect frame = NSMakeRect(0, 0, m_size.x, m_size.y);
     
@@ -105,7 +105,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
                                     NSWindowStyleMaskMiniaturizable | 
                                     NSWindowStyleMaskResizable;
     
-    if (windowOptions.flags & WindowFlags::HEADLESS)
+    if (windowOptions.flags & uint32(WindowFlags::HEADLESS))
     {
         // Create window but don't show it
     }
@@ -131,13 +131,13 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
     [window registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
     
     // Create Metal layer
-    if (!(windowOptions.flags & WindowFlags::NO_GFX))
+    if (!(windowOptions.flags & uint32(WindowFlags::NO_GFX)))
     {
         CAMetalLayer* metalLayer = [CAMetalLayer layer];
         [window.contentView setLayer:metalLayer];
         [window.contentView setWantsLayer:YES];
         
-        if (windowOptions.flags & WindowFlags::HIGH_DPI)
+        if (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
         {
             metalLayer.contentsScale = [window backingScaleFactor];
         }
@@ -155,7 +155,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         m_metalLayer = (void*)metalLayer;
     }
     
-    if (!(windowOptions.flags & WindowFlags::HEADLESS))
+    if (!(windowOptions.flags & uint32(WindowFlags::HEADLESS)))
     {
         [window makeKeyAndOrderFront:nil];
     }

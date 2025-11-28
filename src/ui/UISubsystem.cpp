@@ -141,6 +141,11 @@ UISubsystem::~UISubsystem()
         PUSH_RENDER_COMMAND(RemoveUIRenderer, m_uiRenderer);
         m_uiRenderer = nullptr;
     }
+
+    PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
+
+    m_onWindowResizedHandle.Reset();
+    m_onCurrentWindowChangedHandle.Reset();
 }
 
 void UISubsystem::Init()
@@ -150,29 +155,57 @@ void UISubsystem::Init()
     Assert(m_uiStage != nullptr);
     InitObject(m_uiStage);
 
-    m_onResizeHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded([weakThis = WeakHandleFromThis()](Vec2i windowSize)
-        {
-            PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
+    const auto handleWindowResize = [weakThis = MakeWeakRef(this)](Vec2i windowSize)
+    {
+        PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
+        Handle<UISubsystem> subsystem = weakThis.Lock();
 
+        if (!subsystem)
+        {
+            HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on resize");
+            return;
+        }
+
+        Handle<UIStage> uiStage = subsystem->GetUIStage();
+        AssertDebug(uiStage != nullptr);
+
+        uiStage->SetSurfaceSize(windowSize);
+        subsystem->CreateFramebuffer();
+    };
+
+    Vec2u windowSize = Vec2u(800, 600);
+
+    if (g_appContext->GetMainWindow() != nullptr)
+    {
+        windowSize = Vec2u(g_appContext->GetMainWindow()->GetDimensions());
+
+        m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_gameThread);
+    }
+
+    m_onCurrentWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(
+        [weakThis = MakeWeakRef(this), handleWindowResize](ApplicationWindow* window)
+        {
             Handle<UISubsystem> subsystem = weakThis.Lock();
 
             if (!subsystem)
             {
-                HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on resize");
-
+                HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on current window changed");
                 return;
             }
+            if (subsystem->m_onWindowResizedHandle.IsValid())
+            {
+                subsystem->m_onWindowResizedHandle.Reset();
+            }
 
-            Handle<UIStage> uiStage = subsystem->GetUIStage();
-            AssertDebug(uiStage != nullptr);
+            if (window != nullptr)
+            {
+                subsystem->m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_gameThread);
 
-            uiStage->SetSurfaceSize(windowSize);
-
-            subsystem->CreateFramebuffer();
+                handleWindowResize(Vec2i(window->GetDimensions()));
+            }
         },
         g_gameThread);
 
-    const Vec2u windowSize = Vec2u(g_appContext->GetMainWindow()->GetDimensions());
     const Vec2u windowSize2 = windowSize * 2;
 
     ViewOutputTargetDesc outputTargetDesc {
@@ -213,10 +246,6 @@ void UISubsystem::OnRemovedFromWorld()
     {
         GetWorld()->RemoveScene(m_uiStage->GetScene());
     }
-
-    PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
-
-    m_onResizeHandle.Reset();
 }
 
 void UISubsystem::PreUpdate(float delta)

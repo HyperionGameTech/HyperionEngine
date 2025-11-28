@@ -15,13 +15,15 @@
 #include <game/GameThread.hpp>
 
 #include <engine/EngineDriver.hpp>
-
 #include <engine/EngineGlobals.hpp>
+
 #include <HyperionEngine.hpp>
 
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
+
+extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
 namespace sys {
 
@@ -51,6 +53,17 @@ void App::LaunchGame(const Handle<Game>& game)
 
     // Loop blocks the main thread until the game is done.
     Assert(g_engineDriver->StartRenderLoop());
+
+    const CommandLineArguments& cmdArgs = CoreApi_GetCommandLineArguments();
+
+    if (cmdArgs["Headless"].ToBool() && !cmdArgs["Detached"].ToBool())
+    {
+        // headless mode creates a separate thread for rendering, so we need to wait for it to finish
+        while (g_engineDriver->IsRenderLoopActive())
+        {
+            ThreadSleep(100);
+        }
+    }
 }
 
 } // namespace sys

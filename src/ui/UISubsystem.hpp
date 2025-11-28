@@ -74,7 +74,8 @@ private:
 
     UIRenderer* m_uiRenderer;
 
-    DelegateHandler m_onResizeHandle;
+    DelegateHandler m_onWindowResizedHandle;
+    DelegateHandler m_onCurrentWindowChangedHandle;
 };
 
 } // namespace hyperion

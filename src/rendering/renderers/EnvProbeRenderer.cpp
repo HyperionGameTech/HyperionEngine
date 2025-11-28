@@ -566,7 +566,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     pipelines[MODE_CLEAR].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
     pipelines[MODE_BUILD_COEFFICIENTS].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
 
-    RenderQueue* asyncRenderQueuePtr = g_renderBackend->GetAsyncCompute()->IsSupported()
+    RenderQueue* asyncRenderQueuePtr = g_renderBackend->GetAsyncCompute()->IsSupported() && false // TEMP! debugging some editor stuff.
         ? &g_renderBackend->GetAsyncCompute()->renderQueue
         : &frame->renderQueue;
 

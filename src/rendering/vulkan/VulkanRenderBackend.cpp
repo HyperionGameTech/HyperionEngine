@@ -6,6 +6,7 @@
 #include <rendering/vulkan/VulkanMemory.hpp>
 #include <rendering/vulkan/VulkanSwapchain.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
+#include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanGraphicsPipeline.hpp>
 #include <rendering/vulkan/VulkanComputePipeline.hpp>
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
@@ -761,7 +762,7 @@ FrameBase* VulkanRenderBackend::PrepareNextFrame()
 
     if (m_asyncCompute->IsSupported())
     {
-        CHECK_FRAME_RESULT(m_asyncCompute->PrepareForFrame(frame));
+        //CHECK_FRAME_RESULT(m_asyncCompute->PrepareForFrame(frame));
     }
 
     return frame;
@@ -769,17 +770,17 @@ FrameBase* VulkanRenderBackend::PrepareNextFrame()
 
 void VulkanRenderBackend::PresentFrame(FrameBase* frame)
 {
-    const CommandBufferRef& commandBuffer = m_instance->GetSwapchain()->GetCurrentCommandBuffer();
-
     VulkanFrame* vulkanFrame = VULKAN_CAST(frame);
-    VulkanCommandBuffer* vulkanCommandBuffer = VULKAN_CAST(commandBuffer.Get());
+    VulkanDevice* vulkanDevice = m_instance->GetDevice();
+    VulkanSwapchain* vulkanSwapchain = m_instance->GetSwapchain();
+    VulkanCommandBuffer* vulkanCommandBuffer = vulkanSwapchain->GetCurrentCommandBuffer();
     VulkanAsyncCompute* vulkanAsyncCompute = m_asyncCompute.Get();
 
-    CHECK_FRAME_RESULT(vulkanFrame->Submit(&m_instance->GetDevice()->GetGraphicsQueue(), vulkanCommandBuffer));
+    CHECK_FRAME_RESULT(vulkanFrame->Submit(&vulkanDevice->GetGraphicsQueue(), vulkanCommandBuffer));
 
     if (vulkanAsyncCompute->IsSupported())
     {
-        CHECK_FRAME_RESULT(vulkanAsyncCompute->Submit(vulkanFrame));
+        //CHECK_FRAME_RESULT(vulkanAsyncCompute->Submit(vulkanFrame));
     }
 #ifdef HYP_DEBUG_MODE
     else if (!vulkanAsyncCompute->renderQueue.IsEmpty())
@@ -790,12 +791,28 @@ void VulkanRenderBackend::PresentFrame(FrameBase* frame)
 
     m_textureCache->CleanupUnusedTextures();
 
-    CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PresentFrame(&m_instance->GetDevice()->GetGraphicsQueue()));
+#ifdef HYP_DEBUG_MODE
+    {
+        auto& presentQueue = vulkanDevice->GetPresentQueue();
+        auto& graphicsQueue = vulkanDevice->GetGraphicsQueue();
+
+        HYP_LOG(RenderingBackend, Debug, "FRAME INDEX {} ", frame->GetFrameIndex());
+        HYP_LOG(RenderingBackend, Debug, "Presenting: graphicsQueue={}, presentQueue={}", (void*)graphicsQueue.queue, (void*)presentQueue.queue);
+
+        const auto& signalSemaphores = vulkanFrame->GetPresentSemaphores().GetSignalSemaphoresView();
+        HYP_LOG(RenderingBackend, Debug, "Present will wait on {} semaphores:", signalSemaphores.size());
+        for (size_t i = 0; i < signalSemaphores.size(); ++i)
+        {
+            HYP_LOG(RenderingBackend, Debug, "\tpresent wait semaphore[{}] = {}", i, (void*)signalSemaphores[i]);
+        }
+    }
+#endif
+    CHECK_FRAME_RESULT(vulkanSwapchain->PresentFrame(&vulkanDevice->GetGraphicsQueue()));
 
     // reset transient memory for the next frame
     g_vulkanArena->Reset();
 
-    m_instance->GetSwapchain()->NextFrame();
+    vulkanSwapchain->NextFrame();
 }
 
 DescriptorSetRef VulkanRenderBackend::MakeDescriptorSet(const DescriptorSetLayout& layout)
