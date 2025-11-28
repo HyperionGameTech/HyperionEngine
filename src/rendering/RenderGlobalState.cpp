@@ -810,7 +810,7 @@ static HYP_FORCE_INLINE void CopyDependencies(RenderProxyList& dst, RenderProxyL
 void Init()
 {
     HYP_SCOPE;
-    AssertOnThread(g_mainThread);
+    AssertOnThread(g_renderThread);
 
     s_resources = PoolNew<ResourceContainer>(*g_renderPool);
 
@@ -857,7 +857,7 @@ void Init()
 void Shutdown()
 {
     HYP_SCOPE;
-    AssertOnThread(g_mainThread);
+    AssertOnThread(g_renderThread);
 
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {

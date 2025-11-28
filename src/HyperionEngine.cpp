@@ -11,6 +11,7 @@
 #include <core/Core.hpp>
 
 #include <core/reflection/ClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/TypeInfo.hpp>
 #include <core/reflection/Handle.hpp>
 
@@ -202,12 +203,10 @@ extern "C"
 {
     HYP_API int Hyp_Initialize(int argc, char** argv)
     {
-        if (!argv)
+        if (!argv || argc <= 0)
         {
-            static const char* s_defaultArgV[] = { "" };
-
-            argv = const_cast<char**>(s_defaultArgV);
-            argc = 1;
+            // we need argc/argv to be passed by the caller
+            return 0;
         }
 
         SetCurrentThreadId(g_mainThread);
@@ -433,14 +432,28 @@ extern "C"
 
     HYP_API AppContextBase* Hyp_GetAppContext()
     {
-        return App::GetInstance().GetAppContext();
+        return g_appContext.Get();
     }
 
     HYP_API ApplicationWindow* Hyp_CreateWindow(AppContextBase* pCtx, WindowOptions* pWindowOptions, HWND parentHwnd)
     {
         Assert(pCtx != nullptr);
 
-        WindowOptions windowOptions = pWindowOptions ? *pWindowOptions : WindowOptions {};
+        WindowOptions windowOptions;
+        Memory::MemSet(&windowOptions, 0, sizeof(WindowOptions));
+
+        if (pWindowOptions != nullptr)
+        {
+            windowOptions = *pWindowOptions;
+        }
+        else
+        {
+            Memory::StrCpy(windowOptions.title, "Hyperion Window", sizeof(windowOptions.title));
+            windowOptions.dimensions = Vec2i { 1280, 720 };
+            windowOptions.flags = uint32(WindowFlags::NONE);
+        }
+
+        windowOptions.title[sizeof(windowOptions.title) - 1] = '\0';
 
         Handle<ApplicationWindow> window = pCtx->CreateSystemWindow(windowOptions, parentHwnd);
 
@@ -449,8 +462,9 @@ extern "C"
             return nullptr;
         }
 
+
         // hand over management of the ref
-        ApplicationWindow* pWindow = (ApplicationWindow*)window.ptr;
+        ApplicationWindow* pWindow = static_cast<ApplicationWindow*>(window.ptr);
         window.ptr = nullptr;
 
         return pWindow;
@@ -471,6 +485,69 @@ extern "C"
         }
 
         return pWindow->GetHWND();
+    }
+
+    HYP_API int Hyp_SetMainWindow(AppContextBase* pCtx, ApplicationWindow* pWindow)
+    {
+        Assert(pCtx != nullptr);
+
+        pCtx->SetMainWindow(MakeStrongRef(pWindow));
+
+        return 1;
+    }
+
+    HYP_API Game* Hyp_CreateGame(const char* gameClassName)
+    {
+        if (!gameClassName)
+        {
+            return nullptr;
+        }
+
+        const Class* pGameClass = ClassRegistry::GetInstance().GetClass(StringHash(gameClassName));
+
+        if (!pGameClass || !pGameClass->IsDerivedFrom(Game::StaticClass()))
+        {
+            HYP_LOG(Engine, Error, "Failed to create game: class '{}' not found or is not a subclass of Game", gameClassName);
+
+            return nullptr;
+        }
+
+        HypData hd;
+        if (!pGameClass->CreateInstance(hd) || !hd.Is<Game>())
+        {
+            HYP_LOG(Engine, Error, "Failed to create game: could not create instance of class '{}'", gameClassName);
+            return nullptr;
+        }
+
+        Handle<Game>& gameHandle = hd.Get<Handle<Game>>();
+        AssertDebug(gameHandle.IsValid());
+
+        Game* pGame = static_cast<Game*>(gameHandle.ptr);
+        gameHandle.ptr = nullptr; // transfer ownership
+
+        return pGame;
+    }
+
+    HYP_API void Hyp_DestroyGame(Game* pGame)
+    {
+        if (!pGame)
+        {
+            return;
+        }
+
+        pGame->GetObjectHeader_Internal()->DecRefStrong();
+    }
+
+    HYP_API int Hyp_LaunchGame(Game* pGame)
+    {
+        if (!pGame)
+        {
+            return 0;
+        }
+
+        App::GetInstance().LaunchGame(MakeStrongRef(pGame));
+
+        return 1;
     }
 }
 

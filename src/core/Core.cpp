@@ -78,6 +78,8 @@ bool CoreApi_Initialize(int argc, char** argv)
         return false;
     }
 
+    s_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), s_commandLineArguments, *parseResult);
+
     GlobalConfig config { "GlobalConfig" };
 
     if (json::JSONValue configArgs = config.Get("App.Args"))
@@ -87,12 +89,11 @@ bool CoreApi_Initialize(int argc, char** argv)
 
         parseResult = argParse.Parse(s_commandLineArguments.GetCommand(), configArgsStringSplit);
 
-        if (parseResult.HasError())
+        if (!parseResult.HasError())
         {
-            return false;
+            // merge argv last so that they may be override what's in the config.
+            s_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), *parseResult, s_commandLineArguments);
         }
-
-        s_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), *parseResult, s_commandLineArguments);
     }
 
     return true;

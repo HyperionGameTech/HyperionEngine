@@ -2,8 +2,168 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="Hyperion.Editor.MainWindow"
-        Title="Hyperion Editor">
-    Welcome to Hyperion Editor!
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
+        xmlns:local="clr-namespace:Hyperion.Editor"
+        x:Class="Hyperion.Editor.MainWindow" Title="Hyperion Editor">
+
+    
+
+    <Grid RowDefinitions="Auto, *, Auto">
+        <!-- Menu Bar -->
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Header="_New Scene" />
+                <MenuItem Header="_Open Scene..." />
+                <Separator />
+                <MenuItem Header="_Save" />
+                <MenuItem Header="Save _As..." />
+                <Separator />
+                <MenuItem Header="_Exit" />
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Undo" />
+                <MenuItem Header="_Redo" />
+                <Separator />
+                <MenuItem Header="Cu_t" />
+                <MenuItem Header="_Copy" />
+                <MenuItem Header="_Paste" />
+            </MenuItem>
+            <MenuItem Header="_View" />
+            <MenuItem Header="_Window" />
+            <MenuItem Header="_Help" />
+        </Menu>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1" ColumnDefinitions="300, 4, *, 4, 350">
+            
+            <!-- Left Panel: Scene Hierarchy -->
+            <Grid Grid.Column="0" RowDefinitions="Auto, *">
+                <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" Padding="5">
+                    <TextBlock Text="Hierarchy" FontWeight="Bold" />
+                </Border>
+                <TreeView Grid.Row="1">
+                    <TreeViewItem Header="Scene Root" IsExpanded="True">
+                        <TreeViewItem Header="Main Camera" />
+                        <TreeViewItem Header="Directional Light" />
+                        <TreeViewItem Header="Environment">
+                            <TreeViewItem Header="Skybox" />
+                            <TreeViewItem Header="Terrain" />
+                        </TreeViewItem>
+                        <TreeViewItem Header="Player" />
+                    </TreeViewItem>
+                </TreeView>
+            </Grid>
+
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Transparent" />
+
+            <!-- Center Panel: Viewport & Content Browser -->
+            <Grid Grid.Column="2" RowDefinitions="*, 4, 250">
+                <!-- Viewport (VulkanControl Placeholder) -->
+                <Border Grid.Row="0" Background="#101010" BorderBrush="#303030" BorderThickness="1">
+                    <Grid>
+                        <TextBlock Text="Scene View" 
+                                   HorizontalAlignment="Left" 
+                                   VerticalAlignment="Top" 
+                                   Margin="10" 
+                                   Foreground="Gray"/>
+                        
+                        <local:VulkanViewport Name="VulkanViewport" 
+                            HorizontalAlignment="Stretch" 
+                            VerticalAlignment="Stretch"/>
+                    </Grid>
+                </Border>
+
+                <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="Transparent" />
+
+                <!-- Bottom Panel: Content Browser / Console -->
+                <TabControl Grid.Row="2">
+                    <TabItem Header="Content Browser">
+                        <Grid ColumnDefinitions="200, *">
+                            <TreeView Grid.Column="0">
+                                <TreeViewItem Header="Assets" IsExpanded="True">
+                                    <TreeViewItem Header="Materials" />
+                                    <TreeViewItem Header="Models" />
+                                    <TreeViewItem Header="Textures" />
+                                    <TreeViewItem Header="Scripts" />
+                                </TreeViewItem>
+                            </TreeView>
+                            <ListBox Grid.Column="1" Background="Transparent">
+                                <ListBoxItem>Material_01.mat</ListBoxItem>
+                                <ListBoxItem>PlayerModel.fbx</ListBoxItem>
+                                <ListBoxItem>Grass_Diffuse.png</ListBoxItem>
+                            </ListBox>
+                        </Grid>
+                    </TabItem>
+                    <TabItem Header="Console">
+                        <ListBox>
+                            <ListBoxItem Foreground="Green">[INFO] Engine initialized successfully.</ListBoxItem>
+                            <ListBoxItem Foreground="Yellow">[WARN] Texture 'missing.png' not found.</ListBoxItem>
+                        </ListBox>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+
+            <GridSplitter Grid.Column="3" ResizeDirection="Columns" Background="Transparent" />
+
+            <!-- Right Panel: Inspector -->
+            <Grid Grid.Column="4" RowDefinitions="Auto, *">
+                <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" Padding="5">
+                    <TextBlock Text="Inspector" FontWeight="Bold" />
+                </Border>
+                <ScrollViewer Grid.Row="1">
+                    <StackPanel Margin="10" Spacing="10">
+                        <!-- Transform Component -->
+                        <Expander Header="Transform" IsExpanded="True">
+                            <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto, Auto, Auto" Margin="5">
+                                <TextBlock Text="Position" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+                                <TextBox Text="0.0, 0.0, 0.0" Grid.Row="0" Grid.Column="1" Margin="0,0,0,5"/>
+
+                                <TextBlock Text="Rotation" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+                                <TextBox Text="0.0, 0.0, 0.0" Grid.Row="1" Grid.Column="1" Margin="0,0,0,5"/>
+
+                                <TextBlock Text="Scale" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+                                <TextBox Text="1.0, 1.0, 1.0" Grid.Row="2" Grid.Column="1" Margin="0,0,0,5"/>
+                            </Grid>
+                        </Expander>
+
+                        <!-- Mesh Renderer Component -->
+                        <Expander Header="Mesh Renderer" IsExpanded="True">
+                            <StackPanel Margin="5" Spacing="5">
+                                <Grid ColumnDefinitions="Auto, *">
+                                    <TextBlock Text="Mesh" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ComboBox Grid.Column="1" SelectedIndex="0">
+                                        <ComboBoxItem>Cube</ComboBoxItem>
+                                        <ComboBoxItem>Sphere</ComboBoxItem>
+                                        <ComboBoxItem>Capsule</ComboBoxItem>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid ColumnDefinitions="Auto, *">
+                                    <TextBlock Text="Material" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ComboBox Grid.Column="1" SelectedIndex="0">
+                                        <ComboBoxItem>Default Material</ComboBoxItem>
+                                        <ComboBoxItem>Red Plastic</ComboBoxItem>
+                                    </ComboBox>
+                                </Grid>
+                                <CheckBox Content="Cast Shadows" IsChecked="True" />
+                                <CheckBox Content="Receive Shadows" IsChecked="True" />
+                            </StackPanel>
+                        </Expander>
+                        
+                        <Button Content="Add Component" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="0,1,0,0" Padding="5, 2">
+            <Grid ColumnDefinitions="*, Auto">
+                <TextBlock Text="Ready" FontSize="12" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="FPS: 60" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Text="VRAM: 1.2 GB" FontSize="12" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

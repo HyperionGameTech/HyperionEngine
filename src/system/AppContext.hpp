@@ -62,9 +62,9 @@ class SystemEvent;
 
 struct WindowOptions
 {
-    ANSIString title;
-    Vec2i size;
-    WindowFlags flags = WindowFlags::NONE;
+    char title[256];
+    Vec2i dimensions;
+    uint32 flags;
 };
 
 HYP_CLASS(Abstract)
@@ -135,7 +135,7 @@ public:
 
     virtual bool IsHighDPI() const override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND)nullptr);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr);
 };
 
 HYP_CLASS()
@@ -199,7 +199,7 @@ public:
     Win32ApplicationWindow(ANSIString title, Vec2i size);
     ~Win32ApplicationWindow() override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND)nullptr);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr);
 
     void SetMousePosition(Vec2i position) override;
     Vec2i GetMousePosition() const override;
@@ -248,7 +248,7 @@ public:
     CocoaApplicationWindow(ANSIString title, Vec2i size);
     ~CocoaApplicationWindow() override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND)nullptr);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr);
 
     void SetMousePosition(Vec2i position) override;
     Vec2i GetMousePosition() const override;

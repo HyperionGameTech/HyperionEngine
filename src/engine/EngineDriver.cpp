@@ -97,24 +97,9 @@ EngineStatTimer g_renderThreadUpdateTimer("Frame/RenderThreadUpdate");
 
 class RenderThread final : public Thread<Scheduler>
 {
-    static ThreadId GetRenderThreadId(bool useSeparateThread)
-    {
-        /// TEMP HACK!!! Need to make g_renderThread non const and NOT set until here!
-        if (useSeparateThread)
-        {
-            const_cast<StaticThreadId&>(g_renderThread) = StaticThreadId(NAME("Render"));
-        }
-        else
-        {
-            const_cast<StaticThreadId&>(g_renderThread) = g_mainThread;
-        }
-
-        return g_renderThread;
-    }
-
 public:
     explicit RenderThread(bool useSeparateThread)
-        : Thread(GetRenderThreadId(useSeparateThread), ThreadPriorityValue::HIGHEST),
+        : Thread(g_renderThread, ThreadPriorityValue::HIGHEST),
           m_useSeparateThread(useSeparateThread),
           m_isRunning(false)
     {
@@ -300,16 +285,19 @@ HYP_API void EngineDriver::Init()
     // Set ready to false after render thread stops running.
     HYP_DEFER({ SetReady(false); });
 
-    bool useSeparateRenderThread = false;
-
     if (CoreApi_GetCommandLineArguments()["Headless"].ToBool(false))
     {
         // in headless mode, don't block the caller thread; on Hyp_Initialize() call,
         // we need to create a separate thread for rendering.
-        useSeparateRenderThread = true;
-    }
 
-    m_renderThread = MakeUnique<RenderThread>(useSeparateRenderThread);
+        g_renderThread = StaticThreadId(NAME("Render"));
+        m_renderThread = MakeUnique<RenderThread>(true);
+    }
+    else
+    {
+        g_renderThread = g_mainThread;
+        m_renderThread = MakeUnique<RenderThread>(false);
+    }
 
 #ifdef HYP_EDITOR
     // Create script compilation service

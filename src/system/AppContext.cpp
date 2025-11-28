@@ -449,7 +449,7 @@ Win32ApplicationWindow::~Win32ApplicationWindow()
 void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
 {
     m_title = windowOptions.title;
-    m_size = windowOptions.size;
+    m_size = windowOptions.dimensions;
 
     WideString wTitle = m_title.ToWide();
 
@@ -461,11 +461,16 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
 
     RegisterClassW(&wc);
 
+    int x = 0, y = 0;
+
     DWORD style = WS_VISIBLE;
 
-    if (!(windowOptions.flags & WindowFlags::HEADLESS))
+    if (!(windowOptions.flags & uint32(WindowFlags::HEADLESS)))
     {
         style |= WS_OVERLAPPEDWINDOW;
+
+        x = CW_USEDEFAULT;
+        y = CW_USEDEFAULT;
     }
 
     if (parentHwnd != nullptr)
@@ -478,9 +483,14 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
 
     m_hwnd = CreateWindowW(
         wTitle.Data(), wTitle.Data(), style,
-        CW_USEDEFAULT, CW_USEDEFAULT,
+        x, y,
         r.right - r.left, r.bottom - r.top,
         parentHwnd, nullptr, m_hinst, this);
+
+    if (!m_hwnd)
+    {
+        HYP_FAIL("Failed to create Win32 window! Error code: {}", GetLastError());
+    }
 
     UpdateWindow(m_hwnd);
 }
@@ -623,7 +633,7 @@ Win32AppContext::~Win32AppContext() = default;
 
 Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
-    Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(windowOptions.title, windowOptions.size);
+    Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     window->Initialize(windowOptions, parentHwnd);
 
     SetMainWindow(window);

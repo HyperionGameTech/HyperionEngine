@@ -216,12 +216,9 @@ struct InstancedDrawCallStorage
     }
 };
 
-HYP_STRUCT(NoScriptBindings)
 class EntityBatchAllocatorBase
 {
 public:
-    HYP_STRUCT_BODY(EntityBatchAllocatorBase);
-
     virtual ~EntityBatchAllocatorBase() = default;
 
     EntityBatchAllocatorBase(const EntityBatchAllocatorBase& other)

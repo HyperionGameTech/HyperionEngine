@@ -25,20 +25,12 @@ public:
     App& operator=(App&& other) noexcept = delete;
     virtual ~App();
 
-    const Handle<AppContextBase>& GetAppContext() const
-    {
-        return m_appContext;
-    }
-
     void LaunchGame(const Handle<Game>& game);
 
 protected:
     App();
 
 private:
-    void RunMainLoop(Game* game);
-
-    Handle<AppContextBase> m_appContext;
     UniquePtr<GameThread> m_gameThread;
 };
 

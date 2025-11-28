@@ -49,6 +49,20 @@ if(DOTNET_EXECUTABLE)
     set(EDITOR_PROJECT_DIR "${CMAKE_SOURCE_DIR}/build/CSharpProjects/Hyperion.Editor")
     file(MAKE_DIRECTORY ${EDITOR_PROJECT_DIR})
 
+    # Generate launchSettings.json to enable native debugging
+    set(EDITOR_PROPERTIES_DIR "${EDITOR_PROJECT_DIR}/Properties")
+    file(MAKE_DIRECTORY ${EDITOR_PROPERTIES_DIR})
+    file(WRITE "${EDITOR_PROPERTIES_DIR}/launchSettings.json" 
+[=[{
+  "profiles": {
+    "Hyperion.Editor": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
+]=])
+
     set(EDITOR_CSPROJ_PATH "${EDITOR_PROJECT_DIR}/Hyperion.Editor.csproj")
 
     file(WRITE ${EDITOR_CSPROJ_PATH} "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
@@ -65,14 +79,17 @@ if(DOTNET_EXECUTABLE)
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <AssemblyName>Hyperion.Editor</AssemblyName>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <Product>Hyperion Editor</Product>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <AssemblyTitle>Hyperion Editor</AssemblyTitle>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <Platforms>AnyCPU;x64</Platforms>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PlatformTarget>x64</PlatformTarget>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <EnableUnmanagedDebugging>true</EnableUnmanagedDebugging>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "  </PropertyGroup>\n")
 
     file(APPEND ${EDITOR_CSPROJ_PATH} "  <ItemGroup>\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia\" Version=\"11.0.6\" />\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Desktop\" Version=\"11.0.6\" />\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Themes.Fluent\" Version=\"11.0.6\" />\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Fonts.Inter\" Version=\"11.0.6\" />\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Diagnostics\" Version=\"11.0.6\">\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia\" Version=\"11.*\" />\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Desktop\" Version=\"11.*\" />\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Themes.Fluent\" Version=\"11.*\" />\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Fonts.Inter\" Version=\"11.*\" />\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Diagnostics\" Version=\"11.*\">\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "      <IncludeAssets Condition=\"'\$(Configuration)' != 'Debug'\">None</IncludeAssets>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "      <PrivateAssets Condition=\"'\$(Configuration)' != 'Debug'\">All</PrivateAssets>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    </PackageReference>\n")
@@ -110,6 +127,7 @@ if(DOTNET_EXECUTABLE)
         include_external_msproject(
             Hyperion.Editor
             "${EDITOR_CSPROJ_PATH}"
+            TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
         )
     else()
         add_custom_target(Hyperion.Editor ALL

@@ -20,8 +20,9 @@
 namespace hyperion {
 
 HYP_API const StaticThreadId g_mainThread = StaticThreadId(NAME("Main"));
-HYP_API const StaticThreadId g_renderThread = g_mainThread;
 HYP_API const StaticThreadId g_gameThread = StaticThreadId(NAME("Game"));
+
+HYP_API StaticThreadId g_renderThread = g_mainThread;
 
 namespace threading {
 
