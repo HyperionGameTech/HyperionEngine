@@ -2,7 +2,13 @@
 
 #pragma once
 
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
 #include <rendering/RenderFramebuffer.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
 
 #include <rendering/vulkan/VulkanAttachment.hpp>
 #include <rendering/vulkan/VulkanGpuImage.hpp>
@@ -147,10 +153,10 @@ public:
         return m_renderPass;
     }
 
-    virtual AttachmentRef AddAttachment(const AttachmentRef& attachment) override;
-    virtual AttachmentRef AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
+    virtual VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment) override;
+    virtual VulkanAttachmentRef AddAttachment(uint32 binding, const VulkanGpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
 
-    virtual AttachmentRef AddAttachment(
+    virtual VulkanAttachmentRef AddAttachment(
         uint32 binding,
         TextureFormat format,
         TextureType type,
@@ -159,7 +165,7 @@ public:
 
     virtual bool RemoveAttachment(uint32 binding) override;
 
-    virtual AttachmentBase* GetAttachment(uint32 binding) const override;
+    virtual VulkanAttachment* GetAttachment(uint32 binding) const override;
 
     virtual int NumAttachments() const override
     {
@@ -177,10 +183,10 @@ public:
 
     virtual RendererResult Resize(Vec2u newSize) override;
 
-    virtual void BeginCapture(CommandBufferBase* commandBuffer) override;
-    virtual void EndCapture(CommandBufferBase* commandBuffer) override;
+    virtual void BeginCapture(VulkanCommandBuffer* commandBuffer) override;
+    virtual void EndCapture(VulkanCommandBuffer* commandBuffer) override;
 
-    virtual void Clear(CommandBufferBase* commandBuffer) override;
+    virtual void Clear(VulkanCommandBuffer* commandBuffer) override;
 
 private:
     VkFramebuffer m_handle;

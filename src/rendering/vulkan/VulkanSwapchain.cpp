@@ -114,7 +114,7 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQue
 
     // Debug: ensure all images are in the PRESENT state
 #ifdef HYP_DEBUG_MODE
-    for (GpuImageBase* image : m_images)
+    for (VulkanGpuImage* image : m_images)
     {
         HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
     }
@@ -211,7 +211,7 @@ RendererResult VulkanSwapchain::Create()
     HYP_LOG(RenderingBackend, Info, "Creating {} swapchain framebuffers with extent and format: {}",
         m_images.Size(), m_extent, EnumToString(m_images[0]->GetTextureFormat()));
 
-    for (const GpuImageRef& image : m_images)
+    for (const VulkanGpuImageRef& image : m_images)
     {
         HYP_GFX_ASSERT(image != nullptr);
 
@@ -225,7 +225,7 @@ RendererResult VulkanSwapchain::Create()
             HYP_GFX_CHECK(HYP_MAKE_ERROR(RendererError, "Image resource state is not PRESENT!"));
         }
 
-        VulkanFramebufferRef framebuffer = VULKAN_CAST(m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(m_extent, RTT_PRESENT)));
+        VulkanFramebufferRef framebuffer = m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(m_extent, RTT_PRESENT));
         framebuffer->AddAttachment(0, VulkanGpuImageRef(image), LoadOperation::CLEAR, StoreOperation::STORE);
         HYP_GFX_CHECK(framebuffer->Create());
     }
@@ -233,7 +233,7 @@ RendererResult VulkanSwapchain::Create()
     return {};
 }
 
-SwapchainRef VulkanSwapchain::Recreate()
+VulkanSwapchainRef VulkanSwapchain::Recreate()
 {
     Assert(IsCreated());
 
@@ -388,7 +388,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue)
         {
-            for (const GpuImageRef& image : m_images)
+            for (const VulkanGpuImageRef& image : m_images)
             {
                 HYP_GFX_ASSERT(image.IsValid());
 
@@ -400,7 +400,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
 #ifdef HYP_DEBUG_MODE
     // Ensure all images are in the PRESENT state
-    for (GpuImageBase* image : m_images)
+    for (VulkanGpuImage* image : m_images)
     {
         HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
     }

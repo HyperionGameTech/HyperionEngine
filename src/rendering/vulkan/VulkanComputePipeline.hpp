@@ -2,7 +2,13 @@
 
 #pragma once
 
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
 #include <rendering/RenderComputePipeline.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
 
 #include <rendering/vulkan/VulkanPipeline.hpp>
 
@@ -19,7 +25,7 @@ public:
     VulkanComputePipeline();
     VulkanComputePipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
     virtual ~VulkanComputePipeline() override;
-    
+
     virtual bool IsCreated() const override
     {
         return VulkanPipelineBase::IsCreated();
@@ -27,12 +33,12 @@ public:
 
     virtual RendererResult Create() override;
 
-    virtual void Bind(CommandBufferBase* commandBuffer) override;
+    virtual void Bind(VulkanCommandBuffer* commandBuffer) override;
 
-    virtual void Dispatch(CommandBufferBase* commandBuffer, const Vec3u& groupSize) const override;
+    virtual void Dispatch(VulkanCommandBuffer* commandBuffer, const Vec3u& groupSize) const override;
     virtual void DispatchIndirect(
-        CommandBufferBase* commandBuffer,
-        const GpuBufferRef& indirectBuffer,
+        VulkanCommandBuffer* commandBuffer,
+        const VulkanGpuBufferRef& indirectBuffer,
         SizeType offset = 0) const override;
 
     virtual void SetPushConstants(const void* data, SizeType size) override;

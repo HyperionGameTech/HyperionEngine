@@ -71,7 +71,7 @@ RendererResult VulkanFrame::ResetFrameState()
     HYPERION_PASS_ERRORS(m_queueSubmitFence->Reset(), result);
 
 #ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
-    for (DescriptorSetBase* descriptorSet : m_usedDescriptorSets)
+    for (VulkanDescriptorSet* descriptorSet : m_usedDescriptorSets)
     {
         auto it = descriptorSet->GetCurrentFrames().FindAs(this);
         if (it != descriptorSet->GetCurrentFrames().End())

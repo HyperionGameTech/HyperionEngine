@@ -2,7 +2,13 @@
 
 #pragma once
 
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
 #include <rendering/RenderGpuBuffer.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
 
 #include <system/vma/VmaUsage.hpp>
 
@@ -25,20 +31,20 @@ public:
     virtual bool IsCreated() const override;
     virtual bool IsCpuAccessible() const override;
 
-    virtual void InsertBarrier(CommandBufferBase* commandBuffer, ResourceState newState) const override;
-    virtual void InsertBarrier(CommandBufferBase* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const override;
+    virtual void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState) const override;
+    virtual void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const override;
 
     void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState) const;
     void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const;
 
     virtual void CopyFrom(
-        CommandBufferBase* commandBuffer,
-        const GpuBufferBase* srcBuffer,
+        VulkanCommandBuffer* commandBuffer,
+        const VulkanGpuBuffer* srcBuffer,
         uint32 count) override;
 
     virtual void CopyFrom(
-        CommandBufferBase* commandBuffer,
-        const GpuBufferBase* srcBuffer,
+        VulkanCommandBuffer* commandBuffer,
+        const VulkanGpuBuffer* srcBuffer,
         uint32 srcOffset, uint32 dstOffset,
         uint32 count) override;
 

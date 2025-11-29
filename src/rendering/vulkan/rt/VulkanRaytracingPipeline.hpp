@@ -2,7 +2,14 @@
 
 #pragma once
 
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
+
 #include <rendering/vulkan/VulkanPipeline.hpp>
 
 #include <core/containers/Array.hpp>
@@ -13,6 +20,7 @@
 namespace hyperion {
 
 class VulkanShader;
+enum ShaderModuleType : uint32;
 
 HYP_CLASS(NoScriptBindings)
 class VulkanRaytracingPipeline final : public RaytracingPipelineBase, public VulkanPipelineBase
@@ -31,8 +39,8 @@ public:
 
     virtual RendererResult Create() override;
 
-    virtual void Bind(CommandBufferBase* commandBuffer) override;
-    virtual void TraceRays(CommandBufferBase* commandBuffer, const Vec3u& extent) const override;
+    virtual void Bind(VulkanCommandBuffer* commandBuffer) override;
+    virtual void TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const override;
 
     virtual void SetPushConstants(const void* data, SizeType size) override;
 

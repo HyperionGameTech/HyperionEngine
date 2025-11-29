@@ -3,12 +3,13 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/renderers/EnvGridRenderer.hpp>
+#include <rendering/renderers/EnvProbeRenderer.hpp>
+
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
-#include <rendering/renderers/EnvGridRenderer.hpp>
-#include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
@@ -28,10 +29,14 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderSwapchain.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
+
+#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 #include <rendering/raytracing/MeshBlasBuilder.hpp>
 #include <rendering/raytracing/RaytracingReflections.hpp>
 #include <rendering/raytracing/DDGI.hpp>
+
+#include <rendering/shader_compiler/ShaderCompiler.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

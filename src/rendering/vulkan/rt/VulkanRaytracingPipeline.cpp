@@ -37,7 +37,7 @@ Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanRaytracingPipeline>
 {
     Array<VkDescriptorSetLayout> usedLayouts;
 
-    VulkanShader* shader = VULKAN_CAST(pipeline.GetShader().Get());
+    VulkanShader* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
 
     const DescriptorTableDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
@@ -141,8 +141,8 @@ RendererResult VulkanRaytracingPipeline::Create()
 
     VkRayTracingPipelineCreateInfoKHR pipelineInfo { VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR };
 
-    const Array<VkPipelineShaderStageCreateInfo>& stages = VULKAN_CAST(m_shader.Get())->GetVulkanShaderStages();
-    const Array<VulkanShaderGroup>& shaderGroups = VULKAN_CAST(m_shader.Get())->GetShaderGroups();
+    const Array<VkPipelineShaderStageCreateInfo>& stages = m_shader->GetVulkanShaderStages();
+    const Array<VulkanShaderGroup>& shaderGroups = m_shader->GetShaderGroups();
 
     Array<VkRayTracingShaderGroupCreateInfoKHR> shaderGroupCreateInfos;
     shaderGroupCreateInfos.Resize(shaderGroups.Size());
@@ -176,12 +176,12 @@ RendererResult VulkanRaytracingPipeline::Create()
     }
 #endif
 
-    HYPERION_PASS_ERRORS(CreateShaderBindingTables(VULKAN_CAST(m_shader.Get())), result);
+    HYPERION_PASS_ERRORS(CreateShaderBindingTables(m_shader), result);
 
     HYPERION_RETURN_OK;
 }
 
-void VulkanRaytracingPipeline::Bind(CommandBufferBase* commandBuffer)
+void VulkanRaytracingPipeline::Bind(VulkanCommandBuffer* commandBuffer)
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -204,7 +204,7 @@ void VulkanRaytracingPipeline::Bind(CommandBufferBase* commandBuffer)
     }
 }
 
-void VulkanRaytracingPipeline::TraceRays(CommandBufferBase* commandBuffer, const Vec3u& extent) const
+void VulkanRaytracingPipeline::TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const
 {
     g_vulkanDynamicFunctions->vkCmdTraceRaysKHR(
         VULKAN_CAST(commandBuffer)->GetVulkanHandle(),

@@ -2,8 +2,15 @@
 
 #pragma once
 
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
 #include <rendering/RenderGpuImage.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
+
+#include <rendering/vulkan/VulkanGpuBuffer.hpp>
 
 #include <system/vma/VmaUsage.hpp>
 
@@ -45,37 +52,37 @@ public:
     void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState);
 
     virtual void InsertBarrier(
-        CommandBufferBase* commandBuffer,
+        VulkanCommandBuffer* commandBuffer,
         ResourceState newState,
         ShaderModuleType shaderModuleType) override;
 
     virtual void InsertBarrier(
-        CommandBufferBase* commandBuffer,
+        VulkanCommandBuffer* commandBuffer,
         const ImageSubResource& subResource,
         ResourceState newState,
         ShaderModuleType shaderModuleType) override;
 
     virtual RendererResult Blit(
-        CommandBufferBase* commandBuffer,
-        const GpuImageBase* src) override;
+        VulkanCommandBuffer* commandBuffer,
+        const VulkanGpuImage* src) override;
 
     virtual RendererResult Blit(
-        CommandBufferBase* commandBuffer,
-        const GpuImageBase* src,
+        VulkanCommandBuffer* commandBuffer,
+        const VulkanGpuImage* src,
         uint32 srcMip,
         uint32 dstMip,
         uint32 srcFace,
         uint32 dstFace) override;
 
     virtual RendererResult Blit(
-        CommandBufferBase* commandBuffer,
-        const GpuImageBase* src,
+        VulkanCommandBuffer* commandBuffer,
+        const VulkanGpuImage* src,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) override;
 
     virtual RendererResult Blit(
-        CommandBufferBase* commandBuffer,
-        const GpuImageBase* src,
+        VulkanCommandBuffer* commandBuffer,
+        const VulkanGpuImage* src,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
         uint32 srcMip,
@@ -83,22 +90,22 @@ public:
         uint32 srcFace,
         uint32 dstFace) override;
 
-    virtual RendererResult GenerateMipmaps(CommandBufferBase* commandBuffer) override;
+    virtual RendererResult GenerateMipmaps(VulkanCommandBuffer* commandBuffer) override;
 
     virtual void CopyFromBuffer(
-        CommandBufferBase* commandBuffer,
-        const GpuBufferBase* srcBuffer,
+        VulkanCommandBuffer* commandBuffer,
+        const VulkanGpuBuffer* srcBuffer,
         uint32 srcBufferOffset = 0,
         uint8 dstMipIndex = UINT8_MAX,
         uint16 dstArrayLayer = UINT16_MAX) const override;
 
     virtual void CopyToBuffer(
-        CommandBufferBase* commandBuffer,
-        GpuBufferBase* dstBuffer) const override;
+        VulkanCommandBuffer* commandBuffer,
+        VulkanGpuBuffer* dstBuffer) const override;
 
     /*! \brief Creates a view of the image for the specified array layer
      */
-    virtual GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
+    virtual VulkanGpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

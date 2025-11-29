@@ -40,7 +40,7 @@ Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(c
 {
     Array<VkDescriptorSetLayout> usedLayouts;
 
-    VulkanShader* shader = VULKAN_CAST(pipeline.GetShader().Get());
+    VulkanShader* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
 
     const DescriptorTableDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
@@ -147,7 +147,7 @@ VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
     SafeDelete(std::move(m_renderPass));
 }
 
-void VulkanGraphicsPipeline::Bind(CommandBufferBase* cmd)
+void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* cmd)
 {
     Vec2i viewportOffset = Vec2i::Zero();
     Vec2u viewportExtent = Vec2u::One();
@@ -160,7 +160,7 @@ void VulkanGraphicsPipeline::Bind(CommandBufferBase* cmd)
     Bind(cmd, viewportOffset, viewportExtent);
 }
 
-void VulkanGraphicsPipeline::Bind(CommandBufferBase* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent)
+void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent)
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -441,7 +441,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkGraphicsPipelineCreateInfo pipelineInfo { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
-    const Array<VkPipelineShaderStageCreateInfo>& stages = VULKAN_CAST(m_shader.Get())->GetVulkanShaderStages();
+    const Array<VkPipelineShaderStageCreateInfo>& stages = m_shader->GetVulkanShaderStages();
     HYP_GFX_ASSERT(stages.Any(), "No shader stages found");
 
     pipelineInfo.stageCount = uint32(stages.Size());

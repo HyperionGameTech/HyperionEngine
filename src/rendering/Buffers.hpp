@@ -18,6 +18,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderFrame.hpp>
+#include <rendering/RenderBackend.hpp>
 
 #include <core/math/Mat4f.hpp>
 

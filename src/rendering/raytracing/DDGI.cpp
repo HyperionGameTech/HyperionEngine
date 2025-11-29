@@ -15,6 +15,8 @@
 #include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderCollection.hpp>
 
+#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/View.hpp>

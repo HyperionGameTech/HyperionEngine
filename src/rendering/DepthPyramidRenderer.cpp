@@ -4,7 +4,6 @@
 
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderAttachment.hpp>
 #include <rendering/RenderComputePipeline.hpp>
@@ -13,6 +12,9 @@
 #include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderGpuImageView.hpp>
 #include <rendering/RenderSampler.hpp>
+#include <rendering/RenderShader.hpp>
+
+#include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

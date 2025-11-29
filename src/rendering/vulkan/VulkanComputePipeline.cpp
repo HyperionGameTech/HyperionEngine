@@ -39,7 +39,7 @@ Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanComputePipeline>(co
 {
     Array<VkDescriptorSetLayout> usedLayouts;
 
-    VulkanShader* shader = VULKAN_CAST(pipeline.GetShader().Get());
+    VulkanShader* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
 
     const DescriptorTableDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
@@ -78,7 +78,7 @@ VulkanComputePipeline::~VulkanComputePipeline()
     SafeDelete(std::move(m_descriptorTable));
 }
 
-void VulkanComputePipeline::Bind(CommandBufferBase* commandBuffer)
+void VulkanComputePipeline::Bind(VulkanCommandBuffer* commandBuffer)
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -102,7 +102,7 @@ void VulkanComputePipeline::Bind(CommandBufferBase* commandBuffer)
 }
 
 void VulkanComputePipeline::Dispatch(
-    CommandBufferBase* commandBuffer,
+    VulkanCommandBuffer* commandBuffer,
     const Vec3u& groupSize) const
 {
     vkCmdDispatch(
@@ -113,13 +113,13 @@ void VulkanComputePipeline::Dispatch(
 }
 
 void VulkanComputePipeline::DispatchIndirect(
-    CommandBufferBase* commandBuffer,
-    const GpuBufferRef& indirectBuffer,
+    VulkanCommandBuffer* commandBuffer,
+    const VulkanGpuBufferRef& indirectBuffer,
     SizeType offset) const
 {
     vkCmdDispatchIndirect(
         VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
-        VULKAN_CAST(indirectBuffer.Get())->GetVulkanHandle(),
+        indirectBuffer->GetVulkanHandle(),
         offset);
 }
 
@@ -127,11 +127,9 @@ RendererResult VulkanComputePipeline::Create()
 {
     /* Push constants */
     const VkPushConstantRange pushConstantRanges[] = {
-        {
-            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+        { .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
             .offset = 0,
-            .size = uint32(GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
-        }
+            .size = uint32(GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
     };
 
     /* Pipeline layout */
@@ -143,7 +141,7 @@ RendererResult VulkanComputePipeline::Create()
 #if 0
     HYP_LOG(RenderingBackend, Debug, "Using {} descriptor set layouts in pipeline", usedLayouts.Size());
 
-    for (const DescriptorSetRef& descriptorSet : m_descriptorTable->GetSets()[0])
+    for (const VulkanDescriptorSetRef& descriptorSet : m_descriptorTable->GetSets()[0])
     {
         HYP_LOG(RenderingBackend, Debug, "\tDescriptor set layout: {} ({})",
             descriptorSet->GetLayout().GetName(), descriptorSet->GetLayout().GetDeclaration()->setIndex);
@@ -177,7 +175,7 @@ RendererResult VulkanComputePipeline::Create()
         return HYP_MAKE_ERROR(RendererError, "Compute shader not provided to pipeline");
     }
 
-    const Array<VkPipelineShaderStageCreateInfo>& stages = VULKAN_CAST(m_shader.Get())->GetVulkanShaderStages();
+    const Array<VkPipelineShaderStageCreateInfo>& stages = m_shader->GetVulkanShaderStages();
 
     if (stages.Size() == 0)
     {

@@ -2,7 +2,6 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/DebugDrawer.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
@@ -16,6 +15,7 @@
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderShader.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -36,6 +36,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineStats.hpp>
+#include <engine/DebugDrawer.hpp>
 
 #include <DebugDrawer.generated.inl>
 

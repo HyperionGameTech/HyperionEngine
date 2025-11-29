@@ -2,10 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <rendering/raytracing/RaytracingReflections.hpp>
-#include <rendering/raytracing/DDGI.hpp>
 #include <rendering/RenderGlobalState.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
@@ -14,6 +11,12 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
+
+#include <rendering/renderers/DeferredRenderer.hpp>
+
+#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/raytracing/RaytracingReflections.hpp>
+#include <rendering/raytracing/DDGI.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

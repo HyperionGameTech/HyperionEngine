@@ -1,7 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #pragma once
+
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
 #include <rendering/RenderCommandBuffer.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
+
 #include <rendering/RenderDevice.hpp>
 
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
@@ -94,8 +102,8 @@ public:
 
     RendererResult SubmitSecondary(VulkanCommandBuffer* primary);
 
-    virtual void BindVertexBuffer(const GpuBufferBase* buffer) override;
-    virtual void BindIndexBuffer(const GpuBufferBase* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
+    virtual void BindVertexBuffer(const VulkanGpuBuffer* buffer) override;
+    virtual void BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
 
     virtual void DrawIndexed(
         uint32 numIndices,
@@ -103,7 +111,7 @@ public:
         uint32 instanceIndex = 0) const override;
 
     virtual void DrawIndexedIndirect(
-        const GpuBufferBase* buffer,
+        const VulkanGpuBuffer* buffer,
         uint32 bufferOffset) const override;
 
     void DebugMarkerBegin(const char* markerName) const;

@@ -239,7 +239,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     m_functions.Clear();
 
-    tempFrame = VULKAN_CAST(GetRenderBackend()->MakeFrame(0));
+    tempFrame = GetRenderBackend()->MakeFrame(0);
     HYP_GFX_CHECK(tempFrame->Create());
 
     renderQueue.Prepare(tempFrame);

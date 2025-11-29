@@ -87,7 +87,7 @@ bool VulkanGpuImage::IsOwned() const
     return m_isHandleOwned;
 }
 
-RendererResult VulkanGpuImage::GenerateMipmaps(CommandBufferBase* commandBuffer)
+RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffer)
 {
     if (m_handle == VK_NULL_HANDLE)
     {
@@ -438,7 +438,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         {
             SetResourceState(RS_UNDEFINED);
 
-            FrameBase* frame = GetRenderBackend()->GetCurrentFrame();
+            VulkanFrame* frame = GetRenderBackend()->GetCurrentFrame();
             RenderQueue& renderQueue = frame->renderQueue;
             renderQueue << ::hyperion::InsertBarrier(this, previousResourceState);
         }
@@ -516,7 +516,7 @@ void VulkanGpuImage::SetSubResourceState(const ImageSubResource& subResource, Re
 }
 
 void VulkanGpuImage::InsertBarrier(
-    CommandBufferBase* commandBuffer,
+    VulkanCommandBuffer* commandBuffer,
     ResourceState newState,
     ShaderModuleType shaderModuleType)
 {
@@ -542,7 +542,7 @@ void VulkanGpuImage::InsertBarrier(
 }
 
 void VulkanGpuImage::InsertBarrier(
-    CommandBufferBase* commandBuffer,
+    VulkanCommandBuffer* commandBuffer,
     const ImageSubResource& subResource,
     ResourceState newState,
     ShaderModuleType shaderModuleType)
@@ -646,8 +646,8 @@ void VulkanGpuImage::InsertBarrier(
 }
 
 RendererResult VulkanGpuImage::Blit(
-    CommandBufferBase* commandBuffer,
-    const GpuImageBase* src)
+    VulkanCommandBuffer* commandBuffer,
+    const VulkanGpuImage* src)
 {
     return Blit(
         commandBuffer,
@@ -657,8 +657,8 @@ RendererResult VulkanGpuImage::Blit(
 }
 
 RendererResult VulkanGpuImage::Blit(
-    CommandBufferBase* commandBuffer,
-    const GpuImageBase* srcImage,
+    VulkanCommandBuffer* commandBuffer,
+    const VulkanGpuImage* srcImage,
     uint32 srcMip,
     uint32 dstMip,
     uint32 srcFace,
@@ -673,8 +673,8 @@ RendererResult VulkanGpuImage::Blit(
 }
 
 RendererResult VulkanGpuImage::Blit(
-    CommandBufferBase* commandBuffer,
-    const GpuImageBase* srcImage,
+    VulkanCommandBuffer* commandBuffer,
+    const VulkanGpuImage* srcImage,
     Rect<uint32> srcRect,
     Rect<uint32> dstRect)
 {
@@ -730,8 +730,8 @@ RendererResult VulkanGpuImage::Blit(
 }
 
 RendererResult VulkanGpuImage::Blit(
-    CommandBufferBase* commandBuffer,
-    const GpuImageBase* srcImage,
+    VulkanCommandBuffer* commandBuffer,
+    const VulkanGpuImage* srcImage,
     Rect<uint32> srcRect,
     Rect<uint32> dstRect,
     uint32 srcMip,
@@ -788,8 +788,8 @@ RendererResult VulkanGpuImage::Blit(
 }
 
 void VulkanGpuImage::CopyFromBuffer(
-    CommandBufferBase* commandBuffer,
-    const GpuBufferBase* srcBuffer,
+    VulkanCommandBuffer* commandBuffer,
+    const VulkanGpuBuffer* srcBuffer,
     uint32 srcBufferOffset,
     uint8 dstMipIndex,
     uint16 dstArrayLayer) const
@@ -859,7 +859,7 @@ void VulkanGpuImage::CopyFromBuffer(
     }
 }
 
-void VulkanGpuImage::CopyToBuffer(CommandBufferBase* commandBuffer, GpuBufferBase* dstBuffer) const
+void VulkanGpuImage::CopyToBuffer(VulkanCommandBuffer* commandBuffer, VulkanGpuBuffer* dstBuffer) const
 {
     HYP_GFX_ASSERT(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
     HYP_GFX_ASSERT(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
@@ -900,7 +900,7 @@ void VulkanGpuImage::CopyToBuffer(CommandBufferBase* commandBuffer, GpuBufferBas
     }
 }
 
-GpuImageViewRef VulkanGpuImage::MakeLayerImageView(uint32 layerIndex) const
+VulkanGpuImageViewRef VulkanGpuImage::MakeLayerImageView(uint32 layerIndex) const
 {
     if (m_handle == VK_NULL_HANDLE)
     {
@@ -909,7 +909,7 @@ GpuImageViewRef VulkanGpuImage::MakeLayerImageView(uint32 layerIndex) const
             Warning,
             "Attempt to create image view on uninitialized image");
 
-        return GpuImageViewRef();
+        return VulkanGpuImageViewRef();
     }
 
     return GetRenderBackend()->MakeImageView(

@@ -3,8 +3,10 @@
 #pragma once
 
 #include <rendering/RenderBackend.hpp>
-
 #include <rendering/CrashHandler.hpp>
+
+#include <rendering/vulkan/VulkanGpuBuffer.hpp>
+#include <rendering/vulkan/VulkanGpuImage.hpp>
 
 #include <core/containers/HashMap.hpp>
 
@@ -112,64 +114,64 @@ public:
 
     virtual const IRenderConfig& GetRenderConfig() const override;
 
-    virtual AsyncComputeBase* GetAsyncCompute() const override;
+    virtual VulkanAsyncCompute* GetAsyncCompute() const override;
 
-    virtual FrameBase* GetCurrentFrame() const override;
+    virtual VulkanFrame* GetCurrentFrame() const override;
 
-    virtual FrameBase* PrepareNextFrame() override;
+    virtual VulkanFrame* PrepareNextFrame() override;
 
-    virtual void PrepareSwapchain(SwapchainBase* swapchain) override;
+    virtual void PrepareSwapchain(VulkanSwapchain* swapchain) override;
     virtual void SubmitCommandBuffers() override;
-    virtual void PresentToSwapchain(SwapchainBase* swapchain) override;
+    virtual void PresentToSwapchain(VulkanSwapchain* swapchain) override;
 
-    virtual CommandBufferBase* GetCurrentCommandBuffer() const override;
+    virtual VulkanCommandBuffer* GetCurrentCommandBuffer() const override;
 
-    virtual DescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) override;
+    virtual VulkanDescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) override;
 
-    virtual DescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration* decl) override;
+    virtual VulkanDescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration* decl) override;
 
-    virtual GraphicsPipelineRef MakeGraphicsPipeline(
-        const ShaderRef& shader,
-        const DescriptorTableRef& descriptorTable,
-        Span<const FramebufferRef> framebuffers,
+    virtual VulkanGraphicsPipelineRef MakeGraphicsPipeline(
+        const VulkanShaderRef& shader,
+        const VulkanDescriptorTableRef& descriptorTable,
+        Span<const VulkanFramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes) override;
 
-    virtual ComputePipelineRef MakeComputePipeline(
-        const ShaderRef& shader,
-        const DescriptorTableRef& descriptorTable) override;
+    virtual VulkanComputePipelineRef MakeComputePipeline(
+        const VulkanShaderRef& shader,
+        const VulkanDescriptorTableRef& descriptorTable) override;
 
-    virtual RaytracingPipelineRef MakeRaytracingPipeline(
-        const ShaderRef& shader,
-        const DescriptorTableRef& descriptorTable) override;
+    virtual VulkanRaytracingPipelineRef MakeRaytracingPipeline(
+        const VulkanShaderRef& shader,
+        const VulkanDescriptorTableRef& descriptorTable) override;
 
-    virtual GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) override;
+    virtual VulkanGpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) override;
 
-    virtual GpuImageRef MakeImage(const TextureDesc& textureDesc) override;
+    virtual VulkanGpuImageRef MakeImage(const TextureDesc& textureDesc) override;
 
-    virtual GpuImageViewRef MakeImageView(const GpuImageRef& image) override;
-    virtual GpuImageViewRef MakeImageView(const GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers) override;
+    virtual VulkanGpuImageViewRef MakeImageView(const VulkanGpuImageRef& image) override;
+    virtual VulkanGpuImageViewRef MakeImageView(const VulkanGpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers) override;
 
-    virtual SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) override;
+    virtual VulkanSamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) override;
 
-    virtual FramebufferRef MakeFramebuffer(Vec2u extent, uint32 numViews = 1) override;
-    virtual FramebufferRef MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews = 1) override;
+    virtual VulkanFramebufferRef MakeFramebuffer(Vec2u extent, uint32 numViews = 1) override;
+    virtual VulkanFramebufferRef MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews = 1) override;
 
-    virtual FrameRef MakeFrame(uint32 frameIndex) override;
+    virtual VulkanFrameRef MakeFrame(uint32 frameIndex) override;
 
-    virtual ShaderRef MakeShader(const RC<CompiledShader>& compiledShader) override;
+    virtual VulkanShaderRef MakeShader(const RC<CompiledShader>& compiledShader) override;
 
-    virtual GpuBlasRef MakeGpuBlas(
-        const GpuBufferRef& packedVerticesBuffer,
-        const GpuBufferRef& packedIndicesBuffer,
+    virtual VulkanGpuBlasRef MakeGpuBlas(
+        const VulkanGpuBufferRef& packedVerticesBuffer,
+        const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
         const Mat4f& transform) override;
-    virtual GpuTlasRef MakeTLAS() override;
+    virtual VulkanGpuTlasRef MakeTLAS() override;
 
-    virtual const GpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 layerIndex = 0, uint32 numLayers = ~0u) override;
+    virtual const VulkanGpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 layerIndex = 0, uint32 numLayers = ~0u) override;
 
-    virtual void PopulateIndirectDrawCommandsBuffer(const GpuBufferRef& vertexBuffer, const GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) override;
+    virtual void PopulateIndirectDrawCommandsBuffer(const VulkanGpuBufferRef& vertexBuffer, const VulkanGpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) override;
 
     virtual TextureFormat GetDefaultFormat(DefaultImageFormat type) const override;
 

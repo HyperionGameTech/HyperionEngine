@@ -231,7 +231,7 @@ RendererResult VulkanCommandBuffer::SubmitSecondary(VulkanCommandBuffer* primary
     HYPERION_RETURN_OK;
 }
 
-void VulkanCommandBuffer::BindVertexBuffer(const GpuBufferBase* buffer)
+void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
 {
     HYP_GFX_ASSERT(buffer != nullptr);
     HYP_GFX_ASSERT(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
@@ -242,7 +242,7 @@ void VulkanCommandBuffer::BindVertexBuffer(const GpuBufferBase* buffer)
     vkCmdBindVertexBuffers(m_handle, 0, 1, vertexBuffers, offsets);
 }
 
-void VulkanCommandBuffer::BindIndexBuffer(const GpuBufferBase* buffer, GpuElemType elemType)
+void VulkanCommandBuffer::BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType)
 {
     HYP_GFX_ASSERT(buffer != nullptr);
     HYP_GFX_ASSERT(buffer->GetBufferType() == GpuBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
@@ -269,7 +269,7 @@ void VulkanCommandBuffer::DrawIndexed(
 }
 
 void VulkanCommandBuffer::DrawIndexedIndirect(
-    const GpuBufferBase* buffer,
+    const VulkanGpuBuffer* buffer,
     uint32 bufferOffset) const
 {
     vkCmdDrawIndexedIndirect(

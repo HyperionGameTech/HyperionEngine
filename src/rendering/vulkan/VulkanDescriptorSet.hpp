@@ -2,13 +2,20 @@
 
 #pragma once
 
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
+#include <rendering/RenderDescriptorSet.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
+
 #include <core/Name.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/containers/ArrayMap.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/Defines.hpp>
 
-#include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <core/Types.hpp>
@@ -62,19 +69,19 @@ public:
     virtual void UpdateDirtyState(bool* outIsDirty = nullptr) override;
     virtual void Update(bool force = false) override;
 
-    virtual DescriptorSetRef Clone() const override;
+    virtual VulkanDescriptorSetRef Clone() const override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
 
 protected:
-    virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, uint32 bindIndex) const override;
-    virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
-    virtual void Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, uint32 bindIndex) const override;
-    virtual void Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
-    virtual void Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, uint32 bindIndex) const override;
-    virtual void Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const override;
+    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const override;
+    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const override;
+    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
 
     VkDescriptorSet m_handle;
     VkDescriptorPool m_vkDescriptorPool;

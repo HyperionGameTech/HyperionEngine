@@ -56,7 +56,7 @@ static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(Acceleration
 
 #pragma region VulkanAccelerationGeometry
 
-VulkanAccelerationGeometry::VulkanAccelerationGeometry(const GpuBufferRef& packedVerticesBuffer, const GpuBufferRef& packedIndicesBuffer, uint32 numVertices, uint32 numIndices, const Handle<Material>& material)
+VulkanAccelerationGeometry::VulkanAccelerationGeometry(const VulkanGpuBufferRef& packedVerticesBuffer, const VulkanGpuBufferRef& packedIndicesBuffer, uint32 numVertices, uint32 numIndices, const Handle<Material>& material)
     : m_isCreated(false),
       m_packedVerticesBuffer(packedVerticesBuffer),
       m_packedIndicesBuffer(packedIndicesBuffer),
@@ -113,11 +113,11 @@ RendererResult VulkanAccelerationGeometry::Create()
     }
 
     VkDeviceOrHostAddressConstKHR verticesAddress {
-        .deviceAddress = VULKAN_CAST(m_packedVerticesBuffer)->GetBufferDeviceAddress()
+        .deviceAddress = m_packedVerticesBuffer->GetBufferDeviceAddress()
     };
 
     VkDeviceOrHostAddressConstKHR indicesAddress {
-        .deviceAddress = VULKAN_CAST(m_packedIndicesBuffer)->GetBufferDeviceAddress()
+        .deviceAddress = m_packedIndicesBuffer->GetBufferDeviceAddress()
     };
 
     m_geometry = VkAccelerationStructureGeometryKHR { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR };
@@ -279,7 +279,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         m_buffer->Memset(accelerationStructureSize, 0);
 
         VkAccelerationStructureCreateInfoKHR createInfo { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR };
-        createInfo.buffer = VULKAN_CAST(m_buffer)->GetVulkanHandle();
+        createInfo.buffer = m_buffer->GetVulkanHandle();
         createInfo.size = accelerationStructureSize;
         createInfo.type = ToVkAccelerationStructureType(type);
 
@@ -318,7 +318,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     geometryInfo.dstAccelerationStructure = m_accelerationStructure;
     geometryInfo.srcAccelerationStructure = (update && !wasRebuilt) ? m_accelerationStructure : VK_NULL_HANDLE;
-    geometryInfo.scratchData = { .deviceAddress = VULKAN_CAST(m_scratchBuffer)->GetBufferDeviceAddress() };
+    geometryInfo.scratchData = { .deviceAddress = m_scratchBuffer->GetBufferDeviceAddress() };
 
     Array<VkAccelerationStructureBuildRangeInfoKHR> rangeInfos;
     rangeInfos.Resize(geometries.Size());
@@ -458,7 +458,7 @@ Array<VkAccelerationStructureGeometryKHR> VulkanGpuTlas::GetGeometries() const
                 .instances = {
                     .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
                     .arrayOfPointers = VK_FALSE,
-                    .data = { .deviceAddress = VULKAN_CAST(m_instancesBuffer)->GetBufferDeviceAddress() } } },
+                    .data = { .deviceAddress = m_instancesBuffer->GetBufferDeviceAddress() } } },
             .flags = VK_GEOMETRY_OPAQUE_BIT_KHR }
     };
 }
@@ -506,22 +506,20 @@ RendererResult VulkanGpuTlas::Create()
     return RendererResult();
 }
 
-void VulkanGpuTlas::AddGpuBlas(const GpuBlasRef& blas)
+void VulkanGpuTlas::AddGpuBlas(const VulkanGpuBlasRef& blas)
 {
     HYP_GFX_ASSERT(blas != nullptr);
 
-    if (m_blas.FindAs(VULKAN_CAST(blas.Get())) != m_blas.End())
+    if (m_blas.FindAs(blas.Get()) != m_blas.End())
     {
         // already has the GpuBlas
         return;
     }
 
-    VulkanGpuBlasRef vulkanBlas = VULKAN_CAST(blas);
+    HYP_GFX_ASSERT(blas->IsCreated());
+    HYP_GFX_ASSERT(!blas->GetGeometries().Empty());
 
-    HYP_GFX_ASSERT(vulkanBlas->IsCreated());
-    HYP_GFX_ASSERT(!vulkanBlas->GetGeometries().Empty());
-
-    for (const VulkanAccelerationGeometryRef& geometry : vulkanBlas->GetGeometries())
+    for (const VulkanAccelerationGeometryRef& geometry : blas->GetGeometries())
     {
         HYP_GFX_ASSERT(geometry != nullptr);
         HYP_GFX_ASSERT(geometry->GetPackedVerticesBuffer() != nullptr);
@@ -537,12 +535,12 @@ void VulkanGpuTlas::AddGpuBlas(const GpuBlasRef& blas)
         }
     }*/
 
-    m_blas.PushBack(std::move(vulkanBlas));
+    m_blas.PushBack(blas);
 
     SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 }
 
-void VulkanGpuTlas::RemoveGpuBlas(const GpuBlasRef& blas)
+void VulkanGpuTlas::RemoveGpuBlas(const VulkanGpuBlasRef& blas)
 {
     if (!blas)
     {
@@ -565,14 +563,14 @@ void VulkanGpuTlas::RemoveGpuBlas(const GpuBlasRef& blas)
     }
 }
 
-bool VulkanGpuTlas::HasGpuBlas(const GpuBlasRef& blas)
+bool VulkanGpuTlas::HasGpuBlas(const VulkanGpuBlasRef& blas)
 {
     if (!blas.IsValid())
     {
         return false;
     }
 
-    return m_blas.FindAs(VULKAN_CAST(blas.Get())) != m_blas.End();
+    return m_blas.FindAs(blas.Get()) != m_blas.End();
 }
 
 RendererResult VulkanGpuTlas::BuildInstancesBuffer()
@@ -721,8 +719,8 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
         HYP_GFX_ASSERT(blas->GetGeometries()[0]->GetPackedVerticesBuffer() && blas->GetGeometries()[0]->GetPackedVerticesBuffer()->IsCreated());
         HYP_GFX_ASSERT(blas->GetGeometries()[0]->GetPackedIndicesBuffer() && blas->GetGeometries()[0]->GetPackedIndicesBuffer()->IsCreated());
 
-        meshDescription.vertexBufferAddress = VULKAN_CAST(blas->GetGeometries()[0]->GetPackedVerticesBuffer())->GetBufferDeviceAddress();
-        meshDescription.indexBufferAddress = VULKAN_CAST(blas->GetGeometries()[0]->GetPackedIndicesBuffer())->GetBufferDeviceAddress();
+        meshDescription.vertexBufferAddress = blas->GetGeometries()[0]->GetPackedVerticesBuffer()->GetBufferDeviceAddress();
+        meshDescription.indexBufferAddress = blas->GetGeometries()[0]->GetPackedIndicesBuffer()->GetBufferDeviceAddress();
         meshDescription.materialIndex = blas->GetMaterialBinding();
         meshDescription.numIndices = blas->GetGeometries()[0]->NumIndices();
         meshDescription.numVertices = blas->GetGeometries()[0]->NumVertices();
@@ -822,8 +820,8 @@ RendererResult VulkanGpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 #pragma region GpuBlas
 
 VulkanGpuBlas::VulkanGpuBlas(
-    const GpuBufferRef& packedVerticesBuffer,
-    const GpuBufferRef& packedIndicesBuffer,
+    const VulkanGpuBufferRef& packedVerticesBuffer,
+    const VulkanGpuBufferRef& packedIndicesBuffer,
     uint32 numVertices,
     uint32 numIndices,
     const Handle<Material>& material,

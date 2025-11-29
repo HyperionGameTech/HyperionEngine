@@ -682,6 +682,26 @@ struct alignas(16) PackedVertex
 static_assert(sizeof(PackedVertex) == sizeof(float32) * 8);
 
 HYP_ENUM()
+enum class GpuBufferType : uint8
+{
+    NONE = 0,
+    MESH_INDEX_BUFFER,
+    MESH_VERTEX_BUFFER,
+    CBUFF,
+    SSBO,
+    ATOMIC_COUNTER,
+    STAGING_BUFFER,
+    INDIRECT_ARGS_BUFFER,
+    SHADER_BINDING_TABLE,
+    ACCELERATION_STRUCTURE_BUFFER,
+    ACCELERATION_STRUCTURE_INSTANCE_BUFFER,
+    RT_MESH_INDEX_BUFFER,
+    RT_MESH_VERTEX_BUFFER,
+    SCRATCH_BUFFER,
+    MAX
+};
+
+HYP_ENUM()
 enum GpuElemType : uint32
 {
     GET_UNSIGNED_BYTE,

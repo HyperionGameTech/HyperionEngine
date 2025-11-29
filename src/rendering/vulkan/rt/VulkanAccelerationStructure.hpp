@@ -2,7 +2,13 @@
 
 #pragma once
 
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
 
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/Shared.hpp>
@@ -34,20 +40,20 @@ public:
     friend class VulkanGpuBlas;
 
     VulkanAccelerationGeometry(
-        const GpuBufferRef& packedVerticesBuffer,
-        const GpuBufferRef& packedIndicesBuffer,
+        const VulkanGpuBufferRef& packedVerticesBuffer,
+        const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material);
 
     virtual ~VulkanAccelerationGeometry() override;
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetPackedVerticesBuffer() const
+    HYP_FORCE_INLINE const VulkanGpuBufferRef& GetPackedVerticesBuffer() const
     {
         return m_packedVerticesBuffer;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetPackedIndicesBuffer() const
+    HYP_FORCE_INLINE const VulkanGpuBufferRef& GetPackedIndicesBuffer() const
     {
         return m_packedIndicesBuffer;
     }
@@ -74,8 +80,8 @@ public:
 private:
     bool m_isCreated;
 
-    GpuBufferRef m_packedVerticesBuffer;
-    GpuBufferRef m_packedIndicesBuffer;
+    VulkanGpuBufferRef m_packedVerticesBuffer;
+    VulkanGpuBufferRef m_packedIndicesBuffer;
 
     uint32 m_numVertices;
     uint32 m_numIndices;
@@ -95,7 +101,7 @@ protected:
     ~VulkanAccelerationStructureBase();
 
 public:
-    HYP_FORCE_INLINE const GpuBufferRef& GetBuffer() const
+    HYP_FORCE_INLINE const VulkanGpuBufferRef& GetBuffer() const
     {
         return m_buffer;
     }
@@ -185,8 +191,8 @@ protected:
         bool update,
         RTUpdateStateFlags& outUpdateStateFlags);
 
-    GpuBufferRef m_buffer;
-    GpuBufferRef m_scratchBuffer;
+    VulkanGpuBufferRef m_buffer;
+    VulkanGpuBufferRef m_scratchBuffer;
     Array<VulkanAccelerationGeometryRef> m_geometries;
     Mat4f m_transform;
     VkAccelerationStructureKHR m_accelerationStructure;
@@ -208,8 +214,8 @@ public:
     friend class VulkanGpuTlas;
 
     VulkanGpuBlas(
-        const GpuBufferRef& packedVerticesBuffer,
-        const GpuBufferRef& packedIndicesBuffer,
+        const VulkanGpuBufferRef& packedVerticesBuffer,
+        const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
@@ -255,8 +261,8 @@ public:
 private:
     RendererResult Rebuild(RTUpdateStateFlags& outUpdateStateFlags);
 
-    GpuBufferRef m_packedVerticesBuffer;
-    GpuBufferRef m_packedIndicesBuffer;
+    VulkanGpuBufferRef m_packedVerticesBuffer;
+    VulkanGpuBufferRef m_packedIndicesBuffer;
 };
 
 HYP_CLASS(NoScriptBindings)
@@ -270,9 +276,9 @@ public:
 
     virtual bool IsCreated() const override;
 
-    virtual void AddGpuBlas(const GpuBlasRef& blas) override;
-    virtual void RemoveGpuBlas(const GpuBlasRef& blas) override;
-    virtual bool HasGpuBlas(const GpuBlasRef& blas) override;
+    virtual void AddGpuBlas(const VulkanGpuBlasRef& blas) override;
+    virtual void RemoveGpuBlas(const VulkanGpuBlasRef& blas) override;
+    virtual bool HasGpuBlas(const VulkanGpuBlasRef& blas) override;
 
     virtual RendererResult Create() override;
 
@@ -299,7 +305,7 @@ private:
     RendererResult BuildMeshDescriptionsBuffer(uint32 first, uint32 last);
 
     Array<VulkanGpuBlasRef> m_blas;
-    GpuBufferRef m_instancesBuffer;
+    VulkanGpuBufferRef m_instancesBuffer;
 };
 
 } // namespace hyperion

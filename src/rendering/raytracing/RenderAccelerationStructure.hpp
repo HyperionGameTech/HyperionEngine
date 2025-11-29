@@ -4,12 +4,12 @@
 #pragma once
 
 #include <core/Defines.hpp>
+#include <core/Types.hpp>
+
 #include <core/reflection/Handle.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/util/SafeDeleter.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 
@@ -154,3 +154,15 @@ protected:
 };
 
 } // namespace hyperion
+
+#ifndef INCLUDE_FROM_RHI
+#define INCLUDE_FROM_RHI_BASE
+
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/rt/VulkanAccelerationStructure.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI_BASE
+#else
+#undef INCLUDE_FROM_RHI
+#endif

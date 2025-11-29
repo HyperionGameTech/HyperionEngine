@@ -71,11 +71,11 @@ static inline void ValidateDynamicOffset(
         const auto firstValueIt = element->values.Begin();
         if (firstValueIt != element->values.End())
         {
-            const GpuBufferRef& bufferRef = ObjCast<GpuBufferBase>(firstValueIt->second);
+            const VulkanGpuBufferRef& VulkanbufferRef = ObjCast<GpuBuffer>(firstValueIt->second);
 
-            if (bufferRef != nullptr)
+            if (VulkanbufferRef != nullptr)
             {
-                const SizeType bufferSize = bufferRef->Size();
+                const SizeType bufferSize = VulkanbufferRef->Size();
                 const SizeType elementSize = layoutElement->size != ~0u ? layoutElement->size : bufferSize;
 
                 AssertDebug(offset + elementSize <= bufferSize,
@@ -155,23 +155,23 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
         case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC: // fallthrough
         case DescriptorSetElementType::SSBO:                   // fallthrough
         case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC: // fallthrough
-            PrefillElements<GpuBufferRef>(name, element.count);
+            PrefillElements<VulkanGpuBufferRef>(name, element.count);
 
             break;
         case DescriptorSetElementType::IMAGE:
-            PrefillElements<GpuImageViewRef>(name, element.count);
+            PrefillElements<VulkanGpuImageViewRef>(name, element.count);
 
             break;
         case DescriptorSetElementType::IMAGE_STORAGE:
-            PrefillElements<GpuImageViewRef>(name, element.count);
+            PrefillElements<VulkanGpuImageViewRef>(name, element.count);
 
             break;
         case DescriptorSetElementType::SAMPLER:
-            PrefillElements<SamplerRef>(name, element.count);
+            PrefillElements<VulkanSamplerRef>(name, element.count);
 
             break;
         case DescriptorSetElementType::TLAS:
-            PrefillElements<GpuTlasRef>(name, element.count);
+            PrefillElements<VulkanGpuTlasRef>(name, element.count);
 
             break;
         default:
@@ -255,7 +255,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 const uint32 index = valuesIt.first;
 
-                const GpuBufferRef& ref = ObjCast<GpuBufferBase>(valuesIt.second);
+                const VulkanGpuBufferRef& ref = ObjCast<VulkanGpuBuffer>(valuesIt.second);
                 HYP_GFX_ASSERT(ref.IsValid(), "Invalid buffer reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
                 HYP_GFX_ASSERT(ref->IsCreated(), "Buffer not initialized for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
@@ -265,7 +265,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
 
                 descriptorElementInfo.bufferInfo = VkDescriptorBufferInfo {
-                    .buffer = VULKAN_CAST(ref.Get())->GetVulkanHandle(),
+                    .buffer = ref->GetVulkanHandle(),
                     .offset = 0,
                     .range = layoutHasSize ? layoutElement->size : ref->Size()
                 };
@@ -282,9 +282,9 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 const uint32 index = valuesIt.first;
 
-                const GpuImageViewRef& ref = ObjCast<GpuImageViewBase>(valuesIt.second);
+                const VulkanGpuImageViewRef& ref = ObjCast<VulkanGpuImageView>(valuesIt.second);
                 HYP_GFX_ASSERT(ref.IsValid(), "Invalid image view reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-                HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                HYP_GFX_ASSERT(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
@@ -293,7 +293,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                 descriptorElementInfo.imageInfo = VkDescriptorImageInfo {
                     .sampler = VK_NULL_HANDLE,
-                    .imageView = VULKAN_CAST(ref.Get())->GetVulkanHandle(),
+                    .imageView = ref->GetVulkanHandle(),
                     .imageLayout = isStorageImage ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                 };
             }
@@ -306,9 +306,9 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 const uint32 index = valuesIt.first;
 
-                const SamplerRef& ref = ObjCast<SamplerBase>(valuesIt.second);
+                const VulkanSamplerRef& ref = ObjCast<VulkanSampler>(valuesIt.second);
                 HYP_GFX_ASSERT(ref.IsValid(), "Invalid sampler reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-                HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                HYP_GFX_ASSERT(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
@@ -316,7 +316,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
 
                 descriptorElementInfo.imageInfo = VkDescriptorImageInfo {
-                    .sampler = VULKAN_CAST(ref.Get())->GetVulkanHandle(),
+                    .sampler = ref->GetVulkanHandle(),
                     .imageView = VK_NULL_HANDLE,
                     .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED
                 };
@@ -330,9 +330,9 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 const uint32 index = valuesIt.first;
 
-                const GpuTlasRef& ref = ObjCast<GpuTlasBase>(valuesIt.second);
+                const VulkanGpuTlasRef& ref = ObjCast<VulkanGpuTlas>(valuesIt.second);
                 HYP_GFX_ASSERT(ref.IsValid(), "Invalid TLAS reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-                HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                HYP_GFX_ASSERT(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
@@ -343,7 +343,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
                     .pNext = nullptr,
                     .accelerationStructureCount = 1,
-                    .pAccelerationStructures = &VULKAN_CAST(ref.Get())->GetVulkanHandle()
+                    .pAccelerationStructures = &ref->GetVulkanHandle()
                 };
             }
 
@@ -501,7 +501,7 @@ bool VulkanDescriptorSet::IsCreated() const
     return m_handle != VK_NULL_HANDLE;
 }
 
-void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -545,7 +545,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsP
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -581,7 +581,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsP
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -625,7 +625,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePi
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -661,7 +661,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePi
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -705,7 +705,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const Raytracin
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -741,9 +741,9 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const Raytracin
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-DescriptorSetRef VulkanDescriptorSet::Clone() const
+VulkanDescriptorSetRef VulkanDescriptorSet::Clone() const
 {
-    DescriptorSetRef descriptorSet = CreateObject<VulkanDescriptorSet>(GetLayout());
+    VulkanDescriptorSetRef descriptorSet = CreateObject<VulkanDescriptorSet>(GetLayout());
     descriptorSet->SetDebugName(GetDebugName());
 
     return descriptorSet;
@@ -799,7 +799,7 @@ VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* d
 
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                DescriptorSetRef descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(referencedDescriptorSetDeclaration->name, frameIndex);
+                VulkanDescriptorSetRef descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(referencedDescriptorSetDeclaration->name, frameIndex);
                 HYP_GFX_ASSERT(descriptorSet.IsValid(), "Invalid global descriptor set reference: %s", referencedDescriptorSetDeclaration->name.LookupString());
 
                 m_sets[frameIndex].PushBack(std::move(descriptorSet));
@@ -812,7 +812,7 @@ VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* d
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            DescriptorSetRef descriptorSet = CreateObject<VulkanDescriptorSet>(layout);
+            VulkanDescriptorSetRef descriptorSet = CreateObject<VulkanDescriptorSet>(layout);
             descriptorSet->SetDebugName(layout.GetName());
 
             m_sets[frameIndex].PushBack(std::move(descriptorSet));

@@ -2,6 +2,14 @@
 
 #pragma once
 
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
+#include <rendering/RenderDevice.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
+
 #include <rendering/vulkan/VulkanDeviceQueue.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 
@@ -15,7 +23,6 @@
 #include <core/utilities/Optional.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderDevice.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/Shared.hpp>
 

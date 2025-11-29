@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include <vulkan/vulkan.h>
-
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
 #include <rendering/RenderGraphicsPipeline.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
 
 #include <rendering/vulkan/VulkanPipeline.hpp>
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
@@ -24,6 +28,8 @@
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
+
+#include <vulkan/vulkan.h>
 
 namespace hyperion {
 
@@ -59,8 +65,8 @@ public:
         return VulkanPipelineBase::IsCreated();
     }
 
-    virtual void Bind(CommandBufferBase* cmd) override;
-    virtual void Bind(CommandBufferBase* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
+    virtual void Bind(VulkanCommandBuffer* cmd) override;
+    virtual void Bind(VulkanCommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
     virtual void SetPushConstants(const void* data, SizeType size) override;
 

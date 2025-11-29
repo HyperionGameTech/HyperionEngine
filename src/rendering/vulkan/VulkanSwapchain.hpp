@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
 #include <rendering/RenderSwapchain.hpp>
+#undef INCLUDE_FROM_RHI
+#else
+#undef INCLUDE_FROM_RHI_BASE
+#endif
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/vulkan/VulkanSemaphore.hpp>
@@ -13,10 +17,12 @@
 
 #include <rendering/Shared.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
+#include <core/containers/Array.hpp>
 
 #include <core/math/Vector2.hpp>
+
+#include <core/Types.hpp>
+#include <core/Constants.hpp>
 
 #define HYP_ENABLE_VSYNC 0
 
@@ -51,7 +57,7 @@ public:
     RendererResult PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue) const;
 
     virtual RendererResult Create() override;
-    virtual SwapchainRef Recreate() override;
+    virtual VulkanSwapchainRef Recreate() override;
 
 private:
     RendererResult ChooseSurfaceFormat();

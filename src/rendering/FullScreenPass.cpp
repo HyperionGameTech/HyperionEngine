@@ -4,7 +4,6 @@
 
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
@@ -15,6 +14,9 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderMemory.hpp>
+#include <rendering/RenderShader.hpp>
+
+#include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

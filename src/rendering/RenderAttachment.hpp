@@ -36,12 +36,12 @@ public:
 
     HYP_FORCE_INLINE TextureFormat GetFormat() const
     {
-        return m_image ? m_image->GetTextureFormat() : TF_NONE;
+        return m_image ? GetImageBase()->GetTextureFormat() : TF_NONE;
     }
 
     HYP_FORCE_INLINE bool IsDepthAttachment() const
     {
-        return m_image && m_image->GetTextureDesc().IsDepthStencil();
+        return m_image && GetImageBase()->GetTextureDesc().IsDepthStencil();
     }
 
     HYP_FORCE_INLINE LoadOperation GetLoadOperation() const
@@ -114,6 +114,11 @@ protected:
     {
     }
 
+    HYP_FORCE_INLINE GpuImageBase* GetImageBase() const
+    {
+        return static_cast<GpuImageBase*>(m_image.ptr);
+    }
+
     GpuImageRef m_image;
     GpuImageViewRef m_imageView;
 
@@ -130,3 +135,15 @@ protected:
 };
 
 } // namespace hyperion
+
+#ifndef INCLUDE_FROM_RHI
+#define INCLUDE_FROM_RHI_BASE
+
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanAttachment.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI_BASE
+#else
+#undef INCLUDE_FROM_RHI
+#endif

@@ -92,7 +92,7 @@ RendererResult VulkanAttachmentMap::Create()
         }
     }
 
-    FrameBase* frame = GetRenderBackend()->GetCurrentFrame();
+    VulkanFrame* frame = GetRenderBackend()->GetCurrentFrame();
 
     // frame may be nullptr if we are creating a swapchain
     if (frame != nullptr)
@@ -181,7 +181,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
         attachmentDefs.PushBack(&def);
     }
 
-    FrameBase* frame = GetRenderBackend()->GetCurrentFrame();
+    VulkanFrame* frame = GetRenderBackend()->GetCurrentFrame();
 
     // frame may be nullptr if we are creating a swapchain
     if (frame != nullptr)
@@ -278,7 +278,7 @@ RendererResult VulkanFramebuffer::Create()
         HYP_GFX_ASSERT(attachment->GetImageView() != nullptr);
         HYP_GFX_ASSERT(attachment->GetImageView()->IsCreated());
 
-        attachmentImageViews.PushBack(VULKAN_CAST(attachment->GetImageView())->GetVulkanHandle());
+        attachmentImageViews.PushBack(attachment->GetImageView()->GetVulkanHandle());
     }
 
     VkFramebufferCreateInfo framebufferCreateInfo { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
@@ -296,7 +296,7 @@ RendererResult VulkanFramebuffer::Create()
 
     if (shouldClearFramebuffer)
     {
-        FrameBase* frame = GetRenderBackend()->GetCurrentFrame();
+        VulkanFrame* frame = GetRenderBackend()->GetCurrentFrame();
 
         // clear in current frame
         if (frame != nullptr)
@@ -360,7 +360,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
         HYP_GFX_ASSERT(it.second.attachment->GetImageView() != nullptr);
         HYP_GFX_ASSERT(it.second.attachment->GetImageView()->IsCreated());
 
-        attachmentImageViews.PushBack(VULKAN_CAST(it.second.attachment->GetImageView().Get())->GetVulkanHandle());
+        attachmentImageViews.PushBack(it.second.attachment->GetImageView()->GetVulkanHandle());
     }
 
     VkFramebufferCreateInfo framebufferCreateInfo { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
@@ -383,7 +383,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
     HYPERION_RETURN_OK;
 }
 
-AttachmentRef VulkanFramebuffer::AddAttachment(const AttachmentRef& attachment)
+VulkanAttachmentRef VulkanFramebuffer::AddAttachment(const VulkanAttachmentRef& attachment)
 {
     HYP_GFX_ASSERT(attachment->GetFramebuffer().GetUnsafe() == this,
         "Attachment framebuffer does not match framebuffer");
@@ -391,9 +391,9 @@ AttachmentRef VulkanFramebuffer::AddAttachment(const AttachmentRef& attachment)
     return m_attachmentMap.AddAttachment(VulkanAttachmentRef(attachment));
 }
 
-AttachmentRef VulkanFramebuffer::AddAttachment(
+VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
     uint32 binding,
-    const GpuImageRef& image,
+    const VulkanGpuImageRef& image,
     LoadOperation loadOp,
     StoreOperation storeOp)
 {
@@ -409,7 +409,7 @@ AttachmentRef VulkanFramebuffer::AddAttachment(
     return AddAttachment(attachment);
 }
 
-AttachmentRef VulkanFramebuffer::AddAttachment(
+VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
     uint32 binding,
     TextureFormat format,
     TextureType type,
@@ -442,12 +442,12 @@ bool VulkanFramebuffer::RemoveAttachment(uint32 binding)
     return true;
 }
 
-AttachmentBase* VulkanFramebuffer::GetAttachment(uint32 binding) const
+VulkanAttachment* VulkanFramebuffer::GetAttachment(uint32 binding) const
 {
     return m_attachmentMap.GetAttachment(binding).Get();
 }
 
-void VulkanFramebuffer::BeginCapture(CommandBufferBase* commandBuffer)
+void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
 {
     HYP_GFX_ASSERT(!VULKAN_CAST(commandBuffer)->IsInRenderPass());
 
@@ -457,7 +457,7 @@ void VulkanFramebuffer::BeginCapture(CommandBufferBase* commandBuffer)
     m_renderPass->Begin(VULKAN_CAST(commandBuffer), this);
 }
 
-void VulkanFramebuffer::EndCapture(CommandBufferBase* commandBuffer)
+void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
 {
     HYP_GFX_ASSERT(VULKAN_CAST(commandBuffer)->IsInRenderPass());
 
@@ -466,7 +466,7 @@ void VulkanFramebuffer::EndCapture(CommandBufferBase* commandBuffer)
     VULKAN_CAST(commandBuffer)->m_isInRenderPass = false;
 }
 
-void VulkanFramebuffer::Clear(CommandBufferBase* commandBuffer)
+void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
 {
     bool shouldCapture = !VULKAN_CAST(commandBuffer)->IsInRenderPass();
 

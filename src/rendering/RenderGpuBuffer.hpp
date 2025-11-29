@@ -18,32 +18,6 @@
 
 namespace hyperion {
 
-HYP_ENUM()
-enum class GpuBufferType : uint8
-{
-    NONE = 0,
-    MESH_INDEX_BUFFER,
-    MESH_VERTEX_BUFFER,
-    CBUFF,
-    SSBO,
-    ATOMIC_COUNTER,
-    STAGING_BUFFER,
-    INDIRECT_ARGS_BUFFER,
-    SHADER_BINDING_TABLE,
-    ACCELERATION_STRUCTURE_BUFFER,
-    ACCELERATION_STRUCTURE_INSTANCE_BUFFER,
-    RT_MESH_INDEX_BUFFER,
-    RT_MESH_VERTEX_BUFFER,
-    SCRATCH_BUFFER,
-    MAX
-};
-
-enum BufferIDMask : uint64
-{
-    ID_MASK_BUFFER = (0x1ull << 32ull),
-    ID_MASK_IMAGE = (0x2ull << 32ull)
-};
-
 HYP_CLASS(Abstract, NoScriptBindings)
 class GpuBufferBase : public ObjectBase
 {
@@ -146,3 +120,15 @@ protected:
 };
 
 } // namespace hyperion
+
+#ifndef INCLUDE_FROM_RHI
+#define INCLUDE_FROM_RHI_BASE
+
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanGpuBuffer.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI_BASE
+#else
+#undef INCLUDE_FROM_RHI
+#endif

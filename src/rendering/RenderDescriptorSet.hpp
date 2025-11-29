@@ -20,12 +20,7 @@
 
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderGpuImageView.hpp>
-#include <rendering/RenderSampler.hpp>
 #include <rendering/Shared.hpp>
-
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -37,6 +32,8 @@ namespace hyperion {
 // #define HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
 
 class RenderResourceBase;
+
+enum class GpuBufferType : uint8;
 
 HYP_ENUM()
 enum class DescriptorSetDeclarationFlags : uint8
@@ -112,7 +109,7 @@ template <class T>
 struct DescriptorSetElementTypeInfo;
 
 template <>
-struct DescriptorSetElementTypeInfo<GpuBufferBase>
+struct DescriptorSetElementTypeInfo<GpuBuffer>
 {
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
         | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
@@ -121,20 +118,20 @@ struct DescriptorSetElementTypeInfo<GpuBufferBase>
 };
 
 template <>
-struct DescriptorSetElementTypeInfo<GpuImageViewBase>
+struct DescriptorSetElementTypeInfo<GpuImageView>
 {
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::IMAGE))
         | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
 };
 
 template <>
-struct DescriptorSetElementTypeInfo<SamplerBase>
+struct DescriptorSetElementTypeInfo<Sampler>
 {
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
 };
 
 template <>
-struct DescriptorSetElementTypeInfo<GpuTlasBase>
+struct DescriptorSetElementTypeInfo<GpuTlas>
 {
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
 };
@@ -657,100 +654,7 @@ protected:
     }
 
     template <class T>
-    DescriptorSetElement& SetElementT(StringHash name, uint32 index, const Handle<T>& ref)
-    {
-        const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
-        AssertDebug(layoutElement != nullptr, "Invalid element: No item with name {} found", Name(name));
-
-        // Range check
-        AssertDebug(index < layoutElement->count, "Index {} out of range for element {} with count {}",
-            index, Name(name), layoutElement->count);
-
-        if constexpr (std::is_base_of_v<GpuBufferBase, T>)
-        {
-            static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
-                | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
-                | (1u << uint32(DescriptorSetElementType::SSBO))
-                | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
-
-            AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
-
-            if (ref != nullptr)
-            {
-                // Buffer type check, to make sure the buffer type is allowed for the given element
-                const GpuBufferType bufferType = ref->GetBufferType();
-
-                AssertDebug(
-                    (ElementTypeToBufferType[uint32(layoutElement->type)] & (1u << uint32(bufferType))),
-                    "Buffer type {} is not in the allowed types for element {}",
-                    uint32(bufferType), Name(name));
-
-                if (layoutElement->size != 0 && layoutElement->size != ~0u)
-                {
-                    const uint32 remainder = ref->Size() % layoutElement->size;
-
-                    AssertDebug(
-                        remainder == 0,
-                        "Buffer size ({}) is not a multiplier of layout size ({}) for element {}",
-                        ref->Size(), layoutElement->size, Name(name));
-                }
-            }
-        }
-        else if constexpr (std::is_base_of_v<GpuImageViewBase, T>)
-        {
-            static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::IMAGE))
-                | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
-
-            AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
-        }
-        else if constexpr (std::is_base_of_v<SamplerBase, T>)
-        {
-            static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
-
-            AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
-        }
-        else if constexpr (std::is_base_of_v<GpuTlasBase, T>)
-        {
-            static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::TLAS));
-
-            AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
-        }
-        else
-        {
-            static_assert(ResolutionFailureV<T>, "Unsupported type for descriptor set element");
-        }
-
-        auto it = m_elements.FindAs(name);
-        AssertDebug(it != m_elements.End());
-
-        if (it == m_elements.End())
-        {
-            it = m_elements.Emplace(Name(name)).first;
-        }
-
-        DescriptorSetElement& element = it->second;
-
-        auto elementIt = element.values.Find(index);
-
-        if (elementIt == element.values.End())
-        {
-            elementIt = element.values.Emplace(index, ref).first;
-        }
-        else
-        {
-            if (elementIt->second != nullptr)
-            {
-                SafeDelete(std::move(elementIt->second));
-            }
-
-            elementIt->second = ref;
-        }
-
-        // Mark the range as dirty so that it will be updated in the next update
-        element.dirtyRange |= { index, index + 1 };
-
-        return element;
-    }
+    DescriptorSetElement& SetElementT(StringHash name, uint32 index, const Handle<T>& ref);
 
     template <class T>
     void PrefillElements(Name name, uint32 count, const Optional<T>& placeholderValue = {})
@@ -858,7 +762,9 @@ public:
     {
         for (const DescriptorSetRef& set : m_sets[frameIndex])
         {
-            if (set->GetLayout().GetName() == name)
+            DescriptorSetBase* setBase = static_cast<DescriptorSetBase*>(set.ptr);
+
+            if (setBase->GetLayout().GetName() == name)
             {
                 return set;
             }
@@ -871,12 +777,14 @@ public:
     {
         for (const DescriptorSetRef& set : m_sets[frameIndex])
         {
-            if (!set->GetLayout().IsValid())
+            DescriptorSetBase* setBase = static_cast<DescriptorSetBase*>(set.ptr);
+
+            if (!setBase->GetLayout().IsValid())
             {
                 continue;
             }
 
-            if (set->GetLayout().GetDeclaration()->setIndex == descriptorSetIndex)
+            if (setBase->GetLayout().GetDeclaration()->setIndex == descriptorSetIndex)
             {
                 return set;
             }
@@ -896,77 +804,13 @@ public:
     /*! \brief Create all descriptor sets in the table
         \param device The device to create the descriptor sets on
         \return The result of the operation */
-    RendererResult Create()
-    {
-        if (!IsValid())
-        {
-            return HYP_MAKE_ERROR(RendererError, "Descriptor table declaration is not valid");
-        }
-
-        RendererResult result;
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            for (const DescriptorSetRef& set : m_sets[frameIndex])
-            {
-                const Name descriptorSetName = set->GetLayout().GetName();
-
-                // use FindDescriptorSetDeclaration rather than `set->GetLayout().GetDeclaration()`, since we need to know
-                // if the descriptor set is a reference to a global set
-                DescriptorSetDeclaration* decl = m_decl->FindDescriptorSetDeclaration(descriptorSetName);
-                AssertDebug(decl != nullptr);
-
-                if ((decl->flags & DescriptorSetDeclarationFlags::REFERENCE))
-                {
-                    // should be created elsewhere
-                    continue;
-                }
-
-                result = set->Create();
-
-                if (!result)
-                {
-                    return result;
-                }
-            }
-        }
-
-        return result;
-    }
+    RendererResult Create();
 
     /*! \brief Apply updates to all descriptor sets in the table
         \param frameIndex The index of the frame to update the descriptor sets for
         \param force If true, will update descriptor sets even if they are not marked as dirty
         \return The result of the operation */
-    void Update(uint32 frameIndex, bool force = false)
-    {
-        if (!IsValid())
-        {
-            return;
-        }
-
-        for (const DescriptorSetRef& set : m_sets[frameIndex])
-        {
-            const DescriptorSetLayout& layout = set->GetLayout();
-
-            if (layout.IsReference() || layout.IsTemplate())
-            {
-                // references are updated elsewhere
-                // template descriptor sets are not updated (no handle to update)
-                continue;
-            }
-
-            bool isDirty = false;
-            set->UpdateDirtyState(&isDirty);
-
-            if (!isDirty && !force)
-            {
-                continue;
-            }
-
-            set->Update(force);
-        }
-    }
+    void Update(uint32 frameIndex, bool force = false);
 
     /*! \brief Bind all descriptor sets in the table
         \param commandBuffer The command buffer to push the bind commands to
@@ -978,21 +822,18 @@ public:
     {
         for (const DescriptorSetRef& set : m_sets[frameIndex])
         {
-            if (!set->GetLayout().IsValid())
+            DescriptorSetBase* setBase = static_cast<DescriptorSetBase*>(set.ptr);
+
+            if (!setBase->GetLayout().IsValid() || setBase->GetLayout().IsTemplate())
             {
                 continue;
             }
 
-            if (set->GetLayout().IsTemplate())
-            {
-                continue;
-            }
-
-            const Name descriptorSetName = set->GetLayout().GetName();
+            const Name descriptorSetName = setBase->GetLayout().GetName();
 
             const uint32 setIndex = GetDescriptorSetIndex(descriptorSetName);
 
-            if (set->GetLayout().GetDynamicElements().Any() && offsets.count != 0)
+            if (setBase->GetLayout().GetDynamicElements().Any() && offsets.count != 0)
             {
                 int offsetIdx = -1;
 
@@ -1007,13 +848,13 @@ public:
 
                 if (offsetIdx != -1)
                 {
-                    set->Bind(commandBuffer, pipeline, offsets.setOffsets[offsetIdx], setIndex);
+                    setBase->Bind(commandBuffer, pipeline, offsets.setOffsets[offsetIdx], setIndex);
 
                     continue;
                 }
             }
 
-            set->Bind(commandBuffer, pipeline, setIndex);
+            setBase->Bind(commandBuffer, pipeline, setIndex);
         }
     }
 
@@ -1030,6 +871,18 @@ protected:
 };
 
 } // namespace hyperion
+
+#ifndef INCLUDE_FROM_RHI
+#define INCLUDE_FROM_RHI_BASE
+
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanDescriptorSet.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI_BASE
+#else
+#undef INCLUDE_FROM_RHI
+#endif
 
 #define HYP_DESCRIPTOR_SET(index, name) \
     static DescriptorTableDeclaration::DeclareSet HYP_UNIQUE_NAME(DescriptorSet_##name)(&GetStaticDescriptorTableDeclaration(), index, HYP_NAME_UNSAFE(name))

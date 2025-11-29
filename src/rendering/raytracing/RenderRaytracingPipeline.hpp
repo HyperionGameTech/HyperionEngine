@@ -74,3 +74,15 @@ protected:
 };
 
 } // namespace hyperion
+
+#ifndef INCLUDE_FROM_RHI
+#define INCLUDE_FROM_RHI_BASE
+
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/rt/VulkanRaytracingPipeline.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI_BASE
+#else
+#undef INCLUDE_FROM_RHI
+#endif
