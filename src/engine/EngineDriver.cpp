@@ -315,9 +315,6 @@ HYP_API void EngineDriver::Init()
 
     m_debugDrawer = CreateObject<DebugDrawer>();
 
-    m_defaultWorld = CreateObject<World>(NAME("DefaultWorld"), WorldFlags::NONE);
-    InitObject(m_defaultWorld);
-
     m_viewCollectionBatch = new TaskBatch();
     m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
 
@@ -351,6 +348,19 @@ void EngineDriver::SetCurrentWorld(World* world)
     m_currentWorld = world;
 
     OnCurrentWorldChanged(m_currentWorld);
+}
+
+void EngineDriver::SetDefaultWorld(const Handle<World>& defaultWorld)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_gameThread);
+
+    m_defaultWorld = defaultWorld;
+
+    if (IsInitCalled())
+    {
+        InitObject(m_defaultWorld);
+    }
 }
 
 void EngineDriver::EnqueueWorldRender(World* world)

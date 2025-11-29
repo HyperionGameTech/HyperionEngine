@@ -1118,7 +1118,6 @@ bool Node::HasTag(StringHash key) const
 EditorDelegates* Node::GetEditorDelegates()
 {
     HYP_SCOPE;
-
     AssertOnThread(g_gameThread);
 
     if (EditorSubsystem* editorSubsystem = g_engineDriver->GetDefaultWorld()->GetSubsystem<EditorSubsystem>())

@@ -77,6 +77,9 @@ public:
         return m_defaultWorld;
     }
 
+    HYP_METHOD()
+    void SetDefaultWorld(const Handle<World>& defaultWorld);
+
     HYP_FORCE_INLINE const Handle<DebugDrawer>& GetDebugDrawer() const
     {
         return m_debugDrawer;

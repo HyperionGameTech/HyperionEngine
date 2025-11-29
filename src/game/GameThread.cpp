@@ -70,7 +70,10 @@ void GameThread::SetGame(const Handle<Game>& game)
 
 void GameThread::operator()()
 {
-    InitObject(g_engineDriver->GetDefaultWorld());
+    // create fallback world
+    Handle<World> defaultWorld = CreateObject<World>(NAME("DefaultWorld"), WorldFlags::NONE);
+    InitObject(defaultWorld);
+    g_engineDriver->SetDefaultWorld(defaultWorld);
 
     GameCounter counter;
 
