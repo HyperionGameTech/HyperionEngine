@@ -160,7 +160,7 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
     }
 }
 
-void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer, uint32 bucketBits)
+void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer, uint32 bucketBits)
 {
     HYP_SCOPE;
 
@@ -256,7 +256,7 @@ void UIRenderer::Shutdown()
 {
 }
 
-void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
+void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

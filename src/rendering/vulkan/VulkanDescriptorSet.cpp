@@ -516,11 +516,11 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
-    cachedBinding.pipeline = VULKAN_CAST(pipeline)->GetVulkanHandle();
-    cachedBinding.pipelineLayout = VULKAN_CAST(pipeline)->GetVulkanPipelineLayout();
+    cachedBinding.pipeline = pipeline->GetVulkanHandle();
+    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
     cachedBinding.dynamicOffsets.Resize(m_layout.GetDynamicElements().Size());
 
-    auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
     if (boundDescriptorSets.Size() <= bindIndex)
     {
@@ -533,9 +533,9 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
     }
 
     vkCmdBindDescriptorSets(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        VULKAN_CAST(pipeline)->GetVulkanPipelineLayout(),
+        pipeline->GetVulkanPipelineLayout(),
         bindIndex,
         1,
         &m_handle,
@@ -551,12 +551,12 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
-    cachedBinding.pipeline = VULKAN_CAST(pipeline)->GetVulkanHandle();
-    cachedBinding.pipelineLayout = VULKAN_CAST(pipeline)->GetVulkanPipelineLayout();
+    cachedBinding.pipeline = pipeline->GetVulkanHandle();
+    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
 
     PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets);
 
-    auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
     if (boundDescriptorSets.Size() <= bindIndex)
     {
@@ -569,9 +569,9 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
     }
 
     vkCmdBindDescriptorSets(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        VULKAN_CAST(pipeline)->GetVulkanPipelineLayout(),
+        pipeline->GetVulkanPipelineLayout(),
         bindIndex,
         1,
         &m_handle,
@@ -596,11 +596,11 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
-    cachedBinding.pipeline = VULKAN_CAST(pipeline)->GetVulkanHandle();
-    cachedBinding.pipelineLayout = VULKAN_CAST(pipeline)->GetVulkanPipelineLayout();
+    cachedBinding.pipeline = pipeline->GetVulkanHandle();
+    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
     cachedBinding.dynamicOffsets.Resize(m_layout.GetDynamicElements().Size());
 
-    auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
     if (boundDescriptorSets.Size() <= bindIndex)
     {
@@ -613,9 +613,9 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
     }
 
     vkCmdBindDescriptorSets(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_COMPUTE,
-        VULKAN_CAST(pipeline)->GetVulkanPipelineLayout(),
+        pipeline->GetVulkanPipelineLayout(),
         bindIndex,
         1,
         &m_handle,
@@ -631,12 +631,12 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
-    cachedBinding.pipeline = VULKAN_CAST(pipeline)->GetVulkanHandle();
-    cachedBinding.pipelineLayout = VULKAN_CAST(pipeline)->GetVulkanPipelineLayout();
+    cachedBinding.pipeline = pipeline->GetVulkanHandle();
+    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
 
     PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets);
 
-    auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
     if (boundDescriptorSets.Size() <= bindIndex)
     {
@@ -649,9 +649,9 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
     }
 
     vkCmdBindDescriptorSets(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_COMPUTE,
-        VULKAN_CAST(pipeline)->GetVulkanPipelineLayout(),
+        pipeline->GetVulkanPipelineLayout(),
         bindIndex,
         1,
         &m_handle,
@@ -676,11 +676,11 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
-    cachedBinding.pipeline = VULKAN_CAST(pipeline)->GetVulkanHandle();
-    cachedBinding.pipelineLayout = VULKAN_CAST(pipeline)->GetVulkanPipelineLayout();
+    cachedBinding.pipeline = pipeline->GetVulkanHandle();
+    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
     cachedBinding.dynamicOffsets.ResizeZeroed(m_layout.GetDynamicElements().Size());
 
-    auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
     if (boundDescriptorSets.Size() <= bindIndex)
     {
@@ -693,9 +693,9 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
     }
 
     vkCmdBindDescriptorSets(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-        VULKAN_CAST(pipeline)->GetVulkanPipelineLayout(),
+        pipeline->GetVulkanPipelineLayout(),
         bindIndex,
         1,
         &m_handle,
@@ -711,12 +711,12 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
-    cachedBinding.pipeline = VULKAN_CAST(pipeline)->GetVulkanHandle();
-    cachedBinding.pipelineLayout = VULKAN_CAST(pipeline)->GetVulkanPipelineLayout();
+    cachedBinding.pipeline = pipeline->GetVulkanHandle();
+    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
 
     PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets);
 
-    auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
     if (boundDescriptorSets.Size() <= bindIndex)
     {
@@ -729,9 +729,9 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
     }
 
     vkCmdBindDescriptorSets(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-        VULKAN_CAST(pipeline)->GetVulkanPipelineLayout(),
+        pipeline->GetVulkanPipelineLayout(),
         bindIndex,
         1,
         &m_handle,

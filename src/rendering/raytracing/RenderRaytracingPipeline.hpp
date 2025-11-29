@@ -49,10 +49,10 @@ public:
 
     HYP_API virtual RendererResult Create() = 0;
 
-    HYP_API virtual void Bind(CommandBufferBase* commandBuffer) = 0;
+    HYP_API virtual void Bind(CommandBuffer* commandBuffer) = 0;
 
     HYP_API virtual void TraceRays(
-        CommandBufferBase* commandBuffer,
+        CommandBuffer* commandBuffer,
         const Vec3u& extent) const = 0;
 
     // Deprecated - will be removed to decouple from vulkan

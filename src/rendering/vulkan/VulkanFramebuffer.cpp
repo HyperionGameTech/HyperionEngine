@@ -449,33 +449,33 @@ VulkanAttachment* VulkanFramebuffer::GetAttachment(uint32 binding) const
 
 void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
 {
-    HYP_GFX_ASSERT(!VULKAN_CAST(commandBuffer)->IsInRenderPass());
+    HYP_GFX_ASSERT(!commandBuffer->IsInRenderPass());
 
-    VULKAN_CAST(commandBuffer)->m_isInRenderPass = true;
-    VULKAN_CAST(commandBuffer)->ResetBoundDescriptorSets();
+    commandBuffer->m_isInRenderPass = true;
+    commandBuffer->ResetBoundDescriptorSets();
 
-    m_renderPass->Begin(VULKAN_CAST(commandBuffer), this);
+    m_renderPass->Begin(commandBuffer, this);
 }
 
 void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
 {
-    HYP_GFX_ASSERT(VULKAN_CAST(commandBuffer)->IsInRenderPass());
+    HYP_GFX_ASSERT(commandBuffer->IsInRenderPass());
 
-    m_renderPass->End(VULKAN_CAST(commandBuffer));
+    m_renderPass->End(commandBuffer);
 
-    VULKAN_CAST(commandBuffer)->m_isInRenderPass = false;
+    commandBuffer->m_isInRenderPass = false;
 }
 
 void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
 {
-    bool shouldCapture = !VULKAN_CAST(commandBuffer)->IsInRenderPass();
+    bool shouldCapture = !commandBuffer->IsInRenderPass();
 
     if (shouldCapture)
     {
         BeginCapture(commandBuffer);
     }
 
-    VkCommandBuffer vkCommandBuffer = VULKAN_CAST(commandBuffer)->GetVulkanHandle();
+    VkCommandBuffer vkCommandBuffer = commandBuffer->GetVulkanHandle();
 
     for (const auto& it : m_attachmentMap.attachments)
     {

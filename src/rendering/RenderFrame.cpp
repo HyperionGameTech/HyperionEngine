@@ -15,7 +15,7 @@
 #include <RenderFrame.generated.inl>
 
 namespace hyperion {
-void FrameBase::MarkDescriptorSetUsed(DescriptorSetBase* descriptorSet)
+void FrameBase::MarkDescriptorSetUsed(DescriptorSet* descriptorSet)
 {
     HYP_GFX_ASSERT(descriptorSet != nullptr);
 
@@ -28,7 +28,7 @@ void FrameBase::MarkDescriptorSetUsed(DescriptorSetBase* descriptorSet)
 
 void FrameBase::UpdateUsedDescriptorSets()
 {
-    for (DescriptorSetBase* descriptorSet : m_usedDescriptorSets)
+    for (DescriptorSet* descriptorSet : m_usedDescriptorSets)
     {
         HYP_GFX_ASSERT(descriptorSet->IsCreated(),
             "Descriptor set '%s' is not yet created when updating the frame's used descriptor sets!",

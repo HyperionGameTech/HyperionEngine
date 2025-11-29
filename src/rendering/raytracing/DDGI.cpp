@@ -258,14 +258,14 @@ void DDGI::CreateStorageBuffers()
     }
 }
 
-void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
+void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
 
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
 
-    const auto setDescriptorElements = [this, pd](DescriptorSetBase* descriptorSet, const GpuTlasRef& tlas, uint32 frameIndex)
+    const auto setDescriptorElements = [this, pd](DescriptorSet* descriptorSet, const GpuTlasRef& tlas, uint32 frameIndex)
     {
         Assert(tlas != nullptr);
 
@@ -281,7 +281,7 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
 
     if (m_pipeline != nullptr)
     {
-        DescriptorSetBase* descriptorSet = m_pipeline->GetDescriptorTable()->GetDescriptorSet("DDGIDescriptorSet", frame->GetFrameIndex());
+        DescriptorSet* descriptorSet = m_pipeline->GetDescriptorTable()->GetDescriptorSet("DDGIDescriptorSet", frame->GetFrameIndex());
         Assert(descriptorSet != nullptr);
 
         setDescriptorElements(descriptorSet, pd->raytracingTlases[frame->GetFrameIndex()], frame->GetFrameIndex());
@@ -301,7 +301,7 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        DescriptorSetBase* descriptorSet = descriptorTable->GetDescriptorSet("DDGIDescriptorSet", frameIndex);
+        DescriptorSet* descriptorSet = descriptorTable->GetDescriptorSet("DDGIDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
         setDescriptorElements(descriptorSet, pd->raytracingTlases[frameIndex], frameIndex);
@@ -354,7 +354,7 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
     }
 }
 
-void DDGI::UpdateUniforms(FrameBase* frame, const RenderSetup& renderSetup)
+void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
 {
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
@@ -400,7 +400,7 @@ void DDGI::UpdateUniforms(FrameBase* frame, const RenderSetup& renderSetup)
     m_uniforms.flags &= ~PROBE_SYSTEM_FLAGS_FIRST_RUN;
 }
 
-void DDGI::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     AssertOnThread(g_renderThread);
 

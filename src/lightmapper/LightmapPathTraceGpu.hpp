@@ -46,8 +46,8 @@ public:
 
     virtual void Create() override;
     virtual void CleanJobData(LightmapJobBase* job) override;
-    virtual void ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits) override;
-    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
+    virtual void ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits) override;
+    virtual void Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
 
 private:
     struct JobData
@@ -59,10 +59,10 @@ private:
         bool IsCreated = false;
     };
 
-    void UpdatePipelineState(FrameBase* frame, LightmapJobBase* job);
+    void UpdatePipelineState(Frame* frame, LightmapJobBase* job);
     void CreateBuffers(LightmapJobBase* job);
     void CreateAccelerationStructures();
-    void UpdateUniforms(FrameBase* frame, LightmapJobBase* job, uint32 rayOffset);
+    void UpdateUniforms(Frame* frame, LightmapJobBase* job, uint32 rayOffset);
 
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;

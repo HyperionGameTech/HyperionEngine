@@ -38,10 +38,10 @@ public:
         return m_frameIndex;
     }
 
-    void MarkDescriptorSetUsed(DescriptorSetBase* descriptorSet);
+    void MarkDescriptorSetUsed(DescriptorSet* descriptorSet);
 
-    Delegate<void, FrameBase*> OnPresent;
-    Delegate<void, FrameBase*> OnFrameEnd;
+    Delegate<void, Frame*> OnPresent;
+    Delegate<void, Frame*> OnFrameEnd;
 
     RenderQueue renderQueue;
     RenderQueue preRenderQueue;
@@ -54,7 +54,7 @@ protected:
     }
 
     uint32 m_frameIndex;
-    HashSet<DescriptorSetBase*> m_usedDescriptorSets;
+    HashSet<DescriptorSet*> m_usedDescriptorSets;
 };
 
 } // namespace hyperion

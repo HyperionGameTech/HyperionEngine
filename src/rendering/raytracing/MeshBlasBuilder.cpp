@@ -97,7 +97,7 @@ struct BuildMeshBlas : public RenderCommand
 
         HYP_GFX_CHECK(singleTimeCommands->Execute());
 
-        /*FrameBase* frame = g_renderBackend->GetCurrentFrame();
+        /*Frame* frame = g_renderBackend->GetCurrentFrame();
         RenderQueue& renderQueue = frame->renderQueue;
 
         renderQueue << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);

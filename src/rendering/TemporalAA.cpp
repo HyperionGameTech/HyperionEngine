@@ -94,7 +94,7 @@ void TemporalAA::CreateTextures()
     InitObject(m_historyTexture);
 }
 
-void TemporalAA::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
+void TemporalAA::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 {
     const FixedArray<Handle<Texture>*, 2> textures = {
         &m_resultTexture,
@@ -174,7 +174,7 @@ void TemporalAA::UpdatePipelineState(FrameBase* frame, const RenderSetup& render
     setDescriptorElements(descriptorSet, frame->GetFrameIndex());
 }
 
-void TemporalAA::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void TemporalAA::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Temporal AA");
 

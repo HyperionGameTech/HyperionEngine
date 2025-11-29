@@ -91,7 +91,7 @@ struct LightmapVolumeAtlasBlit : RenderCommand
         // Ensure the array of atlas textures are resized to the correct count
         Assert(atlasTextures.Size() == uint32(LTT_MAX));
 
-        FrameBase* currentFrame = g_renderBackend->GetCurrentFrame();
+        Frame* currentFrame = g_renderBackend->GetCurrentFrame();
         Assert(currentFrame != nullptr);
 
         RenderQueue& renderQueue = currentFrame->postRenderQueue;
@@ -152,7 +152,7 @@ struct LightmapVolumeAtlasBlit : RenderCommand
 
         // Add readback to update TextureData for the lightmap atlas texture
         currentFrame->OnFrameEnd
-            .Bind([atlasTextures = atlasTextures](FrameBase* frame)
+            .Bind([atlasTextures = atlasTextures](Frame* frame)
                 {
                     for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LTT_MAX); textureTypeIndex++)
                     {

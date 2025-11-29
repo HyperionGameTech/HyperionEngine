@@ -56,7 +56,7 @@ public:
 
     HYP_API void Create();
 
-    HYP_API void Render(FrameBase* frame, const RenderSetup& renderSetup);
+    HYP_API void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
     void CreateImages();
@@ -64,8 +64,8 @@ private:
     void CreateRaytracingPipeline();
     void CreateTemporalBlending();
 
-    void UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup);
-    void UpdateUniforms(FrameBase* frame, const RenderSetup& renderSetup);
+    void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
+    void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup);
 
     RaytracingReflectionsConfig m_config;
 

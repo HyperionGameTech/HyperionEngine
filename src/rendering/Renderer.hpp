@@ -94,7 +94,7 @@ struct HYP_API RenderSetup
     LightmapVolume* lightmapVolume;
     ParticleVolume* particleVolume;
 
-    SwapchainBase* swapchain;
+    Swapchain* swapchain;
 
     PassData* passData;
 
@@ -290,7 +290,7 @@ public:
     virtual void Initialize() = 0;
     virtual void Shutdown() = 0;
 
-    virtual void RenderFrame(FrameBase* frame, const RenderSetup& renderSetup) = 0;
+    virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) = 0;
 
     /*! \brief Cleans up data no longer used for rendering, amortised.
      *  Returns number of cleanup iterations used by this execution */

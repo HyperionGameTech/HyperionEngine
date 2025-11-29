@@ -217,7 +217,7 @@ void SSGI::CreateComputePipelines()
     DeferCreate(m_computePipeline);
 }
 
-void SSGI::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Screen Space Global Illumination");
 

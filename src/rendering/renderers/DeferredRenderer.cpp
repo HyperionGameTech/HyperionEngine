@@ -357,7 +357,7 @@ void DeferredPass::Resize_Internal(Vec2u newSize)
     m_directLightGraphicsPipelines = {};
 }
 
-void DeferredPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer)
+void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
     ENGINE_STAT_SCOPE(&s_deferredPassTimer);
@@ -586,7 +586,7 @@ void TonemapPass::Resize_Internal(Vec2u newSize)
     FullScreenPass::Resize_Internal(newSize);
 }
 
-void TonemapPass::Render(FrameBase* frame, const RenderSetup& rs)
+void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 {
     FullScreenPass::Render(frame, rs);
 }
@@ -732,7 +732,7 @@ void LightmapPass::Resize_Internal(Vec2u newSize)
     FullScreenPass::Resize_Internal(newSize);
 }
 
-void LightmapPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -913,7 +913,7 @@ void EnvGridPass::Resize_Internal(Vec2u newSize)
     m_graphicsPipelines = {};
 }
 
-void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
+void EnvGridPass::Render(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1145,7 +1145,7 @@ void ReflectionsPass::Resize_Internal(Vec2u newSize)
     }
 }
 
-void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
+void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1851,7 +1851,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.viewport = viewport;
 }
 
-void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
+void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
 
@@ -2096,11 +2096,11 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         if (view->GetFlags() & ViewFlags::ENABLE_READBACK)
         {
-            GpuImageBase* dstImage = view->GetReadbackTextureGpuImage();
+            GpuImage* dstImage = view->GetReadbackTextureGpuImage();
 
             if (dstImage != nullptr)
             {
-                GpuImageBase* srcImage = m_rendererConfig.taaEnabled
+                GpuImage* srcImage = m_rendererConfig.taaEnabled
                     ? pd->temporalAa->GetResultTexture()->GetGpuImage()
                     : pd->tonemapPass->GetFinalImageView()->GetImage();
 
@@ -2152,7 +2152,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     }
 }
 
-void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& rs)
+void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
 
@@ -2519,7 +2519,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
 #undef CHECK_FRAMEBUFFER_SIZE
 
-void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup& rs)
+void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
 
@@ -2627,7 +2627,7 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
     pd->raytracingTlases[currentFrameIndex]->UpdateStructure(updateStateFlags);
 }
 
-void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector)
+void DeferredRenderer::PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector)
 {
     HYP_SCOPE;
 
@@ -2641,7 +2641,7 @@ void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSet
 }
 
 void DeferredRenderer::ExecuteDrawCalls(
-    FrameBase* frame,
+    Frame* frame,
     const RenderSetup& rs,
     RenderCollector& renderCollector,
     uint32 bucketMask)
@@ -2651,7 +2651,7 @@ void DeferredRenderer::ExecuteDrawCalls(
     renderCollector.ExecuteDrawCalls(frame, rs, bucketMask);
 }
 
-void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage)
+void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage)
 {
     HYP_SCOPE;
 

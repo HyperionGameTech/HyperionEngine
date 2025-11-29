@@ -893,7 +893,7 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
     parallelRenderingStateTail = nullptr;
 }
 
-void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& renderSetup, uint32 bucketBits)
+void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -944,7 +944,7 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
 }
 
 void RenderCollector::ExecuteDrawCalls(
-    FrameBase* frame,
+    Frame* frame,
     const RenderSetup& renderSetup,
     uint32 bucketBits,
     bool commit)
@@ -967,7 +967,7 @@ void RenderCollector::ExecuteDrawCalls(
 }
 
 void RenderCollector::ExecuteDrawCalls(
-    FrameBase* frame,
+    Frame* frame,
     const RenderSetup& renderSetup,
     const FramebufferRef& framebuffer,
     uint32 bucketBits,

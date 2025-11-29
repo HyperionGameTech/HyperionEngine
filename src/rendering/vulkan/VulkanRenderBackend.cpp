@@ -634,7 +634,7 @@ VulkanRenderBackend::VulkanRenderBackend()
       m_renderConfig(MakePimpl<VulkanRenderConfig>()),
       m_descriptorSetManager(MakePimpl<VulkanDescriptorSetManager>()),
       m_textureCache(MakePimpl<VulkanTextureCache>()),
-      m_asyncCompute(MakePimpl<VulkanAsyncCompute>()),
+      m_asyncCompute(new VulkanAsyncCompute()),
       m_currentFrameIndex(0)
 {
 }
@@ -653,9 +653,9 @@ const IRenderConfig& VulkanRenderBackend::GetRenderConfig() const
     return *m_renderConfig;
 }
 
-VulkanAsyncCompute* VulkanRenderBackend::GetAsyncCompute() const
+AsyncComputeBase* VulkanRenderBackend::GetAsyncCompute() const
 {
-    return m_asyncCompute.Get();
+    return m_asyncCompute;
 }
 
 RendererResult VulkanRenderBackend::Initialize()
@@ -740,7 +740,8 @@ RendererResult VulkanRenderBackend::Destroy()
 
     m_descriptorSetManager->Destroy(m_instance->GetDevice());
 
-    m_asyncCompute.Reset();
+    delete m_asyncCompute;
+    m_asyncCompute = nullptr;
 
     HYP_GFX_CHECK(m_instance->GetDevice()->WaitIdle());
 
@@ -760,7 +761,7 @@ VulkanFrame* VulkanRenderBackend::GetCurrentFrame() const
 
 VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
 {
-    VulkanFrame* frame = VULKAN_CAST(GetCurrentFrame());
+    VulkanFrame* frame = GetCurrentFrame();
 
     RendererResult res;
 
@@ -776,7 +777,7 @@ VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
     //{
     //     CHECK_FRAME_RESULT(m_instance->GetDevice()->WaitIdle());
 
-    //    VulkanSwapchainRef newSwapchain = VULKAN_CAST(m_instance->GetSwapchain()->Recreate());
+    //    VulkanSwapchainRef newSwapchain = m_instance->GetSwapchain(->Recreate());
     //    SafeDelete()
     //    CHECK_FRAME_RESULT(m_instance->GetSwapchain()());
 
@@ -808,8 +809,8 @@ VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
 
 void VulkanRenderBackend::PrepareSwapchain(VulkanSwapchain* swapchain)
 {
-    VulkanSwapchain* vulkanSwapchain = VULKAN_CAST(swapchain);
-    VulkanFrame* vulkanFrame = VULKAN_CAST(GetCurrentFrame());
+    VulkanSwapchain* vulkanSwapchain = swapchain;
+    VulkanFrame* vulkanFrame = GetCurrentFrame();
 
     bool needsRecreate = false;
     CHECK_FRAME_RESULT(vulkanSwapchain->PrepareForFrame(vulkanFrame, needsRecreate));
@@ -842,18 +843,17 @@ void VulkanRenderBackend::SubmitCommandBuffers()
     }
 
     VulkanDevice* vulkanDevice = m_instance->GetDevice();
-    VulkanFrame* vulkanFrame = VULKAN_CAST(GetCurrentFrame());
-    VulkanCommandBuffer* vulkanCommandBuffer = VULKAN_CAST(GetCurrentCommandBuffer());
+    VulkanFrame* vulkanFrame = GetCurrentFrame();
+    VulkanCommandBuffer* vulkanCommandBuffer = GetCurrentCommandBuffer();
 
     CHECK_FRAME_RESULT(vulkanFrame->Submit(presentQueue, vulkanCommandBuffer));
 
-    VulkanAsyncCompute* vulkanAsyncCompute = m_asyncCompute.Get();
-    if (vulkanAsyncCompute->IsSupported())
+    if (m_asyncCompute->IsSupported())
     {
-        CHECK_FRAME_RESULT(vulkanAsyncCompute->Submit(vulkanFrame));
+        CHECK_FRAME_RESULT(m_asyncCompute->Submit(vulkanFrame));
     }
 #ifdef HYP_DEBUG_MODE
-    else if (!vulkanAsyncCompute->renderQueue.IsEmpty())
+    else if (!m_asyncCompute->renderQueue.IsEmpty())
     {
         HYP_LOG(RenderingBackend, Fatal, "Cannot write to async compute render queue, this device does not support async compute!");
     }
@@ -866,9 +866,9 @@ void VulkanRenderBackend::PresentToSwapchain(VulkanSwapchain* swapchain)
     AssertDebug(presentQueue != nullptr); // should never be null when presenting, not used in headless mode
 
     VulkanDevice* vulkanDevice = m_instance->GetDevice();
-    VulkanSwapchain* vulkanSwapchain = VULKAN_CAST(swapchain);
-    VulkanCommandBuffer* vulkanCommandBuffer = VULKAN_CAST(GetCurrentCommandBuffer());
-    VulkanFrame* vulkanFrame = VULKAN_CAST(GetCurrentFrame());
+    VulkanSwapchain* vulkanSwapchain = swapchain;
+    VulkanCommandBuffer* vulkanCommandBuffer = GetCurrentCommandBuffer();
+    VulkanFrame* vulkanFrame = GetCurrentFrame();
 
     CHECK_FRAME_RESULT(vulkanSwapchain->PresentFrame(vulkanFrame, presentQueue));
 }

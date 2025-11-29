@@ -152,18 +152,18 @@ public:
     ParallelRenderingState* AcquireNextParallelRenderingState();
     void CommitParallelRenderingState(RenderQueue& renderQueue);
 
-    void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& renderSetup, uint32 bucketBits);
+    void PerformOcclusionCulling(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits);
 
     // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
     void ExecuteDrawCalls(
-        FrameBase* frame,
+        Frame* frame,
         const RenderSetup& renderSetup,
         uint32 bucketBits,
         bool commit = true);
 
     // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
     void ExecuteDrawCalls(
-        FrameBase* frame,
+        Frame* frame,
         const RenderSetup& renderSetup,
         const FramebufferRef& framebuffer,
         uint32 bucketBits,

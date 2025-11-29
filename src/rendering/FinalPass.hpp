@@ -21,7 +21,7 @@ struct RenderSetup;
 
 struct FinalPassData
 {
-    WeakHandle<SwapchainBase> swapchain;
+    SwapchainWeakRef swapchain;
     Handle<FullScreenPass> renderTextureToScreenPass;
     GpuImageViewRef lastUiImageView;
     uint8 dirtyFrameIndices = 0;
@@ -38,10 +38,10 @@ public:
     void SetUILayerImageView(const GpuImageViewRef& imageView);
 
     void Create();
-    void Render(FrameBase* frame, const RenderSetup& rs);
+    void Render(Frame* frame, const RenderSetup& rs);
 
 private:
-    FinalPassData* GetOrCreatePassData(SwapchainBase* swapchain);
+    FinalPassData* GetOrCreatePassData(Swapchain* swapchain);
 
     SparsePagedArray<FinalPassData> m_passData;
     Handle<Mesh> m_quadMesh;

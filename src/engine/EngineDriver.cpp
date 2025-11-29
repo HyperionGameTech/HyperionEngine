@@ -535,12 +535,12 @@ HYP_API void EngineDriver::RenderNextFrame()
     HYP_PROFILE_BEGIN;
     AssertOnThread(g_renderThread);
 
-    FrameBase* frame = g_renderBackend->PrepareNextFrame();
+    Frame* frame = g_renderBackend->PrepareNextFrame();
     Assert(frame != nullptr);
 
     PreFrameUpdate(frame);
 
-    SwapchainBase* swapchain = nullptr;
+    Swapchain* swapchain = nullptr;
 
     if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
     {
@@ -598,23 +598,23 @@ HYP_API void EngineDriver::RenderNextFrame()
     }
 }
 
-void EngineDriver::PreFrameUpdate(FrameBase* frame)
+void EngineDriver::PreFrameUpdate(Frame* frame)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     // Check if any swapchains need to be recreated
-    Array<SwapchainBase*, RenderTempAllocator> swapchains;
+    Array<Swapchain*, RenderTempAllocator> swapchains;
 
     if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
     {
-        if (SwapchainBase* swapchain = mainWindow->GetSwapchain().Get())
+        if (Swapchain* swapchain = mainWindow->GetSwapchain().Get())
         {
             swapchains.PushBack(swapchain);
         }
     }
 
-    for (SwapchainBase* swapchain : swapchains)
+    for (Swapchain* swapchain : swapchains)
     {
         g_renderBackend->PrepareSwapchain(swapchain);
     }

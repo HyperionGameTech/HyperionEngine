@@ -67,8 +67,8 @@ public:
     }
 
     virtual void Create() override;
-    virtual void ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits) override;
-    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
+    virtual void ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits) override;
+    virtual void Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
 
 private:
     struct SharedCpuData

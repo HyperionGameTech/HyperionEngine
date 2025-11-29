@@ -638,7 +638,7 @@ void DebugDrawer::Update(float delta)
     }
 }
 
-void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

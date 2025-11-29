@@ -322,7 +322,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         break;
     }
 
-    VulkanFrame* currentFrame = VULKAN_CAST(GetRenderBackend()->GetCurrentFrame());
+    VulkanFrame* currentFrame = GetRenderBackend()->GetCurrentFrame();
     if (currentFrame != nullptr)
     {
         currentFrame->AddRenderPass(this);

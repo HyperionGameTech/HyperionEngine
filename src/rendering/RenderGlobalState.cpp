@@ -1519,7 +1519,7 @@ RenderGlobalState::~RenderGlobalState()
     graphicsPipelineCache = nullptr;
 }
 
-void RenderGlobalState::UpdateBuffers(FrameBase* frame)
+void RenderGlobalState::UpdateBuffers(Frame* frame)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

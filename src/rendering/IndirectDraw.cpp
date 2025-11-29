@@ -35,8 +35,8 @@
 namespace hyperion {
 
 static inline bool ResizeBuffer(
-    FrameBase* frame,
-    GpuBufferBase* buffer,
+    Frame* frame,
+    GpuBuffer* buffer,
     SizeType newBufferSize)
 {
     if constexpr (IndirectDrawState::UseNextPow2Size)
@@ -59,10 +59,10 @@ static inline bool ResizeBuffer(
 }
 
 static bool ResizeIndirectDrawCommandsBuffer(
-    FrameBase* frame,
+    Frame* frame,
     const TByteBuffer<RenderAllocator>& drawCommandsBuffer,
-    GpuBufferBase* indirectBuffer,
-    GpuBufferBase* stagingBuffer)
+    GpuBuffer* indirectBuffer,
+    GpuBuffer* stagingBuffer)
 {
     const bool wasCreatedOrResized = ResizeBuffer(frame, indirectBuffer, drawCommandsBuffer.Size());
 
@@ -93,10 +93,10 @@ static bool ResizeIndirectDrawCommandsBuffer(
 }
 
 static bool ResizeInstancesBuffer(
-    FrameBase* frame,
+    Frame* frame,
     uint32 numObjectInstances,
-    GpuBufferBase* instanceBuffer,
-    GpuBufferBase* stagingBuffer)
+    GpuBuffer* instanceBuffer,
+    GpuBuffer* stagingBuffer)
 {
     const bool wasCreatedOrResized = ResizeBuffer(
         frame,
@@ -112,7 +112,7 @@ static bool ResizeInstancesBuffer(
 }
 
 static bool ResizeIfNeeded(
-    FrameBase* frame,
+    Frame* frame,
     const FixedArray<GpuBufferRef, NumFramesInFlight>& indirectBuffers,
     const FixedArray<GpuBufferRef, NumFramesInFlight>& instanceBuffers,
     const FixedArray<GpuBufferRef, NumFramesInFlight>& stagingBuffers,
@@ -122,9 +122,9 @@ static bool ResizeIfNeeded(
 {
     bool resizeHappened = false;
 
-    GpuBufferBase* indirectBuffer = indirectBuffers[frame->GetFrameIndex()];
-    GpuBufferBase* instanceBuffer = instanceBuffers[frame->GetFrameIndex()];
-    GpuBufferBase* stagingBuffer = stagingBuffers[frame->GetFrameIndex()];
+    GpuBuffer* indirectBuffer = indirectBuffers[frame->GetFrameIndex()];
+    GpuBuffer* instanceBuffer = instanceBuffers[frame->GetFrameIndex()];
+    GpuBuffer* stagingBuffer = stagingBuffers[frame->GetFrameIndex()];
 
     if ((dirtyBits & (1u << frame->GetFrameIndex())) || !indirectBuffer)
     {
@@ -253,7 +253,7 @@ void IndirectDrawState::ResetDrawState()
     m_dirtyBits = AllBitsDirty;
 }
 
-void IndirectDrawState::UpdateBufferData(FrameBase* frame, bool* outWasResized)
+void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -395,7 +395,7 @@ void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCall
     }
 }
 
-void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const RenderSetup& renderSetup)
+void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -490,7 +490,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
     frame->renderQueue << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 }
 
-void IndirectRenderer::RebuildDescriptors(FrameBase* frame)
+void IndirectRenderer::RebuildDescriptors(Frame* frame)
 {
     HYP_SCOPE;
 

@@ -104,7 +104,7 @@ public:
 
     void Create();
 
-    void Render(FrameBase* frame, const RenderSetup& renderSetup);
+    void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
     ShaderProperties GetShaderProperties() const;
@@ -112,7 +112,7 @@ private:
     void CreateBlueNoiseBuffer();
     void CreatePasses();
 
-    void UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup);
+    void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
 
     SSRRendererConfig m_config;
 

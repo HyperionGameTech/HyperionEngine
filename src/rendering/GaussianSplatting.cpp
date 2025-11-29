@@ -220,7 +220,7 @@ void GaussianSplattingInstance::Init()
     SetReady(true);
 }
 
-void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& renderSetup)
+void GaussianSplattingInstance::Record(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -633,7 +633,7 @@ void GaussianSplatting::CreateBuffers()
         m_quadMesh);
 }
 
-void GaussianSplatting::UpdateSplats(FrameBase* frame, const RenderSetup& renderSetup)
+void GaussianSplatting::UpdateSplats(Frame* frame, const RenderSetup& renderSetup)
 {
     AssertOnThread(g_renderThread);
     AssertReady();
@@ -663,7 +663,7 @@ void GaussianSplatting::UpdateSplats(FrameBase* frame, const RenderSetup& render
     m_gaussianSplattingInstance->Record(frame, renderSetup);
 }
 
-void GaussianSplatting::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void GaussianSplatting::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     AssertReady();
     AssertOnThread(g_renderThread);

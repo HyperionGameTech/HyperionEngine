@@ -98,7 +98,7 @@ public:
 
 protected:
     GraphicsPipelineCacheHandle CreatePipeline(const ShaderProperties& shaderProperties);
-    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override;
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override;
 
     virtual void Resize_Internal(Vec2u newSize) override;
 
@@ -141,7 +141,7 @@ public:
     virtual ~TonemapPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
+    virtual void Render(Frame* frame, const RenderSetup& rs) override;
 
 protected:
     virtual void CreatePipeline() override;
@@ -183,7 +183,7 @@ protected:
         Array<DescriptorSetRef> descriptorSets;
     };
 
-    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override;
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override;
 
     const GraphicsPipelineRef& GetGraphicsPipeline(const FramebufferRef& framebuffer, LightmapVolumePassData& data);
 
@@ -233,11 +233,11 @@ public:
     virtual ~EnvGridPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
+    virtual void Render(Frame* frame, const RenderSetup& rs) override;
 
 protected:
     virtual void CreatePipeline() override;
-    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }
@@ -290,7 +290,7 @@ public:
     bool ShouldRenderSSR() const;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
+    virtual void Render(Frame* frame, const RenderSetup& rs) override;
 
 private:
     virtual bool UsesTemporalBlending() const override
@@ -308,7 +308,7 @@ private:
 
     void CreateSSRRenderer();
 
-    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }
@@ -428,11 +428,11 @@ public:
     virtual void Initialize() override;
     virtual void Shutdown() override;
 
-    virtual void RenderFrame(FrameBase* frame, const RenderSetup& rs) override;
+    virtual void RenderFrame(Frame* frame, const RenderSetup& rs) override;
 
 private:
-    void RenderFrameForView(FrameBase* frame, const RenderSetup& rs);
-    void UpdateRaytracingView(FrameBase* frame, const RenderSetup& rs);
+    void RenderFrameForView(Frame* frame, const RenderSetup& rs);
+    void UpdateRaytracingView(Frame* frame, const RenderSetup& rs);
 
     // Called on initialization or when the view changes
     virtual Handle<PassData> CreateViewPassData(View* view, PassDataExt&) override;
@@ -446,9 +446,9 @@ private:
 
     void ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData);
 
-    void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector);
-    void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask);
-    void GenerateMipChain(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage);
+    void PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector);
+    void ExecuteDrawCalls(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask);
+    void GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage);
 
     LastFrameData m_lastFrameData;
 

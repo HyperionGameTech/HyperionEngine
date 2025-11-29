@@ -288,7 +288,7 @@ void TemporalBlending::CreatePipeline()
     HYP_GFX_ASSERT(m_csPerformBlending->Create());
 }
 
-void TemporalBlending::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

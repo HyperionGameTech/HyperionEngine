@@ -82,10 +82,10 @@ public:
     virtual AttachmentBase* GetAttachment(uint32 binding) const = 0;
     virtual int NumAttachments() const = 0;
 
-    virtual void BeginCapture(CommandBufferBase* commandBuffer) = 0;
-    virtual void EndCapture(CommandBufferBase* commandBuffer) = 0;
+    virtual void BeginCapture(CommandBuffer* commandBuffer) = 0;
+    virtual void EndCapture(CommandBuffer* commandBuffer) = 0;
 
-    virtual void Clear(CommandBufferBase* commandBuffer) = 0;
+    virtual void Clear(CommandBuffer* commandBuffer) = 0;
 
 protected:
     FramebufferBase(Vec2u extent, RenderTargetType renderTargetType)

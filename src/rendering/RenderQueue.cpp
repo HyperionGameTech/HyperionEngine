@@ -8,12 +8,9 @@
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/Mesh.hpp>
 
-#if defined(HYP_DEBUG_MODE) && defined(HYP_VULKAN)
-// for debugging
-#include <rendering/vulkan/VulkanFramebuffer.hpp>
-#include <rendering/vulkan/VulkanGraphicsPipeline.hpp>
-#include <rendering/vulkan/VulkanCommandBuffer.hpp>
-#endif
+#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/RenderComputePipeline.hpp>
+#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -25,7 +22,7 @@ namespace hyperion {
 #pragma region RenderQueue
 
 template <>
-void RenderQueue::Prepare(FrameBase* frame)
+void RenderQueue::Prepare(Frame* frame)
 {
     Assert(frame != nullptr);
 
@@ -39,7 +36,7 @@ void RenderQueue::Prepare(FrameBase* frame)
 }
 
 template <>
-void RenderQueue::Execute(CommandBufferBase* commandBuffer)
+void RenderQueue::Execute(CommandBuffer* commandBuffer)
 {
     AssertDebug(commandBuffer != nullptr);
 
@@ -59,7 +56,7 @@ void RenderQueue::Execute(CommandBufferBase* commandBuffer)
 
 #pragma region BindDescriptorSet
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets)
     : m_descriptorSet(descriptorSet),
       m_graphicsPipeline(pipeline),
       m_offsets(offsets),
@@ -74,7 +71,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsP
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
     : m_descriptorSet(descriptorSet),
       m_graphicsPipeline(pipeline),
       m_offsets(offsets),
@@ -86,7 +83,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsP
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
 }
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets)
     : m_descriptorSet(descriptorSet),
       m_computePipeline(pipeline),
       m_offsets(offsets),
@@ -101,7 +98,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePi
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
     : m_descriptorSet(descriptorSet),
       m_computePipeline(pipeline),
       m_offsets(offsets),
@@ -113,7 +110,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePi
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
 }
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets)
     : m_descriptorSet(descriptorSet),
       m_raytracingPipeline(pipeline),
       m_offsets(offsets),
@@ -128,7 +125,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, Raytracin
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
     : m_descriptorSet(descriptorSet),
       m_raytracingPipeline(pipeline),
       m_offsets(offsets),
@@ -140,7 +137,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSetBase* descriptorSet, Raytracin
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
 }
 
-void BindDescriptorSet::PrepareStatic(CmdBase* cmd, FrameBase* frame)
+void BindDescriptorSet::PrepareStatic(CmdBase* cmd, Frame* frame)
 {
     BindDescriptorSet* cmdCasted = static_cast<BindDescriptorSet*>(cmd);
 
@@ -149,7 +146,7 @@ void BindDescriptorSet::PrepareStatic(CmdBase* cmd, FrameBase* frame)
     frame->MarkDescriptorSetUsed(cmdCasted->m_descriptorSet);
 }
 
-void BindDescriptorSet::InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
+void BindDescriptorSet::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     BindDescriptorSet* cmdCasted = static_cast<BindDescriptorSet*>(cmd);
 
@@ -176,7 +173,7 @@ void BindDescriptorSet::InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuf
 
 #pragma region BindDescriptorTable
 
-BindDescriptorTable::BindDescriptorTable(DescriptorTableBase* descriptorTable, GraphicsPipelineBase* graphicsPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
+BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, GraphicsPipeline* graphicsPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
     : m_descriptorTable(descriptorTable),
       m_graphicsPipeline(graphicsPipeline),
       m_offsets(offsets),
@@ -186,7 +183,7 @@ BindDescriptorTable::BindDescriptorTable(DescriptorTableBase* descriptorTable, G
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
 
-BindDescriptorTable::BindDescriptorTable(DescriptorTableBase* descriptorTable, ComputePipelineBase* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
+BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, ComputePipeline* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
     : m_descriptorTable(descriptorTable),
       m_computePipeline(computePipeline),
       m_offsets(offsets),
@@ -196,7 +193,7 @@ BindDescriptorTable::BindDescriptorTable(DescriptorTableBase* descriptorTable, C
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
 
-BindDescriptorTable::BindDescriptorTable(DescriptorTableBase* descriptorTable, RaytracingPipelineBase* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
+BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, RaytracingPipeline* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
     : m_descriptorTable(descriptorTable),
       m_raytracingPipeline(raytracingPipeline),
       m_offsets(offsets),
@@ -206,7 +203,7 @@ BindDescriptorTable::BindDescriptorTable(DescriptorTableBase* descriptorTable, R
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
 
-void BindDescriptorTable::PrepareStatic(CmdBase* cmd, FrameBase* frame)
+void BindDescriptorTable::PrepareStatic(CmdBase* cmd, Frame* frame)
 {
     BindDescriptorTable* cmdCasted = static_cast<BindDescriptorTable*>(cmd);
 
@@ -223,7 +220,7 @@ void BindDescriptorTable::PrepareStatic(CmdBase* cmd, FrameBase* frame)
     }
 }
 
-void BindDescriptorTable::InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
+void BindDescriptorTable::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     BindDescriptorTable* cmdCasted = static_cast<BindDescriptorTable*>(cmd);
 
@@ -251,10 +248,9 @@ void BindDescriptorTable::InvokeStatic(CmdBase* cmd, CommandBufferBase* commandB
 #pragma region InsertBarrier
 
 #if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
-void InsertBarrier::CheckNotInRenderPass(CommandBufferBase* commandBuffer) const
+void InsertBarrier::CheckNotInRenderPass(CommandBuffer* commandBuffer) const
 {
-    VulkanCommandBuffer* vulkanCommandBuffer = VULKAN_CAST(commandBuffer);
-    HYP_GFX_ASSERT(!vulkanCommandBuffer->IsInRenderPass());
+    HYP_GFX_ASSERT(!commandBuffer->IsInRenderPass());
 }
 #endif
 
@@ -264,10 +260,10 @@ void InsertBarrier::CheckNotInRenderPass(CommandBufferBase* commandBuffer) const
 
 #ifdef HYP_DEBUG_MODE
 thread_local int s_framebufferCount;
-thread_local FramebufferBase* s_currentFramebuffer;
+thread_local Framebuffer* s_currentFramebuffer;
 #endif
 
-BeginFramebuffer::BeginFramebuffer(FramebufferBase* framebuffer)
+BeginFramebuffer::BeginFramebuffer(Framebuffer* framebuffer)
     : m_framebuffer(framebuffer)
 {
 #ifdef HYP_DEBUG_MODE
@@ -281,7 +277,7 @@ BeginFramebuffer::BeginFramebuffer(FramebufferBase* framebuffer)
     m_framebuffer->SetIsDeferredRecording(true);
 }
 
-void BeginFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
+void BeginFramebuffer::PrepareStatic(CmdBase* cmd, Frame* frame)
 {
 }
 
@@ -289,7 +285,7 @@ void BeginFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
 
 #pragma region EndFramebuffer
 
-EndFramebuffer::EndFramebuffer(FramebufferBase* framebuffer)
+EndFramebuffer::EndFramebuffer(Framebuffer* framebuffer)
     : m_framebuffer(framebuffer)
 {
 #ifdef HYP_DEBUG_MODE
@@ -304,7 +300,7 @@ EndFramebuffer::EndFramebuffer(FramebufferBase* framebuffer)
     m_framebuffer->SetIsDeferredRecording(false);
 }
 
-void EndFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
+void EndFramebuffer::PrepareStatic(CmdBase* cmd, Frame* frame)
 {
 }
 
@@ -314,21 +310,21 @@ void EndFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
 
 #ifdef HYP_DEBUG_MODE
 
-BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipelineBase* pipeline, const Viewport& viewport)
+BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipeline* pipeline, const Viewport& viewport)
     : m_pipeline(pipeline),
       m_viewport(viewport)
 {
     Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
 }
 
-BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipelineBase* pipeline, Vec2i viewportOffset, Vec2u viewportExtent)
+BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipeline* pipeline, Vec2i viewportOffset, Vec2u viewportExtent)
     : m_pipeline(pipeline),
       m_viewport(Viewport { viewportExtent, viewportOffset })
 {
     Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
 }
 
-BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipelineBase* pipeline)
+BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipeline* pipeline)
     : m_pipeline(pipeline),
       m_viewport()
 {
@@ -337,7 +333,7 @@ BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipelineBase* pipeline)
 
 #endif
 
-void BindGraphicsPipeline::PrepareStatic(CmdBase* cmd, FrameBase*)
+void BindGraphicsPipeline::PrepareStatic(CmdBase* cmd, Frame*)
 {
     BindGraphicsPipeline* cmdCasted = static_cast<BindGraphicsPipeline*>(cmd);
 
@@ -347,13 +343,86 @@ void BindGraphicsPipeline::PrepareStatic(CmdBase* cmd, FrameBase*)
     }
 }
 
+void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    BindGraphicsPipeline* cmdCasted = static_cast<BindGraphicsPipeline*>(cmd);
+
+    if (cmdCasted->m_viewport.position != Vec2i(0, 0) || cmdCasted->m_viewport.extent != Vec2u(0, 0))
+    {
+        cmdCasted->m_pipeline->Bind(commandBuffer, cmdCasted->m_viewport.position, cmdCasted->m_viewport.extent);
+    }
+    else
+    {
+        cmdCasted->m_pipeline->Bind(commandBuffer);
+    }
+
+    static_assert(std::is_trivially_destructible_v<BindGraphicsPipeline>);
+    // cmdCasted->~BindGraphicsPipeline();
+}
+
 #pragma endregion BindGraphicsPipeline
+
+#pragma region BindComputePipeline
+
+void BindComputePipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    BindComputePipeline* cmdCasted = static_cast<BindComputePipeline*>(cmd);
+
+    cmdCasted->m_pipeline->Bind(commandBuffer);
+
+    static_assert(std::is_trivially_destructible_v<BindComputePipeline>);
+    // cmdCasted->~BindComputePipeline();
+}
+
+#pragma endregion BindComputePipeline
+
+#pragma region BindRaytracingPipeline
+
+void BindRaytracingPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    BindRaytracingPipeline* cmdCasted = static_cast<BindRaytracingPipeline*>(cmd);
+
+    cmdCasted->m_pipeline->Bind(commandBuffer);
+
+    static_assert(std::is_trivially_destructible_v<BindRaytracingPipeline>);
+    // cmdCasted->~BindRaytracingPipeline();
+}
+
+#pragma endregion BindRaytracingPipeline
+
+#pragma region DispatchCompute
+
+void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    DispatchCompute* cmdCasted = static_cast<DispatchCompute*>(cmd);
+
+    cmdCasted->m_pipeline->Dispatch(commandBuffer, cmdCasted->m_workgroupCount);
+
+    static_assert(std::is_trivially_destructible_v<DispatchCompute>);
+    // cmdCasted->~DispatchCompute();
+}
+
+#pragma endregion DispatchCompute
+
+#pragma region TraceRays
+
+void TraceRays::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    TraceRays* cmdCasted = static_cast<TraceRays*>(cmd);
+
+    cmdCasted->m_pipeline->TraceRays(commandBuffer, cmdCasted->m_workgroupCount);
+
+    static_assert(std::is_trivially_destructible_v<TraceRays>);
+    // cmdCasted->~TraceRays();
+}
+
+#pragma endregion TraceRays
 
 #pragma region DrawQuad
 
 static Handle<Mesh> g_quadMesh;
 
-void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
+void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     if (HYP_UNLIKELY(!g_quadMesh))
     {

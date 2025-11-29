@@ -352,7 +352,7 @@ void Mesh::UploadGpuData()
             HYP_GFX_ASSERT(stagingBufferIndices->Create());
             stagingBufferIndices->Copy(packedIndicesSize, indices.Data());
 
-            FrameBase* frame = g_renderBackend->GetCurrentFrame();
+            Frame* frame = g_renderBackend->GetCurrentFrame();
 
             // use prerender queue to copy from staging buffers to gpu buffers
             RenderQueue& renderQueue = frame->preRenderQueue;

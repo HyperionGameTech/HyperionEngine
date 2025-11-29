@@ -5,13 +5,12 @@
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
 #include <rendering/RenderCommandBuffer.hpp>
-#undef INCLUDE_FROM_RHI
-#else
-#undef INCLUDE_FROM_RHI_BASE
 #endif
 
-#include <rendering/RenderDevice.hpp>
+#undef INCLUDE_FROM_RHI
+#undef INCLUDE_FROM_RHI_BASE
 
+#include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
 #include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanSemaphore.hpp>

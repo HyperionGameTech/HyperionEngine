@@ -69,7 +69,7 @@ struct LightmapRender : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        FrameBase* frame = g_renderBackend->GetCurrentFrame();
+        Frame* frame = g_renderBackend->GetCurrentFrame();
 
         RenderSetup renderSetup { world, view };
 

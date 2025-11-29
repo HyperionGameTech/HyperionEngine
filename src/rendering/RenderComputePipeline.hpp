@@ -53,11 +53,11 @@ public:
 
     virtual RendererResult Create() = 0;
 
-    virtual void Bind(CommandBufferBase* commandBuffer) = 0;
+    virtual void Bind(CommandBuffer* commandBuffer) = 0;
 
-    virtual void Dispatch(CommandBufferBase* commandBuffer, const Vec3u& groupSize) const = 0;
+    virtual void Dispatch(CommandBuffer* commandBuffer, const Vec3u& groupSize) const = 0;
     virtual void DispatchIndirect(
-        CommandBufferBase* commandBuffer,
+        CommandBuffer* commandBuffer,
         const GpuBufferRef& indirectBuffer,
         SizeType offset = 0) const = 0;
 

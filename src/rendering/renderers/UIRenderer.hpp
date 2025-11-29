@@ -33,7 +33,7 @@ public:
     UIRenderCollector() = default;
     ~UIRenderCollector() = default;
 
-    void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer, uint32 bucketBits);
+    void ExecuteDrawCalls(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer, uint32 bucketBits);
 };
 
 class UIRenderer : public RendererBase
@@ -45,7 +45,7 @@ public:
     virtual void Initialize() override;
     virtual void Shutdown() override;
 
-    virtual void RenderFrame(FrameBase* frame, const RenderSetup& renderSetup) override;
+    virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override;
 
     UIRenderCollector renderCollector;
 

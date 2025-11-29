@@ -185,8 +185,8 @@ public:
     virtual void Create() = 0;
     virtual void PrepareJob(LightmapJobBase* job) {}
     virtual void CleanJobData(LightmapJobBase* job) {}
-    virtual void ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits) = 0;
-    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
+    virtual void ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits) = 0;
+    virtual void Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
 
 protected:
     LightmapperBase* m_lightmapper;

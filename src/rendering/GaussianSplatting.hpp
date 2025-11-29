@@ -88,7 +88,7 @@ public:
         return m_sortSplats;
     }
 
-    void Record(FrameBase* frame, const RenderSetup& renderSetup);
+    void Record(Frame* frame, const RenderSetup& renderSetup);
 
 private:
     void Init() override;
@@ -134,9 +134,9 @@ public:
 
     void SetGaussianSplattingInstance(Handle<GaussianSplattingInstance> gaussianSplattingInstance);
 
-    void UpdateSplats(FrameBase* frame, const RenderSetup& renderSetup);
+    void UpdateSplats(Frame* frame, const RenderSetup& renderSetup);
 
-    void Render(FrameBase* frame, const RenderSetup& renderSetup);
+    void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
     void Init() override;

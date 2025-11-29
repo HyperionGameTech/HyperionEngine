@@ -80,14 +80,14 @@ void RaytracingReflections::Create()
     CreateTemporalBlending();
 }
 
-void RaytracingReflections::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
+void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
 
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
 
-    const auto setDescriptorElements = [this, pd](DescriptorSetBase* descriptorSet, const GpuTlasRef& tlas, uint32 frameIndex)
+    const auto setDescriptorElements = [this, pd](DescriptorSet* descriptorSet, const GpuTlasRef& tlas, uint32 frameIndex)
     {
         Assert(tlas != nullptr);
 
@@ -100,7 +100,7 @@ void RaytracingReflections::UpdatePipelineState(FrameBase* frame, const RenderSe
 
     if (m_raytracingPipeline != nullptr)
     {
-        DescriptorSetBase* descriptorSet = m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet("RTRadianceDescriptorSet", frame->GetFrameIndex());
+        DescriptorSet* descriptorSet = m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet("RTRadianceDescriptorSet", frame->GetFrameIndex());
         Assert(descriptorSet != nullptr);
 
         setDescriptorElements(descriptorSet, pd->raytracingTlases[frame->GetFrameIndex()], frame->GetFrameIndex());
@@ -121,7 +121,7 @@ void RaytracingReflections::UpdatePipelineState(FrameBase* frame, const RenderSe
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        DescriptorSetBase* descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet", frameIndex);
+        DescriptorSet* descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
         setDescriptorElements(descriptorSet, pd->raytracingTlases[frameIndex], frameIndex);
@@ -141,7 +141,7 @@ void RaytracingReflections::UpdatePipelineState(FrameBase* frame, const RenderSe
     }
 }
 
-void RaytracingReflections::UpdateUniforms(FrameBase* frame, const RenderSetup& renderSetup)
+void RaytracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
 {
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
@@ -178,7 +178,7 @@ void RaytracingReflections::UpdateUniforms(FrameBase* frame, const RenderSetup& 
     m_uniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 }
 
-void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Ray traced reflections");
     

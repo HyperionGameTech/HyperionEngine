@@ -241,7 +241,7 @@ void SSRRenderer::CreatePasses()
     }
 }
 
-void SSRRenderer::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
+void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
 
@@ -335,7 +335,7 @@ void SSRRenderer::UpdatePipelineState(FrameBase* frame, const RenderSetup& rende
     }
 }
 
-void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Screen Space Reflections");
 

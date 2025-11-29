@@ -48,7 +48,7 @@ void DOFBlur::Destroy()
     m_blurMixPass.Reset();
 }
 
-void DOFBlur::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void DOFBlur::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     struct
     {

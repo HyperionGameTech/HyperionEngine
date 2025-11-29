@@ -327,7 +327,7 @@ void ParticleSystem::CreateBuffers()
     PUSH_RENDER_COMMAND(CreateParticleSystemBuffers, m_stagingBuffer, std::move(indirectDrawCommandsBuffer));
 }
 
-void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& renderSetup)
+void ParticleSystem::UpdateParticles(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -436,7 +436,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
     }
 }
 
-void ParticleSystem::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void ParticleSystem::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

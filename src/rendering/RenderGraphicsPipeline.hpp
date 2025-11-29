@@ -142,13 +142,13 @@ public:
 
     virtual RendererResult Create();
 
-    virtual void Bind(CommandBufferBase* commandBuffer) = 0;
-    virtual void Bind(CommandBufferBase* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent) = 0;
+    virtual void Bind(CommandBuffer* commandBuffer) = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent) = 0;
 
     virtual bool MatchesSignature(
-        const ShaderBase* shader,
+        const Shader* shader,
         const DescriptorTableDeclaration& descriptorTableDecl,
-        const Array<const FramebufferBase*>& framebuffers,
+        const Array<const Framebuffer*>& framebuffers,
         const RenderableAttributeSet& attributes) const;
 
     // Deprecated - will be removed to decouple from vulkan

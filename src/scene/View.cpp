@@ -81,7 +81,7 @@ ViewOutputTarget::~ViewOutputTarget()
     {
         SafeDelete(reinterpret_cast<Handle<GBuffer>&&>(std::move(m_impl)));
     }
-    else if (m_impl.Is<FramebufferBase>())
+    else if (m_impl.Is<Framebuffer>())
     {
         SafeDelete(reinterpret_cast<FramebufferRef&&>(std::move(m_impl)));
     }
@@ -99,7 +99,7 @@ const Handle<GBuffer>& ViewOutputTarget::GetGBuffer() const
 
 const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
 {
-    if (m_impl.Is<FramebufferBase>())
+    if (m_impl.Is<Framebuffer>())
     {
         return static_cast<const FramebufferRef&>(m_impl);
     }
@@ -114,7 +114,7 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
 
 const FramebufferRef& ViewOutputTarget::GetFramebuffer(RenderBucket rb) const
 {
-    if (m_impl.Is<FramebufferBase>())
+    if (m_impl.Is<Framebuffer>())
     {
         return static_cast<const FramebufferRef&>(m_impl);
     }
@@ -455,7 +455,7 @@ void View::SetViewport(const Viewport& viewport)
     }
 }
 
-GpuImageBase* View::GetReadbackTextureGpuImage() const
+GpuImage* View::GetReadbackTextureGpuImage() const
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread | g_renderThread);

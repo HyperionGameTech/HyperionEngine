@@ -156,7 +156,7 @@ void HBAO::Resize_Internal(Vec2u newSize)
     FullScreenPass::Resize_Internal(newSize);
 }
 
-void HBAO::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

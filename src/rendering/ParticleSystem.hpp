@@ -117,9 +117,9 @@ public:
     }
 
     // called in render thread, updates particles using compute shader
-    void UpdateParticles(FrameBase* frame, const RenderSetup& renderSetup);
+    void UpdateParticles(Frame* frame, const RenderSetup& renderSetup);
 
-    void Render(FrameBase* frame, const RenderSetup& renderSetup);
+    void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
     void Init() override;

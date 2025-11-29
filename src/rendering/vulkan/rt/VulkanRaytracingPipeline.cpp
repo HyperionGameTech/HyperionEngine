@@ -185,17 +185,17 @@ void VulkanRaytracingPipeline::Bind(VulkanCommandBuffer* commandBuffer)
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
-    VULKAN_CAST(commandBuffer)->ResetBoundDescriptorSets();
+    commandBuffer->ResetBoundDescriptorSets();
 
     vkCmdBindPipeline(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
         m_handle);
 
     if (m_pushConstants)
     {
         vkCmdPushConstants(
-            VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+            commandBuffer->GetVulkanHandle(),
             m_layout,
             PushConstantStageFlags,
             0,
@@ -207,7 +207,7 @@ void VulkanRaytracingPipeline::Bind(VulkanCommandBuffer* commandBuffer)
 void VulkanRaytracingPipeline::TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const
 {
     g_vulkanDynamicFunctions->vkCmdTraceRaysKHR(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         &m_shaderBindingTableEntries.rayGen,
         &m_shaderBindingTableEntries.rayMiss,
         &m_shaderBindingTableEntries.closestHit,

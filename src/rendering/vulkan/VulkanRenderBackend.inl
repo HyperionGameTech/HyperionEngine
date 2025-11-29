@@ -114,7 +114,7 @@ public:
 
     virtual const IRenderConfig& GetRenderConfig() const override;
 
-    virtual VulkanAsyncCompute* GetAsyncCompute() const override;
+    virtual AsyncComputeBase* GetAsyncCompute() const override;
 
     virtual VulkanFrame* GetCurrentFrame() const override;
 
@@ -182,7 +182,7 @@ public:
 
     virtual UniquePtr<SingleTimeCommands> GetSingleTimeCommands() override;
 
-    virtual Delegate<void, SwapchainBase*>& GetOnSwapchainRecreatedDelegate() override
+    virtual Delegate<void, Swapchain*>& GetOnSwapchainRecreatedDelegate() override
     {
         return OnSwapchainRecreated;
     }
@@ -208,7 +208,7 @@ public:
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);
 
 private:
-    Delegate<void, SwapchainBase*> OnSwapchainRecreated;
+    Delegate<void, Swapchain*> OnSwapchainRecreated;
 
     VulkanInstance* m_instance;
 
@@ -218,7 +218,7 @@ private:
 
     Pimpl<VulkanDescriptorSetManager> m_descriptorSetManager;
 
-    Pimpl<VulkanAsyncCompute> m_asyncCompute;
+    VulkanAsyncCompute* m_asyncCompute;
 
     HashMap<DefaultImageFormat, TextureFormat> m_defaultFormats;
 

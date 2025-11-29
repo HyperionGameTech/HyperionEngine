@@ -82,15 +82,15 @@ public:
     virtual void Initialize() override;
     virtual void Shutdown() override;
 
-    virtual void RenderFrame(FrameBase* frame, const RenderSetup& renderSetup) override final;
+    virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override final;
 
 protected:
-    void RenderProbe(FrameBase* frame, const RenderSetup& renderSetup, uint32 probeIndex);
+    void RenderProbe(Frame* frame, const RenderSetup& renderSetup, uint32 probeIndex);
 
-    void ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* probe);
-    void ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* probe);
-    void OffsetVoxelGrid(FrameBase* frame, const RenderSetup& renderSetup, Vec3i offset);
-    void VoxelizeProbe(FrameBase* frame, const RenderSetup& renderSetup, uint32 probeIndex);
+    void ComputeEnvProbeIrradiance_SphericalHarmonics(Frame* frame, const RenderSetup& renderSetup, EnvProbe* probe);
+    void ComputeEnvProbeIrradiance_LightField(Frame* frame, const RenderSetup& renderSetup, EnvProbe* probe);
+    void OffsetVoxelGrid(Frame* frame, const RenderSetup& renderSetup, Vec3i offset);
+    void VoxelizeProbe(Frame* frame, const RenderSetup& renderSetup, uint32 probeIndex);
 
     Handle<PassData> CreateViewPassData(View* view, PassDataExt& ext) override;
     void CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridRendererPassData& pd);

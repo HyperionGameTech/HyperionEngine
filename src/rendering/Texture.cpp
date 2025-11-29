@@ -200,7 +200,7 @@ struct CreateTextureGpuImage : RenderCommand
 
             HYP_DEFER({ SafeDelete(std::move(stagingBuffer)); });
 
-            FrameBase* frame = g_renderBackend->GetCurrentFrame();
+            Frame* frame = g_renderBackend->GetCurrentFrame();
 
             RenderQueue& renderQueue = frame->preRenderQueue;
 
@@ -271,7 +271,7 @@ struct CreateTextureGpuImage : RenderCommand
         }
         else if (initialState != RS_UNDEFINED)
         {
-            FrameBase* frame = g_renderBackend->GetCurrentFrame();
+            Frame* frame = g_renderBackend->GetCurrentFrame();
             RenderQueue& renderQueue = frame->preRenderQueue;
 
             // Transition to initial state
@@ -648,7 +648,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
     AssertReady();
 
-    FrameBase* currentFrame = g_renderBackend->GetCurrentFrame();
+    Frame* currentFrame = g_renderBackend->GetCurrentFrame();
 
     // No current frame, fallback to blocking Readback() call.
     if (!currentFrame)

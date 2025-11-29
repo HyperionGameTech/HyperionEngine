@@ -51,7 +51,7 @@ public:
     virtual void Initialize() override;
     virtual void Shutdown() override;
 
-    virtual void RenderFrame(FrameBase* frame, const RenderSetup& renderSetup) override final;
+    virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override final;
 
 protected:
     ShadowRendererBase();

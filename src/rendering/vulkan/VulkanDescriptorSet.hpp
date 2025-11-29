@@ -5,10 +5,10 @@
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
 #include <rendering/RenderDescriptorSet.hpp>
-#undef INCLUDE_FROM_RHI
-#else
-#undef INCLUDE_FROM_RHI_BASE
 #endif
+
+#undef INCLUDE_FROM_RHI
+#undef INCLUDE_FROM_RHI_BASE
 
 #include <core/Name.hpp>
 #include <core/utilities/Optional.hpp>
@@ -69,13 +69,6 @@ public:
     virtual void UpdateDirtyState(bool* outIsDirty = nullptr) override;
     virtual void Update(bool force = false) override;
 
-    virtual VulkanDescriptorSetRef Clone() const override;
-
-#ifdef HYP_DEBUG_MODE
-    void SetDebugName(Name name) override;
-#endif
-
-protected:
     virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const override;
     virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
     virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const override;
@@ -83,6 +76,13 @@ protected:
     virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const override;
     virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
 
+    virtual VulkanDescriptorSetRef Clone() const override;
+
+#ifdef HYP_DEBUG_MODE
+    void SetDebugName(Name name) override;
+#endif
+
+protected:
     VkDescriptorSet m_handle;
     VkDescriptorPool m_vkDescriptorPool;
     VkDescriptorSetLayout m_vkDescriptorSetLayout;

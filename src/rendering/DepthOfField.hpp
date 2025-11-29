@@ -34,7 +34,7 @@ public:
     void Create();
     void Destroy();
 
-    void Render(FrameBase* frame, const RenderSetup& renderSetup);
+    void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
     GBuffer* m_gbuffer;

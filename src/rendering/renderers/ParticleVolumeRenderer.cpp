@@ -221,7 +221,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     return state;
 }
 
-void ParticleVolumeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
+void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

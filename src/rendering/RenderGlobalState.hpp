@@ -161,7 +161,7 @@ public:
     RenderGlobalState& operator=(const RenderGlobalState& other) = delete;
     ~RenderGlobalState();
 
-    void UpdateBuffers(FrameBase* frame);
+    void UpdateBuffers(Frame* frame);
 
     void AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
     void RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);

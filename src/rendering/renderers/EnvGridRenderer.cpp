@@ -11,11 +11,12 @@
 #include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderGpuImageView.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/RenderComputePipeline.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -519,7 +520,7 @@ void EnvGridRenderer::CreateLightFieldData(LegacyEnvGrid* envGrid, EnvGridRender
     }
 }
 
-void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
+void EnvGridRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -638,7 +639,7 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSet
     }
 }
 
-void EnvGridRenderer::RenderProbe(FrameBase* frame, const RenderSetup& renderSetup, uint32 probeIndex)
+void EnvGridRenderer::RenderProbe(Frame* frame, const RenderSetup& renderSetup, uint32 probeIndex)
 {
     HYP_SCOPE;
 
@@ -695,7 +696,7 @@ void EnvGridRenderer::RenderProbe(FrameBase* frame, const RenderSetup& renderSet
     probe->SetNeedsRender(false);
 }
 
-void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* probe)
+void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame* frame, const RenderSetup& renderSetup, EnvProbe* probe)
 {
     HYP_SCOPE;
 
@@ -875,7 +876,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
 
     DelegateHandler* delegateHandle = new DelegateHandler();
     *delegateHandle = frame->OnFrameEnd.Bind(
-        [probe = MakeStrongRef(probe), delegateHandle](FrameBase* frame)
+        [probe = MakeStrongRef(probe), delegateHandle](Frame* frame)
         {
             HYP_NAMED_SCOPE("EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics - Buffer readback");
 
@@ -902,7 +903,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
         });
 }
 
-void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* probe)
+void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(Frame* frame, const RenderSetup& renderSetup, EnvProbe* probe)
 {
     HYP_SCOPE;
 
@@ -1028,7 +1029,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, con
     frame->renderQueue << InsertBarrier(envGrid->GetLightFieldDepthTexture()->GetGpuImage(), RS_SHADER_RESOURCE);
 }
 
-void EnvGridRenderer::OffsetVoxelGrid(FrameBase* frame, const RenderSetup& renderSetup, Vec3i offset)
+void EnvGridRenderer::OffsetVoxelGrid(Frame* frame, const RenderSetup& renderSetup, Vec3i offset)
 {
     HYP_SCOPE;
 
@@ -1073,7 +1074,7 @@ void EnvGridRenderer::OffsetVoxelGrid(FrameBase* frame, const RenderSetup& rende
     frame->renderQueue << InsertBarrier(envGrid->GetVoxelGridTexture()->GetGpuImage(), RS_SHADER_RESOURCE);
 }
 
-void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& renderSetup, uint32 probeIndex)
+void EnvGridRenderer::VoxelizeProbe(Frame* frame, const RenderSetup& renderSetup, uint32 probeIndex)
 {
     HYP_SCOPE;
 

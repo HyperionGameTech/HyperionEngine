@@ -8,7 +8,7 @@
 #include <core/containers/ArrayMap.hpp>
 
 #include <rendering/RenderQueue.hpp>
-
+#include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
@@ -23,6 +23,8 @@ namespace hyperion {
 class AsyncComputeBase
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     virtual ~AsyncComputeBase() = default;
 
     virtual bool IsSupported() const = 0;

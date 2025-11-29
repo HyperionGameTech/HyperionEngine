@@ -24,8 +24,8 @@ public:
 
     virtual RendererResult Create() = 0;
 
-    virtual void BindVertexBuffer(const GpuBufferBase* buffer) = 0;
-    virtual void BindIndexBuffer(const GpuBufferBase* buffer, GpuElemType elemType = GET_UNSIGNED_INT) = 0;
+    virtual void BindVertexBuffer(const GpuBuffer* buffer) = 0;
+    virtual void BindIndexBuffer(const GpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) = 0;
 
     virtual void DrawIndexed(
         uint32 numIndices,
@@ -33,7 +33,7 @@ public:
         uint32 instanceIndex = 0) const = 0;
 
     virtual void DrawIndexedIndirect(
-        const GpuBufferBase* buffer,
+        const GpuBuffer* buffer,
         uint32 bufferOffset) const = 0;
 
     void ResetStencilState()

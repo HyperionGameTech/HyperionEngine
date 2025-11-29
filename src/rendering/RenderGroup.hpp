@@ -90,7 +90,7 @@ public:
     }
 
     void PerformRendering(
-        FrameBase* frame,
+        Frame* frame,
         const RenderSetup& renderSetup,
         const DrawCallCollection& drawCallCollection,
         IndirectRenderer* indirectRenderer,

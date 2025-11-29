@@ -5,10 +5,10 @@
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
 #include <rendering/RenderGpuBuffer.hpp>
-#undef INCLUDE_FROM_RHI
-#else
-#undef INCLUDE_FROM_RHI_BASE
 #endif
+
+#undef INCLUDE_FROM_RHI
+#undef INCLUDE_FROM_RHI_BASE
 
 #include <system/vma/VmaUsage.hpp>
 
@@ -33,9 +33,6 @@ public:
 
     virtual void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState) const override;
     virtual void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const override;
-
-    void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState) const;
-    void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const;
 
     virtual void CopyFrom(
         VulkanCommandBuffer* commandBuffer,

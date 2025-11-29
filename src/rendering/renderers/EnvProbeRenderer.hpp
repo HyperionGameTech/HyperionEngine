@@ -57,12 +57,12 @@ public:
     virtual void Initialize() override;
     virtual void Shutdown() override;
 
-    virtual void RenderFrame(FrameBase* frame, const RenderSetup& renderSetup) override final;
+    virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override final;
 
 protected:
     EnvProbeRenderer();
 
-    virtual void RenderProbe(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe) = 0;
+    virtual void RenderProbe(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe) = 0;
 
     Handle<PassData> CreateViewPassData(View* view, PassDataExt& ext) override;
 };
@@ -77,10 +77,10 @@ public:
     virtual void Shutdown() override;
 
 protected:
-    virtual void RenderProbe(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe) override;
+    virtual void RenderProbe(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe) override;
 
-    void ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
-    void ComputeSH(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
+    void ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
+    void ComputeSH(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
 };
 
 } // namespace hyperion

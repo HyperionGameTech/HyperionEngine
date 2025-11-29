@@ -64,17 +64,17 @@ public:
         m_requireCpuAccessible = requireCpuAccessible;
     }
 
-    virtual void InsertBarrier(CommandBufferBase* commandBuffer, ResourceState newState) const = 0;
-    virtual void InsertBarrier(CommandBufferBase* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const = 0;
+    virtual void InsertBarrier(CommandBuffer* commandBuffer, ResourceState newState) const = 0;
+    virtual void InsertBarrier(CommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const = 0;
 
     virtual void CopyFrom(
-        CommandBufferBase* commandBuffer,
-        const GpuBufferBase* srcBuffer,
+        CommandBuffer* commandBuffer,
+        const GpuBuffer* srcBuffer,
         uint32 count) = 0;
 
     virtual void CopyFrom(
-        CommandBufferBase* commandBuffer,
-        const GpuBufferBase* srcBuffer,
+        CommandBuffer* commandBuffer,
+        const GpuBuffer* srcBuffer,
         uint32 srcOffset, uint32 dstOffset,
         uint32 count) = 0;
 

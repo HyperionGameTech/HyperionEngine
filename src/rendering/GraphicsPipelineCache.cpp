@@ -367,7 +367,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
         DeferCreate(table);
     }
 
-    Proc<void(GraphicsPipelineBase * graphicsPipeline, uint32 slot)> newCallback([this, attributes](GraphicsPipelineBase* graphicsPipeline, uint32 slot)
+    Proc<void(GraphicsPipeline*, uint32)> newCallback([this, attributes](GraphicsPipeline* graphicsPipeline, uint32 slot)
         {
             Mutex::Guard guard(m_mutex);
 
@@ -396,14 +396,14 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
 
     struct CreateGraphicsPipelineAndAddToCache : RenderCommand
     {
-        GraphicsPipelineBase* graphicsPipeline;
+        GraphicsPipeline* graphicsPipeline;
         uint32 slot;
-        Proc<void(GraphicsPipelineBase*, uint32)> callback;
+        Proc<void(GraphicsPipeline*, uint32)> callback;
 
         CreateGraphicsPipelineAndAddToCache(
-            GraphicsPipelineBase* graphicsPipeline,
+            GraphicsPipeline* graphicsPipeline,
             uint32 slot,
-            Proc<void(GraphicsPipelineBase*, uint32)>&& callback)
+            Proc<void(GraphicsPipeline*, uint32)>&& callback)
             : graphicsPipeline(graphicsPipeline),
               slot(slot),
               callback(std::move(callback))
@@ -470,7 +470,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
 
         if ((*pPipeline)->MatchesSignature(shader, descriptorTableDecl, Map(framebuffers, [](const FramebufferRef& framebuffer)
                                                                             {
-                                                                                return static_cast<const FramebufferBase*>(framebuffer.Get());
+                                                                                return static_cast<const Framebuffer*>(framebuffer.Get());
                                                                             }),
                 attributes))
         {

@@ -61,9 +61,9 @@ void GraphicsPipelineBase::SetFramebuffers(const Array<FramebufferRef>& framebuf
 }
 
 bool GraphicsPipelineBase::MatchesSignature(
-    const ShaderBase* shader,
+    const Shader* shader,
     const DescriptorTableDeclaration& descriptorTableDecl,
-    const Array<const FramebufferBase*>& framebuffers,
+    const Array<const Framebuffer*>& framebuffers,
     const RenderableAttributeSet& attributes) const
 {
     // check shader:

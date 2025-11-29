@@ -118,7 +118,7 @@ public:
 private:
     void Init() override;
 
-    void PreFrameUpdate(FrameBase* frame);
+    void PreFrameUpdate(Frame* frame);
 
     void GameThreadUpdate(float delta);
 

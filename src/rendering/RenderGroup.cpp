@@ -253,7 +253,7 @@ static void ValidatePipelineState(const RenderSetup& renderSetup, const Graphics
 
 template <bool UseIndirectRendering>
 static void RenderAll(
-    FrameBase* frame,
+    Frame* frame,
     const RenderSetup& renderSetup,
     const GraphicsPipelineRef& pipeline,
     IndirectRenderer* indirectRenderer,
@@ -480,7 +480,7 @@ static void RenderAll(
 
 template <bool UseIndirectRendering>
 static void RenderAll_Parallel(
-    FrameBase* frame,
+    Frame* frame,
     const RenderSetup& renderSetup,
     const GraphicsPipelineRef& pipeline,
     IndirectRenderer* indirectRenderer,
@@ -760,7 +760,7 @@ static void RenderAll_Parallel(
 }
 
 void RenderGroup::PerformRendering(
-    FrameBase* frame,
+    Frame* frame,
     const RenderSetup& renderSetup,
     const DrawCallCollection& drawCallCollection,
     IndirectRenderer* indirectRenderer,

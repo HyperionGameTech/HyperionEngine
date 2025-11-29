@@ -129,7 +129,7 @@ public:
     virtual void OnAdded() = 0;
     virtual void OnRemoved() = 0;
 
-    virtual void RenderEffect(FrameBase* frame, const RenderSetup& renderSetup, uint32 slot);
+    virtual void RenderEffect(Frame* frame, const RenderSetup& renderSetup, uint32 slot);
 
 protected:
     virtual ShaderRef CreateShader() = 0;
@@ -197,8 +197,8 @@ public:
     void Create();
     void Destroy();
     void PerformUpdates();
-    void RenderPre(FrameBase* frame, const RenderSetup& renderSetup) const;
-    void RenderPost(FrameBase* frame, const RenderSetup& renderSetup) const;
+    void RenderPre(Frame* frame, const RenderSetup& renderSetup) const;
+    void RenderPost(Frame* frame, const RenderSetup& renderSetup) const;
 
 private:
     PostProcessingUniforms GetUniforms() const;

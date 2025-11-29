@@ -1,5 +1,7 @@
 #include <HyperionPch.hpp>
+
 #include <rendering/util/TextureMipmapRenderer.hpp>
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderQueue.hpp>
@@ -11,8 +13,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
-
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/RenderGraphicsPipeline.hpp>
 
 #include <engine/EngineGlobals.hpp>
 
@@ -52,7 +53,7 @@ struct RenderTextureMipmapLevels : RenderCommand
     virtual RendererResult operator()() override
     {
         // draw a quad for each level
-        FrameBase* frame = g_renderBackend->GetCurrentFrame();
+        Frame* frame = g_renderBackend->GetCurrentFrame();
         RenderQueue& renderQueue = frame->renderQueue;
 
         const Vec3u extent = m_image->GetExtent();

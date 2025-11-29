@@ -45,9 +45,9 @@ FinalPass::FinalPass()
 
 FinalPass::~FinalPass()
 {
-    m_quadMesh.Reset();
     m_passData.Clear();
 
+    SafeDelete(std::move(m_quadMesh));
     SafeDelete(std::move(m_uiLayerImageView));
 }
 
@@ -106,11 +106,11 @@ void FinalPass::Create()
     InitObject(m_quadMesh);
 }
 
-FinalPassData* FinalPass::GetOrCreatePassData(SwapchainBase* swapchain)
+FinalPassData* FinalPass::GetOrCreatePassData(Swapchain* swapchain)
 {
     Assert(swapchain != nullptr);
 
-    const ObjId<SwapchainBase> id = swapchain->Id();
+    const ObjId<Swapchain> id = swapchain->Id();
     FinalPassData* pPassData = m_passData.TryGet(id.ToIndex());
 
     if (pPassData)
@@ -128,7 +128,7 @@ FinalPassData* FinalPass::GetOrCreatePassData(SwapchainBase* swapchain)
 
     // Create new
     FinalPassData passData;
-    passData.swapchain = WeakHandle<SwapchainBase>(swapchain->Id());
+    passData.swapchain = MakeWeakRef(swapchain);
 
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
     Assert(renderTextureToScreenShader.IsValid());
@@ -176,7 +176,7 @@ FinalPassData* FinalPass::GetOrCreatePassData(SwapchainBase* swapchain)
     return &*m_passData.Set(id.ToIndex(), std::move(passData));
 }
 
-void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
+void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

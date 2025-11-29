@@ -46,7 +46,7 @@ public:
 
     virtual void Create() override;
 
-    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup) override;
+    virtual void Render(Frame* frame, const RenderSetup& renderSetup) override;
 
 protected:
     virtual bool UsesTemporalBlending() const override

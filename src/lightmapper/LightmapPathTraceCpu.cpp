@@ -105,7 +105,7 @@ void LightmapRenderer_CpuPathTracing::Create()
 {
 }
 
-void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits)
+void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits)
 {
     AssertOnThread(g_renderThread);
 
@@ -197,7 +197,7 @@ LightmapRenderer_CpuPathTracing::SharedCpuData* LightmapRenderer_CpuPathTracing:
     return sharedCpuData;
 }
 
-void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
+void LightmapRenderer_CpuPathTracing::Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
     AssertOnThread(g_renderThread);
 

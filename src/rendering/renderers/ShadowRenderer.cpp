@@ -12,6 +12,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderComputePipeline.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/Texture.hpp>
@@ -174,7 +175,7 @@ int ShadowRendererBase::RunCleanupCycle(int maxIter)
     return numCycles;
 }
 
-void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
+void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

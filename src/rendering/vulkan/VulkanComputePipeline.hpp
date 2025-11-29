@@ -5,10 +5,10 @@
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
 #include <rendering/RenderComputePipeline.hpp>
-#undef INCLUDE_FROM_RHI
-#else
-#undef INCLUDE_FROM_RHI_BASE
 #endif
+
+#undef INCLUDE_FROM_RHI
+#undef INCLUDE_FROM_RHI_BASE
 
 #include <rendering/vulkan/VulkanPipeline.hpp>
 

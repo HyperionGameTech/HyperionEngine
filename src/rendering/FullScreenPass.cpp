@@ -596,7 +596,7 @@ void FullScreenPass::CreateDescriptors()
 {
 }
 
-void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const RenderSetup& renderSetup)
+void FullScreenPass::RenderPreviousTextureToScreen(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -628,7 +628,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
     frame->renderQueue << DrawIndexed(m_fullScreenQuad->NumIndices());
 }
 
-void FullScreenPass::CopyResultToPreviousTexture(FrameBase* frame, const RenderSetup& renderSetup)
+void FullScreenPass::CopyResultToPreviousTexture(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -649,7 +649,7 @@ void FullScreenPass::CopyResultToPreviousTexture(FrameBase* frame, const RenderS
     frame->renderQueue << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
 }
 
-void FullScreenPass::MergeHalfResTextures(FrameBase* frame, const RenderSetup& renderSetup)
+void FullScreenPass::MergeHalfResTextures(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -661,7 +661,7 @@ void FullScreenPass::MergeHalfResTextures(FrameBase* frame, const RenderSetup& r
     m_mergeHalfResTexturesPass->Render(frame, renderSetup);
 }
 
-void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
+void FullScreenPass::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -691,7 +691,7 @@ void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
     }
 }
 
-void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -742,7 +742,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     m_isFirstFrame = false;
 }
 
-void FullScreenPass::RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -808,7 +808,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(FrameBase* frame, const Render
     frame->renderQueue << DrawIndexed(6);
 }
 
-void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
+void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -846,7 +846,7 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
     Render_Internal(frame, renderSetup, graphicsPipeline);
 }
 
-void FullScreenPass::End(FrameBase* frame, const RenderSetup& renderSetup)
+void FullScreenPass::End(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

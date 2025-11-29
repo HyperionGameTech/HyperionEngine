@@ -74,7 +74,7 @@ public:
 
     void ResetDrawState();
 
-    void UpdateBufferData(FrameBase* frame, bool* outWasResized);
+    void UpdateBufferData(Frame* frame, bool* outWasResized);
 
 private:
     Array<ObjectInstance, RenderAllocator> m_objectInstances;
@@ -118,10 +118,10 @@ public:
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection);
 
-    void ExecuteCullShaderInBatches(FrameBase* frame, const RenderSetup& renderSetup);
+    void ExecuteCullShaderInBatches(Frame* frame, const RenderSetup& renderSetup);
 
 private:
-    void RebuildDescriptors(FrameBase* frame);
+    void RebuildDescriptors(Frame* frame);
 
     IndirectDrawState m_indirectDrawState;
     ComputePipelineRef m_objectVisibility;

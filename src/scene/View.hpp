@@ -204,7 +204,7 @@ public:
         return m_readbackTexture;
     }
 
-    GpuImageBase* GetReadbackTextureGpuImage() const;
+    GpuImage* GetReadbackTextureGpuImage() const;
 
     HYP_METHOD()
     HYP_FORCE_INLINE int GetPriority() const
@@ -282,7 +282,7 @@ protected:
     int m_priority;
 
     Handle<Texture> m_readbackTexture;
-    GpuImageBase* m_readbackTextureGpuImages[RingBufferDepth];
+    GpuImage* m_readbackTextureGpuImages[RingBufferDepth];
 
     Optional<RenderableAttributeSet> m_overrideAttributes;
 

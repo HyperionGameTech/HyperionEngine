@@ -5,12 +5,12 @@
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
-#undef INCLUDE_FROM_RHI
-#else
-#undef INCLUDE_FROM_RHI_BASE
 #endif
 
-#include <rendering/RenderGpuBuffer.hpp>
+#undef INCLUDE_FROM_RHI
+#undef INCLUDE_FROM_RHI_BASE
+
+#include <rendering/vulkan/VulkanGpuBuffer.hpp>
 #include <rendering/Shared.hpp>
 
 #include <core/math/Mat4f.hpp>

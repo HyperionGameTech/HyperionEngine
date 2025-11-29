@@ -82,17 +82,17 @@ void VulkanComputePipeline::Bind(VulkanCommandBuffer* commandBuffer)
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
-    VULKAN_CAST(commandBuffer)->ResetBoundDescriptorSets();
+    commandBuffer->ResetBoundDescriptorSets();
 
     vkCmdBindPipeline(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_COMPUTE,
         m_handle);
 
     if (m_pushConstants)
     {
         vkCmdPushConstants(
-            VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+            commandBuffer->GetVulkanHandle(),
             m_layout,
             VK_SHADER_STAGE_COMPUTE_BIT,
             0,
@@ -106,7 +106,7 @@ void VulkanComputePipeline::Dispatch(
     const Vec3u& groupSize) const
 {
     vkCmdDispatch(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         groupSize.x,
         groupSize.y,
         groupSize.z);
@@ -118,7 +118,7 @@ void VulkanComputePipeline::DispatchIndirect(
     SizeType offset) const
 {
     vkCmdDispatchIndirect(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        commandBuffer->GetVulkanHandle(),
         indirectBuffer->GetVulkanHandle(),
         offset);
 }

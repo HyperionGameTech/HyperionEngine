@@ -160,11 +160,11 @@ public:
     /*! \brief Create the full screen pass */
     virtual void Create();
 
-    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup);
-    void RenderToFramebuffer(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer);
+    virtual void Render(Frame* frame, const RenderSetup& renderSetup);
+    void RenderToFramebuffer(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer);
 
-    void Begin(FrameBase* frame, const RenderSetup& renderSetup);
-    void End(FrameBase* frame, const RenderSetup& renderSetup);
+    void Begin(Frame* frame, const RenderSetup& renderSetup);
+    void End(Frame* frame, const RenderSetup& renderSetup);
 
 protected:
     virtual bool UsesTemporalBlending() const
@@ -179,17 +179,17 @@ protected:
 
     virtual void Resize_Internal(Vec2u newSize);
 
-    virtual void Render_Internal(FrameBase* frame, const RenderSetup& renderSetup, GraphicsPipelineBase* graphicsPipeline)
+    virtual void Render_Internal(Frame* frame, const RenderSetup& renderSetup, GraphicsPipeline* graphicsPipeline)
     {
     }
 
-    virtual void RenderToFramebuffer_Internal(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer);
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer);
 
     void CreateQuad();
 
-    void RenderPreviousTextureToScreen(FrameBase* frame, const RenderSetup& renderSetup);
-    void CopyResultToPreviousTexture(FrameBase* frame, const RenderSetup& renderSetup);
-    void MergeHalfResTextures(FrameBase* frame, const RenderSetup& renderSetup);
+    void RenderPreviousTextureToScreen(Frame* frame, const RenderSetup& renderSetup);
+    void CopyResultToPreviousTexture(Frame* frame, const RenderSetup& renderSetup);
+    void MergeHalfResTextures(Frame* frame, const RenderSetup& renderSetup);
 
     FramebufferRef m_framebuffer;
     ShaderRef m_shader;

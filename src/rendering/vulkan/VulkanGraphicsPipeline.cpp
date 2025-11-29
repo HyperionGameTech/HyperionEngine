@@ -164,7 +164,7 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
-    VulkanCommandBuffer* vulkanCommandBuffer = VULKAN_CAST(commandBuffer);
+    VulkanCommandBuffer* vulkanCommandBuffer = commandBuffer;
 
     vulkanCommandBuffer->ResetBoundDescriptorSets();
 

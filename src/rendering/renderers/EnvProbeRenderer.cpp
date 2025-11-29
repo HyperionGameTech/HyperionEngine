@@ -12,6 +12,7 @@
 #include <rendering/RenderGpuImageView.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
@@ -79,7 +80,7 @@ void EnvProbeRenderer::Shutdown()
 {
 }
 
-void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
+void EnvProbeRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -132,7 +133,7 @@ void ReflectionProbeRenderer::Shutdown()
     EnvProbeRenderer::Shutdown();
 }
 
-void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
+void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -250,7 +251,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     }*/
 }
 
-void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
+void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
 {
     HYP_SCOPE;
 
@@ -405,7 +406,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
         });
 }
 
-void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
+void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
 {
     HYP_SCOPE;
 
@@ -667,7 +668,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([envProbe = MakeStrongRef(envProbe), pipelines = std::move(pipelines), descriptorTables = std::move(computeShDescriptorTables), delegateHandle](FrameBase* frame) mutable
+    *delegateHandle = frame->OnFrameEnd.Bind([envProbe = MakeStrongRef(envProbe), pipelines = std::move(pipelines), descriptorTables = std::move(computeShDescriptorTables), delegateHandle](Frame* frame) mutable
         {
             HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
 

@@ -149,37 +149,37 @@ public:
     virtual HANDLE GetNativeHandle() const = 0;
 
     virtual void InsertBarrier(
-        CommandBufferBase* commandBuffer,
+        CommandBuffer* commandBuffer,
         ResourceState newState,
         ShaderModuleType shaderModuleType) = 0;
 
     virtual void InsertBarrier(
-        CommandBufferBase* commandBuffer,
+        CommandBuffer* commandBuffer,
         const ImageSubResource& subResource,
         ResourceState newState,
         ShaderModuleType shaderModuleType) = 0;
 
     virtual RendererResult Blit(
-        CommandBufferBase* commandBuffer,
-        const GpuImageBase* src) = 0;
+        CommandBuffer* commandBuffer,
+        const GpuImage* src) = 0;
 
     virtual RendererResult Blit(
-        CommandBufferBase* commandBuffer,
-        const GpuImageBase* src,
+        CommandBuffer* commandBuffer,
+        const GpuImage* src,
         uint32 srcMip,
         uint32 dstMip,
         uint32 srcFace,
         uint32 dstFace) = 0;
 
     virtual RendererResult Blit(
-        CommandBufferBase* commandBuffer,
-        const GpuImageBase* src,
+        CommandBuffer* commandBuffer,
+        const GpuImage* src,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) = 0;
 
     virtual RendererResult Blit(
-        CommandBufferBase* commandBuffer,
-        const GpuImageBase* src,
+        CommandBuffer* commandBuffer,
+        const GpuImage* src,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
         uint32 srcMip,
@@ -187,18 +187,18 @@ public:
         uint32 srcFace,
         uint32 dstFace) = 0;
 
-    virtual RendererResult GenerateMipmaps(CommandBufferBase* commandBuffer) = 0;
+    virtual RendererResult GenerateMipmaps(CommandBuffer* commandBuffer) = 0;
 
     virtual void CopyFromBuffer(
-        CommandBufferBase* commandBuffer,
-        const GpuBufferBase* srcBuffer,
+        CommandBuffer* commandBuffer,
+        const GpuBuffer* srcBuffer,
         uint32 bufferOffset = 0,
         uint8 dstMipIndex = UINT8_MAX,
         uint16 dstArrayLayer = UINT16_MAX) const = 0;
 
     virtual void CopyToBuffer(
-        CommandBufferBase* commandBuffer,
-        GpuBufferBase* dstBuffer) const = 0;
+        CommandBuffer* commandBuffer,
+        GpuBuffer* dstBuffer) const = 0;
 
     virtual GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const = 0;
 

@@ -228,7 +228,7 @@ Vec2u DepthPyramidRenderer::GetExtent() const
     return { extent.x, extent.y };
 }
 
-void DepthPyramidRenderer::Render(FrameBase* frame)
+void DepthPyramidRenderer::Render(Frame* frame)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

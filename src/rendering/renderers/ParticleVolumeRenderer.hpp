@@ -23,7 +23,7 @@ public:
     void Initialize() override;
     void Shutdown() override;
 
-    void RenderFrame(FrameBase* frame, const RenderSetup& renderSetup) override;
+    void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override;
 
     int RunCleanupCycle(int maxIter = 10) override;
 

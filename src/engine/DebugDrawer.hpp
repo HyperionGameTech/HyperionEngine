@@ -252,7 +252,7 @@ public:
     }
 
     void Update(float delta);
-    void Render(FrameBase* frame, const RenderSetup& renderSetup);
+    void Render(Frame* frame, const RenderSetup& renderSetup);
 
     DebugDrawCommandList& CreateCommandList();
 

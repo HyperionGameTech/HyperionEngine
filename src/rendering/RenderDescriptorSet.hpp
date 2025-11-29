@@ -640,12 +640,12 @@ public:
     void SetElement(StringHash name, uint32 index, const GpuTlasRef& ref);
     void SetElement(StringHash name, const GpuTlasRef& ref);
 
-    virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
 
 protected:
     DescriptorSetBase(const DescriptorSetLayout& layout)
@@ -818,7 +818,7 @@ public:
         \param pipeline The pipeline to bind the descriptor sets to
         \param offsets The offsets to bind dynamic descriptor sets with */
     template <class PipelineRef>
-    void Bind(CommandBufferBase* commandBuffer, uint32 frameIndex, const PipelineRef& pipeline, const DescriptorTableOffsetMap& offsets) const
+    void Bind(CommandBuffer* commandBuffer, uint32 frameIndex, const PipelineRef& pipeline, const DescriptorTableOffsetMap& offsets) const
     {
         for (const DescriptorSetRef& set : m_sets[frameIndex])
         {

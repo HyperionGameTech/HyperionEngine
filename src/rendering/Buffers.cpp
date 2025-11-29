@@ -83,7 +83,7 @@ struct StagingBufferPoolImpl
         }
     }
 
-    GpuBufferBase* GetOrCreateBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize)
+    GpuBuffer* GetOrCreateBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize)
     {
         const uint32 currFrame = RenderApi::GetFrameCounter();
 
@@ -150,7 +150,7 @@ void StagingBufferPool::Cleanup(uint32 frameIndex)
     m_impl->Cleanup(frameIndex);
 }
 
-GpuBufferBase* StagingBufferPool::AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize)
+GpuBuffer* StagingBufferPool::AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize)
 {
     return m_impl->GetOrCreateBuffer(frameIndex, offset, bufferSize);
 }
@@ -185,8 +185,8 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
 }
 
 void GpuBufferHolderBase::CopyToGpuBuffer(
-    FrameBase* frame,
-    const Array<GpuBufferBase*>& stagingBuffers,
+    Frame* frame,
+    const Array<GpuBuffer*>& stagingBuffers,
     const Array<uint32>& chunkStarts,
     const Array<uint32>& chunkEnds)
 {
@@ -218,7 +218,7 @@ void GpuBufferHolderBase::CopyToGpuBuffer(
 
     for (SizeType i = 0; i < stagingBuffers.Size(); i++)
     {
-        GpuBufferBase* stagingBuffer = stagingBuffers[i];
+        GpuBuffer* stagingBuffer = stagingBuffers[i];
         const uint32 chunkStart = chunkStarts[i];
         const uint32 chunkEnd = chunkEnds[i];
 

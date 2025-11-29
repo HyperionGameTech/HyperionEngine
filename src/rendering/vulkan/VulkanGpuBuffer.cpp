@@ -469,16 +469,6 @@ uint64 VulkanGpuBuffer::GetBufferDeviceAddress() const
         &info);
 }
 
-void VulkanGpuBuffer::InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState) const
-{
-    InsertBarrier(VULKAN_CAST(commandBuffer), newState);
-}
-
-void VulkanGpuBuffer::InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const
-{
-    InsertBarrier(VULKAN_CAST(commandBuffer), newState, shaderType);
-}
-
 void VulkanGpuBuffer::InsertBarrier(
     VulkanCommandBuffer* commandBuffer,
     ResourceState newState) const
@@ -567,8 +557,8 @@ void VulkanGpuBuffer::CopyFrom(
     region.size = count;
 
     vkCmdCopyBuffer(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
-        VULKAN_CAST(srcBuffer)->m_handle,
+        commandBuffer->GetVulkanHandle(),
+        srcBuffer->m_handle,
         m_handle,
         1,
         &region);
@@ -602,8 +592,8 @@ void VulkanGpuBuffer::CopyFrom(
     region.dstOffset = dstOffset;
 
     vkCmdCopyBuffer(
-        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
-        VULKAN_CAST(srcBuffer)->m_handle,
+        commandBuffer->GetVulkanHandle(),
+        srcBuffer->m_handle,
         m_handle,
         1,
         &region);

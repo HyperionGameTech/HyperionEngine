@@ -3,6 +3,7 @@
 #include <lightmapper/LightmapPathTraceGpu.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -262,7 +263,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
     HYP_GFX_ASSERT(m_tlas->Create());
 }
 
-void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame, LightmapJobBase* job)
+void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, LightmapJobBase* job)
 {
     HYP_SCOPE;
 
@@ -330,7 +331,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame, Ligh
     jd.IsCreated = true;
 }
 
-void LightmapRenderer_GpuPathTracing::UpdateUniforms(FrameBase* frame, LightmapJobBase* job, uint32 rayOffset)
+void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, LightmapJobBase* job, uint32 rayOffset)
 {
     RTRadianceUniforms uniforms {};
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
@@ -367,7 +368,7 @@ void LightmapRenderer_GpuPathTracing::UpdateUniforms(FrameBase* frame, LightmapJ
     jd.UniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 }
 
-void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(FrameBase* frame, LightmapJobBase* job, Span<LightmapHit> outHits)
+void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits)
 {
     Assert(m_tlas != nullptr);
 
@@ -407,7 +408,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(FrameBase* frame, LightmapJ
     stagingBuffer.Reset();
 }
 
-void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
+void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

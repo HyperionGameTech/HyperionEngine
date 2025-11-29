@@ -34,7 +34,7 @@ public:
 
     void Create();
 
-    void Render(FrameBase* frame);
+    void Render(Frame* frame);
 
 private:
     GBuffer* m_gbuffer;

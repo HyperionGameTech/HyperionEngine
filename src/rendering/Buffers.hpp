@@ -124,7 +124,7 @@ public:
     HYP_API StagingBufferPool();
 
     HYP_API void Cleanup(uint32 frameIndex);
-    HYP_API GpuBufferBase* AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize);
+    HYP_API GpuBuffer* AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize);
 
 private:
     Pimpl<struct StagingBufferPoolImpl> m_impl;
@@ -159,7 +159,7 @@ public:
     virtual void MarkDirty(uint32 index) = 0;
 
     virtual void UpdateBufferSize(uint32 frameIndex) = 0;
-    virtual void UpdateBufferData(FrameBase* frame) = 0;
+    virtual void UpdateBufferData(Frame* frame) = 0;
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -190,8 +190,8 @@ public:
 protected:
     void CreateBuffers(GpuBufferType bufferType, SizeType count, SizeType size);
     void CopyToGpuBuffer(
-        FrameBase* frame,
-        const Array<GpuBufferBase*>& stagingBuffers,
+        Frame* frame,
+        const Array<GpuBuffer*>& stagingBuffers,
         const Array<uint32>& chunkStarts,
         const Array<uint32>& chunkEnds);
 
@@ -253,7 +253,7 @@ public:
         }
     }
 
-    void BuildStagingBuffers(uint32 frameIndex, Array<GpuBufferBase*>& outStagingBuffers, Array<uint32>& outChunkStarts, Array<uint32>& outChunkEnds)
+    void BuildStagingBuffers(uint32 frameIndex, Array<GpuBuffer*>& outStagingBuffers, Array<uint32>& outChunkStarts, Array<uint32>& outChunkEnds)
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
@@ -382,7 +382,7 @@ public:
             const uint32 stagingBufferSize = batch.GetTotalSize();
             const uint32 startOffset = batch.minOffset;
 
-            GpuBufferBase* stagingBuffer = StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, startOffset, stagingBufferSize);
+            GpuBuffer* stagingBuffer = StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, startOffset, stagingBufferSize);
             Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
 
             // Copy each block in the batch to the appropriate offset in the staging buffer
@@ -441,11 +441,11 @@ public:
         m_pool.EnsureGpuBufferCapacity(m_gpuBuffer, frameIndex);
     }
 
-    virtual void UpdateBufferData(FrameBase* frame) override
+    virtual void UpdateBufferData(Frame* frame) override
     {
         const uint32 frameIndex = frame->GetFrameIndex();
 
-        Array<GpuBufferBase*> stagingBuffers;
+        Array<GpuBuffer*> stagingBuffers;
         Array<uint32> chunkStarts;
         Array<uint32> chunkEnds;
 

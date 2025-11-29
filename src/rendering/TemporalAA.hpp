@@ -35,12 +35,12 @@ public:
     }
 
     void Create();
-    void Render(FrameBase* frame, const RenderSetup& renderSetup);
+    void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
     void CreateTextures();
 
-    void UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup);
+    void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
 
     Vec2u m_extent;
 

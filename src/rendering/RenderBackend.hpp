@@ -68,15 +68,15 @@ public:
 
     virtual AsyncComputeBase* GetAsyncCompute() const = 0;
 
-    virtual FrameBase* GetCurrentFrame() const = 0;
+    virtual Frame* GetCurrentFrame() const = 0;
 
-    virtual FrameBase* PrepareNextFrame() = 0;
+    virtual Frame* PrepareNextFrame() = 0;
 
-    virtual void PrepareSwapchain(SwapchainBase* swapchain) = 0;
+    virtual void PrepareSwapchain(Swapchain* swapchain) = 0;
     virtual void SubmitCommandBuffers() = 0;
-    virtual void PresentToSwapchain(SwapchainBase* swapchain) = 0;
+    virtual void PresentToSwapchain(Swapchain* swapchain) = 0;
 
-    virtual CommandBufferBase* GetCurrentCommandBuffer() const = 0;
+    virtual CommandBuffer* GetCurrentCommandBuffer() const = 0;
 
     virtual DescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) = 0;
 
@@ -134,7 +134,7 @@ public:
 
     virtual UniquePtr<SingleTimeCommands> GetSingleTimeCommands() = 0;
 
-    virtual Delegate<void, SwapchainBase*>& GetOnSwapchainRecreatedDelegate() = 0;
+    virtual Delegate<void, Swapchain*>& GetOnSwapchainRecreatedDelegate() = 0;
 
     virtual void ReleaseTransientMemory() = 0;
 

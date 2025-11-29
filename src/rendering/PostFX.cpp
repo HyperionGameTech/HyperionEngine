@@ -88,7 +88,7 @@ void PostProcessingEffect::Init()
     m_pass.Create();
 }
 
-void PostProcessingEffect::RenderEffect(FrameBase* frame, const RenderSetup& renderSetup, uint32 slot)
+void PostProcessingEffect::RenderEffect(Frame* frame, const RenderSetup& renderSetup, uint32 slot)
 {
     struct
     {
@@ -247,7 +247,7 @@ void PostProcessing::CreateUniformBuffer()
     m_uniformBuffer->Copy(sizeof(PostProcessingUniforms), &postProcessingUniforms);
 }
 
-void PostProcessing::RenderPre(FrameBase* frame, const RenderSetup& renderSetup) const
+void PostProcessing::RenderPre(Frame* frame, const RenderSetup& renderSetup) const
 {
     AssertOnThread(g_renderThread);
 
@@ -263,7 +263,7 @@ void PostProcessing::RenderPre(FrameBase* frame, const RenderSetup& renderSetup)
     }
 }
 
-void PostProcessing::RenderPost(FrameBase* frame, const RenderSetup& renderSetup) const
+void PostProcessing::RenderPost(Frame* frame, const RenderSetup& renderSetup) const
 {
     AssertOnThread(g_renderThread);
 
