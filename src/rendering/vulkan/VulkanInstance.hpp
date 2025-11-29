@@ -41,33 +41,22 @@ public:
         return m_device;
     }
 
-    HYP_FORCE_INLINE const VulkanSwapchainRef& GetSwapchain() const
-    {
-        return m_swapchain;
-    }
-
     HYP_FORCE_INLINE VmaAllocator GetAllocator() const
     {
-        return allocator;
+        return m_allocator;
     }
-
-    RendererResult CreateDevice(VkPhysicalDevice _physical_device = nullptr);
-    RendererResult CreateSwapchain();
-    RendererResult RecreateSwapchain();
 
     const char* appName;
     const char* engineName;
 
 private:
-    void CreateSurface();
+    RendererResult CreateDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
     VkInstance m_instance;
-    VkSurfaceKHR m_surface;
 
-    VmaAllocator allocator = nullptr;
+    VmaAllocator m_allocator;
 
     VulkanDeviceRef m_device;
-    VulkanSwapchainRef m_swapchain;
 
 #ifdef HYP_DEBUG_MODE
     Array<const char*> m_validationLayers;

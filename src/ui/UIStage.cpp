@@ -315,7 +315,7 @@ void UIStage::Init()
             return;
         }
 
-        const Vec2i size = Vec2i(window->GetDimensions());
+        const Vec2i size = window->GetSize();
 
         m_surfaceSize = Vec2i(size);
 

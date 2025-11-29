@@ -190,12 +190,12 @@ public:
 
     void SetDeviceFeatures(VulkanDevice* device);
 
-    VulkanSwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR _surface) const
+    VulkanSwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR surface) const
     {
         HYP_GFX_ASSERT(m_physicalDevice != VK_NULL_HANDLE, "No physical device set!");
 
         VulkanSwapchainSupportDetails details {};
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, _surface, &details.capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, surface, &details.capabilities);
 
         uint32 numQueueFamilies = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &numQueueFamilies, nullptr);
@@ -206,21 +206,21 @@ public:
         vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &numQueueFamilies, queueFamilyProperties.Data());
 
         uint32 numSurfaceFormats = 0;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, _surface, &numSurfaceFormats, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, surface, &numSurfaceFormats, nullptr);
 
         Array<VkSurfaceFormatKHR> surfaceFormats;
         surfaceFormats.Resize(numSurfaceFormats);
 
-        vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, _surface, &numSurfaceFormats, surfaceFormats.Data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, surface, &numSurfaceFormats, surfaceFormats.Data());
         HYP_GFX_ASSERT(surfaceFormats.Any(), "No surface formats available!");
 
         uint32 numPresentModes = 0;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, _surface, &numPresentModes, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, surface, &numPresentModes, nullptr);
 
         Array<VkPresentModeKHR> presentModes;
         presentModes.Resize(numPresentModes);
 
-        vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, _surface, &numPresentModes, presentModes.Data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, surface, &numPresentModes, presentModes.Data());
         HYP_GFX_ASSERT(presentModes.Any(), "No present modes available!");
 
         details.queueFamilyProperties = queueFamilyProperties;
@@ -403,6 +403,7 @@ private:
     VkPhysicalDeviceDescriptorIndexingFeatures m_indexingFeatures;
     VkPhysicalDeviceDescriptorIndexingProperties m_indexingProperties;
     VkPhysicalDeviceMultiviewFeatures m_multiviewFeatures;
+
     VkPhysicalDeviceFeatures2 m_features2;
     VkPhysicalDeviceProperties2 m_properties2;
 

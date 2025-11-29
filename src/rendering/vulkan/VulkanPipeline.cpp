@@ -12,11 +12,11 @@
 
 namespace hyperion {
 
-extern IRenderBackend* g_renderBackend;
+extern VulkanRenderBackend* g_renderBackend;
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+    return g_renderBackend;
 }
 
 #pragma region VulkanPipelineBase

@@ -30,7 +30,8 @@ enum ImageUsage : uint32
     IU_SAMPLED = 0x1,
     IU_STORAGE = 0x2,
     IU_ATTACHMENT = 0x4,
-    IU_BLENDED = 0x8
+    IU_BLENDED = 0x8,
+    IU_EXTERNAL = 0x10
 };
 
 HYP_MAKE_ENUM_FLAGS(ImageUsage);

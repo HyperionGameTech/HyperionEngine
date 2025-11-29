@@ -17,6 +17,8 @@
 
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanInstance.hpp>
+#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanSwapchain.hpp>
 #endif
 
 #include <engine/EngineGlobals.hpp>
@@ -46,12 +48,59 @@ ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
 {
 }
 
+ApplicationWindow::~ApplicationWindow()
+{
+#ifdef HYP_VULKAN
+    if (m_vkSurface)
+    {
+        VulkanInstance* vkInstance = g_renderBackend->GetInstance();
+        Assert(vkInstance != nullptr);
+
+        vkDestroySurfaceKHR(vkInstance->GetInstance(), m_vkSurface, nullptr);
+        m_vkSurface = VK_NULL_HANDLE;
+    }
+#endif
+}
+
 void ApplicationWindow::HandleResize(Vec2i newSize)
 {
-    m_size = newSize;
+    {
+        Mutex::Guard guard(m_mtx);
+        m_size = newSize;
+    }
 
     OnWindowSizeChanged(newSize);
 }
+
+HYP_DISABLE_OPTIMIZATION;
+void ApplicationWindow::CreateSwapchain()
+{
+    if (m_swapchain.IsValid())
+    {
+        return; // already created
+    }
+
+#ifdef HYP_VULKAN
+    AssertDebug(GetDimensions() != Vec2i::Zero());
+
+    if (!m_vkSurface)
+    {
+        VkSurfaceKHR surface = g_renderBackend->CreateVkSurface(this, nullptr);
+        Assert(surface != VK_NULL_HANDLE);
+
+        m_vkSurface = surface;
+    }
+
+    VulkanSwapchainRef swapchain = g_renderBackend->CreateSwapchain(this, g_renderBackend->GetInstance(), m_vkSurface);
+    Assert(swapchain.IsValid());
+    AssertDebug(swapchain->GetExtent() == Vec2u(m_size));
+
+    m_swapchain = swapchain;
+#else
+    HYP_NOT_IMPLEMENTED();
+#endif
+}
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion ApplicationWindow
 

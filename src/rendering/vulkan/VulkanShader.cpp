@@ -21,11 +21,11 @@
 
 namespace hyperion {
 
-extern IRenderBackend* g_renderBackend;
+extern VulkanRenderBackend* g_renderBackend;
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+    return g_renderBackend;
 }
 
 #pragma region CreateShaderStage
@@ -84,7 +84,7 @@ RendererResult VulkanShader::AttachSubShader(ShaderModuleType type, const Shader
 
     std::sort(m_shaderModules.Begin(), m_shaderModules.End());
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanShader::AttachSubShaders()
@@ -120,7 +120,7 @@ RendererResult VulkanShader::AttachSubShaders()
         HYP_GFX_CHECK(AttachSubShader(ShaderModuleType(index), ShaderObject { srcName, std::move(byteBuffer) }));
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanShader::CreateShaderGroups()
@@ -161,7 +161,7 @@ RendererResult VulkanShader::CreateShaderGroups()
         }
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 VkPipelineShaderStageCreateInfo VulkanShader::CreateShaderStage(const VulkanShaderModule& shaderModule)
@@ -248,7 +248,7 @@ RendererResult VulkanShader::Create()
     }
 #endif
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #ifdef HYP_DEBUG_MODE

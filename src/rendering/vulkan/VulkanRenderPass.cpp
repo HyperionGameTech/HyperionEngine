@@ -16,14 +16,14 @@
 
 namespace hyperion {
 
-extern IRenderBackend* g_renderBackend;
-
-extern VkImageLayout GetVkImageLayout(ResourceState state);
+extern VulkanRenderBackend* g_renderBackend;
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+    return g_renderBackend;
 }
+
+extern VkImageLayout GetVkImageLayout(ResourceState state);
 
 VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode)
     : m_renderTargetType(renderTargetType),

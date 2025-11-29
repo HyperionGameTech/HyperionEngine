@@ -32,13 +32,13 @@
 
 namespace hyperion {
 
-extern IRenderBackend* g_renderBackend;
-
 static constexpr SizeType MaxImageBytes = 1024 * 1024 * 1024; // 1 GiB
+
+extern VulkanRenderBackend* g_renderBackend;
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+    return g_renderBackend;
 }
 
 extern VkImageLayout GetVkImageLayout(ResourceState);
@@ -49,8 +49,8 @@ extern VkPipelineStageFlags GetVkShaderStageMask(ResourceState, bool, ShaderModu
 
 #pragma region VulkanGpuImage
 
-VulkanGpuImage::VulkanGpuImage(const TextureDesc& textureDesc)
-    : GpuImageBase(textureDesc)
+VulkanGpuImage::VulkanGpuImage(const TextureDesc& textureDesc, EnumFlags<GpuImageFlags> flags)
+    : GpuImageBase(textureDesc, flags)
 {
     m_size = textureDesc.GetByteSize();
 }
@@ -213,6 +213,8 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
     const bool isRwTexture = m_textureDesc.imageUsage[IU_STORAGE];
+    const bool isExternalMemory = m_textureDesc.imageUsage[IU_EXTERNAL];
+
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
     const bool isBlended = m_textureDesc.IsBlended();
     const bool isSrgb = m_textureDesc.IsSrgb();
@@ -327,6 +329,48 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
     VmaAllocationCreateInfo allocInfo {};
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
+    VkExternalMemoryImageCreateInfoKHR externalMemoryImageCreateInfo;
+
+    if (isExternalMemory)
+    {
+#ifdef _WIN32
+        constexpr VkExportMemoryAllocateInfoKHR ExportAllocInfo {
+            .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR,
+            .pNext = VK_NULL_HANDLE,
+            .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR
+        };
+#else
+        constexpr VkExportMemoryAllocateInfoKHR ExportAllocInfo {
+            .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR,
+            .pNext = VK_NULL_HANDLE,
+            .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR
+        };
+#endif
+
+        uint32_t memTypeIndex;
+
+        VkResult res = vmaFindMemoryTypeIndexForImageInfo(
+            GetRenderBackend()->GetDevice()->GetAllocator(),
+            &imageInfo, &allocInfo, &memTypeIndex);
+
+        VULKAN_CHECK(res);
+
+        VmaPoolCreateInfo poolCreateInfo {};
+        poolCreateInfo.memoryTypeIndex = memTypeIndex;
+        poolCreateInfo.pMemoryAllocateNext = (void*)&ExportAllocInfo;
+
+        VmaPool pool;
+        res = vmaCreatePool(GetRenderBackend()->GetDevice()->GetAllocator(), &poolCreateInfo, &pool);
+        VULKAN_CHECK(res); /// @TODO Have to destroy this pool later!
+
+        allocInfo.pool = pool;
+
+        externalMemoryImageCreateInfo = { VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR };
+        externalMemoryImageCreateInfo.handleTypes = ExportAllocInfo.handleTypes;
+
+        imageInfo.pNext = &externalMemoryImageCreateInfo;
+    }
+
     VULKAN_CHECK_MSG(
         vmaCreateImage(
             GetRenderBackend()->GetDevice()->GetAllocator(),
@@ -401,6 +445,50 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
     }
 
     return {};
+}
+
+auto VulkanGpuImage::GetNativeHandle() const -> HANDLE
+{
+    Assert(IsCreated());
+    Assert(m_textureDesc.imageUsage & IU_EXTERNAL);
+
+#ifdef HYP_WINDOWS
+    VkMemoryGetWin32HandleInfoKHR getHandleInfo { VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR };
+    getHandleInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
+
+    VmaAllocationInfo allocInfo;
+    vmaGetAllocationInfo(GetRenderBackend()->GetDevice()->GetAllocator(), m_allocation, &allocInfo);
+    getHandleInfo.memory = allocInfo.deviceMemory;
+
+    HANDLE handle;
+
+    VkResult res = g_vulkanDynamicFunctions->vkGetMemoryWin32HandleKHR(
+        GetRenderBackend()->GetDevice()->GetDevice(),
+        &getHandleInfo,
+        &handle);
+
+    Assert(res == VK_SUCCESS, "Failed to get external memory handle for image! VkResult: %d", res);
+
+    return handle;
+#else
+    VkMemoryGetFdInfoKHR getFdInfo { VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR };
+    getFdInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+
+    VmaAllocationInfo allocInfo;
+    vmaGetAllocationInfo(GetRenderBackend()->GetDevice()->GetAllocator(), m_allocation, &allocInfo);
+    getFdInfo.memory = allocInfo.deviceMemory;
+
+    int fd;
+
+    VkResult res = g_vulkanDynamicFunctions->vkGetMemoryFdKHR(
+        GetRenderBackend()->GetDevice()->GetDevice(),
+        &getFdInfo,
+        &fd);
+
+    Assert(res == VK_SUCCESS, "Failed to get external memory fd for image! VkResult: %d", res);
+
+    return reinterpret_cast<HANDLE>(fd);
+#endif
 }
 
 void VulkanGpuImage::SetResourceState(ResourceState newState)

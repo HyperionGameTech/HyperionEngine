@@ -273,7 +273,7 @@ void Camera::Init()
                 return HYP_MAKE_ERROR(Error, "No main window set!");
             }
 
-            const Vec2i windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(g_appContext->GetMainWindow()->GetDimensions()) * m_matchWindowSizeRatio)), Vec2i::One());
+            const Vec2i windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(g_appContext->GetMainWindow()->GetSize()) * m_matchWindowSizeRatio)), Vec2i::One());
 
             m_width = windowSize.x;
             m_height = windowSize.y;

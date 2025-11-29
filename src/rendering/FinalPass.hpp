@@ -3,6 +3,8 @@
 #pragma once
 
 #include <core/reflection/Handle.hpp>
+#include <core/reflection/ObjectBase.hpp>
+#include <core/containers/SparsePagedArray.hpp>
 
 #include <core/Types.hpp>
 
@@ -14,12 +16,21 @@ namespace hyperion {
 class ShaderManager;
 class FullScreenPass;
 class Mesh;
+class SwapchainBase;
 struct RenderSetup;
+
+struct FinalPassData
+{
+    WeakHandle<SwapchainBase> swapchain;
+    Handle<FullScreenPass> renderTextureToScreenPass;
+    GpuImageViewRef lastUiImageView;
+    uint8 dirtyFrameIndices = 0;
+};
 
 class FinalPass final
 {
 public:
-    FinalPass(const SwapchainRef& swapchain);
+    FinalPass();
     FinalPass(const FinalPass& other) = delete;
     FinalPass& operator=(const FinalPass& other) = delete;
     ~FinalPass();
@@ -30,12 +41,10 @@ public:
     void Render(FrameBase* frame, const RenderSetup& rs);
 
 private:
-    SwapchainRef m_swapchain;
-    Vec2u m_extent;
-    TextureFormat m_imageFormat;
+    FinalPassData* GetOrCreatePassData(SwapchainBase* swapchain);
+
+    SparsePagedArray<FinalPassData> m_passData;
     Handle<Mesh> m_quadMesh;
     GpuImageViewRef m_uiLayerImageView;
-    Handle<FullScreenPass> m_renderTextureToScreenPass;
-    uint8 m_dirtyFrameIndices;
 };
 } // namespace hyperion

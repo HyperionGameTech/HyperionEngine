@@ -187,6 +187,20 @@ ExtensionMap VulkanInstance::GetExtensionMap()
     map[VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME] = false;
 #endif
 
+#ifdef HYP_EDITOR
+    // enable external memory and other required extensions for interfacing with the editor application
+#ifndef HYP_APPLE
+    map[VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME] = true;
+    map[VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME] = true;
+#endif
+
+#ifdef HYP_WINDOWS
+    map[VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME] = true;
+#endif
+
+    // @TODO: other platforms
+#endif
+
     return map;
 }
 
@@ -267,14 +281,13 @@ RendererResult VulkanInstance::SetupDebug()
 
     m_validationLayers = CheckValidationLayerSupport(layers);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 #endif
 
 VulkanInstance::VulkanInstance()
-    : m_surface(VK_NULL_HANDLE),
-      m_instance(VK_NULL_HANDLE),
-      m_swapchain(CreateObject<VulkanSwapchain>())
+    : m_instance(VK_NULL_HANDLE),
+      m_allocator(VK_NULL_HANDLE)
 {
 }
 
@@ -287,10 +300,6 @@ VulkanInstance::~VulkanInstance()
     }
 
     m_device->DestroyAllocator();
-
-    SafeDelete(std::move(m_swapchain));
-
-    vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 
     m_device.Reset();
 
@@ -319,7 +328,7 @@ RendererResult VulkanInstance::SetupDebugMessenger()
 
     HYP_LOG(RenderingBackend, Info, "Enabling Vulkan debug messenger");
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 #endif
 
@@ -384,12 +393,17 @@ RendererResult VulkanInstance::Initialize(bool enableDebug)
     VkResult instanceResult = vkCreateInstance(&createInfo, nullptr, &m_instance);
     VULKAN_CHECK_MSG(instanceResult, "Failed to create Vulkan Instance!");
 
-    HYP_GFX_ASSERT(g_appContext->GetMainWindow() != nullptr);
-    m_surface = GetRenderBackend()->CreateVkSurface(g_appContext->GetMainWindow(), this);
+    IDummyVulkanSurfaceContext* dummySurfaceContext = nullptr;
+    VkSurfaceKHR surface = g_renderBackend->CreateVkSurface(nullptr, &dummySurfaceContext);
+
+    Array<VkPhysicalDevice> devices = EnumeratePhysicalDevices(m_instance);
+    VkPhysicalDevice physicalDevice = PickPhysicalDevice(Span<VkPhysicalDevice>(devices.Begin(), devices.End()));
 
     /* Find and set up an adequate GPU for rendering and presentation */
-    HYP_GFX_CHECK(CreateDevice());
-    HYP_GFX_CHECK(CreateSwapchain());
+    HYP_GFX_CHECK(CreateDevice(physicalDevice, surface));
+
+    delete dummySurfaceContext;
+    vkDestroySurfaceKHR(m_instance, surface, nullptr);
 
 #ifdef HYP_DEBUG_MODE
     if (enableDebug)
@@ -400,72 +414,19 @@ RendererResult VulkanInstance::Initialize(bool enableDebug)
 
     m_device->SetupAllocator(this);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
-RendererResult VulkanInstance::CreateDevice(VkPhysicalDevice physicalDevice)
+RendererResult VulkanInstance::CreateDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 {
-    /* If no physical device passed in, we select one */
-    if (physicalDevice == VK_NULL_HANDLE)
-    {
-        Array<VkPhysicalDevice> devices = EnumeratePhysicalDevices(m_instance);
-        physicalDevice = PickPhysicalDevice(Span<VkPhysicalDevice>(devices.Begin(), devices.End()));
-    }
+    Assert(physicalDevice != VK_NULL_HANDLE && surface != VK_NULL_HANDLE);
 
-    m_device = CreateObject<VulkanDevice>(physicalDevice, m_surface);
+    m_device = CreateObject<VulkanDevice>(physicalDevice);
     m_device->SetWantedExtensions(GetExtensionMap());
 
-    const QueueFamilyIndices& familyIndices = m_device->GetQueueFamilyIndices();
+    HYP_GFX_CHECK(m_device->Create(surface));
 
-    /* Put into a set so we don't have any duplicate indices */
-    Bitset queueFamilyIndices;
-    queueFamilyIndices.Set(familyIndices.graphicsFamily.Get(), true);
-    queueFamilyIndices.Set(familyIndices.transferFamily.Get(), true);
-    queueFamilyIndices.Set(familyIndices.presentFamily.Get(), true);
-    queueFamilyIndices.Set(familyIndices.computeFamily.Get(), true);
-
-    /* Create a logical device to operate on */
-    HYP_GFX_CHECK(m_device->Create(queueFamilyIndices.ToUInt64()));
-
-    /* Get the internal queues from our device */
-
-    HYPERION_RETURN_OK;
+    return {};
 }
-
-HYP_DISABLE_OPTIMIZATION;
-RendererResult VulkanInstance::CreateSwapchain()
-{
-    if (m_surface == VK_NULL_HANDLE)
-    {
-        return HYP_MAKE_ERROR(RendererError, "Surface not created before initializing swapchain");
-    }
-
-    m_swapchain->m_surface = m_surface;
-    HYP_GFX_CHECK(m_swapchain->Create());
-
-    HYPERION_RETURN_OK;
-}
-
-RendererResult VulkanInstance::RecreateSwapchain()
-{
-    Handle<VulkanSwapchain> prevSwapchain = std::move(m_swapchain);
-
-    if (m_surface == VK_NULL_HANDLE)
-    {
-        return HYP_MAKE_ERROR(RendererError, "Surface not created before initializing swapchain");
-    }
-
-    HYP_LOG(RenderingBackend, Info, "Recreating swapchain...");
-
-    m_swapchain = CreateObject<VulkanSwapchain>();
-    m_swapchain->m_surface = m_surface;
-    m_swapchain->m_handle = prevSwapchain->m_handle;
-    HYP_GFX_CHECK(m_swapchain->Create());
-
-    SafeDelete(std::move(prevSwapchain));
-
-    HYPERION_RETURN_OK;
-}
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion

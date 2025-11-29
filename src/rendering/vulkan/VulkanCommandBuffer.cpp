@@ -24,11 +24,11 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern IRenderBackend* g_renderBackend;
+extern VulkanRenderBackend* g_renderBackend;
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+    return g_renderBackend;
 }
 
 VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBufferLevel type)
@@ -84,7 +84,7 @@ RendererResult VulkanCommandBuffer::Create()
         vkAllocateCommandBuffers(GetRenderBackend()->GetDevice()->GetDevice(), &allocInfo, &m_handle),
         "Failed to allocate command buffer");
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanCommandBuffer::Begin(const VulkanRenderPass* renderPass)
@@ -120,7 +120,7 @@ RendererResult VulkanCommandBuffer::Begin(const VulkanRenderPass* renderPass)
         vkBeginCommandBuffer(m_handle, &beginInfo),
         "Failed to begin command buffer");
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanCommandBuffer::End()
@@ -132,7 +132,7 @@ RendererResult VulkanCommandBuffer::End()
         vkEndCommandBuffer(m_handle),
         "Failed to end command buffer");
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanCommandBuffer::Reset()
@@ -144,7 +144,7 @@ RendererResult VulkanCommandBuffer::Reset()
         vkResetCommandBuffer(m_handle, 0),
         "Failed to reset command buffer");
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanCommandBuffer::SubmitPrimary(
@@ -215,7 +215,7 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
     }
 #endif
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanCommandBuffer::SubmitSecondary(VulkanCommandBuffer* primary)

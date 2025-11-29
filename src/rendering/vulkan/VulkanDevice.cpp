@@ -19,10 +19,9 @@
 
 namespace hyperion {
 
-VulkanDevice::VulkanDevice(VkPhysicalDevice physical, VkSurfaceKHR surface)
+VulkanDevice::VulkanDevice(VkPhysicalDevice physical)
     : m_device(VK_NULL_HANDLE),
       m_physical(physical),
-      m_surface(surface),
       m_allocator(VK_NULL_HANDLE),
       m_features(MakeUnique<VulkanFeatures>()),
       m_queueGraphics(nullptr),
@@ -31,8 +30,6 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physical, VkSurfaceKHR surface)
       m_queueCompute(nullptr)
 {
     m_features->SetPhysicalDevice(m_physical);
-
-    m_queueFamilyIndices = FindQueueFamilies(m_physical, m_surface);
 }
 
 VulkanDevice::~VulkanDevice()
@@ -75,11 +72,6 @@ VulkanDevice::~VulkanDevice()
     }
 }
 
-void VulkanDevice::SetRenderSurface(const VkSurfaceKHR& surface)
-{
-    m_surface = surface;
-}
-
 void VulkanDevice::SetWantedExtensions(const ExtensionMap& extensions)
 {
     m_wantedExtensions = extensions;
@@ -95,15 +87,10 @@ VkPhysicalDevice VulkanDevice::GetPhysicalDevice()
     return m_physical;
 }
 
-VkSurfaceKHR VulkanDevice::GetRenderSurface()
-{
-    HYP_GFX_ASSERT(m_surface != VK_NULL_HANDLE, "Surface has not been set!");
-
-    return m_surface;
-}
-
 QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 {
+    const bool needPresentation = surface != VK_NULL_HANDLE;
+
     QueueFamilyIndices indices {};
 
     uint32 queueFamilyCount = 0;
@@ -126,7 +113,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
         /* When looking for a dedicate graphics queue, we'll make sure it supports presentation.
          * Some devices appear only to compute and are not graphical,
          * so we need to make sure it supports presenting to the user. */
-        if (expectedBits == VK_QUEUE_GRAPHICS_BIT)
+        if (needPresentation && expectedBits == VK_QUEUE_GRAPHICS_BIT)
         {
             VkBool32 supportsPresentation = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, index, surface, &supportsPresentation);
@@ -160,7 +147,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
             continue;
         }
 
-        if (!indices.presentFamily.HasValue())
+        if (needPresentation && !indices.presentFamily.HasValue())
         {
             VkBool32 supportsPresentation = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &supportsPresentation);
@@ -206,8 +193,8 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
         }
     }
 
-    HYP_GFX_ASSERT(indices.presentFamily.HasValue(), "No present queue family found!");
-    HYP_GFX_ASSERT(indices.graphicsFamily.HasValue(), "No graphics queue family found that supports presentation!");
+    Assert(!needPresentation || indices.presentFamily.HasValue(), "No present queue family found!");
+    Assert(indices.graphicsFamily.HasValue(), "No graphics queue family found that supports presentation!");
 
     if (!indices.transferFamily.HasValue())
     {
@@ -247,16 +234,6 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
             }
         }
     }
-
-    HYP_GFX_ASSERT(indices.IsComplete(), "Queue indices could not be created! Indices were:\n"
-                                         "\tGraphics: %d\n"
-                                         "\tTransfer: %d\n"
-                                         "\tPresent: %d\n"
-                                         "\tCompute: %d\n",
-        indices.graphicsFamily.GetOr(0xBEEF),
-        indices.transferFamily.GetOr(0xBEEF),
-        indices.presentFamily.GetOr(0xBEEF),
-        indices.computeFamily.GetOr(0xBEEF));
 
     return indices;
 }
@@ -302,7 +279,7 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
     {
         HYP_LOG(RenderingBackend, Warning, "--- Unsupported Extensions ---\n");
 
-        bool anyRequired = false;
+        Array<String> missingRequiredExtensionStrings;
 
         for (const auto& extension : unsupportedExtensions)
         {
@@ -310,7 +287,7 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
             {
                 HYP_LOG(RenderingBackend, Error, "\t{} [REQUIRED]", extension.first);
 
-                anyRequired = true;
+                missingRequiredExtensionStrings.PushBack(extension.first);
             }
             else
             {
@@ -318,23 +295,25 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
             }
         }
 
-        if (anyRequired)
+        if (missingRequiredExtensionStrings.Any())
         {
-            return HYP_MAKE_ERROR(RendererError, "Device does not support required extensions");
+            return HYP_MAKE_ERROR(
+                RendererError,
+                "Device does not support required extensions:\n\t{}",
+                -1,
+                String::Join(Map(
+                    missingRequiredExtensionStrings,
+                    [](const String& s)
+                    {
+                        return s;
+                    }),
+                    "\n\t"));
         }
     }
-
-    const VulkanSwapchainSupportDetails swapchainSupport = m_features->QuerySwapchainSupport(m_surface);
-    const bool swapchainsAvailable = swapchainSupport.formats.Any() && swapchainSupport.presentModes.Any();
 
     if (!m_queueFamilyIndices.IsComplete())
     {
         return HYP_MAKE_ERROR(RendererError, "Device not supported -- indices setup was not complete.");
-    }
-
-    if (!swapchainsAvailable)
-    {
-        return HYP_MAKE_ERROR(RendererError, "Device not supported -- swapchains not available.");
     }
 
     HYPERION_RETURN_OK;
@@ -414,7 +393,7 @@ RendererResult VulkanDevice::WaitIdle() const
     return result;
 }
 
-RendererResult VulkanDevice::Create(uint32 requiredQueueFamilies)
+RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
 {
     HYP_LOG(RenderingBackend, Debug, "Memory properties:\n");
     const auto& memoryProperties = m_features->GetPhysicalDeviceMemoryProperties();
@@ -434,9 +413,15 @@ RendererResult VulkanDevice::Create(uint32 requiredQueueFamilies)
     Array<VkDeviceQueueCreateInfo> queueCreateInfos;
     const float priorities[] = { 1.0f };
 
-    // for each queue family(for separate threads) we add them to
-    // our device initialization data
-    FOR_EACH_BIT(requiredQueueFamilies, familyIndex)
+    InitQueueFamilies(surface);
+
+    Bitset queueFamilyBits;
+    queueFamilyBits.Set(m_queueFamilyIndices.graphicsFamily.Get(), true);
+    queueFamilyBits.Set(m_queueFamilyIndices.transferFamily.Get(), true);
+    queueFamilyBits.Set(m_queueFamilyIndices.presentFamily.Get(), true);
+    queueFamilyBits.Set(m_queueFamilyIndices.computeFamily.Get(), true);
+
+    FOR_EACH_BIT(queueFamilyBits.ToUInt64(), familyIndex)
     {
         VkDeviceQueueCreateInfo queueInfo { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
         queueInfo.pQueuePriorities = priorities;
@@ -508,96 +493,35 @@ RendererResult VulkanDevice::Create(uint32 requiredQueueFamilies)
         vkCreateDevice(m_physical, &createInfo, nullptr, &m_device),
         "Could not create Device!");
 
+    // Create command pools
+    HashSet<VulkanDeviceQueue*> deviceQueues;
+    deviceQueues.Add(m_queueGraphics);
+    deviceQueues.Add(m_queueTransfer);
+    deviceQueues.Add(m_queueCompute);
+    deviceQueues.Add(m_queuePresent);
+
+    for (VulkanDeviceQueue* pDeviceQueue : deviceQueues)
+    {
+        if (!pDeviceQueue)
+        {
+            continue;
+        }
+
+        pDeviceQueue->queue = GetQueue(pDeviceQueue->familyIndex, 0);
+
+        for (uint32 commandBufferIndex = 0; commandBufferIndex < pDeviceQueue->commandPools.Size(); commandBufferIndex++)
+        {
+            VkCommandPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+            poolInfo.queueFamilyIndex = pDeviceQueue->familyIndex;
+            poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+            VkResult result = vkCreateCommandPool(GetDevice(), &poolInfo, nullptr, &pDeviceQueue->commandPools[commandBufferIndex]);
+            Assert(result == VK_SUCCESS, "Could not create command pool for queue family index {}! VkResult: {}", pDeviceQueue->familyIndex, result);
+        }
+    }
+
     HYP_LOG(RenderingBackend, Debug, "Loading dynamic functions\n");
     m_features->SetDeviceFeatures(this);
-
-    { // Create device queues
-        VulkanDeviceQueue queueGraphics {
-            .type = VulkanDeviceQueueType::GRAPHICS,
-            .queue = GetQueue(m_queueFamilyIndices.graphicsFamily.Get()),
-            .familyIndex = m_queueFamilyIndices.graphicsFamily.Get()
-        };
-
-        VulkanDeviceQueue queueTransfer {
-            .type = VulkanDeviceQueueType::TRANSFER,
-            .queue = GetQueue(m_queueFamilyIndices.transferFamily.Get()),
-            .familyIndex = m_queueFamilyIndices.transferFamily.Get()
-        };
-
-        VulkanDeviceQueue queuePresent {
-            .type = VulkanDeviceQueueType::PRESENT,
-            .queue = GetQueue(m_queueFamilyIndices.presentFamily.Get()),
-            .familyIndex = m_queueFamilyIndices.presentFamily.Get()
-        };
-
-        VulkanDeviceQueue queueCompute {
-            .type = VulkanDeviceQueueType::COMPUTE,
-            .queue = GetQueue(m_queueFamilyIndices.computeFamily.Get()),
-            .familyIndex = m_queueFamilyIndices.computeFamily.Get()
-        };
-
-        VulkanDeviceQueue* allQueues[] = {
-            &queueGraphics,
-            &queueTransfer,
-            &queuePresent,
-            &queueCompute
-        };
-
-        VulkanDeviceQueue** deviceQueueMembers[] = {
-            &m_queueGraphics,
-            &m_queueTransfer,
-            &m_queuePresent,
-            &m_queueCompute
-        };
-
-        HashMap<VkQueue, VulkanDeviceQueue*> mapFamilyIndexToDeviceQueue;
-        for (int i = 0; i < HYP_ARRAY_SIZE(allQueues); i++)
-        {
-            VulkanDeviceQueue* pDeviceQueue = allQueues[i];
-            VulkanDeviceQueue** ppDeviceQueue = deviceQueueMembers[i];
-
-            auto insertResult = mapFamilyIndexToDeviceQueue.Insert(pDeviceQueue->queue, pDeviceQueue);
-
-            if (insertResult.second)
-            {
-                // is unique; set member
-                *ppDeviceQueue = PoolNew<VulkanDeviceQueue>(*g_renderPool, std::move(*pDeviceQueue));
-                AssertDebug(*ppDeviceQueue != nullptr);
-
-                allQueues[i] = *ppDeviceQueue; // swap out for the pooled one
-                insertResult.first->second = *ppDeviceQueue;
-            }
-            else
-            {
-                AssertDebug(insertResult.first->second != nullptr);
-
-                // reuse existing queue
-                *ppDeviceQueue = insertResult.first->second;
-            }
-        }
-
-        for (const auto& it : mapFamilyIndexToDeviceQueue)
-        {
-            VulkanDeviceQueue* pDeviceQueue = it.second;
-
-            for (uint32 commandBufferIndex = 0; commandBufferIndex < pDeviceQueue->commandPools.Size(); commandBufferIndex++)
-            {
-                VkCommandPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-                poolInfo.queueFamilyIndex = pDeviceQueue->familyIndex;
-                poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-                VULKAN_CHECK_MSG(
-                    vkCreateCommandPool(GetDevice(), &poolInfo, nullptr, &pDeviceQueue->commandPools[commandBufferIndex]),
-                    "Could not create Vulkan command pool");
-            }
-        }
-
-        // debug
-        Assert(m_queueGraphics != nullptr && m_queueGraphics->commandPools[0] != VK_NULL_HANDLE);
-        Assert(m_queueTransfer != nullptr && m_queueTransfer->commandPools[0] != VK_NULL_HANDLE);
-        Assert(m_queuePresent != nullptr && m_queuePresent->commandPools[0] != VK_NULL_HANDLE);
-        Assert(m_queueCompute != nullptr && m_queueCompute->commandPools[0] != VK_NULL_HANDLE);
-    }
 
     HYPERION_RETURN_OK;
 }
@@ -610,6 +534,70 @@ VkQueue VulkanDevice::GetQueue(uint32 queueFamilyIndex, uint32 queueIndex)
     vkGetDeviceQueue(m_device, queueFamilyIndex, queueIndex, &queue);
 
     return queue;
+}
+
+void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
+{
+    m_queueFamilyIndices = FindQueueFamilies(m_physical, surface);
+
+    const bool needPresentation = surface != VK_NULL_HANDLE;
+
+    Array<VulkanDeviceQueue, InlineAllocator<4>> queues;
+    Array<VulkanDeviceQueue**, InlineAllocator<4>> queueMembers;
+
+    queues.PushBack({
+        .type = VulkanDeviceQueueType::GRAPHICS,
+        .familyIndex = m_queueFamilyIndices.graphicsFamily.Get()
+    });
+    queueMembers.PushBack(&m_queueGraphics);
+
+    queues.PushBack({
+        .type = VulkanDeviceQueueType::TRANSFER,
+        .familyIndex = m_queueFamilyIndices.transferFamily.Get()
+    });
+    queueMembers.PushBack(&m_queueTransfer);
+
+    queues.PushBack({
+        .type = VulkanDeviceQueueType::COMPUTE,
+        .familyIndex = m_queueFamilyIndices.computeFamily.Get()
+    });
+    queueMembers.PushBack(&m_queueCompute);
+
+    if (needPresentation)
+    {
+        queues.PushBack({
+            .type = VulkanDeviceQueueType::PRESENT,
+            .familyIndex = m_queueFamilyIndices.presentFamily.Get()
+        });
+        queueMembers.PushBack(&m_queuePresent);
+    }
+
+    HashMap<uint32, VulkanDeviceQueue*> mapFamilyIndexToDeviceQueue;
+
+    for (int i = 0; i < int(queues.Size()); i++)
+    {
+        VulkanDeviceQueue& deviceQueue = queues[i];
+        VulkanDeviceQueue** ppDeviceQueue = queueMembers[i];
+
+        auto insertResult = mapFamilyIndexToDeviceQueue.Insert(deviceQueue.familyIndex, &deviceQueue);
+
+        if (insertResult.second)
+        {
+            // is unique; set member
+            *ppDeviceQueue = PoolNew<VulkanDeviceQueue>(*g_renderPool, std::move(deviceQueue));
+            AssertDebug(*ppDeviceQueue != nullptr);
+
+            deviceQueue = **ppDeviceQueue; // swap out for the pooled one
+            insertResult.first->second = *ppDeviceQueue;
+        }
+        else
+        {
+            AssertDebug(insertResult.first->second != nullptr);
+
+            // reuse existing queue
+            *ppDeviceQueue = insertResult.first->second;
+        }
+    }
 }
 
 } // namespace hyperion

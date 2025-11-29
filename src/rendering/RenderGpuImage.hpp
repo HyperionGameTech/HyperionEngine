@@ -18,12 +18,24 @@ namespace hyperion {
 
 enum ShaderModuleType : uint32;
 
+HYP_ENUM()
+enum class GpuImageFlags : uint32
+{
+    NONE = 0x0
+};
+
+HYP_MAKE_ENUM_FLAGS(GpuImageFlags);
+
 HYP_CLASS(Abstract, NoScriptBindings)
 class GpuImageBase : public ObjectBase
 {
     HYP_OBJECT_BODY(GpuImageBase);
 
 public:
+#ifndef HYP_WINDOWS
+    using HANDLE = void*;
+#endif
+
     virtual ~GpuImageBase() override = default;
 
     Name GetDebugName() const
@@ -117,6 +129,11 @@ public:
         return m_textureDesc.GetByteSize();
     }
 
+    HYP_FORCE_INLINE EnumFlags<GpuImageFlags> GetFlags() const
+    {
+        return m_flags;
+    }
+
     virtual bool IsCreated() const = 0;
 
     /*! \brief Returns true if the underlying GPU image is owned by this object. */
@@ -126,6 +143,10 @@ public:
     virtual RendererResult Create(ResourceState initialState) = 0;
 
     virtual RendererResult Resize(const Vec3u& extent) = 0;
+
+    /*! \brief Returns the native handle of the underlying GPU image.
+     *   Only valid on images created with IU_EXTERNAL usage flag. */
+    virtual HANDLE GetNativeHandle() const = 0;
 
     virtual void InsertBarrier(
         CommandBufferBase* commandBuffer,
@@ -182,19 +203,22 @@ public:
     virtual GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const = 0;
 
 protected:
-    GpuImageBase()
-        : m_resourceState(RS_UNDEFINED)
+    explicit GpuImageBase(EnumFlags<GpuImageFlags> flags = GpuImageFlags::NONE)
+        : m_resourceState(RS_UNDEFINED),
+          m_flags(flags)
     {
     }
 
-    GpuImageBase(const TextureDesc& textureDesc)
+    explicit GpuImageBase(const TextureDesc& textureDesc, EnumFlags<GpuImageFlags> flags = GpuImageFlags::NONE)
         : m_textureDesc(textureDesc),
-          m_resourceState(RS_UNDEFINED)
+          m_resourceState(RS_UNDEFINED),
+          m_flags(flags)
     {
     }
 
     TextureDesc m_textureDesc;
     mutable ResourceState m_resourceState;
+    EnumFlags<GpuImageFlags> m_flags;
 
     Name m_debugName;
 };

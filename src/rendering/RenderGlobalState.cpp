@@ -851,7 +851,7 @@ void Init()
     g_renderGlobalState = PoolNew<RenderGlobalState>(*g_renderPool);
     g_renderGlobalState->materialDescriptorSetManager->CreateFallbackMaterialDescriptorSet();
 
-    g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool, MakeStrongRef(g_renderBackend->GetSwapchain()));
+    g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool);
     g_renderGlobalState->finalPass->Create();
 
     ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
@@ -1385,6 +1385,9 @@ void EndFrame_RenderThread()
     g_safeDeleter->Iterate();
 
     g_renderArena->Reset();
+
+    g_renderBackend->ReleaseTransientMemory();
+    g_renderBackend->NextFrame();
 
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
 

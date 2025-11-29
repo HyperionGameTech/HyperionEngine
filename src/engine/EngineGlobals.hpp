@@ -25,6 +25,10 @@ class ShaderCompiler;
 class EditorState;
 class StreamingManager;
 
+#ifdef HYP_VULKAN
+class VulkanRenderBackend;
+#endif
+
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 
 // Globals for internal usage within the Hyperion library
@@ -37,9 +41,12 @@ extern Handle<StreamingManager> g_streamingManager;
 extern ShaderManager* g_shaderManager;
 extern MaterialCache* g_materialSystem;
 extern SafeDeleter* g_safeDeleter;
-extern IRenderBackend* g_renderBackend;
 extern RenderGlobalState* g_renderGlobalState;
 extern ShaderCompiler* g_shaderCompiler;
+
+#ifdef HYP_VULKAN
+extern VulkanRenderBackend* g_renderBackend;
+#endif
 
 #endif
 

@@ -16,11 +16,11 @@
 
 namespace hyperion {
 
-extern IRenderBackend* g_renderBackend;
+extern VulkanRenderBackend* g_renderBackend;
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+    return g_renderBackend;
 }
 
 #pragma region VulkanGpuImageView
@@ -98,7 +98,7 @@ RendererResult VulkanGpuImageView::Create()
         vkCreateImageView(GetRenderBackend()->GetDevice()->GetDevice(), &viewInfo, nullptr, &m_handle),
         "Failed to create image view");
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #ifdef HYP_DEBUG_MODE

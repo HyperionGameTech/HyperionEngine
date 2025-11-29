@@ -24,11 +24,11 @@
 
 namespace hyperion {
 
-extern IRenderBackend* g_renderBackend;
+extern VulkanRenderBackend* g_renderBackend;
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+    return g_renderBackend;
 }
 
 static constexpr bool UseSrgbFormat = true;
@@ -36,7 +36,7 @@ static constexpr bool UseHdrFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 HYP_DISABLE_OPTIMIZATION;
-static RendererResult HandleNextFrame(
+static RendererResult AcquireNextImage(
     VulkanSwapchain* swapchain,
     VulkanFrame* frame,
     uint32* index,
@@ -70,9 +70,10 @@ HYP_ENABLE_OPTIMIZATION;
 
 #pragma region Swapchain
 
-VulkanSwapchain::VulkanSwapchain()
-    : m_handle(VK_NULL_HANDLE),
-      m_surface(VK_NULL_HANDLE),
+VulkanSwapchain::VulkanSwapchain(VkSurfaceKHR surface, const Vec2u& extent)
+    : SwapchainBase(extent),
+      m_handle(VK_NULL_HANDLE),
+      m_surface(surface),
       m_surfaceFormat(),
       m_presentMode(),
       m_supportDetails()
@@ -81,7 +82,6 @@ VulkanSwapchain::VulkanSwapchain()
 
 VulkanSwapchain::~VulkanSwapchain()
 {
-    HYP_BREAKPOINT; // debug
     if (m_handle == VK_NULL_HANDLE)
     {
         return;
@@ -89,8 +89,6 @@ VulkanSwapchain::~VulkanSwapchain()
 
     SafeDelete(std::move(m_images));
     SafeDelete(std::move(m_framebuffers));
-    SafeDelete(std::move(m_frames));
-    SafeDelete(std::move(m_commandBuffers));
 
     vkDestroySwapchainKHR(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
     m_handle = VK_NULL_HANDLE;
@@ -101,28 +99,16 @@ bool VulkanSwapchain::IsCreated() const
     return m_handle != VK_NULL_HANDLE;
 }
 
-void VulkanSwapchain::NextFrame()
-{
-    m_currentFrameIndex = (m_currentFrameIndex + 1) % NumFramesInFlight;
-}
-
-RendererResult VulkanSwapchain::PrepareFrame(bool& outNeedsRecreate)
+RendererResult VulkanSwapchain::PrepareForFrame(VulkanFrame* frame, bool& outNeedsRecreate)
 {
     outNeedsRecreate = false;
 
-    VulkanFrame* frame = GetCurrentFrame();
+    HYP_GFX_CHECK(AcquireNextImage(this, frame, &m_acquiredImageIndex, outNeedsRecreate));
 
-    HYP_GFX_CHECK(frame->GetFence()->Wait(true));
-    VULKAN_CHECK(frame->GetFence()->GetLastFrameResult());
-
-    HYP_GFX_CHECK(frame->ResetFrameState());
-
-    HYP_GFX_CHECK(HandleNextFrame(this, frame, &m_acquiredImageIndex, outNeedsRecreate));
-
-    HYPERION_RETURN_OK;
+    return {};
 }
 
-RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
+RendererResult VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue) const
 {
     AssertOnThread(g_renderThread);
 
@@ -133,8 +119,6 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
         HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
     }
 #endif
-
-    VulkanFrame* frame = GetCurrentFrame();
 
     VkSemaphore signalSemaphores[] = { frame->GetRenderFinishedSemaphore()->GetVulkanHandle() };
 
@@ -151,7 +135,7 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
 
     frame->ResetRenderPassStates();
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanSwapchain::Create()
@@ -165,14 +149,8 @@ RendererResult VulkanSwapchain::Create()
     HYP_GFX_CHECK(ChooseSurfaceFormat());
     HYP_GFX_CHECK(ChoosePresentMode());
 
-    m_extent = {
-        m_supportDetails.capabilities.currentExtent.width,
-        m_supportDetails.capabilities.currentExtent.height
-    };
-
     if (m_extent.x * m_extent.y == 0)
     {
-        HYP_BREAKPOINT;
         return HYP_MAKE_ERROR(RendererError, "Failed to retrieve swapchain resolution!");
     }
 
@@ -252,24 +230,29 @@ RendererResult VulkanSwapchain::Create()
         HYP_GFX_CHECK(framebuffer->Create());
     }
 
-    VulkanDeviceQueue* queue = GetRenderBackend()->GetDevice()->GetPresentQueue();
+    return {};
+}
 
-    for (uint32 frameIndex = 0; frameIndex < uint32(m_frames.Size()); frameIndex++)
+SwapchainRef VulkanSwapchain::Recreate()
+{
+    Assert(IsCreated());
+
+    if (m_surface == VK_NULL_HANDLE)
     {
-        VulkanFrameRef& frame = m_frames[frameIndex];
-        VulkanCommandBufferRef& commandBuffer = m_commandBuffers[frameIndex];
-
-        VkCommandPool pool = queue->commandPools[0];
-        HYP_GFX_ASSERT(pool != VK_NULL_HANDLE);
-
-        commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        frame = CreateObject<VulkanFrame>(frameIndex);
-
-        HYP_GFX_CHECK(commandBuffer->Create(pool));
-        HYP_GFX_CHECK(frame->Create());
+        return nullptr;
     }
 
-    HYPERION_RETURN_OK;
+    VulkanSwapchainRef newSwapchain = CreateObject<VulkanSwapchain>(m_surface, m_extent);
+
+    RendererResult result = newSwapchain->Create();
+
+    if (!result)
+    {
+        HYP_LOG(RenderingBackend, Error, "Failed to recreate swapchain: {}", result.GetError().GetMessage());
+        return nullptr;
+    }
+
+    return newSwapchain;
 }
 
 RendererResult VulkanSwapchain::ChooseSurfaceFormat()
@@ -303,7 +286,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
         {
             HYP_LOG(RenderingBackend, Info, "Found supported surface format for swapchain (HDR): {}", EnumToString(m_imageFormat));
 
-            HYPERION_RETURN_OK;
+            return {};
         }
     }
 
@@ -329,7 +312,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
         {
             HYP_LOG(RenderingBackend, Info, "Found supported surface format for swapchain (sRGB): {}", EnumToString(m_imageFormat));
 
-            HYPERION_RETURN_OK;
+            return {};
         }
     }
 
@@ -348,7 +331,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     {
         HYP_LOG(RenderingBackend, Info, "Found supported surface format for swapchain (non-sRGB): {}", EnumToString(m_imageFormat));
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     return HYP_MAKE_ERROR(RendererError, "Failed to find a supported surface format!");
@@ -358,14 +341,14 @@ RendererResult VulkanSwapchain::ChoosePresentMode()
 {
     m_presentMode = HYP_ENABLE_VSYNC ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanSwapchain::RetrieveSupportDetails()
 {
-    m_supportDetails = GetRenderBackend()->GetDevice()->GetFeatures().QuerySwapchainSupport(GetRenderBackend()->GetDevice()->GetRenderSurface());
+    m_supportDetails = GetRenderBackend()->GetDevice()->GetFeatures().QuerySwapchainSupport(m_surface);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanSwapchain::RetrieveImageHandles()
@@ -423,7 +406,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     }
 #endif
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #pragma endregion Swapchain

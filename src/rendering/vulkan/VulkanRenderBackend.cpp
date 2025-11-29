@@ -224,6 +224,12 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     HYP_LOAD_FN(vkSetMoltenVKConfigurationMVK);
 #endif
 
+#ifdef HYP_WINDOWS
+    HYP_LOAD_FN(vkGetMemoryWin32HandleKHR);
+#else
+    HYP_LOAD_FN(vkGetMemoryFdKHR);
+#endif
+
 #undef HYP_LOAD_FN
 }
 
@@ -629,7 +635,7 @@ VulkanRenderBackend::VulkanRenderBackend()
       m_descriptorSetManager(MakePimpl<VulkanDescriptorSetManager>()),
       m_textureCache(MakePimpl<VulkanTextureCache>()),
       m_asyncCompute(MakePimpl<VulkanAsyncCompute>()),
-      m_shouldRecreateSwapchain(false)
+      m_currentFrameIndex(0)
 {
 }
 
@@ -647,11 +653,6 @@ const IRenderConfig& VulkanRenderBackend::GetRenderConfig() const
     return *m_renderConfig;
 }
 
-SwapchainBase* VulkanRenderBackend::GetSwapchain() const
-{
-    return m_instance->GetSwapchain();
-}
-
 AsyncComputeBase* VulkanRenderBackend::GetAsyncCompute() const
 {
     return m_asyncCompute.Get();
@@ -667,7 +668,7 @@ RendererResult VulkanRenderBackend::Initialize()
         HYP_LOG(RenderingBackend, Debug, "Vulkan debug layers enabled");
     }
 
-    const bool enableDebug = true; // s_cfgDebugLayers.ToBool(false);
+    const bool enableDebug = s_cfgDebugLayers.ToBool(false);
 #else
     const bool enableDebug = false;
 #endif
@@ -675,7 +676,32 @@ RendererResult VulkanRenderBackend::Initialize()
     g_vulkanArena = PoolNew<TArena<RenderAllocator>>(*g_renderPool, VulkanArenaSize);
 
     m_instance = PoolNew<VulkanInstance>(*g_renderPool);
-    HYP_GFX_CHECK(m_instance->Initialize(enableDebug));
+    Assert(m_instance->Initialize(enableDebug));
+
+    VulkanDeviceQueue* deviceQueue = GetDevice()->GetPresentQueue();
+
+    if (!deviceQueue)
+    {
+        // running in headless mode
+        deviceQueue = GetDevice()->GetGraphicsQueue();
+    }
+
+    AssertDebug(deviceQueue != nullptr);
+
+    for (uint32 frameIndex = 0; frameIndex < uint32(m_frames.Size()); frameIndex++)
+    {
+        VulkanFrameRef& frame = m_frames[frameIndex];
+        VulkanCommandBufferRef& commandBuffer = m_commandBuffers[frameIndex];
+
+        VkCommandPool pool = deviceQueue->commandPools[0];
+        Assert(pool != VK_NULL_HANDLE);
+
+        commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        frame = CreateObject<VulkanFrame>(frameIndex);
+
+        Assert(commandBuffer->Create(pool));
+        Assert(frame->Create());
+    }
 
     VulkanDynamicFunctions::Load(m_instance->GetDevice());
 
@@ -683,8 +709,8 @@ RendererResult VulkanRenderBackend::Initialize()
 
     m_crashHandler.Initialize();
 
-    HYP_GFX_CHECK(m_descriptorSetManager->Create(m_instance->GetDevice()));
-    HYP_GFX_CHECK(m_asyncCompute->Create());
+    Assert(m_descriptorSetManager->Create(m_instance->GetDevice()));
+    Assert(m_asyncCompute->Create());
 
     m_defaultFormats.Set(
         DIF_COLOR,
@@ -709,6 +735,9 @@ RendererResult VulkanRenderBackend::Initialize()
 
 RendererResult VulkanRenderBackend::Destroy()
 {
+    SafeDelete(std::move(m_frames));
+    SafeDelete(std::move(m_commandBuffers));
+
     m_descriptorSetManager->Destroy(m_instance->GetDevice());
 
     m_asyncCompute.Reset();
@@ -726,37 +755,46 @@ RendererResult VulkanRenderBackend::Destroy()
 
 FrameBase* VulkanRenderBackend::GetCurrentFrame() const
 {
-    return m_instance->GetSwapchain()->GetCurrentFrame().Get();
+    return m_frames[m_currentFrameIndex];
 }
 
 FrameBase* VulkanRenderBackend::PrepareNextFrame()
 {
-    CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PrepareFrame(m_shouldRecreateSwapchain));
+    VulkanFrame* frame = VULKAN_CAST(GetCurrentFrame());
 
-    VulkanFrame* frame = m_instance->GetSwapchain()->GetCurrentFrame();
+    RendererResult res;
 
-    if (m_shouldRecreateSwapchain)
+    res = frame->GetFence()->Wait(true);
+    if (!res)
     {
-        // CHECK_FRAME_RESULT(m_instance->GetDevice()->WaitIdle());
-        // CHECK_FRAME_RESULT(m_instance->RecreateSwapchain());
-
-        // CHECK_FRAME_RESULT(m_instance->GetSwapchain()->GetCurrentFrame()->RecreateFence());
-
-        // // Need to prepare frame again now that swapchain has been recreated.
-        // CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PrepareFrame(m_shouldRecreateSwapchain));
-
-        // frame = m_instance->GetSwapchain()->GetCurrentFrame();
-
-        // // Recreate FinalPass
-        // PoolDelete(*g_renderPool, g_renderGlobalState->finalPass);
-
-        // g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool, m_instance->GetSwapchain());
-        // g_renderGlobalState->finalPass->Create();
-
-        // OnSwapchainRecreated(m_instance->GetSwapchain());
-
-        m_shouldRecreateSwapchain = false;
+        HYP_FAIL("Failed to wait on frame fence! VkResult: {}", frame->GetFence()->GetLastFrameResult());
     }
+
+    frame->ResetFrameState();
+
+    // if (m_shouldRecreateSwapchain)
+    //{
+    //     CHECK_FRAME_RESULT(m_instance->GetDevice()->WaitIdle());
+
+    //    VulkanSwapchainRef newSwapchain = VULKAN_CAST(m_instance->GetSwapchain()->Recreate());
+    //    SafeDelete()
+    //    CHECK_FRAME_RESULT(m_instance->GetSwapchain()());
+
+    //    CHECK_FRAME_RESULT(m_instance->GetSwapchain()->GetCurrentFrame()->RecreateFence());
+
+    //    // Need to prepare frame again now that swapchain has been recreated.
+    //    CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PrepareFrame(m_shouldRecreateSwapchain));
+
+    //    frame = m_instance->GetSwapchain()->GetCurrentFrame();
+
+    //    // Recreate FinalPass
+    //    PoolDelete(*g_renderPool, g_renderGlobalState->finalPass);
+
+    //    g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool, m_instance->GetSwapchain());
+    //    g_renderGlobalState->finalPass->Create();
+
+    //    OnSwapchainRecreated(m_instance->GetSwapchain());
+    //}
 
     AssertDebug(frame != nullptr);
 
@@ -768,16 +806,48 @@ FrameBase* VulkanRenderBackend::PrepareNextFrame()
     return frame;
 }
 
-void VulkanRenderBackend::PresentFrame(FrameBase* frame)
+void VulkanRenderBackend::PrepareSwapchain(SwapchainBase* swapchain)
 {
-    VulkanFrame* vulkanFrame = VULKAN_CAST(frame);
+    VulkanSwapchain* vulkanSwapchain = VULKAN_CAST(swapchain);
+    VulkanFrame* vulkanFrame = VULKAN_CAST(GetCurrentFrame());
+
+    bool needsRecreate = false;
+    CHECK_FRAME_RESULT(vulkanSwapchain->PrepareForFrame(vulkanFrame, needsRecreate));
+
+    // @TODO Handle recrate
+    if (needsRecreate)
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    // @TODO: refactor, currently will break with multiple swapchains
+    // Create FinalPass
+    if (!g_renderGlobalState->finalPass)
+    {
+        g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool);
+        g_renderGlobalState->finalPass->Create();
+    }
+
+    OnSwapchainRecreated(swapchain);
+}
+
+void VulkanRenderBackend::SubmitCommandBuffers()
+{
+    VulkanDeviceQueue* presentQueue = m_instance->GetDevice()->GetPresentQueue();
+
+    if (!presentQueue)
+    {
+        // running in headless mode
+        presentQueue = m_instance->GetDevice()->GetGraphicsQueue();
+    }
+
     VulkanDevice* vulkanDevice = m_instance->GetDevice();
-    VulkanSwapchain* vulkanSwapchain = m_instance->GetSwapchain();
-    VulkanCommandBuffer* vulkanCommandBuffer = vulkanSwapchain->GetCurrentCommandBuffer();
+    VulkanFrame* vulkanFrame = VULKAN_CAST(GetCurrentFrame());
+    VulkanCommandBuffer* vulkanCommandBuffer = VULKAN_CAST(GetCurrentCommandBuffer());
+
+    CHECK_FRAME_RESULT(vulkanFrame->Submit(presentQueue, vulkanCommandBuffer));
+
     VulkanAsyncCompute* vulkanAsyncCompute = m_asyncCompute.Get();
-
-    CHECK_FRAME_RESULT(vulkanFrame->Submit(vulkanDevice->GetPresentQueue(), vulkanCommandBuffer));
-
     if (vulkanAsyncCompute->IsSupported())
     {
         CHECK_FRAME_RESULT(vulkanAsyncCompute->Submit(vulkanFrame));
@@ -788,27 +858,24 @@ void VulkanRenderBackend::PresentFrame(FrameBase* frame)
         HYP_LOG(RenderingBackend, Fatal, "Cannot write to async compute render queue, this device does not support async compute!");
     }
 #endif
+}
 
-    m_textureCache->CleanupUnusedTextures();
+void VulkanRenderBackend::PresentToSwapchain(SwapchainBase* swapchain)
+{
+    VulkanDeviceQueue* presentQueue = m_instance->GetDevice()->GetPresentQueue();
+    AssertDebug(presentQueue != nullptr); // should never be null when presenting, not used in headless mode
 
-#ifdef HYP_DEBUG_MODE
-    {
-        auto* presentQueue = vulkanDevice->GetPresentQueue();
-        auto* graphicsQueue = vulkanDevice->GetGraphicsQueue();
+    VulkanDevice* vulkanDevice = m_instance->GetDevice();
+    VulkanSwapchain* vulkanSwapchain = VULKAN_CAST(swapchain);
+    VulkanCommandBuffer* vulkanCommandBuffer = VULKAN_CAST(GetCurrentCommandBuffer());
+    VulkanFrame* vulkanFrame = VULKAN_CAST(GetCurrentFrame());
 
-        HYP_LOG(RenderingBackend, Debug, "FRAME INDEX {} ", frame->GetFrameIndex());
-        HYP_LOG(RenderingBackend, Debug, "Presenting: graphicsQueue={}, presentQueue={}", (void*)graphicsQueue->queue, (void*)presentQueue->queue);
+    CHECK_FRAME_RESULT(vulkanSwapchain->PresentFrame(vulkanFrame, presentQueue));
+}
 
-        VkSemaphore signalSemaphore = vulkanFrame->GetRenderFinishedSemaphore()->GetVulkanHandle();
-        HYP_LOG(RenderingBackend, Debug, "Present will wait on semaphore: {}", (void*)signalSemaphore);
-    }
-#endif
-    CHECK_FRAME_RESULT(vulkanSwapchain->PresentFrame(vulkanDevice->GetPresentQueue()));
-
-    // reset transient memory for the next frame
-    g_vulkanArena->Reset();
-
-    vulkanSwapchain->NextFrame();
+CommandBufferBase* VulkanRenderBackend::GetCurrentCommandBuffer() const
+{
+    return m_commandBuffers[m_currentFrameIndex];
 }
 
 DescriptorSetRef VulkanRenderBackend::MakeDescriptorSet(const DescriptorSetLayout& layout)
@@ -1157,65 +1224,156 @@ UniquePtr<SingleTimeCommands> VulkanRenderBackend::GetSingleTimeCommands()
     return MakeUnique<VulkanSingleTimeCommands>();
 }
 
-VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, VulkanInstance* instance)
+void VulkanRenderBackend::ReleaseTransientMemory()
 {
-    HYP_GFX_ASSERT(window && instance);
+    g_vulkanArena->Reset();
 
-#ifdef HYP_SDL
-    if (SDLApplicationWindow* sdlWindow = ObjCast<SDLApplicationWindow>(window))
-    {
-        VkSurfaceKHR surface = VK_NULL_HANDLE;
-        SDL_bool result = SDL_Vulkan_CreateSurface(static_cast<SDL_Window*>(sdlWindow->GetInternalWindowHandle()), instance->GetInstance(), &surface);
+    m_textureCache->CleanupUnusedTextures();
+}
 
-        HYP_GFX_ASSERT(result == SDL_TRUE, "Failed to create Vulkan surface: %s", SDL_GetError());
 
-        return surface;
-    }
-#endif
+VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** pOutDummySurfaceContext)
+{
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 #ifdef HYP_WINDOWS
-    if (Win32ApplicationWindow* win32Window = ObjCast<Win32ApplicationWindow>(window))
-    {
-        VkSurfaceKHR surface = VK_NULL_HANDLE;
+    VkWin32SurfaceCreateInfoKHR createInfo { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 
-        VkWin32SurfaceCreateInfoKHR createInfo { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+    if (window != nullptr)
+    {
+        Win32ApplicationWindow* win32Window = ObjCast<Win32ApplicationWindow>(window);
+        Assert(win32Window != nullptr);
+
         createInfo.hinstance = win32Window->GetHINSTANCE();
         createInfo.hwnd = win32Window->GetHWND();
-
-        VkResult vkResult = vkCreateWin32SurfaceKHR(
-            instance->GetInstance(),
-            &createInfo,
-            nullptr,
-            &surface);
-
-        HYP_GFX_ASSERT(vkResult == VK_SUCCESS, "Failed to create Win32 Vulkan surface: %d", int(vkResult));
-
-        return surface;
     }
+    else
+    {
+        if (!pOutDummySurfaceContext)
+        {
+            // can't do much with this, we need dummy context in order to destruct dummy window properly
+            return VK_NULL_HANDLE;
+        }
+
+        class Win32DummyVulkanSurfaceContext : public IDummyVulkanSurfaceContext
+        {
+        public:
+            Win32DummyVulkanSurfaceContext(HINSTANCE hInstance, HWND hwnd)
+            {
+                m_hInstance = hInstance;
+                m_hwnd = hwnd;
+            }
+
+            virtual ~Win32DummyVulkanSurfaceContext() override
+            {
+                Assert(DestroyWindow(m_hwnd));
+                UnregisterClassW(L"HyperionVulkanDummyWindowClass", m_hInstance);
+            }
+
+        private:
+            HINSTANCE m_hInstance;
+            HWND m_hwnd;
+        };
+        
+        HINSTANCE hInstance = GetModuleHandleW(nullptr);
+        const wchar_t* className = L"HyperionVulkanDummyWindowClass";
+
+        WNDCLASSW windowClass = {};
+        windowClass.lpfnWndProc = DefWindowProcW;
+        windowClass.hInstance = hInstance;
+        windowClass.lpszClassName = className;
+        Assert(RegisterClassW(&windowClass) != 0);
+
+        HWND hwnd = CreateWindowExW(
+            0,
+            className,
+            L"Hyperion Vulkan Dummy Window",
+            WS_OVERLAPPEDWINDOW,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            nullptr,
+            nullptr,
+            hInstance,
+            nullptr);
+
+        Assert(hwnd != nullptr);
+
+        createInfo.hinstance = hInstance;
+        createInfo.hwnd = hwnd;
+
+        *pOutDummySurfaceContext = new Win32DummyVulkanSurfaceContext(hInstance, hwnd);
+    }
+
+    VkResult vkResult = vkCreateWin32SurfaceKHR(
+        m_instance->GetInstance(),
+        &createInfo,
+        nullptr,
+        &surface);
+
+    Assert(vkResult == VK_SUCCESS, "Failed to create Win32 Vulkan surface: {}", int(vkResult));
+#endif
+
+#ifdef HYP_SDL
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+    if (!window)
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    SDLApplicationWindow* sdlWindow = ObjCast<SDLApplicationWindow>(window);
+    Assert(sdlWindow != nullptr);
+
+    SDL_bool result = SDL_Vulkan_CreateSurface(
+        static_cast<SDL_Window*>(sdlWindow->GetHWND()),
+        m_instance->GetInstance(),
+        &surface);
+
+    HYP_GFX_ASSERT(result == SDL_TRUE, "Failed to create Vulkan surface: %s", SDL_GetError());
 #endif
 
 #ifdef HYP_MACOS
-    if (CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window))
+
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+    if (!window)
     {
-        VkSurfaceKHR surface = VK_NULL_HANDLE;
-
-        VkMetalSurfaceCreateInfoEXT createInfo { VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT };
-        createInfo.pLayer = cocoaWindow->GetCAMetalLayer();
-
-        VkResult vkResult = vkCreateMetalSurfaceEXT(
-            instance->GetInstance(),
-            &createInfo,
-            nullptr,
-            &surface);
-
-        HYP_GFX_ASSERT(vkResult == VK_SUCCESS, "Failed to create Metal Vulkan surface: %d", int(vkResult));
-
-        return surface;
+        HYP_NOT_IMPLEMENTED();
     }
+
+    CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
+    Assert(cocoaWindow != nullptr);
+
+    VkMetalSurfaceCreateInfoEXT createInfo { VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT };
+    createInfo.pLayer = cocoaWindow->GetCAMetalLayer();
+
+    VkResult vkResult = vkCreateMetalSurfaceEXT(
+        m_instance->GetInstance(),
+        &createInfo,
+        nullptr,
+        &surface);
+
+    Assert(vkResult == VK_SUCCESS, "Failed to create Metal Vulkan surface: {}", int(vkResult));
 #endif
 
-    HYP_NOT_IMPLEMENTED();
+    return surface;
 }
+
+HYP_DISABLE_OPTIMIZATION;
+VulkanSwapchainRef VulkanRenderBackend::CreateSwapchain(ApplicationWindow* window, VulkanInstance* instance, VkSurfaceKHR surface)
+{
+    Assert(surface != VK_NULL_HANDLE);
+
+    VulkanSwapchainRef swapchain = CreateObject<VulkanSwapchain>(surface, Vec2u(window->GetSize()));
+    RendererResult result = swapchain->Create();
+
+    if (!result)
+    {
+        HYP_FAIL("Failed to create Vulkan swapchain: {}", result.GetError().GetMessage());
+    }
+
+    return swapchain;
+}
+HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExtensions)
 {
@@ -1264,7 +1422,7 @@ RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExten
     if (const SDLAppContext* sdlAppContext = ObjCast<SDLAppContext>(g_appContext))
     {
         uint32 numExtensions = 0;
-        SDL_Window* sdlWindow = static_cast<SDL_Window*>(static_cast<SDLApplicationWindow*>(sdlAppContext->GetMainWindow())->GetInternalWindowHandle());
+        SDL_Window* sdlWindow = static_cast<SDL_Window*>(static_cast<SDLApplicationWindow*>(sdlAppContext->GetMainWindow())->GetHWND());
 
         if (!SDL_Vulkan_GetInstanceExtensions(sdlWindow, &numExtensions, nullptr))
         {
@@ -1286,7 +1444,7 @@ RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExten
     if (const Win32AppContext* win32AppContext = ObjCast<Win32AppContext>(g_appContext))
     {
         // extensions required for Win32 surface support
-        static const char* requiredExtensions[] = {
+        static const char* RequiredExtensions[] = {
             "VK_KHR_surface",
             "VK_KHR_win32_surface"
         };
@@ -1297,7 +1455,7 @@ RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExten
         Array<VkExtensionProperties> vkProperties(count);
         vkEnumerateInstanceExtensionProperties(nullptr, &count, vkProperties.Data());
 
-        for (const char* requiredExtension : requiredExtensions)
+        for (const char* requiredExtension : RequiredExtensions)
         {
             bool found = false;
 

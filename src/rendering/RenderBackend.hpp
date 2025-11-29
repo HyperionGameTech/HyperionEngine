@@ -66,14 +66,17 @@ public:
 
     virtual const IRenderConfig& GetRenderConfig() const = 0;
 
-    // Will be moved to ApplicationWindow
-    virtual SwapchainBase* GetSwapchain() const = 0;
-
     virtual AsyncComputeBase* GetAsyncCompute() const = 0;
 
     virtual FrameBase* GetCurrentFrame() const = 0;
+
     virtual FrameBase* PrepareNextFrame() = 0;
-    virtual void PresentFrame(FrameBase* frame) = 0;
+
+    virtual void PrepareSwapchain(SwapchainBase* swapchain) = 0;
+    virtual void SubmitCommandBuffers() = 0;
+    virtual void PresentToSwapchain(SwapchainBase* swapchain) = 0;
+
+    virtual CommandBufferBase* GetCurrentCommandBuffer() const = 0;
 
     virtual DescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) = 0;
 
@@ -132,6 +135,14 @@ public:
     virtual UniquePtr<SingleTimeCommands> GetSingleTimeCommands() = 0;
 
     virtual Delegate<void, SwapchainBase*>& GetOnSwapchainRecreatedDelegate() = 0;
+
+    virtual void ReleaseTransientMemory() = 0;
+
+    virtual void NextFrame() = 0;
 };
 
 } // namespace hyperion
+
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanRenderBackend.inl>
+#endif

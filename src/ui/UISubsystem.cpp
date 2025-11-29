@@ -177,7 +177,7 @@ void UISubsystem::Init()
 
     if (g_appContext->GetMainWindow() != nullptr)
     {
-        windowSize = Vec2u(g_appContext->GetMainWindow()->GetDimensions());
+        windowSize = Vec2u(g_appContext->GetMainWindow()->GetSize());
 
         m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_gameThread);
     }
@@ -201,7 +201,7 @@ void UISubsystem::Init()
             {
                 subsystem->m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_gameThread);
 
-                handleWindowResize(Vec2i(window->GetDimensions()));
+                handleWindowResize(Vec2i(window->GetSize()));
             }
         },
         g_gameThread);

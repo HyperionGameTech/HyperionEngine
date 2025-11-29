@@ -363,13 +363,13 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         m_metalLayer = (void*)metalLayer;
     }
     
+    m_hwnd = (void*)window;
+    m_windowDelegate = (void*)delegate;
+
     if (!(windowOptions.flags & uint32(WindowFlags::HEADLESS)))
     {
         [window makeKeyAndOrderFront:nil];
     }
-    
-    m_hwnd = (void*)window;
-    m_windowDelegate = (void*)delegate;
     
     HYP_LOG(Core, Debug, "CocoaApplicationWindow initialized: {} ({}x{})", 
             m_title, m_size.x, m_size.y);

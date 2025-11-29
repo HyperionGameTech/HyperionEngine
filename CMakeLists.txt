@@ -364,6 +364,10 @@ if (RENDERING_BACKEND STREQUAL "WebGPU")
 elseif (RENDERING_BACKEND STREQUAL "Vulkan")
     add_definitions(-DHYP_VULKAN=1)
 
+    # expose HYP_VULKAN as a CMake variable so other parts of the build
+    # can query whether Vulkan sources/features should be included
+    set(HYP_VULKAN 1)
+
     message(STATUS "Found Vulkan at: ${Vulkan_INCLUDE_DIRS} ${Vulkan_LIBRARIES}")
 else()
     message(FATAL_ERROR "No rendering backend found! Please install Vulkan or WebGPU.")
@@ -612,15 +616,34 @@ set(THIRD_PARTY_PCH_HEADERS "")
 collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES THIRD_PARTY_LIBRARIES THIRD_PARTY_PCH_HEADERS)
 source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES})
 
+# platform specific stuff
 file(GLOB_RECURSE PLATFORM_FILES "src/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
     if(NOT ${PLATFORM_FILE} MATCHES "src/system/platform/${HYP_PLATFORM_NAME_LOWER}")
         list(REMOVE_ITEM SOURCES ${PLATFORM_FILE})
-        message(STATUS "Removed source file ${PLATFORM_FILE} for non-matching platform")
     endif()
 endforeach()
 
+# render backend specific stuff
+if(NOT DEFINED HYP_VULKAN)
+    file(GLOB_RECURSE VULKAN_FILES "src/rendering/vulkan/**/*")
+    foreach(VULKAN_FILE ${VULKAN_FILES})
+        list(REMOVE_ITEM SOURCES ${VULKAN_FILE})
+    endforeach()
+endif()
+
 file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp" "src/*.inl")
+
+# add headers / inls to solution
+source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${HEADERS})
+
+# include shader files (under `res/shaders`) in the sln, mark as headers since
+# they are not compiled here
+file(GLOB_RECURSE SHADER_FILES "res/shaders/**/*")
+if(SHADER_FILES)
+    source_group(TREE ${CMAKE_SOURCE_DIR}/res/shaders PREFIX "Shader Code" FILES ${SHADER_FILES})
+    set(HEADERS ${HEADERS} ${SHADER_FILES})
+endif()
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -1399,5 +1422,13 @@ foreach(CONFIG_TEMPLATE ${CONFIG_TEMPLATES})
         message(STATUS "Copied configuration template: ${CONFIG_TEMPLATE} to ${OUTPUT_CONFIG_FILE}")
     else()
         message(STATUS "Configuration file already exists: ${OUTPUT_CONFIG_FILE}, skipping copy")
+    endif()
+
+    # If building with Visual Studio, add the generated config file into the
+    # solution so it's visible in the IDE under the VSSolutionFiles target.
+    if(MSVC)
+        if(TARGET VSSolutionFiles)
+            set_property(TARGET VSSolutionFiles APPEND PROPERTY SOURCES ${OUTPUT_CONFIG_FILE})
+        endif()
     endif()
 endforeach()

@@ -121,9 +121,12 @@ Handle<Logger> g_logger;
 ShaderManager* g_shaderManager;
 MaterialCache* g_materialSystem;
 SafeDeleter* g_safeDeleter;
-IRenderBackend* g_renderBackend;
 RenderGlobalState* g_renderGlobalState;
 ShaderCompiler* g_shaderCompiler;
+
+#ifdef HYP_VULKAN
+VulkanRenderBackend* g_renderBackend;
+#endif
 
 static void HandleFatalError(const char* message)
 {
@@ -332,16 +335,16 @@ extern "C"
             resolution.y = cliArgs["ResY"].ToInt32();
         }
 
-        //        if (!(windowFlags & WindowFlags::HEADLESS))
-        //        {
-        //            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
+        if (!(windowFlags & WindowFlags::HEADLESS))
+        {
+            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
 
-        g_appContext->SetMainWindow(g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags }));
-        //        }
-        //        else
-        //        {
-        //            HYP_LOG(Engine, Info, "Running in headless mode");
-        //        }
+            g_appContext->SetMainWindow(g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags }));
+        }
+        else
+        {
+            HYP_LOG(Engine, Info, "Running in headless mode");
+        }
 
         InitObject(g_engineDriver);
 

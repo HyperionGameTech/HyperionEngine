@@ -562,14 +562,14 @@ void TonemapPass::CreatePipeline()
 
     ShaderProperties shaderProperties;
 
-    if (g_renderBackend->GetSwapchain()->IsPqHdr())
+    /*if (g_renderBackend->GetSwapchain()->IsPqHdr())
     {
         shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("PQ_HDR")));
     }
     else
-    {
+    {*/
         shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
-    }
+    //}
 
     m_shader = g_shaderManager->GetOrCreate(NAME("Tonemap"), shaderProperties);
 

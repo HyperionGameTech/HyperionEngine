@@ -20,11 +20,11 @@
 
 namespace hyperion {
 
-extern IRenderBackend* g_renderBackend;
+extern VulkanRenderBackend* g_renderBackend;
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+    return g_renderBackend;
 }
 
 VulkanAsyncCompute::VulkanAsyncCompute()
@@ -73,7 +73,7 @@ RendererResult VulkanAsyncCompute::Create()
         HYP_GFX_CHECK(fence->Create());
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
@@ -101,7 +101,7 @@ RendererResult VulkanAsyncCompute::PrepareForFrame(VulkanFrame* frame)
 
     HYP_GFX_CHECK(WaitForFence(frame));
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanAsyncCompute::WaitForFence(VulkanFrame* frame)

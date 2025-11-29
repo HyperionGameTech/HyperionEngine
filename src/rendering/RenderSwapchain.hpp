@@ -28,12 +28,17 @@ public:
         return m_images;
     }
 
+    HYP_FORCE_INLINE uint32 NumAcquiredImages() const
+    {
+        return uint32(m_images.Size());
+    }
+
     HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const
     {
         return m_framebuffers;
     }
 
-    HYP_FORCE_INLINE Vec2u GetExtent() const
+    HYP_FORCE_INLINE const Vec2u& GetExtent() const
     {
         return m_extent;
     }
@@ -53,18 +58,13 @@ public:
         return m_acquiredImageIndex;
     }
 
-    HYP_FORCE_INLINE uint32 GetCurrentFrameIndex() const
-    {
-        return m_currentFrameIndex;
-    }
-
     virtual RendererResult Create() = 0;
+    virtual SwapchainRef Recreate() = 0;
 
 protected:
-    SwapchainBase()
-        : m_extent(Vec2i::Zero()),
+    explicit SwapchainBase(const Vec2u& extent = Vec2u::Zero())
+        : m_extent(extent),
           m_acquiredImageIndex(0),
-          m_currentFrameIndex(0),
           m_imageFormat(TF_NONE),
           m_isPqHdr(false)
     {
@@ -75,7 +75,6 @@ protected:
     Vec2u m_extent;
     TextureFormat m_imageFormat;
     uint32 m_acquiredImageIndex;
-    uint32 m_currentFrameIndex;
     bool m_isPqHdr : 1;
 };
 

@@ -21,7 +21,7 @@ class VulkanGpuImage final : public GpuImageBase
 public:
     friend class VulkanSwapchain;
 
-    VulkanGpuImage(const TextureDesc& textureDesc);
+    explicit VulkanGpuImage(const TextureDesc& textureDesc, EnumFlags<GpuImageFlags> flags = GpuImageFlags::NONE);
     virtual ~VulkanGpuImage() override;
 
     HYP_FORCE_INLINE VkImage GetVulkanHandle() const
@@ -36,6 +36,8 @@ public:
     virtual RendererResult Create(ResourceState initialState) override;
 
     virtual RendererResult Resize(const Vec3u& extent) override;
+
+    virtual HANDLE GetNativeHandle() const override;
 
     virtual void SetResourceState(ResourceState newState) override;
 

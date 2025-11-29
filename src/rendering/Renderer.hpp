@@ -94,6 +94,8 @@ struct HYP_API RenderSetup
     LightmapVolume* lightmapVolume;
     ParticleVolume* particleVolume;
 
+    SwapchainBase* swapchain;
+
     PassData* passData;
 
     RenderSetup* prev;
@@ -107,6 +109,7 @@ public:
           light(nullptr),
           lightmapVolume(nullptr),
           particleVolume(nullptr),
+          swapchain(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -120,6 +123,7 @@ public:
           light(nullptr),
           lightmapVolume(nullptr),
           particleVolume(nullptr),
+          swapchain(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -134,6 +138,7 @@ public:
           light(nullptr),
           lightmapVolume(nullptr),
           particleVolume(nullptr),
+          swapchain(nullptr),
           passData(nullptr),
           prev(nullptr)
     {

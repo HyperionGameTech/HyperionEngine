@@ -21,8 +21,14 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
+#include <rendering/RenderObject.hpp>
+
 #include <input/Mouse.hpp>
 #include <input/InputManager.hpp>
+
+#ifdef HYP_VULKAN
+#include <vulkan/vulkan_core.h>
+#endif
 
 namespace hyperion {
 
@@ -76,7 +82,7 @@ public:
     ApplicationWindow(ANSIString title, Vec2i size);
     ApplicationWindow(const ApplicationWindow& other) = delete;
     ApplicationWindow& operator=(const ApplicationWindow& other) = delete;
-    virtual ~ApplicationWindow() = default;
+    virtual ~ApplicationWindow();
 
     HYP_FORCE_INLINE InputEventSink& GetInputEventSink()
     {
@@ -93,10 +99,27 @@ public:
         return m_hwnd;
     }
 
+    HYP_FORCE_INLINE const SwapchainRef& GetSwapchain() const
+    {
+        return m_swapchain;
+    }
+
+#ifdef HYP_VULKAN
+    HYP_FORCE_INLINE VkSurfaceKHR GetVkSurface() const
+    {
+        return m_vkSurface;
+    }
+#endif
+
+    HYP_FORCE_INLINE const Vec2i& GetSize() const
+    {
+        Mutex::Guard guard(m_mtx);
+        return m_size;
+    }
+
     virtual void SetMousePosition(Vec2i position) = 0;
     virtual Vec2i GetMousePosition() const = 0;
 
-    virtual Vec2i GetDimensions() const = 0;
     virtual void HandleResize(Vec2i newSize);
 
     virtual void SetIsMouseLocked(bool locked) = 0;
@@ -107,17 +130,28 @@ public:
         return false;
     }
 
+    virtual void CreateSwapchain();
+
     Delegate<void, Vec2i> OnWindowSizeChanged;
 
 protected:
+    virtual Vec2i GetDimensions() const = 0;
+
     ANSIString m_title;
     Vec2i m_size;
     InputEventSink m_inputEventSink;
     HWND m_hwnd;
+    SwapchainRef m_swapchain;
+
+#ifdef HYP_VULKAN
+    VkSurfaceKHR m_vkSurface = VK_NULL_HANDLE;
+#endif
+
+    mutable Mutex m_mtx;
 };
 
 HYP_CLASS()
-class HYP_API SDLApplicationWindow : public ApplicationWindow
+class HYP_API SDLApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(SDLApplicationWindow);
 
@@ -135,7 +169,7 @@ public:
 
     virtual bool IsHighDPI() const override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND)nullptr);
 };
 
 HYP_CLASS()
@@ -219,7 +253,6 @@ private:
     static LRESULT __stdcall StaticWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     LRESULT WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-private:
     HINSTANCE m_hinst = nullptr;
     bool m_mouseLocked = false;
 #endif

@@ -140,6 +140,12 @@ private:
     {
         RenderApi::Init();
 
+        // init window swapchain after rendering api is initialized
+        if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+        {
+            mainWindow->CreateSwapchain();
+        }
+
         /// HAX !!! We should only upload gpu resources on first use for debug draer
         InitObject(g_engineDriver->GetDebugDrawer());
 
@@ -530,8 +536,16 @@ HYP_API void EngineDriver::RenderNextFrame()
     AssertOnThread(g_renderThread);
 
     FrameBase* frame = g_renderBackend->PrepareNextFrame();
+    Assert(frame != nullptr);
 
     PreFrameUpdate(frame);
+
+    SwapchainBase* swapchain = nullptr;
+
+    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+    {
+        swapchain = mainWindow->GetSwapchain();
+    }
 
     auto& worldsToRender = m_worldsToRenderPerFrame[RenderApi::GetRingIndex()];
 
@@ -542,11 +556,14 @@ HYP_API void EngineDriver::RenderNextFrame()
         RendererBase* mainRenderer = g_renderGlobalState->globalRenderers[GRT_MAIN][0];
         AssertDebug(mainRenderer != nullptr);
 
+        RenderSetup rs;
+        rs.swapchain = swapchain;
+
         for (World* world : worldsToRender)
         {
             AssertDebug(world != nullptr && world->IsReady());
 
-            RenderSetup rs { world, nullptr };
+            rs.world = world;
 
 #if HYP_EDITOR
             // for editor world, render UI as well
@@ -566,18 +583,41 @@ HYP_API void EngineDriver::RenderNextFrame()
             }
         }
 
-        g_renderGlobalState->finalPass->Render(frame, RenderSetup());
+        rs.world = nullptr;
+
+        g_renderGlobalState->finalPass->Render(frame, rs);
     }
 
     g_renderGlobalState->UpdateBuffers(frame);
 
-    g_renderBackend->PresentFrame(frame);
+    g_renderBackend->SubmitCommandBuffers();
+
+    if (swapchain != nullptr)
+    {
+        g_renderBackend->PresentToSwapchain(swapchain);
+    }
 }
 
 void EngineDriver::PreFrameUpdate(FrameBase* frame)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
+
+    // Check if any swapchains need to be recreated
+    Array<SwapchainBase*, RenderTempAllocator> swapchains;
+
+    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+    {
+        if (SwapchainBase* swapchain = mainWindow->GetSwapchain().Get())
+        {
+            swapchains.PushBack(swapchain);
+        }
+    }
+
+    for (SwapchainBase* swapchain : swapchains)
+    {
+        g_renderBackend->PrepareSwapchain(swapchain);
+    }
 
     g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
 }

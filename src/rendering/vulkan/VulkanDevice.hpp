@@ -49,10 +49,8 @@ class VulkanDevice final : public DeviceBase
 {
     HYP_OBJECT_BODY(VulkanDevice);
 
-    static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-
 public:
-    VulkanDevice(VkPhysicalDevice physical, VkSurfaceKHR surface);
+    explicit VulkanDevice(VkPhysicalDevice physical);
 
     VulkanDevice(const VulkanDevice&) = delete;
     VulkanDevice& operator=(const VulkanDevice&) = delete;
@@ -66,7 +64,6 @@ public:
     void SetWantedExtensions(const ExtensionMap& extensions);
 
     VkDevice GetDevice();
-    VkSurfaceKHR GetRenderSurface();
     VkPhysicalDevice GetPhysicalDevice();
 
     void DebugLogAllocatorStats() const;
@@ -111,7 +108,7 @@ public:
 
     VkQueue GetQueue(uint32 queueFamilyIndex, uint32 queueIndex = 0);
 
-    RendererResult Create(uint32 requiredQueueFamilies);
+    RendererResult Create(VkSurfaceKHR surface);
     RendererResult CheckDeviceSuitable(const ExtensionMap& unsupportedExtensions);
 
     /*! \brief Wait for the device to be idle */
@@ -123,9 +120,11 @@ public:
     Array<VkExtensionProperties> GetSupportedExtensions();
 
 private:
+    QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+    void InitQueueFamilies(VkSurfaceKHR surface);
+
     VkDevice m_device;
     VkPhysicalDevice m_physical;
-    VkSurfaceKHR m_surface;
     VmaAllocator m_allocator;
 
     UniquePtr<VulkanFeatures> m_features;
