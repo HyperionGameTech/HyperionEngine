@@ -54,9 +54,24 @@ namespace sys {
 CocoaAppContext::CocoaAppContext(ANSIString name, const CommandLineArguments& arguments)
     : AppContextBase(std::move(name), arguments)
 {
-    [NSApplication sharedApplication];
-    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-    [NSApp finishLaunching];
+    // Ensure Cocoa initialization runs on the main thread. Creating or
+    // interacting with NSApplication off the main thread can trigger
+    // "NSWindow should only be instantiated on the main thread!" and
+    // other runtime errors.
+    if (![NSThread isMainThread])
+    {
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [NSApplication sharedApplication];
+            [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+            [NSApp finishLaunching];
+        });
+    }
+    else
+    {
+        [NSApplication sharedApplication];
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+        [NSApp finishLaunching];
+    }
 }
 
 CocoaAppContext::~CocoaAppContext()
@@ -361,16 +376,34 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
     CocoaApplicationWindow *window,
     IDummyVulkanSurfaceContext **ppOutDummySurfaceContext)
 {
+    // Cocoa objects (NSWindow/NSView/CAMetalLayer) must be created on the
+    // main thread. If this method is invoked on another thread (for example
+    // when using dedicated render trhead), dispatch the Cocoa-specific parts to the
+    // main queue and block until they complete.
+
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-  
+
     VkMetalSurfaceCreateInfoEXT createInfo { VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT };
 
     if (window)
     {
-        CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
-        Assert(cocoaWindow != nullptr);
-
-        createInfo.pLayer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
+        // Acquire the CAMetalLayer from the CocoaApplicationWindow on the main thread
+        if (![NSThread isMainThread])
+        {
+            __block CAMetalLayer* layer = nullptr;
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
+                Assert(cocoaWindow != nullptr);
+                layer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
+            });
+            createInfo.pLayer = layer;
+        }
+        else
+        {
+            CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
+            Assert(cocoaWindow != nullptr);
+            createInfo.pLayer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
+        }
     }
     else
     {
@@ -380,6 +413,24 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
             // can't do much with this, we need dummy context in order to destruct dummy window properly
             return VK_NULL_HANDLE;
         }
+
+        __block NSWindow* nsWindow = nullptr;
+        __block CAMetalLayer* layer = nullptr;
+
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            NSRect frame = NSMakeRect(0, 0, 800, 600);
+            NSWindow* w = [[NSWindow alloc] initWithContentRect:frame
+                                                     styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
+                                                       backing:NSBackingStoreBuffered
+                                                         defer:NO];
+            [w setTitle:@"Hyperion Vulkan Dummy Window"];
+
+            [w.contentView setLayer:[CAMetalLayer layer]];
+            [w.contentView setWantsLayer:YES];
+
+            nsWindow = w;
+            layer = (CAMetalLayer*)w.contentView.layer;
+        });
 
         class CocoaDummyVulkanSurfaceContext : public IDummyVulkanSurfaceContext
         {
@@ -391,26 +442,36 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
 
             virtual ~CocoaDummyVulkanSurfaceContext() override
             {
-                [m_window close];
+                if (m_window)
+                {
+                    // Close the window on the main thread. Avoid explicitly
+                    // calling `release` here to prevent potential double-release
+                    // if the window was already released elsewhere. This keeps
+                    // us safe from crashes; if necessary we can revisit ownership
+                    // to avoid leaks.
+                    if ([NSThread isMainThread])
+                    {
+                        [m_window close];
+                    }
+                    else
+                    {
+                        NSWindow *w = m_window;
+                        dispatch_sync(dispatch_get_main_queue(), ^{
+                            [w close];
+                        });
+                    }
+
+                    m_window = nullptr;
+                }
             }
 
         private:
             NSWindow* m_window;
         };
 
-        NSRect frame = NSMakeRect(0, 0, 800, 600);
-        NSWindow* nsWindow = [[NSWindow alloc] initWithContentRect:frame
-                                                         styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
-                                                           backing:NSBackingStoreBuffered
-                                                             defer:NO];
-        [nsWindow setTitle:@"Hyperion Vulkan Dummy Window"];
-
-        [nsWindow.contentView setLayer:[CAMetalLayer layer]];
-        [nsWindow.contentView setWantsLayer:YES];
-
         *ppOutDummySurfaceContext = new CocoaDummyVulkanSurfaceContext(nsWindow);
 
-        createInfo.pLayer = (CAMetalLayer*)nsWindow.contentView.layer;
+        createInfo.pLayer = layer;
     }
 
     VkResult vkResult = vkCreateMetalSurfaceEXT(

@@ -131,7 +131,6 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQue
     presentInfo.pResults = nullptr;
 
     VULKAN_CHECK(vkQueuePresentKHR(queue->queue, &presentInfo));
-    HYP_LOG_TEMP("Presenting on queue {} for frame index {}", (void*)queue->queue, frame->GetFrameIndex());
 
     frame->ResetRenderPassStates();
 

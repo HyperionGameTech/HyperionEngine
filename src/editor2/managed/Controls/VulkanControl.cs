@@ -35,6 +35,8 @@ namespace Hyperion.Editor
         private IntPtr mWindow = IntPtr.Zero;
         private IntPtr mGame = IntPtr.Zero;
 
+        private const bool UseExistingWindow = false;
+
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
             // create argv for NativeBindings.Hyp_Initialize if needed
@@ -92,9 +94,15 @@ namespace Hyperion.Editor
                 throw new Exception("Failed to get AppContext from Hyperion");
             }
 
-            bool useExistingWindow = true; // temp
-
-            if (!useExistingWindow)
+            if (UseExistingWindow)
+            {
+                mWindow = NativeBindings.Hyp_GetMainWindow(mCtx);
+                if (mWindow == IntPtr.Zero)
+                {
+                    throw new Exception("Failed to get main window from Hyperion");
+                }
+            }
+            else
             {
                 WindowOptions windowOptions = new WindowOptions();
                 windowOptions.title = "EditorViewport";
@@ -112,14 +120,6 @@ namespace Hyperion.Editor
                 if (NativeBindings.Hyp_SetMainWindow(mCtx, mWindow) == 0)
                 {
                     throw new Exception("Failed to set main window");
-                }
-            }
-            else
-            {
-                mWindow = NativeBindings.Hyp_GetMainWindow(mCtx);
-                if (mWindow == IntPtr.Zero)
-                {
-                    throw new Exception("Failed to get main window from Hyperion");
                 }
             }
 

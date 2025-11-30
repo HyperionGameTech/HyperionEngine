@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/threading/Threads.hpp"
 #import <AppKit/AppKit.h>
 #import <Cocoa/Cocoa.h>
 #import <CoreGraphics/CoreGraphics.h>
@@ -189,19 +190,26 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
 {
     if (m_metalLayer)
     {
-        [m_metalLayer release];
+        [(id)m_metalLayer release];
         m_metalLayer = nullptr;
     }
     
     if (m_nsView)
     {
-        HyperionMetalView* view = (HyperionMetalView*)m_nsView;
-        view.hyperionWindow = nullptr;
-
-        if (m_isEmbeddedView)
+        // Only treat m_nsView as a HyperionMetalView if it actually is one.
+        // For standalone windows m_nsView is the plain contentView (NSView),
+        // and attempting to call HyperionMetalView-only selectors on it
+        // causes an unrecognized selector crash (seen in logs).
+        if ([(id)m_nsView isKindOfClass:[HyperionMetalView class]])
         {
-            [view removeFromSuperview];
-            [view release];
+            HyperionMetalView* view = (HyperionMetalView*)m_nsView;
+            view.hyperionWindow = nullptr;
+
+            if (m_isEmbeddedView)
+            {
+                [view removeFromSuperview];
+                [view release];
+            }
         }
 
         m_nsView = nullptr;
@@ -233,6 +241,8 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
 
 void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
 {
+    AssertOnThread(g_mainThread);
+  
     m_title = windowOptions.title;
     m_size = windowOptions.dimensions;
 
@@ -358,8 +368,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
             [window.contentView bounds].size.height * metalLayer.contentsScale
         );
         
-        
-        m_metalLayer = metalLayer;
+        m_metalLayer = [metalLayer retain];
     }
     
     m_hwnd = window;
