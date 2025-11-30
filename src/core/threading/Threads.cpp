@@ -227,7 +227,7 @@ void AssertOnThread(ThreadMask mask, const char* message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
-    thread_local const ThreadId& currentThreadId = CurrentThreadId();
+    const ThreadId& currentThreadId = CurrentThreadId();
 
     AssertDebug(
         mask & currentThreadId.GetMask(),
@@ -247,7 +247,7 @@ void AssertOnThread(const ThreadId& threadId, const char* message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
-    thread_local const ThreadId& currentThreadId = CurrentThreadId();
+    const ThreadId& currentThreadId = CurrentThreadId();
 
     AssertDebug(
         threadId == currentThreadId,
@@ -269,7 +269,7 @@ bool IsThreadInMask(const ThreadId& threadId, ThreadMask mask)
 bool IsOnThread(ThreadMask mask)
 {
 #ifdef HYP_ENABLE_THREAD_ID
-    thread_local const ThreadId& currentThreadId = CurrentThreadId();
+    const ThreadId& currentThreadId = CurrentThreadId();
 
     if (mask & currentThreadId.GetMask())
     {
@@ -286,7 +286,7 @@ bool IsOnThread(ThreadMask mask)
 bool IsOnThread(const ThreadId& threadId)
 {
 #ifdef HYP_ENABLE_THREAD_ID
-    thread_local const ThreadId& currentThreadId = CurrentThreadId();
+    const ThreadId& currentThreadId = CurrentThreadId();
 
     if (threadId == currentThreadId)
     {

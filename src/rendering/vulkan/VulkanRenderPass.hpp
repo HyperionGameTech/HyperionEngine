@@ -17,12 +17,14 @@
 
 namespace hyperion {
 
-constexpr ResourceState PreRenderResourceStates[2] = { // CLEAR=0, LOAD=1
-    RS_UNDEFINED,       // CLEAR
-    RS_RENDER_TARGET    // LOAD
+constexpr ResourceState PreRenderResourceStates[2] = {
+    // CLEAR=0, LOAD=1
+    RS_UNDEFINED,    // CLEAR
+    RS_RENDER_TARGET // LOAD
 };
 
-constexpr ResourceState PreRenderResourceStatesDepth[2] = { // CLEAR=0, LOAD=1
+constexpr ResourceState PreRenderResourceStatesDepth[2] = {
+    // CLEAR=0, LOAD=1
     RS_UNDEFINED,    // CLEAR
     RS_DEPTH_STENCIL // LOAD
 };
@@ -104,8 +106,8 @@ private:
 
     Array<VulkanAttachmentRef> m_renderPassAttachments;
 
-    Array<VkSubpassDependency> m_dependencies;
-    Array<VkClearValue> m_vkClearValues;
+    Array<VkSubpassDependency, InlineAllocator<2>> m_dependencies;
+    Array<VkClearValue, InlineAllocator<2>> m_vkClearValues;
 
     VkRenderPass m_handle;
 

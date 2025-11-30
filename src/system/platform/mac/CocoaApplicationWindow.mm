@@ -144,6 +144,8 @@ using namespace hyperion;
         NSWindow* nsWindow = [notification object];
         NSRect frame = [nsWindow.contentView frame];
         _window->HandleResize(Vec2i((int)frame.size.width, (int)frame.size.height));
+
+        HYP_BREAKPOINT;
     }
 }
 

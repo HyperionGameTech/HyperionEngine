@@ -56,11 +56,23 @@ void App::LaunchGame(const Handle<Game>& game)
         // headless mode creates a separate thread for rendering, so we need to wait for it to finish
         while (g_engineDriver->IsRenderLoopActive())
         {
-            SystemEvent event;
-            while (g_appContext->PollEvent(event))
+            if (g_appContext->GetMainWindow() != nullptr)
             {
-                g_appContext->GetMainWindow()->GetInputEventSink().Push(std::move(event));
+                SystemEvent event;
+                while (g_appContext->PollEvent(event))
+                {
+                    g_appContext->GetMainWindow()->GetInputEventSink().Push(std::move(event));
+                }
+
+                if (g_appContext->GetMainWindow()->GetDimensions() != g_appContext->GetMainWindow()->GetSize())
+                {
+                    HYP_LOG(Core, Debug, "WINDOW RESIZED! New dimensions: {}, Old size: {}",
+                        g_appContext->GetMainWindow()->GetDimensions(),
+                        g_appContext->GetMainWindow()->GetSize());
+                    // g_appContext->GetMainWindow()->SetSize(g_appContext->GetMainWindow()->GetDimensions());
+                }
             }
+
             ThreadSleep(100);
         }
     }

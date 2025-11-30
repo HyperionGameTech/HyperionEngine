@@ -232,6 +232,8 @@ DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer
       m_mode(mode),
       m_directLightGraphicsPipelines()
 {
+    Assert(framebuffer.IsValid());
+
     if (mode == DPM_DIRECT_LIGHTING)
     {
         SetBlendFunction(BlendFunction::Additive());
@@ -573,7 +575,7 @@ void TonemapPass::CreatePipeline()
     }
     else
     {*/
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
+    shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
     //}
 
     m_shader = g_shaderManager->GetOrCreate(NAME("Tonemap"), shaderProperties);
@@ -2480,7 +2482,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         // render debug draw
-        //g_engineDriver->GetDebugDrawer()->Render(frame, rs);
+        // g_engineDriver->GetDebugDrawer()->Render(frame, rs);
 
         frame->renderQueue << EndFramebuffer(translucentPassFramebuffer);
     }

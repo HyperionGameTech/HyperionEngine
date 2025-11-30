@@ -316,7 +316,7 @@ extern "C"
 
         if (cliArgs["Headless"].ToBool())
         {
-            // windowFlags |= WindowFlags::HEADLESS;
+            windowFlags |= WindowFlags::HEADLESS;
         }
 
         if (cliArgs["ResX"].IsNumber())

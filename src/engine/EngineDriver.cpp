@@ -83,7 +83,6 @@
 namespace hyperion {
 
 class RenderThread;
-static RenderThread* g_renderThreadInstance = nullptr;
 
 void HandleSignal(int signum);
 
@@ -99,23 +98,20 @@ class RenderThread final : public Thread<Scheduler>
 {
 public:
     RenderThread()
-        : Thread(g_renderThread, ThreadPriorityValue::HIGHEST),
-          m_isRunning(false)
+        : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
     {
     }
 
     bool Start()
     {
-        Assert(m_isRunning.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
-
         signal(SIGINT, HandleSignal);
         signal(SIGSEGV, HandleSignal);
-
-        g_renderThreadInstance = this;
 
         // invoke thread operation on main thread.
         if (m_id == g_mainThread)
         {
+            Assert(m_isRunning.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
+
             SetCurrentThreadObject(this);
 
             (*this)();
@@ -123,16 +119,6 @@ public:
         }
 
         return Thread::Start();
-    }
-
-    void Stop() override
-    {
-        m_isRunning.Set(false, MemoryOrder::RELEASE);
-    }
-
-    HYP_FORCE_INLINE bool IsRunning() const
-    {
-        return m_isRunning.Get(MemoryOrder::ACQUIRE);
     }
 
 private:
@@ -204,11 +190,7 @@ private:
 #endif
 
         RenderApi::Shutdown();
-
-        g_renderThreadInstance = nullptr;
     }
-
-    AtomicVar<bool> m_isRunning;
 };
 
 #pragma endregion RenderThread

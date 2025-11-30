@@ -109,6 +109,11 @@ public:
         return m_swapchain;
     }
 
+    HYP_FORCE_INLINE void SetSwapchain(const SwapchainRef& swapchain)
+    {
+        m_swapchain = swapchain;
+    }
+
 #ifdef HYP_VULKAN
     HYP_FORCE_INLINE VkSurfaceKHR GetVkSurface() const
     {
@@ -137,11 +142,11 @@ public:
 
     virtual void CreateSwapchain();
 
+    virtual Vec2i GetDimensions() const = 0;
+
     Delegate<void, Vec2i> OnWindowSizeChanged;
 
 protected:
-    virtual Vec2i GetDimensions() const = 0;
-
     ANSIString m_title;
     Vec2i m_size;
     InputEventSink m_inputEventSink;

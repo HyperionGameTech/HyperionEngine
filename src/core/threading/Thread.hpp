@@ -139,10 +139,9 @@ protected:
     Scheduler m_scheduler;
 
     AtomicVar<bool> m_stopRequested;
-
-private:
-    std::thread* m_thread;
     AtomicVar<bool> m_isRunning;
+    
+    std::thread* m_thread;
 };
 
 template <class Scheduler, class... Args>

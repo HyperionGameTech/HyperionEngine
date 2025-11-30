@@ -1,5 +1,6 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
+#include "core/debug/Debug.hpp"
 #include <HyperionPch.hpp>
 
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
@@ -827,8 +828,9 @@ void VulkanRenderBackend::PrepareSwapchain(VulkanSwapchain* swapchain)
         return;
     }
 
-    // @TODO Handle recrate
-    HYP_NOT_IMPLEMENTED();
+    HYP_LOG(RenderingBackend, Info, "Swapchain needs recreation due to size mismatch or out-of-date surface");
+
+    HYP_NOT_IMPLEMENTED(); // cause a crash for now to investigate issues with swapchain recreation
 
     OnSwapchainRecreated(swapchain);
 }
@@ -871,7 +873,9 @@ void VulkanRenderBackend::PresentToSwapchain(VulkanSwapchain* swapchain)
     VulkanCommandBuffer* vulkanCommandBuffer = GetCurrentCommandBuffer();
     VulkanFrame* vulkanFrame = GetCurrentFrame();
 
-    CHECK_FRAME_RESULT(vulkanSwapchain->PresentFrame(vulkanFrame, presentQueue));
+    RendererResult result = vulkanSwapchain->PresentFrame(vulkanFrame, presentQueue);
+    HYP_LOG_TEMP("swapchain present result: {}", result.HasValue() ? "success" : result.GetError().GetMessage());
+    CHECK_FRAME_RESULT(result);
 }
 
 VulkanCommandBuffer* VulkanRenderBackend::GetCurrentCommandBuffer() const

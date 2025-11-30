@@ -33,16 +33,15 @@ void DestroyCocoaEvent(CocoaEvent& cocoaEvent)
     if (cocoaEvent.nsEvent != nullptr)
     {
         // MUST BE DESTROYED ON MAIN THREAD!
-        if (IsOnThread(g_mainThread))
+        if ([NSThread isMainThread])
         {
             [(NSEvent*)cocoaEvent.nsEvent release];
         }
         else
         {
-            GetThreadById(g_mainThread)->GetScheduler().Enqueue([nsEvent = cocoaEvent.nsEvent]() -> void
-            {
-                [(NSEvent*)nsEvent release];
-            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                [(NSEvent*)cocoaEvent.nsEvent release];
+            });
         }
         
         cocoaEvent.nsEvent = nullptr;
@@ -54,10 +53,6 @@ namespace sys {
 CocoaAppContext::CocoaAppContext(ANSIString name, const CommandLineArguments& arguments)
     : AppContextBase(std::move(name), arguments)
 {
-    // Ensure Cocoa initialization runs on the main thread. Creating or
-    // interacting with NSApplication off the main thread can trigger
-    // "NSWindow should only be instantiated on the main thread!" and
-    // other runtime errors.
     if (![NSThread isMainThread])
     {
         dispatch_sync(dispatch_get_main_queue(), ^{
@@ -417,7 +412,7 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
         __block NSWindow* nsWindow = nullptr;
         __block CAMetalLayer* layer = nullptr;
 
-        dispatch_sync(dispatch_get_main_queue(), ^{
+        void (^createDummyWindow)(void) = ^{
             NSRect frame = NSMakeRect(0, 0, 800, 600);
             NSWindow* w = [[NSWindow alloc] initWithContentRect:frame
                                                      styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
@@ -430,7 +425,16 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
 
             nsWindow = w;
             layer = (CAMetalLayer*)w.contentView.layer;
-        });
+        };
+
+        if (![NSThread isMainThread])
+        {
+            dispatch_sync(dispatch_get_main_queue(), createDummyWindow);
+        }
+        else
+        {
+            createDummyWindow();
+        }
 
         class CocoaDummyVulkanSurfaceContext : public IDummyVulkanSurfaceContext
         {

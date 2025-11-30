@@ -95,6 +95,8 @@ SafeDeleter::SafeDeleter()
 {
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
+        AssertDebug(g_framePools[i] != nullptr);
+
         m_entryLists[i] = new SafeDeleter::EntryList<Pool>(g_framePools[i]);
     }
 }
