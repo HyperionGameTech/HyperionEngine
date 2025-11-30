@@ -31,49 +31,13 @@ namespace Hyperion.Editor
 
     public class VulkanViewport : NativeControlHost
     {
-        [DllImport("hyperion")]
-        private static extern int Hyp_Initialize(int argc, IntPtr argv);
-
-        [DllImport("hyperion")]
-        private static extern void Hyp_Shutdown();
-
-        [DllImport("hyperion")]
-        private static extern IntPtr Hyp_GetAppContext();
-
-        [DllImport("hyperion")]
-        private static extern IntPtr Hyp_CreateWindow(IntPtr pCtx, ref WindowOptions pWindowOptions, IntPtr parentHwnd);
-
-        [DllImport("hyperion")]
-        private static extern void Hyp_DestroyWindow(IntPtr pCtx, IntPtr pWindow);
-
-        [DllImport("hyperion")]
-        private static extern int Hyp_SetMainWindow(IntPtr pCtx, IntPtr pWindow);
-
-        [DllImport("hyperion")]
-        private static extern IntPtr Hyp_GetMainWindow(IntPtr pCtx);
-
-        [DllImport("hyperion")]
-        private static extern IntPtr Hyp_GetHWND(IntPtr pWindow);
-
-        [DllImport("hyperion")]
-        private static extern IntPtr Hyp_GetNSView(IntPtr pWindow);
-
-        [DllImport("hyperion")]
-        private static extern IntPtr Hyp_CreateGame(IntPtr pGameClassName);
-
-        [DllImport("hyperion")]
-        private static extern void Hyp_DestroyGame(IntPtr pGame);
-
-        [DllImport("hyperion")]
-        private static extern int Hyp_LaunchGame(IntPtr pGame);
-
         private IntPtr mCtx = IntPtr.Zero;
         private IntPtr mWindow = IntPtr.Zero;
         private IntPtr mGame = IntPtr.Zero;
 
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
-            // create argv for Hyp_Initialize if needed
+            // create argv for NativeBindings.Hyp_Initialize if needed
             List<string> args = [
                 Environment.ProcessPath ?? "",
                 "-Headless=true",
@@ -98,9 +62,9 @@ namespace Hyperion.Editor
                     Marshal.WriteIntPtr(argv, i * IntPtr.Size, argsPtrs[i]);
                 }
 
-                if (Hyp_Initialize(argc, argv) == 0)
+                if (NativeBindings.Hyp_Initialize(argc, argv) == 0)
                 {
-                    throw new Exception("Failed to initialize Hyperion Engine. Hyp_Initialize returned false.");
+                    throw new Exception("Failed to initialize Hyperion Engine. NativeBindings.Hyp_Initialize returned false.");
                 }
             }
             catch (Exception ex)
@@ -121,39 +85,46 @@ namespace Hyperion.Editor
                     Marshal.FreeHGlobal(argv);
             }
 
-            mCtx = Hyp_GetAppContext();
+            mCtx = NativeBindings.Hyp_GetAppContext();
 
             if (mCtx == IntPtr.Zero)
             {
                 throw new Exception("Failed to get AppContext from Hyperion");
             }
 
-            WindowOptions windowOptions = new WindowOptions();
-            windowOptions.title = "EditorViewport";
-            windowOptions.width = (int)Bounds.Width > 0 ? (int)Bounds.Width : 800;
-            windowOptions.height = (int)Bounds.Height > 0 ? (int)Bounds.Height : 600;
-            windowOptions.flags = WindowFlags.Headless;
+            bool useExistingWindow = true; // temp
 
-            // mWindow = Hyp_CreateWindow(mCtx, ref windowOptions, parent.Handle);
-
-            // if (mWindow == IntPtr.Zero)
-            // {
-            //     throw new Exception("Failed to create window");
-            // }
-
-            // if (Hyp_SetMainWindow(mCtx, mWindow) == 0)
-            // {
-            //     throw new Exception("Failed to set main window");
-            // }
-
-            mWindow = Hyp_GetMainWindow(mCtx);
-            if (mWindow == IntPtr.Zero)
+            if (!useExistingWindow)
             {
-                throw new Exception("Failed to get main window from Hyperion");
+                WindowOptions windowOptions = new WindowOptions();
+                windowOptions.title = "EditorViewport";
+                windowOptions.width = (int)Bounds.Width > 0 ? (int)Bounds.Width : 800;
+                windowOptions.height = (int)Bounds.Height > 0 ? (int)Bounds.Height : 600;
+                windowOptions.flags = WindowFlags.Headless;
+
+                mWindow = NativeBindings.Hyp_CreateWindow(mCtx, ref windowOptions, parent.Handle);
+
+                if (mWindow == IntPtr.Zero)
+                {
+                    throw new Exception("Failed to create window");
+                }
+
+                if (NativeBindings.Hyp_SetMainWindow(mCtx, mWindow) == 0)
+                {
+                    throw new Exception("Failed to set main window");
+                }
+            }
+            else
+            {
+                mWindow = NativeBindings.Hyp_GetMainWindow(mCtx);
+                if (mWindow == IntPtr.Zero)
+                {
+                    throw new Exception("Failed to get main window from Hyperion");
+                }
             }
 
             IntPtr pStr = Marshal.StringToHGlobalAnsi("HyperionEditor");
-            mGame = Hyp_CreateGame(pStr);
+            mGame = NativeBindings.Hyp_CreateGame(pStr);
             Marshal.FreeHGlobal(pStr);
 
             // @TODO share one game instance between all viewports
@@ -162,14 +133,14 @@ namespace Hyperion.Editor
                 throw new Exception("Failed to create HyperionEditor instance");
             }
 
-            if (Hyp_LaunchGame(mGame) == 0)
+            if (NativeBindings.Hyp_LaunchGame(mGame) == 0)
             {
                 throw new Exception("Failed to launch HyperionEditor instance");
             }
 
             if (OperatingSystem.IsWindows())
             {
-                IntPtr hwnd = Hyp_GetHWND(mWindow);
+                IntPtr hwnd = NativeBindings.Hyp_GetHWND(mWindow);
 
                 if (hwnd == IntPtr.Zero)
                 {
@@ -180,7 +151,7 @@ namespace Hyperion.Editor
             }
             else if (OperatingSystem.IsMacOS())
             {
-                IntPtr nsView = Hyp_GetNSView(mWindow);
+                IntPtr nsView = NativeBindings.Hyp_GetNSView(mWindow);
 
                 if (nsView == IntPtr.Zero)
                 {
@@ -192,7 +163,7 @@ namespace Hyperion.Editor
             else
             {
                 // Linux/X11
-                IntPtr hwnd = Hyp_GetHWND(mWindow);
+                IntPtr hwnd = NativeBindings.Hyp_GetHWND(mWindow);
 
                 if (hwnd == IntPtr.Zero)
                 {
@@ -207,14 +178,14 @@ namespace Hyperion.Editor
         {
             if (mGame != IntPtr.Zero)
             {
-                Hyp_DestroyGame(mGame);
+                NativeBindings.Hyp_DestroyGame(mGame);
                 mGame = IntPtr.Zero;
             }
 
-            Hyp_DestroyWindow(mCtx, mWindow);
+            NativeBindings.Hyp_DestroyWindow(mCtx, mWindow);
             mWindow = IntPtr.Zero;
 
-            Hyp_Shutdown();
+            NativeBindings.Hyp_Shutdown();
 
             base.DestroyNativeControlCore(control);
         }

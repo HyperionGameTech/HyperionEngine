@@ -29,6 +29,11 @@
 #include <SDL2/SDL_vulkan.h>
 #endif
 
+#ifdef HYP_WINDOWS
+#include <set>
+#include <mutex>
+#endif
+
 #include <AppContext.generated.inl>
 
 namespace hyperion {
@@ -93,7 +98,6 @@ void ApplicationWindow::CreateSwapchain()
 
     VulkanSwapchainRef swapchain = g_renderBackend->CreateSwapchain(this, g_renderBackend->GetInstance(), m_vkSurface);
     Assert(swapchain.IsValid());
-    AssertDebug(swapchain->GetExtent() == Vec2u(m_size));
 
     m_swapchain = swapchain;
 #else
@@ -480,6 +484,66 @@ int SDLAppContext::PollEvent(SystemEvent& event)
 
 #ifdef HYP_WINDOWS
 
+namespace {
+
+/*! @brief  Registry for Win32 window classes to ensure they are unregistered on app exit. */
+struct Win32WindowRegistry
+{
+    HashSet<WideString> registeredClasses;
+    Mutex mutex;
+
+    static Win32WindowRegistry& GetInstance()
+    {
+        static Win32WindowRegistry s_instance;
+        return s_instance;
+    }
+
+    void Register(const WideString& className)
+    {
+        Mutex::Guard guard(mutex);
+        registeredClasses.Add(className);
+    }
+
+    void Unregister(const WideString& className)
+    {
+        Mutex::Guard guard(mutex);
+        registeredClasses.Erase(className);
+    }
+
+    void Cleanup()
+    {
+        Mutex::Guard guard(mutex);
+
+        HINSTANCE hInst = GetModuleHandleW(nullptr);
+
+        for (const WideString& className : registeredClasses)
+        {
+            UnregisterClassW(className.Data(), hInst);
+        }
+
+        registeredClasses.Clear();
+    }
+};
+
+} // namespace
+
+static constexpr const wchar_t* WindowClassName = L"HyperionRenderWindow";
+
+void Win32_RegisterWindowClass(const WideString& className)
+{
+    Win32WindowRegistry::GetInstance().Register(className);
+}
+
+void Win32_UnregisterWindowClass(const WideString& className)
+{
+    Win32WindowRegistry::GetInstance().Unregister(className);
+}
+
+void Win32_CleanupWindowClasses()
+{
+    Win32WindowRegistry::GetInstance().Cleanup();
+}
+
 Win32ApplicationWindow::Win32ApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size)
 {
@@ -494,7 +558,10 @@ Win32ApplicationWindow::~Win32ApplicationWindow()
         m_hwnd = nullptr;
     }
 
-    UnregisterClassW(m_title.ToWide().Data(), m_hinst);
+    WideString wTitle = m_title.ToWide();
+
+    UnregisterClassW(wTitle.Data(), m_hinst);
+    Win32WindowRegistry::GetInstance().Unregister(wTitle.Data());
 }
 
 void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
@@ -504,13 +571,17 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
 
     WideString wTitle = m_title.ToWide();
 
-    WNDCLASSW wc {};
+    WNDCLASSEXW wc {};
+    wc.cbSize = sizeof(WNDCLASSEXW);
     wc.lpfnWndProc = &Win32ApplicationWindow::StaticWndProc;
     wc.hInstance = m_hinst;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.lpszClassName = wTitle.Data();
 
-    RegisterClassW(&wc);
+    ATOM classAtom = RegisterClassExW(&wc);
+    Assert(classAtom != 0, "Failed to register Win32 window class! Win32 Error: {}", GetLastError());
+
+    Win32WindowRegistry::GetInstance().Register(wTitle);
 
     int x = 0, y = 0;
 
@@ -533,7 +604,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
     AdjustWindowRect(&r, style, FALSE);
 
     m_hwnd = CreateWindowW(
-        wTitle.Data(), wTitle.Data(), style,
+        wc.lpszClassName, wTitle.Data(), style,
         x, y,
         r.right - r.left, r.bottom - r.top,
         parentHwnd, nullptr, m_hinst, this);
@@ -773,6 +844,8 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
 
 int Win32AppContext::PollEvent(SystemEvent& event)
 {
+    AssertOnThread(g_mainThread);
+
     event = SystemEvent();
 
     MSG msg {};

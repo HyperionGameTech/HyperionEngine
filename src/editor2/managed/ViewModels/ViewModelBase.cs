@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace Hyperion.Editor.ViewModels
+namespace Hyperion.Editor
 {
     public class ViewModelBase : INotifyPropertyChanged
     {

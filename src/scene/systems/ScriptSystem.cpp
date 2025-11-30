@@ -43,7 +43,7 @@ namespace hyperion {
 
 EngineStatTimer g_scriptUpdateTimer("Script/Update");
 
-constexpr bool g_enableScriptReloading = true;
+constexpr bool g_enableScriptReloading = false;
 
 template <class ReturnType, class... ArgTypes>
 static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, ArgTypes&&... args)

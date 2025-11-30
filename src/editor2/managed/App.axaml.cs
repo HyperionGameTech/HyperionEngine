@@ -15,6 +15,12 @@ namespace Hyperion.Editor
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
+                desktop.Exit += (sender, e) =>
+                {
+                    // Shutdown the engine
+                    NativeBindings.Hyp_Shutdown();
+                };
+
                 desktop.MainWindow = new MainWindow();
             }
 

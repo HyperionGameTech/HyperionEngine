@@ -38,6 +38,7 @@ class DeferredRenderer;
 class FinalPass;
 class PlaceholderData;
 class RenderThread;
+class GameThread;
 class SafeDeleter;
 class RenderState;
 class World;
@@ -102,14 +103,15 @@ public:
 
     HYP_FORCE_INLINE bool IsShuttingDown() const
     {
-        return m_isShuttingDown.Get(MemoryOrder::SEQUENTIAL);
+        return AtomicAdd(&m_isShuttingDown, 0) > 0;
     }
 
     void AddWorld(const Handle<World>& world);
     void RemoveWorld(const World* world);
 
     bool IsRenderLoopActive() const;
-    bool StartRenderLoop();
+
+    void StartThreadsForGame(const Handle<Game>& game);
 
     void RenderNextFrame();
     void RequestStop();
@@ -129,6 +131,7 @@ private:
     void EnqueueWorldRender(World* world);
 
     UniquePtr<RenderThread> m_renderThread;
+    UniquePtr<GameThread> m_gameThread;
 
     Handle<DebugDrawer> m_debugDrawer;
 
@@ -144,8 +147,7 @@ private:
 
     TaskBatch* m_viewCollectionBatch;
 
-    AtomicVar<bool> m_isShuttingDown;
-    bool m_shouldRecreateSwapchain;
+    mutable volatile int32 m_isShuttingDown;
 };
 
 } // namespace hyperion

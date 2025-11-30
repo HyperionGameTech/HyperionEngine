@@ -2,8 +2,14 @@
 
 #include <HyperionPch.hpp>
 
-#include <game/GameThread.hpp>
+#include <engine/GameThread.hpp>
+#include <engine/EngineGlobals.hpp>
+#include <engine/EngineDriver.hpp>
+#include <engine/EngineStats.hpp>
+#include <engine/DebugDrawer.hpp>
+
 #include <game/Game.hpp>
+
 #include <util/GameCounter.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -19,12 +25,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <engine/DebugDrawer.hpp>
 #include <rendering/RenderGlobalState.hpp>
-
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineStats.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorState.hpp>

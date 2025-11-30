@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Vulkan;
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -21,6 +22,14 @@ namespace Hyperion.Editor
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
                 .With(new MacOSPlatformOptions { ShowInDock = true })
+                .With(new VulkanOptions
+                {
+                    VulkanInstanceCreationOptions = new()
+                    {
+                        UseDebug = true
+                    }
+                })
+                .UseSkia()
                 .WithInterFont()
                 .LogToTrace();
     }

@@ -179,6 +179,7 @@ ScriptingService::ScriptingService(const FilePath& watchDirectory, const FilePat
 
 ScriptingService::~ScriptingService()
 {
+    HYP_BREAKPOINT;
 }
 
 void ScriptingService::Start()

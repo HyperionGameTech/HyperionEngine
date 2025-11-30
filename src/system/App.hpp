@@ -29,9 +29,6 @@ public:
 
 protected:
     App();
-
-private:
-    UniquePtr<GameThread> m_gameThread;
 };
 
 } // namespace sys

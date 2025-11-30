@@ -2480,7 +2480,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         // render debug draw
-        g_engineDriver->GetDebugDrawer()->Render(frame, rs);
+        //g_engineDriver->GetDebugDrawer()->Render(frame, rs);
 
         frame->renderQueue << EndFramebuffer(translucentPassFramebuffer);
     }

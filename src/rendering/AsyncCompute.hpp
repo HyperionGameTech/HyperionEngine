@@ -23,13 +23,13 @@ namespace hyperion {
 class AsyncComputeBase
 {
 public:
-    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
-
     virtual ~AsyncComputeBase() = default;
 
     virtual bool IsSupported() const = 0;
 
     RenderQueue renderQueue;
+
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 };
 
 } // namespace hyperion

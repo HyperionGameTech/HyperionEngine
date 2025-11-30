@@ -822,8 +822,11 @@ void Init()
 
     s_threadFrameIndex = &s_frameIndex[CONSUMER];
 
-    Assert(g_appContext != nullptr, "AppContext must be initialized before Init!");
-    Assert(g_renderBackend != nullptr);
+#ifdef HYP_VULKAN
+    g_renderBackend = new VulkanRenderBackend();
+#else
+#error Unsupported rendering backend
+#endif
 
     for (ResourceBinderBase* resourceBinder : s_resourceBinders)
     {
@@ -1483,11 +1486,6 @@ RenderGlobalState::~RenderGlobalState()
     PoolDelete(*g_renderPool, bindlessStorage);
     bindlessStorage = nullptr;
 
-    shadowMapAllocator->Destroy();
-    placeholderData->Destroy();
-
-    globalDescriptorTable.Reset();
-
     for (uint32 i = 0; i < GRT_MAX; i++)
     {
         for (uint32 j = 0; j < globalRenderers[i].Size(); j++)
@@ -1499,6 +1497,11 @@ RenderGlobalState::~RenderGlobalState()
             }
         }
     }
+
+    shadowMapAllocator->Destroy();
+    placeholderData->Destroy();
+
+    globalDescriptorTable.Reset();
 
     PoolDelete(*g_renderPool, finalPass);
     finalPass = nullptr;

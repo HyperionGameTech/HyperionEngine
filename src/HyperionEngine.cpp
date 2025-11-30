@@ -221,15 +221,15 @@ extern "C"
             return 0;
         }
 
-        if (CoreApi_GetCommandLineArguments()["Headless"].ToBool(false))
-        {
-            // headless mode creates a separate thread for rendering
-            g_renderThread = StaticThreadId(NAME("Render"));
-        }
-        else
-        {
+        //if (CoreApi_GetCommandLineArguments()["Headless"].ToBool(false))
+        //{
+        //    // headless mode creates a separate thread for rendering
+        //    g_renderThread = StaticThreadId(NAME("Render"));
+        //}
+        //else
+        //{
             g_renderThread = g_mainThread;
-        }
+        //}
 
         g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
         g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
@@ -269,12 +269,6 @@ extern "C"
         ConsoleCommandManager::GetInstance().Initialize();
         AudioManager::GetInstance().Initialize();
         TaskSystem::GetInstance().Start();
-
-#ifdef HYP_VULKAN
-        g_renderBackend = new VulkanRenderBackend();
-#else
-#error Unsupported rendering backend
-#endif
 
         ConfigurationTable renderGlobalConfigOverrides;
 
@@ -322,7 +316,7 @@ extern "C"
 
         if (cliArgs["Headless"].ToBool())
         {
-            windowFlags |= WindowFlags::HEADLESS;
+            //windowFlags |= WindowFlags::HEADLESS;
         }
 
         if (cliArgs["ResX"].IsNumber())
@@ -335,16 +329,16 @@ extern "C"
             resolution.y = cliArgs["ResY"].ToInt32();
         }
 
-        if (!(windowFlags & WindowFlags::HEADLESS))
+        /*if (!(windowFlags & WindowFlags::HEADLESS))
         {
-            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
+            HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);*/
 
             g_appContext->SetMainWindow(g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags }));
-        }
+        /*}
         else
         {
             HYP_LOG(Engine, Info, "Running in headless mode");
-        }
+        }*/
 
         InitObject(g_engineDriver);
 
@@ -359,6 +353,7 @@ extern "C"
             g_engineDriver != nullptr,
             "Hyperion not initialized!");
 
+        g_engineDriver->RequestStop();
         g_engineDriver->FinalizeStop();
 
         dotnet::DotNetSystem::GetInstance().Shutdown();
@@ -438,6 +433,10 @@ extern "C"
 
         delete g_safeDeleter;
         g_safeDeleter = nullptr;
+
+#ifdef HYP_WINDOWS
+        sys::Win32_CleanupWindowClasses();
+#endif
     }
 
     HYP_API AppContextBase* Hyp_GetAppContext()

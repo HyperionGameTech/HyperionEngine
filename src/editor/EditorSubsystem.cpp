@@ -1340,14 +1340,6 @@ void EditorSubsystem::OnAddedToWorld()
 
     CreateHighlightNode();
 
-    g_engineDriver->GetScriptingService()
-        ->OnScriptStateChanged
-        .Bind([](const ScriptData& script)
-            {
-                HYP_LOG(Script, Debug, "Script state changed: now is {}", EnumToString(ScriptCompileStatus(script.compileStatus)));
-            })
-        .Detach();
-
     if (Handle<AssetCollector> baseAssetCollector = g_assetManager->GetBaseAssetCollector())
     {
         baseAssetCollector->StartWatching();

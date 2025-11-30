@@ -5,6 +5,8 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 #include <engine/EngineMemory.hpp>
+#include <engine/EngineGlobals.hpp>
+#include <engine/GameThread.hpp>
 
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderEnvironment.hpp>
@@ -44,8 +46,9 @@
 
 #include <rendering/Texture.hpp>
 
-#include <core/debug/StackDump.hpp>
 #include <system/SystemEvent.hpp>
+
+#include <core/debug/StackDump.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
@@ -65,9 +68,6 @@
 #include <system/App.hpp>
 
 #include <scripting/ScriptingService.hpp>
-
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineStats.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -215,55 +215,12 @@ private:
 
 void HandleSignal(int signum)
 {
-    if (!g_renderThreadInstance)
-    {
-        return;
-    }
-
-    //    Time startTime = Time::Now();
-
-    g_renderThreadInstance->Stop();
-    //
-    //    while (g_renderThreadInstance->IsRunning())
-    //    {
-    //        ThreadSleep(10);
-    //    }
-    //
-    //    g_renderThreadInstance->Join();
+#ifdef HYP_WINDOWS
+    sys::Win32_CleanupWindowClasses();
+#endif
 
     exit(signum);
 }
-
-#pragma region Render commands
-
-struct RecreateSwapchain : RenderCommand
-{
-    WeakHandle<EngineDriver> engineWeak;
-
-    RecreateSwapchain(const Handle<EngineDriver>& engine)
-        : engineWeak(engine)
-    {
-    }
-
-    virtual ~RecreateSwapchain() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        Handle<EngineDriver> engine = engineWeak.Lock();
-
-        if (!engine)
-        {
-            HYP_LOG(Rendering, Warning, "EngineDriver was destroyed before swapchain could be recreated");
-            HYPERION_RETURN_OK;
-        }
-
-        engine->m_shouldRecreateSwapchain = true;
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
 
 #pragma region EngineDriver
 
@@ -274,9 +231,8 @@ const Handle<EngineDriver>& EngineDriver::GetInstance()
 
 EngineDriver::EngineDriver()
     : m_currentWorld(nullptr),
-      m_isShuttingDown(false),
-      m_shouldRecreateSwapchain(false),
-      m_viewCollectionBatch(nullptr)
+      m_viewCollectionBatch(nullptr),
+      m_isShuttingDown(0)
 {
 }
 
@@ -290,6 +246,7 @@ HYP_API void EngineDriver::Init()
     AssertOnThread(g_mainThread);
 
     m_renderThread = MakeUnique<RenderThread>();
+    m_gameThread = MakeUnique<GameThread>();
 
 #ifdef HYP_EDITOR
     // Create script compilation service
@@ -438,35 +395,38 @@ bool EngineDriver::IsRenderLoopActive() const
         && m_renderThread->IsRunning();
 }
 
-bool EngineDriver::StartRenderLoop()
+void EngineDriver::StartThreadsForGame(const Handle<Game>& game)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    if (m_renderThread == nullptr)
-    {
-        HYP_LOG(Engine, Error, "Render thread is not initialized!");
-        return false;
-    }
+    AssertReady();
 
-    if (m_renderThread->IsRunning())
-    {
-        HYP_LOG(Engine, Warning, "Render thread is already running!");
-        return true;
-    }
+    Assert(game != nullptr);
 
-    m_renderThread->Start();
+    Assert(m_renderThread && m_gameThread, "EngineDriver threads must be created in Init()!");
 
-    return true;
+    Assert(!m_renderThread->IsRunning(), "Render thread is already running!");
+    Assert(!m_gameThread->IsRunning(), "Game thread is already running!");
+
+    m_gameThread->SetGame(game);
+
+    Assert(m_gameThread->Start(), "Failed to start game thread!");
+    Assert(m_renderThread->Start(), "Failed to start render thread!");
 }
 
 void EngineDriver::RequestStop()
 {
-    if (m_renderThread != nullptr)
+    if (int32 shutdownCounter = AtomicIncrement(&m_isShuttingDown); shutdownCounter == 1)
     {
-        if (m_renderThread->IsRunning())
+        if (m_renderThread != nullptr && m_renderThread->IsRunning())
         {
             m_renderThread->Stop();
+        }
+
+        if (m_gameThread != nullptr && m_gameThread->IsRunning())
+        {
+            m_gameThread->Stop();
         }
     }
 }
@@ -476,9 +436,26 @@ void EngineDriver::FinalizeStop()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    m_isShuttingDown.Set(true, MemoryOrder::SEQUENTIAL);
+    Assert(AtomicAdd(&m_isShuttingDown, 0) >= 1);
 
     HYP_LOG(Engine, Info, "Stopping all engine processes");
+
+    if (m_gameThread != nullptr)
+    {
+        m_gameThread->Join();
+        m_gameThread.Reset();
+    }
+
+    if (m_renderThread)
+    {
+        m_renderThread->Stop();
+        m_renderThread->Join();
+
+        m_renderThread.Reset();
+    }
+
+    // look at me, i'm the render thread now
+    g_renderThread = g_mainThread;
 
     m_delegates.OnShutdown();
 
@@ -536,8 +513,7 @@ void EngineDriver::FinalizeStop()
     while (AnyOf(counts, [](uint32 count) { return count > 0; }));
     // clang-format on
 
-    m_renderThread->Join();
-    m_renderThread.Reset();
+    m_isShuttingDown = 0;
 }
 
 HYP_API void EngineDriver::RenderNextFrame()
@@ -594,6 +570,12 @@ HYP_API void EngineDriver::RenderNextFrame()
         }
 
         rs.world = nullptr;
+
+        if (!g_renderGlobalState->finalPass)
+        {
+            g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool);
+            g_renderGlobalState->finalPass->Create();
+        }
 
         g_renderGlobalState->finalPass->Render(frame, rs);
     }

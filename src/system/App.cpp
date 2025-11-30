@@ -12,7 +12,6 @@
 #include <rendering/RenderBackend.hpp>
 
 #include <game/Game.hpp>
-#include <game/GameThread.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>
@@ -45,22 +44,23 @@ void App::LaunchGame(const Handle<Game>& game)
 {
     AssertOnThread(g_mainThread);
 
-    Assert(game.IsValid());
+    Assert(game != nullptr);
 
-    m_gameThread = MakeUnique<GameThread>();
-    m_gameThread->SetGame(game);
-    m_gameThread->Start();
-
-    // Loop blocks the main thread until the game is done.
-    Assert(g_engineDriver->StartRenderLoop());
+    g_engineDriver->StartThreadsForGame(game);
 
     const CommandLineArguments& cmdArgs = CoreApi_GetCommandLineArguments();
 
-    if (cmdArgs["Headless"].ToBool() && !cmdArgs["Detached"].ToBool())
+    // TEMP
+    if (!cmdArgs["Detached"].ToBool() && g_mainThread != g_renderThread)
     {
         // headless mode creates a separate thread for rendering, so we need to wait for it to finish
         while (g_engineDriver->IsRenderLoopActive())
         {
+            SystemEvent event;
+            while (g_appContext->PollEvent(event))
+            {
+                g_appContext->GetMainWindow()->GetInputEventSink().Push(std::move(event));
+            }
             ThreadSleep(100);
         }
     }

@@ -74,6 +74,13 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
+#ifdef HYP_WINDOWS
+namespace sys {
+void Win32_RegisterWindowClass(const WideString& className);
+void Win32_UnregisterWindowClass(const WideString& className);
+} // namespace sys
+#endif
+
 #pragma region VulkanRenderConfig
 
 class VulkanRenderConfig final : public IRenderConfig
@@ -815,19 +822,13 @@ void VulkanRenderBackend::PrepareSwapchain(VulkanSwapchain* swapchain)
     bool needsRecreate = false;
     CHECK_FRAME_RESULT(vulkanSwapchain->PrepareForFrame(vulkanFrame, needsRecreate));
 
-    // @TODO Handle recrate
-    if (needsRecreate)
+    if (!needsRecreate)
     {
-        HYP_NOT_IMPLEMENTED();
+        return;
     }
 
-    // @TODO: refactor, currently will break with multiple swapchains
-    // Create FinalPass
-    if (!g_renderGlobalState->finalPass)
-    {
-        g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool);
-        g_renderGlobalState->finalPass->Create();
-    }
+    // @TODO Handle recrate
+    HYP_NOT_IMPLEMENTED();
 
     OnSwapchainRecreated(swapchain);
 }
@@ -1234,6 +1235,8 @@ VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, IDu
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 #ifdef HYP_WINDOWS
+    static constexpr const wchar_t* DummyClassName = L"DummyWindowClass";
+
     VkWin32SurfaceCreateInfoKHR createInfo { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 
     if (window != nullptr)
@@ -1256,15 +1259,17 @@ VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, IDu
         {
         public:
             Win32DummyVulkanSurfaceContext(HINSTANCE hInstance, HWND hwnd)
+                : m_hInstance(hInstance),
+                  m_hwnd(hwnd)
             {
-                m_hInstance = hInstance;
-                m_hwnd = hwnd;
             }
 
             virtual ~Win32DummyVulkanSurfaceContext() override
             {
                 Assert(DestroyWindow(m_hwnd));
-                UnregisterClassW(L"HyperionVulkanDummyWindowClass", m_hInstance);
+                UnregisterClassW(DummyClassName, m_hInstance);
+
+                sys::Win32_UnregisterWindowClass(DummyClassName);
             }
 
         private:
@@ -1273,17 +1278,24 @@ VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, IDu
         };
 
         HINSTANCE hInstance = GetModuleHandleW(nullptr);
-        const wchar_t* className = L"HyperionVulkanDummyWindowClass";
 
-        WNDCLASSW windowClass = {};
+        WNDCLASSEXW windowClass = {};
+        windowClass.cbSize = sizeof(WNDCLASSEXW);
         windowClass.lpfnWndProc = DefWindowProcW;
         windowClass.hInstance = hInstance;
-        windowClass.lpszClassName = className;
-        Assert(RegisterClassW(&windowClass) != 0);
+        windowClass.lpszClassName = DummyClassName;
+
+        ATOM classAtom = RegisterClassExW(&windowClass);
+        if (classAtom == 0)
+        {
+            HYP_FAIL("Failed to register Win32 window class for Vulkan dummy window! Win32 Error: {}", GetLastError());
+        }
+
+        sys::Win32_RegisterWindowClass(DummyClassName);
 
         HWND hwnd = CreateWindowExW(
             0,
-            className,
+            DummyClassName,
             L"Hyperion Vulkan Dummy Window",
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,

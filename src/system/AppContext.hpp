@@ -169,7 +169,7 @@ public:
 
     virtual bool IsHighDPI() const override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND)nullptr);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr);
 };
 
 HYP_CLASS()
@@ -298,12 +298,12 @@ public:
     {
         return m_hwnd;
     }
-    
+
     HYP_FORCE_INLINE void* GetNSView() const
     {
         return m_nsView;
     }
-    
+
     HYP_FORCE_INLINE bool IsEmbeddedView() const
     {
         return m_isEmbeddedView;
@@ -357,5 +357,11 @@ using sys::Win32ApplicationWindow;
 
 using sys::CocoaAppContext;
 using sys::CocoaApplicationWindow;
+
+#ifdef HYP_WINDOWS
+namespace sys {
+HYP_API void Win32_CleanupWindowClasses();
+}
+#endif
 
 } // namespace hyperion

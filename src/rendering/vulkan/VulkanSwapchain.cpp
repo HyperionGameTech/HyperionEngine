@@ -149,6 +149,11 @@ RendererResult VulkanSwapchain::Create()
     HYP_GFX_CHECK(ChooseSurfaceFormat());
     HYP_GFX_CHECK(ChoosePresentMode());
 
+    m_extent = {
+        m_supportDetails.capabilities.currentExtent.width,
+        m_supportDetails.capabilities.currentExtent.height
+    };
+
     if (m_extent.x * m_extent.y == 0)
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to retrieve swapchain resolution!");
