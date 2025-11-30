@@ -60,6 +60,10 @@
 
 #include <game/Game.hpp>
 
+#ifdef HYP_LIBUI
+#include <ui.h>
+#endif
+
 /// ========== If this include is missing, you need to run HypBuildTool (instructions in doc/CompilingTheEngine.md) ==========
 #include <BuildToolOutput.inc>
 
@@ -221,14 +225,14 @@ extern "C"
             return 0;
         }
 
-        if (CoreApi_GetCommandLineArguments()["Headless"].ToBool(false))
+        if (CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool(true))
         {
-            // headless mode creates a separate thread for rendering
-            g_renderThread = StaticThreadId(NAME("Render"));
+            g_renderThread = g_mainThread;
         }
         else
         {
-            g_renderThread = g_mainThread;
+            // create a separate thread for rendering to
+            g_renderThread = StaticThreadId(NAME("Render"));
         }
 
         g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
@@ -298,6 +302,19 @@ extern "C"
 
         ComponentInterfaceRegistry::GetInstance().Initialize();
 
+#ifdef HYP_LIBUI
+        uiInitOptions options = {};
+        const char* err = uiInit(&options);
+        if (err != nullptr)
+        {
+            uiFreeInitError(err);
+
+            HYP_FAIL("Failed to initialize libui! Message: {}", err);
+
+            return;
+        }
+#endif
+
         const CommandLineArguments& cliArgs = CoreApi_GetCommandLineArguments();
 
 #ifdef HYP_WINDOWS
@@ -355,6 +372,12 @@ extern "C"
 
         g_engineDriver->RequestStop();
         g_engineDriver->FinalizeStop();
+
+#ifdef HYP_LIBUI
+        uiUninit();
+#endif
+
+        RenderApi::Shutdown();
 
         dotnet::DotNetSystem::GetInstance().Shutdown();
         ComponentInterfaceRegistry::GetInstance().Shutdown();
@@ -584,6 +607,14 @@ extern "C"
         App::GetInstance().LaunchGame(MakeStrongRef(pGame));
 
         return 1;
+    }
+
+    HYP_API void Hyp_MainThreadUpdate()
+    {
+        AssertOnThread(g_mainThread);
+        Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
+
+        g_engineDriver->MainThreadUpdate();
     }
 }
 

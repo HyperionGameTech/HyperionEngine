@@ -43,7 +43,8 @@ namespace Hyperion.Editor
             List<string> args = [
                 Environment.ProcessPath ?? "",
                 "-Headless=true",
-                "-Detached=true"
+                "-Detached=true",
+                "-RenderOnMainThread=true"
             ];
 
             int argc = args.Count;

@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/Defines.hpp"
 #include <HyperionPch.hpp>
 
 #include <engine/EngineDriver.hpp>
@@ -74,10 +75,6 @@
 #define HYP_PROCESS_VIEWS_ASYNC 1
 #define HYP_PROCESS_SUBSYSTEMS_ASYNC 1
 
-#ifdef HYP_LIBUI
-#include <ui.h>
-#endif
-
 #include <EngineDriver.generated.inl>
 
 namespace hyperion {
@@ -97,9 +94,15 @@ EngineStatTimer g_renderThreadUpdateTimer("Frame/RenderThreadUpdate");
 class RenderThread final : public Thread<Scheduler>
 {
 public:
-    RenderThread()
-        : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
+    explicit RenderThread(bool isRunningDetached)
+        : Thread(g_renderThread, ThreadPriorityValue::HIGHEST),
+          m_isRunningDetached(isRunningDetached)
     {
+    }
+
+    HYP_FORCE_INLINE bool IsRunningDetached() const
+    {
+        return m_isRunningDetached;
     }
 
     bool Start()
@@ -115,10 +118,115 @@ public:
             SetCurrentThreadObject(this);
 
             (*this)();
+
             return true;
         }
 
         return Thread::Start();
+    }
+
+    void RenderThreadUpdate()
+    {
+        ENGINE_STAT_SCOPE(&g_renderThreadUpdateTimer);
+
+        RenderApi::BeginFrame_RenderThread();
+
+        Queue<Scheduler::ScheduledTask> tasks;
+        if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+        {
+            m_scheduler.AcceptAll(tasks);
+
+            while (tasks.Any())
+            {
+                tasks.Pop().Execute();
+            }
+        }
+
+        Frame* frame = g_renderBackend->PrepareNextFrame();
+        Assert(frame != nullptr);
+
+        // Check if any swapchains need to be recreated
+        Array<Swapchain*, RenderTempAllocator> swapchains;
+
+        if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+        {
+            if (Swapchain* swapchain = mainWindow->GetSwapchain().Get())
+            {
+                swapchains.PushBack(swapchain);
+            }
+        }
+
+        for (Swapchain* swapchain : swapchains)
+        {
+            g_renderBackend->PrepareSwapchain(swapchain);
+        }
+
+        g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
+
+        Swapchain* swapchain = nullptr;
+
+        if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+        {
+            swapchain = mainWindow->GetSwapchain();
+        }
+
+        Array<World*>& worldsToRender = g_engineDriver->m_worldsToRenderPerFrame[RenderApi::GetRingIndex()];
+
+        if (worldsToRender.Any())
+        {
+            uint32 numViewsRendered = 0;
+
+            RendererBase* mainRenderer = g_renderGlobalState->globalRenderers[GRT_MAIN][0];
+            AssertDebug(mainRenderer != nullptr);
+
+            RenderSetup rs;
+            rs.swapchain = swapchain;
+
+            for (World* world : worldsToRender)
+            {
+                AssertDebug(world != nullptr && world->IsReady());
+
+                rs.world = world;
+
+#if HYP_EDITOR
+                // for editor world, render UI as well
+                if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+                {
+                    if (RendererBase* uiRenderer = g_renderGlobalState->globalRenderers[GRT_UI][0])
+                    {
+                        uiRenderer->RenderFrame(frame, rs);
+                    }
+                }
+#endif
+
+                if (world->GetViews().Size() != 0)
+                {
+                    mainRenderer->RenderFrame(frame, rs);
+                    numViewsRendered += world->GetViews().Size();
+                }
+            }
+
+            rs.world = nullptr;
+
+            if (!g_renderGlobalState->finalPass)
+            {
+                g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool);
+                g_renderGlobalState->finalPass->Create();
+            }
+
+            g_renderGlobalState->finalPass->Render(frame, rs);
+        }
+
+        g_renderGlobalState->UpdateBuffers(frame);
+
+        g_renderBackend->SubmitCommandBuffers();
+
+        if (swapchain != nullptr)
+        {
+            g_renderBackend->PresentToSwapchain(swapchain);
+        }
+
+        RenderApi::EndFrame_RenderThread();
     }
 
 private:
@@ -135,62 +243,26 @@ private:
         /// HAX !!! We should only upload gpu resources on first use for debug draer
         InitObject(g_engineDriver->GetDebugDrawer());
 
-        SystemEvent event;
-        Queue<Scheduler::ScheduledTask> tasks;
-
-#ifdef HYP_LIBUI
-        uiInitOptions options = {};
-        const char* err = uiInit(&options);
-        if (err != nullptr)
+        // if running in detached mode, just return and let main thread call RenderThreadUpdate()
+        if (!m_isRunningDetached)
         {
-            uiFreeInitError(err);
-
-            HYP_FAIL("Failed to initialize libui! Message: {}", err);
-
-            return;
-        }
-#endif
-
-        while (m_isRunning.Get(MemoryOrder::RELAXED))
-        {
-            ENGINE_STAT_SCOPE(&g_renderThreadUpdateTimer);
-
-#ifdef HYP_LIBUI
-            uiMainSteps();
-#endif
-
-            RenderApi::BeginFrame_RenderThread();
-
-            // if we're the main thread, we're responsible for handling input events.
-            if (m_id == g_mainThread)
+            while (m_isRunning.Get(MemoryOrder::RELAXED))
             {
-                while (g_appContext->PollEvent(event))
+                if (m_id == g_mainThread)
                 {
-                    g_appContext->GetMainWindow()->GetInputEventSink().Push(std::move(event));
+                    // updates input events on main thread
+                    // and will call RenderThreadUpdate() from there
+                    g_engineDriver->MainThreadUpdate();
+
+                    continue;
                 }
+
+                RenderThreadUpdate();
             }
-
-            if (uint32 numEnqueued = m_scheduler.NumEnqueued())
-            {
-                m_scheduler.AcceptAll(tasks);
-
-                while (tasks.Any())
-                {
-                    tasks.Pop().Execute();
-                }
-            }
-
-            g_engineDriver->RenderNextFrame();
-
-            RenderApi::EndFrame_RenderThread();
         }
-
-#ifdef HYP_LIBUI
-        uiUninit();
-#endif
-
-        RenderApi::Shutdown();
     }
+
+    bool m_isRunningDetached;
 };
 
 #pragma endregion RenderThread
@@ -227,7 +299,9 @@ HYP_API void EngineDriver::Init()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    m_renderThread = MakeUnique<RenderThread>();
+    const bool isDetachedRendering = CoreApi_GetCommandLineArguments()["Detached"].ToBool();
+
+    m_renderThread = MakeUnique<RenderThread>(isDetachedRendering);
     m_gameThread = MakeUnique<GameThread>();
 
 #ifdef HYP_EDITOR
@@ -498,77 +572,28 @@ void EngineDriver::FinalizeStop()
     m_isShuttingDown = 0;
 }
 
-HYP_API void EngineDriver::RenderNextFrame()
+HYP_API void EngineDriver::MainThreadUpdate()
 {
     HYP_PROFILE_BEGIN;
-    AssertOnThread(g_renderThread);
+    AssertOnThread(g_mainThread);
 
-    Frame* frame = g_renderBackend->PrepareNextFrame();
-    Assert(frame != nullptr);
-
-    PreFrameUpdate(frame);
-
-    Swapchain* swapchain = nullptr;
-
-    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+    SystemEvent event;
+    while (g_appContext->PollEvent(event))
     {
-        swapchain = mainWindow->GetSwapchain();
+        g_appContext->GetMainWindow()->GetInputEventSink().Push(std::move(event));
     }
 
-    auto& worldsToRender = m_worldsToRenderPerFrame[RenderApi::GetRingIndex()];
-
-    if (worldsToRender.Any())
-    {
-        uint32 numViewsRendered = 0;
-
-        RendererBase* mainRenderer = g_renderGlobalState->globalRenderers[GRT_MAIN][0];
-        AssertDebug(mainRenderer != nullptr);
-
-        RenderSetup rs;
-        rs.swapchain = swapchain;
-
-        for (World* world : worldsToRender)
-        {
-            AssertDebug(world != nullptr && world->IsReady());
-
-            rs.world = world;
-
-#if HYP_EDITOR
-            // for editor world, render UI as well
-            if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
-            {
-                if (RendererBase* uiRenderer = g_renderGlobalState->globalRenderers[GRT_UI][0])
-                {
-                    uiRenderer->RenderFrame(frame, rs);
-                }
-            }
+#ifdef HYP_LIBUI
+    uiMainSteps();
 #endif
 
-            if (world->GetViews().Size() != 0)
-            {
-                mainRenderer->RenderFrame(frame, rs);
-                numViewsRendered += world->GetViews().Size();
-            }
-        }
-
-        rs.world = nullptr;
-
-        if (!g_renderGlobalState->finalPass)
-        {
-            g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool);
-            g_renderGlobalState->finalPass->Create();
-        }
-
-        g_renderGlobalState->finalPass->Render(frame, rs);
-    }
-
-    g_renderGlobalState->UpdateBuffers(frame);
-
-    g_renderBackend->SubmitCommandBuffers();
-
-    if (swapchain != nullptr)
+    if (m_renderThread
+        && m_renderThread->IsRunning()
+        && g_mainThread == m_renderThread->Id())
     {
-        g_renderBackend->PresentToSwapchain(swapchain);
+        m_renderThread->RenderThreadUpdate();
+
+        return; // render thread will be running separately
     }
 }
 
@@ -576,24 +601,6 @@ void EngineDriver::PreFrameUpdate(Frame* frame)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
-
-    // Check if any swapchains need to be recreated
-    Array<Swapchain*, RenderTempAllocator> swapchains;
-
-    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
-    {
-        if (Swapchain* swapchain = mainWindow->GetSwapchain().Get())
-        {
-            swapchains.PushBack(swapchain);
-        }
-    }
-
-    for (Swapchain* swapchain : swapchains)
-    {
-        g_renderBackend->PrepareSwapchain(swapchain);
-    }
-
-    g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
 }
 
 void EngineDriver::GameThreadUpdate(float delta)

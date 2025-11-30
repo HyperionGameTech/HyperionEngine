@@ -58,6 +58,7 @@ class HYP_API EngineDriver final : public ObjectBase
 
     friend struct RecreateSwapchain;
     friend class GameThread;
+    friend class RenderThread;
 
 public:
     HYP_METHOD()
@@ -113,7 +114,7 @@ public:
 
     void StartThreadsForGame(const Handle<Game>& game);
 
-    void RenderNextFrame();
+    void MainThreadUpdate();
     void RequestStop();
 
     void FinalizeStop();

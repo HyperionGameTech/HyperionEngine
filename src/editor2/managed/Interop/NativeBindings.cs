@@ -41,5 +41,7 @@ namespace Hyperion.Editor
         [DllImport("hyperion")]
         public static extern int Hyp_LaunchGame(IntPtr pGame);
 
+        [DllImport("hyperion")]
+        public static extern void Hyp_MainThreadUpdate();
     }
 }
