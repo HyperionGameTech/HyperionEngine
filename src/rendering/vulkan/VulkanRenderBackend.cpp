@@ -815,25 +815,27 @@ VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
     return frame;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void VulkanRenderBackend::PrepareSwapchain(VulkanSwapchain* swapchain)
 {
-    VulkanSwapchain* vulkanSwapchain = swapchain;
     VulkanFrame* vulkanFrame = GetCurrentFrame();
 
-    bool needsRecreate = false;
-    CHECK_FRAME_RESULT(vulkanSwapchain->PrepareForFrame(vulkanFrame, needsRecreate));
-
-    if (!needsRecreate)
+    if (swapchain->NeedsRecreate())
     {
-        return;
+        swapchain->Recreate();
     }
 
-    HYP_LOG(RenderingBackend, Info, "Swapchain needs recreation due to size mismatch or out-of-date surface");
+    bool needsRecreate = false;
+    CHECK_FRAME_RESULT(swapchain->PrepareForFrame(vulkanFrame, needsRecreate));
 
-    HYP_NOT_IMPLEMENTED(); // cause a crash for now to investigate issues with swapchain recreation
+    if (swapchain->NeedsRecreate())
+    {
+        swapchain->Recreate();
+    }
 
     OnSwapchainRecreated(swapchain);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void VulkanRenderBackend::SubmitCommandBuffers()
 {

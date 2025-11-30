@@ -6,6 +6,7 @@
 #include <rendering/RenderGpuImage.hpp>
 
 #include <core/functional/Proc.hpp>
+#include <core/functional/Delegate.hpp>
 
 #include <core/math/Vector2.hpp>
 
@@ -48,6 +49,11 @@ public:
         return m_imageFormat;
     }
 
+    HYP_FORCE_INLINE bool NeedsRecreate() const
+    {
+        return m_needsRecreate;
+    }
+
     HYP_FORCE_INLINE bool IsPqHdr() const
     {
         return m_isPqHdr;
@@ -59,13 +65,17 @@ public:
     }
 
     virtual RendererResult Create() = 0;
-    virtual SwapchainRef Recreate() = 0;
+    virtual void Resize(Vec2u newExtent) = 0;
+    virtual void Recreate() = 0;
+
+    Delegate<void> OnRecreated;
 
 protected:
     explicit SwapchainBase(const Vec2u& extent = Vec2u::Zero())
         : m_extent(extent),
           m_acquiredImageIndex(0),
           m_imageFormat(TF_NONE),
+          m_needsRecreate(false),
           m_isPqHdr(false)
     {
     }
@@ -75,7 +85,8 @@ protected:
     Vec2u m_extent;
     TextureFormat m_imageFormat;
     uint32 m_acquiredImageIndex;
-    bool m_isPqHdr : 1;
+    bool m_needsRecreate;
+    bool m_isPqHdr;
 };
 
 } // namespace hyperion

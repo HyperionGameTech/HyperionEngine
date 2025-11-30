@@ -107,9 +107,9 @@ namespace Hyperion.Editor
             {
                 WindowOptions windowOptions = new WindowOptions();
                 windowOptions.title = "EditorViewport";
-                windowOptions.width = (int)Bounds.Width > 0 ? (int)Bounds.Width : 800;
-                windowOptions.height = (int)Bounds.Height > 0 ? (int)Bounds.Height : 600;
-                windowOptions.flags = WindowFlags.Headless;
+                windowOptions.width = 800;
+                windowOptions.height = 600;
+                windowOptions.flags = WindowFlags.None;
 
                 mWindow = NativeBindings.Hyp_CreateWindow(mCtx, ref windowOptions, parent.Handle);
 

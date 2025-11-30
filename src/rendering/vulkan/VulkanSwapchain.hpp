@@ -57,7 +57,8 @@ public:
     RendererResult PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue) const;
 
     virtual RendererResult Create() override;
-    virtual VulkanSwapchainRef Recreate() override;
+    virtual void Resize(Vec2u newExtent) override;
+    virtual void Recreate() override;
 
 private:
     RendererResult ChooseSurfaceFormat();
@@ -66,6 +67,7 @@ private:
     RendererResult RetrieveImageHandles();
 
     VkSwapchainKHR m_handle;
+    VkSwapchainKHR m_oldHandle;
     VkSurfaceKHR m_surface;
     VkSurfaceFormatKHR m_surfaceFormat;
     VkPresentModeKHR m_presentMode;

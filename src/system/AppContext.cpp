@@ -29,11 +29,6 @@
 #include <SDL2/SDL_vulkan.h>
 #endif
 
-#ifdef HYP_WINDOWS
-#include <set>
-#include <mutex>
-#endif
-
 #include <AppContext.generated.inl>
 
 namespace hyperion {
@@ -618,7 +613,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
 
     if (parentHwnd != nullptr)
     {
-        // style |= WS_CHILD;
+        style |= WS_CHILD;
     }
 
     RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };
@@ -662,6 +657,51 @@ LRESULT CALLBACK Win32ApplicationWindow::StaticWndProc(HWND hWnd, UINT msg, WPAR
 
 LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    switch (msg)
+    {
+    case WM_SIZE:   // fallthrough
+    //case WM_SIZING: // fallthrough
+    case WM_EXITSIZEMOVE:
+    {
+        int width = LOWORD(lParam);
+        int height = HIWORD(lParam);
+
+        //event = SystemEvent(SystemEvent::WINDOW_RESIZED, platformEvent);
+        //event.GetEventData().Set(Vec2i(width, height));
+
+        /// @TODO: Get window from hwnd
+        if (Swapchain* swapchain = GetSwapchain())
+        {
+            if (IsOnThread(g_renderThread))
+            {
+                g_renderBackend->GetDevice()->WaitIdle();
+                swapchain->Resize(Vec2u(uint32(width), uint32(height)));
+            }
+            else
+            {
+                // if we have a dedicated rendering thread we need to tell the render thread to resize the swapchain
+                GetThreadById(g_renderThread)->GetScheduler().Enqueue([swapchainWeak = MakeWeakRef(swapchain), width, height]()
+                    {
+                        SwapchainRef swapchain = swapchainWeak.Lock();
+                        if (!swapchain.IsValid())
+                        {
+                            HYP_LOG(Core, Warning, "Attempted to resize invalid swapchain on render thread!");
+                            return;
+                        }
+
+                        g_renderBackend->GetDevice()->WaitIdle();
+                        swapchain->Resize(Vec2u(uint32(width), uint32(height)));
+                    },
+                    TaskEnqueueFlags::FIRE_AND_FORGET);
+            }
+        }
+
+        break;
+    }
+    default:
+        break;
+    }
+
     return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
@@ -863,6 +903,7 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
     return KeyCode::UNKNOWN;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 int Win32AppContext::PollEvent(SystemEvent& event)
 {
     AssertOnThread(g_mainThread);
@@ -979,16 +1020,7 @@ int Win32AppContext::PollEvent(SystemEvent& event)
 
             return 1;
         }
-        case WM_SIZE:
-        {
-            int width = LOWORD(msg.lParam);
-            int height = HIWORD(msg.lParam);
-
-            event = SystemEvent(SystemEvent::WINDOW_RESIZED, platformEvent);
-            event.GetEventData().Set(Vec2i(width, height));
-
-            return 1;
-        }
+        
         default:
             break;
         }
@@ -996,9 +1028,10 @@ int Win32AppContext::PollEvent(SystemEvent& event)
 
     return 0;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
-    SDLApplicationWindow* window,
+    Win32ApplicationWindow* window,
     IDummyVulkanSurfaceContext** ppOutDummySurfaceContext)
 {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -1087,7 +1120,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
     }
 
     VkResult vkResult = vkCreateWin32SurfaceKHR(
-        m_instance->GetInstance(),
+        g_renderBackend->GetInstance()->GetInstance(),
         &createInfo,
         nullptr,
         &surface);

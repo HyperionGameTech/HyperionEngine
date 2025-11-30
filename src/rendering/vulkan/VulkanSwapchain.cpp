@@ -73,6 +73,7 @@ HYP_ENABLE_OPTIMIZATION;
 VulkanSwapchain::VulkanSwapchain(VkSurfaceKHR surface, const Vec2u& extent)
     : SwapchainBase(extent),
       m_handle(VK_NULL_HANDLE),
+      m_oldHandle(VK_NULL_HANDLE),
       m_surface(surface),
       m_surfaceFormat(),
       m_presentMode(),
@@ -139,6 +140,11 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQue
 
 RendererResult VulkanSwapchain::Create()
 {
+    if (IsCreated())
+    {
+        return {};
+    }
+
     if (m_surface == VK_NULL_HANDLE)
     {
         return HYP_MAKE_ERROR(RendererError, "Cannot initialize swapchain without a surface");
@@ -203,11 +209,14 @@ RendererResult VulkanSwapchain::Create()
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = m_presentMode;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = m_handle; // gets set when recreating
+    createInfo.oldSwapchain = m_oldHandle;
 
-    VULKAN_CHECK_MSG(
-        vkCreateSwapchainKHR(GetRenderBackend()->GetDevice()->GetDevice(), &createInfo, nullptr, &m_handle),
-        "Failed to create Vulkan swapchain!");
+    VkResult result = vkCreateSwapchainKHR(GetRenderBackend()->GetDevice()->GetDevice(), &createInfo, nullptr, &m_handle);
+
+    if (result != VK_SUCCESS)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to create swapchain!", int(result));
+    }
 
     HYP_GFX_CHECK(RetrieveImageHandles());
     HYP_GFX_ASSERT(m_images.Any());
@@ -237,26 +246,64 @@ RendererResult VulkanSwapchain::Create()
     return {};
 }
 
-VulkanSwapchainRef VulkanSwapchain::Recreate()
+void VulkanSwapchain::Resize(Vec2u newExtent)
 {
-    Assert(IsCreated());
-
-    if (m_surface == VK_NULL_HANDLE)
+    if (m_extent == newExtent)
     {
-        return nullptr;
+        return;
     }
 
-    VulkanSwapchainRef newSwapchain = CreateObject<VulkanSwapchain>(m_surface, m_extent);
-
-    RendererResult result = newSwapchain->Create();
-
-    if (!result)
+    if (!IsCreated())
     {
-        HYP_LOG(RenderingBackend, Error, "Failed to recreate swapchain: {}", result.GetError().GetMessage());
-        return nullptr;
+        m_extent = newExtent;
+
+        return;
     }
 
-    return newSwapchain;
+    m_needsRecreate = true;
+
+    // Mutex::Guard* pGuard = nullptr;
+    // HYP_DEFER({ if (pGuard) delete pGuard; });
+
+    //// safely destroy the old swapchain after it's no longer in use
+    // VkSwapchainKHR* pSwapchain = GetSafeDeleterInstance()->AllocCustom<VkSwapchainKHR>([](void* ptr)
+    //     {
+    //         VkSwapchainKHR* pSwapchain = reinterpret_cast<VkSwapchainKHR*>(ptr);
+
+    //        vkDestroySwapchainKHR(
+    //            GetRenderBackend()->GetDevice()->GetDevice(),
+    //            *pSwapchain,
+    //            nullptr);
+    //    },
+    //    &pGuard);
+
+    //*pSwapchain = m_oldHandle;
+    // m_oldHandle = VK_NULL_HANDLE;
+}
+
+void VulkanSwapchain::Recreate()
+{
+    if (!IsCreated())
+    {
+        m_needsRecreate = false;
+
+        return;
+    }
+
+    SafeDelete(std::move(m_images));
+    SafeDelete(std::move(m_framebuffers));
+
+    m_oldHandle = m_handle;
+    m_handle = VK_NULL_HANDLE; // so Create() knows it's a new swapchain
+
+    RendererResult createResult = Create();
+    Assert(createResult, "Failed to recreate swapchain during resize: {}", createResult.GetError().GetMessage());
+
+    m_oldHandle = VK_NULL_HANDLE;
+
+    OnRecreated();
+
+    m_needsRecreate = false;
 }
 
 RendererResult VulkanSwapchain::ChooseSurfaceFormat()

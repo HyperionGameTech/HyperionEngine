@@ -71,9 +71,10 @@ void App::LaunchGame(const Handle<Game>& game)
                         g_appContext->GetMainWindow()->GetSize());
                     // g_appContext->GetMainWindow()->SetSize(g_appContext->GetMainWindow()->GetDimensions());
                 }
-            }
 
-            ThreadSleep(100);
+                /// @TODO: Make this less terrible; we should have a proper event loop instead of busy-waiting
+                /// (i.e using condition variables or similar)
+            }
         }
     }
 }
