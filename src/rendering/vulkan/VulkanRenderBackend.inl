@@ -182,11 +182,6 @@ public:
 
     virtual UniquePtr<SingleTimeCommands> GetSingleTimeCommands() override;
 
-    virtual Delegate<void, Swapchain*>& GetOnSwapchainRecreatedDelegate() override
-    {
-        return OnSwapchainRecreated;
-    }
-
     virtual void ReleaseTransientMemory() override;
 
     virtual void NextFrame() override
@@ -208,8 +203,6 @@ public:
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);
 
 private:
-    Delegate<void, Swapchain*> OnSwapchainRecreated;
-
     VulkanInstance* m_instance;
 
     Pimpl<VulkanRenderConfig> m_renderConfig;

@@ -134,8 +134,6 @@ public:
 
     virtual UniquePtr<SingleTimeCommands> GetSingleTimeCommands() = 0;
 
-    virtual Delegate<void, Swapchain*>& GetOnSwapchainRecreatedDelegate() = 0;
-
     virtual void ReleaseTransientMemory() = 0;
 
     virtual void NextFrame() = 0;

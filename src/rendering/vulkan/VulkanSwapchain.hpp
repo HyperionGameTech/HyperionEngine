@@ -53,8 +53,8 @@ public:
 
     void NextFrame();
 
-    RendererResult PrepareForFrame(VulkanFrame* frame, bool& outNeedsRecreate);
-    RendererResult PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue) const;
+    void PrepareForFrame(VulkanFrame* frame);
+    void PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue) const;
 
     virtual RendererResult Create() override;
     virtual void Resize(Vec2u newExtent) override;

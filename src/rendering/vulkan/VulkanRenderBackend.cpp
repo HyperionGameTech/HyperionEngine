@@ -815,27 +815,10 @@ VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
     return frame;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void VulkanRenderBackend::PrepareSwapchain(VulkanSwapchain* swapchain)
 {
-    VulkanFrame* vulkanFrame = GetCurrentFrame();
-
-    if (swapchain->NeedsRecreate())
-    {
-        swapchain->Recreate();
-    }
-
-    bool needsRecreate = false;
-    CHECK_FRAME_RESULT(swapchain->PrepareForFrame(vulkanFrame, needsRecreate));
-
-    if (swapchain->NeedsRecreate())
-    {
-        swapchain->Recreate();
-    }
-
-    OnSwapchainRecreated(swapchain);
+    swapchain->PrepareForFrame(GetCurrentFrame());
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void VulkanRenderBackend::SubmitCommandBuffers()
 {
@@ -871,13 +854,10 @@ void VulkanRenderBackend::PresentToSwapchain(VulkanSwapchain* swapchain)
     AssertDebug(presentQueue != nullptr); // should never be null when presenting, not used in headless mode
 
     VulkanDevice* vulkanDevice = m_instance->GetDevice();
-    VulkanSwapchain* vulkanSwapchain = swapchain;
     VulkanCommandBuffer* vulkanCommandBuffer = GetCurrentCommandBuffer();
     VulkanFrame* vulkanFrame = GetCurrentFrame();
 
-    RendererResult result = vulkanSwapchain->PresentFrame(vulkanFrame, presentQueue);
-    HYP_LOG_TEMP("swapchain present result: {}", result.HasValue() ? "success" : result.GetError().GetMessage());
-    CHECK_FRAME_RESULT(result);
+    swapchain->PresentFrame(vulkanFrame, presentQueue);
 }
 
 VulkanCommandBuffer* VulkanRenderBackend::GetCurrentCommandBuffer() const

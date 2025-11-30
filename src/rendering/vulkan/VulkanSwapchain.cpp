@@ -35,7 +35,6 @@ static constexpr bool UseSrgbFormat = true;
 static constexpr bool UseHdrFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-HYP_DISABLE_OPTIMIZATION;
 static RendererResult AcquireNextImage(
     VulkanSwapchain* swapchain,
     VulkanFrame* frame,
@@ -53,20 +52,17 @@ static RendererResult AcquireNextImage(
     if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
     {
         outNeedsRecreate = true;
-        HYP_BREAKPOINT; // debug
 
         return {};
     }
 
     if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
     {
-        HYP_BREAKPOINT;
         return HYP_MAKE_ERROR(RendererError, "Failed to acquire next image", int(vkResult));
     }
 
     return {};
 }
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma region Swapchain
 
@@ -100,16 +96,23 @@ bool VulkanSwapchain::IsCreated() const
     return m_handle != VK_NULL_HANDLE;
 }
 
-RendererResult VulkanSwapchain::PrepareForFrame(VulkanFrame* frame, bool& outNeedsRecreate)
+void VulkanSwapchain::PrepareForFrame(VulkanFrame* frame)
 {
-    outNeedsRecreate = false;
+    if (m_needsRecreate)
+    {
+        Recreate();
+    }
 
-    HYP_GFX_CHECK(AcquireNextImage(this, frame, &m_acquiredImageIndex, outNeedsRecreate));
+    RendererResult result = AcquireNextImage(this, frame, &m_acquiredImageIndex, m_needsRecreate);
+    Assert(result, "Failed to acquire next swapchain image: {}", result.GetError().GetMessage());
 
-    return {};
+    if (m_needsRecreate)
+    {
+        Recreate();
+    }
 }
 
-RendererResult VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue) const
+void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue) const
 {
     AssertOnThread(g_renderThread);
 
@@ -131,11 +134,14 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQue
     presentInfo.pImageIndices = &m_acquiredImageIndex;
     presentInfo.pResults = nullptr;
 
-    VULKAN_CHECK(vkQueuePresentKHR(queue->queue, &presentInfo));
+    VkResult result = vkQueuePresentKHR(queue->queue, &presentInfo);
+
+    if (result != VK_SUCCESS)
+    {
+        HYP_LOG(RenderingBackend, Error, "Failed to present swapchain image: {}", int(result));
+    }
 
     frame->ResetRenderPassStates();
-
-    return {};
 }
 
 RendererResult VulkanSwapchain::Create()

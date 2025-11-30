@@ -614,6 +614,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
     if (parentHwnd != nullptr)
     {
         style |= WS_CHILD;
+        style &= ~WS_OVERLAPPEDWINDOW;
     }
 
     RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };

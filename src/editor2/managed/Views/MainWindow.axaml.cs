@@ -9,23 +9,26 @@ namespace Hyperion.Editor
     public partial class MainWindow : Window
     {
         private const bool CappedFrameRate = true;
+        private const bool IsRenderingOnMainThread = true;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            this.Opened += (s, e) =>
+            if (IsRenderingOnMainThread)
             {
-                if (CappedFrameRate)
+                this.Opened += (s, e) =>
                 {
-                    var topLevel = TopLevel.GetTopLevel(this);
-                    topLevel?.RequestAnimationFrame(OnFrame);
-                }
-                else
-                {
-                    OnFrame(TimeSpan.Zero);
-                }
-            };
+                    if (CappedFrameRate)
+                    {
+                        var topLevel = TopLevel.GetTopLevel(this);
+                        topLevel?.RequestAnimationFrame(OnFrame);
+                    } else
+                    {
+                        OnFrame(TimeSpan.Zero);
+                    }
+                };
+            }
         }
 
         private void OnFrame(TimeSpan time)

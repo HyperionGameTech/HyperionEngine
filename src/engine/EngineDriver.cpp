@@ -244,7 +244,7 @@ private:
         InitObject(g_engineDriver->GetDebugDrawer());
 
         // if running in detached mode, just return and let main thread call RenderThreadUpdate()
-        if (!m_isRunningDetached)
+        if (!m_isRunningDetached || m_id != g_mainThread)
         {
             while (m_isRunning.Get(MemoryOrder::RELAXED))
             {
