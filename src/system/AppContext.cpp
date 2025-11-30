@@ -90,7 +90,7 @@ void ApplicationWindow::CreateSwapchain()
 
     if (!m_vkSurface)
     {
-        VkSurfaceKHR surface = g_renderBackend->CreateVkSurface(this, nullptr);
+        VkSurfaceKHR surface = g_renderBackend->CreateSurface(this, nullptr);
         Assert(surface != VK_NULL_HANDLE);
 
         m_vkSurface = surface;
@@ -455,6 +455,27 @@ int SDLAppContext::PollEvent(SystemEvent& event)
     }
 
     return result;
+}
+
+VkSurfaceKHR SDLAppContext::CreateVulkanSurface(
+    SDLApplicationWindow* window,
+    IDummyVulkanSurfaceContext** ppOutDummySurfaceContext)
+{
+    HYP_ASSERT(window != nullptr);
+
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+    SDLApplicationWindow* sdlWindow = ObjCast<SDLApplicationWindow>(window);
+    Assert(sdlWindow != nullptr);
+
+    SDL_bool result = SDL_Vulkan_CreateSurface(
+        static_cast<SDL_Window*>(sdlWindow->GetHWND()),
+        m_instance->GetInstance(),
+        &surface);
+
+    Assert(result, "Failed to create Vulkan surface: {}", SDL_GetError());
+
+    return surface;
 }
 
 #else
@@ -974,6 +995,106 @@ int Win32AppContext::PollEvent(SystemEvent& event)
     }
 
     return 0;
+}
+
+VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
+    SDLApplicationWindow* window,
+    IDummyVulkanSurfaceContext** ppOutDummySurfaceContext)
+{
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+    static constexpr const wchar_t* DummyClassName = L"DummyWindowClass";
+
+    VkWin32SurfaceCreateInfoKHR createInfo { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+
+    if (window != nullptr)
+    {
+        Win32ApplicationWindow* win32Window = ObjCast<Win32ApplicationWindow>(window);
+        Assert(win32Window != nullptr);
+
+        if (win32Window->GetVkSurface() != VK_NULL_HANDLE)
+        {
+            // already have a surface created for this window
+            return win32Window->GetVkSurface();
+        }
+
+        createInfo.hinstance = win32Window->GetHINSTANCE();
+        createInfo.hwnd = win32Window->GetHWND();
+    }
+    else
+    {
+        if (!ppOutDummySurfaceContext)
+        {
+            // can't do much with this, we need dummy context in order to destruct dummy window properly
+            return VK_NULL_HANDLE;
+        }
+
+        class Win32DummyVulkanSurfaceContext : public IDummyVulkanSurfaceContext
+        {
+        public:
+            Win32DummyVulkanSurfaceContext(HINSTANCE hInstance, HWND hwnd)
+                : m_hInstance(hInstance),
+                  m_hwnd(hwnd)
+            {
+            }
+
+            virtual ~Win32DummyVulkanSurfaceContext() override
+            {
+                Assert(DestroyWindow(m_hwnd));
+                UnregisterClassW(DummyClassName, m_hInstance);
+
+                sys::Win32_UnregisterWindowClass(DummyClassName);
+            }
+
+        private:
+            HINSTANCE m_hInstance;
+            HWND m_hwnd;
+        };
+
+        HINSTANCE hInstance = GetModuleHandleW(nullptr);
+
+        WNDCLASSEXW windowClass = {};
+        windowClass.cbSize = sizeof(WNDCLASSEXW);
+        windowClass.lpfnWndProc = DefWindowProcW;
+        windowClass.hInstance = hInstance;
+        windowClass.lpszClassName = DummyClassName;
+
+        ATOM classAtom = RegisterClassExW(&windowClass);
+        if (classAtom == 0)
+        {
+            HYP_FAIL("Failed to register Win32 window class for Vulkan dummy window! Win32 Error: {}", GetLastError());
+        }
+
+        sys::Win32_RegisterWindowClass(DummyClassName);
+
+        HWND hwnd = CreateWindowExW(
+            0,
+            DummyClassName,
+            L"Hyperion Vulkan Dummy Window",
+            WS_OVERLAPPEDWINDOW,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            nullptr,
+            nullptr,
+            hInstance,
+            nullptr);
+
+        Assert(hwnd != nullptr);
+
+        createInfo.hinstance = hInstance;
+        createInfo.hwnd = hwnd;
+
+        *ppOutDummySurfaceContext = new Win32DummyVulkanSurfaceContext(hInstance, hwnd);
+    }
+
+    VkResult vkResult = vkCreateWin32SurfaceKHR(
+        m_instance->GetInstance(),
+        &createInfo,
+        nullptr,
+        &surface);
+
+    Assert(vkResult == VK_SUCCESS, "Failed to create Win32 Vulkan surface: {}", int(vkResult));
+
+    return surface;
 }
 
 #else

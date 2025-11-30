@@ -399,7 +399,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebug)
     VULKAN_CHECK_MSG(instanceResult, "Failed to create Vulkan Instance!");
 
     IDummyVulkanSurfaceContext* dummySurfaceContext = nullptr;
-    VkSurfaceKHR surface = g_renderBackend->CreateVkSurface(nullptr, &dummySurfaceContext);
+    VkSurfaceKHR surface = g_renderBackend->CreateSurface(nullptr, &dummySurfaceContext);
 
     Array<VkPhysicalDevice> devices = EnumeratePhysicalDevices(m_instance);
     VkPhysicalDevice physicalDevice = PickPhysicalDevice(Span<VkPhysicalDevice>(devices.Begin(), devices.End()));

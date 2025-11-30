@@ -1230,141 +1230,39 @@ void VulkanRenderBackend::ReleaseTransientMemory()
     m_textureCache->CleanupUnusedTextures();
 }
 
-VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** pOutDummySurfaceContext)
+VkSurfaceKHR VulkanRenderBackend::CreateSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** ppOutDummySurfaceContext)
 {
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-
 #ifdef HYP_WINDOWS
-    static constexpr const wchar_t* DummyClassName = L"DummyWindowClass";
-
-    VkWin32SurfaceCreateInfoKHR createInfo { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-
+    Win32ApplicationWindow* win32Window = nullptr;
     if (window != nullptr)
     {
-        Win32ApplicationWindow* win32Window = ObjCast<Win32ApplicationWindow>(window);
+        win32Window = ObjCast<Win32ApplicationWindow>(window);
         Assert(win32Window != nullptr);
-
-        createInfo.hinstance = win32Window->GetHINSTANCE();
-        createInfo.hwnd = win32Window->GetHWND();
     }
-    else
+
+    return Win32AppContext::CreateVulkanSurface(win32Window, ppOutDummySurfaceContext);
+#elif defined(HYP_MACOS)
+    CocoaApplicationWindow* cocoaWindow = nullptr;
+    if (window != nullptr)
     {
-        if (!pOutDummySurfaceContext)
-        {
-            // can't do much with this, we need dummy context in order to destruct dummy window properly
-            return VK_NULL_HANDLE;
-        }
-
-        class Win32DummyVulkanSurfaceContext : public IDummyVulkanSurfaceContext
-        {
-        public:
-            Win32DummyVulkanSurfaceContext(HINSTANCE hInstance, HWND hwnd)
-                : m_hInstance(hInstance),
-                  m_hwnd(hwnd)
-            {
-            }
-
-            virtual ~Win32DummyVulkanSurfaceContext() override
-            {
-                Assert(DestroyWindow(m_hwnd));
-                UnregisterClassW(DummyClassName, m_hInstance);
-
-                sys::Win32_UnregisterWindowClass(DummyClassName);
-            }
-
-        private:
-            HINSTANCE m_hInstance;
-            HWND m_hwnd;
-        };
-
-        HINSTANCE hInstance = GetModuleHandleW(nullptr);
-
-        WNDCLASSEXW windowClass = {};
-        windowClass.cbSize = sizeof(WNDCLASSEXW);
-        windowClass.lpfnWndProc = DefWindowProcW;
-        windowClass.hInstance = hInstance;
-        windowClass.lpszClassName = DummyClassName;
-
-        ATOM classAtom = RegisterClassExW(&windowClass);
-        if (classAtom == 0)
-        {
-            HYP_FAIL("Failed to register Win32 window class for Vulkan dummy window! Win32 Error: {}", GetLastError());
-        }
-
-        sys::Win32_RegisterWindowClass(DummyClassName);
-
-        HWND hwnd = CreateWindowExW(
-            0,
-            DummyClassName,
-            L"Hyperion Vulkan Dummy Window",
-            WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            nullptr,
-            nullptr,
-            hInstance,
-            nullptr);
-
-        Assert(hwnd != nullptr);
-
-        createInfo.hinstance = hInstance;
-        createInfo.hwnd = hwnd;
-
-        *pOutDummySurfaceContext = new Win32DummyVulkanSurfaceContext(hInstance, hwnd);
+        cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
+        Assert(cocoaWindow != nullptr);
     }
 
-    VkResult vkResult = vkCreateWin32SurfaceKHR(
-        m_instance->GetInstance(),
-        &createInfo,
-        nullptr,
-        &surface);
-
-    Assert(vkResult == VK_SUCCESS, "Failed to create Win32 Vulkan surface: {}", int(vkResult));
-#endif
-
-#ifdef HYP_SDL
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-
-    if (!window)
+    return CocoaAppContext::CreateVulkanSurface(cocoaWindow, ppOutDummySurfaceContext);
+#elif defined(HYP_SDL)
+    SDLApplicationWindow* sdlWindow = nullptr;
+    if (window != nullptr)
     {
-        HYP_NOT_IMPLEMENTED();
+        sdlWindow = ObjCast<SDLApplicationWindow>(window);
+        Assert(sdlWindow != nullptr);
     }
 
-    SDLApplicationWindow* sdlWindow = ObjCast<SDLApplicationWindow>(window);
-    Assert(sdlWindow != nullptr);
-
-    SDL_bool result = SDL_Vulkan_CreateSurface(
-        static_cast<SDL_Window*>(sdlWindow->GetHWND()),
-        m_instance->GetInstance(),
-        &surface);
-
-    HYP_GFX_ASSERT(result == SDL_TRUE, "Failed to create Vulkan surface: %s", SDL_GetError());
+    return SDLAppContext::CreateVulkanSurface(sdlWindow, ppOutDummySurfaceContext);
+#else
+    HYP_NOT_IMPLEMENTED();
+    return VK_NULL_HANDLE;
 #endif
-
-#ifdef HYP_MACOS
-
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-
-    if (!window)
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
-
-    CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
-    Assert(cocoaWindow != nullptr);
-
-    VkMetalSurfaceCreateInfoEXT createInfo { VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT };
-    createInfo.pLayer = cocoaWindow->GetCAMetalLayer();
-
-    VkResult vkResult = vkCreateMetalSurfaceEXT(
-        m_instance->GetInstance(),
-        &createInfo,
-        nullptr,
-        &surface);
-
-    Assert(vkResult == VK_SUCCESS, "Failed to create Metal Vulkan surface: {}", int(vkResult));
-#endif
-
-    return surface;
 }
 
 HYP_DISABLE_OPTIMIZATION;

@@ -203,7 +203,7 @@ public:
     VulkanSwapchainRef CreateSwapchain(ApplicationWindow* window, VulkanInstance* instance, VkSurfaceKHR surface);
 
     /*! \brief Create a VkSurfaceKHR for the given window - Window can be null to create a headless surface */
-    VkSurfaceKHR CreateVkSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** pOutDummySurfaceContext = nullptr);
+    VkSurfaceKHR CreateSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** ppOutDummySurfaceContext = nullptr);
 
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);
 

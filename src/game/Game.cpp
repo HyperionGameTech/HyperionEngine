@@ -3,7 +3,6 @@
 #include <HyperionPch.hpp>
 
 #include <game/Game.hpp>
-#include <game/GameThread.hpp>
 
 #include <asset/Assets.hpp>
 
@@ -40,8 +39,6 @@
 #include <Game.generated.inl>
 
 namespace hyperion {
-
-HYP_DECLARE_LOG_CHANNEL(GameThread);
 
 static const Name s_nameMainWorld = NAME("MainWorld");
 

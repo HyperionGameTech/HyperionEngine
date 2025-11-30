@@ -3,6 +3,7 @@
 #import <AppKit/AppKit.h>
 #import <Cocoa/Cocoa.h>
 #import <CoreGraphics/CoreGraphics.h>
+#import <QuartzCore/CAMetalLayer.h>
 
 #include <system/AppContext.hpp>
 #include <system/SystemEvent.hpp>
@@ -14,6 +15,14 @@
 
 #include <core/debug/Debug.hpp>
 #include <core/logging/Logger.hpp>
+
+#include <engine/EngineGlobals.hpp>
+
+#include <rendering/RenderBackend.hpp>
+
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanInstance.hpp>
+#endif
 
 namespace hyperion {
 
@@ -58,12 +67,6 @@ Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions wind
 {
     Handle<CocoaApplicationWindow> window = CreateObject<CocoaApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     window->Initialize(windowOptions, parentHwnd);
-    
-    // Only set as main window if this is not an embedded view
-    if (parentHwnd == nullptr)
-    {
-        SetMainWindow(window);
-    }
     
     return window;
 }
@@ -280,7 +283,7 @@ int CocoaAppContext::PollEvent(SystemEvent& event)
                 
                 if (!window && cocoaWindow)
                 {
-                    window = (NSWindow*)cocoaWindow->GetNSWindow();
+                    window = cocoaWindow->GetNSWindow();
                 }
                 
                 NSPoint location = [nsEvent locationInWindow];
@@ -352,6 +355,73 @@ int CocoaAppContext::PollEvent(SystemEvent& event)
     }
     
     return 0;
+}
+
+VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
+    CocoaApplicationWindow *window,
+    IDummyVulkanSurfaceContext **ppOutDummySurfaceContext)
+{
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+  
+    VkMetalSurfaceCreateInfoEXT createInfo { VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT };
+
+    if (window)
+    {
+        CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
+        Assert(cocoaWindow != nullptr);
+
+        createInfo.pLayer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
+    }
+    else
+    {
+        // do same thing as Win32 dummy surface creation
+        if (!ppOutDummySurfaceContext)
+        {
+            // can't do much with this, we need dummy context in order to destruct dummy window properly
+            return VK_NULL_HANDLE;
+        }
+
+        class CocoaDummyVulkanSurfaceContext : public IDummyVulkanSurfaceContext
+        {
+        public:
+            CocoaDummyVulkanSurfaceContext(NSWindow* window)
+                : m_window(window)
+            {
+            }
+
+            virtual ~CocoaDummyVulkanSurfaceContext() override
+            {
+                [m_window close];
+            }
+
+        private:
+            NSWindow* m_window;
+        };
+
+        NSRect frame = NSMakeRect(0, 0, 800, 600);
+        NSWindow* nsWindow = [[NSWindow alloc] initWithContentRect:frame
+                                                         styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
+                                                           backing:NSBackingStoreBuffered
+                                                             defer:NO];
+        [nsWindow setTitle:@"Hyperion Vulkan Dummy Window"];
+
+        [nsWindow.contentView setLayer:[CAMetalLayer layer]];
+        [nsWindow.contentView setWantsLayer:YES];
+
+        *ppOutDummySurfaceContext = new CocoaDummyVulkanSurfaceContext(nsWindow);
+
+        createInfo.pLayer = (CAMetalLayer*)nsWindow.contentView.layer;
+    }
+
+    VkResult vkResult = vkCreateMetalSurfaceEXT(
+        g_renderBackend->GetInstance()->GetInstance(),
+        &createInfo,
+        nullptr,
+        &surface);
+
+    Assert(vkResult == VK_SUCCESS, "Failed to create Metal Vulkan surface: {}", int(vkResult));
+
+    return surface;
 }
 
 } // namespace sys

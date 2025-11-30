@@ -189,8 +189,7 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
 {
     if (m_metalLayer)
     {
-        CAMetalLayer* metalLayer = (CAMetalLayer*)m_metalLayer;
-        [metalLayer release];
+        [m_metalLayer release];
         m_metalLayer = nullptr;
     }
     
@@ -292,9 +291,9 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
             frame.size.height * metalLayer.contentsScale
         );
         
-        m_nsView = (void*)metalView;
-        m_metalLayer = (void*)[metalLayer retain];
-        m_hwnd = (void*)parentWindow; // Store reference to parent window for coordinate conversions
+        m_nsView = metalView;
+        m_metalLayer = [metalLayer retain];
+        m_hwnd = parentWindow; // Store reference to parent window for coordinate conversions
         
         HYP_LOG(Core, Debug, "CocoaApplicationWindow initialized as embedded view: {} ({}x{})", 
                 m_title, m_size.x, m_size.y);
@@ -360,11 +359,11 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         );
         
         
-        m_metalLayer = (void*)metalLayer;
+        m_metalLayer = metalLayer;
     }
     
-    m_hwnd = (void*)window;
-    m_windowDelegate = (void*)delegate;
+    m_hwnd = window;
+    m_windowDelegate = delegate;
 
     if (!(windowOptions.flags & uint32(WindowFlags::HEADLESS)))
     {
@@ -513,11 +512,6 @@ bool CocoaApplicationWindow::IsHighDPI() const
     
     NSWindow* window = (NSWindow*)m_hwnd;
     return [window backingScaleFactor] > 1.0;
-}
-
-void* CocoaApplicationWindow::GetCAMetalLayer() const
-{
-    return m_metalLayer;
 }
 
 } // namespace sys

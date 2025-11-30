@@ -30,6 +30,10 @@
 #include <vulkan/vulkan_core.h>
 #endif
 
+#ifdef HYP_MACOS
+#include <system/platform/mac/CocoaFwd.h>
+#endif
+
 namespace hyperion {
 
 #ifndef HYP_WINDOWS
@@ -40,6 +44,7 @@ class Game;
 
 #ifdef HYP_VULKAN
 class VulkanInstance;
+class IDummyVulkanSurfaceContext;
 #endif
 
 enum class WindowFlags : uint32
@@ -222,6 +227,12 @@ public:
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
 
     int PollEvent(SystemEvent& event) override;
+
+#ifdef HYP_VULKAN
+    static VkSurfaceKHR CreateVulkanSurface(
+        SDLApplicationWindow* window,
+        IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
+#endif
 };
 
 HYP_CLASS()
@@ -270,6 +281,12 @@ public:
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
 
     int PollEvent(SystemEvent& event) override;
+
+#ifdef HYP_VULKAN
+    static VkSurfaceKHR CreateVulkanSurface(
+        Win32ApplicationWindow* window,
+        IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
+#endif
 };
 
 HYP_CLASS()
@@ -294,12 +311,12 @@ public:
     bool IsHighDPI() const override;
 
 #ifdef HYP_MACOS
-    HYP_FORCE_INLINE void* GetNSWindow() const
+    HYP_FORCE_INLINE NSWindow* GetNSWindow() const
     {
-        return m_hwnd;
+        return (NSWindow*)m_hwnd;
     }
 
-    HYP_FORCE_INLINE void* GetNSView() const
+    HYP_FORCE_INLINE NSView* GetNSView() const
     {
         return m_nsView;
     }
@@ -309,7 +326,10 @@ public:
         return m_isEmbeddedView;
     }
 
-    void* GetCAMetalLayer() const;
+    void* GetCAMetalLayer() const
+    {
+        return m_metalLayer;
+    }
 
     HYP_FORCE_INLINE bool IsMouseLocked() const
     {
@@ -319,7 +339,7 @@ public:
 private:
     void* m_windowDelegate = nullptr;
     void* m_metalLayer = nullptr;
-    void* m_nsView = nullptr;
+    NSView* m_nsView = nullptr;
     bool m_mouseLocked = false;
     bool m_isEmbeddedView = false;
     mutable Vec2i m_mousePosition = Vec2i::Zero();
@@ -338,6 +358,12 @@ public:
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
 
     int PollEvent(SystemEvent& event) override;
+
+#ifdef HYP_VULKAN
+    static VkSurfaceKHR CreateVulkanSurface(
+        CocoaApplicationWindow* window,
+        IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
+#endif
 };
 
 } // namespace sys
