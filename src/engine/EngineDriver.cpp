@@ -304,15 +304,15 @@ HYP_API void EngineDriver::Init()
     m_renderThread = MakeUnique<RenderThread>(isDetachedRendering);
     m_gameThread = MakeUnique<GameThread>();
 
-#ifdef HYP_EDITOR
-    // Create script compilation service
-    m_scriptingService = MakeUnique<ScriptingService>(
-        GetResourceDirectory() / "scripts" / "src",
-        GetResourceDirectory() / "scripts" / "projects",
-        CoreApi_GetExecutablePath()); // copy script binaries into executable path
+    // #ifdef HYP_EDITOR
+    //     // Create script compilation service
+    //     m_scriptingService = MakeUnique<ScriptingService>(
+    //         GetResourceDirectory() / "scripts" / "src",
+    //         GetResourceDirectory() / "scripts" / "projects",
+    //         CoreApi_GetExecutablePath()); // copy script binaries into executable path
 
-    m_scriptingService->Start();
-#endif
+    //     m_scriptingService->Start();
+    // #endif
 
     RC<NetRequestThread> netRequestThread = MakeRefCountedPtr<NetRequestThread>();
     SetGlobalNetRequestThread(netRequestThread);
@@ -605,7 +605,11 @@ void EngineDriver::PreFrameUpdate(Frame* frame)
 
 void EngineDriver::GameThreadUpdate(float delta)
 {
-    m_scriptingService->Update();
+    if (m_scriptingService)
+    {
+        m_scriptingService->Update();
+    }
+
     g_streamingManager->Update(delta);
 
     const uint32 slot = RenderApi::GetRingIndex();

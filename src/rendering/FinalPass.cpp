@@ -220,6 +220,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     AssertDebug(framebuffer != nullptr);
 
     frame->renderQueue << BeginFramebuffer(framebuffer);
+
     frame->renderQueue << BindGraphicsPipeline(passData->renderTextureToScreenPass->GetGraphicsPipeline(), Viewport { rs.swapchain->GetExtent() });
 
     frame->renderQueue << BindDescriptorTable(

@@ -475,7 +475,7 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
     if (firstTaskBatch != nullptr)
     {
         AssertDebug(inBatch.nextBatch == nullptr);
-        
+
         if (firstTaskBatch->executors.Any())
         {
             inBatch.nextBatch = firstTaskBatch;
@@ -638,6 +638,25 @@ const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsyst
     }
 
     return newSubsystem;
+}
+
+bool World::TryAddSubsystem(const Handle<Subsystem>& subsystem)
+{
+    HYP_SCOPE;
+
+    if (!subsystem)
+    {
+        return false;
+    }
+
+    Handle<Subsystem> result = AddSubsystem(subsystem->InstanceClass()->GetTypeId(), subsystem);
+
+    if (!result || result.Get() != subsystem.Get())
+    {
+        return false;
+    }
+
+    return true;
 }
 
 Subsystem* World::GetSubsystem(TypeId typeId) const

@@ -155,7 +155,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "Material")]
-    public class Material : ObjectBase
+    public class Material : AssetObject
     {
         public Material()
         {

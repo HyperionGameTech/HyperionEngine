@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "vulkan/vulkan_core.h"
 #include <HyperionPch.hpp>
 
 #include <rendering/vulkan/VulkanSwapchain.hpp>
@@ -52,8 +53,6 @@ static RendererResult AcquireNextImage(
     if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
     {
         outNeedsRecreate = true;
-
-        return {};
     }
 
     if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
@@ -104,12 +103,17 @@ void VulkanSwapchain::PrepareForFrame(VulkanFrame* frame)
     }
 
     RendererResult result = AcquireNextImage(this, frame, &m_acquiredImageIndex, m_needsRecreate);
-    Assert(result, "Failed to acquire next swapchain image: {}", result.GetError().GetMessage());
 
     if (m_needsRecreate)
     {
         Recreate();
+
+        frame->RecreateSemaphores();
+
+        result = AcquireNextImage(this, frame, &m_acquiredImageIndex, m_needsRecreate);
     }
+
+    Assert(result, "Failed to acquire next swapchain image: {}", result.GetError().GetMessage());
 }
 
 void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue) const
@@ -123,6 +127,8 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
         HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
     }
 #endif
+
+    AssertDebug(!m_needsRecreate); // should have been handled before present
 
     VkSemaphore signalSemaphores[] = { frame->GetRenderFinishedSemaphore()->GetVulkanHandle() };
 
@@ -224,8 +230,12 @@ RendererResult VulkanSwapchain::Create()
         return HYP_MAKE_ERROR(RendererError, "Failed to create swapchain!", int(result));
     }
 
+    AssertDebug(m_images.Empty());
+
     HYP_GFX_CHECK(RetrieveImageHandles());
-    HYP_GFX_ASSERT(m_images.Any());
+
+    AssertDebug(m_images.Any());
+    AssertDebug(m_framebuffers.Empty());
 
     HYP_LOG(RenderingBackend, Info, "Creating {} swapchain framebuffers with extent and format: {}",
         m_images.Size(), m_extent, EnumToString(m_images[0]->GetTextureFormat()));
@@ -244,8 +254,8 @@ RendererResult VulkanSwapchain::Create()
             HYP_GFX_CHECK(HYP_MAKE_ERROR(RendererError, "Image resource state is not PRESENT!"));
         }
 
-        VulkanFramebufferRef framebuffer = m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(m_extent, RTT_PRESENT));
-        framebuffer->AddAttachment(0, VulkanGpuImageRef(image), LoadOperation::CLEAR, StoreOperation::STORE);
+        VulkanFramebufferRef& framebuffer = m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(m_extent, RTT_PRESENT));
+        framebuffer->AddAttachment(0, image, LoadOperation::CLEAR, StoreOperation::STORE);
         HYP_GFX_CHECK(framebuffer->Create());
     }
 
@@ -296,8 +306,10 @@ void VulkanSwapchain::Recreate()
         return;
     }
 
-    SafeDelete(std::move(m_images));
-    SafeDelete(std::move(m_framebuffers));
+    HYP_LOG(RenderingBackend, Info, "Recreating Vulkan swapchain {} with new extent: {}", Id(), m_extent);
+
+    Array<VulkanGpuImageRef> oldImages = std::move(m_images);
+    Array<VulkanFramebufferRef> oldFramebuffers = std::move(m_framebuffers);
 
     m_oldHandle = m_handle;
     m_handle = VK_NULL_HANDLE; // so Create() knows it's a new swapchain
@@ -305,7 +317,19 @@ void VulkanSwapchain::Recreate()
     RendererResult createResult = Create();
     Assert(createResult, "Failed to recreate swapchain during resize: {}", createResult.GetError().GetMessage());
 
+    HYP_LOG_TEMP("Recreated swapchain {}, old swapchain was {}", (void*)m_handle, (void*)m_oldHandle);
+
+    // we can now destroy the old swapchain
+    vkDestroySwapchainKHR(
+        GetRenderBackend()->GetDevice()->GetDevice(),
+        m_oldHandle,
+        nullptr);
+
     m_oldHandle = VK_NULL_HANDLE;
+
+    // cleanup old resources
+    oldFramebuffers.Clear();
+    oldImages.Clear();
 
     OnRecreated();
 
@@ -432,6 +456,10 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
         VulkanGpuImageRef image = CreateObject<VulkanGpuImage>(desc);
 
+#ifdef HYP_DEBUG_MODE
+        image->SetDebugName(NAME_FMT("SwapchainImage_{}", i));
+#endif
+
         image->m_handle = vkImages[i];
         image->m_isHandleOwned = false;
 
@@ -440,7 +468,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
         m_images[i] = std::move(image);
     }
 
-    // Transition each image to PRESENT state
+    // Transition each image to PRESENT state immediately
     UniquePtr<SingleTimeCommands> singleTimeCommands = GetRenderBackend()->GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue)

@@ -5,7 +5,7 @@
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -130,7 +130,7 @@ bool ManagedObject::SetKeepAlive(bool keepAlive)
 
     // used as result (inout parameter)
     int paramResult = int(keepAlive);
-    DotNetSystem::GetInstance().GetGlobalFunctions().setKeepAliveFunction(&m_objectReference, &paramResult);
+    DotNETHost::GetInstance().GetGlobalFunctions().setKeepAliveFunction(&m_objectReference, &paramResult);
 
     if (paramResult)
     {

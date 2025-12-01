@@ -14,7 +14,7 @@
 
 #include <core/Name.hpp>
 
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 #include <dotnet/interop/ManagedGuid.hpp>
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>

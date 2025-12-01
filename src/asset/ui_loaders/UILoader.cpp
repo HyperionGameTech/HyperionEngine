@@ -11,7 +11,7 @@
 #include <core/serialization/fbom/FBOMLoadContext.hpp>
 
 #ifdef HYP_DOTNET
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 #include <dotnet/ManagedClass.hpp>
 #endif
 

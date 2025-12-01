@@ -78,7 +78,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "Texture")]
-    public class Texture : ObjectBase
+    public class Texture : AssetObject
     {
         public Texture()
         {

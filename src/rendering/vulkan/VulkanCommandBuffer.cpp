@@ -197,24 +197,6 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
 
     VULKAN_CHECK(vkQueueSubmit(queue->queue, 1, &submitInfo, fence->GetVulkanHandle()));
 
-#ifdef HYP_DEBUG_MODE
-    HYP_LOG(RenderingBackend, Debug, "vkQueueSubmit on queue {}: waitCount={}, signalCount={}", (void*)queue->queue, submitInfo.waitSemaphoreCount, submitInfo.signalSemaphoreCount);
-    if (submitInfo.waitSemaphoreCount)
-    {
-        for (uint32 i = 0; i < submitInfo.waitSemaphoreCount; ++i)
-        {
-            HYP_LOG(RenderingBackend, Debug, "\twait semaphore[{}] = {}", i, (void*)submitInfo.pWaitSemaphores[i]);
-        }
-    }
-    if (submitInfo.signalSemaphoreCount)
-    {
-        for (uint32 i = 0; i < submitInfo.signalSemaphoreCount; ++i)
-        {
-            HYP_LOG(RenderingBackend, Debug, "\tsignal semaphore[{}] = {}", i, (void*)submitInfo.pSignalSemaphores[i]);
-        }
-    }
-#endif
-
     return {};
 }
 
@@ -233,13 +215,14 @@ RendererResult VulkanCommandBuffer::SubmitSecondary(VulkanCommandBuffer* primary
 
 void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
 {
+    static constexpr VkDeviceSize BindingOffsets[] = { 0 };
+
     HYP_GFX_ASSERT(buffer != nullptr);
     HYP_GFX_ASSERT(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
     const VkBuffer vertexBuffers[] = { static_cast<const VulkanGpuBuffer*>(buffer)->GetVulkanHandle() };
-    static const VkDeviceSize offsets[] = { 0 };
 
-    vkCmdBindVertexBuffers(m_handle, 0, 1, vertexBuffers, offsets);
+    vkCmdBindVertexBuffers(m_handle, 0, 1, vertexBuffers, BindingOffsets);
 }
 
 void VulkanCommandBuffer::BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType)

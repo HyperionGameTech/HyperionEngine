@@ -53,6 +53,16 @@ find_program(DOTNET_EXECUTABLE dotnet)
 if(DOTNET_EXECUTABLE)
     # Restore projects we depend on
     execute_process(
+        COMMAND ${DOTNET_EXECUTABLE} restore "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        RESULT_VARIABLE RESTORE_RESULT_INTEROP
+    )
+
+    if(NOT RESTORE_RESULT_INTEROP EQUAL "0")
+        message(FATAL_ERROR "Failed to restore Hyperion.NET.Interop project. Please ensure that the .NET SDK is installed and accessible.")
+    endif()
+
+    execute_process(
         COMMAND ${DOTNET_EXECUTABLE} restore "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         RESULT_VARIABLE RESTORE_RESULT_SHARED
@@ -97,6 +107,7 @@ if(DOTNET_EXECUTABLE)
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <OutputType>WinExe</OutputType>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <TargetFramework>net8.0</TargetFramework>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <Nullable>enable</Nullable>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <ApplicationManifest>${CMAKE_CURRENT_SOURCE_DIR}/managed/app.manifest</ApplicationManifest>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>\n")
@@ -112,6 +123,10 @@ if(DOTNET_EXECUTABLE)
     file(APPEND ${EDITOR_CSPROJ_PATH} "  </PropertyGroup>\n")
 
     file(APPEND ${EDITOR_CSPROJ_PATH} "  <ItemGroup>\n")
+    
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj\" >\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "         <Private>true</Private>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     </ProjectReference>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "     <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "         <Private>true</Private>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "     </ProjectReference>\n")
@@ -166,6 +181,9 @@ if(DOTNET_EXECUTABLE)
         )
         # If the .NET targets were created (non-MSVC generators) they will exist;
         # under Visual Studio they are built implicitly via project references.
+        if(TARGET Hyperion.NET.Interop)
+            add_dependencies(Hyperion.Editor Hyperion.NET.Interop)
+        endif()
         if(TARGET Hyperion.NET.Shared)
             add_dependencies(Hyperion.Editor Hyperion.NET.Shared)
         endif()

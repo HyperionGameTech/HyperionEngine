@@ -99,7 +99,7 @@
 
                 <!-- Center Panel: Viewport & Content Browser -->
                 <Grid Grid.Column="2" RowDefinitions="*, 4, 250">
-                    <!-- Viewport (VulkanControl Placeholder) -->
+                    <!-- Viewport (EditorViewport Placeholder) -->
                     <Border Grid.Row="0" Background="#101010" BorderBrush="#303030" BorderThickness="1">
                         <Grid>
                             <TextBlock Text="Scene View" 
@@ -108,7 +108,7 @@
                                        Margin="10" 
                                        Foreground="Gray"/>
                         
-                            <local:VulkanViewport Name="VulkanViewport" 
+                            <local:EditorViewport Name="EditorViewport" 
                                 HorizontalAlignment="Stretch" 
                                 VerticalAlignment="Stretch"/>
                         </Grid>

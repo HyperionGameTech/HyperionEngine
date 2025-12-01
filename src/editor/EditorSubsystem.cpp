@@ -13,7 +13,7 @@
 
 #include <editor/ui/debug/EditorDebugOverlay.hpp>
 
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>

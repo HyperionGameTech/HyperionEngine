@@ -1311,7 +1311,15 @@ bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& out
 
     TResourceHandle<ScriptObjectResource> resourceHandle(*target->GetScriptObjectResource());
 
-    outObjectReference = resourceHandle->GetManagedObject()->GetObjectReference();
+    dotnet::ManagedObject* managedObject = resourceHandle->GetManagedObject();
+    AssertDebug(managedObject != nullptr);
+
+    if (!managedObject)
+    {
+        return false;
+    }
+
+    outObjectReference = managedObject->GetObjectReference();
 
     return true;
 }
@@ -1479,12 +1487,14 @@ bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::Objec
 
     TResourceHandle<ScriptObjectResource> resourceHandle(*target->GetScriptObjectResource());
 
-    if (!resourceHandle->GetManagedObject()->IsValid())
+    dotnet::ManagedObject* managedObject = resourceHandle->GetManagedObject();
+
+    if (!managedObject || !managedObject->IsValid())
     {
         return false;
     }
 
-    outObjectReference = resourceHandle->GetManagedObject()->GetObjectReference();
+    outObjectReference = managedObject->GetObjectReference();
 
     return true;
 }
@@ -1499,8 +1509,11 @@ bool DynamicClassInstance::CanCreateInstance() const
     {
         Assert(m_parent != nullptr);
 
-        return m_parent->CanCreateInstance()
-            && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT);
+        if (m_parent->CanCreateInstance()
+            && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT))
+        {
+            return true;
+        }
     }
 #endif
 
@@ -1531,6 +1544,9 @@ void DynamicClassInstance::PostLoad_Internal(void* objectPtr) const
 
 bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
 {
+    ScriptObjectResource* scriptObjectResource = nullptr;
+    bool isCreated = false;
+
 #ifdef HYP_DOTNET
     RC<dotnet::ManagedClass> managedClass = GetManagedClass();
 
@@ -1538,29 +1554,31 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
     {
         Assert(m_parent != nullptr);
 
-        // suppress default managed object creation - we will create it ourselves
-        GlobalContextScope scope(ObjectInitializerContext { this, ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
-
         {
-            HypData value;
+            // suppress default managed object creation - we will create it ourselves
+            GlobalContextScope scope(ObjectInitializerContext { this, ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
-            if (!m_parent->CreateInstance(value, /* allowAbstract */ true))
             {
-                return false;
-            }
+                HypData value;
 
-            Assert(value.IsValid());
+                if (!m_parent->CreateInstance(value, /* allowAbstract */ true))
+                {
+                    HYP_FAIL("Failed to create instance of parent class {} for dynamic class {}", m_parent->GetName(), GetName());
+                }
 
-            if (m_parent->UseHandles())
-            {
-                AnyHandle handle = std::move(value.Get<AnyHandle>());
-                Assert(handle.IsValid());
+                Assert(value.IsValid());
 
-                out = HypData(AnyHandle(this, handle.Get()));
-            }
-            else
-            {
-                out = std::move(value);
+                if (m_parent->UseHandles())
+                {
+                    AnyHandle handle = std::move(value.Get<AnyHandle>());
+                    Assert(handle.IsValid());
+
+                    out = HypData(AnyHandle(this, handle.Get()));
+                }
+                else
+                {
+                    out = std::move(value);
+                }
             }
         }
 
@@ -1569,30 +1587,41 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
         ObjectBase* target = reinterpret_cast<ObjectBase*>(out.ToRef().GetPointer());
         Assert(target != nullptr);
 
-        ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(TypedObjPtr(this, target), managedClass);
-        AssertDebug(scriptObjectResource != nullptr);
+        ObjectInitializerContext* context = GetGlobalContext<ObjectInitializerContext>();
 
-        // keep it alive
-        scriptObjectResource->IncRef();
+        if ((!context || !(context->flags & ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)))
+        {
+            scriptObjectResource = target->GetScriptObjectResource();
 
-        target->SetScriptObjectResource(scriptObjectResource);
+            if (!scriptObjectResource)
+            {
+                scriptObjectResource = AllocateResource<ScriptObjectResource>(TypedObjPtr(this, target), managedClass);
+                AssertDebug(scriptObjectResource != nullptr);
 
-        return true;
+                target->SetScriptObjectResource(scriptObjectResource);
+            }
+            else
+            {
+                scriptObjectResource->SetScriptObjectData_DotNet(ScriptObjectData_DotNet { .managedClass = managedClass });
+            }
+
+            // keep it alive
+            scriptObjectResource->IncRef();
+        }
+
+        isCreated = true;
     }
 #endif
 
-#ifdef HYP_SCRIPT
+#if 0 // def HYP_SCRIPT
     if (IsEnumType())
     {
         HYP_NOT_IMPLEMENTED(); // enum instance creation not yet implemented for scripts
     }
 
-    HypData obj; // @TODO
-
     // get or create new container for dynamic type
     ObjectContainer<ObjectBase>* container = static_cast<ObjectContainer<ObjectBase>*>(GetObjectContainer());
     Assert(container != nullptr);
-    Assert(container->GetObjectTypeId() == m_typeId);
 
     Array<const Class*> dynamicParents;
     const Class* topParent = m_parent;
@@ -1604,12 +1633,10 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
             if (!topParent->IsDynamic())
             {
                 // stop after first non-dynamic parent class
-                HYP_FAIL("Non-dynamic parent class construction not yet implemented for dynamic class {}, Parent class: {}",
+                HYP_LOG(Core, Error, "Non-dynamic parent class construction not yet implemented in HypScript for dynamic class {}, Parent class: {}",
                     GetName(), topParent->GetName());
 
-                HYP_NOT_IMPLEMENTED(); // non-dynamic parent class construction not yet implemented
-
-                break;
+                return isCreated;
             }
 
             dynamicParents.PushBack(topParent);
@@ -1623,8 +1650,8 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
     ObjectHeader* header = container->Allocate(m_size);
     header->cls = this;
 
-    ObjectBase* ptr = ObjectHeader::GetObjectPointer(header);
-    new (ptr) ObjectBase();
+    ObjectBase* target = ObjectHeader::GetObjectPointer(header);
+    new (target) ObjectBase();
 
     // where to start writing fields
     SizeType fieldOffset = (topParent != nullptr && !topParent->IsDynamic() ? topParent->GetSize() : 0)
@@ -1635,7 +1662,7 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
     AssertDebug(fieldOffset + sizeof(ClassRef) <= m_size,
         "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(ClassRef), m_size);
 
-    ClassRef* classFieldPtr = (ClassRef*)(UIntPtr(ptr) + fieldOffset);
+    ClassRef* classFieldPtr = (ClassRef*)(UIntPtr(target) + fieldOffset);
     new (classFieldPtr) ClassRef(this);
     fieldOffset += sizeof(ClassRef);
 
@@ -1655,7 +1682,7 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
             AssertDebug(fieldOffset + sizeof(HypData) <= m_size,
                 "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(HypData), m_size);
 
-            HypData* fieldPtr = (HypData*)(UIntPtr(ptr) + fieldOffset);
+            HypData* fieldPtr = (HypData*)(UIntPtr(target) + fieldOffset);
             new (fieldPtr) HypData();
 
             fieldOffset += sizeof(HypData);
@@ -1670,27 +1697,45 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
         AssertDebug(fieldOffset + sizeof(HypData) <= m_size,
             "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(HypData), m_size);
 
-        HypData* fieldPtr = (HypData*)(UIntPtr(ptr) + fieldOffset);
+        HypData* fieldPtr = (HypData*)(UIntPtr(target) + fieldOffset);
         new (fieldPtr) HypData();
 
         fieldOffset += sizeof(HypData);
     }
 
-    ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
-    Assert(scriptObjectResource != nullptr);
-    ptr->SetScriptObjectResource(scriptObjectResource);
-
     Handle<ObjectBase> handle;
-    handle.ptr = static_cast<ObjectBase*>(ptr);
+    handle.ptr = static_cast<ObjectBase*>(target);
 
-    out = HypData(std::move(handle));
+    HypData obj(std::move(handle));
+    out = obj;
 
     PopGlobalContext<ObjectInitializerContext>();
 
-    return true;
+    // ObjectInitializerContext* context = GetGlobalContext<ObjectInitializerContext>();
+
+    // if ((!context || !(context->flags & ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)))
+    // {
+    scriptObjectResource = target->GetScriptObjectResource();
+
+    if (!scriptObjectResource)
+    {
+        scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
+        Assert(scriptObjectResource != nullptr);
+
+        target->SetScriptObjectResource(scriptObjectResource);
+    }
+    else
+    {
+        scriptObjectResource->SetScriptObjectData_HypScript(ScriptObjectData_HypScript {
+            .instance = nullptr,
+            .obj = std::move(obj) });
+    }
+    // }
+
+    isCreated = true;
 #endif
 
-    return false;
+    return isCreated;
 }
 
 bool DynamicClassInstance::CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const

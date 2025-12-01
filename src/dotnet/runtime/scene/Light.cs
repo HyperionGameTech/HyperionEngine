@@ -33,9 +33,48 @@ namespace Hyperion
         {
         }
 
-        ~Light()
+        public LightType Type
         {
-            Logger.Log(LogType.Warn, "Destroying Light with Id: {0}", this.Id);
+            get
+            {
+                return this.GetLightType();
+            }
+        }
+
+        public Color Color
+        {
+            get
+            {
+                return this.GetColor();
+            }
+            set
+            {
+                this.SetColor(value);
+            }
+        }
+
+        public float Intensity
+        {
+            get
+            {
+                return this.GetIntensity();
+            }
+            set
+            {
+                this.SetIntensity(value);
+            }
+        }
+
+        public Vec2u ShadowMapDimensions
+        {
+            get
+            {
+                return this.GetShadowMapDimensions();
+            }
+            set
+            {
+                this.SetShadowMapDimensions(value);
+            }
         }
     }
 
@@ -45,6 +84,18 @@ namespace Hyperion
         public DirectionalLight()
         {
         }
+
+        public Vec3f Direction
+        {
+            get
+            {
+                return this.GetDirection();
+            }
+            set
+            {
+                this.SetDirection(value);
+            }
+        }
     }
 
     [ClassBinding(Name = "PointLight")]
@@ -52,6 +103,30 @@ namespace Hyperion
     {
         public PointLight()
         {
+        }
+
+        public float Radius
+        {
+            get
+            {
+                return this.GetRadius();
+            }
+            set
+            {
+                this.SetRadius(value);
+            }
+        }
+
+        public float Falloff
+        {
+            get
+            {
+                return this.GetFalloff();
+            }
+            set
+            {
+                this.SetFalloff(value);
+            }
         }
     }
 
@@ -61,6 +136,54 @@ namespace Hyperion
         public SpotLight()
         {
         }
+
+        public Vec2f SpotAngles
+        {
+            get
+            {
+                return this.GetSpotAngles();
+            }
+            set
+            {
+                this.SetSpotAngles(value);
+            }
+        }
+
+        public float Radius
+        {
+            get
+            {
+                return this.GetRadius();
+            }
+            set
+            {
+                this.SetRadius(value);
+            }
+        }
+
+        public float Falloff
+        {
+            get
+            {
+                return this.GetFalloff();
+            }
+            set
+            {
+                this.SetFalloff(value);
+            }
+        }
+
+        public Vec2f AreaSize
+        {
+            get
+            {
+                return this.GetAreaSize();
+            }
+            set
+            {
+                this.SetAreaSize(value);
+            }
+        }
     }
 
     [ClassBinding(Name = "AreaRectLight")]
@@ -68,6 +191,30 @@ namespace Hyperion
     {
         public AreaRectLight()
         {
+        }
+
+        public Vec2f AreaSize
+        {
+            get
+            {
+                return this.GetAreaSize();
+            }
+            set
+            {
+                this.SetAreaSize(value);
+            }
+        }
+
+        public Material Material
+        {
+            get
+            {
+                return this.GetMaterial();
+            }
+            set
+            {
+                this.SetMaterial(value);
+            }
         }
     }
 }

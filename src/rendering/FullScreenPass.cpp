@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/Defines.hpp"
 #include <HyperionPch.hpp>
 
 #include <rendering/FullScreenPass.hpp>
@@ -321,20 +322,26 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
 
     m_extent = newSize;
 
-    // throw away graphics pipeline cache handle to force recreation.
-    m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
-
-    if (!m_framebuffer.IsValid())
+    if (!m_isInitialized)
     {
-        // Not created yet; skip
+        // not yet created, just set new size
         return;
     }
 
-    SafeDelete(std::move(m_framebuffer));
+    // throw away graphics pipeline cache handle to force recreation.
+    m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
+
+    if (!(m_flags & FSP_EXTERNAL_RENDERTARGET))
+    {
+        if (!m_framebuffer || m_framebuffer->GetExtent() == newSize)
+        {
+            SafeDelete(std::move(m_framebuffer));
+            CreateFramebuffer();
+        }
+    }
 
     m_temporalBlending.Reset();
 
-    CreateFramebuffer();
     CreateMergeHalfResTexturesPass();
     CreateRenderTextureToScreenPass();
     CreateTemporalBlending();

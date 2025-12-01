@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "core/debug/Debug.hpp"
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
@@ -37,14 +38,35 @@ public:
         return m_world;
     }
 
-    virtual void Update(float delta) final;
-    virtual void HandleEvent(SystemEvent&& event) final;
+    HYP_METHOD(Scriptable)
+    virtual void OnLaunch() final;
+
+    HYP_METHOD(Scriptable)
+    virtual void OnUpdate(float delta) final;
+
+    void HandleEvent(SystemEvent&& event);
 
 protected:
-    virtual void Init() override;
+    void Init() override final;
 
-    virtual void Logic(float delta) = 0;
+    virtual void Logic(float delta)
+    {
+        HYP_PURE_VIRTUAL();
+    }
+
     virtual void OnInputEvent(const SystemEvent& event);
+
+    virtual void OnLaunch_Impl()
+    {
+        // must be implemented by derived class
+        HYP_PURE_VIRTUAL();
+    }
+
+    virtual void OnUpdate_Impl(float delta)
+    {
+        // must be implemented by derived class
+        HYP_PURE_VIRTUAL();
+    }
 
     const Handle<UISubsystem>& GetUISubsystem() const
     {

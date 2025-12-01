@@ -19,5 +19,22 @@ namespace Hyperion
         public AssetObject()
         {
         }
+
+        public Name Name
+        {
+            get
+            {
+                return this.GetName();
+            }
+            set
+            {
+                var res = this.Rename(value);
+
+                if (!res.IsValid)
+                {
+                    throw new InvalidOperationException($"Failed to rename AssetObject to '{value}': {res}");
+                }
+            }
+        }
     }
 }

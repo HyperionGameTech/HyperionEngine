@@ -9,5 +9,13 @@ namespace Hyperion
         public EditorSubsystem()
         {
         }
+
+        public EditorProject CurrentProject
+        {
+            get
+            {
+                return this.GetCurrentProject();
+            }
+        }
     }
 }

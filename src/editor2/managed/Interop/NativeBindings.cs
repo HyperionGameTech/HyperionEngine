@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion.Editor
 {
+    public delegate void InitFromManagedDelegate();
+
     [Flags]
     public enum WindowFlags : uint
     {
@@ -62,5 +64,8 @@ namespace Hyperion.Editor
 
         [DllImport("hyperion")]
         public static extern void Hyp_MainThreadUpdate();
+
+        [DllImport("hyperion")]
+        public static unsafe extern void Hyp_SetInitFromManagedCallback(delegate* unmanaged<void> callback);
     }
 }

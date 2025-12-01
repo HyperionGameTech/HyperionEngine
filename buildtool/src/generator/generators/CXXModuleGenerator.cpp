@@ -572,6 +572,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                         writer.WriteString(HYP_FORMAT("void {}::{}({}){}", cls.name, member.name, methodArgsStringSig, functionType->isConstMethod ? " const" : ""));
                         writer.WriteString("\n");
                         writer.WriteString("{\n");
+                        writer.WriteString("#ifdef HYP_DOTNET\n");
                         writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
                         writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
@@ -583,6 +584,8 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                         writer.WriteString("        }\n");
                         writer.WriteString("    }\n");
                         writer.WriteString("\n");
+                        writer.WriteString("#endif // HYP_DOTNET\n");
+                        writer.WriteString("\n"); // @TODO: support HYP_SCRIPT here
                         writer.WriteString(HYP_FORMAT("    {}_Impl({});\n", member.name, methodArgsStringCall));
                         writer.WriteString("}\n");
                     }
@@ -591,6 +594,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                         writer.WriteString(HYP_FORMAT("{} {}::{}({}){}", returnTypeString, cls.name, member.name, methodArgsStringSig, functionType->isConstMethod ? " const" : ""));
                         writer.WriteString("\n");
                         writer.WriteString("{\n");
+                        writer.WriteString("#ifdef HYP_DOTNET\n");
                         writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
                         writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
@@ -601,6 +605,8 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                         writer.WriteString("        }\n");
                         writer.WriteString("    }\n");
                         writer.WriteString("\n");
+                        writer.WriteString("#endif // HYP_DOTNET\n");
+                        writer.WriteString("\n"); // @TODO: support HYP_SCRIPT here
                         writer.WriteString(HYP_FORMAT("    return {}_Impl({});\n", member.name, methodArgsStringCall));
                         writer.WriteString("}\n");
                     }
@@ -913,6 +919,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                         writer.WriteString(HYP_FORMAT("void {}::{}({}){}", cls.name, member.name, methodArgsStringSig, functionType->isConstMethod ? " const" : ""));
                         writer.WriteString("\n");
                         writer.WriteString("{\n");
+                        writer.WriteString("#ifdef HYP_DOTNET\n");
                         writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
                         writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
@@ -924,6 +931,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                         writer.WriteString("        }\n");
                         // writer.WriteString(HYP_FORMAT("        HYP_FAIL(\"No method '{}' on managed object of type %s\", managed_object->GetClass()->GetName().Data());\n", member.name));
                         writer.WriteString("    }\n");
+                        writer.WriteString("#endif // HYP_DOTNET\n");
                         writer.WriteString("\n");
                         writer.WriteString(HYP_FORMAT("    {}_Impl({});\n", member.name, methodArgsStringCall));
                         writer.WriteString("}\n");
@@ -933,6 +941,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                         writer.WriteString(HYP_FORMAT("{} {}::{}({}){}", returnTypeString, cls.name, member.name, methodArgsStringSig, functionType->isConstMethod ? " const" : ""));
                         writer.WriteString("\n");
                         writer.WriteString("{\n");
+                        writer.WriteString("#ifdef HYP_DOTNET\n");
                         writer.WriteString("    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
                         writer.WriteString("        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
@@ -943,6 +952,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                         writer.WriteString("        }\n");
                         // writer.WriteString(HYP_FORMAT("        HYP_FAIL(\"No method '{}' on managed object of type %s\", managed_object->GetClass()->GetName().Data());\n", member.name));
                         writer.WriteString("    }\n");
+                        writer.WriteString("#endif // HYP_DOTNET\n");
                         writer.WriteString("\n");
                         writer.WriteString(HYP_FORMAT("    return {}_Impl({});\n", member.name, methodArgsStringCall));
                         writer.WriteString("}\n");

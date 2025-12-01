@@ -892,7 +892,7 @@ VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
 
     for (const VulkanFramebufferRef& framebuffer : framebuffers)
     {
-        HYP_GFX_ASSERT(framebuffer.IsValid());
+        Assert(framebuffer.IsValid());
 
         if (framebuffer->GetRenderPass() != nullptr)
         {

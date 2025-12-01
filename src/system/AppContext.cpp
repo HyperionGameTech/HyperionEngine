@@ -660,22 +660,21 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 {
     switch (msg)
     {
-    case WM_SIZE:   // fallthrough
-    //case WM_SIZING: // fallthrough
+    case WM_SIZE: // fallthrough
+    // case WM_SIZING: // fallthrough
     case WM_EXITSIZEMOVE:
     {
         int width = LOWORD(lParam);
         int height = HIWORD(lParam);
 
-        //event = SystemEvent(SystemEvent::WINDOW_RESIZED, platformEvent);
-        //event.GetEventData().Set(Vec2i(width, height));
+        // event = SystemEvent(SystemEvent::WINDOW_RESIZED, platformEvent);
+        // event.GetEventData().Set(Vec2i(width, height));
 
         /// @TODO: Get window from hwnd
         if (Swapchain* swapchain = GetSwapchain())
         {
             if (IsOnThread(g_renderThread))
             {
-                g_renderBackend->GetDevice()->WaitIdle();
                 swapchain->Resize(Vec2u(uint32(width), uint32(height)));
             }
             else
@@ -690,7 +689,6 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
                             return;
                         }
 
-                        g_renderBackend->GetDevice()->WaitIdle();
                         swapchain->Resize(Vec2u(uint32(width), uint32(height)));
                     },
                     TaskEnqueueFlags::FIRE_AND_FORGET);
@@ -1021,7 +1019,7 @@ int Win32AppContext::PollEvent(SystemEvent& event)
 
             return 1;
         }
-        
+
         default:
             break;
         }

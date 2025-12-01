@@ -328,7 +328,8 @@ void UIStage::Init()
     };
 
     updateSurfaceSize(g_appContext->GetMainWindow());
-    m_onCurrentWindowChangedHandler = g_appContext->OnCurrentWindowChanged.Bind(updateSurfaceSize);
+    m_onCurrentWindowChangedHandler = g_appContext->OnCurrentWindowChanged
+                                          .BindThreaded(updateSurfaceSize, g_gameThread);
 
     if (!m_defaultFontAtlas)
     {

@@ -39,5 +39,13 @@ namespace Hyperion
 
             return this.GetSubsystemByName(cls.Value.Name) as T;
         }
+
+        public void AddSubsystem<T>(T subsystem) where T : Subsystem
+        {
+            if (!this.TryAddSubsystem(subsystem))
+            {
+                throw new InvalidOperationException($"Failed to add subsystem of type {typeof(T).Name} to World.");
+            }
+        }
     }
 }

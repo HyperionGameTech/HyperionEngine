@@ -93,6 +93,11 @@ static void RegisterPackageAssets(const Handle<EditorProject>& project, const Ha
         });
 }
 
+const Handle<EditorState>& EditorState::GetInstance()
+{
+    return g_editorState;
+}
+
 EditorState::EditorState()
 {
 }
@@ -183,7 +188,7 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
         {
             return;
         }
-        
+
         m_onProjectPackageChangedHandle.Reset();
 
         m_currentProject = project;

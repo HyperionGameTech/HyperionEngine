@@ -39,7 +39,7 @@ static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFra
         switch (framebuffer->GetRenderPass()->GetRenderTargetType())
         {
         case RTT_PRESENT:
-            renderQueue << InsertBarrier(image, RS_PRESENT);
+            // renderQueue << InsertBarrier(image, RS_PRESENT);
             break;
         case RTT_SHADER_RESOURCE:
             renderQueue << InsertBarrier(image, RS_SHADER_RESOURCE);
@@ -94,7 +94,6 @@ RendererResult VulkanAttachmentMap::Create()
 
     VulkanFrame* frame = GetRenderBackend()->GetCurrentFrame();
 
-    // frame may be nullptr if we are creating a swapchain
     if (frame != nullptr)
     {
         RenderQueue& renderQueue = frame->preRenderQueue;
@@ -214,7 +213,7 @@ VulkanFramebuffer::VulkanFramebuffer(Vec2u extent, RenderTargetType renderTarget
       m_handle(VK_NULL_HANDLE),
       m_renderPass(CreateObject<VulkanRenderPass>(renderTargetType, RenderPassMode::RENDER_PASS_INLINE, numMultiviewLayers))
 {
-    m_attachmentMap.framebufferWeak = VulkanFramebufferWeakRef(WeakHandleFromThis());
+    m_attachmentMap.framebufferWeak = WeakHandleFromThis();
 }
 
 VulkanFramebuffer::~VulkanFramebuffer()
@@ -388,7 +387,7 @@ VulkanAttachmentRef VulkanFramebuffer::AddAttachment(const VulkanAttachmentRef& 
     HYP_GFX_ASSERT(attachment->GetFramebuffer().GetUnsafe() == this,
         "Attachment framebuffer does not match framebuffer");
 
-    return m_attachmentMap.AddAttachment(VulkanAttachmentRef(attachment));
+    return m_attachmentMap.AddAttachment(attachment);
 }
 
 VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
@@ -398,8 +397,8 @@ VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
     StoreOperation storeOp)
 {
     VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(
-        VulkanGpuImageRef(image),
-        VulkanFramebufferWeakRef(WeakHandleFromThis()),
+        image,
+        WeakHandleFromThis(),
         m_renderTargetType,
         loadOp,
         storeOp);
@@ -468,6 +467,9 @@ void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
 
 void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
 {
+    // tmp
+    return;
+
     bool shouldCapture = !commandBuffer->IsInRenderPass();
 
     if (shouldCapture)

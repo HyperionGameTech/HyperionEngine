@@ -1,12 +1,20 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include "core/threading/Threads.hpp"
 #import <AppKit/AppKit.h>
 #import <Cocoa/Cocoa.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CAMetalLayer.h>
 
 #include <system/AppContext.hpp>
+
+#include <core/threading/Threads.hpp>
+#include <core/threading/Scheduler.hpp>
+
+#include <engine/EngineGlobals.hpp>
+#include <rendering/RenderBackend.hpp>
+
+#include <rendering/RenderDevice.hpp>
+#include <rendering/vulkan/VulkanSwapchain.hpp>
 
 #include <core/debug/Debug.hpp>
 #include <core/logging/Logger.hpp>
@@ -21,6 +29,10 @@ using namespace hyperion;
 @end
 
 @implementation HyperionMetalView
+
++ (objc_class*)layerClass {
+    return (objc_class*)[CAMetalLayer class];
+}
 
 - (instancetype)initWithFrame:(NSRect)frameRect
 {
@@ -92,11 +104,19 @@ using namespace hyperion;
 
 - (void)setFrameSize:(NSSize)newSize
 {
+    HYP_LOG(Core, Debug, "HyperionMetalView resized to: {}x{}", (int)newSize.width, (int)newSize.height);
+
     [super setFrameSize:newSize];
     
     if (_hyperionWindow)
     {
-        _hyperionWindow->HandleResize(Vec2i((int)newSize.width, (int)newSize.height));
+        const int width = (int)newSize.width;
+        const int height = (int)newSize.height;
+
+        // update swapchain size
+        [self ResizeSwapchain:width height:height];
+
+        _hyperionWindow->HandleResize(Vec2i(width, height));
     }
     
     // Update metal layer drawable size
@@ -127,6 +147,38 @@ using namespace hyperion;
     }
 }
 
+// update swapchain drawable size
+- (void)ResizeSwapchain:(int)width height:(int)height
+{
+    if (!_hyperionWindow)
+    {
+        return;
+    }
+
+    if (Swapchain* swapchain = _hyperionWindow->GetSwapchain())
+    {
+        if (IsOnThread(g_renderThread))
+        {
+            swapchain->Resize(Vec2u(uint32(width), uint32(height)));
+        }
+        else
+        {
+            GetThreadById(g_renderThread)->GetScheduler().Enqueue([swapchainWeak = MakeWeakRef(swapchain), width, height]()
+                {
+                    SwapchainRef swapchain = swapchainWeak.Lock();
+                    if (!swapchain.IsValid())
+                    {
+                        HYP_LOG(Core, Warning, "Attempted to resize invalid swapchain on render thread!");
+                        return;
+                    }
+
+                    swapchain->Resize(Vec2u(uint32(width), uint32(height)));
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+    }
+}
+
 @end
 
 #pragma mark - HyperionWindowDelegate
@@ -137,15 +189,50 @@ using namespace hyperion;
 
 @implementation HyperionWindowDelegate
 
+- (NSSize)windowWillResize:(NSWindow*)sender toSize:(NSSize)frameSize
+{
+    HYP_LOG(Core, Debug,
+          "Window will resize notification received, to size: {}x{}",
+          (int)frameSize.width, (int)frameSize.height);
+
+    return frameSize;
+}
+
 - (void)windowDidResize:(NSNotification *)notification
 {
+    HYP_LOG(Core, Debug, "Window did resize notification received.");
     if (_window)
     {
         NSWindow* nsWindow = [notification object];
         NSRect frame = [nsWindow.contentView frame];
-        _window->HandleResize(Vec2i((int)frame.size.width, (int)frame.size.height));
+        
+        int width = (int)frame.size.width;
+        int height = (int)frame.size.height;
 
-        HYP_BREAKPOINT;
+        if (Swapchain* swapchain = _window->GetSwapchain())
+        {
+            if (IsOnThread(g_renderThread))
+            {
+                swapchain->Resize(Vec2u(uint32(width), uint32(height)));
+            }
+            else
+            {
+                GetThreadById(g_renderThread)->GetScheduler().Enqueue([swapchainWeak = MakeWeakRef(swapchain), width, height]()
+                    {
+                        SwapchainRef swapchain = swapchainWeak.Lock();
+                        if (!swapchain.IsValid())
+                        {
+                            HYP_LOG(Core, Warning, "Attempted to resize invalid swapchain on render thread!");
+                            return;
+                        }
+
+                        swapchain->Resize(Vec2u(uint32(width), uint32(height)));
+                    },
+                    TaskEnqueueFlags::FIRE_AND_FORGET);
+            }
+        }
+
+        _window->HandleResize(Vec2i(width, height));
     }
 }
 
@@ -253,12 +340,11 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
     {
         m_isEmbeddedView = true;
         
-        // parentHwnd can be either an NSWindow* or an NSView*
-        // We'll try to handle both cases
         id parentObject = (id)parentHwnd;
         NSView* parentView = nil;
         NSWindow* parentWindow = nil;
         
+        // handle both NSWindow and NSView as parentHwnd
         if ([parentObject isKindOfClass:[NSWindow class]])
         {
             parentWindow = (NSWindow*)parentObject;
@@ -271,7 +357,8 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         }
         else
         {
-            HYP_LOG(Core, Error, "CocoaApplicationWindow: parentHwnd is not an NSWindow or NSView");
+            String className = [[[parentObject class] description] UTF8String];
+            HYP_FAIL("CocoaApplicationWindow: parentHwnd is not an NSWindow or NSView! Got: {}", className);
             return;
         }
         
@@ -288,6 +375,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         
         // Get the metal layer from the view
         CAMetalLayer* metalLayer = (CAMetalLayer*)[metalView layer];
+        metalLayer.presentsWithTransaction = NO;
         
         if (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
         {
@@ -306,9 +394,13 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         m_nsView = metalView;
         m_metalLayer = [metalLayer retain];
         m_hwnd = parentWindow; // Store reference to parent window for coordinate conversions
-        
-        HYP_LOG(Core, Debug, "CocoaApplicationWindow initialized as embedded view: {} ({}x{})", 
-                m_title, m_size.x, m_size.y);
+
+        HYP_LOG(
+            Core, Debug,
+            "CocoaApplicationWindow initialized as embedded view: {} ({}x{})",
+            m_title, m_size.x, m_size.y);
+
+        [metalView ResizeSwapchain:m_size.x height:m_size.y];
         
         return;
     }

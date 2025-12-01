@@ -14,7 +14,7 @@
 
 namespace hyperion {
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class HYP_API DynamicSkySubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(DynamicSkySubsystem);

@@ -8,6 +8,58 @@ namespace Hyperion
     {
         private static LogChannel logChannel = LogChannel.ByName("Editor");
 
+        public Uuid Uuid
+        {
+            get
+            {
+                return this.GetUUID();
+            }
+        }
+
+        public Name Name
+        {
+            get
+            {
+                return this.GetName();
+            }
+            set
+            {
+                this.SetName(value);
+            }
+        }
+
+        public World World
+        {
+            get
+            {
+                return this.GetWorld();
+            }
+        }
+
+        public Time LastSavedTime
+        {
+            get
+            {
+                return this.GetLastSavedTime();
+            }
+        }
+
+        public string FilePath
+        {
+            get
+            {
+                return this.GetFilePath();
+            }
+        }
+
+        public bool IsSaved
+        {
+            get
+            {
+                return this.IsSaved();
+            }
+        }
+
         public Name GetNextDefaultProjectName(string defaultProjectName)
         {
             string projectsDirectory = this.GetProjectsDirectory();

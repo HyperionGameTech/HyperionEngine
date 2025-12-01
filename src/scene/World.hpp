@@ -10,7 +10,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <core/functional/ScriptableDelegate.hpp>
 #include <core/functional/Proc.hpp>
 
 #include <physics/PhysicsWorld.hpp>
@@ -128,6 +128,9 @@ public:
 
     const Handle<Subsystem>& AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem);
 
+    HYP_METHOD()
+    bool TryAddSubsystem(const Handle<Subsystem>& subsystem);
+
     template <class T>
     HYP_FORCE_INLINE T* GetSubsystem()
     {
@@ -179,7 +182,7 @@ public:
     HYP_METHOD()
     const Handle<Scene>& GetSceneByName(Name name) const;
 
-    Span<const Handle<Scene>> GetScenes() const
+    const Array<Handle<Scene>>& GetScenes() const
     {
         return m_scenes;
     }
@@ -239,10 +242,14 @@ public:
     void BeginUpdate(TaskBatch& inBatch, float delta);
     void EndUpdate();
 
-    Delegate<void, World*, GameStateMode, GameStateMode> OnGameStateChange;
+    HYP_FIELD()
+    ScriptableDelegate<void, World*, GameStateMode, GameStateMode> OnGameStateChange;
 
-    Delegate<void, World*, const Handle<Scene>& /* scene */> OnSceneAdded;
-    Delegate<void, World*, Scene* /* scene */> OnSceneRemoved;
+    HYP_FIELD()
+    ScriptableDelegate<void, World*, const Handle<Scene>& /* scene */> OnSceneAdded;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, World*, Scene* /* scene */> OnSceneRemoved;
 
 private:
     void Init() override;

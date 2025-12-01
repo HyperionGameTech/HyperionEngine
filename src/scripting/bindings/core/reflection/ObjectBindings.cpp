@@ -57,7 +57,7 @@ extern "C"
 
             ptr = TypedObjPtr(cls, value.ToRef().GetPointer());
 
-            // Ref counts are kept as 1 for Handle<T> and RC<T>, managed side is responsible for decrementing the ref count
+            // Ref counts are kept as 1 for Handle<T>, managed side is responsible for decrementing the ref count
             ptr.IncRef();
 
             value.Reset();

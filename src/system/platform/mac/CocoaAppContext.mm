@@ -32,14 +32,15 @@ void DestroyCocoaEvent(CocoaEvent& cocoaEvent)
 {
     if (cocoaEvent.nsEvent != nullptr)
     {
-        // MUST BE DESTROYED ON MAIN THREAD!
         if ([NSThread isMainThread])
         {
             [(NSEvent*)cocoaEvent.nsEvent release];
         }
         else
         {
-            dispatch_sync(dispatch_get_main_queue(), ^{
+            // Can't use dispatch_sync here because it may lead to deadlocks
+            // if called from the game thread and we are using RenderOnMainThread.
+            dispatch_async(dispatch_get_main_queue(), ^{
                 [(NSEvent*)cocoaEvent.nsEvent release];
             });
         }
@@ -55,7 +56,7 @@ CocoaAppContext::CocoaAppContext(ANSIString name, const CommandLineArguments& ar
 {
     if (![NSThread isMainThread])
     {
-        dispatch_sync(dispatch_get_main_queue(), ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
             [NSApplication sharedApplication];
             [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
             [NSApp finishLaunching];
@@ -386,7 +387,7 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
         if (![NSThread isMainThread])
         {
             __block CAMetalLayer* layer = nullptr;
-            dispatch_sync(dispatch_get_main_queue(), ^{
+            dispatch_async(dispatch_get_main_queue(), ^{
                 CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
                 Assert(cocoaWindow != nullptr);
                 layer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
@@ -427,13 +428,16 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
             layer = (CAMetalLayer*)w.contentView.layer;
         };
 
-        if (![NSThread isMainThread])
+
+        if ([NSThread isMainThread])
         {
-            dispatch_sync(dispatch_get_main_queue(), createDummyWindow);
+            createDummyWindow();
         }
         else
         {
-            createDummyWindow();
+            AssertOnThread(g_renderThread);
+
+            dispatch_sync(dispatch_get_main_queue(), createDummyWindow);
         }
 
         class CocoaDummyVulkanSurfaceContext : public IDummyVulkanSurfaceContext
@@ -459,6 +463,10 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
                     }
                     else
                     {
+                        // will only occur if RenderOnMainThread is false
+
+                        AssertOnThread(g_renderThread);
+
                         NSWindow *w = m_window;
                         dispatch_sync(dispatch_get_main_queue(), ^{
                             [w close];

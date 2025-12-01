@@ -84,54 +84,59 @@ public:
 
     ~ScriptObjectResource();
 
-    ScriptLanguage GetScriptLanguage() const;
+    uint32 GetScriptLanguageMask() const;
 
-    HYP_FORCE_INLINE dotnet::ManagedObject* GetManagedObject() const
-    {
-#ifdef HYP_DOTNET
-        if (ScriptObjectData_DotNet* data = GetScriptObjectData_DotNet())
-        {
-            return data->objectPtr;
-        }
-#endif
-
-        return nullptr;
-    }
-
-    const RC<dotnet::ManagedClass> GetManagedClass() const
-    {
-#ifdef HYP_DOTNET
-        if (ScriptObjectData_DotNet* data = GetScriptObjectData_DotNet())
-        {
-            return data->managedClass;
-        }
-#endif
-
-        return nullptr;
-    }
+    dotnet::ManagedObject* GetManagedObject() const;
+    const RC<dotnet::ManagedClass> GetManagedClass() const;
 
     ScriptObjectData_Native* GetScriptObjectData_Native() const
     {
-        return m_scriptObjectData.Is<ScriptObjectData_Native>() ? &m_scriptObjectData.Get<ScriptObjectData_Native>() : nullptr;
+        return nativeData;
     }
 
+    void SetScriptObjectData_Native(const ScriptObjectData_Native& data)
+    {
+        if (!nativeData)
+        {
+            nativeData = new ScriptObjectData_Native();
+        }
+
+        *nativeData = data;
+    }
+
+#ifdef HYP_DOTNET
     ScriptObjectData_DotNet* GetScriptObjectData_DotNet() const
     {
-#ifdef HYP_DOTNET
-        return m_scriptObjectData.Is<ScriptObjectData_DotNet>() ? &m_scriptObjectData.Get<ScriptObjectData_DotNet>() : nullptr;
-#else
-        return nullptr;
-#endif
+        return dotNetData;
     }
 
+    void SetScriptObjectData_DotNet(const ScriptObjectData_DotNet& data)
+    {
+        if (!dotNetData)
+        {
+            dotNetData = new ScriptObjectData_DotNet();
+        }
+
+        *dotNetData = data;
+    }
+#endif
+
+#ifdef HYP_SCRIPT
     ScriptObjectData_HypScript* GetScriptObjectData_HypScript() const
     {
-#ifdef HYP_SCRIPT
-        return m_scriptObjectData.Is<ScriptObjectData_HypScript>() ? &m_scriptObjectData.Get<ScriptObjectData_HypScript>() : nullptr;
-#else
-        return nullptr;
-#endif
+        return hypScriptData;
     }
+
+    void SetScriptObjectData_HypScript(const ScriptObjectData_HypScript& data)
+    {
+        if (!hypScriptData)
+        {
+            hypScriptData = new ScriptObjectData_HypScript();
+        }
+
+        *hypScriptData = data;
+    }
+#endif
 
 protected:
     virtual void Initialize() override final;
@@ -139,15 +144,17 @@ protected:
 
     TypedObjPtr m_ptr;
 
-    mutable Variant<
+    struct
+    {
+        ScriptObjectData_Native* nativeData = nullptr;
+
 #ifdef HYP_DOTNET
-        ScriptObjectData_DotNet,
+        ScriptObjectData_DotNet* dotNetData = nullptr;
 #endif
 #ifdef HYP_SCRIPT
-        ScriptObjectData_HypScript,
+        ScriptObjectData_HypScript* hypScriptData = nullptr;
 #endif
-        ScriptObjectData_Native>
-        m_scriptObjectData;
+    };
 };
 
 } // namespace hyperion

@@ -104,10 +104,8 @@ HyperionEditor::~HyperionEditor()
 {
 }
 
-void HyperionEditor::Init()
+void HyperionEditor::OnLaunch_Impl()
 {
-    Game::Init();
-
     m_editorSubsystem = CreateObject<EditorSubsystem>();
 
     GetWorld()->AddSubsystem(m_editorSubsystem);
@@ -202,7 +200,7 @@ void HyperionEditor::Init()
 #endif
 }
 
-void HyperionEditor::Logic(float delta)
+void HyperionEditor::OnUpdate_Impl(float delta)
 {
 }
 

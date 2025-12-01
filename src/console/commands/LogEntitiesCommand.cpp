@@ -24,7 +24,7 @@
 
 #include <ui/UIObject.hpp>
 
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
 
@@ -43,7 +43,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
     HYP_LOG(LogEntities, Info, "LogEntitiesCommand test");
 
     // Trigger .NET garbage collector and wait for finalizers (there may be entities waiting to be collected)
-    dotnet::DotNetSystem::GetInstance().GetGlobalFunctions().triggerGcFunction();
+    DotNETHost::GetInstance().GetGlobalFunctions().triggerGcFunction();
     ThreadSleep(1000);
 
     String fileArg = args["file"].ToString();

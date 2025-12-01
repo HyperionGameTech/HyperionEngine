@@ -1,19 +1,20 @@
 #include <HyperionPch.hpp>
+
 #include <scripting/ScriptingService.hpp>
+
+#include <core/Core.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
 #include <core/threading/Threads.hpp>
 
+#include <core/profiling/ProfileScope.hpp>
+
 #include <dotnet/Assembly.hpp>
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
-#include <dotnet/DotNetSystem.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
-#include <type_traits>
+#include <dotnet/DotNETHost.hpp>
 
 namespace hyperion {
 
@@ -24,18 +25,20 @@ class ScriptTracker
 public:
     ScriptTracker()
     {
-        if (!dotnet::DotNetSystem::GetInstance().IsInitialized())
+        if (!DotNETHost::GetInstance().IsInitialized())
         {
             return;
         }
 
-        RC<dotnet::Assembly> managedAssembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("Hyperion.NET.Scripting.dll");
+        const bool isEditor = CoreApi_GetCommandLineArguments()["Editor"].ToBool();
+
+        RC<dotnet::Assembly> managedAssembly = DotNETHost::GetInstance().LoadAssembly("Hyperion.NET.Scripting.dll");
         Assert(managedAssembly != nullptr, "Failed to load Hyperion.NET.Scripting assembly");
 
-        RC<dotnet::ManagedClass> classPtr = managedAssembly->FindClassByName("ScriptTracker");
-        Assert(classPtr != nullptr, "Failed to load ScriptTracker class from Hyperion.NET.Scripting assembly");
+        RC<dotnet::ManagedClass> managedClass = managedAssembly->FindClassByName("ScriptTracker");
+        Assert(managedClass != nullptr, "Failed to load ScriptTracker class from Hyperion.NET.Scripting assembly");
 
-        object = UniquePtr<dotnet::ManagedObject>(classPtr->NewObject());
+        object = UniquePtr<dotnet::ManagedObject>(managedClass->NewObject());
         assembly = std::move(managedAssembly);
     }
 

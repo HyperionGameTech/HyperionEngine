@@ -7,6 +7,7 @@
 #include <core/reflection/Object.hpp>
 
 #include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -19,25 +20,34 @@
 
 namespace hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Resource);
-HYP_DECLARE_LOG_CHANNEL(Object);
-
 #pragma region ScriptObjectResource
 
 ScriptObjectResource::ScriptObjectResource() = default;
 
 ScriptObjectResource::ScriptObjectResource(const Handle<ObjectBase>& nativeObject)
 {
-    ScriptObjectData_Native& data = m_scriptObjectData.Emplace<ScriptObjectData_Native>();
+    if (!nativeData)
+    {
+        nativeData = new ScriptObjectData_Native();
+    }
+
+    ScriptObjectData_Native& data = *nativeData;
     data.nativeObject = nativeObject;
 }
 
 ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
 {
 #ifdef HYP_DOTNET
-    ScriptObjectData_DotNet& data = m_scriptObjectData.Emplace<ScriptObjectData_DotNet>();
+    if (!dotNetData)
+    {
+        dotNetData = new ScriptObjectData_DotNet();
+    }
+
+    ScriptObjectData_DotNet& data = *dotNetData;
     data.objectPtr = objectPtr;
     data.managedClass = managedClass;
+
+    AssertDebug(data.objectPtr && data.managedClass);
 #endif
 }
 
@@ -50,9 +60,16 @@ ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, dotnet::ManagedObjec
     : m_ptr(ptr)
 {
 #ifdef HYP_DOTNET
-    ScriptObjectData_DotNet& data = m_scriptObjectData.Emplace<ScriptObjectData_DotNet>();
+    if (!dotNetData)
+    {
+        dotNetData = new ScriptObjectData_DotNet();
+    }
+
+    ScriptObjectData_DotNet& data = *dotNetData;
     data.objectPtr = objectPtr;
     data.managedClass = managedClass;
+
+    AssertDebug(data.objectPtr && data.managedClass);
 #endif
 }
 
@@ -60,9 +77,16 @@ ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::Man
     : m_ptr(ptr)
 {
 #ifdef HYP_DOTNET
-    ScriptObjectData_DotNet& data = m_scriptObjectData.Emplace<ScriptObjectData_DotNet>();
+    if (!dotNetData)
+    {
+        dotNetData = new ScriptObjectData_DotNet();
+    }
+
+    ScriptObjectData_DotNet& data = *dotNetData;
     data.objectPtr = nullptr;
     data.managedClass = managedClass;
+
+    AssertDebug(m_ptr && managedClass);
 
     if (m_ptr && managedClass)
     {
@@ -70,16 +94,18 @@ ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::Man
 
         if (objectFlags & ObjectFlags::CREATED_FROM_MANAGED)
         {
+            HYP_LOG(DotNET, Debug, "Wrapping existing managed object with class {}", managedClass->GetName());
+
             data.objectPtr = new dotnet::ManagedObject(managedClass->RefCountedPtrFromThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
         }
         else
         {
-            HYP_LOG(Object, Debug, "Creating new managed object with class {}, reference will be incremented from C#", managedClass->GetName());
+            HYP_LOG(DotNET, Debug, "Creating new managed object with class {}, reference will be incremented from C#", managedClass->GetName());
 
             data.objectPtr = managedClass->NewObject(m_ptr.GetClass(), address);
         }
 
-        HYP_CORE_ASSERT(data.objectPtr != nullptr);
+        Assert(data.objectPtr != nullptr);
     }
 #endif
 }
@@ -88,7 +114,12 @@ ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::Man
 
 ScriptObjectResource::ScriptObjectResource(Script_Instance* hypScriptInstance, HypData&& hypScriptValue)
 {
-    ScriptObjectData_HypScript& data = m_scriptObjectData.Emplace<ScriptObjectData_HypScript>();
+    if (!hypScriptData)
+    {
+        hypScriptData = new ScriptObjectData_HypScript();
+    }
+
+    ScriptObjectData_HypScript& data = *hypScriptData;
     data.instance = hypScriptInstance;
     data.obj = std::move(hypScriptValue);
 }
@@ -98,8 +129,6 @@ ScriptObjectResource::ScriptObjectResource(Script_Instance* hypScriptInstance, H
 ScriptObjectResource::~ScriptObjectResource()
 {
 #ifdef HYP_DOTNET
-    ScriptObjectData_DotNet* dotNetData = GetScriptObjectData_DotNet();
-
     if (dotNetData)
     {
         if (dotNetData->objectPtr)
@@ -109,12 +138,13 @@ ScriptObjectResource::~ScriptObjectResource()
         }
 
         dotNetData->managedClass = nullptr;
+
+        delete dotNetData;
+        dotNetData = nullptr;
     }
 #endif
 
 #ifdef HYP_SCRIPT
-    ScriptObjectData_HypScript* hypScriptData = GetScriptObjectData_HypScript();
-
     if (hypScriptData)
     {
         if (hypScriptData->instance)
@@ -124,33 +154,73 @@ ScriptObjectResource::~ScriptObjectResource()
         }
 
         hypScriptData->obj = HypData();
+
+        delete hypScriptData;
+        hypScriptData = nullptr;
     }
 #endif
 
-    m_scriptObjectData.Reset();
+    if (nativeData)
+    {
+        delete nativeData;
+        nativeData = nullptr;
+    }
 }
 
-ScriptLanguage ScriptObjectResource::GetScriptLanguage() const
+uint32 ScriptObjectResource::GetScriptLanguageMask() const
 {
-#if !defined(HYP_DOTNET) && !defined(HYP_SCRIPT)
-    return SL_INVALID;
-#else
-    ScriptLanguage language = SL_INVALID;
+    uint32 mask = 0;
 
-    Visit(m_scriptObjectData, [&language](auto&& data)
-        {
-            language = data.Language;
-        });
+    if (nativeData != nullptr)
+    {
+        mask |= (1 << uint32(SL_NATIVE));
+    }
 
-    return language;
+#ifdef HYP_DOTNET
+    if (dotNetData != nullptr)
+    {
+        mask |= (1 << uint32(SL_CSHARP));
+    }
 #endif
+
+#ifdef HYP_SCRIPT
+    if (hypScriptData != nullptr)
+    {
+        mask |= (1 << uint32(SL_HYPSCRIPT));
+    }
+#endif
+
+    return mask;
+}
+dotnet::ManagedObject* ScriptObjectResource::GetManagedObject() const
+{
+#ifdef HYP_DOTNET
+    // only valid to call on .NET script objects
+    if (dotNetData != nullptr)
+    {
+        return dotNetData->objectPtr;
+    }
+#endif
+
+    return nullptr;
+}
+
+const RC<dotnet::ManagedClass> ScriptObjectResource::GetManagedClass() const
+{
+#ifdef HYP_DOTNET
+    // only valid to call on .NET script objects
+    if (dotNetData != nullptr)
+    {
+        return dotNetData->managedClass;
+    }
+#endif
+
+    return nullptr;
 }
 
 void ScriptObjectResource::Initialize()
 {
 #ifdef HYP_DOTNET
-    ScriptObjectData_DotNet* dotNetData = GetScriptObjectData_DotNet();
-
     if (dotNetData != nullptr)
     {
         if (!dotNetData->objectPtr)
@@ -206,25 +276,45 @@ void ScriptObjectResource::Initialize()
 void ScriptObjectResource::Destroy()
 {
 #ifdef HYP_DOTNET
-    ScriptObjectData_DotNet* dotNetData = GetScriptObjectData_DotNet();
-
     if (dotNetData)
     {
         if (dotNetData->objectPtr)
         {
             const bool result = dotNetData->objectPtr->SetKeepAlive(false);
-
-            HYP_CORE_ASSERT(result);
+            Assert(result);
 
             delete dotNetData->objectPtr;
             dotNetData->objectPtr = nullptr;
         }
 
         dotNetData->managedClass = nullptr;
+
+        delete dotNetData;
+        dotNetData = nullptr;
     }
 #endif
 
-    m_scriptObjectData.Reset();
+#ifdef HYP_SCRIPT
+    if (hypScriptData)
+    {
+        if (hypScriptData->instance)
+        {
+            HypScript::GetInstance().DestroyScript(hypScriptData->instance);
+            hypScriptData->instance = nullptr;
+        }
+
+        hypScriptData->obj = HypData();
+
+        delete hypScriptData;
+        hypScriptData = nullptr;
+    }
+#endif
+
+    if (nativeData)
+    {
+        delete nativeData;
+        nativeData = nullptr;
+    }
 }
 
 #pragma endregion ScriptObjectResource
@@ -238,7 +328,7 @@ HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr)
     AssertDebug(ptr->GetObjectHeader_Internal()->GetRefCountStrong() > 1);
 
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
-        scriptObjectResource && scriptObjectResource->GetScriptLanguage() == SL_CSHARP)
+        scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << SL_CSHARP))
     {
         scriptObjectResource->IncRef();
     }
@@ -247,7 +337,7 @@ HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr)
 HYP_API void Object_DecScriptObjectRef(ObjectBase* ptr)
 {
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
-        scriptObjectResource && scriptObjectResource->GetScriptLanguage() == SL_CSHARP)
+        scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << SL_CSHARP))
     {
         scriptObjectResource->DecRef();
     }

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name = "Skeleton")]
-    public class Skeleton : ObjectBase
+    public class Skeleton : AssetObject
     {
         public Skeleton()
         {

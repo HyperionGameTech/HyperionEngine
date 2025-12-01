@@ -6,7 +6,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 
 #include <core/Core.hpp>
 
@@ -205,6 +205,8 @@ HYP_API const FilePath& GetTempDirectory()
     return s_resourceDirectory.path;
 }
 
+static void (*s_initFromManagedCallback)() = nullptr;
+
 extern "C"
 {
     HYP_API int Hyp_Initialize(int argc, char** argv)
@@ -269,7 +271,13 @@ extern "C"
         const FilePath basePath = FilePath(CoreApi_GetCommandLineArguments().GetCommand()).BasePath();
         CoreApi_SetExecutablePath(basePath);
 
-        dotnet::DotNetSystem::GetInstance().Initialize(basePath);
+        const bool isEditor = CoreApi_GetCommandLineArguments()["Editor"].ToBool();
+
+        // dont initialize hostfxr if running from editor,
+        // leads to type identity issues with managed types
+        // due to multiple runtimes being loaded.
+        DotNETHost::GetInstance().Initialize(basePath, /* initFromManaged */ isEditor, s_initFromManagedCallback);
+
         ConsoleCommandManager::GetInstance().Initialize();
         AudioManager::GetInstance().Initialize();
         TaskSystem::GetInstance().Start();
@@ -379,7 +387,7 @@ extern "C"
 
         RenderApi::Shutdown();
 
-        dotnet::DotNetSystem::GetInstance().Shutdown();
+        DotNETHost::GetInstance().Shutdown();
         ComponentInterfaceRegistry::GetInstance().Shutdown();
         ConsoleCommandManager::GetInstance().Shutdown();
         AudioManager::GetInstance().Shutdown();
@@ -615,6 +623,11 @@ extern "C"
         Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
 
         g_engineDriver->MainThreadUpdate();
+    }
+
+    HYP_API void Hyp_SetInitFromManagedCallback(void (*callback)())
+    {
+        s_initFromManagedCallback = callback;
     }
 }
 

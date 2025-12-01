@@ -16,7 +16,7 @@
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 
 #include <core/io/BufferedByteReader.hpp>
 
@@ -42,10 +42,10 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 {
     Assert(sor != nullptr);
 
-    switch (sor->GetScriptLanguage())
-    {
+    const uint32 mask = sor->GetScriptLanguageMask();
+
 #ifdef HYP_DOTNET
-    case SL_CSHARP:
+    if (mask & (1u << SL_CSHARP))
     {
         AssertDebug(sor->GetManagedObject() != nullptr);
 
@@ -53,30 +53,27 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         {
             if (dotnet::ManagedMethod* methodPtr = classPtr->GetMethod(methodName))
             {
-                if (methodPtr->GetAttributes().HasAttribute("ScriptMethodStub"))
+                if (!methodPtr->GetAttributes().HasAttribute("ScriptMethodStub"))
                 {
                     // Stubbed method, don't waste cycles calling it if it's not implemented
 
-                    break;
-                }
-
-                if constexpr (!std::is_void_v<ReturnType>)
-                {
-                    AssertDebug(outReturnValue != nullptr);
-                    new (outReturnValue) ReturnType(sor->GetManagedObject()->InvokeMethod<ReturnType>(methodPtr, std::forward<ArgTypes>(args)...));
-                }
-                else
-                {
-                    sor->GetManagedObject()->InvokeMethod<void>(methodPtr, std::forward<ArgTypes>(args)...);
+                    if constexpr (!std::is_void_v<ReturnType>)
+                    {
+                        AssertDebug(outReturnValue != nullptr);
+                        new (outReturnValue) ReturnType(sor->GetManagedObject()->InvokeMethod<ReturnType>(methodPtr, std::forward<ArgTypes>(args)...));
+                    }
+                    else
+                    {
+                        sor->GetManagedObject()->InvokeMethod<void>(methodPtr, std::forward<ArgTypes>(args)...);
+                    }
                 }
             }
         }
-
-        break;
     }
 #endif
+
 #ifdef HYP_SCRIPT
-    case SL_HYPSCRIPT:
+    if (mask & (1u << SL_HYPSCRIPT))
     {
         auto* data = sor->GetScriptObjectData_HypScript();
         Assert(data != nullptr);
@@ -84,27 +81,24 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         HypScript& hs = HypScript::GetInstance();
 
         HypData functionValue;
-        if (!hs.GetFunctionHandle(data->instance, methodName, functionValue))
+        if (hs.GetFunctionHandle(data->instance, methodName, functionValue))
         {
-            break;
+            HypData returnValue = hs.CallFunction(data->instance, functionValue);
+
+            if constexpr (!std::is_void_v<ReturnType>)
+            {
+                Assert(returnValue.IsValid());
+                Assert(returnValue.Is<ReturnType>());
+
+                AssertDebug(outReturnValue != nullptr);
+
+                new (outReturnValue) ReturnType(std::move(returnValue.Get<ReturnType>()));
+            }
         }
-
-        HypData returnValue = hs.CallFunction(data->instance, functionValue);
-
-        if constexpr (!std::is_void_v<ReturnType>)
-        {
-            Assert(returnValue.IsValid());
-            Assert(returnValue.Is<ReturnType>());
-
-            AssertDebug(outReturnValue != nullptr);
-
-            new (outReturnValue) ReturnType(std::move(returnValue.Get<ReturnType>()));
-        }
-
-        break;
     }
 #endif
-    case SL_NATIVE:
+
+    if (mask & (1u << SL_NATIVE))
     {
         auto* data = sor->GetScriptObjectData_Native();
         Assert(data != nullptr);
@@ -124,11 +118,6 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
                 (void)method->Invoke(Span<HypData> { { HypData(nativeObject), HypData(std::forward<ArgTypes>(args))... } });
             }
         }
-
-        break;
-    }
-    default:
-        break;
     }
 }
 
@@ -238,7 +227,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                         }
                     }
 
-                    if (RC<dotnet::Assembly> assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assemblyPath.Data()))
+                    if (RC<dotnet::Assembly> assembly = DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
                     {
                         scriptComponent.assembly = std::move(assembly);
                     }

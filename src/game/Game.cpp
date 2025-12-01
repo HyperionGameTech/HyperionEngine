@@ -21,7 +21,7 @@
 
 #include <engine/DebugDrawer.hpp>
 
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/Assembly.hpp>
@@ -52,13 +52,6 @@ Game::~Game()
     {
         g_engineDriver->RemoveWorld(m_world);
     }
-}
-
-void Game::Update(float delta)
-{
-    HYP_SCOPE;
-
-    Logic(delta);
 }
 
 void Game::Init()

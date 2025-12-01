@@ -366,7 +366,7 @@ extern "C"
             return true;
         }
 
-        HYP_LOG(Object, Error, "Failed to get managed object for instance of Class {}", cls->GetName());
+        HYP_LOG(Object, Error, "Failed to get managed object for {} instance", cls->GetName());
 
         return false;
 #else

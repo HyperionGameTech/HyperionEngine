@@ -14,7 +14,7 @@
 #ifdef HYP_DOTNET
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 #endif
 
 #define HYP_CLASS_REGISTRY_USE_TLS 1

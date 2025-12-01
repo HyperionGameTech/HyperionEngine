@@ -23,6 +23,9 @@ class HYP_API EditorState : public ObjectBase
     HYP_OBJECT_BODY(EditorState);
 
 public:
+    HYP_METHOD()
+    static const Handle<EditorState>& GetInstance();
+
     EditorState();
     ~EditorState() override;
 

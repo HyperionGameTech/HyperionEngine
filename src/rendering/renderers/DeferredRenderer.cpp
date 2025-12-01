@@ -232,7 +232,7 @@ DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer
       m_mode(mode),
       m_directLightGraphicsPipelines()
 {
-    Assert(framebuffer.IsValid());
+    Assert(m_framebuffer.IsValid());
 
     if (mode == DPM_DIRECT_LIGHTING)
     {
@@ -295,6 +295,8 @@ void DeferredPass::Create()
 GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties& shaderProperties)
 {
     HYP_SCOPE;
+
+    AssertDebug(m_framebuffer.IsValid());
 
     const MeshAttributes meshAttributes {
         .vertexAttributes = shaderProperties.GetRequiredVertexAttributes()
@@ -1814,8 +1816,15 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
     CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
 
-    passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
-    CHECK_FRAMEBUFFER_SIZE(passData.deferredShadingFramebuffer);
+    {
+        if (passData.deferredShadingFramebuffer.IsValid())
+        {
+            SafeDelete(std::move(passData.deferredShadingFramebuffer));
+        }
+
+        passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
+        CHECK_FRAMEBUFFER_SIZE(passData.deferredShadingFramebuffer);
+    }
 
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);

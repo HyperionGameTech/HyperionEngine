@@ -81,6 +81,8 @@ void GameThread::operator()()
     Assert(m_game != nullptr);
     InitObject(m_game);
 
+    m_game->OnLaunch();
+
     Queue<Scheduler::ScheduledTask> tasks;
     SystemEvents events;
 
@@ -114,17 +116,20 @@ void GameThread::operator()()
 
         g_assetManager->Update(counter.delta);
 
-        if (g_appContext->GetMainWindow()->GetInputEventSink().Poll(events))
+        if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
         {
-            for (SystemEvent& event : events)
+            if (g_appContext->GetMainWindow()->GetInputEventSink().Poll(events))
             {
-                g_appContext->GetInputManager()->CheckEvent(&event);
+                for (SystemEvent& event : events)
+                {
+                    g_appContext->GetInputManager()->CheckEvent(&event);
 
-                m_game->HandleEvent(std::move(event));
+                    m_game->HandleEvent(std::move(event));
+                }
             }
-
-            events.Clear();
         }
+
+        events.Clear();
 
 #ifdef HYP_EDITOR
         g_editorState->Update(counter.delta);
@@ -132,10 +137,7 @@ void GameThread::operator()()
 
         g_engineDriver->GameThreadUpdate(counter.delta);
 
-        if (m_game)
-        {
-            m_game->Update(counter.delta);
-        }
+        m_game->OnUpdate(counter.delta);
 
         g_engineDriver->GetDebugDrawer()->Update(counter.delta);
 

@@ -75,8 +75,6 @@
 
             <TabView name="Bottom_Panel_TabView" size="100% fill">
                 <Tab name="Assets_Tab" text="Assets">
-                    <Script assembly="Hyperion.Editor.UI.dll" class="ContentBrowser" />
-                    
                     <Grid size="100% fill" padding="0 2" cols="12">
                         <GridRow size="100%">
                             <GridColumn size="100%" colsize="2" padding="1">

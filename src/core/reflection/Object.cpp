@@ -73,7 +73,6 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
     AssertDebug(target->GetScriptObjectResource() == nullptr);
-#endif
 
     if (!(ptr.GetClass()->GetFlags() & ClassFlags::NO_SCRIPT_BINDINGS))
     {
@@ -81,32 +80,51 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
 
         if ((!context || !(context->flags & ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) && !cls->IsAbstract())
         {
+            ScriptObjectResource* scriptObjectResource = target->GetScriptObjectResource();
+
 #ifdef HYP_DOTNET
             if (RC<dotnet::ManagedClass> managedClass = cls->GetManagedClass())
             {
-                ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, managedClass);
+                if (!scriptObjectResource)
+                {
+                    scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, managedClass);
 
-                Assert(scriptObjectResource != nullptr);
+                    target->SetScriptObjectResource(scriptObjectResource);
+                }
+                else
+                {
+                    scriptObjectResource->SetScriptObjectData_DotNet(ScriptObjectData_DotNet {
+                        .objectPtr = nullptr,
+                        .managedClass = managedClass });
+                }
+
                 scriptObjectResource->IncRef();
-
-                target->SetScriptObjectResource(scriptObjectResource);
-
-                return;
+            }
+            else
+            {
+                DebugLog(LogType::Warn, "Class '%s' has no .NET class associated with it\n", *cls->GetName());
             }
 #endif
 
 #ifdef HYP_SCRIPT
             HypData obj;
 
-            ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
-            Assert(scriptObjectResource != nullptr);
+            if (!scriptObjectResource)
+            {
+                scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
 
-            target->SetScriptObjectResource(scriptObjectResource);
-
-            return;
+                target->SetScriptObjectResource(scriptObjectResource);
+            }
+            else
+            {
+                scriptObjectResource->SetScriptObjectData_HypScript(ScriptObjectData_HypScript {
+                    .instance = nullptr,
+                    .obj = std::move(obj) });
+            }
 #endif
         }
     }
+#endif
 }
 
 #pragma endregion ObjectInitializerGuardBase
@@ -160,7 +178,7 @@ ObjectBase::~ObjectBase()
     {
 #ifdef HYP_SCRIPT
         // destruct all dynamic fields
-        if (m_scriptObjectResource->GetScriptLanguage() == SL_HYPSCRIPT && m_header->cls->IsDynamic())
+        if ((m_scriptObjectResource->GetScriptLanguageMask() & (1u << SL_HYPSCRIPT)) && m_header->cls->IsDynamic())
         {
             const Class* cls = m_header->cls;
 

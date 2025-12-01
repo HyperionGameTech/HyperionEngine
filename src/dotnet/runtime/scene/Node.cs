@@ -27,5 +27,81 @@ namespace Hyperion
         public Node()
         {
         }
+
+        public Uuid Uuid
+        {
+            get
+            {
+                return this.GetUUID();
+            }
+        }
+
+        public Name Name
+        {
+            get
+            {
+                return this.GetName();
+            }
+            set
+            {
+                this.SetName(value);
+            }
+        }
+
+        public NodeFlags Flags
+        {
+            get
+            {
+                return this.GetNodeFlags();
+            }
+            set
+            {
+                this.SetNodeFlags(value);
+            }
+        }
+
+        public Transform LocalTransform
+        {
+            get
+            {
+                return this.GetLocalTransform();
+            }
+            set
+            {
+                this.SetLocalTransform(value);
+            }
+        }
+
+        public Transform WorldTransform
+        {
+            get
+            {
+                return this.GetWorldTransform();
+            }
+            set
+            {
+                this.SetWorldTransform(value);
+            }
+        }
+
+        public BoundingBox LocalBounds
+        {
+            get
+            {
+                return this.GetLocalBounds();
+            }
+            set
+            {
+                this.SetLocalBounds(value);
+            }
+        }
+
+        public Node? Parent
+        {
+            get
+            {
+                return this.GetParent();
+            }
+        }
     }
 }

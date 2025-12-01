@@ -127,7 +127,7 @@ RendererResult VulkanFrame::Submit(VulkanDeviceQueue* deviceQueue, VulkanCommand
         m_renderFinishedSemaphore);
 }
 
-RendererResult VulkanFrame::RecreateFence()
+void VulkanFrame::RecreateFence()
 {
     if (m_queueSubmitFence.IsValid())
     {
@@ -135,7 +135,25 @@ RendererResult VulkanFrame::RecreateFence()
     }
 
     m_queueSubmitFence = CreateObject<VulkanFence>();
-    return m_queueSubmitFence->Create();
+
+    RendererResult res = m_queueSubmitFence->Create();
+    Assert(res, "Failed to recreate frame fence: {}", res.GetError().GetMessage());
+}
+
+void VulkanFrame::RecreateSemaphores()
+{
+    // reset immediately
+    m_imageAvailableSemaphore.Reset();
+    m_renderFinishedSemaphore.Reset();
+
+    m_imageAvailableSemaphore = CreateObject<VulkanSemaphore>();
+    m_renderFinishedSemaphore = CreateObject<VulkanSemaphore>();
+
+    RendererResult res = m_imageAvailableSemaphore->Create();
+    Assert(res, "Failed to recreate image available semaphore: {}", res.GetError().GetMessage());
+
+    res = m_renderFinishedSemaphore->Create();
+    Assert(res, "Failed to recreate render finished semaphore: {}", res.GetError().GetMessage());
 }
 
 void VulkanFrame::ResetRenderPassStates()

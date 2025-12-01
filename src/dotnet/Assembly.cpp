@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 #include <dotnet/Assembly.hpp>
 #include <dotnet/ManagedClass.hpp>
 
@@ -16,14 +16,14 @@ namespace hyperion {
 
 namespace dotnet {
 
-Assembly::Assembly()
-    : Assembly(AssemblyFlags::NONE)
+Assembly::Assembly(const ManagedGuid& guid)
+    : Assembly(guid, AssemblyFlags::NONE)
 {
 }
 
-Assembly::Assembly(EnumFlags<AssemblyFlags> flags)
+Assembly::Assembly(const ManagedGuid& guid, EnumFlags<AssemblyFlags> flags)
     : m_flags(flags),
-      m_guid { 0, 0 },
+      m_guid(guid),
       m_invokeGetterFptr(nullptr),
       m_invokeSetterFptr(nullptr)
 {
@@ -62,7 +62,7 @@ bool Assembly::Unload()
         }
     }
 
-    return DotNetSystem::GetInstance().UnloadAssembly(m_guid);
+    return DotNETHost::GetInstance().UnloadAssembly(m_guid);
 #else
     return false;
 #endif

@@ -24,7 +24,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "Mesh")]
-    public class Mesh : ObjectBase
+    public class Mesh : AssetObject
     {
         public Mesh()
         {

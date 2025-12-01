@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/memory/RefCountedPtr.hpp"
 #include <HyperionPch.hpp>
 
 #include <core/threading/Mutex.hpp>
@@ -21,7 +22,7 @@
 #include <dotnet/interop/ManagedGuid.hpp>
 #include <dotnet/interop/ManagedAttribute.hpp>
 
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 
 using namespace hyperion;
 using namespace hyperion::dotnet;
@@ -83,48 +84,48 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT void NativeInterop_SetInvokeGetterFunction(ManagedGuid* assemblyGuid, Assembly* assemblyPtr, InvokeGetterFunction invokeGetterFptr)
+    HYP_EXPORT void NativeInterop_SetInvokeGetterFunction(ManagedGuid* assemblyGuid, Assembly* pAssembly, InvokeGetterFunction invokeGetterFptr)
     {
-        Assert(assemblyPtr != nullptr);
+        Assert(pAssembly != nullptr);
 
-        assemblyPtr->SetInvokeGetterFunction(invokeGetterFptr);
+        pAssembly->SetInvokeGetterFunction(invokeGetterFptr);
     }
 
-    HYP_EXPORT void NativeInterop_SetInvokeSetterFunction(ManagedGuid* assemblyGuid, Assembly* assemblyPtr, InvokeSetterFunction invokeSetterFptr)
+    HYP_EXPORT void NativeInterop_SetInvokeSetterFunction(ManagedGuid* assemblyGuid, Assembly* pAssembly, InvokeSetterFunction invokeSetterFptr)
     {
-        Assert(assemblyPtr != nullptr);
+        Assert(pAssembly != nullptr);
 
-        assemblyPtr->SetInvokeSetterFunction(invokeSetterFptr);
+        pAssembly->SetInvokeSetterFunction(invokeSetterFptr);
     }
 
     HYP_EXPORT void NativeInterop_SetAddObjectToCacheFunction(AddObjectToCacheFunction addObjectToCacheFptr)
     {
-        DotNetSystem::GetInstance().GetGlobalFunctions().addObjectToCacheFunction = addObjectToCacheFptr;
+        DotNETHost::GetInstance().GetGlobalFunctions().addObjectToCacheFunction = addObjectToCacheFptr;
     }
 
     HYP_EXPORT void NativeInterop_SetSetKeepAliveFunction(SetKeepAliveFunction setKeepAliveFunction)
     {
-        DotNetSystem::GetInstance().GetGlobalFunctions().setKeepAliveFunction = setKeepAliveFunction;
+        DotNETHost::GetInstance().GetGlobalFunctions().setKeepAliveFunction = setKeepAliveFunction;
     }
 
     HYP_EXPORT void NativeInterop_SetTriggerGCFunction(TriggerGCFunction triggerGcFunction)
     {
-        DotNetSystem::GetInstance().GetGlobalFunctions().triggerGcFunction = triggerGcFunction;
+        DotNETHost::GetInstance().GetGlobalFunctions().triggerGcFunction = triggerGcFunction;
     }
 
     HYP_EXPORT void NativeInterop_SetGetAssemblyPointerFunction(GetAssemblyPointerFunction getAssemblyPointerFunction)
     {
-        DotNetSystem::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction = getAssemblyPointerFunction;
+        DotNETHost::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction = getAssemblyPointerFunction;
     }
 
-    HYP_EXPORT void NativeInterop_GetAssemblyPointer(ObjectReference* assemblyObjectReference, Assembly** outAssemblyPtr)
+    HYP_EXPORT void NativeInterop_GetAssemblyPointer(ObjectReference* assemblyObjectReference, Assembly** outPAssembly)
     {
         Assert(assemblyObjectReference != nullptr);
-        Assert(outAssemblyPtr != nullptr);
+        Assert(outPAssembly != nullptr);
 
-        *outAssemblyPtr = nullptr;
+        *outPAssembly = nullptr;
 
-        DotNetSystem::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction(assemblyObjectReference, outAssemblyPtr);
+        DotNETHost::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction(assemblyObjectReference, outPAssembly);
     }
 
     HYP_EXPORT void NativeInterop_AddObjectToCache(void* ptr, ManagedClass** outClass, ObjectReference* outObjectReference, int8 weak)
@@ -133,18 +134,39 @@ extern "C"
         Assert(outClass != nullptr);
         Assert(outObjectReference != nullptr);
 
-        DotNetSystem::GetInstance().GetGlobalFunctions().addObjectToCacheFunction(ptr, outClass, outObjectReference, weak);
+        DotNETHost::GetInstance().GetGlobalFunctions().addObjectToCacheFunction(ptr, outClass, outObjectReference, weak);
     }
 
-    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assemblyGuid, Assembly* assemblyPtr, const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags, ManagedClassDesc* outDesc)
+    HYP_EXPORT int NativeInterop_NewAssembly(ManagedGuid guid, Assembly** outPAssembly)
+    {
+        Assert(outPAssembly != nullptr);
+
+        *outPAssembly = nullptr;
+
+        RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(guid);
+        *outPAssembly = assembly.Get();
+        memory::detail::IncStrong(assembly.GetBlock_Internal()); // keep alive after this function returns
+
+        return int(LoadAssemblyResult::OK);
+    }
+
+    HYP_EXPORT void NativeInterop_FreeAssembly(Assembly* pAssembly)
+    {
+        Assert(pAssembly != nullptr);
+
+        Weak w = pAssembly->WeakRefCountedPtrFromThis();
+        memory::detail::ReleaseStrong(w.GetBlock_Internal()); // release the strong reference created by NewAssembly
+    }
+
+    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assemblyGuid, Assembly* pAssembly, const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags, ManagedClassDesc* outDesc)
     {
 #ifdef HYP_DOTNET
         Assert(assemblyGuid != nullptr);
-        Assert(assemblyPtr != nullptr);
+        Assert(pAssembly != nullptr);
 
         HYP_LOG(DotNET, Info, "Registering .NET managed class {}", typeName);
 
-        RC<ManagedClass> classObject = assemblyPtr->NewClass(cls, typeHash, typeName, typeSize, typeId, parentClass, flags);
+        RC<ManagedClass> classObject = pAssembly->NewClass(cls, typeHash, typeName, typeSize, typeId, parentClass, flags);
 
         if (cls != nullptr && cls->IsDynamic())
         {
@@ -172,13 +194,13 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT int8 ManagedClass_FindByTypeHash(Assembly* assemblyPtr, int32 typeHash, ManagedClass** outClass)
+    HYP_EXPORT int8 ManagedClass_FindByTypeHash(Assembly* pAssembly, int32 typeHash, ManagedClass** outClass)
     {
-        Assert(assemblyPtr != nullptr);
+        Assert(pAssembly != nullptr);
 
         Assert(outClass != nullptr);
 
-        RC<ManagedClass> classObject = assemblyPtr->FindClassByTypeHash(typeHash);
+        RC<ManagedClass> classObject = pAssembly->FindClassByTypeHash(typeHash);
 
         if (!classObject)
         {

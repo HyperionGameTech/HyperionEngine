@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/DotNETHost.hpp>
 
 #include <core/io/ByteWriter.hpp>
 
@@ -35,21 +35,14 @@
 
 namespace hyperion {
 
-enum class LoadAssemblyResult : int32
-{
-    UNKNOWN_ERROR = -100,
-    VERSION_MISMATCH = -2,
-    NOT_FOUND = -1,
-    OK = 0
-};
+using namespace dotnet;
 
-namespace dotnet {
 class DotNetImplBase
 {
 public:
     virtual ~DotNetImplBase() = default;
 
-    virtual void Initialize(const FilePath& basePath) = 0;
+    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback callback = nullptr) = 0;
     virtual RC<Assembly> LoadAssembly(const char* path) const = 0;
     virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
     virtual bool IsCoreAssembly(ManagedGuid guid) const = 0;
@@ -90,7 +83,8 @@ public:
           m_cxt(nullptr),
           m_initFptr(nullptr),
           m_getDelegateFptr(nullptr),
-          m_closeFptr(nullptr)
+          m_closeFptr(nullptr),
+          m_shouldInitializeRuntime(true)
     {
     }
 
@@ -117,11 +111,16 @@ public:
         return GetDotNetPath() / "runtimeconfig.json";
     }
 
-    virtual void Initialize(const FilePath& basePath) override
+    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback callback = nullptr) override
     {
         m_basePath = basePath;
 
-        // ensure the mono directories exists
+        if (initFromManaged)
+        {
+            callback();
+            return;
+        }
+
         FileSystem::MkDir(GetDotNetPath().Data());
         FileSystem::MkDir(GetLibraryPath().Data());
 
@@ -183,7 +182,7 @@ public:
             m_unloadAssemblyFptr != nullptr,
             "UnloadAssembly could not be found in Hyperion.NET.Interop.dll! Ensure .NET libraries are properly compiled.");
 
-        static const FixedArray<Pair<String, FilePath>, 3> coreAssemblies = {
+        static const Array<Pair<String, FilePath>> s_coreAssemblies = {
             Pair<String, FilePath> { "interop", *interopAssemblyPath },
             Pair<String, FilePath> { "shared", FindAssemblyFilePath(m_basePath, "Hyperion.NET.Shared.dll").GetOr([]() -> FilePath
                                                    {
@@ -197,16 +196,24 @@ public:
                                                     }) }
         };
 
-        int result = m_initializeRuntimeFptr();
+        int result = int(LoadAssemblyResult::OK);
+
+        result = m_initializeRuntimeFptr();
 
         if (result != int(LoadAssemblyResult::OK))
         {
             HYP_FAIL("Failed to initialize Hyperion .NET interop: Got error code %d", result);
         }
 
-        for (const Pair<String, FilePath>& entry : coreAssemblies)
+        constexpr ManagedGuid EmptyGuid { 0, 0 };
+
+        for (const Pair<String, FilePath>& entry : s_coreAssemblies)
         {
-            RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(AssemblyFlags::CORE_ASSEMBLY);
+            RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(
+                EmptyGuid,
+                AssemblyFlags::CORE_ASSEMBLY);
+
+            HYP_LOG(DotNET, Info, "Loading core assembly: {}", entry.first);
 
             auto it = m_coreAssemblies.Insert(entry.first, assembly).first;
 
@@ -226,7 +233,9 @@ public:
 
     virtual RC<Assembly> LoadAssembly(const char* path) const override
     {
-        RC<Assembly> assembly = MakeRefCountedPtr<Assembly>();
+        constexpr ManagedGuid EmptyGuid { 0, 0 };
+
+        RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(EmptyGuid);
 
         Optional<FilePath> filepath = FindAssemblyFilePath(m_basePath, path);
 
@@ -236,6 +245,8 @@ public:
 
             return nullptr;
         }
+
+        Assert(m_initializeAssemblyFptr != nullptr);
 
         int result = m_initializeAssemblyFptr(
             &assembly->GetGuid(),
@@ -268,7 +279,7 @@ public:
         return bool(result);
     }
 
-    virtual bool IsCoreAssembly(ManagedGuid assemblyGuid) const
+    virtual bool IsCoreAssembly(ManagedGuid assemblyGuid) const override
     {
         if (!assemblyGuid.IsValid())
         {
@@ -283,7 +294,7 @@ public:
         return it != m_coreAssemblies.End();
     }
 
-    virtual bool IsCoreAssembly(const Assembly* assembly) const
+    virtual bool IsCoreAssembly(const Assembly* assembly) const override
     {
         if (!assembly)
         {
@@ -438,10 +449,16 @@ private:
         {
         case /* Success */ 0:
             HYP_LOG(DotNET, Debug, "Initialized .NET runtime");
+
+            m_shouldInitializeRuntime = true;
+
             return true;
         case /* Success_HostAlreadyInitialized */ 1: // fallthrough
         case /* Success_DifferentRuntimeProperties */ 2:
             HYP_LOG(DotNET, Debug, "Initialized .NET runtime, hostfxr_initialize_for_runtime_config returned {}", res);
+
+            m_shouldInitializeRuntime = false;
+
             return true;
         default:
             HYP_LOG(DotNET, Error, "Failed to initialize .NET runtime: hostfxr_initialize_for_runtime_config failed with error code {}", res);
@@ -458,6 +475,8 @@ private:
 
         m_closeFptr(m_cxt);
         m_cxt = nullptr;
+
+        m_shouldInitializeRuntime = true;
 
         HYP_LOG(DotNET, Debug, "Shut down .NET runtime");
 
@@ -478,6 +497,8 @@ private:
     hostfxr_initialize_for_runtime_config_fn m_initFptr;
     hostfxr_get_runtime_delegate_fn m_getDelegateFptr;
     hostfxr_close_fn m_closeFptr;
+
+    bool m_shouldInitializeRuntime;
 };
 
 #else
@@ -488,7 +509,7 @@ public:
     DotNetImpl() = default;
     virtual ~DotNetImpl() override = default;
 
-    virtual void Initialize(const FilePath& basePath) override
+    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback callback = nullptr) override
     {
     }
 
@@ -524,32 +545,32 @@ public:
 
 #endif
 
-DotNetSystem& DotNetSystem::GetInstance()
+DotNETHost& DotNETHost::GetInstance()
 {
-    static DotNetSystem instance;
+    static DotNETHost instance;
 
     return instance;
 }
 
-DotNetSystem::DotNetSystem()
+DotNETHost::DotNETHost()
     : m_isInitialized(false)
 {
 }
 
-DotNetSystem::~DotNetSystem() = default;
+DotNETHost::~DotNETHost() = default;
 
-bool DotNetSystem::EnsureInitialized() const
+bool DotNETHost::EnsureInitialized() const
 {
     if (!IsEnabled())
     {
-        HYP_LOG(DotNET, Error, "DotNetSystem not enabled, cannot load/unload assemblies");
+        HYP_LOG(DotNET, Error, "DotNETHost not enabled, cannot load/unload assemblies");
 
         return false;
     }
 
     if (!IsInitialized())
     {
-        HYP_LOG(DotNET, Error, "DotNetSystem not initialized, call Initialize() before attempting to load/unload assemblies");
+        HYP_LOG(DotNET, Error, "DotNETHost not initialized, call Initialize() before attempting to load/unload assemblies");
 
         return false;
     }
@@ -559,7 +580,7 @@ bool DotNetSystem::EnsureInitialized() const
     return true;
 }
 
-RC<Assembly> DotNetSystem::LoadAssembly(const char* path) const
+RC<Assembly> DotNETHost::LoadAssembly(const char* path) const
 {
     if (!EnsureInitialized())
     {
@@ -571,7 +592,7 @@ RC<Assembly> DotNetSystem::LoadAssembly(const char* path) const
     return m_impl->LoadAssembly(path);
 }
 
-bool DotNetSystem::UnloadAssembly(ManagedGuid guid) const
+bool DotNETHost::UnloadAssembly(ManagedGuid guid) const
 {
     if (!EnsureInitialized())
     {
@@ -583,7 +604,7 @@ bool DotNetSystem::UnloadAssembly(ManagedGuid guid) const
     return m_impl->UnloadAssembly(guid);
 }
 
-bool DotNetSystem::IsCoreAssembly(const Assembly* assembly) const
+bool DotNETHost::IsCoreAssembly(const Assembly* assembly) const
 {
     if (!EnsureInitialized())
     {
@@ -595,7 +616,7 @@ bool DotNetSystem::IsCoreAssembly(const Assembly* assembly) const
     return m_impl->IsCoreAssembly(assembly);
 }
 
-bool DotNetSystem::IsEnabled() const
+bool DotNETHost::IsEnabled() const
 {
 #ifndef HYP_DOTNET
     return false;
@@ -604,12 +625,12 @@ bool DotNetSystem::IsEnabled() const
 #endif
 }
 
-bool DotNetSystem::IsInitialized() const
+bool DotNETHost::IsInitialized() const
 {
     return m_isInitialized;
 }
 
-void DotNetSystem::Initialize(const FilePath& basePath)
+void DotNETHost::Initialize(const FilePath& basePath, bool initFromManaged, InitFromManagedCallback callback)
 {
     if (!IsEnabled())
     {
@@ -626,12 +647,12 @@ void DotNetSystem::Initialize(const FilePath& basePath)
     Assert(m_impl == nullptr);
 
     m_impl = MakeRefCountedPtr<DotNetImpl>();
-    m_impl->Initialize(basePath);
+    m_impl->Initialize(basePath, initFromManaged, callback);
 
     m_isInitialized = true;
 }
 
-void DotNetSystem::Shutdown()
+void DotNETHost::Shutdown()
 {
     if (!IsEnabled())
     {
@@ -650,5 +671,4 @@ void DotNetSystem::Shutdown()
     m_isInitialized = false;
 }
 
-} // namespace dotnet
 } // namespace hyperion

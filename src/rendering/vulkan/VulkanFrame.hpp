@@ -62,7 +62,8 @@ public:
         return m_renderFinishedSemaphore;
     }
 
-    RendererResult RecreateFence();
+    void RecreateFence();
+    void RecreateSemaphores();
 
     void ResetRenderPassStates();
 

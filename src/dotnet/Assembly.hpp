@@ -33,12 +33,15 @@ class ManagedMethod;
 class HYP_API Assembly : public EnableRefCountedPtrFromThis<Assembly>
 {
 public:
-    Assembly();
-    Assembly(EnumFlags<AssemblyFlags> flags);
+    explicit Assembly(const ManagedGuid& guid);
+    explicit Assembly(const ManagedGuid& guid, EnumFlags<AssemblyFlags> flags);
+
     Assembly(const Assembly&) = delete;
     Assembly& operator=(const Assembly&) = delete;
+
     Assembly(Assembly&&) noexcept = delete;
     Assembly& operator=(Assembly&&) noexcept = delete;
+
     ~Assembly();
 
     HYP_FORCE_INLINE ManagedGuid& GetGuid()

@@ -22,11 +22,11 @@ public:
     HyperionEditor& operator=(HyperionEditor&& other) noexcept = delete;
     virtual ~HyperionEditor() override;
 
-    virtual void Logic(float delta) override;
     virtual void OnInputEvent(const SystemEvent& event) override;
 
 protected:
-    virtual void Init() override;
+    virtual void OnLaunch_Impl() override;
+    virtual void OnUpdate_Impl(float delta) override;
 
     HyperionEditorImpl* m_impl;
     Handle<EditorSubsystem> m_editorSubsystem;

@@ -13,12 +13,15 @@ namespace Hyperion.Editor
 
         public override void OnFrameworkInitializationCompleted()
         {
+            // Initialize the engine
+            EngineManager.Initialize();
+
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 desktop.Exit += (sender, e) =>
                 {
                     // Shutdown the engine
-                    NativeBindings.Hyp_Shutdown();
+                    EngineManager.Shutdown();
                 };
 
                 desktop.MainWindow = new MainWindow();

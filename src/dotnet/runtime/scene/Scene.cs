@@ -14,10 +14,18 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "Scene")]
-    public class Scene : ObjectBase
+    public class Scene : AssetObject
     {
         public Scene()
         {
+        }
+
+        public Node RootNode
+        {
+            get
+            {
+                return this.GetRoot();
+            }
         }
     }
 }

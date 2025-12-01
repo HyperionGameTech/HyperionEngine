@@ -15,14 +15,14 @@ namespace Hyperion
     public delegate void TriggerGCDelegate();
     public delegate bool GetAssemblyPointerDelegate(IntPtr assemblyObjectReferencePtr, IntPtr outAssemblyPtr);
 
-    internal enum LoadAssemblyResult : int
+    public enum LoadAssemblyResult : int
     {
         UnknownError = -100,
         VersionMismatch = -2,
         NotFound = -1,
         Ok = 0
     }
-    
+
     public class NativeInterop
     {
         private static bool VerifyEngineVersion(string versionString, bool major, bool minor, bool patch)
@@ -59,9 +59,17 @@ namespace Hyperion
         [UnmanagedCallersOnly]
         public static unsafe int InitializeRuntime()
         {
+            return InitializeRuntimeManaged();
+        }
+
+        public static unsafe int InitializeRuntimeManaged()
+        {
             try
             {
                 AppDomain currentDomain = AppDomain.CurrentDomain;
+
+                Logger.Log(LogType.Info, "Initializing .NET runtime in AppDomain: {0}, ID: {1}", currentDomain.FriendlyName, currentDomain.Id);
+
                 currentDomain.UnhandledException += new UnhandledExceptionEventHandler(HandleUnhandledException);
 
                 NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
@@ -82,12 +90,17 @@ namespace Hyperion
         [UnmanagedCallersOnly]
         public static unsafe int InitializeAssembly(IntPtr outAssemblyGuid, IntPtr assemblyPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
         {
+            return InitializeAssemblyManaged(outAssemblyGuid, assemblyPtr, assemblyPathStringPtr, isCoreAssembly);
+        }
+
+        public static unsafe int InitializeAssemblyManaged(IntPtr outAssemblyGuid, IntPtr assemblyPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
+        {
             try
             {
                 // Create a managed string from the pointer
                 string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr) ?? string.Empty;
 
-                Logger.Log(LogType.Info, "Initializing assembly {0}...", assemblyPath);
+                Logger.Log(LogType.Debug, "Initializing assembly {0}, is core assembly? {1}", assemblyPath, isCoreAssembly);
 
                 if (isCoreAssembly != 0)
                 {
@@ -105,7 +118,25 @@ namespace Hyperion
                 Guid assemblyGuid = Guid.NewGuid();
                 Marshal.StructureToPtr(assemblyGuid, outAssemblyGuid, false);
 
-                AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath, assemblyPtr, isCoreAssembly: isCoreAssembly != 0);
+                bool ownsAssemblyPtr = assemblyPtr == IntPtr.Zero;
+                if (ownsAssemblyPtr)
+                {
+                    int res = NativeInterop_NewAssembly(assemblyGuid, out assemblyPtr);
+                    if (res != (int)LoadAssemblyResult.Ok)
+                    {
+                        Logger.Log(LogType.Error, "Failed to allocate new assembly at " + assemblyPath + ". Error code: " + (LoadAssemblyResult)res);
+
+                        return res;
+                    }
+                }
+
+                AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(
+                    guid: assemblyGuid,
+                    path: assemblyPath,
+                    assemblyPtr: assemblyPtr,
+                    ownsAssemblyPtr: ownsAssemblyPtr,
+                    isCoreAssembly: isCoreAssembly != 0);
+
                 Assembly? assembly = assemblyInstance.Assembly;
 
                 if (assembly == null)
@@ -127,9 +158,12 @@ namespace Hyperion
                         return (int)LoadAssemblyResult.VersionMismatch;
                     }
                 }
-                
-                NativeInterop_SetInvokeGetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeGetterDelegate>(InvokeGetter));
-                NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeSetterDelegate>(InvokeSetter));
+
+                if (assemblyPtr != IntPtr.Zero)
+                {
+                    NativeInterop_SetInvokeGetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeGetterDelegate>(InvokeGetter));
+                    NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeSetterDelegate>(InvokeSetter));
+                }
 
                 InitializeAssemblyTypes(assembly, isCoreAssembly != 0);
             }
@@ -142,7 +176,7 @@ namespace Hyperion
 
             return (int)LoadAssemblyResult.Ok;
         }
-        
+
         [UnmanagedCallersOnly]
         public static void UnloadAssembly(IntPtr assemblyGuidPtr, IntPtr outResult)
         {
@@ -206,7 +240,8 @@ namespace Hyperion
 
                 IntPtr pClass = InitManagedClass(attributeType, isCoreAssembly: false);
 
-                ObjectReference attributeObjectReference = new ObjectReference {
+                ObjectReference attributeObjectReference = new ObjectReference
+                {
                     weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(attribute, GCHandleType.Weak)),
                     strongHandle = IntPtr.Zero
                 };
@@ -285,11 +320,11 @@ namespace Hyperion
             }
         }
 
-        private static object? TryGetClassBindingAttribute(Type type)
+        private static object? TryGetAttributeByName(Type type, string name)
         {
             foreach (var attr in type.GetCustomAttributes(false))
             {
-                if (attr.GetType().Name == "ClassBinding")
+                if (attr.GetType().Name == name)
                 {
                     return attr;
                 }
@@ -301,7 +336,7 @@ namespace Hyperion
         private static unsafe IntPtr InitManagedClass(Type type, bool isCoreAssembly)
         {
             // Skip classes with the NoManagedClass attribute
-            if (type.GetCustomAttribute(typeof(NoManagedClass)) != null)
+            if (TryGetAttributeByName(type, "NoManagedClass") != null)
             {
                 Logger.Log(LogType.Debug, "Skipping managed class for type: {0} due to NoManagedClass attribute", type.Name);
 
@@ -311,27 +346,42 @@ namespace Hyperion
             AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly);
 
             if (assemblyInstance == null)
-                throw new Exception("Failed to get assembly instance for type: " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
+            {
+                throw new Exception("Failed to get assembly instance for type: " + type.Name + " from assembly: " + type.Assembly.FullName
+                    + " located at: " + type.Assembly.Location
+                    + ", has the assembly been registered?");
+            }
 
             Guid assemblyGuid = assemblyInstance.Guid;
             IntPtr assemblyPtr = assemblyInstance.AssemblyPtr;
+
+            if (assemblyPtr == IntPtr.Zero)
+            {
+                throw new Exception("Assembly pointer is null for assembly: " + type.Assembly.FullName + " located at: " + type.Assembly.Location);
+            }
 
             IntPtr foundClassObjectPtr = IntPtr.Zero;
 
             // Check if class has already been initialized
             if (ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out foundClassObjectPtr))
+            {
                 return foundClassObjectPtr;
+            }
 
             IntPtr parentClassObjectPtr = IntPtr.Zero;
 
             Type? baseType = type.BaseType;
 
             if (baseType != null)
+            {
                 parentClassObjectPtr = InitManagedClass(baseType, isCoreAssembly);
+            }
 
             // Check if initializing parent class has caused this class to be initialized
             if (ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out foundClassObjectPtr))
+            {
                 return foundClassObjectPtr;
+            }
 
             Logger.Log(LogType.Debug, "Initializing managed class for type: {0}, Hash: {1}", type.Name, type.GetHashCode());
 
@@ -346,7 +396,7 @@ namespace Hyperion
             TypeId typeId = TypeId.ForType(type);
 
             // Use dynamic since we don't know the actual type - it is loaded from another assembly
-            dynamic? classBindingAttribute = TryGetClassBindingAttribute(type);
+            dynamic? classBindingAttribute = TryGetAttributeByName(type, "ClassBinding");
 
             if (classBindingAttribute != null)
             {
@@ -369,7 +419,7 @@ namespace Hyperion
 
                         while (parentType != null)
                         {
-                            dynamic? parentClassBindingAttribute = TryGetClassBindingAttribute(parentType);
+                            dynamic? parentClassBindingAttribute = TryGetAttributeByName(parentType, "ClassBinding");
 
                             if (parentClassBindingAttribute != null)
                             {
@@ -444,11 +494,11 @@ namespace Hyperion
             ManagedAttributeHolder managedAttributeHolder = AllocAttributeHolder(assemblyGuid, assemblyPtr, type.GetCustomAttributes().ToArray());
             managedClassDesc.SetAttributes(ref managedAttributeHolder);
             managedAttributeHolder.Dispose();
-            
+
             foreach (var item in CollectMethods(type))
             {
                 MethodInfo methodInfo = item.Value;
-                
+
                 managedAttributeHolder = AllocAttributeHolder(assemblyGuid, assemblyPtr, methodInfo.GetCustomAttributes(false));
 
                 // Add the objects being pointed to to the delegate cache so they don't get GC'd
@@ -497,7 +547,7 @@ namespace Hyperion
                     catch (Exception ex)
                     {
                         Logger.Log(LogType.Error, "Error invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType?.Name, ex);
-                        
+
                         throw;
                     }
                 };
@@ -585,7 +635,7 @@ namespace Hyperion
                 {
                     gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
                 }
-                
+
                 return new ObjectReference
                 {
                     weakHandle = GCHandle.ToIntPtr(gcHandleWeak),
@@ -605,7 +655,8 @@ namespace Hyperion
                 object? obj = Marshal.PtrToStructure(ptr, type);
                 Assert.Throw(obj != null, "Failed to marshal object from pointer");
 
-                return new ObjectReference {
+                return new ObjectReference
+                {
                     weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Weak)),
                     strongHandle = IntPtr.Zero
                 };
@@ -666,7 +717,7 @@ namespace Hyperion
                     while ((IntPtr)paramPtr != IntPtr.Zero)
                     {
                         object? paramValue;
-                        
+
                         try
                         {
                             paramValue = paramPtr->GetValue();
@@ -752,6 +803,11 @@ namespace Hyperion
             Guid assemblyGuid = assemblyInstance.Guid;
             IntPtr assemblyPtr = assemblyInstance.AssemblyPtr;
 
+            if (assemblyPtr == IntPtr.Zero)
+            {
+                throw new Exception("Assembly pointer is null for assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
+            }
+
             // ManagedClass must be registered for the given object's type.
             IntPtr pClass;
             if (!ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out pClass))
@@ -768,13 +824,13 @@ namespace Hyperion
                 gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
 
             // @NOTE: reassign ref
-            objectReferenceRef = new ObjectReference 
+            objectReferenceRef = new ObjectReference
             {
                 weakHandle = GCHandle.ToIntPtr(gcHandleWeak),
                 strongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr(gcHandleStrong.Value) : IntPtr.Zero
             };
         }
-        
+
         [UnmanagedCallersOnly]
         public static unsafe void SetKeepAlive(IntPtr objectReferencePtr, int* inOutKeepAlive)
         {
@@ -806,7 +862,7 @@ namespace Hyperion
                 objectReference.strongHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Normal));
 
                 *inOutKeepAlive = 1;
-                
+
                 return;
             }
 
@@ -864,7 +920,7 @@ namespace Hyperion
                 .Text("An unhandled exception occurred in managed code!\n"
                     + ((Exception)e.ExceptionObject).Message + "\n\n"
                     + "Check the logs for more details.")
-                .Button("OK", () => {  })
+                .Button("OK", () => { })
                 .Show();
         }
 
@@ -908,5 +964,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetGetAssemblyPointerFunction")]
         private static extern unsafe void NativeInterop_SetGetAssemblyPointerFunction(void* getAssemblyPointerFunctionPtr);
+
+        [DllImport("hyperion")]
+        private static extern int NativeInterop_NewAssembly(Guid guid, out IntPtr outAssemblyPtr);
+
+        [DllImport("hyperion")]
+        private static extern void NativeInterop_FreeAssembly(IntPtr assemblyPtr);
     }
 }
