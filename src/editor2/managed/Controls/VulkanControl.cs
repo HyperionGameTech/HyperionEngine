@@ -10,25 +10,6 @@ using System.Threading.Tasks;
 
 namespace Hyperion.Editor
 {
-    [Flags]
-    public enum WindowFlags : uint
-    {
-        None = 0,
-        Headless = 0x1,
-        NoGfx = 0x2,
-        HighDpi = 0x4
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct WindowOptions
-    {
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
-        public string title;
-        public int width;
-        public int height;
-        public WindowFlags flags;
-    }
-
     public class VulkanViewport : NativeControlHost
     {
         private IntPtr mCtx = IntPtr.Zero;

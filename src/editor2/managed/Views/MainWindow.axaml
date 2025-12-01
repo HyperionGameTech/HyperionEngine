@@ -5,110 +5,146 @@
         xmlns:ribbon="clr-namespace:Ribbon.Avalonia;assembly=Ribbon.Avalonia"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
         xmlns:local="clr-namespace:Hyperion.Editor"
-        x:Class="Hyperion.Editor.MainWindow" Title="Hyperion Editor">
+        xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+        x:Class="Hyperion.Editor.MainWindow" Title="Hyperion Editor"
+        x:DataType="vm:MainWindowViewModel">
 
-    
+    <Window.DataContext>
+        <vm:MainWindowViewModel />
+    </Window.DataContext>
 
-    <Grid RowDefinitions="Auto, *, Auto">
-        <!-- Ribbon -->
-        <ribbon:Ribbon Grid.Row="0">
-            <ribbon:RibbonTab Header="Home">
-                <ribbon:RibbonTab.Groups>
-                    <ribbon:RibbonGroupBox Header="Scene">
-                        <ribbon:RibbonButton Content="New" />
-                        <ribbon:RibbonButton Content="Open" />
-                        <ribbon:RibbonButton Content="Save" />
-                    </ribbon:RibbonGroupBox>
-                    <ribbon:RibbonGroupBox Header="Edit">
-                        <ribbon:RibbonButton Content="Undo" />
-                        <ribbon:RibbonButton Content="Redo" />
-                    </ribbon:RibbonGroupBox>
-                </ribbon:RibbonTab.Groups>
-            </ribbon:RibbonTab>
-            <ribbon:RibbonTab Header="View">
-                <ribbon:RibbonTab.Groups>
-                    <ribbon:RibbonGroupBox Header="Windows">
-                        <ribbon:RibbonButton Content="Hierarchy" />
-                        <ribbon:RibbonButton Content="Inspector" />
-                        <ribbon:RibbonButton Content="Content Browser" />
-                    </ribbon:RibbonGroupBox>
-                </ribbon:RibbonTab.Groups>
-            </ribbon:RibbonTab>
-        </ribbon:Ribbon>
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+            <MenuItem Header="_Open..."/>
+            <Separator/>
+            <MenuItem Header="_Exit"/>
+            </MenuItem>
+                <MenuItem Header="_Edit">
+                <MenuItem Header="Copy"/>
+                <MenuItem Header="Paste"/>
+            </MenuItem>
+        </Menu>
+        <TextBlock/>
 
-        <!-- Main Content Area -->
-        <Grid Grid.Row="1" ColumnDefinitions="300, 4, *, 4, 350">
+        <Grid RowDefinitions="Auto, Auto, *, Auto">
+            <!-- Ribbon 
+            <ribbon:Ribbon Grid.Row="1">
+                <ribbon:RibbonTab Header="Home">
+                    <ribbon:RibbonTab.Groups>
+                        <ribbon:RibbonGroupBox Header="Scene">
+                            <ribbon:RibbonButton Content="New" />
+                            <ribbon:RibbonButton Content="Open" />
+                            <ribbon:RibbonButton Content="Save" />
+                        </ribbon:RibbonGroupBox>
+                        <ribbon:RibbonGroupBox Header="Edit">
+                            <ribbon:RibbonButton Content="Undo" />
+                            <ribbon:RibbonButton Content="Redo" />
+                        </ribbon:RibbonGroupBox>
+                    </ribbon:RibbonTab.Groups>
+                </ribbon:RibbonTab>
+                <ribbon:RibbonTab Header="View">
+                    <ribbon:RibbonTab.Groups>
+                        <ribbon:RibbonGroupBox Header="Windows">
+                            <ribbon:RibbonButton Content="Hierarchy" />
+                            <ribbon:RibbonButton Content="Inspector" />
+                            <ribbon:RibbonButton Content="Content Browser" />
+                        </ribbon:RibbonGroupBox>
+                    </ribbon:RibbonTab.Groups>
+                </ribbon:RibbonTab>
+            </ribbon:Ribbon> -->
+
+            <!-- Main Content Area -->
+            <Grid Grid.Row="2" ColumnDefinitions="300, 4, *">
             
-            <!-- Left Panel: Scene Hierarchy -->
-            <Grid Grid.Column="0" RowDefinitions="Auto, *">
-                <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" Padding="5">
-                    <TextBlock Text="Hierarchy" FontWeight="Bold" />
-                </Border>
-                <TreeView Grid.Row="1">
-                </TreeView>
-            </Grid>
-
-            <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Transparent" />
-
-            <!-- Center Panel: Viewport & Content Browser -->
-            <Grid Grid.Column="2" RowDefinitions="*, 4, 250">
-                <!-- Viewport (VulkanControl Placeholder) -->
-                <Border Grid.Row="0" Background="#101010" BorderBrush="#303030" BorderThickness="1">
-                    <Grid>
-                        <TextBlock Text="Scene View" 
-                                   HorizontalAlignment="Left" 
-                                   VerticalAlignment="Top" 
-                                   Margin="10" 
-                                   Foreground="Gray"/>
-                        
-                        <local:VulkanViewport Name="VulkanViewport" 
-                            HorizontalAlignment="Stretch" 
-                            VerticalAlignment="Stretch"/>
+                <!-- Left Panel: Scene Hierarchy + Inspector -->
+                <Grid Grid.Column="0" RowDefinitions="*, 4, *">
+                    <!-- Scene Hierarchy -->
+                    <Grid Grid.Row="0" RowDefinitions="Auto, *">
+                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" Padding="5">
+                            <TextBlock Text="Hierarchy" FontWeight="Bold" />
+                        </Border>
+                        <TreeView Grid.Row="1" ItemsSource="{Binding SceneHierarchy}">
+                            <TreeView.ItemTemplate>
+                                <TreeDataTemplate x:DataType="vm:SceneNodeViewModel" ItemsSource="{Binding Children}">
+                                    <TextBlock Text="{Binding Name}"/>
+                                </TreeDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
                     </Grid>
-                </Border>
 
-                <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="Transparent" />
+                    <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="Transparent" />
 
-                <!-- Bottom Panel: Content Browser / Console -->
-                <TabControl Grid.Row="2">
-                    <TabItem Header="Content Browser">
-                        <Grid ColumnDefinitions="200, *">
-                            <TreeView Grid.Column="0">
-                            </TreeView>
-                            <ListBox Grid.Column="1" Background="Transparent">
-                            </ListBox>
+                    <!-- Inspector -->
+                    <Grid Grid.Row="2" RowDefinitions="Auto, *">
+                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" Padding="5">
+                            <TextBlock Text="Inspector" FontWeight="Bold" />
+                        </Border>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding InspectorProperties}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:InspectorPropertyViewModel">
+                                        <Grid ColumnDefinitions="*, *" Margin="5,2">
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                            <ContentControl Grid.Column="1" Content="{Binding Value}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+
+                <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Transparent" />
+
+                <!-- Center Panel: Viewport & Content Browser -->
+                <Grid Grid.Column="2" RowDefinitions="*, 4, 250">
+                    <!-- Viewport (VulkanControl Placeholder) -->
+                    <Border Grid.Row="0" Background="#101010" BorderBrush="#303030" BorderThickness="1">
+                        <Grid>
+                            <TextBlock Text="Scene View" 
+                                       HorizontalAlignment="Left" 
+                                       VerticalAlignment="Top" 
+                                       Margin="10" 
+                                       Foreground="Gray"/>
+                        
+                            <local:VulkanViewport Name="VulkanViewport" 
+                                HorizontalAlignment="Stretch" 
+                                VerticalAlignment="Stretch"/>
                         </Grid>
-                    </TabItem>
-                    <TabItem Header="Console">
-                        <ListBox>
-                        </ListBox>
-                    </TabItem>
-                </TabControl>
+                    </Border>
+
+                    <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="Transparent" />
+
+                    <!-- Bottom Panel: Content Browser / Console -->
+                    <TabControl Grid.Row="2">
+                        <TabItem Header="Content Browser">
+                            <Grid ColumnDefinitions="200, *">
+                                <TreeView Grid.Column="0">
+                                </TreeView>
+                                <ListBox Grid.Column="1" Background="Transparent">
+                                </ListBox>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Console">
+                            <ListBox>
+                            </ListBox>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+
             </Grid>
 
-            <GridSplitter Grid.Column="3" ResizeDirection="Columns" Background="Transparent" />
-
-            <!-- Right Panel: Inspector -->
-            <Grid Grid.Column="4" RowDefinitions="Auto, *">
-                <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" Padding="5">
-                    <TextBlock Text="Inspector" FontWeight="Bold" />
-                </Border>
-                <ScrollViewer Grid.Row="1">
-                    <StackPanel Margin="10" Spacing="10">
+            <!-- Status Bar -->
+            <Border Grid.Row="3" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="0,1,0,0" Padding="5, 2">
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBlock Text="Ready" FontSize="12" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="FPS: 60" FontSize="12" VerticalAlignment="Center"/>
+                        <TextBlock Text="VRAM: 1.2 GB" FontSize="12" VerticalAlignment="Center"/>
                     </StackPanel>
-                </ScrollViewer>
-            </Grid>
+                </Grid>
+            </Border>
         </Grid>
-
-        <!-- Status Bar -->
-        <Border Grid.Row="2" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="0,1,0,0" Padding="5, 2">
-            <Grid ColumnDefinitions="*, Auto">
-                <TextBlock Text="Ready" FontSize="12" VerticalAlignment="Center"/>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
-                    <TextBlock Text="FPS: 60" FontSize="12" VerticalAlignment="Center"/>
-                    <TextBlock Text="VRAM: 1.2 GB" FontSize="12" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-    </Grid>
+    </DockPanel>
 </Window>

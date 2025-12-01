@@ -3,6 +3,7 @@ using Avalonia.Controls.Platform;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using System;
+using Hyperion.Editor.ViewModels;
 
 namespace Hyperion.Editor
 {
@@ -15,6 +16,8 @@ namespace Hyperion.Editor
         {
             InitializeComponent();
 
+            this.DataContext = new MainWindowViewModel();
+
             if (IsRenderingOnMainThread)
             {
                 this.Opened += (s, e) =>
@@ -23,7 +26,8 @@ namespace Hyperion.Editor
                     {
                         var topLevel = TopLevel.GetTopLevel(this);
                         topLevel?.RequestAnimationFrame(OnFrame);
-                    } else
+                    }
+                    else
                     {
                         OnFrame(TimeSpan.Zero);
                     }
