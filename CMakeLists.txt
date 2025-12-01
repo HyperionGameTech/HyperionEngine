@@ -499,8 +499,8 @@ add_definitions(-DHYP_SCRIPT=1)
 # endif()
 
 
-# Disable .NET support by default (comment to enable)
-set(HYP_NO_DOTNET 1)
+# # Disable .NET support by default (comment to enable)
+# set(HYP_NO_DOTNET 1)
 
 if(NOT HYP_NO_DOTNET)
     # if dotnet headers exist, set HYP_DOTNET to 1
@@ -1112,6 +1112,15 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
             )
         endif()
+        # Add to VS solution if using VS generator so project references resolve.
+        if(CMAKE_GENERATOR MATCHES "Visual Studio")
+            enable_language(CSharp)
+            include_external_msproject(
+                Hyperion.NET.Shared
+                "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj"
+                TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
+            )
+        endif()
     endif()
 
     if(CSHARP_RUNTIME_SOURCES)# make a directory for the .csproj file
@@ -1179,6 +1188,15 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll
                 COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.xml
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
+            )
+        endif()
+        # Add to VS solution if using VS generator so project references resolve.
+        if(CMAKE_GENERATOR MATCHES "Visual Studio")
+            enable_language(CSharp)
+            include_external_msproject(
+                Hyperion.NET.Runtime
+                "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj"
+                TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
             )
         endif()
     endif()

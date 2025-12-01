@@ -11,8 +11,24 @@ namespace Hyperion
         Error,
         Fatal
     }
-    
-    public class Logger
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LogCategory
+    {
+        private uint value;
+
+        public LogCategory(uint value)
+        {
+            this.value = value;
+        }
+
+        public uint Value
+        {
+            get { return value; }
+        }
+    }
+
+    public class Logger : ObjectBase
     {
         private static LogChannel defaultChannel = LogChannel.ByName("Default");
 
@@ -51,7 +67,7 @@ namespace Hyperion
             {
                 fileName = fileName.Replace("\\", "/").Substring(fileName.LastIndexOf('/') + 1);
             }
-            
+
             uint line = (uint)frame.GetFileLineNumber();
 
             Logger_Log(defaultChannel.ptr, (uint)logLevel, funcName, line, formattedMessage);
@@ -92,7 +108,7 @@ namespace Hyperion
             {
                 fileName = fileName.Replace("\\", "/").Substring(fileName.LastIndexOf('/') + 1);
             }
-            
+
             uint line = (uint)frame.GetFileLineNumber();
 
             Logger_Log(channel.ptr, (uint)logLevel, funcName, line, formattedMessage);

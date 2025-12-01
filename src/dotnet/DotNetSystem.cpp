@@ -431,16 +431,23 @@ private:
         runtimeConfigPath = GetRuntimeConfigPath();
 #endif
 
-        if (m_initFptr(runtimeConfigPath.Data(), nullptr, &m_cxt) != 0)
+        int res = m_initFptr(runtimeConfigPath.Data(), nullptr, &m_cxt);
+
+        // https://github.com/dotnet/runtime/blob/main/docs/design/features/host-error-codes.md
+        switch (res)
         {
-            HYP_LOG(DotNET, Error, "Failed to initialize .NET runtime");
+        case /* Success */ 0:
+            HYP_LOG(DotNET, Debug, "Initialized .NET runtime");
+            return true;
+        case /* Success_HostAlreadyInitialized */ 1: // fallthrough
+        case /* Success_DifferentRuntimeProperties */ 2:
+            HYP_LOG(DotNET, Debug, "Initialized .NET runtime, hostfxr_initialize_for_runtime_config returned {}", res);
+            return true;
+        default:
+            HYP_LOG(DotNET, Error, "Failed to initialize .NET runtime: hostfxr_initialize_for_runtime_config failed with error code {}", res);
 
             return false;
         }
-
-        HYP_LOG(DotNET, Debug, "Initialized .NET runtime");
-
-        return true;
     }
 
     bool ShutdownDotNetRuntime()

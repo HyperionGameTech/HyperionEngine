@@ -42,9 +42,36 @@ include_directories(
 add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
 
+# CSHARP_PROJECTS_DIR must be defined (from CMakeLists.txt in src/) as it is used to locate the Hyperion.NET packages
+# check to ensure it is defined
+if(NOT DEFINED CSHARP_PROJECTS_DIR)
+    message(FATAL_ERROR "CSHARP_PROJECTS_DIR is not defined. Please define it in the CMakeLists.txt located in src/")
+endif()
+
 find_program(DOTNET_EXECUTABLE dotnet)
 
 if(DOTNET_EXECUTABLE)
+    # Restore projects we depend on
+    execute_process(
+        COMMAND ${DOTNET_EXECUTABLE} restore "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        RESULT_VARIABLE RESTORE_RESULT_SHARED
+    )
+
+    if(NOT RESTORE_RESULT_SHARED EQUAL "0")
+        message(FATAL_ERROR "Failed to restore Hyperion.NET.Shared project. Please ensure that the .NET SDK is installed and accessible.")
+    endif()
+
+    execute_process(
+        COMMAND ${DOTNET_EXECUTABLE} restore "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        RESULT_VARIABLE RESTORE_RESULT_RUNTIME
+    )
+
+    if(NOT RESTORE_RESULT_RUNTIME EQUAL "0")
+        message(FATAL_ERROR "Failed to restore Hyperion.NET.Runtime project. Please ensure that the .NET SDK is installed and accessible.")
+    endif()
+
     # Generate Hyperion.Editor.csproj
     set(EDITOR_PROJECT_DIR "${CMAKE_SOURCE_DIR}/build/CSharpProjects/Hyperion.Editor")
     file(MAKE_DIRECTORY ${EDITOR_PROJECT_DIR})
@@ -85,6 +112,13 @@ if(DOTNET_EXECUTABLE)
     file(APPEND ${EDITOR_CSPROJ_PATH} "  </PropertyGroup>\n")
 
     file(APPEND ${EDITOR_CSPROJ_PATH} "  <ItemGroup>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "         <Private>true</Private>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     </ProjectReference>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj\" >\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "         <Private>true</Private>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     </ProjectReference>\n")
+
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia\" Version=\"11.*\" />\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Desktop\" Version=\"11.*\" />\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Themes.Fluent\" Version=\"11.*\" />\n")
@@ -130,10 +164,19 @@ if(DOTNET_EXECUTABLE)
             "${EDITOR_CSPROJ_PATH}"
             TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
         )
+        # If the .NET targets were created (non-MSVC generators) they will exist;
+        # under Visual Studio they are built implicitly via project references.
+        if(TARGET Hyperion.NET.Shared)
+            add_dependencies(Hyperion.Editor Hyperion.NET.Shared)
+        endif()
+        if(TARGET Hyperion.NET.Runtime)
+            add_dependencies(Hyperion.Editor Hyperion.NET.Runtime)
+        endif()
     else()
         add_custom_target(Hyperion.Editor ALL
             COMMAND ${DOTNET_EXECUTABLE} build "${EDITOR_CSPROJ_PATH}" --configuration ${HYP_BUILD_TYPE}
-            COMMENT "Building Hyperion.Editor (Avalonia)"
+            COMMENT "Building Hyperion.Editor"
+            DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime
         )
     endif()
 endif()
