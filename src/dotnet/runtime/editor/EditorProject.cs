@@ -60,6 +60,14 @@ namespace Hyperion
             }
         }
 
+        public EditorActionStack ActionStack
+        {
+            get
+            {
+                return this.GetActionStack();
+            }
+        }
+
         public Name GetNextDefaultProjectName(string defaultProjectName)
         {
             string projectsDirectory = this.GetProjectsDirectory();

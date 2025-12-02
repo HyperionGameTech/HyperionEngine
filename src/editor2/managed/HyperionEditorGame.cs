@@ -9,6 +9,15 @@ namespace Hyperion.Editor
         private EditorSubsystem? m_editorSubsystem;
         private Task<AssetMap>? m_assetBatchTask;
 
+        private DelegateHandler? m_onProjectOpened;
+        private DelegateHandler? m_onProjectClosing;
+        private DelegateHandler? m_onActionStackStateChanged;
+        private DelegateHandler? m_onFocusedNodeChanged;
+        private DelegateHandler? m_onRootNodeChanged;
+        private DelegateHandler? m_onChildAdded;
+        private DelegateHandler? m_onChildRemoved;
+        private DelegateHandler? m_onActiveSceneChanged;
+
         public HyperionEditorGame()
         {
         }
@@ -20,69 +29,21 @@ namespace Hyperion.Editor
             m_editorSubsystem = new EditorSubsystem();
             World.AddSubsystem(m_editorSubsystem);
 
-            m_editorSubsystem.GetOnFocusedNodeChangedDelegate()
-                .Bind(OnFocusedNodeChanged)
-                .Detach();
+            m_onFocusedNodeChanged = m_editorSubsystem.GetOnFocusedNodeChangedDelegate()
+                .Bind(OnFocusedNodeChanged);
 
-            EditorProject project = m_editorSubsystem.CurrentProject;
+            m_onProjectOpened = m_editorSubsystem.GetOnProjectOpenedDelegate()
+                .Bind(HandleProjectOpened);
 
-            Scene defaultScene = new Scene();
-            defaultScene.Name = new Name("DefaultScene");
-            project.World.AddScene(defaultScene, /* addToStreamingLayer */ true);
+            m_onProjectClosing = m_editorSubsystem.GetOnProjectClosingDelegate()
+                .Bind(HandleProjectClosing);
 
-            WeakReference weakThis = new WeakReference(this);
-            defaultScene.GetOnRootNodeChangedDelegate()
-                .Bind((Node newRoot, Node oldRoot) =>
-                {
-                    if (weakThis.Target is HyperionEditorGame editorGame)
-                    {
-                        Logger.Log(LogType.Debug, "Root node changed in scene '" + newRoot.GetScene().Name.ToString() + "' from " +
-                                   (oldRoot != null ? oldRoot.Name.ToString() : "null") + " to " +
-                                   (newRoot != null ? newRoot.Name.ToString() : "null"));
-                    }
-                })
-                .Detach();
+            EditorProject? project = m_editorSubsystem.CurrentProject;
 
-            defaultScene.RootNode.GetOnChildAddedDelegate()
-                .Bind((Node child, bool isDirect) =>
-                {
-                    if (weakThis.Target is HyperionEditorGame editorGame)
-                    {
-                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' added to parent node '" +
-                                   child.Parent!.Name.ToString() + "' (isDirect: " + isDirect + ")");
-                    }
-                })
-                .Detach();
-
-            defaultScene.RootNode.GetOnChildRemovedDelegate()
-                .Bind((Node child, bool isDirect) =>
-                {
-                    if (weakThis.Target is HyperionEditorGame editorGame)
-                    {
-                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' removed from parent node '" +
-                                   (child.Parent != null ? child.Parent.Name.ToString() : "null") + "' (isDirect: " + isDirect + ")");
-                    }
-                })
-                .Detach();
-
-            DirectionalLight sun = new DirectionalLight();
-            sun.Name = new Name("Sun");
-            sun.Direction = new Vec3f(-0.2f, 0.8f, 0.2f).Normalize();
-            sun.Intensity = 10.0f;
-            defaultScene.RootNode.AddChild(sun);
-
-            m_editorSubsystem.SetFocusedNode(sun, /* shouldSelectInOutline */ true);
-
-            DynamicSkySubsystem dss = new DynamicSkySubsystem();
-            project.World.AddSubsystem(dss);
-
-            Logger.Log(LogType.Debug, "Default scene added to the editor game world");
-
-            var assetBatch = new AssetBatch();
-            assetBatch.Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-            assetBatch.Add("test_model", "models/sponza/sponza.obj");
-
-            m_assetBatchTask = assetBatch.Load();
+            if (project != null)
+            {
+                HandleProjectOpened(project);
+            }
         }
 
         public override void OnUpdate(float deltaTime)
@@ -132,6 +93,107 @@ namespace Hyperion.Editor
             Logger.Log(LogType.Debug, "Focused node changed from " + (prevNode != null ? prevNode.Name.ToString() : "null") +
                        " to " + (newNode != null ? newNode.Name.ToString() : "null") +
                        ", shouldSelectInOutline: " + shouldSelectInOutline);
+        }
+
+        private void HandleProjectOpened(EditorProject project)
+        {
+            m_onActionStackStateChanged?.Remove();
+
+            m_onActionStackStateChanged = project.ActionStack.GetOnStateChangeDelegate()
+                .Bind((EditorActionStackState newState) =>
+                {
+                    UpdateUndo();
+                    UpdateRedo();
+                });
+
+            Logger.Log(LogType.Info, "Project opened: " + (project != null ? project.Name.ToString() : "null"));
+
+            Scene? activeScene = m_editorSubsystem!.GetActiveScene();
+
+            WeakReference weakThis = new WeakReference(this);
+
+            var setChildAddRemovedHandlers = (HyperionEditorGame editorGame, Node? node) =>
+            {
+                editorGame.m_onChildAdded?.Remove();
+                editorGame.m_onChildRemoved?.Remove();
+
+                if (node == null)
+                {
+                    return;
+                }
+
+                editorGame.m_onChildAdded = node.GetOnChildAddedDelegate()
+                    .Bind((Node parent, Node child, bool isDirect) =>
+                    {
+                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' added to parent node '" +
+                                parent.Name.ToString() + "' (isDirect: " + isDirect + ")");
+                    });
+
+                editorGame.m_onChildRemoved = node.GetOnChildRemovedDelegate()
+                    .Bind((Node parent, Node child, bool isDirect) =>
+                    {
+                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' removed from parent node '" +
+                                parent.Name.ToString() + "' (isDirect: " + isDirect + ")");
+                    });
+            };
+
+            var addRootNodeChangedHandler = (HyperionEditorGame editorGame, Scene scene) =>
+            {
+                editorGame.m_onRootNodeChanged?.Remove();
+                editorGame.m_onRootNodeChanged = scene.GetOnRootNodeChangedDelegate()
+                    .Bind((Node newRoot, Node oldRoot) =>
+                    {
+                        if (weakThis.Target is HyperionEditorGame editorGame)
+                        {
+                            Logger.Log(LogType.Info, "Root node changed from " + (oldRoot != null ? oldRoot.Name.ToString() : "null") +
+                                    " to " + (newRoot != null ? newRoot.Name.ToString() : "null"));
+
+                            setChildAddRemovedHandlers(editorGame, newRoot);
+                        }
+                    });
+
+                setChildAddRemovedHandlers(editorGame, scene.RootNode);
+            };
+
+            if (activeScene != null)
+            {
+                addRootNodeChangedHandler(this, activeScene);
+            }
+
+            m_onActiveSceneChanged?.Remove();
+            m_onActiveSceneChanged = m_editorSubsystem.GetOnActiveSceneChangedDelegate()
+                .Bind((Scene scene) =>
+                {
+                    if (weakThis.Target is HyperionEditorGame editorGame)
+                    {
+                        Logger.Log(LogType.Info, "Active scene changed to: " + (scene != null ? scene.Name.ToString() : "null"));
+
+                        addRootNodeChangedHandler(editorGame, scene);
+                    }
+                });
+        }
+
+        private void HandleProjectClosing(EditorProject project)
+        {
+            Logger.Log(LogType.Info, "Project closing: " + (project != null ? project.Name.ToString() : "null"));
+
+            m_onActionStackStateChanged?.Remove();
+            m_onActionStackStateChanged = null;
+        }
+
+        private void UpdateUndo()
+        {
+            Logger.Log(LogType.Debug, "UpdateUndo called");
+
+            // @TODO: Model after EditorMain.cpp
+        }
+
+        private void UpdateRedo()
+        {
+            Logger.Log(LogType.Debug, "UpdateRedo called");
+
+
+            // @TODO: Model after EditorMain.cpp
         }
     }
 }
