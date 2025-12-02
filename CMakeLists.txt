@@ -620,7 +620,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             add_custom_target(Hyperion.NET.Shared ALL
                 COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
                 COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Shared.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Shared.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.xml
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
             )
         endif()
@@ -846,25 +845,18 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 # copy assemblies after build (depends on all C# projects)
                 add_custom_target(CopyCSharpAssemblies ALL
                     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Shared.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Shared.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.xml
                     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.xml
                     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Interop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Interop.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.xml
                     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Scripting.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Scripting.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Scripting.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Scripting.xml
                     DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop Hyperion.NET.Scripting
                 )
             else()
                 # copy assemblies after build (depends on all C# projects)
                 add_custom_target(CopyCSharpAssemblies ALL
                     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Shared.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Shared.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.xml
                     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.xml
                     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Interop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Interop.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.xml
-                    DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
+                   DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
                 )
             endif()
         endif()
