@@ -44,6 +44,12 @@ public:
     HYP_METHOD(Scriptable)
     virtual void OnUpdate(float delta) final;
 
+    HYP_METHOD()
+    bool IsLaunched() const
+    {
+        return m_isLaunched.Get(MemoryOrder::ACQUIRE);
+    }
+
     void HandleEvent(SystemEvent&& event);
 
 protected:
@@ -74,8 +80,8 @@ protected:
     }
 
     Handle<UISubsystem> m_uiSubsystem;
-
     Handle<World> m_world;
+    AtomicVar<bool> m_isLaunched;
 };
 
 } // namespace hyperion

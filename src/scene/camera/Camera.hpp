@@ -593,7 +593,8 @@ private:
 
     Handle<CameraStreamingVolume> m_streamingVolume;
 
-    DelegateHandler m_windowSizeChangedHandle;
+    DelegateHandler m_onMainWindowChangedHandle;
+    DelegateHandler m_onWindowResizedHandle;
 };
 
 } // namespace hyperion

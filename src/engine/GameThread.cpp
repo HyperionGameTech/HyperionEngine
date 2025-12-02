@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/threading/Threads.hpp"
 #include <HyperionPch.hpp>
 
 #include <engine/GameThread.hpp>
@@ -82,6 +83,13 @@ void GameThread::operator()()
     InitObject(m_game);
 
     m_game->OnLaunch();
+    m_game->m_isLaunched.Set(true, MemoryOrder::RELEASE);
+
+    // @TODO Make this less fragile
+    while (!RenderApi::IsInit())
+    {
+        ThreadSleep(10); // wait for rendering subsystem to initialize
+    }
 
     Queue<Scheduler::ScheduledTask> tasks;
     SystemEvents events;

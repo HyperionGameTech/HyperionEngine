@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "rendering/RenderGlobalState.hpp"
 #include <HyperionPch.hpp>
 
 #include <system/AppContext.hpp>
@@ -66,6 +67,12 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
 {
     {
         Mutex::Guard guard(m_mtx);
+
+        if (m_size == newSize)
+        {
+            return;
+        }
+
         m_size = newSize;
     }
 
@@ -129,20 +136,24 @@ void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
     m_mainWindow = window;
     m_inputManager->SetWindow(m_mainWindow.Get());
 
-    if (IsOnThread(g_renderThread))
+    if (RenderApi::IsInit())
     {
-        m_mainWindow->CreateSwapchain();
-    }
-    else
-    {
-        GetThreadById(g_renderThread)->GetScheduler().Enqueue([mainWindowWeak = MakeWeakRef(m_mainWindow)]()
+        if (IsOnThread(g_renderThread))
         {
-            Handle<ApplicationWindow> mainWindow = mainWindowWeak.Lock();
-            if (mainWindow.IsValid())
-            {
-                mainWindow->CreateSwapchain();
-            }
-        }, TaskEnqueueFlags::FIRE_AND_FORGET);
+            m_mainWindow->CreateSwapchain();
+        }
+        else
+        {
+            GetThreadById(g_renderThread)->GetScheduler().Enqueue([mainWindowWeak = MakeWeakRef(m_mainWindow)]()
+                {
+                    Handle<ApplicationWindow> mainWindow = mainWindowWeak.Lock();
+                    if (mainWindow.IsValid())
+                    {
+                        mainWindow->CreateSwapchain();
+                    }
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
     }
 
     OnCurrentWindowChanged(m_mainWindow.Get());

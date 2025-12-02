@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <Panel name="Main_Panel" position="0 0" size="100%" textSize="12">
-    <Script class="EditorMain" />
     
     <MenuBar name="Main_MenuBar" position="0 0" size="100% 25" originAlignment="topleft" parentAlignment="topleft" padding="5 2" depth="1">
         <MenuItem name="File_MenuItem" text="File" size="auto 100%">

@@ -61,6 +61,9 @@ extern ResourceBinderBase* g_skeletonBinder;
 void Init();
 void Shutdown();
 
+/*! \brief Check if rendering subsystem has been initialized. Thread safe. */
+bool IsInit();
+
 /*! \brief Get the current ring buffer index for the current thread (can be called from the game or render threads).
  *  \note This is thread-safe only if called from the game or render thread. Other threads should not call this function. */
 HYP_API uint32 GetRingIndex();

@@ -1076,7 +1076,8 @@ void ReflectionsPass::CreatePipeline()
 
     const MaterialAttributes materialAttributes {
         .fillMode = FM_FILL,
-        .blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+        .blendFunction = BlendFunction(
+            BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
             BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
         .flags = MAF_NONE
     };

@@ -128,8 +128,6 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     }
 #endif
 
-    AssertDebug(!m_needsRecreate); // should have been handled before present
-
     VkSemaphore signalSemaphores[] = { frame->GetRenderFinishedSemaphore()->GetVulkanHandle() };
 
     VkPresentInfoKHR presentInfo { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };

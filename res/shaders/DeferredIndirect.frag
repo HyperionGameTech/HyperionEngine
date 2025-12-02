@@ -191,4 +191,7 @@ void main()
 #endif
 
     output_color = vec4(result, 1.0);
+
+    // debug: render albedo
+    //output_color = vec4(albedo.rgb, 1.0);
 }

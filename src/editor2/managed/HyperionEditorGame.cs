@@ -87,7 +87,7 @@ namespace Hyperion.Editor
 
         public override void OnUpdate(float deltaTime)
         {
-            // Logger.Log(LogType.Debug, "HyperionEditorGame Update called with deltaTime: " + deltaTime);
+            Logger.Log(LogType.Debug, "HyperionEditorGame Update called with deltaTime: " + deltaTime);
 
             if (m_assetBatchTask != null && m_assetBatchTask.IsCompleted)
             {
@@ -116,7 +116,7 @@ namespace Hyperion.Editor
                     Assert.Throw(testModelAsset.Value != null);
 
                     Node n = m_editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
-                    n.Scale(new Vec3f(0.05f));
+                    n.SetLocalScale(new Vec3f(0.1f));
                 }
                 else
                 {

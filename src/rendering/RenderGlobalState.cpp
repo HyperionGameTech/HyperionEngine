@@ -1,5 +1,6 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
+#include "core/threading/AtomicVar.hpp"
 #include <HyperionPch.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
@@ -47,8 +48,6 @@
 #include <lightmapper/LightmapVolume.hpp>
 
 #include <particles/ParticleVolume.hpp>
-
-#include <core/reflection/Class.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -107,6 +106,8 @@ static thread_local uint32* s_threadFrameIndex;
 
 static volatile int64 s_frameCounter; // atomic
 static uint32 s_frameIndex[2] = { 0 };
+
+static volatile int32 s_isInit = 0; // atomic
 
 static std::counting_semaphore<RingBufferDepth> s_fullSemaphore { 0 };
 static std::counting_semaphore<RingBufferDepth> s_freeSemaphore { RingBufferDepth };
@@ -815,12 +816,14 @@ void Init()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
+    AssertDebug(!AtomicAdd(&s_isInit, 0), "Init() called while rendering subsystem is already initialized!");
+
+    s_threadFrameIndex = &s_frameIndex[CONSUMER];
+
     AssertDebug(g_renderArena == nullptr);
     g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
 
     s_resources = PoolNew<ResourceContainer>(*g_renderPool);
-
-    s_threadFrameIndex = &s_frameIndex[CONSUMER];
 
 #ifdef HYP_VULKAN
     g_renderBackend = new VulkanRenderBackend();
@@ -861,12 +864,17 @@ void Init()
     registry.InvokeAll(*s_resources);
 
     registry.funcs.Clear();
+
+    int32 value = AtomicExchange(&s_isInit, 1);
+    AssertDebug(value == 0);
 }
 
 void Shutdown()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
+
+    AssertDebug(AtomicAdd(&s_isInit, 0), "Shutdown() called while rendering subsystem is not initialized!");
 
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
@@ -899,6 +907,13 @@ void Shutdown()
     g_renderGlobalState = nullptr;
 
     Assert(g_renderBackend->Destroy());
+
+    AtomicExchange(&s_isInit, 0);
+}
+
+bool IsInit()
+{
+    return AtomicAdd(&s_isInit, 0) != 0;
 }
 
 static inline int CurrentThreadType()

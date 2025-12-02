@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Threading;
 using Avalonia.Threading;
 using Hyperion;
 
@@ -15,6 +16,9 @@ namespace Hyperion.Editor.ViewModels
         }
         public SceneHierarchyViewModel SceneHierarchy { get; }
         public InspectorViewModel Inspector { get; }
+
+        private const int GameLaunchWaitIntervalMs = 500;
+        private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up
 
         public MainWindowViewModel()
         {
@@ -32,7 +36,27 @@ namespace Hyperion.Editor.ViewModels
                 throw new InvalidOperationException("Game instance is not initialized.");
             }
 
-            World world = gameInstance.World;
+            int waitedTime = 0;
+
+            while (!gameInstance.IsLaunched())
+            {
+                Logger.Log(LogType.Info, "Waiting for game to launch...");
+
+                Thread.Sleep(GameLaunchWaitIntervalMs);
+
+                waitedTime += GameLaunchWaitIntervalMs;
+
+                if (waitedTime >= MaxGameLaunchWaitTimeMs)
+                {
+                    throw new TimeoutException("Timed out waiting for game to launch!");
+                }
+            }
+
+            World? world = gameInstance.World;
+            if (world == null)
+            {
+                throw new InvalidOperationException("Game world is not initialized.");
+            }
 
             EditorSubsystem? editorSubsystem = world.GetSubsystem<EditorSubsystem>();
             if (editorSubsystem == null)

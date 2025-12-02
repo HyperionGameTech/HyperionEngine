@@ -219,6 +219,7 @@ private:
     WeakHandle<UIObject> m_focusedObject;
 
     DelegateHandler m_onCurrentWindowChangedHandler;
+    DelegateHandler m_onWindowResizedHandler;
 };
 
 } // namespace hyperion

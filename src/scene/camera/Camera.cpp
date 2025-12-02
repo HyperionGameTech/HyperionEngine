@@ -240,6 +240,9 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
 
 Camera::~Camera()
 {
+    m_onWindowResizedHandle.Reset();
+    m_onMainWindowChangedHandle.Reset();
+
     while (HasActiveCameraController())
     {
         const Handle<CameraController> cameraController = m_cameraControllers.PopBack();
@@ -261,47 +264,37 @@ void Camera::Init()
 
     if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
     {
-        auto initMatchWindowSize = [this]() -> TResult<>
+        auto matchWindowSize = [this](Vec2i windowSize)
         {
-            if (!g_appContext)
-            {
-                return HYP_MAKE_ERROR(Error, "No valid app context!");
-            }
+            windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
 
-            if (!g_appContext->GetMainWindow())
-            {
-                return HYP_MAKE_ERROR(Error, "No main window set!");
-            }
+            SetDimensions(windowSize);
 
-            const Vec2i windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(g_appContext->GetMainWindow()->GetSize()) * m_matchWindowSizeRatio)), Vec2i::One());
-
-            m_width = windowSize.x;
-            m_height = windowSize.y;
-
-            m_windowSizeChangedHandle.Reset();
-
-            m_windowSizeChangedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded([this](Vec2i windowSize)
-                {
-                    HYP_NAMED_SCOPE("Update Camera size based on window size");
-
-                    AssertOnThread(g_gameThread);
-
-                    windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
-
-                    m_width = windowSize.x;
-                    m_height = windowSize.y;
-
-                    HYP_LOG(Camera, Debug, "Camera window size (change): {}", windowSize);
-                },
-                g_gameThread);
-
-            return {};
+            HYP_LOG_TEMP("Matched camera dimensions to window size: {}", windowSize);
         };
 
-        if (auto matchWindowSizeResult = initMatchWindowSize(); matchWindowSizeResult.HasError())
+        ApplicationWindow* mainWindow = g_appContext->GetMainWindow();
+
+        if (mainWindow)
         {
-            HYP_LOG(Camera, Error, "Camera with MATCH_WINDOW_SIZE flag cannot match window size: {}", matchWindowSizeResult.GetError().GetMessage());
+            matchWindowSize(mainWindow->GetDimensions());
+
+            m_onWindowResizedHandle = mainWindow->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_gameThread);
         }
+
+        m_onMainWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(
+            [this, matchWindowSize](ApplicationWindow* newMainWindow)
+            {
+                m_onWindowResizedHandle.Reset();
+
+                if (newMainWindow)
+                {
+                    matchWindowSize(newMainWindow->GetDimensions());
+
+                    m_onWindowResizedHandle = newMainWindow->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_gameThread);
+                }
+            },
+            g_gameThread);
     }
 
     UpdateMouseLocked();

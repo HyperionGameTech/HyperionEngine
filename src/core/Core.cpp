@@ -54,7 +54,7 @@ const CommandLineArgumentDefinitions& CoreApi_DefaultCommandLineArgumentDefiniti
             definitions.Add("Headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("Detached", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("Editor", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
-            definitions.Add("RenderOnMainThread", {}, "Run rendering on the main thread instead of using dedicated render thread.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("RenderOnMainThread", {}, "Run rendering on the main thread instead of using dedicated render thread.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, true);
             definitions.Add("Mode", "m", {}, CommandLineArgumentFlags::NONE, Array<String> { "precompile_shaders", "editor" }, String("editor"));
         }
     } initializer;

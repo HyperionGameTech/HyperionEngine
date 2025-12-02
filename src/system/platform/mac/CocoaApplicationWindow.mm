@@ -107,25 +107,27 @@ using namespace hyperion;
     HYP_LOG(Core, Debug, "HyperionMetalView resized to: {}x{}", (int)newSize.width, (int)newSize.height);
 
     [super setFrameSize:newSize];
-    
-    if (_hyperionWindow)
-    {
-        const int width = (int)newSize.width;
-        const int height = (int)newSize.height;
 
-        // update swapchain size
-        [self ResizeSwapchain:width height:height];
-
-        _hyperionWindow->HandleResize(Vec2i(width, height));
-    }
+    CGFloat scale = self.window ? self.window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
+    CGSize drawableSize = CGSizeMake(newSize.width * scale, newSize.height * scale);
     
     // Update metal layer drawable size
     CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
     if (metalLayer)
     {
-        CGFloat scale = self.window ? self.window.backingScaleFactor : 1.0;
         metalLayer.contentsScale = scale;
-        metalLayer.drawableSize = CGSizeMake(newSize.width * scale, newSize.height * scale);
+        metalLayer.drawableSize = drawableSize;
+    }
+    
+    if (_hyperionWindow)
+    {
+        const int width = int(drawableSize.width);
+        const int height = int(drawableSize.height);
+
+        // update swapchain size
+        [self ResizeSwapchain:width height:height];
+
+        _hyperionWindow->HandleResize(Vec2i(int(newSize.width), int(newSize.height)));
     }
 }
 
@@ -154,6 +156,8 @@ using namespace hyperion;
     {
         return;
     }
+
+    HYP_LOG_TEMP("Resizing swapchain to: {}x{}", width, height);
 
     if (Swapchain* swapchain = _hyperionWindow->GetSwapchain())
     {
@@ -208,6 +212,8 @@ using namespace hyperion;
         
         int width = (int)frame.size.width;
         int height = (int)frame.size.height;
+        
+        HYP_LOG_TEMP("Resizing swapchain to: {}x{}", width, height);
 
         if (Swapchain* swapchain = _window->GetSwapchain())
         {

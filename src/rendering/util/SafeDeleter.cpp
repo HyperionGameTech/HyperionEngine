@@ -136,7 +136,7 @@ SafeDeleter::~SafeDeleter()
     }
 
     // free all temp entry lists
-    for (EntryList<DynamicAllocator>& it : m_tempEntryLists)
+    for (auto& it : m_tempEntryLists)
     {
         deleteAll(it);
     }
@@ -310,7 +310,7 @@ void SafeDeleter::UpdateEntryListQueue()
     Mutex::Guard guard(m_mutex);
     for (auto it = m_tempEntryLists.Begin(); it != m_tempEntryLists.End();)
     {
-        EntryList<DynamicAllocator>& entryList = *it;
+        auto& entryList = *it;
 
         if (entryList.desiredIdx != ~0u && entryList.desiredIdx != bufferIndex)
         {
@@ -403,7 +403,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetCurrentEntryList(Mutex::Guard** ppGu
     *ppGuard = new Mutex::Guard(m_mutex);
 
     AtomicIncrement(&m_tempEntryListCount);
-    SafeDeleter::EntryList<DynamicAllocator>& entryList = m_tempEntryLists.EmplaceBack();
+    auto& entryList = m_tempEntryLists.EmplaceBack();
 
     return entryList;
 }
@@ -425,7 +425,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, ui
     *ppGuard = new Mutex::Guard(m_mutex);
 
     AtomicIncrement(&m_tempEntryListCount);
-    SafeDeleter::EntryList<DynamicAllocator>& entryList = m_tempEntryLists.EmplaceBack(desiredIdx);
+    auto& entryList = m_tempEntryLists.EmplaceBack(desiredIdx);
 
     return entryList;
 }

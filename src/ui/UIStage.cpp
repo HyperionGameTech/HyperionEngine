@@ -131,6 +131,9 @@ UIStage::UIStage(ThreadId ownerThreadId)
 
 UIStage::~UIStage()
 {
+    m_onCurrentWindowChangedHandler.Reset();
+    m_onWindowResizedHandler.Reset();
+
     if (m_scene.IsValid())
     {
         if (IsOnThread(m_scene->GetOwnerThreadId()))
@@ -310,6 +313,8 @@ void UIStage::Init()
 
     const auto updateSurfaceSize = [this](ApplicationWindow* window)
     {
+        m_onWindowResizedHandler.Reset();
+
         if (window == nullptr)
         {
             return;
@@ -325,6 +330,13 @@ void UIStage::Init()
 
             UpdateCameraControllerStack();
         }
+
+        m_onWindowResizedHandler = window->OnWindowSizeChanged.BindThreaded(
+            [this](Vec2i newSize)
+            {
+                SetSurfaceSize(newSize);
+            },
+            g_gameThread);
     };
 
     updateSurfaceSize(g_appContext->GetMainWindow());

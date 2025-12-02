@@ -206,6 +206,14 @@ public:
         {
         }
 
+        EntryList(const EntryList&) = delete;
+        EntryList& operator=(const EntryList&) = delete;
+
+        EntryList(EntryList&&) noexcept = delete;
+        EntryList& operator=(EntryList&&) noexcept = delete;
+
+        ~EntryList() override = default;
+
         virtual void* Alloc(uint32 size, uint32 alignment, EntryHeader& outHeader) override
         {
             HYP_SCOPE;

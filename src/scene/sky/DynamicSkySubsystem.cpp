@@ -82,7 +82,7 @@ void DynamicSkySubsystem::Init()
         if (domeNodeAsset.HasValue())
         {
             Handle<Node> domeNode = domeNodeAsset->Result();
-            domeNode->Scale(Vec3f(10.0f));
+            domeNode->Scale(Vec3f(100.0f));
             domeNode->LockTransform();
 
             m_renderScene->GetRoot()->AddChild(domeNode);

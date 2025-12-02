@@ -1021,12 +1021,12 @@ EditorSubsystem::EditorSubsystem()
                         activeScene = scene;
                     }
 
-                    m_delegateHandlers.Add(
-                        scene->OnRootNodeChanged
-                            .Bind([this](const Handle<Node>& newRoot, const Handle<Node>& prevRoot)
-                                {
-                                    UpdateWatchedNodes();
-                                }));
+                    // m_delegateHandlers.Add(
+                    //     scene->OnRootNodeChanged
+                    //         .Bind([this](const Handle<Node>& newRoot, const Handle<Node>& prevRoot)
+                    //             {
+                    //                 UpdateWatchedNodes();
+                    //             }));
                 }
 
                 for (const Handle<View>& view : m_editorViews)
@@ -1034,7 +1034,7 @@ EditorSubsystem::EditorSubsystem()
                     project->GetWorld()->AddView(view);
                 }
 
-                UpdateWatchedNodes();
+                // UpdateWatchedNodes();
 
                 m_delegateHandlers.Add(
                     project->GetWorld()->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
@@ -1055,20 +1055,20 @@ EditorSubsystem::EditorSubsystem()
                                 view->AddScene(scene);
                             }
 
-                            m_delegateHandlers.Add(
-                                scene->OnRootNodeChanged
-                                    .Bind([this](const Handle<Node>& newRoot, const Handle<Node>& prevRoot)
-                                        {
-                                            UpdateWatchedNodes();
-                                        }));
+                            // m_delegateHandlers.Add(
+                            //     scene->OnRootNodeChanged
+                            //         .Bind([this](const Handle<Node>& newRoot, const Handle<Node>& prevRoot)
+                            //             {
+                            //                 UpdateWatchedNodes();
+                            //             }));
 
                             if (!m_activeScene)
                             {
                                 SetActiveScene(scene);
                             }
 
-                            // reinitialize scene selector on scene add
-                            InitActiveSceneSelection();
+                            // // reinitialize scene selector on scene add
+                            // InitActiveSceneSelection();
                         }));
 
                 m_delegateHandlers.Add(
@@ -1089,104 +1089,104 @@ EditorSubsystem::EditorSubsystem()
                                 view->RemoveScene(scene);
                             }
 
-                            StopWatchingNode(scene->GetRoot());
+                            // StopWatchingNode(scene->GetRoot());
 
                             // GetWorld()->RemoveScene(scene);
 
-                            // reinitialize scene selector on scene remove
-                            InitActiveSceneSelection();
+                            // // reinitialize scene selector on scene remove
+                            // InitActiveSceneSelection();
                         }));
 
                 m_delegateHandlers.Remove("OnPackageAdded");
                 m_delegateHandlers.Remove("OnPackageRemoved");
 
-                if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
-                {
-                    m_contentBrowserDirectoryList->GetDataSource()->Clear();
+                // if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
+                // {
+                //     m_contentBrowserDirectoryList->GetDataSource()->Clear();
 
-                    for (const Handle<AssetPackage>& package : g_assetManager->GetAssetRegistry()->GetPackages())
-                    {
-                        Assert(package.IsValid());
+                //     for (const Handle<AssetPackage>& package : g_assetManager->GetAssetRegistry()->GetPackages())
+                //     {
+                //         Assert(package.IsValid());
 
-                        if (!package->IsReady())
-                        {
-                            HYP_LOG(Editor, Debug, "Package {} with UUID {} is not ready; skipping adding to content browser", package->GetName(), package->GetUUID());
+                //         if (!package->IsReady())
+                //         {
+                //             HYP_LOG(Editor, Debug, "Package {} with UUID {} is not ready; skipping adding to content browser", package->GetName(), package->GetUUID());
 
-                            continue;
-                        }
+                //             continue;
+                //         }
 
-                        AddPackageToContentBrowser(package, true);
-                    }
+                //         AddPackageToContentBrowser(package, true);
+                //     }
 
-                    m_delegateHandlers.Add(
-                        NAME("OnPackageAdded"),
-                        g_assetManager->GetAssetRegistry()->OnPackageAdded.BindThreaded([this](const Handle<AssetPackage>& package)
-                            {
-                                AddPackageToContentBrowser(package, false);
-                            },
-                            g_gameThread));
+                //     m_delegateHandlers.Add(
+                //         NAME("OnPackageAdded"),
+                //         g_assetManager->GetAssetRegistry()->OnPackageAdded.BindThreaded([this](const Handle<AssetPackage>& package)
+                //             {
+                //                 AddPackageToContentBrowser(package, false);
+                //             },
+                //             g_gameThread));
 
-                    m_delegateHandlers.Add(
-                        NAME("OnPackageRemoved"),
-                        g_assetManager->GetAssetRegistry()->OnPackageRemoved.BindThreaded([this](const Handle<AssetPackage>& package)
-                            {
-                                RemovePackageFromContentBrowser(package);
-                            },
-                            g_gameThread));
-                }
+                //     m_delegateHandlers.Add(
+                //         NAME("OnPackageRemoved"),
+                //         g_assetManager->GetAssetRegistry()->OnPackageRemoved.BindThreaded([this](const Handle<AssetPackage>& package)
+                //             {
+                //                 RemovePackageFromContentBrowser(package);
+                //             },
+                //             g_gameThread));
+                // }
 
-                m_delegateHandlers.Add(
-                    NAME("OnGameStateChange"),
-                    GetWorld()->OnGameStateChange.Bind([this](World* world, GameStateMode previousGameStateMode, GameStateMode currentGameStateMode)
-                        {
-                            UpdateWatchedNodes();
+                // m_delegateHandlers.Add(
+                //     NAME("OnGameStateChange"),
+                //     GetWorld()->OnGameStateChange.Bind([this](World* world, GameStateMode previousGameStateMode, GameStateMode currentGameStateMode)
+                //         {
+                //             UpdateWatchedNodes();
 
-                            switch (currentGameStateMode)
-                            {
-                            case GameStateMode::EDITOR:
-                            {
-                                m_delegateHandlers.Remove("World_SceneAddedDuringSimulation");
-                                m_delegateHandlers.Remove("World_SceneRemovedDuringSimulation");
+                //             switch (currentGameStateMode)
+                //             {
+                //             case GameStateMode::EDITOR:
+                //             {
+                //                 m_delegateHandlers.Remove("World_SceneAddedDuringSimulation");
+                //                 m_delegateHandlers.Remove("World_SceneRemovedDuringSimulation");
 
-                                break;
-                            }
-                            case GameStateMode::SIMULATING: // fallthrough
-                            case GameStateMode::PAUSED:
-                            {
-                                // unset manipulation widgets
-                                m_manipulationWidgetHolder.SetSelectedManipulationMode(EditorManipulationMode::NONE);
+                //                 break;
+                //             }
+                //             case GameStateMode::SIMULATING: // fallthrough
+                //             case GameStateMode::PAUSED:
+                //             {
+                //                 // unset manipulation widgets
+                //                 m_manipulationWidgetHolder.SetSelectedManipulationMode(EditorManipulationMode::NONE);
 
-                                m_delegateHandlers.Add(
-                                    NAME("World_SceneAddedDuringSimulation"),
-                                    world->OnSceneAdded.Bind([this](World*, const Handle<Scene>& scene)
-                                        {
-                                            if (!scene.IsValid())
-                                            {
-                                                return;
-                                            }
+                //                 m_delegateHandlers.Add(
+                //                     NAME("World_SceneAddedDuringSimulation"),
+                //                     world->OnSceneAdded.Bind([this](World*, const Handle<Scene>& scene)
+                //                         {
+                //                             if (!scene.IsValid())
+                //                             {
+                //                                 return;
+                //                             }
 
-                                            StartWatchingNode(scene->GetRoot());
-                                        }));
+                //                             StartWatchingNode(scene->GetRoot());
+                //                         }));
 
-                                m_delegateHandlers.Add(
-                                    NAME("World_SceneRemovedDuringSimulation"),
-                                    world->OnSceneRemoved.Bind([this](World*, Scene* scene)
-                                        {
-                                            if (!scene)
-                                            {
-                                                return;
-                                            }
+                //                 m_delegateHandlers.Add(
+                //                     NAME("World_SceneRemovedDuringSimulation"),
+                //                     world->OnSceneRemoved.Bind([this](World*, Scene* scene)
+                //                         {
+                //                             if (!scene)
+                //                             {
+                //                                 return;
+                //                             }
 
-                                            StopWatchingNode(scene->GetRoot());
-                                        }));
+                //                             StopWatchingNode(scene->GetRoot());
+                //                         }));
 
-                                break;
-                            }
-                            default:
-                                HYP_UNREACHABLE();
-                                break;
-                            }
-                        }));
+                //                 break;
+                //             }
+                //             default:
+                //                 HYP_UNREACHABLE();
+                //                 break;
+                //             }
+                //         }));
 
                 SetActiveScene(activeScene);
             })
@@ -1226,9 +1226,7 @@ EditorSubsystem::EditorSubsystem()
 
                     m_delegateHandlers.Remove(&scene->OnRootNodeChanged);
 
-                    StopWatchingNode(scene->GetRoot());
-
-                    // GetWorld()->RemoveScene(scene);
+                    // StopWatchingNode(scene->GetRoot());
                 }
 
                 for (const Handle<View>& view : m_editorViews)
@@ -1244,13 +1242,13 @@ EditorSubsystem::EditorSubsystem()
                 m_delegateHandlers.Remove("OnPackageRemoved");
                 m_delegateHandlers.Remove("OnGameStateChange");
 
-                if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
-                {
-                    m_contentBrowserDirectoryList->GetDataSource()->Clear();
-                }
+                // if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
+                // {
+                //     m_contentBrowserDirectoryList->GetDataSource()->Clear();
+                // }
 
-                // reinitialize scene selector
-                InitActiveSceneSelection();
+                // // reinitialize scene selector
+                // InitActiveSceneSelection();
             })
         .Detach();
 
@@ -1316,6 +1314,7 @@ void EditorSubsystem::OnAddedToWorld()
     Handle<Node> cameraNode = m_editorScene->GetRoot()->AddChild();
 
     m_camera = CreateObject<Camera>();
+    m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
     m_camera->AddCameraController(CreateObject<EditorCameraController>());
     m_camera->SetName(NAME("EditorCamera"));
     m_camera->SetFOV(60.0f);
@@ -1331,12 +1330,12 @@ void EditorSubsystem::OnAddedToWorld()
 
     LoadEditorUIDefinitions();
 
-    InitContentBrowser();
+    // InitContentBrowser();
     InitViewport();
-    InitSceneOutline();
-    InitActiveSceneSelection();
+    // InitSceneOutline();
+    // InitActiveSceneSelection();
 
-    InitDetailView();
+    // InitDetailView();
 
     CreateHighlightNode();
 
@@ -1470,18 +1469,6 @@ void EditorSubsystem::LoadEditorUIDefinitions()
     }
 
     uiSubsystem->GetUIStage()->SetDefaultFontAtlas(*fontAtlasResult);
-
-    auto loadedUiAsset = AssetManager::GetInstance()->Load<UIObject>("ui/Editor.Main.ui.xml");
-    Assert(loadedUiAsset.HasValue(), "Failed to load editor UI definitions!");
-
-    Handle<UIStage> loadedUi = ObjCast<UIStage>(loadedUiAsset->Result());
-    Assert(loadedUi.IsValid(), "Failed to load editor UI");
-
-    loadedUi->SetDefaultFontAtlas(*fontAtlasResult);
-
-    uiSubsystem->GetUIStage()->AddChildUIObject(loadedUi);
-
-    loadedUi->Focus();
 }
 
 void EditorSubsystem::CreateHighlightNode()
@@ -1565,13 +1552,6 @@ void EditorSubsystem::InitViewport()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    Handle<UIObject> sceneImageObject = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"));
-    if (!sceneImageObject)
-    {
-        HYP_LOG(Editor, Error, "Scene image object not found in UI stage!");
-        return;
-    }
-
     uiSubsystem->GetUIStage()->UpdateSize(true);
 
     // bind console key
@@ -1629,18 +1609,16 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    Vec2u viewportSize = MathUtil::Max(Vec2u(sceneImageObject->GetActualSize()), Vec2u::One());
-    m_camera->SetDimensions(Vec2i(viewportSize));
+    Vec2u viewportSize = MathUtil::Max(Vec2u(uiSubsystem->GetUIStage()->GetActualSize()), Vec2u::One());
+    // m_camera->SetDimensions(Vec2i(viewportSize));
 
     ViewDesc viewDesc {
         .flags = ViewFlags::DEFAULT
             | ViewFlags::GBUFFER
-            | ViewFlags::ENABLE_READBACK
             | ViewFlags::MATCH_CAMERA_DIMENSIONS,
         .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
         .outputTargetDesc = { .extent = viewportSize },
-        .camera = m_camera,
-        .readbackTextureFormat = TF_R10G10B10A2
+        .camera = m_camera
     };
 
     Handle<View> view = CreateObject<View>(viewDesc);
@@ -1671,50 +1649,35 @@ void EditorSubsystem::InitViewport()
 
     m_editorViews.PushBack(view);
 
-    m_delegateHandlers.Remove(&sceneImageObject->OnSizeChange);
-    m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak(), cameraWeak = m_camera.ToWeak()]()
-        {
-            Handle<UIObject> sceneImageObject = sceneImageObjectWeak.Lock();
-            if (!sceneImageObject)
-            {
-                HYP_LOG(Editor, Warning, "Scene image object is no longer valid!");
-                return UIEventHandlerResult::ERR;
-            }
+    // m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnSizeChange);
+    // m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnSizeChange.Bind([this, uiStageWeak = uiSubsystem->GetUIStage().ToWeak(), cameraWeak = m_camera.ToWeak()]()
+    //     {
+    //         Handle<UIObject> uiStage = uiStageWeak.Lock();
+    //         if (!uiStage)
+    //         {
+    //             HYP_LOG(Editor, Warning, "Scene image object is no longer valid!");
+    //             return UIEventHandlerResult::ERR;
+    //         }
 
-            Handle<Camera> camera = cameraWeak.Lock();
-            if (!camera)
-            {
-                HYP_LOG(Editor, Warning, "Camera is no longer valid!");
-                return UIEventHandlerResult::ERR;
-            }
+    //         Handle<Camera> camera = cameraWeak.Lock();
+    //         if (!camera)
+    //         {
+    //             HYP_LOG(Editor, Warning, "Camera is no longer valid!");
+    //             return UIEventHandlerResult::ERR;
+    //         }
 
-            Vec2i viewportSize = MathUtil::Max(sceneImageObject->GetActualSize(), Vec2i::One());
-            camera->SetDimensions(viewportSize);
+    //         Vec2i viewportSize = MathUtil::Max(uiStage->GetActualSize(), Vec2i::One());
+    //         camera->SetDimensions(viewportSize);
 
-            HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewportSize);
+    //         HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewportSize);
 
-            return UIEventHandlerResult::OK;
-        }));
+    //         return UIEventHandlerResult::OK;
+    //     }));
 
-    m_camera->SetDimensions(Vec2i(viewportSize));
+    // m_camera->SetDimensions(Vec2i(viewportSize));
 
-    Handle<UIImage> uiImage = ObjCast<UIImage>(sceneImageObject);
-    Assert(uiImage.IsValid());
-
-    Handle<Texture> readbackTexture = view->GetReadbackTexture();
-    Assert(readbackTexture != nullptr);
-
-    m_delegateHandlers.Remove("OnReadbackTextureChanged");
-    m_delegateHandlers.Add(NAME("OnReadbackTextureChanged"), view->OnReadbackTextureChanged.Bind([uiImageWeak = uiImage.ToWeak()](const Handle<Texture>& readbackTexture)
-                                                                 {
-                                                                     Handle<UIImage> uiImage = uiImageWeak.Lock();
-                                                                     AssertDebug(uiImage != nullptr);
-
-                                                                     uiImage->SetTexture(readbackTexture);
-                                                                 }));
-
-    m_delegateHandlers.Remove(&uiImage->OnClick);
-    m_delegateHandlers.Add(uiImage->OnClick.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnClick);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnClick.Bind([this](const MouseEvent& event)
         {
             if (m_shouldCancelNextClick)
             {
@@ -1779,8 +1742,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiImage->OnMouseLeave);
-    m_delegateHandlers.Add(uiImage->OnMouseLeave.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseLeave);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseLeave.Bind([this](const MouseEvent& event)
         {
             if (IsHoveringManipulationWidget())
             {
@@ -1792,8 +1755,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiImage->OnMouseDrag);
-    m_delegateHandlers.Add(uiImage->OnMouseDrag.Bind([this, uiImage = uiImage.Get()](const MouseEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseDrag);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseDrag.Bind([this, uiStage = uiSubsystem->GetUIStage().Get()](const MouseEvent& event)
         {
             // prevent click being triggered on release once mouse has been dragged
             m_shouldCancelNextClick = true;
@@ -1822,8 +1785,8 @@ void EditorSubsystem::InitViewport()
             // handle move before we reset mouse pos
             if (event.inputManager->IsMouseLocked())
             {
-                const Vec2f position = uiImage->GetAbsolutePosition();
-                const Vec2i size = uiImage->GetActualSize();
+                const Vec2f position = uiStage->GetAbsolutePosition();
+                const Vec2i size = uiStage->GetActualSize();
 
                 // @TODO : refactor, we're calling SetMousePosition() on game thread which is causing warnings on macOS
                 // since this is a UI event we should call this on the UI thread (main)
@@ -1835,8 +1798,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
-    m_delegateHandlers.Remove(&uiImage->OnMouseMove);
-    m_delegateHandlers.Add(uiImage->OnMouseMove.Bind([this, uiImage = uiImage.Get()](const MouseEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseMove);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseMove.Bind([this, uiStage = uiSubsystem->GetUIStage().Get()](const MouseEvent& event)
         {
             m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event);
 
@@ -1891,8 +1854,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiImage->OnMouseDown);
-    m_delegateHandlers.Add(uiImage->OnMouseDown.Bind([this, uiImageWeak = uiImage.ToWeak()](const MouseEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseDown);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseDown.Bind([this, uiStageWeak = uiSubsystem->GetUIStage().ToWeak()](const MouseEvent& event)
         {
             m_shouldCancelNextClick = false;
 
@@ -1934,8 +1897,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
-    m_delegateHandlers.Remove(&uiImage->OnMouseUp);
-    m_delegateHandlers.Add(uiImage->OnMouseUp.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseUp);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseUp.Bind([this](const MouseEvent& event)
         {
             m_shouldCancelNextClick = false;
 
@@ -1964,8 +1927,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
-    m_delegateHandlers.Remove(&uiImage->OnKeyDown);
-    m_delegateHandlers.Add(uiImage->OnKeyDown.Bind([this](const KeyboardEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnKeyDown);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnKeyDown.Bind([this](const KeyboardEvent& event)
         {
             // On escape press, stop simulating if we're currently simulating
             if (event.keyCode == KeyCode::ESC && GetWorld()->GetGameState().IsSimulating())
@@ -1991,8 +1954,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiImage->OnKeyUp);
-    m_delegateHandlers.Add(uiImage->OnKeyUp.Bind([this](const KeyboardEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnKeyUp);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnKeyUp.Bind([this](const KeyboardEvent& event)
         {
             if (m_camera->GetCameraController()->GetInputHandler()->OnKeyUp(event))
             {
@@ -2002,23 +1965,21 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiImage->OnGainFocus);
-    m_delegateHandlers.Add(uiImage->OnGainFocus.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnGainFocus);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnGainFocus.Bind([this](const MouseEvent& event)
         {
             m_editorCameraEnabled = true;
 
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiImage->OnLoseFocus);
-    m_delegateHandlers.Add(uiImage->OnLoseFocus.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnLoseFocus);
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnLoseFocus.Bind([this](const MouseEvent& event)
         {
             m_editorCameraEnabled = false;
 
             return UIEventHandlerResult::OK;
         }));
-
-    uiImage->SetTexture(readbackTexture);
 
     InitConsoleUI();
     InitDebugOverlays();
@@ -2501,17 +2462,7 @@ void EditorSubsystem::InitConsoleUI()
     m_consoleUi->SetDepth(150);
     m_consoleUi->SetIsVisible(false);
 
-    if (Handle<UIObject> sceneImageObject = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
-    {
-        Handle<UIImage> sceneImage = ObjCast<UIImage>(sceneImageObject);
-        AssertDebug(sceneImage.IsValid());
-
-        sceneImage->AddChildUIObject(m_consoleUi);
-    }
-    else
-    {
-        HYP_FAIL("Failed to find Scene_Image element; cannot add console UI");
-    }
+    uiSubsystem->GetUIStage()->AddChildUIObject(m_consoleUi);
 }
 
 void EditorSubsystem::InitDebugOverlays()
@@ -2566,12 +2517,9 @@ void EditorSubsystem::InitDebugOverlays()
         }
     }
 
-    if (Handle<UIImage> sceneImage = ObjCast<UIImage>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))))
+    for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
     {
-        for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
-        {
-            sceneImage->AddChildUIObject(debugOverlayContainer);
-        }
+        uiSubsystem->GetUIStage()->AddChildUIObject(debugOverlayContainer);
     }
 }
 
@@ -2628,17 +2576,7 @@ void EditorSubsystem::InitManipulationWidgetSelection()
         manipulationWidgetSelection->AddChildUIObject(std::move(manipulationWidgetMenuItem.second));
     }
 
-    if (Handle<UIObject> sceneImageObject = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
-    {
-        Handle<UIImage> sceneImage = ObjCast<UIImage>(sceneImageObject);
-        Assert(sceneImage != nullptr);
-
-        sceneImage->AddChildUIObject(manipulationWidgetSelection);
-    }
-    else
-    {
-        HYP_FAIL("Failed to find Scene_Image element; cannot add manipulation widget selection UI");
-    }
+    uiSubsystem->GetUIStage()->AddChildUIObject(manipulationWidgetSelection);
 }
 
 void EditorSubsystem::InitActiveSceneSelection()
