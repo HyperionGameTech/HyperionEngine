@@ -55,6 +55,7 @@ void AssetBatch::LoadAsync(uint32 numBatches)
 
     if (m_assetMap->Empty())
     {
+        m_assetManager->AddPendingBatch(this); // so memory is still managed by the asset manager
         return;
     }
 
@@ -107,7 +108,7 @@ void AssetBatch::LoadAsync(uint32 numBatches)
 
     TaskSystem::GetInstance().EnqueueBatch(this);
 
-    m_assetManager->AddPendingBatch(RefCountedPtrFromThis());
+    m_assetManager->AddPendingBatch(this);
 }
 
 AssetMap AssetBatch::AwaitResults()

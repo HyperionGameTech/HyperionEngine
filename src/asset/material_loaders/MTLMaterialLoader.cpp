@@ -291,7 +291,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             uint32 numEnqueued = 0;
             String pathsString;
 
-            RC<AssetBatch> texturesBatch = state.assetManager->CreateBatch(state.batchIdentifier);
+            AssetBatch* texturesBatch = state.assetManager->CreateBatch(state.batchIdentifier);
 
             for (auto& it : textureNamesToPath)
             {
@@ -313,6 +313,11 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             {
                 texturesBatch->LoadAsync();
                 loadedTextures = texturesBatch->AwaitResults();
+            }
+            else
+            {
+                // delete if none enqueued, otherwise AssetManager will delete it after its completed
+                delete texturesBatch;
             }
         }
     }

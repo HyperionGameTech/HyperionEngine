@@ -90,11 +90,11 @@ int ConsoleCommandManager::FindAndRegisterCommands()
 
     ClassRegistry::GetInstance().ForEachClass([this, parentClass, &commands](const Class* cls)
         {
-            if (cls->IsDerivedFrom(parentClass))
+            if (cls->IsDerivedFrom(parentClass) && cls != ConsoleCommandBase::StaticClass())
             {
                 if (cls->IsAbstract())
                 {
-                    HYP_LOG(Console, Error, "Class '{}' is abstract, cannot register console command", cls->GetName());
+                    HYP_LOG(Console, Debug, "Class '{}' is abstract, skipping console command registration", cls->GetName());
 
                     return IterationResult::CONTINUE;
                 }

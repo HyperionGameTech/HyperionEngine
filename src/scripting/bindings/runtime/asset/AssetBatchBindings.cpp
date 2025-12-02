@@ -7,6 +7,8 @@
 
 #include <dotnet/runtime/asset/AssetMapBindings.hpp>
 
+#include <engine/EngineGlobals.hpp>
+
 using namespace hyperion;
 
 extern "C"
@@ -24,11 +26,16 @@ extern "C"
 
     HYP_EXPORT void AssetBatch_LoadAsync(AssetBatch* batch, void (*callback)(void*))
     {
-        batch->LoadAsync();
+        batch->OnComplete.Bind([callback](AssetMap& assetMap)
+            {
+                AssetMap* pNewAssetMap = new AssetMap(std::move(assetMap));
 
-        // Note: Will be deleted when AssetMap_Destroy is called from C#.
-        AssetMap* assetMap = new AssetMap(batch->AwaitResults());
-        callback(assetMap);
+                // Note: Will be deleted when AssetMap_Destroy is called from C#.
+                callback(pNewAssetMap);
+            })
+            .Detach();
+
+        batch->LoadAsync();
     }
 
     HYP_EXPORT AssetMap* AssetBatch_AwaitResults(AssetBatch* batch)

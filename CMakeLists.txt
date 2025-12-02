@@ -604,27 +604,11 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         endforeach()
 
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    </None>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  </ItemGroup>\n")
+        # copy .dll to output directory
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  </Target>\n")
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "</Project>\n")
-
-
-        # generate .xml file for DLL map
-
-        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "<configuration>\n")
-
-        if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
-        elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
-        elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
-        endif()
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "</configuration>\n")
 
         # run dotnet restore now
         execute_process(
@@ -681,25 +665,11 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    </ProjectReference>\n")
 
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    </None>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </ItemGroup>\n")
+        # copy .dll to output directory
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </Target>\n")
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "</Project>\n")
-
-
-        # generate .xml file for DLL map
-
-        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "<configuration>\n")
-
-        if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
-        elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
-        elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
-        endif()
 
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "</configuration>\n")
 
@@ -760,27 +730,11 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    </ProjectReference>\n")
 
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    </None>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  </ItemGroup>\n")
+        # copy .dll to output directory
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  </Target>\n")
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "</Project>\n")
-
-
-        # generate .xml file for DLL map
-
-        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "<configuration>\n")
-
-        if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
-        elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
-        elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
-        endif()
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "</configuration>\n")
 
         # run dotnet restore now
         execute_process(
@@ -836,11 +790,10 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.Workspaces.MSBuild\" Version=\"4.9.2\" />\n")
 
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    </None>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </ItemGroup>\n")
+        # copy .dll to output directory
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </Target>\n")
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "</Project>\n")
 
 

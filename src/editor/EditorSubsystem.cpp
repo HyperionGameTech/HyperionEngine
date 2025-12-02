@@ -3223,7 +3223,7 @@ void EditorSubsystem::ShowImportContentDialog()
             }
 
             // Queue up an asset batch
-            RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch(identifier);
+            AssetBatch* batch = AssetManager::GetInstance()->CreateBatch(identifier);
 
             for (const FilePath& file : result.GetValue())
             {
@@ -3240,6 +3240,8 @@ void EditorSubsystem::ShowImportContentDialog()
                 .Detach();
 
             batch->LoadAsync();
+
+            // Note: The batch will be destroyed automatically by AssetManager when complete
         });
 }
 

@@ -170,7 +170,7 @@ private:
     }
 };
 
-class AssetBatch : public EnableRefCountedPtrFromThis<AssetBatch>, private TaskBatch
+class AssetBatch : private TaskBatch
 {
 private:
     // make it be a ptr so this can be moved

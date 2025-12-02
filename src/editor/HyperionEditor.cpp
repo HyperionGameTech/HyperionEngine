@@ -130,7 +130,7 @@ void HyperionEditor::OnLaunch_Impl()
     sunNode->AddChild(sunEntity);
 
     // Test assets
-    RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
+    AssetBatch* batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/sponza/sponza.obj");
     batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("test_model", "models/testbed/testbed.obj");

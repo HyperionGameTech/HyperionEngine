@@ -6,39 +6,39 @@ namespace Hyperion
     internal struct AssetNativeFunctions
     {
         [DllImport("hyperion", EntryPoint = "Asset_Destroy")]
-        internal static extern void Asset_Destroy([In] IntPtr assetPtr);
+        internal static extern void Asset_Destroy([In] IntPtr pLoadedAsset);
 
         [DllImport("hyperion", EntryPoint = "Asset_GetHypData")]
-        internal static extern void Asset_GetHypData([In] IntPtr assetPtr, [Out] out HypDataBuffer outHypDataBuffer);
+        internal static extern void Asset_GetHypData([In] IntPtr pLoadedAsset, [Out] out HypDataBuffer outDataBuffer);
     }
 
     public class LoadedAsset : IDisposable
     {
-        private HypData? hypData = null;
+        private HypData? m_data = null;
 
-        public LoadedAsset(IntPtr assetPtr)
+        public LoadedAsset(IntPtr pLoadedAsset)
         {
-            if (assetPtr != IntPtr.Zero)
+            if (pLoadedAsset != IntPtr.Zero)
             {
-                HypDataBuffer hypDataBuffer;
-                AssetNativeFunctions.Asset_GetHypData(assetPtr, out hypDataBuffer);
+                HypDataBuffer dataBuffer;
+                AssetNativeFunctions.Asset_GetHypData(pLoadedAsset, out dataBuffer);
 
-                if (hypDataBuffer.IsNull)
+                if (dataBuffer.IsNull)
                 {
-                    hypDataBuffer.Dispose();
+                    dataBuffer.Dispose();
                     return;
                 }
 
-                hypData = HypData.FromBuffer(hypDataBuffer);
+                m_data = HypData.FromBuffer(dataBuffer);
             }
         }
 
         public void Dispose()
         {
-            if (hypData != null)
+            if (m_data != null)
             {
-                hypData.Dispose();
-                hypData = null;
+                m_data.Dispose();
+                m_data = null;
             }
         }
 
@@ -46,7 +46,7 @@ namespace Hyperion
         {
             get
             {
-                return hypData != null && !hypData.IsNull;
+                return m_data != null && !m_data.IsNull;
             }
         }
 
@@ -54,43 +54,43 @@ namespace Hyperion
         {
             get
             {
-                if (hypData == null)
+                if (m_data == null)
                 {
                     return null;
                 }
 
-                return hypData.GetValue();
+                return m_data.GetValue();
             }
         }
     }
 
     public class LoadedAsset<T> : IDisposable
     {
-        private HypData? hypData = null;
+        private HypData? m_data = null;
 
-        public LoadedAsset(IntPtr assetPtr)
+        public LoadedAsset(IntPtr pLoadedAsset)
         {
-            if (assetPtr != IntPtr.Zero)
+            if (pLoadedAsset != IntPtr.Zero)
             {
-                HypDataBuffer hypDataBuffer;
-                AssetNativeFunctions.Asset_GetHypData(assetPtr, out hypDataBuffer);
+                HypDataBuffer dataBuffer;
+                AssetNativeFunctions.Asset_GetHypData(pLoadedAsset, out dataBuffer);
 
-                if (hypDataBuffer.IsNull)
+                if (dataBuffer.IsNull)
                 {
-                    hypDataBuffer.Dispose();
+                    dataBuffer.Dispose();
                     return;
                 }
 
-                hypData = HypData.FromBuffer(hypDataBuffer);
+                m_data = HypData.FromBuffer(dataBuffer);
             }
         }
 
         public void Dispose()
         {
-            if (hypData != null)
+            if (m_data != null)
             {
-                ((HypData)hypData).Dispose();
-                hypData = null;
+                m_data.Dispose();
+                m_data = null;
             }
         }
 
@@ -98,7 +98,7 @@ namespace Hyperion
         {
             get
             {
-                return hypData != null && !hypData.IsNull;
+                return m_data != null && !m_data.IsNull;
             }
         }
 
@@ -106,12 +106,12 @@ namespace Hyperion
         {
             get
             {
-                if (hypData == null)
+                if (m_data == null)
                 {
                     return default(T);
                 }
 
-                return (T?)hypData.GetValue();
+                return (T?)m_data.GetValue();
             }
         }
     }

@@ -727,9 +727,6 @@ namespace Hyperion
                             throw new Exception("Failed to get params element value at index: " + paramElementIndex + " for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType?.Name, ex);
                         }
 
-                        if (paramValue == null)
-                            throw new InvalidOperationException("Failed to get parameter value for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType?.Name);
-
                         paramArray.SetValue(paramValue, paramElementIndex);
 
                         paramsOffset += sizeof(IntPtr);

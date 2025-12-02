@@ -124,7 +124,7 @@ namespace Hyperion
                 return;
             }
 
-            using (HypData hypData = new HypData((T)value))
+            using (HypData hypData = new HypData(value))
             {
                 ManagedHandleNativeBindings.WeakHandle_Set(ref hypData.Buffer, out ptr);
             }

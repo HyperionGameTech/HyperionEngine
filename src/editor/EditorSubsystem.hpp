@@ -404,7 +404,7 @@ public:
     }
 
     HYP_FIELD()
-    ScriptableDelegate<void, const Handle<Node>&, const Handle<Node>&, bool> OnFocusedNodeChanged;
+    ScriptableDelegate<void, Handle<Node>, Handle<Node>, bool> OnFocusedNodeChanged;
 
     HYP_FIELD()
     ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectClosing;

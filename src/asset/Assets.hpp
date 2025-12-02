@@ -264,7 +264,7 @@ public:
 
     HYP_API const AssetLoaderDefinition* GetLoaderDefinition(const FilePath& path, TypeId desiredTypeId = TypeId::Void());
 
-    HYP_API RC<AssetBatch> CreateBatch(const String& identifier = String::empty);
+    HYP_API AssetBatch* CreateBatch(const String& identifier = String::empty);
 
     HYP_FORCE_INLINE const Handle<AssetRegistry>& GetAssetRegistry() const
     {
@@ -281,7 +281,7 @@ private:
     void Init() override;
 
     /*! \internal Called from AssetBatch on LoadAsync() */
-    HYP_API void AddPendingBatch(const RC<AssetBatch>& batch);
+    HYP_API void AddPendingBatch(AssetBatch* batch);
 
     HYP_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeId loaderTypeId,
         const String& batchIdentifier,
@@ -321,10 +321,10 @@ private:
     Array<AssetLoaderDefinition> m_loaders;
     TypeMap<ProcessAssetFunctorFactory> m_functorFactories;
 
-    Array<RC<AssetBatch>> m_pendingBatches;
+    Array<AssetBatch*> m_pendingBatches;
     Mutex m_pendingBatchesMutex;
     AtomicVar<uint32> m_numPendingBatches;
-    Array<RC<AssetBatch>> m_completedBatches;
+    Array<AssetBatch*> m_completedBatches;
 };
 
 } // namespace hyperion

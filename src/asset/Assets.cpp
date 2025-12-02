@@ -268,9 +268,9 @@ const Handle<AssetCollector>& AssetManager::FindAssetCollector(ProcRef<bool(cons
     return Handle<AssetCollector>::empty;
 }
 
-RC<AssetBatch> AssetManager::CreateBatch(const String& identifier)
+AssetBatch* AssetManager::CreateBatch(const String& identifier)
 {
-    return MakeRefCountedPtr<AssetBatch>(HandleFromThis(), identifier);
+    return new AssetBatch(MakeStrongRef(this), identifier);
 }
 
 void AssetManager::RegisterDefaultLoaders()
@@ -382,7 +382,7 @@ void AssetManager::Update(float delta)
         {
             if ((*it)->IsCompleted())
             {
-                m_completedBatches.PushBack(std::move(*it));
+                m_completedBatches.PushBack(*it);
 
                 it = m_pendingBatches.Erase(it);
 
@@ -400,7 +400,7 @@ void AssetManager::Update(float delta)
         return;
     }
 
-    for (const RC<AssetBatch>& batch : m_completedBatches)
+    for (AssetBatch* batch : m_completedBatches)
     {
         HYP_NAMED_SCOPE("Process completed batch");
 
@@ -412,12 +412,14 @@ void AssetManager::Update(float delta)
         }
 
         batch->OnComplete(results);
+
+        delete batch;
     }
 
     m_completedBatches.Clear();
 }
 
-void AssetManager::AddPendingBatch(const RC<AssetBatch>& batch)
+void AssetManager::AddPendingBatch(AssetBatch* batch)
 {
     if (!batch)
     {
