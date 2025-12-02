@@ -35,7 +35,7 @@ namespace Hyperion.Editor
                 Environment.ProcessPath ?? "",
                 "-Headless",
                 "-Detached",
-                "-RenderOnMainThread",
+                "-RenderOnMainThread=false",
                 "-Editor"
             ];
 

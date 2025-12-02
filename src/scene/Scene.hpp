@@ -10,6 +10,8 @@
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/DataMutationState.hpp>
 
+#include <core/functional/ScriptableDelegate.hpp>
+
 #include <core/logging/LoggerFwd.hpp>
 
 #include <scene/Node.hpp>
@@ -224,7 +226,8 @@ public:
     HYP_METHOD()
     Name GetUniqueNodeName(UTF8StringView baseName) const;
 
-    Delegate<void, const Handle<Node>& /* new */, const Handle<Node>& /* prev */> OnRootNodeChanged;
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<Node>, Handle<Node>> OnRootNodeChanged;
 
 private:
     void Init() override;

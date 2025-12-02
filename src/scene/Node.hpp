@@ -8,8 +8,6 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
-#include <core/functional/Delegate.hpp>
-
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/StringView.hpp>
@@ -17,6 +15,8 @@
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
+
+#include <core/functional/ScriptableDelegate.hpp>
 
 #include <core/Name.hpp>
 
@@ -464,12 +464,6 @@ public:
         const Node* m_node;
     };
 
-    struct Delegates
-    {
-        Delegate<void, Node*, bool /* direct */> OnChildAdded;
-        Delegate<void, Node*, bool /* direct */> OnChildRemoved;
-    };
-
     using NodeList = Array<Handle<Node>, DynamicAllocator>;
 
     enum class Type : uint32
@@ -876,12 +870,6 @@ public:
     HYP_METHOD()
     Handle<Node> FindChildByUUID(const Uuid& uuid) const;
 
-    /*! \brief Get the delegates for this Node. */
-    HYP_FORCE_INLINE Delegates* GetDelegates() const
-    {
-        return m_delegates.Get();
-    }
-
     HYP_FORCE_INLINE const NodeTagSet& GetTags() const
     {
         return m_tags;
@@ -925,6 +913,12 @@ public:
 
         return hc;
     }
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Node*, bool /* direct */> OnChildAdded;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Node*, bool /* direct */> OnChildRemoved;
 
 protected:
     virtual void Init() override;
@@ -973,8 +967,6 @@ protected:
     Scene* m_scene;
 
     bool m_transformLocked : 1;
-
-    UniquePtr<Delegates> m_delegates;
 
     HYP_FIELD(Property = "NodeTags")
     NodeTagSet m_tags;

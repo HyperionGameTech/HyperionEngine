@@ -30,6 +30,41 @@ namespace Hyperion.Editor
             defaultScene.Name = new Name("DefaultScene");
             project.World.AddScene(defaultScene, /* addToStreamingLayer */ true);
 
+            WeakReference weakThis = new WeakReference(this);
+            defaultScene.GetOnRootNodeChangedDelegate()
+                .Bind((Node newRoot, Node oldRoot) =>
+                {
+                    if (weakThis.Target is HyperionEditorGame editorGame)
+                    {
+                        Logger.Log(LogType.Debug, "Root node changed in scene '" + newRoot.Scene!.Name.ToString() + "' from " +
+                                   (oldRoot != null ? oldRoot.Name.ToString() : "null") + " to " +
+                                   (newRoot != null ? newRoot.Name.ToString() : "null"));
+                    }
+                })
+                .Detach();
+
+            defaultScene.RootNode.GetOnChildAddedDelegate()
+                .Bind((Node child, bool isDirect) =>
+                {
+                    if (weakThis.Target is HyperionEditorGame editorGame)
+                    {
+                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' added to parent node '" +
+                                   child.Parent!.Name.ToString() + "' (isDirect: " + isDirect + ")");
+                    }
+                })
+                .Detach();
+
+            defaultScene.RootNode.GetOnChildRemovedDelegate()
+                .Bind((Node child, bool isDirect) =>
+                {
+                    if (weakThis.Target is HyperionEditorGame editorGame)
+                    {
+                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' removed from parent node '" +
+                                   (child.Parent != null ? child.Parent.Name.ToString() : "null") + "' (isDirect: " + isDirect + ")");
+                    }
+                })
+                .Detach();
+
             DirectionalLight sun = new DirectionalLight();
             sun.Name = new Name("Sun");
             sun.Direction = new Vec3f(0.5f, 0.5f, 0.5f).Normalize();

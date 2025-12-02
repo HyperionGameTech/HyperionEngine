@@ -2181,8 +2181,8 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
 
     AddNodeToSceneOutline(listView, node.Get());
 
-    m_delegateHandlers.Remove(&node->GetDelegates()->OnChildAdded);
-    m_delegateHandlers.Add(node->GetDelegates()->OnChildAdded.Bind([this, listViewWeak = listView.ToWeak()](Node* node, bool isDirect)
+    m_delegateHandlers.Remove(&node->OnChildAdded);
+    m_delegateHandlers.Add(node->OnChildAdded.Bind([this, listViewWeak = listView.ToWeak()](Node* node, bool isDirect)
         {
             Assert(node != nullptr);
 
@@ -2198,8 +2198,8 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
                 HYP_LOG(Editor, Debug, "Added to scene outline: {}\tparent: {}", node->GetName(), (node->GetParent() ? node->GetParent()->GetUUID() : Uuid::Invalid()));
         }));
 
-    m_delegateHandlers.Remove(&node->GetDelegates()->OnChildRemoved);
-    m_delegateHandlers.Add(node->GetDelegates()->OnChildRemoved.Bind([this, listViewWeak = listView.ToWeak()](Node* node, bool)
+    m_delegateHandlers.Remove(&node->OnChildRemoved);
+    m_delegateHandlers.Add(node->OnChildRemoved.Bind([this, listViewWeak = listView.ToWeak()](Node* node, bool)
         {
             // If the node being removed is the focused node, clear the focused node
             if (node == m_focusedNode.GetUnsafe())
@@ -2247,8 +2247,8 @@ void EditorSubsystem::StopWatchingNode(const Handle<Node>& node)
     // Keep ref alive to node to prevent it from being destroyed while we're removing the watchers
     Handle<Node> nodeCopy = node;
 
-    m_delegateHandlers.Remove(&node->GetDelegates()->OnChildAdded);
-    m_delegateHandlers.Remove(&node->GetDelegates()->OnChildRemoved);
+    m_delegateHandlers.Remove(&node->OnChildAdded);
+    m_delegateHandlers.Remove(&node->OnChildRemoved);
 
     m_editorDelegates->RemoveNodeWatcher(NAME("SceneView"), node.Get());
 }

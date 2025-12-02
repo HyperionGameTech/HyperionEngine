@@ -13,7 +13,7 @@
         <vm:MainWindowViewModel />
     </Window.DataContext>
 
-    <DockPanel>
+    <DockPanel Background="{DynamicResource Brush.Background}">
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
             <MenuItem Header="_Open..."/>
@@ -25,7 +25,20 @@
                 <MenuItem Header="Paste"/>
             </MenuItem>
         </Menu>
-        <TextBlock/>
+        <Border Classes="panel-header" DockPanel.Dock="Top">
+            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Classes="accent" Content="New"/>
+                    <Button Classes="accent" Content="Open"/>
+                    <Button Classes="accent" Content="Save"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                    <Button Classes="accent" Content="Play"/>
+                    <Button Classes="accent" Content="Pause"/>
+                    <Button Classes="accent" Content="Stop"/>
+                </StackPanel>
+            </Grid>
+        </Border>
 
         <Grid RowDefinitions="Auto, Auto, *, Auto">
             <!-- Ribbon 
@@ -55,14 +68,14 @@
             </ribbon:Ribbon> -->
 
             <!-- Main Content Area -->
-            <Grid Grid.Row="2" ColumnDefinitions="300, 4, *">
+            <Grid Grid.Row="2" ColumnDefinitions="280, 2, *">
             
                 <!-- Left Panel: Scene Hierarchy + Inspector -->
-                <Grid Grid.Column="0" RowDefinitions="*, 4, *">
+                <Grid Grid.Column="0" RowDefinitions="*, 2, *">
                     <!-- Scene Hierarchy -->
                     <Grid Grid.Row="0" RowDefinitions="Auto, *">
-                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" Padding="5">
-                            <TextBlock Text="Hierarchy" FontWeight="Bold" />
+                        <Border Classes="panel-header">
+                            <TextBlock Classes="header" Text="Hierarchy"/>
                         </Border>
                         <TreeView Grid.Row="1" ItemsSource="{Binding SceneHierarchy}">
                             <TreeView.ItemTemplate>
@@ -73,18 +86,18 @@
                         </TreeView>
                     </Grid>
 
-                    <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="Transparent" />
+                    <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
 
                     <!-- Inspector -->
                     <Grid Grid.Row="2" RowDefinitions="Auto, *">
-                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" Padding="5">
-                            <TextBlock Text="Inspector" FontWeight="Bold" />
+                        <Border Classes="panel-header">
+                            <TextBlock Classes="header" Text="Inspector"/>
                         </Border>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding InspectorProperties}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:InspectorPropertyViewModel">
-                                        <Grid ColumnDefinitions="*, *" Margin="5,2">
+                                        <Grid ColumnDefinitions="*, *" Margin="6,2">
                                             <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
                                             <ContentControl Grid.Column="1" Content="{Binding Value}"/>
                                         </Grid>
@@ -95,34 +108,27 @@
                     </Grid>
                 </Grid>
 
-                <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Transparent" />
+                <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
 
                 <!-- Center Panel: Viewport & Content Browser -->
-                <Grid Grid.Column="2" RowDefinitions="*, 4, 250">
-                    <!-- Viewport (EditorViewport Placeholder) -->
-                    <Border Grid.Row="0" Background="#101010" BorderBrush="#303030" BorderThickness="1">
+                <Grid Grid.Column="2" RowDefinitions="*, 2, 240">
+                    <Border Grid.Row="0" Background="{DynamicResource Brush.Panel}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
                         <Grid>
-                            <TextBlock Text="Scene View" 
-                                       HorizontalAlignment="Left" 
-                                       VerticalAlignment="Top" 
-                                       Margin="10" 
-                                       Foreground="Gray"/>
-                        
                             <local:EditorViewport Name="EditorViewport" 
                                 HorizontalAlignment="Stretch" 
                                 VerticalAlignment="Stretch"/>
                         </Grid>
                     </Border>
 
-                    <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="Transparent" />
+                    <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
 
                     <!-- Bottom Panel: Content Browser / Console -->
                     <TabControl Grid.Row="2">
                         <TabItem Header="Content Browser">
-                            <Grid ColumnDefinitions="200, *">
+                            <Grid ColumnDefinitions="220, *">
                                 <TreeView Grid.Column="0">
                                 </TreeView>
-                                <ListBox Grid.Column="1" Background="Transparent">
+                                <ListBox Grid.Column="1">
                                 </ListBox>
                             </Grid>
                         </TabItem>
@@ -136,7 +142,7 @@
             </Grid>
 
             <!-- Status Bar -->
-            <Border Grid.Row="3" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="0,1,0,0" Padding="5, 2">
+            <Border Grid.Row="3" Classes="status-bar">
                 <Grid ColumnDefinitions="*, Auto">
                     <TextBlock Text="Ready" FontSize="12" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">

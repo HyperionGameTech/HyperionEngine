@@ -89,8 +89,7 @@ Node::Node(Name name, const Transform& localTransform, Scene* scene)
       m_parentNode(nullptr),
       m_localTransform(localTransform),
       m_scene(scene != nullptr ? scene : GetDetachedSceneForCurrentThread()),
-      m_transformLocked(false),
-      m_delegates(MakeUnique<Delegates>())
+      m_transformLocked(false)
 {
     if (scene != nullptr)
     {
@@ -345,9 +344,9 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
     Node* currentParent = this;
 
-    while (currentParent != nullptr && currentParent->m_delegates != nullptr)
+    while (currentParent != nullptr)
     {
-        currentParent->m_delegates->OnChildAdded(node, /* direct */ currentParent == this);
+        currentParent->OnChildAdded(node, /* direct */ currentParent == this);
 
         currentParent = currentParent->m_parentNode;
     }
@@ -400,9 +399,9 @@ bool Node::RemoveChild(const Node* node)
 
     Node* currentParent = this;
 
-    while (currentParent != nullptr && currentParent->m_delegates != nullptr)
+    while (currentParent != nullptr)
     {
-        currentParent->m_delegates->OnChildRemoved(const_cast<Node*>(node), /* direct */ currentParent == this);
+        currentParent->OnChildRemoved(const_cast<Node*>(node), /* direct */ currentParent == this);
 
         currentParent = currentParent->m_parentNode;
     }
@@ -463,9 +462,9 @@ void Node::RemoveAllChildren()
 
             Node* currentParent = this;
 
-            while (currentParent != nullptr && currentParent->m_delegates != nullptr)
+            while (currentParent != nullptr)
             {
-                currentParent->m_delegates->OnChildRemoved(node, /* direct */ currentParent == this);
+                currentParent->OnChildRemoved(node, /* direct */ currentParent == this);
 
                 currentParent = currentParent->m_parentNode;
             }
