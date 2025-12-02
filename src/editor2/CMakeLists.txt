@@ -137,7 +137,7 @@ if(DOTNET_EXECUTABLE)
 
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia\" Version=\"11.*\" />\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Desktop\" Version=\"11.*\" />\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Themes.Fluent\" Version=\"11.*\" />\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Themes.Simple\" Version=\"11.*\" />\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Fonts.Inter\" Version=\"11.*\" />\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Diagnostics\" Version=\"11.*\">\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "      <IncludeAssets Condition=\"'\$(Configuration)' != 'Debug'\">None</IncludeAssets>\n")

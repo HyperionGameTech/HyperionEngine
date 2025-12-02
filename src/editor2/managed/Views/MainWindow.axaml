@@ -77,9 +77,9 @@
                         <Border Classes="panel-header">
                             <TextBlock Classes="header" Text="Hierarchy"/>
                         </Border>
-                        <TreeView Grid.Row="1" ItemsSource="{Binding SceneHierarchy}">
+                        <TreeView Grid.Row="1" ItemsSource="{Binding SceneHierarchy.RootNodes}" SelectedItem="{Binding SceneHierarchy.SelectedNode}">
                             <TreeView.ItemTemplate>
-                                <TreeDataTemplate x:DataType="vm:SceneNodeViewModel" ItemsSource="{Binding Children}">
+                                <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
                                     <TextBlock Text="{Binding Name}"/>
                                 </TreeDataTemplate>
                             </TreeView.ItemTemplate>
@@ -94,7 +94,7 @@
                             <TextBlock Classes="header" Text="Inspector"/>
                         </Border>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding InspectorProperties}">
+                            <ItemsControl ItemsSource="{Binding Inspector.Properties}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:InspectorPropertyViewModel">
                                         <Grid ColumnDefinitions="*, *" Margin="6,2">

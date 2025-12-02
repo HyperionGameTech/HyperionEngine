@@ -146,8 +146,6 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     {
         HYP_LOG(RenderingBackend, Error, "Failed to present swapchain image: {}", int(result));
     }
-
-    frame->ResetRenderPassStates();
 }
 
 RendererResult VulkanSwapchain::Create()

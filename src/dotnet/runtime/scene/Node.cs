@@ -103,5 +103,13 @@ namespace Hyperion
                 return this.GetParent();
             }
         }
+
+        public Scene? Scene
+        {
+            get
+            {
+                return this.GetScene();
+            }
+        }
     }
 }

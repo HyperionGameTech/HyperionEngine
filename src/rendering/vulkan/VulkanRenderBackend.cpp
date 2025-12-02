@@ -1211,6 +1211,9 @@ UniquePtr<SingleTimeCommands> VulkanRenderBackend::GetSingleTimeCommands()
 
 void VulkanRenderBackend::ReleaseTransientMemory()
 {
+    // must happen before arena is reset or it's corruption city!
+    GetCurrentFrame()->ResetRenderPassStates();
+
     g_vulkanArena->Reset();
 
     m_textureCache->CleanupUnusedTextures();

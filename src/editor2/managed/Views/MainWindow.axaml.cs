@@ -12,9 +12,22 @@ namespace Hyperion.Editor
         private const bool CappedFrameRate = true;
         private const bool IsRenderingOnMainThread = true;
 
+        private IntPtr AppContext { get; set; } = IntPtr.Zero;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            // Provide engine window to the viewport control via factory
+            var viewport = this.FindControl<EditorViewport>("EditorViewport");
+
+            if (viewport == null)
+                throw new Exception("EditorViewport control not found in MainWindow.");
+
+            IntPtr window = IntPtr.Zero;
+            AppContext = NativeBindings.Hyp_GetAppContext();
+            if (AppContext == IntPtr.Zero)
+                throw new Exception("Failed to get AppContext from Hyperion");
 
             this.DataContext = new MainWindowViewModel();
 
@@ -33,6 +46,12 @@ namespace Hyperion.Editor
                     }
                 };
             }
+        }
+
+        // need to destroy the engine window when MainWindow is closed
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
         }
 
         private void OnFrame(TimeSpan time)

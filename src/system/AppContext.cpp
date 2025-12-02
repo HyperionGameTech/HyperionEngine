@@ -129,6 +129,22 @@ void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
     m_mainWindow = window;
     m_inputManager->SetWindow(m_mainWindow.Get());
 
+    if (IsOnThread(g_renderThread))
+    {
+        m_mainWindow->CreateSwapchain();
+    }
+    else
+    {
+        GetThreadById(g_renderThread)->GetScheduler().Enqueue([mainWindowWeak = MakeWeakRef(m_mainWindow)]()
+        {
+            Handle<ApplicationWindow> mainWindow = mainWindowWeak.Lock();
+            if (mainWindow.IsValid())
+            {
+                mainWindow->CreateSwapchain();
+            }
+        }, TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+
     OnCurrentWindowChanged(m_mainWindow.Get());
 }
 

@@ -1,4 +1,7 @@
+using System;
 using System.Collections.ObjectModel;
+using Avalonia.Threading;
+using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -10,32 +13,51 @@ namespace Hyperion.Editor.ViewModels
             get => _title;
             set => SetProperty(ref _title, value);
         }
-
-        public ObservableCollection<SceneNodeViewModel> SceneHierarchy { get; } = new ObservableCollection<SceneNodeViewModel>();
-        public ObservableCollection<InspectorPropertyViewModel> InspectorProperties { get; } = new ObservableCollection<InspectorPropertyViewModel>();
+        public SceneHierarchyViewModel SceneHierarchy { get; }
+        public InspectorViewModel Inspector { get; }
 
         public MainWindowViewModel()
         {
-            // Sample data
-            var root = new SceneNodeViewModel("Scene Root");
+            SceneHierarchy = new SceneHierarchyViewModel();
+            Inspector = new InspectorViewModel();
 
-            var camera = new SceneNodeViewModel("Camera");
-            root.Children.Add(camera);
+            SceneHierarchy.SelectedNodeChanged += node =>
+            {
+                Dispatcher.UIThread.Invoke(() => Inspector.SetSelectedNode(node));
+            };
 
-            var light = new SceneNodeViewModel("Directional Light");
-            root.Children.Add(light);
+            Game? gameInstance = EngineManager.GameInstance;
+            if (gameInstance == null)
+            {
+                throw new InvalidOperationException("Game instance is not initialized.");
+            }
 
-            var cube = new SceneNodeViewModel("Cube");
-            cube.Children.Add(new SceneNodeViewModel("Cube Child"));
-            root.Children.Add(cube);
+            World world = gameInstance.World;
 
-            SceneHierarchy.Add(root);
+            EditorSubsystem? editorSubsystem = world.GetSubsystem<EditorSubsystem>();
+            if (editorSubsystem == null)
+            {
+                throw new InvalidOperationException("EditorSubsystem is not available in the world.");
+            }
 
-            // Sample inspector properties
-            InspectorProperties.Add(new InspectorPropertyViewModel("Name", "Cube"));
-            InspectorProperties.Add(new InspectorPropertyViewModel("Position", "(0, 0, 0)"));
-            InspectorProperties.Add(new InspectorPropertyViewModel("Rotation", "(0, 0, 0)"));
-            InspectorProperties.Add(new InspectorPropertyViewModel("Scale", "(1, 1, 1)"));
+            Scene? activeScene = editorSubsystem.GetActiveScene();
+            if (activeScene != null)
+            {
+                SceneHierarchy.AttachToScene(activeScene);
+            }
+
+            // handle active scene changes
+            editorSubsystem.GetOnActiveSceneChangedDelegate()
+                .Bind(HandleActiveSceneChanged)
+                .Detach();
+        }
+
+        private void HandleActiveSceneChanged(Scene scene)
+        {
+            Dispatcher.UIThread.Invoke(() =>
+            {
+                SceneHierarchy.AttachToScene(scene);
+            });
         }
     }
 }

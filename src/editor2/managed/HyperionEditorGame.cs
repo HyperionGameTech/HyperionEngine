@@ -36,7 +36,7 @@ namespace Hyperion.Editor
                 {
                     if (weakThis.Target is HyperionEditorGame editorGame)
                     {
-                        Logger.Log(LogType.Debug, "Root node changed in scene '" + newRoot.Scene!.Name.ToString() + "' from " +
+                        Logger.Log(LogType.Debug, "Root node changed in scene '" + newRoot.GetScene().Name.ToString() + "' from " +
                                    (oldRoot != null ? oldRoot.Name.ToString() : "null") + " to " +
                                    (newRoot != null ? newRoot.Name.ToString() : "null"));
                     }
