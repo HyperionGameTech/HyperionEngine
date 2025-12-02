@@ -1052,6 +1052,9 @@ ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageV
 
 ReflectionsPass::~ReflectionsPass()
 {
+    SafeDelete(std::move(m_mipChainImageView));
+    SafeDelete(std::move(m_deferredResultImageView));
+
     m_ssrRenderer.Reset();
 }
 
@@ -1137,17 +1140,9 @@ void ReflectionsPass::Resize_Internal(Vec2u newSize)
 {
     HYP_SCOPE;
 
-    SafeDelete(std::move(m_mipChainImageView));
-    SafeDelete(std::move(m_deferredResultImageView));
-
     FullScreenPass::Resize_Internal(newSize);
 
     m_cubemapGraphicsPipelines = {};
-
-    if (ShouldRenderSSR())
-    {
-        CreateSSRRenderer();
-    }
 }
 
 void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
@@ -1838,7 +1833,13 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.envGridRadiancePass->Resize(newSize);
     passData.envGridIrradiancePass->Resize(newSize);
 
-    passData.reflectionsPass->Resize(newSize);
+    passData.reflectionsPass.Reset();
+    passData.reflectionsPass = CreateObject<ReflectionsPass>(
+        newSize,
+        gbuffer,
+        g_renderBackend->GetTextureImageView(passData.mipChain),
+        passData.combinePass->GetFinalImageView());
+    passData.reflectionsPass->Create();
 
     passData.tonemapPass->Resize(newSize);
 

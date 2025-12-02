@@ -67,7 +67,7 @@ namespace Hyperion.Editor
 
             DirectionalLight sun = new DirectionalLight();
             sun.Name = new Name("Sun");
-            sun.Direction = new Vec3f(0.5f, 0.5f, 0.5f).Normalize();
+            sun.Direction = new Vec3f(-0.2f, 0.8f, 0.2f).Normalize();
             sun.Intensity = 10.0f;
             defaultScene.RootNode.AddChild(sun);
 
