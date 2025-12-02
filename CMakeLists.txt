@@ -670,8 +670,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </Target>\n")
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "</Project>\n")
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "</configuration>\n")
-
         # run dotnet restore now
         execute_process(
             COMMAND dotnet restore
@@ -683,7 +681,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
                 DEPENDS Hyperion.NET.Shared
                 COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.xml
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
             )
         endif()
@@ -746,7 +743,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
                 DEPENDS Hyperion.NET.Shared
                 COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Interop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Interop.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.xml
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop
             )
         endif()
@@ -795,21 +791,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </Target>\n")
         file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "</Project>\n")
 
-
-        # generate .xml file for DLL map
-
-        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "<configuration>\n")
-
-        if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
-        elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
-        elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
-        endif()
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "</configuration>\n")
-
         # run dotnet restore now
         execute_process(
             COMMAND dotnet restore
@@ -821,7 +802,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
                 DEPENDS Hyperion.NET.Shared
                 COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Scripting.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Scripting.dll
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Scripting.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Scripting.xml
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
             )
         endif()

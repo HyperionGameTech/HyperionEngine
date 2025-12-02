@@ -344,7 +344,7 @@ private:
     LinkedList<EntryList<DynamicAllocator>> m_tempEntryLists;
     volatile int32 m_tempEntryListCount = 0;
 
-    FixedArray<EntryList<Pool>*, RingBufferDepth> m_entryLists;
+    FixedArray<EntryList<DynamicAllocator>*, RingBufferDepth> m_entryLists;
     Counter m_counters[RingBufferDepth];
 };
 

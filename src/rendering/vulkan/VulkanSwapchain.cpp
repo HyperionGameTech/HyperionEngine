@@ -116,7 +116,7 @@ void VulkanSwapchain::PrepareForFrame(VulkanFrame* frame)
     Assert(result, "Failed to acquire next swapchain image: {}", result.GetError().GetMessage());
 }
 
-void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue) const
+void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
 {
     AssertOnThread(g_renderThread);
 
@@ -142,9 +142,13 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
 
     VkResult result = vkQueuePresentKHR(queue->queue, &presentInfo);
 
-    if (result != VK_SUCCESS)
+    if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        HYP_LOG(RenderingBackend, Error, "Failed to present swapchain image: {}", int(result));
+        Recreate();
+    }
+    else
+    {
+        Assert(result == VK_SUCCESS, "Failed to present swapchain image: {}", int(result));
     }
 }
 

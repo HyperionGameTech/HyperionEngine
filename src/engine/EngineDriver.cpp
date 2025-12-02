@@ -159,6 +159,8 @@ public:
         for (Swapchain* swapchain : swapchains)
         {
             g_renderBackend->PrepareSwapchain(swapchain);
+
+            AssertDebug(!swapchain->NeedsRecreate());
         }
 
         g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));

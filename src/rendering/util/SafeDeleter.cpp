@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/memory/allocator/Allocator.hpp"
 #include <HyperionPch.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -95,9 +96,7 @@ SafeDeleter::SafeDeleter()
 {
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
-        AssertDebug(g_framePools[i] != nullptr);
-
-        m_entryLists[i] = new SafeDeleter::EntryList<Pool>(g_framePools[i]);
+        m_entryLists[i] = new SafeDeleter::EntryList<DynamicAllocator>();
     }
 }
 
@@ -129,11 +128,11 @@ SafeDeleter::~SafeDeleter()
     };
 
     // delete all entries in all buffers
-    for (EntryList<Pool>* it : m_entryLists)
+    for (auto* pEntryList : m_entryLists)
     {
-        deleteAll(*it);
+        deleteAll(*pEntryList);
 
-        delete it;
+        delete pEntryList;
     }
 
     // free all temp entry lists
@@ -166,7 +165,7 @@ int SafeDeleter::Iterate(int maxIter)
     uint32 bufferIndex = RenderApi::GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
 
-    SafeDeleter::EntryList<Pool>& entryList = *m_entryLists[bufferIndex];
+    auto& entryList = *m_entryLists[bufferIndex];
 
     Array<EntryHeader>& headers = *entryList.currHeaders;
     entryList.SwapHeaderBuffers();
@@ -248,7 +247,7 @@ int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
 
     AssertDebug(bufferIndex < m_entryLists.Size());
 
-    SafeDeleter::EntryList<Pool>& entryList = *m_entryLists[bufferIndex];
+    auto& entryList = *m_entryLists[bufferIndex];
 
     int iterCount = 0;
 
@@ -282,8 +281,8 @@ void SafeDeleter::UpdateCounter(uint32 bufferIndex)
 
     AssertDebug(bufferIndex < m_entryLists.Size());
 
-    SafeDeleter::EntryList<Pool>& entryList = *m_entryLists[bufferIndex];
-    SafeDeleter::Counter& counter = m_counters[bufferIndex];
+    auto& entryList = *m_entryLists[bufferIndex];
+    Counter& counter = m_counters[bufferIndex];
 
     counter.numElements = entryList.currHeaders->Size();
     counter.numTotalBytes = entryList.buffer.Size();
@@ -297,7 +296,7 @@ void SafeDeleter::UpdateEntryListQueue()
     uint32 bufferIndex = RenderApi::GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
 
-    SafeDeleter::EntryList<Pool>& currentEntryList = *m_entryLists[bufferIndex];
+    auto& currentEntryList = *m_entryLists[bufferIndex];
 
     int32 numTempEntryLists = 0;
     if (AtomicAdd(&m_tempEntryListCount, 0) == 0)

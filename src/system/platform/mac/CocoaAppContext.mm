@@ -384,21 +384,23 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
     if (window)
     {
         // Acquire the CAMetalLayer from the CocoaApplicationWindow on the main thread
-        if (![NSThread isMainThread])
+        if ([NSThread isMainThread])
         {
+            CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
+            Assert(cocoaWindow != nullptr);
+            createInfo.pLayer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
+        }
+        else
+        {
+            AssertOnThread(g_renderThread);
+
             __block CAMetalLayer* layer = nullptr;
-            dispatch_async(dispatch_get_main_queue(), ^{
+            dispatch_sync(dispatch_get_main_queue(), ^{
                 CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
                 Assert(cocoaWindow != nullptr);
                 layer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
             });
             createInfo.pLayer = layer;
-        }
-        else
-        {
-            CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
-            Assert(cocoaWindow != nullptr);
-            createInfo.pLayer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
         }
     }
     else
