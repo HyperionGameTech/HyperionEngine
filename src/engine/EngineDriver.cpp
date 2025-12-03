@@ -577,14 +577,9 @@ HYP_API void EngineDriver::MainThreadUpdate()
     HYP_PROFILE_BEGIN;
     AssertOnThread(g_mainThread);
 
-    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
-    {
-        SystemEvent event;
-        while (g_appContext->PollEvent(event))
-        {
-            mainWindow->GetInputEventSink().Push(std::move(event));
-        }
-    }
+    SystemEvent event;
+    while (g_appContext->PollEvents(event))
+        ;
 
 #ifdef HYP_LIBUI
     uiMainSteps();

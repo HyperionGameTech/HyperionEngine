@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace Hyperion
 {
@@ -109,6 +110,27 @@ namespace Hyperion
             get
             {
                 return this.GetScene();
+            }
+        }
+
+        public int NumChildren
+        {
+            get
+            {
+                return this.NumChildren();
+            }
+        }
+
+        public IEnumerable<Node?> Children
+        {
+            get
+            {
+                int count = NumChildren;
+                for (int i = 0; i < count; i++)
+                {
+                    Node? child = this.GetChild(i);
+                    yield return child;
+                }
             }
         }
     }

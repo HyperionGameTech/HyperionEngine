@@ -591,6 +591,9 @@ public:
     HYP_METHOD()
     void RemoveAllChildren();
 
+    HYP_METHOD()
+    int NumChildren() const;
+
     /*! \brief Get a child Node from this Node's child list at the given index.
      *  \param index The index of the child element to return
      *  \returns The child node at the given index. If the index is out of bounds, nullptr

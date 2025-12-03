@@ -52,7 +52,8 @@ enum class WindowFlags : uint32
     NONE = 0x0,
     HEADLESS = 0x1,
     NO_GFX = 0x2,
-    HIGH_DPI = 0x4
+    HIGH_DPI = 0x4,
+    EVENTS_POLLING = 0x8 //!< Window will poll for events instead of using an event callback system (e.g Win32 WindowProc)
 };
 
 HYP_MAKE_ENUM_FLAGS(WindowFlags)
@@ -209,7 +210,7 @@ public:
     }
 
     virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) = 0;
-    virtual int PollEvent(SystemEvent& event) = 0;
+    virtual int PollEvents(SystemEvent& event) = 0;
 
     Delegate<void, ApplicationWindow*> OnCurrentWindowChanged;
 
@@ -231,7 +232,7 @@ public:
 
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
 
-    int PollEvent(SystemEvent& event) override;
+    int PollEvents(SystemEvent& event) override;
 
 #ifdef HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(
@@ -244,6 +245,8 @@ HYP_CLASS()
 class HYP_API Win32ApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(Win32ApplicationWindow);
+
+    friend class Win32AppContext;
 
 public:
     Win32ApplicationWindow(ANSIString title, Vec2i size);
@@ -271,6 +274,7 @@ private:
 
     HINSTANCE m_hinst = nullptr;
     bool m_mouseLocked = false;
+    bool m_useWndProc = false;
 #endif
 };
 
@@ -285,7 +289,7 @@ public:
 
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
 
-    int PollEvent(SystemEvent& event) override;
+    int PollEvents(SystemEvent& event) override;
 
 #ifdef HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(
@@ -362,7 +366,7 @@ public:
 
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
 
-    int PollEvent(SystemEvent& event) override;
+    int PollEvents(SystemEvent& event) override;
 
 #ifdef HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(

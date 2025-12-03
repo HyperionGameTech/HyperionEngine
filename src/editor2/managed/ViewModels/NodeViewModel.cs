@@ -29,11 +29,16 @@ namespace Hyperion.Editor.ViewModels
             _node = node;
             _name = node.Name.ToString();
 
-            //// Initialize existing children
-            //foreach (var child in node.GetChildren())
-            //{
-            //    Children.Add(new NodeViewModel(child));
-            //}
+            // Initialize existing children
+            for (int i = 0; i < node.NumChildren(); i++)
+            {
+                Node? child = node.GetChild(i);
+
+                if (child != null)
+                {
+                    Children.Add(new NodeViewModel(child));
+                }
+            }
 
             // Subscribe to child added/removed if available
             node.GetOnChildAddedDelegate().Bind((Node child, bool isDirect) =>

@@ -11,7 +11,8 @@ namespace Hyperion.Editor
         None = 0,
         Headless = 0x1,
         NoGfx = 0x2,
-        HighDpi = 0x4
+        HighDpi = 0x4,
+        EventsPolling = 0x8
     }
 
     [StructLayout(LayoutKind.Sequential)]

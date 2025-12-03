@@ -337,7 +337,7 @@ extern "C"
 
         Vec2i resolution = { 1280, 720 };
 
-        EnumFlags<WindowFlags> windowFlags = WindowFlags::HIGH_DPI;
+        EnumFlags<WindowFlags> windowFlags = WindowFlags::HIGH_DPI | WindowFlags::EVENTS_POLLING;
 
         if (cliArgs["Headless"].ToBool())
         {
@@ -512,6 +512,13 @@ extern "C"
     HYP_API void Hyp_DestroyWindow(AppContextBase* pCtx, ApplicationWindow* pWindow)
     {
         Assert(pCtx != nullptr && pWindow != nullptr);
+
+        AssertOnThread(g_mainThread);
+
+        if (pCtx->GetMainWindow() == pWindow)
+        {
+            pCtx->SetMainWindow(nullptr);
+        }
 
         pWindow->GetObjectHeader_Internal()->DecRefStrong();
     }

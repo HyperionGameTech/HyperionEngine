@@ -214,7 +214,7 @@ static KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode)
     }
 }
 
-int CocoaAppContext::PollEvent(SystemEvent& event)
+int CocoaAppContext::PollEvents(SystemEvent& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
@@ -244,12 +244,12 @@ int CocoaAppContext::PollEvent(SystemEvent& event)
         case NSEventTypeKeyDown:
             event = SystemEvent(SystemEvent::KEYDOWN, platformEvent);
             event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
-            return 1;
+            break;
             
         case NSEventTypeKeyUp:
             event = SystemEvent(SystemEvent::KEYUP, platformEvent);
             event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
-            return 1;
+            break;
             
         case NSEventTypeMouseMoved:
         case NSEventTypeLeftMouseDragged:
@@ -309,38 +309,38 @@ int CocoaAppContext::PollEvent(SystemEvent& event)
                 event.GetEventData().Set(Vec2i((int)location.x, (int)location.y));
             }
             
-            return 1;
+            break;
         }
             
         case NSEventTypeLeftMouseDown:
             event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            return 1;
+            break;
             
         case NSEventTypeLeftMouseUp:
             event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            return 1;
+            break;
             
         case NSEventTypeRightMouseDown:
             event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            return 1;
+            break;
             
         case NSEventTypeRightMouseUp:
             event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            return 1;
+            break;
             
         case NSEventTypeOtherMouseDown:
             event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            return 1;
+            break;
             
         case NSEventTypeOtherMouseUp:
             event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            return 1;
+            break;
             
         case NSEventTypeScrollWheel:
         {
@@ -357,11 +357,21 @@ int CocoaAppContext::PollEvent(SystemEvent& event)
             }
             
             event.GetEventData().Set(Vec2i((int)deltaX, (int)deltaY));
-            return 1;
+            break;
         }
             
         default:
             break;
+        }
+
+        if (event.GetType() != SystemEvent::INVALID)
+        {
+            if (m_mainWindow)
+            {
+                m_mainWindow->GetInputEventSink().Push(std::move(event));
+
+                return 1;
+            }
         }
     }
     

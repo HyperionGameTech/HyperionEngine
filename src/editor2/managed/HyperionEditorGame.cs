@@ -44,6 +44,12 @@ namespace Hyperion.Editor
             {
                 HandleProjectOpened(project);
             }
+
+            // tmp debug
+            AssetBatch ab = new AssetBatch();
+            ab.Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+            ab.Add("test_model", "models/sponza/sponza.obj");
+            m_assetBatchTask = ab.Load();
         }
 
         public override void OnUpdate(float deltaTime)
@@ -123,17 +129,15 @@ namespace Hyperion.Editor
                 }
 
                 editorGame.m_onChildAdded = node.GetOnChildAddedDelegate()
-                    .Bind((Node parent, Node child, bool isDirect) =>
+                    .Bind((Node child, bool isDirect) =>
                     {
-                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' added to parent node '" +
-                                parent.Name.ToString() + "' (isDirect: " + isDirect + ")");
+                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' added" + "' (isDirect: " + isDirect + ")");
                     });
 
                 editorGame.m_onChildRemoved = node.GetOnChildRemovedDelegate()
-                    .Bind((Node parent, Node child, bool isDirect) =>
+                    .Bind((Node child, bool isDirect) =>
                     {
-                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' removed from parent node '" +
-                                parent.Name.ToString() + "' (isDirect: " + isDirect + ")");
+                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' removed" + "' (isDirect: " + isDirect + ")");
                     });
             };
 
@@ -161,7 +165,7 @@ namespace Hyperion.Editor
             }
 
             m_onActiveSceneChanged?.Remove();
-            m_onActiveSceneChanged = m_editorSubsystem.GetOnActiveSceneChangedDelegate()
+            m_onActiveSceneChanged = m_editorSubsystem!.GetOnActiveSceneChangedDelegate()
                 .Bind((Scene scene) =>
                 {
                     if (weakThis.Target is HyperionEditorGame editorGame)

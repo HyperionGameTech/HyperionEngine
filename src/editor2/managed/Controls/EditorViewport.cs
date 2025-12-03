@@ -70,7 +70,12 @@ namespace Hyperion.Editor
 
         protected override void DestroyNativeControlCore(IPlatformHandle control)
         {
-            // Do not shutdown engine here, it is handled by EngineManager in App.axaml.cs
+            if (Window != IntPtr.Zero)
+            {
+                NativeBindings.Hyp_DestroyWindow(AppContext, Window);
+
+                Window = IntPtr.Zero;
+            }
 
             base.DestroyNativeControlCore(control);
         }

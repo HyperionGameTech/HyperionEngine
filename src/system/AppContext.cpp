@@ -360,7 +360,7 @@ Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions window
     return window;
 }
 
-int SDLAppContext::PollEvent(SystemEvent& event)
+int SDLAppContext::PollEvents(SystemEvent& event)
 {
     event = SystemEvent();
 
@@ -514,7 +514,7 @@ Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions window
     HYP_NOT_IMPLEMENTED();
 }
 
-int SDLAppContext::PollEvent(SystemEvent& event)
+int SDLAppContext::PollEvents(SystemEvent& event)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -611,6 +611,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
 {
     m_title = windowOptions.title;
     m_size = windowOptions.dimensions;
+    m_useWndProc = (windowOptions.flags & uint32(WindowFlags::EVENTS_POLLING)) == 0;
 
     WideString wTitle = m_title.ToWide();
 
@@ -661,6 +662,222 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
     UpdateWindow(m_hwnd);
 }
 
+static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
+{
+    // Most VK_* keys are mapped directly to KeyCode, but some need special handling
+    switch (wParam)
+    {
+    case VK_TAB:
+        return KeyCode::TAB;
+    case VK_SHIFT:
+    {
+        // Distinguish between left and right shift
+        const bool isRight = (lParam & (1 << 24)) != 0;
+        return isRight ? KeyCode::RIGHT_SHIFT : KeyCode::LEFT_SHIFT;
+    }
+    case VK_CONTROL:
+    {
+        // Distinguish between left and right control
+        const bool isRight = (lParam & (1 << 24)) != 0;
+        return isRight ? KeyCode::RIGHT_CTRL : KeyCode::LEFT_CTRL;
+    }
+    case VK_MENU:
+    {
+        // Distinguish between left and right alt (menu)
+        const bool isRight = (lParam & (1 << 24)) != 0;
+        return isRight ? KeyCode::RIGHT_ALT : KeyCode::LEFT_ALT;
+    }
+    case VK_CAPITAL:
+        return KeyCode::CAPSLOCK;
+    case VK_SPACE:
+        return KeyCode::SPACE;
+    case VK_LEFT:
+        return KeyCode::ARROW_LEFT;
+    case VK_UP:
+        return KeyCode::ARROW_UP;
+    case VK_RIGHT:
+        return KeyCode::ARROW_RIGHT;
+    case VK_DOWN:
+        return KeyCode::ARROW_DOWN;
+    case VK_LMENU:
+        return KeyCode::LEFT_ALT;
+    case VK_RMENU:
+        return KeyCode::RIGHT_ALT;
+    case VK_LCONTROL:
+        return KeyCode::LEFT_CTRL;
+    case VK_RCONTROL:
+        return KeyCode::RIGHT_CTRL;
+    case VK_LSHIFT:
+        return KeyCode::LEFT_SHIFT;
+    case VK_RSHIFT:
+        return KeyCode::RIGHT_SHIFT;
+    default:
+        break;
+    }
+
+    if (wParam >= 'A' && wParam <= 'Z')
+    {
+        return KeyCode(uint16(KeyCode::KEY_A) + (wParam - 'A'));
+    }
+    else if (wParam >= 'a' && wParam <= 'z')
+    {
+        return KeyCode(uint16(KeyCode::KEY_A) + (wParam - 'a'));
+    }
+    else if (wParam >= '0' && wParam <= '9')
+    {
+        return KeyCode(wParam);
+    }
+    else if (wParam >= VK_F1 && wParam <= VK_F12)
+    {
+        return KeyCode(uint32(KeyCode::KEY_F1) + (wParam - VK_F1));
+    }
+
+    if (wParam < 256)
+    {
+        return KeyCode(wParam);
+    }
+
+    return KeyCode::UNKNOWN;
+}
+
+static bool HandleWindowEvent(
+    Win32ApplicationWindow* window, SystemEvent& event,
+    HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    PlatformEvent platformEvent {};
+    platformEvent.win32Event = Win32Event();
+    platformEvent.win32Event.hwnd = hWnd;
+    platformEvent.win32Event.message = msg;
+    platformEvent.win32Event.wParam = wParam;
+    platformEvent.win32Event.lParam = lParam;
+
+    switch (msg)
+    {
+    case WM_KEYDOWN:
+        event = SystemEvent(SystemEvent::KEYDOWN, platformEvent);
+        event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
+
+        return true;
+    case WM_KEYUP:
+        event = SystemEvent(SystemEvent::KEYUP, platformEvent);
+        event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
+
+        return true;
+    case WM_MOUSEMOVE:
+    {
+        event = SystemEvent(SystemEvent::MOUSEMOTION, platformEvent);
+
+        POINT pt;
+        pt.x = LOWORD(lParam);
+        pt.y = HIWORD(lParam);
+
+        event.GetEventData().Set(Vec2i(pt.x, pt.y));
+
+        return true;
+    }
+    case WM_LBUTTONDOWN:
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
+
+        return true;
+    case WM_LBUTTONUP:
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
+
+        return true;
+    case WM_MBUTTONDOWN:
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
+
+        return true;
+    case WM_MBUTTONUP:
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
+
+        return true;
+    case WM_RBUTTONDOWN:
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
+
+        return true;
+    case WM_RBUTTONUP:
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
+
+        return true;
+    case WM_MOUSEWHEEL:
+    {
+        event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
+
+        int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+        event.GetEventData().Set(Vec2i(0, delta));
+
+        return true;
+    }
+    case WM_MOUSEHWHEEL:
+    {
+        event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
+
+        int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+        event.GetEventData().Set(Vec2i(delta, 0));
+
+        return true;
+    }
+    case WM_DROPFILES:
+    {
+        /*HDROP hDrop = (HDROP)msg.wParam;
+        UINT fileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, nullptr, 0);
+        for (UINT i = 0; i < fileCount; ++i)
+        {
+            WCHAR filePath[MAX_PATH];
+            DragQueryFileW(hDrop, i, filePath, MAX_PATH);
+            event = SystemEvent(SystemEvent::FILE_DROP, platformEvent);
+            event.GetEventData().Set(FilePath(filePath));
+        }
+        DragFinish(hDrop);*/
+
+        break;
+    }
+    case WM_CLOSE:
+    case WM_DESTROY:
+    {
+        event = SystemEvent(SystemEvent::WINDOW_CLOSE, platformEvent);
+        PostQuitMessage(0);
+
+        return true;
+    }
+
+    default:
+        break;
+    }
+
+    return false;
+}
+
+static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+    AssertDebug(window != nullptr);
+
+    SystemEvent event;
+    if (HandleWindowEvent(window, event, hWnd, msg, wParam, lParam))
+    {
+        const SystemEvent::EventType eventType = event.GetType();
+
+        if (eventType != SystemEvent::INVALID)
+        {
+            if (window)
+            {
+                window->GetInputEventSink().Push(std::move(event));
+
+                return 0;
+            }
+        }
+    }
+
+    return DefWindowProcW(hWnd, msg, wParam, lParam);
+}
+
 LRESULT CALLBACK Win32ApplicationWindow::StaticWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (msg == WM_NCCREATE)
@@ -680,7 +897,9 @@ LRESULT CALLBACK Win32ApplicationWindow::StaticWndProc(HWND hWnd, UINT msg, WPAR
         return window->WndProc(hWnd, msg, wParam, lParam);
     }
 
-    return DefWindowProcW(hWnd, msg, wParam, lParam);
+    return window->m_useWndProc
+        ? EngineWndProc(hWnd, msg, wParam, lParam)
+        : DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
 LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -728,7 +947,9 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
         break;
     }
 
-    return DefWindowProcW(hWnd, msg, wParam, lParam);
+    return m_useWndProc
+        ? EngineWndProc(hWnd, msg, wParam, lParam)
+        : DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
 void Win32ApplicationWindow::SetMousePosition(Vec2i position)
@@ -851,86 +1072,7 @@ Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions wind
 /// @TODO : Move Windows implementation to sys/platform/win32 file to reduce code bloat.
 #ifdef HYP_WINDOWS
 
-static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
-{
-    // Most VK_* keys are mapped directly to KeyCode, but some need special handling
-    switch (wParam)
-    {
-    case VK_TAB:
-        return KeyCode::TAB;
-    case VK_SHIFT:
-    {
-        // Distinguish between left and right shift
-        const bool isRight = (lParam & (1 << 24)) != 0;
-        return isRight ? KeyCode::RIGHT_SHIFT : KeyCode::LEFT_SHIFT;
-    }
-    case VK_CONTROL:
-    {
-        // Distinguish between left and right control
-        const bool isRight = (lParam & (1 << 24)) != 0;
-        return isRight ? KeyCode::RIGHT_CTRL : KeyCode::LEFT_CTRL;
-    }
-    case VK_MENU:
-    {
-        // Distinguish between left and right alt (menu)
-        const bool isRight = (lParam & (1 << 24)) != 0;
-        return isRight ? KeyCode::RIGHT_ALT : KeyCode::LEFT_ALT;
-    }
-    case VK_CAPITAL:
-        return KeyCode::CAPSLOCK;
-    case VK_SPACE:
-        return KeyCode::SPACE;
-    case VK_LEFT:
-        return KeyCode::ARROW_LEFT;
-    case VK_UP:
-        return KeyCode::ARROW_UP;
-    case VK_RIGHT:
-        return KeyCode::ARROW_RIGHT;
-    case VK_DOWN:
-        return KeyCode::ARROW_DOWN;
-    case VK_LMENU:
-        return KeyCode::LEFT_ALT;
-    case VK_RMENU:
-        return KeyCode::RIGHT_ALT;
-    case VK_LCONTROL:
-        return KeyCode::LEFT_CTRL;
-    case VK_RCONTROL:
-        return KeyCode::RIGHT_CTRL;
-    case VK_LSHIFT:
-        return KeyCode::LEFT_SHIFT;
-    case VK_RSHIFT:
-        return KeyCode::RIGHT_SHIFT;
-    default:
-        break;
-    }
-
-    if (wParam >= 'A' && wParam <= 'Z')
-    {
-        return KeyCode(uint16(KeyCode::KEY_A) + (wParam - 'A'));
-    }
-    else if (wParam >= 'a' && wParam <= 'z')
-    {
-        return KeyCode(uint16(KeyCode::KEY_A) + (wParam - 'a'));
-    }
-    else if (wParam >= '0' && wParam <= '9')
-    {
-        return KeyCode(wParam);
-    }
-    else if (wParam >= VK_F1 && wParam <= VK_F12)
-    {
-        return KeyCode(uint32(KeyCode::KEY_F1) + (wParam - VK_F1));
-    }
-
-    if (wParam < 256)
-    {
-        return KeyCode(wParam);
-    }
-
-    return KeyCode::UNKNOWN;
-}
-
-HYP_DISABLE_OPTIMIZATION;
-int Win32AppContext::PollEvent(SystemEvent& event)
+int Win32AppContext::PollEvents(SystemEvent& event)
 {
     AssertOnThread(g_mainThread);
 
@@ -938,123 +1080,37 @@ int Win32AppContext::PollEvent(SystemEvent& event)
 
     MSG msg {};
 
-    if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
+    while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
     {
+        Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(msg.hwnd, GWLP_USERDATA));
+
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
 
-        PlatformEvent platformEvent {};
-
-        platformEvent.win32Event = Win32Event();
-        platformEvent.win32Event.hwnd = msg.hwnd;
-        platformEvent.win32Event.message = msg.message;
-        platformEvent.win32Event.wParam = msg.wParam;
-        platformEvent.win32Event.lParam = msg.lParam;
-
-        switch (msg.message)
+        if (window && !window->m_useWndProc)
         {
-        case WM_KEYDOWN:
-            event = SystemEvent(SystemEvent::KEYDOWN, platformEvent);
-            event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(msg.lParam, msg.wParam));
-
-            return 1;
-        case WM_KEYUP:
-            event = SystemEvent(SystemEvent::KEYUP, platformEvent);
-            event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(msg.lParam, msg.wParam));
-
-            return 1;
-        case WM_MOUSEMOVE:
-        {
-            event = SystemEvent(SystemEvent::MOUSEMOTION, platformEvent);
-
-            POINT pt;
-            pt.x = LOWORD(msg.lParam);
-            pt.y = HIWORD(msg.lParam);
-
-            event.GetEventData().Set(Vec2i(pt.x, pt.y));
-
-            return 1;
-        }
-        case WM_LBUTTONDOWN:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-
-            return 1;
-        case WM_LBUTTONUP:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-
-            return 1;
-        case WM_MBUTTONDOWN:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-
-            return 1;
-        case WM_MBUTTONUP:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-
-            return 1;
-        case WM_RBUTTONDOWN:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-
-            return 1;
-        case WM_RBUTTONUP:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-
-            return 1;
-        case WM_MOUSEWHEEL:
-        {
-            event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
-
-            int delta = GET_WHEEL_DELTA_WPARAM(msg.wParam);
-            event.GetEventData().Set(Vec2i(0, delta));
-
-            return 1;
-        }
-        case WM_MOUSEHWHEEL:
-        {
-            event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
-
-            int delta = GET_WHEEL_DELTA_WPARAM(msg.wParam);
-            event.GetEventData().Set(Vec2i(delta, 0));
-
-            return 1;
-        }
-        case WM_DROPFILES:
-        {
-            /*HDROP hDrop = (HDROP)msg.wParam;
-            UINT fileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, nullptr, 0);
-            for (UINT i = 0; i < fileCount; ++i)
+            if (HandleWindowEvent(window, event,
+                msg.hwnd, msg.message, msg.wParam, msg.lParam))
             {
-                WCHAR filePath[MAX_PATH];
-                DragQueryFileW(hDrop, i, filePath, MAX_PATH);
-                event = SystemEvent(SystemEvent::FILE_DROP, platformEvent);
-                event.GetEventData().Set(FilePath(filePath));
+                const SystemEvent::EventType eventType = event.GetType();
+
+                if (eventType != SystemEvent::INVALID)
+                {
+                    if (window)
+                    {
+                        window->GetInputEventSink().Push(std::move(event));
+
+                        return 0;
+                    }
+                }
+
+                return 1;
             }
-            DragFinish(hDrop);*/
-
-            return 1;
-        }
-        case WM_CLOSE:
-        case WM_DESTROY:
-        {
-            event = SystemEvent(SystemEvent::WINDOW_CLOSE, platformEvent);
-            PostQuitMessage(0);
-
-            return 1;
-        }
-
-        default:
-            break;
         }
     }
 
     return 0;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
     Win32ApplicationWindow* window,
@@ -1158,7 +1214,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
 
 #else
 
-int Win32AppContext::PollEvent(SystemEvent& event)
+int Win32AppContext::PollEvents(SystemEvent& event)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -1233,7 +1289,7 @@ Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions wind
     HYP_NOT_IMPLEMENTED();
 }
 
-int CocoaAppContext::PollEvent(SystemEvent& event)
+int CocoaAppContext::PollEvents(SystemEvent& event)
 {
     HYP_NOT_IMPLEMENTED();
 }

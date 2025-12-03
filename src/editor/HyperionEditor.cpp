@@ -28,8 +28,6 @@
 #include <scene/components/ScriptComponent.hpp>
 #include <scene/ComponentInterface.hpp>
 
-#include <scene/sky/DynamicSkySubsystem.hpp>
-
 #include <scene/world_grid/terrain/TerrainWorldGridPlugin.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 
@@ -115,19 +113,6 @@ void HyperionEditor::OnLaunch_Impl()
 #if 1
     Handle<Scene> scene = CreateObject<Scene>(NAME("MyScene"));
     m_editorSubsystem->GetCurrentProject()->GetWorld()->AddScene(scene);
-
-    m_editorSubsystem->GetCurrentProject()->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
-
-    // add sun
-    Handle<Node> sunNode = scene->GetRoot()->AddChild();
-    sunNode->SetName(NAME("Sun"));
-
-    Handle<DirectionalLight> sunEntity = scene->GetEntityManager()->AddEntity<DirectionalLight>(
-        Vec3f(-0.2f, 0.8f, 0.2f).Normalize(),
-        Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
-        10.0f);
-
-    sunNode->AddChild(sunEntity);
 
     // Test assets
     AssetBatch* batch = AssetManager::GetInstance()->CreateBatch();

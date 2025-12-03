@@ -21,13 +21,15 @@
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
 
-#include <lightmapper/LightmapVolume.hpp>
-
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
+
+#include <scene/sky/DynamicSkySubsystem.hpp>
+
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -64,7 +66,6 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <engine/DebugDrawer.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -98,6 +99,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/DebugDrawer.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -3037,7 +3039,36 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 
 void EditorSubsystem::NewProject()
 {
-    OpenProject(CreateObject<EditorProject>());
+    Handle<EditorProject> project = CreateObject<EditorProject>();
+    InitObject(project);
+
+    Handle<Scene> defaultScene = CreateObject<Scene>();
+    defaultScene->SetName(NAME("MainScene"));
+    defaultScene->SetSceneFlags(SceneFlags::DEFAULT);
+    project->AddScene(defaultScene);
+
+    Handle<DirectionalLight> sun = CreateObject<DirectionalLight>();
+    sun->SetName(NAME("SunLight"));
+    sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
+    sun->SetIntensity(10.0f);
+    defaultScene->GetRoot()->AddChild(sun);
+
+    Handle<Node> tmpNode = CreateObject<Node>();
+    tmpNode->SetName(NAME("TmpNode1"));
+
+    Handle<Node> tmpNode2 = CreateObject<Node>();
+    tmpNode2->SetName(NAME("TmpNode2"));
+    tmpNode->AddChild(tmpNode2);
+
+    Handle<Node> tmpNode3 = CreateObject<Node>();
+    tmpNode3->SetName(NAME("TmpNode3"));
+    tmpNode2->AddChild(tmpNode3);
+
+    defaultScene->GetRoot()->AddChild(tmpNode);
+    
+    project->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
+
+    OpenProject(project);
 }
 
 void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)

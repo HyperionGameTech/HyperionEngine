@@ -477,10 +477,13 @@ void Node::RemoveAllChildren()
     UpdateWorldTransform();
 }
 
+int Node::NumChildren() const
+{
+    return int(m_childNodes.Size());
+}
+
 Handle<Node> Node::GetChild(int index) const
 {
-    HYP_SCOPE;
-
     if (index < 0)
     {
         index = int(m_childNodes.Size()) + index;
