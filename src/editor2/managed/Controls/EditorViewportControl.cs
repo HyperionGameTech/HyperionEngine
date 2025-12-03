@@ -7,13 +7,13 @@ namespace Hyperion.Editor
 {
     public class EditorViewportControl : NativeControlHost
     {
-        public IntPtr Window { get; private set; } = IntPtr.Zero;
-        public IntPtr AppContext { get; private set; } = IntPtr.Zero;
+        public ApplicationWindow Window { get; private set; } = null;
+        public AppContextBase AppContext { get; private set; } = null;
 
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
-            AppContext = NativeBindings.Hyp_GetAppContext();
-            if (AppContext == IntPtr.Zero)
+            AppContext = AppContextBase.Instance;
+            if (AppContext == null)
                 throw new Exception("Failed to get AppContext from Hyperion");
 
             WindowOptions windowOptions = new WindowOptions();
@@ -22,19 +22,20 @@ namespace Hyperion.Editor
             windowOptions.height = 600;
             windowOptions.flags = WindowFlags.None;
 
-            Window = NativeBindings.Hyp_CreateWindow(AppContext, ref windowOptions, parent.Handle);
-            if (Window == IntPtr.Zero)
+            Window = AppContext.CreateSystemWindow(windowOptions, parent.Handle);
+            if (Window == null)
                 throw new Exception("Failed to create engine window");
 
-            if (NativeBindings.Hyp_SetMainWindow(AppContext, Window) == 0)
-                throw new Exception("Failed to set main window");
-
-            if (Window == IntPtr.Zero)
-                throw new Exception("EditorViewport requires a valid engine window handle provided externally.");
+            AppContext.SetMainWindow(Window);
 
             if (OperatingSystem.IsWindows())
             {
-                IntPtr hwnd = NativeBindings.Hyp_GetHWND(Window);
+                if (!(Window is Win32ApplicationWindow))
+                {
+                    throw new Exception("Failed to cast to Win32ApplicationWindow");
+                }
+
+                IntPtr hwnd = Window.GetHWND();
 
                 if (hwnd == IntPtr.Zero)
                 {
@@ -45,7 +46,13 @@ namespace Hyperion.Editor
             }
             else if (OperatingSystem.IsMacOS())
             {
-                IntPtr nsView = NativeBindings.Hyp_GetNSView(Window);
+                CocoaApplicationWindow cocoaApplicationWindow = Window as CocoaApplicationWindow;
+                if (cocoaApplicationWindow == null)
+                {
+                    throw new Exception("Failed to cast to CocoaApplicationWindow");
+                }
+
+                IntPtr nsView = cocoaApplicationWindow.GetNSView();
 
                 if (nsView == IntPtr.Zero)
                 {
@@ -56,25 +63,18 @@ namespace Hyperion.Editor
             }
             else
             {
-                // Linux/X11
-                IntPtr hwnd = NativeBindings.Hyp_GetHWND(Window);
-
-                if (hwnd == IntPtr.Zero)
-                {
-                    throw new Exception("Failed to get window handle from Hyperion");
-                }
-
-                return new PlatformHandle(hwnd, "XID");
+                throw new PlatformNotSupportedException("Unsupported platform for EditorViewportControl");
             }
         }
 
         protected override void DestroyNativeControlCore(IPlatformHandle control)
         {
-            if (Window != IntPtr.Zero)
+            if (Window != null)
             {
-                NativeBindings.Hyp_DestroyWindow(AppContext, Window);
-
-                Window = IntPtr.Zero;
+                if (AppContext.GetMainWindow() == Window)
+                {
+                    AppContext.SetMainWindow(null);
+                }
             }
 
             base.DestroyNativeControlCore(control);

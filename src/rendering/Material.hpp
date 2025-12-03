@@ -814,7 +814,7 @@ public:
      *  by default, and can be modified without affecting the original Material.
      *  \note The cloned Material will not be initialized.
      *  \return A new Material that is a clone of this Material. */
-    HYP_METHOD()
+    HYP_METHOD(NotNullReturn)
     Handle<Material> Clone() const;
 
     HashCode GetHashCode() const;

@@ -294,7 +294,7 @@ int CocoaAppContext::PollEvents(SystemEvent& event)
                 
                 if (!window && cocoaWindow)
                 {
-                    window = cocoaWindow->GetNSWindow();
+                    window = (NSWindow*)cocoaWindow->GetNSWindow();
                 }
                 
                 NSPoint location = [nsEvent locationInWindow];

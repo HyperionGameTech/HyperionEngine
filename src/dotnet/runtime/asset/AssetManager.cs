@@ -134,21 +134,26 @@ namespace Hyperion
     [ClassBinding(Name = "AssetManager")]
     public class AssetManager : ObjectBase
     {
-        private static AssetManager? instance = null;
+        private static AssetManager? _instance = null;
 
         public static AssetManager Instance
         {
             get
             {
-                if (instance == null)
+                if (_instance == null)
                 {
                     using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass(typeof(AssetManager)), new Name("GetInstance", weak: true)).InvokeNative())
                     {
-                        instance = (AssetManager)resultData.GetValue();
+                        _instance = (AssetManager?)resultData.GetValue();
+
+                        if (_instance == null)
+                        {
+                            throw new Exception("Failed to get AssetManager instance");
+                        }
                     }
                 }
 
-                return (AssetManager)instance;
+                return _instance;
             }
         }
 

@@ -6,7 +6,54 @@ namespace Hyperion
     [ClassBinding(Name = "AppContextBase")]
     public class AppContextBase : ObjectBase
     {
+        private static AppContextBase? _instance = null;
+
+        public static AppContextBase Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass(typeof(AppContextBase)), new Name("GetInstance", weak: true)).InvokeNative())
+                    {
+                        _instance = (AppContextBase)resultData.GetValue();
+
+                        if (_instance == null)
+                        {
+                            throw new Exception("Failed to get AppContextBase instance");
+                        }
+                    }
+                }
+
+                return _instance;
+            }
+        }
+
         public AppContextBase()
+        {
+        }
+    }
+
+    [ClassBinding(Name = "Win32AppContext")]
+    public class Win32AppContext : AppContextBase
+    {
+        public Win32AppContext()
+        {
+        }
+    }
+
+    [ClassBinding(Name = "CocoaAppContext")]
+    public class CocoaAppContext : AppContextBase
+    {
+        public CocoaAppContext()
+        {
+        }
+    }
+
+    [ClassBinding(Name = "SDLAppContext")]
+    public class SDLAppContext : AppContextBase
+    {
+        public SDLAppContext()
         {
         }
     }

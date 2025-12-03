@@ -17,7 +17,7 @@ namespace Hyperion
     [ClassBinding(Name = "AssetPackage")]
     public class AssetPackage : ObjectBase
     {
-        private static LogChannel logChannel = LogChannel.ByName("Assset");
+        private static readonly LogChannel _logChannel = LogChannel.ByName("Asset");
 
         public AssetPackage()
         {

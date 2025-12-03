@@ -12,22 +12,17 @@ namespace Hyperion.Editor
         private const bool CappedFrameRate = true;
         private const bool IsRenderingOnMainThread = true;
 
-        private IntPtr AppContext { get; set; } = IntPtr.Zero;
-
         public MainWindow()
         {
             InitializeComponent();
 
             // Provide engine window to the viewport control via factory
-            var viewport = this.FindControl<EditorViewportControl>("EditorViewportControl");
+            EditorViewportControl evc = this.FindControl<EditorViewportControl>("EditorViewportControl");
 
-            if (viewport == null)
+            if (evc == null)
+            {
                 throw new Exception("EditorViewportControl control not found in MainWindow.");
-
-            IntPtr window = IntPtr.Zero;
-            AppContext = NativeBindings.Hyp_GetAppContext();
-            if (AppContext == IntPtr.Zero)
-                throw new Exception("Failed to get AppContext from Hyperion");
+            }
 
             DataContext = new MainWindowViewModel();
 

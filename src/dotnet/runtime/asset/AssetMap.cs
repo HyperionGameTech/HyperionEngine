@@ -5,37 +5,29 @@ namespace Hyperion
 {
     public class AssetMap
     {
-        private IntPtr ptr;
-
         public AssetMap(IntPtr ptr)
         {
-            this.ptr = ptr;
+            Handle = ptr;
         }
 
         ~AssetMap()
         {
-            if (ptr == IntPtr.Zero)
+            if (Handle == IntPtr.Zero)
             {
                 throw new ObjectDisposedException("AssetMap");
             }
 
-            AssetMap_Destroy(ptr);
-            ptr = IntPtr.Zero;
+            AssetMap_Destroy(Handle);
+            Handle = IntPtr.Zero;
         }
 
-        public IntPtr Handle
-        {
-            get
-            {
-                return ptr;
-            }
-        }
+        public IntPtr Handle { get; private set; }
 
         public LoadedAsset this[string key]
         {
             get
             {
-                return new LoadedAsset(AssetMap_GetAsset(ptr, key));
+                return new LoadedAsset(AssetMap_GetAsset(Handle, key));
             }
         }
 

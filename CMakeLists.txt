@@ -44,10 +44,6 @@ string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
 
 set(HYP_BUILD_TYPE "Release")
 
-set(HYP_BUILD_TOOL_VERSION_MAJOR 0)
-set(HYP_BUILD_TOOL_VERSION_MINOR 7)
-set(HYP_BUILD_TOOL_VERSION_PATCH 0)
-
 set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE})
 set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
@@ -62,7 +58,7 @@ endif()
 # Include ExternalProject for building submodules separately
 include(ExternalProject)
 
-function(RunHypBuildTool)
+function(RunHypBuildTool version_major version_minor)
     if(WIN32)
         set(HYP_BUILD_TOOL_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunHypBuildTool.bat")
         set(HYP_BUILD_TOOL_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/BuildHypBuildTool.bat")
@@ -78,7 +74,7 @@ function(RunHypBuildTool)
     endif()
 
     execute_process(
-        COMMAND ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH} ${HYP_BUILD_TOOL_VERSION_MAJOR} ${HYP_BUILD_TOOL_VERSION_MINOR}
+        COMMAND ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH} ${version_major} ${version_minor}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         RESULT_VARIABLE HYP_BUILD_TOOL_RESULT
     )
@@ -88,10 +84,8 @@ function(RunHypBuildTool)
     endif()
 endfunction()
 
-# run HypBuildTool before configuring if "tool" cli argument is provided
-if("tool" IN_LIST CMAKE_ARGV)
-    RunHypBuildTool()
-endif()
+# Run HypBuildTool with version 0.8
+RunHypBuildTool(0 8)
 
 set(HYP_DEBUG_MODE 1)
 add_definitions(-DHYP_DEBUG_MODE=1)

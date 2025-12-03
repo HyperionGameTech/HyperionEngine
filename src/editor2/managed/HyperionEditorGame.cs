@@ -6,17 +6,17 @@ namespace Hyperion.Editor
     [ClassBinding(IsDynamic = true)]
     public class HyperionEditorGame : Game
     {
-        private EditorSubsystem? m_editorSubsystem;
-        private Task<AssetMap>? m_assetBatchTask;
+        private EditorSubsystem? _editorSubsystem;
+        private Task<AssetMap>? _assetBatchTask;
 
-        private DelegateHandler? m_onProjectOpened;
-        private DelegateHandler? m_onProjectClosing;
-        private DelegateHandler? m_onActionStackStateChanged;
-        private DelegateHandler? m_onFocusedNodeChanged;
-        private DelegateHandler? m_onRootNodeChanged;
-        private DelegateHandler? m_onChildAdded;
-        private DelegateHandler? m_onChildRemoved;
-        private DelegateHandler? m_onActiveSceneChanged;
+        private DelegateHandler? _onProjectOpened;
+        private DelegateHandler? _onProjectClosing;
+        private DelegateHandler? _onActionStackStateChanged;
+        private DelegateHandler? _onFocusedNodeChanged;
+        private DelegateHandler? _onRootNodeChanged;
+        private DelegateHandler? _onChildAdded;
+        private DelegateHandler? _onChildRemoved;
+        private DelegateHandler? _onActiveSceneChanged;
 
         public HyperionEditorGame()
         {
@@ -26,19 +26,19 @@ namespace Hyperion.Editor
         {
             Logger.Log(LogType.Debug, "HyperionEditorGame Launched");
 
-            m_editorSubsystem = new EditorSubsystem();
-            World.AddSubsystem(m_editorSubsystem);
+            _editorSubsystem = new EditorSubsystem();
+            World.AddSubsystem(_editorSubsystem);
 
-            m_onFocusedNodeChanged = m_editorSubsystem.GetOnFocusedNodeChangedDelegate()
+            _onFocusedNodeChanged = _editorSubsystem.GetOnFocusedNodeChangedDelegate()
                 .Bind(OnFocusedNodeChanged);
 
-            m_onProjectOpened = m_editorSubsystem.GetOnProjectOpenedDelegate()
+            _onProjectOpened = _editorSubsystem.GetOnProjectOpenedDelegate()
                 .Bind(HandleProjectOpened);
 
-            m_onProjectClosing = m_editorSubsystem.GetOnProjectClosingDelegate()
+            _onProjectClosing = _editorSubsystem.GetOnProjectClosingDelegate()
                 .Bind(HandleProjectClosing);
 
-            EditorProject? project = m_editorSubsystem.CurrentProject;
+            EditorProject? project = _editorSubsystem.CurrentProject;
 
             if (project != null)
             {
@@ -49,16 +49,16 @@ namespace Hyperion.Editor
             AssetBatch ab = new AssetBatch();
             ab.Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
             ab.Add("test_model", "models/sponza/sponza.obj");
-            m_assetBatchTask = ab.Load();
+            _assetBatchTask = ab.Load();
         }
 
         public override void OnUpdate(float deltaTime)
         {
             Logger.Log(LogType.Debug, "HyperionEditorGame Update called with deltaTime: " + deltaTime);
 
-            if (m_assetBatchTask != null && m_assetBatchTask.IsCompleted)
+            if (_assetBatchTask != null && _assetBatchTask.IsCompleted)
             {
-                AssetMap assetMap = m_assetBatchTask.Result;
+                AssetMap assetMap = _assetBatchTask.Result;
 
                 var zombieAsset = assetMap["zombie"];
 
@@ -68,7 +68,7 @@ namespace Hyperion.Editor
 
                     Assert.Throw(zombieAsset.Value != null);
 
-                    m_editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)zombieAsset.Value);
+                    _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)zombieAsset.Value);
                 }
                 else
                 {
@@ -82,7 +82,7 @@ namespace Hyperion.Editor
                     Logger.Log(LogType.Debug, "Test model asset loaded successfully.");
                     Assert.Throw(testModelAsset.Value != null);
 
-                    Node n = m_editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
+                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
                     n.SetLocalScale(new Vec3f(0.1f));
                 }
                 else
@@ -90,7 +90,7 @@ namespace Hyperion.Editor
                     Logger.Log(LogType.Error, "Failed to load test model asset.");
                 }
 
-                m_assetBatchTask = null; // Prevent repeated checks
+                _assetBatchTask = null; // Prevent repeated checks
             }
         }
 
@@ -103,9 +103,9 @@ namespace Hyperion.Editor
 
         private void HandleProjectOpened(EditorProject project)
         {
-            m_onActionStackStateChanged?.Remove();
+            _onActionStackStateChanged?.Remove();
 
-            m_onActionStackStateChanged = project.ActionStack.GetOnStateChangeDelegate()
+            _onActionStackStateChanged = project.ActionStack.GetOnStateChangeDelegate()
                 .Bind((EditorActionStackState newState) =>
                 {
                     UpdateUndo();
@@ -114,27 +114,27 @@ namespace Hyperion.Editor
 
             Logger.Log(LogType.Info, "Project opened: " + (project != null ? project.Name.ToString() : "null"));
 
-            Scene? activeScene = m_editorSubsystem!.GetActiveScene();
+            Scene? activeScene = _editorSubsystem!.GetActiveScene();
 
             WeakReference weakThis = new WeakReference(this);
 
             var setChildAddRemovedHandlers = (HyperionEditorGame editorGame, Node? node) =>
             {
-                editorGame.m_onChildAdded?.Remove();
-                editorGame.m_onChildRemoved?.Remove();
+                editorGame._onChildAdded?.Remove();
+                editorGame._onChildRemoved?.Remove();
 
                 if (node == null)
                 {
                     return;
                 }
 
-                editorGame.m_onChildAdded = node.GetOnChildAddedDelegate()
+                editorGame._onChildAdded = node.GetOnChildAddedDelegate()
                     .Bind((Node child, bool isDirect) =>
                     {
                         Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' added" + "' (isDirect: " + isDirect + ")");
                     });
 
-                editorGame.m_onChildRemoved = node.GetOnChildRemovedDelegate()
+                editorGame._onChildRemoved = node.GetOnChildRemovedDelegate()
                     .Bind((Node child, bool isDirect) =>
                     {
                         Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' removed" + "' (isDirect: " + isDirect + ")");
@@ -143,8 +143,8 @@ namespace Hyperion.Editor
 
             var addRootNodeChangedHandler = (HyperionEditorGame editorGame, Scene scene) =>
             {
-                editorGame.m_onRootNodeChanged?.Remove();
-                editorGame.m_onRootNodeChanged = scene.GetOnRootNodeChangedDelegate()
+                editorGame._onRootNodeChanged?.Remove();
+                editorGame._onRootNodeChanged = scene.GetOnRootNodeChangedDelegate()
                     .Bind((Node newRoot, Node oldRoot) =>
                     {
                         if (weakThis.Target is HyperionEditorGame editorGame)
@@ -164,8 +164,8 @@ namespace Hyperion.Editor
                 addRootNodeChangedHandler(this, activeScene);
             }
 
-            m_onActiveSceneChanged?.Remove();
-            m_onActiveSceneChanged = m_editorSubsystem!.GetOnActiveSceneChangedDelegate()
+            _onActiveSceneChanged?.Remove();
+            _onActiveSceneChanged = _editorSubsystem!.GetOnActiveSceneChangedDelegate()
                 .Bind((Scene scene) =>
                 {
                     if (weakThis.Target is HyperionEditorGame editorGame)
@@ -181,8 +181,8 @@ namespace Hyperion.Editor
         {
             Logger.Log(LogType.Info, "Project closing: " + (project != null ? project.Name.ToString() : "null"));
 
-            m_onActionStackStateChanged?.Remove();
-            m_onActionStackStateChanged = null;
+            _onActionStackStateChanged?.Remove();
+            _onActionStackStateChanged = null;
         }
 
         private void UpdateUndo()

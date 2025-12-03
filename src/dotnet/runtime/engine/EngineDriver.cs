@@ -6,21 +6,26 @@ namespace Hyperion
     [ClassBinding(Name = "EngineDriver")]
     public class EngineDriver : ObjectBase
     {
-        private static EngineDriver? instance = null;
+        private static EngineDriver? _instance = null;
 
         public static EngineDriver Instance
         {
             get
             {
-                if (instance == null)
+                if (_instance == null)
                 {
                     using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass(typeof(EngineDriver)), new Name("GetInstance", weak: true)).InvokeNative())
                     {
-                        instance = (EngineDriver)resultData.GetValue();
+                        _instance = (EngineDriver)resultData.GetValue();
+
+                        if (_instance == null)
+                        {
+                            throw new Exception("Failed to get EngineDriver instance");
+                        }
                     }
                 }
 
-                return (EngineDriver)instance;
+                return _instance;
             }
         }
 

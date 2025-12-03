@@ -14,7 +14,7 @@ namespace Hyperion
 
     public class LoadedAsset : IDisposable
     {
-        private HypData? m_data = null;
+        private HypData? _data = null;
 
         public LoadedAsset(IntPtr pLoadedAsset)
         {
@@ -29,24 +29,21 @@ namespace Hyperion
                     return;
                 }
 
-                m_data = HypData.FromBuffer(dataBuffer);
+                _data = HypData.FromBuffer(dataBuffer);
             }
         }
 
         public void Dispose()
         {
-            if (m_data != null)
-            {
-                m_data.Dispose();
-                m_data = null;
-            }
+            _data?.Dispose();
+            _data = null;
         }
 
         public bool IsValid
         {
             get
             {
-                return m_data != null && !m_data.IsNull;
+                return _data != null && !_data.IsNull;
             }
         }
 
@@ -54,19 +51,19 @@ namespace Hyperion
         {
             get
             {
-                if (m_data == null)
+                if (_data == null)
                 {
                     return null;
                 }
 
-                return m_data.GetValue();
+                return _data.GetValue();
             }
         }
     }
 
     public class LoadedAsset<T> : IDisposable
     {
-        private HypData? m_data = null;
+        private HypData? _data = null;
 
         public LoadedAsset(IntPtr pLoadedAsset)
         {
@@ -81,24 +78,21 @@ namespace Hyperion
                     return;
                 }
 
-                m_data = HypData.FromBuffer(dataBuffer);
+                _data = HypData.FromBuffer(dataBuffer);
             }
         }
 
         public void Dispose()
         {
-            if (m_data != null)
-            {
-                m_data.Dispose();
-                m_data = null;
-            }
+            _data?.Dispose();
+            _data = null;
         }
 
         public bool IsValid
         {
             get
             {
-                return m_data != null && !m_data.IsNull;
+                return _data != null && !_data.IsNull;
             }
         }
 
@@ -106,12 +100,12 @@ namespace Hyperion
         {
             get
             {
-                if (m_data == null)
+                if (_data == null)
                 {
                     return default(T);
                 }
 
-                return (T?)m_data.GetValue();
+                return (T?)_data.GetValue();
             }
         }
     }

@@ -10,7 +10,7 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <core/functional/ScriptableDelegate.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
@@ -84,6 +84,8 @@ class HYP_API ApplicationWindow : public ObjectBase
 {
     HYP_OBJECT_BODY(ApplicationWindow);
 
+    ApplicationWindow() = default;
+
 public:
     ApplicationWindow(ANSIString title, Vec2i size);
     ApplicationWindow(const ApplicationWindow& other) = delete;
@@ -100,6 +102,7 @@ public:
         return m_inputEventSink;
     }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE HWND GetHWND() const
     {
         return m_hwnd;
@@ -122,20 +125,28 @@ public:
     }
 #endif
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const Vec2i& GetSize() const
     {
         Mutex::Guard guard(m_mtx);
         return m_size;
     }
 
+    HYP_METHOD()
     virtual void SetMousePosition(Vec2i position) = 0;
+
+    HYP_METHOD()
     virtual Vec2i GetMousePosition() const = 0;
 
     virtual void HandleResize(Vec2i newSize);
 
+    HYP_METHOD()
     virtual void SetIsMouseLocked(bool locked) = 0;
+
+    HYP_METHOD()
     virtual bool HasMouseFocus() const = 0;
 
+    HYP_METHOD()
     virtual bool IsHighDPI() const
     {
         return false;
@@ -143,9 +154,11 @@ public:
 
     virtual void CreateSwapchain();
 
+    HYP_METHOD()
     virtual Vec2i GetDimensions() const = 0;
 
-    Delegate<void, Vec2i> OnWindowSizeChanged;
+    HYP_FIELD()
+    ScriptableDelegate<void, Vec2i> OnWindowSizeChanged;
 
 protected:
     ANSIString m_title;
@@ -170,23 +183,33 @@ public:
     SDLApplicationWindow(ANSIString title, Vec2i size);
     virtual ~SDLApplicationWindow() override;
 
+    HYP_METHOD()
     virtual void SetMousePosition(Vec2i position) override;
+
+    HYP_METHOD()
     virtual Vec2i GetMousePosition() const override;
 
+    HYP_METHOD()
     virtual Vec2i GetDimensions() const override;
 
+    HYP_METHOD()
     virtual void SetIsMouseLocked(bool locked) override;
+
+    HYP_METHOD()
     virtual bool HasMouseFocus() const override;
 
+    HYP_METHOD()
     virtual bool IsHighDPI() const override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = {});
 };
 
-HYP_CLASS()
+HYP_CLASS(Abstract)
 class HYP_API AppContextBase : public ObjectBase
 {
     HYP_OBJECT_BODY(AppContextBase);
+
+    AppContextBase() = default;
 
 public:
     HYP_METHOD()
@@ -195,27 +218,34 @@ public:
     AppContextBase(ANSIString name, const CommandLineArguments& arguments);
     virtual ~AppContextBase();
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const ANSIString& GetAppName() const
     {
         return m_name;
     }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE ApplicationWindow* GetMainWindow() const
     {
         return m_mainWindow.Get();
     }
 
+    HYP_METHOD()
     void SetMainWindow(const Handle<ApplicationWindow>& window);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const Handle<InputManager>& GetInputManager() const
     {
         return m_inputManager;
     }
 
-    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) = 0;
+    HYP_METHOD()
+    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = {}) = 0;
+
     virtual int PollEvents(SystemEvent& event) = 0;
 
-    Delegate<void, ApplicationWindow*> OnCurrentWindowChanged;
+    HYP_FIELD()
+    ScriptableDelegate<void, ApplicationWindow*> OnCurrentWindowChanged;
 
 protected:
     Handle<ApplicationWindow> m_mainWindow;
@@ -229,11 +259,14 @@ class HYP_API SDLAppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(SDLAppContext);
 
+    SDLAppContext() = default;
+
 public:
     SDLAppContext(ANSIString name, const CommandLineArguments& arguments);
     ~SDLAppContext() override;
 
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
+    HYP_METHOD()
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = {}) override;
 
     int PollEvents(SystemEvent& event) override;
 
@@ -251,18 +284,27 @@ class HYP_API Win32ApplicationWindow final : public ApplicationWindow
 
     friend class Win32AppContext;
 
+    Win32ApplicationWindow() = default;
+
 public:
     Win32ApplicationWindow(ANSIString title, Vec2i size);
     ~Win32ApplicationWindow() override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = {});
 
+    HYP_METHOD()
     void SetMousePosition(Vec2i position) override;
+
+    HYP_METHOD()
     Vec2i GetMousePosition() const override;
 
+    HYP_METHOD()
     Vec2i GetDimensions() const override;
 
+    HYP_METHOD()
     void SetIsMouseLocked(bool locked) override;
+
+    HYP_METHOD()
     bool HasMouseFocus() const override;
 
 #ifdef HYP_WINDOWS
@@ -286,11 +328,14 @@ class HYP_API Win32AppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(Win32AppContext);
 
+    Win32AppContext() = default;
+
 public:
     Win32AppContext(ANSIString name, const CommandLineArguments& arguments);
     ~Win32AppContext() override;
 
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
+    HYP_METHOD()
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = {}) override;
 
     int PollEvents(SystemEvent& event) override;
 
@@ -306,33 +351,45 @@ class HYP_API CocoaApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(CocoaApplicationWindow);
 
+    CocoaApplicationWindow() = default;
+
 public:
     CocoaApplicationWindow(ANSIString title, Vec2i size);
     ~CocoaApplicationWindow() override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr);
+    void Initialize(WindowOptions windowOptions, HWND parentHwnd = {});
 
+    HYP_METHOD()
     void SetMousePosition(Vec2i position) override;
+
+    HYP_METHOD()
     Vec2i GetMousePosition() const override;
 
+    HYP_METHOD()
     Vec2i GetDimensions() const override;
 
+    HYP_METHOD()
     void SetIsMouseLocked(bool locked) override;
+
+    HYP_METHOD()
     bool HasMouseFocus() const override;
 
+    HYP_METHOD()
     bool IsHighDPI() const override;
 
-#ifdef HYP_MACOS
-    HYP_FORCE_INLINE NSWindow* GetNSWindow() const
+    HYP_METHOD()
+    HYP_FORCE_INLINE void* GetNSWindow() const
     {
-        return (NSWindow*)m_hwnd;
+        return m_hwnd;
     }
 
-    HYP_FORCE_INLINE NSView* GetNSView() const
+    HYP_METHOD()
+    HYP_FORCE_INLINE void* GetNSView() const
     {
         return m_nsView;
     }
 
+#ifdef HYP_MACOS
     HYP_FORCE_INLINE bool IsEmbeddedView() const
     {
         return m_isEmbeddedView;
@@ -351,11 +408,12 @@ public:
 private:
     void* m_windowDelegate = nullptr;
     void* m_metalLayer = nullptr;
-    NSView* m_nsView = nullptr;
     bool m_mouseLocked = false;
     bool m_isEmbeddedView = false;
     mutable Vec2i m_mousePosition = Vec2i::Zero();
 #endif
+
+    void* m_nsView = nullptr;
 };
 
 HYP_CLASS()
@@ -363,11 +421,14 @@ class HYP_API CocoaAppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(CocoaAppContext);
 
+    CocoaAppContext() = default;
+
 public:
     CocoaAppContext(ANSIString name, const CommandLineArguments& arguments);
     ~CocoaAppContext() override;
 
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = (HWND) nullptr) override;
+    HYP_METHOD()
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = {}) override;
 
     int PollEvents(SystemEvent& event) override;
 

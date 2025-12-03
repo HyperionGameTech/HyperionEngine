@@ -28,26 +28,14 @@ namespace Hyperion
 
         public Vec3f Center
         {
-            get
-            {
-                return center;
-            }
-            set
-            {
-                center = value;
-            }
+            get => center;
+            set => center = value;
         }
 
         public float Radius
         {
-            get
-            {
-                return radius;
-            }
-            set
-            {
-                radius = value;
-            }
+            get => radius;
+            set => radius = value;
         }
     }
 }

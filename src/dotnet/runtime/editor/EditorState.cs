@@ -6,26 +6,31 @@ namespace Hyperion
     [ClassBinding(Name = "EditorState")]
     public class EditorState : ObjectBase
     {
-        private static EditorState? instance = null;
-
-        public EditorState()
-        {    
-        }
+        private static EditorState? _instance = null;
 
         public static EditorState Instance
         {
             get
             {
-                if (instance == null)
+                if (_instance == null)
                 {
                     using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass(typeof(EditorState)), new Name("GetInstance", weak: true)).InvokeNative())
                     {
-                        instance = (EditorState)resultData.GetValue();
+                        _instance = (EditorState?)resultData.GetValue();
+
+                        if (_instance == null)
+                        {
+                            throw new Exception("Failed to get EditorState instance");
+                        }
                     }
                 }
 
-                return (EditorState)instance;
+                return _instance;
             }
+        }
+
+        public EditorState()
+        {    
         }
 
         public EditorProject? CurrentProject

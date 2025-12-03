@@ -7,22 +7,16 @@ namespace Hyperion.Editor
 {
     public static class EngineManager
     {
-        private static bool s_isInitialized = false;
-        private static bool s_isGameInitialized = false;
-        private static Game? s_gameInstance = null;
-        private static EditorProject? s_currentProject = null;
 
-        public static bool IsInitialized => s_isInitialized;
-        public static Game? GameInstance => s_gameInstance;
+        public static bool IsInitialized { get; private set; }
+        public static Game? GameInstance { get; private set; }
 
-        public static EditorProject? CurrentProject
-        {
-            get => s_currentProject;
-        }
+        public static EditorProject? CurrentProject { get; private set; }
 
         public static void Initialize()
         {
-            if (s_isInitialized) return;
+            if (IsInitialized)
+                return;
 
             unsafe
             {
@@ -81,45 +75,43 @@ namespace Hyperion.Editor
                     Marshal.FreeHGlobal(argv);
             }
 
-            s_isInitialized = true;
+            IsInitialized = true;
         }
 
         public static void InitializeEditor()
         {
-            if (s_isGameInitialized) return;
+            if (GameInstance != null)
+                return;
 
-            s_gameInstance = new HyperionEditorGame();
+            GameInstance = new HyperionEditorGame();
 
-            if (NativeBindings.Hyp_LaunchGame(s_gameInstance.NativeAddress) == 0)
+            if (NativeBindings.Hyp_LaunchGame(GameInstance.NativeAddress) == 0)
             {
                 throw new Exception("Failed to launch HyperionEditor instance");
             }
 
-            World editorWorld = s_gameInstance.World;
+            World editorWorld = GameInstance.World;
 
             EditorState editorState = EditorState.Instance;
             Assert.Throw(editorState != null, "Failed to get EditorState instance");
 
-            s_currentProject = editorState.CurrentProject;
+            CurrentProject = editorState.CurrentProject;
 
             ScriptableDelegate del = editorState.GetOnCurrentProjectChangedDelegate();
             del.Bind((EditorProject newProject) =>
             {
-                s_currentProject = newProject;
+                CurrentProject = newProject;
 
-                Logger.Log(LogType.Info, "Current project changed to: " + (s_currentProject != null ? s_currentProject.Name : "null"));
+                Logger.Log(LogType.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
             }).Detach();
-
-            s_isGameInitialized = true;
         }
 
         public static void Shutdown()
         {
-            s_gameInstance = null;
+            GameInstance = null;
 
             NativeBindings.Hyp_Shutdown();
-            s_isInitialized = false;
-            s_isGameInitialized = false;
+            IsInitialized = false;
         }
 
         [UnmanagedCallersOnly]
