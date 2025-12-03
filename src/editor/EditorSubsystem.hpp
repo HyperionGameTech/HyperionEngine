@@ -43,6 +43,7 @@ class AssetPackage;
 struct MouseEvent;
 struct KeyboardEvent;
 class View;
+class EditorViewport;
 class ConsoleUI;
 class LightmapVolume;
 
@@ -493,7 +494,7 @@ private:
     Handle<UIGrid> m_contentBrowserContents;
     Handle<UIObject> m_contentBrowserContentsEmpty;
 
-    Array<Handle<View>> m_editorViews;
+    Array<Handle<EditorViewport>> m_editorViewports;
 
     DelegateHandlerSet m_delegateHandlers;
 };

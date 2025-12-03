@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion.Editor
 {
-    public class EditorViewport : NativeControlHost
+    public class EditorViewportControl : NativeControlHost
     {
         public IntPtr Window { get; private set; } = IntPtr.Zero;
         public IntPtr AppContext { get; private set; } = IntPtr.Zero;

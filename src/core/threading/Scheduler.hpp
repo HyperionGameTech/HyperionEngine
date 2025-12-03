@@ -410,10 +410,6 @@ public:
     {
         HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
 
-        HYP_CORE_ASSERT(
-            !m_stopRequested.Get(MemoryOrder::RELAXED),
-            "Scheduler::Flush() called after stop requested");
-
         {
             Mutex::Guard guard(m_mutex);
 

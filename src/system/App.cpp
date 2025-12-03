@@ -50,10 +50,8 @@ void App::LaunchGame(const Handle<Game>& game)
 
     const CommandLineArguments& cmdArgs = CoreApi_GetCommandLineArguments();
 
-    // TEMP
     if (!cmdArgs["Detached"].ToBool() && g_mainThread != g_renderThread)
     {
-        // headless mode creates a separate thread for rendering, so we need to wait for it to finish
         while (g_engineDriver->IsRenderLoopActive())
         {
             SystemEvent event;

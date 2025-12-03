@@ -189,6 +189,9 @@ class HYP_API AppContextBase : public ObjectBase
     HYP_OBJECT_BODY(AppContextBase);
 
 public:
+    HYP_METHOD()
+    static const Handle<AppContextBase>& GetInstance();
+
     AppContextBase(ANSIString name, const CommandLineArguments& arguments);
     virtual ~AppContextBase();
 

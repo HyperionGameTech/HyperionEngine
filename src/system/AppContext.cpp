@@ -79,7 +79,6 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
     OnWindowSizeChanged(newSize);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void ApplicationWindow::CreateSwapchain()
 {
     if (m_swapchain.IsValid())
@@ -106,11 +105,15 @@ void ApplicationWindow::CreateSwapchain()
     HYP_NOT_IMPLEMENTED();
 #endif
 }
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion ApplicationWindow
 
 #pragma region AppContextBase
+
+const Handle<AppContextBase>& AppContextBase::GetInstance()
+{
+    return g_appContext;
+}
 
 AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& arguments)
 {

@@ -19,21 +19,21 @@ namespace Hyperion.Editor
             InitializeComponent();
 
             // Provide engine window to the viewport control via factory
-            var viewport = this.FindControl<EditorViewport>("EditorViewport");
+            var viewport = this.FindControl<EditorViewportControl>("EditorViewportControl");
 
             if (viewport == null)
-                throw new Exception("EditorViewport control not found in MainWindow.");
+                throw new Exception("EditorViewportControl control not found in MainWindow.");
 
             IntPtr window = IntPtr.Zero;
             AppContext = NativeBindings.Hyp_GetAppContext();
             if (AppContext == IntPtr.Zero)
                 throw new Exception("Failed to get AppContext from Hyperion");
 
-            this.DataContext = new MainWindowViewModel();
+            DataContext = new MainWindowViewModel();
 
             if (IsRenderingOnMainThread)
             {
-                this.Opened += (s, e) =>
+                Opened += (s, e) =>
                 {
                     if (CappedFrameRate)
                     {
@@ -60,7 +60,7 @@ namespace Hyperion.Editor
             {
                 NativeBindings.Hyp_MainThreadUpdate();
 
-                var topLevel = TopLevel.GetTopLevel(this);
+                var topLevel = GetTopLevel(this);
                 topLevel?.RequestAnimationFrame(OnFrame);
 
                 return;

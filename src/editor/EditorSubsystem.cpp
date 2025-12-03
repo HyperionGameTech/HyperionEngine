@@ -10,6 +10,7 @@
 #include <editor/EditorActionStack.hpp>
 #include <editor/EditorAction.hpp>
 #include <editor/EditorState.hpp>
+#include <editor/EditorViewport.hpp>
 
 #include <editor/ui/debug/EditorDebugOverlay.hpp>
 
@@ -1012,12 +1013,6 @@ EditorSubsystem::EditorSubsystem()
                         continue;
                     }
 
-                    // add to all editor views
-                    for (const Handle<View>& view : m_editorViews)
-                    {
-                        view->AddScene(scene);
-                    }
-
                     if (!activeScene.IsValid())
                     {
                         activeScene = scene;
@@ -1031,9 +1026,9 @@ EditorSubsystem::EditorSubsystem()
                     //             }));
                 }
 
-                for (const Handle<View>& view : m_editorViews)
+                for (const Handle<EditorViewport>& vp : m_editorViewports)
                 {
-                    project->GetWorld()->AddView(view);
+                    vp->OnAdded(this);
                 }
 
                 // UpdateWatchedNodes();
@@ -1052,9 +1047,9 @@ EditorSubsystem::EditorSubsystem()
                             Assert(project != nullptr);
 
                             // Add scene to all editor views
-                            for (const Handle<View>& view : m_editorViews)
+                            for (const Handle<EditorViewport>& vp : m_editorViewports)
                             {
-                                view->AddScene(scene);
+                                vp->OnSceneAdded(scene);
                             }
 
                             // m_delegateHandlers.Add(
@@ -1086,9 +1081,9 @@ EditorSubsystem::EditorSubsystem()
                             m_delegateHandlers.Remove(&scene->OnRootNodeChanged);
 
                             // remove from all editor views
-                            for (const Handle<View>& view : m_editorViews)
+                            for (const Handle<EditorViewport>& vp : m_editorViewports)
                             {
-                                view->RemoveScene(scene);
+                                vp->OnSceneRemoved(scene);
                             }
 
                             // StopWatchingNode(scene->GetRoot());
@@ -1220,20 +1215,14 @@ EditorSubsystem::EditorSubsystem()
 
                     HYP_LOG(Editor, Info, "Closing project {} scene: {}", *project->GetName(), *scene->GetName());
 
-                    // remove from all editor views
-                    for (const Handle<View>& view : m_editorViews)
-                    {
-                        view->RemoveScene(scene);
-                    }
-
                     m_delegateHandlers.Remove(&scene->OnRootNodeChanged);
 
                     // StopWatchingNode(scene->GetRoot());
                 }
 
-                for (const Handle<View>& view : m_editorViews)
+                for (const Handle<EditorViewport>& vp : m_editorViewports)
                 {
-                    project->GetWorld()->RemoveView(view);
+                    vp->OnRemoved(this);
                 }
 
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneAdded);
@@ -1367,9 +1356,9 @@ void EditorSubsystem::OnRemovedFromWorld()
 {
     HYP_SCOPE;
 
-    for (const Handle<View>& view : m_editorViews)
+    for (const Handle<EditorViewport>& vp : m_editorViewports)
     {
-        view->RemoveScene(m_editorScene);
+        vp->OnSceneRemoved(m_editorScene);
     }
 
     GetWorld()->RemoveScene(m_editorScene);
@@ -1383,6 +1372,8 @@ void EditorSubsystem::OnRemovedFromWorld()
         m_currentProject->Close();
         m_currentProject.Reset();
     }
+
+    m_editorViewports.Clear();
 }
 
 void EditorSubsystem::Update(float delta)
@@ -1428,8 +1419,16 @@ void EditorSubsystem::Update(float delta)
     RenderProxyList& pickRpl = g_editorState->GetPickCache().GetRenderProxyList();
     pickRpl.GetMeshes().Advance();
 
-    for (const Handle<View>& view : m_editorViews)
+    for (const Handle<EditorViewport>& vp : m_editorViewports)
     {
+        const Handle<View>& view = vp->GetView();
+        AssertDebug(view != nullptr);
+
+        if (!view)
+        {
+            continue;
+        }
+
         if (!(view->GetViewDesc().flags & ViewFlags::GBUFFER))
         {
             continue; // skip non-primary views
@@ -1541,15 +1540,11 @@ void EditorSubsystem::CreateHighlightNode()
 
 void EditorSubsystem::InitViewport()
 {
-    for (const Handle<View>& view : m_editorViews)
+    for (const Handle<EditorViewport>& vp : m_editorViewports)
     {
-        if (m_currentProject != nullptr)
-        {
-            m_currentProject->GetWorld()->RemoveView(view);
-        }
+        vp->OnRemoved(this);
     }
-
-    SafeDelete(std::move(m_editorViews));
+    m_editorViewports.Clear();
 
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
@@ -1624,32 +1619,18 @@ void EditorSubsystem::InitViewport()
     };
 
     Handle<View> view = CreateObject<View>(viewDesc);
-    InitObject(view);
+
+    Handle<EditorViewport> editorViewport = CreateObject<EditorViewport>(view);
+    InitObject(editorViewport);
+
+    HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewportSize);
+
+    editorViewport->OnAdded(this);
 
     // view needs editor scene so we can see things like manipulation widgets
     view->AddScene(m_editorScene);
 
-    HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewportSize);
-
-    // add all current project scenes to the view
-    if (m_currentProject != nullptr)
-    {
-        for (const Handle<Scene>& scene : m_currentProject->GetWorld()->GetScenes())
-        {
-            Assert(scene != nullptr);
-
-            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
-            {
-                continue;
-            }
-
-            view->AddScene(scene);
-        }
-
-        m_currentProject->GetWorld()->AddView(view);
-    }
-
-    m_editorViews.PushBack(view);
+    m_editorViewports.PushBack(editorViewport);
 
     // m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnSizeChange);
     // m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnSizeChange.Bind([this, uiStageWeak = uiSubsystem->GetUIStage().ToWeak(), cameraWeak = m_camera.ToWeak()]()
@@ -1706,9 +1687,9 @@ void EditorSubsystem::InitViewport()
                 RayTestResults results;
 
                 bool hasHits = false;
-                for (const Handle<View>& view : m_editorViews)
+                for (const Handle<EditorViewport>& vp : m_editorViewports)
                 {
-                    if (view->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
+                    if (vp->GetView()->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
                     {
                         hasHits = true;
                     }
