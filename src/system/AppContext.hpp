@@ -47,6 +47,7 @@ class VulkanInstance;
 class IDummyVulkanSurfaceContext;
 #endif
 
+HYP_ENUM()
 enum class WindowFlags : uint32
 {
     NONE = 0x0,
@@ -72,8 +73,11 @@ namespace sys {
 
 class SystemEvent;
 
+HYP_STRUCT()
 struct WindowOptions
 {
+    HYP_STRUCT_BODY(WindowOptions);
+
     char title[256];
     Vec2i dimensions;
     uint32 flags;
