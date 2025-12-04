@@ -84,7 +84,7 @@ String NodeTag::ToString() const
 // In practice it only really shows up on UI objects where UIObject holds a reference to a Node.
 
 Node::Node(Name name, const Transform& localTransform, Scene* scene)
-    : m_name(name.IsValid() ? name : NAME("<unnamed>")),
+    : m_name(name),
       m_nodeFlags(NodeFlags::NONE),
       m_parentNode(nullptr),
       m_localTransform(localTransform),
@@ -132,11 +132,6 @@ void Node::Init()
 
 void Node::SetName(Name name)
 {
-    if (!name.IsValid())
-    {
-        name = NAME("<unnamed>");
-    }
-
     if (m_name == name)
     {
         return;
@@ -154,9 +149,7 @@ void Node::SetName(Name name)
 
 bool Node::HasName() const
 {
-    static constexpr StringHash unnamed("<unnamed>");
-
-    return m_name.IsValid() && m_name != unnamed;
+    return m_name.IsValid();
 }
 
 void Node::SetNodeFlags(EnumFlags<NodeFlags> flags)

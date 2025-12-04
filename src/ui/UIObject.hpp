@@ -1197,11 +1197,6 @@ public:
 
         Assert(GetNode().IsValid());
 
-        if (!name.IsValid())
-        {
-            name = NAME("<unnamed>");
-        }
-
         Handle<Entity> entity = CreateObject<Entity>();
         entity->SetName(name);
 

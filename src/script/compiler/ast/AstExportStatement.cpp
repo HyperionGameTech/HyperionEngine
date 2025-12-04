@@ -38,7 +38,7 @@ void AstExportStatement::Visit(AstVisitor* visitor, Module* mod)
 
     m_exportedSymbolName = m_stmt->GetName();
 
-    if (m_exportedSymbolName == AstStatement::unnamed)
+    if (m_exportedSymbolName == AstStatement::s_unnamed)
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,

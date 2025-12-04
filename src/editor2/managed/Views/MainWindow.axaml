@@ -80,7 +80,7 @@
                         <TreeView Grid.Row="1" ItemsSource="{Binding SceneHierarchy.RootNodes}" SelectedItem="{Binding SceneHierarchy.SelectedNode}">
                             <TreeView.ItemTemplate>
                                 <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
-                                    <TextBlock Text="{Binding Name}"/>
+                                    <TextBlock Text="{Binding DisplayName}" FontStyle="{Binding NameFontStyle}"/>
                                 </TreeDataTemplate>
                             </TreeView.ItemTemplate>
                         </TreeView>

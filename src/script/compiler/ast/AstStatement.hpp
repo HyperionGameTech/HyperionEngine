@@ -23,7 +23,7 @@ class AstStatement
     friend class AstIterator;
 
 protected:
-    static const String unnamed;
+    static const String s_unnamed;
 
 public:
     AstStatement(const SourceLocation& location);
@@ -57,7 +57,7 @@ public:
 
     virtual const String& GetName() const
     {
-        return unnamed;
+        return s_unnamed;
     }
 
     // For bytecode debugging - converts the AST node to a readable string representation

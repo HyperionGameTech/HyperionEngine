@@ -2,7 +2,7 @@
 
 namespace hyperion {
 
-const String AstStatement::unnamed = "<unnamed>";
+const String AstStatement::s_unnamed = "<unnamed>";
 
 AstStatement::AstStatement(const SourceLocation& location)
     : m_location(location),

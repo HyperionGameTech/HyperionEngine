@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Avalonia.Threading;
+using Avalonia.Media;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -18,9 +19,17 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _name, value))
                 {
                     try { _node.Name = new Name(value); } catch { }
+                    // Update derived properties when name changes
+                    OnPropertyChanged(nameof(DisplayName));
+                    OnPropertyChanged(nameof(IsUnnamed));
+                    OnPropertyChanged(nameof(NameFontStyle));
                 }
             }
         }
+
+        public string DisplayName => string.IsNullOrEmpty(_name) ? $"Unnamed {_node.GetType().Name}" : _name;
+        public bool IsUnnamed => string.IsNullOrEmpty(_name);
+        public FontStyle NameFontStyle => IsUnnamed ? FontStyle.Italic : FontStyle.Normal;
 
         public ObservableCollection<NodeViewModel> Children { get; } = new ObservableCollection<NodeViewModel>();
 
