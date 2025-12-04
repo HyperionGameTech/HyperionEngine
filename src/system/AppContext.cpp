@@ -209,7 +209,7 @@ SDLApplicationWindow::~SDLApplicationWindow()
     SDL_DestroyWindow(static_cast<SDL_Window*>(m_windowHandle));
 }
 
-void SDLApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
+void SDLApplicationWindow::Initialize(WindowOptions windowOptions)
 {
     uint32 sdlFlags = 0;
 
@@ -317,7 +317,7 @@ SDLApplicationWindow::SDLApplicationWindow(ANSIString title, Vec2i size)
 
 SDLApplicationWindow::~SDLApplicationWindow() = default;
 
-void SDLApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
+void SDLApplicationWindow::Initialize(WindowOptions windowOptions)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -385,7 +385,7 @@ SDLAppContext::~SDLAppContext()
     SDL_Quit();
 }
 
-Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
+Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
     Handle<SDLApplicationWindow> window = CreateObject<SDLApplicationWindow>(windowOptions.title, windowOptions.size);
     m_windows.PushBack(window);
@@ -544,7 +544,7 @@ SDLAppContext::SDLAppContext(ANSIString name, const CommandLineArguments& argume
 
 SDLAppContext::~SDLAppContext() = default;
 
-Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
+Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -642,7 +642,7 @@ Win32ApplicationWindow::~Win32ApplicationWindow()
     Win32WindowRegistry::GetInstance().Unregister(wTitle.Data());
 }
 
-void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
+void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
 {
     m_title = windowOptions.title;
     m_size = windowOptions.dimensions;
@@ -674,7 +674,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         y = CW_USEDEFAULT;
     }
 
-    if (parentHwnd != nullptr)
+    if (windowOptions.parentHwnd != nullptr)
     {
         style |= WS_CHILD;
         style &= ~WS_OVERLAPPEDWINDOW;
@@ -687,7 +687,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         wc.lpszClassName, wTitle.Data(), style,
         x, y,
         r.right - r.left, r.bottom - r.top,
-        parentHwnd, nullptr, m_hinst, this);
+        windowOptions.parentHwnd, nullptr, m_hinst, this);
 
     if (!m_hwnd)
     {
@@ -1053,7 +1053,7 @@ Win32ApplicationWindow::~Win32ApplicationWindow()
     HYP_NOT_IMPLEMENTED();
 }
 
-void Win32ApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
+void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -1096,12 +1096,12 @@ Win32AppContext::Win32AppContext(ANSIString name, const CommandLineArguments& ar
 
 Win32AppContext::~Win32AppContext() = default;
 
-Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
+Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
     Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     m_windows.PushBack(window);
 
-    window->Initialize(windowOptions, parentHwnd);
+    window->Initialize(windowOptions);
 
     return window;
 }
@@ -1271,7 +1271,7 @@ CocoaApplicationWindow::CocoaApplicationWindow(ANSIString title, Vec2i size)
 
 CocoaApplicationWindow::~CocoaApplicationWindow() = default;
 
-void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
+void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -1321,7 +1321,7 @@ CocoaAppContext::CocoaAppContext(ANSIString name, const CommandLineArguments& ar
 
 CocoaAppContext::~CocoaAppContext() = default;
 
-Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
+Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
     HYP_NOT_IMPLEMENTED();
 }

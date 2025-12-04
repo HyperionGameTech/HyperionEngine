@@ -17,24 +17,6 @@ namespace Hyperion.Editor
         public static extern IntPtr Hyp_GetAppContext();
 
         [DllImport("hyperion")]
-        public static extern IntPtr Hyp_CreateWindow(IntPtr pCtx, ref WindowOptions pWindowOptions, IntPtr parentHwnd);
-
-        [DllImport("hyperion")]
-        public static extern void Hyp_DestroyWindow(IntPtr pCtx, IntPtr pWindow);
-
-        [DllImport("hyperion")]
-        public static extern int Hyp_SetMainWindow(IntPtr pCtx, IntPtr pWindow);
-
-        [DllImport("hyperion")]
-        public static extern IntPtr Hyp_GetMainWindow(IntPtr pCtx);
-
-        [DllImport("hyperion")]
-        public static extern IntPtr Hyp_GetHWND(IntPtr pWindow);
-
-        [DllImport("hyperion")]
-        public static extern IntPtr Hyp_GetNSView(IntPtr pWindow);
-
-        [DllImport("hyperion")]
         public static extern IntPtr Hyp_CreateGame(IntPtr pGameClassName);
 
         [DllImport("hyperion")]

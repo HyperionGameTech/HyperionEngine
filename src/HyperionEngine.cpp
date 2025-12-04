@@ -475,54 +475,6 @@ extern "C"
         return g_appContext.Get();
     }
 
-    HYP_API ApplicationWindow* Hyp_CreateWindow(AppContextBase* pCtx, WindowOptions* pWindowOptions, HWND parentHwnd)
-    {
-        Assert(pCtx != nullptr);
-
-        WindowOptions windowOptions;
-        Memory::MemSet(&windowOptions, 0, sizeof(WindowOptions));
-
-        if (pWindowOptions != nullptr)
-        {
-            windowOptions = *pWindowOptions;
-        }
-        else
-        {
-            Memory::StrCpy(windowOptions.title, "Hyperion Window", sizeof(windowOptions.title));
-            windowOptions.dimensions = Vec2i { 1280, 720 };
-            windowOptions.flags = uint32(WindowFlags::NONE);
-        }
-
-        windowOptions.title[sizeof(windowOptions.title) - 1] = '\0';
-
-        Handle<ApplicationWindow> window = pCtx->CreateSystemWindow(windowOptions, parentHwnd);
-
-        if (!window)
-        {
-            return nullptr;
-        }
-
-        // hand over management of the ref
-        ApplicationWindow* pWindow = static_cast<ApplicationWindow*>(window.ptr);
-        window.ptr = nullptr;
-
-        return pWindow;
-    }
-
-    HYP_API void Hyp_DestroyWindow(AppContextBase* pCtx, ApplicationWindow* pWindow)
-    {
-        Assert(pCtx != nullptr && pWindow != nullptr);
-
-        AssertOnThread(g_mainThread);
-
-        if (pCtx->GetMainWindow() == pWindow)
-        {
-            pCtx->SetMainWindow(nullptr);
-        }
-
-        pWindow->GetObjectHeader_Internal()->DecRefStrong();
-    }
-
     HYP_API HWND Hyp_GetHWND(ApplicationWindow* pWindow)
     {
         if (!pWindow)

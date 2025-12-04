@@ -146,7 +146,7 @@ class HYP_API View final : public ObjectBase
 public:
     View();
 
-    View(const ViewDesc& viewDesc);
+    explicit View(const ViewDesc& viewDesc);
 
     View(const View& other) = delete;
     View& operator=(const View& other) = delete;

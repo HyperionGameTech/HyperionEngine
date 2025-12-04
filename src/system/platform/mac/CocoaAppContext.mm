@@ -74,12 +74,12 @@ CocoaAppContext::~CocoaAppContext()
 {
 }
 
-Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
+Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
     Handle<CocoaApplicationWindow> window = CreateObject<CocoaApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     m_windows.PushBack(window);
     
-    window->Initialize(windowOptions, parentHwnd);
+    window->Initialize(windowOptions);
     
     return window;
 }

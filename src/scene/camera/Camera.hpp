@@ -28,6 +28,11 @@ namespace hyperion {
 class CameraStreamingVolume;
 class RenderProxyCamera;
 
+namespace sys {
+class ApplicationWindow;
+} // namespace sys
+using sys::ApplicationWindow;
+
 HYP_ENUM()
 enum class CameraProjectionMode : uint32
 {
@@ -247,6 +252,9 @@ public:
     {
         m_cameraFlags = flags;
     }
+
+    HYP_METHOD()
+    void SetWindow(ApplicationWindow* window);
 
     HYP_METHOD(Property = "CameraControllers")
     HYP_FORCE_INLINE const Array<Handle<CameraController>>& GetCameraControllers() const
@@ -592,6 +600,8 @@ private:
     InputMouseLockScope m_mouseLockScope;
 
     Handle<CameraStreamingVolume> m_streamingVolume;
+
+    WeakHandle<ApplicationWindow> m_window;
 
     DelegateHandler m_onMainWindowChangedHandle;
     DelegateHandler m_onWindowResizedHandle;

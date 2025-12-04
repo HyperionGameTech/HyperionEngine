@@ -7,8 +7,17 @@ namespace Hyperion.Editor
 {
     public class EditorViewportControl : NativeControlHost
     {
-        public ApplicationWindow Window { get; private set; } = null;
-        public AppContextBase AppContext { get; private set; } = null;
+        private const int DefaultWidth = 800;
+        private const int DefaultHeight = 600;
+
+        public ApplicationWindow? Window { get; private set; } = null;
+        public AppContextBase? AppContext { get; private set; } = null;
+        public EditorViewport? Viewport { get; private set; } = null;
+
+        public EditorViewportControl()
+        {
+            Viewport = new EditorViewport();
+        }
 
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
@@ -16,15 +25,45 @@ namespace Hyperion.Editor
             if (AppContext == null)
                 throw new Exception("Failed to get AppContext from Hyperion");
 
+            int width = (int)Width;
+            int height = (int)Height;
+
+            if (width <= 0 || height <= 0)
+            {
+                width = DefaultWidth;
+                height = DefaultHeight;
+            }
+
+            /// @TODO: Ensure this runs on the game thread
+            Game? gameInstance = EngineManager.GameInstance;
+            if (gameInstance == null)
+            {
+                throw new InvalidOperationException("Game instance is not initialized.");
+            }
+
+            World? world = gameInstance.World;
+            if (world == null)
+            {
+                throw new InvalidOperationException("Game world is not initialized.");
+            }
+
+            EditorSubsystem? editorSubsystem = world.GetSubsystem<EditorSubsystem>();
+            if (editorSubsystem == null)
+            {
+                throw new InvalidOperationException("EditorSubsystem is not initialized.");
+            }
+
+            editorSubsystem.AddViewport(Viewport);
+            /// @ENDTODO
+
             WindowOptions windowOptions = new WindowOptions();
             windowOptions.title = "EditorViewport";
-            windowOptions.dimensions = new Vec2i(800, 600);
+            windowOptions.dimensions = new Vec2i(width, height);
             windowOptions.flags = WindowFlags.None;
+            windowOptions.parentHwnd = parent.Handle;
 
-            Window = AppContext.CreateSystemWindow(windowOptions, parent.Handle);
-            if (Window == null)
-                throw new Exception("Failed to create engine window");
-
+            Window = Viewport.CreateViewportWindow(windowOptions);
+            
             AppContext.SetMainWindow(Window);
 
             if (OperatingSystem.IsWindows())
@@ -82,6 +121,19 @@ namespace Hyperion.Editor
         protected override void OnSizeChanged(Avalonia.Controls.SizeChangedEventArgs e)
         {
             base.OnSizeChanged(e);
+
+            if (Window != null)
+            {
+                int width = (int)e.NewSize.Width;
+                int height = (int)e.NewSize.Height;
+
+                if (width <= 0 || height <= 0)
+                {
+                    return;
+                }
+
+                // Window.SetSize(new Vec2i(width, height));
+            }
         }
     }
 }

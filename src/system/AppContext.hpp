@@ -81,6 +81,7 @@ struct WindowOptions
     char title[256];
     Vec2i dimensions;
     uint32 flags;
+    HWND parentHwnd;
 };
 
 HYP_CLASS(Abstract)
@@ -205,7 +206,7 @@ public:
     HYP_METHOD()
     virtual bool IsHighDPI() const override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = {});
+    void Initialize(WindowOptions windowOptions);
 };
 
 HYP_CLASS(Abstract)
@@ -250,7 +251,7 @@ public:
     }
 
     HYP_METHOD()
-    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = {}) = 0;
+    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) = 0;
 
     HYP_METHOD()
     void RemoveWindow(ApplicationWindow* window);
@@ -278,7 +279,7 @@ public:
     ~SDLAppContext() override;
 
     HYP_METHOD()
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = {}) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
 
     int PollEvents(SystemEvent& event) override;
 
@@ -300,7 +301,7 @@ public:
     Win32ApplicationWindow(ANSIString title, Vec2i size);
     ~Win32ApplicationWindow() override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = {});
+    void Initialize(WindowOptions windowOptions);
 
     HYP_METHOD()
     void SetMousePosition(Vec2i position) override;
@@ -343,7 +344,7 @@ public:
     ~Win32AppContext() override;
 
     HYP_METHOD()
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = {}) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
 
     int PollEvents(SystemEvent& event) override;
 
@@ -363,7 +364,7 @@ public:
     CocoaApplicationWindow(ANSIString title, Vec2i size);
     ~CocoaApplicationWindow() override;
 
-    void Initialize(WindowOptions windowOptions, HWND parentHwnd = {});
+    void Initialize(WindowOptions windowOptions);
 
     HYP_METHOD()
     void SetMousePosition(Vec2i position) override;
@@ -432,7 +433,7 @@ public:
     ~CocoaAppContext() override;
 
     HYP_METHOD()
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = {}) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
 
     int PollEvents(SystemEvent& event) override;
 

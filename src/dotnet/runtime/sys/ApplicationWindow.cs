@@ -15,7 +15,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "WindowOptions")]
-    [StructLayout(LayoutKind.Explicit, Size = 272, Pack = 8)]
+    [StructLayout(LayoutKind.Explicit, Size = 280, Pack = 8)]
     public struct WindowOptions
     {
         // maps to char[256]
@@ -28,6 +28,9 @@ namespace Hyperion
 
         [FieldOffset(264)]
         public WindowFlags flags;
+
+        [FieldOffset(272)]
+        public IntPtr parentHwnd;
     }
 
     [ClassBinding(Name = "ApplicationWindow")]

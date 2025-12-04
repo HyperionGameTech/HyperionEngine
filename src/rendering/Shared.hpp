@@ -1096,9 +1096,15 @@ struct ImageSubResource
     }
 };
 
+HYP_STRUCT()
 struct Viewport
 {
+    HYP_STRUCT_BODY(Viewport);
+
+    HYP_FIELD()
     Vec2u extent;
+
+    HYP_FIELD()
     Vec2i position;
 
     HYP_FORCE_INLINE explicit operator bool() const

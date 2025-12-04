@@ -1037,6 +1037,7 @@ EditorSubsystem::EditorSubsystem()
                     project->GetWorld()->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
                         {
                             Assert(scene != nullptr);
+                            Assert(scene != m_editorScene);
 
                             if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
                             {
@@ -1072,6 +1073,7 @@ EditorSubsystem::EditorSubsystem()
                     project->GetWorld()->OnSceneRemoved.Bind([this, projectWeak = project.ToWeak()](World*, Scene* scene)
                         {
                             Assert(scene != nullptr);
+                            Assert(scene != m_editorScene);
 
                             Handle<EditorProject> project = projectWeak.Lock();
                             Assert(project != nullptr);
@@ -1301,23 +1303,6 @@ void EditorSubsystem::OnAddedToWorld()
 
     m_editorScene = CreateObject<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
     GetWorld()->AddScene(m_editorScene);
-
-    Handle<Node> cameraNode = m_editorScene->GetRoot()->AddChild();
-
-    m_camera = CreateObject<Camera>();
-    m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
-    m_camera->AddCameraController(CreateObject<EditorCameraController>());
-    m_camera->SetName(NAME("EditorCamera"));
-    m_camera->SetFOV(60.0f);
-    m_camera->SetNear(0.1f);
-    m_camera->SetFar(3000.0f);
-    InitObject(m_camera);
-
-    m_editorScene->GetEntityManager()->AddExistingEntity(m_camera);
-    m_editorScene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(m_camera);
-
-    cameraNode->AddChild(m_camera);
-    cameraNode->SetName(m_camera->GetName());
 
     LoadEditorUIDefinitions();
 
@@ -1609,28 +1594,11 @@ void EditorSubsystem::InitViewport()
     Vec2u viewportSize = MathUtil::Max(Vec2u(uiSubsystem->GetUIStage()->GetActualSize()), Vec2u::One());
     // m_camera->SetDimensions(Vec2i(viewportSize));
 
-    ViewDesc viewDesc {
-        .flags = ViewFlags::DEFAULT
-            | ViewFlags::GBUFFER
-            | ViewFlags::MATCH_CAMERA_DIMENSIONS,
-        .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
-        .outputTargetDesc = { .extent = viewportSize },
-        .camera = m_camera
-    };
-
-    Handle<View> view = CreateObject<View>(viewDesc);
-
-    Handle<EditorViewport> editorViewport = CreateObject<EditorViewport>(view);
-    InitObject(editorViewport);
-
-    HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewportSize);
-
-    editorViewport->OnAdded(this);
-
-    // view needs editor scene so we can see things like manipulation widgets
-    view->AddScene(m_editorScene);
-
-    m_editorViewports.PushBack(editorViewport);
+    // Handle<EditorViewport> editorViewport = CreateObject<EditorViewport>();
+    // InitObject(editorViewport);
+    // HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewportSize);
+    // editorViewport->OnAdded(this);
+    // m_editorViewports.PushBack(editorViewport);
 
     // m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnSizeChange);
     // m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnSizeChange.Bind([this, uiStageWeak = uiSubsystem->GetUIStage().ToWeak(), cameraWeak = m_camera.ToWeak()]()
@@ -1667,6 +1635,12 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
+
             // if (m_camera->GetCameraController()->GetInputHandler()->OnClick(event))
             // {
             //     return UIEventHandlerResult::STOP_BUBBLING;
@@ -1679,10 +1653,10 @@ void EditorSubsystem::InitViewport()
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
 
-                const Vec4f mouseWorld = m_camera->TransformScreenToWorld(event.position);
+                const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.position);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
-                const Ray ray { m_camera->GetTranslation(), rayDirection.GetXYZ() };
+                const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
 
                 RayTestResults results;
 
@@ -1728,12 +1702,18 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseLeave);
     m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseLeave.Bind([this](const MouseEvent& event)
         {
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
+
             if (IsHoveringManipulationWidget())
             {
                 SetHoveredManipulationWidget(event, nullptr, Handle<Node>::empty);
             }
 
-            m_camera->GetCameraController()->GetInputHandler()->OnMouseLeave(event);
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseLeave(event);
 
             return UIEventHandlerResult::OK;
         }));
@@ -1743,6 +1723,12 @@ void EditorSubsystem::InitViewport()
         {
             // prevent click being triggered on release once mouse has been dragged
             m_shouldCancelNextClick = true;
+
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
 
             if (!event.inputManager->IsMouseLocked() && IsHoveringManipulationWidget())
             {
@@ -1757,13 +1743,13 @@ void EditorSubsystem::InitViewport()
                     return UIEventHandlerResult::ERR;
                 }
 
-                if (manipulationWidget->OnMouseMove(m_camera, event, Handle<Node>(node)))
+                if (manipulationWidget->OnMouseMove(activeViewport->GetCamera(), event, Handle<Node>(node)))
                 {
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
             }
 
-            m_camera->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
 
             // handle move before we reset mouse pos
             if (event.inputManager->IsMouseLocked())
@@ -1784,7 +1770,13 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseMove);
     m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseMove.Bind([this, uiStage = uiSubsystem->GetUIStage().Get()](const MouseEvent& event)
         {
-            m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event);
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
+
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseMove(event);
 
             // Hover over a manipulation widget when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
@@ -1793,10 +1785,10 @@ void EditorSubsystem::InitViewport()
             {
                 // Ray test the widget
 
-                const Vec4f mouseWorld = m_camera->TransformScreenToWorld(event.position);
+                const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.position);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
-                const Ray ray { m_camera->GetTranslation(), rayDirection.GetXYZ() };
+                const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
 
                 RayTestResults results;
 
@@ -1822,7 +1814,7 @@ void EditorSubsystem::InitViewport()
                             return UIEventHandlerResult::STOP_BUBBLING;
                         }
 
-                        if (manipulationWidget.OnMouseHover(m_camera, event, Handle<Node>(entity)))
+                        if (manipulationWidget.OnMouseHover(activeViewport->GetCamera(), event, Handle<Node>(entity)))
                         {
                             SetHoveredManipulationWidget(event, &manipulationWidget, Handle<Node>(entity));
 
@@ -1842,6 +1834,12 @@ void EditorSubsystem::InitViewport()
         {
             m_shouldCancelNextClick = false;
 
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
+
             if (IsHoveringManipulationWidget())
             {
                 Handle<EditorManipulationWidgetBase> manipulationWidget = m_hoveredManipulationWidget.Lock();
@@ -1856,10 +1854,10 @@ void EditorSubsystem::InitViewport()
 
                 if (!manipulationWidget->IsDragging())
                 {
-                    const Vec4f mouseWorld = m_camera->TransformScreenToWorld(event.position);
+                    const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.position);
                     const Vec4f rayDirection = mouseWorld.Normalized();
 
-                    const Ray ray { m_camera->GetTranslation(), rayDirection.GetXYZ() };
+                    const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
 
                     RayTestResults results;
 
@@ -1867,7 +1865,7 @@ void EditorSubsystem::InitViewport()
                     {
                         for (const RayHit& rayHit : results)
                         {
-                            manipulationWidget->OnDragStart(m_camera, event, node, rayHit.hitpoint);
+                            manipulationWidget->OnDragStart(activeViewport->GetCamera(), event, node, rayHit.hitpoint);
                         }
                     }
                 }
@@ -1875,7 +1873,7 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            m_camera->GetCameraController()->GetInputHandler()->OnMouseDown(event);
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDown(event);
 
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
@@ -1884,6 +1882,12 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseUp.Bind([this](const MouseEvent& event)
         {
             m_shouldCancelNextClick = false;
+
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
 
             if (IsHoveringManipulationWidget())
             {
@@ -1899,13 +1903,13 @@ void EditorSubsystem::InitViewport()
 
                 if (manipulationWidget->IsDragging())
                 {
-                    manipulationWidget->OnDragEnd(m_camera, event, Handle<Node>(node));
+                    manipulationWidget->OnDragEnd(activeViewport->GetCamera(), event, Handle<Node>(node));
                 }
 
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            m_camera->GetCameraController()->GetInputHandler()->OnMouseUp(event);
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseUp(event);
 
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
@@ -1921,17 +1925,26 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            if (m_focusedNode.IsValid())
+            if (GetWorld()->GetGameState().IsEditor())
             {
-                if (m_manipulationWidgetHolder.GetManipulationWidget(EditorManipulationMode::TRANSLATE).OnKeyPress(m_camera, event, m_focusedNode.Lock()))
+                EditorViewport* activeViewport = GetActiveViewport();
+                if (!activeViewport)
+                {
+                    return UIEventHandlerResult::OK;
+                }
+
+                if (m_focusedNode.IsValid())
+                {
+                    if (m_manipulationWidgetHolder.GetManipulationWidget(EditorManipulationMode::TRANSLATE).OnKeyPress(activeViewport->GetCamera(), event, m_focusedNode.Lock()))
+                    {
+                        return UIEventHandlerResult::STOP_BUBBLING;
+                    }
+                }
+
+                if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnKeyDown(event))
                 {
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
-            }
-
-            if (m_camera->GetCameraController()->GetInputHandler()->OnKeyDown(event))
-            {
-                return UIEventHandlerResult::STOP_BUBBLING;
             }
 
             return UIEventHandlerResult::OK;
@@ -1940,7 +1953,18 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnKeyUp);
     m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnKeyUp.Bind([this](const KeyboardEvent& event)
         {
-            if (m_camera->GetCameraController()->GetInputHandler()->OnKeyUp(event))
+            if (!GetWorld()->GetGameState().IsEditor())
+            {
+                return UIEventHandlerResult::OK;
+            }
+
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
+
+            if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnKeyUp(event))
             {
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
@@ -3046,7 +3070,7 @@ void EditorSubsystem::NewProject()
     tmpNode2->AddChild(tmpNode3);
 
     defaultScene->GetRoot()->AddChild(tmpNode);
-    
+
     project->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
 
     OpenProject(project);
@@ -3352,8 +3376,14 @@ Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float
 {
     HYP_SCOPE;
 
-    const Vec3f cameraPosition = m_camera->GetTranslation();
-    const Vec3f cameraDirection = m_camera->GetDirection();
+    EditorViewport* activeViewport = GetActiveViewport();
+    if (activeViewport == nullptr)
+    {
+        return Vec3f::Zero();
+    }
+
+    const Vec3f cameraPosition = activeViewport->GetCamera()->GetTranslation();
+    const Vec3f cameraDirection = activeViewport->GetCamera()->GetDirection();
 
     Vec3f insertionPoint = cameraPosition + cameraDirection * desiredDistance;
 
@@ -3422,6 +3452,12 @@ void EditorSubsystem::SetHoveredManipulationWidget(
     EditorManipulationWidgetBase* manipulationWidget,
     const Handle<Node>& manipulationWidgetNode)
 {
+    EditorViewport* activeViewport = GetActiveViewport();
+    if (activeViewport == nullptr)
+    {
+        return;
+    }
+
     if (m_hoveredManipulationWidget.IsValid() && m_hoveredManipulationWidgetNode.IsValid())
     {
         Handle<Node> hoveredManipulationWidgetNode = m_hoveredManipulationWidgetNode.Lock();
@@ -3429,7 +3465,7 @@ void EditorSubsystem::SetHoveredManipulationWidget(
 
         if (hoveredManipulationWidgetNode && hoveredManipulationWidget)
         {
-            hoveredManipulationWidget->OnMouseLeave(m_camera, event, Handle<Node>(hoveredManipulationWidgetNode));
+            hoveredManipulationWidget->OnMouseLeave(activeViewport->GetCamera(), event, Handle<Node>(hoveredManipulationWidgetNode));
         }
     }
 
@@ -3458,6 +3494,94 @@ void EditorSubsystem::SetActiveScene(const WeakHandle<Scene>& scene)
     HYP_LOG(Editor, Debug, "Set active scene: {}", m_activeScene.IsValid() ? m_activeScene.Lock()->GetName() : Name::Invalid());
 
     OnActiveSceneChanged(m_activeScene.Lock());
+}
+
+EditorViewport* EditorSubsystem::GetActiveViewport() const
+{
+    return m_editorViewports.Empty() ? nullptr : m_editorViewports[0];
+}
+
+void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
+{
+    HYP_SCOPE;
+
+    AssertDebug(viewport != nullptr);
+
+    if (!viewport)
+    {
+        return;
+    }
+
+    auto impl = [this, weakThis = MakeWeakRef(this)](const Handle<EditorViewport>& viewport)
+    {
+        Handle<EditorSubsystem> strongThis = weakThis.Lock();
+        if (!strongThis)
+        {
+            HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in AddViewport");
+            return;
+        }
+
+        InitObject(viewport);
+
+        viewport->OnAdded(strongThis);
+        strongThis->m_editorViewports.PushBack(viewport);
+    };
+
+    if (IsOnThread(g_gameThread))
+    {
+        impl(viewport);
+    }
+    else
+    {
+        GetThreadById(g_gameThread)->GetScheduler().Enqueue([impl, viewport]()
+            {
+                impl(viewport);
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+}
+
+void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
+{
+    HYP_SCOPE;
+
+    AssertDebug(viewport != nullptr);
+
+    if (!viewport)
+    {
+        return;
+    }
+
+    auto impl = [this, weakThis = MakeWeakRef(this)](EditorViewport* viewport)
+    {
+        Handle<EditorSubsystem> strongThis = weakThis.Lock();
+        if (!strongThis)
+        {
+            HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in RemoveViewport");
+            return;
+        }
+
+        auto it = strongThis->m_editorViewports.Find(viewport);
+        if (it != strongThis->m_editorViewports.End())
+        {
+            viewport->OnRemoved(strongThis);
+
+            strongThis->m_editorViewports.Erase(it);
+        }
+    };
+
+    if (IsOnThread(g_gameThread))
+    {
+        impl(viewport);
+    }
+    else
+    {
+        GetThreadById(g_gameThread)->GetScheduler().Enqueue([impl, viewportWeak = MakeWeakRef(viewport)]()
+            {
+                impl(viewportWeak.GetUnsafe());
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
 }
 
 #endif

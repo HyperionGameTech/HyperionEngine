@@ -8,15 +8,18 @@
 
 namespace hyperion {
 
+class Camera;
 class View;
 class Scene;
 class EditorSubsystem;
 
 namespace sys {
 class ApplicationWindow;
+struct WindowOptions;
 } // namespace sys
 
 using sys::ApplicationWindow;
+using sys::WindowOptions;
 
 HYP_CLASS()
 class EditorViewport : public ObjectBase
@@ -24,11 +27,15 @@ class EditorViewport : public ObjectBase
     HYP_OBJECT_BODY(EditorViewport);
 
 public:
-    EditorViewport();
     explicit EditorViewport(
-        const Handle<View>& view,
-        const Handle<ApplicationWindow>& window = Handle<ApplicationWindow>::Null());
+        const Handle<Camera>& camera = Handle<Camera>::Null());
     ~EditorViewport() override;
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<Camera>& GetCamera() const
+    {
+        return m_camera;
+    }
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<View>& GetView() const
@@ -37,10 +44,13 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<ApplicationWindow>& GetWindow() const
+    HYP_FORCE_INLINE ApplicationWindow* GetWindow() const
     {
         return m_window;
     }
+
+    HYP_METHOD()
+    Handle<ApplicationWindow> CreateViewportWindow(const WindowOptions& options);
 
     void Init() override;
 
@@ -59,8 +69,9 @@ public:
     void OnSceneRemoved(Scene* scene);
 
 protected:
+    Handle<Camera> m_camera;
     Handle<View> m_view;
-    Handle<ApplicationWindow> m_window;
+    ApplicationWindow* m_window;
 };
 
 } // namespace hyperion

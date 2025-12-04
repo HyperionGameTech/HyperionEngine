@@ -104,8 +104,6 @@ using namespace hyperion;
 
 - (void)setFrameSize:(NSSize)newSize
 {
-    HYP_LOG(Core, Debug, "HyperionMetalView resized to: {}x{}", (int)newSize.width, (int)newSize.height);
-
     [super setFrameSize:newSize];
 
     CGFloat scale = self.window ? self.window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
@@ -135,7 +133,6 @@ using namespace hyperion;
 {
     [super viewDidMoveToWindow];
     
-    // Update content scale when view moves to a window
     if (self.window)
     {
         CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
@@ -157,8 +154,6 @@ using namespace hyperion;
         return;
     }
 
-    HYP_LOG_TEMP("Resizing swapchain to: {}x{}", width, height);
-
     if (Swapchain* swapchain = _hyperionWindow->GetSwapchain())
     {
         if (IsOnThread(g_renderThread))
@@ -172,7 +167,6 @@ using namespace hyperion;
                     SwapchainRef swapchain = swapchainWeak.Lock();
                     if (!swapchain.IsValid())
                     {
-                        HYP_LOG(Core, Warning, "Attempted to resize invalid swapchain on render thread!");
                         return;
                     }
 
@@ -195,16 +189,11 @@ using namespace hyperion;
 
 - (NSSize)windowWillResize:(NSWindow*)sender toSize:(NSSize)frameSize
 {
-    HYP_LOG(Core, Debug,
-          "Window will resize notification received, to size: {}x{}",
-          (int)frameSize.width, (int)frameSize.height);
-
     return frameSize;
 }
 
 - (void)windowDidResize:(NSNotification *)notification
 {
-    HYP_LOG(Core, Debug, "Window did resize notification received.");
     if (_window)
     {
         NSWindow* nsWindow = [notification object];
@@ -212,8 +201,6 @@ using namespace hyperion;
         
         int width = (int)frame.size.width;
         int height = (int)frame.size.height;
-        
-        HYP_LOG_TEMP("Resizing swapchain to: {}x{}", width, height);
 
         if (Swapchain* swapchain = _window->GetSwapchain())
         {
@@ -228,7 +215,6 @@ using namespace hyperion;
                         SwapchainRef swapchain = swapchainWeak.Lock();
                         if (!swapchain.IsValid())
                         {
-                            HYP_LOG(Core, Warning, "Attempted to resize invalid swapchain on render thread!");
                             return;
                         }
 
@@ -334,7 +320,7 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
     }
 }
 
-void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parentHwnd)
+void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 {
     AssertOnThread(g_mainThread);
   
@@ -342,11 +328,11 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
     m_size = windowOptions.dimensions;
 
     // If parentHwnd is provided, create an embedded view instead of a standalone window
-    if (parentHwnd != nullptr)
+    if (windowOptions.parentHwnd != nullptr)
     {
         m_isEmbeddedView = true;
         
-        id parentObject = (id)parentHwnd;
+        id parentObject = (id)windowOptions.parentHwnd;
         NSView* parentView = nil;
         NSWindow* parentWindow = nil;
         
@@ -400,11 +386,6 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
         m_nsView = metalView;
         m_metalLayer = [metalLayer retain];
         m_hwnd = parentWindow; // Store reference to parent window for coordinate conversions
-
-        HYP_LOG(
-            Core, Debug,
-            "CocoaApplicationWindow initialized as embedded view: {} ({}x{})",
-            m_title, m_size.x, m_size.y);
 
         [metalView ResizeSwapchain:m_size.x height:m_size.y];
         
@@ -478,9 +459,6 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions, HWND parent
     {
         [window makeKeyAndOrderFront:nil];
     }
-    
-    HYP_LOG(Core, Debug, "CocoaApplicationWindow initialized: {} ({}x{})", 
-            m_title, m_size.x, m_size.y);
 }
 
 void CocoaApplicationWindow::SetMousePosition(Vec2i position)

@@ -1,8 +1,12 @@
+#include "core/threading/Threads.hpp"
 #include <core/Defines.hpp>
 
 #include <editor/EditorViewport.hpp>
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
+#include <editor/EditorCamera.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -19,39 +23,76 @@
 
 namespace hyperion {
 
-EditorViewport::EditorViewport()
-{
-}
-
-EditorViewport::EditorViewport(const Handle<View>& view, const Handle<ApplicationWindow>& window)
-    : m_view(view),
-      m_window(window)
+EditorViewport::EditorViewport(const Handle<Camera>& camera)
+    : m_camera(camera),
+      m_view(nullptr),
+      m_window(nullptr)
 {
 }
 
 EditorViewport::~EditorViewport()
 {
-    SafeDelete(std::move(m_view));
-    SafeDelete(std::move(m_window));
+    SafeDelete(std::move(m_camera));
 }
 
 void EditorViewport::Init()
 {
     ObjectBase::Init();
 
-    if (!m_view)
+    if (!m_camera)
     {
-        m_view = CreateObject<View>();
+        m_camera = CreateObject<Camera>();
+        m_camera->SetWindow(m_window);
+        m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
+        m_camera->AddCameraController(CreateObject<EditorCameraController>());
+        m_camera->SetName(NAME("EditorViewportCamera"));
+        m_camera->SetFOV(60.0f);
+        m_camera->SetNear(0.1f);
+        m_camera->SetFar(3000.0f);
     }
 
+    InitObject(m_camera);
+
+    const ViewDesc viewDesc {
+        .flags = ViewFlags::DEFAULT
+            | ViewFlags::GBUFFER
+            | ViewFlags::MATCH_CAMERA_DIMENSIONS,
+        .viewport = Viewport { .extent = Vec2u(m_camera->GetDimensions()), .position = Vec2i::Zero() },
+        .outputTargetDesc = { .extent = Vec2u(m_camera->GetDimensions()) },
+        .camera = m_camera
+    };
+
+    m_view = CreateObject<View>(viewDesc);
     InitObject(m_view);
 
     SetReady(true);
 }
 
+Handle<ApplicationWindow> EditorViewport::CreateViewportWindow(const WindowOptions& options)
+{
+    AssertOnThread(g_mainThread);
+
+    Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow(options);
+    m_window = window;
+
+    if (m_camera)
+    {
+        m_camera->SetWindow(m_window);
+        HYP_BREAKPOINT;
+    }
+
+    return window;
+}
+
 void EditorViewport::OnAdded(EditorSubsystem* editorSubsystem)
 {
     AssertReady();
+
+    const Handle<Scene>& editorScene = editorSubsystem->GetEditorScene();
+    Assert(editorScene.IsValid());
+
+    editorScene->GetRoot()->AddChild(m_camera);
+    m_view->AddScene(editorScene);
 
     const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
 
@@ -78,6 +119,12 @@ void EditorViewport::OnAdded(EditorSubsystem* editorSubsystem)
 void EditorViewport::OnRemoved(EditorSubsystem* editorSubsystem)
 {
     AssertReady();
+
+    const Handle<Scene>& editorScene = editorSubsystem->GetEditorScene();
+    Assert(editorScene.IsValid());
+
+    editorScene->GetRoot()->RemoveChild(m_camera);
+    m_view->RemoveScene(editorScene);
 
     const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
 

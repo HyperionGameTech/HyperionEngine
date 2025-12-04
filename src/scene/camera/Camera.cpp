@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/reflection/Handle.hpp"
 #include <HyperionPch.hpp>
 
 #include <scene/camera/Camera.hpp>
@@ -264,6 +265,8 @@ void Camera::Init()
 
     if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
     {
+        Handle<ApplicationWindow> window = m_window.Lock();
+
         auto matchWindowSize = [this](Vec2i windowSize)
         {
             windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
@@ -273,28 +276,12 @@ void Camera::Init()
             HYP_LOG_TEMP("Matched camera dimensions to window size: {}", windowSize);
         };
 
-        ApplicationWindow* mainWindow = g_appContext->GetMainWindow();
-
-        if (mainWindow)
+        if (window.IsValid())
         {
-            matchWindowSize(mainWindow->GetDimensions());
+            matchWindowSize(window->GetDimensions());
 
-            m_onWindowResizedHandle = mainWindow->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_gameThread);
+            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_gameThread);
         }
-
-        m_onMainWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(
-            [this, matchWindowSize](ApplicationWindow* newMainWindow)
-            {
-                m_onWindowResizedHandle.Reset();
-
-                if (newMainWindow)
-                {
-                    matchWindowSize(newMainWindow->GetDimensions());
-
-                    m_onWindowResizedHandle = newMainWindow->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_gameThread);
-                }
-            },
-            g_gameThread);
     }
 
     UpdateMouseLocked();
@@ -461,6 +448,39 @@ bool Camera::RemoveCameraController(const Handle<CameraController>& cameraContro
     }
 
     return true;
+}
+
+void Camera::SetWindow(ApplicationWindow* window)
+{
+    HYP_SCOPE;
+
+    if (m_window.GetUnsafe() == window)
+    {
+        return;
+    }
+
+    m_window = MakeWeakRef(window);
+
+    if (IsInitCalled() && (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE))
+    {
+        m_onWindowResizedHandle.Reset();
+
+        if (window)
+        {
+            auto matchWindowSize = [this](Vec2i windowSize)
+            {
+                windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
+
+                SetDimensions(windowSize);
+
+                HYP_LOG_TEMP("Matched camera dimensions to window size: {}", windowSize);
+            };
+
+            matchWindowSize(window->GetDimensions());
+
+            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_gameThread);
+        }
+    }
 }
 
 void Camera::SetTranslation(const Vec3f& translation)

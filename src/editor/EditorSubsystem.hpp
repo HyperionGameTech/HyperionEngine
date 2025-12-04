@@ -350,6 +350,24 @@ public:
         return m_activeScene.Lock();
     }
 
+    void SetActiveScene(const WeakHandle<Scene>& scene);
+
+    HYP_METHOD()
+    EditorViewport* GetActiveViewport() const;
+
+    HYP_METHOD()
+    void AddViewport(const Handle<EditorViewport>& viewport);
+
+    HYP_METHOD()
+    void RemoveViewport(EditorViewport* viewport);
+
+    /*! \brief Get the main editor scene used for editor-specific objects (e.g cameras, gizmos, etc). */
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<Scene>& GetEditorScene() const
+    {
+        return m_editorScene;
+    }
+
     HYP_FORCE_INLINE EditorManipulationWidgetHolder& GetManipulationWidgetHolder()
     {
         return m_manipulationWidgetHolder;
@@ -455,10 +473,7 @@ private:
         return m_hoveredManipulationWidget.IsValid() && m_hoveredManipulationWidgetNode.IsValid();
     }
 
-    void SetActiveScene(const WeakHandle<Scene>& scene);
-
     Handle<Scene> m_editorScene;
-    Handle<Camera> m_camera;
 
     Handle<EditorProject> m_currentProject;
     WeakHandle<Scene> m_activeScene;
@@ -466,11 +481,8 @@ private:
     EditorTaskManager m_taskManager;
 
     EditorManipulationWidgetHolder m_manipulationWidgetHolder;
-
     WeakHandle<EditorManipulationWidgetBase> m_hoveredManipulationWidget;
     WeakHandle<Node> m_hoveredManipulationWidgetNode;
-
-    Handle<UIObject> m_mainPanel;
 
     WeakHandle<Node> m_focusedNode;
     // the actual node that displays the highlight for the focused item
