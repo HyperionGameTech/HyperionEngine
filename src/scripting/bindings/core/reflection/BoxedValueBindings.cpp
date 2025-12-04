@@ -1,12 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "core/reflection/HypDataArray.hpp"
 #include <HyperionPch.hpp>
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Struct.hpp>
 
 #include <core/Name.hpp>
+
+#include <core/reflection/HypDataArray.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

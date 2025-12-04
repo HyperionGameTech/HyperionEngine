@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "rendering/RenderGlobalState.hpp"
 #include <HyperionPch.hpp>
 
 #include <system/AppContext.hpp>
@@ -15,6 +14,7 @@
 
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderDevice.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanInstance.hpp>

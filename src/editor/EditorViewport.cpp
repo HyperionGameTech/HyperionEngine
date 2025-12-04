@@ -1,4 +1,5 @@
-#include "core/threading/Threads.hpp"
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
+
 #include <core/Defines.hpp>
 
 #include <editor/EditorViewport.hpp>

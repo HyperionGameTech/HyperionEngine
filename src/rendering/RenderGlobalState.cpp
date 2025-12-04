@@ -1,6 +1,5 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include "core/threading/AtomicVar.hpp"
 #include <HyperionPch.hpp>
 
 #include <rendering/RenderGlobalState.hpp>

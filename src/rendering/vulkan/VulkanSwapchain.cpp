@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "vulkan/vulkan_core.h"
 #include <HyperionPch.hpp>
 
 #include <rendering/vulkan/VulkanSwapchain.hpp>
@@ -22,6 +21,8 @@
 #include <core/logging/Logger.hpp>
 
 #include <VulkanSwapchain.generated.inl>
+
+#include <vulkan/vulkan_core.h>
 
 namespace hyperion {
 

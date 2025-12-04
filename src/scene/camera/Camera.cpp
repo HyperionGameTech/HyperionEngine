@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "core/reflection/Handle.hpp"
 #include <HyperionPch.hpp>
 
 #include <scene/camera/Camera.hpp>
@@ -12,12 +11,14 @@
 #include <streaming/StreamingManager.hpp>
 #include <streaming/StreamingVolume.hpp>
 
-#include <core/math/Halton.hpp>
-
 #include <rendering/RenderFramebuffer.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <system/AppContext.hpp>
+
+#include <core/reflection/Handle.hpp>
+
+#include <core/math/Halton.hpp>
 
 #include <core/utilities/Result.hpp>
 

@@ -131,9 +131,6 @@ private:
     /*! \brief Enqueue the given World for rendering on the render thread. */
     void EnqueueWorldRender(World* world);
 
-    UniquePtr<RenderThread> m_renderThread;
-    UniquePtr<GameThread> m_gameThread;
-
     Handle<DebugDrawer> m_debugDrawer;
 
     UniquePtr<ScriptingService> m_scriptingService;

@@ -58,6 +58,10 @@
 #include <engine/EngineMemory.hpp>
 #include <engine/EngineStats.hpp>
 
+#include <engine/threads/MainThread.hpp>
+#include <engine/threads/GameThread.hpp>
+#include <engine/threads/RenderThread.hpp>
+
 #include <game/Game.hpp>
 
 #ifdef HYP_LIBUI
@@ -127,6 +131,10 @@ MaterialCache* g_materialSystem;
 SafeDeleter* g_safeDeleter;
 RenderGlobalState* g_renderGlobalState;
 ShaderCompiler* g_shaderCompiler;
+
+MainThread* g_mainThreadInstance;
+GameThread* g_gameThreadInstance;
+RenderThread* g_renderThreadInstance;
 
 #ifdef HYP_VULKAN
 VulkanRenderBackend* g_renderBackend;
@@ -365,6 +373,10 @@ extern "C"
             HYP_LOG(Engine, Info, "Running in headless mode");
         }
 
+        g_mainThreadInstance = new MainThread();
+        g_renderThreadInstance = new RenderThread();
+        g_gameThreadInstance = new GameThread();
+
         InitObject(g_engineDriver);
 
         return 1;
@@ -379,6 +391,12 @@ extern "C"
             "Hyperion not initialized!");
 
         g_engineDriver->RequestStop();
+
+        g_gameThreadInstance->Join();
+
+        g_renderThreadInstance->Join();
+        g_renderThread = g_mainThread;
+
         g_engineDriver->FinalizeStop();
 
 #ifdef HYP_LIBUI
@@ -464,6 +482,15 @@ extern "C"
 
         delete g_safeDeleter;
         g_safeDeleter = nullptr;
+
+        delete g_mainThreadInstance;
+        g_mainThreadInstance = nullptr;
+
+        delete g_gameThreadInstance;
+        g_gameThreadInstance = nullptr;
+
+        delete g_renderThreadInstance;
+        g_renderThreadInstance = nullptr;
 
 #ifdef HYP_WINDOWS
         sys::Win32_CleanupWindowClasses();
@@ -579,9 +606,8 @@ extern "C"
     HYP_API void Hyp_MainThreadUpdate()
     {
         AssertOnThread(g_mainThread);
-        Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
 
-        g_engineDriver->MainThreadUpdate();
+        g_mainThreadInstance->Update();
     }
 
     HYP_API void Hyp_SetInitFromManagedCallback(void (*callback)())

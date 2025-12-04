@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "core/Defines.hpp"
 #include <HyperionPch.hpp>
 
 #include <rendering/FullScreenPass.hpp>

@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "core/memory/allocator/Allocator.hpp"
 #include <HyperionPch.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -11,6 +10,8 @@
 #include <core/threading/AtomicVar.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <core/memory/allocator/Allocator.hpp>
 
 #include <scripting/ScriptObjectResource.hpp>
 

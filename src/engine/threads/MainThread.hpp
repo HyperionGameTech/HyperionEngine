@@ -1,0 +1,25 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#pragma once
+
+#include <core/threading/Thread.hpp>
+#include <core/threading/Scheduler.hpp>
+
+namespace hyperion {
+
+class MainThread final : public Thread<Scheduler>
+{
+public:
+    MainThread();
+    ~MainThread();
+
+    bool Start();
+    virtual void Stop() override;
+
+    void Update();
+
+private:
+    virtual void operator()() override;
+};
+
+} // namespace hyperion

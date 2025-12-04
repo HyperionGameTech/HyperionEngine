@@ -24,6 +24,9 @@ class IRenderBackend;
 class ShaderCompiler;
 class EditorState;
 class StreamingManager;
+class GameThread;
+class RenderThread;
+class MainThread;
 
 #ifdef HYP_VULKAN
 class VulkanRenderBackend;
@@ -43,6 +46,10 @@ extern MaterialCache* g_materialSystem;
 extern SafeDeleter* g_safeDeleter;
 extern RenderGlobalState* g_renderGlobalState;
 extern ShaderCompiler* g_shaderCompiler;
+
+extern MainThread* g_mainThreadInstance;
+extern GameThread* g_gameThreadInstance;
+extern RenderThread* g_renderThreadInstance;
 
 #ifdef HYP_VULKAN
 extern VulkanRenderBackend* g_renderBackend;

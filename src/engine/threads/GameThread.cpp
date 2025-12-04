@@ -1,23 +1,24 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "core/threading/Threads.hpp"
 #include <HyperionPch.hpp>
 
-#include <engine/GameThread.hpp>
+#include <engine/threads/GameThread.hpp>
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 #include <engine/DebugDrawer.hpp>
 
-#include <game/Game.hpp>
-
-#include <util/GameCounter.hpp>
+#include <core/threading/Threads.hpp>
 
 #include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/math/MathUtil.hpp>
+
+#include <game/Game.hpp>
+
+#include <util/GameCounter.hpp>
 
 #include <system/AppContext.hpp>
 #include <system/SystemEvent.hpp>
