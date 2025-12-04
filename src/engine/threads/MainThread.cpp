@@ -55,7 +55,18 @@ void MainThread::Update()
     HYP_PROFILE_BEGIN;
     AssertOnThread(g_mainThread);
 
-    const bool renderOnMainThread = CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool();
+    static const bool s_renderOnMainThread = CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool();
+
+    Queue<Scheduler::ScheduledTask> tasks;
+    if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+    {
+        m_scheduler.AcceptAll(tasks);
+
+        while (tasks.Any())
+        {
+            tasks.Pop().Execute();
+        }
+    }
 
     SystemEvent event;
     while (g_appContext->PollEvents(event))
@@ -65,7 +76,7 @@ void MainThread::Update()
     uiMainSteps();
 #endif
 
-    if (renderOnMainThread
+    if (s_renderOnMainThread
         && g_renderThreadInstance
         && g_renderThreadInstance->IsRunning())
     {
@@ -77,9 +88,9 @@ void MainThread::Update()
 
 void MainThread::operator()()
 {
-    const bool isDetached = CoreApi_GetCommandLineArguments()["Detached"].ToBool();
+    static const bool s_isDetached = CoreApi_GetCommandLineArguments()["Detached"].ToBool();
 
-    if (!isDetached)
+    if (!s_isDetached)
     {
         while (m_isRunning.Get(MemoryOrder::RELAXED))
         {

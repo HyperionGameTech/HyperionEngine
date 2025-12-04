@@ -32,19 +32,8 @@ void DestroyCocoaEvent(CocoaEvent& cocoaEvent)
 {
     if (cocoaEvent.nsEvent != nullptr)
     {
-        if ([NSThread isMainThread])
-        {
-            [(NSEvent*)cocoaEvent.nsEvent release];
-        }
-        else
-        {
-            // Can't use dispatch_sync here because it may lead to deadlocks
-            // if called from the game thread and we are using RenderOnMainThread.
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [(NSEvent*)cocoaEvent.nsEvent release];
-            });
-        }
-        
+        Assert([NSThread isMainThread]);
+        [(NSEvent*)cocoaEvent.nsEvent release];
         cocoaEvent.nsEvent = nullptr;
     }
 }

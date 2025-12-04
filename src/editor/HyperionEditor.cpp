@@ -17,6 +17,12 @@
 #include <scene/Light.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/View.hpp>
+
+#include <scene/camera/Camera.hpp>
+#include <scene/camera/FirstPersonCamera.hpp>
+
+#include <scene/sky/DynamicSkySubsystem.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
@@ -71,6 +77,7 @@
 #include <lightmapper/LightmapData.hpp>
 
 #include <system/SystemEvent.hpp>
+#include <system/AppContext.hpp>
 
 #include <core/config/Config.hpp>
 
@@ -104,15 +111,48 @@ HyperionEditor::~HyperionEditor()
 
 void HyperionEditor::OnLaunch_Impl()
 {
-    m_editorSubsystem = CreateObject<EditorSubsystem>();
+    // m_editorSubsystem = CreateObject<EditorSubsystem>();
 
-    GetWorld()->AddSubsystem(m_editorSubsystem);
+    // GetWorld()->AddSubsystem(m_editorSubsystem);
 
     // GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
 
 #if 1
+
     Handle<Scene> scene = CreateObject<Scene>(NAME("MyScene"));
-    m_editorSubsystem->GetCurrentProject()->GetWorld()->AddScene(scene);
+    scene->SetSceneFlags(SceneFlags::DEFAULT);
+    GetWorld()->AddScene(scene);
+
+    Handle<Camera> camera = CreateObject<Camera>();
+    camera->AddCameraController(CreateObject<FirstPersonCameraController>());
+    camera->SetName(NAME("Camera"));
+    camera->SetFOV(60.0f);
+    camera->SetNear(0.1f);
+    camera->SetFar(3000.0f);
+    camera->SetWindow(g_appContext->GetMainWindow());
+    camera->SetCameraFlags(camera->GetCameraFlags() | CameraFlags::MATCH_WINDOW_SIZE);
+    InitObject(camera);
+    scene->GetRoot()->AddChild(camera);
+
+    Handle<DirectionalLight> sun = CreateObject<DirectionalLight>();
+    sun->SetName(NAME("SunLight"));
+    sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
+    sun->SetIntensity(10.0f);
+    scene->GetRoot()->AddChild(sun);
+
+    GetWorld()->AddSubsystem<DynamicSkySubsystem>();
+
+    const ViewDesc viewDesc {
+        .flags = ViewFlags::DEFAULT
+            | ViewFlags::GBUFFER
+            | ViewFlags::MATCH_CAMERA_DIMENSIONS,
+        .viewport = Viewport { .extent = Vec2u(camera->GetDimensions()), .position = Vec2i::Zero() },
+        .outputTargetDesc = { .extent = Vec2u(camera->GetDimensions()) },
+        .camera = camera
+    };
+
+    Handle<View> view = CreateObject<View>(viewDesc);
+    GetWorld()->AddView(view);
 
     // Test assets
     AssetBatch* batch = AssetManager::GetInstance()->CreateBatch();

@@ -392,6 +392,8 @@ extern "C"
 
         g_engineDriver->RequestStop();
 
+        g_mainThreadInstance->Stop();
+
         g_gameThreadInstance->Join();
 
         g_renderThreadInstance->Join();

@@ -286,7 +286,9 @@ void EngineDriver::StartThreadsForGame(const Handle<Game>& game)
 
     Assert(game != nullptr);
 
-    Assert(g_renderThreadInstance && g_gameThreadInstance, "EngineDriver threads must be created in Init()!");
+    Assert(g_renderThreadInstance != nullptr
+        && g_gameThreadInstance != nullptr
+        && g_mainThreadInstance != nullptr);
 
     Assert(!g_renderThreadInstance->IsRunning(), "Render thread is already running!");
     Assert(!g_gameThreadInstance->IsRunning(), "Game thread is already running!");
@@ -295,6 +297,7 @@ void EngineDriver::StartThreadsForGame(const Handle<Game>& game)
 
     Assert(g_gameThreadInstance->Start(), "Failed to start game thread!");
     Assert(g_renderThreadInstance->Start(), "Failed to start render thread!");
+    Assert(g_mainThreadInstance->Start(), "Failed to start main thread!");
 }
 
 void EngineDriver::RequestStop()

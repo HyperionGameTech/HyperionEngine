@@ -1594,8 +1594,11 @@ void EditorSubsystem::InitViewport()
     Vec2u viewportSize = MathUtil::Max(Vec2u(uiSubsystem->GetUIStage()->GetActualSize()), Vec2u::One());
     // m_camera->SetDimensions(Vec2i(viewportSize));
 
-    // Handle<EditorViewport> editorViewport = CreateObject<EditorViewport>();
-    // InitObject(editorViewport);
+    Handle<EditorViewport> editorViewport = CreateObject<EditorViewport>();
+    InitObject(editorViewport);
+
+    AddViewport(editorViewport);
+
     // HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewportSize);
     // editorViewport->OnAdded(this);
     // m_editorViewports.PushBack(editorViewport);

@@ -54,7 +54,7 @@ namespace Hyperion.Editor
 
         public override void OnUpdate(float deltaTime)
         {
-            Logger.Log(LogType.Debug, "HyperionEditorGame Update called with deltaTime: " + deltaTime);
+            // Logger.Log(LogType.Debug, "HyperionEditorGame Update called with deltaTime: " + deltaTime);
 
             if (_assetBatchTask != null && _assetBatchTask.IsCompleted)
             {

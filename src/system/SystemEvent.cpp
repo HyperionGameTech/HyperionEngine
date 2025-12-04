@@ -1,6 +1,11 @@
+#include "core/threading/Task.hpp"
 #include <HyperionPch.hpp>
 
 #include <system/SystemEvent.hpp>
+
+#include <engine/EngineGlobals.hpp>
+#include <engine/threads/MainThread.hpp>
+
 namespace hyperion {
 
 #ifdef HYP_MACOS
@@ -67,7 +72,21 @@ SystemEvent::~SystemEvent()
 {
 #ifdef HYP_MACOS
     CocoaEvent& cocoaEvent = m_platformEvent.cocoaEvent;
-    DestroyCocoaEvent(cocoaEvent);
+
+    if (IsOnThread(g_mainThread))
+    {
+        DestroyCocoaEvent(cocoaEvent);
+    }
+    else
+    {
+        g_mainThreadInstance->GetScheduler().Enqueue([cocoaEvent = std::move(cocoaEvent)]() mutable
+            {
+                DestroyCocoaEvent(cocoaEvent);
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+
+    cocoaEvent = {};
 #endif
 }
 

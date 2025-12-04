@@ -388,6 +388,8 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         m_hwnd = parentWindow; // Store reference to parent window for coordinate conversions
 
         [metalView ResizeSwapchain:m_size.x height:m_size.y];
+
+        HYP_LOG_TEMP("Created Cocoa application window as embedded view with resolution: {}", m_size);
         
         return;
     }
@@ -459,6 +461,8 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
     {
         [window makeKeyAndOrderFront:nil];
     }
+
+    HYP_LOG_TEMP("Created Cocoa application window with resolution: {}", m_size);
 }
 
 void CocoaApplicationWindow::SetMousePosition(Vec2i position)
