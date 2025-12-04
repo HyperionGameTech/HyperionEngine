@@ -12,6 +12,12 @@ class View;
 class Scene;
 class EditorSubsystem;
 
+namespace sys {
+class ApplicationWindow;
+} // namespace sys
+
+using sys::ApplicationWindow;
+
 HYP_CLASS()
 class EditorViewport : public ObjectBase
 {
@@ -19,13 +25,21 @@ class EditorViewport : public ObjectBase
 
 public:
     EditorViewport();
-    explicit EditorViewport(const Handle<View>& view);
+    explicit EditorViewport(
+        const Handle<View>& view,
+        const Handle<ApplicationWindow>& window = Handle<ApplicationWindow>::Null());
     ~EditorViewport() override;
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<View>& GetView() const
     {
         return m_view;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<ApplicationWindow>& GetWindow() const
+    {
+        return m_window;
     }
 
     void Init() override;
@@ -46,6 +60,7 @@ public:
 
 protected:
     Handle<View> m_view;
+    Handle<ApplicationWindow> m_window;
 };
 
 } // namespace hyperion

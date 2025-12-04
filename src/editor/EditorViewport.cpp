@@ -4,6 +4,8 @@
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
 
+#include <system/AppContext.hpp>
+
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/View.hpp>
@@ -21,14 +23,16 @@ EditorViewport::EditorViewport()
 {
 }
 
-EditorViewport::EditorViewport(const Handle<View>& view)
-    : m_view(view)
+EditorViewport::EditorViewport(const Handle<View>& view, const Handle<ApplicationWindow>& window)
+    : m_view(view),
+      m_window(window)
 {
 }
 
 EditorViewport::~EditorViewport()
 {
     SafeDelete(std::move(m_view));
+    SafeDelete(std::move(m_window));
 }
 
 void EditorViewport::Init()

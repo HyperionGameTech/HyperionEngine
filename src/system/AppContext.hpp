@@ -231,11 +231,17 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE ApplicationWindow* GetMainWindow() const
     {
-        return m_mainWindow.Get();
+        return m_mainWindow;
     }
 
     HYP_METHOD()
     void SetMainWindow(const Handle<ApplicationWindow>& window);
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Array<Handle<ApplicationWindow>>& GetWindows() const
+    {
+        return m_windows;
+    }
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<InputManager>& GetInputManager() const
@@ -246,13 +252,17 @@ public:
     HYP_METHOD()
     virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd = {}) = 0;
 
+    HYP_METHOD()
+    void RemoveWindow(ApplicationWindow* window);
+
     virtual int PollEvents(SystemEvent& event) = 0;
 
     HYP_FIELD()
     ScriptableDelegate<void, ApplicationWindow*> OnCurrentWindowChanged;
 
 protected:
-    Handle<ApplicationWindow> m_mainWindow;
+    ApplicationWindow* m_mainWindow;
+    Array<Handle<ApplicationWindow>> m_windows;
     Handle<InputManager> m_inputManager;
     ANSIString m_name;
     Handle<Game> m_game;
@@ -262,8 +272,6 @@ HYP_CLASS()
 class HYP_API SDLAppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(SDLAppContext);
-
-    SDLAppContext() = default;
 
 public:
     SDLAppContext(ANSIString name, const CommandLineArguments& arguments);
@@ -287,8 +295,6 @@ class HYP_API Win32ApplicationWindow final : public ApplicationWindow
     HYP_OBJECT_BODY(Win32ApplicationWindow);
 
     friend class Win32AppContext;
-
-    Win32ApplicationWindow() = default;
 
 public:
     Win32ApplicationWindow(ANSIString title, Vec2i size);
@@ -332,8 +338,6 @@ class HYP_API Win32AppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(Win32AppContext);
 
-    Win32AppContext() = default;
-
 public:
     Win32AppContext(ANSIString name, const CommandLineArguments& arguments);
     ~Win32AppContext() override;
@@ -354,8 +358,6 @@ HYP_CLASS()
 class HYP_API CocoaApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(CocoaApplicationWindow);
-
-    CocoaApplicationWindow() = default;
 
 public:
     CocoaApplicationWindow(ANSIString title, Vec2i size);
@@ -424,8 +426,6 @@ HYP_CLASS()
 class HYP_API CocoaAppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(CocoaAppContext);
-
-    CocoaAppContext() = default;
 
 public:
     CocoaAppContext(ANSIString name, const CommandLineArguments& arguments);

@@ -116,6 +116,7 @@ const Handle<AppContextBase>& AppContextBase::GetInstance()
 }
 
 AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& arguments)
+    : m_mainWindow(nullptr)
 {
     m_inputManager = CreateObject<InputManager>();
 
@@ -136,8 +137,13 @@ void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
 {
     AssertOnThread(g_mainThread);
 
+    if (!m_windows.Contains(window))
+    {
+        m_windows.PushBack(window);
+    }
+
     m_mainWindow = window;
-    m_inputManager->SetWindow(m_mainWindow.Get());
+    m_inputManager->SetWindow(m_mainWindow);
 
     if (RenderApi::IsInit())
     {
@@ -159,7 +165,31 @@ void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
         }
     }
 
-    OnCurrentWindowChanged(m_mainWindow.Get());
+    OnCurrentWindowChanged(m_mainWindow);
+}
+
+void AppContextBase::RemoveWindow(ApplicationWindow* window)
+{
+    AssertOnThread(g_mainThread);
+
+    auto it = m_windows.FindIf([window](const Handle<ApplicationWindow>& other)
+        {
+            return other.Get() == window;
+        });
+
+    if (it != m_windows.End())
+    {
+        if (m_mainWindow == window)
+        {
+            m_mainWindow = nullptr;
+            m_inputManager->SetWindow(nullptr);
+
+            OnCurrentWindowChanged(nullptr);
+        }
+
+        SafeDelete(std::move(*it));
+        m_windows.Erase(it);
+    }
 }
 
 #pragma endregion AppContextBase
@@ -358,6 +388,8 @@ SDLAppContext::~SDLAppContext()
 Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
     Handle<SDLApplicationWindow> window = CreateObject<SDLApplicationWindow>(windowOptions.title, windowOptions.size);
+    m_windows.PushBack(window);
+
     window->Initialize(windowOptions);
 
     return window;
@@ -1067,6 +1099,8 @@ Win32AppContext::~Win32AppContext() = default;
 Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
     Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(windowOptions.title, windowOptions.dimensions);
+    m_windows.PushBack(window);
+
     window->Initialize(windowOptions, parentHwnd);
 
     return window;
@@ -1093,7 +1127,7 @@ int Win32AppContext::PollEvents(SystemEvent& event)
         if (window && !window->m_useWndProc)
         {
             if (HandleWindowEvent(window, event,
-                msg.hwnd, msg.message, msg.wParam, msg.lParam))
+                    msg.hwnd, msg.message, msg.wParam, msg.lParam))
             {
                 const SystemEvent::EventType eventType = event.GetType();
 

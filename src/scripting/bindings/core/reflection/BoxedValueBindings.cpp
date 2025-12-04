@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/reflection/HypDataArray.hpp"
 #include <HyperionPch.hpp>
 
 #include <core/reflection/Class.hpp>
@@ -158,34 +159,46 @@ extern "C"
 
     HYP_EXPORT int8 HypData_IsArray(const HypData* hypData)
     {
-        // if (!hypData)
-        // {
-        //     return false;
-        // }
+        if (!hypData)
+        {
+            return false;
+        }
 
-        // return hypData->Is<Array<HypData>>();
-
-        HYP_NOT_IMPLEMENTED();
+        return hypData->IsArray();
     }
 
-    HYP_EXPORT int8 HypData_GetArray(HypData* hypData, HypData** outArray, uint32* outSize)
+    HYP_EXPORT int8 HypData_GetArraySize(const HypData* hypData, int32* outSize)
     {
-        HYP_NOT_IMPLEMENTED();
+        if (!hypData || !outSize)
+        {
+            return false;
+        }
 
-        // if (!hypData || !outArray || !outSize)
-        // {
-        //     return false;
-        // }
+        if (hypData->IsArray())
+        {
+            const GenericArrayWrapper& arrayWrapper = hypData->Get<GenericArrayWrapper>();
 
-        // if (hypData->Is<Array<HypData>>())
-        // {
-        //     Array<HypData>& array = hypData->Get<Array<HypData>>();
+            *outSize = int32(arrayWrapper.Size());
 
-        //     *outArray = array.Data();
-        //     *outSize = uint32(array.Size());
+            return true;
+        }
 
-        //     return true;
-        // }
+        return false;
+    }
+
+    HYP_EXPORT int8 HypData_GetArrayElem(HypData* hypData, int32 index, HypData* outArrayElem)
+    {
+        if (!hypData || !outArrayElem)
+        {
+            return false;
+        }
+
+        if (hypData->IsArray())
+        {
+            GenericArrayWrapper& arrayWrapper = hypData->Get<GenericArrayWrapper>();
+
+            return arrayWrapper.GetElementAt(SizeType(index), *outArrayElem);
+        }
 
         return false;
     }

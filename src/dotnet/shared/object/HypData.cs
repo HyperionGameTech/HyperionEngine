@@ -478,30 +478,32 @@ namespace Hyperion
                 return Marshal.PtrToStringUTF8(stringPtr);
             }
 
-            // if (HypData_IsArray(ref this))
-            // {
-            //     IntPtr arrayPtr;
-            //     uint arraySize;
+            if (HypData_IsArray(ref this))
+            {
+                HypDataBuffer* pArray;
+                int arraySize;
 
-            //     if (!HypData_GetArray(ref this, out arrayPtr, out arraySize))
-            //     {
-            //         throw new InvalidOperationException("Failed to get array");
-            //     }
+                if (!HypData_GetArraySize(ref this, out arraySize))
+                {
+                    throw new InvalidOperationException("Failed to get array size");
+                }
 
-            //     object[] array = new object[arraySize];
+                object?[] array = new object?[arraySize];
 
-            //     unsafe
-            //     {
-            //         HypDataBuffer* ptr = (HypDataBuffer*)arrayPtr.ToPointer();
+                for (int i = 0; i < arraySize; i++)
+                {
+                    HypDataBuffer elementHypData;
+                    if (!HypData_GetArrayElem(ref this, i, &elementHypData))
+                    {
+                        throw new InvalidOperationException("Failed to get array element at index " + i);
+                    }
 
-            //         for (int i = 0; i < arraySize; i++)
-            //         {
-            //             array[i] = ptr[i].GetValue();
-            //         }
-            //     }
+                    array[i] = elementHypData.GetValue() ?? null;
+                    elementHypData.Dispose();
+                }
 
-            //     return array;
-            // }
+                return array;
+            }
 
             if (HypData_IsByteBuffer(ref this))
             {
@@ -938,9 +940,13 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_GetIntPtr([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out IntPtr outValue);
 
-        [DllImport("hyperion", EntryPoint = "HypData_GetArray")]
+        [DllImport("hyperion", EntryPoint = "HypData_GetArraySize")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetArray([In] ref HypDataBuffer hypData, [Out] out IntPtr outArrayPtr, [Out] out uint outArraySize);
+        internal static extern bool HypData_GetArraySize([In] ref HypDataBuffer hypData, [Out] out int outSize);
+
+        [DllImport("hyperion", EntryPoint = "HypData_GetArrayElem")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_GetArrayElem([In] ref HypDataBuffer hypData, int index, [Out] HypDataBuffer* outArrayElem);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetString")]
         [return: MarshalAs(UnmanagedType.I1)]

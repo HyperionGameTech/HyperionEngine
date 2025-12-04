@@ -77,6 +77,8 @@ CocoaAppContext::~CocoaAppContext()
 Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions, HWND parentHwnd)
 {
     Handle<CocoaApplicationWindow> window = CreateObject<CocoaApplicationWindow>(windowOptions.title, windowOptions.dimensions);
+    m_windows.PushBack(window);
+    
     window->Initialize(windowOptions, parentHwnd);
     
     return window;
@@ -264,7 +266,7 @@ int CocoaAppContext::PollEvents(SystemEvent& event)
             
             if (m_mainWindow)
             {
-                cocoaWindow = ObjCast<CocoaApplicationWindow>(m_mainWindow.Get());
+                cocoaWindow = ObjCast<CocoaApplicationWindow>(m_mainWindow);
                 
                 if (cocoaWindow)
                 {
