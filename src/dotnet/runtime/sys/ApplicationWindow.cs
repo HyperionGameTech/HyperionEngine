@@ -15,13 +15,18 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "WindowOptions")]
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Explicit, Size = 272, Pack = 8)]
     public struct WindowOptions
     {
+        // maps to char[256]
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        [FieldOffset(0)]
         public string title;
-        public int width;
-        public int height;
+
+        [FieldOffset(256)]
+        public Vec2i dimensions;
+
+        [FieldOffset(264)]
         public WindowFlags flags;
     }
 

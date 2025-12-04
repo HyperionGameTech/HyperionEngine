@@ -18,8 +18,7 @@ namespace Hyperion.Editor
 
             WindowOptions windowOptions = new WindowOptions();
             windowOptions.title = "EditorViewport";
-            windowOptions.width = 800;
-            windowOptions.height = 600;
+            windowOptions.dimensions = new Vec2i(800, 600);
             windowOptions.flags = WindowFlags.None;
 
             Window = AppContext.CreateSystemWindow(windowOptions, parent.Handle);
