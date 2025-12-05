@@ -587,7 +587,8 @@ static ViewData* GetViewData(View* view)
     auto viewDataIt = s_viewData.Find(view);
     if (viewDataIt == s_viewData.End())
     {
-        HYP_LOG(Rendering, Debug, "Allocating new ViewData for View {}", view->Id());
+        HYP_LOG(Rendering, Debug, "Allocating new ViewData for View {}\t(Camera : {})", view->Id(),
+            view->GetCamera() ? *view->GetCamera()->GetName() : "null");
 
         ViewData* vd = PoolNew<ViewData>(*g_renderPool);
         vd->view = view;
@@ -603,7 +604,10 @@ static ViewData* GetViewData(View* view)
 
         AssertDebug(vd->renderCollector.batchAllocator != nullptr);
 
-        viewDataIt = s_viewData.Insert(view, vd).first;
+        auto insertResult = s_viewData.Insert(view, vd);
+        AssertDebug(insertResult.second);
+
+        viewDataIt = insertResult.first;
     }
 
     AssertDebug(viewDataIt->second != nullptr);

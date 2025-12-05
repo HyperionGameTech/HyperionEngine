@@ -9,7 +9,7 @@ namespace Hyperion
     {
         None = 0x0,
 
-        IsEditorWorld = 0x1,
+        EditorWorld = 0x1,
 
         HasPhysics = 0x2,
         HasStreaming = 0x4,
@@ -26,6 +26,12 @@ namespace Hyperion
     {
         public World()
         {
+        }
+
+        public WorldFlags WorldFlags
+        {
+            get => this.GetWorldFlags();
+            set => this.SetWorldFlags(value);
         }
 
         public T? GetSubsystem<T>() where T : Subsystem

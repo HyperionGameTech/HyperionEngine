@@ -318,8 +318,6 @@ void VulkanSwapchain::Recreate()
     RendererResult createResult = Create();
     Assert(createResult, "Failed to recreate swapchain during resize: {}", createResult.GetError().GetMessage());
 
-    HYP_LOG_TEMP("Recreated swapchain {}, old swapchain was {}", (void*)m_handle, (void*)m_oldHandle);
-
     // we can now destroy the old swapchain
     vkDestroySwapchainKHR(
         GetRenderBackend()->GetDevice()->GetDevice(),

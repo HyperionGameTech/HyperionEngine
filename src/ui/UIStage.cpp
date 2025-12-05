@@ -304,6 +304,7 @@ void UIStage::Init()
     AssertOnOwnerThread();
 
     m_camera = CreateObject<Camera>();
+    m_camera->SetName(NAME_FMT("{}_UIStage_Camera", GetName()));
     m_camera->AddCameraController(CreateObject<UICameraController>(
         0.0f, -float(m_surfaceSize.x),
         0.0f, float(m_surfaceSize.y),

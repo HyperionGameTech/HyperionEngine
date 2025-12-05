@@ -57,19 +57,19 @@ namespace Hyperion.Editor.ViewModels
             // Subscribe to child added/removed if available
             _onChildAdded = node.GetOnChildAddedDelegate().Bind((Node child, bool isDirect) =>
             {
-                NodeViewModel target;
+                NodeViewModel? target;
                 if (!weakThis.TryGetTarget(out target))
                 {
                     Logger.Log(LogType.Warn, "NodeViewModel target has been garbage collected before child added handler could be invoked.");
                     return;
                 }
 
-                Dispatcher.UIThread.Invoke(() => target.Children.Add(new NodeViewModel(child)));
+                Dispatcher.UIThread.Invoke(() => target!.Children.Add(new NodeViewModel(child)));
             });
 
             _onChildRemoved = node.GetOnChildRemovedDelegate().Bind((Node child, bool isDirect) =>
             {
-                NodeViewModel target;
+                NodeViewModel? target;
                 if (!weakThis.TryGetTarget(out target))
                 {
                     Logger.Log(LogType.Warn, "NodeViewModel target has been garbage collected before child removed handler could be invoked.");
@@ -78,11 +78,11 @@ namespace Hyperion.Editor.ViewModels
 
                 Dispatcher.UIThread.Invoke(() =>
                 {
-                    for (int i = 0; i < target.Children.Count; i++)
+                    for (int i = 0; i < target!.Children.Count; i++)
                     {
-                        if (target.Children[i].Node == child)
+                        if (target!.Children[i].Node == child)
                         {
-                            target.Children.RemoveAt(i);
+                            target!.Children.RemoveAt(i);
                             break;
                         }
                     }

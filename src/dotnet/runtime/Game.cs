@@ -8,10 +8,7 @@ namespace Hyperion
     {
         public World World
         {
-            get
-            {
-                return this.GetWorld();
-            }
+            get => this.GetWorld();
         }
 
         public abstract void OnLaunch();

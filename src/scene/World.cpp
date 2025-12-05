@@ -199,6 +199,7 @@ void World::Init()
         };
 
         Handle<Camera> camera = CreateObject<Camera>();
+        camera->SetName(NAME("RayTracingViewDummyCamera"));
 
         const ViewDesc raytracingViewDesc {
             .flags = ViewFlags::RAYTRACING | ViewFlags::NO_DRAW_CALLS

@@ -125,18 +125,13 @@ void GameThread::operator()()
 
         g_assetManager->Update(counter.delta);
 
-        if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+        if (g_appContext->GetMainWindow()->GetInputEventSink().Poll(events))
         {
-            if (g_appContext->GetMainWindow()->GetInputEventSink().Poll(events))
+            for (SystemEvent& event : events)
             {
-                for (SystemEvent& event : events)
-                {
-                    g_appContext->GetInputManager()->CheckEvent(&event);
+                g_appContext->GetInputManager()->CheckEvent(&event);
 
-                    HYP_LOG(GameThread, Debug, "GameThread processing event of type: {}", event.GetType());
-
-                    m_game->HandleEvent(std::move(event));
-                }
+                m_game->HandleEvent(std::move(event));
             }
         }
 

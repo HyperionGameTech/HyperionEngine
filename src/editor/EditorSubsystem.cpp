@@ -3065,21 +3065,8 @@ void EditorSubsystem::NewProject()
     Handle<DirectionalLight> sun = CreateObject<DirectionalLight>();
     sun->SetName(NAME("SunLight"));
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
-    sun->SetIntensity(10.0f);
+    sun->SetIntensity(30.0f);
     defaultScene->GetRoot()->AddChild(sun);
-
-    Handle<Node> tmpNode = CreateObject<Node>();
-    tmpNode->SetName(NAME("TmpNode1"));
-
-    Handle<Node> tmpNode2 = CreateObject<Node>();
-    tmpNode2->SetName(NAME("TmpNode2"));
-    tmpNode->AddChild(tmpNode2);
-
-    Handle<Node> tmpNode3 = CreateObject<Node>();
-    tmpNode3->SetName(NAME("TmpNode3"));
-    tmpNode2->AddChild(tmpNode3);
-
-    defaultScene->GetRoot()->AddChild(tmpNode);
 
     project->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
 

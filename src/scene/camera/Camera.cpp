@@ -270,12 +270,9 @@ void Camera::Init()
 
         auto matchWindowSize = [this](Vec2i windowSize)
         {
-            HYP_LOG_TEMP("Matching camera size to window size: {}", windowSize);
             windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
 
             SetDimensions(windowSize);
-
-            HYP_LOG_TEMP("Matched camera dimensions to window size: {}", windowSize);
         };
 
         if (window.IsValid())
@@ -471,12 +468,9 @@ void Camera::SetWindow(ApplicationWindow* window)
         {
             auto matchWindowSize = [this](Vec2i windowSize)
             {
-                HYP_LOG_TEMP("Matching camera size to window size: {}", windowSize);
                 windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
 
                 SetDimensions(windowSize);
-
-                HYP_LOG_TEMP("Matched camera dimensions to window size: {}", windowSize);
             };
 
             matchWindowSize(window->GetDimensions());

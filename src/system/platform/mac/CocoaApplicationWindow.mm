@@ -114,8 +114,6 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
 
 - (void)setFrameSize:(NSSize)newSize
 {
-    HYP_LOG_TEMP("HyperionMetalView setFrameSize called: newSize = ({}, {})\n", (int)newSize.width, (int)newSize.height);
-
     [super setFrameSize:newSize];
 
     CGFloat scale = self.window ? self.window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
@@ -430,8 +428,6 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         m_metalLayer = [metalLayer retain];
         m_hwnd = parentWindow; // Store reference to parent window for coordinate conversions
 
-        HYP_LOG_TEMP("Created Cocoa application window as embedded view with resolution: {}", m_size);
-        
         return;
     }
 
@@ -502,8 +498,6 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
     {
         [window makeKeyAndOrderFront:nil];
     }
-
-    HYP_LOG_TEMP("Created Cocoa application window with resolution: {}", m_size);
 }
 
 bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
@@ -726,7 +720,7 @@ Vec2i CocoaApplicationWindow::GetDimensions() const
     {
         HyperionMetalView* view = (HyperionMetalView*)m_nsView;
         NSRect frame = [view frame];
-        HYP_LOG_TEMP("Frame size: width = {}, height = {}\tm_size = {}\n", frame.size.width, frame.size.height, m_size);
+        
         return Vec2i((int)frame.size.width, (int)frame.size.height);
     }
     

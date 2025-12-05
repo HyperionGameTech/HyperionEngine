@@ -54,8 +54,6 @@ void EditorViewport::Init()
 
     InitObject(m_camera);
 
-    HYP_LOG_TEMP("Camera Dimensions: {}", m_camera->GetDimensions());
-
     const ViewDesc viewDesc {
         .flags = ViewFlags::DEFAULT
             | ViewFlags::GBUFFER

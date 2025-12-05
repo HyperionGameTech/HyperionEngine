@@ -28,6 +28,8 @@ namespace Hyperion.Editor
         {
             Logger.Log(LogType.Debug, "HyperionEditorGame Launched");
 
+            World.WorldFlags |= WorldFlags.EditorWorld;
+
             _editorSubsystem = new EditorSubsystem();
             World.AddSubsystem(_editorSubsystem);
 
@@ -85,7 +87,7 @@ namespace Hyperion.Editor
                     Assert.Throw(testModelAsset.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
-                    n.SetLocalScale(new Vec3f(0.1f));
+                    n.SetLocalScale(new Vec3f(0.05f));
                 }
                 else
                 {
@@ -105,20 +107,22 @@ namespace Hyperion.Editor
 
         private void HandleProjectOpened(EditorProject project)
         {
-            _onActionStackStateChanged?.Remove();
+            WeakReference weakThis = new WeakReference(this);
 
+            _onActionStackStateChanged?.Remove();
             _onActionStackStateChanged = project.ActionStack.GetOnStateChangeDelegate()
                 .Bind((EditorActionStackState newState) =>
                 {
-                    UpdateUndo();
-                    UpdateRedo();
+                    if (weakThis.Target is HyperionEditorGame editorGame)
+                    {
+                        editorGame.UpdateUndo();
+                        editorGame.UpdateRedo();
+                    }
                 });
 
             Logger.Log(LogType.Info, "Project opened: " + (project != null ? project.Name.ToString() : "null"));
 
             Scene? activeScene = _editorSubsystem!.GetActiveScene();
-
-            WeakReference weakThis = new WeakReference(this);
 
             var setChildAddRemovedHandlers = (HyperionEditorGame editorGame, Node? node) =>
             {
