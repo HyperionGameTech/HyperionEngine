@@ -12,19 +12,31 @@
     <Window.DataContext>
         <vm:MainWindowViewModel />
     </Window.DataContext>
-
+    
     <DockPanel Background="{DynamicResource Brush.Background}">
+        <!-- Fallback in-window menu for non-macOS platforms -->
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-            <MenuItem Header="_Open..."/>
-            <Separator/>
-            <MenuItem Header="_Exit"/>
+                <MenuItem Header="_New Project..." Command="{Binding NewProject}"/>
+                <MenuItem Header="_Open Project..." Command="{Binding OpenProject}"/>
+                <MenuItem Header="_Save Project" Command="{Binding SaveProject}"/>
+                <MenuItem Header="Save Project _As..."/>
+                <Separator/>
+                <MenuItem Header="_Exit" Command="{Binding Exit}"/>
             </MenuItem>
-                <MenuItem Header="_Edit">
-                <MenuItem Header="Copy"/>
-                <MenuItem Header="Paste"/>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Undo" Command="{Binding Undo}"/>
+                <MenuItem Header="_Redo" Command="{Binding Redo}"/>
+                <Separator/>
+                <MenuItem Header="_Copy" Command="{Binding Copy}"/>
+                <MenuItem Header="_Paste" Command="{Binding Paste}"/>
+                <Separator/>
+                <MenuItem Header="Select _All"/>
+                <MenuItem Header="Select All in Viewport"/>
+                <MenuItem Header="Select None"/>
             </MenuItem>
         </Menu>
+        
         <Border Classes="panel-header" DockPanel.Dock="Top">
             <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="6">

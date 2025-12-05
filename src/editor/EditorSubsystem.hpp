@@ -39,6 +39,7 @@ class EditorDelegates;
 class EditorSubsystem;
 class EditorProject;
 class EditorDebugOverlayBase;
+class EditorCommandBase;
 class AssetPackage;
 struct MouseEvent;
 struct KeyboardEvent;
@@ -379,13 +380,16 @@ public:
     }
 
     HYP_METHOD()
+    bool ExecuteCommand(const Handle<EditorCommandBase>& command);
+
+    HYP_METHOD()
+    bool ExecuteCommandByName(Name name);
+
+    HYP_METHOD()
     void NewProject();
 
     HYP_METHOD()
     void OpenProject(const Handle<EditorProject>& project);
-
-    HYP_METHOD()
-    void ShowOpenProjectDialog();
 
     HYP_METHOD()
     void ShowImportContentDialog();

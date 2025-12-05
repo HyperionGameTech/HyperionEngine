@@ -31,9 +31,6 @@ public:
     void OnAdded(Entity* entity);
 
     HYP_METHOD()
-    UIEventHandlerResult OpenProjectClicked(const MouseEvent& event);
-
-    HYP_METHOD()
     UIEventHandlerResult SaveClicked(const MouseEvent& event);
 
     HYP_METHOD()

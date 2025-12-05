@@ -150,6 +150,12 @@ namespace Hyperion.Editor
             var addRootNodeChangedHandler = (HyperionEditorGame editorGame, Scene scene) =>
             {
                 editorGame._onRootNodeChanged?.Remove();
+
+                if (scene == null)
+                {
+                    return;
+                }
+
                 editorGame._onRootNodeChanged = scene.GetOnRootNodeChangedDelegate()
                     .Bind((Node newRoot, Node oldRoot) =>
                     {

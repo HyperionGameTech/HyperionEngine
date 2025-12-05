@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Threading;
+using System.Windows.Input;
 using Avalonia.Threading;
 using Hyperion;
 
@@ -8,6 +9,21 @@ namespace Hyperion.Editor.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {
+        public class EditorCommand : ICommand
+        {
+            private string _name;
+            
+            public EditorCommand(string name)
+            {
+                _name = name;
+            }
+
+            public bool CanExecute(object? parameter) => !string.IsNullOrEmpty(_name);
+            public void Execute(object? parameter) => EngineManager.GameInstance?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommand" + _name));
+            public event EventHandler? CanExecuteChanged;
+            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         private string _title = "Hyperion Editor";
         public string Title
         {
@@ -16,6 +32,15 @@ namespace Hyperion.Editor.ViewModels
         }
         public SceneHierarchyViewModel SceneHierarchy { get; }
         public InspectorViewModel Inspector { get; }
+
+        public EditorCommand NewProject => new EditorCommand("NewProject");
+        public EditorCommand OpenProject => new EditorCommand("OpenProject");
+        public EditorCommand SaveProject => new EditorCommand("SaveProject");
+        public EditorCommand Exit => new EditorCommand("Exit");
+        public EditorCommand Undo => new EditorCommand("Undo");
+        public EditorCommand Redo => new EditorCommand("Redo");
+        public EditorCommand Copy => new EditorCommand("Copy");
+        public EditorCommand Paste => new EditorCommand("Paste");
 
         private const int GameLaunchWaitIntervalMs = 500;
         private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up
@@ -76,8 +101,13 @@ namespace Hyperion.Editor.ViewModels
                 .Detach();
         }
 
-        private void HandleActiveSceneChanged(Scene scene)
+        private void HandleActiveSceneChanged(Scene? scene)
         {
+            if (scene == null)
+            {
+                return;
+            }
+
             Dispatcher.UIThread.Invoke(() =>
             {
                 SceneHierarchy.AttachToScene(scene);

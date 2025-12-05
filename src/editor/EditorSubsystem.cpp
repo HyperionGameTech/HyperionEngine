@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "core/math/Color.hpp"
 #include <HyperionPch.hpp>
 
 #include <editor/EditorSubsystem.hpp>
@@ -12,6 +11,7 @@
 #include <editor/EditorAction.hpp>
 #include <editor/EditorState.hpp>
 #include <editor/EditorViewport.hpp>
+#include <editor/EditorCommand.hpp>
 
 #include <editor/ui/debug/EditorDebugOverlay.hpp>
 
@@ -88,6 +88,8 @@
 
 // for EnumToString
 #include <core/reflection/Enum.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -3052,6 +3054,63 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
     return std::move(atlas);
 }
 
+bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
+{
+    if (!command)
+    {
+        return false;
+    }
+
+    if (IsOnThread(g_gameThread))
+    {
+        command->Execute(this);
+    }
+    else
+    {
+        GetThreadById(g_gameThread)->GetScheduler().Enqueue([this, weakThis = MakeWeakRef(this), command = command]()
+            {
+                Handle<EditorSubsystem> strongThis = weakThis.Lock();
+                if (!strongThis)
+                {
+                    HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ExecuteCommand");
+                    return;
+                }
+
+                command->Execute(this);
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+
+    return true;
+}
+
+bool EditorSubsystem::ExecuteCommandByName(Name name)
+{
+    if (!name.IsValid())
+    {
+        return false;
+    }
+
+    const Class* commandClass = ClassRegistry::GetInstance().GetClass(name);
+    if (!commandClass || !commandClass->IsDerivedFrom(EditorCommandBase::StaticClass()))
+    {
+        HYP_LOG(Editor, Error, "Invalid command class: {}", name);
+        return false;
+    }
+
+    HypData instanceData;
+    if (!commandClass->CreateInstance(instanceData))
+    {
+        HYP_LOG(Editor, Error, "Failed to construct command instance: {}", name);
+        return false;
+    }
+
+    Handle<EditorCommandBase>& command = instanceData.Get<Handle<EditorCommandBase>>();
+    AssertDebug(command != nullptr);
+
+    return ExecuteCommand(command);
+}
+
 void EditorSubsystem::NewProject()
 {
     Handle<EditorProject> project = CreateObject<EditorProject>();
@@ -3111,60 +3170,6 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
         g_editorState->SetCurrentProject(m_currentProject);
     }
-}
-
-void EditorSubsystem::ShowOpenProjectDialog()
-{
-    HYP_SCOPE;
-
-    ShowOpenFileDialog(
-        "Select the project to open",
-        GetResourceDirectory(),
-        { "hypproj" },
-        /* allowMultiple */ false, /* allowDirectories */ true,
-        [weakThis = MakeWeakRef(this)](TResult<Array<FilePath>>&& result) mutable
-        {
-            if (result.HasError())
-            {
-                HYP_LOG(Editor, Error, "Failed to select project file: {}", result.GetError().GetMessage());
-                return;
-            }
-
-            if (result.GetValue().Empty())
-            {
-                HYP_LOG(Editor, Warning, "No project file selected.");
-                return;
-            }
-
-            GetThreadById(g_gameThread)->GetScheduler().Enqueue([weakThis = std::move(weakThis), projectFilepath = std::move(result.GetValue()[0])]() mutable
-                {
-                    Handle<EditorSubsystem> strongThis = weakThis.Lock();
-                    if (!strongThis)
-                    {
-                        HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowOpenProjectDialog");
-                        return;
-                    }
-
-                    TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
-
-                    if (loadProjectResult.HasError())
-                    {
-                        HYP_LOG(Editor, Error, "Failed to load project: {}", loadProjectResult.GetError().GetMessage());
-                        return;
-                    }
-
-                    Handle<EditorProject> project = loadProjectResult.GetValue();
-
-                    if (!project.IsValid())
-                    {
-                        HYP_LOG(Editor, Error, "Loaded project is invalid.");
-                        return;
-                    }
-
-                    strongThis->OpenProject(project);
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-        });
 }
 
 void EditorSubsystem::ShowImportContentDialog()

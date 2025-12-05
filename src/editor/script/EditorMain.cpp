@@ -132,23 +132,6 @@ void EditorMain::HandleProjectClosing(const Handle<EditorProject>& project)
     m_onActionStackStateChangeDelegate.Reset();
 }
 
-UIEventHandlerResult EditorMain::OpenProjectClicked(const MouseEvent& event)
-{
-    HYP_SCOPE;
-
-    EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
-    if (editorSubsystem == nullptr)
-    {
-        HYP_LOG(Editor, Error, "EditorSubsystem not found");
-
-        return UIEventHandlerResult::ERR;
-    }
-
-    editorSubsystem->ShowOpenProjectDialog();
-
-    return UIEventHandlerResult::OK;
-}
-
 UIEventHandlerResult EditorMain::SaveClicked(const MouseEvent& event)
 {
     HYP_SCOPE;
