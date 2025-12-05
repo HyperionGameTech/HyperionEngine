@@ -9,7 +9,7 @@ namespace Hyperion.Editor
     {
 
         public static bool IsInitialized { get; private set; }
-        public static Game? GameInstance { get; private set; }
+        public static HyperionEditorGame? GameInstance { get; private set; }
 
         public static EditorProject? CurrentProject { get; private set; }
 

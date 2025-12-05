@@ -71,6 +71,11 @@ static EnumFlags<MouseButtonState> GetMouseButtonState(int sdlButton)
 SystemEvent::~SystemEvent()
 {
 #ifdef HYP_MACOS
+    if (m_eventType == INVALID)
+    {
+        return;
+    }
+
     CocoaEvent& cocoaEvent = m_platformEvent.cocoaEvent;
 
     if (IsOnThread(g_mainThread))

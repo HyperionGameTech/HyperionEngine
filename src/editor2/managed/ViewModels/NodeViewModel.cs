@@ -33,6 +33,9 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<NodeViewModel> Children { get; } = new ObservableCollection<NodeViewModel>();
 
+        private DelegateHandler? _onChildAdded;
+        private DelegateHandler? _onChildRemoved;
+
         public NodeViewModel(Node node)
         {
             _node = node;
@@ -49,26 +52,42 @@ namespace Hyperion.Editor.ViewModels
                 }
             }
 
-            // Subscribe to child added/removed if available
-            node.GetOnChildAddedDelegate().Bind((Node child, bool isDirect) =>
-            {
-                Dispatcher.UIThread.Invoke(() => Children.Add(new NodeViewModel(child)));
-            }).Detach();
+            WeakReference<NodeViewModel> weakThis = new WeakReference<NodeViewModel>(this);
 
-            node.GetOnChildRemovedDelegate().Bind((Node child, bool isDirect) =>
+            // Subscribe to child added/removed if available
+            _onChildAdded = node.GetOnChildAddedDelegate().Bind((Node child, bool isDirect) =>
             {
+                NodeViewModel target;
+                if (!weakThis.TryGetTarget(out target))
+                {
+                    Logger.Log(LogType.Warn, "NodeViewModel target has been garbage collected before child added handler could be invoked.");
+                    return;
+                }
+
+                Dispatcher.UIThread.Invoke(() => target.Children.Add(new NodeViewModel(child)));
+            });
+
+            _onChildRemoved = node.GetOnChildRemovedDelegate().Bind((Node child, bool isDirect) =>
+            {
+                NodeViewModel target;
+                if (!weakThis.TryGetTarget(out target))
+                {
+                    Logger.Log(LogType.Warn, "NodeViewModel target has been garbage collected before child removed handler could be invoked.");
+                    return;
+                }
+
                 Dispatcher.UIThread.Invoke(() =>
                 {
-                    for (int i = 0; i < Children.Count; i++)
+                    for (int i = 0; i < target.Children.Count; i++)
                     {
-                        if (Children[i].Node == child)
+                        if (target.Children[i].Node == child)
                         {
-                            Children.RemoveAt(i);
+                            target.Children.RemoveAt(i);
                             break;
                         }
                     }
                 });
-            }).Detach();
+            });
         }
     }
 }

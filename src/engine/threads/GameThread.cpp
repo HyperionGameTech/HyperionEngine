@@ -133,6 +133,8 @@ void GameThread::operator()()
                 {
                     g_appContext->GetInputManager()->CheckEvent(&event);
 
+                    HYP_LOG(GameThread, Debug, "GameThread processing event of type: {}", event.GetType());
+
                     m_game->HandleEvent(std::move(event));
                 }
             }

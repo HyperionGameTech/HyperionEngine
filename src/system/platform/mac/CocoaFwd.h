@@ -4,9 +4,11 @@
 #ifdef __OBJC__
 @class NSView;
 @class NSWindow;
+@class NSEvent;
 #else
 struct NSView;
 struct NSWindow;
+struct NSEvent;
 #endif
 
 #endif

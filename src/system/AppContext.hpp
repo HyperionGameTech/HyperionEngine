@@ -407,10 +407,17 @@ public:
         return m_metalLayer;
     }
 
+    HYP_FORCE_INLINE bool UseCocoaEvents() const
+    {
+        return m_useCocoaEvents;
+    }
+
     HYP_FORCE_INLINE bool IsMouseLocked() const
     {
         return m_mouseLocked;
     }
+
+    bool HandleNSEvent(NSEvent* nsEvent, SystemEvent& event);
 
 private:
     void* m_windowDelegate = nullptr;
@@ -418,6 +425,7 @@ private:
     bool m_mouseLocked = false;
     bool m_isEmbeddedView = false;
     mutable Vec2i m_mousePosition = Vec2i::Zero();
+    bool m_useCocoaEvents = false;
 #endif
 
     void* m_nsView = nullptr;

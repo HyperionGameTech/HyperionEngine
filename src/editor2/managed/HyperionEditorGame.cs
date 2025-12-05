@@ -18,6 +18,8 @@ namespace Hyperion.Editor
         private DelegateHandler? _onChildRemoved;
         private DelegateHandler? _onActiveSceneChanged;
 
+        public EditorSubsystem? EditorSubsystem => _editorSubsystem;
+
         public HyperionEditorGame()
         {
         }

@@ -74,7 +74,7 @@ Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions wind
 }
 
 /// https://gist.github.com/eegrok/949034
-static KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode)
+KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode)
 {
     switch (keyCode)
     {
@@ -226,143 +226,34 @@ int CocoaAppContext::PollEvents(SystemEvent& event)
         
         [NSApp sendEvent:nsEvent];
         [NSApp updateWindows];
-        
-        PlatformEvent platformEvent {};
-        platformEvent.cocoaEvent.nsEvent = (void*)[nsEvent retain]; // keep it around, we release it manually in DestroyCocoaEvent()
 
-        switch ([nsEvent type])
-        {
-        case NSEventTypeKeyDown:
-            event = SystemEvent(SystemEvent::KEYDOWN, platformEvent);
-            event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
-            break;
-            
-        case NSEventTypeKeyUp:
-            event = SystemEvent(SystemEvent::KEYUP, platformEvent);
-            event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
-            break;
-            
-        case NSEventTypeMouseMoved:
-        case NSEventTypeLeftMouseDragged:
-        case NSEventTypeRightMouseDragged:
-        case NSEventTypeOtherMouseDragged:
-        {
-            event = SystemEvent(SystemEvent::MOUSEMOTION, platformEvent);
-            
-            // Check if mouse is locked
-            bool isMouseLocked = false;
-            CocoaApplicationWindow* cocoaWindow = nullptr;
-            
-            if (m_mainWindow)
-            {
-                cocoaWindow = ObjCast<CocoaApplicationWindow>(m_mainWindow);
-                
-                if (cocoaWindow)
-                {
-                    isMouseLocked = cocoaWindow->IsMouseLocked();
-                }
-            }
-            
-            if (isMouseLocked && cocoaWindow)
-            {
-                CGFloat deltaX = [nsEvent deltaX];
-                CGFloat deltaY = [nsEvent deltaY];
-                
-                Vec2i currentPos = cocoaWindow->GetMousePosition();
-                Vec2i newPos = currentPos + Vec2i((int)deltaX, (int)deltaY);
-                
-                Vec2i windowSize = cocoaWindow->GetDimensions();
-                newPos.x = MathUtil::Clamp(newPos.x, 0, windowSize.x - 1);
-                newPos.y = MathUtil::Clamp(newPos.y, 0, windowSize.y - 1);
+        NSWindow* nsWindow = [nsEvent window];
+        CocoaApplicationWindow* cocoaWindow = nullptr;
 
-                cocoaWindow->SetMousePosition(newPos);
-                
-                event.GetEventData().Set(newPos);
-            }
-            else
-            {
-                NSWindow* window = [nsEvent window];
-                
-                if (!window && cocoaWindow)
-                {
-                    window = (NSWindow*)cocoaWindow->GetNSWindow();
-                }
-                
-                NSPoint location = [nsEvent locationInWindow];
-                
-                // Flip Y coordinate (Cocoa has origin at bottom-left)
-                if (window)
-                {
-                    NSRect frame = [window.contentView frame];
-                    location.y = frame.size.height - location.y;
-                }
-                
-                event.GetEventData().Set(Vec2i((int)location.x, (int)location.y));
-            }
-            
-            break;
-        }
-            
-        case NSEventTypeLeftMouseDown:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            break;
-            
-        case NSEventTypeLeftMouseUp:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            break;
-            
-        case NSEventTypeRightMouseDown:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            break;
-            
-        case NSEventTypeRightMouseUp:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            break;
-            
-        case NSEventTypeOtherMouseDown:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            break;
-            
-        case NSEventTypeOtherMouseUp:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            break;
-            
-        case NSEventTypeScrollWheel:
+        if (!nsWindow)
         {
-            event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
-            CGFloat deltaX = [nsEvent scrollingDeltaX];
-            CGFloat deltaY = [nsEvent scrollingDeltaY];
-            
-            // If the scroll event has precise deltas, use them
-            if ([nsEvent hasPreciseScrollingDeltas])
-            {
-                // Scale down precise deltas
-                deltaX *= 0.1;
-                deltaY *= 0.1;
-            }
-            
-            event.GetEventData().Set(Vec2i((int)deltaX, (int)deltaY));
-            break;
-        }
-            
-        default:
-            break;
+            return 0;
         }
 
-        if (event.GetType() != SystemEvent::INVALID)
+        auto cocoaWindowIt = m_windows.FindIf([nsWindow](const Handle<ApplicationWindow>& window)
         {
-            if (m_mainWindow)
-            {
-                m_mainWindow->GetInputEventSink().Push(std::move(event));
+            AssertDebug(window->IsA(CocoaApplicationWindow::StaticClass()));
 
-                return 1;
-            }
+            CocoaApplicationWindow* cocoaWindow = static_cast<CocoaApplicationWindow*>(window.Get());
+            return (NSWindow*)cocoaWindow->GetNSWindow() == nsWindow;
+        });
+
+        cocoaWindow = cocoaWindowIt != m_windows.End()
+            ? static_cast<CocoaApplicationWindow*>(cocoaWindowIt->Get())
+            : nullptr;
+
+        if (cocoaWindow
+            && !cocoaWindow->UseCocoaEvents() // if we are using Cocoa events, they are already handled in the CocoaApplicationWindow methods
+            && cocoaWindow->HandleNSEvent(nsEvent, event))
+        {
+            cocoaWindow->GetInputEventSink().Push(std::move(event));
+
+            return 1;
         }
     }
     

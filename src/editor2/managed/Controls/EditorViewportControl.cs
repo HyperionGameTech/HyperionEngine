@@ -34,27 +34,19 @@ namespace Hyperion.Editor
                 height = DefaultHeight;
             }
 
-            /// @TODO: Ensure this runs on the game thread
-            Game? gameInstance = EngineManager.GameInstance;
+            HyperionEditorGame? gameInstance = EngineManager.GameInstance;
             if (gameInstance == null)
             {
                 throw new InvalidOperationException("Game instance is not initialized.");
             }
 
-            World? world = gameInstance.World;
-            if (world == null)
-            {
-                throw new InvalidOperationException("Game world is not initialized.");
-            }
-
-            EditorSubsystem? editorSubsystem = world.GetSubsystem<EditorSubsystem>();
+            EditorSubsystem? editorSubsystem = gameInstance.EditorSubsystem;
             if (editorSubsystem == null)
             {
                 throw new InvalidOperationException("EditorSubsystem is not initialized.");
             }
 
             editorSubsystem.AddViewport(Viewport);
-            /// @ENDTODO
 
             WindowOptions windowOptions = new WindowOptions();
             windowOptions.title = "EditorViewport";
@@ -120,6 +112,8 @@ namespace Hyperion.Editor
 
         protected override void OnSizeChanged(Avalonia.Controls.SizeChangedEventArgs e)
         {
+            Logger.Log(LogType.Info, $"EditorViewportControl OnSizeChanged: New Size = {e.NewSize.Width} x {e.NewSize.Height}");
+
             base.OnSizeChanged(e);
 
             if (Window != null)

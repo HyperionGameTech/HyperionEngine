@@ -20,9 +20,6 @@ namespace hyperion {
 
 class Class;
 
-HYP_API extern const Class* GetClass(const TypeId& typeId);
-HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
-
 namespace memory {
 
 template <class T>
@@ -31,19 +28,16 @@ class UniquePtr;
 struct UniquePtrHolder
 {
     void* value;
-    TypeId typeId;
     void (*dtor)(void*);
 
     UniquePtrHolder()
         : value(nullptr),
-          typeId(TypeId::ForType<void>()),
           dtor(nullptr)
     {
     }
 
     UniquePtrHolder(const UniquePtrHolder& other)
         : value(other.value),
-          typeId(other.typeId),
           dtor(other.dtor)
     {
     }
@@ -56,7 +50,6 @@ struct UniquePtrHolder
         }
 
         value = other.value;
-        typeId = other.typeId;
         dtor = other.dtor;
 
         return *this;
@@ -64,11 +57,9 @@ struct UniquePtrHolder
 
     UniquePtrHolder(UniquePtrHolder&& other) noexcept
         : value(other.value),
-          typeId(other.typeId),
           dtor(other.dtor)
     {
         other.value = nullptr;
-        other.typeId = TypeId::ForType<void>();
         other.dtor = nullptr;
     }
 
@@ -80,11 +71,9 @@ struct UniquePtrHolder
         }
 
         value = other.value;
-        typeId = other.typeId;
         dtor = other.dtor;
 
         other.value = nullptr;
-        other.typeId = TypeId::ForType<void>();
         other.dtor = nullptr;
 
         return *this;
@@ -95,7 +84,6 @@ struct UniquePtrHolder
     {
         value = Memory::New<Derived>(std::forward<Args>(args)...);
         dtor = &Memory::Delete<Derived>;
-        typeId = TypeId::ForType<Derived>();
     }
 
     template <class Base, class Derived>
@@ -103,7 +91,6 @@ struct UniquePtrHolder
     {
         value = ptr;
         dtor = &Memory::Delete<Derived>;
-        typeId = TypeId::ForType<Derived>();
     }
 
     void Destruct()
@@ -177,11 +164,6 @@ public:
     HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
     {
         return Get() != nullptr;
-    }
-
-    HYP_FORCE_INLINE TypeId GetTypeId() const
-    {
-        return m_holder.typeId;
     }
 
     /*! \brief Destroys any currently held object.  */
@@ -402,24 +384,8 @@ public:
 
         return ptr;
     }
-
-    /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr.
-     *  If T has a Class registered, this function will also return true if the held object is a subclass of T or if IsA() would return true. */
-    template <class Ty>
-    HYP_FORCE_INLINE bool Is() const
-    {
-        const TypeId typeId = TypeId::ForType<Ty>();
-
-        return std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_same_v<Ty, void> || GetTypeId() == typeId
-            || IsA(hyperion::GetClass(typeId), m_holder.value, GetTypeId());
-    }
 };
 
-/*! \brief A UniquePtr<void> cannot be constructed except for being moved from an existing
-    UniquePtr<T>. This is because UniquePtr<T> may hold a derived pointer, while still being convertible to
-    the derived type. In order to maintain that functionality on UniquePtr<void>, we need to store the TypeId of T.
-    We would not be able to do that with UniquePtr<void>.*/
-// void pointer specialization
 template <>
 class UniquePtr<void> : public UniquePtrBase
 {
@@ -477,15 +443,6 @@ public:
     HYP_FORCE_INLINE void Reset()
     {
         Base::Reset();
-    }
-
-    template <class Ty>
-    HYP_FORCE_INLINE bool Is() const
-    {
-        const TypeId typeId = TypeId::ForType<Ty>();
-
-        return std::is_same_v<Ty, void> || GetTypeId() == typeId
-            || IsA(hyperion::GetClass(typeId), m_holder.value, GetTypeId());
     }
 };
 

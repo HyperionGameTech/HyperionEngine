@@ -54,6 +54,8 @@ void EditorViewport::Init()
 
     InitObject(m_camera);
 
+    HYP_LOG_TEMP("Camera Dimensions: {}", m_camera->GetDimensions());
+
     const ViewDesc viewDesc {
         .flags = ViewFlags::DEFAULT
             | ViewFlags::GBUFFER
@@ -79,7 +81,6 @@ Handle<ApplicationWindow> EditorViewport::CreateViewportWindow(const WindowOptio
     if (m_camera)
     {
         m_camera->SetWindow(m_window);
-        HYP_BREAKPOINT;
     }
 
     return window;
