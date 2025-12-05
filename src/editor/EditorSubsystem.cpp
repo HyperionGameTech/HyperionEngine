@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/math/Color.hpp"
 #include <HyperionPch.hpp>
 
 #include <editor/EditorSubsystem.hpp>
@@ -1534,10 +1535,16 @@ void EditorSubsystem::InitViewport()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
+    Handle<UIPanel> backdropPanel = uiSubsystem->GetUIStage()->CreateUIObject<UIPanel>(NAME("Editor_BackdropPanel"), Vec2i::Zero(), UIObjectSize(100, UIObjectSize::PERCENT));
+    Assert(backdropPanel != nullptr);
+
+    backdropPanel->SetBackgroundColor(Color::Transparent());
+    uiSubsystem->GetUIStage()->AddChildUIObject(backdropPanel);
+
     uiSubsystem->GetUIStage()->UpdateSize(true);
 
     // bind console key
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnKeyDown.Bind([this](const KeyboardEvent& event)
+    m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
         {
             // Check we aren't entering text in non-console text field
             UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
@@ -1630,8 +1637,8 @@ void EditorSubsystem::InitViewport()
 
     // m_camera->SetDimensions(Vec2i(viewportSize));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnClick);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnClick.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnClick);
+    m_delegateHandlers.Add(backdropPanel->OnClick.Bind([this](const MouseEvent& event)
         {
             if (m_shouldCancelNextClick)
             {
@@ -1702,8 +1709,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseLeave);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseLeave.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnMouseLeave);
+    m_delegateHandlers.Add(backdropPanel->OnMouseLeave.Bind([this](const MouseEvent& event)
         {
             EditorViewport* activeViewport = GetActiveViewport();
             if (!activeViewport)
@@ -1721,8 +1728,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseDrag);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseDrag.Bind([this, uiStage = uiSubsystem->GetUIStage().Get()](const MouseEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnMouseDrag);
+    m_delegateHandlers.Add(backdropPanel->OnMouseDrag.Bind([this, uiStage = uiSubsystem->GetUIStage().Get()](const MouseEvent& event)
         {
             // prevent click being triggered on release once mouse has been dragged
             m_shouldCancelNextClick = true;
@@ -1770,8 +1777,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseMove);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseMove.Bind([this, uiStage = uiSubsystem->GetUIStage().Get()](const MouseEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnMouseMove);
+    m_delegateHandlers.Add(backdropPanel->OnMouseMove.Bind([this, uiStage = uiSubsystem->GetUIStage().Get()](const MouseEvent& event)
         {
             EditorViewport* activeViewport = GetActiveViewport();
             if (!activeViewport)
@@ -1832,8 +1839,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseDown);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseDown.Bind([this, uiStageWeak = uiSubsystem->GetUIStage().ToWeak()](const MouseEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnMouseDown);
+    m_delegateHandlers.Add(backdropPanel->OnMouseDown.Bind([this, uiStageWeak = uiSubsystem->GetUIStage().ToWeak()](const MouseEvent& event)
         {
             m_shouldCancelNextClick = false;
 
@@ -1881,8 +1888,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnMouseUp);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnMouseUp.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnMouseUp);
+    m_delegateHandlers.Add(backdropPanel->OnMouseUp.Bind([this](const MouseEvent& event)
         {
             m_shouldCancelNextClick = false;
 
@@ -1917,8 +1924,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnKeyDown);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnKeyDown.Bind([this](const KeyboardEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnKeyDown);
+    m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
         {
             // On escape press, stop simulating if we're currently simulating
             if (event.keyCode == KeyCode::ESC && GetWorld()->GetGameState().IsSimulating())
@@ -1953,8 +1960,8 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnKeyUp);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnKeyUp.Bind([this](const KeyboardEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnKeyUp);
+    m_delegateHandlers.Add(backdropPanel->OnKeyUp.Bind([this](const KeyboardEvent& event)
         {
             if (!GetWorld()->GetGameState().IsEditor())
             {
@@ -1975,16 +1982,16 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnGainFocus);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnGainFocus.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnGainFocus);
+    m_delegateHandlers.Add(backdropPanel->OnGainFocus.Bind([this](const MouseEvent& event)
         {
             m_editorCameraEnabled = true;
 
             return UIEventHandlerResult::OK;
         }));
 
-    m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnLoseFocus);
-    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnLoseFocus.Bind([this](const MouseEvent& event)
+    m_delegateHandlers.Remove(&backdropPanel->OnLoseFocus);
+    m_delegateHandlers.Add(backdropPanel->OnLoseFocus.Bind([this](const MouseEvent& event)
         {
             m_editorCameraEnabled = false;
 

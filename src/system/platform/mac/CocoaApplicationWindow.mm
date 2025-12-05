@@ -174,10 +174,10 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
 HANDLE_COCOA_EVENT(mouseMoved)
 HANDLE_COCOA_EVENT(mouseDown)
 HANDLE_COCOA_EVENT(mouseUp)
+HANDLE_COCOA_EVENT(mouseDragged)
 HANDLE_COCOA_EVENT(rightMouseDown)
 HANDLE_COCOA_EVENT(rightMouseUp)
-HANDLE_COCOA_EVENT(otherMouseDown)
-HANDLE_COCOA_EVENT(otherMouseUp)
+HANDLE_COCOA_EVENT(rightMouseDragged)
 HANDLE_COCOA_EVENT(scrollWheel)
 HANDLE_COCOA_EVENT(keyDown)
 HANDLE_COCOA_EVENT(keyUp)
@@ -521,21 +521,21 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
         switch ([nsEvent type])
         {
         case NSEventTypeKeyDown:
-            event = SystemEvent(SystemEvent::KEYDOWN, platformEvent);
+            event = SystemEvent(SystemEvent::KEYDOWN, this, platformEvent);
             event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
-            break;
+            return true;
             
         case NSEventTypeKeyUp:
-            event = SystemEvent(SystemEvent::KEYUP, platformEvent);
+            event = SystemEvent(SystemEvent::KEYUP, this, platformEvent);
             event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
-            break;
+            return true;
             
         case NSEventTypeMouseMoved:
         case NSEventTypeLeftMouseDragged:
         case NSEventTypeRightMouseDragged:
         case NSEventTypeOtherMouseDragged:
         {
-            event = SystemEvent(SystemEvent::MOUSEMOTION, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEMOTION, this, platformEvent);
             
             bool isMouseLocked = IsMouseLocked();
             
@@ -586,42 +586,42 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
                 event.GetEventData().Set(Vec2i((int)location.x, (int)location.y));
             }
             
-            break;
+            return true;
         }
             
         case NSEventTypeLeftMouseDown:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            break;
+            return true;
             
         case NSEventTypeLeftMouseUp:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            break;
+            return true;
             
         case NSEventTypeRightMouseDown:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            break;
+            return true;
             
         case NSEventTypeRightMouseUp:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            break;
+            return true;
             
         case NSEventTypeOtherMouseDown:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            break;
+            return true;
             
         case NSEventTypeOtherMouseUp:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            break;
+            return true;
             
         case NSEventTypeScrollWheel:
         {
-            event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
+            event = SystemEvent(SystemEvent::MOUSESCROLL, this, platformEvent);
             CGFloat deltaX = [nsEvent scrollingDeltaX];
             CGFloat deltaY = [nsEvent scrollingDeltaY];
             
@@ -634,7 +634,7 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
             }
             
             event.GetEventData().Set(Vec2i((int)deltaX, (int)deltaY));
-            break;
+            return true;
         }
             
         default:
@@ -642,11 +642,6 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
         }
     }
 
-    if (event.GetType() != SystemEvent::INVALID)
-    {
-        return true;
-    }
-    
     return false;
 }
 

@@ -789,18 +789,18 @@ static bool HandleWindowEvent(
     switch (msg)
     {
     case WM_KEYDOWN:
-        event = SystemEvent(SystemEvent::KEYDOWN, platformEvent);
+        event = SystemEvent(SystemEvent::KEYDOWN, window, platformEvent);
         event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
 
         return true;
     case WM_KEYUP:
-        event = SystemEvent(SystemEvent::KEYUP, platformEvent);
+        event = SystemEvent(SystemEvent::KEYUP, window, platformEvent);
         event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
 
         return true;
     case WM_MOUSEMOVE:
     {
-        event = SystemEvent(SystemEvent::MOUSEMOTION, platformEvent);
+        event = SystemEvent(SystemEvent::MOUSEMOTION, window, platformEvent);
 
         POINT pt;
         pt.x = LOWORD(lParam);
@@ -811,38 +811,38 @@ static bool HandleWindowEvent(
         return true;
     }
     case WM_LBUTTONDOWN:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
 
         return true;
     case WM_LBUTTONUP:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
 
         return true;
     case WM_MBUTTONDOWN:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
 
         return true;
     case WM_MBUTTONUP:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
 
         return true;
     case WM_RBUTTONDOWN:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, platformEvent);
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
 
         return true;
     case WM_RBUTTONUP:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, platformEvent);
+        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
 
         return true;
     case WM_MOUSEWHEEL:
     {
-        event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
+        event = SystemEvent(SystemEvent::MOUSESCROLL, window, platformEvent);
 
         int delta = GET_WHEEL_DELTA_WPARAM(wParam);
         event.GetEventData().Set(Vec2i(0, delta));
@@ -851,7 +851,7 @@ static bool HandleWindowEvent(
     }
     case WM_MOUSEHWHEEL:
     {
-        event = SystemEvent(SystemEvent::MOUSESCROLL, platformEvent);
+        event = SystemEvent(SystemEvent::MOUSESCROLL, window, platformEvent);
 
         int delta = GET_WHEEL_DELTA_WPARAM(wParam);
         event.GetEventData().Set(Vec2i(delta, 0));
@@ -866,7 +866,7 @@ static bool HandleWindowEvent(
         {
             WCHAR filePath[MAX_PATH];
             DragQueryFileW(hDrop, i, filePath, MAX_PATH);
-            event = SystemEvent(SystemEvent::FILE_DROP, platformEvent);
+            event = SystemEvent(SystemEvent::FILE_DROP, window, platformEvent);
             event.GetEventData().Set(FilePath(filePath));
         }
         DragFinish(hDrop);*/
@@ -876,8 +876,7 @@ static bool HandleWindowEvent(
     case WM_CLOSE:
     case WM_DESTROY:
     {
-        event = SystemEvent(SystemEvent::WINDOW_CLOSE, platformEvent);
-        PostQuitMessage(0);
+        event = SystemEvent(SystemEvent::WINDOW_CLOSE, window, platformEvent);
 
         return true;
     }

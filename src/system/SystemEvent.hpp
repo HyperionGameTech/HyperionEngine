@@ -16,6 +16,8 @@
 namespace hyperion {
 namespace sys {
 
+class ApplicationWindow;
+
 #ifdef HYP_WINDOWS
 struct Win32Event
 {
@@ -82,14 +84,16 @@ public:
 
     SystemEvent()
         : m_eventType(EventType::INVALID),
+          m_window(nullptr),
           m_platformEvent(),
           m_eventData()
     {
         Memory::MemSet(&m_platformEvent, 0x0, sizeof(PlatformEvent));
     }
 
-    SystemEvent(EventType eventType, PlatformEvent platformEvent)
+    SystemEvent(EventType eventType, ApplicationWindow* window, PlatformEvent platformEvent)
         : m_eventType(eventType),
+          m_window(window),
           m_platformEvent(platformEvent)
     {
     }
@@ -99,13 +103,15 @@ public:
 
     SystemEvent(SystemEvent&& other) noexcept
         : m_eventType(other.m_eventType),
+          m_window(other.m_window),
           m_platformEvent(other.m_platformEvent),
           m_eventData(std::move(other.m_eventData))
     {
+        other.m_eventType = EventType::INVALID;
+        other.m_window = nullptr;
+
         m_platformEvent = other.m_platformEvent;
         Memory::MemSet(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
-
-        other.m_eventType = EventType::INVALID;
     }
 
     SystemEvent& operator=(SystemEvent&& other) noexcept
@@ -116,13 +122,15 @@ public:
         }
 
         m_eventType = other.m_eventType;
+        m_window = other.m_window;
         m_platformEvent = other.m_platformEvent;
 
         m_eventData = std::move(other.m_eventData);
 
-        Memory::MemSet(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
-
         other.m_eventType = EventType::INVALID;
+        other.m_window = nullptr;
+
+        Memory::MemSet(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
 
         return *this;
     }
@@ -132,6 +140,11 @@ public:
     HYP_FORCE_INLINE EventType GetType() const
     {
         return m_eventType;
+    }
+
+    HYP_FORCE_INLINE ApplicationWindow* GetWindow() const
+    {
+        return m_window;
     }
 
     HYP_FORCE_INLINE KeyCode GetKeyCode() const
@@ -218,6 +231,7 @@ public:
 
 private:
     EventType m_eventType;
+    ApplicationWindow* m_window;
     PlatformEvent m_platformEvent;
     EventData m_eventData;
 };
