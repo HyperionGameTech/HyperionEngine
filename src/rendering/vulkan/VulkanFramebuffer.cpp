@@ -467,6 +467,11 @@ void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
 
 void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
 {
+    if (m_attachmentMap.Size() == 0)
+    {
+        return; // nothing to clear
+    }
+
     bool shouldCapture = !commandBuffer->IsInRenderPass();
 
     if (shouldCapture)

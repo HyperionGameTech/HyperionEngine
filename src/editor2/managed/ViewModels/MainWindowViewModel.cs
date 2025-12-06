@@ -42,6 +42,19 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand Copy => new EditorCommand("Copy");
         public EditorCommand Paste => new EditorCommand("Paste");
 
+        public EditorCommand AddEmptyNode => new EditorCommand("AddEmptyNode");
+        public EditorCommand AddEntity => new EditorCommand("AddEntity");
+        public EditorCommand AddCamera => new EditorCommand("AddCamera");
+
+        public EditorCommand AddPointLight => new EditorCommand("AddPointLight");
+        public EditorCommand AddDirectionalLight => new EditorCommand("AddDirectionalLight");
+        public EditorCommand AddSpotLight => new EditorCommand("AddSpotLight");
+        public EditorCommand AddAreaRectLight => new EditorCommand("AddAreaRectLight");
+
+        public EditorCommand AddLightmapVolume => new EditorCommand("AddLightmapVolume");
+        public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
+        public EditorCommand AddReflectionProbe => new EditorCommand("AddReflectionProbe");
+
         private const int GameLaunchWaitIntervalMs = 500;
         private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up
 

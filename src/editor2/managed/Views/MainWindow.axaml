@@ -51,32 +51,6 @@
         </Border>
 
         <Grid RowDefinitions="Auto, Auto, *, Auto">
-            <!-- Ribbon 
-            <ribbon:Ribbon Grid.Row="1">
-                <ribbon:RibbonTab Header="Home">
-                    <ribbon:RibbonTab.Groups>
-                        <ribbon:RibbonGroupBox Header="Scene">
-                            <ribbon:RibbonButton Content="New" />
-                            <ribbon:RibbonButton Content="Open" />
-                            <ribbon:RibbonButton Content="Save" />
-                        </ribbon:RibbonGroupBox>
-                        <ribbon:RibbonGroupBox Header="Edit">
-                            <ribbon:RibbonButton Content="Undo" />
-                            <ribbon:RibbonButton Content="Redo" />
-                        </ribbon:RibbonGroupBox>
-                    </ribbon:RibbonTab.Groups>
-                </ribbon:RibbonTab>
-                <ribbon:RibbonTab Header="View">
-                    <ribbon:RibbonTab.Groups>
-                        <ribbon:RibbonGroupBox Header="Windows">
-                            <ribbon:RibbonButton Content="Hierarchy" />
-                            <ribbon:RibbonButton Content="Inspector" />
-                            <ribbon:RibbonButton Content="Content Browser" />
-                        </ribbon:RibbonGroupBox>
-                    </ribbon:RibbonTab.Groups>
-                </ribbon:RibbonTab>
-            </ribbon:Ribbon> -->
-
             <!-- Main Content Area -->
             <Grid Grid.Row="2" ColumnDefinitions="280, 2, *">
             
@@ -91,21 +65,22 @@
                                     <Button.Flyout>
                                         <MenuFlyout>
                                             <MenuItem Header="Node" IsEnabled="False" FontSize="12" Foreground="#808080" Padding="8,4" Margin="0,2" HorizontalAlignment="Center" />
-                                            <MenuItem Header="Entity"/>
-                                            <MenuItem Header="Group"/>
+                                            <MenuItem Header="Entity" Command="{Binding AddEntity}"/>
+                                            <MenuItem Header="Group" Command="{Binding AddEmptyNode}"/>
+                                            <MenuItem Header="Camera" Command="{Binding AddCamera}"/>
                                             <Separator/>
                                             <MenuItem Header="Light" IsEnabled="False" FontSize="12" Foreground="#808080" Padding="8,4" Margin="0,2" HorizontalAlignment="Center"/>
-                                            <MenuItem Header="Directional Light"/>
-                                            <MenuItem Header="Point Light"/>
-                                            <MenuItem Header="Spot Light"/>
-                                            <MenuItem Header="Area Light"/>
+                                            <MenuItem Header="Directional Light" Command="{Binding AddDirectionalLight}"/>
+                                            <MenuItem Header="Point Light" Command="{Binding AddPointLight}"/>
+                                            <MenuItem Header="Spot Light" Command="{Binding AddSpotLight}"/>
+                                            <MenuItem Header="Rectangular Area Light" Command="{Binding AddAreaRectLight}"/>
                                             <Separator/>
                                             <MenuItem Header="Baking" IsEnabled="False" FontSize="12" Foreground="#808080" Padding="8,4" Margin="0,2" HorizontalAlignment="Center"/>
-                                            <MenuItem Header="Reflection Probe"/>
-                                            <MenuItem Header="Lightmap Volume"/>
+                                            <MenuItem Header="Reflection Probe" Command="{Binding AddReflectionProbe}"/>
+                                            <MenuItem Header="Lightmap Volume" Command="{Binding AddLightmapVolume}"/>
                                             <Separator/>
                                             <MenuItem Header="FX" IsEnabled="False" FontSize="12" Foreground="#808080" Padding="8,4" Margin="0,2" HorizontalAlignment="Center"/>
-                                            <MenuItem Header="Particle Volume"/>
+                                            <MenuItem Header="Particle Volume" Command="{Binding AddParticleVolume}"/>
                                         </MenuFlyout>
                                     </Button.Flyout>
                                 </Button>
