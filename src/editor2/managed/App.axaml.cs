@@ -16,6 +16,9 @@ namespace Hyperion.Editor
             // Initialize the engine
             EngineManager.Initialize();
             EngineManager.InitializeEditor();
+            
+            // Initialize Console Service
+            _ = Services.ConsoleService.Instance;
 
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {

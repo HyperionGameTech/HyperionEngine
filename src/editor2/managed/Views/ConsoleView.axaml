@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Hyperion.Editor.ConsoleView"
+             x:DataType="vm:ConsoleViewModel">
+    
+    <UserControl.DataContext>
+        <vm:ConsoleViewModel />
+    </UserControl.DataContext>
+
+    <Grid RowDefinitions="*, Auto">
+        <ListBox x:Name="LogListBox" Grid.Row="0" ItemsSource="{Binding Logs}" Background="#1E1E1E">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Message}" Foreground="{Binding Color}" FontFamily="Consolas, Monospace" FontSize="12" TextWrapping="Wrap"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        
+        <TextBox Grid.Row="1" Text="{Binding CommandText}" Watermark="Enter command..." Background="#2D2D2D" Foreground="White" FontFamily="Consolas, Monospace">
+            <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding ExecuteCommand}" />
+            </TextBox.KeyBindings>
+        </TextBox>
+    </Grid>
+</UserControl>

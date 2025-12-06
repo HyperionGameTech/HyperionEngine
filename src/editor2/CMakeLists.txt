@@ -39,7 +39,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src/editor2
 )
 
-add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
+add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
 
 # CSHARP_PROJECTS_DIR must be defined (from CMakeLists.txt in src/) as it is used to locate the Hyperion.NET packages

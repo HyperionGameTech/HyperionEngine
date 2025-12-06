@@ -142,8 +142,7 @@
                             </Grid>
                         </TabItem>
                         <TabItem Header="Console">
-                            <ListBox>
-                            </ListBox>
+                            <local:ConsoleView />
                         </TabItem>
                     </TabControl>
                 </Grid>
