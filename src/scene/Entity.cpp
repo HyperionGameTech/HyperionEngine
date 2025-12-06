@@ -139,18 +139,17 @@ void Entity::Init()
 
     m_entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
 
-    // set entity to static by default
-    if (m_entityManager->HasTag<EntityTag::DYNAMIC>(this))
+    if (IsStatic())
     {
-        m_entityManager->RemoveTag<EntityTag::STATIC>(this);
+        m_entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
+        m_entityManager->AddTag<EntityTag::STATIC>(this);
     }
     else
     {
-        m_entityManager->AddTag<EntityTag::STATIC>(this);
-        m_entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
+        m_entityManager->RemoveTag<EntityTag::STATIC>(this);
+        m_entityManager->AddTag<EntityTag::DYNAMIC>(this);
     }
 
-    // set transformChanged to false until entity is set to DYNAMIC
     m_transformChanged = false;
 
     SetReady(true);
@@ -341,10 +340,6 @@ void Entity::LockTransform()
         EntityManager* entityManager = GetEntityManager();
         AssertDebug(entityManager != nullptr);
 
-        // set entity to static
-        entityManager->AddTag<EntityTag::STATIC>(this);
-        entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
-
         m_transformChanged = false;
     }
 }
@@ -360,28 +355,55 @@ void Entity::OnTransformUpdated(const Transform& transform)
 
     Node::OnTransformUpdated(transform);
 
-    if (IsInitCalled())
+    if (!IsInitCalled())
     {
-        EntityManager* entityManager = GetEntityManager();
-        AssertDebug(entityManager != nullptr);
-        AssertDebug(entityManager == m_scene->GetEntityManager());
-
-        if (!m_transformChanged)
-        {
-            // Set to dynamic
-            entityManager->AddTag<EntityTag::DYNAMIC>(this);
-            entityManager->RemoveTag<EntityTag::STATIC>(this);
-
-            m_transformChanged = true;
-        }
-
-        TransformComponent& transformComponent = entityManager->GetComponent<TransformComponent>(this);
-        transformComponent.transform = m_worldTransform;
-
-        entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
-
-        SetNeedsRenderProxyUpdate();
+        return;
     }
+
+    EntityManager* entityManager = GetEntityManager();
+    AssertDebug(entityManager != nullptr);
+    AssertDebug(entityManager == m_scene->GetEntityManager());
+
+    if (!m_transformChanged)
+    {
+        m_transformChanged = true;
+    }
+
+    TransformComponent& transformComponent = entityManager->GetComponent<TransformComponent>(this);
+    transformComponent.transform = m_worldTransform;
+
+    entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+
+    SetNeedsRenderProxyUpdate();
+}
+
+void Entity::OnMobilityChanged(bool isStatic)
+{
+    HYP_SCOPE;
+
+    Node::OnMobilityChanged(isStatic);
+    
+    if (!IsInitCalled())
+    {
+        return;
+    }
+
+    EntityManager* entityManager = GetEntityManager();
+    AssertDebug(entityManager != nullptr);
+    AssertDebug(entityManager == m_scene->GetEntityManager());
+
+    if (isStatic)
+    {
+        entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
+        entityManager->AddTag<EntityTag::STATIC>(this);
+    }
+    else
+    {
+        entityManager->RemoveTag<EntityTag::STATIC>(this);
+        entityManager->AddTag<EntityTag::DYNAMIC>(this);
+    }
+
+    SetNeedsRenderProxyUpdate();
 }
 
 void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
@@ -554,24 +576,20 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
                 continue;
             }
 
-            if (!m_entityManager->IsEntityTagComponent(componentInterface->GetTypeInfo().id))
+            const TypeId entityTagTypeId = componentInterface->GetTypeInfo().id;
+
+            if (!m_entityManager->IsEntityTagComponent(entityTagTypeId))
             {
                 HYP_LOG(Serialization, Warning, "Component {} is not an entity tag component", componentInterface->GetTypeInfo().name);
 
                 continue;
             }
 
-            // Hack: if the entity tag is static, remove the dynamic tag if it exists and vice versa for dynamic
-            switch (*entityTagOpt)
+            if (entityTagTypeId == TypeId::ForType<TagComponent<EntityTag::STATIC>>()
+                || entityTagTypeId == TypeId::ForType<TagComponent<EntityTag::DYNAMIC>>())
             {
-            case EntityTag::STATIC:
-                m_entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
-                break;
-            case EntityTag::DYNAMIC:
-                m_entityManager->RemoveTag<EntityTag::STATIC>(this);
-                break;
-            default:
-                break;
+                // we now handle these tags based on the Entity's mobility, skip
+                continue;
             }
 
             m_entityManager->AddTag(this, *entityTagOpt);

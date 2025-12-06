@@ -85,7 +85,7 @@ String NodeTag::ToString() const
 
 Node::Node(Name name, const Transform& localTransform, Scene* scene)
     : m_name(name),
-      m_nodeFlags(NodeFlags::NONE),
+      m_nodeFlags(NodeFlags::DEFAULT),
       m_parentNode(nullptr),
       m_localTransform(localTransform),
       m_scene(scene != nullptr ? scene : GetDetachedSceneForCurrentThread()),
@@ -159,7 +159,16 @@ void Node::SetNodeFlags(EnumFlags<NodeFlags> flags)
         return;
     }
 
+    const bool wasStatic = IsStatic();
+
     m_nodeFlags = flags;
+
+    const bool isStatic = IsStatic();
+
+    if (wasStatic != isStatic)
+    {
+        OnMobilityChanged(isStatic);
+    }
 
 #ifdef HYP_EDITOR
     GetEditorDelegates([this](EditorDelegates* editorDelegates)
@@ -259,16 +268,57 @@ void Node::OnTransformUpdated(const Transform& transform)
     // Do nothing
 }
 
+void Node::OnMobilityChanged(bool isStatic)
+{
+    HYP_SCOPE;
+
+    if (isStatic)
+    {
+        for (const Handle<Node>& child : m_childNodes)
+        {
+            if (!child.IsValid())
+            {
+                continue;
+            }
+
+            child->SetNodeFlags(child->GetNodeFlags() & ~MOBILITY_STATIC_BY_PROXY);
+        }
+    }
+    else
+    {
+        for (const Handle<Node>& child : m_childNodes)
+        {
+            if (!child.IsValid())
+            {
+                continue;
+            }
+
+            child->SetNodeFlags(child->GetNodeFlags() | MOBILITY_STATIC_BY_PROXY);
+        }
+    }
+}
+
 void Node::OnAttachedToNode(Node* node)
 {
     Assert(node != nullptr);
 
     m_parentNode = node;
+
+    if (m_parentNode->IsStatic())
+    {
+        SetNodeFlags(GetNodeFlags() | MOBILITY_STATIC_BY_PROXY);
+    }
+    else
+    {
+        SetNodeFlags(GetNodeFlags() & ~MOBILITY_STATIC_BY_PROXY);
+    }
 }
 
 void Node::OnDetachedFromNode(Node* node)
 {
     Assert(node != nullptr);
+
+    SetNodeFlags(GetNodeFlags() & ~MOBILITY_STATIC_BY_PROXY);
 
     m_parentNode = nullptr;
 }
@@ -693,6 +743,36 @@ void Node::SetLocalTransform(const Transform& transform)
 Transform Node::GetRelativeTransform(const Transform& parentTransform) const
 {
     return parentTransform.GetInverse() * m_worldTransform;
+}
+
+void Node::SetIsStatic(bool isStatic)
+{
+    constexpr EnumFlags<NodeFlags> ControlledMobilityFlags = NodeFlags::MOBILITY_STATIC | NodeFlags::MOBILITY_DYNAMIC;
+
+    EnumFlags<NodeFlags> newNodeFlags = m_nodeFlags;
+
+    newNodeFlags &= ~ControlledMobilityFlags;
+
+    if (isStatic)
+    {
+        newNodeFlags |= NodeFlags::MOBILITY_STATIC;
+    }
+    else
+    {
+        newNodeFlags |= NodeFlags::MOBILITY_DYNAMIC;
+    }
+
+    if (newNodeFlags == m_nodeFlags)
+    {
+        return;
+    }
+
+    SetNodeFlags(newNodeFlags);
+}
+
+void Node::SetIsDynamic(bool isDynamic)
+{
+    SetIsStatic(!isDynamic);
 }
 
 void Node::SetLocalBounds(const BoundingBox& aabb)

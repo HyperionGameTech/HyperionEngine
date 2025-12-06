@@ -129,6 +129,7 @@ protected:
     virtual void SetScene(Scene* scene) override;
 
     virtual void OnTransformUpdated(const Transform& transform) override;
+    virtual void OnMobilityChanged(bool isStatic) override;
 
     EntityInitInfo m_entityInitInfo;
 

@@ -131,6 +131,7 @@ void HyperionEditor::OnLaunch_Impl()
     camera->SetFar(3000.0f);
     camera->SetWindow(g_appContext->GetMainWindow());
     camera->SetCameraFlags(camera->GetCameraFlags() | CameraFlags::MATCH_WINDOW_SIZE);
+    camera->SetDirection(Vec3f(0.0f, 0.0f, -1.0f));
     InitObject(camera);
     scene->GetRoot()->AddChild(camera);
 
@@ -138,6 +139,7 @@ void HyperionEditor::OnLaunch_Impl()
     sun->SetName(NAME("SunLight"));
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
     sun->SetIntensity(10.0f);
+    InitObject(sun);
     scene->GetRoot()->AddChild(sun);
 
     GetWorld()->AddSubsystem<DynamicSkySubsystem>();

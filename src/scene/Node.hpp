@@ -51,7 +51,14 @@ enum NodeFlags : uint32
 
     TRANSIENT = 0x100, // Set if the node should not be serialized
 
-    HIDE_IN_SCENE_OUTLINE = 0x1000 // Should this node be hidden in the editor's outline window?
+    HIDE_IN_SCENE_OUTLINE = 0x1000, // Should this node be hidden in the editor's outline window?
+
+    MOBILITY = 0xE000, // ** mask **
+    MOBILITY_STATIC = 0x2000,
+    MOBILITY_STATIC_BY_PROXY = 0x4000, // static, but only because its parent is static
+    MOBILITY_DYNAMIC = MOBILITY & ~(MOBILITY_STATIC | MOBILITY_STATIC_BY_PROXY),
+
+    DEFAULT = MOBILITY_STATIC
 };
 
 HYP_MAKE_ENUM_FLAGS(NodeFlags)
@@ -833,6 +840,20 @@ public:
     /*! \brief Unlock the Node from being transformed. */
     virtual void UnlockTransform();
 
+    HYP_FORCE_INLINE bool IsStatic() const
+    {
+        return bool(m_nodeFlags & NodeFlags::MOBILITY_STATIC);
+    }
+
+    void SetIsStatic(bool isStatic);
+
+    HYP_FORCE_INLINE bool IsDynamic() const
+    {
+        return !IsStatic();
+    }
+
+    void SetIsDynamic(bool isDynamic);
+
     /*! \brief Get the local-space (model) aabb of the node, excluding the entity's aabb.
      *  \returns The local-space (model) of the node's aabb, excluding the entity's aabb. */
     HYP_METHOD()
@@ -932,7 +953,9 @@ protected:
     /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
      *  and will update the TransformComponent of the entity if it exists. */
     void RefreshEntityTransform();
+
     virtual void OnTransformUpdated(const Transform& transform);
+    virtual void OnMobilityChanged(bool isStatic);
 
 #ifdef HYP_EDITOR
     EditorDelegates* GetEditorDelegates();

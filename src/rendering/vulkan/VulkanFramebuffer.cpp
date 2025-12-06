@@ -467,9 +467,6 @@ void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
 
 void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
 {
-    // tmp
-    return;
-
     bool shouldCapture = !commandBuffer->IsInRenderPass();
 
     if (shouldCapture)

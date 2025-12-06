@@ -143,6 +143,7 @@ Scene::Scene(Name name, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
       m_previousDelta(0.01667f)
 {
     m_root = CreateObject<Node>(s_nameSceneRoot, Transform::identity, this);
+    m_root->SetIsStatic(false);
 }
 
 Scene::~Scene()

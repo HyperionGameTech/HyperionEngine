@@ -348,6 +348,8 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         if (skeleton.IsValid())
         {
+            entity->SetIsDynamic(true);
+
             AnimationComponent animationComponent {};
             animationComponent.playbackState = {
                 .animationIndex = 0,
@@ -358,9 +360,6 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             };
 
             scene->GetEntityManager()->AddComponent<AnimationComponent>(entity, animationComponent);
-
-            scene->GetEntityManager()->RemoveTag<EntityTag::STATIC>(entity);
-            scene->GetEntityManager()->AddTag<EntityTag::DYNAMIC>(entity);
         }
 
         top->AddChild(std::move(node));

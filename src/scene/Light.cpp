@@ -224,7 +224,7 @@ void Light::CreateShadowViews()
     {
         // For directional lights, we have one for static objects and one for dynamic objects
         shadowViewFlags = {
-            DefaultShadowViewFlags | ViewFlags::COLLECT_STATIC_ENTITIES,
+            DefaultShadowViewFlags | ViewFlags::COLLECT_STATIC_ENTITIES | ViewFlags::NOT_MULTI_BUFFERED,
             DefaultShadowViewFlags | ViewFlags::COLLECT_DYNAMIC_ENTITIES
         };
 
@@ -234,7 +234,7 @@ void Light::CreateShadowViews()
         attachmentDesc.imageType = TT_TEX2D;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
-        attachmentDesc.clearColor = Vec4f(10000.0f);
+        attachmentDesc.clearColor = Vec4f(1000.0f);
 
         ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
         depthAttachmentDesc.format = TF_DEPTH_32F;

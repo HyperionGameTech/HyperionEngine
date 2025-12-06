@@ -3126,6 +3126,8 @@ void EditorSubsystem::NewProject()
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
     sun->SetColor(Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)));
     sun->SetIntensity(10.0f);
+    InitObject(sun);
+
     defaultScene->GetRoot()->AddChild(sun);
 
     project->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
@@ -3256,6 +3258,9 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
                 entity->AddTag<EntityTag::EDITOR_FOCUSED>();
             }
         }
+
+        HYP_LOG(Editor, Debug, "Set focused node: {}\t{}\t is static ? {}", focusedNode->GetName(), focusedNode->GetWorldTranslation(),
+            focusedNode->IsStatic());
 
         // @TODO watch for transform changes and update the highlight node
 
