@@ -43,11 +43,14 @@ static RendererResult AcquireNextImage(
     uint32* index,
     bool& outNeedsRecreate)
 {
+    VulkanSemaphore* semaphore = frame->GetImageAvailableSemaphore(swapchain);
+    Assert(semaphore != nullptr && semaphore->IsCreated());
+
     VkResult vkResult = vkAcquireNextImageKHR(
         GetRenderBackend()->GetDevice()->GetDevice(),
         swapchain->GetVulkanHandle(),
         UINT64_MAX,
-        frame->GetImageAvailableSemaphore()->GetVulkanHandle(),
+        semaphore->GetVulkanHandle(),
         VK_NULL_HANDLE,
         index);
 
@@ -109,7 +112,7 @@ void VulkanSwapchain::PrepareForFrame(VulkanFrame* frame)
     {
         Recreate();
 
-        frame->RecreateSemaphores();
+        frame->RecreateSemaphores(this);
 
         result = AcquireNextImage(this, frame, &m_acquiredImageIndex, m_needsRecreate);
     }
@@ -129,7 +132,10 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     }
 #endif
 
-    VkSemaphore signalSemaphores[] = { frame->GetRenderFinishedSemaphore()->GetVulkanHandle() };
+    VulkanSemaphore* renderFinishedSemaphore = frame->GetRenderFinishedSemaphore(this);
+    Assert(renderFinishedSemaphore != nullptr && renderFinishedSemaphore->IsCreated());
+
+    VkSemaphore signalSemaphores[] = { renderFinishedSemaphore->GetVulkanHandle() };
 
     VkPresentInfoKHR presentInfo { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
     presentInfo.waitSemaphoreCount = 1;

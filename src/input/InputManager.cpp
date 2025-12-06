@@ -275,8 +275,6 @@ void InputManager::UpdateWindowSize(Vec2i newSize)
         return;
     }
 
-    m_window->HandleResize(newSize);
-
     m_windowSize = newSize;
 }
 

@@ -168,7 +168,7 @@ void RenderThread::Update()
 
     g_renderGlobalState->UpdateBuffers(frame);
 
-    g_renderBackend->SubmitCommandBuffers();
+    g_renderBackend->SubmitCommandBuffers(swapchain);
 
     if (swapchain != nullptr)
     {

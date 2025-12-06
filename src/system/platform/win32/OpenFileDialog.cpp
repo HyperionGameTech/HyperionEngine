@@ -92,8 +92,8 @@ void ShowOpenFileDialog(
     ByteBuffer fileNameBufferData;
     fileNameBufferData.SetSize(65535 * sizeof(wchar_t));
 
-    static constexpr uint32 maxRetries = 10;
-    static constexpr SizeType maxFileNameBufferSize = 1u << 16;
+    static constexpr uint32 MaxRetries = 10;
+    static constexpr SizeType MaxFileNameBufferSize = 1u << 16;
 
     bool retry;
     uint32 numRetries = 0;
@@ -162,7 +162,7 @@ void ShowOpenFileDialog(
 
         if (err != 0)
         {
-            if (err == FNERR_BUFFERTOOSMALL && fileNameBufferData.Size() * 2 <= maxFileNameBufferSize)
+            if (err == FNERR_BUFFERTOOSMALL && fileNameBufferData.Size() * 2 <= MaxFileNameBufferSize)
             {
                 fileNameBufferData.SetSize(fileNameBufferData.Size() * 2);
                 retry = true;
@@ -178,7 +178,7 @@ void ShowOpenFileDialog(
             return;
         }
     }
-    while (retry && numRetries < maxRetries);
+    while (retry && numRetries < MaxRetries);
 
     if (callback)
     {

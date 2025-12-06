@@ -476,4 +476,6 @@ HYP_API void Win32_CleanupWindowClasses();
 }
 #endif
 
+#include <system/helpers/AppContextHelpers.inl>
+
 } // namespace hyperion

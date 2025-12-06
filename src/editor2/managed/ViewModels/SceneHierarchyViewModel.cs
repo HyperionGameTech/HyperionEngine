@@ -26,12 +26,16 @@ namespace Hyperion.Editor.ViewModels
 
         private Scene? _scene;
 
-        public void AttachToScene(Scene scene)
+        public void AttachToScene(Scene? scene)
         {
-            _scene = scene;
             RootNodes.Clear();
 
-            var root = scene.RootNode;
+            if (scene == null)
+            {
+                return;
+            }
+
+            Node? root = scene.RootNode;
             if (root != null)
             {
                 RootNodes.Add(new NodeViewModel(root));

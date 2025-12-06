@@ -13,11 +13,14 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT const char* ClassAttribute_GetName(ClassAttribute* attribute)
+    HYP_EXPORT int8 ClassAttribute_GetName(ClassAttribute* attribute, Name* outName)
     {
         Assert(attribute != nullptr);
+        Assert(outName != nullptr);
 
-        return *attribute->GetName();
+        *outName = attribute->GetName();
+
+        return true;
     }
 
     HYP_EXPORT const char* ClassAttribute_GetString(ClassAttribute* attribute)

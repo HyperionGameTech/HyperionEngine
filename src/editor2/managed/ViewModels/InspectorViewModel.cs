@@ -34,6 +34,12 @@ namespace Hyperion.Editor.ViewModels
 
             // Generic reflection for simple editable properties
             /// @TODO! Use Hyperion.Property and Hyperion.Field classes from the class itself.
+            Class nodeClass = Class.GetClass<Node>();
+            foreach (Property p in nodeClass.Properties)
+            {
+                // @TODO
+            }
+
             var props = SelectedNode.GetType()
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead && p.CanWrite && IsSimpleType(p.PropertyType));

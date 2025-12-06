@@ -3124,7 +3124,8 @@ void EditorSubsystem::NewProject()
     Handle<DirectionalLight> sun = CreateObject<DirectionalLight>();
     sun->SetName(NAME("SunLight"));
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
-    sun->SetIntensity(30.0f);
+    sun->SetColor(Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)));
+    sun->SetIntensity(10.0f);
     defaultScene->GetRoot()->AddChild(sun);
 
     project->GetWorld()->AddSubsystem<DynamicSkySubsystem>();

@@ -76,6 +76,30 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
         m_size = newSize;
     }
 
+    if (Swapchain* swapchain = GetSwapchain())
+    {
+        if (IsOnThread(g_renderThread))
+        {
+            swapchain->Resize(Vec2u(newSize));
+        }
+        else
+        {
+            // if we have a dedicated rendering thread we need to tell the render thread to resize the swapchain
+            GetThreadById(g_renderThread)->GetScheduler().Enqueue([swapchainWeak = MakeWeakRef(swapchain), newSize]()
+                {
+                    SwapchainRef swapchain = swapchainWeak.Lock();
+                    if (!swapchain.IsValid())
+                    {
+                        HYP_LOG(Core, Warning, "Attempted to resize invalid swapchain on render thread!");
+                        return;
+                    }
+
+                    swapchain->Resize(Vec2u(newSize));
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+    }
+
     OnWindowSizeChanged(newSize);
 }
 
@@ -931,9 +955,7 @@ LRESULT CALLBACK Win32ApplicationWindow::StaticWndProc(HWND hWnd, UINT msg, WPAR
         return window->WndProc(hWnd, msg, wParam, lParam);
     }
 
-    return window->m_useWndProc
-        ? EngineWndProc(hWnd, msg, wParam, lParam)
-        : DefWindowProcW(hWnd, msg, wParam, lParam);
+    return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
 LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -947,33 +969,13 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
         int width = LOWORD(lParam);
         int height = HIWORD(lParam);
 
+        Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+        AssertDebug(window != nullptr);
+
+        window->HandleResize(Vec2i(width, height));
+
         // event = SystemEvent(SystemEvent::WINDOW_RESIZED, platformEvent);
         // event.GetEventData().Set(Vec2i(width, height));
-
-        /// @TODO: Get window from hwnd
-        if (Swapchain* swapchain = GetSwapchain())
-        {
-            if (IsOnThread(g_renderThread))
-            {
-                swapchain->Resize(Vec2u(uint32(width), uint32(height)));
-            }
-            else
-            {
-                // if we have a dedicated rendering thread we need to tell the render thread to resize the swapchain
-                GetThreadById(g_renderThread)->GetScheduler().Enqueue([swapchainWeak = MakeWeakRef(swapchain), width, height]()
-                    {
-                        SwapchainRef swapchain = swapchainWeak.Lock();
-                        if (!swapchain.IsValid())
-                        {
-                            HYP_LOG(Core, Warning, "Attempted to resize invalid swapchain on render thread!");
-                            return;
-                        }
-
-                        swapchain->Resize(Vec2u(uint32(width), uint32(height)));
-                    },
-                    TaskEnqueueFlags::FIRE_AND_FORGET);
-            }
-        }
 
         break;
     }

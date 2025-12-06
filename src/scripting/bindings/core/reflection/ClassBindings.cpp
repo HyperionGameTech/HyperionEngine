@@ -153,6 +153,37 @@ extern "C"
         return &*it;
     }
 
+    HYP_EXPORT uint32 Class_GetAttributes(const Class* cls, typename ClassAttributeSet::ConstIterator* outIter)
+    {
+        if (!cls || !outIter)
+        {
+            return 0;
+        }
+
+        if (cls->GetAttributes().Empty())
+        {
+            return 0;
+        }
+
+        *outIter = cls->GetAttributes().Begin();
+
+        return (uint32)cls->GetAttributes().Size();
+    }
+
+    HYP_EXPORT const ClassAttribute* Class_NextAttribute(const Class* cls, typename ClassAttributeSet::ConstIterator* iter)
+    {
+        if (!cls || !iter || *iter == cls->GetAttributes().End())
+        {
+            return nullptr;
+        }
+
+        const ClassAttribute* attribute = &**iter;
+
+        ++(*iter);
+
+        return attribute;
+    }
+
     HYP_EXPORT uint32 Class_GetProperties(const Class* cls, const void** outProperties)
     {
         if (!cls || !outProperties)

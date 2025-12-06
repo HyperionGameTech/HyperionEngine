@@ -20,16 +20,19 @@ namespace Hyperion
             }
         }
 
-        public string Name
+        public Name Name
         {
             get
             {
                 if (!IsValid)
                 {
-                    return string.Empty;
+                    return Name.Invalid;
                 }
 
-                return Marshal.PtrToStringAnsi(ClassAttribute_GetName(ptr));
+                if (ClassAttribute_GetName(ptr, out Name name))
+                    return name;
+
+                return Name.Invalid;
             }
         }
 
@@ -40,7 +43,7 @@ namespace Hyperion
                 return string.Empty;
             }
 
-            return Marshal.PtrToStringAnsi(ClassAttribute_GetString(ptr));
+            return Marshal.PtrToStringAnsi(ClassAttribute_GetString(ptr)) ?? string.Empty;
         }
 
         public bool GetBool()
@@ -64,7 +67,8 @@ namespace Hyperion
         }
         
         [DllImport("hyperion", EntryPoint = "ClassAttribute_GetName")]
-        private static extern IntPtr ClassAttribute_GetName([In] IntPtr classAttributePtr);
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool ClassAttribute_GetName([In] IntPtr classAttributePtr, [Out] out Name name);
 
         [DllImport("hyperion", EntryPoint = "ClassAttribute_GetString")]
         private static extern IntPtr ClassAttribute_GetString([In] IntPtr classAttributePtr);

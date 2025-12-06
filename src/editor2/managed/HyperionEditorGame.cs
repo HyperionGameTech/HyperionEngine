@@ -72,7 +72,8 @@ namespace Hyperion.Editor
 
                     Assert.Throw(zombieAsset.Value != null);
 
-                    _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)zombieAsset.Value);
+                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)zombieAsset.Value);
+                    n.SetLocalScale(new Vec3f(0.25f));
                 }
                 else
                 {
@@ -87,7 +88,7 @@ namespace Hyperion.Editor
                     Assert.Throw(testModelAsset.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
-                    n.SetLocalScale(new Vec3f(0.05f));
+                    n.SetLocalScale(new Vec3f(0.03f));
                 }
                 else
                 {
@@ -147,7 +148,7 @@ namespace Hyperion.Editor
                     });
             };
 
-            var addRootNodeChangedHandler = (HyperionEditorGame editorGame, Scene scene) =>
+            var addRootNodeChangedHandler = (HyperionEditorGame editorGame, Scene? scene) =>
             {
                 editorGame._onRootNodeChanged?.Remove();
 
@@ -157,7 +158,7 @@ namespace Hyperion.Editor
                 }
 
                 editorGame._onRootNodeChanged = scene.GetOnRootNodeChangedDelegate()
-                    .Bind((Node newRoot, Node oldRoot) =>
+                    .Bind((Node? newRoot, Node? oldRoot) =>
                     {
                         if (weakThis.Target is HyperionEditorGame editorGame)
                         {
@@ -178,7 +179,7 @@ namespace Hyperion.Editor
 
             _onActiveSceneChanged?.Remove();
             _onActiveSceneChanged = _editorSubsystem!.GetOnActiveSceneChangedDelegate()
-                .Bind((Scene scene) =>
+                .Bind((Scene? scene) =>
                 {
                     if (weakThis.Target is HyperionEditorGame editorGame)
                     {

@@ -132,9 +132,6 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
         const int width = int(drawableSize.width);
         const int height = int(drawableSize.height);
 
-        // update swapchain size
-        [self ResizeSwapchain:width height:height];
-
         _hyperionWindow->HandleResize(Vec2i(int(newSize.width), int(newSize.height)));
     }
 }
@@ -182,37 +179,6 @@ HANDLE_COCOA_EVENT(keyUp)
 
 #undef HANDLE_COCOA_EVENT
 
-// update swapchain drawable size
-- (void)ResizeSwapchain:(int)width height:(int)height
-{
-    if (!_hyperionWindow)
-    {
-        return;
-    }
-
-    if (Swapchain* swapchain = _hyperionWindow->GetSwapchain())
-    {
-        if (IsOnThread(g_renderThread))
-        {
-            swapchain->Resize(Vec2u(uint32(width), uint32(height)));
-        }
-        else
-        {
-            GetThreadById(g_renderThread)->GetScheduler().Enqueue([swapchainWeak = MakeWeakRef(swapchain), width, height]()
-                {
-                    SwapchainRef swapchain = swapchainWeak.Lock();
-                    if (!swapchain.IsValid())
-                    {
-                        return;
-                    }
-
-                    swapchain->Resize(Vec2u(uint32(width), uint32(height)));
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-        }
-    }
-}
-
 @end
 
 #pragma mark - HyperionWindowDelegate
@@ -237,28 +203,6 @@ HANDLE_COCOA_EVENT(keyUp)
         
         int width = (int)frame.size.width;
         int height = (int)frame.size.height;
-
-        if (Swapchain* swapchain = _window->GetSwapchain())
-        {
-            if (IsOnThread(g_renderThread))
-            {
-                swapchain->Resize(Vec2u(uint32(width), uint32(height)));
-            }
-            else
-            {
-                GetThreadById(g_renderThread)->GetScheduler().Enqueue([swapchainWeak = MakeWeakRef(swapchain), width, height]()
-                    {
-                        SwapchainRef swapchain = swapchainWeak.Lock();
-                        if (!swapchain.IsValid())
-                        {
-                            return;
-                        }
-
-                        swapchain->Resize(Vec2u(uint32(width), uint32(height)));
-                    },
-                    TaskEnqueueFlags::FIRE_AND_FORGET);
-            }
-        }
 
         _window->HandleResize(Vec2i(width, height));
     }

@@ -190,18 +190,18 @@ HYP_API VulkanDynamicFunctions* g_vulkanDynamicFunctions = nullptr;
 
 void VulkanDynamicFunctions::Load(VulkanDevice* device)
 {
-    static VulkanDynamicFunctions instance;
-    g_vulkanDynamicFunctions = &instance;
+    static VulkanDynamicFunctions s_instance;
+    g_vulkanDynamicFunctions = &s_instance;
 
-#define HYP_LOAD_FN(function)                                                                                      \
-    do                                                                                                             \
-    {                                                                                                              \
-        instance.function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function)); \
-        if (!instance.function)                                                                                    \
-        {                                                                                                          \
-            HYP_LOG(RenderingBackend, Warning, "Failed to load Vulkan function {}", #function);                    \
-        }                                                                                                          \
-    }                                                                                                              \
+#define HYP_LOAD_FN(function)                                                                                           \
+    do                                                                                                                  \
+    {                                                                                                                   \
+        s_instance.function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function));    \
+        if (!s_instance.function)                                                                                       \
+        {                                                                                                               \
+            HYP_LOG(RenderingBackend, Warning, "Failed to load Vulkan function {}", #function);                         \
+        }                                                                                                               \
+    }                                                                                                                   \
     while (0)
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
@@ -819,7 +819,7 @@ void VulkanRenderBackend::PrepareSwapchain(VulkanSwapchain* swapchain)
     swapchain->PrepareForFrame(GetCurrentFrame());
 }
 
-void VulkanRenderBackend::SubmitCommandBuffers()
+void VulkanRenderBackend::SubmitCommandBuffers(VulkanSwapchain* swapchain)
 {
     VulkanDeviceQueue* presentQueue = m_instance->GetDevice()->GetPresentQueue();
 
@@ -833,7 +833,7 @@ void VulkanRenderBackend::SubmitCommandBuffers()
     VulkanFrame* vulkanFrame = GetCurrentFrame();
     VulkanCommandBuffer* vulkanCommandBuffer = GetCurrentCommandBuffer();
 
-    CHECK_FRAME_RESULT(vulkanFrame->Submit(presentQueue, vulkanCommandBuffer));
+    CHECK_FRAME_RESULT(vulkanFrame->Submit(presentQueue, vulkanCommandBuffer, swapchain));
 
     if (m_asyncCompute->IsSupported())
     {
@@ -1211,7 +1211,7 @@ UniquePtr<SingleTimeCommands> VulkanRenderBackend::GetSingleTimeCommands()
 void VulkanRenderBackend::ReleaseTransientMemory()
 {
     // must happen before arena is reset or it's corruption city!
-    GetCurrentFrame()->ResetRenderPassStates();
+    GetCurrentFrame()->ResetTransientStates();
 
     g_vulkanArena->Reset();
 

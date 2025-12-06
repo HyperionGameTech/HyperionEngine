@@ -18,7 +18,15 @@ namespace Hyperion.Editor.ViewModels
             {
                 if (SetProperty(ref _name, value))
                 {
-                    try { _node.Name = new Name(value); } catch { }
+                    try
+                    {
+                        _node.Name = new Name(value);
+                    }
+                    catch
+                    {
+                        Logger.Log(LogType.Error, $"Failed to set node name to '{value}'.");
+                    }
+
                     // Update derived properties when name changes
                     OnPropertyChanged(nameof(DisplayName));
                     OnPropertyChanged(nameof(IsUnnamed));

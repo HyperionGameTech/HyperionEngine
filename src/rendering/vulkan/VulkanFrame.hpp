@@ -45,27 +45,23 @@ public:
         m_renderPasses.Add(renderPass);
     }
 
-    RendererResult Submit(VulkanDeviceQueue* deviceQueue, VulkanCommandBuffer* commandBuffer);
+    RendererResult Submit(
+        VulkanDeviceQueue* deviceQueue,
+        VulkanCommandBuffer* commandBuffer,
+        VulkanSwapchain* swapchain = nullptr);
 
     HYP_FORCE_INLINE const VulkanFenceRef& GetFence() const
     {
         return m_queueSubmitFence;
     }
 
-    HYP_FORCE_INLINE const VulkanSemaphoreRef& GetImageAvailableSemaphore() const
-    {
-        return m_imageAvailableSemaphore;
-    }
-
-    HYP_FORCE_INLINE const VulkanSemaphoreRef& GetRenderFinishedSemaphore() const
-    {
-        return m_renderFinishedSemaphore;
-    }
+    VulkanSemaphore* GetImageAvailableSemaphore(const VulkanSwapchain* swapchain, bool createIfNotExist = true);
+    VulkanSemaphore* GetRenderFinishedSemaphore(const VulkanSwapchain* swapchain, bool createIfNotExist = true);
 
     void RecreateFence();
-    void RecreateSemaphores();
+    void RecreateSemaphores(const VulkanSwapchain* swapchain);
 
-    void ResetRenderPassStates();
+    void ResetTransientStates();
 
 private:
     using VulkanRenderPassesSet = HashSet<
@@ -73,10 +69,19 @@ private:
         &KeyBy_Identity<VulkanRenderPass*>,
         NodeAllocator<VulkanAllocator>>;
 
-    VulkanSemaphoreRef m_imageAvailableSemaphore;
-    VulkanSemaphoreRef m_renderFinishedSemaphore;
+    struct VulkanSwapchainSemaphores
+    {
+        VulkanSwapchainWeakRef swapchainWeak; // always keep a weak ref so we can check validatity when iterating
+        VulkanSemaphoreRef imageAvailableSemaphore;
+        VulkanSemaphoreRef renderFinishedSemaphore;
+    };
+
+    static void InitVulkanSwapchainSemaphores(VulkanSwapchainSemaphores& semaphores);
+
     VulkanFenceRef m_queueSubmitFence;
     VulkanRenderPassesSet m_renderPasses;
+
+    HashMap<const VulkanSwapchain*, VulkanSwapchainSemaphores> m_swapchainSemaphores;
 };
 
 } // namespace hyperion

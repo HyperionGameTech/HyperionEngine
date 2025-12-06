@@ -188,6 +188,29 @@ namespace Hyperion
             return new ClassAttribute(attributePtr);
         }
 
+        public IEnumerable<ClassAttribute> Attributes
+        {
+            get
+            {
+                IntPtr iterPtr;
+                IntPtr attributePtr;
+
+                uint count = Class_GetAttributes(ptr, out iterPtr);
+
+                for (int i = 0; i < count; i++)
+                {
+                    attributePtr = Class_NextAttribute(ptr, iterPtr);
+
+                    if (attributePtr == IntPtr.Zero)
+                    {
+                        yield break;
+                    }
+
+                    yield return new ClassAttribute(attributePtr);
+                }
+            }
+        }
+
         public IEnumerable<Property> Properties
         {
             get
@@ -494,6 +517,12 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Class_GetAttribute")]
         private static extern IntPtr Class_GetAttribute([In] IntPtr classPtr, [MarshalAs(UnmanagedType.LPStr)] string name);
+
+        [DllImport("hyperion", EntryPoint = "Class_GetAttributes")]
+        private static extern uint Class_GetAttributes([In] IntPtr classPtr, [Out] out IntPtr outIter);
+
+        [DllImport("hyperion", EntryPoint = "Class_NextAttribute")]
+        private static extern IntPtr Class_NextAttribute([In] IntPtr classPtr, [In] IntPtr iterPtr);
 
         [DllImport("hyperion", EntryPoint = "Class_GetProperties")]
         private static extern uint Class_GetProperties([In] IntPtr classPtr, [Out] out IntPtr outPropertiesPtr);

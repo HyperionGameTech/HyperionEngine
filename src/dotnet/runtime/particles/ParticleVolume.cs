@@ -21,7 +21,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "ParticleVolume")]
-    public class ParticleVolume : ObjectBase
+    public class ParticleVolume : Entity
     {
         public ParticleVolume()
         {

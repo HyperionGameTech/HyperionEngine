@@ -121,7 +121,7 @@ public:
     virtual VulkanFrame* PrepareNextFrame() override;
 
     virtual void PrepareSwapchain(VulkanSwapchain* swapchain) override;
-    virtual void SubmitCommandBuffers() override;
+    virtual void SubmitCommandBuffers(VulkanSwapchain* swapchain) override;
     virtual void PresentToSwapchain(VulkanSwapchain* swapchain) override;
 
     virtual VulkanCommandBuffer* GetCurrentCommandBuffer() const override;

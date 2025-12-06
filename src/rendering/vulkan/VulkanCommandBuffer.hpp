@@ -96,8 +96,8 @@ public:
     RendererResult SubmitPrimary(
         VulkanDeviceQueue* queue,
         VulkanFence* fence,
-        VulkanSemaphore* waitSemaphore,
-        VulkanSemaphore* signalSemaphore);
+        Span<VulkanSemaphore*> waitSemaphores,
+        Span<VulkanSemaphore*> signalSemaphores);
 
     RendererResult SubmitSecondary(VulkanCommandBuffer* primary);
 

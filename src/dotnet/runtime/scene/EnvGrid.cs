@@ -12,7 +12,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "LegacyEnvGrid")]
-    public class LegacyEnvGrid : Entity
+    public class LegacyEnvGrid : EnvGrid
     {
         public LegacyEnvGrid()
         {

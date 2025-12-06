@@ -73,7 +73,7 @@ public:
     virtual Frame* PrepareNextFrame() = 0;
 
     virtual void PrepareSwapchain(Swapchain* swapchain) = 0;
-    virtual void SubmitCommandBuffers() = 0;
+    virtual void SubmitCommandBuffers(Swapchain* swapchain) = 0;
     virtual void PresentToSwapchain(Swapchain* swapchain) = 0;
 
     virtual CommandBuffer* GetCurrentCommandBuffer() const = 0;

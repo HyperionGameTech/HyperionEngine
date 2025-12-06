@@ -40,8 +40,6 @@
         <Border Classes="panel-header" DockPanel.Dock="Top">
             <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <Button Classes="accent" Content="New"/>
-                    <Button Classes="accent" Content="Open"/>
                     <Button Classes="accent" Content="Save"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
@@ -87,7 +85,31 @@
                     <!-- Scene Hierarchy -->
                     <Grid Grid.Row="0" RowDefinitions="Auto, *">
                         <Border Classes="panel-header">
-                            <TextBlock Classes="header" Text="Hierarchy"/>
+                            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                <TextBlock Classes="header" Text="Hierarchy" VerticalAlignment="Center" />
+                                <Button Classes="accent" Content="Add" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0" Padding="8,2">
+                                    <Button.Flyout>
+                                        <MenuFlyout>
+                                            <MenuItem Header="Node" IsEnabled="False" FontSize="12" Foreground="#808080" Padding="8,4" Margin="0,2" HorizontalAlignment="Center" />
+                                            <MenuItem Header="Entity"/>
+                                            <MenuItem Header="Group"/>
+                                            <Separator/>
+                                            <MenuItem Header="Light" IsEnabled="False" FontSize="12" Foreground="#808080" Padding="8,4" Margin="0,2" HorizontalAlignment="Center"/>
+                                            <MenuItem Header="Directional Light"/>
+                                            <MenuItem Header="Point Light"/>
+                                            <MenuItem Header="Spot Light"/>
+                                            <MenuItem Header="Area Light"/>
+                                            <Separator/>
+                                            <MenuItem Header="Baking" IsEnabled="False" FontSize="12" Foreground="#808080" Padding="8,4" Margin="0,2" HorizontalAlignment="Center"/>
+                                            <MenuItem Header="Reflection Probe"/>
+                                            <MenuItem Header="Lightmap Volume"/>
+                                            <Separator/>
+                                            <MenuItem Header="FX" IsEnabled="False" FontSize="12" Foreground="#808080" Padding="8,4" Margin="0,2" HorizontalAlignment="Center"/>
+                                            <MenuItem Header="Particle Volume"/>
+                                        </MenuFlyout>
+                                    </Button.Flyout>
+                                </Button>
+                            </Grid>
                         </Border>
                         <TreeView Grid.Row="1" ItemsSource="{Binding SceneHierarchy.RootNodes}" SelectedItem="{Binding SceneHierarchy.SelectedNode}">
                             <TreeView.ItemTemplate>

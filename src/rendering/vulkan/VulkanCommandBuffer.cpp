@@ -150,26 +150,36 @@ RendererResult VulkanCommandBuffer::Reset()
 RendererResult VulkanCommandBuffer::SubmitPrimary(
     VulkanDeviceQueue* queue,
     VulkanFence* fence,
-    VulkanSemaphore* waitSemaphore,
-    VulkanSemaphore* signalSemaphore)
+    Span<VulkanSemaphore*> waitSemaphores,
+    Span<VulkanSemaphore*> signalSemaphores)
 {
     AssertOnThread(g_renderThread);
 
     m_boundDescriptorSets.Clear();
     ResetStencilState();
 
-    VkSemaphore waitSemaphores[1] = { VK_NULL_HANDLE };
-    VkSemaphore signalSemaphores[1] = { VK_NULL_HANDLE };
-    VkPipelineStageFlags waitStages[1] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    VkSemaphore* signalSemaphoresVk = signalSemaphores.Size() > 0 ? (VkSemaphore*)StackAlloc(sizeof(VkSemaphore) * signalSemaphores.Size()) : nullptr;
+
+    for (uint32 i = 0; i < uint32(signalSemaphores.Size()); i++)
+    {
+        signalSemaphoresVk[i] = signalSemaphores[i]->GetVulkanHandle();
+    }
+
+    VkSemaphore* waitSemaphoresVk = waitSemaphores.Size() > 0 ? (VkSemaphore*)StackAlloc(sizeof(VkSemaphore) * waitSemaphores.Size()) : nullptr;
+    VkPipelineStageFlags* waitStages = (VkPipelineStageFlags*)StackAlloc(sizeof(VkPipelineStageFlags) * waitSemaphores.Size());
+
+    for (uint32 i = 0; i < uint32(waitSemaphores.Size()); i++)
+    {
+        waitSemaphoresVk[i] = waitSemaphores[i]->GetVulkanHandle();
+        waitStages[i] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    }
 
     VkSubmitInfo submitInfo { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 
-    if (waitSemaphore != nullptr)
+    if (waitSemaphores.Size() > 0)
     {
-        waitSemaphores[0] = waitSemaphore->GetVulkanHandle();
-
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.waitSemaphoreCount = uint32(waitSemaphores.Size());
+        submitInfo.pWaitSemaphores = waitSemaphoresVk;
         submitInfo.pWaitDstStageMask = waitStages;
     }
     else
@@ -179,12 +189,10 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
         submitInfo.pWaitDstStageMask = nullptr;
     }
 
-    if (signalSemaphore != nullptr)
+    if (signalSemaphores.Size() > 0)
     {
-        signalSemaphores[0] = signalSemaphore->GetVulkanHandle();
-
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
+        submitInfo.signalSemaphoreCount = uint32(signalSemaphores.Size());
+        submitInfo.pSignalSemaphores = signalSemaphoresVk;
     }
     else
     {
