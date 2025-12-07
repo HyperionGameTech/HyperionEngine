@@ -28,6 +28,8 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/FogVolume.hpp>
 
+#include <scene/util/VoxelOctree.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/threading/TaskSystem.hpp>
@@ -142,11 +144,6 @@ static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
 
 #pragma region LightmapJobBase
 
-bool LightmapJobBase::HasRemainingTexels() const
-{
-    return m_texelIndex < m_texelIndices.Size() * m_params.config->numSamples;
-}
-
 LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
     : m_lightmapper(nullptr),
       m_params(std::move(params)),
@@ -202,16 +199,31 @@ void LightmapJobBase::AddTask(TaskBatch* taskBatch)
     m_currentTasks.PushBack(taskBatch);
 }
 
+bool LightmapJobBase::HasRemainingTexels() const
+{
+    return m_texelIndex < m_texelIndices.Size() * NumTexelSamples();
+}
+
+uint32 LightmapJobBase::NumTexelSamples() const
+{
+    return m_params.config->numSamples;
+}
+
 void LightmapJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexels)
 {
+    const bool hasRays = m_lightmapper->PerformsRayTracing();
+
     LightmapDataBase& lightmapData = GetLightmapData();
 
     for (uint32 txlIdx = 0; txlIdx < maxTexels && HasRemainingTexels(); ++txlIdx)
     {
         const uint32 texelIndex = NextTexel();
 
-        LightmapRay ray = lightmapData.texels[texelIndex].ray;
-        ray.texelIndex = texelIndex;
+        if (hasRays)
+        {
+            LightmapRay* ray = lightmapData.texels[texelIndex].ray;
+            ray->texelIndex = texelIndex;
+        }
 
         outTexels.PushBack(&lightmapData.texels[texelIndex]);
     }
@@ -219,6 +231,11 @@ void LightmapJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outT
 
 void LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
+    if (!m_lightmapper->PerformsRayTracing())
+    {
+        return;
+    }
+
     const uint32 numTexels = uint32(texels.Size());
 
     if (numTexels == 0)
@@ -231,7 +248,7 @@ void LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOff
 
     for (uint32 i = 0; i < numTexels; i++)
     {
-        rays[i] = texels[i]->ray;
+        rays[i] = *texels[i]->ray;
     }
 
     World* world = GetScene()->GetWorld();
@@ -330,10 +347,10 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
     }
 
     if (!isProcessingRemainingTexels
-        && m_texelIndex >= m_texelIndices.Size() * m_params.config->numSamples
+        && m_texelIndex >= m_texelIndices.Size() * NumTexelSamples()
         && numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) == 0)
     {
-        HYP_LOG(Lightmap, Debug, "Lightmap job {}: All texels processed ({} / {}), stopping", m_uuid, m_texelIndex, m_texelIndices.Size() * m_params.config->numSamples);
+        HYP_LOG(Lightmap, Debug, "Lightmap job {}: All texels processed ({} / {}), stopping", m_uuid, m_texelIndex, m_texelIndices.Size() * NumTexelSamples());
 
         Stop();
 
@@ -359,25 +376,27 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
     {
         Assert(m_params.renderers->Size() > 0);
 
-        maxTexels = MathUtil::Min(maxTexels, (*m_params.renderers)[0]->MaxTexelsPerFrame(), m_texelIndices.Size() * m_params.config->numSamples);
+        maxTexels = MathUtil::Min(maxTexels, (*m_params.renderers)[0]->MaxTexelsPerFrame());
     }
+
+    maxTexels = MathUtil::Min(maxTexels, m_texelIndices.Size() * NumTexelSamples());
+    const uint32 texelOffset = uint32(m_texelIndex % (m_texelIndices.Size() * NumTexelSamples()));
 
     Array<LightmapTexel*> texels;
     texels.Reserve(maxTexels);
 
     GatherTexels(maxTexels, texels);
 
-    const double percentage = double(m_texelIndex) / double(m_texelIndices.Size() * m_params.config->numSamples) * 100.0;
+    const double percentage = double(m_texelIndex) / double(m_texelIndices.Size() * NumTexelSamples()) * 100.0;
 
     if (MathUtil::Abs(MathUtil::Floor(percentage) - MathUtil::Floor(m_lastLoggedPercentage)) >= 1)
     {
         HYP_LOG(Lightmap, Debug, "Lightmap job {}: Texel {} / {} ({}%)",
-            m_uuid.ToString(), m_texelIndex, m_texelIndices.Size() * m_params.config->numSamples, percentage);
+            m_uuid.ToString(), m_texelIndex, m_texelIndices.Size() * NumTexelSamples(), percentage);
 
         m_lastLoggedPercentage = percentage;
     }
 
-    const uint32 texelOffset = uint32(m_texelIndex % (m_texelIndices.Size() * m_params.config->numSamples));
     ProcessTexels(Span<LightmapTexel*>(texels.Data(), texels.Size()), texelOffset);
 
     return texels.Size();
@@ -457,7 +476,7 @@ static struct FogVolumeNoiseCombinator
     NoiseCombinator noiseCombinator;
     FogVolumeNoiseCombinator()
     {
-        noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 1.0f, 0.0f, Vec3f(0.35f));
+        noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 1.0f, 0.0f, Vec3f(5.35f));
     }
 } s_initializer;
 
@@ -514,29 +533,42 @@ void LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 t
 
     // We don't use rays for fog volumes, so we override this to directly process texels.
 
-    const Vec3u volumeExtent {
+    const Vec3f extentWS = m_fogVolume->GetWorldAABB().GetExtent();
+
+    const Vec3u bitmapExtent = Vec3u {
         m_lightmapData.GetVolumeBitmap().GetWidth(),
         m_lightmapData.GetVolumeBitmap().GetHeight(),
         m_lightmapData.GetVolumeBitmap().GetDepth()
     };
 
+    HYP_LOG_TEMP("extentWS = {}\n", extentWS);
+    HYP_LOG_TEMP("Bitmap extent = {}\n", bitmapExtent);
+
     for (uint32 txlIdx = 0; txlIdx < texels.Size(); ++txlIdx)
     {
         LightmapTexel* texel = texels[txlIdx];
-
         const uint32 realTexelIndex = texelOffset + txlIdx;
 
-        // sample noise (just worley for now)
-        const uint32 z = realTexelIndex / (volumeExtent.x * volumeExtent.y);
-        const uint32 y = (realTexelIndex / volumeExtent.x) % volumeExtent.y;
-        const uint32 x = realTexelIndex % volumeExtent.x;
+        const Vec3u texelCoord = Vec3u {
+            realTexelIndex % bitmapExtent.x,
+            (realTexelIndex / bitmapExtent.x) % bitmapExtent.y,
+            realTexelIndex / (bitmapExtent.x * bitmapExtent.y)
+        };
 
-        const Vec3f samplePos = Vec3f(float(x), float(y), float(z));
+        const Vec3f posWS = m_fogVolume->GetWorldAABB().GetMin() + (extentWS * (Vec3f(texelCoord) + 0.5f) / Vec3f(bitmapExtent));
 
-        const float noiseValue = nc.GetNoise(samplePos);
+        const VoxelOctree* octant = nullptr;
+        if (!m_lightmapData.GetVoxelOctree()->GetFittingOctant(BoundingBox(posWS - 0.001f, posWS + 0.001f), octant))
+        {
+            HYP_LOG_ONCE(Lightmap, Error, "Failed to find fitting octant for pos: {} in AABB: {}", posWS, m_fogVolume->GetWorldAABB());
 
-        // store in texel
-        texel->irradiance += Vec4f(noiseValue);
+            continue;
+        }
+
+        // R: store occupied (TODO: store dist to nearest voxel for SDF!)
+        texel->irradiance.x += (octant->GetPayload().occupiedBit ? 1.0f : 0.0f);
+        texel->irradiance.w += 1.0f;
+
         texel->numSamplesFog++;
     }
 }

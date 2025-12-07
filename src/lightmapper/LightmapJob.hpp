@@ -154,6 +154,8 @@ protected:
 
     bool HasRemainingTexels() const;
 
+    virtual uint32 NumTexelSamples() const;
+
     /*! \brief Get the next texel index to process, advancing the teexl counter
      *  \return The texel index
      */
@@ -259,6 +261,11 @@ protected:
     virtual void Start_Internal() override;
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
+    virtual uint32 NumTexelSamples() const
+    {
+        return 256;
+    }
+
     Handle<EnvProbe> m_envProbe;
     LightmapData<EnvProbe> m_lightmapData;
 };
@@ -290,6 +297,11 @@ public:
 protected:
     virtual void Start_Internal() override;
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
+
+    virtual uint32 NumTexelSamples() const
+    {
+        return 1;
+    }
 
     Handle<FogVolume> m_fogVolume;
     LightmapData<FogVolume> m_lightmapData;

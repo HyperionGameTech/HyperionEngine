@@ -100,6 +100,8 @@ private:
 
     Array<LightmapMeshData> m_meshData;
 
+    Array<LightmapRay> m_rays;
+
     // Per element mesh data used for building the UV map
     Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexPositions;
     Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexNormals;
@@ -138,6 +140,7 @@ public:
 
 protected:
     EnvProbe* m_envProbe;
+    Array<LightmapRay> m_rays;
 };
 
 template <>

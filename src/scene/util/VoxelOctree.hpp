@@ -97,7 +97,8 @@ class HYP_API VoxelOctree : public OctreeBase<VoxelOctree, VoxelOctreePayload>
     friend class OctreeBase<VoxelOctree, VoxelOctreePayload>;
 
     VoxelOctree(VoxelOctree* parent, const BoundingBox& aabb, uint8 index = 0)
-        : OctreeBase(parent, aabb, index)
+        : OctreeBase(parent, aabb, index),
+          m_allowResize(false)
     {
     }
 
@@ -106,6 +107,13 @@ public:
     static constexpr EnumFlags<OctreeFlags> Flags = OctreeFlags::OF_INSERT_ON_OVERLAP;
 
     VoxelOctree()
+        : m_allowResize(true)
+    {
+    }
+
+    explicit VoxelOctree(const BoundingBox& aabb, bool allowResize = false)
+        : OctreeBase(aabb),
+          m_allowResize(allowResize)
     {
     }
 
@@ -113,11 +121,18 @@ public:
 
     VoxelOctreeBuildResult Build(const VoxelOctreeParams& params, EntityManager* entityManager);
 
+    /*! \brief Gets the distance from the given point to the nearest occupied voxel.
+     *  \return The signed distance at the given point. Positive values indicate the point is outside occupied space, negative values indicate the point is inside occupied space.
+     */
+    double GetSignedDistanceAtPoint(const Vec3f& point) const;
+
 protected:
     static VoxelOctree* CreateChildOctant(VoxelOctree* parent, const BoundingBox& aabb, uint8 index)
     {
         return new VoxelOctree(parent, aabb, index);
     }
+
+    bool m_allowResize;
 };
 
 } // namespace hyperion

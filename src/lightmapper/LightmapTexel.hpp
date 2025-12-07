@@ -74,7 +74,7 @@ struct LightmapTexel
     Vec4f irradiance = Vec4f::Zero();
     uint32 numSamplesFog = 0;
 
-    LightmapRay ray;
+    LightmapRay* ray = nullptr;
 };
 
 } // namespace hyperion

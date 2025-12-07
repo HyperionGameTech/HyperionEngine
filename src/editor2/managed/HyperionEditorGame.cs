@@ -64,21 +64,21 @@ namespace Hyperion.Editor
             {
                 AssetMap assetMap = _assetBatchTask.Result;
 
-                var zombieAsset = assetMap["zombie"];
+                // var zombieAsset = assetMap["zombie"];
 
-                if (zombieAsset != null && zombieAsset.IsValid)
-                {
-                    Logger.Log(LogType.Debug, "Zombie asset loaded successfully.");
+                // if (zombieAsset != null && zombieAsset.IsValid)
+                // {
+                //     Logger.Log(LogType.Debug, "Zombie asset loaded successfully.");
 
-                    Assert.Throw(zombieAsset.Value != null);
+                //     Assert.Throw(zombieAsset.Value != null);
 
-                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)zombieAsset.Value);
-                    n.SetLocalScale(new Vec3f(0.25f));
-                }
-                else
-                {
-                    Logger.Log(LogType.Error, "Failed to load zombie asset.");
-                }
+                //     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)zombieAsset.Value);
+                //     n.SetLocalScale(new Vec3f(0.25f));
+                // }
+                // else
+                // {
+                //     Logger.Log(LogType.Error, "Failed to load zombie asset.");
+                // }
 
                 var testModelAsset = assetMap["test_model"];
 

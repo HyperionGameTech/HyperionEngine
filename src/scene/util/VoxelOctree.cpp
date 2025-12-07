@@ -130,9 +130,14 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         return HYP_MAKE_ERROR(Error, "Voxel size must be greater than 0.001");
     }
 
+    if (!m_allowResize && (!m_aabb.IsValid() || !m_aabb.IsFinite() || m_aabb.IsZero()))
+    {
+        return HYP_MAKE_ERROR(Error, "Voxel octree is not allowed to resize and has an invalid AABB");
+    }
+
     OctreeBase::Clear();
 
-    BoundingBox newAabb = BoundingBox::Empty();
+    BoundingBox newAabb = m_aabb;
 
     Array<Tuple<VoxelOctreeElement, MeshDesc, MeshData*, ResourceHandle>> meshDatas;
 
@@ -161,7 +166,18 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
             continue;
         }
 
-        newAabb = newAabb.Union(boundingBoxComponent.worldAabb);
+        if (m_allowResize)
+        {
+            newAabb = newAabb.Union(boundingBoxComponent.worldAabb);
+        }
+        else
+        {
+            if (!m_aabb.Overlaps(boundingBoxComponent.worldAabb))
+            {
+                // Skip meshes that are out of bounds
+                continue;
+            }
+        }
 
         VoxelOctreeElement element {};
         element.entity = MakeStrongRef(entity);
@@ -188,15 +204,19 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         return HYP_MAKE_ERROR(Error, "Invalid AABB, cannot build voxel octree");
     }
 
-    Vec3f extent = newAabb.GetExtent();
+    if (m_allowResize)
+    {
+        Vec3f extent = newAabb.GetExtent();
 
-    const Vec3f center = newAabb.GetCenter();
-    float maxExtent = extent.Max();
+        const Vec3f center = newAabb.GetCenter();
+        float maxExtent = extent.Max();
 
-    newAabb.SetExtent(Vec3f(maxExtent));
-    newAabb.SetCenter(center);
+        newAabb.SetExtent(Vec3f(maxExtent));
+        newAabb.SetCenter(center);
 
-    m_aabb = newAabb;
+        m_aabb = newAabb;
+    }
+
     InitOctants();
 
     Proc<bool(const VoxelOctreeElement&, const MeshDesc&, const MeshData&)> insertIntoOctree;
@@ -242,6 +262,11 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
     }
 
     return {};
+}
+
+double VoxelOctree::GetSignedDistanceAtPoint(const Vec3f& point) const
+{
+    return -1.0;
 }
 
 } // namespace hyperion

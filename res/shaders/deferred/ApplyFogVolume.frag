@@ -24,10 +24,20 @@ layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec4 gbuffer_material;
 layout(location = 3) out vec2 gbuffer_velocity;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler SamplerLinear;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler SamplerNearest;
 
-#define texture_sampler sampler_linear
+#define texture_sampler SamplerLinear
+
+#ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
+HYP_DESCRIPTOR_SRV(View, GBufferTextures) uniform texture2D GBufferTextures[NUM_GBUFFER_TEXTURES];
+#else
+HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D GBufferAlbedoTexture;
+HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D GBufferNormalsTexture;
+HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D GBufferMaterialTexture;
+HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D GBufferVelocityTexture;
+#endif
+HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D GBufferDepthTexture;
 
 #include "../include/scene.inc"
 #include "../include/material.inc"
@@ -114,6 +124,13 @@ HYP_DESCRIPTOR_CBUFF(FogVolume, FogVolumeUniforms) uniform FogVolumeUniforms
 
 void main()
 {
+    vec3 V = normalize(camera.position.xyz - v_position);
+
+    vec2 texcoord = v_texcoord0;
+    float sceneDepth = Texture2D(SamplerNearest, GBufferDepthTexture, texcoord).r;
+    float linearDepth = Linear01Depth(sceneDepth, camera.near, camera.far);
+
+
     vec3 fogCoordWorld = v_position;
     vec4 fogCoordLocal = inverse(fogVolume.transformMatrix) * vec4(fogCoordWorld, 1.0);
     fogCoordLocal /= fogCoordLocal.w;
@@ -121,9 +138,9 @@ void main()
 
     vec4 fogValues = Texture3D(texture_sampler, VolumeTexture, fogCoord);
 
-    vec3 fogColor = fogCoord; // Simple gray-blue fog color
+    vec4 fogColor = fogValues; // Simple gray-blue fog color
 
-    gbuffer_albedo = vec4(fogValues.xyz, 1.0);
+    gbuffer_albedo = fogColor;
     gbuffer_normals = vec4(0.0);
     gbuffer_material = uvec4(0);
     gbuffer_velocity = vec2(0.0);

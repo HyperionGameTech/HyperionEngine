@@ -662,7 +662,7 @@ void Lightmapper<LightmapVolume>::Build()
     {
         const LightmapTexel& texel = m_lightmapData.texels[i];
 
-        if (!texel.ray.meshId.IsValid())
+        if (!texel.ray->meshId.IsValid())
         {
             continue;
         }

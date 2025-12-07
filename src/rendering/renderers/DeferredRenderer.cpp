@@ -869,6 +869,7 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(const FramebufferR
     materialAttributes.flags = MAF_DEPTH_TEST; // depth test, no depth write
     materialAttributes.bucket = RB_TRANSLUCENT;
     materialAttributes.cullFaces = FCM_FRONT; // cull front faces to render inside of the volume
+    // blending for fog volumes: src: src_alpha, dst: 1 - src_alpha
     materialAttributes.blendFunction = BlendFunction(
         BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
         BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
