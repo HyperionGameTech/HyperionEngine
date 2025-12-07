@@ -17,14 +17,11 @@ namespace Hyperion
     public struct StreamingCellNeighbor
     {
         [FieldOffset(0)]
-        public Vec2i coord;
+        public Vec2i Coord;
 
         public Vec2f Center
         {
-            get
-            {
-                return new Vec2f((float)coord.X, (float)coord.Y) - new Vec2f(0.5f, 0.5f);
-            }
+            get => new Vec2f(Coord.X, Coord.Y) - new Vec2f(0.5f, 0.5f);
         }
     }
 
@@ -33,16 +30,16 @@ namespace Hyperion
     public struct StreamingCellInfo
     {
         [FieldOffset(0)]
-        Vec2i coord;
+        public Vec2i Coord;
 
         [FieldOffset(16)]
-        Vec3i extent;
+        public Vec3i Extent;
 
         [FieldOffset(32)]
-        Vec3f scale;
+        public Vec3f Scale;
 
         [FieldOffset(48)]
-        BoundingBox bounds;
+        public BoundingBox Bounds;
     }
 
     [ClassBinding(Name = "StreamingCell")]
@@ -59,7 +56,6 @@ namespace Hyperion
 
         public override void OnStreamStart()
         {
-            Console.WriteLine("StreamingCell.OnStreamStart() called");
             InvokeNativeMethod(new Name("OnStreamStart_Impl", weak: true));
         }
 
@@ -75,7 +71,7 @@ namespace Hyperion
 
         public virtual void Update(float delta)
         {
-            InvokeNativeMethod(new Name("Update_Impl", weak: true), new object[] { delta });
+            InvokeNativeMethod(new Name("Update_Impl", weak: true), [delta]);
         }
     }
 }

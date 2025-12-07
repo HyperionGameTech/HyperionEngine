@@ -148,7 +148,8 @@ bool LightmapJobBase::HasRemainingTexels() const
 }
 
 LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
-    : m_params(std::move(params)),
+    : m_lightmapper(nullptr),
+      m_params(std::move(params)),
       m_texelIndex(0),
       m_lastLoggedPercentage(0),
       numConcurrentRenderingTasks(0),
@@ -354,7 +355,12 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
         }
     }
 
-    maxTexels = MathUtil::Min(maxTexels, (*m_params.renderers)[0]->MaxTexelsPerFrame(), m_texelIndices.Size() * m_params.config->numSamples);
+    if (m_lightmapper->PerformsRayTracing())
+    {
+        Assert(m_params.renderers->Size() > 0);
+
+        maxTexels = MathUtil::Min(maxTexels, (*m_params.renderers)[0]->MaxTexelsPerFrame(), m_texelIndices.Size() * m_params.config->numSamples);
+    }
 
     Array<LightmapTexel*> texels;
     texels.Reserve(maxTexels);

@@ -25,6 +25,9 @@ namespace Hyperion
 
     public class NativeInterop
     {
+        private const string ClassPtrFieldName = "_classPtr";
+        private const string NativeAddressFieldName = "_nativeAddress";
+
         private static bool VerifyEngineVersion(string versionString, bool major, bool minor, bool patch)
         {
             var versionParts = versionString.Split('.');
@@ -383,8 +386,6 @@ namespace Hyperion
                 return foundClassObjectPtr;
             }
 
-            Logger.Log(LogType.Debug, "Initializing managed class for type: {0}, Hash: {1}", type.Name, type.GetHashCode());
-
             ManagedClassDesc managedClassDesc = new ManagedClassDesc();
 
             string typeName = type.Name;
@@ -438,24 +439,18 @@ namespace Hyperion
                             throw new Exception(string.Format("To create a dynamic Class, a parent class must exist with a valid ClassBinding attribute!"));
 
                         // @FIXME: Allocated but never deleted. Need to implement deletion and removal from global array on assembly unload.
-                        classPtr = Class_CreateDynamicClass(ref typeId, (string)className, parentClassPtr);
+                        classPtr = Class_CreateDynamicClass(ref typeId, className, parentClassPtr);
 
                         if (classPtr == IntPtr.Zero)
                             throw new Exception(string.Format("Failed to create a dynamic Class for type \"{0}\" (TypeId: {1})", type.Name, typeId));
                     }
-                    else
-                    {
-                        // throw new Exception(string.Format("Dynamic Class creation is only supported in core assemblies! Cannot create dynamic Class for type \"{0}\" (TypeId: {1})", type.Name, typeId));
-                    }
                 }
                 else
                 {
-                    classPtr = Class_GetClassByName((string)className);
+                    classPtr = Class_GetClassByName(className);
 
                     if (classPtr == IntPtr.Zero)
                         throw new Exception(string.Format("No Class found for \"{0}\"", className));
-
-                    Logger.Log(LogType.Debug, "Found Class for type: {0}, Name: {1}", typeName, className);
                 }
             }
 
@@ -595,8 +590,8 @@ namespace Hyperion
                     if (objType == null)
                         throw new InvalidOperationException("Failed to get object type for object of type: " + type.Name);
 
-                    FieldInfo? classPtrField = objType.GetField("_classPtr", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
-                    FieldInfo? nativeAddressField = objType.GetField("_nativeAddress", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+                    FieldInfo? classPtrField = objType.GetField(ClassPtrFieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+                    FieldInfo? nativeAddressField = objType.GetField(NativeAddressFieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 
                     if (classPtrField == null || nativeAddressField == null)
                         throw new InvalidOperationException("Could not find classPtr or nativeAddress field on class " + type.Name);
@@ -665,18 +660,18 @@ namespace Hyperion
             return managedClassDesc.ClassObjectPtr;
         }
 
-        private static unsafe void HandleParameters(IntPtr argsHypDataPtr, MethodInfo methodInfo, out object[] parameters)
+        private static unsafe void HandleParameters(IntPtr argsHypDataPtr, MethodInfo methodInfo, out object?[] parameters)
         {
             int numParams = methodInfo.GetParameters().Length;
 
             if (numParams == 0)
             {
-                parameters = Array.Empty<object>();
+                parameters = Array.Empty<object?>();
 
                 return;
             }
 
-            parameters = new object[numParams];
+            parameters = new object?[numParams];
 
             HypDataBuffer* paramPtr = *(HypDataBuffer**)argsHypDataPtr;
             int paramsOffset = 0;
@@ -819,6 +814,10 @@ namespace Hyperion
 
             if (!weak)
                 gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
+
+#if DEBUG
+            Assert.Throw(objectReferenceRef.weakHandle == IntPtr.Zero && objectReferenceRef.strongHandle == IntPtr.Zero, "ObjectReference already has handles assigned");
+#endif
 
             // @NOTE: reassign ref
             objectReferenceRef = new ObjectReference

@@ -78,7 +78,7 @@ namespace Hyperion
         {
             get
             {
-                return Marshal.PtrToStringAnsi(FBOMType_GetName(ptr));
+                return Marshal.PtrToStringAnsi(FBOMType_GetName(ptr)) ?? string.Empty;
             }
         }
 
@@ -113,11 +113,11 @@ namespace Hyperion
             return FBOMType_IsOrExtends(this.ptr, other.ptr, allowUnbounded);
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object? other)
         {
-            if (other is FBOMType)
+            if (other is FBOMType otherFbomType)
             {
-                return FBOMType_Equals(this.ptr, ((FBOMType)other).ptr);
+                return FBOMType_Equals(ptr, otherFbomType.ptr);
             }
 
             return false;

@@ -282,16 +282,6 @@ public:
         return m_view;
     }
 
-    bool IsComplete() const;
-
-    void Initialize();
-    void Update(float delta);
-
-    void HandleCompletedJob(LightmapJobBase* job);
-
-    Delegate<void> OnComplete;
-
-protected:
     /*! \brief Should the lightmapping process be split into multiple independent jobs? (i.e splitting scene into multiple lightmap atlases) */
     virtual bool ShouldSplitIntoJobs() const
     {
@@ -314,6 +304,17 @@ protected:
     {
         return true;
     }
+
+    bool IsComplete() const;
+
+    void Initialize();
+    void Update(float delta);
+
+    void HandleCompletedJob(LightmapJobBase* job);
+
+    Delegate<void> OnComplete;
+
+protected:
 
     virtual void Initialize_Internal()
     {
@@ -364,10 +365,15 @@ protected:
 
     void AddJob(UniquePtr<LightmapJobBase>&& job)
     {
+        if (!job)
+        {
+            return;
+        }
+
+        job->m_lightmapper = this;
+
         Mutex::Guard guard(m_queueMutex);
-
         m_queue.PushBack(std::move(job));
-
         m_numJobs.Increment(1, MemoryOrder::RELEASE);
     }
 
@@ -395,7 +401,6 @@ public:
 
     virtual ~Lightmapper() override = default;
 
-protected:
     virtual bool ShouldSplitIntoJobs() const override
     {
         return true;
@@ -407,6 +412,7 @@ protected:
             | (1u << int(LightmapShadingType::RADIANCE));
     }
 
+protected:
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
     {
         return MakeUnique<LightmapJob<LightmapVolume>>(std::move(params), m_volume, &m_lightmapData);
@@ -461,12 +467,12 @@ public:
 
     virtual ~Lightmapper() override = default;
 
-protected:
     virtual bool PerformsRayTracing() const override
     {
         return false;
     }
 
+protected:
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
     {
         return MakeUnique<LightmapJob<FogVolume>>(std::move(params), m_fogVolume);

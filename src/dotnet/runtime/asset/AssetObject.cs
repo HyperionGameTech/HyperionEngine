@@ -22,10 +22,7 @@ namespace Hyperion
 
         public Name Name
         {
-            get
-            {
-                return this.GetName();
-            }
+            get => this.GetName();
             set
             {
                 var res = this.Rename(value);

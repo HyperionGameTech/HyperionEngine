@@ -8,6 +8,6 @@ namespace Hyperion
     public struct MeshInstanceData
     {
         [FieldOffset(0)]
-        private unsafe fixed byte arrayData[104];
+        private unsafe fixed byte _arrayData[104];
     }
 }

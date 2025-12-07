@@ -9,66 +9,47 @@ namespace Hyperion
     {
         public static readonly Transform Identity = new Transform();
 
-        private Vec3f translation;
-        private Vec3f scale;
-        private Quaternion rotation;
+        private Vec3f _translation;
+        private Vec3f _scale;
+        private Quaternion _rotation;
 
         public Transform()
         {
-            this.translation = new Vec3f();
-            this.scale = new Vec3f(1);
-            this.rotation = new Quaternion();
+            _translation = new Vec3f();
+            _scale = new Vec3f(1);
+            _rotation = new Quaternion();
         }
 
         public Transform(Vec3f translation, Vec3f scale, Quaternion rotation)
         {
-            this.translation = translation;
-            this.scale = scale;
-            this.rotation = rotation;
+            _translation = translation;
+            _scale = scale;
+            _rotation = rotation;
         }
 
         public Vec3f Translation
         {
-            get
-            {
-                return translation;
-            }
-            set
-            {
-                translation = value;
-            }
+            get => _translation;
+            set => _translation = value;
         }
 
         public Vec3f Scale
         {
-            get
-            {
-                return scale;
-            }
-            set
-            {
-                scale = value;
-            }
+            get => _scale;
+            set => _scale = value;
         }
 
         public Quaternion Rotation
         {
-            get
-            {
-                return rotation;
-            }
-            set
-            {
-                rotation = value;
-            }
+            get => _rotation;
+            set => _rotation = value;
         }
 
         public Mat4f Matrix
         {
             get
             {
-                Mat4f matrix;
-                Transform_GetMatrix(ref this, out matrix);
+                Transform_GetMatrix(ref this, out Mat4f matrix);
 
                 return matrix;
             }
@@ -76,7 +57,7 @@ namespace Hyperion
 
         public override string ToString()
         {
-            return $"Translation: {translation}, Scale: {scale}, Rotation: {rotation}";
+            return $"Translation: {_translation}, Scale: {_scale}, Rotation: {_rotation}";
         }
 
         [DllImport("hyperion", EntryPoint = "Transform_GetMatrix")]

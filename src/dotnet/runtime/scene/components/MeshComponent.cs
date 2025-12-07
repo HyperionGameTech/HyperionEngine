@@ -8,99 +8,84 @@ namespace Hyperion
     public unsafe struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
-        private Handle<Mesh> meshHandle;
+        private Handle<Mesh> _meshHandle;
 
         [FieldOffset(8)]
-        private Handle<Material> materialHandle;
+        private Handle<Material> _materialHandle;
         
         [FieldOffset(16)]
-        private Handle<Skeleton> skeletonHandle;
+        private Handle<Skeleton> _skeletonHandle;
 
         [FieldOffset(24)]
-        private MeshInstanceData instanceData;
+        private MeshInstanceData _instanceData;
 
         [FieldOffset(112)]
-        private Mat4f previousModelMatrix;
+        private Mat4f _previousModelMatrix;
 
         [FieldOffset(176)] // aligned by 16
-        private fixed byte userData[32];
+        private fixed byte _userData[32];
 
         public void Dispose()
         {
-            meshHandle.Dispose();
-            materialHandle.Dispose();
-            skeletonHandle.Dispose();
+            _meshHandle.Dispose();
+            _materialHandle.Dispose();
+            _skeletonHandle.Dispose();
         }
 
         public Mesh? Mesh
         {
-            get
-            {
-                return meshHandle.GetValue();
-            }
+            get => _meshHandle.GetValue();
             set
             {
-                meshHandle.Dispose();
+                _meshHandle.Dispose();
 
                 if (value == null)
                 {
-                    meshHandle = Handle<Mesh>.Empty;
+                    _meshHandle = Handle<Mesh>.Empty;
                     
                     return;
                 }
 
-                meshHandle = new Handle<Mesh>(value);
+                _meshHandle = new Handle<Mesh>(value);
             }
         }
 
         public Material? Material
         {
-            get
-            {
-                return materialHandle.GetValue();
-            }
+            get => _materialHandle.GetValue();
             set
             {
-                materialHandle.Dispose();
+                _materialHandle.Dispose();
 
                 if (value == null)
                 {
-                    materialHandle = Handle<Material>.Empty;
+                    _materialHandle = Handle<Material>.Empty;
                     
                     return;
                 }
 
-                materialHandle = new Handle<Material>(value);
+                _materialHandle = new Handle<Material>(value);
             }
         }
 
         public Skeleton? Skeleton
         {
-            get
-            {
-                return skeletonHandle.GetValue();
-            }
+            get => _skeletonHandle.GetValue();
             set
             {
-                skeletonHandle.Dispose();
+                _skeletonHandle.Dispose();
 
                 if (value == null)
                 {
-                    skeletonHandle = Handle<Skeleton>.Empty;
+                    _skeletonHandle = Handle<Skeleton>.Empty;
                     
                     return;
                 }
 
-                skeletonHandle = new Handle<Skeleton>(value);
+                _skeletonHandle = new Handle<Skeleton>(value);
             }
         }
 
-        public ref MeshInstanceData InstanceData
-        {
-            get
-            {
-                return ref instanceData;
-            }
-        }
+        public ref MeshInstanceData InstanceData => ref _instanceData;
     }
 }

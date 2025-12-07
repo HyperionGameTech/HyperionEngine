@@ -7,16 +7,10 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 32)]
     public struct BoundingBoxComponent : IComponent
     {
-        private BoundingBox _worldAabb;
+        public BoundingBox WorldAABB;
 
         public void Dispose()
         {
-        }
-
-        public BoundingBox WorldAABB
-        {
-            get => _worldAabb;
-            set => _worldAabb = value;
         }
     }
 }

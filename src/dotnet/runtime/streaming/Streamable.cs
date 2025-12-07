@@ -7,8 +7,8 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential)]
     public struct WGObject
     {
-        public Vec2i coord;
-        public AssetPath name;
+        public Vec2i Coord;
+        public AssetPath Name;
 
         public WGObject()
         {
@@ -16,8 +16,8 @@ namespace Hyperion
 
         public WGObject(Vec2i coord, AssetPath name)
         {
-            this.coord = coord;
-            this.name = name;
+            Coord = coord;
+            Name = name;
         }
     }
 

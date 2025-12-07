@@ -533,6 +533,8 @@ Result LightmapData<FogVolume>::Build()
         volumeTextureDimensions.y,
         volumeTextureDimensions.z);
 
+    texels.Resize(volumeTextureDimensions.Volume());
+
     return {};
 }
 

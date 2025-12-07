@@ -117,7 +117,7 @@ namespace Hyperion
             this.referencedAssemblies = new List<AssemblyInstance>();
         }
 
-        public AssemblyInstance(string basePath, AssemblyLoadContext context, Guid guid, string path, IntPtr assemblyPtr, bool ownsAssemblyPtr, bool isCoreAssembly)
+        public AssemblyInstance(string basePath, AssemblyLoadContext? context, Guid guid, string path, IntPtr assemblyPtr, bool ownsAssemblyPtr, bool isCoreAssembly)
         {
             this.basePath = basePath;
             this.guid = guid;
@@ -130,7 +130,7 @@ namespace Hyperion
             this.referencedAssemblies = new List<AssemblyInstance>();
         }
 
-        public AssemblyInstance(string basePath, AssemblyLoadContext context, Guid guid, AssemblyName assemblyName, IntPtr assemblyPtr, bool ownsAssemblyPtr, bool isCoreAssembly)
+        public AssemblyInstance(string basePath, AssemblyLoadContext? context, Guid guid, AssemblyName assemblyName, IntPtr assemblyPtr, bool ownsAssemblyPtr, bool isCoreAssembly)
         {
             this.basePath = basePath;
             this.guid = guid;
@@ -237,11 +237,16 @@ namespace Hyperion
                 // When we attempt to load an assembly from a non-core assembly, it will be shared across all assemblies.
                 if (assemblyName != null)
                 {
-                    assembly = GlobalAssemblyHelper.LoadGlobalAssembly((AssemblyName)assemblyName);
+                    assembly = GlobalAssemblyHelper.LoadGlobalAssembly(assemblyName);
                 }
                 else
                 {
-                    assembly = GlobalAssemblyHelper.LoadGlobalAssembly((string)assemblyPath);
+                    if (assemblyPath == null)
+                    {
+                        throw new Exception("Assembly path is null for core assembly");
+                    }
+
+                    assembly = GlobalAssemblyHelper.LoadGlobalAssembly(assemblyPath);
                 }
             }
             else
@@ -254,23 +259,25 @@ namespace Hyperion
 
                 if (assemblyName != null)
                 {
-                    assembly = context.LoadFromAssemblyName((AssemblyName)assemblyName);
+                    assembly = context.LoadFromAssemblyName(assemblyName);
                 }
                 else
                 {
-                    assembly = context.LoadFromAssemblyPath((string)assemblyPath);
+                    if (assemblyPath == null)
+                    {
+                        throw new Exception("Assembly path is null");
+                    }
+
+                    assembly = context.LoadFromAssemblyPath(assemblyPath);
                 }
 
                 // Load all referenced assemblies to ensure nothing will crash later
                 Logger.Log(LogType.Info, "Loaded assembly: {0}, with {1} referenced assemblies.", assembly.FullName, assembly.GetReferencedAssemblies().Length);
             }
 
+            // Load referenced assemblies
             foreach (AssemblyName referencedAssemblyName in assembly.GetReferencedAssemblies())
             {
-                // Logger.Log(LogType.Info, "Found referenced assembly for {0}: {1} (version: {2})", assembly.GetName().Name, assembly.GetReferencedAssemblies()[i].Name, assembly.GetReferencedAssemblies()[i].Version);
-
-                // context.LoadFromAssemblyName(assembly.GetReferencedAssemblies()[i]);
-
                 AssemblyInstance? referencedAssembly = AssemblyCache.Instance.Get(referencedAssemblyName);
 
                 if (referencedAssembly == null)
@@ -308,19 +315,6 @@ namespace Hyperion
 
                 referencedAssemblies.Add(referencedAssembly);
             }
-
-            // #if DEBUG
-            //             Logger.Log(LogType.Info, "Loaded core assembly: {0} (version: {1}) into default context", assembly.GetName().Name, assembly.GetName().Version);
-
-            //             for (int i = 0; i < assembly.GetReferencedAssemblies().Length; i++)
-            //             {
-            //                 Logger.Log(LogType.Info, "Found referenced assembly for {0}: {1} (version: {2})", assembly.GetName().Name, assembly.GetReferencedAssemblies()[i].Name, assembly.GetReferencedAssemblies()[i].Version);
-
-            //                 GlobalAssemblyHelper.LoadGlobalAssembly(assembly.GetReferencedAssemblies()[i]);
-
-            //                 Logger.Log(LogType.Info, "Loaded referenced assembly for {0}: {1} (version: {2})", assembly.GetName().Name, assembly.GetReferencedAssemblies()[i].Name, assembly.GetReferencedAssemblies()[i].Version);
-            //             }
-            // #endif
         }
 
         public void Unload()
@@ -451,8 +445,6 @@ namespace Hyperion
                 {
                     return assemblies[guid];
                 }
-
-                return null;
             }
 
             return null;
@@ -515,7 +507,12 @@ namespace Hyperion
                     throw new Exception("Assembly already exists in cache");
                 }
 
-                string basePath = System.IO.Path.GetDirectoryName(path);
+                string? basePath = System.IO.Path.GetDirectoryName(path);
+
+                if (basePath == null)
+                {
+                    throw new Exception("Failed to get base path from assembly path: " + path);
+                }
 
                 AssemblyInstance assemblyInstance = new AssemblyInstance(
                     basePath: basePath,

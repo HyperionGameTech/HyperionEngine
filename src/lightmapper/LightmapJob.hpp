@@ -51,6 +51,8 @@ struct LightmapJobParams
 
 class HYP_API LightmapJobBase
 {
+    friend class LightmapperBase;
+
 public:
     explicit LightmapJobBase(LightmapJobParams&& params);
 
@@ -165,6 +167,8 @@ protected:
 
     void Stop();
     void Stop(const Error& error);
+
+    LightmapperBase* m_lightmapper;
 
     LightmapJobParams m_params;
 

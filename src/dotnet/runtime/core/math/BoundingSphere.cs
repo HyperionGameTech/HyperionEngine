@@ -9,33 +9,21 @@ namespace Hyperion
     public struct BoundingSphere
     {
         [FieldOffset(0)]
-        private Vec3f center;
+        public Vec3f Center;
 
         [FieldOffset(16)]
-        private float radius;
+        public float Radius;
 
         public BoundingSphere()
         {
-            center = new Vec3f(0, 0, 0);
-            radius = 0;
+            Center = new Vec3f(0, 0, 0);
+            Radius = 0;
         }
 
         public BoundingSphere(Vec3f center, float radius)
         {
-            this.center = center;
-            this.radius = radius;
-        }
-
-        public Vec3f Center
-        {
-            get => center;
-            set => center = value;
-        }
-
-        public float Radius
-        {
-            get => radius;
-            set => radius = value;
+            Center = center;
+            Radius = radius;
         }
     }
 }

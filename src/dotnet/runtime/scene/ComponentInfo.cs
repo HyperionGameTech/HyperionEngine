@@ -17,15 +17,15 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 12, Pack = 4)]
     public struct ComponentInfo
     {
-        private TypeId typeId;
-        private ComponentRWFlags rwFlags;
-        private bool receivesEvents;
+        public TypeId TypeId;
+        public ComponentRWFlags RwFlags;
+        public bool ReceivesEvents;
 
         public ComponentInfo(TypeId typeId, ComponentRWFlags rwFlags, bool receivesEvents)
         {
-            this.typeId = typeId;
-            this.rwFlags = rwFlags;
-            this.receivesEvents = receivesEvents;
+            TypeId = typeId;
+            RwFlags = rwFlags;
+            ReceivesEvents = receivesEvents;
         }
     }
 }
