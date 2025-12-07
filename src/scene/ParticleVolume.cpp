@@ -22,17 +22,15 @@ ParticleVolume::ParticleVolume()
 {
 }
 
-ParticleVolume::ParticleVolume(const BoundingBox& aabb)
-    : Entity()
+ParticleVolume::ParticleVolume(const BoundingBox& localBounds)
+    : VolumeBase(localBounds)
 {
-    m_localBounds = aabb;
 }
 
-ParticleVolume::ParticleVolume(const BoundingBox& aabb, const ParticleVolumeParams& params)
-    : Entity(),
+ParticleVolume::ParticleVolume(const BoundingBox& localBounds, const ParticleVolumeParams& params)
+    : VolumeBase(localBounds),
       m_params(params)
 {
-    m_localBounds = aabb;
 }
 
 ParticleVolume::~ParticleVolume()
@@ -42,7 +40,7 @@ ParticleVolume::~ParticleVolume()
 
 void ParticleVolume::Init()
 {
-    Entity::Init();
+    VolumeBase::Init();
 
     InitObject(m_params.texture);
 

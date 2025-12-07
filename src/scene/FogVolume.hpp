@@ -2,21 +2,14 @@
 
 #pragma once
 
-#include "core/Defines.hpp"
-#include <core/Types.hpp>
-
-#include <core/math/BoundingBox.hpp>
-
-#include <core/reflection/Handle.hpp>
-
-#include <scene/Entity.hpp>
+#include <scene/Volume.hpp>
 
 namespace hyperion {
 
 class Texture;
 
 HYP_CLASS()
-class HYP_API FogVolume final : public Entity
+class HYP_API FogVolume final : public VolumeBase
 {
     HYP_OBJECT_BODY(FogVolume);
 
@@ -25,7 +18,7 @@ public:
 
     FogVolume();
 
-    explicit FogVolume(const BoundingBox& aabb);
+    explicit FogVolume(const BoundingBox& localBounds);
 
     FogVolume(const FogVolume&) = delete;
     FogVolume& operator=(const FogVolume&) = delete;

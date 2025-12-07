@@ -30,6 +30,7 @@ class PassData;
 class RendererBase;
 class RenderGroup;
 class View;
+class VolumeBase;
 class EntityBatchAllocatorBase;
 
 namespace threading {
@@ -91,8 +92,7 @@ struct HYP_API RenderSetup
     EnvProbe* envProbe;
     EnvGrid* envGrid;
     Light* light;
-    LightmapVolume* lightmapVolume;
-    ParticleVolume* particleVolume;
+    VolumeBase* volume;
 
     Swapchain* swapchain;
 
@@ -107,8 +107,7 @@ public:
           envProbe(nullptr),
           envGrid(nullptr),
           light(nullptr),
-          lightmapVolume(nullptr),
-          particleVolume(nullptr),
+          volume(nullptr),
           swapchain(nullptr),
           passData(nullptr),
           prev(nullptr)
@@ -121,8 +120,7 @@ public:
           envProbe(nullptr),
           envGrid(nullptr),
           light(nullptr),
-          lightmapVolume(nullptr),
-          particleVolume(nullptr),
+          volume(nullptr),
           swapchain(nullptr),
           passData(nullptr),
           prev(nullptr)
@@ -136,8 +134,7 @@ public:
           envProbe(nullptr),
           envGrid(nullptr),
           light(nullptr),
-          lightmapVolume(nullptr),
-          particleVolume(nullptr),
+          volume(nullptr),
           swapchain(nullptr),
           passData(nullptr),
           prev(nullptr)

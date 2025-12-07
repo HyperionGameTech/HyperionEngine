@@ -173,7 +173,8 @@ void LightmapperBase::Initialize()
         ViewDesc viewDesc {
             .flags = ViewFlags::COLLECT_STATIC_ENTITIES
                 | ViewFlags::NO_FRUSTUM_CULLING
-                | ViewFlags::SKIP_ENV_GRIDS | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES
+                | ViewFlags::SKIP_ENV_GRIDS
+                | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
                 | ViewFlags::RAYTRACING
                 | ViewFlags::NO_DRAW_CALLS
                 | ViewFlags::NOT_MULTI_BUFFERED,
@@ -766,7 +767,12 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
             subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
             subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
 
-            auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()), lightmapElementId = m_lightmapElementId, volume = m_volume, subElement = subElement, newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
+            auto updateMeshComponent = [
+                entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
+                lightmapElementId = m_lightmapElementId,
+                volume = m_volume,
+                subElement = subElement,
+                newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
             {
                 Handle<EntityManager> entityManager = entityManagerWeak.Lock();
 
@@ -921,13 +927,14 @@ void Lightmapper<FogVolume>::Initialize_Internal()
     Assert(m_fogVolume != nullptr);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
 {
     HYP_SCOPE;
 
     LightmapJob<FogVolume>* jobCasted = static_cast<LightmapJob<FogVolume>*>(job);
 
-    const LightmapData<FogVolume>& lightmapData = jobCasted->GetLightmapData();
+    LightmapData<FogVolume>& lightmapData = jobCasted->GetLightmapData();
 
     if (!lightmapData.IsBuilt())
     {
@@ -935,7 +942,19 @@ void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
         return;
     }
 
-    const typename LightmapData<FogVolume>::BitmapType& bitmap = lightmapData.GetVolumeBitmap();
+    typename LightmapData<FogVolume>::BitmapType& bitmap = lightmapData.GetVolumeBitmap();
+
+    // update bitmap with texel data
+    for (SizeType i = 0; i < lightmapData.texels.Size(); i++)
+    {
+        const LightmapTexel& texel = lightmapData.texels[i];
+
+        bitmap.SetPixel(
+            i % bitmap.GetWidth(),
+            (i / bitmap.GetWidth()) % bitmap.GetHeight(),
+            i / (bitmap.GetWidth() * bitmap.GetHeight()),
+            texel.numSamplesFog > 0 ? (texel.irradiance / float(texel.numSamplesFog)) : Vec4f::Zero());
+    }
 
     TextureDesc textureDesc {
         TT_TEX3D,
@@ -957,4 +976,5 @@ void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
     // Set the baked texture on the FogVolume
     m_fogVolume->SetVolumeTexture(volumeTexture);
 }
+HYP_ENABLE_OPTIMIZATION;
 } // namespace hyperion

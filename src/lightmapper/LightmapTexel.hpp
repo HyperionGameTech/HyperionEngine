@@ -72,6 +72,7 @@ struct LightmapTexel
 {
     Vec4f radiance = Vec4f::Zero();
     Vec4f irradiance = Vec4f::Zero();
+    uint32 numSamplesFog = 0;
 
     LightmapRay ray;
 };

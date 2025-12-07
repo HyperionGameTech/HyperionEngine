@@ -259,92 +259,92 @@ void PlaceholderData::Create()
         }
     };
 
-    PlaceholderBufferData placeholderBufferTex2dR8 {};
-    PlaceholderBufferData placeholderBufferCubemapR8 {};
+    PlaceholderBufferData placeholderBufferTex2d {};
+    PlaceholderBufferData placeholderBufferCubemap {};
 
     loadOrInitTexture(
         defaultTexture2d,
         "Engine/Media/Textures",
-        "Placeholder_Texture_2D_1x1_R8",
+        "Placeholder_Texture_2D_1x1",
         TextureDesc {
             TT_TEX2D,
-            TF_R8,
+            TF_RGBA8,
             Vec3u::One(),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferTex2dR8,
-        &FillPlaceholderBuffer_Tex2D<TF_R8>,
+        placeholderBufferTex2d,
+        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>,
         Vec2u::One());
 
     loadOrInitTexture(
         defaultTexture3d,
         "Engine/Media/Textures",
-        "Placeholder_Texture_3D_1x1x1_R8",
+        "Placeholder_Texture_3D_1x1x1",
         TextureDesc {
             TT_TEX3D,
-            TF_R8,
+            TF_RGBA8,
             Vec3u::One(),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferTex2dR8,
-        &FillPlaceholderBuffer_Tex2D<TF_R8>,
+        placeholderBufferTex2d,
+        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>,
         Vec2u::One());
 
     loadOrInitTexture(
         defaultCubemap,
         "Engine/Media/Textures",
-        "Placeholder_Texture_Cube_1x1_R8",
+        "Placeholder_Texture_Cube_1x1",
         TextureDesc {
             TT_CUBEMAP,
-            TF_R8,
+            TF_RGBA8,
             Vec3u::One(),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferCubemapR8,
-        &FillPlaceholderBuffer_Cubemap<TF_R8>,
+        placeholderBufferCubemap,
+        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>,
         Vec2u::One());
 
     loadOrInitTexture(
         defaultTexture2dArray,
         "Engine/Media/Textures",
-        "Placeholder_Texture_2D_1x1_R8_Array",
+        "Placeholder_Texture_2D_1x1_Array",
         TextureDesc {
             TT_TEX2D_ARRAY,
-            TF_R8,
+            TF_RGBA8,
             Vec3u::One(),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferTex2dR8,
-        &FillPlaceholderBuffer_Tex2D<TF_R8>,
+        placeholderBufferTex2d,
+        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>,
         Vec2u::One());
 
     loadOrInitTexture(
         defaultCubemapArray,
         "Engine/Media/Textures",
-        "Placeholder_Texture_Cube_1x1_R8_Array",
+        "Placeholder_Texture_Cube_1x1_Array",
         TextureDesc {
             TT_CUBEMAP_ARRAY,
-            TF_R8,
+            TF_RGBA8,
             Vec3u::One(),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferCubemapR8,
-        &FillPlaceholderBuffer_Cubemap<TF_R8>,
+        placeholderBufferCubemap,
+        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>,
         Vec2u::One());
 
 #pragma endregion Textures

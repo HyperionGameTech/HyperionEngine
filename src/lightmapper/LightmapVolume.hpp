@@ -8,7 +8,7 @@
 
 #include <core/utilities/Uuid.hpp>
 
-#include <scene/Entity.hpp>
+#include <scene/Volume.hpp>
 
 #include <util/AtlasPacker.hpp>
 
@@ -104,7 +104,7 @@ struct LightmapVolumeAtlas : AtlasPacker<LightmapElement>
 };
 
 HYP_CLASS()
-class HYP_API LightmapVolume final : public Entity
+class HYP_API LightmapVolume final : public VolumeBase
 {
     HYP_OBJECT_BODY(LightmapVolume);
 
@@ -114,7 +114,7 @@ public:
 
     LightmapVolume();
 
-    explicit LightmapVolume(const BoundingBox& aabb);
+    explicit LightmapVolume(const BoundingBox& localBounds);
 
     LightmapVolume(const LightmapVolume& other) = delete;
     LightmapVolume& operator=(const LightmapVolume& other) = delete;

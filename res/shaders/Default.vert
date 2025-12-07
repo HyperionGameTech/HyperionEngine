@@ -19,9 +19,9 @@ layout(location = 16) out flat uint v_object_mask;
 HYP_ATTRIBUTE(0) vec3 a_position;
 HYP_ATTRIBUTE(1) vec3 a_normal;
 HYP_ATTRIBUTE(2) vec2 a_texcoord0;
-HYP_ATTRIBUTE(3) vec2 a_texcoord1;
-HYP_ATTRIBUTE(4) vec3 a_tangent;
-HYP_ATTRIBUTE(5) vec3 a_bitangent;
+HYP_ATTRIBUTE_OPTIONAL(3) vec2 a_texcoord1;
+HYP_ATTRIBUTE_OPTIONAL(4) vec3 a_tangent;
+HYP_ATTRIBUTE_OPTIONAL(5) vec3 a_bitangent;
 HYP_ATTRIBUTE_OPTIONAL(6) vec4 a_bone_weights;
 HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 
@@ -114,7 +114,13 @@ void main()
     v_position = position.xyz / position.w;
     v_normal = (normal_matrix * vec4(a_normal, 0.0)).xyz;
     v_texcoord0 = vec2(a_texcoord0.x, 1.0 - a_texcoord0.y);
+
+#ifdef HYP_ATTRIBUTE_a_texcoord1
     v_texcoord1 = a_texcoord1.xy;
+#else
+    v_texcoord1 = vec2(0.0);
+#endif
+
     v_camera_position = camera.position.xyz;
 
     vec3 tangent;

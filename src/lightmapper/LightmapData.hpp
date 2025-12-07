@@ -144,7 +144,7 @@ template <>
 class LightmapData<FogVolume> : public LightmapDataBase
 {
 public:
-    using BitmapType = Bitmap3D_RGBA8;
+    using BitmapType = Bitmap3D_RGBA32F; // temp; will change to something else later
 
     LightmapData()
         : m_fogVolume(nullptr)

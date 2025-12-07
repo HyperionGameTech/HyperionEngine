@@ -32,15 +32,10 @@ class View;
 class DeferredRenderer;
 class GBuffer;
 class EnvGrid;
-class EnvGridPass;
 class EnvProbe;
-class ReflectionsPass;
-class TonemapPass;
-class LightmapPass;
 class FullScreenPass;
 class TemporalAA;
 class PostProcessing;
-class DeferredPass;
 class HBAO;
 class DOFBlur;
 class Texture;
@@ -176,7 +171,7 @@ public:
 protected:
     struct LightmapVolumePassData
     {
-        class LightmapVolume* lightmapVolume = nullptr;
+        class LightmapVolume* volume = nullptr;
         Array<Texture*> atlasIrradianceTextures;
         Array<Texture*> atlasRadianceTextures;
         GraphicsPipelineCacheHandle graphicsPipeline;
@@ -191,7 +186,7 @@ protected:
     {
         auto it = m_lightmapVolumePassData.FindIf([lightmapVolume](auto& item)
             {
-                return item.lightmapVolume == lightmapVolume;
+                return item.volume == lightmapVolume;
             });
 
         if (it != m_lightmapVolumePassData.End())
@@ -200,12 +195,73 @@ protected:
         }
 
         it = &m_lightmapVolumePassData.EmplaceBack();
-        it->lightmapVolume = lightmapVolume;
+        it->volume = lightmapVolume;
 
         return *it;
     }
 
     Array<LightmapVolumePassData, RenderAllocator> m_lightmapVolumePassData;
+
+private:
+    virtual bool UsesTemporalBlending() const override
+    {
+        return false;
+    }
+
+    virtual bool ShouldRenderHalfRes() const override
+    {
+        return false;
+    }
+
+    virtual void Resize_Internal(Vec2u newSize) override;
+};
+
+HYP_CLASS(NoScriptBindings)
+class FogVolumePass final : public FullScreenPass
+{
+    HYP_OBJECT_BODY(FogVolumePass);
+
+public:
+    FogVolumePass();
+    FogVolumePass(const FogVolumePass& other) = delete;
+    FogVolumePass& operator=(const FogVolumePass& other) = delete;
+    virtual ~FogVolumePass() override;
+
+    virtual void Create() override;
+
+protected:
+    struct FogVolumePassData
+    {
+        class FogVolume* volume = nullptr;
+        Texture* volumeTexture = nullptr;
+        DescriptorTableRef descriptorTable;
+        GraphicsPipelineCacheHandle graphicsPipeline;
+    };
+
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override;
+
+    const GraphicsPipelineRef& GetGraphicsPipeline(const FramebufferRef& framebuffer, FogVolumePassData& data);
+
+    FogVolumePassData& GetFogVolumePassData(FogVolume* fogVolume)
+    {
+        auto it = m_fogVolumePassData.FindIf([fogVolume](auto& item)
+            {
+                return item.volume == fogVolume;
+            });
+
+        if (it != m_fogVolumePassData.End())
+        {
+            return *it;
+        }
+
+        it = &m_fogVolumePassData.EmplaceBack();
+        it->volume = fogVolume;
+
+        return *it;
+    }
+
+    Array<FogVolumePassData, RenderAllocator> m_fogVolumePassData;
+    Handle<Mesh> m_volumeMesh;
 
 private:
     virtual bool UsesTemporalBlending() const override
@@ -354,6 +410,8 @@ public:
     Handle<ReflectionsPass> reflectionsPass;
 
     Handle<LightmapPass> lightmapPass;
+    
+    Handle<FogVolumePass> fogVolumePass;
 
     Handle<TonemapPass> tonemapPass;
 

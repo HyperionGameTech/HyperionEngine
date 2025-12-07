@@ -457,7 +457,7 @@ static struct FogVolumeNoiseCombinator
     NoiseCombinator noiseCombinator;
     FogVolumeNoiseCombinator()
     {
-        noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 10.0f, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * 1.0f);
+        noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 1.0f, 0.0f, Vec3f(0.35f));
     }
 } s_initializer;
 
@@ -507,6 +507,7 @@ void LightmapJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
     NoiseCombinator& nc = s_initializer.noiseCombinator;
@@ -532,12 +533,14 @@ void LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 t
 
         const Vec3f samplePos = Vec3f(float(x), float(y), float(z));
 
-        const float noiseValue = nc.GetNoise(samplePos * 0.1f);
+        const float noiseValue = nc.GetNoise(samplePos);
 
         // store in texel
-        texel->irradiance += Vec4f(noiseValue, noiseValue, noiseValue, 1.0f);
+        texel->irradiance += Vec4f(noiseValue);
+        texel->numSamplesFog++;
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion LightmapJob < FogVolume>
 

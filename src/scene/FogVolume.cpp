@@ -1,6 +1,5 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include "core/reflection/Handle.hpp"
 #include <HyperionPch.hpp>
 
 #include <scene/FogVolume.hpp>
@@ -11,6 +10,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
+#include <core/reflection/Handle.hpp>
 #include <core/threading/Threads.hpp>
 
 #include <core/math/Vector3.hpp>
@@ -26,9 +26,9 @@ FogVolume::FogVolume()
 {
 }
 
-FogVolume::FogVolume(const BoundingBox& aabb)
+FogVolume::FogVolume(const BoundingBox& localBounds)
+    : VolumeBase(localBounds)
 {
-    m_localBounds = aabb;
 }
 
 FogVolume::~FogVolume()
@@ -41,12 +41,14 @@ FogVolume::~FogVolume()
 
 void FogVolume::Init()
 {
-    Entity::Init();
+    VolumeBase::Init();
 
     if (m_volumeTexture)
     {
         InitObject(m_volumeTexture);
     }
+
+    SetNeedsRenderProxyUpdate();
 
     SetReady(true);
 }
@@ -77,7 +79,10 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
 {
     AssertDebug(proxy != nullptr);
 
+    const BoundingBox worldAabb = GetWorldAABB();
+
     proxy->fogVolume = WeakHandleFromThis();
+    proxy->worldAabb = worldAabb;
 
     if (proxy->volumeTexture != m_volumeTexture)
     {
@@ -86,7 +91,15 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
         proxy->volumeTexture = m_volumeTexture;
     }
 
-    proxy->worldAabb = GetWorldAABB();
+    // create transform matrix turning 1:1:1 cube to the world bounds
+    const Vec3f boxSize = m_localBounds.GetExtent();
+
+    const Mat4f newTransformMatrix = GetWorldTransform().GetMatrix() * Mat4f::Scaling(boxSize);
+    if (newTransformMatrix != proxy->bufferData.transformMatrix)
+    {
+        proxy->forceRebind = true;
+        proxy->bufferData.transformMatrix = newTransformMatrix;
+    }
 }
 
 } // namespace hyperion

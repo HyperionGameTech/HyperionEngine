@@ -29,7 +29,6 @@ class LightmapVolume;
 class EnvGrid;
 class EnvProbe;
 class Texture;
-class ParticleVolume;
 class GBuffer;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
@@ -61,7 +60,8 @@ enum class ViewFlags : uint32
     SKIP_LIGHTS = 0x80,            //!< If set, the view will not collect Lights.
     SKIP_LIGHTMAP_VOLUMES = 0x100, //!< If set, the view will not collect LightmapVolumes.
     SKIP_PARTICLE_VOLUMES = 0x200, //!< If set, the view will not collect ParticleVolumes.
-    SKIP_CAMERAS = 0x400,          //!< If set, the view will not collect Cameras.
+    SKIP_FOG_VOLUMES = 0x400,      //!< If set, the view will not collect FogVolumes.
+    SKIP_CAMERAS = 0x800,          //!< If set, the view will not collect Cameras.
 
     NOT_MULTI_BUFFERED = 0x1000, //!< Disables double / triple buffering for the RenderProxyList this View writes to.
                                  //  --- Use ONLY for Views that are not written to every frame, and instead are written to and read once (or infrequently); e.g EnvProbes.
@@ -257,6 +257,7 @@ protected:
     void CollectLights(RenderProxyList& rpl);
     void CollectLightmapVolumes(RenderProxyList& rpl);
     void CollectParticleVolumes(RenderProxyList& rpl);
+    void CollectFogVolumes(RenderProxyList& rpl);
     void CollectEnvGrids(RenderProxyList& rpl);
     void CollectEnvProbes(RenderProxyList& rpl);
     void CollectMeshEntities(RenderProxyList& rpl);

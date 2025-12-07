@@ -3,6 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
+#include <lightmapper/LightmapData.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -11,8 +12,6 @@
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
-
-#include <lightmapper/LightmapData.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -247,11 +246,9 @@ LightmapVolume::LightmapVolume()
 {
 }
 
-LightmapVolume::LightmapVolume(const BoundingBox& aabb)
-    : Entity()
+LightmapVolume::LightmapVolume(const BoundingBox& localBounds)
+    : VolumeBase(localBounds)
 {
-    m_localBounds = aabb;
-
     m_atlases.Reserve(MaxAtlases);
     m_atlases.EmplaceBack(DefaultAtlasDimensions);
 
@@ -429,14 +426,14 @@ bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& li
 
 void LightmapVolume::Init()
 {
-    Entity::Init();
+    VolumeBase::Init();
 
     SetReady(true);
 }
 
 void LightmapVolume::OnAddedToWorld(World* world)
 {
-    Entity::OnAddedToWorld(world);
+    VolumeBase::OnAddedToWorld(world);
 
     for (Scene* scene : world->GetScenes())
     {
@@ -455,7 +452,7 @@ void LightmapVolume::OnAddedToWorld(World* world)
 
 void LightmapVolume::OnRemovedFromWorld(World* world)
 {
-    Entity::OnRemovedFromWorld(world);
+    VolumeBase::OnRemovedFromWorld(world);
 
     for (Scene* scene : world->GetScenes())
     {

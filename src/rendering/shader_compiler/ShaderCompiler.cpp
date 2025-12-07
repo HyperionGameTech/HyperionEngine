@@ -1209,10 +1209,10 @@ static void ForEachPermutation(
         *currentCombinations = std::move(currentGroupCombinations);
     }
 
-    // #ifdef HYP_SHADER_COMPILER_LOGGING
+#ifdef HYP_SHADER_COMPILER_LOGGING
     HYP_LOG(ShaderCompiler, Info,
         "Processing {} shader permutations:", currentCombinations->Size());
-    // #endif
+#endif
 
     if (parallel)
     {

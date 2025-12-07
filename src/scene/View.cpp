@@ -9,6 +9,11 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/EntityManager.hpp>
 #include <scene/EntityTag.hpp>
+#include <scene/ParticleVolume.hpp>
+#include <scene/FogVolume.hpp>
+
+#include <scene/camera/Camera.hpp>
+#include <scene/animation/Skeleton.hpp>
 
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
@@ -16,12 +21,9 @@
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/LightmapElementComponent.hpp>
 
+#include <scene/sky/DynamicSkySubsystem.hpp>
+
 #include <lightmapper/LightmapVolume.hpp>
-
-#include <scene/ParticleVolume.hpp>
-
-#include <scene/camera/Camera.hpp>
-#include <scene/animation/Skeleton.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -32,8 +34,6 @@
 #include <rendering/Material.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
-
-#include <scene/sky/DynamicSkySubsystem.hpp>
 
 #include <core/reflection/Class.hpp>
 
@@ -376,6 +376,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
             CollectLights(rpl);
             CollectLightmapVolumes(rpl);
             CollectParticleVolumes(rpl);
+            CollectFogVolumes(rpl);
             CollectEnvGrids(rpl);
             CollectEnvProbes(rpl);
             CollectMeshEntities(rpl);
@@ -1076,6 +1077,45 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
             }
 
             rpl.GetParticleVolumes().Track(volume->Id(), volume, volume->GetRenderProxyVersionPtr());
+        }
+    }
+}
+
+void View::CollectFogVolumes(RenderProxyList& rpl)
+{
+    HYP_SCOPE;
+
+    if (m_flags & ViewFlags::SKIP_FOG_VOLUMES)
+    {
+        return;
+    }
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        Assert(scene.IsValid());
+        Assert(scene->IsReady());
+
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<FogVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            FogVolume* volume = static_cast<FogVolume*>(entity);
+
+            const BoundingBox volumeAabb = volume->GetWorldAABB();
+
+            if (!volumeAabb.IsValid() || !volumeAabb.IsFinite())
+            {
+                HYP_LOG(Scene, Warning, "FogVolume {} has an invalid AABB in view {}", volume->Id(), Id());
+                continue;
+            }
+
+            if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING) && m_camera.IsValid())
+            {
+                if (!m_camera->GetFrustum().ContainsAABB(volumeAabb))
+                {
+                    // continue;
+                }
+            }
+
+            rpl.GetFogVolumes().Track(volume->Id(), volume, volume->GetRenderProxyVersionPtr());
         }
     }
 }

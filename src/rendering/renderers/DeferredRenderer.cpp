@@ -46,6 +46,8 @@
 #include <scene/View.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/FogVolume.hpp>
+#include <scene/ParticleVolume.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
 
@@ -614,6 +616,10 @@ LightmapPass::LightmapPass()
 
 LightmapPass::~LightmapPass()
 {
+    for (auto& data : m_lightmapVolumePassData)
+    {
+        SafeDelete(std::move(data.descriptorSets));
+    }
 }
 
 void LightmapPass::Create()
@@ -628,10 +634,10 @@ void LightmapPass::Create()
 
 const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRef& framebuffer, LightmapVolumePassData& data)
 {
-    LightmapVolume* lightmapVolume = data.lightmapVolume;
-    AssertDebug(lightmapVolume != nullptr);
+    LightmapVolume* volume = data.volume;
+    AssertDebug(volume != nullptr);
 
-    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(lightmapVolume));
+    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(volume));
     Assert(proxy != nullptr);
 
     if (data.graphicsPipeline.IsAlive())
@@ -741,9 +747,12 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.world && renderSetup.lightmapVolume);
+    AssertDebug(renderSetup.world && renderSetup.volume);
 
-    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(renderSetup.lightmapVolume));
+    LightmapVolume* volume = ObjCast<LightmapVolume>(renderSetup.volume);
+    AssertDebug(volume != nullptr);
+
+    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(volume));
     Assert(proxy != nullptr);
 
     if (proxy->numAtlases == 0)
@@ -751,7 +760,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         return; // nothing to do
     }
 
-    LightmapVolumePassData& data = GetLightmapVolumePassData(renderSetup.lightmapVolume);
+    LightmapVolumePassData& data = GetLightmapVolumePassData(volume);
     /// @TODO: Add clean up of data after lightmap volume has been removed
 
     const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline(framebuffer, data);
@@ -806,6 +815,165 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 }
 
 #pragma endregion LightmapPass
+
+#pragma region FogVolumePass
+
+FogVolumePass::FogVolumePass()
+    : FullScreenPass(TF_RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
+{
+}
+
+FogVolumePass::~FogVolumePass()
+{
+    for (auto& data : m_fogVolumePassData)
+    {
+        SafeDelete(std::move(data.descriptorTable));
+    }
+}
+
+void FogVolumePass::Create()
+{
+    AssertOnThread(g_renderThread);
+
+    m_volumeMesh = MeshBuilder::Cube();
+    m_volumeMesh->SetFlags(MF_VIEW_INDEPENDENT);
+    m_volumeMesh->SetName(NAME("FogVolumeMesh"));
+    InitObject(m_volumeMesh);
+
+    m_shader = g_shaderManager->GetOrCreate(NAME("ApplyFogVolume"), ShaderProperties(m_volumeMesh->GetVertexAttributes()));
+    Assert(m_shader != nullptr);
+
+    FullScreenPass::Create();
+}
+
+const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(const FramebufferRef& framebuffer, FogVolumePassData& data)
+{
+    FogVolume* volume = data.volume;
+    AssertDebug(volume != nullptr);
+
+    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(RenderApi::GetRenderProxy(volume));
+    Assert(proxy != nullptr);
+
+    if (data.graphicsPipeline.IsAlive())
+    {
+        const GraphicsPipelineRef& graphicsPipeline = *data.graphicsPipeline;
+        AssertDebug(graphicsPipeline != nullptr);
+
+        return graphicsPipeline;
+    }
+
+    const MeshAttributes meshAttributes = m_volumeMesh->GetMeshAttributes();
+
+    MaterialAttributes materialAttributes;
+    materialAttributes.fillMode = FM_FILL;
+    materialAttributes.flags = MAF_DEPTH_TEST; // depth test, no depth write
+    materialAttributes.bucket = RB_TRANSLUCENT;
+    materialAttributes.cullFaces = FCM_FRONT; // cull front faces to render inside of the volume
+    materialAttributes.blendFunction = BlendFunction(
+        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
+
+    RenderableAttributeSet renderableAttributes { meshAttributes, materialAttributes };
+
+    GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(FogVolumeShaderData));
+    Assert(uniformBuffer->Create());
+    uniformBuffer->Copy(sizeof(FogVolumeShaderData), &proxy->bufferData);
+
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+
+#ifdef HYP_DEBUG_MODE
+    descriptorTable->SetDebugName(NAME_FMT("DescriptorTable_{}_{}", m_shader->GetCompiledShader()->GetName(), volume->GetName()));
+#endif
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("FogVolume", frameIndex);
+        Assert(descriptorSet != nullptr);
+
+        descriptorSet->SetElement("VolumeTexture", proxy->volumeTexture != nullptr
+            ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->volumeTexture))
+            : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture3d));
+
+        descriptorSet->SetElement("FogVolumeUniforms", uniformBuffer);
+    }
+
+    data.volumeTexture = proxy->volumeTexture;
+
+    Assert(descriptorTable->Create());
+
+    if (data.descriptorTable)
+    {
+        SafeDelete(std::move(data.descriptorTable));
+    }
+
+    data.descriptorTable = descriptorTable;
+
+    data.graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+        m_shader,
+        descriptorTable,
+        { &framebuffer, 1 },
+        renderableAttributes);
+
+    return *data.graphicsPipeline;
+}
+
+void FogVolumePass::Resize_Internal(Vec2u newSize)
+{
+    FullScreenPass::Resize_Internal(newSize);
+}
+
+void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    AssertDebug(renderSetup.world && renderSetup.volume);
+
+    FogVolume* volume = ObjCast<FogVolume>(renderSetup.volume);
+    AssertDebug(volume != nullptr);
+
+    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(RenderApi::GetRenderProxy(volume));
+    Assert(proxy != nullptr);
+
+    FogVolumePassData& data = GetFogVolumePassData(volume);
+
+    if (proxy->forceRebind || proxy->volumeTexture != data.volumeTexture)
+    {
+        // force graphics pipeline re-creation
+        data.graphicsPipeline = {};
+    }
+
+    const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline(framebuffer, data);
+
+    frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
+
+    frame->renderQueue << BindDescriptorTable(
+        data.descriptorTable,
+        graphicsPipeline,
+        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view ? renderSetup.view->GetCamera() : nullptr, 0) } } } },
+        frame->GetFrameIndex());
+
+    const uint32 viewDescriptorSetIndex = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex("View");
+
+    if (viewDescriptorSetIndex != ~0u)
+    {
+        AssertDebug(renderSetup.passData != nullptr);
+
+        frame->renderQueue << BindDescriptorSet(
+            renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
+            graphicsPipeline,
+            {},
+            viewDescriptorSetIndex);
+    }
+
+    frame->renderQueue << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
+    frame->renderQueue << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
+    frame->renderQueue << DrawIndexed(36); // draw cube
+
+    m_isFirstFrame = false;
+}
+
+#pragma endregion FogVolumePass
 
 #pragma region EnvGridPass
 
@@ -1539,6 +1707,9 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.lightmapPass = CreateObject<LightmapPass>();
         passData.lightmapPass->Create();
 
+        passData.fogVolumePass = CreateObject<FogVolumePass>();
+        passData.fogVolumePass->Create();
+
         passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), passData.viewport.extent, gbuffer);
         passData.temporalAa->Create();
 
@@ -1845,6 +2016,9 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     passData.lightmapPass = CreateObject<LightmapPass>();
     passData.lightmapPass->Create();
+
+    passData.fogVolumePass = CreateObject<FogVolumePass>();
+    passData.fogVolumePass->Create();
 
     passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), newSize, gbuffer);
     passData.temporalAa->Create();
@@ -2429,11 +2603,19 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
         {
             RenderSetup newRs = rs.Fork();
-            newRs.lightmapVolume = lightmapVolume;
+            newRs.volume = lightmapVolume;
 
             // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
             // Apply lightmaps over the now shaded opaque objects.
             passData.lightmapPass->RenderToFramebuffer(frame, newRs, passData.deferredShadingFramebuffer);
+        }
+
+        for (FogVolume* fogVolume : rpl.GetFogVolumes())
+        {
+            RenderSetup newRs = rs.Fork();
+            newRs.volume = fogVolume;
+
+            passData.fogVolumePass->RenderToFramebuffer(frame, newRs, passData.deferredShadingFramebuffer);
         }
 
         frame->renderQueue << EndFramebuffer(passData.deferredShadingFramebuffer);
@@ -2486,7 +2668,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             for (ParticleVolume* particleVolume : rpl.GetParticleVolumes())
             {
                 RenderSetup newRs = rs.Fork();
-                newRs.particleVolume = particleVolume;
+                newRs.volume = particleVolume;
 
                 g_renderGlobalState->globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, newRs);
             }

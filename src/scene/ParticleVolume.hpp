@@ -9,7 +9,7 @@
 
 #include <core/reflection/Handle.hpp>
 
-#include <scene/Entity.hpp>
+#include <scene/Volume.hpp>
 
 namespace hyperion {
 
@@ -46,14 +46,14 @@ struct ParticleVolumeParams
 };
 
 HYP_CLASS()
-class HYP_API ParticleVolume final : public Entity
+class HYP_API ParticleVolume final : public VolumeBase
 {
     HYP_OBJECT_BODY(ParticleVolume);
 
 public:
     ParticleVolume();
-    explicit ParticleVolume(const BoundingBox& aabb);
-    ParticleVolume(const BoundingBox& aabb, const ParticleVolumeParams& params);
+    explicit ParticleVolume(const BoundingBox& localBounds);
+    ParticleVolume(const BoundingBox& localBounds, const ParticleVolumeParams& params);
 
     ParticleVolume(const ParticleVolume&) = delete;
     ParticleVolume& operator=(const ParticleVolume&) = delete;

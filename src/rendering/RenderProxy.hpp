@@ -301,6 +301,7 @@ public:
 
 struct FogVolumeShaderData
 {
+    Mat4f transformMatrix;
 };
 
 class RenderProxyFogVolume final : public IRenderProxy
