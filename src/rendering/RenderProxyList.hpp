@@ -39,6 +39,7 @@ class Light;
 class EnvGrid;
 class LightmapVolume;
 class ParticleVolume;
+class FogVolume;
 class Material;
 class Texture;
 class Skeleton;
@@ -64,6 +65,7 @@ public:
         EnvGrid,
         LightmapVolume,
         ParticleVolume,
+        FogVolume,
         Material,
         Skeleton,
         Texture>;
@@ -77,6 +79,7 @@ public:
         ResourceTracker<AllocatorType, ObjId<EnvGrid>, EnvGrid*, RenderProxyEnvGrid>,
         ResourceTracker<AllocatorType, ObjId<LightmapVolume>, LightmapVolume*, RenderProxyLightmapVolume>,
         ResourceTracker<AllocatorType, ObjId<ParticleVolume>, ParticleVolume*, RenderProxyParticleVolume>,
+        ResourceTracker<AllocatorType, ObjId<FogVolume>, FogVolume*, RenderProxyFogVolume>,
         ResourceTracker<AllocatorType, ObjId<Material>, Material*, RenderProxyMaterial>,
         ResourceTracker<AllocatorType, ObjId<Skeleton>, Skeleton*, RenderProxySkeleton>,
         ResourceTracker<AllocatorType, ObjId<Texture>, Texture*>>;
@@ -165,6 +168,7 @@ public:
     DEF_RESOURCE_TRACKER_GETTER(EnvGrids, EnvGrid);
     DEF_RESOURCE_TRACKER_GETTER(LightmapVolumes, LightmapVolume);
     DEF_RESOURCE_TRACKER_GETTER(ParticleVolumes, ParticleVolume);
+    DEF_RESOURCE_TRACKER_GETTER(FogVolumes, FogVolume);
     DEF_RESOURCE_TRACKER_GETTER(Materials, Material);
     DEF_RESOURCE_TRACKER_GETTER(Skeletons, Skeleton);
     DEF_RESOURCE_TRACKER_GETTER(Textures, Texture);

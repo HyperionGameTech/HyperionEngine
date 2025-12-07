@@ -41,12 +41,12 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/Light.hpp>
+#include <scene/ParticleVolume.hpp>
+#include <scene/FogVolume.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
-
-#include <scene/ParticleVolume.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -215,6 +215,12 @@ static ResourceBinder<ParticleVolume, &OnBindingChanged_Default<ParticleVolume>>
     &s_particleVolumeBindingsAllocator
 };
 ResourceBinderBase* g_particleVolumeBinder = &s_particleVolumeBinder;
+
+static ResourceBindingAllocator<> s_fogVolumeBindingsAllocator;
+static ResourceBinder<FogVolume, &OnBindingChanged_Default<FogVolume>> s_fogVolumeBinder {
+    &s_fogVolumeBindingsAllocator
+};
+ResourceBinderBase* g_fogVolumeBinder = &s_fogVolumeBinder;
 
 static ResourceBindingAllocator<> s_materialBindingsAllocator;
 static ResourceBinder<Material, &OnBindingChanged_Material> s_materialBinder { &s_materialBindingsAllocator };
@@ -1782,6 +1788,7 @@ DECLARE_RENDER_DATA_CONTAINER(SpotLight, RenderProxyLight, GRB_LIGHTS, &WriteBuf
 DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, GRB_LIGHTMAP_VOLUMES, nullptr, &s_lightmapVolumeBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, GRB_INVALID, nullptr, &s_particleVolumeBinder);
+DECLARE_RENDER_DATA_CONTAINER(FogVolume, RenderProxyFogVolume, GRB_INVALID, nullptr, &s_fogVolumeBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, GRB_MATERIALS, nullptr, &s_materialBinder);
 

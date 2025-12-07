@@ -34,6 +34,7 @@ class View;
 class Texture;
 class LightmapVolume;
 class ParticleVolume;
+class FogVolume;
 class Material;
 class Skeleton;
 class EnvProbe;
@@ -296,6 +297,14 @@ public:
     Texture* particleTexture = nullptr;
     BoundingBox worldAabb; // for culling/debug
     ParticleVolumeShaderData bufferData {};
+};
+
+class RenderProxyFogVolume final : public IRenderProxy
+{
+public:
+    WeakHandle<FogVolume> fogVolume;
+    Texture* volumeTexture = nullptr;
+    BoundingBox worldAabb;
 };
 
 struct alignas(16) MaterialShaderData

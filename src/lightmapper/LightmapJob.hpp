@@ -23,6 +23,7 @@ using threading::TaskBatch;
 
 class Scene;
 class EnvProbe;
+class FogVolume;
 class View;
 class LightmapVolume;
 struct LightmapElement;
@@ -255,6 +256,38 @@ protected:
 
     Handle<EnvProbe> m_envProbe;
     LightmapData<EnvProbe> m_lightmapData;
+};
+
+template <>
+class LightmapJob<FogVolume> : public LightmapJobBase
+{
+public:
+    explicit LightmapJob(LightmapJobParams&& params, const Handle<FogVolume>& fogVolume)
+        : LightmapJobBase(std::move(params)),
+          m_fogVolume(fogVolume)
+    {
+    }
+
+    virtual ~LightmapJob() override;
+
+    HYP_FORCE_INLINE const Handle<FogVolume>& GetFogVolume() const
+    {
+        return m_fogVolume;
+    }
+
+    virtual LightmapData<FogVolume>& GetLightmapData() override
+    {
+        return m_lightmapData;
+    }
+
+protected:
+    virtual void Start_Internal() override;
+    virtual void Process_Internal(bool* outIsReadyToProcess) override;
+
+    virtual void GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays) override;
+
+    Handle<FogVolume> m_fogVolume;
+    LightmapData<FogVolume> m_lightmapData;
 };
 
 } // namespace hyperion

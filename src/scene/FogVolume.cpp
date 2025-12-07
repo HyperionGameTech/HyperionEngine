@@ -78,4 +78,20 @@ void FogVolume::Init()
     SetReady(true);
 }
 
+void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
+{
+    AssertDebug(proxy != nullptr);
+
+    proxy->fogVolume = WeakHandleFromThis();
+
+    if (proxy->volumeTexture != m_volumeTexture)
+    {
+        proxy->forceRebind = true;
+
+        proxy->volumeTexture = m_volumeTexture;
+    }
+
+    proxy->worldAabb = GetWorldAABB();
+}
+
 } // namespace hyperion

@@ -35,6 +35,8 @@ public:
         return m_volumeTexture;
     }
 
+    void UpdateRenderProxy(class RenderProxyFogVolume* proxy);
+
 private:
     void Init() override;
 

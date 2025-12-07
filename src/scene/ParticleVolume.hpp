@@ -14,7 +14,6 @@
 namespace hyperion {
 
 class Texture;
-class RenderProxyParticleVolume;
 
 HYP_STRUCT()
 struct ParticleVolumeParams
@@ -70,7 +69,7 @@ public:
     HYP_METHOD()
     void SetParams(const ParticleVolumeParams& newParams);
 
-    void UpdateRenderProxy(RenderProxyParticleVolume* proxy);
+    void UpdateRenderProxy(class RenderProxyParticleVolume* proxy);
 
 private:
     void Init() override;

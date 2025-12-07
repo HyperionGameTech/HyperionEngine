@@ -1242,6 +1242,189 @@ private:
     ByteBuffer m_buffer;
 };
 
+template <TextureFormat Format>
+class Bitmap3D
+{
+public:
+    using PixelComponentType = typename TextureFormatHelper<Format>::ElementType;
+    static constexpr uint32 numComponents = TextureFormatHelper<Format>::numComponents;
+    static constexpr bool isSrgb = TextureFormatHelper<Format>::isSrgb;
+
+    using PixelReferenceType = PixelReference<PixelComponentType, numComponents, isSrgb>;
+    using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, numComponents, isSrgb>;
+
+    Bitmap3D()
+        : m_width(0),
+          m_height(0),
+          m_depth(0)
+    {
+    }
+
+    Bitmap3D(uint32 width, uint32 height, uint32 depth)
+        : m_width(width),
+          m_height(height),
+          m_depth(depth)
+    {
+        m_buffer.SetSize(GetByteSize());
+    }
+
+    ~Bitmap3D() = default;
+
+    HYP_FORCE_INLINE uint32 GetWidth() const
+    {
+        return m_width;
+    }
+
+    HYP_FORCE_INLINE uint32 GetHeight() const
+    {
+        return m_height;
+    }
+
+    HYP_FORCE_INLINE uint32 GetDepth() const
+    {
+        return m_depth;
+    }
+
+    HYP_FORCE_INLINE SizeType GetByteSize() const
+    {
+        return SizeType(m_width)
+            * SizeType(m_height)
+            * SizeType(m_depth)
+            * SizeType(numComponents)
+            * sizeof(PixelComponentType);
+    }
+
+    // Get reference to pixel at x,y,z
+    HYP_FORCE_INLINE PixelReferenceType GetPixelReference(uint32 x, uint32 y, uint32 z)
+    {
+        const SizeType index = ((SizeType(z) % m_depth) * m_height + (SizeType(y) % m_height)) * m_width
+            + (SizeType(x) % m_width);
+
+        PixelReferenceType pixelReference { m_buffer.Data() + index * numComponents * sizeof(PixelComponentType) };
+
+        return pixelReference;
+    }
+
+    HYP_FORCE_INLINE ConstPixelReferenceType GetPixelReference(uint32 x, uint32 y, uint32 z) const
+    {
+        return const_cast<Bitmap3D<Format>*>(this)->GetPixelReference(x, y, z);
+    }
+
+    HYP_FORCE_INLINE void SetPixel(uint32 x, uint32 y, uint32 z, const Vec4f& rgba)
+    {
+        GetPixelReference(x, y, z).SetRGBA(rgba);
+    }
+
+    void SetPixels(const ByteBuffer& byteBuffer)
+    {
+        m_buffer = byteBuffer;
+    }
+
+    void SetPixels(ByteBuffer&& byteBuffer)
+    {
+        m_buffer = std::move(byteBuffer);
+    }
+
+    ByteView ToByteView()
+    {
+        return m_buffer.ToByteView();
+    }
+
+    ConstByteView ToByteView() const
+    {
+        return m_buffer.ToByteView();
+    }
+
+    /*! \brief Get data as 1 byte per component (e.g RGBA8) */
+    ByteBuffer GetUnpackedBytes(uint32 bytesPerPixel = numComponents) const
+    {
+        ByteBuffer byteBuffer;
+        byteBuffer.SetSize((m_width * m_height * m_depth) * bytesPerPixel);
+
+        ubyte* bytes = byteBuffer.Data();
+
+        if (bytesPerPixel == 1)
+        {
+            for (uint32 z = 0; z < m_depth; z++)
+            {
+                for (uint32 x = 0; x < m_width; x++)
+                {
+                    for (uint32 y = 0; y < m_height; y++)
+                    {
+                        ConstPixelReferenceType pixelReference = GetPixelReference(x, y, z);
+                        Vec4f rgba = pixelReference.GetRGBA();
+
+                        const Color color { rgba };
+
+                        // keep vertical flip consistent with 2D version; slices are laid out in Z-major order
+                        const SizeType idx = ((SizeType(z) * m_height + (m_height - y - 1u)) * m_width + x) * bytesPerPixel;
+
+                        for (uint32 j = 0; j < MathUtil::Min(numComponents, bytesPerPixel); j++)
+                        {
+                            bytes[idx + j] = color.bytes[j];
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (uint32 z = 0; z < m_depth; z++)
+            {
+                for (uint32 x = 0; x < m_width; x++)
+                {
+                    for (uint32 y = 0; y < m_height; y++)
+                    {
+                        ConstPixelReferenceType pixelReference = GetPixelReference(x, y, z);
+
+                        const SizeType idx = ((SizeType(z) * m_height + (m_height - y - 1u)) * m_width + x) * bytesPerPixel;
+
+                        for (uint32 j = 0; j < MathUtil::Min(numComponents, bytesPerPixel); j++)
+                        {
+                            bytes[idx + j] = ubyte(pixelReference.GetComponentFloat(j) * 255.0f);
+                        }
+                    }
+                }
+            }
+        }
+
+        return byteBuffer;
+    }
+
+    /*! \brief Get data as raw float array (pixels are converted to 32-bit float */
+    Array<float> GetUnpackedFloats() const
+    {
+        Array<float> floats;
+        floats.Resize(m_width * m_height * m_depth * numComponents);
+
+        for (uint32 z = 0; z < m_depth; z++)
+        {
+            for (uint32 x = 0; x < m_width; x++)
+            {
+                for (uint32 y = 0; y < m_height; y++)
+                {
+                    ConstPixelReferenceType pixelReference = GetPixelReference(x, y, z);
+
+                    for (uint32 j = 0; j < numComponents; j++)
+                    {
+                        floats[((z * m_height + y) * m_width + x) * numComponents + j] = pixelReference.GetComponentFloat(j);
+                    }
+                }
+            }
+        }
+
+        return floats;
+    }
+
+private:
+    uint32 m_width;
+    uint32 m_height;
+    uint32 m_depth;
+    ByteBuffer m_buffer;
+};
+
+// 2D
+
 using Bitmap_RGBA8_SRGB = Bitmap<TF_RGBA8_SRGB>;
 
 using Bitmap_RGBA8 = Bitmap<TF_RGBA8>;
@@ -1263,5 +1446,31 @@ using Bitmap_RGBA32F = Bitmap<TF_RGBA32F>;
 using Bitmap_RGB32F = Bitmap<TF_RGB32F>;
 using Bitmap_RG32F = Bitmap<TF_RG32F>;
 using Bitmap_R32F = Bitmap<TF_R32F>;
+
+using Bitmap_RGBA8_SRGB = Bitmap<TF_RGBA8_SRGB>;
+
+// 3D
+
+using Bitmap3D_RGBA8_SRGB = Bitmap3D<TF_RGBA8_SRGB>;
+
+using Bitmap3D_RGBA8 = Bitmap3D<TF_RGBA8>;
+using Bitmap3D_RGB8 = Bitmap3D<TF_RGB8>;
+using Bitmap3D_RG8 = Bitmap3D<TF_RG8>;
+using Bitmap3D_R8 = Bitmap3D<TF_R8>;
+
+using Bitmap3D_RGBA16 = Bitmap3D<TF_RGBA16>;
+using Bitmap3D_RGB16 = Bitmap3D<TF_RGB16>;
+using Bitmap3D_RG16 = Bitmap3D<TF_RG16>;
+using Bitmap3D_R16 = Bitmap3D<TF_R16>;
+
+using Bitmap3D_RGBA16F = Bitmap3D<TF_RGBA16F>;
+using Bitmap3D_RGB16F = Bitmap3D<TF_RGB16F>;
+using Bitmap3D_RG16F = Bitmap3D<TF_RG16F>;
+using Bitmap3D_R16F = Bitmap3D<TF_R16F>;
+
+using Bitmap3D_RGBA32F = Bitmap3D<TF_RGBA32F>;
+using Bitmap3D_RGB32F = Bitmap3D<TF_RGB32F>;
+using Bitmap3D_RG32F = Bitmap3D<TF_RG32F>;
+using Bitmap3D_R32F = Bitmap3D<TF_R32F>;
 
 } // namespace hyperion

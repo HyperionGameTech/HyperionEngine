@@ -26,6 +26,7 @@
 #include <scene/World.hpp>
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/FogVolume.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -351,7 +352,10 @@ uint32 LightmapJobBase::Process(uint32 maxRays)
     const uint32 rayOffset = uint32(m_texelIndex % (m_texelIndices.Size() * m_params.config->numSamples));
     const uint32 numRays = uint32(rays.Size());
 
-    PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), rayOffset);
+    if (numRays > 0)
+    {
+        PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), rayOffset);
+    }
 
     return numRays;
 }
@@ -422,5 +426,51 @@ void LightmapJob<EnvProbe>::Process_Internal(bool* outIsReadyToProcess)
 }
 
 #pragma endregion LightmapJob < EnvProbe>
+
+#pragma region LightmapJob<FogVolume>
+
+LightmapJob<FogVolume>::~LightmapJob()
+{
+}
+
+void LightmapJob<FogVolume>::Start_Internal()
+{
+    LightmapData<FogVolume> lightmapData(m_params.subElementsView, m_fogVolume.Get());
+
+    if (Result result = lightmapData.Build(); result.HasError())
+    {
+        Stop(result.GetError());
+        return;
+    }
+
+    const auto& volumeBitmap = lightmapData.GetVolumeBitmap();
+    const Vec3u volumeExtent = Vec3u {
+        volumeBitmap.GetWidth(),
+        volumeBitmap.GetHeight(),
+        volumeBitmap.GetDepth()
+    };
+
+    // Flatten texel indices for processing
+    m_texelIndices.Reserve(volumeExtent.Volume());
+    for (uint32 i = 0; i < uint32(volumeExtent.Volume()); i++)
+    {
+        m_texelIndices.PushBack(i);
+    }
+}
+
+void LightmapJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
+{
+    if (outIsReadyToProcess)
+    {
+        *outIsReadyToProcess = true;
+    }
+}
+
+void LightmapJob<FogVolume>::GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays)
+{
+    // do nothing, we don't trace rays for fog volumes
+}
+
+#pragma endregion LightmapJob < FogVolume>
 
 } // namespace hyperion

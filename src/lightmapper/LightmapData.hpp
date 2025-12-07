@@ -8,7 +8,9 @@ namespace hyperion {
 
 class LightmapVolume;
 class EnvProbe;
+class FogVolume;
 class Mesh;
+class VoxelOctree;
 
 /*! \brief Base class for lightmap texel source, used to trace rays from and store texel data to. */
 class LightmapDataBase
@@ -136,6 +138,54 @@ public:
 
 protected:
     EnvProbe* m_envProbe;
+};
+
+template <>
+class LightmapData<FogVolume> : public LightmapDataBase
+{
+public:
+    using BitmapType = Bitmap3D_RGBA8;
+
+    LightmapData()
+        : m_fogVolume(nullptr)
+    {
+    }
+
+    LightmapData(Span<const LightmapSubElement> subElements, FogVolume* fogVolume)
+        : LightmapDataBase(subElements),
+          m_fogVolume(fogVolume)
+    {
+    }
+
+    LightmapData(const LightmapData& other) = delete;
+    LightmapData(LightmapData&& other) noexcept = default;
+
+    LightmapData& operator=(const LightmapData& other) = delete;
+    LightmapData& operator=(LightmapData&& other) noexcept = default;
+
+    ~LightmapData() override = default;
+
+    HYP_FORCE_INLINE VoxelOctree* GetVoxelOctree() const
+    {
+        return m_voxelOctree.Get();
+    }
+
+    HYP_FORCE_INLINE BitmapType& GetVolumeBitmap()
+    {
+        return m_volumeBitmap;
+    }
+
+    HYP_FORCE_INLINE const BitmapType& GetVolumeBitmap() const
+    {
+        return m_volumeBitmap;
+    }
+
+    virtual Result Build() override;
+
+protected:
+    FogVolume* m_fogVolume;
+    UniquePtr<VoxelOctree> m_voxelOctree;
+    BitmapType m_volumeBitmap;
 };
 
 } // namespace hyperion

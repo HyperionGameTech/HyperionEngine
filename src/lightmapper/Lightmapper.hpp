@@ -48,6 +48,7 @@ struct LightmapElement;
 class AssetObject;
 class View;
 class EnvProbe;
+class FogVolume;
 struct RenderSetup;
 
 HYP_ENUM()
@@ -183,8 +184,12 @@ public:
     }
 
     virtual void Create() = 0;
-    virtual void PrepareJob(LightmapJobBase* job) {}
-    virtual void CleanJobData(LightmapJobBase* job) {}
+    virtual void PrepareJob(LightmapJobBase* job)
+    {
+    }
+    virtual void CleanJobData(LightmapJobBase* job)
+    {
+    }
     virtual void ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits) = 0;
     virtual void Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
 
@@ -435,6 +440,32 @@ protected:
     virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
 
     Handle<EnvProbe> m_envProbe;
+};
+
+template <>
+class Lightmapper<FogVolume> : public LightmapperBase
+{
+public:
+    Lightmapper(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume);
+
+    Lightmapper(const Lightmapper& other) = delete;
+    Lightmapper& operator=(const Lightmapper& other) = delete;
+
+    Lightmapper(Lightmapper&& other) noexcept = delete;
+    Lightmapper& operator=(Lightmapper&& other) noexcept = delete;
+
+    virtual ~Lightmapper() override = default;
+
+protected:
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    {
+        return MakeUnique<LightmapJob<FogVolume>>(std::move(params), m_fogVolume);
+    }
+
+    virtual void Initialize_Internal() override;
+    virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
+
+    Handle<FogVolume> m_fogVolume;
 };
 
 } // namespace hyperion

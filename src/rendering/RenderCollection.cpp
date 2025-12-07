@@ -7,7 +7,6 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
@@ -19,6 +18,8 @@
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
 
+#include <rendering/renderers/DeferredRenderer.hpp>
+
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/Scene.hpp>
@@ -26,12 +27,12 @@
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
+#include <scene/FogVolume.hpp>
+#include <scene/ParticleVolume.hpp>
 
 #include <scene/camera/Camera.hpp>
 
 #include <scene/animation/Skeleton.hpp>
-
-#include <scene/ParticleVolume.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
 

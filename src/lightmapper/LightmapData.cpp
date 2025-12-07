@@ -8,6 +8,9 @@
 #include <rendering/Texture.hpp>
 
 #include <scene/EnvProbe.hpp>
+#include <scene/FogVolume.hpp>
+
+#include <scene/util/VoxelOctree.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -487,5 +490,30 @@ auto LightmapData<EnvProbe>::ToBitmap() const -> BitmapType
 }
 
 #pragma endregion LightmapData < EnvProbe>
+
+#pragma region LightmapData< FogVolume>
+
+Result LightmapData<FogVolume>::Build()
+{
+    Assert(m_fogVolume != nullptr);
+
+    // Build voxel octree for the fog volume
+    m_voxelOctree = MakeUnique<VoxelOctree>(m_fogVolume);
+
+    auto buildResult = m_voxelOctree->Build(VoxelOctreeParams {}, m_fogVolume->GetEntityManager());
+    if (buildResult.HasError())
+    {
+        return buildResult.GetError();
+    }
+
+    const Handle<Texture>& volumeTexture = m_fogVolume->GetVolumeTexture();
+    Assert(volumeTexture != nullptr);
+
+    m_volumeBitmap = BitmapType(volumeTexture->GetExtent().x, volumeTexture->GetExtent().y * volumeTexture->GetExtent().z);
+
+    return {};
+}
+
+#pragma endregion LightmapData < FogVolume>
 
 } // namespace hyperion
