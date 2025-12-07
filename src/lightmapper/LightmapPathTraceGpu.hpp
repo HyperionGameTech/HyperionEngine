@@ -20,7 +20,7 @@ public:
         LightmapperBase* lightmapper,
         const Handle<Scene>& scene,
         LightmapShadingType shadingType,
-        uint32 maxRaysPerFrame);
+        uint32 maxTexelsPerFrame);
     LightmapRenderer_GpuPathTracing(const LightmapRenderer_GpuPathTracing& other) = delete;
     LightmapRenderer_GpuPathTracing& operator=(const LightmapRenderer_GpuPathTracing& other) = delete;
     LightmapRenderer_GpuPathTracing(LightmapRenderer_GpuPathTracing&& other) noexcept = delete;
@@ -32,7 +32,7 @@ public:
         return m_raytracingPipeline;
     }
 
-    virtual uint32 MaxRaysPerFrame() const override
+    virtual uint32 MaxTexelsPerFrame() const override
     {
         return uint32(-1);
     }
@@ -66,7 +66,7 @@ private:
 
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;
-    uint32 m_maxRaysPerFrame;
+    uint32 m_maxTexelsPerFrame;
 
     HashMap<LightmapJobBase*, JobData, DynamicNodeAllocator> m_jobData;
 

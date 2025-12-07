@@ -339,8 +339,10 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         Handle<Material> material = CreateObject<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), materialAttributes);
 
+        entity->SetLocalBounds(mesh->GetAABB());
+
         scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
-        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
+        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
 
         Handle<Node> node = CreateObject<Node>();
         node->SetName(CreateNameFromDynamicString(subMesh.name));

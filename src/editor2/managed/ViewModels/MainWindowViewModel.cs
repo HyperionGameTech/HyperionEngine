@@ -52,8 +52,9 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand AddAreaRectLight => new EditorCommand("AddAreaRectLight");
 
         public EditorCommand AddLightmapVolume => new EditorCommand("AddLightmapVolume");
-        public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
         public EditorCommand AddReflectionProbe => new EditorCommand("AddReflectionProbe");
+        public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
+        public EditorCommand AddFogVolume => new EditorCommand("AddFogVolume");
 
         private const int GameLaunchWaitIntervalMs = 500;
         private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up

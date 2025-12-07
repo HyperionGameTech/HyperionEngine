@@ -81,6 +81,7 @@
                                             <Separator/>
                                             <MenuItem Header="FX" IsEnabled="False" FontSize="12" Foreground="#808080" Padding="8,4" Margin="0,2" HorizontalAlignment="Center"/>
                                             <MenuItem Header="Particle Volume" Command="{Binding AddParticleVolume}"/>
+                                            <MenuItem Header="Fog Volume" Command="{Binding AddFogVolume}"/>
                                         </MenuFlyout>
                                     </Button.Flyout>
                                 </Button>

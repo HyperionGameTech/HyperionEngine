@@ -862,9 +862,9 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
 
                                         Handle<ReflectionProbe> reflectionProbe = activeScene->GetEntityManager()->AddEntity<ReflectionProbe>(aabb, Vec2u(result.textureDimension));
                                         reflectionProbe->SetIsBaked(result.bakeLighting);
+                                        reflectionProbe->SetLocalBounds(aabb);
 
                                         BoundingBoxComponent boundingBoxComponent;
-                                        boundingBoxComponent.localAabb = aabb;
                                         boundingBoxComponent.worldAabb = aabb;
 
                                         reflectionProbe->AddComponent<BoundingBoxComponent>(boundingBoxComponent);
@@ -964,7 +964,7 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
     lightmapVolume->SetName(Name::Unique("LightmapVolume"));
     InitObject(lightmapVolume);
 
-    lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { lightmapVolumeAabb, lightmapVolumeAabb });
+    lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent {});
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 

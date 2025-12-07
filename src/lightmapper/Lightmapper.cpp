@@ -32,6 +32,7 @@
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
+#include <scene/FogVolume.hpp>
 #include <scene/View.hpp>
 
 #include <scene/util/VoxelOctree.hpp>
@@ -76,7 +77,7 @@
 namespace hyperion {
 
 static constexpr uint32 TileSize = 32;
-static constexpr uint32 IdealRaysPerFrame = 1000000;
+static constexpr uint32 IdealTexelsPerFrame = 1000000;
 static constexpr double IdealGpuMemUsageMB = 1024 * 3;
 static constexpr uint32 MaxConcurrentJobs = ~0u;
 
@@ -155,47 +156,51 @@ void LightmapperBase::Initialize()
 {
     HYP_LOG(Lightmap, Info, "Initializing lightmapper: {}", m_config.ToString());
 
-    Handle<Camera> camera = CreateObject<Camera>();
-    camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
-    camera->AddCameraController(CreateObject<OrthoCameraController>());
-    InitObject(camera);
-
-    // dummy output target
-    ViewOutputTargetDesc outputTargetDesc {
-        .extent = Vec2u::One(),
-        .attachments = { { TF_R8 } }
-    };
-
-    ViewDesc viewDesc {
-        .flags = ViewFlags::COLLECT_STATIC_ENTITIES
-            | ViewFlags::NO_FRUSTUM_CULLING
-            | ViewFlags::SKIP_ENV_GRIDS | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES
-            | ViewFlags::RAYTRACING
-            | ViewFlags::NO_DRAW_CALLS
-            | ViewFlags::NOT_MULTI_BUFFERED,
-        .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
-        .outputTargetDesc = outputTargetDesc,
-        .scenes = { m_scene },
-        .camera = camera
-    };
-
-    m_view = CreateObject<View>(viewDesc);
-    InitObject(m_view);
-
-    m_view->UpdateViewport();
-    m_view->UpdateVisibility();
-    m_view->CollectSync();
-
-    CreateLightmapRenderers();
-
-    /// If cpu path tracing, set up thread pool and stuff
-    if (m_config.traceMode == LightmapTraceMode::CPU_PATH_TRACING)
+    if (PerformsRayTracing())
     {
-        BuildResourceCache();
-        BuildAccelerationStructures();
 
-        m_threadPool = new LightmapThreadPool();
-        m_threadPool->Start();
+        Handle<Camera> camera = CreateObject<Camera>();
+        camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
+        camera->AddCameraController(CreateObject<OrthoCameraController>());
+        InitObject(camera);
+
+        // dummy output target
+        ViewOutputTargetDesc outputTargetDesc {
+            .extent = Vec2u::One(),
+            .attachments = { { TF_R8 } }
+        };
+
+        ViewDesc viewDesc {
+            .flags = ViewFlags::COLLECT_STATIC_ENTITIES
+                | ViewFlags::NO_FRUSTUM_CULLING
+                | ViewFlags::SKIP_ENV_GRIDS | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES
+                | ViewFlags::RAYTRACING
+                | ViewFlags::NO_DRAW_CALLS
+                | ViewFlags::NOT_MULTI_BUFFERED,
+            .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
+            .outputTargetDesc = outputTargetDesc,
+            .scenes = { m_scene },
+            .camera = camera
+        };
+
+        m_view = CreateObject<View>(viewDesc);
+        InitObject(m_view);
+
+        m_view->UpdateViewport();
+        m_view->UpdateVisibility();
+        m_view->CollectSync();
+
+        CreateLightmapRenderers();
+
+        /// If cpu path tracing, set up thread pool and stuff
+        if (m_config.traceMode == LightmapTraceMode::CPU_PATH_TRACING)
+        {
+            BuildResourceCache();
+            BuildAccelerationStructures();
+
+            m_threadPool = new LightmapThreadPool();
+            m_threadPool->Start();
+        }
     }
 
     Initialize_Internal();
@@ -217,12 +222,17 @@ LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, 
     return jobParams;
 }
 
-UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType shadingType, uint32 maxRaysPerFrame)
+UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame)
 {
+    if (!PerformsRayTracing())
+    {
+        return nullptr;
+    }
+
     switch (m_config.traceMode)
     {
     case LightmapTraceMode::GPU_PATH_TRACING:
-        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType, maxRaysPerFrame);
+        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType, maxTexelsPerFrame);
     case LightmapTraceMode::CPU_PATH_TRACING:
         return MakeUnique<LightmapRenderer_CpuPathTracing>(this, m_accelerationStructure.Get(), m_threadPool, m_scene, shadingType);
     default:
@@ -233,6 +243,11 @@ UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType
 void LightmapperBase::CreateLightmapRenderers()
 {
     m_lightmapRenderers.Clear();
+
+    if (!PerformsRayTracing())
+    {
+        return;
+    }
 
     const uint32 shadingTypesMask = GetShadingTypesMask();
 
@@ -437,59 +452,30 @@ void LightmapperBase::Build()
             boundingBoxComponent.worldAabb });
     }
 
+    // set pointers in map after pushing, so that the addresses are stable
+    for (SizeType index = 0; index < m_subElements.Size(); index++)
+    {
+        LightmapSubElement& subElement = m_subElements[index];
+
+        m_subElementsByEntity.Set(subElement.entity, &subElement);
+    }
+
     Build_Internal();
 
-    uint32 numTriangles = 0;
-    SizeType startIndex = 0;
+    UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
+    Assert(job != nullptr);
 
-    if (ShouldSplitIntoJobs())
-    {
-        for (SizeType index = 0; index < m_subElements.Size(); index++)
-        {
-            LightmapSubElement& subElement = m_subElements[index];
-
-            m_subElementsByEntity.Set(subElement.entity, &subElement);
-
-            if (idealTrianglesPerJob != 0 && numTriangles != 0 && numTriangles + subElement.mesh->NumIndices() / 3 > idealTrianglesPerJob)
-            {
-                UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, index + 1));
-                Assert(job != nullptr);
-
-                startIndex = index + 1;
-
-                AddJob(std::move(job));
-
-                numTriangles = 0;
-            }
-
-            numTriangles += subElement.mesh->NumIndices() / 3;
-        }
-    }
-
-    if (startIndex < m_subElements.Size() - 1)
-    {
-        UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, m_subElements.Size()));
-        Assert(job != nullptr);
-
-        AddJob(std::move(job));
-    }
+    AddJob(std::move(job));
 }
 
 void LightmapperBase::Update(float delta)
 {
     HYP_SCOPE;
 
-   /* if (m_updateTimer.Waiting())
-    {
-        m_updateTimer.NextTick();
-
-        return;
-    }*/
-
-    uint32 numRaysProcessed = 0;
+    uint32 numTexelsProcessed = 0;
     uint32 numRunningJobs = 0;
     uint32 numProcessedJobs = 0;
-  
+
     double gpuMemUsagePerJobMB = GetEstimatedGPUMemUsageForJob(m_config);
     AssertDebug(gpuMemUsagePerJobMB <= IdealGpuMemUsageMB);
 
@@ -518,7 +504,7 @@ void LightmapperBase::Update(float delta)
 
         if (job->IsRunning())
         {
-            numRaysProcessed += job->Process(MathUtil::Max(0, int64(IdealRaysPerFrame) - int64(numRaysProcessed)));
+            numTexelsProcessed += job->Process(MathUtil::Max(0, int64(IdealTexelsPerFrame) - int64(numTexelsProcessed)));
 
             ++numProcessedJobs;
         }
@@ -920,4 +906,55 @@ void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
     HYP_LOG(Lightmap, Info, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", m_envProbe->Id());
 }
 
+#pragma endregion Lightmapper < EnvProbe>
+
+#pragma region Lightmapper<FogVolume>
+
+Lightmapper<FogVolume>::Lightmapper(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume)
+    : LightmapperBase(std::move(config), MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldAABB()),
+      m_fogVolume(fogVolume)
+{
+}
+
+void Lightmapper<FogVolume>::Initialize_Internal()
+{
+    Assert(m_fogVolume != nullptr);
+}
+
+void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
+{
+    HYP_SCOPE;
+
+    LightmapJob<FogVolume>* jobCasted = static_cast<LightmapJob<FogVolume>*>(job);
+
+    const LightmapData<FogVolume>& lightmapData = jobCasted->GetLightmapData();
+
+    if (!lightmapData.IsBuilt())
+    {
+        HYP_LOG(Lightmap, Warning, "Lightmap data for FogVolume {} is not built, skipping texture creation", m_fogVolume->Id());
+        return;
+    }
+
+    const typename LightmapData<FogVolume>::BitmapType& bitmap = lightmapData.GetVolumeBitmap();
+
+    TextureDesc textureDesc {
+        TT_TEX3D,
+        bitmap.GetFormat(),
+        Vec3u { bitmap.GetWidth(), bitmap.GetHeight(), bitmap.GetDepth() },
+        TFM_LINEAR,
+        TFM_LINEAR,
+        TWM_CLAMP_TO_EDGE
+    };
+
+    TextureData textureData {
+        ByteBuffer(bitmap.ToByteView())
+    };
+
+    Handle<Texture> volumeTexture = CreateObject<Texture>(textureDesc, std::move(textureData));
+    volumeTexture->SetName(NAME_FMT("FogVolume_{}_Baked", m_fogVolume->GetUUID()));
+    InitObject(volumeTexture);
+
+    // Set the baked texture on the FogVolume
+    m_fogVolume->SetVolumeTexture(volumeTexture);
+}
 } // namespace hyperion

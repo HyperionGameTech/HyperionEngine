@@ -299,12 +299,17 @@ public:
     ParticleVolumeShaderData bufferData {};
 };
 
+struct FogVolumeShaderData
+{
+};
+
 class RenderProxyFogVolume final : public IRenderProxy
 {
 public:
     WeakHandle<FogVolume> fogVolume;
     Texture* volumeTexture = nullptr;
     BoundingBox worldAabb;
+    FogVolumeShaderData bufferData {};
 };
 
 struct alignas(16) MaterialShaderData

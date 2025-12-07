@@ -73,8 +73,9 @@ void WorldAABBUpdaterSystem::Process(float delta, Span<Handle<Scene>> scenes)
 //! Return true on change
 bool WorldAABBUpdaterSystem::ProcessEntity(Entity* entity, BoundingBoxComponent& boundingBoxComponent, TransformComponent& transformComponent)
 {
+    const BoundingBox localAabb = entity->GetLocalBounds();
+
     const BoundingBox prevWorldAabb = boundingBoxComponent.worldAabb;
-    const BoundingBox& localAabb = boundingBoxComponent.localAabb;
     BoundingBox& worldAabb = boundingBoxComponent.worldAabb;
 
     worldAabb = BoundingBox::Empty();

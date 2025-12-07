@@ -1270,6 +1270,16 @@ public:
 
     ~Bitmap3D() = default;
 
+    HYP_FORCE_INLINE static constexpr TextureFormat GetFormat()
+    {
+        return Format;
+    }
+
+    HYP_FORCE_INLINE static constexpr uint32 GetNumComponents()
+    {
+        return numComponents;
+    }
+
     HYP_FORCE_INLINE uint32 GetWidth() const
     {
         return m_width;

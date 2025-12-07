@@ -22,6 +22,7 @@
 #include <scene/View.hpp>
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/FogVolume.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
@@ -135,7 +136,8 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<Obje
         ObjectBase* source = *it;
 
         if (!source->IsA(LightmapVolume::StaticClass())
-            && !source->IsA(EnvProbe::StaticClass()))
+            && !source->IsA(EnvProbe::StaticClass())
+            && !source->IsA(FogVolume::StaticClass()))
         {
             HYP_LOG(Editor, Error, "GenerateLightmapsEditorTask source is not a LightmapVolume or EnvProbe: \"{}\"", source->InstanceClass()->GetName());
             it = m_sources.Erase(it);
@@ -181,11 +183,15 @@ void GenerateLightmapsEditorTask::Process()
 
         if (source->IsA(LightmapVolume::StaticClass()))
         {
-            task = lightmapperSubsystem->GenerateLightmaps(ObjCast<LightmapVolume>(source));
+            task = lightmapperSubsystem->EnqueueBake(ObjCast<LightmapVolume>(source));
         }
         else if (source->IsA(EnvProbe::StaticClass()))
         {
-            task = lightmapperSubsystem->GenerateLightmaps(ObjCast<EnvProbe>(source));
+            task = lightmapperSubsystem->EnqueueBake(ObjCast<EnvProbe>(source));
+        }
+        else if (source->IsA(FogVolume::StaticClass()))
+        {
+            task = lightmapperSubsystem->EnqueueBake(ObjCast<FogVolume>(source));
         }
 
         if (task != nullptr)
@@ -1546,11 +1552,11 @@ void EditorSubsystem::InitViewport()
     uiSubsystem->GetUIStage()->UpdateSize(true);
 
     //// bind console key
-    //m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
-    //    {
-    //        // Check we aren't entering text in non-console text field
-    //        UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    //        Assert(uiSubsystem != nullptr && uiSubsystem->GetUIStage() != nullptr);
+    // m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
+    //     {
+    //         // Check we aren't entering text in non-console text field
+    //         UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    //         Assert(uiSubsystem != nullptr && uiSubsystem->GetUIStage() != nullptr);
 
     //        // if (Handle<UIObject> focusedObject = uiSubsystem->GetUIStage()->GetFocusedObject().Lock())
     //        // {
@@ -2000,7 +2006,7 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    //InitConsoleUI();
+    // InitConsoleUI();
     InitDebugOverlays();
     InitManipulationWidgetSelection();
 }

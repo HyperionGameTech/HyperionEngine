@@ -10,6 +10,7 @@
 #include <scene/Light.hpp>
 
 #include <scene/ParticleVolume.hpp>
+#include <scene/FogVolume.hpp>
 
 #include <scene/components/BoundingBoxComponent.hpp>
 
@@ -254,7 +255,7 @@ public:
         lightmapVolume->SetName(Name::Unique("LightmapVolume"));
         InitObject(lightmapVolume);
 
-        lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { lightmapVolumeAabb, lightmapVolumeAabb });
+        lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent {});
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
@@ -388,6 +389,93 @@ public:
 DEFINE_EDITOR_COMMAND(AddParticleVolume);
 
 #pragma endregion AddParticleVolume
+
+#pragma region AddFogVolume
+
+class HYP_API EditorCommandAddFogVolume final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAddFogVolume);
+
+public:
+    virtual ~EditorCommandAddFogVolume() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot add fog volume");
+
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene found");
+
+            return;
+        }
+
+        Handle<FogVolume> fogVolume = CreateObject<FogVolume>(BoundingBox(Vec3f(-10.0f, 0.0f, -10.0f), Vec3f(10.0f, 10.0f, 10.0f)));
+        InitObject(fogVolume);
+
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+        fogVolume->SetWorldTranslation(insertionPoint);
+
+        WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
+
+        Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+            StaticClass()->GetName(),
+            Proc<EditorActionFunctions()>([fogVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>([fogVolume, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                activeScene->GetRoot()->AddChild(fogVolume);
+                                editorSubsystem->SetFocusedNode(fogVolume, true);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>([fogVolume, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                fogVolume->Remove();
+
+                                if (editorSubsystem->GetFocusedNode() == fogVolume)
+                                {
+                                    editorSubsystem->SetFocusedNode(nullptr, true);
+
+                                    Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                    if (focusedNode.IsValid())
+                                    {
+                                        editorSubsystem->SetFocusedNode(focusedNode, true);
+                                    }
+                                }
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->Push(action);
+
+        // start baking fog volume
+
+        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(
+            Array<Handle<ObjectBase>> { fogVolume });
+
+        InitObject(generateLightmapsTask);
+
+        generateLightmapsTask->SetScene(activeScene);
+
+        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+        generateLightmapsTask->SetWorld(worldHandle);
+
+        subsystem->AddTask(generateLightmapsTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddFogVolume);
+
+#pragma endregion AddFogVolume
 
 template <class EditorCommandType, class T>
 static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)

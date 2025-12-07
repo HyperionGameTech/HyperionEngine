@@ -7,13 +7,10 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Component, Size = 64, Editor = false)
+HYP_STRUCT(Component, Editor = false)
 struct BoundingBoxComponent
 {
     HYP_STRUCT_BODY(BoundingBoxComponent);
-
-    HYP_FIELD(Property = "LocalAABB")
-    BoundingBox localAabb;
 
     HYP_FIELD(Property = "WorldAABB")
     BoundingBox worldAabb;
@@ -22,7 +19,6 @@ struct BoundingBoxComponent
     {
         HashCode hashCode;
 
-        hashCode.Add(localAabb);
         hashCode.Add(worldAabb);
 
         return hashCode;

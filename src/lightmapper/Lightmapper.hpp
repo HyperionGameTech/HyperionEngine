@@ -87,7 +87,7 @@ struct LightmapperConfig : public ConfigBase<LightmapperConfig>
     uint32 numSamples = 16;
 
     HYP_FIELD()
-    uint32 maxRaysPerFrame = 512 * 512;
+    uint32 maxTexelsPerFrame = 512 * 512;
 
     HYP_FIELD()
     uint32 idealTrianglesPerJob = 8192;
@@ -121,9 +121,9 @@ struct LightmapperConfig : public ConfigBase<LightmapperConfig>
             valid = false;
         }
 
-        if (maxRaysPerFrame == 0)
+        if (maxTexelsPerFrame == 0)
         {
-            AddError(HYP_MAKE_ERROR(Error, "Max rays per frame must be greater than zero"));
+            AddError(HYP_MAKE_ERROR(Error, "Max texels per frame must be greater than zero"));
 
             valid = false;
         }
@@ -174,7 +174,7 @@ public:
 
     virtual ~ILightmapRenderer() = default;
 
-    virtual uint32 MaxRaysPerFrame() const = 0;
+    virtual uint32 MaxTexelsPerFrame() const = 0;
 
     virtual LightmapShadingType GetShadingType() const = 0;
 
@@ -310,6 +310,11 @@ protected:
         return true;
     }
 
+    virtual bool PerformsRayTracing() const
+    {
+        return true;
+    }
+
     virtual void Initialize_Internal()
     {
     }
@@ -323,7 +328,7 @@ protected:
     }
 
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
-    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType, uint32 maxRaysPerFrame);
+    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame);
 
     void CreateLightmapRenderers();
 
@@ -457,6 +462,11 @@ public:
     virtual ~Lightmapper() override = default;
 
 protected:
+    virtual bool PerformsRayTracing() const override
+    {
+        return false;
+    }
+
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
     {
         return MakeUnique<LightmapJob<FogVolume>>(std::move(params), m_fogVolume);

@@ -373,7 +373,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     m_uniforms.numRaysPerProbe = m_gridInfo.numRaysPerProbe;
     m_uniforms.numBoundLights = 0;
 
-    const uint32 maxBoundLights = sizeof(m_uniforms.lightIndices) / sizeof(uint32);
+    const uint32 maxBoundLights = sizeof(m_uniforms.lightIndices) / (sizeof(uint32));
 
     uint32* lightIndicesU32 = reinterpret_cast<uint32*>(&m_uniforms.lightIndices);
     Memory::MemSet(lightIndicesU32, 0, sizeof(m_uniforms.lightIndices));

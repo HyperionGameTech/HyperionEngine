@@ -11,6 +11,7 @@
 #include <rendering/RenderConfig.hpp>
 
 #include <scene/EnvProbe.hpp>
+#include <scene/FogVolume.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 
@@ -110,18 +111,26 @@ void LightmapperSubsystem::Update(float delta)
     }
 }
 
-Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<LightmapVolume>& volume)
+template <>
+Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<LightmapVolume>& source)
 {
-    return GenerateLightmaps_Internal(volume);
+    return EnqueueBake_Internal(source);
 }
 
-Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<EnvProbe>& envProbe)
+template <>
+Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<EnvProbe>& source)
 {
-    return GenerateLightmaps_Internal(envProbe);
+    return EnqueueBake_Internal(source);
+}
+
+template <>
+Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<FogVolume>& source)
+{
+    return EnqueueBake_Internal(source);
 }
 
 template <class T, class... Args>
-Task<void>* LightmapperSubsystem::GenerateLightmaps_Internal(const Handle<T>& source, Args&&... args)
+Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&... args)
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread);

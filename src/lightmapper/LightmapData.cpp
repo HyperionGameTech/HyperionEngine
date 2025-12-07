@@ -498,7 +498,7 @@ Result LightmapData<FogVolume>::Build()
     Assert(m_fogVolume != nullptr);
 
     // Build voxel octree for the fog volume
-    m_voxelOctree = MakeUnique<VoxelOctree>(m_fogVolume);
+    m_voxelOctree = MakeUnique<VoxelOctree>();
 
     auto buildResult = m_voxelOctree->Build(VoxelOctreeParams {}, m_fogVolume->GetEntityManager());
     if (buildResult.HasError())
@@ -506,10 +506,32 @@ Result LightmapData<FogVolume>::Build()
         return buildResult.GetError();
     }
 
-    const Handle<Texture>& volumeTexture = m_fogVolume->GetVolumeTexture();
-    Assert(volumeTexture != nullptr);
+    const BoundingBox localBounds = m_fogVolume->GetLocalBounds();
 
-    m_volumeBitmap = BitmapType(volumeTexture->GetExtent().x, volumeTexture->GetExtent().y * volumeTexture->GetExtent().z);
+    Vec3u volumeTextureDimensions;
+    const Vec3f localBoundsExtent = localBounds.GetExtent();
+
+    const float maxExtent = localBoundsExtent.Max();
+
+    if (maxExtent < MathUtil::epsilonF)
+    {
+        volumeTextureDimensions = Vec3u::One();
+    }
+    else
+    {
+        const float scale = float(FogVolume::MaxVolumeTextureExtent) / maxExtent;
+        volumeTextureDimensions = Vec3u(MathUtil::Max(Vec3f(1.0f), MathUtil::Ceil(localBoundsExtent * scale)));
+    }
+
+    if (volumeTextureDimensions.Volume() == 0)
+    {
+        volumeTextureDimensions = Vec3u::One();
+    }
+
+    m_volumeBitmap = BitmapType(
+        volumeTextureDimensions.x,
+        volumeTextureDimensions.y,
+        volumeTextureDimensions.z);
 
     return {};
 }

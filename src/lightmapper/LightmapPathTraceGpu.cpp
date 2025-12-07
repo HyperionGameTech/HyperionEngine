@@ -119,11 +119,11 @@ LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
     LightmapperBase* lightmapper,
     const Handle<Scene>& scene,
     LightmapShadingType shadingType,
-    uint32 maxRaysPerFrame)
+    uint32 maxTexelsPerFrame)
     : ILightmapRenderer(lightmapper),
       m_scene(scene),
       m_shadingType(shadingType),
-      m_maxRaysPerFrame(maxRaysPerFrame)
+      m_maxTexelsPerFrame(maxTexelsPerFrame)
 {
     m_readyNotification = MakeRefCountedPtr<GpuLightmapperReadyNotification>();
 }
@@ -159,12 +159,12 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(LightmapJobBase* job)
 
     for (GpuBufferRef& rayBuffer : jd.RayBuffers)
     {
-        rayBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * m_maxRaysPerFrame, alignof(Vec4f));
+        rayBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
         rayBuffer->SetRequireCpuAccessible(true);
     }
 
     // ATOMIC_COUNTER type allows readback to cpu.
-    jd.HitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxRaysPerFrame, alignof(Vec4f));
+    jd.HitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
 
     DeferCreate(jd.HitsBufferGpu);
 
@@ -460,10 +460,8 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     frame->renderQueue << BindDescriptorSet(
         g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(GlobalSetName, frame->GetFrameIndex()),
         m_raytracingPipeline,
-        {
-            { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-            { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) }
-        });
+        { { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+            { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } });
 
     frame->renderQueue << BindDescriptorSet(
         g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(MaterialSetName, frame->GetFrameIndex()),

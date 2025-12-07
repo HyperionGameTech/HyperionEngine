@@ -211,8 +211,10 @@ void UIObject::Init()
     meshComponent.instanceData.enableAutoInstancing = true;
     meshComponent.userData = MeshComponentUserData {};
 
-    scene->GetEntityManager()->AddComponent<MeshComponent>(GetEntity(), std::move(meshComponent));
-    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(GetEntity(), BoundingBoxComponent {});
+    Entity* entity = GetEntity();
+
+    scene->GetEntityManager()->AddComponent<MeshComponent>(entity, std::move(meshComponent));
+    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
 
     SetReady(true);
 
@@ -1778,7 +1780,6 @@ void UIObject::SetLocalBounds(const BoundingBox& aabb)
     if (Scene* scene = GetScene())
     {
         BoundingBoxComponent& boundingBoxComponent = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
-        boundingBoxComponent.localAabb = aabb;
 
         if (const Handle<Node>& node = GetNode())
         {

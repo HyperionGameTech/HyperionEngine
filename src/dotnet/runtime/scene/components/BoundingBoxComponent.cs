@@ -4,41 +4,19 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name="BoundingBoxComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 64)]
+    [StructLayout(LayoutKind.Sequential, Size = 32)]
     public struct BoundingBoxComponent : IComponent
     {
-        [FieldOffset(0)]
-        private BoundingBox localAABB;
-
-        [FieldOffset(32)]
-        private BoundingBox worldAABB;
+        private BoundingBox _worldAabb;
 
         public void Dispose()
         {
         }
 
-        public BoundingBox LocalAABB
-        {
-            get
-            {
-                return localAABB;
-            }
-            set
-            {
-                localAABB = value;
-            }
-        }
-
         public BoundingBox WorldAABB
         {
-            get
-            {
-                return worldAABB;
-            }
-            set
-            {
-                worldAABB = value;
-            }
+            get => _worldAabb;
+            set => _worldAabb = value;
         }
     }
 }

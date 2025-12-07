@@ -1523,9 +1523,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 Scene* scene = GetDetachedSceneForCurrentThread();
 
                 const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
+                entity->SetLocalBounds(mesh->GetAABB());
 
                 scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
-                scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
+                scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
 
                 node->AddChild(entity);
             }

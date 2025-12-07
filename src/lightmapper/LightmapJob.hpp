@@ -112,7 +112,7 @@ public:
     }
 
     void Start();
-    uint32 Process(uint32 maxRays = ~0u);
+    uint32 Process(uint32 maxTexels = ~0u);
 
     void AddTask(TaskBatch* taskBatch);
 
@@ -122,11 +122,12 @@ public:
      */
     virtual void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType);
 
-    /*! \brief Gather next rays to be traced.
-     *  \param maxRayHits The maximum number of rays to gather.
-     *  \param outRays The output array to store gathered rays.
+    /*! \brief Gather next texels to process.
+     *  \param maxTexels Maximum number of texels to gather.
+     *  \param outTexels Output array to store gathered texels (pointers).
      */
-    virtual void GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays);
+    virtual void GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexels);
+    virtual void ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0);
 
     bool IsCompleted() const;
 
@@ -280,11 +281,11 @@ public:
         return m_lightmapData;
     }
 
+    virtual void ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0) override;
+
 protected:
     virtual void Start_Internal() override;
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
-
-    virtual void GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays) override;
 
     Handle<FogVolume> m_fogVolume;
     LightmapData<FogVolume> m_lightmapData;

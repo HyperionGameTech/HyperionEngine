@@ -71,7 +71,7 @@
     "Args": "-ResX=1920 -ResY=1080 -Profile=false -TraceURL=http://localhost:8000/trace"
   },
   "Lightmapper": {
-    "MaxRaysPerFrame": 100000,
+    "MaxTexelsPerFrame": 100000,
     "TraceMode": 0,
     "NumThreadsPerJob": 4,
     "Radiance": true,

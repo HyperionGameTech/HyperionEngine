@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "core/Defines.hpp"
 #include <core/Types.hpp>
 
 #include <core/math/BoundingBox.hpp>
@@ -20,6 +21,8 @@ class HYP_API FogVolume final : public Entity
     HYP_OBJECT_BODY(FogVolume);
 
 public:
+    static constexpr uint32 MaxVolumeTextureExtent = 32;
+
     FogVolume();
 
     explicit FogVolume(const BoundingBox& aabb);
@@ -34,6 +37,9 @@ public:
     {
         return m_volumeTexture;
     }
+
+    HYP_METHOD()
+    void SetVolumeTexture(const Handle<Texture>& texture);
 
     void UpdateRenderProxy(class RenderProxyFogVolume* proxy);
 

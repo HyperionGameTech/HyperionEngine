@@ -123,15 +123,6 @@ void Entity::Init()
         m_entityManager->AddComponent<TransformComponent>(this, TransformComponent { m_worldTransform });
     }
 
-    if (BoundingBoxComponent* boundingBoxComponent = m_entityManager->TryGetComponent<BoundingBoxComponent>(this))
-    {
-        SetLocalBounds(boundingBoxComponent->localAabb);
-    }
-    else
-    {
-        SetLocalBounds(BoundingBox::Empty());
-    }
-
     if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))
     {
         m_entityManager->AddComponent<VisibilityStateComponent>(this, {});
@@ -291,23 +282,10 @@ void Entity::OnComponentAdded(AnyRef component)
 
         return;
     }
-
-    if (BoundingBoxComponent* boundingBoxComponent = component.TryGet<BoundingBoxComponent>())
-    {
-        SetLocalBounds(boundingBoxComponent->localAabb);
-
-        return;
-    }
 }
 
 void Entity::OnComponentRemoved(AnyRef component)
 {
-    if (BoundingBoxComponent* boundingBoxComponent = component.TryGet<BoundingBoxComponent>())
-    {
-        SetLocalBounds(BoundingBox::Empty());
-
-        return;
-    }
 }
 
 void Entity::OnTagAdded(EntityTag tag)
@@ -382,7 +360,7 @@ void Entity::OnMobilityChanged(bool isStatic)
     HYP_SCOPE;
 
     Node::OnMobilityChanged(isStatic);
-    
+
     if (!IsInitCalled())
     {
         return;

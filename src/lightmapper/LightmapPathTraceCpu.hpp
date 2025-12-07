@@ -56,7 +56,7 @@ public:
     LightmapRenderer_CpuPathTracing& operator=(LightmapRenderer_CpuPathTracing&& other) noexcept = delete;
     virtual ~LightmapRenderer_CpuPathTracing() override;
 
-    virtual uint32 MaxRaysPerFrame() const override
+    virtual uint32 MaxTexelsPerFrame() const override
     {
         return uint32(-1);
     }
