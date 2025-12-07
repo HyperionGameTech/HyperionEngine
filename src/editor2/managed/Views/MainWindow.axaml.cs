@@ -4,6 +4,7 @@ using Avalonia.Platform;
 using Avalonia.Threading;
 using System;
 using Hyperion.Editor.ViewModels;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor
 {
@@ -30,15 +31,8 @@ namespace Hyperion.Editor
             {
                 Opened += (s, e) =>
                 {
-                    if (CappedFrameRate)
-                    {
-                        var topLevel = TopLevel.GetTopLevel(this);
-                        topLevel?.RequestAnimationFrame(OnFrame);
-                    }
-                    else
-                    {
-                        OnFrame(TimeSpan.Zero);
-                    }
+                    var topLevel = TopLevel.GetTopLevel(this);
+                    topLevel?.RequestAnimationFrame(OnFrame);
                 };
             }
         }
@@ -51,22 +45,12 @@ namespace Hyperion.Editor
 
         private void OnFrame(TimeSpan time)
         {
-            if (CappedFrameRate)
-            {
-                NativeBindings.Hyp_MainThreadUpdate();
+            NativeBindings.Hyp_MainThreadUpdate();
 
-                var topLevel = GetTopLevel(this);
-                topLevel?.RequestAnimationFrame(OnFrame);
+            ConsoleService.Instance.ProcessLogQueue();
 
-                return;
-            }
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                NativeBindings.Hyp_MainThreadUpdate();
-
-                OnFrame(TimeSpan.Zero);
-            }, DispatcherPriority.Render);
+            var topLevel = GetTopLevel(this);
+            topLevel?.RequestAnimationFrame(OnFrame);
         }
     }
 }

@@ -6,6 +6,10 @@
 #include <console/ConsoleCommand.hpp>
 
 #include <core/threading/Mutex.hpp>
+#include <core/threading/Threads.hpp>
+#include <core/threading/Thread.hpp>
+#include <core/threading/Task.hpp>
+#include <core/threading/Scheduler.hpp>
 
 #include <core/utilities/StringView.hpp>
 
@@ -182,30 +186,51 @@ Result ConsoleCommandManager::ExecuteCommand(const String& commandLine)
 
     String commandName = split[0].ToLower();
 
-    Mutex::Guard guard(m_impl->m_mutex);
+    Task<Result> task;
 
-    auto it = m_impl->m_commands.Find(commandName.Data());
-
-    if (it == m_impl->m_commands.End())
     {
-        HYP_LOG(Console, Error, "Command not found: {}", commandName);
 
-        return HYP_MAKE_ERROR(Error, "Command not found: {}", commandName);
+        Mutex::Guard guard(m_impl->m_mutex);
+
+        auto it = m_impl->m_commands.Find(commandName.Data());
+
+        if (it == m_impl->m_commands.End())
+        {
+            HYP_LOG(Console, Error, "Command not found: {}", commandName);
+
+            return HYP_MAKE_ERROR(Error, "Command not found: {}", commandName);
+        }
+
+        const CommandLineArgumentDefinitions& definitions = (*it)->GetDefinitions();
+
+        CommandLineParser commandLineParser { &definitions };
+
+        if (auto parseResult = commandLineParser.Parse(commandLine); parseResult.HasValue())
+        {
+            // execute all commands on the game thread
+            if (IsOnThread(g_gameThread))
+            {
+                return (*it)->Execute(parseResult.GetValue());
+            }
+            else
+            {
+                task = GetThreadById(g_gameThread)->GetScheduler().Enqueue([command = *it, parseResult = std::move(parseResult)]() mutable
+                    {
+                        return command->Execute(parseResult.GetValue());
+                    });
+            }
+        }
+        else
+        {
+            HYP_LOG(Console, Error, "Failed to parse command line: {}", parseResult.GetError().GetMessage());
+
+            return parseResult.GetError();
+        }
     }
 
-    const CommandLineArgumentDefinitions& definitions = (*it)->GetDefinitions();
-
-    CommandLineParser commandLineParser { &definitions };
-
-    if (auto parseResult = commandLineParser.Parse(commandLine); parseResult.HasValue())
+    if (task.IsValid())
     {
-        return (*it)->Execute(parseResult.GetValue());
-    }
-    else
-    {
-        HYP_LOG(Console, Error, "Failed to parse command line: {}", parseResult.GetError().GetMessage());
-
-        return parseResult.GetError();
+        return task.Await();
     }
 
     return {};

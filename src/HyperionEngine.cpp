@@ -90,19 +90,19 @@ static constexpr SizeType ScriptPoolBlockSize = 16 * 1024 * 1024;
 static constexpr SizeType SceneArenaSize = 1 * 1024 * 1024;
 static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024;
 
-HYP_API Pool* g_objectPool;
-HYP_API Pool* g_renderPool;
-HYP_API Pool* g_framePools[RingBufferDepth];
-HYP_API Pool* g_scenePool;
-HYP_API Pool* g_taskPool;
-HYP_API Pool* g_resourcePool;
-HYP_API Pool* g_assetPool;
-HYP_API Pool* g_streamingPool;
-HYP_API Pool* g_scriptPool;
+HYP_EXPORT Pool* g_objectPool;
+HYP_EXPORT Pool* g_renderPool;
+HYP_EXPORT Pool* g_framePools[RingBufferDepth];
+HYP_EXPORT Pool* g_scenePool;
+HYP_EXPORT Pool* g_taskPool;
+HYP_EXPORT Pool* g_resourcePool;
+HYP_EXPORT Pool* g_assetPool;
+HYP_EXPORT Pool* g_streamingPool;
+HYP_EXPORT Pool* g_scriptPool;
 
-HYP_API TArena<RenderAllocator>* g_renderArena;
-HYP_API TArena<SceneAllocator>* g_sceneArena;
-HYP_API TArena<StreamingAllocator>* g_streamingArena;
+HYP_EXPORT TArena<RenderAllocator>* g_renderArena;
+HYP_EXPORT TArena<SceneAllocator>* g_sceneArena;
+HYP_EXPORT TArena<StreamingAllocator>* g_streamingArena;
 
 Pool* const* g_enginePools[EPN_MAX] = {
     &g_objectPool, // EPN_CORE
@@ -110,13 +110,13 @@ Pool* const* g_enginePools[EPN_MAX] = {
     &g_scenePool   // EPN_SCENE
 };
 
-HYP_API Pool* GetCurrentFramePool()
+HYP_EXPORT Pool* GetCurrentFramePool()
 {
     return g_framePools[RenderApi::GetRingIndex()];
 }
 
 // defined in ClassDecls.cpp
-HYP_API extern void InitializeClassDeclarations();
+HYP_EXPORT extern void InitializeClassDeclarations();
 
 #pragma endregion Memory Pools
 
@@ -184,7 +184,7 @@ struct DirectoryInitializer
 };
 
 // Directory for data to be imported into editor builds
-HYP_API const FilePath& GetResourceDirectory()
+HYP_EXPORT const FilePath& GetResourceDirectory()
 {
 #ifdef HYP_EDITOR
     static DirectoryInitializer<HYP_STATIC_STRING("res"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
@@ -200,14 +200,14 @@ HYP_API const FilePath& GetResourceDirectory()
 }
 
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
-HYP_API const FilePath& GetCacheDirectory()
+HYP_EXPORT const FilePath& GetCacheDirectory()
 {
     static DirectoryInitializer<HYP_STATIC_STRING("Cache")> s_resourceDirectory;
     return s_resourceDirectory.path;
 }
 
 // Directory for temporary data (intermediate compilation outputs, etc.) Will be not be used in production builds
-HYP_API const FilePath& GetTempDirectory()
+HYP_EXPORT const FilePath& GetTempDirectory()
 {
     static DirectoryInitializer<HYP_STATIC_STRING("Temp")> s_resourceDirectory;
     return s_resourceDirectory.path;
@@ -217,7 +217,7 @@ static void (*s_initFromManagedCallback)() = nullptr;
 
 extern "C"
 {
-    HYP_API int Hyp_Initialize(int argc, char** argv)
+    HYP_EXPORT int Hyp_Initialize(int argc, char** argv)
     {
         if (!argv || argc <= 0)
         {
@@ -382,7 +382,7 @@ extern "C"
         return 1;
     }
 
-    HYP_API void Hyp_Shutdown()
+    HYP_EXPORT void Hyp_Shutdown()
     {
         AssertOnThread(g_mainThread);
 
@@ -499,12 +499,12 @@ extern "C"
 #endif
     }
 
-    HYP_API AppContextBase* Hyp_GetAppContext()
+    HYP_EXPORT AppContextBase* Hyp_GetAppContext()
     {
         return g_appContext.Get();
     }
 
-    HYP_API HWND Hyp_GetHWND(ApplicationWindow* pWindow)
+    HYP_EXPORT HWND Hyp_GetHWND(ApplicationWindow* pWindow)
     {
         if (!pWindow)
         {
@@ -515,7 +515,7 @@ extern "C"
     }
 
 #ifdef HYP_MACOS
-    HYP_API void* Hyp_GetNSView(ApplicationWindow* pWindow)
+    HYP_EXPORT void* Hyp_GetNSView(ApplicationWindow* pWindow)
     {
         if (!pWindow)
         {
@@ -533,7 +533,7 @@ extern "C"
     }
 #endif
 
-    HYP_API int Hyp_SetMainWindow(AppContextBase* pCtx, ApplicationWindow* pWindow)
+    HYP_EXPORT int Hyp_SetMainWindow(AppContextBase* pCtx, ApplicationWindow* pWindow)
     {
         AssertOnThread(g_mainThread);
 
@@ -543,7 +543,7 @@ extern "C"
         return 1;
     }
 
-    HYP_API ApplicationWindow* Hyp_GetMainWindow(AppContextBase* pCtx)
+    HYP_EXPORT ApplicationWindow* Hyp_GetMainWindow(AppContextBase* pCtx)
     {
         AssertOnThread(g_mainThread);
 
@@ -551,7 +551,7 @@ extern "C"
         return pCtx->GetMainWindow();
     }
 
-    HYP_API Game* Hyp_CreateGame(const char* gameClassName)
+    HYP_EXPORT Game* Hyp_CreateGame(const char* gameClassName)
     {
         if (!gameClassName)
         {
@@ -583,7 +583,7 @@ extern "C"
         return pGame;
     }
 
-    HYP_API void Hyp_DestroyGame(Game* pGame)
+    HYP_EXPORT void Hyp_DestroyGame(Game* pGame)
     {
         if (!pGame)
         {
@@ -593,7 +593,7 @@ extern "C"
         pGame->GetObjectHeader_Internal()->DecRefStrong();
     }
 
-    HYP_API int Hyp_LaunchGame(Game* pGame)
+    HYP_EXPORT int Hyp_LaunchGame(Game* pGame)
     {
         if (!pGame)
         {
@@ -605,17 +605,61 @@ extern "C"
         return 1;
     }
 
-    HYP_API void Hyp_MainThreadUpdate()
+    HYP_EXPORT void Hyp_MainThreadUpdate()
     {
         AssertOnThread(g_mainThread);
 
         g_mainThreadInstance->Update();
     }
 
-    HYP_API void Hyp_SetInitFromManagedCallback(void (*callback)())
+    HYP_EXPORT void Hyp_SetInitFromManagedCallback(void (*callback)())
     {
         s_initFromManagedCallback = callback;
     }
+
+#ifdef HYP_EDITOR
+    using LogCallback = void (*)(const char* channel, int level, double timestamp, const char* message);
+
+    LogCallback g_logCallback = nullptr;
+    int g_logRedirectId = -1;
+
+    static void HandleLogMessage(void* context, const LogChannel& channel, const LogMessage& message)
+    {
+        if (g_logCallback)
+        {
+            String text;
+            for (const auto& chunk : message.chunks)
+            {
+                text.Append(chunk);
+            }
+
+            g_logCallback(channel.name.LookupString(), (int)message.level, (double)message.timestamp, text.Data());
+        }
+    }
+
+    HYP_EXPORT void Editor_RegisterLogCallback(LogCallback callback)
+    {
+        g_logCallback = callback;
+
+        if (g_logRedirectId == -1)
+        {
+            g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
+                Bitset(~0u), // All channels
+                nullptr,
+                HandleLogMessage,
+                HandleLogMessage // Use same handler for errors for now
+            );
+        }
+    }
+
+    HYP_EXPORT void Editor_ExecuteConsoleCommand(const char* command)
+    {
+        if (!command)
+            return;
+
+        ConsoleCommandManager::GetInstance().ExecuteCommand(command);
+    }
+#endif
 }
 
 } // namespace hyperion

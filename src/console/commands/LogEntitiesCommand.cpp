@@ -42,9 +42,12 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 {
     HYP_LOG(LogEntities, Info, "LogEntitiesCommand test");
 
-    // Trigger .NET garbage collector and wait for finalizers (there may be entities waiting to be collected)
-    DotNETHost::GetInstance().GetGlobalFunctions().triggerGcFunction();
-    ThreadSleep(1000);
+    if (DotNETHost::GetInstance().GetGlobalFunctions().triggerGcFunction)
+    {
+        // Trigger .NET garbage collector and wait for finalizers (there may be entities waiting to be collected)
+        DotNETHost::GetInstance().GetGlobalFunctions().triggerGcFunction();
+        ThreadSleep(1000);
+    }
 
     String fileArg = args["file"].ToString();
 

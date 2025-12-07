@@ -12,10 +12,10 @@
     </UserControl.DataContext>
 
     <Grid RowDefinitions="*, Auto">
-        <ListBox x:Name="LogListBox" Grid.Row="0" ItemsSource="{Binding Logs}" Background="#1E1E1E">
+        <ListBox x:Name="LogListBox" Grid.Row="0" ItemsSource="{Binding Logs}" Background="#1E1E1E" BorderThickness="0" >
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding Message}" Foreground="{Binding Color}" FontFamily="Consolas, Monospace" FontSize="12" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Message}" Foreground="{Binding Color}" FontFamily="Consolas, Monospace" FontSize="12" TextWrapping="Wrap" Padding="4 0"/>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>

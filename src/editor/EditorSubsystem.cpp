@@ -1545,60 +1545,60 @@ void EditorSubsystem::InitViewport()
 
     uiSubsystem->GetUIStage()->UpdateSize(true);
 
-    // bind console key
-    m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
-        {
-            // Check we aren't entering text in non-console text field
-            UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-            Assert(uiSubsystem != nullptr && uiSubsystem->GetUIStage() != nullptr);
+    //// bind console key
+    //m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
+    //    {
+    //        // Check we aren't entering text in non-console text field
+    //        UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    //        Assert(uiSubsystem != nullptr && uiSubsystem->GetUIStage() != nullptr);
 
-            // if (Handle<UIObject> focusedObject = uiSubsystem->GetUIStage()->GetFocusedObject().Lock())
-            // {
-            //     if (focusedObject->IsA<UITextbox>() && (m_consoleUi && !m_consoleUi->HasFocus()))
-            //     {
-            //         HYP_BREAKPOINT;
-            //         return UIEventHandlerResult::OK;
-            //     }
-            // }
+    //        // if (Handle<UIObject> focusedObject = uiSubsystem->GetUIStage()->GetFocusedObject().Lock())
+    //        // {
+    //        //     if (focusedObject->IsA<UITextbox>() && (m_consoleUi && !m_consoleUi->HasFocus()))
+    //        //     {
+    //        //         HYP_BREAKPOINT;
+    //        //         return UIEventHandlerResult::OK;
+    //        //     }
+    //        // }
 
-            if (event.keyCode == KeyCode::TILDE)
-            {
-                const bool isConsoleOpen = m_consoleUi && m_consoleUi->IsVisible();
+    //        if (event.keyCode == KeyCode::TILDE)
+    //        {
+    //            const bool isConsoleOpen = m_consoleUi && m_consoleUi->IsVisible();
 
-                if (isConsoleOpen)
-                {
-                    m_consoleUi->SetIsVisible(false);
+    //            if (isConsoleOpen)
+    //            {
+    //                m_consoleUi->SetIsVisible(false);
 
-                    for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
-                    {
-                        if (!debugOverlayContainer)
-                        {
-                            continue;
-                        }
+    //                for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
+    //                {
+    //                    if (!debugOverlayContainer)
+    //                    {
+    //                        continue;
+    //                    }
 
-                        debugOverlayContainer->SetIsVisible(true);
-                    }
-                }
-                else
-                {
-                    m_consoleUi->SetIsVisible(true);
+    //                    debugOverlayContainer->SetIsVisible(true);
+    //                }
+    //            }
+    //            else
+    //            {
+    //                m_consoleUi->SetIsVisible(true);
 
-                    for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
-                    {
-                        if (!debugOverlayContainer)
-                        {
-                            continue;
-                        }
+    //                for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
+    //                {
+    //                    if (!debugOverlayContainer)
+    //                    {
+    //                        continue;
+    //                    }
 
-                        debugOverlayContainer->SetIsVisible(false);
-                    }
-                }
+    //                    debugOverlayContainer->SetIsVisible(false);
+    //                }
+    //            }
 
-                return UIEventHandlerResult::STOP_BUBBLING;
-            }
+    //            return UIEventHandlerResult::STOP_BUBBLING;
+    //        }
 
-            return UIEventHandlerResult::OK;
-        }));
+    //        return UIEventHandlerResult::OK;
+    //    }));
 
     Vec2u viewportSize = MathUtil::Max(Vec2u(uiSubsystem->GetUIStage()->GetActualSize()), Vec2u::One());
     // m_camera->SetDimensions(Vec2i(viewportSize));
@@ -2000,7 +2000,7 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    InitConsoleUI();
+    //InitConsoleUI();
     InitDebugOverlays();
     InitManipulationWidgetSelection();
 }

@@ -17,6 +17,7 @@ namespace Hyperion.Editor
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+
             _listBox = this.FindControl<ListBox>("LogListBox");
         }
         
