@@ -349,7 +349,6 @@ uint32 LightmapJobBase::Process(uint32 maxRays)
     Assert(world != nullptr);
 
     const uint32 rayOffset = uint32(m_texelIndex % (m_texelIndices.Size() * m_params.config->numSamples));
-
     const uint32 numRays = uint32(rays.Size());
 
     PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), rayOffset);
