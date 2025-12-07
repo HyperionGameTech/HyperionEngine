@@ -31,7 +31,7 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <particles/ParticleVolume.hpp>
+#include <scene/ParticleVolume.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
 

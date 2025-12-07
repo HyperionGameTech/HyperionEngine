@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <particles/ParticleVolume.hpp>
+#include <scene/ParticleVolume.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>

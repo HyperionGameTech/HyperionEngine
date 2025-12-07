@@ -9,7 +9,7 @@
 #include <scene/EntityManager.hpp>
 #include <scene/Light.hpp>
 
-#include <particles/ParticleVolume.hpp>
+#include <scene/ParticleVolume.hpp>
 
 #include <scene/components/BoundingBoxComponent.hpp>
 
@@ -29,12 +29,12 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 
 HYP_API extern const FilePath& GetResourceDirectory();
 
-#define DEFINE_EDITOR_COMMAND(name) \
-    HYP_API const Class* g_clsEditorCommand##name = nullptr;                \
-                                                                            \
-    HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase"))  \
-    HYP_END_CLASS                                                           \
-                                                                            \
+#define DEFINE_EDITOR_COMMAND(name)                                        \
+    HYP_API const Class* g_clsEditorCommand##name = nullptr;               \
+                                                                           \
+    HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase")) \
+    HYP_END_CLASS                                                          \
+                                                                           \
     HYP_REGISTER_STATIC_CLASS(EditorCommand##name)
 
 #pragma region Undo
