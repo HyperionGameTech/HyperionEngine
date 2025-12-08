@@ -23,7 +23,9 @@ class EntityManager;
 
 struct VoxelOctreeParams
 {
-    float voxelSize = 0.025f;
+    BoundingBox aabb = BoundingBox::Empty();
+    bool allowResize = true;
+    uint8 maxDepth = 8;
 };
 
 struct VoxelOctreeElement
@@ -97,23 +99,14 @@ class HYP_API VoxelOctree : public OctreeBase<VoxelOctree, VoxelOctreePayload>
     friend class OctreeBase<VoxelOctree, VoxelOctreePayload>;
 
     VoxelOctree(VoxelOctree* parent, const BoundingBox& aabb, uint8 index = 0)
-        : OctreeBase(parent, aabb, index),
-          m_allowResize(false)
+        : OctreeBase(parent, aabb, index)
     {
     }
 
 public:
-    static constexpr uint8 MaxDepth = 8;
     static constexpr EnumFlags<OctreeFlags> Flags = OctreeFlags::OF_INSERT_ON_OVERLAP;
 
     VoxelOctree()
-        : m_allowResize(true)
-    {
-    }
-
-    explicit VoxelOctree(const BoundingBox& aabb, bool allowResize = false)
-        : OctreeBase(aabb),
-          m_allowResize(allowResize)
     {
     }
 
@@ -126,13 +119,18 @@ public:
      */
     double GetSignedDistanceAtPoint(const Vec3f& point) const;
 
+    HYP_FORCE_INLINE uint8 MaxDepth() const
+    {
+        return m_params.maxDepth;
+    }
+
 protected:
     static VoxelOctree* CreateChildOctant(VoxelOctree* parent, const BoundingBox& aabb, uint8 index)
     {
         return new VoxelOctree(parent, aabb, index);
     }
 
-    bool m_allowResize;
+    VoxelOctreeParams m_params;
 };
 
 } // namespace hyperion

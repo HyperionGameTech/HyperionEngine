@@ -662,7 +662,7 @@ void Lightmapper<LightmapVolume>::Build()
     {
         const LightmapTexel& texel = m_lightmapData.texels[i];
 
-        if (!texel.ray->meshId.IsValid())
+        if (!texel.ray.meshId.IsValid())
         {
             continue;
         }
@@ -767,12 +767,11 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
             subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
             subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
 
-            auto updateMeshComponent = [
-                entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
-                lightmapElementId = m_lightmapElementId,
-                volume = m_volume,
-                subElement = subElement,
-                newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
+            auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
+                                           lightmapElementId = m_lightmapElementId,
+                                           volume = m_volume,
+                                           subElement = subElement,
+                                           newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
             {
                 Handle<EntityManager> entityManager = entityManagerWeak.Lock();
 
@@ -914,7 +913,7 @@ void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
 
 #pragma endregion Lightmapper < EnvProbe>
 
-#pragma region Lightmapper<FogVolume>
+#pragma region Lightmapper < FogVolume>
 
 Lightmapper<FogVolume>::Lightmapper(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume)
     : LightmapperBase(std::move(config), MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldAABB()),
@@ -927,7 +926,6 @@ void Lightmapper<FogVolume>::Initialize_Internal()
     Assert(m_fogVolume != nullptr);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
 {
     HYP_SCOPE;
@@ -953,7 +951,7 @@ void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
             i % bitmap.GetWidth(),
             (i / bitmap.GetWidth()) % bitmap.GetHeight(),
             i / (bitmap.GetWidth() * bitmap.GetHeight()),
-            texel.numSamplesFog > 0 ? (texel.irradiance / float(texel.numSamplesFog)) : Vec4f::Zero());
+            texel.irradiance);
     }
 
     TextureDesc textureDesc {
@@ -976,5 +974,5 @@ void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
     // Set the baked texture on the FogVolume
     m_fogVolume->SetVolumeTexture(volumeTexture);
 }
-HYP_ENABLE_OPTIMIZATION;
+
 } // namespace hyperion

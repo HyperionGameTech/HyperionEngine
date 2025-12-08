@@ -42,6 +42,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/DebugDrawer.hpp>
 
 #include <util/NoiseFactory.hpp>
 
@@ -221,8 +222,8 @@ void LightmapJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outT
 
         if (hasRays)
         {
-            LightmapRay* ray = lightmapData.texels[texelIndex].ray;
-            ray->texelIndex = texelIndex;
+            LightmapRay& ray = lightmapData.texels[texelIndex].ray;
+            ray.texelIndex = texelIndex;
         }
 
         outTexels.PushBack(&lightmapData.texels[texelIndex]);
@@ -248,7 +249,7 @@ void LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOff
 
     for (uint32 i = 0; i < numTexels; i++)
     {
-        rays[i] = *texels[i]->ray;
+        rays[i] = texels[i]->ray;
     }
 
     World* world = GetScene()->GetWorld();
@@ -372,6 +373,8 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
         }
     }
 
+    maxTexels = MathUtil::Min(maxTexels, MaxTexelsPerFrame());
+
     if (m_lightmapper->PerformsRayTracing())
     {
         Assert(m_params.renderers->Size() > 0);
@@ -386,6 +389,7 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
     texels.Reserve(maxTexels);
 
     GatherTexels(maxTexels, texels);
+    ProcessTexels(Span<LightmapTexel*>(texels.Data(), texels.Size()), texelOffset);
 
     const double percentage = double(m_texelIndex) / double(m_texelIndices.Size() * NumTexelSamples()) * 100.0;
 
@@ -396,8 +400,6 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
 
         m_lastLoggedPercentage = percentage;
     }
-
-    ProcessTexels(Span<LightmapTexel*>(texels.Data(), texels.Size()), texelOffset);
 
     return texels.Size();
 }
@@ -469,7 +471,7 @@ void LightmapJob<EnvProbe>::Process_Internal(bool* outIsReadyToProcess)
 
 #pragma endregion LightmapJob < EnvProbe>
 
-#pragma region LightmapJob<FogVolume>
+#pragma region LightmapJob < FogVolume>
 
 static struct FogVolumeNoiseCombinator
 {
@@ -526,14 +528,10 @@ void LightmapJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
-    NoiseCombinator& nc = s_initializer.noiseCombinator;
-
-    // We don't use rays for fog volumes, so we override this to directly process texels.
-
-    const Vec3f extentWS = m_fogVolume->GetWorldAABB().GetExtent();
+    const BoundingBox worldAabb = m_fogVolume->GetWorldAABB();
+    const Vec3f extentWS = worldAabb.GetExtent();
 
     const Vec3u bitmapExtent = Vec3u {
         m_lightmapData.GetVolumeBitmap().GetWidth(),
@@ -541,10 +539,9 @@ void LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 t
         m_lightmapData.GetVolumeBitmap().GetDepth()
     };
 
-    HYP_LOG_TEMP("extentWS = {}\n", extentWS);
-    HYP_LOG_TEMP("Bitmap extent = {}\n", bitmapExtent);
+    const Vec3f texelHalfSizeWS = extentWS * (Vec3f(0.5f) / Vec3f(bitmapExtent));
 
-    for (uint32 txlIdx = 0; txlIdx < texels.Size(); ++txlIdx)
+    for (uint32 txlIdx = 0; txlIdx < uint32(texels.Size()); ++txlIdx)
     {
         LightmapTexel* texel = texels[txlIdx];
         const uint32 realTexelIndex = texelOffset + txlIdx;
@@ -555,24 +552,18 @@ void LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 t
             realTexelIndex / (bitmapExtent.x * bitmapExtent.y)
         };
 
-        const Vec3f posWS = m_fogVolume->GetWorldAABB().GetMin() + (extentWS * (Vec3f(texelCoord) + 0.5f) / Vec3f(bitmapExtent));
+        const Vec3f posWS = worldAabb.GetMin() + (extentWS * (Vec3f(texelCoord) / Vec3f(bitmapExtent))) + texelHalfSizeWS;
 
-        const VoxelOctree* octant = nullptr;
-        if (!m_lightmapData.GetVoxelOctree()->GetFittingOctant(BoundingBox(posWS - 0.001f, posWS + 0.001f), octant))
-        {
-            HYP_LOG_ONCE(Lightmap, Error, "Failed to find fitting octant for pos: {} in AABB: {}", posWS, m_fogVolume->GetWorldAABB());
+        const double dist = m_lightmapData.GetVoxelOctree()->GetSignedDistanceAtPoint(posWS);
 
-            continue;
-        }
-
-        // R: store occupied (TODO: store dist to nearest voxel for SDF!)
-        texel->irradiance.x += (octant->GetPayload().occupiedBit ? 1.0f : 0.0f);
-        texel->irradiance.w += 1.0f;
-
-        texel->numSamplesFog++;
+        texel->irradiance.x = float(dist);
+        /*Vec3f debugColor = Vec3f(texelCoord) / Vec3f(bitmapExtent);
+        texel->irradiance.x = debugColor.x;
+        texel->irradiance.y = debugColor.y;
+        texel->irradiance.z = debugColor.z;*/
+        texel->irradiance.w = 1.0f;
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion LightmapJob < FogVolume>
 

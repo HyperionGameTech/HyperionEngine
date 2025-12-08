@@ -32,7 +32,6 @@ template <class Derived, class Payload>
 OctreeBase<Derived, Payload>::OctreeBase()
     : OctreeBase(Derived::DefaultBounds)
 {
-    static_assert(Derived::MaxDepth <= OctantId::MaxDepth);
 }
 
 template <class Derived, class Payload>
@@ -350,7 +349,7 @@ OctreeBase<Derived, Payload>::Result OctreeBase<Derived, Payload>::Insert(const 
         }
 
         // stop recursing if we are at max depth
-        if (m_octantId.GetDepth() < int(Derived::MaxDepth) - 1)
+        if (m_octantId.GetDepth() < int(static_cast<Derived*>(this)->MaxDepth()) - 1)
         {
             bool wasInserted = false;
 

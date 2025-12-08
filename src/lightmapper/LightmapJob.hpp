@@ -156,6 +156,11 @@ protected:
 
     virtual uint32 NumTexelSamples() const;
 
+    virtual uint32 MaxTexelsPerFrame() const
+    {
+        return ~0u;
+    }
+
     /*! \brief Get the next texel index to process, advancing the teexl counter
      *  \return The texel index
      */
@@ -301,6 +306,11 @@ protected:
     virtual uint32 NumTexelSamples() const
     {
         return 1;
+    }
+
+    virtual uint32 MaxTexelsPerFrame() const
+    {
+        return 16;
     }
 
     Handle<FogVolume> m_fogVolume;

@@ -97,19 +97,28 @@ Handle<Mesh> MeshBuilder::Quad()
     return mesh;
 }
 
-Handle<Mesh> MeshBuilder::Cube()
+Handle<Mesh> MeshBuilder::Cube(bool originOnBottom)
 {
-    static const auto cubeVerticesAndIndices = Mesh::CalculateIndices(cubeVertices);
+    static const auto s_cubeVerticesAndIndices = Mesh::CalculateIndices(cubeVertices);
 
     MeshDesc meshDesc;
     meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
-    meshDesc.numIndices = uint32(cubeVerticesAndIndices.second.Size());
-    meshDesc.numVertices = uint32(cubeVerticesAndIndices.first.Size());
+    meshDesc.numIndices = uint32(s_cubeVerticesAndIndices.second.Size());
+    meshDesc.numVertices = uint32(s_cubeVerticesAndIndices.first.Size());
 
     MeshData meshData;
-    meshData.vertexData = cubeVerticesAndIndices.first;
-    meshData.indexData.SetSize(cubeVerticesAndIndices.second.Size() * sizeof(uint32));
-    meshData.indexData.Write(cubeVerticesAndIndices.second.Size() * sizeof(uint32), 0, cubeVerticesAndIndices.second.Data());
+    meshData.vertexData = s_cubeVerticesAndIndices.first;
+
+    if (originOnBottom)
+    {
+        for (Vertex& vertex : meshData.vertexData)
+        {
+            vertex.position.y += 1.0f;
+        }
+    }
+
+    meshData.indexData.SetSize(s_cubeVerticesAndIndices.second.Size() * sizeof(uint32));
+    meshData.indexData.Write(s_cubeVerticesAndIndices.second.Size() * sizeof(uint32), 0, s_cubeVerticesAndIndices.second.Data());
 
     Handle<Mesh> mesh = CreateObject<Mesh>();
     mesh->SetName(NAME("MeshBuilder_Cube"));

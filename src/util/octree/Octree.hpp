@@ -205,7 +205,6 @@ protected:
     static constexpr float GrowthFactor = 1.5f;
     static const BoundingBox DefaultBounds;
 
-    static constexpr uint8 MaxDepth = OctantId::MaxDepth;
     static constexpr EnumFlags<OctreeFlags> Flags = OctreeFlags::OF_DEFAULT;
 
     OctreeBase();
@@ -270,6 +269,11 @@ public:
     HYP_FORCE_INLINE OctreeState<Derived, Payload>* GetState() const
     {
         return m_state;
+    }
+
+    HYP_FORCE_INLINE static constexpr uint8 MaxDepth()
+    {
+        return OctantId::MaxDepth;
     }
 
 protected:

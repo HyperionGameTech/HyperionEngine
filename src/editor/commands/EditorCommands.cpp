@@ -417,11 +417,8 @@ public:
             return;
         }
 
-        Handle<FogVolume> fogVolume = CreateObject<FogVolume>(BoundingBox(Vec3f(-10.0f, 0.0f, -10.0f), Vec3f(10.0f, 10.0f, 10.0f)));
+        Handle<FogVolume> fogVolume = CreateObject<FogVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 30.0f, 20.0f)));
         InitObject(fogVolume);
-
-        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
-        fogVolume->SetWorldTranslation(insertionPoint);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 

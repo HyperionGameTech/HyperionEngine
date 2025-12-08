@@ -387,7 +387,7 @@ SceneOctree::Result SceneOctree::Insert(Entity* entity, const BoundingBox& aabb,
         }
 
         // stop recursing if we are at max depth
-        if (m_octantId.GetDepth() < MaxDepth - 1)
+        if (m_octantId.GetDepth() < MaxDepth() - 1)
         {
             bool wasInserted = false;
 

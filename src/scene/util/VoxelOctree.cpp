@@ -26,6 +26,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <limits>
+
 namespace hyperion {
 
 static BoundingBox SnapAabbToVoxel(const BoundingBox& aabb, float voxelSize)
@@ -125,12 +127,9 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 {
     Assert(entityManager != nullptr);
 
-    if (params.voxelSize < 0.001)
-    {
-        return HYP_MAKE_ERROR(Error, "Voxel size must be greater than 0.001");
-    }
+    m_aabb = params.aabb;
 
-    if (!m_allowResize && (!m_aabb.IsValid() || !m_aabb.IsFinite() || m_aabb.IsZero()))
+    if (!params.allowResize && (!m_aabb.IsValid() || !m_aabb.IsFinite() || m_aabb.IsZero()))
     {
         return HYP_MAKE_ERROR(Error, "Voxel octree is not allowed to resize and has an invalid AABB");
     }
@@ -166,7 +165,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
             continue;
         }
 
-        if (m_allowResize)
+        if (params.allowResize)
         {
             newAabb = newAabb.Union(boundingBoxComponent.worldAabb);
         }
@@ -204,7 +203,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         return HYP_MAKE_ERROR(Error, "Invalid AABB, cannot build voxel octree");
     }
 
-    if (m_allowResize)
+    if (params.allowResize)
     {
         Vec3f extent = newAabb.GetExtent();
 
@@ -266,7 +265,111 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
 double VoxelOctree::GetSignedDistanceAtPoint(const Vec3f& point) const
 {
-    return -1.0;
+    double minDistanceSq = INFINITY;
+    bool isInsideAnyVoxel = false;
+
+    struct NodeEntry
+    {
+        double distSq;
+        const VoxelOctree* node;
+    };
+
+    auto DistSqPointAABB = [](const BoundingBox& aabb, const Vec3f& p) -> double
+    {
+        const Vec3f min = aabb.GetMin();
+        const Vec3f max = aabb.GetMax();
+        double distSq = 0.0;
+        auto checkAxis = [&](double pVal, double minVal, double maxVal)
+        {
+            if (pVal < minVal)
+                distSq += (minVal - pVal) * (minVal - pVal);
+            else if (pVal > maxVal)
+                distSq += (pVal - maxVal) * (pVal - maxVal);
+        };
+        checkAxis(p.x, min.x, max.x);
+        checkAxis(p.y, min.y, max.y);
+        checkAxis(p.z, min.z, max.z);
+        return distSq;
+    };
+
+    Array<NodeEntry> stack;
+    stack.Reserve(64);
+
+    double rootDistSq = DistSqPointAABB(this->GetAABB(), point);
+    stack.PushBack({ rootDistSq, this });
+
+    while (!stack.Empty())
+    {
+        NodeEntry entry = stack.Back();
+        stack.PopBack();
+
+        double nodeDistSq = entry.distSq;
+
+        if (nodeDistSq >= minDistanceSq)
+        {
+            continue;
+        }
+
+        const VoxelOctree* node = entry.node;
+        bool isLeaf = !node->IsDivided();
+
+        if (isLeaf && node->GetPayload().occupiedBit)
+        {
+            if (nodeDistSq < minDistanceSq)
+            {
+                minDistanceSq = nodeDistSq;
+            }
+
+            if (node->GetAABB().ContainsPoint(point))
+            {
+                isInsideAnyVoxel = true;
+                break;
+            }
+        }
+
+        if (!isLeaf)
+        {
+            NodeEntry children[8];
+            int childCount = 0;
+
+            for (uint8 i = 0; i < 8; i++)
+            {
+                const VoxelOctree* childNode = node->m_octants[i].octree;
+                if (childNode != nullptr)
+                {
+                    double childDist = DistSqPointAABB(childNode->GetAABB(), point);
+
+                    if (childDist < minDistanceSq)
+                    {
+                        children[childCount++] = { childDist, childNode };
+                    }
+                }
+            }
+
+            std::sort(children, children + childCount,
+                [](const NodeEntry& a, const NodeEntry& b)
+                {
+                    return a.distSq > b.distSq;
+                });
+
+            for (int i = 0; i < childCount; i++)
+            {
+                stack.PushBack(children[i]);
+            }
+        }
+    }
+
+    if (isInsideAnyVoxel)
+    {
+        return -1.0;
+    }
+
+    if (minDistanceSq != INFINITY)
+    {
+        return std::sqrt(minDistanceSq);
+    }
+
+    return INFINITY;
 }
 
 } // namespace hyperion

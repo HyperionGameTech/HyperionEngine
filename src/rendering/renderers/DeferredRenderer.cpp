@@ -835,7 +835,7 @@ void FogVolumePass::Create()
 {
     AssertOnThread(g_renderThread);
 
-    m_volumeMesh = MeshBuilder::Cube();
+    m_volumeMesh = MeshBuilder::Cube(true);
     m_volumeMesh->SetFlags(MF_VIEW_INDEPENDENT);
     m_volumeMesh->SetName(NAME("FogVolumeMesh"));
     InitObject(m_volumeMesh);
@@ -866,7 +866,7 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(const FramebufferR
 
     MaterialAttributes materialAttributes;
     materialAttributes.fillMode = FM_FILL;
-    materialAttributes.flags = MAF_DEPTH_TEST; // depth test, no depth write
+    materialAttributes.flags = MAF_NONE;
     materialAttributes.bucket = RB_TRANSLUCENT;
     materialAttributes.cullFaces = FCM_FRONT; // cull front faces to render inside of the volume
     // blending for fog volumes: src: src_alpha, dst: 1 - src_alpha
@@ -902,6 +902,7 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(const FramebufferR
 
     Assert(descriptorTable->Create());
 
+    // @TODO Don't throw away old descriptor table if only uniforms changed!
     if (data.descriptorTable)
     {
         SafeDelete(std::move(data.descriptorTable));
@@ -1942,7 +1943,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
     SafeDelete(std::move(passData.raytracingTlases));
 
     // Hack to fix driver crash when building TLAS with no meshes
-    Handle<Mesh> defaultMesh = MeshBuilder::Cube();
+    Handle<Mesh> defaultMesh = MeshBuilder::Cube(true);
     defaultMesh->SetFlags(MF_VIEW_INDEPENDENT);
     InitObject(defaultMesh);
 
@@ -2611,14 +2612,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             passData.lightmapPass->RenderToFramebuffer(frame, newRs, passData.deferredShadingFramebuffer);
         }
 
-        for (FogVolume* fogVolume : rpl.GetFogVolumes())
-        {
-            RenderSetup newRs = rs.Fork();
-            newRs.volume = fogVolume;
-
-            passData.fogVolumePass->RenderToFramebuffer(frame, newRs, passData.deferredShadingFramebuffer);
-        }
-
         frame->renderQueue << EndFramebuffer(passData.deferredShadingFramebuffer);
     }
 
@@ -2661,7 +2654,15 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         // begin translucent with forward rendering
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_TRANSLUCENT));
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_SKYBOX));
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
+
+        // render fog volumes
+        for (FogVolume* fogVolume : rpl.GetFogVolumes())
+        {
+            RenderSetup newRs = rs.Fork();
+            newRs.volume = fogVolume;
+
+            passData.fogVolumePass->RenderToFramebuffer(frame, newRs, translucentPassFramebuffer);
+        }
 
         // render particles
         if (rpl.GetParticleVolumes().NumCurrent())
@@ -2676,7 +2677,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         // render debug draw
-        // g_engineDriver->GetDebugDrawer()->Render(frame, rs);
+        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
+        g_engineDriver->GetDebugDrawer()->Render(frame, rs);
 
         frame->renderQueue << EndFramebuffer(translucentPassFramebuffer);
     }

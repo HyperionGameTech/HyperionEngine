@@ -92,13 +92,18 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
     }
 
     // create transform matrix turning 1:1:1 cube to the world bounds
-    const Vec3f boxSize = m_localBounds.GetExtent();
+    const Vec3f boxSize = m_localBounds.GetExtent() * 0.5f;
 
     const Mat4f newTransformMatrix = GetWorldTransform().GetMatrix() * Mat4f::Scaling(boxSize);
-    if (newTransformMatrix != proxy->bufferData.transformMatrix)
+    if (newTransformMatrix != proxy->bufferData.transformMatrix
+        || worldAabb.min != proxy->bufferData.aabbMin.GetXYZ()
+        || worldAabb.max != proxy->bufferData.aabbMax.GetXYZ())
     {
         proxy->forceRebind = true;
+
         proxy->bufferData.transformMatrix = newTransformMatrix;
+        proxy->bufferData.aabbMin = Vec4f(worldAabb.min, 1.0f);
+        proxy->bufferData.aabbMax = Vec4f(worldAabb.max, 1.0f);
     }
 }
 

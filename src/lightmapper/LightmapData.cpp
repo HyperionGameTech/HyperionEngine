@@ -163,9 +163,8 @@ Result LightmapData<LightmapVolume>::Build()
     // write lightmap data
     width = atlas->width;
     height = atlas->height;
-    texels.Resize(atlas->width * atlas->height);
 
-    m_rays.Resize(atlas->width * atlas->height);
+    texels.Resize(atlas->width * atlas->height);
 
     for (uint32 meshIndex = 0; meshIndex < atlas->meshCount; meshIndex++)
     {
@@ -276,16 +275,13 @@ Result LightmapData<LightmapVolume>::Build()
                     const uint32 texelIdx = (point.x + atlas->width) % atlas->width
                         + (atlas->height - point.y + atlas->height) % atlas->height * atlas->width;
 
-                    LightmapRay& ray = m_rays[texelIdx];
-                    ray = LightmapRay {
+                    LightmapTexel& texel = texels[texelIdx];
+                    texel.ray = LightmapRay {
                         Ray { position, normal },
                         lightmapMeshData.mesh->Id(),
                         triangleIndex,
                         texelIdx
                     };
-
-                    LightmapTexel& texel = texels[texelIdx];
-                    texel.ray = &ray;
 
                     currentUvIndices.PushBack(texelIdx);
                 }
@@ -420,7 +416,6 @@ Result LightmapData<EnvProbe>::Build()
     const SizeType numTexelsTotal = 6 * numTexelsPerFace;
 
     texels.Resize(numTexelsTotal);
-    m_rays.Resize(numTexelsTotal);
 
     const Vec3f origin = m_envProbe->GetWorldTranslation();
 
@@ -442,16 +437,13 @@ Result LightmapData<EnvProbe>::Build()
 
                 const Vec3f dir = (forward + right * u + up * v).Normalize();
 
-                LightmapRay& ray = m_rays[texelIdx];
-                ray = LightmapRay {
+                LightmapTexel& texel = texels[texelIdx];
+                texel.ray = LightmapRay {
                     Ray { origin, dir },
                     /* meshId */ ObjId<Mesh>::invalid,
                     /* triangleIndex */ ~0u,
                     /* texelIndex */ texelIdx
                 };
-
-                LightmapTexel& texel = texels[texelIdx];
-                texel.ray = &ray;
             }
         }
     }
@@ -500,20 +492,11 @@ auto LightmapData<EnvProbe>::ToBitmap() const -> BitmapType
 
 #pragma endregion LightmapData < EnvProbe>
 
-#pragma region LightmapData< FogVolume>
+#pragma region LightmapData < FogVolume>
 
 Result LightmapData<FogVolume>::Build()
 {
     Assert(m_fogVolume != nullptr);
-
-    // Build voxel octree for the fog volume
-    m_voxelOctree = MakeUnique<VoxelOctree>(m_fogVolume->GetWorldAABB());
-
-    auto buildResult = m_voxelOctree->Build(VoxelOctreeParams {}, m_fogVolume->GetEntityManager());
-    if (buildResult.HasError())
-    {
-        return buildResult.GetError();
-    }
 
     const BoundingBox localBounds = m_fogVolume->GetLocalBounds();
     const Vec3f localBoundsExtent = localBounds.GetExtent();
@@ -540,7 +523,31 @@ Result LightmapData<FogVolume>::Build()
         volumeTextureDimensions.y,
         volumeTextureDimensions.z);
 
+    const Vec3f extentWS = m_fogVolume->GetWorldAABB().GetExtent();
+    const Vec3f texelSizeWS = extentWS / Vec3f(volumeTextureDimensions);
+
     texels.Resize(volumeTextureDimensions.Volume());
+
+    BoundingBox voxelOctreeAabb = m_fogVolume->GetWorldAABB();
+
+    if (!voxelOctreeAabb.IsValid() || !voxelOctreeAabb.IsFinite() || voxelOctreeAabb.IsZero())
+    {
+        return HYP_MAKE_ERROR(Error, "Invalid fog volume AABB for voxel octree build");
+    }
+
+    VoxelOctreeParams octreeParams;
+    octreeParams.aabb = voxelOctreeAabb;
+    octreeParams.allowResize = false;
+    octreeParams.maxDepth = 8; // only need coarse voxels for fog volume -- higher max depth will take much longer to iterate
+
+    m_voxelOctree = MakeUnique<VoxelOctree>();
+
+    auto buildResult = m_voxelOctree->Build(octreeParams, m_fogVolume->GetEntityManager());
+
+    if (buildResult.HasError())
+    {
+        return buildResult.GetError();
+    }
 
     return {};
 }

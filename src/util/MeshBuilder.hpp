@@ -41,8 +41,18 @@ class HYP_API MeshBuilder
     static const Array<Vertex> cubeVertices;
 
 public:
+    /*! \brief Build a quad mesh in the XY plane with size 1x1. */
     static Handle<Mesh> Quad();
-    static Handle<Mesh> Cube();
+
+    /*! \brief Build a cube mesh.
+     *  \param originOnBottom If true, the cube's origin will be at the bottom face center. Otherwise, it will be at the center of the cube.
+     */
+    static Handle<Mesh> Cube(bool originOnBottom = false);
+
+    /*! \brief Build a UV sphere mesh with \p numSlices slices and \p numStacks stacks.
+     *  \param numSlices Number of slices (longitude divisions).
+     *  \param numStacks Number of stacks (latitude divisions).
+     */
     static Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions);
 
     static Handle<Mesh> ApplyTransform(const Mesh* mesh, const Transform& transform);
