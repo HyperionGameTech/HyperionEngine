@@ -47,7 +47,7 @@ struct LightmapElement;
 
 class AssetObject;
 class View;
-class EnvProbe;
+class ReflectionProbe;
 class FogVolume;
 struct RenderSetup;
 
@@ -305,6 +305,9 @@ public:
         return true;
     }
 
+    virtual uint32 NumTexelSamples() const;
+    virtual uint32 MaxTexelsPerFrame() const;
+
     bool IsComplete() const;
 
     void Initialize();
@@ -320,12 +323,20 @@ protected:
     {
     }
 
-    virtual void Build_Internal()
+    virtual Result Build_Internal()
     {
+        return {};
     }
 
     virtual void HandleCompletedJob_Internal(LightmapJobBase* job)
     {
+    }
+
+    virtual LightmapDataBase& GetLightmapData() = 0;
+
+    HYP_FORCE_INLINE const LightmapDataBase& GetLightmapData() const
+    {
+        return const_cast<LightmapperBase*>(this)->GetLightmapData();
     }
 
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
@@ -360,6 +371,7 @@ protected:
 
 protected:
     virtual void Build();
+    void DispatchJobs();
 
     LightmapJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
 
@@ -388,7 +400,7 @@ class Lightmapper;
 enum class LightmapElementId : uint32;
 
 template <>
-class Lightmapper<LightmapVolume> : public LightmapperBase
+class Lightmapper<LightmapVolume> final : public LightmapperBase
 {
 public:
     Lightmapper(LightmapperConfig&& config, const Handle<LightmapVolume>& volume);
@@ -413,6 +425,11 @@ public:
     }
 
 protected:
+    virtual LightmapDataBase& GetLightmapData() override
+    {
+        return m_lightmapData;
+    }
+
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
     {
         return MakeUnique<LightmapJob<LightmapVolume>>(std::move(params), m_volume, &m_lightmapData);
@@ -428,10 +445,10 @@ protected:
 };
 
 template <>
-class Lightmapper<EnvProbe> : public LightmapperBase
+class Lightmapper<ReflectionProbe> final : public LightmapperBase
 {
 public:
-    Lightmapper(LightmapperConfig&& config, const Handle<EnvProbe>& envProbe);
+    Lightmapper(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe);
 
     Lightmapper(const Lightmapper& other) = delete;
     Lightmapper& operator=(const Lightmapper& other) = delete;
@@ -441,20 +458,36 @@ public:
 
     virtual ~Lightmapper() override = default;
 
-protected:
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    virtual bool ShouldSplitIntoJobs() const override
     {
-        return MakeUnique<LightmapJob<EnvProbe>>(std::move(params), m_envProbe);
+        return true;
     }
 
-    virtual void Initialize_Internal() override;
+    virtual uint32 GetShadingTypesMask() const override
+    {
+        return 1u << int(LightmapShadingType::FULL);
+    }
+
+protected:
+    virtual LightmapDataBase& GetLightmapData() override
+    {
+        return m_lightmapData;
+    }
+
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    {
+        return MakeUnique<LightmapJob<ReflectionProbe>>(std::move(params), m_envProbe, &m_lightmapData);
+    }
+
+    virtual Result Build_Internal() override;
     virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
 
-    Handle<EnvProbe> m_envProbe;
+    Handle<ReflectionProbe> m_envProbe;
+    LightmapData<ReflectionProbe> m_lightmapData;
 };
 
 template <>
-class Lightmapper<FogVolume> : public LightmapperBase
+class Lightmapper<FogVolume> final : public LightmapperBase
 {
 public:
     Lightmapper(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume);
@@ -473,15 +506,21 @@ public:
     }
 
 protected:
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    virtual LightmapDataBase& GetLightmapData() override
     {
-        return MakeUnique<LightmapJob<FogVolume>>(std::move(params), m_fogVolume);
+        return m_lightmapData;
     }
 
-    virtual void Initialize_Internal() override;
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    {
+        return MakeUnique<LightmapJob<FogVolume>>(std::move(params), m_fogVolume, &m_lightmapData);
+    }
+
+    virtual Result Build_Internal() override;
     virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
 
     Handle<FogVolume> m_fogVolume;
+    LightmapData<FogVolume> m_lightmapData;
 };
 
 } // namespace hyperion

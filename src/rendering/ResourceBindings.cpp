@@ -105,12 +105,14 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
         RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
         AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
-        AssertDebug(proxyCasted->texture != nullptr && proxyCasted->texture->IsReady());
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-                ->SetElement("EnvProbeTextures", next, g_renderBackend->GetTextureImageView(MakeStrongRef(proxyCasted->texture)));
+                ->SetElement("EnvProbeTextures", next,
+                    proxyCasted->texture != nullptr
+                        ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxyCasted->texture))
+                        : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultCubemap));
         }
     }
 }

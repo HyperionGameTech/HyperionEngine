@@ -104,8 +104,6 @@ namespace Hyperion
 
             uint numArgs = args == null ? 1 : (uint)args.Length + 1;
 
-            bool isMemberFunction = IsMemberFunction;
-
             if (!IsMemberFunction)
             {
                 throw new InvalidOperationException("Cannot invoke method: Method is not a member function");
@@ -169,9 +167,7 @@ namespace Hyperion
 
             ObjectBase? thisObject = null;
 
-            bool isMemberFunction = IsMemberFunction;
-
-            if (isMemberFunction)
+            if (IsMemberFunction)
             {
                 if (args.Length == 0)
                 {

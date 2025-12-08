@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <scene/Scene.hpp>
-#include <scene/Subsystem.hpp>
 #include <scene/GameState.hpp>
 #include <scene/SystemExecutionGroup.hpp>
 
@@ -11,9 +9,6 @@
 #include <core/reflection/Handle.hpp>
 
 #include <core/functional/ScriptableDelegate.hpp>
-#include <core/functional/Proc.hpp>
-
-#include <physics/PhysicsWorld.hpp>
 
 #include <engine/EngineMemory.hpp>
 
@@ -24,6 +19,8 @@ namespace hyperion {
 
 class EditorDelegates;
 class View;
+class Scene;
+class Subsystem;
 class WorldGrid;
 class WorldGridLayer;
 class PhysicsWorldBase;

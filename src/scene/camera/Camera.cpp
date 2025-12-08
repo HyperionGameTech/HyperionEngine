@@ -6,6 +6,7 @@
 #include <scene/camera/streaming/CameraStreamingVolume.hpp>
 
 #include <scene/World.hpp>
+#include <scene/Scene.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 
 #include <streaming/StreamingManager.hpp>

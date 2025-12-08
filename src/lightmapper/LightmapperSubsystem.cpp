@@ -118,7 +118,7 @@ Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<LightmapVolume>& sour
 }
 
 template <>
-Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<EnvProbe>& source)
+Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<ReflectionProbe>& source)
 {
     return EnqueueBake_Internal(source);
 }

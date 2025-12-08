@@ -22,7 +22,7 @@ class TaskBatch;
 using threading::TaskBatch;
 
 class Scene;
-class EnvProbe;
+class ReflectionProbe;
 class FogVolume;
 class View;
 class LightmapVolume;
@@ -95,6 +95,11 @@ public:
         return m_texelIndices;
     }
 
+    void SetTexelIndices(Array<uint32>&& texelIndices)
+    {
+        m_texelIndices = std::move(texelIndices);
+    }
+
     HYP_FORCE_INLINE void GetPreviousFrameRays(Array<LightmapRay>& outRays) const
     {
         Mutex::Guard guard(m_previousFrameRaysMutex);
@@ -140,7 +145,7 @@ public:
     }
 
     // Number of GPU path tracing tasks running, used to not overwhelm the gpu while rendering the frame
-    AtomicVar<uint32> numConcurrentRenderingTasks;
+    AtomicVar<uint32> NumConcurrentRenderingTasks;
 
 protected:
     virtual void Start_Internal() = 0;
@@ -154,13 +159,6 @@ protected:
     }
 
     bool HasRemainingTexels() const;
-
-    virtual uint32 NumTexelSamples() const;
-
-    virtual uint32 MaxTexelsPerFrame() const
-    {
-        return ~0u;
-    }
 
     /*! \brief Get the next texel index to process, advancing the teexl counter
      *  \return The texel index
@@ -207,7 +205,7 @@ template <>
 class LightmapJob<LightmapVolume> : public LightmapJobBase
 {
 public:
-    LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* lightmapData);
+    LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* pLightmapData);
     virtual ~LightmapJob() override;
 
     HYP_FORCE_INLINE const Handle<LightmapVolume>& GetVolume() const
@@ -217,17 +215,12 @@ public:
 
     virtual LightmapData<LightmapVolume>& GetLightmapData() override
     {
-        return *m_lightmapData;
+        return *m_pLightmapData;
     }
 
     HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
     {
         return m_lightmapElement;
-    }
-
-    void SetTexelIndices(Array<uint32>&& texelIndices)
-    {
-        m_texelIndices = std::move(texelIndices);
     }
 
 protected:
@@ -236,53 +229,50 @@ protected:
 
     Handle<LightmapVolume> m_volume;
 
-    LightmapData<LightmapVolume>* m_lightmapData;
+    LightmapData<LightmapVolume>* m_pLightmapData;
 
     LightmapElement* m_lightmapElement;
 };
 
 template <>
-class LightmapJob<EnvProbe> : public LightmapJobBase
+class LightmapJob<ReflectionProbe> : public LightmapJobBase
 {
 public:
-    explicit LightmapJob(LightmapJobParams&& params, const Handle<EnvProbe>& envProbe)
+    explicit LightmapJob(LightmapJobParams&& params, const Handle<ReflectionProbe>& envProbe, LightmapData<ReflectionProbe>* pLightmapData)
         : LightmapJobBase(std::move(params)),
-          m_envProbe(envProbe)
+          m_envProbe(envProbe),
+          m_pLightmapData(pLightmapData)
     {
     }
 
     virtual ~LightmapJob() override;
 
-    HYP_FORCE_INLINE const Handle<EnvProbe>& GetEnvProbe() const
+    HYP_FORCE_INLINE const Handle<ReflectionProbe>& GetEnvProbe() const
     {
         return m_envProbe;
     }
 
-    virtual LightmapData<EnvProbe>& GetLightmapData() override
+    virtual LightmapData<ReflectionProbe>& GetLightmapData() override
     {
-        return m_lightmapData;
+        return *m_pLightmapData;
     }
 
 protected:
     virtual void Start_Internal() override;
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
-    virtual uint32 NumTexelSamples() const
-    {
-        return 256;
-    }
-
-    Handle<EnvProbe> m_envProbe;
-    LightmapData<EnvProbe> m_lightmapData;
+    Handle<ReflectionProbe> m_envProbe;
+    LightmapData<ReflectionProbe>* m_pLightmapData;
 };
 
 template <>
 class LightmapJob<FogVolume> : public LightmapJobBase
 {
 public:
-    explicit LightmapJob(LightmapJobParams&& params, const Handle<FogVolume>& fogVolume)
+    explicit LightmapJob(LightmapJobParams&& params, const Handle<FogVolume>& fogVolume, LightmapData<FogVolume>* pLightmapData)
         : LightmapJobBase(std::move(params)),
-          m_fogVolume(fogVolume)
+          m_fogVolume(fogVolume),
+          m_pLightmapData(pLightmapData)
     {
     }
 
@@ -295,7 +285,7 @@ public:
 
     virtual LightmapData<FogVolume>& GetLightmapData() override
     {
-        return m_lightmapData;
+        return *m_pLightmapData;
     }
 
     virtual uint32 ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0) override;
@@ -304,18 +294,8 @@ protected:
     virtual void Start_Internal() override;
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
-    virtual uint32 NumTexelSamples() const
-    {
-        return 1;
-    }
-
-    virtual uint32 MaxTexelsPerFrame() const
-    {
-        return 16;
-    }
-
     Handle<FogVolume> m_fogVolume;
-    LightmapData<FogVolume> m_lightmapData;
+    LightmapData<FogVolume>* m_pLightmapData;
 };
 
 } // namespace hyperion

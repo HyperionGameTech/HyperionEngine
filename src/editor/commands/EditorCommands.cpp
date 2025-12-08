@@ -8,6 +8,7 @@
 #include <scene/World.hpp>
 #include <scene/EntityManager.hpp>
 #include <scene/Light.hpp>
+#include <scene/EnvProbe.hpp>
 
 #include <scene/ParticleVolume.hpp>
 #include <scene/FogVolume.hpp>
@@ -308,6 +309,89 @@ public:
 DEFINE_EDITOR_COMMAND(AddLightmapVolume);
 
 #pragma endregion AddLightmapVolume
+
+#pragma region AddReflectionProbe
+
+class HYP_API EditorCommandAddReflectionProbe final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAddReflectionProbe);
+
+public:
+    virtual ~EditorCommandAddReflectionProbe() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot add reflection probe!");
+
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot add reflection probe!");
+
+            return;
+        }
+
+        Handle<ReflectionProbe> reflectionProbe = CreateObject<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128));
+        reflectionProbe->SetIsBaked(true);
+        InitObject(reflectionProbe);
+
+        WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
+
+        Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+            StaticClass()->GetName(),
+            Proc<EditorActionFunctions()>([reflectionProbe, previousFocusedNode, activeScene]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>([reflectionProbe, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                activeScene->GetRoot()->AddChild(reflectionProbe);
+
+                                editorSubsystem->SetFocusedNode(reflectionProbe, true);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>([reflectionProbe, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                reflectionProbe->Remove();
+
+                                if (editorSubsystem->GetFocusedNode() == reflectionProbe)
+                                {
+                                    editorSubsystem->SetFocusedNode(nullptr, true);
+
+                                    Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                    if (focusedNode.IsValid())
+                                    {
+                                        editorSubsystem->SetFocusedNode(focusedNode, true);
+                                    }
+                                }
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->Push(action);
+
+        // kickoff task to generate reflection cubemap
+        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(reflectionProbe);
+        InitObject(generateLightmapsTask);
+
+        generateLightmapsTask->SetScene(activeScene);
+
+        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+        generateLightmapsTask->SetWorld(worldHandle);
+
+        subsystem->AddTask(generateLightmapsTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddReflectionProbe);
+
+#pragma endregion AddReflectionProbe
 
 #pragma region AddParticleVolume
 

@@ -3,8 +3,10 @@
 #include <HyperionPch.hpp>
 
 #include <physics/RigidBody.hpp>
+#include <physics/PhysicsWorld.hpp>
 
 #include <scene/World.hpp>
+#include <scene/Scene.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>

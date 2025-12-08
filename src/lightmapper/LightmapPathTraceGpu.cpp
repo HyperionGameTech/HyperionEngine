@@ -413,6 +413,11 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
+    if (rays.Size() == 0)
+    {
+        return;
+    }
+
     Assert(CanRender());
 
     AssertDebug(renderSetup.world);
@@ -429,7 +434,6 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     }
 
     UpdatePipelineState(frame, job);
-
     UpdateUniforms(frame, job, rayOffset);
 
     JobData& jd = m_jobData[job];

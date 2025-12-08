@@ -171,7 +171,7 @@ vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSi
     float transmittance = 1.0;
     vec3 accumulatedColor = vec3(0.0);
 
-    const float DensityScale = 0.4; // Global density multiplier
+    const float DensityScale = 0.2; // Global density multiplier
     const float Scattering = 0.3 * DensityScale; // Scattering Coefficient
     const float Absorption = 0.2 * DensityScale; // Absorption Coefficient
     const float Extinction = Scattering + Absorption;    // Extinction Coefficient (Total light loss)

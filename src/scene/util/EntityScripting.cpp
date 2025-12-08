@@ -6,6 +6,7 @@
 
 #include <scene/Entity.hpp>
 #include <scene/World.hpp>
+#include <scene/Scene.hpp>
 
 #include <scene/components/ScriptComponent.hpp>
 

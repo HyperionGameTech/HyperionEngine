@@ -138,13 +138,6 @@ void Node::SetName(Name name)
     }
 
     m_name = name;
-
-#ifdef HYP_EDITOR
-    GetEditorDelegates([this](EditorDelegates* editorDelegates)
-        {
-            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("Name")));
-        });
-#endif
 }
 
 bool Node::HasName() const
@@ -169,13 +162,6 @@ void Node::SetNodeFlags(EnumFlags<NodeFlags> flags)
     {
         OnMobilityChanged(isStatic);
     }
-
-#ifdef HYP_EDITOR
-    GetEditorDelegates([this](EditorDelegates* editorDelegates)
-        {
-            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("NodeFlags")));
-        });
-#endif
 }
 
 bool Node::IsOrHasParent(const Node* node) const
@@ -246,13 +232,6 @@ void Node::SetScene(Scene* scene)
 
             child->SetScene(m_scene);
         }
-
-#ifdef HYP_EDITOR
-        GetEditorDelegates([this](EditorDelegates* editorDelegates)
-            {
-                editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("Scene")));
-            });
-#endif
     }
 }
 
@@ -783,15 +762,6 @@ void Node::SetLocalBounds(const BoundingBox& aabb)
     }
 
     m_localBounds = aabb;
-
-#ifdef HYP_EDITOR
-    GetEditorDelegates([this](EditorDelegates* editorDelegates)
-        {
-            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("EntityAABB")));
-            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("LocalAABB")));
-            editorDelegates->OnNodeUpdate(this, StaticClass()->GetProperty(NAME("WorldAABB")));
-        });
-#endif
 }
 
 BoundingBox Node::GetLocalAABBExcludingSelf() const
@@ -911,16 +881,6 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
             node->UpdateWorldTransform(true);
         }
     }
-
-#ifdef HYP_EDITOR
-    GetEditorDelegates([this](EditorDelegates* editorDelegates)
-        {
-            editorDelegates->OnNodeUpdate(this, Node::StaticClass()->GetProperty(NAME("LocalTransform")));
-            editorDelegates->OnNodeUpdate(this, Node::StaticClass()->GetProperty(NAME("WorldTransform")));
-            editorDelegates->OnNodeUpdate(this, Node::StaticClass()->GetProperty(NAME("LocalAABB")));
-            editorDelegates->OnNodeUpdate(this, Node::StaticClass()->GetProperty(NAME("WorldAABB")));
-        });
-#endif
 }
 
 void Node::RefreshEntityTransform()
@@ -1187,53 +1147,6 @@ bool Node::HasTag(StringHash key) const
 
     return m_tags.Has(key);
 }
-
-#ifdef HYP_EDITOR
-
-EditorDelegates* Node::GetEditorDelegates()
-{
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
-
-    if (EditorSubsystem* editorSubsystem = g_engineDriver->GetDefaultWorld()->GetSubsystem<EditorSubsystem>())
-    {
-        return editorSubsystem->GetEditorDelegates();
-    }
-
-    return nullptr;
-}
-
-template <class Function>
-void Node::GetEditorDelegates(Function&& func)
-{
-    if (IsOnThread(g_gameThread))
-    {
-        if (EditorSubsystem* editorSubsystem = g_engineDriver->GetDefaultWorld()->GetSubsystem<EditorSubsystem>())
-        {
-            func(editorSubsystem->GetEditorDelegates());
-        }
-    }
-    else
-    {
-        GetThreadById(g_gameThread)->GetScheduler().Enqueue([weakThis = WeakHandleFromThis(), func = std::forward<Function>(func)]()
-            {
-                if (Handle<Node> strongThis = weakThis.Lock())
-                {
-                    if (EditorSubsystem* editorSubsystem = g_engineDriver->GetDefaultWorld()->GetSubsystem<EditorSubsystem>())
-                    {
-                        func(editorSubsystem->GetEditorDelegates());
-                    }
-
-                    return;
-                }
-
-                HYP_LOG(Node, Warning, "Node is no longer valid when trying to get editor delegates");
-            },
-            TaskEnqueueFlags::FIRE_AND_FORGET);
-    }
-}
-
-#endif
 
 #pragma endregion Node
 

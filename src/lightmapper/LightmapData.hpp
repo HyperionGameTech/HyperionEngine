@@ -7,7 +7,7 @@
 namespace hyperion {
 
 class LightmapVolume;
-class EnvProbe;
+class ReflectionProbe;
 class FogVolume;
 class Mesh;
 class VoxelOctree;
@@ -38,6 +38,8 @@ public:
 
     Span<const LightmapSubElement> subElements;
 
+    Vec3u dimensions; // only useful for some lightmap data types that use 2D/3D textures.
+
     LightmapDataBase() = default;
 
     explicit LightmapDataBase(Span<const LightmapSubElement> subElements)
@@ -52,6 +54,21 @@ public:
     HYP_FORCE_INLINE bool IsBuilt() const
     {
         return texels.Any();
+    }
+
+    HYP_FORCE_INLINE uint32 GetWidth() const
+    {
+        return dimensions.x;
+    }
+
+    HYP_FORCE_INLINE uint32 GetHeight() const
+    {
+        return dimensions.y;
+    }
+
+    HYP_FORCE_INLINE uint32 GetDepth() const
+    {
+        return dimensions.z;
     }
 };
 
@@ -92,9 +109,6 @@ public:
     BitmapType ToBitmapIrradiance() const;
     BitmapType ToBitmapRadiance() const;
 
-    uint32 width = 0;
-    uint32 height = 0;
-
 private:
     LightmapVolume* m_volume;
 
@@ -110,7 +124,7 @@ private:
 };
 
 template <>
-class LightmapData<EnvProbe> : public LightmapDataBase
+class LightmapData<ReflectionProbe> : public LightmapDataBase
 {
 public:
     using BitmapType = Bitmap_RGBA32F;
@@ -120,7 +134,7 @@ public:
     {
     }
 
-    LightmapData(Span<const LightmapSubElement> subElements, EnvProbe* envProbe)
+    LightmapData(Span<const LightmapSubElement> subElements, ReflectionProbe* envProbe)
         : LightmapDataBase(subElements),
           m_envProbe(envProbe)
     {
@@ -139,7 +153,7 @@ public:
     BitmapType ToBitmap() const;
 
 protected:
-    EnvProbe* m_envProbe;
+    ReflectionProbe* m_envProbe;
     Array<LightmapRay> m_rays;
 };
 

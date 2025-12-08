@@ -163,10 +163,12 @@ Result LightmapData<LightmapVolume>::Build()
     xatlas::PackCharts(atlas, packOptions);
 
     // write lightmap data
-    width = atlas->width;
-    height = atlas->height;
+    dimensions.x = atlas->width;
+    dimensions.y = atlas->height;
+    dimensions.z = 1;
 
     texels.Resize(atlas->width * atlas->height);
+    m_rays.Resize(atlas->width * atlas->height);
 
     for (uint32 meshIndex = 0; meshIndex < atlas->meshCount; meshIndex++)
     {
@@ -215,9 +217,9 @@ Result LightmapData<LightmapVolume>::Build()
 
             const Vec2i pts[3] = { verts[0].second, verts[1].second, verts[2].second };
 
-            const Vec2i clamp { int(width - 1), int(height - 1) };
+            const Vec2i clamp { int(dimensions.x - 1), int(dimensions.y - 1) };
 
-            Vec2i bboxmin { int(width - 1), int(height - 1) };
+            Vec2i bboxmin { int(dimensions.x - 1), int(dimensions.y - 1) };
             Vec2i bboxmax { 0, 0 };
 
             for (int j = 0; j < 3; j++)
@@ -277,13 +279,16 @@ Result LightmapData<LightmapVolume>::Build()
                     const uint32 texelIdx = (point.x + atlas->width) % atlas->width
                         + (atlas->height - point.y + atlas->height) % atlas->height * atlas->width;
 
-                    LightmapTexel& texel = texels[texelIdx];
-                    texel.ray = LightmapRay {
+                    LightmapRay& ray = m_rays[texelIdx];
+                    ray = LightmapRay {
                         Ray { position, normal },
                         lightmapMeshData.mesh->Id(),
                         triangleIndex,
                         texelIdx
                     };
+
+                    LightmapTexel& texel = texels[texelIdx];
+                    texel.pRay = &ray;
 
                     currentUvIndices.PushBack(texelIdx);
                 }
@@ -343,15 +348,15 @@ Result LightmapData<LightmapVolume>::Build()
 
 auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
 {
-    Assert(texels.Size() == width * height, "Invalid UV map size");
+    Assert(texels.Size() == dimensions.x * dimensions.y, "Invalid UV map size");
 
-    BitmapType bitmap(width, height);
+    BitmapType bitmap(dimensions.x, dimensions.y);
 
-    for (uint32 x = 0; x < width; x++)
+    for (uint32 x = 0; x < dimensions.x; x++)
     {
-        for (uint32 y = 0; y < height; y++)
+        for (uint32 y = 0; y < dimensions.y; y++)
         {
-            const uint32 index = x + y * width;
+            const uint32 index = x + y * dimensions.x;
 
             Vec4f color = texels[index].color0;
 
@@ -373,15 +378,15 @@ auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
 
 auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
 {
-    Assert(texels.Size() == width * height, "Invalid UV map size");
+    Assert(texels.Size() == dimensions.x * dimensions.y, "Invalid UV map size");
 
-    BitmapType bitmap(width, height);
+    BitmapType bitmap(dimensions.x, dimensions.y);
 
-    for (uint32 x = 0; x < width; x++)
+    for (uint32 x = 0; x < dimensions.x; x++)
     {
-        for (uint32 y = 0; y < height; y++)
+        for (uint32 y = 0; y < dimensions.y; y++)
         {
-            const uint32 index = x + y * width;
+            const uint32 index = x + y * dimensions.x;
 
             Vec4f color = texels[index].color1;
 
@@ -403,14 +408,15 @@ auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
 
 #pragma endregion LightmapData < LightmapVolume>
 
-#pragma region LightmapData < EnvProbe>
+#pragma region LightmapData<ReflectionProbe>
 
-Result LightmapData<EnvProbe>::Build()
+Result LightmapData<ReflectionProbe>::Build()
 {
     Assert(m_envProbe != nullptr);
 
     // texels need to be 6*resolution^2 in size
-    const Vec2u dimensions = m_envProbe->GetDimensions();
+    dimensions = Vec3u(m_envProbe->GetDimensions(), 1);
+
     AssertDebug(dimensions.Volume() > 0 && dimensions.x == dimensions.y,
         "EnvProbe lightmap dimensions must be square and non-zero! Dimensions: {}", dimensions);
 
@@ -418,6 +424,7 @@ Result LightmapData<EnvProbe>::Build()
     const SizeType numTexelsTotal = 6 * numTexelsPerFace;
 
     texels.Resize(numTexelsTotal);
+    m_rays.Resize(numTexelsTotal);
 
     const Vec3f origin = m_envProbe->GetWorldTranslation();
 
@@ -439,13 +446,16 @@ Result LightmapData<EnvProbe>::Build()
 
                 const Vec3f dir = (forward + right * u + up * v).Normalize();
 
-                LightmapTexel& texel = texels[texelIdx];
-                texel.ray = LightmapRay {
+                LightmapRay& ray = m_rays[texelIdx];
+                ray = LightmapRay {
                     Ray { origin, dir },
                     /* meshId */ ObjId<Mesh>::invalid,
                     /* triangleIndex */ ~0u,
                     /* texelIndex */ texelIdx
                 };
+
+                LightmapTexel& texel = texels[texelIdx];
+                texel.pRay = &ray;
             }
         }
     }
@@ -453,11 +463,10 @@ Result LightmapData<EnvProbe>::Build()
     return {};
 }
 
-auto LightmapData<EnvProbe>::ToBitmap() const -> BitmapType
+auto LightmapData<ReflectionProbe>::ToBitmap() const -> BitmapType
 {
     Assert(m_envProbe != nullptr);
 
-    const Vec2u dimensions = m_envProbe->GetDimensions();
     const SizeType numTexelsPerFace = dimensions.x * dimensions.y;
 
     Assert(texels.Size() == 6 * numTexelsPerFace, "Invalid cubemap size");
@@ -492,7 +501,7 @@ auto LightmapData<EnvProbe>::ToBitmap() const -> BitmapType
     return bitmap;
 }
 
-#pragma endregion LightmapData < EnvProbe>
+#pragma endregion LightmapData<ReflectionProbe>
 
 #pragma region LightmapData < FogVolume>
 

@@ -20,7 +20,7 @@ namespace hyperion {
 
 class LightmapperBase;
 class LightmapVolume;
-class EnvProbe;
+class ReflectionProbe;
 class FogVolume;
 class Scene;
 
@@ -35,7 +35,7 @@ struct IsBakeable<LightmapVolume> : std::true_type
 };
 
 template <>
-struct IsBakeable<EnvProbe> : std::true_type
+struct IsBakeable<ReflectionProbe> : std::true_type
 {
 };
 

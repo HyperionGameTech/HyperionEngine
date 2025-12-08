@@ -24,6 +24,7 @@
 #include <system/SystemEvent.hpp>
 
 #include <scene/World.hpp>
+#include <scene/Scene.hpp>
 
 #include <asset/Assets.hpp>
 

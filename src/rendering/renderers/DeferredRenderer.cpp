@@ -1795,7 +1795,7 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredRend
 
     const GpuImageViewRef& inputImageView = m_rendererConfig.taaEnabled
         ? g_renderBackend->GetTextureImageView(passData.temporalAa->GetResultTexture())
-        : passData.combinePass->GetFinalImageView();
+        : passData.tonemapPass->GetFinalImageView();
 
     Assert(inputImageView.IsValid());
 
@@ -2061,7 +2061,8 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
         passData.combinePass->GetFinalImageView());
     passData.reflectionsPass->Create();
 
-    passData.tonemapPass->Resize(newSize);
+    passData.tonemapPass = CreateObject<TonemapPass>(passData.viewport.extent, gbuffer);
+    passData.tonemapPass->Create();
 
     passData.lightmapPass = CreateObject<LightmapPass>();
     passData.lightmapPass->Create();
@@ -2084,7 +2085,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     CreateViewRaytracingPasses(view, passData);
 
     passData.view = MakeWeakRef(view);
-    passData.viewport = viewport;
 }
 
 void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)

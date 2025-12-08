@@ -2,10 +2,10 @@
 
 #include <HyperionPch.hpp>
 
-#include <scene/systems/ScriptSystem.hpp>
-#include <scene/EntityManager.hpp>
-
 #include <scene/World.hpp>
+#include <scene/Scene.hpp>
+#include <scene/EntityManager.hpp>
+#include <scene/systems/ScriptSystem.hpp>
 
 #include <scene/util/EntityScripting.hpp>
 

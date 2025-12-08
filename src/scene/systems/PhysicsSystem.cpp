@@ -10,6 +10,8 @@
 
 #include <core/reflection/Handle.hpp>
 
+#include <physics/PhysicsWorld.hpp>
+
 #include <PhysicsSystem.generated.inl>
 
 namespace hyperion {

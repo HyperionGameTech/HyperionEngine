@@ -1,6 +1,5 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include "core/memory/ByteBuffer.hpp"
 #include <HyperionPch.hpp>
 
 #include <lightmapper/Lightmapper.hpp>
@@ -148,6 +147,25 @@ LightmapperBase::~LightmapperBase()
     }
 }
 
+uint32 LightmapperBase::NumTexelSamples() const
+{
+    return m_config.numSamples;
+}
+
+uint32 LightmapperBase::MaxTexelsPerFrame() const
+{
+    if (ShouldSplitIntoJobs())
+    {
+        return TileSize * TileSize * NumTexelSamples();
+    }
+    else
+    {
+        const Vec2u dimensions = GetLightmapData().dimensions.GetXY();
+
+        return dimensions.Volume() * NumTexelSamples();
+    }
+}
+
 bool LightmapperBase::IsComplete() const
 {
     return m_numJobs.Get(MemoryOrder::ACQUIRE) == 0;
@@ -281,8 +299,11 @@ void LightmapperBase::CreateLightmapRenderers()
             break;
         }
 
+        const uint32 maxTexelsPerFrame = MaxTexelsPerFrame();
+        AssertDebug(maxTexelsPerFrame > 0);
+
         UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
-        lightmapRenderer = CreateRenderer(LightmapShadingType(i), TileSize * TileSize * m_config.numSamples);
+        lightmapRenderer = CreateRenderer(LightmapShadingType(i), maxTexelsPerFrame);
 
         if (!lightmapRenderer)
         {
@@ -462,12 +483,76 @@ void LightmapperBase::Build()
         m_subElementsByEntity.Set(subElement.entity, &subElement);
     }
 
-    Build_Internal();
+    if (Result buildInternalResult = Build_Internal(); buildInternalResult.HasError())
+    {
+        HYP_LOG(Lightmap, Error, "Lightmapper build failed: {}", buildInternalResult.GetError().GetMessage());
+        return;
+    }
 
-    UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
-    Assert(job != nullptr);
+    DispatchJobs();
+}
 
-    AddJob(std::move(job));
+void LightmapperBase::DispatchJobs()
+{
+    if (ShouldSplitIntoJobs())
+    {
+        const LightmapDataBase& lightmapData = GetLightmapData();
+
+        const Vec3u dimensions = lightmapData.dimensions;
+        Assert(dimensions.Volume() > 0);
+
+        const bool performsRayTracing = PerformsRayTracing();
+
+        HashMap<Vec2i, Array<uint32>> tileBuckets;
+
+        AssertDebug(lightmapData.texels.Any());
+
+        for (uint32 i = 0; i < lightmapData.texels.Size(); i++)
+        {
+            const LightmapTexel& texel = lightmapData.texels[i];
+
+            if (performsRayTracing && !texel.pRay)
+            {
+                continue;
+            }
+
+            // calculate tile coord based on texel index
+            const uint32 x = i % dimensions.x;
+            const uint32 y = i / dimensions.y;
+
+            const Vec2i tileCoord { int(x / TileSize), int(y / TileSize) };
+            tileBuckets[tileCoord].PushBack(i);
+        }
+
+        HYP_LOG(Lightmap, Info, "Dispatching {} tile jobs for {} valid texels", tileBuckets.Size(), lightmapData.texels.Size());
+
+        for (auto& it : tileBuckets)
+        {
+            UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
+            Assert(job != nullptr);
+
+            job->SetTexelIndices(std::move(it.second));
+            AddJob(std::move(job));
+        }
+    }
+    else
+    {
+        UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
+        Assert(job != nullptr);
+
+        // all texels
+        Array<uint32> allTexelIndices;
+        allTexelIndices.Resize(GetLightmapData().texels.Size());
+
+        for (uint32 i = 0; i < allTexelIndices.Size(); i++)
+        {
+            allTexelIndices[i] = i;
+        }
+
+        job->SetTexelIndices(std::move(allTexelIndices));
+
+        AddJob(std::move(job));
+    }
 }
 
 void LightmapperBase::Update(float delta)
@@ -645,7 +730,7 @@ void Lightmapper<LightmapVolume>::Build()
     }
 
     LightmapElement lightmapElement;
-    if (!m_volume->AddElement({ m_lightmapData.width, m_lightmapData.height }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+    if (!m_volume->AddElement({ m_lightmapData.GetWidth(), m_lightmapData.GetHeight() }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
     {
         HYP_LOG(Lightmap, Error, "Failed to add element to volume!");
         return;
@@ -654,40 +739,7 @@ void Lightmapper<LightmapVolume>::Build()
     m_lightmapElementId = lightmapElement.id;
     AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
-    const uint32 width = m_lightmapData.width;
-    const uint32 height = m_lightmapData.height;
-
-    HashMap<Vec2i, Array<uint32>> tileBuckets;
-
-    for (uint32 i = 0; i < m_lightmapData.texels.Size(); i++)
-    {
-        const LightmapTexel& texel = m_lightmapData.texels[i];
-
-        if (!texel.ray.meshId.IsValid())
-        {
-            continue;
-        }
-
-        // calculate tile coord based on texel index
-        const uint32 x = i % width;
-        const uint32 y = i / width;
-
-        const Vec2i tileCoord { int(x / TileSize), int(y / TileSize) };
-        tileBuckets[tileCoord].PushBack(i);
-    }
-
-    HYP_LOG(Lightmap, Info, "Dispatching {} tile jobs for {} valid texels", tileBuckets.Size(), m_lightmapData.texels.Size());
-
-    for (auto& it : tileBuckets)
-    {
-        UniquePtr<LightmapJob<LightmapVolume>> job = MakeUnique<LightmapJob<LightmapVolume>>(
-            CreateLightmapJobParams(0, m_subElements.Size()),
-            m_volume,
-            &m_lightmapData);
-
-        job->SetTexelIndices(std::move(it.second));
-        AddJob(std::move(job));
-    }
+    LightmapperBase::DispatchJobs();
 }
 
 void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
@@ -847,26 +899,30 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 
 #pragma endregion Lightmapper < LightmapVolume>
 
-#pragma region Lightmapper < EnvProbe>
+#pragma region Lightmapper<ReflectionProbe>
 
-Lightmapper<EnvProbe>::Lightmapper(LightmapperConfig&& config, const Handle<EnvProbe>& envProbe)
+Lightmapper<ReflectionProbe>::Lightmapper(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe)
     : LightmapperBase(std::move(config), MakeStrongRef(envProbe->GetScene()), envProbe->GetAABB()),
       m_envProbe(envProbe)
 {
 }
 
-void Lightmapper<EnvProbe>::Initialize_Internal()
+Result Lightmapper<ReflectionProbe>::Build_Internal()
 {
     Assert(m_envProbe != nullptr);
+
+    m_lightmapData = LightmapData<ReflectionProbe>(m_subElements, m_envProbe.Get());
+
+    return m_lightmapData.Build();
 }
 
-void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
+void Lightmapper<ReflectionProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
 {
     HYP_SCOPE;
 
-    LightmapJob<EnvProbe>* jobCasted = static_cast<LightmapJob<EnvProbe>*>(job);
+    LightmapJob<ReflectionProbe>* jobCasted = static_cast<LightmapJob<ReflectionProbe>*>(job);
 
-    const LightmapData<EnvProbe>& lightmapData = jobCasted->GetLightmapData();
+    const LightmapData<ReflectionProbe>& lightmapData = jobCasted->GetLightmapData();
 
     if (!lightmapData.IsBuilt())
     {
@@ -877,7 +933,7 @@ void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
     const Vec2u dimensions = m_envProbe->GetDimensions();
 
     // Convert lightmap data to bitmaps (6 faces stacked vertically)
-    LightmapData<EnvProbe>::BitmapType bitmap = lightmapData.ToBitmap();
+    LightmapData<ReflectionProbe>::BitmapType bitmap = lightmapData.ToBitmap();
 
     TextureDesc textureDesc {
         TT_CUBEMAP,
@@ -907,12 +963,11 @@ void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
 
     // Set the baked texture on the EnvProbe
     m_envProbe->SetBakedTexture(cubemap);
-    m_envProbe->SetIsBaked(true);
 
     HYP_LOG(Lightmap, Info, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", m_envProbe->Id());
 }
 
-#pragma endregion Lightmapper < EnvProbe>
+#pragma endregion Lightmapper<ReflectionProbe>
 
 #pragma region Lightmapper < FogVolume>
 
@@ -922,9 +977,13 @@ Lightmapper<FogVolume>::Lightmapper(LightmapperConfig&& config, const Handle<Fog
 {
 }
 
-void Lightmapper<FogVolume>::Initialize_Internal()
+Result Lightmapper<FogVolume>::Build_Internal()
 {
     Assert(m_fogVolume != nullptr);
+
+    m_lightmapData = LightmapData<FogVolume>(m_subElements, m_fogVolume.Get());
+
+    return m_lightmapData.Build();
 }
 
 void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)

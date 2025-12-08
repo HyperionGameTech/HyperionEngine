@@ -45,15 +45,15 @@ namespace Hyperion
             this.type = type;
             this.title = "";
             this.message = "";
-            this.buttons = new MessageBoxButton[0];
+            this.buttons = Array.Empty<MessageBoxButton>();
         }
 
-        public MessageBox(MessageBoxType type, string title, string message, MessageBoxButton[] buttons = null)
+        public MessageBox(MessageBoxType type, string title, string message, MessageBoxButton[]? buttons = null)
         {
             this.type = type;
             this.title = title;
             this.message = message;
-            this.buttons = buttons ?? new MessageBoxButton[0];
+            this.buttons = buttons ?? Array.Empty<MessageBoxButton>();
         }
 
         public MessageBox Title(string title)

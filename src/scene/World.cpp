@@ -3,10 +3,12 @@
 #include <HyperionPch.hpp>
 
 #include <scene/World.hpp>
+#include <scene/Scene.hpp>
 #include <scene/View.hpp>
 #include <scene/EntityManager.hpp>
 #include <scene/EntityTag.hpp>
 #include <scene/SystemExecutionGroup.hpp>
+#include <scene/Subsystem.hpp>
 
 #include <scene/systems/WorldAABBUpdaterSystem.hpp>
 #include <scene/systems/VisibilityStateUpdaterSystem.hpp>
@@ -52,6 +54,8 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetObject.hpp>
 #include <asset/AssetRegistry.hpp>
+
+#include <physics/PhysicsWorld.hpp>
 
 #include <World.generated.inl>
 

@@ -127,6 +127,11 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<LightmapVo
 {
 }
 
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<ReflectionProbe>& probe)
+    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { ObjCast<ObjectBase>(probe) } })
+{
+}
+
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<ObjectBase>>& sources)
     : TickableEditorTask(),
       m_sources(sources)
@@ -136,7 +141,7 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<Obje
         ObjectBase* source = *it;
 
         if (!source->IsA(LightmapVolume::StaticClass())
-            && !source->IsA(EnvProbe::StaticClass())
+            && !source->IsA(ReflectionProbe::StaticClass())
             && !source->IsA(FogVolume::StaticClass()))
         {
             HYP_LOG(Editor, Error, "GenerateLightmapsEditorTask source is not a LightmapVolume or EnvProbe: \"{}\"", source->InstanceClass()->GetName());
@@ -185,9 +190,9 @@ void GenerateLightmapsEditorTask::Process()
         {
             task = lightmapperSubsystem->EnqueueBake(ObjCast<LightmapVolume>(source));
         }
-        else if (source->IsA(EnvProbe::StaticClass()))
+        else if (source->IsA(ReflectionProbe::StaticClass()))
         {
-            task = lightmapperSubsystem->EnqueueBake(ObjCast<EnvProbe>(source));
+            task = lightmapperSubsystem->EnqueueBake(ObjCast<ReflectionProbe>(source));
         }
         else if (source->IsA(FogVolume::StaticClass()))
         {
@@ -3131,7 +3136,7 @@ void EditorSubsystem::NewProject()
     sun->SetName(NAME("SunLight"));
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
     sun->SetColor(Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)));
-    sun->SetIntensity(10.0f);
+    sun->SetIntensity(8.0f);
     InitObject(sun);
 
     defaultScene->GetRoot()->AddChild(sun);

@@ -468,8 +468,10 @@ void EnvProbe::Update(float delta)
         return;
     }
 
-    Assert(m_camera != nullptr);
+    AssertDebug(m_camera != nullptr);
     m_camera->Update(delta);
+
+    AssertDebug(m_view != nullptr);
 
     GetWorld()->ProcessViewAsync(m_view);
 

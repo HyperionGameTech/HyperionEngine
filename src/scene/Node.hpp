@@ -957,14 +957,6 @@ protected:
     virtual void OnTransformUpdated(const Transform& transform);
     virtual void OnMobilityChanged(bool isStatic);
 
-#ifdef HYP_EDITOR
-    EditorDelegates* GetEditorDelegates();
-
-    /*! \brief Do something with editor delegates. Thread safe, func will be called on the game thread. */
-    template <class Function>
-    void GetEditorDelegates(Function&& func);
-#endif
-
     HYP_METHOD(Property = "Children", NoScriptBindings, Serialize)
     void SetChildren(const NodeList& children); // use setter so we can manage parent pointers
 

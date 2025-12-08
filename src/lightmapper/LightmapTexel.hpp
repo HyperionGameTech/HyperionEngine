@@ -73,7 +73,7 @@ struct LightmapTexel
     Vec4f color0 = Vec4f::Zero();
     Vec4f color1 = Vec4f::Zero();
 
-    LightmapRay ray;
+    LightmapRay* pRay = nullptr;
 };
 
 } // namespace hyperion

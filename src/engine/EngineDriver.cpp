@@ -65,6 +65,7 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/EntityManager.hpp>
+#include <scene/Subsystem.hpp>
 
 #include <rendering/Texture.hpp>
 
