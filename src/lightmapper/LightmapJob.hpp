@@ -129,7 +129,7 @@ public:
      *  \param outTexels Output array to store gathered texels (pointers).
      */
     virtual void GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexels);
-    virtual void ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0);
+    virtual uint32 ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0);
 
     bool IsCompleted() const;
 
@@ -297,7 +297,7 @@ public:
         return m_lightmapData;
     }
 
-    virtual void ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0) override;
+    virtual uint32 ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0) override;
 
 protected:
     virtual void Start_Internal() override;

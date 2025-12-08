@@ -230,19 +230,16 @@ void LightmapJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outT
     }
 }
 
-void LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
+uint32 LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
     if (!m_lightmapper->PerformsRayTracing())
     {
-        return;
+        return 0;
     }
 
     const uint32 numTexels = uint32(texels.Size());
 
-    if (numTexels == 0)
-    {
-        return;
-    }
+    // @NOTE: Can't skip if numTexels == 0, because previous frame rays may still need to be integrated.
 
     Array<LightmapRay> rays;
     rays.Resize(numTexels);
@@ -256,6 +253,8 @@ void LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOff
     Assert(world != nullptr);
 
     PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), texelOffset);
+
+    return numTexels;
 }
 
 void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
@@ -389,7 +388,6 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
     texels.Reserve(maxTexels);
 
     GatherTexels(maxTexels, texels);
-    ProcessTexels(Span<LightmapTexel*>(texels.Data(), texels.Size()), texelOffset);
 
     const double percentage = double(m_texelIndex) / double(m_texelIndices.Size() * NumTexelSamples()) * 100.0;
 
@@ -401,7 +399,7 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
         m_lastLoggedPercentage = percentage;
     }
 
-    return texels.Size();
+    return ProcessTexels(Span<LightmapTexel*>(texels.Data(), texels.Size()), texelOffset);
 }
 
 #pragma endregion LightmapJobBase
@@ -528,7 +526,7 @@ void LightmapJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
     }
 }
 
-void LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
+uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
     const BoundingBox worldAabb = m_fogVolume->GetWorldAABB();
     const Vec3f extentWS = worldAabb.GetExtent();
@@ -563,6 +561,8 @@ void LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 t
         texel->irradiance.z = debugColor.z;*/
         texel->irradiance.w = 1.0f;
     }
+
+    return uint32(texels.Size());
 }
 
 #pragma endregion LightmapJob < FogVolume>

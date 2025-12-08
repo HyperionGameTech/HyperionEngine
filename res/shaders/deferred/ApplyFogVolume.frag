@@ -169,7 +169,7 @@ vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSi
     float jitter = float(world_shader_data.frame_counter & 1) * 0.5; // simple temporal jitter
 
     // Small blue noise/jitter to avoid banding
-    t += (fract(sin(dot(rayOrigin.xy, vec2(12.9898,78.233))) * 43758.5453) - 0.5) * minStep * jitter;
+    rayOrigin += rayDir * (fract(sin(dot(rayOrigin.zy, vec2(93.9898,67.345))) * 24634.6345) - 0.5) * minStep * jitter;
 
     while (t < tFar && steps < maxSteps && transmittance > 1e-3)
     {
@@ -246,7 +246,7 @@ void main()
         discard;
     }
     
-    vec4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, 0.1);
+    vec4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, 0.025);
 
     gbuffer_albedo = fogColor;
     gbuffer_normals = vec4(0.0);
