@@ -1,5 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
+#include "core/memory/ByteBuffer.hpp"
 #include <HyperionPch.hpp>
 
 #include <lightmapper/Lightmapper.hpp>
@@ -940,39 +941,50 @@ void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
         return;
     }
 
-    typename LightmapData<FogVolume>::BitmapType& bitmap = lightmapData.GetVolumeBitmap();
+    typename LightmapData<FogVolume>::VolumeBitmap& volumeBitmap = lightmapData.GetVolumeBitmap();
+    const typename LightmapData<FogVolume>::NoiseBitmap& noiseBitmap = lightmapData.GetNoiseBitmap();
 
     // update bitmap with texel data
     for (SizeType i = 0; i < lightmapData.texels.Size(); i++)
     {
         const LightmapTexel& texel = lightmapData.texels[i];
 
-        bitmap.SetPixel(
-            i % bitmap.GetWidth(),
-            (i / bitmap.GetWidth()) % bitmap.GetHeight(),
-            i / (bitmap.GetWidth() * bitmap.GetHeight()),
-            texel.irradiance);
+        volumeBitmap.SetPixel(
+            i % volumeBitmap.GetWidth(),
+            (i / volumeBitmap.GetWidth()) % volumeBitmap.GetHeight(),
+            i / (volumeBitmap.GetWidth() * volumeBitmap.GetHeight()),
+            texel.color0);
     }
 
-    TextureDesc textureDesc {
+    TextureDesc volumeTextureDesc {
         TT_TEX3D,
-        bitmap.GetFormat(),
-        Vec3u { bitmap.GetWidth(), bitmap.GetHeight(), bitmap.GetDepth() },
+        volumeBitmap.GetFormat(),
+        Vec3u { volumeBitmap.GetWidth(), volumeBitmap.GetHeight(), volumeBitmap.GetDepth() },
         TFM_LINEAR,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE
     };
 
-    TextureData textureData {
-        ByteBuffer(bitmap.ToByteView())
-    };
-
-    Handle<Texture> volumeTexture = CreateObject<Texture>(textureDesc, std::move(textureData));
-    volumeTexture->SetName(NAME_FMT("FogVolume_{}_Baked", m_fogVolume->GetUUID()));
+    Handle<Texture> volumeTexture = CreateObject<Texture>(volumeTextureDesc, TextureData { ByteBuffer(volumeBitmap.ToByteView()) });
+    volumeTexture->SetName(NAME_FMT("FogVolume_{}_DataMap", m_fogVolume->GetUUID()));
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", volumeTexture->GetAsset());
     InitObject(volumeTexture);
 
-    // Set the baked texture on the FogVolume
-    m_fogVolume->SetVolumeTexture(volumeTexture);
+    TextureDesc noiseTextureDesc {
+        TT_TEX3D,
+        noiseBitmap.GetFormat(),
+        Vec3u { noiseBitmap.GetWidth(), noiseBitmap.GetHeight(), noiseBitmap.GetDepth() },
+        TFM_LINEAR,
+        TFM_LINEAR,
+        TWM_REPEAT
+    };
+
+    Handle<Texture> noiseTexture = CreateObject<Texture>(noiseTextureDesc, TextureData { ByteBuffer(noiseBitmap.ToByteView()) });
+    noiseTexture->SetName(NAME_FMT("FogVolume_{}_NoiseMap", m_fogVolume->GetUUID()));
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", noiseTexture->GetAsset());
+    InitObject(noiseTexture);
+
+    m_fogVolume->SetTextures(volumeTexture, noiseTexture);
 }
 
 } // namespace hyperion

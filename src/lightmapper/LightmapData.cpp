@@ -15,6 +15,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <util/NoiseFactory.hpp>
+
 #ifdef HYP_XATLAS
 #include <xatlas.h>
 #endif
@@ -339,7 +341,7 @@ Result LightmapData<LightmapVolume>::Build()
 #endif
 }
 
-auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
+auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
 {
     Assert(texels.Size() == width * height, "Invalid UV map size");
 
@@ -351,7 +353,7 @@ auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
         {
             const uint32 index = x + y * width;
 
-            Vec4f color = texels[index].radiance;
+            Vec4f color = texels[index].color0;
 
             if (color.w <= 0.0f)
             {
@@ -369,7 +371,7 @@ auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
     return bitmap;
 }
 
-auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
+auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
 {
     Assert(texels.Size() == width * height, "Invalid UV map size");
 
@@ -381,7 +383,7 @@ auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
         {
             const uint32 index = x + y * width;
 
-            Vec4f color = texels[index].irradiance;
+            Vec4f color = texels[index].color1;
 
             if (color.w <= 0.0f)
             {
@@ -471,7 +473,7 @@ auto LightmapData<EnvProbe>::ToBitmap() const -> BitmapType
                 const uint32 texelIdx = face * numTexelsPerFace + y * dimensions.x + x;
                 const uint32 bitmapY = face * dimensions.y + y;
 
-                Vec4f color = texels[texelIdx].radiance;
+                Vec4f color = texels[texelIdx].color0;
 
                 if (color.w <= 0.0f)
                 {
@@ -493,6 +495,39 @@ auto LightmapData<EnvProbe>::ToBitmap() const -> BitmapType
 #pragma endregion LightmapData < EnvProbe>
 
 #pragma region LightmapData < FogVolume>
+
+static struct FogVolumeNoiseCombinator
+{
+    NoiseCombinator noiseCombinator;
+
+    FogVolumeNoiseCombinator()
+    {
+        noiseCombinator
+            .Use<SimplexNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 1.0f, 0.0f, Vec3f(100.0f))
+            .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.5f, 0.0f, Vec3f(50.0f))
+            .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.25f, 0.0f, Vec3f(25.0f));
+    }
+} s_initializer;
+
+static void GenerateNoiseBitmap(typename LightmapData<FogVolume>::NoiseBitmap& noiseBitmap)
+{
+    for (uint32 z = 0; z < noiseBitmap.GetDepth(); z++)
+    {
+        for (uint32 y = 0; y < noiseBitmap.GetHeight(); y++)
+        {
+            for (uint32 x = 0; x < noiseBitmap.GetWidth(); x++)
+            {
+                const float noiseValue = s_initializer.noiseCombinator.GetNoise(
+                    Vec3f(
+                        float(x) / float(noiseBitmap.GetWidth()),
+                        float(y) / float(noiseBitmap.GetHeight()),
+                        float(z) / float(noiseBitmap.GetDepth())));
+
+                noiseBitmap.GetPixelReference(x, y, z).SetComponentFloat(0, noiseValue);
+            }
+        }
+    }
+}
 
 Result LightmapData<FogVolume>::Build()
 {
@@ -518,7 +553,7 @@ Result LightmapData<FogVolume>::Build()
         volumeTextureDimensions = Vec3u::One();
     }
 
-    m_volumeBitmap = BitmapType(
+    m_volumeBitmap = VolumeBitmap(
         volumeTextureDimensions.x,
         volumeTextureDimensions.y,
         volumeTextureDimensions.z);
@@ -538,7 +573,7 @@ Result LightmapData<FogVolume>::Build()
     VoxelOctreeParams octreeParams;
     octreeParams.aabb = voxelOctreeAabb;
     octreeParams.allowResize = false;
-    octreeParams.maxDepth = 8; // only need coarse voxels for fog volume -- higher max depth will take much longer to iterate
+    octreeParams.maxDepth = 5;
 
     m_voxelOctree = MakeUnique<VoxelOctree>();
 
@@ -548,6 +583,13 @@ Result LightmapData<FogVolume>::Build()
     {
         return buildResult.GetError();
     }
+
+    m_noiseBitmap = NoiseBitmap(
+        MaxNoiseBitmapExtent,
+        MaxNoiseBitmapExtent,
+        MaxNoiseBitmapExtent);
+
+    GenerateNoiseBitmap(m_noiseBitmap);
 
     return {};
 }

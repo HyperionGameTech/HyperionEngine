@@ -32,7 +32,9 @@ public:
     }
 
     HYP_METHOD()
-    void SetVolumeTexture(const Handle<Texture>& texture);
+    void SetTextures(
+        const Handle<Texture>& volumeTexture,
+        const Handle<Texture>& noiseTexture);
 
     void UpdateRenderProxy(class RenderProxyFogVolume* proxy);
 
@@ -41,6 +43,9 @@ private:
 
     HYP_FIELD()
     Handle<Texture> m_volumeTexture;
+
+    HYP_FIELD()
+    Handle<Texture> m_noiseTexture;
 };
 
 } // namespace hyperion

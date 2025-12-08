@@ -70,8 +70,8 @@ static_assert(std::is_trivially_move_constructible_v<LightmapRay>, "LightmapRay 
 
 struct LightmapTexel
 {
-    Vec4f radiance = Vec4f::Zero();
-    Vec4f irradiance = Vec4f::Zero();
+    Vec4f color0 = Vec4f::Zero();
+    Vec4f color1 = Vec4f::Zero();
 
     LightmapRay ray;
 };

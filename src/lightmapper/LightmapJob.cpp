@@ -44,8 +44,6 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/DebugDrawer.hpp>
 
-#include <util/NoiseFactory.hpp>
-
 namespace hyperion {
 
 #pragma region Render command
@@ -273,11 +271,11 @@ void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const 
         switch (shadingType)
         {
         case LightmapShadingType::FULL: // fallthrough
-        case LightmapShadingType::RADIANCE:
-            texel.radiance += Vec4f(hit.color, 1.0f);
-            break;
         case LightmapShadingType::IRRADIANCE:
-            texel.irradiance += Vec4f(hit.color, 1.0f);
+            texel.color0 += Vec4f(hit.color, 1.0f);
+            break;
+        case LightmapShadingType::RADIANCE:
+            texel.color1 += Vec4f(hit.color, 1.0f);
             break;
         default:
             HYP_UNREACHABLE();
@@ -471,15 +469,6 @@ void LightmapJob<EnvProbe>::Process_Internal(bool* outIsReadyToProcess)
 
 #pragma region LightmapJob < FogVolume>
 
-static struct FogVolumeNoiseCombinator
-{
-    NoiseCombinator noiseCombinator;
-    FogVolumeNoiseCombinator()
-    {
-        noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 1.0f, 0.0f, Vec3f(5.35f));
-    }
-} s_initializer;
-
 LightmapJob<FogVolume>::~LightmapJob()
 {
 }
@@ -494,7 +483,8 @@ void LightmapJob<FogVolume>::Start_Internal()
         return;
     }
 
-    const auto& volumeBitmap = m_lightmapData.GetVolumeBitmap();
+    const typename LightmapData<FogVolume>::VolumeBitmap& volumeBitmap = m_lightmapData.GetVolumeBitmap();
+
     const Vec3u volumeExtent = Vec3u {
         volumeBitmap.GetWidth(),
         volumeBitmap.GetHeight(),
@@ -554,12 +544,8 @@ uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32
 
         const double dist = m_lightmapData.GetVoxelOctree()->GetSignedDistanceAtPoint(posWS);
 
-        texel->irradiance.x = float(dist);
-        /*Vec3f debugColor = Vec3f(texelCoord) / Vec3f(bitmapExtent);
-        texel->irradiance.x = debugColor.x;
-        texel->irradiance.y = debugColor.y;
-        texel->irradiance.z = debugColor.z;*/
-        texel->irradiance.w = 1.0f;
+        texel->color0.x = float(dist);
+        texel->color0.w = 1.0f;
     }
 
     return uint32(texels.Size());

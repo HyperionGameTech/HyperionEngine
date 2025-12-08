@@ -107,7 +107,8 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBu
 
 #include "FogVolume.inl"
 
-HYP_DESCRIPTOR_SRV(FogVolume, VolumeTexture) uniform texture3D VolumeTexture;
+HYP_DESCRIPTOR_SRV(FogVolume, DataMap) uniform texture3D DataMap;
+HYP_DESCRIPTOR_SRV(FogVolume, NoiseMap) uniform texture3D NoiseMap;
 HYP_DESCRIPTOR_CBUFF(FogVolume, FogVolumeUniforms) uniform FogVolumeUniforms
 {
     FogVolume fogVolume;
@@ -130,90 +131,72 @@ vec2 RayBoxIntersect(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax)
 
 vec3 WorldToLocal(vec3 positionWS, in vec3 aabbMin, in vec3 aabbMax)
 {
-    const vec3 extent = aabbMax - aabbMin;
-    const vec3 center = aabbMin + extent * 0.5;
-
-    return (positionWS - center) / extent;
+    return (positionWS - aabbMin) / (aabbMax - aabbMin);
 }
 
 vec3 LocalToTexCoord(vec3 positionLS)
 {
-    return clamp(positionLS + 0.5, vec3(0.0), vec3(1.0));
+    return clamp(positionLS, vec3(0.0), vec3(1.0));
 }
 
 vec3 WorldToTexCoord(vec3 positionWS, in vec3 aabbMin, in vec3 aabbMax)
 {
-    return LocalToTexCoord(WorldToLocal(positionWS, aabbMin, aabbMax));
+    return clamp(LocalToTexCoord(WorldToLocal(positionWS, aabbMin, aabbMax)), vec3(0.0), vec3(1.0));
 }
 
 vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSize)
 {
     float t = tNear;
     const int maxSteps = 128;
-    int steps = 0;
-
+    
     float transmittance = 1.0;
     vec3 accumulatedColor = vec3(0.0);
 
-    // Fallback constants if not defined in FogVolume
-    // Original uniform-backed assignments (commented out while placeholders are used)
-    // float density = fogVolume.density; // expected in uniforms
-    float density = 0.7; // placeholder: replace with fogVolume.density
-    // float absorption = fogVolume.absorption; // expected extinction coefficient
-    float absorption = 0.1; // placeholder extinction coefficient
-    // float scatter = fogVolume.scatter; // scattering coefficient
-    float scatter = 0.1; // placeholder scattering coefficient
-    // vec3 fogCol = fogVolume.color.rgb;
-    vec3 fogCol = vec3(0.7, 0.7, 0.7); // placeholder fog color
-    const float minStep = stepSize; // base step if SDF returns tiny values
-    float jitter = float(world_shader_data.frame_counter & 1) * 0.5; // simple temporal jitter
+    const float DensityScale = 0.65; // Global density multiplier
+    const float Scattering = 0.3 * DensityScale; // Scattering Coefficient
+    const float Absorption = 0.2 * DensityScale; // Absorption Coefficient
+    const float Extinction = Scattering + Absorption;    // Extinction Coefficient (Total light loss)
+    
+    const vec3 AmbientLight = vec3(0.7, 0.7, 0.7); // Light Color
 
-    // Small blue noise/jitter to avoid banding
-    rayOrigin += rayDir * (fract(sin(dot(rayOrigin.zy, vec2(93.9898,67.345))) * 24634.6345) - 0.5) * minStep * jitter;
+    vec3 albedo = (Extinction > 1e-6) ? AmbientLight * (Scattering / Extinction) : vec3(0.0);
 
-    while (t < tFar && steps < maxSteps && transmittance > 1e-3)
+    for (int i = 0; i < maxSteps; i++)
     {
-        vec3 posWS = rayOrigin + rayDir * t;
-        vec3 uvw = WorldToTexCoord(posWS, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
-
-        // Sample signed distance field (r channel)
-        float sdf = Texture3D(texture_sampler, VolumeTexture, uvw).r;
-
-        // Sphere-tracing step respects SDF sign:
-        //  - sdf > 0: outside, advance by positive distance to surface
-        //  - sdf < 0: inside, advance by magnitude to exit while accumulating
-        float stepDist = (sdf >= 0.0) ? max(sdf, minStep) : max(-sdf, minStep);
-
-        // Accumulate fog only when in air (outside solid geometry): sdf >= 0
-        if (sdf >= 0.0)
+        if (t >= tFar || transmittance < 0.001)
         {
-            // thickness approximated by how far we move this iteration
-            float ds = stepDist;
-
-            // Fade out fog close to surfaces: lower SDF -> lower contribution
-            // Placeholder fade distance; replace with uniform if available
-            const float wispDistance = 0.2;
-            float wisp = smoothstep(0.0, wispDistance, max(sdf, 0.0));
-            float effectiveDensity = density * wisp;
-
-            // Beer-Lambert attenuation
-            float extinction = max(absorption + scatter, 1e-6);
-            float attenuation = exp(-extinction * effectiveDensity * ds);
-
-            // Single-scattering approximation: in-scattered light proportional to scatter
-            vec3 inScatter = fogCol * (scatter * effectiveDensity) * (1.0 - attenuation);
-
-            // Accumulate with current transmittance
-            accumulatedColor += transmittance * inScatter;
-            transmittance *= attenuation;
+            break;
         }
 
-        t += stepDist;
-        steps++;
+        vec3 currentPos = rayOrigin + rayDir * t;
+        vec3 uvw = WorldToTexCoord(currentPos, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
+
+        // SDF < 0 = Inside solid surface
+        // SDF > 0 = Air (Fog)
+        float sdf = Texture3D(texture_sampler, DataMap, uvw).r;
+
+        // inside a surface, stop marching
+        if (sdf < 0.0)
+        {
+            break; 
+        }
+
+        float noise = Texture3D(texture_sampler, NoiseMap, clamp(uvw, vec3(0.0), vec3(1.0))).r;
+        float localDensity = DensityScale * noise;
+
+        float currentExtinction = Extinction * localDensity;
+        
+        float stepTransmittance = exp(-currentExtinction * stepSize);
+        vec3 stepScattering = albedo * (1.0 - stepTransmittance);
+
+        accumulatedColor += transmittance * stepScattering;
+        transmittance *= stepTransmittance;
+
+        t += stepSize;
     }
 
-    float alpha = clamp(1.0 - transmittance, 0.0, 1.0);
-    return vec4(accumulatedColor, alpha);
+    float alpha = 1.0 - transmittance;
+    return vec4(max(vec3(0.0), accumulatedColor), alpha);
 }
 
 void main()
@@ -246,7 +229,11 @@ void main()
         discard;
     }
     
-    vec4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, 0.025);
+    vec4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, 0.1);
+
+    // Debug: render the noise texture
+    //vec3 uvw = WorldToTexCoord(positionWS.xyz, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
+    //fogColor = Texture3D(texture_sampler, NoiseMap, uvw);
 
     gbuffer_albedo = fogColor;
     gbuffer_normals = vec4(0.0);

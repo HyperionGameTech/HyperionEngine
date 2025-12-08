@@ -891,14 +891,19 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(const FramebufferR
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("FogVolume", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("VolumeTexture", proxy->volumeTexture != nullptr
+        descriptorSet->SetElement("DataMap", proxy->volumeTexture != nullptr
             ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->volumeTexture))
+            : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture3d));
+
+        descriptorSet->SetElement("NoiseMap", proxy->noiseTexture != nullptr
+            ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->noiseTexture))
             : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture3d));
 
         descriptorSet->SetElement("FogVolumeUniforms", uniformBuffer);
     }
 
     data.volumeTexture = proxy->volumeTexture;
+    data.noiseTexture = proxy->noiseTexture;
 
     Assert(descriptorTable->Create());
 
@@ -939,7 +944,9 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     FogVolumePassData& data = GetFogVolumePassData(volume);
 
-    if (proxy->forceRebind || proxy->volumeTexture != data.volumeTexture)
+    if (proxy->forceRebind
+        || proxy->volumeTexture != data.volumeTexture
+        || proxy->noiseTexture != data.noiseTexture)
     {
         // force graphics pipeline re-creation
         data.graphicsPipeline = {};

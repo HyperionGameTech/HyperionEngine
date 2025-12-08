@@ -311,6 +311,7 @@ class RenderProxyFogVolume final : public IRenderProxy
 public:
     WeakHandle<FogVolume> fogVolume;
     Texture* volumeTexture = nullptr;
+    Texture* noiseTexture = nullptr;
     BoundingBox worldAabb;
     FogVolumeShaderData bufferData {};
 };

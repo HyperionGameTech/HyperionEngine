@@ -136,6 +136,7 @@ public:
     enum class Mode
     {
         ADDITIVE,
+        SUBTRACTIVE,
         MULTIPLICATIVE
     };
 
@@ -239,6 +240,10 @@ protected:
         {
         case Mode::ADDITIVE:
             finalResult += noiseValue;
+
+            break;
+        case Mode::SUBTRACTIVE:
+            finalResult -= noiseValue;
 
             break;
         case Mode::MULTIPLICATIVE:

@@ -89,8 +89,8 @@ public:
 
     virtual Result Build() override;
 
-    BitmapType ToBitmapRadiance() const;
     BitmapType ToBitmapIrradiance() const;
+    BitmapType ToBitmapRadiance() const;
 
     uint32 width = 0;
     uint32 height = 0;
@@ -147,7 +147,10 @@ template <>
 class LightmapData<FogVolume> : public LightmapDataBase
 {
 public:
-    using BitmapType = Bitmap3D_RGBA32F; // temp; will change to something else later
+    static constexpr uint32 MaxNoiseBitmapExtent = 128;
+
+    using VolumeBitmap = Bitmap3D_RG16F;
+    using NoiseBitmap = Bitmap3D_R8;
 
     LightmapData()
         : m_fogVolume(nullptr)
@@ -173,14 +176,24 @@ public:
         return m_voxelOctree.Get();
     }
 
-    HYP_FORCE_INLINE BitmapType& GetVolumeBitmap()
+    HYP_FORCE_INLINE VolumeBitmap& GetVolumeBitmap()
     {
         return m_volumeBitmap;
     }
 
-    HYP_FORCE_INLINE const BitmapType& GetVolumeBitmap() const
+    HYP_FORCE_INLINE const VolumeBitmap& GetVolumeBitmap() const
     {
         return m_volumeBitmap;
+    }
+
+    HYP_FORCE_INLINE NoiseBitmap& GetNoiseBitmap()
+    {
+        return m_noiseBitmap;
+    }
+
+    HYP_FORCE_INLINE const NoiseBitmap& GetNoiseBitmap() const
+    {
+        return m_noiseBitmap;
     }
 
     virtual Result Build() override;
@@ -188,7 +201,8 @@ public:
 protected:
     FogVolume* m_fogVolume;
     UniquePtr<VoxelOctree> m_voxelOctree;
-    BitmapType m_volumeBitmap;
+    VolumeBitmap m_volumeBitmap;
+    NoiseBitmap m_noiseBitmap;
 };
 
 } // namespace hyperion

@@ -705,7 +705,7 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
 
                 if (!IsDivided())
                 {
-                    if (allowRebuild && m_octantId.GetDepth() < int(MaxDepth) - 1)
+                    if (allowRebuild && m_octantId.GetDepth() < int(MaxDepth()) - 1)
                     {
                         Divide();
                     }

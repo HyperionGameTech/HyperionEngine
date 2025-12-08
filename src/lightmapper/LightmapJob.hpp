@@ -28,6 +28,7 @@ class View;
 class LightmapVolume;
 struct LightmapElement;
 class ILightmapRenderer;
+class LightmapperBase;
 
 struct RenderSetup; // forward decl for renderer interface usage
 

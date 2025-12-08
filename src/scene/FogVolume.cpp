@@ -18,6 +18,9 @@
 
 #include <engine/EngineGlobals.hpp>
 
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <FogVolume.generated.inl>
 
 namespace hyperion {
@@ -37,6 +40,11 @@ FogVolume::~FogVolume()
     {
         SafeDelete(std::move(m_volumeTexture));
     }
+
+    if (m_noiseTexture)
+    {
+        SafeDelete(std::move(m_noiseTexture));
+    }
 }
 
 void FogVolume::Init()
@@ -48,24 +56,39 @@ void FogVolume::Init()
         InitObject(m_volumeTexture);
     }
 
+    if (m_noiseTexture)
+    {
+        InitObject(m_noiseTexture);
+    }
+
     SetNeedsRenderProxyUpdate();
 
     SetReady(true);
 }
 
-void FogVolume::SetVolumeTexture(const Handle<Texture>& texture)
+void FogVolume::SetTextures(
+    const Handle<Texture>& volumeTexture,
+    const Handle<Texture>& noiseTexture)
 {
-    if (m_volumeTexture == texture)
+    if (m_volumeTexture != volumeTexture)
     {
-        return;
+        if (m_volumeTexture)
+        {
+            SafeDelete(std::move(m_volumeTexture));
+        }
+
+        m_volumeTexture = volumeTexture;
     }
 
-    if (m_volumeTexture)
+    if (m_noiseTexture != noiseTexture)
     {
-        SafeDelete(std::move(m_volumeTexture));
-    }
+        if (m_noiseTexture)
+        {
+            SafeDelete(std::move(m_noiseTexture));
+        }
 
-    m_volumeTexture = texture;
+        m_noiseTexture = noiseTexture;
+    }
 
     if (IsInitCalled())
     {
@@ -89,6 +112,13 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
         proxy->forceRebind = true;
 
         proxy->volumeTexture = m_volumeTexture;
+    }
+
+    if (proxy->noiseTexture != m_noiseTexture)
+    {
+        proxy->forceRebind = true;
+
+        proxy->noiseTexture = m_noiseTexture;
     }
 
     // create transform matrix turning 1:1:1 cube to the world bounds

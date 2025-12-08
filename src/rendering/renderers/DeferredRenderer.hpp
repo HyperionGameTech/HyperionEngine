@@ -234,6 +234,7 @@ protected:
     {
         class FogVolume* volume = nullptr;
         Texture* volumeTexture = nullptr;
+        Texture* noiseTexture = nullptr;
         DescriptorTableRef descriptorTable;
         GraphicsPipelineCacheHandle graphicsPipeline;
     };
@@ -410,7 +411,7 @@ public:
     Handle<ReflectionsPass> reflectionsPass;
 
     Handle<LightmapPass> lightmapPass;
-    
+
     Handle<FogVolumePass> fogVolumePass;
 
     Handle<TonemapPass> tonemapPass;
