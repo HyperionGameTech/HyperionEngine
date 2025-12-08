@@ -304,6 +304,8 @@ struct FogVolumeShaderData
     Mat4f transformMatrix;
     Vec4f aabbMin;
     Vec4f aabbMax;
+    uint32 numBoundLights;
+    alignas(16) uint32 lightIndices[16];
 };
 
 class RenderProxyFogVolume final : public IRenderProxy

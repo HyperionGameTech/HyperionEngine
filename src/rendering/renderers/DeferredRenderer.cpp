@@ -825,9 +825,10 @@ FogVolumePass::FogVolumePass()
 
 FogVolumePass::~FogVolumePass()
 {
-    for (auto& data : m_fogVolumePassData)
+    for (FogVolumePassData& data : m_fogVolumePassData)
     {
         SafeDelete(std::move(data.descriptorTable));
+        SafeDelete(std::move(data.uniformBuffer));
     }
 }
 
@@ -876,9 +877,11 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(const FramebufferR
 
     RenderableAttributeSet renderableAttributes { meshAttributes, materialAttributes };
 
-    GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(FogVolumeShaderData));
-    Assert(uniformBuffer->Create());
-    uniformBuffer->Copy(sizeof(FogVolumeShaderData), &proxy->bufferData);
+    if (!data.uniformBuffer)
+    {
+        data.uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(FogVolumeShaderData));
+        Assert(data.uniformBuffer->Create());
+    }
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
@@ -891,15 +894,9 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(const FramebufferR
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("FogVolume", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("DataMap", proxy->volumeTexture != nullptr
-            ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->volumeTexture))
-            : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture3d));
-
-        descriptorSet->SetElement("NoiseMap", proxy->noiseTexture != nullptr
-            ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->noiseTexture))
-            : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture3d));
-
-        descriptorSet->SetElement("FogVolumeUniforms", uniformBuffer);
+        descriptorSet->SetElement("DataMap", proxy->volumeTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->volumeTexture)) : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture3d));
+        descriptorSet->SetElement("NoiseMap", proxy->noiseTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->noiseTexture)) : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture3d));
+        descriptorSet->SetElement("FogVolumeUniforms", data.uniformBuffer);
     }
 
     data.volumeTexture = proxy->volumeTexture;
@@ -954,6 +951,8 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline(framebuffer, data);
 
+    UpdateUniforms(frame, renderSetup, data);
+
     frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
 
     frame->renderQueue << BindDescriptorTable(
@@ -980,6 +979,47 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     frame->renderQueue << DrawIndexed(36); // draw cube
 
     m_isFirstFrame = false;
+}
+
+void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup, FogVolumePassData& data)
+{
+    HYP_SCOPE;
+
+    AssertDebug(renderSetup.world && renderSetup.view);
+
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
+
+    GpuBufferBase* uniformBuffer = data.uniformBuffer;
+    AssertDebug(uniformBuffer != nullptr);
+
+    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(RenderApi::GetRenderProxy(data.volume));
+    Assert(proxy != nullptr);
+
+    FogVolumeShaderData shaderData = proxy->bufferData;
+
+    const uint32 maxBoundLights = ArraySize(shaderData.lightIndices);
+
+    uint32& numBoundLights = shaderData.numBoundLights;
+    numBoundLights = 0;
+
+    for (Light* light : rpl.GetLights())
+    {
+        const LightType lightType = light->GetLightType();
+
+        if (lightType != LT_DIRECTIONAL && lightType != LT_POINT)
+        {
+            continue;
+        }
+
+        if (numBoundLights >= maxBoundLights)
+        {
+            break;
+        }
+
+        shaderData.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
+    }
+
+    uniformBuffer->Copy(sizeof(FogVolumeShaderData), &shaderData);
 }
 
 #pragma endregion FogVolumePass

@@ -213,11 +213,13 @@ void main()
 
     vec4 direct_lighting = vec4(0.0);
 
-    for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++) {
+    for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++)
+    {
         const Light light = HYP_GET_LIGHT(light_index);
 
         // Only support point and directional lights for RT reflections.
-        if (light.type != HYP_LIGHT_TYPE_DIRECTIONAL && light.type != HYP_LIGHT_TYPE_POINT) {
+        if (light.type != HYP_LIGHT_TYPE_DIRECTIONAL && light.type != HYP_LIGHT_TYPE_POINT)
+        {
             continue;
         }
 

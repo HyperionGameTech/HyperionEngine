@@ -549,6 +549,12 @@ bool ObjectToJSON(
                 continue;
             }
 
+            if (member.IsDelegate())
+            {
+                // skip delegates
+                continue;
+            }
+
             if (const ClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
@@ -915,7 +921,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
 
             return true;
         }
-        
+
         if (assetReference.IsValid())
         {
             if (Handle<AssetObject> assetObject = assetReference.Resolve(); assetObject.IsValid())

@@ -147,7 +147,7 @@ template <>
 class LightmapData<FogVolume> : public LightmapDataBase
 {
 public:
-    static constexpr uint32 MaxNoiseBitmapExtent = 128;
+    static constexpr uint32 MaxNoiseBitmapExtent = 32;
 
     using VolumeBitmap = Bitmap3D_RG16F;
     using NoiseBitmap = Bitmap3D_R8;

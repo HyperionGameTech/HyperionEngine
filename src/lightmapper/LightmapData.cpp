@@ -503,9 +503,14 @@ static struct FogVolumeNoiseCombinator
     FogVolumeNoiseCombinator()
     {
         noiseCombinator
-            .Use<SimplexNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 1.0f, 0.0f, Vec3f(100.0f))
-            .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.5f, 0.0f, Vec3f(50.0f))
-            .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.25f, 0.0f, Vec3f(25.0f));
+            // Base Density
+            .Use<SimplexNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 0.4f, 0.0f, Vec3f(250.0f))
+            // Structure (Mid-Frequency)
+            .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.5f, 0.0f, Vec3f(60.0f))
+            // Grain (High-Frequency)
+            .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.8f, 0.0f, Vec3f(15.0f))
+            // Eraser (Subtractive Worley)
+            .Use<WorleyNoiseGenerator>(3, NoiseCombinator::Mode::SUBTRACTIVE, 0.6f, 0.0f, Vec3f(300.0f));
     }
 } s_initializer;
 

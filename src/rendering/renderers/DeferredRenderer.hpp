@@ -236,12 +236,15 @@ protected:
         Texture* volumeTexture = nullptr;
         Texture* noiseTexture = nullptr;
         DescriptorTableRef descriptorTable;
+        GpuBufferRef uniformBuffer;
         GraphicsPipelineCacheHandle graphicsPipeline;
     };
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override;
 
     const GraphicsPipelineRef& GetGraphicsPipeline(const FramebufferRef& framebuffer, FogVolumePassData& data);
+
+    void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup, FogVolumePassData& data);
 
     FogVolumePassData& GetFogVolumePassData(FogVolume* fogVolume)
     {

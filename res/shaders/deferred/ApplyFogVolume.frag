@@ -19,6 +19,10 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler SamplerLinear;
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler SamplerNearest;
 
 #define texture_sampler SamplerLinear
+#define sampler_linear SamplerLinear
+#define sampler_nearest SamplerNearest
+#define HYP_SAMPLER_NEAREST SamplerNearest
+#define HYP_SAMPLER_LINEAR SamplerLinear
 
 #ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
 HYP_DESCRIPTOR_SRV(View, GBufferTextures) uniform texture2D GBufferTextures[NUM_GBUFFER_TEXTURES];
@@ -61,11 +65,9 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
 HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
-#ifdef SHADING_TYPE_FORWARD
 #include "../include/brdf.inc"
 #include "DeferredLighting.glsl"
 #include "../include/shadows.inc"
-#endif
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
@@ -77,11 +79,9 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, EntitiesBuffer) readonly buffer EntitiesBuff
     Entity entity;
 };
 
-// @TODO Refactor to use LightsBuffer instead
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
 {
-    Light light;
+    Light lights[];
 };
 
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
@@ -104,6 +104,8 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBu
 #define CURRENT_MATERIAL material
 #endif
 #endif
+
+//#define FOG_VOLUME_USE_SDF 1
 
 #include "FogVolume.inl"
 
@@ -144,6 +146,23 @@ vec3 WorldToTexCoord(vec3 positionWS, in vec3 aabbMin, in vec3 aabbMax)
     return clamp(LocalToTexCoord(WorldToLocal(positionWS, aabbMin, aabbMax)), vec3(0.0), vec3(1.0));
 }
 
+float HenyeyGreenstein(float g, float cosTheta)
+{
+    float g2 = g * g;
+    
+    float denom = 1.0 + g2 - 2.0 * g * cosTheta;
+    denom = pow(denom, 1.5);
+
+    float num = 1.0 - g2;
+    
+    return (1.0 / (4.0 * HYP_FMATH_PI)) * (num / max(denom, 0.0001));
+}
+
+float GetFogDensity(vec3 uvw)
+{
+    return Texture3D(texture_sampler, NoiseMap, uvw).r;
+}
+
 vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSize)
 {
     float t = tNear;
@@ -152,14 +171,18 @@ vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSi
     float transmittance = 1.0;
     vec3 accumulatedColor = vec3(0.0);
 
-    const float DensityScale = 0.65; // Global density multiplier
+    const float DensityScale = 0.4; // Global density multiplier
     const float Scattering = 0.3 * DensityScale; // Scattering Coefficient
     const float Absorption = 0.2 * DensityScale; // Absorption Coefficient
     const float Extinction = Scattering + Absorption;    // Extinction Coefficient (Total light loss)
-    
-    const vec3 AmbientLight = vec3(0.7, 0.7, 0.7); // Light Color
+    const float phaseG = 0.8; // Isotropic scattering
 
-    vec3 albedo = (Extinction > 1e-6) ? AmbientLight * (Scattering / Extinction) : vec3(0.0);
+    // ambient colour of the fog
+    const vec3 AmbientLight = vec3(0.05);
+
+    vec3 materialColor = vec3(1.0);
+
+    vec3 albedo = (Extinction > 1e-6) ? vec3(Scattering / Extinction) : vec3(0.0);
 
     for (int i = 0; i < maxSteps; i++)
     {
@@ -171,27 +194,89 @@ vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSi
         vec3 currentPos = rayOrigin + rayDir * t;
         vec3 uvw = WorldToTexCoord(currentPos, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
 
+#if FOG_VOLUME_USE_SDF
         // SDF < 0 = Inside solid surface
         // SDF > 0 = Air (Fog)
         float sdf = Texture3D(texture_sampler, DataMap, uvw).r;
 
         // inside a surface, stop marching
-        if (sdf < 0.0)
+        if (sdf < -0.01)
         {
             break; 
         }
+#endif
 
-        float noise = Texture3D(texture_sampler, NoiseMap, clamp(uvw, vec3(0.0), vec3(1.0))).r;
-        float localDensity = DensityScale * noise;
+        float noise = GetFogDensity(uvw);
+        float localDensity = noise * DensityScale;
 
-        float currentExtinction = Extinction * localDensity;
+        // Optimization: Skip low density areas
+        if (localDensity < 0.001)
+        {
+            t += stepSize;
+            continue;
+        }
+
+        // ===== Lighting =====
+        vec3 stepLightEnergy = AmbientLight; // Start with ambient
+
+        for (uint lightIndex = 0u; lightIndex < fogVolume.numBoundLights; lightIndex++)
+        {
+            Light light = HYP_GET_LIGHT(lightIndex);
+            
+            vec3 lightDir;
+            float phase;
+
+            float shadow;
+            float attenuation = 1.0;
+            
+            switch (light.type)
+            {
+                case HYP_LIGHT_TYPE_POINT:
+                {
+                    uint layerIndex = light.layer_index;
+                    uint flags = light.flags;
+                    vec3 worldToLight = currentPos - light.position_intensity.xyz;
+
+                    lightDir = normalize(-worldToLight);
+
+                    float cosTheta = dot(lightDir, rayDir);
+                    phase = HenyeyGreenstein(phaseG, cosTheta); // Isotropic phase function
+
+                    const vec2 radiusFalloff = unpackHalf2x16(light.radius_falloff);
+                    const float radius = radiusFalloff.x;
+                    const float falloff = radiusFalloff.y;
+
+                    shadow = GetPointShadowStandard(layerIndex, worldToLight, 0.0);
+
+                    attenuation = GetSquareFalloffAttenuation(currentPos, light.position_intensity.xyz, radius);
+                    break;
+                }
+                case HYP_LIGHT_TYPE_DIRECTIONAL:
+                {
+                    lightDir = normalize(-light.position_intensity.xyz);
+
+                    float cosTheta = dot(lightDir, rayDir);
+                    phase = HenyeyGreenstein(phaseG, cosTheta); // Isotropic phase function
+
+                    shadow = GetShadowStandard(light, currentPos, vec2(0.0), 1.0);
+
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            stepLightEnergy += light.color.rgb * light.position_intensity.w * attenuation * phase * shadow;
+        }
+
+        float stepExtinction = Extinction * localDensity * stepSize;
+        float stepTransmittance = exp(-stepExtinction);
+
+        vec3 stepRadiance = stepLightEnergy * albedo * (1.0 - stepTransmittance);
         
-        float stepTransmittance = exp(-currentExtinction * stepSize);
-        vec3 stepScattering = albedo * (1.0 - stepTransmittance);
-
-        accumulatedColor += transmittance * stepScattering;
+        accumulatedColor += stepRadiance * transmittance;
         transmittance *= stepTransmittance;
-
+        
         t += stepSize;
     }
 
@@ -204,7 +289,7 @@ void main()
     vec2 screenSpaceUV = (v_positionNdc.xy / v_positionNdc.w) * 0.5 + 0.5;
     float sceneDepth = Texture2D(SamplerNearest, GBufferDepthTexture, screenSpaceUV).r;
     vec4 positionVS = ReconstructViewSpacePositionFromDepth(inverse(camera.projection), screenSpaceUV, sceneDepth);
-    float linearDepth = positionVS.z / positionVS.w;
+    float linearDepth = length(positionVS.xyz);
 
     vec4 positionWS = inverse(camera.view) * positionVS;
     positionWS /= positionWS.w;
@@ -229,7 +314,7 @@ void main()
         discard;
     }
     
-    vec4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, 0.1);
+    vec4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, 0.25);
 
     // Debug: render the noise texture
     //vec3 uvw = WorldToTexCoord(positionWS.xyz, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);

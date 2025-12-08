@@ -5,7 +5,7 @@
 #include "aabb.inc"
 
 #define HYP_SHADOW_BIAS 0.01
-#define HYP_SHADOW_VARIABLE_BIAS 1
+//#define HYP_SHADOW_VARIABLE_BIAS 1
 #define HYP_SHADOW_PENUMBRA_MIN 0.01
 #define HYP_SHADOW_PENUMBRA_MAX 8.0
 

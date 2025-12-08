@@ -4,10 +4,10 @@
 #include "shared.inc"
 
 #define HDR 1
-// #define HDR_TONEMAP_UNCHARTED 1
+#define HDR_TONEMAP_UNCHARTED 1
 //#define HDR_TONEMAP_FILMIC 1
 // #define HDR_TONEMAP_UNREAL 1
-#define HDR_TONEMAP_REINHARD 1
+//#define HDR_TONEMAP_REINHARD 1
 
 #ifndef HDR_EXPOSURE
 #define HDR_EXPOSURE 9.0
