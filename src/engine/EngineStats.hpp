@@ -9,6 +9,8 @@
 #include <core/memory/Pimpl.hpp>
 #include <core/memory/pool/Pool.hpp>
 
+#include <core/reflection/ObjectBase.hpp>
+
 #include <core/threading/util/ThreadId.hpp>
 
 #include <core/profiling/PerformanceClock.hpp>
@@ -30,13 +32,6 @@ static constexpr uint32 EngineStatsMaxStats = 32;
 
 static constexpr int StatIdMsPerFrame = 0;
 static constexpr int StatIdFps = 1;
-
-HYP_API extern Pool* EngineStats_GetPool();
-
-HYP_API extern void EngineStats_Initialize();
-HYP_API extern void EngineStats_Shutdown();
-
-HYP_API extern EngineStatsRecorder* g_engineStatsRecorder;
 
 enum EngineStatType : int
 {
@@ -66,8 +61,6 @@ protected:
     EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType, bool skipPathParsing);
 
 public:
-    HYP_DEF_POOL_NEW_DELETE(EngineStats_GetPool());
-
     virtual ~EngineStatBase() = default;
 
     int id;
@@ -85,52 +78,17 @@ public:
     }
 };
 
-class HYP_API EngineStatsRecorder
-{
-public:
-    HYP_DEF_POOL_NEW_DELETE(EngineStats_GetPool());
-
-    EngineStatsRecorder();
-    ~EngineStatsRecorder() = default;
-
-    EngineStatsSnapshot& GetCurrentSnapshot();
-    const EngineStatsSnapshot& GetCurrentSnapshot() const;
-
-    void Suppress();
-    void Unsuppress();
-
-    void Prepare();
-    void Advance();
-
-    /*! \brief Record a value set to be integrated into samples.
-     *  Call this to add values that will be included in the next Advance() calculation.
-     * Call only from Render thread! */
-    void RecordValueSet(const struct EngineStatsValueSet& valueSet);
-
-private:
-    double CalculateFps() const;
-
-    void SetSampleData(int statId, uint32 sampleIdx, double value);
-    double GetSampleData(int statId, uint32 sampleIdx) const;
-
-    void RecordStat(int statId, EngineStatType type, double value);
-
-    Pimpl<struct EngineStatsRecorderImpl> m_impl;
-};
-
 class HYP_API EngineStatGroup : public EngineStatBase
 {
 public:
+    friend class EngineStats;
+    friend class EngineStatBase;
+
     explicit EngineStatGroup(UTF8StringView path)
         : EngineStatBase(EST_GROUP, path, ESTT_INVALID)
     {
     }
 
-private:
-    friend class EngineStats;
-    friend class EngineStatBase;
-
-    // Internal constructor for creating intermediate groups during path parsing
     EngineStatGroup(UTF8StringView path, bool skipPathParsing)
         : EngineStatBase(EST_GROUP, path, ESTT_INVALID, skipPathParsing)
     {
@@ -139,7 +97,6 @@ private:
 public:
     virtual ~EngineStatGroup() override;
 
-    HYP_FIELD()
     Array<EngineStatBase*> stats;
 };
 
@@ -365,6 +322,57 @@ struct EngineStatsSnapshot
     {
         return values[stat.id];
     }
+};
+
+HYP_CLASS()
+class EngineStats : public ObjectBase
+{
+    HYP_OBJECT_BODY(EngineStats);
+
+public:
+    HYP_METHOD()
+    static const Handle<EngineStats>& GetInstance();
+
+    EngineStats();
+    ~EngineStats();
+
+    EngineStatsSnapshot& GetCurrentSnapshot();
+    const EngineStatsSnapshot& GetCurrentSnapshot() const;
+
+    EngineStatBase* GetStat(UTF8StringView path) const;
+
+    HYP_METHOD()
+    double GetFps() const;
+
+    HYP_METHOD()
+    double GetMsPerFrame() const;
+
+    HYP_METHOD()
+    double QueryStatValue(UTF8StringView path, double valueIfNotFound = 0.0) const;
+
+    void Suppress();
+    void Unsuppress();
+
+    void Prepare();
+    void Advance();
+
+    /*! \brief Record a value set to be integrated into samples.
+     *  Call this to add values that will be included in the next Advance() calculation.
+     * Call only from Render thread! */
+    void RecordValueSet(const struct EngineStatsValueSet& valueSet);
+
+    EngineStatGroup* root;
+    FixedArray<EngineStatBase*, EngineStatsMaxStats> linearStats;
+
+private:
+    double CalculateFps() const;
+
+    void SetSampleData(int statId, uint32 sampleIdx, double value);
+    double GetSampleData(int statId, uint32 sampleIdx) const;
+
+    void RecordStat(int statId, EngineStatType type, double value);
+
+    Pimpl<struct EngineStatsRecorderImpl> m_impl;
 };
 
 #define ENGINE_STAT_SCOPE(timer) EngineStatScope HYP_CONCAT(engineStatScope, __LINE__)(timer)

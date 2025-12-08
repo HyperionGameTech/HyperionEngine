@@ -27,6 +27,7 @@ class StreamingManager;
 class GameThread;
 class RenderThread;
 class MainThread;
+class EngineStats;
 
 #ifdef HYP_VULKAN
 class VulkanRenderBackend;
@@ -41,6 +42,7 @@ extern Handle<AssetManager> g_assetManager;
 extern Handle<EditorState> g_editorState;
 extern Handle<AppContextBase> g_appContext;
 extern Handle<StreamingManager> g_streamingManager;
+extern Handle<EngineStats> g_engineStats;
 extern ShaderManager* g_shaderManager;
 extern MaterialCache* g_materialSystem;
 extern SafeDeleter* g_safeDeleter;

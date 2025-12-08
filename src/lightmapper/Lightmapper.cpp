@@ -161,6 +161,7 @@ uint32 LightmapperBase::MaxTexelsPerFrame() const
     else
     {
         const Vec2u dimensions = GetLightmapData().dimensions.GetXY();
+        AssertDebug(dimensions.Volume() > 0);
 
         return dimensions.Volume() * NumTexelSamples();
     }

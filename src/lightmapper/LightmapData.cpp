@@ -513,13 +513,13 @@ static struct FogVolumeNoiseCombinator
     {
         noiseCombinator
             // Base Density
-            .Use<SimplexNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 0.4f, 0.0f, Vec3f(250.0f))
+            .Use<SimplexNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 0.4f, 0.0f, Vec3f(15.0f))
             // Structure (Mid-Frequency)
-            .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.5f, 0.0f, Vec3f(60.0f))
+            .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.3f, 0.0f, Vec3f(60.0f))
             // Grain (High-Frequency)
-            .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.8f, 0.0f, Vec3f(15.0f))
+            .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.2f, 0.0f, Vec3f(250.0f))
             // Eraser (Subtractive Worley)
-            .Use<WorleyNoiseGenerator>(3, NoiseCombinator::Mode::SUBTRACTIVE, 0.6f, 0.0f, Vec3f(300.0f));
+            .Use<WorleyNoiseGenerator>(3, NoiseCombinator::Mode::SUBTRACTIVE, 0.2f, 0.0f, Vec3f(300.0f));
     }
 } s_initializer;
 
@@ -551,31 +551,30 @@ Result LightmapData<FogVolume>::Build()
     const Vec3f localBoundsExtent = localBounds.GetExtent();
     const float maxExtent = localBoundsExtent.Max();
 
-    Vec3u volumeTextureDimensions;
     if (maxExtent < MathUtil::epsilonF)
     {
-        volumeTextureDimensions = Vec3u::One();
+        dimensions = Vec3u::One();
     }
     else
     {
         const float scale = float(FogVolume::MaxVolumeTextureExtent) / maxExtent;
-        volumeTextureDimensions = Vec3u(MathUtil::Max(Vec3f(1.0f), MathUtil::Ceil(localBoundsExtent * scale)));
+        dimensions = Vec3u(MathUtil::Max(Vec3f(1.0f), MathUtil::Ceil(localBoundsExtent * scale)));
     }
 
-    if (volumeTextureDimensions.Volume() == 0)
+    if (dimensions.Volume() == 0)
     {
-        volumeTextureDimensions = Vec3u::One();
+        dimensions = Vec3u::One();
     }
 
     m_volumeBitmap = VolumeBitmap(
-        volumeTextureDimensions.x,
-        volumeTextureDimensions.y,
-        volumeTextureDimensions.z);
+        dimensions.x,
+        dimensions.y,
+        dimensions.z);
 
     const Vec3f extentWS = m_fogVolume->GetWorldAABB().GetExtent();
-    const Vec3f texelSizeWS = extentWS / Vec3f(volumeTextureDimensions);
+    const Vec3f texelSizeWS = extentWS / Vec3f(dimensions);
 
-    texels.Resize(volumeTextureDimensions.Volume());
+    texels.Resize(dimensions.Volume());
 
     BoundingBox voxelOctreeAabb = m_fogVolume->GetWorldAABB();
 

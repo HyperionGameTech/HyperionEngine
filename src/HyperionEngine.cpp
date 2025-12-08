@@ -125,6 +125,7 @@ Handle<AssetManager> g_assetManager;
 Handle<EditorState> g_editorState;
 Handle<AppContextBase> g_appContext;
 Handle<StreamingManager> g_streamingManager;
+Handle<EngineStats> g_engineStats;
 Handle<Logger> g_logger;
 ShaderManager* g_shaderManager;
 MaterialCache* g_materialSystem;
@@ -274,8 +275,6 @@ extern "C"
         ClassRegistry::GetInstance().Initialize();
         HypScript::GetInstance().Initialize();
 
-        EngineStats_Initialize();
-
         const FilePath basePath = FilePath(CoreApi_GetCommandLineArguments().GetCommand()).BasePath();
         CoreApi_SetExecutablePath(basePath);
 
@@ -293,6 +292,9 @@ extern "C"
         ConfigurationTable renderGlobalConfigOverrides;
 
         g_engineDriver = CreateObject<EngineDriver>();
+
+        g_engineStats = CreateObject<EngineStats>();
+        InitObject(g_engineStats);
 
         g_streamingManager = CreateObject<StreamingManager>();
         InitObject(g_streamingManager);
@@ -417,8 +419,6 @@ extern "C"
             TaskSystem::GetInstance().Stop();
         }
 
-        EngineStats_Shutdown();
-
         NameRegistry_Shutdown();
 
         CoreApi_Shutdown();
@@ -428,6 +428,7 @@ extern "C"
 
         g_assetManager.Reset();
         g_editorState.Reset();
+        g_engineStats.Reset();
 
         delete g_shaderCompiler;
         g_shaderCompiler = nullptr;

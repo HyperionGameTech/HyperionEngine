@@ -505,6 +505,21 @@ public:
         return false;
     }
 
+    virtual uint32 NumTexelSamples() const override
+    {
+        return 1;
+    }
+
+    virtual uint32 GetShadingTypesMask() const override
+    {
+        return 1u << int(LightmapShadingType::FULL);
+    }
+
+    virtual bool ShouldSplitIntoJobs() const override
+    {
+        return false;
+    }
+
 protected:
     virtual LightmapDataBase& GetLightmapData() override
     {

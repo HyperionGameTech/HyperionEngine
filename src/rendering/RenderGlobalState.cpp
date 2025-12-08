@@ -1137,7 +1137,7 @@ void BeginFrame_RenderThread()
     const uint32 slot = s_frameIndex[CONSUMER];
     FrameData& fd = s_frameData[slot];
 
-    g_engineStatsRecorder->Prepare();
+    g_engineStats->Prepare();
 
     HYP_GFX_ASSERT(RenderCommands::Flush());
 
@@ -1273,8 +1273,8 @@ void BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                i != Bitset::NotFound;
-                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                 i != Bitset::NotFound;
+                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1407,7 +1407,7 @@ void EndFrame_RenderThread()
 
     g_safeDeleter->UpdateEntryListQueue();
 
-    g_engineStatsRecorder->Advance();
+    g_engineStats->Advance();
 
     g_safeDeleter->Iterate();
 

@@ -18,6 +18,8 @@
 
 #include <cfloat>
 
+#include <EngineStats.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Engine);
@@ -25,59 +27,180 @@ HYP_DECLARE_LOG_CHANNEL(Engine);
 static constexpr SizeType StatPoolBlockSize = 1 << 18;
 static constexpr const char* RootStatGroupName = "Root";
 
-static bool s_isInitializing = false;
-
 static constexpr int NumReservedStatIds = 5;
 
 static AtomicVar<int> s_nextStatId { NumReservedStatIds };
 
 Pool* g_statPool;
-EngineStatsRecorder* g_engineStatsRecorder;
 
-HYP_API Pool* EngineStats_GetPool()
+static TByteBuffer<Pool> CreateSamplesBuffer()
 {
-    static struct Initializer
-    {
-        Initializer()
-        {
-            if (g_statPool != nullptr)
-            {
-                return;
-            }
-
-            g_statPool = new Pool(StatPoolBlockSize, PF_THREAD_SAFE, ThreadId::Invalid());
-        }
-    } s_initializer;
-
-    return g_statPool;
+    TByteBuffer<Pool> buf(g_statPool);
+    buf.SetSize(sizeof(double) * EngineStatsMaxStats * EngineStatsNumSamples);
+    return buf;
 }
 
-#pragma region EngineStats tree
-
-class EngineStats final
+struct EngineStatsRecorderImpl
 {
-public:
-    EngineStats();
-    ~EngineStats();
+    EngineStatsSnapshot snapshots[RingBufferDepth];
 
-    EngineStatBase* GetStat(UTF8StringView path) const;
+    TByteBuffer<Pool> statsBuffer;
 
-    EngineStatGroup* root;
-    FixedArray<EngineStatBase*, EngineStatsMaxStats> linearStats;
+    GameCounter counter;
+    double deltaAccum;
+    uint32 numSamples;
+    uint32 sampleIndex;
+
+    EngineStatsRecorderImpl()
+        : snapshots(),
+          statsBuffer(CreateSamplesBuffer()),
+          deltaAccum(0.0),
+          numSamples(0),
+          sampleIndex(0)
+    {
+        counter.delta = 1.0;
+    }
 };
+
+struct DeferredInitStat
+{
+    EngineStatBase* pStat;
+    String path;
+};
+
+static Array<DeferredInitStat>& GetDeferredInitStats()
+{
+    static Array<DeferredInitStat> s_deferredInitStats;
+    return s_deferredInitStats;
+}
+
+static void InitStat(EngineStats* pEngineStats, EngineStatBase* pStat, UTF8StringView path)
+{
+    AssertDebug(pStat != nullptr);
+
+    if (!pEngineStats)
+    {
+        DeferredInitStat& dis = GetDeferredInitStats().EmplaceBack();
+        dis.pStat = pStat;
+        dis.path = path;
+
+        return;
+    }
+
+    EngineStats& engineStats = *pEngineStats;
+
+    EngineStatGroup* currentGroup = static_cast<EngineStatGroup*>(engineStats.root);
+    Assert(currentGroup != nullptr);
+
+    UTF8StringView remainingPath = path;
+    UTF8StringView statName = path;
+
+    while (remainingPath.Size() > 0)
+    {
+        UTF8StringView curr = remainingPath;
+        SizeType characterIndex = 0;
+        bool separatorFound = false;
+
+        for (utf::Char32 ch : remainingPath)
+        {
+            if (ch == utf::Char32('/'))
+            {
+                curr = remainingPath.Substr(0, characterIndex);
+                remainingPath = remainingPath.Substr(characterIndex + 1, SizeType(-1));
+                separatorFound = true;
+                break;
+            }
+
+            ++characterIndex;
+        }
+
+        if (!separatorFound)
+        {
+            statName = curr;
+            break;
+        }
+
+        EngineStatBase* foundStat = nullptr;
+
+        for (EngineStatBase* stat : currentGroup->stats)
+        {
+            if (stat->name == StringHash(curr))
+            {
+                foundStat = stat;
+                break;
+            }
+        }
+
+        if (!foundStat)
+        {
+            EngineStatGroup* newGroup = new EngineStatGroup(curr, true);
+            currentGroup->stats.PushBack(newGroup);
+            currentGroup = newGroup;
+        }
+        else if (foundStat->type == EST_GROUP)
+        {
+            currentGroup = static_cast<EngineStatGroup*>(foundStat);
+        }
+        else
+        {
+            HYP_LOG(Engine, Warning, "Stat group '{}' not found; found non-group stat instead!", curr);
+            break;
+        }
+    }
+
+    pStat->name = CreateNameFromDynamicString(statName);
+
+    if (pStat->type != EST_GROUP)
+    {
+        pStat->id = s_nextStatId.Increment(1, MemoryOrder::RELAXED);
+        engineStats.linearStats[pStat->id] = pStat;
+    }
+
+    currentGroup->stats.PushBack(pStat);
+}
+
+#pragma region EngineStats
+
+extern Handle<EngineStats> g_engineStats;
+
+const Handle<EngineStats>& EngineStats::GetInstance()
+{
+    return g_engineStats;
+}
+
+// Global Engine stats singleton
 
 EngineStats::EngineStats()
     : root(nullptr),
       linearStats {}
 {
-    s_isInitializing = true;
+    // init pool
+    AssertDebug(g_statPool == nullptr);
+    g_statPool = new Pool(StatPoolBlockSize, PF_THREAD_SAFE, ThreadId::Invalid());
+
+    m_impl = MakePimpl<EngineStatsRecorderImpl>();
+
     root = new EngineStatGroup(UTF8StringView(RootStatGroupName), true);
-    s_isInitializing = false;
+
+    Array<DeferredInitStat>& deferredInitStats = GetDeferredInitStats();
+    if (deferredInitStats.Any())
+    {
+        for (DeferredInitStat& dis : deferredInitStats)
+        {
+            InitStat(this, dis.pStat, UTF8StringView(dis.path));
+        }
+
+        deferredInitStats.Clear();
+    }
 }
 
 EngineStats::~EngineStats()
 {
     delete root;
+
+    // destroy pool
+    delete g_statPool;
+    g_statPool = nullptr;
 }
 
 EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
@@ -149,170 +272,43 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
     return nullptr;
 }
 
-static EngineStats& GetGlobalEngineStats()
+double EngineStats::GetFps() const
 {
-    static EngineStats s_globalEngineStats;
-    return s_globalEngineStats;
+    const EngineStatsSnapshot& snapshot = GetCurrentSnapshot();
+    return snapshot[StatIdFps].value;
 }
 
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType)
-    : EngineStatBase(type, path, threadType, false)
+double EngineStats::GetMsPerFrame() const
 {
+    const EngineStatsSnapshot& snapshot = GetCurrentSnapshot();
+    return snapshot[StatIdMsPerFrame].value;
 }
 
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType, bool skipPathParsing)
-    : id(-1),
-      type(type),
-      threadType(threadType)
+double EngineStats::QueryStatValue(UTF8StringView path, double valueIfNotFound) const
 {
-    if (skipPathParsing)
+    EngineStatBase* stat = GetStat(path);
+
+    if (!stat)
     {
-        name = CreateNameFromDynamicString(path);
-        return;
+        return valueIfNotFound;
     }
 
-    if (s_isInitializing)
-    {
-        HYP_LOG(Engine, Warning, "Attempted to create stat '{}' during EngineStats initialization - deferring", path);
-        name = CreateNameFromDynamicString(path);
-        return;
-    }
-
-    EngineStats& engineStats = GetGlobalEngineStats();
-
-    EngineStatGroup* currentGroup = static_cast<EngineStatGroup*>(engineStats.root);
-    Assert(currentGroup != nullptr);
-
-    UTF8StringView remainingPath = path;
-    UTF8StringView statName = path;
-
-    while (remainingPath.Size() > 0)
-    {
-        UTF8StringView curr = remainingPath;
-        SizeType characterIndex = 0;
-        bool separatorFound = false;
-
-        for (utf::Char32 ch : remainingPath)
-        {
-            if (ch == utf::Char32('/'))
-            {
-                curr = remainingPath.Substr(0, characterIndex);
-                remainingPath = remainingPath.Substr(characterIndex + 1, SizeType(-1));
-                separatorFound = true;
-                break;
-            }
-
-            ++characterIndex;
-        }
-
-        if (!separatorFound)
-        {
-            statName = curr;
-            break;
-        }
-
-        EngineStatBase* foundStat = nullptr;
-
-        for (EngineStatBase* stat : currentGroup->stats)
-        {
-            if (stat->name == StringHash(curr))
-            {
-                foundStat = stat;
-                break;
-            }
-        }
-
-        if (!foundStat)
-        {
-            EngineStatGroup* newGroup = new EngineStatGroup(curr, true);
-            currentGroup->stats.PushBack(newGroup);
-            currentGroup = newGroup;
-        }
-        else if (foundStat->type == EST_GROUP)
-        {
-            currentGroup = static_cast<EngineStatGroup*>(foundStat);
-        }
-        else
-        {
-            HYP_LOG(Engine, Warning, "Stat group '{}' not found; found non-group stat instead!", curr);
-            break;
-        }
-    }
-
-    name = CreateNameFromDynamicString(statName);
-
-    if (type != EST_GROUP)
-    {
-        id = s_nextStatId.Increment(1, MemoryOrder::RELAXED);
-        engineStats.linearStats[id] = this;
-    }
-
-    currentGroup->stats.PushBack(this);
+    return stat->GetValue();
 }
 
-EngineStatGroup::~EngineStatGroup()
-{
-    for (EngineStatBase* stat : stats)
-    {
-        delete stat;
-    }
-}
-
-#pragma endregion EngineStats tree
-
-#pragma region Recorder internals
-
-static TByteBuffer<Pool> CreateSamplesBuffer()
-{
-    TByteBuffer<Pool> buf(EngineStats_GetPool());
-    buf.SetSize(sizeof(double) * EngineStatsMaxStats * EngineStatsNumSamples);
-    return buf;
-}
-
-struct EngineStatsRecorderImpl
-{
-    EngineStatsSnapshot snapshots[RingBufferDepth];
-
-    TByteBuffer<Pool> statsBuffer;
-
-    GameCounter counter;
-    double deltaAccum;
-    uint32 numSamples;
-    uint32 sampleIndex;
-
-    EngineStatsRecorderImpl()
-        : snapshots(),
-          statsBuffer(CreateSamplesBuffer()),
-          deltaAccum(0.0),
-          numSamples(0),
-          sampleIndex(0)
-    {
-        counter.delta = 1.0;
-    }
-};
-
-#pragma endregion Recorder internals
-
-#pragma region EngineStatsRecorder
-
-EngineStatsRecorder::EngineStatsRecorder()
-    : m_impl(MakePimpl<EngineStatsRecorderImpl>())
-{
-}
-
-EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot()
+EngineStatsSnapshot& EngineStats::GetCurrentSnapshot()
 {
     AssertOnThread(g_renderThread | g_gameThread);
     return m_impl->snapshots[RenderApi::GetRingIndex()];
 }
 
-const EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot() const
+const EngineStatsSnapshot& EngineStats::GetCurrentSnapshot() const
 {
     AssertOnThread(g_renderThread | g_gameThread);
     return m_impl->snapshots[RenderApi::GetRingIndex()];
 }
 
-void EngineStatsRecorder::SetSampleData(int statId, uint32 sampleIdx, double value)
+void EngineStats::SetSampleData(int statId, uint32 sampleIdx, double value)
 {
     if (statId < 0 || statId >= int(EngineStatsMaxStats))
     {
@@ -323,7 +319,7 @@ void EngineStatsRecorder::SetSampleData(int statId, uint32 sampleIdx, double val
     base[statId * EngineStatsNumSamples + sampleIdx] = value;
 }
 
-double EngineStatsRecorder::GetSampleData(int statId, uint32 sampleIdx) const
+double EngineStats::GetSampleData(int statId, uint32 sampleIdx) const
 {
     if (statId < 0 || statId >= int(EngineStatsMaxStats))
     {
@@ -334,7 +330,7 @@ double EngineStatsRecorder::GetSampleData(int statId, uint32 sampleIdx) const
     return base[statId * EngineStatsNumSamples + sampleIdx];
 }
 
-double EngineStatsRecorder::CalculateFps() const
+double EngineStats::CalculateFps() const
 {
     if (m_impl->numSamples < EngineStatsMinSamples)
     {
@@ -355,7 +351,7 @@ double EngineStatsRecorder::CalculateFps() const
     return avgDelta > 0.0 ? 1.0 / avgDelta : INFINITY;
 }
 
-void EngineStatsRecorder::Prepare()
+void EngineStats::Prepare()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -369,7 +365,7 @@ void EngineStatsRecorder::Prepare()
     }
 }
 
-void EngineStatsRecorder::RecordValueSet(const EngineStatsValueSet& valueSet)
+void EngineStats::RecordValueSet(const EngineStatsValueSet& valueSet)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -389,7 +385,7 @@ void EngineStatsRecorder::RecordValueSet(const EngineStatsValueSet& valueSet)
     }
 }
 
-void EngineStatsRecorder::Advance()
+void EngineStats::Advance()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -424,7 +420,7 @@ void EngineStatsRecorder::Advance()
     SetSampleData(StatIdMsPerFrame, sampleIdx, msPerFrame);
     SetSampleData(StatIdFps, sampleIdx, m_impl->counter.delta > 0.0 ? (1.0 / (m_impl->counter.delta)) : 0.0);
 
-    EngineStats& engineStats = GetGlobalEngineStats();
+    EngineStats& engineStats = *g_engineStats;
 
     // integrate values into sample data
     for (int statId = NumReservedStatIds; statId < EngineStatsMaxStats; ++statId)
@@ -500,31 +496,37 @@ void EngineStatsRecorder::Advance()
     m_impl->sampleIndex = (m_impl->sampleIndex + 1) % EngineStatsNumSamples;
 }
 
-#pragma endregion EngineStatsRecorder
+#pragma endregion EngineStats
 
-HYP_API void EngineStats_Initialize()
+#pragma region EngineStatBase
+
+EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType)
+    : EngineStatBase(type, path, threadType, false)
 {
-    (void)EngineStats_GetPool();
+}
 
-    if (!g_engineStatsRecorder)
+EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType, bool skipPathParsing)
+    : id(-1),
+      type(type),
+      threadType(threadType)
+{
+    if (skipPathParsing)
     {
-        g_engineStatsRecorder = new EngineStatsRecorder();
+        name = CreateNameFromDynamicString(path);
+        return;
+    }
+
+    InitStat(g_engineStats.Get(), this, path);
+}
+
+EngineStatGroup::~EngineStatGroup()
+{
+    for (EngineStatBase* stat : stats)
+    {
+        delete stat;
     }
 }
 
-HYP_API void EngineStats_Shutdown()
-{
-    if (g_engineStatsRecorder != nullptr)
-    {
-        delete g_engineStatsRecorder;
-        g_engineStatsRecorder = nullptr;
-    }
-
-    if (g_statPool != nullptr)
-    {
-        delete g_statPool;
-        g_statPool = nullptr;
-    }
-}
+#pragma endregion EngineStatBase
 
 } // namespace hyperion

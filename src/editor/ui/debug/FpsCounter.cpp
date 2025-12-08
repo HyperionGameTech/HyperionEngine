@@ -9,14 +9,15 @@
 
 #include <scene/World.hpp>
 
-#include <engine/EngineStats.hpp>
-
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
+
+#include <engine/EngineGlobals.hpp>
+#include <engine/EngineStats.hpp>
 
 #include <FpsCounter.generated.inl>
 
@@ -149,7 +150,7 @@ void FpsCounter::Update_Impl(float delta)
         return;
     }
 
-    const EngineStatsSnapshot& snapshot = g_engineStatsRecorder->GetCurrentSnapshot();
+    const EngineStatsSnapshot& snapshot = g_engineStats->GetCurrentSnapshot();
 
     if (m_fpsTextElement.IsValid())
     {

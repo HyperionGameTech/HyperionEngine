@@ -17,10 +17,12 @@ Dynamic Diffuse Global Illumination (DDGI) | GPU Particles
 ### Some features include:
 * Multi threading with task system
 * Entity component system
+* C# support via .NET Core integration
+* Avalonia editor UI (C#)
 * PBR and post processing
 * Hardware ray tracing support for reflections and global illumination
+* Lightmapper with path tracing
 * Skeletal animation
-* C# scripting using .NET Core
 * More reflection and global illumination techniques such as
      * Screen space reflections
      * Voxel cone tracing

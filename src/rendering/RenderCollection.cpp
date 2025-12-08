@@ -871,7 +871,7 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
         // Add render stats counts to the engine's render stats
         for (EngineStatsValueSet& valueSet : state->statValues)
         {
-            g_engineStatsRecorder->RecordValueSet(valueSet);
+            g_engineStats->RecordValueSet(valueSet);
 
             valueSet = {}; // Reset counts after adding for next use
         }
