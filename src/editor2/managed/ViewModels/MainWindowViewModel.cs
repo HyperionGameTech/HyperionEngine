@@ -155,7 +155,21 @@ namespace Hyperion.Editor.ViewModels
 
             Dispatcher.UIThread.Post(() =>
             {
-                _editorSubsystem.SetFocusedNode(node, false);
+                if (node == null || !node.IsValid)
+                {
+                    Inspector.SetSelectedNode(null);
+                    return;
+                }
+
+                try
+                {
+                    _editorSubsystem.SetFocusedNode(node, false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Error, $"Failed to set focused node: {ex.Message}");
+                }
+
                 Inspector.SetSelectedNode(node);
             });
         }

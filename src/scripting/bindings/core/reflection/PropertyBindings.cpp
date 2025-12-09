@@ -39,6 +39,16 @@ extern "C"
         *outTypeId = property->GetTypeId();
     }
 
+    HYP_EXPORT const TypeInfo* Property_GetTypeInfo(const Property* property)
+    {
+        if (!property)
+        {
+            return nullptr;
+        }
+
+        return &property->GetTypeInfo();
+    }
+
     HYP_EXPORT bool Property_InvokeGetter(const Property* property, const Class* targetClass, void* targetPtr, HypData* outResult)
     {
         if (!property || !targetClass || !targetPtr || !outResult)

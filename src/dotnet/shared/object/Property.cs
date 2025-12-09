@@ -34,6 +34,15 @@ namespace Hyperion
             }
         }
 
+        public TypeInfo TypeInfo
+        {
+            get
+            {
+                IntPtr typeInfoPtr = Property_GetTypeInfo(ptr);
+                return new TypeInfo(typeInfoPtr);
+            }
+        }
+
         public HypData Get(ObjectBase obj)
         {
             if (ptr == IntPtr.Zero)
@@ -84,6 +93,9 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Property_GetTypeId")]
         private static extern void Property_GetTypeId([In] IntPtr propertyPtr, [Out] out TypeId typeId);
+
+        [DllImport("hyperion", EntryPoint = "Property_GetTypeInfo")]
+        internal static extern IntPtr Property_GetTypeInfo([In] IntPtr propertyPtr);
 
         [DllImport("hyperion", EntryPoint = "Property_InvokeGetter")]
         [return: MarshalAs(UnmanagedType.I1)]

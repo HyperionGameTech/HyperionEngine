@@ -97,6 +97,15 @@ namespace Hyperion
             }
         }
 
+        public TypeInfo TypeInfo
+        {
+            get
+            {
+                IntPtr typeInfoPtr = HypData_GetTypeInfo(ref this);
+                return new TypeInfo(typeInfoPtr);
+            }
+        }
+
         public IntPtr Pointer
         {
             get
@@ -885,6 +894,9 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypData_GetTypeId")]
         internal static extern void HypData_GetTypeId([In] ref HypDataBuffer hypData, [Out] out TypeId typeId);
 
+        [DllImport("hyperion", EntryPoint = "HypData_GetTypeInfo")]
+        internal static extern IntPtr HypData_GetTypeInfo([In] ref HypDataBuffer hypData);
+
         [DllImport("hyperion", EntryPoint = "HypData_GetPointer")]
         internal static extern IntPtr HypData_GetPointer([In] ref HypDataBuffer hypData);
 
@@ -1163,6 +1175,14 @@ namespace Hyperion
             get
             {
                 return _data.TypeId;
+            }
+        }
+
+        public TypeInfo TypeInfo
+        {
+            get
+            {
+                return _data.TypeInfo;
             }
         }
 

@@ -104,12 +104,20 @@
                             <TextBlock Classes="header" Text="Inspector"/>
                         </Border>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Inspector.Properties}">
+                            <ItemsControl ItemsSource="{Binding Inspector.Properties}" Grid.IsSharedSizeScope="True" HorizontalAlignment="Stretch">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:InspectorPropertyViewModel">
-                                        <Grid ColumnDefinitions="Auto, *" Margin="6,2">
-                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Value}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        <Grid Margin="6,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+                                            <TextBlock Grid.Column="1" Text="{Binding Value}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsVisible="{Binding ShowTextValue}"/>
+
+                                            <TextBox Grid.Column="1" Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" MinWidth="120" IsVisible="{Binding IsStringEditable}"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

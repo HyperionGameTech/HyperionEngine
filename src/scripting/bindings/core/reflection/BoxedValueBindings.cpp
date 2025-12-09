@@ -46,6 +46,16 @@ extern "C"
         *outTypeId = hypData->GetTypeId();
     }
 
+    HYP_EXPORT const TypeInfo* HypData_GetTypeInfo(const HypData* hypData)
+    {
+        if (!hypData)
+        {
+            return nullptr;
+        }
+
+        return hypData->GetTypeInfo();
+    }
+
     HYP_EXPORT const void* HypData_GetPointer(const HypData* hypData)
     {
         if (!hypData)
