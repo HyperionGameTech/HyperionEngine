@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
              x:Class="Hyperion.Editor.Views.Inspector.StringNamePropertyEditor"
-             x:DataType="vm:InspectorPropertyViewModel"
+             x:DataType="vm:TextPropertyViewModel"
              mc:Ignorable="d">
     <TextBox Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
              VerticalAlignment="Center"

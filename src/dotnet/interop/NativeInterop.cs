@@ -42,8 +42,19 @@ namespace Hyperion
             return NativeInterop_VerifyEngineVersion(assemblyEngineVersion, major, minor, patch);
         }
 
-        private static void InitializeAssemblyTypes(Assembly assembly, bool isCoreAssembly)
+        private static bool IsHyperionAssembly(Assembly assembly)
         {
+            string assemblyName = assembly.GetName().Name ?? string.Empty;
+            return assemblyName.StartsWith("Hyperion.");
+        }
+
+        private static void InitializeHyperionAssembly(Assembly assembly, bool isCoreAssembly)
+        {
+            if (!IsHyperionAssembly(assembly))
+            {
+                throw new InvalidOperationException("Assembly is not a Hyperion.* assembly: " + assembly.FullName);
+            }
+
             Type[] types = assembly.GetExportedTypes();
 
             foreach (Type type in types)
@@ -55,7 +66,9 @@ namespace Hyperion
                 }
 
                 if (type.IsClass || type.IsValueType || type.IsEnum)
+                {
                     InitManagedClass(type, isCoreAssembly);
+                }
             }
         }
 
@@ -149,8 +162,8 @@ namespace Hyperion
                     return (int)LoadAssemblyResult.NotFound;
                 }
 
+                // check if it has a dependency on the engine - if so, we need to verify the version is compatible
                 AssemblyName? hyperionSharedDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "Hyperion.NET.Shared");
-
                 if (hyperionSharedDependency != null)
                 {
                     // Verify the engine version (major, minor)
@@ -168,7 +181,10 @@ namespace Hyperion
                     NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeSetterDelegate>(InvokeSetter));
                 }
 
-                InitializeAssemblyTypes(assembly, isCoreAssembly != 0);
+                if (IsHyperionAssembly(assembly))
+                {
+                    InitializeHyperionAssembly(assembly, isCoreAssembly != 0);
+                }
             }
             catch (Exception ex)
             {
@@ -507,7 +523,7 @@ namespace Hyperion
                         Assert.Throw(methodInfo != null, "MethodInfo is null for method: " + item.Key + " in type: " + type.Name);
 #endif
 
-                        object[] parameters;
+                        object?[] parameters;
                         HandleParameters(argsPtr, methodInfo, out parameters);
 
                         object? thisObject = null;
@@ -640,11 +656,13 @@ namespace Hyperion
 
             managedClassDesc.SetMarshalObjectFunction(assemblyGuid, new MarshalObjectDelegate((IntPtr ptr, uint size) =>
             {
+#if DEBUG
                 if (ptr == IntPtr.Zero)
                     throw new ArgumentNullException(nameof(ptr));
 
                 if (size != Marshal.SizeOf(type))
                     throw new ArgumentException("Size does not match type size", nameof(size));
+#endif
 
                 // Marshal object from pointer
                 object? obj = Marshal.PtrToStructure(ptr, type);

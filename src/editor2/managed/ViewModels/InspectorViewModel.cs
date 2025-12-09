@@ -8,7 +8,7 @@ namespace Hyperion.Editor.ViewModels
 {
     public class InspectorViewModel : ViewModelBase
     {
-        public ObservableCollection<InspectorPropertyViewModel> Properties { get; } = new ObservableCollection<InspectorPropertyViewModel>();
+        public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new ObservableCollection<InspectorPropertyViewModelBase>();
 
         private Node? _selectedNode;
         public Node? SelectedNode
@@ -23,7 +23,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 if (SelectedNode.NativeAddress == node.NativeAddress)
                 {
-                    foreach (InspectorPropertyViewModel propertyViewModel in Properties)
+                    foreach (InspectorPropertyViewModelBase propertyViewModel in Properties)
                     {
                         propertyViewModel.RefreshValue();
                     }
@@ -80,9 +80,7 @@ namespace Hyperion.Editor.ViewModels
                     {
                         isReadOnly = true;
                     }
-
-
-                    Properties.Add(new InspectorPropertyViewModel(SelectedNode, property, isReadOnly));
+                    Properties.Add(InspectorViewModelFactory.Create(SelectedNode, property, isReadOnly));
                 }
                 catch (Exception ex)
                 {

@@ -514,7 +514,7 @@ public:
     /*! \brief Get the flags of the Node.
      *  \see NodeFlagBits
      *  \returns The flags of the Node. */
-    HYP_METHOD(Property = "NodeFlags", Serialize, EditHide)
+    HYP_METHOD(Property = "NodeFlags", Serialize)
     HYP_FORCE_INLINE EnumFlags<NodeFlags> GetNodeFlags() const
     {
         return m_nodeFlags;

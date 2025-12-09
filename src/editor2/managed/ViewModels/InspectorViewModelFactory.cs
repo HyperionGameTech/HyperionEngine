@@ -1,0 +1,44 @@
+using System;
+using Hyperion;
+
+namespace Hyperion.Editor.ViewModels
+{
+    public static class InspectorViewModelFactory
+    {
+        public static InspectorPropertyViewModelBase Create(ObjectBase? target, Property property, bool isReadOnly)
+        {
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            TypeInfo typeInfo = property.TypeInfo;
+            bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
+
+            if (typeInfo.IsString || isNameType)
+            {
+                return Initialize(new TextPropertyViewModel(target, property, isReadOnly, isNameType));
+            }
+
+            if (typeInfo.IsEnumFlags)
+            {
+                return Initialize(new FlagsPropertyViewModel(target, property, typeInfo.Class, isReadOnly));
+            }
+
+            if (typeInfo.IsEnum)
+            {
+                return Initialize(new EnumPropertyViewModel(target, property, typeInfo.Class, isReadOnly));
+            }
+
+            Logger.Log(LogType.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
+
+            return Initialize(new ReadOnlyPropertyViewModel(target, property, isReadOnly));
+        }
+
+        private static InspectorPropertyViewModelBase Initialize(InspectorPropertyViewModelBase viewModel)
+        {
+            viewModel.RefreshValue();
+            return viewModel;
+        }
+    }
+}

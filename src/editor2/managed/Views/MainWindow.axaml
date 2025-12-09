@@ -106,8 +106,26 @@
                         </Border>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding Inspector.Properties}" Grid.IsSharedSizeScope="True" HorizontalAlignment="Stretch">
+                                <ItemsControl.DataTemplates>
+                                    <DataTemplate x:DataType="vm:TextPropertyViewModel">
+                                        <inspector:StringNamePropertyEditor DataContext="{Binding}" />
+                                    </DataTemplate>
+
+                                    <DataTemplate x:DataType="vm:EnumPropertyViewModel">
+                                        <inspector:EnumPropertyEditor DataContext="{Binding}" />
+                                    </DataTemplate>
+
+                                    <DataTemplate x:DataType="vm:FlagsPropertyViewModel">
+                                        <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
+                                    </DataTemplate>
+
+                                    <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
+                                        <TextBlock Text="{Binding Value}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </ItemsControl.DataTemplates>
+                                
                                 <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:InspectorPropertyViewModel">
+                                    <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
                                         <Grid Margin="6,2">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName"/>
@@ -116,11 +134,7 @@
 
                                             <TextBlock Grid.Column="0" Classes="inspector-name" Text="{Binding Name}" VerticalAlignment="Center" Margin="0,0,12,0"/>
 
-                                            <TextBlock Grid.Column="1" Text="{Binding Value}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsVisible="{Binding ShowTextValue}"/>
-
-                                            <inspector:StringNamePropertyEditor Grid.Column="1" DataContext="{Binding}" IsVisible="{Binding IsTextEditable}"/>
-                                            <inspector:EnumPropertyEditor Grid.Column="1" DataContext="{Binding}" IsVisible="{Binding IsEnumEditable}"/>
-                                            <inspector:EnumFlagsPropertyEditor Grid.Column="1" DataContext="{Binding}" IsVisible="{Binding IsEnumFlagsEditable}"/>
+                                            <ContentControl Grid.Column="1" Content="{Binding}" VerticalAlignment="Center" />
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

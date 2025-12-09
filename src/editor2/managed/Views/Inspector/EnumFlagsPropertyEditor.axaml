@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
              x:Class="Hyperion.Editor.Views.Inspector.EnumFlagsPropertyEditor"
-             x:DataType="vm:InspectorPropertyViewModel"
+             x:DataType="vm:FlagsPropertyViewModel"
              mc:Ignorable="d">
     <ItemsControl ItemsSource="{Binding EnumFlagEntries}">
         <ItemsControl.ItemTemplate>

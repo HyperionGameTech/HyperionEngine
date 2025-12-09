@@ -4,10 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
              x:Class="Hyperion.Editor.Views.Inspector.EnumPropertyEditor"
-             x:DataType="vm:InspectorPropertyViewModel"
+             x:DataType="vm:EnumPropertyViewModel"
              mc:Ignorable="d">
         <ComboBox x:Name="EnumCombo"
-                          ItemsSource="{Binding EnumFlagEntries}"
+                          ItemsSource="{Binding EnumEntries}"
                           SelectedValue="{Binding SelectedEnumValue, Mode=TwoWay}"
                           SelectedValueBinding="{Binding Value}"
                           VerticalAlignment="Center"
