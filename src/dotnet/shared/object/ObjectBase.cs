@@ -77,16 +77,14 @@ namespace Hyperion
 
                 Object_IncRef(_classPtr, _nativeAddress, false);
             }
-
-            Logger.Log(LogType.Debug, "Created ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
         ~ObjectBase()
         {
-            Logger.Log(LogType.Debug, "Destroying ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
-
             if (IsValid && Class.IsReferenceCounted)
+            {
                 Object_DecRef(_classPtr, _nativeAddress, false);
+            }
         }
 
         public void Dispose()
@@ -198,10 +196,8 @@ namespace Hyperion
 
             Method method = GetMethod(name);
 
-            using (HypDataBuffer resultData = method.InvokeNativeWithThis(this, args))
-            {
-                return (T?)resultData.GetValue();
-            }
+            using HypDataBuffer resultData = method.InvokeNativeWithThis(this, args);
+            return (T?)resultData.GetValue();
         }
 
         public void InvokeNativeMethod(Name name, object[]? args = null)
@@ -211,14 +207,9 @@ namespace Hyperion
                 throw new Exception("Class pointer is null");
             }
 
-            Logger.Log(LogType.Debug, $"Invoking native method {name} on {this}");
-
             Method method = GetMethod(name);
 
-            using (HypDataBuffer resultData = method.InvokeNativeWithThis(this, args))
-            {
-                // do nothing with the result
-            }
+            using HypDataBuffer resultData = method.InvokeNativeWithThis(this, args);
         }
 
         public object? ReadNativeField(Name name)

@@ -638,24 +638,38 @@ struct TypeInfo
                 result.flags |= TypeInfoFlags::POD_TYPE;
             }
 
-            if constexpr (std::is_enum_v<NormalizedT>)
+            if constexpr (std::is_enum_v<NormalizedT> || IsEnumFlagsV<NormalizedT> || EnumFlagsDecl<NormalizedT>::IsEnumFlags)
             {
                 result.flags |= TypeInfoFlags::ENUM_TYPE;
 
-                result.extendedInfo.data.typeInfo = &ForType<typename std::underlying_type_t<NormalizedT>>();
-
-                result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
                 result.extendedInfo.handler = nullptr;
-            }
 
-            if constexpr (IsEnumFlagsV<NormalizedT>)
-            {
-                result.flags |= TypeInfoFlags::ENUM_FLAGS_TYPE;
+                if constexpr (IsEnumFlagsV<NormalizedT>)
+                {
+                    using EnumType = typename NormalizedT::EnumType;
 
-                result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::EnumType>();
+                    // for EnumFlags<T>, we base it off of T enum
+                    result.id = TypeId::ForType<EnumType>();
+                    result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<EnumType>::value>());
+                    result.flags |= TypeInfoFlags::ENUM_FLAGS_TYPE;
 
-                result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
-                result.extendedInfo.handler = nullptr;
+                    result.extendedInfo.data.typeInfo = &ForType<typename std::underlying_type_t<EnumType>>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                }
+                else
+                {
+                    using EnumType = NormalizedT;
+
+                    // dont need to set id/name here, already set above
+
+                    if constexpr (EnumFlagsDecl<EnumType>::IsEnumFlags)
+                    {
+                        result.flags |= TypeInfoFlags::ENUM_FLAGS_TYPE;
+                    }
+
+                    result.extendedInfo.data.typeInfo = &ForType<typename std::underlying_type_t<EnumType>>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                }
             }
 
             if constexpr (std::is_fundamental_v<NormalizedT>)

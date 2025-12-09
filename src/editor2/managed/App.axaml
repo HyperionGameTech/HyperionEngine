@@ -53,6 +53,13 @@
             <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}"/>
         </Style>
 
+        <!-- Inspector property name style -->
+        <Style Selector="TextBlock.inspector-name">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}"/>
+            <Setter Property="Padding" Value="0,4"/>
+        </Style>
         <!-- Menu -->
         <Style Selector="Menu">
             <Setter Property="Background" Value="{StaticResource Brush.Panel}"/>

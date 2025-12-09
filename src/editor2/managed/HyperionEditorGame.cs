@@ -49,6 +49,9 @@ namespace Hyperion.Editor
                 HandleProjectOpened(project);
             }
 
+            StatOverlay statOverlay = new StatOverlay();
+            _editorSubsystem.AddDebugOverlay(statOverlay);
+
             // tmp debug
             AssetBatch ab = new AssetBatch();
             ab.Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");

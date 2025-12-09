@@ -44,9 +44,6 @@ public:
     Handle<UIObject> CreateUIObject(UIObject* spawnParent);
 
     HYP_METHOD(Scriptable)
-    Name GetName() const;
-
-    HYP_METHOD(Scriptable)
     bool IsEnabled() const;
 
 protected:
@@ -64,12 +61,6 @@ protected:
     }
 
     HYP_METHOD()
-    virtual Name GetName_Impl() const
-    {
-        HYP_PURE_VIRTUAL();
-    }
-
-    HYP_METHOD()
     virtual bool IsEnabled_Impl() const
     {
         return true;
@@ -79,41 +70,31 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API TextureEditorDebugOverlay : public EditorDebugOverlayBase
+class HYP_API TextureOverlay : public EditorDebugOverlayBase
 {
-    HYP_OBJECT_BODY(TextureEditorDebugOverlay);
+    HYP_OBJECT_BODY(TextureOverlay);
 
 public:
-    TextureEditorDebugOverlay(const Handle<Texture>& texture);
-    virtual ~TextureEditorDebugOverlay() override;
+    TextureOverlay(const Handle<Texture>& texture);
+    virtual ~TextureOverlay() override;
 
 protected:
     virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override;
-
-    virtual Name GetName_Impl() const override
-    {
-        return NAME("TextureEditorDebugOverlay");
-    }
 
     Handle<Texture> m_texture;
 };
 
 HYP_CLASS()
-class HYP_API TextEditorDebugOverlay : public EditorDebugOverlayBase
+class HYP_API TextOverlay : public EditorDebugOverlayBase
 {
-    HYP_OBJECT_BODY(TextEditorDebugOverlay);
+    HYP_OBJECT_BODY(TextOverlay);
 
 public:
-    TextEditorDebugOverlay(const String& text, Color textColor = Color::White(), float textSize = 10.0f);
-    virtual ~TextEditorDebugOverlay() override;
+    TextOverlay(const String& text, Color textColor = Color::White(), float textSize = 10.0f);
+    virtual ~TextOverlay() override;
 
 protected:
     virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override;
-
-    virtual Name GetName_Impl() const override
-    {
-        return NAME("TextEditorDebugOverlay");
-    }
 
     String m_text;
     Color m_textColor;

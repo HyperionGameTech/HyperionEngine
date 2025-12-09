@@ -114,7 +114,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <TextBlock Grid.Column="0" Classes="inspector-name" Text="{Binding Name}" VerticalAlignment="Center" Margin="0,0,12,0"/>
 
                                             <TextBlock Grid.Column="1" Text="{Binding Value}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsVisible="{Binding ShowTextValue}"/>
 
@@ -165,8 +165,6 @@
                 <Grid ColumnDefinitions="*, Auto">
                     <TextBlock Text="Ready" FontSize="12" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="FPS: 60" FontSize="12" VerticalAlignment="Center"/>
-                        <TextBlock Text="VRAM: 1.2 GB" FontSize="12" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
             </Border>

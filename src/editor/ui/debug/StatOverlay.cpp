@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <editor/ui/debug/FpsCounter.hpp>
+#include <editor/ui/debug/StatOverlay.hpp>
 
 #include <ui/UIListView.hpp>
 #include <ui/UIText.hpp>
@@ -19,7 +19,7 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineStats.hpp>
 
-#include <FpsCounter.generated.inl>
+#include <StatOverlay.generated.inl>
 
 namespace hyperion {
 
@@ -44,31 +44,23 @@ extern EngineStatTimer g_renderThreadUpdateTimer;
 extern EngineStatTimer g_renderCpuSyncTimer;
 extern EngineStatTimer g_scriptUpdateTimer;
 
-#pragma region FpsCounter
+#pragma region StatOverlay
 
-const Array<Pair<int, Color>> FpsCounter::s_fpsColors = {
+const Array<Pair<int, Color>> StatOverlay::s_fpsColors = {
     { 30, Color(1.0f, 0.0f, 0.0f, 1.0f) },
     { 60, Color(1.0f, 1.0f, 0.0f, 1.0f) },
     { INT32_MAX, Color(0.0f, 1.0f, 0.0f, 1.0f) }
 };
 
-FpsCounter::FpsCounter()
-    : m_world(nullptr),
-      m_deltaAccumGame(0.0f),
+StatOverlay::StatOverlay()
+    : m_deltaAccumGame(0.0f),
       m_numTicksGame(0)
 {
 }
 
-FpsCounter::FpsCounter(World* world)
-    : m_world(world),
-      m_deltaAccumGame(0.0f),
-      m_numTicksGame(0)
-{
-}
+StatOverlay::~StatOverlay() = default;
 
-FpsCounter::~FpsCounter() = default;
-
-Handle<UIObject> FpsCounter::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> StatOverlay::CreateUIObject_Impl(UIObject* spawnParent)
 {
     HYP_SCOPE;
 
@@ -126,7 +118,7 @@ Handle<UIObject> FpsCounter::CreateUIObject_Impl(UIObject* spawnParent)
     return panel;
 }
 
-void FpsCounter::Update_Impl(float delta)
+void StatOverlay::Update_Impl(float delta)
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
@@ -143,11 +135,6 @@ void FpsCounter::Update_Impl(float delta)
 
         m_deltaAccumGame = 0.0f;
         m_numTicksGame = 0;
-    }
-
-    if (m_world == nullptr)
-    {
-        return;
     }
 
     const EngineStatsSnapshot& snapshot = g_engineStats->GetCurrentSnapshot();
@@ -217,7 +204,7 @@ void FpsCounter::Update_Impl(float delta)
     }
 }
 
-Color FpsCounter::GetFpsColor(int fps)
+Color StatOverlay::GetFpsColor(int fps)
 {
     for (const Pair<int, Color>& pair : s_fpsColors)
     {
@@ -228,37 +215,6 @@ Color FpsCounter::GetFpsColor(int fps)
     }
 
     return s_fpsColors.Back().second;
-}
-
-#pragma endregion FpsCounter
-
-#pragma region StatOverlay
-
-StatOverlay::StatOverlay() = default;
-
-StatOverlay::~StatOverlay() = default;
-
-Handle<UIObject> StatOverlay::CreateUIObject_Impl(UIObject* spawnParent)
-{
-    HYP_SCOPE;
-
-    Handle<UIListView> panel = spawnParent->CreateUIObject<UIListView>(
-        NAME("StatOverlay_Panel"),
-        Vec2i(0, 0),
-        UIObjectSize(UIObjectSize::AUTO));
-
-    panel->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.5f));
-    panel->SetTextSize(9);
-    panel->SetPadding(Vec2i(10, 10));
-
-    return panel;
-}
-
-void StatOverlay::Update_Impl(float delta)
-{
-    HYP_SCOPE;
-
-    // @TODO - update stats items for each stat group
 }
 
 #pragma endregion StatOverlay

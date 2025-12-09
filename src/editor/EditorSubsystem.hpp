@@ -406,7 +406,7 @@ public:
     void AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debugOverlay);
 
     HYP_METHOD()
-    bool RemoveDebugOverlay(StringHash name);
+    bool RemoveDebugOverlay(EditorDebugOverlayBase* debugOverlay);
 
     HYP_METHOD()
     Handle<Node> GetFocusedNode() const;

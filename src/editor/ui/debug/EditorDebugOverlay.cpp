@@ -44,50 +44,50 @@ void EditorDebugOverlayBase::Initialize(UIObject* spawnParent)
 
 Handle<UIObject> EditorDebugOverlayBase::CreateUIObject_Impl(UIObject* spawnParent)
 {
-    return spawnParent->CreateUIObject<UIImage>(GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
+    return spawnParent->CreateUIObject<UIImage>(InstanceClass()->GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
 }
 
 #pragma endregion EditorDebugOverlayBase
 
-#pragma region TextureEditorDebugOverlay
+#pragma region TextureOverlay
 
-TextureEditorDebugOverlay::TextureEditorDebugOverlay(const Handle<Texture>& texture)
+TextureOverlay::TextureOverlay(const Handle<Texture>& texture)
     : m_texture(texture)
 {
 }
 
-TextureEditorDebugOverlay::~TextureEditorDebugOverlay()
+TextureOverlay::~TextureOverlay()
 {
 }
 
-Handle<UIObject> TextureEditorDebugOverlay::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> TextureOverlay::CreateUIObject_Impl(UIObject* spawnParent)
 {
     InitObject(m_texture);
 
-    Handle<UIImage> image = spawnParent->CreateUIObject<UIImage>(GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
+    Handle<UIImage> image = spawnParent->CreateUIObject<UIImage>(InstanceClass()->GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
     image->SetTexture(m_texture);
 
     return image;
 }
 
-#pragma endregion TextureEditorDebugOverlay
+#pragma endregion TextureOverlay
 
-#pragma region TextEditorDebugOverlay
+#pragma region TextOverlay
 
-TextEditorDebugOverlay::TextEditorDebugOverlay(const String& text, Color textColor, float textSize)
+TextOverlay::TextOverlay(const String& text, Color textColor, float textSize)
     : m_text(text),
       m_textColor(textColor),
       m_textSize(textSize)
 {
 }
 
-TextEditorDebugOverlay::~TextEditorDebugOverlay()
+TextOverlay::~TextOverlay()
 {
 }
 
-Handle<UIObject> TextEditorDebugOverlay::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> TextOverlay::CreateUIObject_Impl(UIObject* spawnParent)
 {
-    Handle<UIText> uiText = spawnParent->CreateUIObject<UIText>(GetName(), Vec2i::Zero(), UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+    Handle<UIText> uiText = spawnParent->CreateUIObject<UIText>(InstanceClass()->GetName(), Vec2i::Zero(), UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
     uiText->SetText(m_text);
     uiText->SetTextColor(m_textColor);
     uiText->SetTextSize(m_textSize);
@@ -96,6 +96,6 @@ Handle<UIObject> TextEditorDebugOverlay::CreateUIObject_Impl(UIObject* spawnPare
     return uiText;
 }
 
-#pragma endregion TextEditorDebugOverlay
+#pragma endregion TextOverlay
 
 } // namespace hyperion

@@ -85,8 +85,6 @@ namespace Hyperion.Editor.ViewModels
             if (_class is Class typeInfoClass)
             {
                 Logger.Log(LogType.Debug, $"Inspector property '{Name}' has type class '{typeInfoClass.Name}', type info name: '{typeInfo.Name}'");
-                Logger.Log(LogType.Debug, $" - IsEnumType: {typeInfoClass.IsEnumType}");
-                Logger.Log(LogType.Debug, $" - IsNameType: {IsNameType(typeInfo)}");
                 
                 if (typeInfoClass.IsEnumType)
                 {

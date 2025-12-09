@@ -3319,10 +3319,7 @@ void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debu
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    auto it = m_debugOverlays.FindIf([name = debugOverlay->GetName()](const auto& item)
-        {
-            return item->GetName() == name;
-        });
+    auto it = m_debugOverlays.Find(debugOverlay);
 
     if (it != m_debugOverlays.End())
     {
@@ -3356,20 +3353,20 @@ void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debu
 
         m_debugOverlayContainers[placement]->AddChildUIObject(listViewItem);
     }
-
-    HYP_LOG(Editor, Debug, "Added debug overlay: {}", debugOverlay->GetName());
 }
 
-bool EditorSubsystem::RemoveDebugOverlay(StringHash name)
+bool EditorSubsystem::RemoveDebugOverlay(EditorDebugOverlayBase* debugOverlay)
 {
     HYP_SCOPE;
 
+    if (!debugOverlay)
+    {
+        return false;
+    }
+
     AssertOnThread(g_gameThread);
 
-    auto it = m_debugOverlays.FindIf([name](const auto& item)
-        {
-            return item->GetName() == name;
-        });
+    auto it = m_debugOverlays.FindAs(debugOverlay);
 
     if (it == m_debugOverlays.End())
     {

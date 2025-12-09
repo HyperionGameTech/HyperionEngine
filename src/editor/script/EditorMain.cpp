@@ -9,8 +9,6 @@
 #include <editor/EditorActionStack.hpp>
 #include <editor/EditorAction.hpp>
 
-#include <editor/ui/debug/FpsCounter.hpp>
-
 #include <ui/UIMenuBar.hpp>
 #include <ui/UISubsystem.hpp>
 #include <ui/UIStage.hpp>
@@ -94,15 +92,6 @@ void EditorMain::OnAdded(Entity* entity)
     {
         HandleProjectOpened(currentProject);
     }
-
-    // Add debug overlays
-    Handle<FpsCounter> fpsCounter = CreateObject<FpsCounter>(m_world);
-    InitObject(fpsCounter);
-    editorSubsystem->AddDebugOverlay(fpsCounter);
-
-    Handle<StatOverlay> statOverlay = CreateObject<StatOverlay>();
-    InitObject(statOverlay);
-    editorSubsystem->AddDebugOverlay(statOverlay);
 }
 
 void EditorMain::HandleProjectOpened(const Handle<EditorProject>& project)

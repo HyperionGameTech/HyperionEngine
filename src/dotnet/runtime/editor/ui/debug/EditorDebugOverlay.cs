@@ -19,7 +19,6 @@ namespace Hyperion
         public abstract void Update(float delta);
 
         public abstract UIObject CreateUIObject(UIObject spawnParent);
-        public abstract Name GetName();
         public abstract bool IsEnabled();
     }
 }
