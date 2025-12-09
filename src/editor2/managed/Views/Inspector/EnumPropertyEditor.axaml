@@ -6,9 +6,17 @@
              x:Class="Hyperion.Editor.Views.Inspector.EnumPropertyEditor"
              x:DataType="vm:InspectorPropertyViewModel"
              mc:Ignorable="d">
-    <ComboBox ItemsSource="{Binding EnumValues}"
-              SelectedItem="{Binding SelectedEnumValue, Mode=TwoWay}"
-        VerticalAlignment="Center"
-        MinWidth="140"
-        HorizontalAlignment="Stretch"/>
+        <ComboBox x:Name="EnumCombo"
+                          ItemsSource="{Binding EnumValues}"
+                          SelectedValue="{Binding SelectedEnumValue, Mode=TwoWay}"
+                          SelectedValueBinding="{Binding Value}"
+                          VerticalAlignment="Center"
+                          MinWidth="140"
+                          HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                                <TextBlock Text="{Binding Key}"/>
+                        </DataTemplate>
+                </ComboBox.ItemTemplate>
+        </ComboBox>
 </UserControl>

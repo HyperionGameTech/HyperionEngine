@@ -18,7 +18,7 @@ namespace Hyperion.Editor.ViewModels
 
         private string _value = string.Empty;
         private string _editableValue = string.Empty;
-        private Array? _enumValues;
+        private List<KeyValuePair<string, object?>>? _enumValues;
         private object? _selectedEnumValue;
         private bool _isRefreshing;
 
@@ -49,10 +49,10 @@ namespace Hyperion.Editor.ViewModels
         public bool IsStringEditable => _isStringProperty;
         public bool IsNameEditable => _isNameProperty;
         public bool IsTextEditable => _isStringProperty || _isNameProperty;
-        public bool IsEnumEditable => _isEnumProperty && EnumValues != null && EnumValues.Length > 0;
+        public bool IsEnumEditable => _isEnumProperty && EnumValues != null && EnumValues.Count > 0;
         public bool ShowTextValue => !IsTextEditable && !IsEnumEditable;
 
-        public Array? EnumValues
+        public List<KeyValuePair<string, object?>>? EnumValues
         {
             get => _enumValues;
             private set => SetProperty(ref _enumValues, value);
@@ -91,13 +91,13 @@ namespace Hyperion.Editor.ViewModels
                     _isEnumProperty = true;
 
                     // use StaticFields of the enum class to populate EnumValues
-                    List<object?> enumValuesList = new List<object?>();
+                    List<KeyValuePair<string, object?>> enumValuesList = new List<KeyValuePair<string, object?>>();
 
                     foreach (StaticField staticField in typeInfoClass.StaticFields)
                     {
                         try
                         {
-                            enumValuesList.Add(staticField.ReadObject());
+                            enumValuesList.Add(new KeyValuePair<string, object?>(staticField.Name.ToString(), staticField.ReadObject()));
                             Logger.Log(LogType.Debug, $"Inspector added enum static field '{staticField.Name}' to enum values for property '{Name}'");
                         }
                         catch (Exception ex)
@@ -106,7 +106,7 @@ namespace Hyperion.Editor.ViewModels
                         }
                     }
 
-                    EnumValues = enumValuesList.ToArray();
+                    EnumValues = enumValuesList;
                 }
             }
 
@@ -147,7 +147,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (_isEnumProperty)
                 {
-                    // @TODO
+                    SelectedEnumValue = rawValue;
                 }
             }
             catch (Exception ex)
