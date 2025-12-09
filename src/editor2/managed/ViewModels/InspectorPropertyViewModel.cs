@@ -13,12 +13,14 @@ namespace Hyperion.Editor.ViewModels
         private readonly bool _isStringProperty;
         private readonly bool _isNameProperty;
         private readonly bool _isEnumProperty;
+        private readonly bool _isEnumFlagsProperty;
 
         private readonly Class? _class;
 
         private string _value = string.Empty;
         private string _editableValue = string.Empty;
         private List<KeyValuePair<string, object?>>? _enumValues;
+        private List<EnumFlagEntry>? _enumFlagEntries;
         private object? _selectedEnumValue;
         private bool _isRefreshing;
 
@@ -50,12 +52,19 @@ namespace Hyperion.Editor.ViewModels
         public bool IsNameEditable => _isNameProperty;
         public bool IsTextEditable => _isStringProperty || _isNameProperty;
         public bool IsEnumEditable => _isEnumProperty && EnumValues != null && EnumValues.Count > 0;
-        public bool ShowTextValue => !IsTextEditable && !IsEnumEditable;
+        public bool IsEnumFlagsEditable => _isEnumFlagsProperty && EnumFlagEntries != null && EnumFlagEntries.Count > 0;
+        public bool ShowTextValue => !IsTextEditable && !IsEnumEditable && !IsEnumFlagsEditable;
 
         public List<KeyValuePair<string, object?>>? EnumValues
         {
             get => _enumValues;
             private set => SetProperty(ref _enumValues, value);
+        }
+
+        public List<EnumFlagEntry>? EnumFlagEntries
+        {
+            get => _enumFlagEntries;
+            private set => SetProperty(ref _enumFlagEntries, value);
         }
 
         public object? SelectedEnumValue
@@ -85,8 +94,31 @@ namespace Hyperion.Editor.ViewModels
             if (_class is Class typeInfoClass)
             {
                 Logger.Log(LogType.Debug, $"Inspector property '{Name}' has type class '{typeInfoClass.Name}', type info name: '{typeInfo.Name}'");
-                
-                if (typeInfoClass.IsEnumType)
+
+                if (typeInfo.IsEnumFlags)
+                {
+                    _isEnumFlagsProperty = true;
+                    _isEnumProperty = true; // still an enum
+
+                    List<EnumFlagEntry> entries = new List<EnumFlagEntry>();
+
+                    foreach (StaticField staticField in typeInfoClass.StaticFields)
+                    {
+                        try
+                        {
+                            object? flagValue = staticField.ReadObject();
+                            entries.Add(new EnumFlagEntry(staticField.Name.ToString(), flagValue, OnFlagEntryChanged));
+                            Logger.Log(LogType.Debug, $"Inspector added enum flag static field '{staticField.Name}' to enum flag values for property '{Name}'");
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log(LogType.Warn, $"Inspector failed to read enum flag static field '{staticField.Name}': {ex.Message}");
+                        }
+                    }
+
+                    EnumFlagEntries = entries;
+                }
+                else if (typeInfoClass.IsEnumType)
                 {
                     _isEnumProperty = true;
 
@@ -145,7 +177,11 @@ namespace Hyperion.Editor.ViewModels
                     EditableValue = formattedValue;
                 }
 
-                if (_isEnumProperty)
+                if (_isEnumFlagsProperty)
+                {
+                    UpdateFlagSelectionsFromValue(rawValue);
+                }
+                else if (_isEnumProperty)
                 {
                     SelectedEnumValue = rawValue;
                 }
@@ -197,7 +233,102 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            // @TODO
+            try
+            {
+                using HypData data = new HypData(value);
+                _property.Set(_target, data);
+                Value = FormatValue(value);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Inspector failed to set enum property '{Name}': {ex.Message}");
+                RefreshValue();
+            }
+        }
+
+        private void OnFlagEntryChanged()
+        {
+            if (_isRefreshing)
+            {
+                return;
+            }
+
+            CommitEnumFlagsValue();
+        }
+
+        private void UpdateFlagSelectionsFromValue(object? rawValue)
+        {
+            if (EnumFlagEntries == null)
+            {
+                return;
+            }
+
+            _isRefreshing = true;
+            try
+            {
+                ulong currentValue = rawValue != null ? Convert.ToUInt64(rawValue) : 0ul;
+
+                foreach (EnumFlagEntry entry in EnumFlagEntries)
+                {
+                    ulong flagValue = entry.Value != null ? Convert.ToUInt64(entry.Value) : 0ul;
+                    entry.IsSelected = ((currentValue & flagValue) == flagValue) && flagValue != 0;
+                }
+
+                // handle zero flag explicitly
+                foreach (EnumFlagEntry entry in EnumFlagEntries)
+                {
+                    if ((entry.Value == null || Convert.ToUInt64(entry.Value) == 0ul) && currentValue == 0ul)
+                    {
+                        entry.IsSelected = true;
+                    }
+                }
+            }
+            finally
+            {
+                _isRefreshing = false;
+            }
+        }
+
+        private void CommitEnumFlagsValue()
+        {
+            if (!_target.IsValid || !_isEnumFlagsProperty || EnumFlagEntries == null)
+            {
+                return;
+            }
+
+            try
+            {
+                ulong combined = 0ul; // @TODO use correct underlying type -- dynamic ?
+                Type? managedType = null;
+
+                foreach (EnumFlagEntry entry in EnumFlagEntries)
+                {
+                    if (!entry.IsSelected || entry.Value == null)
+                    {
+                        continue;
+                    }
+
+                    combined |= Convert.ToUInt64(entry.Value);
+                }
+
+                // If we didn't get a type from entries, fall back to the current value type
+                if (valueType == null && EnumFlagEntries.Count > 0)
+                {
+                    object? firstVal = EnumFlagEntries[0].Value;
+                    if (firstVal != null)
+                    {
+                        valueType = firstVal.GetType();
+                    }
+                }
+
+                using HypData data = new HypData(combined);
+                _property.Set(_target, data);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Inspector failed to set enum flags property '{Name}': {ex.Message}");
+                RefreshValue();
+            }
         }
 
         private static bool IsNameType(TypeInfo typeInfo)
@@ -237,6 +368,34 @@ namespace Hyperion.Editor.ViewModels
                     return $"{array.Length} item(s)";
                 default:
                     return value.ToString() ?? value.GetType().Name;
+            }
+        }
+
+        public sealed class EnumFlagEntry : ViewModelBase
+        {
+            private readonly Action _onChanged;
+            private bool _isSelected;
+
+            public EnumFlagEntry(string name, object? value, Action onChanged)
+            {
+                Name = name;
+                Value = value;
+                _onChanged = onChanged;
+            }
+
+            public string Name { get; }
+            public object? Value { get; }
+
+            public bool IsSelected
+            {
+                get => _isSelected;
+                set
+                {
+                    if (SetProperty(ref _isSelected, value))
+                    {
+                        _onChanged?.Invoke();
+                    }
+                }
             }
         }
     }

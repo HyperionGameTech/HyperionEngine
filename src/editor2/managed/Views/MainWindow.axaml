@@ -120,6 +120,7 @@
 
                                             <inspector:StringNamePropertyEditor Grid.Column="1" DataContext="{Binding}" IsVisible="{Binding IsTextEditable}"/>
                                             <inspector:EnumPropertyEditor Grid.Column="1" DataContext="{Binding}" IsVisible="{Binding IsEnumEditable}"/>
+                                            <inspector:EnumFlagsPropertyEditor Grid.Column="1" DataContext="{Binding}" IsVisible="{Binding IsEnumFlagsEditable}"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

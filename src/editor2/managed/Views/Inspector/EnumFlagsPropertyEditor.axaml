@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+             x:Class="Hyperion.Editor.Views.Inspector.EnumFlagsPropertyEditor"
+             x:DataType="vm:InspectorPropertyViewModel"
+             mc:Ignorable="d">
+    <ItemsControl ItemsSource="{Binding EnumFlagEntries}">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" Margin="0,2,0,2"/>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>
