@@ -184,21 +184,42 @@ extern "C"
         return attribute;
     }
 
-    HYP_EXPORT uint32 Class_GetProperties(const Class* cls, const void** outProperties)
+    HYP_EXPORT uint32 Class_GetProperties(const Class* cls, const Property** outProperties)
     {
-        if (!cls || !outProperties)
+        Assert(cls != nullptr);
+
+        if (!outProperties)
+        {
+            uint32 count = 0;
+
+            // return count so caller can allocate
+            const Class* curr = cls;
+            while (curr)
+            {
+                if (curr->GetProperties().Any())
+                {
+                    count += (uint32)curr->GetProperties().Size();
+                }
+
+                curr = curr->GetParent();
+            }
+
+            return count;
+        }
+
+        Array<Property*> allProperties = cls->GetPropertiesInherited();
+
+        if (allProperties.Empty())
         {
             return 0;
         }
 
-        if (cls->GetProperties().Empty())
+        for (uint32 i = 0; i < allProperties.Size(); i++)
         {
-            return 0;
+            outProperties[i] = allProperties[i];
         }
 
-        *outProperties = cls->GetProperties().Begin();
-
-        return (uint32)cls->GetProperties().Size();
+        return (uint32)allProperties.Size();
     }
 
     HYP_EXPORT Property* Class_GetProperty(const Class* cls, const Name* name)
@@ -209,23 +230,6 @@ extern "C"
         }
 
         return cls->GetProperty(*name);
-    }
-
-    HYP_EXPORT uint32 Class_GetMethods(const Class* cls, const void** outMethods)
-    {
-        if (!cls || !outMethods)
-        {
-            return 0;
-        }
-
-        if (cls->GetMethods().Empty())
-        {
-            return 0;
-        }
-
-        *outMethods = cls->GetMethods().Begin();
-
-        return (uint32)cls->GetMethods().Size();
     }
 
     HYP_EXPORT Method* Class_GetMethod(const Class* cls, const Name* name)
@@ -252,23 +256,6 @@ extern "C"
         return cls->GetField(*name);
     }
 
-    HYP_EXPORT uint32 Class_GetFields(const Class* cls, const void** outFields)
-    {
-        if (!cls || !outFields)
-        {
-            return 0;
-        }
-
-        if (cls->GetFields().Empty())
-        {
-            return 0;
-        }
-
-        *outFields = cls->GetFields().Begin();
-
-        return (uint32)cls->GetFields().Size();
-    }
-
     HYP_EXPORT StaticField* Class_GetStaticField(const Class* cls, const Name* name)
     {
         if (!cls || !name)
@@ -277,23 +264,6 @@ extern "C"
         }
 
         return cls->GetStaticField(*name);
-    }
-
-    HYP_EXPORT uint32 Class_GetStaticFields(const Class* cls, const void** outConstants)
-    {
-        if (!cls || !outConstants)
-        {
-            return 0;
-        }
-
-        if (cls->GetStaticFields().Empty())
-        {
-            return 0;
-        }
-
-        *outConstants = cls->GetStaticFields().Begin();
-
-        return (uint32)cls->GetStaticFields().Size();
     }
 
     HYP_EXPORT Class* Class_CreateDynamicClass(const TypeId* typeId, const char* name, const Class* parentClass)

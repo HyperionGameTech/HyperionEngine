@@ -10,12 +10,13 @@ namespace Hyperion.Editor.ViewModels
         public ObservableCollection<NodeViewModel> RootNodes { get; } = new ObservableCollection<NodeViewModel>();
 
         private NodeViewModel? _selectedNode;
+        private bool _suppressSelectionNotifications;
         public NodeViewModel? SelectedNode
         {
             get => _selectedNode;
             set
             {
-                if (SetProperty(ref _selectedNode, value))
+                if (SetProperty(ref _selectedNode, value) && !_suppressSelectionNotifications)
                 {
                     SelectedNodeChanged?.Invoke(_selectedNode?.Node);
                 }
@@ -28,7 +29,18 @@ namespace Hyperion.Editor.ViewModels
 
         public void AttachToScene(Scene? scene)
         {
+            _scene = scene;
             RootNodes.Clear();
+
+            _suppressSelectionNotifications = true;
+            try
+            {
+                SelectedNode = null;
+            }
+            finally
+            {
+                _suppressSelectionNotifications = false;
+            }
 
             if (scene == null)
             {
@@ -46,6 +58,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 Dispatcher.UIThread.Invoke(() =>
                 {
+                    _scene = scene;
                     RootNodes.Clear();
                     if (newRoot != null)
                     {
@@ -53,6 +66,60 @@ namespace Hyperion.Editor.ViewModels
                     }
                 });
             }).Detach();
+        }
+
+        public void SelectNodeFromEngine(Node? node)
+        {
+            _suppressSelectionNotifications = true;
+
+            try
+            {
+                if (node == null || !node.IsValid)
+                {
+                    SelectedNode = null;
+                    return;
+                }
+
+                NodeViewModel? viewModel = FindNodeViewModel(node.NativeAddress);
+                SelectedNode = viewModel;
+            }
+            finally
+            {
+                _suppressSelectionNotifications = false;
+            }
+        }
+
+        private NodeViewModel? FindNodeViewModel(IntPtr nativeAddress)
+        {
+            foreach (NodeViewModel root in RootNodes)
+            {
+                NodeViewModel? result = FindNodeViewModelRecursive(root, nativeAddress);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        private static NodeViewModel? FindNodeViewModelRecursive(NodeViewModel nodeViewModel, IntPtr nativeAddress)
+        {
+            if (nodeViewModel.Node != null && nodeViewModel.Node.NativeAddress == nativeAddress)
+            {
+                return nodeViewModel;
+            }
+
+            foreach (NodeViewModel child in nodeViewModel.Children)
+            {
+                NodeViewModel? found = FindNodeViewModelRecursive(child, nativeAddress);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
     }
 }

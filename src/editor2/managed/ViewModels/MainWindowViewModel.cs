@@ -1,5 +1,4 @@
 using System;
-using System.Collections.ObjectModel;
 using System.Threading;
 using System.Windows.Input;
 using Avalonia.Threading;
@@ -59,15 +58,14 @@ namespace Hyperion.Editor.ViewModels
         private const int GameLaunchWaitIntervalMs = 500;
         private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up
 
+        private readonly EditorSubsystem _editorSubsystem;
+        private DelegateHandler? _focusedNodeChangedHandler;
+        private bool _isUpdatingSelectionFromEngine;
+
         public MainWindowViewModel()
         {
             SceneHierarchy = new SceneHierarchyViewModel();
             Inspector = new InspectorViewModel();
-
-            SceneHierarchy.SelectedNodeChanged += node =>
-            {
-                Dispatcher.UIThread.Invoke(() => Inspector.SetSelectedNode(node));
-            };
 
             Game? gameInstance = EngineManager.GameInstance;
             if (gameInstance == null)
@@ -103,10 +101,30 @@ namespace Hyperion.Editor.ViewModels
                 throw new InvalidOperationException("EditorSubsystem is not available in the world.");
             }
 
+            _editorSubsystem = editorSubsystem;
+
             Scene? activeScene = editorSubsystem.GetActiveScene();
             if (activeScene != null)
             {
                 SceneHierarchy.AttachToScene(activeScene);
+            }
+
+            SceneHierarchy.SelectedNodeChanged += OnSceneHierarchyNodeSelected;
+
+            BindFocusedNodeChanged();
+
+            try
+            {
+                Node? focusedNode = _editorSubsystem.GetFocusedNode();
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    HandleFocusedNodeUpdate(focusedNode);
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Warn, $"Failed to query focused node: {ex.Message}");
             }
 
             // handle active scene changes
@@ -125,6 +143,58 @@ namespace Hyperion.Editor.ViewModels
             Dispatcher.UIThread.Invoke(() =>
             {
                 SceneHierarchy.AttachToScene(scene);
+            });
+        }
+
+        private void OnSceneHierarchyNodeSelected(Node? node)
+        {
+            if (_isUpdatingSelectionFromEngine)
+            {
+                return;
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                _editorSubsystem.SetFocusedNode(node, false);
+                Inspector.SetSelectedNode(node);
+            });
+        }
+
+        private void BindFocusedNodeChanged()
+        {
+            WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
+
+            _focusedNodeChangedHandler?.Remove();
+
+            _focusedNodeChangedHandler = _editorSubsystem.GetOnFocusedNodeChangedDelegate()
+                .Bind((Node newNode, Node prevNode, bool shouldSelectInOutline) =>
+                {
+                    if (!weakThis.TryGetTarget(out MainWindowViewModel? target))
+                    {
+                        return;
+                    }
+
+                    target.HandleFocusedNodeUpdate(newNode);
+                });
+        }
+
+        private void HandleFocusedNodeUpdate(Node? node)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                _isUpdatingSelectionFromEngine = true;
+
+                try
+                {
+                    Node? validNode = node != null && node.IsValid ? node : null;
+
+                    Inspector.SetSelectedNode(validNode);
+                    SceneHierarchy.SelectNodeFromEngine(validNode);
+                }
+                finally
+                {
+                    _isUpdatingSelectionFromEngine = false;
+                }
             });
         }
     }

@@ -107,9 +107,9 @@
                             <ItemsControl ItemsSource="{Binding Inspector.Properties}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:InspectorPropertyViewModel">
-                                        <Grid ColumnDefinitions="*, *" Margin="6,2">
-                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                                            <ContentControl Grid.Column="1" Content="{Binding Value}"/>
+                                        <Grid ColumnDefinitions="Auto, *" Margin="6,2">
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Value}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

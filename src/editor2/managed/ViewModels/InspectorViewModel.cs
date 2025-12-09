@@ -1,8 +1,7 @@
 using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Reflection;
-using Avalonia.Threading;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -20,6 +19,19 @@ namespace Hyperion.Editor.ViewModels
 
         public void SetSelectedNode(Node? node)
         {
+            if (SelectedNode != null && node != null && SelectedNode.IsValid && node.IsValid)
+            {
+                if (SelectedNode.NativeAddress == node.NativeAddress)
+                {
+                    foreach (InspectorPropertyViewModel propertyViewModel in Properties)
+                    {
+                        propertyViewModel.RefreshValue();
+                    }
+
+                    return;
+                }
+            }
+
             SelectedNode = node;
             RefreshProperties();
         }
@@ -27,37 +39,28 @@ namespace Hyperion.Editor.ViewModels
         private void RefreshProperties()
         {
             Properties.Clear();
-            if (SelectedNode == null) return;
-
-            // Common properties
-            Properties.Add(new InspectorPropertyViewModel("Name", SelectedNode.Name.ToString()));
-
-            // Generic reflection for simple editable properties
-            /// @TODO! Use Hyperion.Property and Hyperion.Field classes from the class itself.
-            Class nodeClass = Class.GetClass<Node>();
-            foreach (Property p in nodeClass.Properties)
+            if (SelectedNode == null || !SelectedNode.IsValid)
             {
-                // @TODO
+                return;
             }
 
-            var props = SelectedNode.GetType()
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.CanRead && p.CanWrite && IsSimpleType(p.PropertyType));
+            Class nodeClass = SelectedNode.Class;
 
-            foreach (var prop in props)
+            Logger.Log(LogType.Debug, $"Inspector refreshing properties for node '{SelectedNode.Name}' of class '{nodeClass.Name}'");
+
+            foreach (Property property in nodeClass.Properties.OrderBy(p => p.Name.ToString(), StringComparer.OrdinalIgnoreCase))
             {
-                object? value = null;
-                try { value = prop.GetValue(SelectedNode); } catch { }
-                Properties.Add(new InspectorPropertyViewModel(prop.Name, value));
-            }
-        }
+                try
+                {
+                    Properties.Add(new InspectorPropertyViewModel(SelectedNode, property));
 
-        private static bool IsSimpleType(Type t)
-        {
-            return t.IsPrimitive ||
-                   t == typeof(string) ||
-                   t == typeof(decimal) ||
-                   t.IsEnum;
+                    Logger.Log(LogType.Debug, $"Inspector added property view model for '{property.Name}'");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Warn, $"Inspector failed to create view model for property '{property.Name}': {ex.Message}");
+                }
+            }
         }
     }
 }

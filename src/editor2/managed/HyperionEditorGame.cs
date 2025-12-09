@@ -99,11 +99,13 @@ namespace Hyperion.Editor
             }
         }
 
-        private void OnFocusedNodeChanged(Node newNode, Node prevNode, bool shouldSelectInOutline)
+        private void OnFocusedNodeChanged(Node? newNode, Node? prevNode, bool shouldSelectInOutline)
         {
             Logger.Log(LogType.Debug, "Focused node changed from " + (prevNode != null ? prevNode.Name.ToString() : "null") +
                        " to " + (newNode != null ? newNode.Name.ToString() : "null") +
                        ", shouldSelectInOutline: " + shouldSelectInOutline);
+
+            
         }
 
         private void HandleProjectOpened(EditorProject project)
