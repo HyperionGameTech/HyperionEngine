@@ -87,4 +87,44 @@ extern "C"
         return true;
     }
 
+    HYP_EXPORT uint32 Property_GetAttributes(const Property* property, const ClassAttribute** outAttributes)
+    {
+        if (!property)
+        {
+            return 0;
+        }
+
+        const ClassAttributeSet& attributes = property->GetAttributes();
+
+        if (!outAttributes)
+        {
+            return uint32(attributes.Size());
+        }
+
+        uint32 index = 0;
+
+        for (const ClassAttribute& attribute : attributes)
+        {
+            outAttributes[index++] = &attribute;
+        }
+
+        return index;
+    }
+
+    HYP_EXPORT const ClassAttribute* Property_GetAttribute(const Property* property, const Name* name)
+    {
+        if (!property || !name)
+        {
+            return nullptr;
+        }
+
+        auto it = property->GetAttributes().Find(StringHash(*name));
+        if (it == property->GetAttributes().End())
+        {
+            return nullptr;
+        }
+
+        return &*it;
+    }
+
 } // extern "C"

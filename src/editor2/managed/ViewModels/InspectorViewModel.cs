@@ -48,13 +48,41 @@ namespace Hyperion.Editor.ViewModels
 
             Logger.Log(LogType.Debug, $"Inspector refreshing properties for node '{SelectedNode.Name}' of class '{nodeClass.Name}'");
 
-            foreach (Property property in nodeClass.Properties.OrderBy(p => p.Name.ToString(), StringComparer.OrdinalIgnoreCase))
+            // sort by editorder attribute (if present), then by name
+            List<Property> properties = nodeClass.Properties.OrderBy(p =>
+            {
+                ClassAttribute? attrEditOrder = p.GetAttribute("editorder");
+
+                if (attrEditOrder != null)
+                {
+                    return attrEditOrder.Value.GetInt();
+                }
+
+                return int.MaxValue;
+            }).ThenBy(p => p.Name.ToString()).ToList();
+
+            foreach (Property property in properties)
             {
                 try
                 {
-                    Properties.Add(new InspectorPropertyViewModel(SelectedNode, property));
+                    // skip non-editor properties
+                    ClassAttribute? attrEditHide = property.GetAttribute("edithide");
 
-                    Logger.Log(LogType.Debug, $"Inspector added property view model for '{property.Name}'");
+                    if (attrEditHide != null && attrEditHide.Value.GetBool() == true)
+                    {
+                        continue;
+                    }
+
+                    bool isReadOnly = false;
+                    ClassAttribute? attrEditEnabled = property.GetAttribute("editenabled");
+
+                    if (attrEditEnabled != null && attrEditEnabled.Value.GetBool() == false)
+                    {
+                        isReadOnly = true;
+                    }
+
+
+                    Properties.Add(new InspectorPropertyViewModel(SelectedNode, property, isReadOnly));
                 }
                 catch (Exception ex)
                 {

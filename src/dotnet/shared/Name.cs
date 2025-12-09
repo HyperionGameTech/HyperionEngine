@@ -101,6 +101,12 @@ namespace Hyperion
             return false;
         }
 
+        // allow implicit conversion from string to Name
+        public static implicit operator Name(string nameString)
+        {
+            return new Name(nameString, weak: true); // weak by default to avoid polluting the cache
+        }
+
         [DllImport("hyperion", EntryPoint = "Name_FromString")]
         private static extern void Name_FromString([MarshalAs(UnmanagedType.LPStr)] string str, [MarshalAs(UnmanagedType.I1)] bool weak, [Out] out Name result);
 

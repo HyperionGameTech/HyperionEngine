@@ -7,7 +7,7 @@
              x:DataType="vm:InspectorPropertyViewModel"
              mc:Ignorable="d">
         <ComboBox x:Name="EnumCombo"
-                          ItemsSource="{Binding EnumValues}"
+                          ItemsSource="{Binding EnumFlagEntries}"
                           SelectedValue="{Binding SelectedEnumValue, Mode=TwoWay}"
                           SelectedValueBinding="{Binding Value}"
                           VerticalAlignment="Center"
@@ -15,7 +15,7 @@
                           HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
                         <DataTemplate>
-                                <TextBlock Text="{Binding Key}"/>
+                                <TextBlock Text="{Binding Name}"/>
                         </DataTemplate>
                 </ComboBox.ItemTemplate>
         </ComboBox>

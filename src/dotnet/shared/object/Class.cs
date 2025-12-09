@@ -176,9 +176,9 @@ namespace Hyperion
             }
         }
 
-        public ClassAttribute? GetAttribute(string name)
+        public ClassAttribute? GetAttribute(Name name)
         {
-            IntPtr attributePtr = Class_GetAttribute(ptr, name);
+            IntPtr attributePtr = Class_GetAttribute(ptr, ref name);
 
             if (attributePtr == IntPtr.Zero)
             {
@@ -192,21 +192,21 @@ namespace Hyperion
         {
             get
             {
-                IntPtr iterPtr;
-                IntPtr attributePtr;
+                uint count = Class_GetAttributes(ptr, IntPtr.Zero);
 
-                uint count = Class_GetAttributes(ptr, out iterPtr);
-
-                for (int i = 0; i < count; i++)
+                IntPtr attributesPtr = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>() * (int)count);
+                try
                 {
-                    attributePtr = Class_NextAttribute(ptr, iterPtr);
+                    IntPtr currentPtr = attributesPtr;
 
-                    if (attributePtr == IntPtr.Zero)
+                    for (uint i = 0; i < count; i++)
                     {
-                        yield break;
+                        yield return new ClassAttribute(Marshal.ReadIntPtr(currentPtr, (int)i * IntPtr.Size));
                     }
-
-                    yield return new ClassAttribute(attributePtr);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(attributesPtr);
                 }
             }
         }
@@ -552,13 +552,10 @@ namespace Hyperion
         private static extern byte Class_GetAllocationMethod([In] IntPtr classPtr);
 
         [DllImport("hyperion", EntryPoint = "Class_GetAttribute")]
-        private static extern IntPtr Class_GetAttribute([In] IntPtr classPtr, [MarshalAs(UnmanagedType.LPStr)] string name);
+        private static extern IntPtr Class_GetAttribute([In] IntPtr classPtr, [In] ref Name name);
 
         [DllImport("hyperion", EntryPoint = "Class_GetAttributes")]
-        private static extern uint Class_GetAttributes([In] IntPtr classPtr, [Out] out IntPtr outIter);
-
-        [DllImport("hyperion", EntryPoint = "Class_NextAttribute")]
-        private static extern IntPtr Class_NextAttribute([In] IntPtr classPtr, [In] IntPtr iterPtr);
+        private static extern uint Class_GetAttributes([In] IntPtr classPtr, [Out] IntPtr attributesPtr);
 
         [DllImport("hyperion", EntryPoint = "Class_GetProperties")]
         private static extern uint Class_GetProperties([In] IntPtr classPtr, [Out] IntPtr propertiesPtr);

@@ -165,14 +165,14 @@ extern "C"
         return uint8(cls->GetAllocationMethod());
     }
 
-    HYP_EXPORT const ClassAttribute* Class_GetAttribute(const Class* cls, const char* name)
+    HYP_EXPORT const ClassAttribute* Class_GetAttribute(const Class* cls, const Name* name)
     {
         if (!cls || !name)
         {
             return nullptr;
         }
 
-        auto it = cls->GetAttributes().Find(name);
+        auto it = cls->GetAttributes().Find(StringHash(*name));
 
         if (it == cls->GetAttributes().End())
         {
@@ -182,35 +182,28 @@ extern "C"
         return &*it;
     }
 
-    HYP_EXPORT uint32 Class_GetAttributes(const Class* cls, typename ClassAttributeSet::ConstIterator* outIter)
+    HYP_EXPORT uint32 Class_GetAttributes(const Class* cls, const ClassAttribute** outAttributes)
     {
-        if (!cls || !outIter)
+        if (!cls)
         {
             return 0;
         }
 
-        if (cls->GetAttributes().Empty())
+        const ClassAttributeSet& attributes = cls->GetAttributes();
+
+        if (!outAttributes)
         {
-            return 0;
+            return uint32(attributes.Size());
         }
 
-        *outIter = cls->GetAttributes().Begin();
+        uint32 index = 0;
 
-        return (uint32)cls->GetAttributes().Size();
-    }
-
-    HYP_EXPORT const ClassAttribute* Class_NextAttribute(const Class* cls, typename ClassAttributeSet::ConstIterator* iter)
-    {
-        if (!cls || !iter || *iter == cls->GetAttributes().End())
+        for (const ClassAttribute& attribute : attributes)
         {
-            return nullptr;
+            outAttributes[index++] = &attribute;
         }
 
-        const ClassAttribute* attribute = &**iter;
-
-        ++(*iter);
-
-        return attribute;
+        return index;
     }
 
     HYP_EXPORT uint32 Class_GetProperties(const Class* cls, const Property** outProperties)

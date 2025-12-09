@@ -43,6 +43,43 @@ namespace Hyperion
             }
         }
 
+        public IEnumerable<ClassAttribute> Attributes
+        {
+            get
+            {
+                uint count = Property_GetAttributes(ptr, IntPtr.Zero);
+                IntPtr attributesPtr = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>() * (int)count);
+
+                try
+                {
+                    Property_GetAttributes(ptr, attributesPtr);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        IntPtr attributePtr = Marshal.ReadIntPtr(attributesPtr, i * Marshal.SizeOf<IntPtr>());
+
+                        yield return new ClassAttribute(attributePtr);
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(attributesPtr);
+                }
+            }
+        }
+
+        public ClassAttribute? GetAttribute(Name name)
+        {
+            IntPtr attributePtr = Property_GetAttribute(ptr, ref name);
+
+            if (attributePtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new ClassAttribute(attributePtr);
+        }
+
         public HypData Get(ObjectBase obj)
         {
             if (ptr == IntPtr.Zero)
@@ -104,5 +141,11 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "Property_InvokeSetter")]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool Property_InvokeSetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [In] ref HypDataBuffer value);
+
+        [DllImport("hyperion", EntryPoint = "Property_GetAttributes")]
+        internal static extern uint Property_GetAttributes([In] IntPtr propertyPtr, [Out] IntPtr attributesPtr);
+
+        [DllImport("hyperion", EntryPoint = "Property_GetAttribute")]
+        internal static extern IntPtr Property_GetAttribute([In] IntPtr propertyPtr, [In] ref Name name);
     }
 }

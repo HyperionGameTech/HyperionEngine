@@ -989,6 +989,7 @@ HYP_API extern const Name g_attrFollowAssetPath;
 HYP_API extern const Name g_attrEditor;
 HYP_API extern const Name g_attrEditOrder;
 HYP_API extern const Name g_attrEditEnabled;
+HYP_API extern const Name g_attrEditHide;
 HYP_API extern const Name g_attrLabel;
 HYP_API extern const Name g_attrDescription;
 /// ======================================

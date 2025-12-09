@@ -136,10 +136,10 @@ protected:
 private:
     void SetEntityManager(const Handle<EntityManager>& entityManager);
 
-    HYP_METHOD(Property = "Components", NoScriptBindings)
+    HYP_METHOD(Property = "Components", NoScriptBindings, EditOrder = 1000)
     Array<HypData, DynamicAllocator> SerializeComponents() const;
 
-    HYP_METHOD(Property = "Components", NoScriptBindings, LoadOrder = 100)
+    HYP_METHOD(Property = "Components", NoScriptBindings, LoadOrder = 1000)
     void DeserializeComponents(const Array<HypData, DynamicAllocator>& components);
 
     World* m_world;

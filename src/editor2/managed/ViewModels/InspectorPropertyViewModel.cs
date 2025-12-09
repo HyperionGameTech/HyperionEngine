@@ -10,6 +10,7 @@ namespace Hyperion.Editor.ViewModels
     {
         private readonly ObjectBase _target;
         private readonly Property _property;
+        private readonly bool _isReadOnly;
         private readonly bool _isStringProperty;
         private readonly bool _isNameProperty;
         private readonly bool _isEnumProperty;
@@ -19,7 +20,6 @@ namespace Hyperion.Editor.ViewModels
 
         private string _value = string.Empty;
         private string _editableValue = string.Empty;
-        private List<KeyValuePair<string, object?>>? _enumValues;
         private List<EnumFlagEntry>? _enumFlagEntries;
         private object? _selectedEnumValue;
         private bool _isRefreshing;
@@ -51,15 +51,9 @@ namespace Hyperion.Editor.ViewModels
         public bool IsStringEditable => _isStringProperty;
         public bool IsNameEditable => _isNameProperty;
         public bool IsTextEditable => _isStringProperty || _isNameProperty;
-        public bool IsEnumEditable => _isEnumProperty && EnumValues != null && EnumValues.Count > 0;
+        public bool IsEnumEditable => _isEnumProperty && !_isEnumFlagsProperty && EnumFlagEntries != null && EnumFlagEntries.Count > 0;
         public bool IsEnumFlagsEditable => _isEnumFlagsProperty && EnumFlagEntries != null && EnumFlagEntries.Count > 0;
         public bool ShowTextValue => !IsTextEditable && !IsEnumEditable && !IsEnumFlagsEditable;
-
-        public List<KeyValuePair<string, object?>>? EnumValues
-        {
-            get => _enumValues;
-            private set => SetProperty(ref _enumValues, value);
-        }
 
         public List<EnumFlagEntry>? EnumFlagEntries
         {
@@ -74,15 +68,16 @@ namespace Hyperion.Editor.ViewModels
             {
                 if (SetProperty(ref _selectedEnumValue, value) && !_isRefreshing && _isEnumProperty)
                 {
-                    CommitEnumValue(value);
+                    SetExclusiveSelection(value, commit: true);
                 }
             }
         }
 
-        public InspectorPropertyViewModel(ObjectBase target, Property property)
+        public InspectorPropertyViewModel(ObjectBase target, Property property, bool isReadOnly = false)
         {
             _target = target ?? throw new ArgumentNullException(nameof(target));
             _property = property;
+            _isReadOnly = isReadOnly;
 
             TypeInfo typeInfo = property.TypeInfo;
 
@@ -122,14 +117,14 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _isEnumProperty = true;
 
-                    // use StaticFields of the enum class to populate EnumValues
-                    List<KeyValuePair<string, object?>> enumValuesList = new List<KeyValuePair<string, object?>>();
+                    List<EnumFlagEntry> entries = new List<EnumFlagEntry>();
 
                     foreach (StaticField staticField in typeInfoClass.StaticFields)
                     {
                         try
                         {
-                            enumValuesList.Add(new KeyValuePair<string, object?>(staticField.Name.ToString(), staticField.ReadObject()));
+                            object? enumValue = staticField.ReadObject();
+                            entries.Add(new EnumFlagEntry(staticField.Name.ToString(), enumValue, OnFlagEntryChanged));
                             Logger.Log(LogType.Debug, $"Inspector added enum static field '{staticField.Name}' to enum values for property '{Name}'");
                         }
                         catch (Exception ex)
@@ -138,7 +133,7 @@ namespace Hyperion.Editor.ViewModels
                         }
                     }
 
-                    EnumValues = enumValuesList;
+                    EnumFlagEntries = entries;
                 }
             }
 
@@ -183,7 +178,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 else if (_isEnumProperty)
                 {
-                    SelectedEnumValue = rawValue;
+                    SyncExclusiveSelection(rawValue);
                 }
             }
             catch (Exception ex)
@@ -222,26 +217,6 @@ namespace Hyperion.Editor.ViewModels
             {
                 Logger.Log(LogType.Error, $"Inspector failed to set property '{Name}': {ex.Message}");
 
-                RefreshValue();
-            }
-        }
-
-        private void CommitEnumValue(object? value)
-        {
-            if (!_target.IsValid || !_isEnumProperty)
-            {
-                return;
-            }
-
-            try
-            {
-                using HypData data = new HypData(value);
-                _property.Set(_target, data);
-                Value = FormatValue(value);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Inspector failed to set enum property '{Name}': {ex.Message}");
                 RefreshValue();
             }
         }
@@ -291,15 +266,15 @@ namespace Hyperion.Editor.ViewModels
 
         private void CommitEnumFlagsValue()
         {
-            if (!_target.IsValid || !_isEnumFlagsProperty || EnumFlagEntries == null)
+            if (!_target.IsValid || !_isEnumProperty || EnumFlagEntries == null)
             {
                 return;
             }
 
             try
             {
-                ulong combined = 0ul; // @TODO use correct underlying type -- dynamic ?
-                Type? managedType = null;
+                ulong combined = 0ul;
+                Type? valueType = null;
 
                 foreach (EnumFlagEntry entry in EnumFlagEntries)
                 {
@@ -308,26 +283,66 @@ namespace Hyperion.Editor.ViewModels
                         continue;
                     }
 
+                    valueType ??= entry.Value.GetType();
                     combined |= Convert.ToUInt64(entry.Value);
                 }
 
-                // If we didn't get a type from entries, fall back to the current value type
-                if (valueType == null && EnumFlagEntries.Count > 0)
+                if (valueType == null)
                 {
-                    object? firstVal = EnumFlagEntries[0].Value;
-                    if (firstVal != null)
-                    {
-                        valueType = firstVal.GetType();
-                    }
+                    return;
                 }
 
-                using HypData data = new HypData(combined);
+                object finalValue = Enum.ToObject(valueType, combined);
+
+                using HypData data = new HypData(finalValue);
                 _property.Set(_target, data);
+
+                _isRefreshing = true;
+                SelectedEnumValue = finalValue;
+                _isRefreshing = false;
+
+                Value = FormatValue(finalValue);
             }
             catch (Exception ex)
             {
                 Logger.Log(LogType.Error, $"Inspector failed to set enum flags property '{Name}': {ex.Message}");
                 RefreshValue();
+            }
+        }
+
+        private void SyncExclusiveSelection(object? value)
+        {
+            // Update backing field without committing to avoid feedback loops during refresh
+            SetProperty(ref _selectedEnumValue, value);
+
+            _isRefreshing = true;
+            SetExclusiveSelection(value, commit: false);
+            _isRefreshing = false;
+        }
+
+        private void SetExclusiveSelection(object? value, bool commit)
+        {
+            if (EnumFlagEntries == null)
+            {
+                return;
+            }
+
+            _isRefreshing = true;
+            try
+            {
+                foreach (EnumFlagEntry entry in EnumFlagEntries)
+                {
+                    entry.IsSelected = Equals(entry.Value, value);
+                }
+            }
+            finally
+            {
+                _isRefreshing = false;
+            }
+
+            if (commit)
+            {
+                CommitEnumFlagsValue();
             }
         }
 
