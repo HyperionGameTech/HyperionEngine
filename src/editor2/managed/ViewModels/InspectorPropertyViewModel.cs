@@ -36,7 +36,6 @@ namespace Hyperion.Editor.ViewModels
         public virtual bool IsEnumFlagsEditable => false;
 
         public bool ShowTextValue => !IsTextEditable && !IsEnumEditable && !IsEnumFlagsEditable;
-
         public abstract void RefreshValue();
 
         internal static bool IsNameType(TypeInfo typeInfo)

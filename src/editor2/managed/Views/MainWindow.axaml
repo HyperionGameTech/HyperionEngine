@@ -119,6 +119,49 @@
                                         <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
                                     </DataTemplate>
 
+                                    <DataTemplate x:DataType="vm:Vec2fViewModel">
+                                        <Grid ColumnDefinitions="*,*">
+                                            <TextBox Grid.Column="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBox Grid.Column="1" HorizontalAlignment="Stretch" Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        </Grid>
+                                    </DataTemplate>
+
+                                    <DataTemplate x:DataType="vm:Vec3fViewModel">
+                                        <Grid ColumnDefinitions="*,*,*">
+                                            <TextBox Grid.Column="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBox Grid.Column="1" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBox Grid.Column="2" HorizontalAlignment="Stretch" Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        </Grid>
+                                    </DataTemplate>
+
+                                    <DataTemplate x:DataType="vm:Vec4fViewModel">
+                                        <Grid ColumnDefinitions="*,*,*,*">
+                                            <TextBox Grid.Column="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBox Grid.Column="1" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBox Grid.Column="2" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBox Grid.Column="3" HorizontalAlignment="Stretch" Text="{Binding W, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        </Grid>
+                                    </DataTemplate>
+
+                                    <DataTemplate x:DataType="vm:TransformViewModel">
+                                        <StackPanel Spacing="4">
+                                            <StackPanel Spacing="4">
+                                                <StackPanel Orientation="Vertical" Spacing="2">
+                                                    <TextBlock Text="Translation"/>
+                                                    <ContentControl Content="{Binding Translation}" />
+                                                </StackPanel>
+                                                <StackPanel Orientation="Vertical" Spacing="2">
+                                                    <TextBlock Text="Rotation"/>
+                                                    <ContentControl Content="{Binding Rotation}" />
+                                                </StackPanel>
+                                                <StackPanel Orientation="Vertical" Spacing="2">
+                                                    <TextBlock Text="Scale"/>
+                                                    <ContentControl Content="{Binding Scale}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DataTemplate>
+
                                     <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
                                         <TextBlock Text="{Binding Value}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                     </DataTemplate>

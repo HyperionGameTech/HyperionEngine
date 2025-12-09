@@ -110,7 +110,12 @@ namespace Hyperion
         public bool IsMap => (Flags & TypeInfoFlags.MapType) != 0;
         public bool IsSet => (Flags & TypeInfoFlags.SetType) != 0;
         public bool IsVariant => (Flags & TypeInfoFlags.VariantType) != 0;
+        public bool IsVec2 => (Flags & TypeInfoFlags.Vec2Type) != 0;
+        public bool IsVec3 => (Flags & TypeInfoFlags.Vec3Type) != 0;
+        public bool IsVec4 => (Flags & TypeInfoFlags.Vec4Type) != 0;
         public bool IsVector => (Flags & TypeInfoFlags.VectorType) != 0;
+        public bool IsMat3 => (Flags & TypeInfoFlags.Mat3Type) != 0;
+        public bool IsMat4 => (Flags & TypeInfoFlags.Mat4Type) != 0;
         public bool IsMatrix => (Flags & TypeInfoFlags.MatrixType) != 0;
         public bool IsPod => (Flags & TypeInfoFlags.PodType) != 0;
         public bool IsClass => (Flags & TypeInfoFlags.ClassType) != 0;

@@ -30,6 +30,26 @@ namespace Hyperion.Editor.ViewModels
                 return Initialize(new EnumPropertyViewModel(target, property, typeInfo.Class, isReadOnly));
             }
 
+            if (typeInfo.IsVec2 && typeInfo.Name == "Vec2f")
+            {
+                return Initialize(new Vec2fViewModel(target, property, isReadOnly));
+            }
+
+            if (typeInfo.IsVec3 && typeInfo.Name == "Vec3f")
+            {
+                return Initialize(new Vec3fViewModel(target, property, isReadOnly));
+            }
+
+            if (typeInfo.IsVec4 && typeInfo.Name == "Vec4f")
+            {
+                return Initialize(new Vec4fViewModel(target, property, isReadOnly));
+            }
+
+            if (typeInfo.Class?.Name == "Transform")
+            {
+                return Initialize(new TransformViewModel(target, property, isReadOnly));
+            }
+
             Logger.Log(LogType.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
 
             return Initialize(new ReadOnlyPropertyViewModel(target, property, isReadOnly));
