@@ -149,6 +149,8 @@ ConsoleUI::ConsoleUI()
     SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
     SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
 
+    HYP_BREAKPOINT;
+
     m_loggerRedirectId = g_logger->GetOutputStream()->AddRedirect(
         g_logChannel_Console.maskBitset,
         (void*)this,
@@ -167,6 +169,8 @@ ConsoleUI::ConsoleUI()
 
                 consoleUi->m_history->AddEntry(text, ConsoleHistoryEntryType::TEXT);
             }
+
+            return false;
         },
         [](void* context, const LogChannel& channel, const LogMessage& message)
         {
@@ -183,6 +187,8 @@ ConsoleUI::ConsoleUI()
 
                 consoleUi->m_history->AddEntry(text, ConsoleHistoryEntryType::ERR);
             }
+
+            return false;
         });
 }
 

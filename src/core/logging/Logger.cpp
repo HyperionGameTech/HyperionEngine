@@ -74,17 +74,17 @@ static LogChannelIdGenerator s_logChannelIdGenerator {};
 
 struct LoggerRedirect
 {
-    Bitset channelMask;
-    void* context = nullptr;
-    LoggerWriteFnPtr writeFnptr;
-    LoggerWriteFnPtr writeErrorFnptr;
+    Bitset ChannelMask;
+    void* pContext = nullptr;
+    LoggerWriteFnPtr WriteFn;
+    LoggerWriteFnPtr WriteErrorFn;
 };
 
 class BasicLoggerOutputStream : public ILoggerOutputStream
 {
 public:
-    static constexpr uint64 writeFlag = 0x1;
-    static constexpr uint64 readMask = uint64(-1) & ~writeFlag;
+    static constexpr uint64 WriteFlag = 0x1;
+    static constexpr uint64 ReadMask = uint64(-1) & ~WriteFlag;
 
     static BasicLoggerOutputStream& GetDefaultInstance()
     {
@@ -100,12 +100,9 @@ public:
           m_redirectEnabledMask(0),
           m_redirectIdCounter(-1)
     {
-        for (uint32 i = 0; i < Logger::maxChannels; i++)
-        {
-            m_contexts[i] = (void*)this;
-            m_writeFnptrTable[i] = &Write_Static;
-            m_writeErrorFnptrTable[i] = &WriteError_Static;
-        }
+        Memory::MemSet(m_contexts, 0, sizeof(m_contexts));
+        Memory::MemSet(m_writeFnptrTable, 0, sizeof(m_writeFnptrTable));
+        Memory::MemSet(m_writeErrorFnptrTable, 0, sizeof(m_writeErrorFnptrTable));
     }
 
     virtual ~BasicLoggerOutputStream() override = default;
@@ -113,10 +110,12 @@ public:
     // @FIXME: Needs to redirect all CHILD channels as well, not parent channels!
     virtual int AddRedirect(const Bitset& channelMask, void* context, LoggerWriteFnPtr writeFnptr, LoggerWriteFnPtr writeErrorFnptr) override
     {
+        AssertDebug(writeFnptr != nullptr || writeErrorFnptr != nullptr, "At least one of writeFnptr or writeErrorFnptr must be non-null");
+
         Mutex::Guard guard(m_mutex);
 
-        uint64 state = m_rwMarker.BitOr(writeFlag, MemoryOrder::ACQUIRE);
-        while (state & readMask)
+        uint64 state = m_rwMarker.BitOr(WriteFlag, MemoryOrder::ACQUIRE);
+        while (state & ReadMask)
         {
             state = m_rwMarker.Get(MemoryOrder::ACQUIRE);
             HYP_WAIT_IDLE();
@@ -128,14 +127,19 @@ public:
 
         for (Bitset::BitIndex bitIndex : channelMask)
         {
+            if (bitIndex >= Logger::MaxChannels)
+            {
+                break;
+            }
+
             m_contexts[bitIndex] = context;
             m_writeFnptrTable[bitIndex] = writeFnptr;
             m_writeErrorFnptrTable[bitIndex] = writeErrorFnptr;
+
+            m_redirectEnabledMask |= (1ull << bitIndex);
         }
 
-        m_redirectEnabledMask |= (1ull << channelMask.LastSetBitIndex());
-
-        m_rwMarker.BitAnd(~writeFlag, MemoryOrder::RELEASE);
+        m_rwMarker.BitAnd(~WriteFlag, MemoryOrder::RELEASE);
 
         return id;
     }
@@ -144,8 +148,8 @@ public:
     {
         Mutex::Guard guard(m_mutex);
 
-        uint64 state = m_rwMarker.BitOr(writeFlag, MemoryOrder::ACQUIRE);
-        while (state & readMask)
+        uint64 state = m_rwMarker.BitOr(WriteFlag, MemoryOrder::ACQUIRE);
+        while (state & ReadMask)
         {
             state = m_rwMarker.Get(MemoryOrder::ACQUIRE);
             HYP_WAIT_IDLE();
@@ -158,33 +162,33 @@ public:
             return;
         }
 
-        for (Bitset::BitIndex bitIndex : it->second.channelMask)
+        for (Bitset::BitIndex bitIndex : it->second.ChannelMask)
         {
-            if (m_contexts[bitIndex] != it->second.context)
+            if (m_contexts[bitIndex] != it->second.pContext)
             {
                 continue;
             }
 
-            m_contexts[bitIndex] = (void*)this;
-            m_writeFnptrTable[bitIndex] = &Write_Static;
-            m_writeErrorFnptrTable[bitIndex] = &WriteError_Static;
+            m_contexts[bitIndex] = nullptr;
+            m_writeFnptrTable[bitIndex] = nullptr;
+            m_writeErrorFnptrTable[bitIndex] = nullptr;
+
+            m_redirectEnabledMask &= ~(1ull << bitIndex);
         }
 
         m_redirects.Erase(it);
 
-        m_redirectEnabledMask &= ~(1ull << it->second.channelMask.LastSetBitIndex());
-
-        m_rwMarker.BitAnd(~writeFlag, MemoryOrder::RELEASE);
+        m_rwMarker.BitAnd(~WriteFlag, MemoryOrder::RELEASE);
     }
 
     virtual void Write(const LogChannel& channel, const LogMessage& message) override
     {
         const LogChannel* channelPtr = &channel;
 
-        if (channel.id >= Logger::maxChannels)
+        if (channel.id >= Logger::MaxChannels)
         {
             // log channel overflow! revert to Log_Misc
-            /// @TODO: Dynamic channels with ID >= maxChannels should be checked using a dynamic bitset w/ mutex
+            /// @TODO: Dynamic channels with ID >= MaxChannels should be checked using a dynamic bitset w/ mutex
             channelPtr = &g_logChannel_Misc;
             return;
         }
@@ -195,7 +199,7 @@ public:
         {
             rwMarkerState = m_rwMarker.Increment(2, MemoryOrder::ACQUIRE);
 
-            if (HYP_UNLIKELY(rwMarkerState & writeFlag))
+            if (HYP_UNLIKELY(rwMarkerState & WriteFlag))
             {
                 m_rwMarker.Decrement(2, MemoryOrder::RELAXED);
 
@@ -203,10 +207,10 @@ public:
                 HYP_WAIT_IDLE();
             }
         }
-        while (HYP_UNLIKELY(rwMarkerState & writeFlag));
+        while (HYP_UNLIKELY(rwMarkerState & WriteFlag));
 
-        void* context = m_contexts[channelPtr->id];
-        LoggerWriteFnPtr fnptr = m_writeFnptrTable[channelPtr->id];
+        void* redirectContext = nullptr;
+        LoggerWriteFnPtr redirectFunction = nullptr;
 
         uint32 bitIndex;
         uint64 mask = channelPtr->maskBitset.ToUInt64() & ~(1ull << channelPtr->id);
@@ -215,8 +219,8 @@ public:
         {
             if (m_redirectEnabledMask & (1ull << bitIndex))
             {
-                context = m_contexts[bitIndex];
-                fnptr = m_writeFnptrTable[bitIndex];
+                redirectContext = m_contexts[bitIndex];
+                redirectFunction = m_writeFnptrTable[bitIndex];
 
                 break;
             }
@@ -224,7 +228,13 @@ public:
             mask &= ~(1ull << bitIndex);
         }
 
-        fnptr(context, *channelPtr, message);
+        if (!redirectFunction || redirectFunction(redirectContext, *channelPtr, message))
+        {
+            for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
+            {
+                std::fwrite(**it, 1, it->Size(), m_output);
+            }
+        }
 
         m_rwMarker.Decrement(2, MemoryOrder::RELEASE);
     }
@@ -233,7 +243,7 @@ public:
     {
         const LogChannel* channelPtr = &channel;
 
-        if (channel.id >= Logger::maxChannels)
+        if (channel.id >= Logger::MaxChannels)
         {
             // log channel overflow! revert to Log_Misc
             channelPtr = &g_logChannel_Misc;
@@ -246,7 +256,7 @@ public:
         {
             rwMarkerState = m_rwMarker.Increment(2, MemoryOrder::ACQUIRE);
 
-            if (HYP_UNLIKELY(rwMarkerState & writeFlag))
+            if (HYP_UNLIKELY(rwMarkerState & WriteFlag))
             {
                 m_rwMarker.Decrement(2, MemoryOrder::RELAXED);
 
@@ -254,10 +264,10 @@ public:
                 HYP_WAIT_IDLE();
             }
         }
-        while (HYP_UNLIKELY(rwMarkerState & writeFlag));
+        while (HYP_UNLIKELY(rwMarkerState & WriteFlag));
 
-        void* context = m_contexts[channelPtr->id];
-        LoggerWriteFnPtr fnptr = m_writeErrorFnptrTable[channelPtr->id];
+        void* redirectContext = nullptr;
+        LoggerWriteFnPtr redirectFunction = nullptr;
 
         uint32 bitIndex;
         uint64 mask = channelPtr->maskBitset.ToUInt64() & ~(1ull << channelPtr->id);
@@ -266,8 +276,8 @@ public:
         {
             if (m_redirectEnabledMask & (1ull << bitIndex))
             {
-                context = m_contexts[bitIndex];
-                fnptr = m_writeErrorFnptrTable[bitIndex];
+                redirectContext = m_contexts[bitIndex];
+                redirectFunction = m_writeErrorFnptrTable[bitIndex];
 
                 break;
             }
@@ -275,7 +285,13 @@ public:
             mask &= ~(1ull << bitIndex);
         }
 
-        fnptr(context, *channelPtr, message);
+        if (!redirectFunction || redirectFunction(redirectContext, *channelPtr, message))
+        {
+            for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
+            {
+                std::fwrite(**it, 1, it->Size(), m_outputError);
+            }
+        }
 
         m_rwMarker.Decrement(2, MemoryOrder::RELEASE);
     }
@@ -294,31 +310,15 @@ public:
     }
 
 private:
-    static void Write_Static(void* context, const LogChannel& channel, const LogMessage& message)
-    {
-        for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
-        {
-            std::fwrite(**it, 1, it->Size(), ((BasicLoggerOutputStream*)context)->m_output);
-        }
-    }
-
-    static void WriteError_Static(void* context, const LogChannel& channel, const LogMessage& message)
-    {
-        for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
-        {
-            std::fwrite(**it, 1, it->Size(), ((BasicLoggerOutputStream*)context)->m_outputError);
-        }
-    }
-
     AtomicVar<uint64> m_rwMarker;
 
     FILE* m_output;
     FILE* m_outputError;
 
-    void* m_contexts[Logger::maxChannels];
+    void* m_contexts[Logger::MaxChannels];
 
-    LoggerWriteFnPtr m_writeFnptrTable[Logger::maxChannels];
-    LoggerWriteFnPtr m_writeErrorFnptrTable[Logger::maxChannels];
+    LoggerWriteFnPtr m_writeFnptrTable[Logger::MaxChannels];
+    LoggerWriteFnPtr m_writeErrorFnptrTable[Logger::MaxChannels];
 
     Mutex m_mutex;
     HashMap<int, LoggerRedirect> m_redirects;
@@ -474,7 +474,7 @@ void LogChannelRegistrar::RegisterAll()
             channel->maskBitset |= channel->parentChannel->maskBitset;
         }
 
-        if (channel->id < hyperion::logging::Logger::maxChannels)
+        if (channel->id < hyperion::logging::Logger::MaxChannels)
         {
             continue;
         }
@@ -508,7 +508,7 @@ public:
 
 private:
     AtomicVar<Logger::ChannelMask> m_logMask;
-    FixedArray<LogChannel*, Logger::maxChannels> m_logChannels;
+    FixedArray<LogChannel*, Logger::MaxChannels> m_logChannels;
     Array<LogChannel*> m_dynamicLogChannels;
     mutable Mutex m_dynamicLogChannelsMutex;
     NotNullPtr<ILoggerOutputStream> m_outputStream;
@@ -737,7 +737,7 @@ void Logger::LogScript(const LogChannel& channel, const LogCategory& category, c
         // default to script channel if not set
         pChannel = &g_logChannel_Script;
     }
-    else if (channel.id >= Logger::maxChannels)
+    else if (channel.id >= Logger::MaxChannels)
     {
         // log channel overflow! revert to Log_Misc
         pChannel = &g_logChannel_Misc;

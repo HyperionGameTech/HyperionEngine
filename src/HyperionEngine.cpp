@@ -624,7 +624,7 @@ extern "C"
     LogCallback g_logCallback = nullptr;
     int g_logRedirectId = -1;
 
-    static void HandleLogMessage(void* context, const LogChannel& channel, const LogMessage& message)
+    static bool HandleLogMessage(void* context, const LogChannel& channel, const LogMessage& message)
     {
         if (g_logCallback)
         {
@@ -636,6 +636,9 @@ extern "C"
 
             g_logCallback(channel.name.LookupString(), (int)message.level, (double)message.timestamp, text.Data());
         }
+
+        // allow default logging to continue
+        return true;
     }
 
     HYP_EXPORT void Editor_RegisterLogCallback(LogCallback callback)
@@ -644,12 +647,12 @@ extern "C"
 
         if (g_logRedirectId == -1)
         {
-            // g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
-            //     Bitset(~0u), // All channels
-            //     nullptr,
-            //     HandleLogMessage,
-            //     HandleLogMessage // Use same handler for errors for now
-            // );
+            g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
+                Bitset(~0u), // All channels
+                nullptr,
+                HandleLogMessage,
+                HandleLogMessage // Use same handler for errors for now
+            );
         }
     }
 

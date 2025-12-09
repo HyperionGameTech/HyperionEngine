@@ -255,7 +255,13 @@ public:
     ~LogChannel() = default;
 };
 
-using LoggerWriteFnPtr = void (*)(void* context, const LogChannel& channel, const LogMessage& message);
+/*! \brief Function pointer type for logger output stream write functions.
+ *  \param context User-defined context pointer.
+ *  \param channel The log channel the message is being written to.
+ *  \param message The log message to write.
+ *  \return True to allow default output processing, false to suppress it.
+ */
+typedef bool (*LoggerWriteFnPtr)(void* context, const LogChannel& channel, const LogMessage& message);
 
 class ILoggerOutputStream
 {
@@ -327,7 +333,7 @@ class HYP_API Logger : public ObjectBase
 public:
     using ChannelMask = uint64;
 
-    static constexpr uint32 maxChannels = sizeof(ChannelMask) * CHAR_BIT;
+    static constexpr uint32 MaxChannels = sizeof(ChannelMask) * CHAR_BIT;
 
     HYP_METHOD()
     static const Handle<Logger>& GetInstance();
@@ -399,14 +405,14 @@ inline void LogStatic(Logger& logger, Args&&... args)
         return;
     }
 
-    constexpr const char* colorCode = LogLevelTermColor<Category.GetLevel()>();
+    constexpr const char* ColorCode = LogLevelTermColor<Category.GetLevel()>();
 
     static const LogChannel& s_channel = *HYP_GET_CONST_ARG(ChannelArg);
-    static const String s_prefix = HYP_FORMAT("{}{} [{}]: ", colorCode, s_channel.name, LogLevelToString<Category.GetLevel()>());
+    static const String s_prefix = HYP_FORMAT("{}{} [{}]: ", ColorCode, s_channel.name, LogLevelToString<Category.GetLevel()>());
 
     if (logger.IsChannelEnabled(s_channel))
     {
-        if constexpr (Memory::AreStaticStringsEqual(colorCode, ""))
+        if constexpr (Memory::AreStaticStringsEqual(ColorCode, ""))
         {
             if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
             {
@@ -445,9 +451,9 @@ inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&.
         return;
     }
 
-    constexpr const char* colorCode = LogLevelTermColor<Category.GetLevel()>();
+    constexpr const char* ColorCode = LogLevelTermColor<Category.GetLevel()>();
 
-    const String prefix = HYP_FORMAT("{}{} [{}]: ", colorCode, channel.name, LogLevelToString<Category.GetLevel()>());
+    const String prefix = HYP_FORMAT("{}{} [{}]: ", ColorCode, channel.name, LogLevelToString<Category.GetLevel()>());
 
     if (logger.IsChannelEnabled(channel))
     {
@@ -474,14 +480,14 @@ inline void LogDynamic(Logger& logger, const char* str)
         return;
     }
 
-    constexpr const char* colorCode = LogLevelTermColor<Category.GetLevel()>();
+    constexpr const char* ColorCode = LogLevelTermColor<Category.GetLevel()>();
 
     static const LogChannel& s_channel = *HYP_GET_CONST_ARG(ChannelArg);
-    static const String s_prefix = HYP_FORMAT("{}{} [{}]: ", colorCode, s_channel.name, LogLevelToString<Category.GetLevel()>());
+    static const String s_prefix = HYP_FORMAT("{}{} [{}]: ", ColorCode, s_channel.name, LogLevelToString<Category.GetLevel()>());
 
     if (logger.IsChannelEnabled(s_channel))
     {
-        if constexpr (Memory::AreStaticStringsEqual(colorCode, ""))
+        if constexpr (Memory::AreStaticStringsEqual(ColorCode, ""))
         {
             if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
             {
