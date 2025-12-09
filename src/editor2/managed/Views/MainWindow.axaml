@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ribbon="clr-namespace:Ribbon.Avalonia;assembly=Ribbon.Avalonia"
+        xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
         xmlns:local="clr-namespace:Hyperion.Editor"
         xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
@@ -12,7 +13,7 @@
     <Window.DataContext>
         <vm:MainWindowViewModel />
     </Window.DataContext>
-    
+
     <DockPanel Background="{DynamicResource Brush.Background}">
         <!-- Fallback in-window menu for non-macOS platforms -->
         <Menu DockPanel.Dock="Top">
@@ -117,7 +118,8 @@
 
                                             <TextBlock Grid.Column="1" Text="{Binding Value}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsVisible="{Binding ShowTextValue}"/>
 
-                                            <TextBox Grid.Column="1" Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" MinWidth="120" IsVisible="{Binding IsStringEditable}"/>
+                                            <inspector:StringNamePropertyEditor Grid.Column="1" DataContext="{Binding}" IsVisible="{Binding IsTextEditable}"/>
+                                            <inspector:EnumPropertyEditor Grid.Column="1" DataContext="{Binding}" IsVisible="{Binding IsEnumEditable}"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

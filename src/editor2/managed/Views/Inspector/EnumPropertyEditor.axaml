@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+             x:Class="Hyperion.Editor.Views.Inspector.EnumPropertyEditor"
+             x:DataType="vm:InspectorPropertyViewModel"
+             mc:Ignorable="d">
+    <ComboBox ItemsSource="{Binding EnumValues}"
+              SelectedItem="{Binding SelectedEnumValue, Mode=TwoWay}"
+        VerticalAlignment="Center"
+        MinWidth="140"
+        HorizontalAlignment="Stretch"/>
+</UserControl>

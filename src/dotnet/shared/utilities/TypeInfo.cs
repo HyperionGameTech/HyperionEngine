@@ -85,6 +85,21 @@ namespace Hyperion
             }
         }
 
+        public Class? Class
+        {
+            get
+            {
+                IntPtr classPtr = TypeInfo_GetClass(ptr);
+
+                if (classPtr == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                return new Class(classPtr);
+            }
+        }
+
         public uint Size => TypeInfo_GetSize(ptr);
         public uint Alignment => TypeInfo_GetAlignment(ptr);
 
@@ -124,5 +139,8 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "TypeInfo_GetFlags")]
         internal static extern uint TypeInfo_GetFlags(IntPtr typeInfo);
+
+        [DllImport("hyperion", EntryPoint = "TypeInfo_GetClass")]
+        internal static extern IntPtr TypeInfo_GetClass(IntPtr typeInfo);
     }
 }

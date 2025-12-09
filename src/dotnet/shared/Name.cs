@@ -41,11 +41,6 @@ namespace Hyperion
             }
         }
 
-        public bool Equals(Name other)
-        {
-            return hashCode == other.hashCode;
-        }
-
         public ulong HashCode
         {
             get
@@ -74,6 +69,36 @@ namespace Hyperion
         public static bool operator !=(Name a, Name b)
         {
             return !a.Equals(b);
+        }
+
+        public static bool operator ==(Name a, string b)
+        {
+            return a.Equals(new Name(b));
+        }
+
+        public static bool operator !=(Name a, string b)
+        {
+            return !a.Equals(new Name(b));
+        }
+
+        public bool Equals(Name other)
+        {
+            return hashCode == other.hashCode;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Name)
+            {
+                return Equals((Name)obj);
+            }
+
+            if (obj is string)
+            {
+                return Equals(new Name((string)obj));
+            }
+
+            return false;
         }
 
         [DllImport("hyperion", EntryPoint = "Name_FromString")]

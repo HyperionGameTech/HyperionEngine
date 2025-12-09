@@ -34,10 +34,38 @@ namespace Hyperion
             }
         }
 
+        public object? ReadObject()
+        {
+            if (ptr == IntPtr.Zero)
+            {
+                throw new Exception("StaticField pointer is null");
+            }
+
+            object? result = null;
+
+            HypDataBuffer outData = new HypDataBuffer();
+
+            try
+            {
+                StaticField_Get(ptr, out outData);
+
+                result = outData.GetValue();
+            }
+            finally
+            {
+                outData.Dispose();
+            }
+
+            return result;
+        }
+
         [DllImport("hyperion", EntryPoint = "StaticField_GetName")]
         private static extern void StaticField_GetName([In] IntPtr constantPtr, [Out] out Name name);
 
         [DllImport("hyperion", EntryPoint = "StaticField_GetTypeId")]
         private static extern void StaticField_GetTypeId([In] IntPtr constantPtr, [Out] out TypeId typeId);
+
+        [DllImport("hyperion", EntryPoint = "StaticField_Get")]
+        private static extern bool StaticField_Get([In] IntPtr staticFieldPtr, out HypDataBuffer outData);
     }
 }

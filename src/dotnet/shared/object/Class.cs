@@ -217,11 +217,10 @@ namespace Hyperion
             {
                 uint count = Class_GetProperties(ptr, IntPtr.Zero);
                 
-                // allocate array of Property pointers
                 IntPtr propertyPtrs = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+
                 try
                 {
-                    // get property pointers
                     Class_GetProperties(ptr, propertyPtrs);
 
                     for (int i = 0; i < count; i++)
@@ -248,6 +247,30 @@ namespace Hyperion
             return new Property(propertyPtr);
         }
 
+        public IEnumerable<Method> Methods
+        {
+            get
+            {
+                uint count = Class_GetMethods(ptr, IntPtr.Zero);
+                
+                IntPtr methodPtrs = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+
+                try
+                {
+                    Class_GetMethods(ptr, methodPtrs);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        yield return new Method(Marshal.ReadIntPtr(methodPtrs, i * IntPtr.Size));
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(methodPtrs);
+                }
+            }
+        }
+
         public Method? GetMethod(Name name)
         {
             IntPtr methodPtr = Class_GetMethod(ptr, ref name);
@@ -260,6 +283,30 @@ namespace Hyperion
             return new Method(methodPtr);
         }
 
+        public IEnumerable<Field> Fields
+        {
+            get
+            {
+                uint count = Class_GetFields(ptr, IntPtr.Zero);
+                
+                IntPtr fieldPtrs = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+
+                try
+                {
+                    Class_GetFields(ptr, fieldPtrs);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        yield return new Field(Marshal.ReadIntPtr(fieldPtrs, i * IntPtr.Size));
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(fieldPtrs);
+                }
+            }
+        }
+
         public Field? GetField(Name name)
         {
             IntPtr fieldPtr = Class_GetField(ptr, ref name);
@@ -270,6 +317,30 @@ namespace Hyperion
             }
 
             return new Field(fieldPtr);
+        }
+
+        public IEnumerable<StaticField> StaticFields
+        {
+            get
+            {
+                uint count = Class_GetStaticFields(ptr, IntPtr.Zero);
+                
+                IntPtr staticFieldPtrs = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+
+                try
+                {
+                    Class_GetStaticFields(ptr, staticFieldPtrs);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        yield return new StaticField(Marshal.ReadIntPtr(staticFieldPtrs, i * IntPtr.Size));
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(staticFieldPtrs);
+                }
+            }
         }
 
         public StaticField? GetStaticField(Name name)
@@ -495,11 +566,20 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "Class_GetProperty")]
         private static extern IntPtr Class_GetProperty([In] IntPtr classPtr, [In] ref Name name);
 
+        [DllImport("hyperion", EntryPoint = "Class_GetMethods")]
+        private static extern uint Class_GetMethods([In] IntPtr classPtr, [Out] IntPtr methodsPtr);
+
         [DllImport("hyperion", EntryPoint = "Class_GetMethod")]
         private static extern IntPtr Class_GetMethod([In] IntPtr classPtr, [In] ref Name name);
 
+        [DllImport("hyperion", EntryPoint = "Class_GetFields")]
+        private static extern uint Class_GetFields([In] IntPtr classPtr, [Out] IntPtr fieldsPtr);
+
         [DllImport("hyperion", EntryPoint = "Class_GetField")]
         private static extern IntPtr Class_GetField([In] IntPtr classPtr, [In] ref Name name);
+
+        [DllImport("hyperion", EntryPoint = "Class_GetStaticFields")]
+        private static extern uint Class_GetStaticFields([In] IntPtr classPtr, [Out] IntPtr staticFieldsPtr);
 
         [DllImport("hyperion", EntryPoint = "Class_GetStaticField")]
         private static extern IntPtr Class_GetStaticField([In] IntPtr classPtr, [In] ref Name name);

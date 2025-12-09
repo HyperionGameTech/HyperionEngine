@@ -66,10 +66,6 @@ namespace Hyperion
 
                 result = outData.GetValue();
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
             finally
             {
                 targetData.Dispose();

@@ -25,6 +25,35 @@
 
 using namespace hyperion;
 
+template <class MemberType, auto GetMemberFunc>
+uint32 Class_GetMembersGeneric(const Class* cls, const MemberType** outMembers)
+{
+    Assert(cls != nullptr);
+
+    Array<MemberType*> allMembers;
+
+    const Class* curr = cls;
+
+    while (curr != nullptr)
+    {
+        allMembers.Concat((curr->*GetMemberFunc)());
+
+        curr = curr->GetParent();
+    }
+
+    if (!outMembers || allMembers.Empty())
+    {
+        return uint32(allMembers.Size());
+    }
+
+    for (uint32 i = 0; i < allMembers.Size(); i++)
+    {
+        outMembers[i] = allMembers[i];
+    }
+
+    return (uint32)allMembers.Size();
+}
+
 extern "C"
 {
 
@@ -186,40 +215,7 @@ extern "C"
 
     HYP_EXPORT uint32 Class_GetProperties(const Class* cls, const Property** outProperties)
     {
-        Assert(cls != nullptr);
-
-        if (!outProperties)
-        {
-            uint32 count = 0;
-
-            // return count so caller can allocate
-            const Class* curr = cls;
-            while (curr)
-            {
-                if (curr->GetProperties().Any())
-                {
-                    count += (uint32)curr->GetProperties().Size();
-                }
-
-                curr = curr->GetParent();
-            }
-
-            return count;
-        }
-
-        Array<Property*> allProperties = cls->GetPropertiesInherited();
-
-        if (allProperties.Empty())
-        {
-            return 0;
-        }
-
-        for (uint32 i = 0; i < allProperties.Size(); i++)
-        {
-            outProperties[i] = allProperties[i];
-        }
-
-        return (uint32)allProperties.Size();
+        return Class_GetMembersGeneric<Property, &Class::GetProperties>(cls, outProperties);
     }
 
     HYP_EXPORT Property* Class_GetProperty(const Class* cls, const Name* name)
@@ -230,6 +226,11 @@ extern "C"
         }
 
         return cls->GetProperty(*name);
+    }
+
+    HYP_EXPORT uint32 Class_GetMethods(const Class* cls, const Method** outMethods)
+    {
+        return Class_GetMembersGeneric<Method, &Class::GetMethods>(cls, outMethods);
     }
 
     HYP_EXPORT Method* Class_GetMethod(const Class* cls, const Name* name)
@@ -246,6 +247,11 @@ extern "C"
         HYP_NOT_IMPLEMENTED();
     }
 
+    HYP_EXPORT uint32 Class_GetFields(const Class* cls, const Field** outFields)
+    {
+        return Class_GetMembersGeneric<Field, &Class::GetFields>(cls, outFields);
+    }
+
     HYP_EXPORT Field* Class_GetField(const Class* cls, const Name* name)
     {
         if (!cls || !name)
@@ -254,6 +260,11 @@ extern "C"
         }
 
         return cls->GetField(*name);
+    }
+
+    HYP_EXPORT uint32 Class_GetStaticFields(const Class* cls, const StaticField** outStaticFields)
+    {
+        return Class_GetMembersGeneric<StaticField, &Class::GetStaticFields>(cls, outStaticFields);
     }
 
     HYP_EXPORT StaticField* Class_GetStaticField(const Class* cls, const Name* name)

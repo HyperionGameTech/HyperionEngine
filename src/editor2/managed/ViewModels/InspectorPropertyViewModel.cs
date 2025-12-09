@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -8,10 +11,18 @@ namespace Hyperion.Editor.ViewModels
         private readonly ObjectBase _target;
         private readonly Property _property;
         private readonly bool _isStringProperty;
+        private readonly bool _isNameProperty;
+        private readonly bool _isEnumProperty;
+
+        private readonly Class? _class;
 
         private string _value = string.Empty;
         private string _editableValue = string.Empty;
+        private Array? _enumValues;
+        private object? _selectedEnumValue;
         private bool _isRefreshing;
+
+        private static readonly Dictionary<uint, Type?> EnumTypeCache = new Dictionary<uint, Type?>();
 
         public Property Property => _property;
 
@@ -28,21 +39,78 @@ namespace Hyperion.Editor.ViewModels
             get => _editableValue;
             set
             {
-                if (SetProperty(ref _editableValue, value) && !_isRefreshing && _isStringProperty)
+                if (SetProperty(ref _editableValue, value) && !_isRefreshing && IsTextEditable)
                 {
-                    CommitEditableString(value);
+                    CommitEditableText(value);
                 }
             }
         }
 
         public bool IsStringEditable => _isStringProperty;
-        public bool ShowTextValue => !_isStringProperty;
+        public bool IsNameEditable => _isNameProperty;
+        public bool IsTextEditable => _isStringProperty || _isNameProperty;
+        public bool IsEnumEditable => _isEnumProperty && EnumValues != null && EnumValues.Length > 0;
+        public bool ShowTextValue => !IsTextEditable && !IsEnumEditable;
+
+        public Array? EnumValues
+        {
+            get => _enumValues;
+            private set => SetProperty(ref _enumValues, value);
+        }
+
+        public object? SelectedEnumValue
+        {
+            get => _selectedEnumValue;
+            set
+            {
+                if (SetProperty(ref _selectedEnumValue, value) && !_isRefreshing && _isEnumProperty)
+                {
+                    CommitEnumValue(value);
+                }
+            }
+        }
 
         public InspectorPropertyViewModel(ObjectBase target, Property property)
         {
             _target = target ?? throw new ArgumentNullException(nameof(target));
             _property = property;
-            _isStringProperty = property.TypeInfo.IsString;
+
+            TypeInfo typeInfo = property.TypeInfo;
+
+            _isStringProperty = typeInfo.IsString;
+            _isNameProperty = IsNameType(typeInfo);
+
+            _class = typeInfo.Class;
+
+            if (_class is Class typeInfoClass)
+            {
+                Logger.Log(LogType.Debug, $"Inspector property '{Name}' has type class '{typeInfoClass.Name}', type info name: '{typeInfo.Name}'");
+                Logger.Log(LogType.Debug, $" - IsEnumType: {typeInfoClass.IsEnumType}");
+                Logger.Log(LogType.Debug, $" - IsNameType: {IsNameType(typeInfo)}");
+                
+                if (typeInfoClass.IsEnumType)
+                {
+                    _isEnumProperty = true;
+
+                    // use StaticFields of the enum class to populate EnumValues
+                    List<object?> enumValuesList = new List<object?>();
+
+                    foreach (StaticField staticField in typeInfoClass.StaticFields)
+                    {
+                        try
+                        {
+                            enumValuesList.Add(staticField.ReadObject());
+                            Logger.Log(LogType.Debug, $"Inspector added enum static field '{staticField.Name}' to enum values for property '{Name}'");
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log(LogType.Warn, $"Inspector failed to read enum static field '{staticField.Name}': {ex.Message}");
+                        }
+                    }
+
+                    EnumValues = enumValuesList.ToArray();
+                }
+            }
 
             RefreshValue();
         }
@@ -56,7 +124,7 @@ namespace Hyperion.Editor.ViewModels
                 if (!_target.IsValid)
                 {
                     Value = "(invalid target)";
-                    if (_isStringProperty)
+                    if (IsTextEditable)
                     {
                         EditableValue = string.Empty;
                     }
@@ -70,13 +138,18 @@ namespace Hyperion.Editor.ViewModels
 
                 Value = formattedValue;
 
-                if (_isStringProperty)
+                if (IsTextEditable)
                 {
-                    EditableValue = rawValue as string ?? string.Empty;
+                    EditableValue = rawValue?.ToString() ?? string.Empty;
                 }
                 else
                 {
                     EditableValue = formattedValue;
+                }
+
+                if (_isEnumProperty)
+                {
+                    // @TODO
                 }
             }
             catch (Exception ex)
@@ -84,7 +157,7 @@ namespace Hyperion.Editor.ViewModels
                 Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
                 Value = "(unavailable)";
 
-                if (_isStringProperty)
+                if (IsTextEditable)
                 {
                     EditableValue = string.Empty;
                 }
@@ -95,7 +168,7 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private void CommitEditableString(string value)
+        private void CommitEditableText(string value)
         {
             if (!_target.IsValid)
             {
@@ -104,10 +177,12 @@ namespace Hyperion.Editor.ViewModels
 
             try
             {
-                using HypData data = new HypData(value);
+                using HypData data = _isNameProperty
+                    ? new HypData(new Name(value ?? string.Empty))
+                    : new HypData(value ?? string.Empty);
                 _property.Set(_target, data);
 
-                Value = value;
+                Value = value ?? string.Empty;
             }
             catch (Exception ex)
             {
@@ -115,6 +190,26 @@ namespace Hyperion.Editor.ViewModels
 
                 RefreshValue();
             }
+        }
+
+        private void CommitEnumValue(object? value)
+        {
+            if (!_target.IsValid || !_isEnumProperty)
+            {
+                return;
+            }
+
+            // @TODO
+        }
+
+        private static bool IsNameType(TypeInfo typeInfo)
+        {
+            if (typeInfo.Class?.Name is Name typeName)
+            {
+                return typeName == "Name";
+            }
+
+            return false;
         }
 
         private static string FormatValue(object? value)

@@ -30,4 +30,9 @@ extern "C"
     {
         return typeInfo->flags;
     }
+
+    HYP_EXPORT const Class* TypeInfo_GetClass(const TypeInfo* typeInfo)
+    {
+        return typeInfo->GetClass();
+    }
 } // extern "C"

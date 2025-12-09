@@ -31,4 +31,12 @@ extern "C"
         *outTypeId = staticField->GetTypeId();
     }
 
+    HYP_EXPORT void StaticField_Get(const StaticField* staticField, HypData* outData)
+    {
+        Assert(staticField != nullptr);
+        Assert(outData != nullptr);
+
+        *outData = staticField->Get();
+    }
+
 } // extern "C"
