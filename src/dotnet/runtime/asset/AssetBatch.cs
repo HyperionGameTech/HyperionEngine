@@ -71,18 +71,23 @@ namespace Hyperion
 
             var del = new HandleAssetResultsDelegate((pAssetMap) =>
             {
+                if (gcHandle == null)
+                {
+                    throw new Exception("GCHandle is null in callback");
+                }
+
                 if (pAssetMap == IntPtr.Zero)
                 {
                     completionSource.SetException(new Exception("Failed to load assets"));
 
-                    gcHandle?.Free();
+                    gcHandle.Value.Free();
 
                     return;
                 }
 
                 completionSource.SetResult(new AssetMap(pAssetMap));
 
-                gcHandle?.Free();
+                gcHandle.Value.Free();
             }); 
             
             gcHandle = GCHandle.Alloc(del);

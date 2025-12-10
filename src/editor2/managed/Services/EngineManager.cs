@@ -167,5 +167,37 @@ namespace Hyperion.Editor
                 }
             }
         }
+
+        public static async Task PostToGameThread(Action action)
+        {
+            Game? gameInstance = GameInstance;
+
+            if (gameInstance == null)
+            {
+                throw new InvalidOperationException("Game instance is not available.");
+            }
+
+            await gameInstance.PostTask(() =>
+            {
+                action();
+            });
+        }
+
+        public static async Task<T> PostToGameThread<T>(Func<T> func)
+        {
+            Game? gameInstance = GameInstance;
+
+            if (gameInstance == null)
+            {
+                throw new InvalidOperationException("Game instance is not available.");
+            }
+
+            T result = await gameInstance.PostTask(() =>
+            {
+                return func();
+            });
+
+            return result;
+        }
     }
 }
