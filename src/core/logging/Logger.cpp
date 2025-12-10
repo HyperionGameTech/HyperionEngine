@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "Defines.hpp"
 #include <core/logging/Logger.hpp>
 
 #include <core/threading/Thread.hpp>
@@ -213,7 +214,7 @@ public:
         LoggerWriteFnPtr redirectFunction = nullptr;
 
         uint32 bitIndex;
-        uint64 mask = channelPtr->maskBitset.ToUInt64() & ~(1ull << channelPtr->id);
+        uint64 mask = channelPtr->maskBitset.ToUInt64();
 
         while ((bitIndex = ByteUtil::HighestSetBitIndex(mask)) != -1)
         {
@@ -230,10 +231,27 @@ public:
 
         if (!redirectFunction || redirectFunction(redirectContext, *channelPtr, message))
         {
+#ifdef HYP_DEBUG_MODE
+            const bool isStandardOutput = (m_output == stdout || m_output == stderr);
+            if (isStandardOutput)
+            {
+                Span<const char> colorCode = LogLevelTermColor(message.level);
+                std::fwrite(colorCode.Data(), 1, colorCode.Size(), m_output);
+            }
+#endif
+
             for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
             {
                 std::fwrite(**it, 1, it->Size(), m_output);
             }
+
+#ifdef HYP_DEBUG_MODE
+            if (isStandardOutput)
+            {
+                static constexpr Span<const char> ResetCode = "\033[0m";
+                std::fwrite(ResetCode.Data(), 1, ResetCode.Size(), m_output);
+            }
+#endif
         }
 
         m_rwMarker.Decrement(2, MemoryOrder::RELEASE);
@@ -270,7 +288,7 @@ public:
         LoggerWriteFnPtr redirectFunction = nullptr;
 
         uint32 bitIndex;
-        uint64 mask = channelPtr->maskBitset.ToUInt64() & ~(1ull << channelPtr->id);
+        uint64 mask = channelPtr->maskBitset.ToUInt64();
 
         while ((bitIndex = ByteUtil::HighestSetBitIndex(mask)) != -1)
         {
@@ -287,10 +305,27 @@ public:
 
         if (!redirectFunction || redirectFunction(redirectContext, *channelPtr, message))
         {
+#ifdef HYP_DEBUG_MODE
+            const bool isStandardOutput = (m_output == stdout || m_output == stderr);
+            if (isStandardOutput)
+            {
+                Span<const char> colorCode = LogLevelTermColor(message.level);
+                std::fwrite(colorCode.Data(), 1, colorCode.Size(), m_outputError);
+            }
+#endif
+
             for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
             {
                 std::fwrite(**it, 1, it->Size(), m_outputError);
             }
+
+#ifdef HYP_DEBUG_MODE
+            if (isStandardOutput)
+            {
+                static constexpr Span<const char> ResetCode = "\033[0m";
+                std::fwrite(ResetCode.Data(), 1, ResetCode.Size(), m_outputError);
+            }
+#endif
         }
 
         m_rwMarker.Decrement(2, MemoryOrder::RELEASE);

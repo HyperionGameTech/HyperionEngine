@@ -1,12 +1,14 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
-             x:Class="Hyperion.Editor.Views.Inspector.StringNamePropertyEditor"
-             x:DataType="vm:TextPropertyViewModel"
-             mc:Ignorable="d">
-    <TextBox Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-             VerticalAlignment="Center"
-             MinWidth="140"/>
+<UserControl
+    x:Class="Hyperion.Editor.Views.Inspector.StringNamePropertyEditor"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:TextPropertyViewModel"
+    mc:Ignorable="d">
+    <TextBox
+        MinWidth="140"
+        VerticalAlignment="Center"
+        Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 </UserControl>

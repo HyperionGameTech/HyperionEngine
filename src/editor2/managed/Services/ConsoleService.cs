@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Avalonia.Threading;
 using DynamicData;
@@ -21,14 +23,28 @@ namespace Hyperion.Editor.Services
         private static ConsoleService _instance;
         public static ConsoleService Instance => _instance ??= new ConsoleService();
 
-        public ObservableCollection<LogEntry> Logs { get; } = new ObservableCollection<LogEntry>();
+        private readonly SourceList<LogEntry> _logsSource = new SourceList<LogEntry>();
+        private readonly ReadOnlyObservableCollection<LogEntry> _logs;
+        public ReadOnlyObservableCollection<LogEntry> Logs => _logs;
 
         private NativeBindings.LogCallbackDelegate _logCallback;
         private ConcurrentQueue<LogEntry> _logQueue = new ConcurrentQueue<LogEntry>();
         private List<LogEntry> _pendingEntries = new List<LogEntry>();
+        private static readonly ImmutableDictionary<int, string> LogLevelColors = new Dictionary<int, string>
+        {
+            { 0, "#00FF00" }, // Debug - Green
+            { 1, "#FFFFFF" }, // Info - Yellow
+            { 2, "#FFA500" }, // Warning - Orange
+            { 3, "#FF0000" }, // Error - Red
+            { 4, "#FF00FF" }  // Fatal - Magenta
+        }.ToImmutableDictionary();
 
         public ConsoleService()
         {
+            _logsSource.Connect()
+                .Bind(out _logs)
+                .Subscribe();
+
             _logCallback = OnLogMessage;
             
             try
@@ -43,39 +59,33 @@ namespace Hyperion.Editor.Services
 
         private void OnLogMessage(string channel, int level, double timestamp, string message)
         {
-            string color = "#FFFFFF";
-            switch (level)
-            {
-                case 0: color = "#AAAAAA"; break; // Debug
-                case 1: color = "#FFFFFF"; break; // Info
-                case 2: color = "#FFCC00"; break; // Warning
-                case 3: color = "#FF3333"; break; // Error
-                case 4: color = "#FF0000"; break; // Fatal
-            }
-
             _logQueue.Enqueue(new LogEntry
             {
                 Channel = channel,
                 Level = level,
                 Timestamp = timestamp,
-                Message = message,
-                Color = color
+                Message = message.TrimEnd(),
+                Color = LogLevelColors[level]
             });
 
-            // Limit history size
+            // Limit history size in queue
             while (_logQueue.Count > 1000)
             {
-                if (!_logQueue.TryDequeue(out _))
-                {
-                    break;
-                }
+                _logQueue.TryDequeue(out _);
             }
-
         }
 
         public void ExecuteCommand(string command)
         {
             NativeBindings.Editor_ExecuteConsoleCommand(command);
+        }
+
+        public void ClearLogs()
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                _logsSource.Clear();
+            });
         }
 
         public void ProcessLogQueue()
@@ -91,7 +101,15 @@ namespace Hyperion.Editor.Services
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    Logs.AddRange(entriesArray);
+                    _logsSource.Edit(list =>
+                    {
+                        list.AddRange(entriesArray);
+                        
+                        if (list.Count > 1000)
+                        {
+                            list.RemoveRange(0, list.Count - 1000);
+                        }
+                    });
                 });
 
                 _pendingEntries.Clear();

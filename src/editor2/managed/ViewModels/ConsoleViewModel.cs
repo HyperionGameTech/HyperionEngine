@@ -7,7 +7,7 @@ namespace Hyperion.Editor.ViewModels
 {
     public class ConsoleViewModel : ViewModelBase
     {
-        public ObservableCollection<LogEntry> Logs => ConsoleService.Instance.Logs;
+        public ReadOnlyObservableCollection<LogEntry> Logs => ConsoleService.Instance.Logs;
 
         private string _commandText;
         public string CommandText
@@ -35,7 +35,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void Clear()
         {
-            ConsoleService.Instance.Logs.Clear();
+            ConsoleService.Instance.ClearLogs();
         }
     }
 

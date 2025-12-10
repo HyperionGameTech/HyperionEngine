@@ -1,13 +1,14 @@
-<Application xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Hyperion.Editor.App"
-             Name="Hyperion Editor"
-             RequestedThemeVariant="Dark">
-    <!-- Compact dark design with custom palette and control styles -->
+<Application
+    x:Class="Hyperion.Editor.App"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Name="Hyperion Editor"
+    RequestedThemeVariant="Dark">
+    <!--  Compact dark design with custom palette and control styles  -->
 
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Core Palette -->
+            <!--  Core Palette  -->
             <Color x:Key="Color.Background">#FF121416</Color>
             <Color x:Key="Color.Panel">#FF1A1D20</Color>
             <Color x:Key="Color.PanelAlt">#FF202428</Color>
@@ -19,19 +20,19 @@
             <Color x:Key="Color.TextMuted">#FF9AA4AE</Color>
             <Color x:Key="Color.Warning">#FFFFC661</Color>
 
-            <!-- Brushes -->
-            <SolidColorBrush x:Key="Brush.Background" Color="{StaticResource Color.Background}"/>
-            <SolidColorBrush x:Key="Brush.Panel" Color="{StaticResource Color.Panel}"/>
-            <SolidColorBrush x:Key="Brush.PanelAlt" Color="{StaticResource Color.PanelAlt}"/>
-            <SolidColorBrush x:Key="Brush.Border" Color="{StaticResource Color.Border}"/>
-            <SolidColorBrush x:Key="Brush.BorderLight" Color="{StaticResource Color.BorderLight}"/>
-            <SolidColorBrush x:Key="Brush.Accent" Color="{StaticResource Color.Accent}"/>
-            <SolidColorBrush x:Key="Brush.AccentMuted" Color="{StaticResource Color.AccentMuted}"/>
-            <SolidColorBrush x:Key="Brush.Text" Color="{StaticResource Color.Text}"/>
-            <SolidColorBrush x:Key="Brush.TextMuted" Color="{StaticResource Color.TextMuted}"/>
-            <SolidColorBrush x:Key="Brush.Warning" Color="{StaticResource Color.Warning}"/>
+            <!--  Brushes  -->
+            <SolidColorBrush x:Key="Brush.Background" Color="{StaticResource Color.Background}" />
+            <SolidColorBrush x:Key="Brush.Panel" Color="{StaticResource Color.Panel}" />
+            <SolidColorBrush x:Key="Brush.PanelAlt" Color="{StaticResource Color.PanelAlt}" />
+            <SolidColorBrush x:Key="Brush.Border" Color="{StaticResource Color.Border}" />
+            <SolidColorBrush x:Key="Brush.BorderLight" Color="{StaticResource Color.BorderLight}" />
+            <SolidColorBrush x:Key="Brush.Accent" Color="{StaticResource Color.Accent}" />
+            <SolidColorBrush x:Key="Brush.AccentMuted" Color="{StaticResource Color.AccentMuted}" />
+            <SolidColorBrush x:Key="Brush.Text" Color="{StaticResource Color.Text}" />
+            <SolidColorBrush x:Key="Brush.TextMuted" Color="{StaticResource Color.TextMuted}" />
+            <SolidColorBrush x:Key="Brush.Warning" Color="{StaticResource Color.Warning}" />
 
-            <!-- Compact Metrics -->
+            <!--  Compact Metrics  -->
             <Thickness x:Key="Thickness.ControlPadding">6,4</Thickness>
             <Thickness x:Key="Thickness.HeaderPadding">8,6</Thickness>
             <Thickness x:Key="Thickness.TabPadding">10,6</Thickness>
@@ -41,110 +42,110 @@
     </Application.Resources>
 
     <Application.Styles>
-        <SimpleTheme/>
+        <SimpleTheme />
 
-        <!-- Text styles -->
+        <!--  Text styles  -->
         <Style Selector="TextBlock.header">
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            <Setter Property="FontSize" Value="13" />
         </Style>
         <Style Selector="TextBlock.muted">
-            <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
         </Style>
 
-        <!-- Inspector property name style -->
+        <!--  Inspector property name style  -->
         <Style Selector="TextBlock.inspector-name">
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}"/>
-            <Setter Property="Padding" Value="0,4"/>
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
+            <Setter Property="Padding" Value="0,4" />
         </Style>
-        <!-- Menu -->
+        <!--  Menu  -->
         <Style Selector="Menu">
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="6,0" />
         </Style>
         <Style Selector="MenuItem">
-            <Setter Property="Padding" Value="10,6"/>
-            <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
         <Style Selector="MenuItem:over">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}"/>
+            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
         </Style>
 
-        <!-- TabControl -->
+        <!--  TabControl  -->
         <Style Selector="TabControl">
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}"/>
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
         </Style>
         <Style Selector="TabItem">
-            <Setter Property="Padding" Value="{StaticResource Thickness.TabPadding}"/>
-            <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+            <Setter Property="Padding" Value="{StaticResource Thickness.TabPadding}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
         <Style Selector="TabItem:selected">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}"/>
-            <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}"/>
+            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
         </Style>
 
-        <!-- TreeView / ListBox -->
+        <!--  TreeView / ListBox  -->
         <Style Selector="TreeView, ListBox">
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
-            <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}"/>
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
         </Style>
         <Style Selector="TreeViewItem, ListBoxItem">
-            <Setter Property="Padding" Value="{StaticResource Thickness.ControlPadding}"/>
+            <Setter Property="Padding" Value="{StaticResource Thickness.ControlPadding}" />
         </Style>
         <Style Selector="TreeViewItem:selected, ListBoxItem:selected">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}"/>
-            <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
 
-        <!-- GridSplitter -->
+        <!--  GridSplitter  -->
         <Style Selector="GridSplitter">
-            <Setter Property="Background" Value="{StaticResource Brush.Border}"/>
+            <Setter Property="Background" Value="{StaticResource Brush.Border}" />
         </Style>
 
-        <!-- ScrollBar -->
+        <!--  ScrollBar  -->
         <Style Selector="ScrollBar">
-            <Setter Property="Foreground" Value="{StaticResource Brush.BorderLight}"/>
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
         </Style>
 
-        <!-- Headers (panel title bars) -->
+        <!--  Headers (panel title bars)  -->
         <Style Selector="Border.panel-header">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="Padding" Value="{StaticResource Thickness.HeaderPadding}"/>
+            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="{StaticResource Thickness.HeaderPadding}" />
         </Style>
 
-        <!-- Status Bar -->
+        <!--  Status Bar  -->
         <Style Selector="Border.status-bar">
-            <Setter Property="Background" Value="{StaticResource Brush.Panel}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
-            <Setter Property="BorderThickness" Value="0,1,0,0"/>
-            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Padding" Value="6,4" />
         </Style>
 
-        <!-- Accent Button style for toolbar-like buttons -->
+        <!--  Accent Button style for toolbar-like buttons  -->
         <Style Selector="Button.accent">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
-            <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}"/>
-            <Setter Property="Padding" Value="6,4"/>
-            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}"/>
-            <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
         <Style Selector="Button.accent:over">
-            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}"/>
+            <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
         </Style>
         <Style Selector="Button.accent:pressed">
-            <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
 
         <Style Selector="TextBox">

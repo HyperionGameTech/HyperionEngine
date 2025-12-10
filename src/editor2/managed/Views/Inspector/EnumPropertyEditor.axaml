@@ -1,22 +1,24 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
-             x:Class="Hyperion.Editor.Views.Inspector.EnumPropertyEditor"
-             x:DataType="vm:EnumPropertyViewModel"
-             mc:Ignorable="d">
-        <ComboBox x:Name="EnumCombo"
-                          ItemsSource="{Binding EnumEntries}"
-                          SelectedValue="{Binding SelectedEnumValue, Mode=TwoWay}"
-                          SelectedValueBinding="{Binding Value}"
-                          VerticalAlignment="Center"
-                          MinWidth="140"
-                          HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                                <TextBlock Text="{Binding Name}"/>
-                        </DataTemplate>
-                </ComboBox.ItemTemplate>
-        </ComboBox>
+<UserControl
+    x:Class="Hyperion.Editor.Views.Inspector.EnumPropertyEditor"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:EnumPropertyViewModel"
+    mc:Ignorable="d">
+    <ComboBox
+        x:Name="EnumCombo"
+        MinWidth="140"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Center"
+        ItemsSource="{Binding EnumEntries}"
+        SelectedValue="{Binding SelectedEnumValue, Mode=TwoWay}"
+        SelectedValueBinding="{Binding Value}">
+        <ComboBox.ItemTemplate>
+            <DataTemplate>
+                <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+        </ComboBox.ItemTemplate>
+    </ComboBox>
 </UserControl>

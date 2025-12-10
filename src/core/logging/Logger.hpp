@@ -176,43 +176,17 @@ static constexpr auto LogLevelToString()
     }
 }
 
-template <LogLevel Level>
-static constexpr const char* LogLevelTermColor()
+static Span<const char> LogLevelTermColor(LogLevel logLevel)
 {
-    // constexpr const char* table[uint32(LogLevel::MAX)] = {
-    //     ""          // DEBUG
-    //     "",         // INFO
-    //     "\33[33m",  // WARNING
-    //     "\33[31m",  // ERR
-    //     "\33[31;4m" // FATAL
-    // };
+    static constexpr Span<const char> ColorTable[uint32(LogLevel::MAX)] = {
+        ""          // DEBUG
+        "",         // INFO
+        "\33[33m",  // WARNING
+        "\33[31m",  // ERR
+        "\33[31;4m" // FATAL
+    };
 
-    // return table[uint32(Level)];
-
-    if constexpr (Level == LogLevel::DEBUG)
-    {
-        return "";
-    }
-    else if constexpr (Level == LogLevel::INFO)
-    {
-        return "";
-    }
-    else if constexpr (Level == LogLevel::WARNING)
-    {
-        return "\33[33m";
-    }
-    else if constexpr (Level == LogLevel::ERR)
-    {
-        return "\33[31m";
-    }
-    else if constexpr (Level == LogLevel::FATAL)
-    {
-        return "\33[31;4m";
-    }
-    else
-    {
-        return "?";
-    }
+    return ColorTable[uint32(logLevel)];
 }
 
 HYP_STRUCT()
@@ -405,38 +379,20 @@ inline void LogStatic(Logger& logger, Args&&... args)
         return;
     }
 
-    constexpr const char* ColorCode = LogLevelTermColor<Category.GetLevel()>();
-
     static const LogChannel& s_channel = *HYP_GET_CONST_ARG(ChannelArg);
-    static const String s_prefix = HYP_FORMAT("{}{} [{}]: ", ColorCode, s_channel.name, LogLevelToString<Category.GetLevel()>());
+    static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Category.GetLevel()>());
 
     if (logger.IsChannelEnabled(s_channel))
     {
-        if constexpr (Memory::AreStaticStringsEqual(ColorCode, ""))
+        if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
         {
-            if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
-            {
-                logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
+            logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
 
-                HYP_UNREACHABLE();
-            }
-            else
-            {
-                logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
-            }
+            HYP_UNREACHABLE();
         }
         else
         {
-            if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
-            {
-                logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...), "\33[0m" } } });
-
-                HYP_UNREACHABLE();
-            }
-            else
-            {
-                logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...), "\33[0m" } } });
-            }
+            logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
         }
     }
 }
@@ -451,21 +407,19 @@ inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&.
         return;
     }
 
-    constexpr const char* ColorCode = LogLevelTermColor<Category.GetLevel()>();
-
-    const String prefix = HYP_FORMAT("{}{} [{}]: ", ColorCode, channel.name, LogLevelToString<Category.GetLevel()>());
+    const String prefix = HYP_FORMAT("{} [{}]: ", channel.name, LogLevelToString<Category.GetLevel()>());
 
     if (logger.IsChannelEnabled(channel))
     {
         if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
         {
-            logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...), "\33[0m" } } });
+            logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
 
             HYP_UNREACHABLE();
         }
         else
         {
-            logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...), "\33[0m" } } });
+            logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
         }
     }
 }
@@ -480,38 +434,20 @@ inline void LogDynamic(Logger& logger, const char* str)
         return;
     }
 
-    constexpr const char* ColorCode = LogLevelTermColor<Category.GetLevel()>();
-
     static const LogChannel& s_channel = *HYP_GET_CONST_ARG(ChannelArg);
-    static const String s_prefix = HYP_FORMAT("{}{} [{}]: ", ColorCode, s_channel.name, LogLevelToString<Category.GetLevel()>());
+    static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Category.GetLevel()>());
 
     if (logger.IsChannelEnabled(s_channel))
     {
-        if constexpr (Memory::AreStaticStringsEqual(ColorCode, ""))
+        if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
         {
-            if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
-            {
-                logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } } });
+            logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } } });
 
-                HYP_UNREACHABLE();
-            }
-            else
-            {
-                logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } } });
-            }
+            HYP_UNREACHABLE();
         }
         else
         {
-            if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
-            {
-                logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str, "\33[0m" } } });
-
-                HYP_UNREACHABLE();
-            }
-            else
-            {
-                logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str, "\33[0m" } } });
-            }
+            logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } } });
         }
     }
 }

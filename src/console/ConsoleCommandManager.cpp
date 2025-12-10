@@ -194,6 +194,8 @@ Result ConsoleCommandManager::ExecuteCommand(const String& commandLine)
 
         auto it = m_impl->m_commands.Find(commandName.Data());
 
+        auto& lcConsole = g_logChannel_Console;
+
         if (it == m_impl->m_commands.End())
         {
             HYP_LOG(Console, Error, "Command not found: {}", commandName);

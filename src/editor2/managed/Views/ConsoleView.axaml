@@ -1,29 +1,68 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Hyperion.Editor.ConsoleView"
-             x:DataType="vm:ConsoleViewModel">
-    
+<UserControl
+    x:Class="Hyperion.Editor.ConsoleView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    x:DataType="vm:ConsoleViewModel"
+    mc:Ignorable="d">
+
     <UserControl.DataContext>
         <vm:ConsoleViewModel />
     </UserControl.DataContext>
 
     <Grid RowDefinitions="*, Auto">
-        <ListBox x:Name="LogListBox" Grid.Row="0" ItemsSource="{Binding Logs}" Background="#1E1E1E" BorderThickness="0" >
+        <ListBox
+            x:Name="LogListBox"
+            Grid.Row="0"
+            Background="#1E1E1E"
+            BorderThickness="0"
+            ItemsSource="{Binding Logs}"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+            ScrollViewer.VerticalScrollBarVisibility="Auto">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding Message}" Foreground="{Binding Color}" FontFamily="Consolas, Monospace" FontSize="12" TextWrapping="Wrap" Padding="4 0"/>
+                    <TextBlock
+                        Padding="4,0"
+                        FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
+                        FontSize="10"
+                        Foreground="{Binding Color}"
+                        Text="{Binding Message}"
+                        TextWrapping="Wrap" />
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        
-        <TextBox Grid.Row="1" Text="{Binding CommandText}" Watermark="Enter command..." Background="#2D2D2D" Foreground="White" FontFamily="Consolas, Monospace">
-            <TextBox.KeyBindings>
-                <KeyBinding Gesture="Enter" Command="{Binding ExecuteCommand}" />
-            </TextBox.KeyBindings>
-        </TextBox>
+
+        <Grid
+            Grid.Row="1"
+            Background="#2D2D2D"
+            ColumnDefinitions="Auto, *">
+            <TextBlock
+                Grid.Column="0"
+                Margin="4,0,0,0"
+                VerticalAlignment="Center"
+                Classes="BlinkingPrompt"
+                FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
+                FontSize="10"
+                Foreground="White"
+                Text="&gt;" />
+            <TextBox
+                x:Name="CommandTextBox"
+                Grid.Column="1"
+                Background="Transparent"
+                BorderThickness="0"
+                CaretBrush="White"
+                FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
+                FontSize="10"
+                Foreground="White"
+                Text="{Binding CommandText}">
+                <TextBox.KeyBindings>
+                    <KeyBinding Command="{Binding ExecuteCommand}" Gesture="Enter" />
+                </TextBox.KeyBindings>
+            </TextBox>
+        </Grid>
     </Grid>
 </UserControl>
