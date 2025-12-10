@@ -94,14 +94,10 @@ ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::Man
 
         if (objectFlags & ObjectFlags::CREATED_FROM_MANAGED)
         {
-            HYP_LOG(DotNET, Debug, "Wrapping existing managed object with class {}", managedClass->GetName());
-
             data.objectPtr = new dotnet::ManagedObject(managedClass->RefCountedPtrFromThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
         }
         else
         {
-            HYP_LOG(DotNET, Debug, "Creating new managed object with class {}, reference will be incremented from C#", managedClass->GetName());
-
             data.objectPtr = managedClass->NewObject(m_ptr.GetClass(), address);
         }
 
@@ -246,7 +242,7 @@ void ScriptObjectResource::Initialize()
         // In this case, the ref count will be decremented once the queued object is finalized
         const Class* cls = m_ptr.GetClass();
 
-        HYP_LOG(Object, Info, "Thread: {}\tManaged object for object with Class {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
+        HYP_LOG(Object, Debug, "Thread: {}\tManaged object for object with Class {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
             CurrentThreadId().GetName(),
             cls->GetName(), m_ptr.GetPointer(),
             (void*)dotNetData->objectPtr);

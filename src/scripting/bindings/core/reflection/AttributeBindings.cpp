@@ -23,6 +23,13 @@ extern "C"
         return true;
     }
 
+    HYP_EXPORT int8 ClassAttribute_IsString(ClassAttribute* attribute)
+    {
+        Assert(attribute != nullptr);
+
+        return attribute->GetValue().IsString();
+    }
+
     HYP_EXPORT const char* ClassAttribute_GetString(ClassAttribute* attribute)
     {
         Assert(attribute != nullptr);
@@ -30,11 +37,25 @@ extern "C"
         return attribute->GetValue().GetString().Data();
     }
 
+    HYP_EXPORT int8 ClassAttribute_IsBool(ClassAttribute* attribute)
+    {
+        Assert(attribute != nullptr);
+
+        return attribute->GetValue().IsBool();
+    }
+
     HYP_EXPORT int8 ClassAttribute_GetBool(ClassAttribute* attribute)
     {
         Assert(attribute != nullptr);
 
         return attribute->GetValue().GetBool();
+    }
+
+    HYP_EXPORT int8 ClassAttribute_IsInt(ClassAttribute* attribute)
+    {
+        Assert(attribute != nullptr);
+
+        return attribute->GetValue().IsInt();
     }
 
     HYP_EXPORT int8 ClassAttribute_GetInt(ClassAttribute* attribute)

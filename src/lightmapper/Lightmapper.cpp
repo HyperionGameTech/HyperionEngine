@@ -178,7 +178,6 @@ void LightmapperBase::Initialize()
 
     if (PerformsRayTracing())
     {
-
         Handle<Camera> camera = CreateObject<Camera>();
         camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
         camera->AddCameraController(CreateObject<OrthoCameraController>());
@@ -210,9 +209,14 @@ void LightmapperBase::Initialize()
         m_view->UpdateViewport();
         m_view->UpdateVisibility();
         m_view->CollectSync();
+    }
 
-        CreateLightmapRenderers();
+    Initialize_Internal();
 
+    Build();
+
+    if (PerformsRayTracing())
+    {
         /// If cpu path tracing, set up thread pool and stuff
         if (m_config.traceMode == LightmapTraceMode::CPU_PATH_TRACING)
         {
@@ -222,11 +226,9 @@ void LightmapperBase::Initialize()
             m_threadPool = new LightmapThreadPool();
             m_threadPool->Start();
         }
+
+        CreateLightmapRenderers();
     }
-
-    Initialize_Internal();
-
-    Build();
 }
 
 LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
@@ -667,7 +669,7 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 #pragma region Lightmapper < LightmapVolume>
 
 Lightmapper<LightmapVolume>::Lightmapper(LightmapperConfig&& config, const Handle<LightmapVolume>& volume)
-    : LightmapperBase(std::move(config), MakeStrongRef(volume->GetScene()), volume->GetWorldAABB()),
+    : LightmapperBase(std::move(config), MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
       m_volume(volume),
       m_lightmapElementId(InvalidLightmapElementId)
 {
@@ -968,12 +970,12 @@ void Lightmapper<ReflectionProbe>::HandleCompletedJob_Internal(LightmapJobBase* 
     HYP_LOG(Lightmap, Info, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", m_envProbe->Id());
 }
 
-#pragma endregion Lightmapper<ReflectionProbe>
+#pragma endregion Lightmapper < ReflectionProbe>
 
 #pragma region Lightmapper < FogVolume>
 
 Lightmapper<FogVolume>::Lightmapper(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume)
-    : LightmapperBase(std::move(config), MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldAABB()),
+    : LightmapperBase(std::move(config), MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldBounds()),
       m_fogVolume(fogVolume)
 {
 }

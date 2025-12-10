@@ -13,12 +13,10 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (_isRefreshing)
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
-
-            _isRefreshing = true;
 
             _ = EngineManager.PostToGameThread(() =>
             {
@@ -29,15 +27,16 @@ namespace Hyperion.Editor.ViewModels
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _isRefreshing = false;
+                        _isRefreshing = 0;
 
                         Value = FormatValue(rawValue);
                     });
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
-                    _isRefreshing = false;
+                    _isRefreshing = 0;
+
+                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
                 }
             });
         }

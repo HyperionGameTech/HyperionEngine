@@ -102,7 +102,7 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
 {
     AssertDebug(proxy != nullptr);
 
-    const BoundingBox worldAabb = GetWorldAABB();
+    const BoundingBox worldAabb = GetWorldBounds();
 
     proxy->fogVolume = WeakHandleFromThis();
     proxy->worldAabb = worldAabb;

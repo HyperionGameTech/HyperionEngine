@@ -1023,7 +1023,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
             LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
             Assert(lightmapVolume != nullptr);
 
-            const BoundingBox volumeAabb = lightmapVolume->GetWorldAABB();
+            const BoundingBox volumeAabb = lightmapVolume->GetWorldBounds();
 
             if (!volumeAabb.IsValid() || !volumeAabb.IsFinite())
             {
@@ -1060,7 +1060,7 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
         {
             ParticleVolume* volume = static_cast<ParticleVolume*>(entity);
 
-            const BoundingBox volumeAabb = volume->GetWorldAABB();
+            const BoundingBox volumeAabb = volume->GetWorldBounds();
 
             if (!volumeAabb.IsValid() || !volumeAabb.IsFinite())
             {
@@ -1099,7 +1099,7 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
         {
             FogVolume* volume = static_cast<FogVolume*>(entity);
 
-            const BoundingBox volumeAabb = volume->GetWorldAABB();
+            const BoundingBox volumeAabb = volume->GetWorldBounds();
 
             if (!volumeAabb.IsValid() || !volumeAabb.IsFinite())
             {

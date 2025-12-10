@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
@@ -71,6 +72,42 @@ namespace Hyperion
             {
                 return (MethodFlags)Method_GetFlags(_ptr);
             }
+        }
+
+        public IEnumerable<ClassAttribute> Attributes
+        {
+            get
+            {
+                uint count = Method_GetAttributes(_ptr, IntPtr.Zero);
+
+                IntPtr attributesPtr = Marshal.AllocHGlobal(IntPtr.Size * (int)count);
+
+                try
+                {
+                    Method_GetAttributes(_ptr, attributesPtr);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        yield return new ClassAttribute(Marshal.ReadIntPtr(attributesPtr, i * IntPtr.Size));
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(attributesPtr);
+                }
+            }
+        }
+
+        public ClassAttribute? GetAttribute(Name name)
+        {
+            IntPtr attributePtr = Method_GetAttribute(_ptr, ref name);
+
+            if (attributePtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new ClassAttribute(attributePtr);
         }
 
         public bool IsStatic
@@ -246,6 +283,12 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Method_GetFlags")]
         private static extern byte Method_GetFlags([In] IntPtr methodPtr);
+
+        [DllImport("hyperion", EntryPoint = "Method_GetAttributes")]
+        private static extern uint Method_GetAttributes([In] IntPtr methodPtr, [Out] IntPtr attributesPtr);
+
+        [DllImport("hyperion", EntryPoint = "Method_GetAttribute")]
+        private static extern IntPtr Method_GetAttribute([In] IntPtr methodPtr, [In] ref Name name);
 
         [DllImport("hyperion", EntryPoint = "Method_Invoke")]
         [return: MarshalAs(UnmanagedType.I1)]

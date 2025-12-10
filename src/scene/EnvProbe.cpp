@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/logging/LoggerFwd.hpp"
 #include <HyperionPch.hpp>
 
 #include <scene/EnvProbe.hpp>
@@ -16,6 +17,8 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 
+#include <lightmapper/LightmapperSubsystem.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -25,6 +28,8 @@
 #include <EnvProbe.generated.inl>
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Editor);
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
     EPF_NONE,               // sky
@@ -360,7 +365,7 @@ void EnvProbe::Update(float delta)
         return;
     }
 
-    const BoundingBox worldAabb = GetWorldAABB();
+    const BoundingBox worldAabb = GetWorldBounds();
 
     bool needsUpdate = false;
 
@@ -533,6 +538,34 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
 #pragma endregion EnvProbe
 
 #pragma region ReflectionProbe
+
+#ifdef HYP_EDITOR
+
+void ReflectionProbe::BakeLighting()
+{
+    HYP_SCOPE;
+
+    World* world = GetWorld();
+    AssertDebug(world != nullptr);
+
+    if (!world)
+    {
+        HYP_LOG(Editor, Error, "Cannot bake lighting for ReflectionProbe {}: not attached to a World", Id());
+
+        return;
+    }
+
+    LightmapperSubsystem* lightmapperSubsystem = world->GetSubsystem<LightmapperSubsystem>();
+
+    if (!lightmapperSubsystem)
+    {
+        lightmapperSubsystem = world->AddSubsystem<LightmapperSubsystem>();
+    }
+
+    lightmapperSubsystem->EnqueueBake(MakeStrongRef(this));
+}
+
+#endif
 
 #pragma endregion ReflectionProbe
 

@@ -67,7 +67,7 @@ void ParticleVolume::UpdateRenderProxy(RenderProxyParticleVolume* proxy)
         proxy->particleTexture = m_params.texture;
     }
 
-    proxy->worldAabb = GetWorldAABB();
+    proxy->worldAabb = GetWorldBounds();
 
     proxy->bufferData.originStartSize = Vec4f(m_params.origin, m_params.startSize);
     proxy->bufferData.spawnRadius = m_params.radius;

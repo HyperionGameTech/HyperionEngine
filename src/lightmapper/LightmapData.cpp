@@ -501,7 +501,7 @@ auto LightmapData<ReflectionProbe>::ToBitmap() const -> BitmapType
     return bitmap;
 }
 
-#pragma endregion LightmapData<ReflectionProbe>
+#pragma endregion LightmapData < ReflectionProbe>
 
 #pragma region LightmapData < FogVolume>
 
@@ -571,12 +571,12 @@ Result LightmapData<FogVolume>::Build()
         dimensions.y,
         dimensions.z);
 
-    const Vec3f extentWS = m_fogVolume->GetWorldAABB().GetExtent();
+    const Vec3f extentWS = m_fogVolume->GetWorldBounds().GetExtent();
     const Vec3f texelSizeWS = extentWS / Vec3f(dimensions);
 
     texels.Resize(dimensions.Volume());
 
-    BoundingBox voxelOctreeAabb = m_fogVolume->GetWorldAABB();
+    BoundingBox voxelOctreeAabb = m_fogVolume->GetWorldBounds();
 
     if (!voxelOctreeAabb.IsValid() || !voxelOctreeAabb.IsFinite() || voxelOctreeAabb.IsZero())
     {

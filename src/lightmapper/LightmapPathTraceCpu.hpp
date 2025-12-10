@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "core/containers/HashSet.hpp"
 #include <lightmapper/Lightmapper.hpp>
 #include <rendering/RenderProxy.hpp>
 
@@ -67,6 +68,7 @@ public:
     }
 
     virtual void Create() override;
+    virtual void CleanJobData(LightmapJobBase* job) override;
     virtual void ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits) override;
     virtual void Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
 
@@ -75,6 +77,13 @@ private:
     {
         HashMap<Light*, LightShaderData> lightData;
         HashMap<EnvProbe*, EnvProbeShaderData> envProbeData;
+    };
+
+    struct JobData
+    {
+        Array<LightmapHit, DynamicAllocator> hitsBuffer;
+        Array<LightmapRay, DynamicAllocator> currentRays;
+        volatile int32 numTracingTasks = 0;
     };
 
     void TraceSingleRayOnCPU(LightmapJobBase* job, const LightmapRay& ray, LightmapRayHitPayload& outPayload);
@@ -89,11 +98,7 @@ private:
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;
 
-    /// TODO Move to per-job data (if we keep cpu tracing)
-    Array<LightmapHit, DynamicAllocator> m_hitsBuffer;
-    Array<LightmapRay, DynamicAllocator> m_currentRays;
-
-    AtomicVar<uint32> m_numTracingTasks;
+    HashMap<LightmapJobBase*, JobData, DynamicNodeAllocator> m_jobData;
 };
 
 } // namespace hyperion

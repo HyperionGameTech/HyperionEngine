@@ -176,14 +176,17 @@ static constexpr auto LogLevelToString()
     }
 }
 
-static Span<const char> LogLevelTermColor(LogLevel logLevel)
+static constexpr Span<const char> LogLevelTermColor(LogLevel logLevel)
 {
-    static constexpr Span<const char> ColorTable[uint32(LogLevel::MAX)] = {
-        ""          // DEBUG
-        "",         // INFO
-        "\33[33m",  // WARNING
-        "\33[31m",  // ERR
-        "\33[31;4m" // FATAL
+    constexpr Span<const char> ColorTable[uint32(LogLevel::MAX)] = {
+        "", // DEBUG
+        "", // INFO
+        // Yellow - WARNING
+        "\033[33m",
+        // Red - ERR
+        "\033[31m",
+        // Bright Red - FATAL
+        "\033[91m"
     };
 
     return ColorTable[uint32(logLevel)];

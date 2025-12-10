@@ -455,7 +455,7 @@ void LightmapJob<ReflectionProbe>::Process_Internal(bool* outIsReadyToProcess)
     }
 }
 
-#pragma endregion LightmapJob<ReflectionProbe>
+#pragma endregion LightmapJob < ReflectionProbe>
 
 #pragma region LightmapJob<FogVolume>
 
@@ -500,7 +500,7 @@ void LightmapJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
 
 uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
-    const BoundingBox worldAabb = m_fogVolume->GetWorldAABB();
+    const BoundingBox worldAabb = m_fogVolume->GetWorldBounds();
     const Vec3f extentWS = worldAabb.GetExtent();
 
     const Vec3u bitmapExtent = Vec3u {
@@ -533,6 +533,6 @@ uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32
     return uint32(texels.Size());
 }
 
-#pragma endregion LightmapJob<FogVolume>
+#pragma endregion LightmapJob < FogVolume>
 
 } // namespace hyperion

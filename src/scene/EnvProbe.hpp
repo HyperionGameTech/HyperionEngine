@@ -326,6 +326,11 @@ public:
     ReflectionProbe(const ReflectionProbe& other) = delete;
     ReflectionProbe& operator=(const ReflectionProbe& other) = delete;
     ~ReflectionProbe() override = default;
+
+#ifdef HYP_EDITOR
+    HYP_METHOD(EditAction = "Bake Lighting", EditCondition = "IsBaked")
+    void BakeLighting();
+#endif
 };
 
 HYP_CLASS()

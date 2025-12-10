@@ -764,27 +764,7 @@ void Node::SetLocalBounds(const BoundingBox& aabb)
     m_localBounds = aabb;
 }
 
-BoundingBox Node::GetLocalAABBExcludingSelf() const
-{
-    BoundingBox aabb = BoundingBox::Zero();
-
-    for (const Handle<Node>& child : GetChildren())
-    {
-        if (!child.IsValid())
-        {
-            continue;
-        }
-
-        if (!(child->GetNodeFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
-        {
-            aabb = aabb.Union(child->GetLocalTransform() * child->GetLocalAABB());
-        }
-    }
-
-    return aabb;
-}
-
-BoundingBox Node::GetLocalAABB() const
+BoundingBox Node::GetLocalBoundsWithChildren() const
 {
     BoundingBox aabb = m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero();
 
@@ -797,14 +777,14 @@ BoundingBox Node::GetLocalAABB() const
 
         if (!(child->GetNodeFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
         {
-            aabb = aabb.Union(child->GetLocalTransform() * child->GetLocalAABB());
+            aabb = aabb.Union(child->GetLocalTransform() * child->GetLocalBoundsWithChildren());
         }
     }
 
     return aabb;
 }
 
-BoundingBox Node::GetWorldAABB() const
+BoundingBox Node::GetWorldBounds() const
 {
     BoundingBox aabb = m_worldTransform * (m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero());
 
@@ -817,7 +797,7 @@ BoundingBox Node::GetWorldAABB() const
 
         if (!(child->GetNodeFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
         {
-            aabb = aabb.Union(child->GetWorldAABB());
+            aabb = aabb.Union(child->GetWorldBounds());
         }
     }
 
@@ -923,7 +903,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 {
     HYP_SCOPE;
 
-    const BoundingBox worldAabb = GetWorldAABB();
+    const BoundingBox worldAabb = GetWorldBounds();
 
     bool hasEntityHit = false;
 

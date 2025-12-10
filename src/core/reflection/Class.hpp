@@ -986,12 +986,14 @@ HYP_API extern const Name g_attrScriptableDelegate;
 HYP_API extern const Name g_attrFollowAssetPath;
 
 /// ===== Editor-specific attributes =====
-HYP_API extern const Name g_attrEditor;
-HYP_API extern const Name g_attrEditOrder;
-HYP_API extern const Name g_attrEditEnabled;
-HYP_API extern const Name g_attrEditHide;
-HYP_API extern const Name g_attrLabel;
-HYP_API extern const Name g_attrDescription;
+HYP_API extern const Name g_attrEditor;        //!< legacy (deprecated) indicates that a property is editable in the editor
+HYP_API extern const Name g_attrEditOrder;     //!< order in which properties are displayed in the editor
+HYP_API extern const Name g_attrEditEnabled;   //!< is editable in editor
+HYP_API extern const Name g_attrEditHide;      //!< hide in editor
+HYP_API extern const Name g_attrLabel;         //!< display name in editor (overrides property name)
+HYP_API extern const Name g_attrDescription;   //!< help text for a property in inspector
+HYP_API extern const Name g_attrEditAction;    //!< marks a method as an action button in the editor (e.g. "Bake Lighting")
+HYP_API extern const Name g_attrEditCondition; //!< condition for editability or action availability in the editor (should be a method that returns bool)
 /// ======================================
 
 } // namespace Attributes

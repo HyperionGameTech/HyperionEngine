@@ -1753,7 +1753,7 @@ BoundingBox UIObject::GetWorldAABB() const
 
     if (const Handle<Node>& node = GetNode())
     {
-        return node->GetWorldAABB();
+        return node->GetWorldBounds();
     }
 
     return BoundingBox::Empty();
@@ -1765,7 +1765,7 @@ BoundingBox UIObject::GetLocalAABB() const
 
     if (const Handle<Node>& node = GetNode())
     {
-        return node->GetLocalAABB();
+        return node->GetLocalBoundsWithChildren();
     }
 
     return BoundingBox::Empty();
@@ -1812,7 +1812,7 @@ BoundingBox UIObject::CalculateInnerAABB_Internal() const
 
     if (const Handle<Node>& node = GetNode())
     {
-        const BoundingBox aabb = node->GetLocalAABB();
+        const BoundingBox aabb = node->GetLocalBoundsWithChildren();
 
         if (aabb.IsFinite() && aabb.IsValid())
         {

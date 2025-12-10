@@ -65,6 +65,47 @@ extern "C"
         return ubyte(method->GetFlags());
     }
 
+    HYP_EXPORT uint32 Method_GetAttributes(const Method* method, const ClassAttribute** outAttributes)
+    {
+        if (!method)
+        {
+            return 0;
+        }
+
+        const ClassAttributeSet& attributes = method->GetAttributes();
+
+        if (!outAttributes)
+        {
+            return uint32(attributes.Size());
+        }
+
+        uint32 index = 0;
+
+        for (const ClassAttribute& attribute : attributes)
+        {
+            outAttributes[index++] = &attribute;
+        }
+
+        return index;
+    }
+
+    HYP_EXPORT const ClassAttribute* Method_GetAttribute(const Method* method, const Name* name)
+    {
+        if (!method || !name)
+        {
+            return nullptr;
+        }
+
+        auto it = method->GetAttributes().Find(StringHash(*name));
+
+        if (it == method->GetAttributes().End())
+        {
+            return nullptr;
+        }
+
+        return &*it;
+    }
+
     HYP_EXPORT bool Method_Invoke(const Method* method, HypData* args, uint32 numArgs, HypData* outResult)
     {
         if (!method || !outResult)

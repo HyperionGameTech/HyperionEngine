@@ -78,12 +78,10 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (_isRefreshing)
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
-
-            _isRefreshing = true;
 
             try
             {
@@ -96,7 +94,7 @@ namespace Hyperion.Editor.ViewModels
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    _isRefreshing = false;
+                    _isRefreshing = 0;
 
                     for (int i = 0; i < _componentCount; i++)
                     {
@@ -109,9 +107,9 @@ namespace Hyperion.Editor.ViewModels
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
+                _isRefreshing = 0;
 
-                _isRefreshing = false;
+                Logger.Log(LogType.Warn, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
             }
         }
 
@@ -124,7 +122,7 @@ namespace Hyperion.Editor.ViewModels
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Warn, $"Inspector failed to read vector for '{Name}': {ex.Message}");
+                Logger.Log(LogType.Warn, $"Inspector failed to read vector for '{_property.Name}': {ex.Message}");
                 vector = default;
                 return false;
             }
@@ -132,7 +130,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnComponentChanged(int index, string newValue)
         {
-            if (_isRefreshing)
+            if (_isRefreshing == 1)
             {
                 return;
             }
@@ -162,7 +160,7 @@ namespace Hyperion.Editor.ViewModels
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Inspector failed to set vector component for '{Name}': {ex.Message}");
+                Logger.Log(LogType.Error, $"Inspector failed to set vector component for '{_property.Name}': {ex.Message}");
                 RefreshValue();
             }
         }
@@ -208,7 +206,7 @@ namespace Hyperion.Editor.ViewModels
                     return casted;
                 }
 
-                throw new InvalidOperationException($"Property '{Name}' value is not of expected type {typeof(TStruct).Name}");
+                throw new InvalidOperationException($"Property '{_property.Name}' value is not of expected type {typeof(TStruct).Name}");
             });
 
             task.Wait();
@@ -218,12 +216,10 @@ namespace Hyperion.Editor.ViewModels
 
         private void WriteStructToProperty(TStruct value)
         {
-            if (_isRefreshing)
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
-
-            _isRefreshing = true;
 
             _ = EngineManager.PostToGameThread(() =>
             {
@@ -234,13 +230,15 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Error, $"Inspector failed to write property '{Name}': {ex.Message}");
+                    Logger.Log(LogType.Error, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
                 }
                 finally
                 {
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _isRefreshing = false;
+                        _isRefreshing = 0;
+
+                        //Value = FormatValue(value);
                     });
                 }
             });

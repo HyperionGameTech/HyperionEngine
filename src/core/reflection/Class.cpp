@@ -62,6 +62,8 @@ HYP_API const Name g_attrEditEnabled = NAME("editenabled");
 HYP_API const Name g_attrEditHide = NAME("edithide");
 HYP_API const Name g_attrLabel = NAME("label");
 HYP_API const Name g_attrDescription = NAME("description");
+HYP_API const Name g_attrEditAction = NAME("editaction");
+HYP_API const Name g_attrEditCondition = NAME("editcondition");
 
 } // namespace Attributes
 

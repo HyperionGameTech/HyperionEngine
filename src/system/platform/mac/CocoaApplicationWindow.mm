@@ -372,6 +372,9 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         m_metalLayer = [metalLayer retain];
         m_hwnd = parentWindow; // Store reference to parent window for coordinate conversions
 
+        // trigger initial resize handling
+        [metalView setFrameSize:frame.size];
+
         return;
     }
 

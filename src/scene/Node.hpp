@@ -854,20 +854,14 @@ public:
 
     void SetIsDynamic(bool isDynamic);
 
-    /*! \brief Get the local-space (model) aabb of the node, excluding the entity's aabb.
-     *  \returns The local-space (model) of the node's aabb, excluding the entity's aabb. */
+    /*! \brief The local-space axis-aligned bounding box of the node, extended to include the bounds of all child nodes (with their local-space transforms applied). */
     HYP_METHOD()
-    BoundingBox GetLocalAABBExcludingSelf() const;
+    BoundingBox GetLocalBoundsWithChildren() const;
 
-    /*! \brief Get the local-space (model) aabb of the node.
-     *  \returns The local-space (model) of the node's aabb. */
-    HYP_METHOD(Property = "LocalAabb", EditEnabled = false, Transient)
-    BoundingBox GetLocalAABB() const;
-
-    /*! \brief \returns The world-space aabb of the node. Includes the transforms of all
-     * parent nodes. */
-    HYP_METHOD(Property = "WorldAabb", EditEnabled = false, Transient)
-    BoundingBox GetWorldAABB() const;
+    /*! \brief The axis-aligned bounding box of the node in world-space.
+     *  Includes the bounds of all child nodes and is transformed by ancestor transforms to compose the final world-space AABB. */
+    HYP_METHOD(Property = "WorldBounds", EditEnabled = false, Transient)
+    BoundingBox GetWorldBounds() const;
 
     /*! \brief Update the world transform of the Node to reflect changes in the local transform and parent transform.
      *  This will update the TransformComponent of the entity if it exists. */

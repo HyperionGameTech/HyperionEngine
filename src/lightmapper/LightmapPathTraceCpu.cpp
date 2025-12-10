@@ -90,8 +90,7 @@ LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(
       m_accelerationStructure(accelerationStructure),
       m_threadPool(threadPool),
       m_scene(scene),
-      m_shadingType(shadingType),
-      m_numTracingTasks(0)
+      m_shadingType(shadingType)
 {
     AssertDebug(accelerationStructure != nullptr);
     AssertDebug(threadPool != nullptr);
@@ -105,16 +104,40 @@ void LightmapRenderer_CpuPathTracing::Create()
 {
 }
 
+void LightmapRenderer_CpuPathTracing::CleanJobData(LightmapJobBase* job)
+{
+    auto it = m_jobData.Find(job);
+
+    if (it == m_jobData.End())
+    {
+        return;
+    }
+
+    Assert(AtomicAdd(&it->second.numTracingTasks, 0) == 0,
+        "Cannot clean job data while tracing is in progress");
+
+    m_jobData.Erase(it);
+}
+
 void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits)
 {
     AssertOnThread(g_renderThread);
 
-    Assert(m_numTracingTasks.Get(MemoryOrder::ACQUIRE) == 0,
+    auto it = m_jobData.Find(job);
+
+    if (it == m_jobData.End())
+    {
+        return;
+    }
+
+    JobData& jobData = it->second;
+
+    Assert(AtomicAdd(&jobData.numTracingTasks, 0) == 0,
         "Cannot read hits buffer while tracing is in progress");
 
-    Assert(outHits.Size() == m_hitsBuffer.Size());
+    Assert(outHits.Size() == jobData.hitsBuffer.Size());
 
-    Memory::MemCpy(outHits.Data(), m_hitsBuffer.Data(), m_hitsBuffer.ByteSize());
+    Memory::MemCpy(outHits.Data(), jobData.hitsBuffer.Data(), jobData.hitsBuffer.ByteSize());
 }
 
 Vec3f LightmapRenderer_CpuPathTracing::EvaluateDiffuseLighting(LightmapJobBase* job, Light* light, const LightShaderData& bufferData, const Vec3f& albedo, const Vec3f& position, const Vec3f& normal)
@@ -207,7 +230,9 @@ void LightmapRenderer_CpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
     SharedCpuData* sharedCpuData = CreateSharedCpuData(rpl);
 
-    Assert(m_numTracingTasks.Get(MemoryOrder::ACQUIRE) == 0,
+    JobData& jobData = m_jobData[job];
+
+    Assert(AtomicAdd(&jobData.numTracingTasks, 0) == 0,
         "Trace is already in progress");
 
     Handle<Texture> envProbeTexture;
@@ -218,23 +243,23 @@ void LightmapRenderer_CpuPathTracing::Render(Frame* frame, const RenderSetup& re
         envProbeTexture = renderSetup.envProbe->GetPrefilteredEnvMap();
     }
 
-    m_hitsBuffer.Resize(rays.Size());
+    jobData.hitsBuffer.Resize(rays.Size());
 
-    m_currentRays.Resize(rays.Size());
-    Memory::MemCpy(m_currentRays.Data(), rays.Data(), m_currentRays.ByteSize());
+    jobData.currentRays.Resize(rays.Size());
+    Memory::MemCpy(jobData.currentRays.Data(), rays.Data(), jobData.currentRays.ByteSize());
 
-    m_numTracingTasks.Increment(rays.Size(), MemoryOrder::RELEASE);
+    AtomicAdd(&jobData.numTracingTasks, rays.Size());
 
     TaskBatch* taskBatch = new TaskBatch();
     taskBatch->pool = m_threadPool;
 
-    const uint32 numItems = uint32(m_currentRays.Size());
+    const uint32 numItems = uint32(jobData.currentRays.Size());
     const uint32 numBatches = m_threadPool->GetProcessorAffinity();
     const uint32 itemsPerBatch = (numItems + numBatches - 1) / numBatches;
 
     for (uint32 batchIndex = 0; batchIndex < numBatches; batchIndex++)
     {
-        taskBatch->AddTask([this, view = renderSetup.view, sharedCpuData, job, batchIndex, itemsPerBatch, numItems, envProbeTexture](...)
+        taskBatch->AddTask([this, view = renderSetup.view, sharedCpuData, jobDataPtr = &jobData, job, batchIndex, itemsPerBatch, numItems, envProbeTexture](...)
             {
                 uint32 seed = std::rand();
 
@@ -243,9 +268,9 @@ void LightmapRenderer_CpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
                 for (uint32 index = offsetIndex; index < maxIndex; index++)
                 {
-                    HYP_DEFER({ m_numTracingTasks.Decrement(1, MemoryOrder::RELEASE); });
+                    HYP_DEFER({ AtomicDecrement(&jobDataPtr->numTracingTasks); });
 
-                    const LightmapRay& firstRay = m_currentRays[index];
+                    const LightmapRay& firstRay = jobDataPtr->currentRays[index];
 
                     Vec3f N0 = firstRay.ray.direction.Normalized(); // first ray direction is set to surface normal.
                     Vec3f origin = firstRay.ray.position + N0 * 0.01f;
@@ -328,7 +353,7 @@ void LightmapRenderer_CpuPathTracing::Render(Frame* frame, const RenderSetup& re
                     }
 
                     // write result
-                    m_hitsBuffer[index].color = radiance;
+                    jobDataPtr->hitsBuffer[index].color = radiance;
                 }
             });
     }

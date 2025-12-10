@@ -28,8 +28,8 @@ namespace sys {
 
 App& App::GetInstance()
 {
-    static App instance;
-    return instance;
+    static App s_instance;
+    return s_instance;
 }
 
 App::App()

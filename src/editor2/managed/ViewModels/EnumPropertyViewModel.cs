@@ -26,7 +26,7 @@ namespace Hyperion.Editor.ViewModels
             get => _selectedEnumValue;
             set
             {
-                if (SetProperty(ref _selectedEnumValue, value) && !_isRefreshing)
+                if (SetProperty(ref _selectedEnumValue, value) && _isRefreshing == 0)
                 {
                     CommitEnumValue(value);
                 }
@@ -37,12 +37,10 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (_isRefreshing)
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
-
-            _isRefreshing = true;
 
             _ = EngineManager.PostToGameThread(() =>
             {
@@ -53,7 +51,7 @@ namespace Hyperion.Editor.ViewModels
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _isRefreshing = false;
+                        _isRefreshing = 0;
 
                         Value = FormatValue(rawValue);
                         SetProperty(ref _selectedEnumValue, rawValue);
@@ -61,21 +59,19 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
+                    _isRefreshing = 0;
 
-                    _isRefreshing = false;
+                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
                 }
             });
         }
 
         private void CommitEnumValue(object? value)
         {
-            if (_isRefreshing)
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
-
-            _isRefreshing = true;
 
             _ = EngineManager.PostToGameThread(() =>
             {
@@ -86,16 +82,16 @@ namespace Hyperion.Editor.ViewModels
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _isRefreshing = false;
+                        _isRefreshing = 0;
 
                         Value = FormatValue(value);
                     });
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Error, $"Inspector failed to set enum property '{Name}': {ex.Message}");
+                    _isRefreshing = 0;
 
-                    _isRefreshing = false;
+                    Logger.Log(LogType.Error, $"Inspector failed to set enum property '{_property.Name}': {ex.Message}");
 
                     RefreshValue();
                 }
@@ -110,7 +106,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     object? enumValue = staticField.ReadObject();
                     _enumEntries.Add(new EnumEntry(staticField.Name.ToString(), enumValue));
-                    Logger.Log(LogType.Debug, $"Inspector added enum static field '{staticField.Name}' to enum values for property '{Name}'");
+                    Logger.Log(LogType.Debug, $"Inspector added enum static field '{staticField.Name}' to enum values for property '{_property.Name}'");
                 }
                 catch (Exception ex)
                 {

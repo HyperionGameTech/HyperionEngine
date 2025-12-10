@@ -311,7 +311,7 @@ void EditorManipulationWidgetBase::UpdateWidget(const Handle<Node>& focusedNode)
         return;
     }
 
-    m_node->SetWorldTranslation(focusedNode->GetWorldAABB().GetCenter());
+    m_node->SetWorldTranslation(focusedNode->GetWorldBounds().GetCenter());
 }
 
 void EditorManipulationWidgetBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
@@ -1382,9 +1382,9 @@ void EditorSubsystem::Update(float delta)
         {
             DebugDrawCommandList& dbg = g_engineDriver->GetDebugDrawer()->CreateCommandList();
 
-            dbg.box(focusedNode->GetWorldTranslation(), focusedNode->GetWorldAABB().GetExtent() * 0.5f + Vec3f(FLT_EPSILON), Color::Cyan());
+            dbg.box(focusedNode->GetWorldTranslation(), focusedNode->GetWorldBounds().GetExtent() * 0.5f + Vec3f(FLT_EPSILON), Color::Cyan());
         }
-        //        g_engineDriver->GetDebugDrawer()->box(m_focusedNode->GetWorldTranslation(), m_focusedNode->GetWorldAABB().GetExtent(), Color(1.0f), RenderableAttributeSet(
+        //        g_engineDriver->GetDebugDrawer()->box(m_focusedNode->GetWorldTranslation(), m_focusedNode->GetWorldBounds().GetExtent(), Color(1.0f), RenderableAttributeSet(
         //            MeshAttributes {
         //                .vertexAttributes = staticMeshVertexAttributes
         //            },
@@ -3257,7 +3257,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         // @TODO watch for transform changes and update the highlight node
 
         // m_scene->GetRoot()->AddChild(m_highlightNode);
-        // m_highlightNode->SetWorldScale(m_focusedNode->GetWorldAABB().GetExtent() * 0.5f);
+        // m_highlightNode->SetWorldScale(m_focusedNode->GetWorldBounds().GetExtent() * 0.5f);
         // m_highlightNode->SetWorldTranslation(m_focusedNode->GetWorldTranslation());
 
         // HYP_LOG(Editor, Debug, "Set focused node: {}\t{}", m_focusedNode->GetName(), m_focusedNode->GetWorldTranslation());

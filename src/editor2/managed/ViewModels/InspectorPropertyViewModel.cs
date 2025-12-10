@@ -8,20 +8,34 @@ namespace Hyperion.Editor.ViewModels
         protected readonly ObjectBase _target;
         protected readonly Property _property;
         protected readonly bool _isReadOnly;
-        protected bool _isRefreshing;
+        
 
         private string _value = string.Empty;
+        private string _label;
+        protected int _isRefreshing;
 
         protected InspectorPropertyViewModelBase(ObjectBase? target, Property property, bool isReadOnly = false)
         {
             _target = target ?? throw new ArgumentNullException(nameof(target));
             _property = property;
             _isReadOnly = isReadOnly;
+            _isRefreshing = 0;
+
+            ClassAttribute? attrLabel = property.GetAttribute("label");
+
+            if (attrLabel != null)
+            {
+                _label = attrLabel.Value.GetString();
+            }
+            else
+            {
+                _label = property.Name.ToString();
+            }
         }
 
         public Property Property => _property;
 
-        public string Name => _property.Name.ToString();
+        public string Label => _label;
 
         public string Value
         {

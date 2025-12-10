@@ -24,12 +24,10 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (_isRefreshing)
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
-
-            _isRefreshing = true;
 
             _ = EngineManager.PostToGameThread(() =>
             {
@@ -40,17 +38,23 @@ namespace Hyperion.Editor.ViewModels
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _isRefreshing = false;
+                        try
+                        {
+                            Value = FormatValue(rawValue);
 
-                        Value = FormatValue(rawValue);
-                        UpdateFlagSelectionsFromValue(rawValue);
+                            UpdateFlagSelectionsFromValue(rawValue);
+                        }
+                        finally
+                        {
+                            _isRefreshing = 0;
+                        }
                     });
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
+                    _isRefreshing = 0;
 
-                    _isRefreshing = false;
+                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
                 }
             });
         }
@@ -63,7 +67,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     object? flagValue = staticField.ReadObject();
                     _enumFlagEntries.Add(new EnumFlagEntry(staticField.Name.ToString(), flagValue, OnFlagEntryChanged));
-                    Logger.Log(LogType.Debug, $"Inspector added enum flag static field '{staticField.Name}' to enum flag values for property '{Name}'");
+                    Logger.Log(LogType.Debug, $"Inspector added enum flag static field '{staticField.Name}' to enum flag values for property '{_property.Name}'");
                 }
                 catch (Exception ex)
                 {
@@ -74,7 +78,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnFlagEntryChanged()
         {
-            if (_isRefreshing)
+            if (_isRefreshing == 1)
             {
                 return;
             }
@@ -84,39 +88,29 @@ namespace Hyperion.Editor.ViewModels
 
         private void UpdateFlagSelectionsFromValue(object? rawValue)
         {
-            _isRefreshing = true;
-            try
+            ulong currentValue = rawValue != null ? Convert.ToUInt64(rawValue) : 0ul;
+
+            foreach (EnumFlagEntry entry in _enumFlagEntries)
             {
-                ulong currentValue = rawValue != null ? Convert.ToUInt64(rawValue) : 0ul;
-
-                foreach (EnumFlagEntry entry in _enumFlagEntries)
-                {
-                    ulong flagValue = entry.Value != null ? Convert.ToUInt64(entry.Value) : 0ul;
-                    entry.IsSelected = ((currentValue & flagValue) == flagValue) && flagValue != 0;
-                }
-
-                foreach (EnumFlagEntry entry in _enumFlagEntries)
-                {
-                    if ((entry.Value == null || Convert.ToUInt64(entry.Value) == 0ul) && currentValue == 0ul)
-                    {
-                        entry.IsSelected = true;
-                    }
-                }
+                ulong flagValue = entry.Value != null ? Convert.ToUInt64(entry.Value) : 0ul;
+                entry.IsSelected = ((currentValue & flagValue) == flagValue) && flagValue != 0;
             }
-            finally
+
+            foreach (EnumFlagEntry entry in _enumFlagEntries)
             {
-                _isRefreshing = false;
+                if ((entry.Value == null || Convert.ToUInt64(entry.Value) == 0ul) && currentValue == 0ul)
+                {
+                    entry.IsSelected = true;
+                }
             }
         }
 
         private void CommitEnumFlagsValue()
         {
-            if (_isRefreshing)
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
-
-            _isRefreshing = true;
 
             _ = EngineManager.PostToGameThread(() =>
             {
@@ -139,16 +133,16 @@ namespace Hyperion.Editor.ViewModels
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _isRefreshing = false;
+                        _isRefreshing = 0;
 
                         Value = FormatValue(combined);
                     });
                 }
                 catch (Exception ex)
                 {
-                    _isRefreshing = false;
+                    _isRefreshing = 0;
 
-                    Logger.Log(LogType.Error, $"Inspector failed to set enum flags property '{Name}': {ex.Message}");
+                    Logger.Log(LogType.Error, $"Inspector failed to set enum flags property '{_property.Name}': {ex.Message}");
 
                     RefreshValue();
                 }

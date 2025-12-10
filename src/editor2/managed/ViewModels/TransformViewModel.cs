@@ -33,12 +33,10 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            if (_isRefreshing)
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
-
-            _isRefreshing = true;
 
             _ = EngineManager.PostToGameThread(() =>
             {
@@ -53,7 +51,7 @@ namespace Hyperion.Editor.ViewModels
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _isRefreshing = false;
+                        _isRefreshing = 0;
 
                         Value = $"T:{FormatVec3(transform.Translation)} R:{FormatQuat(transform.Rotation)} S:{FormatVec3(transform.Scale)}";
 
@@ -64,16 +62,16 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
+                    _isRefreshing = 0;
 
-                    _isRefreshing = false;
+                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
                 }
             });
         }
 
         private Transform ReadTransform()
         {
-            _ = EngineManager.PostToGameThread<Transform>(() =>
+            Task<Transform> task = EngineManager.PostToGameThread<Transform>(() =>
             {
                 using HypData data = _property.Get(_target);
                 object? raw = data.GetValue();
@@ -83,28 +81,22 @@ namespace Hyperion.Editor.ViewModels
                     return t;
                 }
 
-                throw new InvalidOperationException($"Property '{Name}' value is not a Transform");
+                throw new InvalidOperationException($"Property '{_property.Name}' value is not a Transform");
             });
 
-            return default(Transform); // debugging deadlock
+            return default;
 
-            //if (!t.Wait(5000))
-            //{
-            //    Logger.Log(LogType.Error, $"Timeout reading Transform property '{Name}'");
-            //    throw new TimeoutException($"Timeout reading Transform property '{Name}'");
-            //}
-
-            //return t.Result;
+            // DEADLOCK??
+            
+            //return task.Result;
         }
 
         private void WriteTransform(Transform transform)
         {
-            if (_isRefreshing)
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;
             }
-
-            _isRefreshing = true;
 
             _ = EngineManager.PostToGameThread(() =>
             {
@@ -115,11 +107,11 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector failed to write property '{Name}': {ex.Message}");
+                    Logger.Log(LogType.Warn, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
                 }
                 finally
                 {
-                    _isRefreshing = false;
+                    _isRefreshing = 0;
                 }
             });
         }

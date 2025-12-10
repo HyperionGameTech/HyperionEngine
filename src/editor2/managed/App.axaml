@@ -57,9 +57,9 @@
         <!--  Inspector property name style  -->
         <Style Selector="TextBlock.inspector-name">
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="10" />
             <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
-            <Setter Property="Padding" Value="0,4" />
+            <Setter Property="Padding" Value="0,0" />
         </Style>
         <!--  Menu  -->
         <Style Selector="Menu">
@@ -132,7 +132,7 @@
         </Style>
 
         <!--  Accent Button style for toolbar-like buttons  -->
-        <Style Selector="Button.accent">
+        <Style Selector="Button">
             <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
             <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
             <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
@@ -140,10 +140,10 @@
             <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
         </Style>
-        <Style Selector="Button.accent:over">
+        <Style Selector="Button:over">
             <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
         </Style>
-        <Style Selector="Button.accent:pressed">
+        <Style Selector="Button:pressed">
             <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
             <Setter Property="Foreground" Value="White" />
         </Style>

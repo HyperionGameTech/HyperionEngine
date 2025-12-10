@@ -343,7 +343,7 @@ void LegacyEnvGrid::Update(float delta)
 
     if (GetScene()->GetSceneFlags() & SceneFlags::HAS_OCTREE)
     {
-        const BoundingBox aabb = GetWorldAABB();
+        const BoundingBox aabb = GetWorldBounds();
 
         SceneOctree const* octree = &GetScene()->GetOctree();
         octree->GetFittingOctant(aabb, octree);
