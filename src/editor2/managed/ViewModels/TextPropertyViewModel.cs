@@ -1,4 +1,5 @@
 using System;
+using Avalonia.Threading;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -34,55 +35,70 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            _isRefreshing = true;
-
-            try
-            {
-                if (!_target.IsValid)
-                {
-                    Value = "(invalid target)";
-                    EditableValue = string.Empty;
-                    return;
-                }
-
-                using HypData data = _property.Get(_target);
-                object? rawValue = data.GetValue();
-                Value = FormatValue(rawValue);
-                EditableValue = rawValue?.ToString() ?? string.Empty;
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
-                Value = "(unavailable)";
-                EditableValue = string.Empty;
-            }
-            finally
-            {
-                _isRefreshing = false;
-            }
-        }
-
-        private void CommitEditableText(string value)
-        {
-            if (!_target.IsValid)
+            if (_isRefreshing)
             {
                 return;
             }
 
-            try
-            {
-                using HypData data = _isNameProperty
-                    ? new HypData(new Name(value ?? string.Empty))
-                    : new HypData(value ?? string.Empty);
+            _isRefreshing = true;
 
-                _property.Set(_target, data);
-                Value = value ?? string.Empty;
-            }
-            catch (Exception ex)
+            _ = EngineManager.PostToGameThread(() =>
             {
-                Logger.Log(LogType.Error, $"Inspector failed to set property '{Name}': {ex.Message}");
-                RefreshValue();
+                try
+                {
+                    using HypData data = _property.Get(_target);
+                    object? rawValue = data.GetValue();
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isRefreshing = false;
+
+                        Value = FormatValue(rawValue);
+                        EditableValue = rawValue?.ToString() ?? string.Empty;
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
+
+                    _isRefreshing = false;
+                }
+            });
+        }
+
+        private void CommitEditableText(string value)
+        {
+            if (_isRefreshing)
+            {
+                return;
             }
+
+            _isRefreshing = true;
+
+            _ = EngineManager.PostToGameThread(() =>
+            {
+                try
+                {
+                    using HypData data = _isNameProperty
+                        ? new HypData(new Name(value ?? string.Empty))
+                        : new HypData(value ?? string.Empty);
+
+                    _property.Set(_target, data);
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isRefreshing = false;
+
+                        Value = value ?? string.Empty;
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Warn, $"Inspector failed to write property '{Name}': {ex.Message}");
+
+                    _isRefreshing = false;
+                }
+            });
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using Avalonia.Threading;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -32,59 +33,95 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
+            if (_isRefreshing)
+            {
+                return;
+            }
+
             _isRefreshing = true;
 
-            try
+            _ = EngineManager.PostToGameThread(() =>
             {
-                if (!_target.IsValid)
+                try
                 {
-                    Value = "(invalid target)";
-                    _translation.RefreshValue();
-                    _rotationEuler.RefreshValue();
-                    _scale.RefreshValue();
-                    return;
-                }
+                    Transform transform;
+                    using (HypData data = _property.Get(_target))
+                    {
+                        object? raw = data.GetValue();
+                        transform = raw is Transform t ? t : Transform.Identity;
+                    }
 
-                Transform transform;
-                using (HypData data = _property.Get(_target))
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isRefreshing = false;
+
+                        Value = $"T:{FormatVec3(transform.Translation)} R:{FormatQuat(transform.Rotation)} S:{FormatVec3(transform.Scale)}";
+
+                        _translation.RefreshValue();
+                        _rotationEuler.RefreshValue();
+                        _scale.RefreshValue();
+                    });
+                }
+                catch (Exception ex)
                 {
-                    object? raw = data.GetValue();
-                    transform = raw is Transform t ? t : Transform.Identity;
+                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
+
+                    _isRefreshing = false;
                 }
-
-                Value = $"T:{FormatVec3(transform.Translation)} R:{FormatQuat(transform.Rotation)} S:{FormatVec3(transform.Scale)}";
-
-                _translation.RefreshValue();
-                _rotationEuler.RefreshValue();
-                _scale.RefreshValue();
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Warn, $"Inspector failed to read transform '{Name}': {ex.Message}");
-                Value = "(unavailable)";
-            }
-            finally
-            {
-                _isRefreshing = false;
-            }
+            });
         }
 
         private Transform ReadTransform()
         {
-            using HypData data = _property.Get(_target);
-            object? raw = data.GetValue();
-            if (raw is Transform t)
+            _ = EngineManager.PostToGameThread<Transform>(() =>
             {
-                return t;
-            }
+                using HypData data = _property.Get(_target);
+                object? raw = data.GetValue();
 
-            throw new InvalidOperationException($"Property '{Name}' value is not a Transform");
+                if (raw is Transform t)
+                {
+                    return t;
+                }
+
+                throw new InvalidOperationException($"Property '{Name}' value is not a Transform");
+            });
+
+            return default(Transform); // debugging deadlock
+
+            //if (!t.Wait(5000))
+            //{
+            //    Logger.Log(LogType.Error, $"Timeout reading Transform property '{Name}'");
+            //    throw new TimeoutException($"Timeout reading Transform property '{Name}'");
+            //}
+
+            //return t.Result;
         }
 
         private void WriteTransform(Transform transform)
         {
-            using HypData data = new HypData(transform);
-            _property.Set(_target, data);
+            if (_isRefreshing)
+            {
+                return;
+            }
+
+            _isRefreshing = true;
+
+            _ = EngineManager.PostToGameThread(() =>
+            {
+                try
+                {
+                    using HypData data = new HypData(transform);
+                    _property.Set(_target, data);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Warn, $"Inspector failed to write property '{Name}': {ex.Message}");
+                }
+                finally
+                {
+                    _isRefreshing = false;
+                }
+            });
         }
 
         private Vec3f ReadTranslation() => ReadTransform().Translation;

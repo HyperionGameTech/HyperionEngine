@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Avalonia.Threading;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -23,30 +24,35 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
+            if (_isRefreshing)
+            {
+                return;
+            }
+
             _isRefreshing = true;
 
-            try
+            _ = EngineManager.PostToGameThread(() =>
             {
-                if (!_target.IsValid)
+                try
                 {
-                    Value = "(invalid target)";
-                    return;
-                }
+                    using HypData data = _property.Get(_target);
+                    object? rawValue = data.GetValue();
 
-                using HypData data = _property.Get(_target);
-                object? rawValue = data.GetValue();
-                Value = FormatValue(rawValue);
-                UpdateFlagSelectionsFromValue(rawValue);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
-                Value = "(unavailable)";
-            }
-            finally
-            {
-                _isRefreshing = false;
-            }
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isRefreshing = false;
+
+                        Value = FormatValue(rawValue);
+                        UpdateFlagSelectionsFromValue(rawValue);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
+
+                    _isRefreshing = false;
+                }
+            });
         }
 
         private void BuildFlagEntries(Class enumClass)
@@ -131,6 +137,7 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
+                // @TODO : Not valid to use Enum.ToObject for this
                 object finalValue = Enum.ToObject(valueType, combined);
 
                 using HypData data = new HypData(finalValue);

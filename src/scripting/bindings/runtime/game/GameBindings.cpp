@@ -19,6 +19,13 @@ extern "C"
         Assert(pGame != nullptr);
         Assert(pTaskFunc != nullptr);
 
+        if (IsOnThread(g_gameThread))
+        {
+            // Execute immediately if already on the game thread
+            pTaskFunc();
+            return;
+        }
+
         g_gameThreadInstance->GetScheduler().Enqueue(pTaskFunc, TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 } // extern "C"

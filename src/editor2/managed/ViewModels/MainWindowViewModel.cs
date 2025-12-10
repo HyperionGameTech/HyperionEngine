@@ -103,43 +103,31 @@ namespace Hyperion.Editor.ViewModels
 
             _editorSubsystem = editorSubsystem;
 
-            Scene? activeScene = editorSubsystem.GetActiveScene();
-            if (activeScene != null)
-            {
-                SceneHierarchy.AttachToScene(activeScene);
-            }
+            // handle active scene changes
+            _editorSubsystem.GetOnActiveSceneChangedDelegate()
+                .Bind(HandleActiveSceneChanged)
+                .Detach();
 
             SceneHierarchy.SelectedNodeChanged += OnSceneHierarchyNodeSelected;
 
             BindFocusedNodeChanged();
 
-            try
+            _ = EngineManager.PostToGameThread(() =>
             {
+                Scene? activeScene = _editorSubsystem.GetActiveScene();
                 Node? focusedNode = _editorSubsystem.GetFocusedNode();
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    HandleFocusedNodeUpdate(focusedNode);
+                    SceneHierarchy.AttachToScene(activeScene);
                 });
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Warn, $"Failed to query focused node: {ex.Message}");
-            }
 
-            // handle active scene changes
-            editorSubsystem.GetOnActiveSceneChangedDelegate()
-                .Bind(HandleActiveSceneChanged)
-                .Detach();
+                HandleFocusedNodeUpdate(focusedNode);
+            });
         }
 
         private void HandleActiveSceneChanged(Scene? scene)
         {
-            if (scene == null)
-            {
-                return;
-            }
-
             Dispatcher.UIThread.Invoke(() =>
             {
                 SceneHierarchy.AttachToScene(scene);
@@ -153,23 +141,20 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            Dispatcher.UIThread.Post(() =>
+            _ = EngineManager.PostToGameThread(() =>
             {
-                if (node == null || !node.IsValid)
-                {
-                    Inspector.SetSelectedNode(null);
-                    return;
-                }
-
                 try
                 {
                     _editorSubsystem.SetFocusedNode(node, false);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Error, $"Failed to set focused node: {ex.Message}");
+                    Logger.Log(LogType.Warn, $"Failed to set focused node: {ex.Message}");
                 }
+            });
 
+            Dispatcher.UIThread.Post(() =>
+            {
                 Inspector.SetSelectedNode(node);
             });
         }

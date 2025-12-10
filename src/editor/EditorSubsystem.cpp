@@ -3383,8 +3383,15 @@ bool EditorSubsystem::RemoveDebugOverlay(EditorDebugOverlayBase* debugOverlay)
     return true;
 }
 
+Handle<Scene> EditorSubsystem::GetActiveScene() const
+{
+    AssertOnThread(g_gameThread);
+    return m_activeScene.Lock();
+}
+
 Handle<Node> EditorSubsystem::GetFocusedNode() const
 {
+    AssertOnThread(g_gameThread);
     return m_focusedNode.Lock();
 }
 

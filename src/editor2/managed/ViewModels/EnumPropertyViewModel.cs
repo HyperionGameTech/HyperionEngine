@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Avalonia.Threading;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -36,52 +37,69 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
-            _isRefreshing = true;
-
-            try
-            {
-                if (!_target.IsValid)
-                {
-                    Value = "(invalid target)";
-                    SetProperty(ref _selectedEnumValue, null);
-                    return;
-                }
-
-                using HypData data = _property.Get(_target);
-                object? rawValue = data.GetValue();
-                Value = FormatValue(rawValue);
-                SetProperty(ref _selectedEnumValue, rawValue);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
-                Value = "(unavailable)";
-                SetProperty(ref _selectedEnumValue, null);
-            }
-            finally
-            {
-                _isRefreshing = false;
-            }
-        }
-
-        private void CommitEnumValue(object? value)
-        {
-            if (!_target.IsValid || value == null)
+            if (_isRefreshing)
             {
                 return;
             }
 
-            try
+            _isRefreshing = true;
+
+            _ = EngineManager.PostToGameThread(() =>
             {
-                using HypData data = new HypData(value);
-                _property.Set(_target, data);
-                Value = FormatValue(value);
-            }
-            catch (Exception ex)
+                try
+                {
+                    using HypData data = _property.Get(_target);
+                    object? rawValue = data.GetValue();
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isRefreshing = false;
+
+                        Value = FormatValue(rawValue);
+                        SetProperty(ref _selectedEnumValue, rawValue);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
+
+                    _isRefreshing = false;
+                }
+            });
+        }
+
+        private void CommitEnumValue(object? value)
+        {
+            if (_isRefreshing)
             {
-                Logger.Log(LogType.Error, $"Inspector failed to set enum property '{Name}': {ex.Message}");
-                RefreshValue();
+                return;
             }
+
+            _isRefreshing = true;
+
+            _ = EngineManager.PostToGameThread(() =>
+            {
+                try
+                {
+                    using HypData data = new HypData(value);
+                    _property.Set(_target, data);
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isRefreshing = false;
+
+                        Value = FormatValue(value);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Error, $"Inspector failed to set enum property '{Name}': {ex.Message}");
+
+                    _isRefreshing = false;
+
+                    RefreshValue();
+                }
+            });
         }
 
         private void BuildEnumEntries(Class enumClass)

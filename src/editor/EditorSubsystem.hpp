@@ -348,14 +348,6 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE Handle<Scene> GetActiveScene() const
-    {
-        return m_activeScene.Lock();
-    }
-
-    void SetActiveScene(const WeakHandle<Scene>& scene);
-
-    HYP_METHOD()
     EditorViewport* GetActiveViewport() const;
 
     HYP_METHOD()
@@ -410,6 +402,11 @@ public:
 
     HYP_METHOD()
     Handle<Node> GetFocusedNode() const;
+
+    HYP_METHOD()
+    Handle<Scene> GetActiveScene() const;
+
+    void SetActiveScene(const WeakHandle<Scene>& scene);
 
     /*! \brief Calculate an appropriate position for inserting a new object into the scene.
      *  Uses raycasting from the camera to find a suitable location that doesn't intersect with existing geometry.

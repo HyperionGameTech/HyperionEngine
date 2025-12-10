@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using Avalonia.Threading;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -77,17 +78,15 @@ namespace Hyperion.Editor.ViewModels
 
         public override void RefreshValue()
         {
+            if (_isRefreshing)
+            {
+                return;
+            }
+
             _isRefreshing = true;
 
             try
             {
-                if (!_target.IsValid)
-                {
-                    Value = "(invalid target)";
-                    ResetComponentStrings();
-                    return;
-                }
-
                 if (!TryReadStruct(out TStruct vector))
                 {
                     Value = "(unavailable)";
@@ -95,22 +94,23 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                for (int i = 0; i < _componentCount; i++)
+                Dispatcher.UIThread.Post(() =>
                 {
-                    _components[i] = FormatComponent(_getComponent(vector, i));
-                }
+                    _isRefreshing = false;
 
-                Value = BuildDisplayString(_components);
-                RaiseAllComponents();
+                    for (int i = 0; i < _componentCount; i++)
+                    {
+                        _components[i] = FormatComponent(_getComponent(vector, i));
+                    }
+
+                    Value = BuildDisplayString(_components);
+                    RaiseAllComponents();
+                });
             }
             catch (Exception ex)
             {
                 Logger.Log(LogType.Warn, $"Inspector failed to read property '{Name}': {ex.Message}");
-                Value = "(unavailable)";
-                ResetComponentStrings();
-            }
-            finally
-            {
+
                 _isRefreshing = false;
             }
         }
@@ -195,23 +195,55 @@ namespace Hyperion.Editor.ViewModels
             return value.ToString("F3", CultureInfo.InvariantCulture);
         }
 
+        // Blocking wait on game thread to read the struct value.
         private TStruct ReadStructFromProperty()
         {
-            using HypData data = _property.Get(_target);
-            object? raw = data.GetValue();
-
-            if (raw is TStruct casted)
+            Task<TStruct> task = EngineManager.PostToGameThread<TStruct>(() =>
             {
-                return casted;
-            }
+                using HypData data = _property.Get(_target);
+                object? raw = data.GetValue();
 
-            throw new InvalidOperationException($"Property '{Name}' value is not of expected type {typeof(TStruct).Name}");
+                if (raw is TStruct casted)
+                {
+                    return casted;
+                }
+
+                throw new InvalidOperationException($"Property '{Name}' value is not of expected type {typeof(TStruct).Name}");
+            });
+
+            task.Wait();
+
+            return task.Result;
         }
 
         private void WriteStructToProperty(TStruct value)
         {
-            using HypData data = new HypData(value);
-            _property.Set(_target, data);
+            if (_isRefreshing)
+            {
+                return;
+            }
+
+            _isRefreshing = true;
+
+            _ = EngineManager.PostToGameThread(() =>
+            {
+                try
+                {
+                    using HypData data = new HypData(value);
+                    _property.Set(_target, data);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Error, $"Inspector failed to write property '{Name}': {ex.Message}");
+                }
+                finally
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isRefreshing = false;
+                    });
+                }
+            });
         }
     }
 }

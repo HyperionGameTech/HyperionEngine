@@ -18,7 +18,7 @@ namespace Hyperion
         {
             TaskCompletionSource<T> tcs = new TaskCompletionSource<T>();
 
-            GCHandle? gcHandle = null;
+            GCHandle gcHandle = default;
 
             Action? inner = () =>
             {
@@ -29,7 +29,8 @@ namespace Hyperion
 
                 try
                 {
-                    tcs.SetResult(func.Invoke());
+                    T result = func.Invoke();
+                    tcs.SetResult(result);
                 }
                 catch (Exception ex)
                 {
@@ -37,7 +38,7 @@ namespace Hyperion
                 }
                 finally
                 {
-                    gcHandle.Value.Free();
+                    gcHandle.Free();
                 }
             };
 
@@ -53,7 +54,7 @@ namespace Hyperion
         {
             TaskCompletionSource tcs = new TaskCompletionSource();
 
-            GCHandle? gcHandle = null;
+            GCHandle gcHandle = default;
 
             Action? inner = () =>
             {
@@ -73,7 +74,7 @@ namespace Hyperion
                 }
                 finally
                 {
-                    gcHandle.Value.Free();
+                    gcHandle.Free();
                 }
             };
 
