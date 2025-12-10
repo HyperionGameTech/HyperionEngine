@@ -47,30 +47,30 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential)]
     public struct TypeInfo
     {
-        private IntPtr ptr;
+        private IntPtr _ptr;
 
         public TypeInfo()
         {
-            ptr = IntPtr.Zero;
+            _ptr = IntPtr.Zero;
         }
 
         public TypeInfo(IntPtr ptr)
         {
-            this.ptr = ptr;
+            _ptr = ptr;
         }
 
-        public IntPtr Address => ptr;
+        public IntPtr Address => _ptr;
 
-        public bool IsNull => ptr == IntPtr.Zero;
+        public bool IsNull => _ptr == IntPtr.Zero;
 
-        public bool IsValid => TypeInfo_IsValid(ptr);
+        public bool IsValid => TypeInfo_IsValid(_ptr);
 
         public Name Name
         {
             get
             {
                 Name name;
-                TypeInfo_GetName(ptr, out name);
+                TypeInfo_GetName(_ptr, out name);
                 return name;
             }
         }
@@ -80,7 +80,7 @@ namespace Hyperion
             get
             {
                 TypeId typeId;
-                TypeInfo_GetId(ptr, out typeId);
+                TypeInfo_GetId(_ptr, out typeId);
                 return typeId;
             }
         }
@@ -89,21 +89,21 @@ namespace Hyperion
         {
             get
             {
-                IntPtr classPtr = TypeInfo_GetClass(ptr);
+                IntPtr pClass = TypeInfo_GetClass(_ptr);
 
-                if (classPtr == IntPtr.Zero)
+                if (pClass == IntPtr.Zero)
                 {
                     return null;
                 }
 
-                return new Class(classPtr);
+                return new Class(pClass);
             }
         }
 
-        public uint Size => TypeInfo_GetSize(ptr);
-        public uint Alignment => TypeInfo_GetAlignment(ptr);
+        public uint Size => TypeInfo_GetSize(_ptr);
+        public uint Alignment => TypeInfo_GetAlignment(_ptr);
 
-        public TypeInfoFlags Flags => (TypeInfoFlags)TypeInfo_GetFlags(ptr);
+        public TypeInfoFlags Flags => (TypeInfoFlags)TypeInfo_GetFlags(_ptr);
 
         public bool IsString => (Flags & TypeInfoFlags.StringType) != 0;
         public bool IsArray => (Flags & TypeInfoFlags.ArrayType) != 0;

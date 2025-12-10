@@ -9,19 +9,13 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 8)]
     public struct HashCode
     {
-        private uint value;
+        private uint _value;
 
         public HashCode(uint value)
         {
-            this.value = value;
+            _value = value;
         }
 
-        public uint Value
-        {
-            get
-            {
-                return value;
-            }
-        }
+        public uint Value => _value;
     }
 }

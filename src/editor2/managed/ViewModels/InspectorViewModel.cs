@@ -19,19 +19,6 @@ namespace Hyperion.Editor.ViewModels
 
         public void SetSelectedNode(Node? node)
         {
-            if (SelectedNode != null && node != null && SelectedNode.IsValid && node.IsValid)
-            {
-                if (SelectedNode.NativeAddress == node.NativeAddress)
-                {
-                    foreach (InspectorPropertyViewModelBase propertyViewModel in Properties)
-                    {
-                        propertyViewModel.RefreshValue();
-                    }
-
-                    return;
-                }
-            }
-
             SelectedNode = node;
             RefreshProperties();
         }

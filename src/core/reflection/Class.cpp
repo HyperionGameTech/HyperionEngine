@@ -1313,7 +1313,6 @@ bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& out
     TResourceHandle<ScriptObjectResource> resourceHandle(*target->GetScriptObjectResource());
 
     dotnet::ManagedObject* managedObject = resourceHandle->GetManagedObject();
-    AssertDebug(managedObject != nullptr);
 
     if (!managedObject)
     {

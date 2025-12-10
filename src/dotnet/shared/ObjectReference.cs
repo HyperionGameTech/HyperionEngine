@@ -6,35 +6,37 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 16)]
     public struct ObjectReference : IDisposable
     {
-        public IntPtr weakHandle;
-        public IntPtr strongHandle;
+        public IntPtr WeakHandle;
+        public IntPtr StrongHandle;
 
         public bool IsValid
         {
             get
             {
-                return weakHandle != IntPtr.Zero;
+                return WeakHandle != IntPtr.Zero;
             }
         }
         
         public void Dispose()
         {
-            if (strongHandle != IntPtr.Zero)
+            if (StrongHandle != IntPtr.Zero)
             {
-                GCHandle.FromIntPtr(strongHandle).Free();
-                strongHandle = IntPtr.Zero;
+                GCHandle.FromIntPtr(StrongHandle).Free();
+                StrongHandle = IntPtr.Zero;
             }
 
-            if (weakHandle != IntPtr.Zero)
+            if (WeakHandle != IntPtr.Zero)
             {
-                GCHandle.FromIntPtr(weakHandle).Free();
-                weakHandle = IntPtr.Zero;
+                GCHandle.FromIntPtr(WeakHandle).Free();
+                WeakHandle = IntPtr.Zero;
             }
         }
 
         public object? LoadObject()
         {
-            return weakHandle == IntPtr.Zero ? null : GCHandle.FromIntPtr(weakHandle).Target;
+            return WeakHandle == IntPtr.Zero
+                ? null
+                : GCHandle.FromIntPtr(WeakHandle).Target;
         }
     }
 }

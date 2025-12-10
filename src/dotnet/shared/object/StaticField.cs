@@ -7,19 +7,19 @@ namespace Hyperion
     {
         public static readonly StaticField Invalid = new StaticField(IntPtr.Zero);
 
-        internal IntPtr ptr;
+        internal IntPtr _ptr;
 
         internal StaticField(IntPtr ptr)
         {
-            this.ptr = ptr;
+            _ptr = ptr;
         }
 
         public Name Name
         {
             get
             {
-                Name name = new Name(0);
-                StaticField_GetName(ptr, out name);
+                Name name;
+                StaticField_GetName(_ptr, out name);
                 return name;
             }
         }
@@ -29,14 +29,14 @@ namespace Hyperion
             get
             {
                 TypeId typeId;
-                StaticField_GetTypeId(ptr, out typeId);
+                StaticField_GetTypeId(_ptr, out typeId);
                 return typeId;
             }
         }
 
         public object? ReadObject()
         {
-            if (ptr == IntPtr.Zero)
+            if (_ptr == IntPtr.Zero)
             {
                 throw new Exception("StaticField pointer is null");
             }
@@ -47,7 +47,7 @@ namespace Hyperion
 
             try
             {
-                StaticField_Get(ptr, out outData);
+                StaticField_Get(_ptr, out outData);
 
                 result = outData.GetValue();
             }

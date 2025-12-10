@@ -261,8 +261,8 @@ namespace Hyperion
 
                 ObjectReference attributeObjectReference = new ObjectReference
                 {
-                    weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(attribute, GCHandleType.Weak)),
-                    strongHandle = IntPtr.Zero
+                    WeakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(attribute, GCHandleType.Weak)),
+                    StrongHandle = IntPtr.Zero
                 };
 
                 ref ManagedAttribute managedAttribute = ref Unsafe.AsRef<ManagedAttribute>((void*)(managedAttributeHolder.managedAttributesPtr + (i * Marshal.SizeOf<ManagedAttribute>())));
@@ -649,8 +649,8 @@ namespace Hyperion
 
                 return new ObjectReference
                 {
-                    weakHandle = GCHandle.ToIntPtr(gcHandleWeak),
-                    strongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr((GCHandle)gcHandleStrong) : IntPtr.Zero
+                    WeakHandle = GCHandle.ToIntPtr(gcHandleWeak),
+                    StrongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr((GCHandle)gcHandleStrong) : IntPtr.Zero
                 };
             }));
 
@@ -670,8 +670,8 @@ namespace Hyperion
 
                 return new ObjectReference
                 {
-                    weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Weak)),
-                    strongHandle = IntPtr.Zero
+                    WeakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Weak)),
+                    StrongHandle = IntPtr.Zero
                 };
             }));
 
@@ -834,14 +834,14 @@ namespace Hyperion
                 gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
 
 #if DEBUG
-            Assert.Throw(objectReferenceRef.weakHandle == IntPtr.Zero && objectReferenceRef.strongHandle == IntPtr.Zero, "ObjectReference already has handles assigned");
+            Assert.Throw(objectReferenceRef.WeakHandle == IntPtr.Zero && objectReferenceRef.StrongHandle == IntPtr.Zero, "ObjectReference already has handles assigned");
 #endif
 
             // @NOTE: reassign ref
             objectReferenceRef = new ObjectReference
             {
-                weakHandle = GCHandle.ToIntPtr(gcHandleWeak),
-                strongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr(gcHandleStrong.Value) : IntPtr.Zero
+                WeakHandle = GCHandle.ToIntPtr(gcHandleWeak),
+                StrongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr(gcHandleStrong.Value) : IntPtr.Zero
             };
         }
 
@@ -852,14 +852,14 @@ namespace Hyperion
 
             if (*inOutKeepAlive != 0)
             {
-                if (objectReference.strongHandle != IntPtr.Zero)
+                if (objectReference.StrongHandle != IntPtr.Zero)
                 {
                     // Already allocated
                     *inOutKeepAlive = 1;
                     return;
                 }
 
-                if (objectReference.weakHandle == IntPtr.Zero)
+                if (objectReference.WeakHandle == IntPtr.Zero)
                 {
                     *inOutKeepAlive = 0;
                     return;
@@ -873,7 +873,7 @@ namespace Hyperion
                     return;
                 }
 
-                objectReference.strongHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Normal));
+                objectReference.StrongHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Normal));
 
                 *inOutKeepAlive = 1;
 
@@ -881,17 +881,17 @@ namespace Hyperion
             }
 
             // No weak reference
-            if (objectReference.weakHandle == IntPtr.Zero)
+            if (objectReference.WeakHandle == IntPtr.Zero)
             {
                 *inOutKeepAlive = 0;
                 return;
             }
 
             // Free the strong handle
-            if (objectReference.strongHandle != IntPtr.Zero)
+            if (objectReference.StrongHandle != IntPtr.Zero)
             {
-                GCHandle.FromIntPtr(objectReference.strongHandle).Free();
-                objectReference.strongHandle = IntPtr.Zero;
+                GCHandle.FromIntPtr(objectReference.StrongHandle).Free();
+                objectReference.StrongHandle = IntPtr.Zero;
             }
 
             *inOutKeepAlive = 1;

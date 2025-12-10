@@ -12,42 +12,30 @@ namespace Hyperion
     {
         public static readonly TypeId Void = new TypeId(0);
 
-        private uint value;
+        private uint _value;
 
         public TypeId()
         {
-            value = 0;
+            _value = 0;
         }
 
         public TypeId(uint value)
         {
-            this.value = value;
+            _value = value;
         }
 
-        public uint Value
-        {
-            get
-            {
-                return value;
-            }
-        }
+        public uint Value => _value;
 
-        public bool IsValid
-        {
-            get
-            {
-                return value != 0;
-            }
-        }
+        public bool IsValid => _value != 0;
 
         public static bool operator==(TypeId a, TypeId b)
         {
-            return a.value == b.value;
+            return a._value == b._value;
         }
 
         public static bool operator!=(TypeId a, TypeId b)
         {
-            return a.value != b.value;
+            return a._value != b._value;
         }
 
         public override bool Equals(object obj)
@@ -62,7 +50,7 @@ namespace Hyperion
 
         public override int GetHashCode()
         {
-            return (int)value;
+            return (int)_value;
         }
 
         /// <summary>
@@ -74,7 +62,7 @@ namespace Hyperion
         {
             string typeName = typeof(T).Name;
 
-            TypeId value = new TypeId(0);
+            TypeId value;
             TypeId_ForManagedType(typeName, out value);
 
             return value;
@@ -89,7 +77,7 @@ namespace Hyperion
         {
             string typeName = type.Name;
 
-            TypeId value = new TypeId(0);
+            TypeId value;
             TypeId_ForManagedType(typeName, out value);
 
             return value;

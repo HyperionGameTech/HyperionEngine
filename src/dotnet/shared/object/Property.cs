@@ -7,19 +7,19 @@ namespace Hyperion
     {
         public static readonly Property Invalid = new Property(IntPtr.Zero);
 
-        internal IntPtr ptr;
+        internal IntPtr _ptr;
 
         internal Property(IntPtr ptr)
         {
-            this.ptr = ptr;
+            _ptr = ptr;
         }
 
         public Name Name
         {
             get
             {
-                Name name = new Name(0);
-                Property_GetName(ptr, out name);
+                Name name;
+                Property_GetName(_ptr, out name);
                 return name;
             }
         }
@@ -29,7 +29,7 @@ namespace Hyperion
             get
             {
                 TypeId typeId;
-                Property_GetTypeId(ptr, out typeId);
+                Property_GetTypeId(_ptr, out typeId);
                 return typeId;
             }
         }
@@ -38,8 +38,8 @@ namespace Hyperion
         {
             get
             {
-                IntPtr typeInfoPtr = Property_GetTypeInfo(ptr);
-                return new TypeInfo(typeInfoPtr);
+                IntPtr pTypeInfo = Property_GetTypeInfo(_ptr);
+                return new TypeInfo(pTypeInfo);
             }
         }
 
@@ -47,42 +47,42 @@ namespace Hyperion
         {
             get
             {
-                uint count = Property_GetAttributes(ptr, IntPtr.Zero);
-                IntPtr attributesPtr = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>() * (int)count);
+                uint count = Property_GetAttributes(_ptr, IntPtr.Zero);
+                IntPtr pAttrs = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>() * (int)count);
 
                 try
                 {
-                    Property_GetAttributes(ptr, attributesPtr);
+                    Property_GetAttributes(_ptr, pAttrs);
 
                     for (int i = 0; i < count; i++)
                     {
-                        IntPtr attributePtr = Marshal.ReadIntPtr(attributesPtr, i * Marshal.SizeOf<IntPtr>());
+                        IntPtr pAttr = Marshal.ReadIntPtr(pAttrs, i * Marshal.SizeOf<IntPtr>());
 
-                        yield return new ClassAttribute(attributePtr);
+                        yield return new ClassAttribute(pAttr);
                     }
                 }
                 finally
                 {
-                    Marshal.FreeHGlobal(attributesPtr);
+                    Marshal.FreeHGlobal(pAttrs);
                 }
             }
         }
 
         public ClassAttribute? GetAttribute(Name name)
         {
-            IntPtr attributePtr = Property_GetAttribute(ptr, ref name);
+            IntPtr pAttr = Property_GetAttribute(_ptr, ref name);
 
-            if (attributePtr == IntPtr.Zero)
+            if (pAttr == IntPtr.Zero)
             {
                 return null;
             }
 
-            return new ClassAttribute(attributePtr);
+            return new ClassAttribute(pAttr);
         }
 
         public HypData Get(ObjectBase obj)
         {
-            if (ptr == IntPtr.Zero)
+            if (_ptr == IntPtr.Zero)
             {
                 throw new InvalidOperationException("Cannot invoke getter: Invalid property");
             }
@@ -94,7 +94,7 @@ namespace Hyperion
 
             HypDataBuffer resultBuffer;
 
-            if (!Property_InvokeGetter(ptr, obj.Class.Address, obj.NativeAddress, out resultBuffer))
+            if (!Property_InvokeGetter(_ptr, obj.Class.Address, obj.NativeAddress, out resultBuffer))
             {
                 throw new InvalidOperationException("Failed to invoke getter");
             }
@@ -104,7 +104,7 @@ namespace Hyperion
 
         public void Set(ObjectBase obj, HypData value)
         {
-            if (ptr == IntPtr.Zero)
+            if (_ptr == IntPtr.Zero)
             {
                 throw new InvalidOperationException("Cannot invoke setter: Invalid property");
             }
@@ -119,7 +119,7 @@ namespace Hyperion
                 throw new ArgumentNullException("value");
             }
 
-            if (!Property_InvokeSetter(ptr, obj.Class.Address, obj.NativeAddress, ref value.Buffer))
+            if (!Property_InvokeSetter(_ptr, obj.Class.Address, obj.NativeAddress, ref value.Buffer))
             {
                 throw new InvalidOperationException("Failed to invoke setter");
             }

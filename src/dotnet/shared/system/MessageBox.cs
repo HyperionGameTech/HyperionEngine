@@ -20,10 +20,10 @@ namespace Hyperion
 
     public class MessageBox
     {
-        private MessageBoxType type;
-        private string title;
-        private string message;
-        private MessageBoxButton[] buttons;
+        private MessageBoxType _type;
+        private string _title;
+        private string _message;
+        private MessageBoxButton[] _buttons;
 
         public static MessageBox Info(string title = "", string message = "")
         {
@@ -42,37 +42,37 @@ namespace Hyperion
 
         public MessageBox(MessageBoxType type)
         {
-            this.type = type;
-            this.title = "";
-            this.message = "";
-            this.buttons = Array.Empty<MessageBoxButton>();
+            _type = type;
+            _title = "";
+            _message = "";
+            _buttons = Array.Empty<MessageBoxButton>();
         }
 
         public MessageBox(MessageBoxType type, string title, string message, MessageBoxButton[]? buttons = null)
         {
-            this.type = type;
-            this.title = title;
-            this.message = message;
-            this.buttons = buttons ?? Array.Empty<MessageBoxButton>();
+            _type = type;
+            _title = title;
+            _message = message;
+            _buttons = buttons ?? Array.Empty<MessageBoxButton>();
         }
 
         public MessageBox Title(string title)
         {
-            this.title = title;
+            _title = title;
 
             return this;
         }
 
         public MessageBox Text(string text)
         {
-            this.message = text;
+            _message = text;
 
             return this;
         }
 
         public MessageBox Button(string text, MessageBoxButton.OnClick onClick)
         {
-            if (buttons.Length >= 3)
+            if (_buttons.Length >= 3)
             {
                 throw new InvalidOperationException("MessageBox can only have up to 3 buttons.");
             }
@@ -81,37 +81,37 @@ namespace Hyperion
             button.text = text;
             button.onClick = onClick;
 
-            MessageBoxButton[] newButtons = new MessageBoxButton[buttons.Length + 1];
+            MessageBoxButton[] newButtons = new MessageBoxButton[_buttons.Length + 1];
 
-            for (int i = 0; i < buttons.Length; i++)
+            for (int i = 0; i < _buttons.Length; i++)
             {
-                newButtons[i] = buttons[i];
+                newButtons[i] = _buttons[i];
             }
 
-            newButtons[buttons.Length] = button;
+            newButtons[_buttons.Length] = button;
 
-            buttons = newButtons;
+            _buttons = newButtons;
 
             return this;
         }
 
         public void Show()
         {
-            IntPtr buttonTexts = Marshal.AllocHGlobal(buttons.Length * IntPtr.Size);
-            IntPtr buttonFunctionPointers = Marshal.AllocHGlobal(buttons.Length * IntPtr.Size);
+            IntPtr buttonTexts = Marshal.AllocHGlobal(_buttons.Length * IntPtr.Size);
+            IntPtr buttonFunctionPointers = Marshal.AllocHGlobal(_buttons.Length * IntPtr.Size);
 
-            for (int i = 0; i < buttons.Length; i++)
+            for (int i = 0; i < _buttons.Length; i++)
             {
-                IntPtr buttonText = Marshal.StringToHGlobalAnsi(buttons[i].text);
-                IntPtr buttonFunctionPointer = Marshal.GetFunctionPointerForDelegate(buttons[i].onClick);
+                IntPtr buttonText = Marshal.StringToHGlobalAnsi(_buttons[i].text);
+                IntPtr buttonFunctionPointer = Marshal.GetFunctionPointerForDelegate(_buttons[i].onClick);
 
                 Marshal.WriteIntPtr(buttonTexts, i * IntPtr.Size, buttonText);
                 Marshal.WriteIntPtr(buttonFunctionPointers, i * IntPtr.Size, buttonFunctionPointer);
             }
 
-            MessageBox_Show((int)type, title, message, buttons.Length, buttonTexts, buttonFunctionPointers);
+            MessageBox_Show((int)_type, _title, _message, _buttons.Length, buttonTexts, buttonFunctionPointers);
 
-            for (int i = 0; i < buttons.Length; i++)
+            for (int i = 0; i < _buttons.Length; i++)
             {
                 IntPtr buttonText = Marshal.ReadIntPtr(buttonTexts, i * IntPtr.Size);
 

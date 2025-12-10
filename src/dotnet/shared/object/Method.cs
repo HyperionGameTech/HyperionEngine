@@ -6,15 +6,9 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 4)]
     public struct MethodParameter
     {
-        private TypeId typeId;
+        private TypeId _typeId;
 
-        public TypeId TypeId
-        {
-            get
-            {
-                return typeId;
-            }
-        }
+        public TypeId TypeId => _typeId;
     }
 
     [Flags]
@@ -29,11 +23,11 @@ namespace Hyperion
     {
         public static readonly Method Invalid = new Method(IntPtr.Zero);
 
-        internal IntPtr ptr;
+        internal IntPtr _ptr;
 
         internal Method(IntPtr ptr)
         {
-            this.ptr = ptr;
+            _ptr = ptr;
         }
 
         public Name Name
@@ -41,7 +35,7 @@ namespace Hyperion
             get
             {
                 Name name;
-                Method_GetName(ptr, out name);
+                Method_GetName(_ptr, out name);
                 return name;
             }
         }
@@ -51,7 +45,7 @@ namespace Hyperion
             get
             {
                 TypeId returnTypeId;
-                Method_GetReturnTypeId(ptr, out returnTypeId);
+                Method_GetReturnTypeId(_ptr, out returnTypeId);
                 return returnTypeId;
             }
         }
@@ -60,12 +54,12 @@ namespace Hyperion
         {
             get
             {
-                IntPtr paramsPtr;
-                uint count = Method_GetParameters(ptr, out paramsPtr);
+                IntPtr pParams;
+                uint count = Method_GetParameters(_ptr, out pParams);
 
                 for (int i = 0; i < count; i++)
                 {
-                    MethodParameter param = Marshal.PtrToStructure<MethodParameter>(paramsPtr + i * Marshal.SizeOf<MethodParameter>());
+                    MethodParameter param = Marshal.PtrToStructure<MethodParameter>(pParams + i * Marshal.SizeOf<MethodParameter>());
                     yield return param;
                 }
             }
@@ -75,7 +69,7 @@ namespace Hyperion
         {
             get
             {
-                return (MethodFlags)Method_GetFlags(ptr);
+                return (MethodFlags)Method_GetFlags(_ptr);
             }
         }
 
@@ -97,7 +91,7 @@ namespace Hyperion
 
         public HypDataBuffer InvokeNativeWithThis(ObjectBase thisObject, object[]? args = null)
         {
-            if (ptr == IntPtr.Zero)
+            if (_ptr == IntPtr.Zero)
             {
                 throw new InvalidOperationException("Cannot invoke method: Invalid method");
             }
@@ -109,8 +103,8 @@ namespace Hyperion
                 throw new InvalidOperationException("Cannot invoke method: Method is not a member function");
             }
 
-            IntPtr paramsPtr;
-            uint numParams = Method_GetParameters(ptr, out paramsPtr);
+            IntPtr pParams;
+            uint numParams = Method_GetParameters(_ptr, out pParams);
 
             if (numArgs != numParams)
             {
@@ -119,7 +113,9 @@ namespace Hyperion
 
             bool shouldStackAlloc = numArgs * Marshal.SizeOf<HypDataBuffer>() < 1024;
 
-            Span<HypDataBuffer> hypDataArgsBuffers = (shouldStackAlloc ? stackalloc HypDataBuffer[(int)numArgs] : new HypDataBuffer[(int)numArgs]);
+            Span<HypDataBuffer> hypDataArgsBuffers = shouldStackAlloc
+                ? stackalloc HypDataBuffer[(int)numArgs]
+                : new HypDataBuffer[(int)numArgs];
 
             int argIndex = 0;
 
@@ -141,9 +137,9 @@ namespace Hyperion
             // Args is pointer to contiguous HypDataBuffer objects
             unsafe
             {
-                fixed (HypDataBuffer* argsPtr = hypDataArgsBuffers)
+                fixed (HypDataBuffer* pArgs = hypDataArgsBuffers)
                 {
-                    bool result = Method_Invoke(ptr, (IntPtr)argsPtr, numArgs, out resultBuffer);
+                    bool result = Method_Invoke(_ptr, (IntPtr)pArgs, numArgs, out resultBuffer);
 
                     for (int i = 0; i < numArgs; i++)
                         hypDataArgsBuffers[i].Dispose();
@@ -158,7 +154,7 @@ namespace Hyperion
 
         public HypDataBuffer InvokeNative(params object[] args)
         {
-            if (ptr == IntPtr.Zero)
+            if (_ptr == IntPtr.Zero)
             {
                 throw new InvalidOperationException("Cannot invoke method: Invalid method");
             }
@@ -182,8 +178,8 @@ namespace Hyperion
                 }
             }
 
-            IntPtr paramsPtr;
-            uint numParams = Method_GetParameters(ptr, out paramsPtr);
+            IntPtr pParams;
+            uint numParams = Method_GetParameters(_ptr, out pParams);
 
             if (numArgs != numParams)
             {
@@ -219,9 +215,9 @@ namespace Hyperion
             // Args is pointer to contiguous HypDataBuffer objects
             unsafe
             {
-                fixed (HypDataBuffer* argsPtr = hypDataArgsBuffers)
+                fixed (HypDataBuffer* pArgs = hypDataArgsBuffers)
                 {
-                    bool result = Method_Invoke(ptr, (IntPtr)argsPtr, numArgs, out resultBuffer);
+                    bool result = Method_Invoke(_ptr, (IntPtr)pArgs, numArgs, out resultBuffer);
 
                     for (int i = 0; i < numArgs; i++)
                         hypDataArgsBuffers[i].Dispose();

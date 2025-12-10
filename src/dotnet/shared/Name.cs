@@ -15,11 +15,11 @@ namespace Hyperion
         public static readonly Name Invalid = new Name(0);
 
         [FieldOffset(0)]
-        internal ulong hashCode;
+        internal ulong _value;
 
-        public Name(ulong hashCode)
+        public Name(ulong value)
         {
-            this.hashCode = hashCode;
+            _value = value;
         }
 
         public Name(string nameString, bool weak = false)
@@ -41,13 +41,7 @@ namespace Hyperion
             }
         }
 
-        public ulong HashCode
-        {
-            get
-            {
-                return hashCode;
-            }
-        }
+        public ulong HashCode => _value;
 
         public override string ToString()
         {
@@ -83,7 +77,7 @@ namespace Hyperion
 
         public bool Equals(Name other)
         {
-            return hashCode == other.hashCode;
+            return _value == other._value;
         }
 
         public override bool Equals(object obj)

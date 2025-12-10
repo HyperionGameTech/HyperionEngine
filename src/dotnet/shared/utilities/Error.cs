@@ -8,9 +8,9 @@ namespace Hyperion
     public struct Error
     {
         [FieldOffset(0)]
-        private unsafe byte* message;
+        private unsafe byte* _message;
 
         [FieldOffset(8)]
-        private unsafe byte* currentFunction;
+        private unsafe byte* _currentFunction;
     }
 }

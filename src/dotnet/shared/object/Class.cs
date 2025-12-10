@@ -495,8 +495,8 @@ namespace Hyperion
 
             ObjectReference assemblyObjectReference = new ObjectReference
             {
-                weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(assembly, GCHandleType.Weak)),
-                strongHandle = GCHandle.ToIntPtr(GCHandle.Alloc(assembly, GCHandleType.Normal))
+                WeakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(assembly, GCHandleType.Weak)),
+                StrongHandle = GCHandle.ToIntPtr(GCHandle.Alloc(assembly, GCHandleType.Normal))
             };
 
             IntPtr classPtr = IntPtr.Zero;

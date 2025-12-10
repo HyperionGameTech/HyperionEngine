@@ -411,12 +411,6 @@ void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera
     }
 
     m_dragData = dragData;
-
-    HYP_LOG(Editor, Info, "Drag data: axis_direction = {}, plane_normal = {}, plane_point = {}, node_origin = {}",
-        m_dragData->axisDirection,
-        m_dragData->planeNormal,
-        m_dragData->planePoint,
-        m_dragData->nodeOrigin);
 }
 
 void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
@@ -1092,8 +1086,6 @@ EditorSubsystem::EditorSubsystem()
                             Handle<EditorProject> project = projectWeak.Lock();
                             Assert(project != nullptr);
 
-                            HYP_LOG(Editor, Info, "Project {} removed scene: {}", *project->GetName(), *scene->GetName());
-
                             m_delegateHandlers.Remove(&scene->OnRootNodeChanged);
 
                             // remove from all editor views
@@ -1228,8 +1220,6 @@ EditorSubsystem::EditorSubsystem()
                     {
                         continue;
                     }
-
-                    HYP_LOG(Editor, Info, "Closing project {} scene: {}", *project->GetName(), *scene->GetName());
 
                     m_delegateHandlers.Remove(&scene->OnRootNodeChanged);
 
@@ -1700,7 +1690,6 @@ void EditorSubsystem::InitViewport()
                         if (ObjId<Entity> entityId = ObjId<Entity>(ObjIdBase { TypeId::ForType<Entity>(), hit.id }))
                         {
                             Handle<Entity> entity { entityId };
-                            HYP_LOG(Editor, Debug, "Clicked on entity: {} ({})", *entity->GetName(), entityId);
 
                             EntityManager* entityManager = entity->GetEntityManager();
 
@@ -2047,8 +2036,6 @@ void EditorSubsystem::InitSceneOutline()
                 return UIEventHandlerResult::ERR;
             }
 
-            HYP_LOG(Editor, Debug, "Selected item changed: {}", listViewItem != nullptr ? listViewItem->GetName() : Name());
-
             if (!listViewItem)
             {
                 SetFocusedNode(Handle<Node>::empty, false);
@@ -2138,8 +2125,6 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
     AssertDebug(listView.IsValid());
 
-    HYP_LOG(Editor, Debug, "Start watching node: {}", *node->GetName());
-
     //    m_editorDelegates->AddNodeWatcher(
     //        NAME("SceneView"),
     //        node.Get(),
@@ -2185,8 +2170,6 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
             Handle<UIListView> listView = listViewWeak.Lock();
 
             AddNodeToSceneOutline(listView, node);
-            if (isDirect)
-                HYP_LOG(Editor, Debug, "Added to scene outline: {}\tparent: {}", node->GetName(), (node->GetParent() ? node->GetParent()->GetUUID() : Uuid::Invalid()));
         }));
 
     m_delegateHandlers.Remove(&node->OnChildRemoved);
@@ -2443,8 +2426,6 @@ void EditorSubsystem::InitDetailView()
                 Proc<void(Node*, const Property*)> {
                     [this, cls = Node::StaticClass(), detailsListViewWeak](Node* node, const Property* property)
                     {
-                        HYP_LOG(Editor, Debug, "(detail) Node property changed: {}", property->GetName());
-
                         // Update name in list view
 
                         Handle<UIListView> detailsListView = detailsListViewWeak.Lock();

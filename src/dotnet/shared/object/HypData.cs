@@ -77,10 +77,10 @@ namespace Hyperion
     public unsafe struct HypDataBuffer : IDisposable
     {
         [FieldOffset(0)]
-        private fixed byte buffer[24];
+        private fixed byte _buffer[24];
 
         [FieldOffset(24)]
-        private IntPtr serializeFunctionPtr;
+        private IntPtr _serializeFunc;
 
         public void Dispose()
         {
@@ -101,8 +101,8 @@ namespace Hyperion
         {
             get
             {
-                IntPtr typeInfoPtr = HypData_GetTypeInfo(ref this);
-                return new TypeInfo(typeInfoPtr);
+                IntPtr pTypeInfo = HypData_GetTypeInfo(ref this);
+                return new TypeInfo(pTypeInfo);
             }
         }
 
@@ -130,133 +130,132 @@ namespace Hyperion
                 return;
             }
 
-            if (value is sbyte)
+            if (value is sbyte _i8)
             {
-                HypData_SetInt8(ref this, (sbyte)value);
+                HypData_SetInt8(ref this, _i8);
                 return;
             }
 
-            if (value is short)
+            if (value is short _i16)
             {
-                HypData_SetInt16(ref this, (short)value);
+                HypData_SetInt16(ref this, _i16);
                 return;
             }
 
-            if (value is int)
+            if (value is int _i32)
             {
-                HypData_SetInt32(ref this, (int)value);
+                HypData_SetInt32(ref this, _i32);
                 return;
             }
 
-            if (value is long)
+            if (value is long _i64)
             {
-                HypData_SetInt64(ref this, (long)value);
+                HypData_SetInt64(ref this, _i64);
                 return;
             }
 
-            if (value is byte)
+            if (value is byte _u8)
             {
-                HypData_SetUInt8(ref this, (byte)value);
+                HypData_SetUInt8(ref this, _u8);
                 return;
             }
 
-            if (value is ushort)
+            if (value is ushort _u16)
             {
-                HypData_SetUInt16(ref this, (ushort)value);
+                HypData_SetUInt16(ref this, _u16);
                 return;
             }
 
-            if (value is uint)
+            if (value is uint _u32)
             {
-                HypData_SetUInt32(ref this, (uint)value);
+                HypData_SetUInt32(ref this, _u32);
                 return;
             }
 
-            if (value is ulong)
+            if (value is ulong _u64)
             {
-                HypData_SetUInt64(ref this, (ulong)value);
+                HypData_SetUInt64(ref this, _u64);
                 return;
             }
 
-            if (value is float)
+            if (value is float _f32)
             {
-                HypData_SetFloat(ref this, (float)value);
+                HypData_SetFloat(ref this, _f32);
                 return;
             }
 
-            if (value is double)
+            if (value is double _f64)
             {
-                HypData_SetDouble(ref this, (double)value);
+                HypData_SetDouble(ref this, _f64);
                 return;
             }
 
-            if (value is bool)
+            if (value is bool _bool)
             {
-                HypData_SetBool(ref this, (bool)value);
+                HypData_SetBool(ref this, _bool);
                 return;
             }
 
-            if (value is IntPtr)
+            if (value is IntPtr _nint)
             {
-                HypData_SetIntPtr(ref this, (IntPtr)value);
+                HypData_SetIntPtr(ref this, _nint);
                 return;
             }
 
-            if (value is ObjIdBase valueId)
+            if (value is ObjIdBase _objId)
             {
-                HypData_SetId(ref this, ref valueId);
+                HypData_SetId(ref this, ref _objId);
                 return;
             }
 
-            if (value is Name)
+            if (value is Name _name)
             {
-                HypData_SetName(ref this, (Name)value);
+                HypData_SetName(ref this, _name);
                 return;
             }
 
-            if (value is ObjectBase)
+            if (value is ObjectBase _obj)
             {
-                ObjectBase obj = (ObjectBase)value;
-
-                if (!obj.Class.IsReferenceCounted)
-                    throw new Exception("Cannot use HypData_SetObject with non reference counted Class type from managed code");
-
-                if (!HypData_SetObject(ref this, obj.Class.Address, obj.NativeAddress))
+                if (!HypData_SetObject(ref this, _obj.Class.Address, _obj.NativeAddress))
                 {
-                    throw new InvalidOperationException("Failed to set HypData to ObjectBase instance for Class: " + obj.Class.Name);
+                    throw new InvalidOperationException("Failed to set HypData to ObjectBase instance for Class: " + _obj.Class.Name);
                 }
 
                 return;
             }
 
-            if (value is string)
+            if (value is string _str)
             {
-                string str = (string)value;
+                IntPtr pString = IntPtr.Zero;
 
-                // Set Utf8 string
-                IntPtr stringPtr = Marshal.StringToCoTaskMemUTF8(str);
-
-                if (!HypData_SetString(ref this, stringPtr))
+                try
                 {
-                    Marshal.FreeCoTaskMem(stringPtr);
+                    // Set Utf8 string
+                    pString = Marshal.StringToCoTaskMemUTF8(_str);
 
-                    throw new InvalidOperationException("Failed to set string");
+                    if (!HypData_SetString(ref this, pString))
+                    {
+                        throw new InvalidOperationException("Failed to set string");
+                    }
                 }
-
-                Marshal.FreeCoTaskMem(stringPtr);
+                finally
+                {
+                    if (pString != IntPtr.Zero)
+                    {
+                        Marshal.FreeCoTaskMem(pString);
+                    }
+                }
 
                 return;
             }
 
-            if (value is byte[])
+            if (value is byte[] _bytes)
             {
                 unsafe
                 {
-                    byte[] buffer = (byte[])value;
-
-                    fixed (byte* ptr = buffer)
+                    fixed (byte* pBytes = _bytes)
                     {
-                        if (!HypData_SetByteBuffer(ref this, (IntPtr)ptr, (uint)buffer.Length))
+                        if (!HypData_SetByteBuffer(ref this, (IntPtr)pBytes, (uint)_bytes.Length))
                         {
                             throw new InvalidOperationException("Failed to set byte buffer");
                         }
@@ -274,50 +273,30 @@ namespace Hyperion
                 {
                     type = Enum.GetUnderlyingType(type);
 
-                    if (type == typeof(sbyte))
+                    switch (Type.GetTypeCode(type))
                     {
+                    case TypeCode.SByte:
                         HypData_SetInt8(ref this, (sbyte)value);
                         return;
-                    }
-
-                    if (type == typeof(short))
-                    {
+                    case TypeCode.Int16:
                         HypData_SetInt16(ref this, (short)value);
                         return;
-                    }
-
-                    if (type == typeof(int))
-                    {
+                    case TypeCode.Int32:
                         HypData_SetInt32(ref this, (int)value);
                         return;
-                    }
-
-                    if (type == typeof(long))
-                    {
+                    case TypeCode.Int64:
                         HypData_SetInt64(ref this, (long)value);
                         return;
-                    }
-
-                    if (type == typeof(byte))
-                    {
+                    case TypeCode.Byte:
                         HypData_SetUInt8(ref this, (byte)value);
                         return;
-                    }
-
-                    if (type == typeof(ushort))
-                    {
+                    case TypeCode.UInt16:
                         HypData_SetUInt16(ref this, (ushort)value);
                         return;
-                    }
-
-                    if (type == typeof(uint))
-                    {
+                    case TypeCode.UInt32:
                         HypData_SetUInt32(ref this, (uint)value);
                         return;
-                    }
-
-                    if (type == typeof(ulong))
-                    {
+                    case TypeCode.UInt64:
                         HypData_SetUInt64(ref this, (ulong)value);
                         return;
                     }
@@ -333,11 +312,11 @@ namespace Hyperion
                     {
                         Span<byte> buffer = stackalloc byte[Marshal.SizeOf(value)];
 
-                        fixed (byte* ptr = buffer)
+                        fixed (byte* pBuffer = buffer)
                         {
-                            Marshal.StructureToPtr(value, (IntPtr)ptr, false);
+                            Marshal.StructureToPtr(value, (IntPtr)pBuffer, false);
 
-                            if (!HypData_SetStruct(ref this, ((Class)cls).Address, (uint)Marshal.SizeOf(value), (IntPtr)ptr))
+                            if (!HypData_SetStruct(ref this, ((Class)cls).Address, (uint)Marshal.SizeOf(value), (IntPtr)pBuffer))
                             {
                                 throw new InvalidOperationException("Failed to set Struct");
                             }

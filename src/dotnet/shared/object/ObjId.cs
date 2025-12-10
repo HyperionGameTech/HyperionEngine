@@ -9,46 +9,26 @@ namespace Hyperion
         public static readonly ObjIdBase Invalid = new ObjIdBase();
 
         [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
-        private uint typeIdValue;
+        private uint _typeIdValue;
 
         [FieldOffset(4), MarshalAs(UnmanagedType.U4)]
-        private uint value;
+        private uint _value;
 
         public ObjIdBase()
         {
-            this.typeIdValue = TypeId.Void.Value;
-            this.value = 0;
+            _typeIdValue = TypeId.Void.Value;
+            _value = 0;
         }
 
         public ObjIdBase(TypeId typeId, uint value)
         {
-            this.typeIdValue = typeId.Value;
-            this.value = value;
+            _typeIdValue = typeId.Value;
+            _value = value;
         }
 
-        public TypeId TypeId
-        {
-            get
-            {
-                return new TypeId(typeIdValue);
-            }
-        }
-
-        public uint Value
-        {
-            get
-            {
-                return value;
-            }
-        }
-
-        public bool IsValid
-        {
-            get
-            {
-                return typeIdValue != 0 && value != 0;
-            }
-        }
+        public TypeId TypeId => new TypeId(_typeIdValue);
+        public uint Value => _value;
+        public bool IsValid => _value != 0;
 
         public override bool Equals(object obj)
         {
@@ -62,17 +42,17 @@ namespace Hyperion
 
         public override string ToString()
         {
-            return string.Format("ObjIdBase(TypeId: {0}, Value: {0})", typeIdValue, value);
+            return string.Format("ObjIdBase(TypeId: {0}, Value: {0})", _typeIdValue, _value);
         }
 
         public static bool operator ==(ObjIdBase a, ObjIdBase b)
         {
-            return a.typeIdValue == b.typeIdValue && a.value == b.value;
+            return a._typeIdValue == b._typeIdValue && a._value == b._value;
         }
 
         public static bool operator !=(ObjIdBase a, ObjIdBase b)
         {
-            return a.typeIdValue != b.typeIdValue || a.value != b.value;
+            return a._typeIdValue != b._typeIdValue || a._value != b._value;
         }
     }
 

@@ -792,6 +792,41 @@ struct HypDataHelper<T, std::enable_if_t<std::is_enum_v<T>>> : HypDataHelper<std
     }
 };
 
+template <class T>
+struct HypDataHelperDecl<EnumFlags<T>>
+{
+};
+
+template <class T>
+struct HypDataHelper<EnumFlags<T>> : HypDataHelper<T>
+{
+    HYP_FORCE_INLINE bool Is(EnumFlags<T> value) const
+    {
+        // should never be hit
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    HYP_FORCE_INLINE constexpr bool Is(std::underlying_type_t<T>) const
+    {
+        return true;
+    }
+
+    HYP_FORCE_INLINE constexpr EnumFlags<T> Get(EnumFlags<T> value) const
+    {
+        return value;
+    }
+
+    HYP_FORCE_INLINE constexpr EnumFlags<T> Get(std::underlying_type_t<T> value) const
+    {
+        return EnumFlags<T>(value);
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, EnumFlags<T> value) const
+    {
+        HypDataHelper<typename EnumFlags<T>::UnderlyingType>::Set(hypData, static_cast<typename EnumFlags<T>::UnderlyingType>(value));
+    }
+};
+
 /* void pointer specialization - only meant for runtime, non-serializable. */
 template <>
 struct HypDataHelperDecl<void*>
@@ -858,37 +893,6 @@ struct HypDataHelper<void*>
     HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
     {
         return { FBOMResult::FBOM_ERR, "Cannot deserialize a user pointer!" };
-    }
-};
-
-template <class T>
-struct HypDataHelperDecl<EnumFlags<T>>
-{
-};
-
-template <class T>
-struct HypDataHelper<EnumFlags<T>> : HypDataHelper<typename EnumFlags<T>::UnderlyingType>
-{
-    using ConvertibleFrom = Tuple<typename EnumFlags<T>::UnderlyingType>;
-
-    HYP_FORCE_INLINE bool Is(typename EnumFlags<T>::UnderlyingType value) const
-    {
-        return true;
-    }
-
-    HYP_FORCE_INLINE constexpr EnumFlags<T> Get(EnumFlags<T> value) const
-    {
-        return value;
-    }
-
-    HYP_FORCE_INLINE constexpr EnumFlags<T> Get(typename EnumFlags<T>::UnderlyingType value) const
-    {
-        return static_cast<EnumFlags<T>>(value);
-    }
-
-    HYP_FORCE_INLINE void Set(HypData& hypData, EnumFlags<T> value) const
-    {
-        HypDataHelper<typename EnumFlags<T>::UnderlyingType>::Set(hypData, static_cast<typename EnumFlags<T>::UnderlyingType>(value));
     }
 };
 

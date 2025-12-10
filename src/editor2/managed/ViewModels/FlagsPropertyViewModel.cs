@@ -111,45 +111,48 @@ namespace Hyperion.Editor.ViewModels
 
         private void CommitEnumFlagsValue()
         {
-            if (!_target.IsValid || _enumFlagEntries.Count == 0)
+            if (_isRefreshing)
             {
                 return;
             }
 
-            try
-            {
-                ulong combined = 0ul;
-                Type? valueType = null;
+            _isRefreshing = true;
 
-                foreach (EnumFlagEntry entry in _enumFlagEntries)
+            _ = EngineManager.PostToGameThread(() =>
+            {
+                try
                 {
-                    if (!entry.IsSelected || entry.Value == null)
+                    ulong combined = 0ul;
+
+                    foreach (EnumFlagEntry entry in _enumFlagEntries)
                     {
-                        continue;
+                        if (!entry.IsSelected || entry.Value == null)
+                        {
+                            continue;
+                        }
+
+                        combined |= Convert.ToUInt64(entry.Value);
                     }
 
-                    valueType ??= entry.Value.GetType();
-                    combined |= Convert.ToUInt64(entry.Value);
-                }
+                    using HypData data = new HypData(combined);
+                    _property.Set(_target, data);
 
-                if (valueType == null)
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isRefreshing = false;
+
+                        Value = FormatValue(combined);
+                    });
+                }
+                catch (Exception ex)
                 {
-                    return;
+                    _isRefreshing = false;
+
+                    Logger.Log(LogType.Error, $"Inspector failed to set enum flags property '{Name}': {ex.Message}");
+
+                    RefreshValue();
                 }
-
-                // @TODO : Not valid to use Enum.ToObject for this
-                object finalValue = Enum.ToObject(valueType, combined);
-
-                using HypData data = new HypData(finalValue);
-                _property.Set(_target, data);
-
-                Value = FormatValue(finalValue);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Inspector failed to set enum flags property '{Name}': {ex.Message}");
-                RefreshValue();
-            }
+            });
         }
 
         public sealed class EnumFlagEntry : ViewModelBase

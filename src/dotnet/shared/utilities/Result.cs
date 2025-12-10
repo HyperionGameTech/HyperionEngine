@@ -9,13 +9,13 @@ namespace Hyperion
     public struct Result
     {
         [FieldOffset(0)]
-        private PimplPtr errorPtr;
+        private PimplPtr _error;
 
         public bool IsValid
         {
             get
             {
-                return errorPtr.ptr == IntPtr.Zero;
+                return _error.ptr == IntPtr.Zero;
             }
         }
     }
