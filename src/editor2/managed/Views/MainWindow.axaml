@@ -194,6 +194,20 @@
                         <Grid
                             Grid.Row="0"
                             Margin="0"
+                            IsVisible="{Binding Inspector.IsEntity}"
+                            RowDefinitions="Auto, Auto">
+                            <Border Grid.Row="0" Classes="panel-header">
+                                <TextBlock Classes="header" Text="Components" />
+                            </Border>
+
+                            <!--  @TODO - Component list goes here  -->
+
+                            <!--  Add Component button  -->
+                        </Grid>
+
+                        <Grid
+                            Grid.Row="0"
+                            Margin="0"
                             IsVisible="{Binding Inspector.HasActions}"
                             RowDefinitions="Auto, Auto">
                             <Border Grid.Row="0" Classes="panel-header">

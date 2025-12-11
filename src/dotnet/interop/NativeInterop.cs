@@ -663,6 +663,11 @@ namespace Hyperion
                 if (size != Marshal.SizeOf(type))
                     throw new ArgumentException("Size does not match type size", nameof(size));
 #endif
+                // Cannot create boxed byref-like values
+                if (type.IsByRefLike)
+                {
+                    throw new InvalidOperationException($"Cannot marshal byref-like type {type.Name} from pointer.");
+                }
 
                 // Marshal object from pointer
                 object? obj = Marshal.PtrToStructure(ptr, type);

@@ -28,6 +28,13 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasComponents, value);
         }
 
+        private bool _isEntity;
+        public bool IsEntity
+        {
+            get => _isEntity;
+            private set => SetProperty(ref _isEntity, value);
+        }
+
         private Node? _selectedNode;
         public Node? SelectedNode
         {
@@ -89,6 +96,11 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
+                    if (property.Name == "Components")
+                    {
+                        continue; // skip Components property -- now handled separately
+                    }
+
                     // skip non-editor properties
                     ClassAttribute? attrEditHide = property.GetAttribute("edithide");
 
@@ -173,6 +185,8 @@ namespace Hyperion.Editor.ViewModels
             // collect components
             if (SelectedNode is Entity entity)
             {
+                IsEntity = true;
+
                 _ = EngineManager.PostToGameThread(() =>
                 {
                     EntityManager? mgr = entity.EntityManager;
@@ -183,43 +197,44 @@ namespace Hyperion.Editor.ViewModels
                         return;
                     }
 
-                    List<InspectorComponentViewModelBase> localComponentViewModels = new();
-
-                    foreach (TypeId typeId in mgr.GetComponentTypeIds(entity))
-                    {
-                        switch (typeId)
-                        {
-                            case TypeId tid when tid == BoundingBoxComponent.Class.TypeId:
-                                localComponentViewModels.Add(new InspectorComponentViewModel<BoundingBoxComponent>(entity));
-                                break;
-                            case TypeId tid when tid == TransformComponent.Class.TypeId:
-                                localComponentViewModels.Add(new InspectorComponentViewModel<TransformComponent>(entity));
-                                break;
-                            case TypeId tid when tid == MeshComponent.Class.TypeId:
-                                localComponentViewModels.Add(new InspectorComponentViewModel<MeshComponent>(entity));
-                                break;
-                            case TypeId tid when tid == UIComponent.Class.TypeId:
-                                localComponentViewModels.Add(new InspectorComponentViewModel<UIComponent>(entity));
-                                break;
-                            case TypeId tid when tid == VisibilityStateComponent.Class.TypeId:
-                                localComponentViewModels.Add(new InspectorComponentViewModel<VisibilityStateComponent>(entity));
-                                break;
-                            default:
-                                Logger.Log(LogType.Debug, $"Inspector has no view model for component type '{typeId}'");
-                                break;
-                        }
-                    }
+                    List<TypeId> componentTypeIds = mgr.GetComponentTypeIds(entity).ToList();
 
                     Dispatcher.UIThread.Post(() =>
                     {
                         Components.Clear();
-                        foreach (InspectorComponentViewModelBase vm in localComponentViewModels)
+
+                        foreach (TypeId typeId in componentTypeIds)
                         {
-                            Components.Add(vm);
+                            switch (typeId)
+                            {
+                                case TypeId tid when tid == BoundingBoxComponent.Class.TypeId:
+                                    Components.Add(new InspectorComponentViewModel<BoundingBoxComponent>(entity));
+                                    break;
+                                case TypeId tid when tid == TransformComponent.Class.TypeId:
+                                    Components.Add(new InspectorComponentViewModel<TransformComponent>(entity));
+                                    break;
+                                case TypeId tid when tid == MeshComponent.Class.TypeId:
+                                    Components.Add(new InspectorComponentViewModel<MeshComponent>(entity));
+                                    break;
+                                case TypeId tid when tid == UIComponent.Class.TypeId:
+                                    Components.Add(new InspectorComponentViewModel<UIComponent>(entity));
+                                    break;
+                                case TypeId tid when tid == VisibilityStateComponent.Class.TypeId:
+                                    Components.Add(new InspectorComponentViewModel<VisibilityStateComponent>(entity));
+                                    break;
+                                default:
+                                    Logger.Log(LogType.Debug, $"Inspector has no view model for component type '{typeId}'");
+                                    break;
+                            }
                         }
+
                         HasComponents = Components.Count > 0;
                     });
                 });
+            }
+            else
+            {
+                IsEntity = false;
             }
         }
 
