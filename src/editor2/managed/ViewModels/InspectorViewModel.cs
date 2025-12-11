@@ -1,8 +1,9 @@
 using System;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
 using Avalonia.Threading;
 using Hyperion;
 
@@ -13,6 +14,9 @@ namespace Hyperion.Editor.ViewModels
         public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new ObservableCollection<InspectorPropertyViewModelBase>();
         public ObservableCollection<InspectorActionViewModel> Actions { get; } = new ObservableCollection<InspectorActionViewModel>();
         public ObservableCollection<InspectorComponentViewModelBase> Components { get; } = new ObservableCollection<InspectorComponentViewModelBase>();
+        public ObservableCollection<AddComponentOptionViewModel> AddableComponents { get; } = new ObservableCollection<AddComponentOptionViewModel>();
+
+        public ICommand AddComponentCommand { get; }
 
         private bool _hasActions;
         public bool HasActions
@@ -26,6 +30,13 @@ namespace Hyperion.Editor.ViewModels
         {
             get => _hasComponents;
             private set => SetProperty(ref _hasComponents, value);
+        }
+
+        private bool _hasAddableComponents;
+        public bool HasAddableComponents
+        {
+            get => _hasAddableComponents;
+            private set => SetProperty(ref _hasAddableComponents, value);
         }
 
         private bool _isEntity;
@@ -44,6 +55,7 @@ namespace Hyperion.Editor.ViewModels
 
         public InspectorViewModel()
         {
+            AddComponentCommand = new RelayCommand(AddComponentAsync, CanAddComponent);
         }
 
         public void SetSelectedNode(Node? node)
@@ -59,9 +71,11 @@ namespace Hyperion.Editor.ViewModels
             Properties.Clear();
             Actions.Clear();
             Components.Clear();
+            AddableComponents.Clear();
 
             HasActions = false;
             HasComponents = false;
+            HasAddableComponents = false;
 
             if (SelectedNode == null || !SelectedNode.IsValid)
             {
@@ -229,13 +243,150 @@ namespace Hyperion.Editor.ViewModels
                         }
 
                         HasComponents = Components.Count > 0;
+
+                        UpdateAddableComponents(componentTypeIds);
                     });
                 });
             }
             else
             {
                 IsEntity = false;
+                AddableComponents.Clear();
+                HasAddableComponents = false;
             }
+        }
+
+        private void UpdateAddableComponents(IEnumerable<TypeId> existingComponentTypes)
+        {
+            HashSet<TypeId> existingTypes = new HashSet<TypeId>(existingComponentTypes);
+
+            AddableComponents.Clear();
+
+            foreach ((string label, TypeId typeId) in GetSupportedComponentTypes())
+            {
+                bool canAdd = !existingTypes.Contains(typeId);
+                AddableComponents.Add(new AddComponentOptionViewModel(label, typeId, canAdd));
+            }
+
+            HasAddableComponents = AddableComponents.Any(option => option.IsEnabled);
+
+            if (AddComponentCommand is RelayCommand relayCommand)
+            {
+                relayCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        private static IEnumerable<(string Label, TypeId TypeId)> GetSupportedComponentTypes()
+        {
+            yield return ("Transform", TransformComponent.Class.TypeId);
+            yield return ("Mesh", MeshComponent.Class.TypeId);
+            yield return ("UI", UIComponent.Class.TypeId);
+            yield return ("Visibility State", VisibilityStateComponent.Class.TypeId);
+            yield return ("Bounding Box", BoundingBoxComponent.Class.TypeId);
+        }
+
+        private bool CanAddComponent(object? parameter)
+        {
+            return parameter is AddComponentOptionViewModel option && option.IsEnabled && SelectedNode is Entity;
+        }
+
+        private async Task AddComponentAsync(object? parameter)
+        {
+            if (parameter is not AddComponentOptionViewModel option)
+            {
+                return;
+            }
+
+            if (SelectedNode is not Entity entity || entity.EntityManager == null)
+            {
+                return;
+            }
+
+            try
+            {
+                await EngineManager.PostToGameThread(() =>
+                {
+                    EntityManager? mgr = entity.EntityManager;
+
+                    if (mgr == null)
+                    {
+                        Logger.Log(LogType.Warn, "Inspector failed to get EntityManager while adding component");
+
+                        return;
+                    }
+
+                    try
+                    {
+                        switch (option.TypeId)
+                        {
+                            case TypeId tid when tid == TransformComponent.Class.TypeId:
+                            {
+                                TransformComponent comp = default;
+                                mgr.AddComponent(entity, ref comp);
+                                break;
+                            }
+                            case TypeId tid when tid == MeshComponent.Class.TypeId:
+                            {
+                                MeshComponent comp = default;
+                                mgr.AddComponent(entity, ref comp);
+                                break;
+                            }
+                            case TypeId tid when tid == UIComponent.Class.TypeId:
+                            {
+                                UIComponent comp = default;
+                                mgr.AddComponent(entity, ref comp);
+                                break;
+                            }
+                            case TypeId tid when tid == VisibilityStateComponent.Class.TypeId:
+                            {
+                                VisibilityStateComponent comp = default;
+                                mgr.AddComponent(entity, ref comp);
+                                break;
+                            }
+                            case TypeId tid when tid == BoundingBoxComponent.Class.TypeId:
+                            {
+                                BoundingBoxComponent comp = default;
+                                mgr.AddComponent(entity, ref comp);
+                                break;
+                            }
+                            default:
+                                Logger.Log(LogType.Warn, $"Inspector cannot add unsupported component type '{option.TypeId}'");
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogType.Warn, $"Inspector failed to add component '{option.Label}': {ex.Message}");
+                    }
+                });
+            }
+            finally
+            {
+                Dispatcher.UIThread.Post(RefreshProperties);
+            }
+        }
+
+        private sealed class RelayCommand : ICommand
+        {
+            private readonly Func<object?, Task> _executeAsync;
+            private readonly Func<object?, bool>? _canExecute;
+
+            public RelayCommand(Func<object?, Task> executeAsync, Func<object?, bool>? canExecute = null)
+            {
+                _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
+                _canExecute = canExecute;
+            }
+
+            public bool CanExecute(object? parameter) => _canExecute?.Invoke(parameter) ?? true;
+
+            public async void Execute(object? parameter)
+            {
+                await _executeAsync(parameter);
+            }
+
+            public event EventHandler? CanExecuteChanged;
+
+            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private bool EvaluateEditCondition(Class nodeClass, ClassAttribute? attrEditCondition, string memberName)
@@ -278,6 +429,27 @@ namespace Hyperion.Editor.ViewModels
             }
 
             return true; // continue if no condition or invalid condition
+        }
+    }
+
+    public class AddComponentOptionViewModel : ViewModelBase
+    {
+        private bool _isEnabled;
+
+        public AddComponentOptionViewModel(string label, TypeId typeId, bool isEnabled)
+        {
+            Label = label;
+            TypeId = typeId;
+            _isEnabled = isEnabled;
+        }
+
+        public string Label { get; }
+        public TypeId TypeId { get; }
+
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            set => SetProperty(ref _isEnabled, value);
         }
     }
 }

@@ -8,6 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ribbon="clr-namespace:Ribbon.Avalonia;assembly=Ribbon.Avalonia"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:Name="Root"
     Title="Hyperion Editor"
     d:DesignHeight="720"
     d:DesignWidth="1280"
@@ -194,15 +195,54 @@
                         <Grid
                             Grid.Row="0"
                             Margin="0"
-                            IsVisible="{Binding Inspector.IsEntity}"
-                            RowDefinitions="Auto, Auto">
+                            DataContext="{Binding Inspector}"
+                            IsVisible="{Binding IsEntity}"
+                            RowDefinitions="Auto, Auto, Auto">
                             <Border Grid.Row="0" Classes="panel-header">
-                                <TextBlock Classes="header" Text="Components" />
+                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                    <TextBlock Classes="header" Text="Components" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Margin="8,0,8,0"
+                                        Padding="10,4"
+                                        HorizontalAlignment="Right"
+                                        Content="Add Component"
+                                        IsEnabled="{Binding HasAddableComponents}">
+                                        <Button.Flyout>
+                                            <MenuFlyout ItemsSource="{Binding AddableComponents}">
+                                                <MenuFlyout.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:AddComponentOptionViewModel">
+                                                        <MenuItem
+                                                            Command="{Binding DataContext.Inspector.AddComponentCommand, ElementName=Root}"
+                                                            CommandParameter="{Binding}"
+                                                            Header="{Binding Label}"
+                                                            IsEnabled="{Binding IsEnabled}" />
+                                                    </DataTemplate>
+                                                </MenuFlyout.ItemTemplate>
+                                            </MenuFlyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                </Grid>
                             </Border>
 
-                            <!--  @TODO - Component list goes here  -->
-
-                            <!--  Add Component button  -->
+                            <ItemsControl
+                                Grid.Row="1"
+                                Margin="12,6"
+                                IsVisible="{Binding HasComponents}"
+                                ItemsSource="{Binding Components}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:InspectorComponentViewModelBase">
+                                        <Border
+                                            Margin="0,0,0,6"
+                                            Padding="8"
+                                            Background="{DynamicResource Brush.Panel}"
+                                            BorderBrush="{DynamicResource Brush.Border}"
+                                            BorderThickness="1">
+                                            <TextBlock Text="{Binding Label}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </Grid>
 
                         <Grid
