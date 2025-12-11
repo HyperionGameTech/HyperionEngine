@@ -114,14 +114,17 @@ void LightmapperConfig::PostLoadCallback()
 
 #pragma region LightmapperBase
 
-LightmapperBase::LightmapperBase(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
+LightmapperBase::LightmapperBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb)
     : m_config(std::move(config)),
+      m_source(source),
       m_scene(scene),
       m_aabb(aabb),
       m_threadPool(nullptr),
-      m_numJobs { 0 },
+      m_numJobs(0),
+      m_initialNumJobs(0),
       m_updateTimer { 1.0 } // every second
 {
+    AssertDebug(m_source != nullptr);
 }
 
 LightmapperBase::~LightmapperBase()
@@ -169,7 +172,7 @@ uint32 LightmapperBase::MaxTexelsPerFrame() const
 
 bool LightmapperBase::IsComplete() const
 {
-    return m_numJobs.Get(MemoryOrder::ACQUIRE) == 0;
+    return m_numJobs == 0;
 }
 
 void LightmapperBase::Initialize()
@@ -432,7 +435,7 @@ void LightmapperBase::Build()
     HYP_SCOPE;
     const uint32 idealTrianglesPerJob = m_config.idealTrianglesPerJob;
 
-    Assert(m_numJobs.Get(MemoryOrder::ACQUIRE) == 0, "Cannot initialize lightmap renderer -- jobs currently running!");
+    Assert(m_numJobs == 0, "Cannot initialize lightmap renderer -- jobs currently running!");
 
     // Build jobs
     HYP_LOG(Lightmap, Info, "Building graph for lightmapper");
@@ -556,6 +559,8 @@ void LightmapperBase::DispatchJobs()
 
         AddJob(std::move(job));
     }
+
+    m_initialNumJobs = m_numJobs;
 }
 
 void LightmapperBase::Update(float delta)
@@ -644,7 +649,7 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
     AssertOnThread(g_gameThread);
 
     HYP_DEFER({
-        m_numJobs.Decrement(1, MemoryOrder::RELEASE);
+        --m_numJobs;
     });
 
     if (job->GetResult().HasError())
@@ -661,7 +666,10 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
         lightmapRenderer->CleanJobData(job);
     }
 
-    HYP_LOG(Lightmap, Debug, "Tracing completed for lightmapping job {} ({} subelements)", job->GetUUID(), job->GetSubElements().Size());
+    const int percentage = MathUtil::Floor(double(m_initialNumJobs - m_numJobs) / double(m_initialNumJobs) * 100.0);
+
+    HYP_LOG(Lightmap, Info, "Baking {} ... ({}%)",
+        m_source ? m_source->Id() : ObjIdBase(), percentage);
 }
 
 #pragma endregion LightmapperBase
@@ -669,7 +677,7 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 #pragma region Lightmapper < LightmapVolume>
 
 Lightmapper<LightmapVolume>::Lightmapper(LightmapperConfig&& config, const Handle<LightmapVolume>& volume)
-    : LightmapperBase(std::move(config), MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
+    : LightmapperBase(std::move(config), volume, MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
       m_volume(volume),
       m_lightmapElementId(InvalidLightmapElementId)
 {
@@ -749,7 +757,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 {
     HYP_SCOPE;
 
-    if (m_numJobs.Get(MemoryOrder::ACQUIRE) == 1)
+    if (m_numJobs == 1)
     {
         AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
@@ -905,7 +913,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 #pragma region Lightmapper<ReflectionProbe>
 
 Lightmapper<ReflectionProbe>::Lightmapper(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe)
-    : LightmapperBase(std::move(config), MakeStrongRef(envProbe->GetScene()), envProbe->GetAABB()),
+    : LightmapperBase(std::move(config), envProbe, MakeStrongRef(envProbe->GetScene()), envProbe->GetAABB()),
       m_envProbe(envProbe)
 {
 }
@@ -975,7 +983,7 @@ void Lightmapper<ReflectionProbe>::HandleCompletedJob_Internal(LightmapJobBase* 
 #pragma region Lightmapper < FogVolume>
 
 Lightmapper<FogVolume>::Lightmapper(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume)
-    : LightmapperBase(std::move(config), MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldBounds()),
+    : LightmapperBase(std::move(config), fogVolume, MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldBounds()),
       m_fogVolume(fogVolume)
 {
 }

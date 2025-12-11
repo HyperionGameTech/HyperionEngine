@@ -252,7 +252,7 @@ protected:
     using ResourceCache = HashSet<CachedResource, &CachedResource::assetObject, DynamicNodeAllocator>;
 
 public:
-    LightmapperBase(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
+    LightmapperBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb);
 
     LightmapperBase(const LightmapperBase& other) = delete;
     LightmapperBase& operator=(const LightmapperBase& other) = delete;
@@ -351,6 +351,8 @@ protected:
 
     LightmapperConfig m_config;
 
+    ObjectBase* m_source;
+
     Handle<Scene> m_scene;
     BoundingBox m_aabb;
 
@@ -386,12 +388,14 @@ protected:
 
         Mutex::Guard guard(m_queueMutex);
         m_queue.PushBack(std::move(job));
-        m_numJobs.Increment(1, MemoryOrder::RELEASE);
+
+        ++m_numJobs;
     }
 
     Array<UniquePtr<LightmapJobBase>> m_queue;
     Mutex m_queueMutex;
-    AtomicVar<uint32> m_numJobs;
+    uint32 m_numJobs;
+    uint32 m_initialNumJobs;
 };
 
 template <class T>

@@ -388,18 +388,7 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
     texels.Reserve(maxTexels);
 
     GatherTexels(maxTexels, texels);
-
     AssertDebug(texels.Size() <= maxTexels);
-
-    const double percentage = double(m_texelIndex) / double(totalNumTexels) * 100.0;
-
-    if (MathUtil::Abs(MathUtil::Floor(percentage) - MathUtil::Floor(m_lastLoggedPercentage)) >= 1)
-    {
-        HYP_LOG(Lightmap, Debug, "Lightmap job {}: Texel {} / {} ({}%)",
-            m_uuid.ToString(), m_texelIndex, totalNumTexels, percentage);
-
-        m_lastLoggedPercentage = percentage;
-    }
 
     return ProcessTexels(Span<LightmapTexel*>(texels.Data(), texels.Size()), texelOffset);
 }
