@@ -5,7 +5,7 @@ namespace Hyperion
 {
     [ClassBinding(Name="MeshComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 208, Pack = 16)]
-    public unsafe struct MeshComponent : IComponent
+    public unsafe ref struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
         private Handle<Mesh> _meshHandle;
@@ -87,5 +87,7 @@ namespace Hyperion
         }
 
         public ref MeshInstanceData InstanceData => ref _instanceData;
+
+        public static Class Class => Class.GetClass(typeof(MeshComponent));
     }
 }

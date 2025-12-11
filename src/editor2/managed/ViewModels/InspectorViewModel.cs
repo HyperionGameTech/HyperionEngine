@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Threading;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
@@ -11,6 +12,7 @@ namespace Hyperion.Editor.ViewModels
     {
         public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new ObservableCollection<InspectorPropertyViewModelBase>();
         public ObservableCollection<InspectorActionViewModel> Actions { get; } = new ObservableCollection<InspectorActionViewModel>();
+        public ObservableCollection<InspectorComponentViewModelBase> Components { get; } = new ObservableCollection<InspectorComponentViewModelBase>();
 
         private bool _hasActions;
         public bool HasActions
@@ -19,11 +21,22 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasActions, value);
         }
 
+        private bool _hasComponents;
+        public bool HasComponents
+        {
+            get => _hasComponents;
+            private set => SetProperty(ref _hasComponents, value);
+        }
+
         private Node? _selectedNode;
         public Node? SelectedNode
         {
             get => _selectedNode;
             private set => SetProperty(ref _selectedNode, value);
+        }
+
+        public InspectorViewModel()
+        {
         }
 
         public void SetSelectedNode(Node? node)
@@ -34,9 +47,14 @@ namespace Hyperion.Editor.ViewModels
 
         private void RefreshProperties()
         {
+            Dispatcher.UIThread.CheckAccess();
+
             Properties.Clear();
             Actions.Clear();
+            Components.Clear();
+
             HasActions = false;
+            HasComponents = false;
 
             if (SelectedNode == null || !SelectedNode.IsValid)
             {
@@ -44,8 +62,6 @@ namespace Hyperion.Editor.ViewModels
             }
 
             Class nodeClass = SelectedNode.Class;
-
-            Logger.Log(LogType.Debug, $"Inspector refreshing properties for node '{SelectedNode.Name}' of class '{nodeClass.Name}'");
 
             // sort by editorder attribute (if present), then by name
             List<Property> properties = nodeClass.Properties
@@ -153,6 +169,58 @@ namespace Hyperion.Editor.ViewModels
             }
 
             HasActions = Actions.Count > 0;
+
+            // collect components
+            if (SelectedNode is Entity entity)
+            {
+                _ = EngineManager.PostToGameThread(() =>
+                {
+                    EntityManager? mgr = entity.EntityManager;
+                    if (mgr == null)
+                    {
+                        Logger.Log(LogType.Warn, $"Inspector failed to get EntityManager for entity '{entity.Name}'");
+
+                        return;
+                    }
+
+                    List<InspectorComponentViewModelBase> localComponentViewModels = new();
+
+                    foreach (TypeId typeId in mgr.GetComponentTypeIds(entity))
+                    {
+                        switch (typeId)
+                        {
+                            case TypeId tid when tid == BoundingBoxComponent.Class.TypeId:
+                                localComponentViewModels.Add(new InspectorComponentViewModel<BoundingBoxComponent>(entity));
+                                break;
+                            case TypeId tid when tid == TransformComponent.Class.TypeId:
+                                localComponentViewModels.Add(new InspectorComponentViewModel<TransformComponent>(entity));
+                                break;
+                            case TypeId tid when tid == MeshComponent.Class.TypeId:
+                                localComponentViewModels.Add(new InspectorComponentViewModel<MeshComponent>(entity));
+                                break;
+                            case TypeId tid when tid == UIComponent.Class.TypeId:
+                                localComponentViewModels.Add(new InspectorComponentViewModel<UIComponent>(entity));
+                                break;
+                            case TypeId tid when tid == VisibilityStateComponent.Class.TypeId:
+                                localComponentViewModels.Add(new InspectorComponentViewModel<VisibilityStateComponent>(entity));
+                                break;
+                            default:
+                                Logger.Log(LogType.Debug, $"Inspector has no view model for component type '{typeId}'");
+                                break;
+                        }
+                    }
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        Components.Clear();
+                        foreach (InspectorComponentViewModelBase vm in localComponentViewModels)
+                        {
+                            Components.Add(vm);
+                        }
+                        HasComponents = Components.Count > 0;
+                    });
+                });
+            }
         }
 
         private bool EvaluateEditCondition(Class nodeClass, ClassAttribute? attrEditCondition, string memberName)

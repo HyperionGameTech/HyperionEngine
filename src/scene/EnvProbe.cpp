@@ -541,7 +541,7 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
 
 #ifdef HYP_EDITOR
 
-void ReflectionProbe::BakeLighting()
+void ReflectionProbe::BakeCubemap()
 {
     HYP_SCOPE;
 
@@ -550,7 +550,7 @@ void ReflectionProbe::BakeLighting()
 
     if (!world)
     {
-        HYP_LOG(Editor, Error, "Cannot bake lighting for ReflectionProbe {}: not attached to a World", Id());
+        HYP_LOG(Editor, Error, "Cannot bake {}: not attached to a World", Id());
 
         return;
     }

@@ -151,7 +151,7 @@ void EntityManager::NotifySystemOfExistingEntities(const Handle<SystemBase>& sys
             Entity* entity = entityData.entityWeak.GetUnsafe();
             Assert(entity != nullptr);
 
-            const TypeMap<ComponentId>& componentIds = entityData.components;
+            const ComponentMap& componentIds = entityData.components;
 
             if (system->ActsOnComponents(componentIds.Keys(), true))
             {
@@ -192,7 +192,7 @@ void EntityManager::NotifySystemOfAllEntitiesRemoved(const Handle<SystemBase>& s
             Entity* entity = entityData.entityWeak.GetUnsafe();
             Assert(entity != nullptr);
 
-            const TypeMap<ComponentId>& componentIds = entityData.components;
+            const ComponentMap& componentIds = entityData.components;
 
             if (system->ActsOnComponents(componentIds.Keys(), true) && IsEntityInitializedForSystem(system.Get(), entity))
             {
@@ -810,7 +810,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         EntityData* entityData = other->m_entities.TryGetEntityData(entity.Id());
         Assert(entityData != nullptr, "Entity with id {} does not exist", entity.Id());
 
-        TypeMap<ComponentId> componentIds;
+        ComponentMap componentIds;
 
         for (HypData& componentData : componentHypDatas)
         {
@@ -917,7 +917,7 @@ void EntityManager::AddComponent(Entity* entity, const HypData& componentData)
     const TypeId componentTypeId = componentData.GetTypeId();
     EnsureValidComponentType(componentTypeId);
 
-    TypeMap<ComponentId> componentIds;
+    ComponentMap componentIds;
 
     // Update the EntityData
     auto componentIt = entityData->FindComponent(componentTypeId);
@@ -997,7 +997,7 @@ void EntityManager::AddComponent(Entity* entity, HypData&& componentData)
     const TypeId componentTypeId = componentData.GetTypeId();
     EnsureValidComponentType(componentTypeId);
 
-    TypeMap<ComponentId> componentIds;
+    ComponentMap componentIds;
 
     // Update the EntityData
     auto componentIt = entityData->FindComponent(componentTypeId);
@@ -1087,10 +1087,10 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
     const ComponentId componentId = componentIt->second;
 
     // Notify systems that entity is being removed from them
-    TypeMap<ComponentId> removedComponentIds;
-    removedComponentIds.Set(componentTypeId, componentId);
+    ComponentMap removedComponents;
+    removedComponents.Set(componentTypeId, componentId);
 
-    NotifySystemsOfEntityRemoved(entity, removedComponentIds);
+    NotifySystemsOfEntityRemoved(entity, removedComponents);
 
     ComponentContainerBase* container = TryGetContainer(componentTypeId);
 
@@ -1249,7 +1249,7 @@ bool EntityManager::RemoveTag(Entity* entity, EntityTag tag)
     return RemoveComponent(componentTypeInfo.id, entity);
 }
 
-void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const TypeMap<ComponentId>& componentIds)
+void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const ComponentMap& componentIds)
 {
     HYP_SCOPE;
 
@@ -1291,7 +1291,7 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
     }
 }
 
-void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<ComponentId>& componentIds)
+void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const ComponentMap& componentIds)
 {
     HYP_SCOPE;
 

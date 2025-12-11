@@ -5,6 +5,10 @@
 #include <lightmapper/LightmapVolume.hpp>
 #include <lightmapper/LightmapData.hpp>
 
+#ifdef HYP_EDITOR
+#include <lightmapper/LightmapperSubsystem.hpp>
+#endif
+
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderQueue.hpp>
@@ -39,6 +43,10 @@
 #include <LightmapVolume.generated.inl>
 
 namespace hyperion {
+
+#ifdef HYP_EDITOR
+HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif
 
 constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
 constexpr TextureFormat AtlasTextureFormats[LTT_MAX] = {
@@ -577,5 +585,33 @@ void LightmapVolume::UpdateAtlasTextures(
         std::move(atlasTextures),
         std::move(elementTextures));
 }
+
+#ifdef HYP_EDITOR
+
+void LightmapVolume::BakeLightmaps()
+{
+    HYP_SCOPE;
+
+    World* world = GetWorld();
+    AssertDebug(world != nullptr);
+
+    if (!world)
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: not attached to a World", Id());
+
+        return;
+    }
+
+    LightmapperSubsystem* lightmapperSubsystem = world->GetSubsystem<LightmapperSubsystem>();
+
+    if (!lightmapperSubsystem)
+    {
+        lightmapperSubsystem = world->AddSubsystem<LightmapperSubsystem>();
+    }
+
+    lightmapperSubsystem->EnqueueBake(MakeStrongRef(this));
+}
+
+#endif
 
 } // namespace hyperion

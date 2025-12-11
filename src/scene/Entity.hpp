@@ -49,6 +49,7 @@ public:
 
     virtual ~Entity() override;
 
+    HYP_METHOD()
     HYP_FORCE_INLINE World* GetWorld() const
     {
         return m_world;
@@ -59,6 +60,7 @@ public:
         return m_prevModelMatrix;
     }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE EntityManager* GetEntityManager() const
     {
         return m_entityManager;
@@ -88,7 +90,10 @@ public:
     template <EntityTag Tag, class EntityManagerPtr = EntityManager*>
     bool HasTag() const;
 
+    HYP_METHOD()
     bool ReceivesUpdate() const;
+
+    HYP_METHOD()
     void SetReceivesUpdate(bool receivesUpdate);
 
     virtual void LockTransform() override;

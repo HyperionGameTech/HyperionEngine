@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Hyperion
 {
     [Flags]
-    public enum ComponentRWFlags : uint
+    public enum ComponentAccess : uint
     {
         None = 0x0,
         Read = 0x1,
@@ -18,13 +18,13 @@ namespace Hyperion
     public struct ComponentInfo
     {
         public TypeId TypeId;
-        public ComponentRWFlags RwFlags;
+        public ComponentAccess Access;
         public bool ReceivesEvents;
 
-        public ComponentInfo(TypeId typeId, ComponentRWFlags rwFlags, bool receivesEvents)
+        public ComponentInfo(TypeId typeId, ComponentAccess access, bool receivesEvents)
         {
             TypeId = typeId;
-            RwFlags = rwFlags;
+            Access = access;
             ReceivesEvents = receivesEvents;
         }
     }

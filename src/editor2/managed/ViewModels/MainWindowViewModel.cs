@@ -146,16 +146,12 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     _editorSubsystem.SetFocusedNode(node, false);
+                    Inspector.SetSelectedNode(node);
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(LogType.Warn, $"Failed to set focused node: {ex.Message}");
                 }
-            });
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                Inspector.SetSelectedNode(node);
             });
         }
 
@@ -179,22 +175,19 @@ namespace Hyperion.Editor.ViewModels
 
         private void HandleFocusedNodeUpdate(Node? node)
         {
-            Dispatcher.UIThread.Post(() =>
+            _isUpdatingSelectionFromEngine = true;
+
+            try
             {
-                _isUpdatingSelectionFromEngine = true;
+                Node? validNode = node != null && node.IsValid ? node : null;
 
-                try
-                {
-                    Node? validNode = node != null && node.IsValid ? node : null;
-
-                    Inspector.SetSelectedNode(validNode);
-                    SceneHierarchy.SelectNodeFromEngine(validNode);
-                }
-                finally
-                {
-                    _isUpdatingSelectionFromEngine = false;
-                }
-            });
+                Inspector.SetSelectedNode(validNode);
+                SceneHierarchy.SelectNodeFromEngine(validNode);
+            }
+            finally
+            {
+                _isUpdatingSelectionFromEngine = false;
+            }
         }
     }
 }

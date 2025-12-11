@@ -60,6 +60,8 @@ class Scene;
 struct HypData;
 class Node;
 
+using ComponentMap = TypeMap<ComponentId>;
+
 /*! \brief The EntityManager is responsible for managing Entities and their components within a single Scene. */
 HYP_CLASS()
 class HYP_API EntityManager final : public ObjectBase
@@ -74,8 +76,6 @@ class HYP_API EntityManager final : public ObjectBase
     friend class World;
 
 public:
-    static constexpr ComponentId invalidComponentId = 0;
-
     EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
     EntityManager(const EntityManager&) = delete;
     EntityManager& operator=(const EntityManager&) = delete;
@@ -474,7 +474,7 @@ public:
     /*! \brief Get a map of all component types to respective component IDs for a given Entity.
      *  \param entity The Entity to get the components from
      *  \returns An Optional object holding a reference to the typemap if it exists, otherwise an empty optional. */
-    HYP_FORCE_INLINE Optional<const TypeMap<ComponentId>&> GetAllComponents(const Entity* entity) const
+    HYP_FORCE_INLINE Optional<const ComponentMap&> GetAllComponents(const Entity* entity) const
     {
         if (!entity)
         {
@@ -514,7 +514,7 @@ public:
         Assert(entityData != nullptr);
 
         Component* componentPtr = nullptr;
-        TypeMap<ComponentId> componentIds;
+        ComponentMap componentIds;
 
         auto componentIt = entityData->FindComponent<Component>();
         // @TODO: Replace the component if it already exists
@@ -579,7 +579,7 @@ public:
 
         AssertOnThread(m_ownerThreadId);
 
-        TypeMap<ComponentId> removedComponentIds;
+        ComponentMap removedComponents;
 
         EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
 
@@ -598,7 +598,7 @@ public:
         const ComponentId componentId = componentIt->second;
 
         // Notify systems that entity is being removed from them
-        removedComponentIds.Set(componentTypeId, componentId);
+        removedComponents.Set(componentTypeId, componentId);
 
         HypData componentHypData;
 
@@ -626,7 +626,7 @@ public:
             }
         }
 
-        NotifySystemsOfEntityRemoved(entity, removedComponentIds);
+        NotifySystemsOfEntityRemoved(entity, removedComponents);
 
         EntityTag tag;
         if (IsEntityTagComponent(componentTypeId, tag))
@@ -816,8 +816,8 @@ private:
 
     void NotifySystemOfExistingEntities(const Handle<SystemBase>& system);
     void NotifySystemOfAllEntitiesRemoved(const Handle<SystemBase>& system);
-    void NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const TypeMap<ComponentId>& componentIds);
-    void NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<ComponentId>& componentIds);
+    void NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const ComponentMap& componentIds);
+    void NotifySystemsOfEntityRemoved(Entity* entity, const ComponentMap& componentIds);
 
     /*! \brief Removes an entity from the EntityManager.
 

@@ -28,10 +28,10 @@ private:
     {
         return {
             // writes to entities with these components
-            ComponentDescriptor<LightmapElementComponent, ComponentRWFlags::READ_WRITE> {},
+            ComponentDescriptor<LightmapElementComponent, ComponentAccess::READ_WRITE> {},
 
             // used to assign entities to LightmapVolumes
-            ComponentDescriptor<EntityType<LightmapVolume>, ComponentRWFlags::READ, false> {}
+            ComponentDescriptor<EntityType<LightmapVolume>, ComponentAccess::READ, false> {}
         };
     }
 

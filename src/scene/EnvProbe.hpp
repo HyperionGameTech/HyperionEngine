@@ -328,8 +328,8 @@ public:
     ~ReflectionProbe() override = default;
 
 #ifdef HYP_EDITOR
-    HYP_METHOD(EditAction = "Bake Lighting", EditCondition = "IsBaked")
-    void BakeLighting();
+    HYP_METHOD(EditorOnly, EditAction = "Bake Cubemap", EditCondition = "IsBaked")
+    void BakeCubemap();
 #endif
 };
 

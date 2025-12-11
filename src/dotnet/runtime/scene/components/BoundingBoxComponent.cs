@@ -5,12 +5,14 @@ namespace Hyperion
 {
     [ClassBinding(Name="BoundingBoxComponent")]
     [StructLayout(LayoutKind.Sequential, Size = 32)]
-    public struct BoundingBoxComponent : IComponent
+    public ref struct BoundingBoxComponent : IComponent
     {
         public BoundingBox WorldAABB;
 
         public void Dispose()
         {
         }
+        
+        public static Class Class => Class.GetClass(typeof(BoundingBoxComponent));
     }
 }

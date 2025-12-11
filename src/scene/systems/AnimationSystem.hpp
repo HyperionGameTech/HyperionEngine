@@ -36,8 +36,8 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<AnimationComponent, ComponentRWFlags::READ_WRITE> {},
-            ComponentDescriptor<MeshComponent, ComponentRWFlags::READ> {}
+            ComponentDescriptor<AnimationComponent, ComponentAccess::READ_WRITE> {},
+            ComponentDescriptor<MeshComponent, ComponentAccess::READ> {}
         };
     }
 

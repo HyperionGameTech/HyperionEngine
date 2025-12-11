@@ -5,7 +5,7 @@ namespace Hyperion
 {   
     [ClassBinding(Name="UIComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 8)]
-    public struct UIComponent : IComponent
+    public ref struct UIComponent : IComponent
     {
         [FieldOffset(0)]
         private WeakHandle<UIObject> uiObject;
@@ -18,12 +18,8 @@ namespace Hyperion
         {
         }
 
-        public UIObject? UIObject
-        {
-            get
-            {
-                return uiObject.Lock().GetValue();
-            }
-        }
+        public UIObject? UIObject => uiObject.Lock().GetValue();
+
+        public static Class Class => Class.GetClass(typeof(UIComponent));
     }
 }

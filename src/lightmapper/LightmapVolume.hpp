@@ -177,6 +177,11 @@ public:
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 
+#ifdef HYP_EDITOR
+    HYP_METHOD(EditorOnly, EditAction = "BakeLightmaps")
+    void BakeLightmaps();
+#endif
+
 protected:
     void OnAddedToWorld(World* world) override;
     void OnRemovedFromWorld(World* world) override;

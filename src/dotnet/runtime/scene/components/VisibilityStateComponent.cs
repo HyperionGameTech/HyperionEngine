@@ -13,20 +13,22 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 16)]
     public struct OctantId
     {
-        public ulong indexBits;
-        public byte depth;
+        public ulong IndexBits;
+        public byte Depth;
     }
 
     [ClassBinding(Name="VisibilityStateComponent")]
     [StructLayout(LayoutKind.Sequential, Size = 32)]
-    public struct VisibilityStateComponent : IComponent
+    public ref struct VisibilityStateComponent : IComponent
     {
-        public VisibilityStateFlags visibilityStateFlags;
-        public OctantId octantId;
-        public IntPtr visibilityStatePtr;
+        public VisibilityStateFlags VisibilityStateFlags;
+        public OctantId OctantId;
+        public IntPtr pVisibilityState;
 
         public void Dispose()
         {
         }
+        
+        public static Class Class => Class.GetClass(typeof(VisibilityStateComponent));
     }
 }

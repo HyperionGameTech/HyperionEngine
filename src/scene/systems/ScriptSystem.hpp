@@ -41,7 +41,7 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<ScriptComponent, ComponentRWFlags::READ_WRITE> {}
+            ComponentDescriptor<ScriptComponent, ComponentAccess::READ_WRITE> {}
         };
     }
 

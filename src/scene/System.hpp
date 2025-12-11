@@ -31,7 +31,7 @@ public:
     template <class... ComponentDescriptors>
     SystemComponentDescriptors(ComponentDescriptors&&... componentDescriptors)
         : HashSet({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
-          entitySetId(GetEntitySetId<std::conditional_t<bool(ComponentDescriptors::rwFlags& ComponentRWFlags::READ_WRITE), typename ComponentDescriptors::Type, VoidComponentType>...>())
+          entitySetId(GetEntitySetId<std::conditional_t<bool(ComponentDescriptors::Access& ComponentAccess::READ_WRITE), typename ComponentDescriptors::Type, VoidComponentType>...>())
     {
         Assert(Size() == sizeof...(ComponentDescriptors), "Duplicate component descriptors found");
     }
@@ -130,7 +130,7 @@ public:
             const ComponentInfo& componentInfo = GetComponentInfo(componentTypeId);
 
             // skip observe-only components
-            if (!(componentInfo.rwFlags & ComponentRWFlags::READ_WRITE))
+            if (!(componentInfo.access & ComponentAccess::READ_WRITE))
             {
                 continue;
             }
@@ -173,7 +173,7 @@ public:
 
         const ComponentInfo& componentInfo = GetComponentInfo(componentTypeId);
 
-        return !!(componentInfo.rwFlags & ComponentRWFlags::WRITE);
+        return !!(componentInfo.access & ComponentAccess::WRITE);
     }
 
     /*! \brief Returns the ComponentInfo of the component with the given TypeId.

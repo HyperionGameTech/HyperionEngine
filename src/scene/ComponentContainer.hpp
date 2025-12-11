@@ -22,11 +22,11 @@ namespace hyperion {
 
 class Entity;
 
-using ComponentId = uint32;
-using ComponentTypeId = uint32;
+enum class ComponentId : uint32;
+static constexpr ComponentId InvalidComponentId = ComponentId(0);
 
 HYP_ENUM()
-enum class ComponentRWFlags : uint32
+enum class ComponentAccess : uint32
 {
     NONE = 0,
     READ = 0x1,
@@ -34,15 +34,15 @@ enum class ComponentRWFlags : uint32
     READ_WRITE = READ | WRITE
 };
 
-HYP_MAKE_ENUM_FLAGS(ComponentRWFlags)
+HYP_MAKE_ENUM_FLAGS(ComponentAccess)
 
-template <class T, EnumFlags<ComponentRWFlags> RWFlags = ComponentRWFlags::READ_WRITE, bool ReceivesEvents = true>
+template <class T, EnumFlags<ComponentAccess> TAccess = ComponentAccess::READ_WRITE, bool TReceivesEvents = true>
 struct ComponentDescriptor
 {
     using Type = T;
 
-    constexpr static EnumFlags<ComponentRWFlags> rwFlags = RWFlags;
-    constexpr static bool receivesEvents = ReceivesEvents;
+    constexpr static EnumFlags<ComponentAccess> Access = TAccess;
+    constexpr static bool ReceivesEvents = TReceivesEvents;
 };
 
 HYP_STRUCT(Size = 12)
@@ -54,21 +54,21 @@ struct ComponentInfo
     TypeId typeId;
 
     HYP_FIELD()
-    EnumFlags<ComponentRWFlags> rwFlags;
+    EnumFlags<ComponentAccess> access;
 
     HYP_FIELD()
     bool receivesEvents;
 
     ComponentInfo()
         : typeId(TypeId::Void()),
-          rwFlags(ComponentRWFlags::NONE),
+          access(ComponentAccess::NONE),
           receivesEvents(false)
     {
     }
 
-    ComponentInfo(TypeId typeId, EnumFlags<ComponentRWFlags> rwFlags = ComponentRWFlags::NONE, bool receivesEvents = false)
+    ComponentInfo(TypeId typeId, EnumFlags<ComponentAccess> access = ComponentAccess::NONE, bool receivesEvents = false)
         : typeId(typeId),
-          rwFlags(rwFlags),
+          access(access),
           receivesEvents(receivesEvents)
     {
     }
@@ -76,8 +76,8 @@ struct ComponentInfo
     template <class ComponentDescriptorType>
     ComponentInfo(ComponentDescriptorType)
         : typeId(TypeId::ForType<typename NormalizedType<ComponentDescriptorType>::Type>()),
-          rwFlags(NormalizedType<ComponentDescriptorType>::rwFlags),
-          receivesEvents(NormalizedType<ComponentDescriptorType>::receivesEvents)
+          access(NormalizedType<ComponentDescriptorType>::Access),
+          receivesEvents(NormalizedType<ComponentDescriptorType>::ReceivesEvents)
     {
     }
 };
@@ -116,11 +116,8 @@ public:
     }
 #endif
 
-    /*! \brief Gets the type Id of the component type that this component container holds.
-     *
-     *  \return The type Id of the component type.
-     */
-    virtual TypeId GetComponentTypeId() const = 0;
+    /*! \brief Gets the TypeInfo of the component type stored in this component container. */
+    virtual const TypeInfo& GetComponentTypeInfo() const = 0;
 
     /*! \brief Tries to get the component with the given Id from the component container.
      *
@@ -254,11 +251,9 @@ public:
 
     virtual ~ComponentContainer() override = default;
 
-    virtual TypeId GetComponentTypeId() const override
+    virtual const TypeInfo& GetComponentTypeInfo() const override
     {
-        static const TypeId typeId = TypeId::ForType<Component>();
-
-        return typeId;
+        return TypeOf<Component>();
     }
 
     virtual bool HasComponent(ComponentId id) const override
@@ -318,7 +313,7 @@ public:
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        ComponentId id = ++m_componentIdCounter;
+        ComponentId id = ComponentId(++m_componentIdCounter);
 
         auto insertResult = m_components.Set(id, component);
 
@@ -329,7 +324,7 @@ public:
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        ComponentId id = ++m_componentIdCounter;
+        ComponentId id = ComponentId(++m_componentIdCounter);
 
         auto insertResult = m_components.Set(id, std::move(component));
 
@@ -388,7 +383,7 @@ public:
 
     virtual Optional<ComponentId> MoveComponent(ComponentId id, ComponentContainerBase& other) override
     {
-        Assert(other.GetComponentTypeId() == GetComponentTypeId(), "Component container is not of the same type");
+        AssertDebug(other.GetComponentTypeInfo() == GetComponentTypeInfo(), "Component container is not of the same type");
 
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
@@ -416,7 +411,7 @@ public:
     }
 
 private:
-    ComponentId m_componentIdCounter = 0;
+    uint32 m_componentIdCounter = 0;
 
     /// TODO: Change to MemoryPool and use Component* rather than ComponentId
     HashMap<ComponentId, Component> m_components;

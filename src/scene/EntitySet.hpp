@@ -368,12 +368,12 @@ struct EntitySetView
 
                 EnumFlags<DataAccessFlags> accessFlags = DataAccessFlags::ACCESS_NONE;
 
-                if (componentInfosIt->rwFlags & ComponentRWFlags::READ)
+                if (componentInfosIt->access & ComponentAccess::READ)
                 {
                     accessFlags |= DataAccessFlags::ACCESS_READ;
                 }
 
-                if (componentInfosIt->rwFlags & ComponentRWFlags::WRITE)
+                if (componentInfosIt->access & ComponentAccess::WRITE)
                 {
                     accessFlags |= DataAccessFlags::ACCESS_WRITE;
                 }

@@ -27,10 +27,10 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<BoundingBoxComponent, ComponentRWFlags::READ_WRITE> {},
-            ComponentDescriptor<TransformComponent, ComponentRWFlags::READ> {},
+            ComponentDescriptor<BoundingBoxComponent, ComponentAccess::READ_WRITE> {},
+            ComponentDescriptor<TransformComponent, ComponentAccess::READ> {},
 
-            ComponentDescriptor<TagComponent<EntityTag::UPDATE_AABB>, ComponentRWFlags::READ, false> {}
+            ComponentDescriptor<TagComponent<EntityTag::UPDATE_AABB>, ComponentAccess::READ, false> {}
         };
     }
 

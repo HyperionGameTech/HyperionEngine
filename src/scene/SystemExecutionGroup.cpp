@@ -55,7 +55,7 @@ bool SystemExecutionGroup::IsValidForSystem(const SystemBase* systemPtr) const
         {
             const ComponentInfo& componentInfo = systemPtr->GetComponentInfo(componentTypeId);
 
-            if (componentInfo.rwFlags & ComponentRWFlags::WRITE)
+            if (componentInfo.access & ComponentAccess::WRITE)
             {
                 if (otherSystem->HasComponentTypeId(componentTypeId, true))
                 {

@@ -5,7 +5,7 @@ namespace Hyperion
 {
     [ClassBinding(Name="TransformComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 112)]
-    public struct TransformComponent : IComponent
+    public ref struct TransformComponent : IComponent
     {
         [FieldOffset(0)]
         private Transform transform = Transform.Identity;
@@ -20,14 +20,10 @@ namespace Hyperion
 
         public Transform Transform
         {
-            get
-            {
-                return transform;
-            }
-            set
-            {
-                transform = value;
-            }
+            get => transform;
+            set => transform = value;
         }
+
+        public static Class Class => Class.GetClass(typeof(TransformComponent));
     }
 }
