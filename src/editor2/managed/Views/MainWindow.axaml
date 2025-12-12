@@ -116,14 +116,14 @@
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     Classes="header"
-                                    Text="Hierarchy" />
+                                    Text="Scene Tree" />
                                 <Button
                                     Grid.Column="1"
                                     Margin="0,0,4,0"
                                     Padding="8,2"
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Center"
-                                    Content="Add">
+                                    Content="Add New...">
                                     <Button.Flyout>
                                         <MenuFlyout>
                                             <MenuItem
@@ -192,217 +192,241 @@
                     <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
 
                     <Grid Grid.Row="2" RowDefinitions="Auto, *">
-                        <Grid
-                            Grid.Row="0"
-                            Margin="0"
-                            DataContext="{Binding Inspector}"
-                            IsVisible="{Binding IsEntity}"
-                            RowDefinitions="Auto, Auto, Auto">
-                            <Border Grid.Row="0" Classes="panel-header">
-                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
-                                    <TextBlock Classes="header" Text="Components" />
-                                    <Button
-                                        Grid.Column="1"
-                                        Margin="8,0,8,0"
-                                        Padding="10,4"
-                                        HorizontalAlignment="Right"
-                                        Content="Add Component"
-                                        IsEnabled="{Binding HasAddableComponents}">
-                                        <Button.Flyout>
-                                            <MenuFlyout ItemsSource="{Binding AddableComponents}">
-                                                <MenuFlyout.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:AddComponentOptionViewModel">
-                                                        <MenuItem
-                                                            Command="{Binding DataContext.Inspector.AddComponentCommand, ElementName=Root}"
-                                                            CommandParameter="{Binding}"
-                                                            Header="{Binding Label}"
-                                                            IsEnabled="{Binding IsEnabled}" />
-                                                    </DataTemplate>
-                                                </MenuFlyout.ItemTemplate>
-                                            </MenuFlyout>
-                                        </Button.Flyout>
-                                    </Button>
-                                </Grid>
-                            </Border>
+                        
 
-                            <ItemsControl
-                                Grid.Row="1"
-                                Margin="12,6"
-                                IsVisible="{Binding HasComponents}"
-                                ItemsSource="{Binding Components}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:InspectorComponentViewModelBase">
-                                        <Border
-                                            Margin="0,0,0,6"
-                                            Padding="8"
-                                            Background="{DynamicResource Brush.Panel}"
-                                            BorderBrush="{DynamicResource Brush.Border}"
-                                            BorderThickness="1">
-                                            <TextBlock Text="{Binding Label}" />
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Grid>
-
-                        <Grid
-                            Grid.Row="0"
-                            Margin="0"
-                            IsVisible="{Binding Inspector.HasActions}"
-                            RowDefinitions="Auto, Auto">
-                            <Border Grid.Row="0" Classes="panel-header">
-                                <TextBlock Classes="header" Text="Actions" />
-                            </Border>
-
-                            <ItemsControl
-                                Grid.Row="1"
-                                Margin="12"
-                                VerticalAlignment="Top"
-                                ItemsSource="{Binding Inspector.Actions}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:InspectorActionViewModel">
-                                        <Button
-                                            Padding="10,4"
-                                            HorizontalAlignment="Stretch"
-                                            VerticalAlignment="Center"
-                                            Command="{Binding ExecuteActionCommand}"
-                                            Content="{Binding Label}"
-                                            IsEnabled="{Binding IsEnabled}" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Grid>
+                        
 
                         <!--  Inspector  -->
                         <Grid Grid.Row="1" RowDefinitions="Auto, *">
-                            <Border Classes="panel-header">
-                                <TextBlock Classes="header" Text="Inspector" />
-                            </Border>
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                                 <StackPanel Spacing="8">
-                                    <ItemsControl
-                                        HorizontalAlignment="Stretch"
-                                        Grid.IsSharedSizeScope="True"
-                                        ItemsSource="{Binding Inspector.Properties}">
-                                        <ItemsControl.DataTemplates>
-                                            <DataTemplate x:DataType="vm:TextPropertyViewModel">
-                                                <inspector:StringNamePropertyEditor DataContext="{Binding}" />
-                                            </DataTemplate>
+                                    <Grid
+                                        Margin="0"
+                                        DataContext="{Binding Inspector}"
+                                        IsVisible="{Binding IsEntity}"
+                                        RowDefinitions="Auto, Auto, Auto">
+                                        
+                                        <Border Grid.Row="0" Classes="panel-header">
+                                            <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                                <TextBlock
+                                                    Grid.Column="0"
+                                                    VerticalAlignment="Center"
+                                                    Classes="header"
+                                                    Text="Components" />
+                                        
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Margin="0,0,4,0"
+                                                    Padding="8,2"
+                                                    VerticalAlignment="Center"
+                                                    HorizontalAlignment="Right"
+                                                    Content="Add"
+                                                    IsEnabled="{Binding HasAddableComponents}">
+                                                    <Button.Flyout>
+                                                        <MenuFlyout ItemsSource="{Binding AddableComponents}">
+                                                            <MenuFlyout.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:AddComponentOptionViewModel">
+                                                                    <MenuItem
+                                                                        Command="{Binding DataContext.Inspector.AddComponentCommand, ElementName=Root}"
+                                                                        CommandParameter="{Binding}"
+                                                                        Header="{Binding Label}"
+                                                                        IsEnabled="{Binding IsEnabled}" />
+                                                                </DataTemplate>
+                                                            </MenuFlyout.ItemTemplate>
+                                                        </MenuFlyout>
+                                                    </Button.Flyout>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
 
-                                            <DataTemplate x:DataType="vm:EnumPropertyViewModel">
-                                                <inspector:EnumPropertyEditor DataContext="{Binding}" />
-                                            </DataTemplate>
+                                        <ItemsControl
+                                            Grid.Row="1"
+                                            Margin="12,6"
+                                            IsVisible="{Binding HasComponents}"
+                                            ItemsSource="{Binding Components}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:InspectorComponentViewModelBase">
+                                                    <Border
+                                                        Margin="0,0,0,6"
+                                                        Padding="8"
+                                                        Background="{DynamicResource Brush.Panel}"
+                                                        BorderBrush="{DynamicResource Brush.Border}"
+                                                        BorderThickness="1">
+                                                        <TextBlock Text="{Binding Label}" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
 
-                                            <DataTemplate x:DataType="vm:FlagsPropertyViewModel">
-                                                <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
-                                            </DataTemplate>
-
-                                            <DataTemplate x:DataType="vm:Vec2fViewModel">
-                                                <Grid ColumnDefinitions="*,*">
-                                                    <TextBox
-                                                        Grid.Column="0"
-                                                        Margin="0,0,4,0"
-                                                        HorizontalAlignment="Stretch"
-                                                        Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                    <TextBox
-                                                        Grid.Column="1"
-                                                        HorizontalAlignment="Stretch"
-                                                        Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                </Grid>
-                                            </DataTemplate>
-
-                                            <DataTemplate x:DataType="vm:Vec3fViewModel">
-                                                <Grid ColumnDefinitions="*,*,*">
-                                                    <TextBox
-                                                        Grid.Column="0"
-                                                        Margin="0,0,4,0"
-                                                        HorizontalAlignment="Stretch"
-                                                        Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                    <TextBox
-                                                        Grid.Column="1"
-                                                        Margin="0,0,4,0"
-                                                        HorizontalAlignment="Stretch"
-                                                        Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                    <TextBox
-                                                        Grid.Column="2"
-                                                        HorizontalAlignment="Stretch"
-                                                        Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                </Grid>
-                                            </DataTemplate>
-
-                                            <DataTemplate x:DataType="vm:Vec4fViewModel">
-                                                <Grid ColumnDefinitions="*,*,*,*">
-                                                    <TextBox
-                                                        Grid.Column="0"
-                                                        Margin="0,0,4,0"
-                                                        HorizontalAlignment="Stretch"
-                                                        Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                    <TextBox
-                                                        Grid.Column="1"
-                                                        Margin="0,0,4,0"
-                                                        HorizontalAlignment="Stretch"
-                                                        Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                    <TextBox
-                                                        Grid.Column="2"
-                                                        Margin="0,0,4,0"
-                                                        HorizontalAlignment="Stretch"
-                                                        Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                    <TextBox
-                                                        Grid.Column="3"
-                                                        HorizontalAlignment="Stretch"
-                                                        Text="{Binding W, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                </Grid>
-                                            </DataTemplate>
-
-                                            <DataTemplate x:DataType="vm:TransformViewModel">
-                                                <StackPanel Spacing="4">
-                                                    <StackPanel Spacing="4">
-                                                        <StackPanel Orientation="Vertical" Spacing="2">
-                                                            <TextBlock Text="Translation" />
-                                                            <ContentControl Content="{Binding Translation}" />
-                                                        </StackPanel>
-                                                        <StackPanel Orientation="Vertical" Spacing="2">
-                                                            <TextBlock Text="Rotation" />
-                                                            <ContentControl Content="{Binding Rotation}" />
-                                                        </StackPanel>
-                                                        <StackPanel Orientation="Vertical" Spacing="2">
-                                                            <TextBlock Text="Scale" />
-                                                            <ContentControl Content="{Binding Scale}" />
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                </StackPanel>
-                                            </DataTemplate>
-
-                                            <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
+                                    <Grid
+                                        Margin="0"
+                                        IsVisible="{Binding Inspector.HasActions}"
+                                        RowDefinitions="Auto, Auto">
+                                        <Border Grid.Row="0" Classes="panel-header">
+                                            <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
                                                 <TextBlock
                                                     VerticalAlignment="Center"
-                                                    Text="{Binding Value}"
-                                                    TextTrimming="CharacterEllipsis" />
-                                            </DataTemplate>
-                                        </ItemsControl.DataTemplates>
+                                                    Classes="header"
+                                                    Text="Actions" />
+                                            </Grid>
+                                        </Border>
 
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
-                                                <Grid Margin="6,2">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName" />
-                                                        <ColumnDefinition Width="*" />
-                                                    </Grid.ColumnDefinitions>
-
-                                                    <TextBlock
-                                                        Grid.Column="0"
-                                                        Margin="0,0,8,0"
-                                                        Classes="inspector-name"
-                                                        Text="{Binding Label}" />
-
-                                                    <ContentControl
-                                                        Grid.Column="1"
+                                        <ItemsControl
+                                            Grid.Row="1"
+                                            Margin="12"
+                                            VerticalAlignment="Top"
+                                            ItemsSource="{Binding Inspector.Actions}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:InspectorActionViewModel">
+                                                    <Button
+                                                        Padding="10,4"
+                                                        HorizontalAlignment="Stretch"
                                                         VerticalAlignment="Center"
-                                                        Content="{Binding}" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                                        Command="{Binding ExecuteActionCommand}"
+                                                        Content="{Binding Label}"
+                                                        IsEnabled="{Binding IsEnabled}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                    
+                                    <!-- Properties -->
+                                    <Grid
+                                        Margin="0"
+                                        RowDefinitions="Auto, Auto, Auto">
+                                        <Border
+                                            Grid.Row="0"
+                                            Classes="panel-header">
+                                            <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                                <TextBlock Classes="header" Text="Properties" />
+                                            </Grid>
+                                        </Border>
+                                        <ItemsControl
+                                            Grid.Row="1"
+                                            HorizontalAlignment="Stretch"
+                                            Grid.IsSharedSizeScope="True"
+                                            ItemsSource="{Binding Inspector.Properties}">
+                                            <ItemsControl.DataTemplates>
+                                                <DataTemplate x:DataType="vm:TextPropertyViewModel">
+                                                    <inspector:StringNamePropertyEditor DataContext="{Binding}" />
+                                                </DataTemplate>
+
+                                                <DataTemplate x:DataType="vm:EnumPropertyViewModel">
+                                                    <inspector:EnumPropertyEditor DataContext="{Binding}" />
+                                                </DataTemplate>
+
+                                                <DataTemplate x:DataType="vm:FlagsPropertyViewModel">
+                                                    <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
+                                                </DataTemplate>
+
+                                                <DataTemplate x:DataType="vm:Vec2fViewModel">
+                                                    <Grid ColumnDefinitions="*,*">
+                                                        <TextBox
+                                                            Grid.Column="0"
+                                                            Margin="0,0,4,0"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <TextBox
+                                                            Grid.Column="1"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </Grid>
+                                                </DataTemplate>
+
+                                                <DataTemplate x:DataType="vm:Vec3fViewModel">
+                                                    <Grid ColumnDefinitions="*,*,*">
+                                                        <TextBox
+                                                            Grid.Column="0"
+                                                            Margin="0,0,4,0"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <TextBox
+                                                            Grid.Column="1"
+                                                            Margin="0,0,4,0"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <TextBox
+                                                            Grid.Column="2"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </Grid>
+                                                </DataTemplate>
+
+                                                <DataTemplate x:DataType="vm:Vec4fViewModel">
+                                                    <Grid ColumnDefinitions="*,*,*,*">
+                                                        <TextBox
+                                                            Grid.Column="0"
+                                                            Margin="0,0,4,0"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <TextBox
+                                                            Grid.Column="1"
+                                                            Margin="0,0,4,0"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <TextBox
+                                                            Grid.Column="2"
+                                                            Margin="0,0,4,0"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <TextBox
+                                                            Grid.Column="3"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding W, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </Grid>
+                                                </DataTemplate>
+
+                                                <DataTemplate x:DataType="vm:TransformViewModel">
+                                                    <StackPanel Spacing="4">
+                                                        <StackPanel Spacing="4">
+                                                            <StackPanel Orientation="Vertical" Spacing="2">
+                                                                <TextBlock Text="Translation" />
+                                                                <ContentControl Content="{Binding Translation}" />
+                                                            </StackPanel>
+                                                            <StackPanel Orientation="Vertical" Spacing="2">
+                                                                <TextBlock Text="Rotation" />
+                                                                <ContentControl Content="{Binding Rotation}" />
+                                                            </StackPanel>
+                                                            <StackPanel Orientation="Vertical" Spacing="2">
+                                                                <TextBlock Text="Scale" />
+                                                                <ContentControl Content="{Binding Scale}" />
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </DataTemplate>
+
+                                                <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        Text="{Binding Value}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </DataTemplate>
+                                            </ItemsControl.DataTemplates>
+
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
+                                                    <Grid Margin="6,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <TextBlock
+                                                            Grid.Column="0"
+                                                            Margin="0,0,8,0"
+                                                            Classes="inspector-name"
+                                                            Text="{Binding Label}" />
+
+                                                        <ContentControl
+                                                            Grid.Column="1"
+                                                            VerticalAlignment="Center"
+                                                            Content="{Binding}" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
                                 </StackPanel>
                             </ScrollViewer>
                         </Grid>

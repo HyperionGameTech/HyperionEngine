@@ -934,6 +934,11 @@ namespace Hyperion
         {
             Logger.Log(LogType.Error, "Unhandled managed exception: {0}\n\n{1}", ((Exception)e.ExceptionObject).Message, ((Exception)e.ExceptionObject).StackTrace);
 
+            // rethrow in debug mode
+#if DEBUG
+            throw (Exception)e.ExceptionObject;
+#else
+
             MessageBox.Critical()
                 .Title("Uncaught Exception")
                 .Text("An unhandled exception occurred in managed code!\n"
@@ -941,6 +946,7 @@ namespace Hyperion
                     + "Check the logs for more details.")
                 .Button("OK", () => { })
                 .Show();
+#endif
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]

@@ -45,6 +45,9 @@
         <SimpleTheme />
 
         <!--  Text styles  -->
+        <Style Selector="TextBlock">
+		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+        </Style>
         <Style Selector="TextBlock.header">
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
@@ -71,6 +74,7 @@
         <Style Selector="MenuItem">
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
         </Style>
         <Style Selector="MenuItem:over">
             <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
@@ -95,6 +99,7 @@
             <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
             <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
             <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
         </Style>
         <Style Selector="TreeViewItem, ListBoxItem">
             <Setter Property="Padding" Value="{StaticResource Thickness.ControlPadding}" />
@@ -139,6 +144,7 @@
             <Setter Property="Padding" Value="6,4" />
             <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
         </Style>
         <Style Selector="Button:over">
             <Setter Property="Background" Value="{StaticResource Brush.BorderLight}" />
@@ -155,6 +161,7 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="FontSize" Value="12" />
+		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
             <Setter Property="Padding" Value="4,2" />
         </Style>
     </Application.Styles>
