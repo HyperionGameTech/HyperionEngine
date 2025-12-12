@@ -697,7 +697,7 @@ void FullScreenPass::Render(Frame* frame, const RenderSetup& renderSetup)
     }
 }
 
-void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -748,7 +748,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
     m_isFirstFrame = false;
 }
 
-void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

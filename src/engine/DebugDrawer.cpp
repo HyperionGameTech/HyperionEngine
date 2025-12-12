@@ -51,7 +51,7 @@ static RenderableAttributeSet GetRenderableAttributes()
             .vertexAttributes = staticMeshVertexAttributes,
             .topology = TOP_LINES },
         MaterialAttributes {
-            .bucket = RB_TRANSLUCENT,
+            .bucket = RB_DEBUG,
             .fillMode = FM_FILL,
             .blendFunction = BlendFunction::None(),
             .flags = MAF_DEPTH_TEST });
@@ -919,7 +919,7 @@ GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet at
     GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
         m_shader,
         m_descriptorTable,
-        { &view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT), 1 },
+        { &view->GetOutputTarget().GetFramebuffer(RB_DEBUG), 1 },
         attributes);
 
     const GraphicsPipelineRef& graphicsPipeline = *cacheHandle;

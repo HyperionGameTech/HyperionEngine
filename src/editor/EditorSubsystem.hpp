@@ -284,6 +284,42 @@ protected:
     Optional<DragData> m_dragData;
 };
 
+HYP_CLASS()
+class RotateEditorManipulationWidget : public EditorManipulationWidgetBase
+{
+    HYP_OBJECT_BODY(RotateEditorManipulationWidget);
+
+public:
+    virtual ~RotateEditorManipulationWidget() override = default;
+
+    virtual EditorManipulationMode GetManipulationMode() const override
+    {
+        return EditorManipulationMode::ROTATE;
+    }
+
+    virtual String GetMenuText() const override
+    {
+        return "Rotate";
+    }
+
+    virtual int GetPriority() const override
+    {
+        return 0;
+    }
+
+    virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint) override;
+    virtual void OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
+
+    virtual bool OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
+    virtual bool OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
+    virtual bool OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
+
+    virtual bool OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node) override;
+
+protected:
+    virtual Handle<Node> Load_Internal() const override;
+};
+
 class HYP_API EditorManipulationWidgetHolder
 {
     using EditorManipulationWidgetSet = HashSet<Handle<EditorManipulationWidgetBase>, &EditorManipulationWidgetBase::GetManipulationMode>;

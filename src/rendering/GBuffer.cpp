@@ -34,11 +34,11 @@ struct GBufferTargetDesc
 };
 
 static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
-    GBufferTargetDesc { GBufferFormat(TF_R11G11B10F) },  // color
-    GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) }, // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
-    GBufferTargetDesc { GBufferFormat(TF_RGBA32) },      // material data
-    GBufferTargetDesc { GBufferFormat(TF_RG16F) },       // velocity
-    GBufferTargetDesc { GBufferFormat(TF_DEPTH_32F) }    // depth
+    GBufferTargetDesc { GBufferFormat(TF_RGBA16F) },        // color
+    GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) },    // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
+    GBufferTargetDesc { GBufferFormat(TF_RGBA32) },         // material data
+    GBufferTargetDesc { GBufferFormat(TF_RG16F) },          // velocity
+    GBufferTargetDesc { GBufferFormat(TF_DEPTH_32F) }       // depth
 };
 
 static TextureFormat GetImageFormat(GBufferTargetName targetName)
@@ -167,15 +167,11 @@ void GBuffer::CreateBucketFramebuffers()
         case RB_OPAQUE:
             target.m_framebuffer = CreateFramebuffer(nullptr, m_extent, rb);
             break;
-        case RB_LIGHTMAP:
+        case RB_LIGHTMAP:       // fallthrough
+        case RB_TRANSLUCENT:    // fallthrough
+        case RB_SKYBOX:         // fallthrough
+        case RB_DEBUG:          // fallthrough
             target.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
-            break;
-        case RB_TRANSLUCENT:
-            target.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
-            break;
-        case RB_SKYBOX: // fallthrough
-        case RB_DEBUG:
-            target.m_framebuffer = GetBucket(RB_TRANSLUCENT).m_framebuffer;
             break;
         default:
             HYP_UNREACHABLE();
@@ -194,7 +190,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
     FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(resolution);
 
-    auto addOwnedAttachment = [&](uint32 binding, TextureFormat format)
+    auto addOwnedAttachment = [&](uint32 binding, TextureFormat format) -> AttachmentRef
     {
         TextureDesc textureDesc;
         textureDesc.type = TT_TEX2D;
@@ -208,21 +204,21 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         GpuImageRef gpuImage = g_renderBackend->MakeImage(textureDesc);
         gpuImage->SetDebugName(NAME_FMT("GBufferTarget_{}_{}", binding, EnumToString(rb)));
 
-        AttachmentRef attachment = framebuffer->AddAttachment(
+        return framebuffer->AddAttachment(
             binding,
             gpuImage,
             LoadOperation::CLEAR,
             StoreOperation::STORE);
     };
 
-    auto addSharedAttachment = [&](uint32 binding)
+    auto addSharedAttachment = [&](uint32 binding) -> AttachmentRef
     {
         Assert(parentFramebuffer != nullptr);
 
         AttachmentBase* parentAttachment = parentFramebuffer->GetAttachment(binding);
         Assert(parentAttachment != nullptr);
 
-        framebuffer->AddAttachment(
+        return framebuffer->AddAttachment(
             binding,
             parentAttachment->GetImage(),
             LoadOperation::LOAD,
@@ -230,32 +226,9 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     };
 
     // add gbuffer attachments
-    // - The color attachment (first attachment) is unique to opaque and translucent buckets.
-    //   The lightmap bucket will write into the opaque bucket's albedo attachment.
-    // - The translucent bucket can potentially use a different format than
-    //   the opaque bucket's albedo attachment.
-    //   This is because the translucent bucket's framebuffer is used to render
-    //   the shaded result in the deferred pass before the translucent objects are rendered
-    //   using forward rendering, and we need to be able to accommodate the high range of
-    //   values that can be produced by the deferred shading pass
     if (rb == RB_OPAQUE)
     {
-        addOwnedAttachment(0, GetImageFormat(GTN_ALBEDO));
-    }
-    else if (rb == RB_LIGHTMAP)
-    {
-        addSharedAttachment(0);
-    }
-    else
-    {
-        addOwnedAttachment(0, TF_RGBA16F);
-    }
-
-    // opaque creates the main non-color gbuffer attachments,
-    // which will be shared with other renderable buckets
-    if (!parentFramebuffer)
-    {
-        for (uint32 i = 1; i < GTN_MAX; i++)
+        for (uint32 i = 0; i < GTN_MAX; i++)
         {
             const TextureFormat format = GetImageFormat(GBufferTargetName(i));
 
@@ -264,9 +237,20 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     }
     else
     {
+        Assert(parentFramebuffer != nullptr);
+
         // add the attachments shared with opaque bucket (including depth)
-        for (uint32 i = 1; i < GTN_MAX; i++)
+        for (uint32 i = 0; i < GTN_MAX; i++)
         {
+            if (rb == RB_DEBUG && i == GTN_DEPTH)
+            {
+                // debug bucket creates its own depth attachment
+                const TextureFormat format = GetImageFormat(GBufferTargetName(i));
+                addOwnedAttachment(i, format);
+
+                continue;
+            }
+
             addSharedAttachment(i);
         }
     }

@@ -75,6 +75,8 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
+#include <shadows/ShadowMap.hpp>
+
 // temp
 #include <scene/camera/streaming/CameraStreamingVolume.hpp>
 #include <streaming/StreamingManager.hpp>
@@ -362,11 +364,6 @@ void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera
 
     int axis = axisTag.data.TryGet<int>(-1);
 
-    if (axis == -1)
-    {
-        return;
-    }
-
     Handle<Node> focusedNode = m_focusedNode.Lock();
 
     if (!focusedNode.IsValid())
@@ -382,32 +379,40 @@ void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera
         .nodeOrigin = focusedNode->GetWorldTranslation()
     };
 
-    dragData.axisDirection[axis] = 1.0f;
-
-    if (axis == 1) // +Y, -Y
-    {
-        dragData.planeNormal = dragData.axisDirection.Cross(camera->GetSideVector()).Normalize();
-    }
-    else
-    {
-        dragData.planeNormal = dragData.axisDirection.Cross(camera->GetUpVector()).Normalize();
-    }
-
     const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
     const Vec4f rayDirection = mouseWorld.Normalized();
 
     const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
 
-    RayHit planeRayHit;
-
-    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(dragData.planePoint, dragData.planeNormal))
+    if (axis == -1)
     {
-        planeRayHit = *planeRayHitOpt;
+        // Centroid - allow dragging to any direction (screen space)
+        dragData.planeNormal = -camera->GetDirection();
     }
     else
     {
-        HYP_LOG(Editor, Debug, "Ray plane test returned no hit. plane point : {}, plane normal {}", dragData.planePoint, dragData.planeNormal);
-        return;
+        dragData.axisDirection[axis] = 1.0f;
+
+        if (axis == 1) // +Y, -Y
+        {
+            dragData.planeNormal = dragData.axisDirection.Cross(camera->GetSideVector()).Normalize();
+        }
+        else
+        {
+            dragData.planeNormal = dragData.axisDirection.Cross(camera->GetUpVector()).Normalize();
+        }
+
+        RayHit planeRayHit;
+
+        if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(dragData.planePoint, dragData.planeNormal))
+        {
+            planeRayHit = *planeRayHitOpt;
+        }
+        else
+        {
+            HYP_LOG(Editor, Debug, "Ray plane test returned no hit. plane point : {}, plane normal {}", dragData.planePoint, dragData.planeNormal);
+            return;
+        }
     }
 
     m_dragData = dragData;
@@ -565,6 +570,467 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera>& camera
         return true;
     }
 
+    Vec3f translation;
+
+    if (m_dragData->axisDirection == Vec3f::Zero())
+    {
+        translation = m_dragData->nodeOrigin + (planeRayHit.hitpoint - m_dragData->hitpointOrigin);
+    }
+    else
+    {
+        const float t = (planeRayHit.hitpoint - m_dragData->hitpointOrigin).Dot(m_dragData->axisDirection);
+        translation = m_dragData->nodeOrigin + (m_dragData->axisDirection * t);
+    }
+
+    Handle<Node> focusedNode = m_focusedNode.Lock();
+
+    if (!focusedNode.IsValid())
+    {
+        return false;
+    }
+
+    NodeUnlockTransformScope unlockTransformScope(*focusedNode);
+    focusedNode->SetWorldTranslation(translation);
+
+    if (Node* parent = node->FindParentWithName("TranslateWidget"))
+    {
+        parent->SetWorldTranslation(translation);
+    }
+
+    return true;
+}
+
+bool TranslateEditorManipulationWidget::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
+{
+    if (!node)
+    {
+        return false;
+    }
+
+    switch (keyboardEvent.keyCode)
+    {
+    case KeyCode::ARROW_LEFT:
+    case KeyCode::ARROW_RIGHT:
+    case KeyCode::ARROW_UP:
+    case KeyCode::ARROW_DOWN: // fallthrough
+    {
+        const Bitset& keyStates = camera->GetCameraController()->GetInputHandler()->GetKeyStates();
+
+        const bool snapMovement = keyStates.Test(uint32(KeyCode::LEFT_ALT)) || keyStates.Test(uint32(KeyCode::RIGHT_ALT));
+
+        float step = 1.0f;
+
+        if (keyStates.Test(uint32(KeyCode::LEFT_SHIFT)) || keyStates.Test(uint32(KeyCode::RIGHT_SHIFT)))
+        {
+            // use larger step with shift held down
+            step *= 10.0f;
+        }
+
+        const Vec3f cameraForwardVector = camera->GetDirection();
+        const Vec3f cameraSideVector = camera->GetSideVector();
+
+        const Quaternion invNodeRotation = node->GetWorldRotation().Inverse();
+
+        const Vec3f nodeForwardVector = (invNodeRotation * cameraForwardVector);
+        const Vec3f nodeSideVector = (invNodeRotation * cameraSideVector);
+
+        NodeUnlockTransformScope scope(*node);
+
+        Vec3f moveVec;
+
+        switch (keyboardEvent.keyCode)
+        {
+        case KeyCode::ARROW_LEFT:
+            moveVec = nodeSideVector;
+
+            break;
+        case KeyCode::ARROW_RIGHT:
+            moveVec = -nodeSideVector;
+
+            break;
+        case KeyCode::ARROW_UP:
+            moveVec = nodeForwardVector;
+
+            break;
+        case KeyCode::ARROW_DOWN:
+            moveVec = -nodeForwardVector;
+
+            break;
+        default:
+            return false;
+        }
+
+        int dominantAxis;
+
+        if (std::fabsf(moveVec.x) >= std::fabsf(moveVec.y) && std::fabsf(moveVec.x) >= std::fabsf(moveVec.z))
+        {
+            dominantAxis = 0;
+        }
+        else if (std::fabsf(moveVec.y) >= std::fabsf(moveVec.z) && std::fabsf(moveVec.y) >= std::fabsf(moveVec.x))
+        {
+            dominantAxis = 1;
+        }
+        else
+        {
+            dominantAxis = 2;
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            if (i != dominantAxis)
+            {
+                moveVec[i] = 0.0f;
+            }
+        }
+
+        moveVec = node->GetWorldRotation() * moveVec;
+        moveVec.Normalize();
+        moveVec *= step;
+
+        Vec3f worldTranslation = node->GetWorldTranslation() + moveVec;
+        if (snapMovement)
+        {
+            // @TODO: Configurable snap value
+            worldTranslation[dominantAxis] = std::fmodf(worldTranslation[dominantAxis], 1.0f);
+        }
+
+        node->SetWorldTranslation(worldTranslation);
+    }
+
+    break;
+    default:
+        break;
+    }
+
+    return false;
+}
+
+Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
+{
+    auto result = AssetManager::GetInstance()->Load<Node>("models/editor/translate_gizmo.obj");
+
+    if (result.HasValue())
+    {
+        if (Handle<Node> node = result->Result())
+        {
+            node->SetName(NAME("TranslateWidget"));
+
+            node->SetWorldScale(2.5f);
+
+            Handle<Node> axisX = node->FindChildByName("Translate_X");
+            AssertDebug(axisX != nullptr);
+            axisX->AddTag(NodeTag(NAME("TransformWidgetAxis"), 0));
+
+            Handle<Node> axisY = node->FindChildByName("Translate_Y");
+            AssertDebug(axisY != nullptr);
+            axisY->AddTag(NodeTag(NAME("TransformWidgetAxis"), 1));
+
+            Handle<Node> axisZ = node->FindChildByName("Translate_Z");
+            AssertDebug(axisZ != nullptr);
+            axisZ->AddTag(NodeTag(NAME("TransformWidgetAxis"), 2));
+
+            Handle<Node> centroid = node->FindChildByName("Translate_Centroid");
+            AssertDebug(centroid != nullptr);
+            centroid->AddTag(NodeTag(NAME("TransformWidgetAxis"), -1));
+
+            for (Node* child : node->GetDescendants())
+            {
+                if (!child->IsA<Entity>())
+                {
+                    continue;
+                }
+
+                Entity* childEntity = static_cast<Entity*>(child);
+
+                childEntity->RemoveTag<EntityTag::STATIC>();
+                childEntity->AddTag<EntityTag::DYNAMIC>();
+
+                VisibilityStateComponent* visibilityState = childEntity->TryGetComponent<VisibilityStateComponent>();
+
+                if (visibilityState)
+                {
+                    visibilityState->flags |= VisibilityStateFlags::ALWAYS_VISIBLE;
+                }
+                else
+                {
+                    childEntity->AddComponent<VisibilityStateComponent>(VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE });
+                }
+
+                MeshComponent* meshComponent = childEntity->TryGetComponent<MeshComponent>();
+
+                if (!meshComponent)
+                {
+                    continue;
+                }
+
+                MaterialAttributes materialAttributes;
+                MaterialParameters materialParameters;
+
+                if (meshComponent->material.IsValid())
+                {
+                    materialAttributes = meshComponent->material->GetRenderAttributes();
+                    materialParameters = meshComponent->material->GetParameters();
+                }
+                else
+                {
+                    materialParameters = Material::DefaultParameters();
+                }
+                
+                materialAttributes.bucket = RB_DEBUG;
+
+                meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
+                meshComponent->material->SetIsDynamic(true);
+
+                childEntity->AddTag<EntityTag::UPDATE_RENDER_PROXY>();
+                childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(MATERIAL_KEY_ALBEDO))));
+            }
+
+            return node;
+        }
+    }
+
+    HYP_LOG(Editor, Error, "Failed to load axis arrows: {}", result.GetError().GetMessage());
+
+    return Handle<Node>::empty;
+}
+
+#pragma endregion TranslateEditorManipulationWidget
+
+#pragma region RotateEditorManipulationWidget
+
+#if 0
+void RotateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
+{
+    EditorManipulationWidgetBase::OnDragStart(camera, mouseEvent, node, hitpoint);
+
+    m_dragData.Unset();
+
+    if (!node->IsA<Entity>())
+    {
+        return;
+    }
+
+    Entity* entity = static_cast<Entity*>(node.Get());
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (!meshComponent || !meshComponent->material)
+    {
+        return;
+    }
+
+    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis");
+
+    if (!axisTag)
+    {
+        return;
+    }
+
+    int axis = axisTag.data.TryGet<int>(-1);
+
+    if (axis == -1)
+    {
+        return;
+    }
+
+    Handle<Node> focusedNode = m_focusedNode.Lock();
+
+    if (!focusedNode.IsValid())
+    {
+        return;
+    }
+
+    DragData dragData {
+        .axisDirection = Vec3f::Zero(),
+        .planeNormal = Vec3f::Zero(),
+        .planePoint = m_node->GetWorldTranslation(),
+        .hitpointOrigin = hitpoint,
+        .nodeOrigin = focusedNode->GetWorldTranslation()
+    };
+
+    dragData.axisDirection[axis] = 1.0f;
+
+    if (axis == 1) // +Y, -Y
+    {
+        dragData.planeNormal = dragData.axisDirection.Cross(camera->GetSideVector()).Normalize();
+    }
+    else
+    {
+        dragData.planeNormal = dragData.axisDirection.Cross(camera->GetUpVector()).Normalize();
+    }
+
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
+    const Vec4f rayDirection = mouseWorld.Normalized();
+
+    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
+
+    RayHit planeRayHit;
+
+    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(dragData.planePoint, dragData.planeNormal))
+    {
+        planeRayHit = *planeRayHitOpt;
+    }
+    else
+    {
+        HYP_LOG(Editor, Debug, "Ray plane test returned no hit. plane point : {}, plane normal {}", dragData.planePoint, dragData.planeNormal);
+        return;
+    }
+
+    m_dragData = dragData;
+}
+
+void RotateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+{
+    EditorManipulationWidgetBase::OnDragEnd(camera, mouseEvent, node);
+
+    // Commit editor transaction
+    if (Handle<EditorProject> project = GetCurrentProject())
+    {
+        if (Handle<Node> focusedNode = m_focusedNode.Lock())
+        {
+            project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
+                NAME("Translate"),
+                [manipulationMode = GetManipulationMode(), focusedNode, node = m_node, finalPosition = focusedNode->GetWorldTranslation(), origin = m_dragData->nodeOrigin]() -> EditorActionFunctions
+                {
+                    return {
+                        [&](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                        {
+                            NodeUnlockTransformScope unlockTransformScope(*focusedNode);
+                            focusedNode->SetWorldTranslation(finalPosition);
+
+                            if (Node* parent = node->FindParentWithName("TranslateWidget"))
+                            {
+                                parent->SetWorldTranslation(finalPosition);
+                            }
+
+                            editorSubsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulationMode);
+
+                            editorSubsystem->SetFocusedNode(focusedNode, true);
+                        },
+                        [&](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                        {
+                            NodeUnlockTransformScope unlockTransformScope(*focusedNode);
+                            focusedNode->SetWorldTranslation(origin);
+
+                            if (Node* parent = node->FindParentWithName("TranslateWidget"))
+                            {
+                                parent->SetWorldTranslation(origin);
+                            }
+
+                            editorSubsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulationMode);
+
+                            editorSubsystem->SetFocusedNode(focusedNode, true);
+                        }
+                    };
+                }));
+        }
+    }
+
+    m_dragData.Unset();
+}
+
+bool RotateEditorManipulationWidget::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+{
+    if (!node->IsA<Entity>())
+    {
+        return false;
+    }
+
+    Entity* entity = static_cast<Entity*>(node.Get());
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (!meshComponent || !meshComponent->material)
+    {
+        return false;
+    }
+
+    meshComponent->material->SetParameter(
+        MATERIAL_KEY_ALBEDO,
+        Vec4f(1.0f, 1.0f, 0.0, 1.0));
+
+    return true;
+}
+
+bool RotateEditorManipulationWidget::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+{
+    if (!node->IsA<Entity>())
+    {
+        return false;
+    }
+
+    Entity* entity = static_cast<Entity*>(node.Get());
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (!meshComponent || !meshComponent->material)
+    {
+        return false;
+    }
+
+    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"))
+    {
+        meshComponent->material->SetParameter(
+            MATERIAL_KEY_ALBEDO,
+            tag.data.TryGet<Vec4f>(Vec4f::Zero()));
+    }
+
+    return true;
+}
+
+bool RotateEditorManipulationWidget::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+{
+    if (!mouseEvent.mouseButtons[MouseButtonState::LEFT])
+    {
+        return false;
+    }
+
+    if (!node->IsA<Entity>())
+    {
+        return false;
+    }
+
+    if (!m_dragData)
+    {
+        return false;
+    }
+
+    Entity* entity = static_cast<Entity*>(node.Get());
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (!meshComponent || !meshComponent->material)
+    {
+        return false;
+    }
+
+    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis");
+
+    if (!axisTag)
+    {
+        return false;
+    }
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
+    const Vec4f rayDirection = mouseWorld.Normalized();
+
+    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
+
+    // const Ray rayViewSpace { camera->GetViewMatrix() * ray.position, (camera->GetViewMatrix() * Vec4f(ray.direction, 0.0f)).GetXYZ() };
+
+    // Vec4f mouseView = camera->GetViewMatrix() * mouseWorld;
+    // mouseView /= mouseView.w;
+
+    RayHit planeRayHit;
+
+    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(m_dragData->nodeOrigin, m_dragData->planeNormal))
+    {
+        planeRayHit = *planeRayHitOpt;
+    }
+    else
+    {
+        return true;
+    }
+
     const float t = (planeRayHit.hitpoint - m_dragData->hitpointOrigin).Dot(m_dragData->axisDirection);
     const Vec3f translation = m_dragData->nodeOrigin + (m_dragData->axisDirection * t);
 
@@ -586,7 +1052,7 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera>& camera
     return true;
 }
 
-bool TranslateEditorManipulationWidget::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
+bool RotateEditorManipulationWidget::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
 {
     if (!node)
     {
@@ -691,7 +1157,7 @@ bool TranslateEditorManipulationWidget::OnKeyPress(const Handle<Camera>& camera,
     return false;
 }
 
-Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
+Handle<Node> RotateEditorManipulationWidget::Load_Internal() const
 {
     auto result = AssetManager::GetInstance()->Load<Node>("models/editor/axis_arrows.obj");
 
@@ -787,8 +1253,9 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
     return Handle<Node>::empty;
 }
+#endif
 
-#pragma endregion TranslateEditorManipulationWidget
+#pragma endregion RotateEditorManipulationWidget
 
 #pragma region EditorManipulationWidgetHolder
 
@@ -3118,6 +3585,7 @@ void EditorSubsystem::NewProject()
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
     sun->SetColor(Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)));
     sun->SetIntensity(8.0f);
+    sun->SetShadowMapFilter(SMF_CONTACT_HARDENED);
     InitObject(sun);
 
     defaultScene->GetRoot()->AddChild(sun);
@@ -3316,7 +3784,7 @@ void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debu
         // Invalid placement, skip this overlay
         HYP_LOG(Editor, Warning, "Invalid debug overlay placement: {}", placement);
 
-        placement = 0; // Default to the first corner
+        placement = 0; // Default to the first container
     }
 
     if (!m_debugOverlayContainers[placement])

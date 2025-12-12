@@ -166,6 +166,7 @@ static constexpr inline uint8 GetLightmapStencilValue(LightmapElementId lightmap
     return value;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 /// Set attributes, used to decide what shader variant + pipeline to use for rendering the given proxy.
 static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
 {
@@ -271,19 +272,19 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     {
         auto shadingTypeIt = currentProperties.Find(PropNames::s_nameShadingType);
 
-        if (hasDeferredLighting != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode.value == PropNames::s_nameDeferred.hashCode))
+        if (hasDeferredLighting != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode == s_propShadingTypeDeferredDeferred.cachedHashCode))
         {
             shaderDefinition.GetProperties().Set(s_propShadingTypeDeferredDeferred, hasDeferredLighting);
             shaderDefinitionChanged = true;
         }
 
-        if (hasForwardLighting != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode.value == PropNames::s_nameForward.hashCode))
+        if (hasForwardLighting != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode == s_propShadingTypeForward.cachedHashCode))
         {
             shaderDefinition.GetProperties().Set(s_propShadingTypeForward, hasForwardLighting);
             shaderDefinitionChanged = true;
         }
 
-        if (hasLightmaps != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode.value == PropNames::s_nameLightmapped.hashCode))
+        if (hasLightmaps != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode == s_propShadingTypeLightmapped.cachedHashCode))
         {
             shaderDefinition.GetProperties().Set(s_propShadingTypeLightmapped, hasLightmaps);
             shaderDefinitionChanged = true;
@@ -320,6 +321,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         attributes.SetShaderDefinition(shaderDefinition);
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace GeometryPass
 

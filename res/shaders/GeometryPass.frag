@@ -206,9 +206,10 @@ void main()
             const vec3 E = CalculateE(F0, dfg);
             const vec3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
 
-#if 1
+            uvec2 mipChainDimensions = textureSize(gbuffer_mip_chain, 0);
+
             Ft = CalculateRefraction(
-                uvec2(512, 512), // TODO: Make global constant
+                mipChainDimensions,
                 P, N, V,
                 texcoord,
                 F0, E,
@@ -216,7 +217,6 @@ void main()
                 vec4(0.0),
                 gbuffer_albedo,
                 vec3(ao));
-#endif
 
             // #ifdef ENV_GRID_ENABLED
             // CalculateEnvGridIrradiance(P, N, irradiance);

@@ -93,7 +93,7 @@ public:
 
 protected:
     GraphicsPipelineCacheHandle CreatePipeline(const ShaderProperties& shaderProperties);
-    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override;
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer) override;
 
     virtual void Resize_Internal(Vec2u newSize) override;
 
@@ -178,9 +178,9 @@ protected:
         Array<DescriptorSetRef> descriptorSets;
     };
 
-    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override;
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer) override;
 
-    const GraphicsPipelineRef& GetGraphicsPipeline(const FramebufferRef& framebuffer, LightmapVolumePassData& data);
+    const GraphicsPipelineRef& GetGraphicsPipeline(Framebuffer* framebuffer, LightmapVolumePassData& data);
 
     LightmapVolumePassData& GetLightmapVolumePassData(LightmapVolume* lightmapVolume)
     {
@@ -240,9 +240,9 @@ protected:
         GraphicsPipelineCacheHandle graphicsPipeline;
     };
 
-    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer) override;
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer) override;
 
-    const GraphicsPipelineRef& GetGraphicsPipeline(const FramebufferRef& framebuffer, FogVolumePassData& data);
+    const GraphicsPipelineRef& GetGraphicsPipeline(Framebuffer* framebuffer, FogVolumePassData& data);
 
     void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup, FogVolumePassData& data);
 
@@ -297,7 +297,7 @@ public:
 
 protected:
     virtual void CreatePipeline() override;
-    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }
@@ -368,7 +368,7 @@ private:
 
     void CreateSSRRenderer();
 
-    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }

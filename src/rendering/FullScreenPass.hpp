@@ -161,7 +161,7 @@ public:
     virtual void Create();
 
     virtual void Render(Frame* frame, const RenderSetup& renderSetup);
-    void RenderToFramebuffer(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer);
+    void RenderToFramebuffer(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer);
 
     void Begin(Frame* frame, const RenderSetup& renderSetup);
     void End(Frame* frame, const RenderSetup& renderSetup);
@@ -183,7 +183,7 @@ protected:
     {
     }
 
-    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer);
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer);
 
     void CreateQuad();
 

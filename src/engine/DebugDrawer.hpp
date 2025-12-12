@@ -251,6 +251,11 @@ public:
         return m_config;
     }
 
+    HYP_FORCE_INLINE uint32 NumEnqueuedDrawCommands() const
+    {
+        return uint32(m_headers[RenderApi::GetRingIndex()].Size());
+    }
+
     void Update(float delta);
     void Render(Frame* frame, const RenderSetup& renderSetup);
 

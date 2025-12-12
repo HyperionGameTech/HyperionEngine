@@ -51,7 +51,7 @@
         <Style Selector="TextBlock.header">
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
-            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontSize" Value="14" />
         </Style>
         <Style Selector="TextBlock.muted">
             <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
@@ -60,9 +60,11 @@
         <!--  Inspector property name style  -->
         <Style Selector="TextBlock.inspector-name">
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="Foreground" Value="{StaticResource Brush.TextMuted}" />
             <Setter Property="Padding" Value="0,0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
         <!--  Menu  -->
         <Style Selector="Menu">
@@ -159,7 +161,7 @@
             <Setter Property="Foreground" Value="#E6E6E6" />
             <Setter Property="BorderBrush" Value="#2B2D30" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12" />
 		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
             <Setter Property="Padding" Value="4,2" />

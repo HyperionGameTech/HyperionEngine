@@ -192,10 +192,6 @@
                     <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
 
                     <Grid Grid.Row="2" RowDefinitions="Auto, *">
-                        
-
-                        
-
                         <!--  Inspector  -->
                         <Grid Grid.Row="1" RowDefinitions="Auto, *">
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -205,7 +201,7 @@
                                         DataContext="{Binding Inspector}"
                                         IsVisible="{Binding IsEntity}"
                                         RowDefinitions="Auto, Auto, Auto">
-                                        
+
                                         <Border Grid.Row="0" Classes="panel-header">
                                             <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
                                                 <TextBlock
@@ -213,13 +209,13 @@
                                                     VerticalAlignment="Center"
                                                     Classes="header"
                                                     Text="Components" />
-                                        
+
                                                 <Button
                                                     Grid.Column="1"
                                                     Margin="0,0,4,0"
                                                     Padding="8,2"
-                                                    VerticalAlignment="Center"
                                                     HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
                                                     Content="Add"
                                                     IsEnabled="{Binding HasAddableComponents}">
                                                     <Button.Flyout>
@@ -274,7 +270,6 @@
 
                                         <ItemsControl
                                             Grid.Row="1"
-                                            Margin="12"
                                             VerticalAlignment="Top"
                                             ItemsSource="{Binding Inspector.Actions}">
                                             <ItemsControl.ItemTemplate>
@@ -290,14 +285,10 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </Grid>
-                                    
-                                    <!-- Properties -->
-                                    <Grid
-                                        Margin="0"
-                                        RowDefinitions="Auto, Auto, Auto">
-                                        <Border
-                                            Grid.Row="0"
-                                            Classes="panel-header">
+
+                                    <!--  Properties  -->
+                                    <Grid Margin="0" RowDefinitions="Auto, Auto, Auto">
+                                        <Border Grid.Row="0" Classes="panel-header">
                                             <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
                                                 <TextBlock Classes="header" Text="Properties" />
                                             </Grid>
@@ -414,6 +405,7 @@
 
                                                         <TextBlock
                                                             Grid.Column="0"
+                                                            MaxWidth="80"
                                                             Margin="0,0,8,0"
                                                             Classes="inspector-name"
                                                             Text="{Binding Label}" />

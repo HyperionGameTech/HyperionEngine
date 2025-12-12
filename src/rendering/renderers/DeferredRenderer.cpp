@@ -363,7 +363,7 @@ void DeferredPass::Resize_Internal(Vec2u newSize)
     m_directLightGraphicsPipelines = {};
 }
 
-void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, const FramebufferRef& framebuffer)
+void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer)
 {
     HYP_SCOPE;
     ENGINE_STAT_SCOPE(&s_deferredPassTimer);
@@ -632,7 +632,7 @@ void LightmapPass::Create()
     FullScreenPass::Create();
 }
 
-const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRef& framebuffer, LightmapVolumePassData& data)
+const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* framebuffer, LightmapVolumePassData& data)
 {
     LightmapVolume* volume = data.volume;
     AssertDebug(volume != nullptr);
@@ -725,10 +725,12 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(const FramebufferRe
         Assert(descriptorSet->Create());
     }
 
+    FramebufferRef framebufferStrong = MakeStrongRef(framebuffer);
+
     data.graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
         m_shader,
         descriptorTable,
-        { &framebuffer, 1 },
+        { &framebufferStrong, 1 },
         RenderableAttributeSet(meshAttributes, materialAttributes));
 
     data.atlasIrradianceTextures = proxy->atlasIrradianceTextures;
@@ -742,7 +744,7 @@ void LightmapPass::Resize_Internal(Vec2u newSize)
     FullScreenPass::Resize_Internal(newSize);
 }
 
-void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -847,7 +849,7 @@ void FogVolumePass::Create()
     FullScreenPass::Create();
 }
 
-const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(const FramebufferRef& framebuffer, FogVolumePassData& data)
+const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* framebuffer, FogVolumePassData& data)
 {
     FogVolume* volume = data.volume;
     AssertDebug(volume != nullptr);
@@ -912,10 +914,12 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(const FramebufferR
 
     data.descriptorTable = descriptorTable;
 
+    FramebufferRef framebufferStrong = MakeStrongRef(framebuffer);
+
     data.graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
         m_shader,
         descriptorTable,
-        { &framebuffer, 1 },
+        { &framebufferStrong, 1 },
         renderableAttributes);
 
     return *data.graphicsPipeline;
@@ -926,7 +930,7 @@ void FogVolumePass::Resize_Internal(Vec2u newSize)
     FullScreenPass::Resize_Internal(newSize);
 }
 
-void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer)
+void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1924,8 +1928,8 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const FramebufferRef& framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
-    Assert(framebuffer != nullptr);
+    const FramebufferRef& srcFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    Assert(srcFramebuffer != nullptr);
 
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
     Assert(renderTextureToScreenShader.IsValid());
@@ -1946,9 +1950,9 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
     passData.combinePass = CreateObject<FullScreenPass>(
         renderTextureToScreenShader,
         std::move(descriptorTable),
-        framebuffer,
-        framebuffer->GetAttachment(0)->GetFormat(),
-        framebuffer->GetExtent(),
+        srcFramebuffer,
+        srcFramebuffer->GetAttachment(0)->GetFormat(),
+        srcFramebuffer->GetExtent(),
         nullptr);
 
     passData.combinePass->Create();
@@ -2420,14 +2424,17 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
     CHECK_FRAMEBUFFER_SIZE(opaquePassFramebuffer);
 
-    const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
+    Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
     CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
 
-    const FramebufferRef& translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
+    Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
     CHECK_FRAMEBUFFER_SIZE(translucentPassFramebuffer);
+
+    Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_DEBUG);
+    CHECK_FRAMEBUFFER_SIZE(debugPassFramebuffer);
 
     const bool doParticles = true;
     const bool doGaussianSplatting = false; // environment && environment->IsReady();
@@ -2723,10 +2730,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             }
         }
 
-        // render debug draw
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
-        g_engineDriver->GetDebugDrawer()->Render(frame, rs);
-
         frame->renderQueue << EndFramebuffer(translucentPassFramebuffer);
     }
 
@@ -2735,6 +2738,27 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         // update culling info now that depth pyramid has been rendered
         passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
         passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
+    }
+
+    // debug draw
+    if (renderCollector.mappingsByBucket[RB_DEBUG].Any() || g_engineDriver->GetDebugDrawer()->NumEnqueuedDrawCommands() > 0)
+    {
+        for (int attachmentIndex = 0; attachmentIndex < debugPassFramebuffer->NumAttachments(); attachmentIndex++)
+        {
+            AttachmentBase* attachment = debugPassFramebuffer->GetAttachment(attachmentIndex);
+
+            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+            {
+                frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
+            }
+        }
+
+        frame->renderQueue << BeginFramebuffer(debugPassFramebuffer);
+
+        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
+        g_engineDriver->GetDebugDrawer()->Render(frame, rs);
+
+        frame->renderQueue << EndFramebuffer(debugPassFramebuffer);
     }
 
     passData.postProcessing->RenderPost(frame, rs);

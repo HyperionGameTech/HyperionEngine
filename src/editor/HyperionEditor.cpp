@@ -11,6 +11,8 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/Texture.hpp>
 
+#include <shadows/ShadowMap.hpp>
+
 #include <engine/DebugDrawer.hpp>
 
 #include <scene/World.hpp>
@@ -139,6 +141,7 @@ void HyperionEditor::OnLaunch_Impl()
     sun->SetName(NAME("SunLight"));
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
     sun->SetIntensity(10.0f);
+    sun->SetShadowMapFilter(SMF_CONTACT_HARDENED);
     InitObject(sun);
     scene->GetRoot()->AddChild(sun);
 
