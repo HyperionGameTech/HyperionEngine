@@ -10,12 +10,7 @@ namespace Hyperion
         {
         }
 
-        public EditorProject CurrentProject
-        {
-            get
-            {
-                return this.GetCurrentProject();
-            }
-        }
+        public EditorProject CurrentProject => this.GetCurrentProject(); // extension method
+        public EditorGizmoBase SelectedGizmo => this.GetSelectedGizmo(); // extension method
     }
 }

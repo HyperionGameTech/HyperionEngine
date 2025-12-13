@@ -115,6 +115,7 @@ private:
     Array<Task<void>*> m_tasks;
 };
 
+HYP_ENUM()
 enum class EditorManipulationMode
 {
     NONE = 0,
@@ -126,19 +127,21 @@ enum class EditorManipulationMode
 
 /*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
 HYP_CLASS(Abstract)
-class HYP_API EditorManipulationWidgetBase : public ObjectBase
+class HYP_API EditorGizmoBase : public ObjectBase
 {
-    HYP_OBJECT_BODY(EditorManipulationWidgetBase);
+    HYP_OBJECT_BODY(EditorGizmoBase);
 
 public:
-    EditorManipulationWidgetBase();
-    virtual ~EditorManipulationWidgetBase() = default;
+    EditorGizmoBase();
+    virtual ~EditorGizmoBase() = default;
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Node>& GetNode() const
     {
         return m_node;
     }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE bool IsDragging() const
     {
         return m_isDragging;
@@ -156,16 +159,19 @@ public:
 
     void Shutdown();
 
+    HYP_METHOD()
     virtual EditorManipulationMode GetManipulationMode() const = 0;
 
+    HYP_METHOD()
     virtual int GetPriority() const
     {
         return -1;
     }
 
+    HYP_METHOD()
     virtual String GetMenuText() const = 0;
 
-    virtual void UpdateWidget(const Handle<Node>& focusedNode);
+    virtual void SetFocusedNode(const Handle<Node>& focusedNode);
 
     virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint);
     virtual void OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node);
@@ -213,12 +219,12 @@ private:
 };
 
 HYP_CLASS()
-class NullEditorManipulationWidget : public EditorManipulationWidgetBase
+class NullEditorGizmo : public EditorGizmoBase
 {
-    HYP_OBJECT_BODY(NullEditorManipulationWidget);
+    HYP_OBJECT_BODY(NullEditorGizmo);
 
 public:
-    virtual ~NullEditorManipulationWidget() override = default;
+    virtual ~NullEditorGizmo() override = default;
 
     virtual String GetMenuText() const override
     {
@@ -238,12 +244,12 @@ protected:
 };
 
 HYP_CLASS()
-class TranslateEditorManipulationWidget : public EditorManipulationWidgetBase
+class TranslateEditorGizmo : public EditorGizmoBase
 {
-    HYP_OBJECT_BODY(TranslateEditorManipulationWidget);
+    HYP_OBJECT_BODY(TranslateEditorGizmo);
 
 public:
-    virtual ~TranslateEditorManipulationWidget() override = default;
+    virtual ~TranslateEditorGizmo() override = default;
 
     virtual EditorManipulationMode GetManipulationMode() const override
     {
@@ -285,12 +291,12 @@ protected:
 };
 
 HYP_CLASS()
-class RotateEditorManipulationWidget : public EditorManipulationWidgetBase
+class RotateEditorGizmo : public EditorGizmoBase
 {
-    HYP_OBJECT_BODY(RotateEditorManipulationWidget);
+    HYP_OBJECT_BODY(RotateEditorGizmo);
 
 public:
-    virtual ~RotateEditorManipulationWidget() override = default;
+    virtual ~RotateEditorGizmo() override = default;
 
     virtual EditorManipulationMode GetManipulationMode() const override
     {
@@ -320,53 +326,15 @@ protected:
     virtual Handle<Node> Load_Internal() const override;
 };
 
-class HYP_API EditorManipulationWidgetHolder
-{
-    using EditorManipulationWidgetSet = HashSet<Handle<EditorManipulationWidgetBase>, &EditorManipulationWidgetBase::GetManipulationMode>;
-
-public:
-    using OnSelectedManipulationWidgetChangeDelegate = Delegate<void, EditorManipulationWidgetBase&, EditorManipulationWidgetBase&>;
-
-    EditorManipulationWidgetHolder(EditorSubsystem* editorSubsystem);
-
-    HYP_FORCE_INLINE const EditorManipulationWidgetSet& GetManipulationWidgets() const
-    {
-        return m_manipulationWidgets;
-    }
-
-    HYP_FORCE_INLINE EditorManipulationWidgetBase& GetManipulationWidget(EditorManipulationMode mode) const
-    {
-        Assert(mode != EditorManipulationMode::NONE);
-
-        return *m_manipulationWidgets.At(mode);
-    }
-
-    EditorManipulationMode GetSelectedManipulationMode() const;
-    void SetSelectedManipulationMode(EditorManipulationMode mode);
-
-    EditorManipulationWidgetBase& GetSelectedManipulationWidget() const;
-
-    void SetCurrentProject(const WeakHandle<EditorProject>& project);
-
-    void Initialize();
-    void Shutdown();
-
-    OnSelectedManipulationWidgetChangeDelegate OnSelectedManipulationWidgetChange;
-
-private:
-    EditorSubsystem* m_editorSubsystem;
-    WeakHandle<EditorProject> m_currentProject;
-
-    EditorManipulationMode m_selectedManipulationMode;
-    EditorManipulationWidgetSet m_manipulationWidgets;
-};
-
 HYP_CLASS()
 class HYP_API EditorSubsystem : public Subsystem
 {
+
     HYP_OBJECT_BODY(EditorSubsystem);
 
 public:
+    using EditorGizmoSet = HashSet<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode>;
+
     EditorSubsystem();
     virtual ~EditorSubsystem() override;
 
@@ -397,16 +365,6 @@ public:
     HYP_FORCE_INLINE const Handle<Scene>& GetEditorScene() const
     {
         return m_editorScene;
-    }
-
-    HYP_FORCE_INLINE EditorManipulationWidgetHolder& GetManipulationWidgetHolder()
-    {
-        return m_manipulationWidgetHolder;
-    }
-
-    HYP_FORCE_INLINE const EditorManipulationWidgetHolder& GetManipulationWidgetHolder() const
-    {
-        return m_manipulationWidgetHolder;
     }
 
     HYP_METHOD()
@@ -444,6 +402,20 @@ public:
 
     void SetActiveScene(const WeakHandle<Scene>& scene);
 
+    HYP_METHOD()
+    EditorManipulationMode GetSelectedManipulationMode() const;
+
+    HYP_METHOD()
+    void SetSelectedManipulationMode(EditorManipulationMode mode);
+
+    HYP_METHOD()
+    EditorGizmoBase* GetSelectedGizmo() const;
+
+    HYP_METHOD()
+    EditorGizmoBase* GetGizmo(EditorManipulationMode mode) const;
+
+    const EditorGizmoSet& GetGizmos() const;
+
     /*! \brief Calculate an appropriate position for inserting a new object into the scene.
      *  Uses raycasting from the camera to find a suitable location that doesn't intersect with existing geometry.
      *
@@ -473,6 +445,9 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void, const Handle<Scene>&> OnActiveSceneChanged;
 
+    HYP_FIELD()
+    ScriptableDelegate<void, EditorGizmoBase*, EditorGizmoBase*> OnSelectedGizmoChanged;
+
 private:
     void LoadEditorUIDefinitions();
 
@@ -484,7 +459,7 @@ private:
     void InitDetailView();
     void InitConsoleUI();
     void InitDebugOverlays();
-    void InitManipulationWidgetSelection();
+    void InitGizmoSelection();
     void InitActiveSceneSelection();
 
     TResult<Handle<FontAtlas>> CreateFontAtlas();
@@ -502,14 +477,18 @@ private:
     void RemovePackageFromContentBrowser(AssetPackage* package);
     void SetSelectedPackage(const Handle<AssetPackage>& package);
 
-    void SetHoveredManipulationWidget(
-        const MouseEvent& event,
-        EditorManipulationWidgetBase* manipulationWidget,
-        const Handle<Node>& manipulationWidgetNode);
+    void SetGizmoCurrentProject(const WeakHandle<EditorProject>& project);
+    void InitializeGizmos();
+    void ShutdownGizmos();
 
-    HYP_FORCE_INLINE bool IsHoveringManipulationWidget() const
+    void SetHoveredGizmo(
+        const MouseEvent& event,
+        EditorGizmoBase* gizmo,
+        const Handle<Node>& gizmoNode);
+
+    HYP_FORCE_INLINE bool IsHoveringGizmo() const
     {
-        return m_hoveredManipulationWidget.IsValid() && m_hoveredManipulationWidgetNode.IsValid();
+        return m_hoveredGizmo.IsValid() && m_hoveredGizmoNode.IsValid();
     }
 
     Handle<Scene> m_editorScene;
@@ -519,9 +498,12 @@ private:
 
     EditorTaskManager m_taskManager;
 
-    EditorManipulationWidgetHolder m_manipulationWidgetHolder;
-    WeakHandle<EditorManipulationWidgetBase> m_hoveredManipulationWidget;
-    WeakHandle<Node> m_hoveredManipulationWidgetNode;
+    EditorManipulationMode m_selectedManipulationMode;
+    EditorGizmoSet m_gizmos;
+    WeakHandle<EditorProject> m_gizmoCurrentProject;
+
+    WeakHandle<EditorGizmoBase> m_hoveredGizmo;
+    WeakHandle<Node> m_hoveredGizmoNode;
 
     WeakHandle<Node> m_focusedNode;
     // the actual node that displays the highlight for the focused item

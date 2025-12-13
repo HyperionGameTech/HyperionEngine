@@ -20,7 +20,6 @@
     </Window.DataContext>
 
     <Window.Styles>
-        <!--  Compact, rounded tabs with bottom-highlight for selected tab  -->
         <Style Selector="TabControl">
             <Setter Property="Padding" Value="0" />
         </Style>
@@ -61,6 +60,38 @@
         <Style Selector="TabStrip">
             <Setter Property="Margin" Value="6,0,6,0" />
         </Style>
+
+        <Style Selector="RadioButton.gizmo">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="4">
+                        <ContentPresenter
+                            Margin="{TemplateBinding Padding}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="RadioButton.gizmo:checked">
+            <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="RadioButton.gizmo:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+        </Style>
     </Window.Styles>
 
     <DockPanel Background="{DynamicResource Brush.Background}">
@@ -89,9 +120,43 @@
 
         <Border Classes="panel-header" DockPanel.Dock="Top">
             <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,*,Auto">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel
+                    Grid.Column="0"
+                    Orientation="Horizontal"
+                    Spacing="6">
                     <Button Content="Save" />
                 </StackPanel>
+
+                <StackPanel
+                    Grid.Column="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="6">
+                    <RadioButton
+                        x:Name="TranslateGizmo"
+                        Classes="gizmo"
+                        Command="{Binding SelectTranslateGizmo}"
+                        Content="Translate"
+                        GroupName="GizmoMode"
+                        IsChecked="True"
+                        ToolTip.Tip="Select translation mode" />
+                    <RadioButton
+                        x:Name="RotateGizmo"
+                        Classes="gizmo"
+                        Command="{Binding SelectRotateGizmo}"
+                        Content="Rotate"
+                        GroupName="GizmoMode"
+                        ToolTip.Tip="Select rotation gizmo" />
+                    <RadioButton
+                        x:Name="ScaleGizmo"
+                        Classes="gizmo"
+                        Command="{Binding SelectScaleGizmo}"
+                        Content="Scale"
+                        GroupName="GizmoMode"
+                        ToolTip.Tip="Select scale gizmo" />
+                </StackPanel>
+
                 <StackPanel
                     Grid.Column="2"
                     Orientation="Horizontal"

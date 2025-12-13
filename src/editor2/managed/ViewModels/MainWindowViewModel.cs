@@ -23,6 +23,29 @@ namespace Hyperion.Editor.ViewModels
             public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
 
+        private class SetGizmoCommand : ICommand
+        {
+            private readonly EditorSubsystem _editorSubsystem;
+            private readonly EditorManipulationMode _mode;
+
+            public SetGizmoCommand(EditorSubsystem editorSubsystem, EditorManipulationMode mode)
+            {
+                _editorSubsystem = editorSubsystem;
+                _mode = mode;
+            }
+
+            public bool CanExecute(object? parameter) => _editorSubsystem != null;
+
+            public void Execute(object? parameter)
+            {
+                _ = EngineManager.PostToGameThread(() => _editorSubsystem.SetSelectedManipulationMode(_mode));
+            }
+
+            public event EventHandler? CanExecuteChanged;
+
+            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         private string _title = "Hyperion Editor";
         public string Title
         {
@@ -54,6 +77,10 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand AddReflectionProbe => new EditorCommand("AddReflectionProbe");
         public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
         public EditorCommand AddFogVolume => new EditorCommand("AddFogVolume");
+
+        public ICommand SelectTranslateGizmo { get; }
+        public ICommand SelectRotateGizmo { get; }
+        public ICommand SelectScaleGizmo { get; }
 
         private const int GameLaunchWaitIntervalMs = 500;
         private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up
@@ -103,9 +130,25 @@ namespace Hyperion.Editor.ViewModels
 
             _editorSubsystem = editorSubsystem;
 
+            SelectTranslateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Translate);
+            SelectRotateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Rotate);
+            SelectScaleGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Scale);
+
             // handle active scene changes
             _editorSubsystem.GetOnActiveSceneChangedDelegate()
                 .Bind(HandleActiveSceneChanged)
+                .Detach();
+
+            _editorSubsystem.GetOnSelectedGizmoChangedDelegate()
+                .Bind((EditorGizmoBase? newGizmo, EditorGizmoBase? prevGizmo) =>
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                        (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                        (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                    });
+                })
                 .Detach();
 
             SceneHierarchy.SelectedNodeChanged += OnSceneHierarchyNodeSelected;

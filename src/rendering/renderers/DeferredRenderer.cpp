@@ -1928,7 +1928,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const FramebufferRef& srcFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    const FramebufferRef& srcFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
     Assert(srcFramebuffer != nullptr);
 
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));

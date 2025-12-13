@@ -34,11 +34,11 @@ struct GBufferTargetDesc
 };
 
 static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
-    GBufferTargetDesc { GBufferFormat(TF_RGBA16F) },        // color
-    GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) },    // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
-    GBufferTargetDesc { GBufferFormat(TF_RGBA32) },         // material data
-    GBufferTargetDesc { GBufferFormat(TF_RG16F) },          // velocity
-    GBufferTargetDesc { GBufferFormat(TF_DEPTH_32F) }       // depth
+    GBufferTargetDesc { GBufferFormat(TF_RGBA16F) },     // color
+    GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) }, // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
+    GBufferTargetDesc { GBufferFormat(TF_RGBA32) },      // material data
+    GBufferTargetDesc { GBufferFormat(TF_RG16F) },       // velocity
+    GBufferTargetDesc { GBufferFormat(TF_DEPTH_32F) }    // depth
 };
 
 static TextureFormat GetImageFormat(GBufferTargetName targetName)
@@ -167,10 +167,10 @@ void GBuffer::CreateBucketFramebuffers()
         case RB_OPAQUE:
             target.m_framebuffer = CreateFramebuffer(nullptr, m_extent, rb);
             break;
-        case RB_LIGHTMAP:       // fallthrough
-        case RB_TRANSLUCENT:    // fallthrough
-        case RB_SKYBOX:         // fallthrough
-        case RB_DEBUG:          // fallthrough
+        case RB_LIGHTMAP:    // fallthrough
+        case RB_TRANSLUCENT: // fallthrough
+        case RB_SKYBOX:      // fallthrough
+        case RB_DEBUG:       // fallthrough
             target.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
             break;
         default:

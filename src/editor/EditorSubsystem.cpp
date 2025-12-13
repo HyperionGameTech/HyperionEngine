@@ -250,17 +250,17 @@ void GenerateLightmapsEditorTask::Tick(float delta)
 
 #pragma endregion GenerateLightmapsEditorTask
 
-#pragma region EditorManipulationWidgetBase
+#pragma region EditorGizmoBase
 
-EditorManipulationWidgetBase::EditorManipulationWidgetBase()
+EditorGizmoBase::EditorGizmoBase()
     : m_isDragging(false)
 {
 }
 
-void EditorManipulationWidgetBase::Init()
+void EditorGizmoBase::Init()
 {
     // Keep the node around so we only have to load it once.
-    if (m_node.IsValid() || IsA(NullEditorManipulationWidget::StaticClass()))
+    if (m_node.IsValid() || IsA(NullEditorGizmo::StaticClass()))
     {
         return;
     }
@@ -273,7 +273,7 @@ void EditorManipulationWidgetBase::Init()
 
         // Create default node so we don't crash trying to use it
         m_node = CreateObject<Node>();
-        m_node->SetName(NAME_FMT("{}_FallbackManipulationWidgetNode", InstanceClass()->GetName()));
+        m_node->SetName(NAME_FMT("{}_FallbackGizmoNode", InstanceClass()->GetName()));
     }
 
     m_node->UnlockTransform();
@@ -285,7 +285,7 @@ void EditorManipulationWidgetBase::Init()
     );
 }
 
-void EditorManipulationWidgetBase::Shutdown()
+void EditorGizmoBase::Shutdown()
 {
     if (m_node.IsValid())
     {
@@ -296,7 +296,7 @@ void EditorManipulationWidgetBase::Shutdown()
     m_focusedNode.Reset();
 }
 
-void EditorManipulationWidgetBase::UpdateWidget(const Handle<Node>& focusedNode)
+void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
 {
     if (!focusedNode.IsValid() || focusedNode->IsRoot() || focusedNode->IsA<SkyProbe>())
     {
@@ -316,28 +316,28 @@ void EditorManipulationWidgetBase::UpdateWidget(const Handle<Node>& focusedNode)
     m_node->SetWorldTranslation(focusedNode->GetWorldBounds().GetCenter());
 }
 
-void EditorManipulationWidgetBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
+void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
 {
     m_isDragging = true;
 }
 
-void EditorManipulationWidgetBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+void EditorGizmoBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
     m_isDragging = false;
 }
 
-Handle<EditorProject> EditorManipulationWidgetBase::GetCurrentProject() const
+Handle<EditorProject> EditorGizmoBase::GetCurrentProject() const
 {
     return m_currentProject.Lock();
 }
 
-#pragma endregion EditorManipulationWidgetBase
+#pragma endregion EditorGizmoBase
 
-#pragma region TranslateEditorManipulationWidget
+#pragma region TranslateEditorGizmo
 
-void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
+void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
 {
-    EditorManipulationWidgetBase::OnDragStart(camera, mouseEvent, node, hitpoint);
+    EditorGizmoBase::OnDragStart(camera, mouseEvent, node, hitpoint);
 
     m_dragData.Unset();
 
@@ -418,9 +418,9 @@ void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera
     m_dragData = dragData;
 }
 
-void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    EditorManipulationWidgetBase::OnDragEnd(camera, mouseEvent, node);
+    EditorGizmoBase::OnDragEnd(camera, mouseEvent, node);
 
     // Commit editor transaction
     if (Handle<EditorProject> project = GetCurrentProject())
@@ -442,7 +442,7 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
                                 parent->SetWorldTranslation(finalPosition);
                             }
 
-                            editorSubsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulationMode);
+                            editorSubsystem->SetSelectedManipulationMode(manipulationMode);
 
                             editorSubsystem->SetFocusedNode(focusedNode, true);
                         },
@@ -456,7 +456,7 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
                                 parent->SetWorldTranslation(origin);
                             }
 
-                            editorSubsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulationMode);
+                            editorSubsystem->SetSelectedManipulationMode(manipulationMode);
 
                             editorSubsystem->SetFocusedNode(focusedNode, true);
                         }
@@ -468,7 +468,7 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
     m_dragData.Unset();
 }
 
-bool TranslateEditorManipulationWidget::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
     if (!node->IsA<Entity>())
     {
@@ -491,7 +491,7 @@ bool TranslateEditorManipulationWidget::OnMouseHover(const Handle<Camera>& camer
     return true;
 }
 
-bool TranslateEditorManipulationWidget::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+bool TranslateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
     if (!node->IsA<Entity>())
     {
@@ -517,7 +517,7 @@ bool TranslateEditorManipulationWidget::OnMouseLeave(const Handle<Camera>& camer
     return true;
 }
 
-bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
     if (!mouseEvent.mouseButtons[MouseButtonState::LEFT])
     {
@@ -600,7 +600,7 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera>& camera
     return true;
 }
 
-bool TranslateEditorManipulationWidget::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
+bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
 {
     if (!node)
     {
@@ -705,7 +705,7 @@ bool TranslateEditorManipulationWidget::OnKeyPress(const Handle<Camera>& camera,
     return false;
 }
 
-Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
+Handle<Node> TranslateEditorGizmo::Load_Internal() const
 {
     auto result = AssetManager::GetInstance()->Load<Node>("models/editor/translate_gizmo.obj");
 
@@ -775,7 +775,7 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
                 {
                     materialParameters = Material::DefaultParameters();
                 }
-                
+
                 materialAttributes.bucket = RB_DEBUG;
 
                 meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
@@ -791,490 +791,62 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
     HYP_LOG(Editor, Error, "Failed to load axis arrows: {}", result.GetError().GetMessage());
 
-    return Handle<Node>::empty;
+    return Handle<Node>::Null();
 }
 
-#pragma endregion TranslateEditorManipulationWidget
+#pragma endregion TranslateEditorGizmo
 
-#pragma region RotateEditorManipulationWidget
+#pragma region RotateEditorGizmo
 
-#if 0
-void RotateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
+#if 1
+void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
 {
-    EditorManipulationWidgetBase::OnDragStart(camera, mouseEvent, node, hitpoint);
-
-    m_dragData.Unset();
-
-    if (!node->IsA<Entity>())
-    {
-        return;
-    }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return;
-    }
-
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis");
-
-    if (!axisTag)
-    {
-        return;
-    }
-
-    int axis = axisTag.data.TryGet<int>(-1);
-
-    if (axis == -1)
-    {
-        return;
-    }
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return;
-    }
-
-    DragData dragData {
-        .axisDirection = Vec3f::Zero(),
-        .planeNormal = Vec3f::Zero(),
-        .planePoint = m_node->GetWorldTranslation(),
-        .hitpointOrigin = hitpoint,
-        .nodeOrigin = focusedNode->GetWorldTranslation()
-    };
-
-    dragData.axisDirection[axis] = 1.0f;
-
-    if (axis == 1) // +Y, -Y
-    {
-        dragData.planeNormal = dragData.axisDirection.Cross(camera->GetSideVector()).Normalize();
-    }
-    else
-    {
-        dragData.planeNormal = dragData.axisDirection.Cross(camera->GetUpVector()).Normalize();
-    }
-
-    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
-    const Vec4f rayDirection = mouseWorld.Normalized();
-
-    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
-
-    RayHit planeRayHit;
-
-    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(dragData.planePoint, dragData.planeNormal))
-    {
-        planeRayHit = *planeRayHitOpt;
-    }
-    else
-    {
-        HYP_LOG(Editor, Debug, "Ray plane test returned no hit. plane point : {}, plane normal {}", dragData.planePoint, dragData.planeNormal);
-        return;
-    }
-
-    m_dragData = dragData;
+    EditorGizmoBase::OnDragStart(camera, mouseEvent, node, hitpoint);
 }
 
-void RotateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    EditorManipulationWidgetBase::OnDragEnd(camera, mouseEvent, node);
-
-    // Commit editor transaction
-    if (Handle<EditorProject> project = GetCurrentProject())
-    {
-        if (Handle<Node> focusedNode = m_focusedNode.Lock())
-        {
-            project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
-                NAME("Translate"),
-                [manipulationMode = GetManipulationMode(), focusedNode, node = m_node, finalPosition = focusedNode->GetWorldTranslation(), origin = m_dragData->nodeOrigin]() -> EditorActionFunctions
-                {
-                    return {
-                        [&](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
-                        {
-                            NodeUnlockTransformScope unlockTransformScope(*focusedNode);
-                            focusedNode->SetWorldTranslation(finalPosition);
-
-                            if (Node* parent = node->FindParentWithName("TranslateWidget"))
-                            {
-                                parent->SetWorldTranslation(finalPosition);
-                            }
-
-                            editorSubsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulationMode);
-
-                            editorSubsystem->SetFocusedNode(focusedNode, true);
-                        },
-                        [&](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
-                        {
-                            NodeUnlockTransformScope unlockTransformScope(*focusedNode);
-                            focusedNode->SetWorldTranslation(origin);
-
-                            if (Node* parent = node->FindParentWithName("TranslateWidget"))
-                            {
-                                parent->SetWorldTranslation(origin);
-                            }
-
-                            editorSubsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulationMode);
-
-                            editorSubsystem->SetFocusedNode(focusedNode, true);
-                        }
-                    };
-                }));
-        }
-    }
-
-    m_dragData.Unset();
+    EditorGizmoBase::OnDragEnd(camera, mouseEvent, node);
 }
 
-bool RotateEditorManipulationWidget::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    if (!node->IsA<Entity>())
-    {
-        return false;
-    }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    meshComponent->material->SetParameter(
-        MATERIAL_KEY_ALBEDO,
-        Vec4f(1.0f, 1.0f, 0.0, 1.0));
-
     return true;
 }
 
-bool RotateEditorManipulationWidget::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+bool RotateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    if (!node->IsA<Entity>())
-    {
-        return false;
-    }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"))
-    {
-        meshComponent->material->SetParameter(
-            MATERIAL_KEY_ALBEDO,
-            tag.data.TryGet<Vec4f>(Vec4f::Zero()));
-    }
-
     return true;
 }
 
-bool RotateEditorManipulationWidget::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    if (!mouseEvent.mouseButtons[MouseButtonState::LEFT])
-    {
-        return false;
-    }
-
-    if (!node->IsA<Entity>())
-    {
-        return false;
-    }
-
-    if (!m_dragData)
-    {
-        return false;
-    }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis");
-
-    if (!axisTag)
-    {
-        return false;
-    }
-    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
-    const Vec4f rayDirection = mouseWorld.Normalized();
-
-    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
-
-    // const Ray rayViewSpace { camera->GetViewMatrix() * ray.position, (camera->GetViewMatrix() * Vec4f(ray.direction, 0.0f)).GetXYZ() };
-
-    // Vec4f mouseView = camera->GetViewMatrix() * mouseWorld;
-    // mouseView /= mouseView.w;
-
-    RayHit planeRayHit;
-
-    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(m_dragData->nodeOrigin, m_dragData->planeNormal))
-    {
-        planeRayHit = *planeRayHitOpt;
-    }
-    else
-    {
-        return true;
-    }
-
-    const float t = (planeRayHit.hitpoint - m_dragData->hitpointOrigin).Dot(m_dragData->axisDirection);
-    const Vec3f translation = m_dragData->nodeOrigin + (m_dragData->axisDirection * t);
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return false;
-    }
-
-    NodeUnlockTransformScope unlockTransformScope(*focusedNode);
-    focusedNode->SetWorldTranslation(translation);
-
-    if (Node* parent = node->FindParentWithName("TranslateWidget"))
-    {
-        parent->SetWorldTranslation(translation);
-    }
-
     return true;
 }
 
-bool RotateEditorManipulationWidget::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
+bool RotateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
 {
-    if (!node)
-    {
-        return false;
-    }
-
-    switch (keyboardEvent.keyCode)
-    {
-    case KeyCode::ARROW_LEFT:
-    case KeyCode::ARROW_RIGHT:
-    case KeyCode::ARROW_UP:
-    case KeyCode::ARROW_DOWN: // fallthrough
-    {
-        const Bitset& keyStates = camera->GetCameraController()->GetInputHandler()->GetKeyStates();
-
-        const bool snapMovement = keyStates.Test(uint32(KeyCode::LEFT_ALT)) | keyStates.Test(uint32(KeyCode::RIGHT_ALT));
-
-        float step = 1.0f;
-
-        if (keyStates.Test(uint32(KeyCode::LEFT_SHIFT)) | keyStates.Test(uint32(KeyCode::RIGHT_SHIFT)))
-        {
-            // use larger step with shift held down
-            step *= 10.0f;
-        }
-
-        const Vec3f cameraForwardVector = camera->GetDirection();
-        const Vec3f cameraSideVector = camera->GetSideVector();
-
-        const Quaternion invNodeRotation = node->GetWorldRotation().Inverse();
-
-        const Vec3f nodeForwardVector = (invNodeRotation * cameraForwardVector);
-        const Vec3f nodeSideVector = (invNodeRotation * cameraSideVector);
-
-        NodeUnlockTransformScope scope(*node);
-
-        Vec3f moveVec;
-
-        switch (keyboardEvent.keyCode)
-        {
-        case KeyCode::ARROW_LEFT:
-            moveVec = nodeSideVector;
-
-            break;
-        case KeyCode::ARROW_RIGHT:
-            moveVec = -nodeSideVector;
-
-            break;
-        case KeyCode::ARROW_UP:
-            moveVec = nodeForwardVector;
-
-            break;
-        case KeyCode::ARROW_DOWN:
-            moveVec = -nodeForwardVector;
-
-            break;
-        default:
-            return false;
-        }
-
-        int dominantAxis;
-
-        if (std::fabsf(moveVec.x) >= std::fabsf(moveVec.y) && std::fabsf(moveVec.x) >= std::fabsf(moveVec.z))
-        {
-            dominantAxis = 0;
-        }
-        else if (std::fabsf(moveVec.y) >= std::fabsf(moveVec.z) && std::fabsf(moveVec.y) >= std::fabsf(moveVec.x))
-        {
-            dominantAxis = 1;
-        }
-        else
-        {
-            dominantAxis = 2;
-        }
-
-        for (int i = 0; i < 3; i++)
-        {
-            if (i != dominantAxis)
-            {
-                moveVec[i] = 0.0f;
-            }
-        }
-
-        moveVec = node->GetWorldRotation() * moveVec;
-        moveVec.Normalize();
-        moveVec *= step;
-
-        Vec3f worldTranslation = node->GetWorldTranslation() + moveVec;
-        if (snapMovement)
-        {
-            // @TODO: Configurable snap value
-            worldTranslation[dominantAxis] = std::fmodf(worldTranslation[dominantAxis], 1.0f);
-        }
-
-        node->SetWorldTranslation(worldTranslation);
-    }
-
-    break;
-    default:
-        break;
-    }
-
     return false;
 }
 
-Handle<Node> RotateEditorManipulationWidget::Load_Internal() const
+Handle<Node> RotateEditorGizmo::Load_Internal() const
 {
-    auto result = AssetManager::GetInstance()->Load<Node>("models/editor/axis_arrows.obj");
-
-    if (result.HasValue())
-    {
-        if (Handle<Node> node = result->Result())
-        {
-            node->SetName(NAME("TranslateWidget"));
-
-            node->SetWorldScale(2.5f);
-
-            node->GetChild(1)->SetName(NAME("AxisX"));
-            node->GetChild(1)->AddTag(NodeTag(NAME("TransformWidgetAxis"), 0));
-
-            node->GetChild(0)->SetName(NAME("AxisY"));
-            node->GetChild(0)->AddTag(NodeTag(NAME("TransformWidgetAxis"), 1));
-
-            node->GetChild(2)->SetName(NAME("AxisZ"));
-            node->GetChild(2)->AddTag(NodeTag(NAME("TransformWidgetAxis"), 2));
-
-            for (Node* child : node->GetDescendants())
-            {
-                if (!child->IsA<Entity>())
-                {
-                    continue;
-                }
-
-                Entity* childEntity = static_cast<Entity*>(child);
-
-                childEntity->RemoveTag<EntityTag::STATIC>();
-                childEntity->AddTag<EntityTag::DYNAMIC>();
-
-                VisibilityStateComponent* visibilityState = childEntity->TryGetComponent<VisibilityStateComponent>();
-
-                if (visibilityState)
-                {
-                    visibilityState->flags |= VisibilityStateFlags::ALWAYS_VISIBLE;
-                }
-                else
-                {
-                    childEntity->AddComponent<VisibilityStateComponent>(VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE });
-                }
-
-                MeshComponent* meshComponent = childEntity->TryGetComponent<MeshComponent>();
-
-                if (!meshComponent)
-                {
-                    continue;
-                }
-
-                MaterialAttributes materialAttributes;
-                MaterialParameters materialParameters;
-
-                if (meshComponent->material.IsValid())
-                {
-                    materialAttributes = meshComponent->material->GetRenderAttributes();
-                    materialParameters = meshComponent->material->GetParameters();
-                }
-                else
-                {
-                    materialParameters = Material::DefaultParameters();
-                }
-
-                // disable depth write and depth test
-                materialAttributes.flags &= ~(MAF_DEPTH_TEST);
-                materialAttributes.bucket = RB_DEBUG;
-
-                meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
-                meshComponent->material->SetIsDynamic(true);
-
-                childEntity->AddTag<EntityTag::UPDATE_RENDER_PROXY>();
-                childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(MATERIAL_KEY_ALBEDO))));
-            }
-
-            // FileByteWriter byteWriter(GetResourceDirectory() / "models/editor/axis_arrows.hypmodel");
-            // FBOMWriter writer { FBOMWriterConfig {} };
-            // writer.Append(*node);
-
-            // FBOMResult writeErr = writer.Emit(&byteWriter);
-
-            // byteWriter.Close();
-            //
-            //            if (writeErr)
-            //            {
-            //                HYP_LOG(Editor, Error, "Failed to write axis arrows to disk: {}", writeErr.message);
-            //            }
-
-            return node;
-        }
-    }
-
-    HYP_LOG(Editor, Error, "Failed to load axis arrows: {}", result.GetError().GetMessage());
-
-    return Handle<Node>::empty;
+    return Handle<Node>::Null();
 }
 #endif
 
-#pragma endregion RotateEditorManipulationWidget
+#pragma endregion RotateEditorGizmo
 
-#pragma region EditorManipulationWidgetHolder
+#pragma region EditorSubsystem Gizmos
 
-EditorManipulationWidgetHolder::EditorManipulationWidgetHolder(EditorSubsystem* editorSubsystem)
-    : m_editorSubsystem(editorSubsystem),
-      m_selectedManipulationMode(EditorManipulationMode::NONE)
-{
-    m_manipulationWidgets.Insert(CreateObject<NullEditorManipulationWidget>());
-    m_manipulationWidgets.Insert(CreateObject<TranslateEditorManipulationWidget>());
-}
-
-EditorManipulationMode EditorManipulationWidgetHolder::GetSelectedManipulationMode() const
+EditorManipulationMode EditorSubsystem::GetSelectedManipulationMode() const
 {
     AssertOnThread(g_gameThread);
 
     return m_selectedManipulationMode;
 }
 
-void EditorManipulationWidgetHolder::SetSelectedManipulationMode(EditorManipulationMode mode)
+void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
 {
     AssertOnThread(g_gameThread);
 
@@ -1283,78 +855,106 @@ void EditorManipulationWidgetHolder::SetSelectedManipulationMode(EditorManipulat
         return;
     }
 
-    EditorManipulationWidgetBase& newWidget = *m_manipulationWidgets.At(mode);
-    EditorManipulationWidgetBase& prevWidget = *m_manipulationWidgets.At(m_selectedManipulationMode);
+    if (!m_gizmos.Contains(mode))
+    {
+        SetSelectedManipulationMode(EditorManipulationMode::NONE);
+        return;
+    }
 
-    OnSelectedManipulationWidgetChange(newWidget, prevWidget);
+    EditorGizmoBase* newGizmo = m_gizmos.At(mode);
+    EditorGizmoBase* prevGizmo = m_gizmos.At(m_selectedManipulationMode);
 
     m_selectedManipulationMode = mode;
+
+    OnSelectedGizmoChanged(newGizmo, prevGizmo);
 }
 
-EditorManipulationWidgetBase& EditorManipulationWidgetHolder::GetSelectedManipulationWidget() const
+EditorGizmoBase* EditorSubsystem::GetSelectedGizmo() const
 {
     AssertOnThread(g_gameThread);
 
-    return *m_manipulationWidgets.At(m_selectedManipulationMode);
+    return m_gizmos.At(m_selectedManipulationMode);
 }
 
-void EditorManipulationWidgetHolder::SetCurrentProject(const WeakHandle<EditorProject>& project)
+EditorGizmoBase* EditorSubsystem::GetGizmo(EditorManipulationMode mode) const
 {
     AssertOnThread(g_gameThread);
 
-    m_currentProject = project;
+    if (!m_gizmos.Contains(mode))
+    {
+        return nullptr;
+    }
 
-    for (auto& it : m_manipulationWidgets)
+    return m_gizmos.At(mode);
+}
+
+const EditorSubsystem::EditorGizmoSet& EditorSubsystem::GetGizmos() const
+{
+    AssertOnThread(g_gameThread);
+
+    return m_gizmos;
+}
+
+void EditorSubsystem::SetGizmoCurrentProject(const WeakHandle<EditorProject>& project)
+{
+    AssertOnThread(g_gameThread);
+
+    m_gizmoCurrentProject = project;
+
+    for (auto& it : m_gizmos)
     {
         it->SetCurrentProject(project);
     }
 }
 
-void EditorManipulationWidgetHolder::Initialize()
+void EditorSubsystem::InitializeGizmos()
 {
     AssertOnThread(g_gameThread);
 
-    for (const Handle<EditorManipulationWidgetBase>& widget : m_manipulationWidgets)
+    for (const Handle<EditorGizmoBase>& widget : m_gizmos)
     {
-        widget->SetEditorSubsystem(m_editorSubsystem);
-        widget->SetCurrentProject(m_currentProject);
+        widget->SetEditorSubsystem(this);
+        widget->SetCurrentProject(m_gizmoCurrentProject);
 
         InitObject(widget);
     }
 }
 
-void EditorManipulationWidgetHolder::Shutdown()
+void EditorSubsystem::ShutdownGizmos()
 {
     AssertOnThread(g_gameThread);
 
     if (m_selectedManipulationMode != EditorManipulationMode::NONE)
     {
-        OnSelectedManipulationWidgetChange(
-            *m_manipulationWidgets.At(EditorManipulationMode::NONE),
-            *m_manipulationWidgets.At(m_selectedManipulationMode));
-
         m_selectedManipulationMode = EditorManipulationMode::NONE;
+
+        OnSelectedGizmoChanged(
+            m_gizmos.At(EditorManipulationMode::NONE),
+            m_gizmos.At(m_selectedManipulationMode));
     }
 
-    for (auto& it : m_manipulationWidgets)
+    for (auto& it : m_gizmos)
     {
         it->Shutdown();
     }
 }
 
-#pragma endregion EditorManipulationWidgetHolder
+#pragma endregion EditorSubsystem Gizmos
 
 #pragma region EditorSubsystem
 
-static constexpr bool g_showOnlyActiveScene = true; // @TODO: Make this configurable
+static constexpr bool ShowOnlyActiveScene = true; // @TODO: Make this configurable
 
 #ifdef HYP_EDITOR
 
 EditorSubsystem::EditorSubsystem()
-    : m_editorCameraEnabled(false),
-      m_shouldCancelNextClick(false),
-      m_manipulationWidgetHolder(this)
+    : m_selectedManipulationMode(EditorManipulationMode::NONE),
+      m_editorCameraEnabled(false),
+      m_shouldCancelNextClick(false)
 {
+    m_gizmos.Insert(CreateObject<NullEditorGizmo>());
+    m_gizmos.Insert(CreateObject<TranslateEditorGizmo>());
+
     m_editorDelegates = new EditorDelegates();
 
     m_taskManager.OnTaskAdded
@@ -1472,8 +1072,8 @@ EditorSubsystem::EditorSubsystem()
 
                 InitObject(project);
 
-                m_manipulationWidgetHolder.Initialize();
-                m_manipulationWidgetHolder.SetCurrentProject(project);
+                InitializeGizmos();
+                SetGizmoCurrentProject(project);
 
                 g_engineDriver->AddWorld(project->GetWorld());
 
@@ -1626,7 +1226,7 @@ EditorSubsystem::EditorSubsystem()
                 //             case GameStateMode::PAUSED:
                 //             {
                 //                 // unset manipulation widgets
-                //                 m_manipulationWidgetHolder.SetSelectedManipulationMode(EditorManipulationMode::NONE);
+                //                 SetSelectedManipulationMode(EditorManipulationMode::NONE);
 
                 //                 m_delegateHandlers.Add(
                 //                     NAME("World_SceneAddedDuringSimulation"),
@@ -1669,8 +1269,8 @@ EditorSubsystem::EditorSubsystem()
             {
                 g_engineDriver->RemoveWorld(project->GetWorld());
 
-                // Shutdown to reinitialize widget holder after project is opened
-                m_manipulationWidgetHolder.Shutdown();
+                // Shutdown to reinitialize gizmos after project is opened
+                ShutdownGizmos();
 
                 m_focusedNode.Reset();
 
@@ -1679,7 +1279,7 @@ EditorSubsystem::EditorSubsystem()
                     m_highlightNode->Remove();
                 }
 
-                SetActiveScene(WeakHandle<Scene>::empty);
+                SetActiveScene(WeakHandle<Scene>::Null());
 
                 for (const Handle<Scene>& scene : project->GetWorld()->GetScenes())
                 {
@@ -1716,33 +1316,33 @@ EditorSubsystem::EditorSubsystem()
             })
         .Detach();
 
-    m_manipulationWidgetHolder.OnSelectedManipulationWidgetChange
-        .Bind([this](EditorManipulationWidgetBase& newWidget, EditorManipulationWidgetBase& prevWidget)
+    OnSelectedGizmoChanged
+        .Bind([this](EditorGizmoBase* newGizmo, EditorGizmoBase* prevGizmo)
             {
-                SetHoveredManipulationWidget(MouseEvent {}, nullptr, Handle<Node>::empty);
+                SetHoveredGizmo(MouseEvent {}, nullptr, Handle<Node>::Null());
 
-                if (prevWidget.GetManipulationMode() != EditorManipulationMode::NONE)
+                if (prevGizmo && prevGizmo->GetManipulationMode() != EditorManipulationMode::NONE)
                 {
-                    if (prevWidget.GetNode().IsValid())
+                    if (prevGizmo->GetNode().IsValid())
                     {
-                        prevWidget.GetNode()->Remove();
+                        prevGizmo->GetNode()->Remove();
                     }
 
-                    prevWidget.UpdateWidget(Handle<Node>::empty);
+                    prevGizmo->SetFocusedNode(Handle<Node>::Null());
                 }
 
-                if (newWidget.GetManipulationMode() != EditorManipulationMode::NONE)
+                if (newGizmo && newGizmo->GetManipulationMode() != EditorManipulationMode::NONE)
                 {
-                    newWidget.UpdateWidget(m_focusedNode.Lock());
+                    newGizmo->SetFocusedNode(m_focusedNode.Lock());
 
-                    if (!newWidget.GetNode().IsValid())
+                    if (!newGizmo->GetNode().IsValid())
                     {
-                        HYP_LOG(Editor, Warning, "Manipulation widget has no valid node; cannot attach to scene");
+                        HYP_LOG(Editor, Warning, "Gizmo has no valid node; cannot attach to scene");
 
                         return;
                     }
 
-                    m_editorScene->GetRoot()->AddChild(newWidget.GetNode());
+                    m_editorScene->GetRoot()->AddChild(newGizmo->GetNode());
                 }
             })
         .Detach();
@@ -2128,7 +1728,7 @@ void EditorSubsystem::InitViewport()
 
             if (GetWorld()->GetGameState().IsEditor())
             {
-                if (IsHoveringManipulationWidget())
+                if (IsHoveringGizmo())
                 {
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
@@ -2187,9 +1787,9 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
-            if (IsHoveringManipulationWidget())
+            if (IsHoveringGizmo())
             {
-                SetHoveredManipulationWidget(event, nullptr, Handle<Node>::empty);
+                SetHoveredGizmo(event, nullptr, Handle<Node>::Null());
             }
 
             activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseLeave(event);
@@ -2209,20 +1809,20 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
-            if (!event.inputManager->IsMouseLocked() && IsHoveringManipulationWidget())
+            if (!event.inputManager->IsMouseLocked() && IsHoveringGizmo())
             {
                 // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
-                Handle<EditorManipulationWidgetBase> manipulationWidget = m_hoveredManipulationWidget.Lock();
-                Handle<Node> node = m_hoveredManipulationWidgetNode.Lock();
+                Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
+                Handle<Node> node = m_hoveredGizmoNode.Lock();
 
-                if (!manipulationWidget || !node)
+                if (!gizmo || !node)
                 {
                     HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
 
                     return UIEventHandlerResult::ERR;
                 }
 
-                if (manipulationWidget->OnMouseMove(activeViewport->GetCamera(), event, Handle<Node>(node)))
+                if (gizmo->OnMouseMove(activeViewport->GetCamera(), event, Handle<Node>(node)))
                 {
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
@@ -2260,7 +1860,7 @@ void EditorSubsystem::InitViewport()
             // Hover over a manipulation widget when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
                 && GetWorld()->GetGameState().IsEditor()
-                && m_manipulationWidgetHolder.GetSelectedManipulationMode() != EditorManipulationMode::NONE)
+                && GetSelectedManipulationMode() != EditorManipulationMode::NONE)
             {
                 // Ray test the widget
 
@@ -2271,10 +1871,10 @@ void EditorSubsystem::InitViewport()
 
                 RayTestResults results;
 
-                EditorManipulationWidgetBase& manipulationWidget = m_manipulationWidgetHolder.GetSelectedManipulationWidget();
-                bool hitManipulationWidget = false;
+                EditorGizmoBase* gizmo = GetSelectedGizmo();
+                bool hitGizmo = false;
 
-                if (manipulationWidget.GetNode()->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
+                if (gizmo && gizmo->GetNode()->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
                 {
                     for (const RayHit& rayHit : results)
                     {
@@ -2288,21 +1888,21 @@ void EditorSubsystem::InitViewport()
                         Handle<Entity> entity { entityId };
                         Assert(entity.IsValid());
 
-                        if (entity.Get() == m_hoveredManipulationWidgetNode.GetUnsafe())
+                        if (entity.Get() == m_hoveredGizmoNode.GetUnsafe())
                         {
                             return UIEventHandlerResult::STOP_BUBBLING;
                         }
 
-                        if (manipulationWidget.OnMouseHover(activeViewport->GetCamera(), event, Handle<Node>(entity)))
+                        if (gizmo->OnMouseHover(activeViewport->GetCamera(), event, Handle<Node>(entity)))
                         {
-                            SetHoveredManipulationWidget(event, &manipulationWidget, Handle<Node>(entity));
+                            SetHoveredGizmo(event, gizmo, Handle<Node>(entity));
 
                             return UIEventHandlerResult::STOP_BUBBLING;
                         }
                     }
                 }
 
-                SetHoveredManipulationWidget(event, nullptr, Handle<Node>::empty);
+                SetHoveredGizmo(event, nullptr, Handle<Node>::Null());
             }
 
             return UIEventHandlerResult::OK;
@@ -2319,19 +1919,19 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
-            if (IsHoveringManipulationWidget())
+            if (IsHoveringGizmo())
             {
-                Handle<EditorManipulationWidgetBase> manipulationWidget = m_hoveredManipulationWidget.Lock();
-                Handle<Node> node = m_hoveredManipulationWidgetNode.Lock();
+                Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
+                Handle<Node> node = m_hoveredGizmoNode.Lock();
 
-                if (!manipulationWidget || !node)
+                if (!gizmo || !node)
                 {
                     HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
 
                     return UIEventHandlerResult::ERR;
                 }
 
-                if (!manipulationWidget->IsDragging())
+                if (!gizmo->IsDragging())
                 {
                     const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.position);
                     const Vec4f rayDirection = mouseWorld.Normalized();
@@ -2344,7 +1944,7 @@ void EditorSubsystem::InitViewport()
                     {
                         for (const RayHit& rayHit : results)
                         {
-                            manipulationWidget->OnDragStart(activeViewport->GetCamera(), event, node, rayHit.hitpoint);
+                            gizmo->OnDragStart(activeViewport->GetCamera(), event, node, rayHit.hitpoint);
                         }
                     }
                 }
@@ -2368,21 +1968,21 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
-            if (IsHoveringManipulationWidget())
+            if (IsHoveringGizmo())
             {
-                Handle<EditorManipulationWidgetBase> manipulationWidget = m_hoveredManipulationWidget.Lock();
-                Handle<Node> node = m_hoveredManipulationWidgetNode.Lock();
+                Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
+                Handle<Node> node = m_hoveredGizmoNode.Lock();
 
-                if (!manipulationWidget || !node)
+                if (!gizmo || !node)
                 {
                     HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
 
                     return UIEventHandlerResult::ERR;
                 }
 
-                if (manipulationWidget->IsDragging())
+                if (gizmo->IsDragging())
                 {
-                    manipulationWidget->OnDragEnd(activeViewport->GetCamera(), event, Handle<Node>(node));
+                    gizmo->OnDragEnd(activeViewport->GetCamera(), event, Handle<Node>(node));
                 }
 
                 return UIEventHandlerResult::STOP_BUBBLING;
@@ -2414,7 +2014,7 @@ void EditorSubsystem::InitViewport()
 
                 if (m_focusedNode.IsValid())
                 {
-                    if (m_manipulationWidgetHolder.GetManipulationWidget(EditorManipulationMode::TRANSLATE).OnKeyPress(activeViewport->GetCamera(), event, m_focusedNode.Lock()))
+                    if (GetGizmo(EditorManipulationMode::TRANSLATE)->OnKeyPress(activeViewport->GetCamera(), event, m_focusedNode.Lock()))
                     {
                         return UIEventHandlerResult::STOP_BUBBLING;
                     }
@@ -2469,7 +2069,7 @@ void EditorSubsystem::InitViewport()
 
     // InitConsoleUI();
     InitDebugOverlays();
-    InitManipulationWidgetSelection();
+    InitGizmoSelection();
 }
 
 void EditorSubsystem::InitSceneOutline()
@@ -2483,7 +2083,7 @@ void EditorSubsystem::InitSceneOutline()
     listView->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     listView->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<WeakHandle<Node>> {}));
 
-    if (g_showOnlyActiveScene)
+    if (ShowOnlyActiveScene)
     {
         OnActiveSceneChanged
             .Bind([this](const Handle<Scene>& activeScene)
@@ -2505,7 +2105,7 @@ void EditorSubsystem::InitSceneOutline()
 
             if (!listViewItem)
             {
-                SetFocusedNode(Handle<Node>::empty, false);
+                SetFocusedNode(Handle<Node>::Null(), false);
 
                 return UIEventHandlerResult::OK;
             }
@@ -2645,7 +2245,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
             // If the node being removed is the focused node, clear the focused node
             if (node == m_focusedNode.GetUnsafe())
             {
-                SetFocusedNode(Handle<Node>::empty, true);
+                SetFocusedNode(Handle<Node>::Null(), true);
             }
 
             if (!node)
@@ -2731,7 +2331,7 @@ void EditorSubsystem::UpdateWatchedNodes()
 
     if (GetWorld()->GetGameState().IsEditor())
     {
-        if (g_showOnlyActiveScene)
+        if (ShowOnlyActiveScene)
         {
             if (Handle<Scene> activeScene = m_activeScene.Lock())
             {
@@ -3001,60 +2601,60 @@ void EditorSubsystem::InitDebugOverlays()
     }
 }
 
-void EditorSubsystem::InitManipulationWidgetSelection()
+void EditorSubsystem::InitGizmoSelection()
 {
     HYP_SCOPE;
 
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    Handle<UIObject> manipulationWidgetSelection = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("ManipulationWidgetSelection"));
-    if (manipulationWidgetSelection != nullptr)
+    Handle<UIObject> gizmoSelection = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("GizmoSelection"));
+    if (gizmoSelection != nullptr)
     {
-        manipulationWidgetSelection->RemoveFromParent();
+        gizmoSelection->RemoveFromParent();
     }
 
-    manipulationWidgetSelection = uiSubsystem->GetUIStage()->CreateUIObject<UIMenuBar>(NAME("ManipulationWidgetSelection"), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 12, UIObjectSize::PIXEL }));
-    Assert(manipulationWidgetSelection != nullptr);
+    gizmoSelection = uiSubsystem->GetUIStage()->CreateUIObject<UIMenuBar>(NAME("GizmoSelection"), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 12, UIObjectSize::PIXEL }));
+    Assert(gizmoSelection != nullptr);
 
-    manipulationWidgetSelection->SetDepth(150);
-    manipulationWidgetSelection->SetTextSize(8.0f);
-    manipulationWidgetSelection->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.5f));
-    manipulationWidgetSelection->SetTextColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
-    manipulationWidgetSelection->SetBorderFlags(UIObjectBorderFlags::ALL);
-    manipulationWidgetSelection->SetBorderRadius(5.0f);
-    manipulationWidgetSelection->SetPosition(Vec2i { 5, 5 });
+    gizmoSelection->SetDepth(150);
+    gizmoSelection->SetTextSize(8.0f);
+    gizmoSelection->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.5f));
+    gizmoSelection->SetTextColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
+    gizmoSelection->SetBorderFlags(UIObjectBorderFlags::ALL);
+    gizmoSelection->SetBorderRadius(5.0f);
+    gizmoSelection->SetPosition(Vec2i { 5, 5 });
 
-    Array<Pair<int, Handle<UIObject>>> manipulationWidgetMenuItems;
-    manipulationWidgetMenuItems.Reserve(m_manipulationWidgetHolder.GetManipulationWidgets().Size());
+    Array<Pair<int, Handle<UIObject>>> gizmoMenuItems;
+    gizmoMenuItems.Reserve(GetGizmos().Size());
 
     // add each manipulation widget to the selection menu
-    for (const Handle<EditorManipulationWidgetBase>& manipulationWidget : m_manipulationWidgetHolder.GetManipulationWidgets())
+    for (const Handle<EditorGizmoBase>& gizmo : GetGizmos())
     {
-        if (manipulationWidget->GetManipulationMode() == EditorManipulationMode::NONE)
+        if (gizmo->GetManipulationMode() == EditorManipulationMode::NONE)
         {
             continue;
         }
 
-        Handle<UIObject> manipulationWidgetMenuItem = manipulationWidgetSelection->CreateUIObject<UIMenuItem>(manipulationWidget->InstanceClass()->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
-        Assert(manipulationWidgetMenuItem != nullptr);
+        Handle<UIObject> gizmoMenuItem = gizmoSelection->CreateUIObject<UIMenuItem>(gizmo->InstanceClass()->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
+        Assert(gizmoMenuItem != nullptr);
 
-        manipulationWidgetMenuItem->SetText(manipulationWidget->GetMenuText());
+        gizmoMenuItem->SetText(gizmo->GetMenuText());
 
-        auto it = std::lower_bound(manipulationWidgetMenuItems.Begin(), manipulationWidgetMenuItems.End(), manipulationWidget->GetPriority(), [](const Pair<int, Handle<UIObject>>& a, int b)
+        auto it = std::lower_bound(gizmoMenuItems.Begin(), gizmoMenuItems.End(), gizmo->GetPriority(), [](const Pair<int, Handle<UIObject>>& a, int b)
             {
                 return a.first < b;
             });
 
-        manipulationWidgetMenuItems.Insert(it, Pair<int, Handle<UIObject>> { manipulationWidget->GetPriority(), std::move(manipulationWidgetMenuItem) });
+        gizmoMenuItems.Insert(it, Pair<int, Handle<UIObject>> { gizmo->GetPriority(), std::move(gizmoMenuItem) });
     }
 
-    for (Pair<int, Handle<UIObject>>& manipulationWidgetMenuItem : manipulationWidgetMenuItems)
+    for (Pair<int, Handle<UIObject>>& gizmoMenuItem : gizmoMenuItems)
     {
-        manipulationWidgetSelection->AddChildUIObject(std::move(manipulationWidgetMenuItem.second));
+        gizmoSelection->AddChildUIObject(std::move(gizmoMenuItem.second));
     }
 
-    uiSubsystem->GetUIStage()->AddChildUIObject(manipulationWidgetSelection);
+    uiSubsystem->GetUIStage()->AddChildUIObject(gizmoSelection);
 }
 
 void EditorSubsystem::InitActiveSceneSelection()
@@ -3136,7 +2736,7 @@ void EditorSubsystem::InitActiveSceneSelection()
     //                 }
     //             }
 
-    //             activeSceneMenuItem->SetSelectedSubItem(Handle<UIMenuItem>::empty);
+    //             activeSceneMenuItem->SetSelectedSubItem(Handle<UIMenuItem>::Null());
     //             activeSceneMenuItem->SetText("Active Scene: None");
 
     //             return UIEventHandlerResult::OK;
@@ -3227,7 +2827,7 @@ void EditorSubsystem::InitContentBrowser()
                         }
                     }
 
-                    SetSelectedPackage(Handle<AssetPackage>::empty);
+                    SetSelectedPackage(Handle<AssetPackage>::Null());
                 }));
 
     m_contentBrowserContents = ObjCast<UIGrid>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents"));
@@ -3731,14 +3331,17 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         // HYP_LOG(Editor, Debug, "Set focused node: {}\t{}", m_focusedNode->GetName(), m_focusedNode->GetWorldTranslation());
         // HYP_LOG(Editor, Debug, "Set highlight node translation: {}", m_highlightNode->GetWorldTranslation());
 
-        if (m_manipulationWidgetHolder.GetSelectedManipulationMode() == EditorManipulationMode::NONE)
+        if (GetSelectedManipulationMode() == EditorManipulationMode::NONE)
         {
-            m_manipulationWidgetHolder.SetSelectedManipulationMode(EditorManipulationMode::TRANSLATE);
+            SetSelectedManipulationMode(EditorManipulationMode::TRANSLATE);
         }
 
-        EditorManipulationWidgetBase& manipulationWidget = m_manipulationWidgetHolder.GetSelectedManipulationWidget();
+        EditorGizmoBase* gizmo = GetSelectedGizmo();
 
-        manipulationWidget.UpdateWidget(focusedNode);
+        if (gizmo)
+        {
+            gizmo->SetFocusedNode(focusedNode);
+        }
     }
 
     if (previousFocusedNode != nullptr)
@@ -3919,10 +3522,10 @@ void EditorSubsystem::UpdateDebugOverlays(float delta)
     }
 }
 
-void EditorSubsystem::SetHoveredManipulationWidget(
+void EditorSubsystem::SetHoveredGizmo(
     const MouseEvent& event,
-    EditorManipulationWidgetBase* manipulationWidget,
-    const Handle<Node>& manipulationWidgetNode)
+    EditorGizmoBase* gizmo,
+    const Handle<Node>& gizmoNode)
 {
     EditorViewport* activeViewport = GetActiveViewport();
     if (activeViewport == nullptr)
@@ -3930,27 +3533,27 @@ void EditorSubsystem::SetHoveredManipulationWidget(
         return;
     }
 
-    if (m_hoveredManipulationWidget.IsValid() && m_hoveredManipulationWidgetNode.IsValid())
+    if (m_hoveredGizmo.IsValid() && m_hoveredGizmoNode.IsValid())
     {
-        Handle<Node> hoveredManipulationWidgetNode = m_hoveredManipulationWidgetNode.Lock();
-        Handle<EditorManipulationWidgetBase> hoveredManipulationWidget = m_hoveredManipulationWidget.Lock();
+        Handle<Node> hoveredGizmoNode = m_hoveredGizmoNode.Lock();
+        Handle<EditorGizmoBase> hoveredGizmo = m_hoveredGizmo.Lock();
 
-        if (hoveredManipulationWidgetNode && hoveredManipulationWidget)
+        if (hoveredGizmoNode && hoveredGizmo)
         {
-            hoveredManipulationWidget->OnMouseLeave(activeViewport->GetCamera(), event, Handle<Node>(hoveredManipulationWidgetNode));
+            hoveredGizmo->OnMouseLeave(activeViewport->GetCamera(), event, Handle<Node>(hoveredGizmoNode));
         }
     }
 
-    if (manipulationWidget != nullptr)
+    if (gizmo != nullptr)
     {
-        m_hoveredManipulationWidget = MakeWeakRef(manipulationWidget);
+        m_hoveredGizmo = MakeWeakRef(gizmo);
     }
     else
     {
-        m_hoveredManipulationWidget.Reset();
+        m_hoveredGizmo.Reset();
     }
 
-    m_hoveredManipulationWidgetNode = manipulationWidgetNode;
+    m_hoveredGizmoNode = gizmoNode;
 }
 
 void EditorSubsystem::SetActiveScene(const WeakHandle<Scene>& scene)
