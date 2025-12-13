@@ -886,12 +886,12 @@ public:
 
     Handle<Material> CreateMaterial(
         Name name,
-        MaterialAttributes attributes = {},
+        const MaterialAttributes& attributes = {},
         const MaterialParameters& parameters = Material::DefaultParameters(),
         const MaterialTextures& textures = {});
 
     HYP_FORCE_INLINE Handle<Material> CreateMaterial(
-        MaterialAttributes attributes = {},
+        const MaterialAttributes& attributes = {},
         const MaterialParameters& parameters = Material::DefaultParameters(),
         const MaterialTextures& textures = {})
     {
@@ -900,12 +900,12 @@ public:
 
     Handle<Material> GetOrCreate(
         Name name,
-        MaterialAttributes attributes = {},
+        const MaterialAttributes& attributes = {},
         const MaterialParameters& parameters = Material::DefaultParameters(),
         const MaterialTextures& textures = {});
 
     HYP_FORCE_INLINE Handle<Material> GetOrCreate(
-        MaterialAttributes attributes = {},
+        const MaterialAttributes& attributes = {},
         const MaterialParameters& parameters = Material::DefaultParameters(),
         const MaterialTextures& textures = {})
     {

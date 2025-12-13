@@ -53,7 +53,6 @@ namespace Hyperion.Editor.ViewModels
                 RootNodes.Add(new NodeViewModel(root));
             }
 
-            // React to root changes
             scene.GetOnRootNodeChangedDelegate().Bind((Node newRoot, Node oldRoot) =>
             {
                 Dispatcher.UIThread.Invoke(() =>
