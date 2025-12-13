@@ -29,6 +29,30 @@ static const ShaderDefinition s_defaultShaderDefinition {
     ShaderProperties(staticMeshVertexAttributes)
 };
 
+static HashCode GetMaterialHashCode(
+    const MaterialAttributes& attributes,
+    const MaterialParameters& parameters,
+    const MaterialTextures& textures)
+{
+    HashCode hc;
+    hc.Add(attributes.GetHashCode());
+    hc.Add(parameters.GetHashCode());
+
+    // For textures, we use the asset path of each texture for hashing rather than
+    // runtime dynamic ID so it is stable and doesn't rely on texture instances to be the same.
+    for (Texture* tex : textures)
+    {
+        if (!tex)
+        {
+            continue;
+        }
+
+        hc.Add(tex->GetAssetReference().GetAssetPath().GetHashCode());
+    }
+
+    return hc;
+}
+
 #pragma region MaterialParameter
 
 MaterialParameter::SerializedValueType MaterialParameter::SerializeData() const
@@ -93,7 +117,7 @@ void MaterialParameter::DeserializeData(const SerializedValueType& data)
     else
     {
         type = MPT_NONE;
-        Memory::MemSet(&value, 0, sizeof(value));
+        value = {};
     }
 }
 
@@ -497,13 +521,7 @@ void Material::UpdateAttributesTextureMask()
 
 HashCode Material::GetHashCode() const
 {
-    HashCode hc;
-
-    hc.Add(m_parameters.GetHashCode());
-    hc.Add(m_textures.GetHashCode());
-    hc.Add(m_attributes.GetHashCode());
-
-    return hc;
+    return GetMaterialHashCode(m_attributes, m_parameters, m_textures);
 }
 
 #pragma endregion Material
@@ -573,28 +591,34 @@ void MaterialCache::Add(const Handle<Material>& material)
 
     Mutex::Guard guard(m_mutex);
 
-    HashCode hc;
-    hc.Add(material->GetRenderAttributes().GetHashCode());
-    hc.Add(material->GetParameters().GetHashCode());
-    hc.Add(material->GetTextures().GetHashCode());
+    const HashCode hc = GetMaterialHashCode(
+        material->GetRenderAttributes(),
+        material->GetParameters(),
+        material->GetTextures());
 
     m_map.Set(hc, material);
 }
 
 Handle<Material> MaterialCache::CreateMaterial(
     Name name,
-    MaterialAttributes attributes,
+    const MaterialAttributes& attributes,
     const MaterialParameters& parameters,
     const MaterialTextures& textures)
 {
+    MaterialAttributes tmpAttributes;
+    const MaterialAttributes* pAttributes = &attributes;
+
     if (!attributes.shaderDefinition)
     {
-        attributes.shaderDefinition = s_defaultShaderDefinition;
+        tmpAttributes = attributes;
+        tmpAttributes.shaderDefinition = s_defaultShaderDefinition;
+
+        pAttributes = &tmpAttributes;
     }
 
     Handle<Material> handle = CreateObject<Material>(
         name,
-        attributes,
+        *pAttributes,
         parameters,
         textures);
 
@@ -605,24 +629,24 @@ Handle<Material> MaterialCache::CreateMaterial(
 
 Handle<Material> MaterialCache::GetOrCreate(
     Name name,
-    MaterialAttributes attributes,
+    const MaterialAttributes& attributes,
     const MaterialParameters& parameters,
     const MaterialTextures& textures)
 {
+    const MaterialAttributes* pAttributes = &attributes;
+    MaterialAttributes tmpAttributes;
+
     if (!attributes.shaderDefinition)
     {
-        attributes.shaderDefinition = s_defaultShaderDefinition;
+        tmpAttributes = attributes;
+        tmpAttributes.shaderDefinition = s_defaultShaderDefinition;
+
+        pAttributes = &tmpAttributes;
     }
 
-    // @TODO: For textures hashcode, asset path should be used rather than texture Id
-    // textures may later be destroyed and their IDs reused which would cause a hash collision
+    const HashCode hc = GetMaterialHashCode(*pAttributes, parameters, textures);
 
-    HashCode hc;
-    hc.Add(attributes.GetHashCode());
-    hc.Add(parameters.GetHashCode());
-    hc.Add(textures.GetHashCode());
-
-    Handle<Material> handle;
+    Handle<Material> strongRef;
 
     {
         Mutex::Guard guard(m_mutex);
@@ -631,9 +655,11 @@ Handle<Material> MaterialCache::GetOrCreate(
 
         if (it != m_map.End())
         {
-            if (Handle<Material> handle = it->second.Lock())
+            strongRef = MakeStrongRef(it->second);
+
+            if (strongRef != nullptr)
             {
-                return handle;
+                return strongRef;
             }
         }
 
@@ -642,19 +668,19 @@ Handle<Material> MaterialCache::GetOrCreate(
             name = Name::Unique(ANSIString("cached_material_") + ANSIString::ToString(hc.Value()));
         }
 
-        handle = CreateObject<Material>(
+        strongRef = CreateObject<Material>(
             name,
-            attributes,
+            *pAttributes,
             parameters,
             textures);
 
-        m_map.Set(hc, handle);
+        m_map.Set(hc, strongRef);
     }
 
-    Assert(!handle->GetIsDynamic());
-    InitObject(handle);
+    Assert(!strongRef->GetIsDynamic());
+    InitObject(strongRef);
 
-    return handle;
+    return strongRef;
 }
 
 #pragma region MaterialCache

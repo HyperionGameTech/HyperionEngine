@@ -118,6 +118,7 @@ namespace Hyperion.Editor
         {
             WeakReference weakThis = new WeakReference(this);
 
+            // @TODO Move to MainWindowModelView
             _onActionStackStateChanged?.Remove();
             _onActionStackStateChanged = project.ActionStack.GetOnStateChangeDelegate()
                 .Bind((EditorActionStackState newState) =>
