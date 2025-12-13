@@ -68,6 +68,11 @@ namespace Hyperion.Editor.ViewModels
 
         private void CommitEnumValue(object? value)
         {
+            if (value == null)
+            {
+                return;
+            }
+
             if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
             {
                 return;

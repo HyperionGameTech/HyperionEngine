@@ -452,7 +452,7 @@ void main()
             vec3 N = normalize(payload.normal);
             vec3 baseColor = clamp(payload.throughput.rgb, vec3(0.0), vec3(1.0));
             float metalness = clamp(payload.throughput.a, 0.0, 1.0);
-            float roughness = max(0.5, ROUGHNESS_FLOOR); // TODO: replace with material roughness
+            float roughness = payload.roughness;
 
             // emissive contribution
             if (any(greaterThan(payload.emissive.rgb, vec3(0.0))))

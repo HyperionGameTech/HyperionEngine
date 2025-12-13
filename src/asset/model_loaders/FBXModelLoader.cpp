@@ -75,6 +75,13 @@ struct FBXProperty
 
 const FBXProperty FBXProperty::s_empty = {};
 
+struct FBXTemplate
+{
+    String name;
+    int32 count = 0;
+    Array<struct FBXDefinitionProperty, DynamicAllocator> properties;
+};
+
 struct FBXObject
 {
     static const FBXObject s_empty;
@@ -82,6 +89,7 @@ struct FBXObject
     String name;
     Array<FBXProperty> properties;
     Array<UniquePtr<FBXObject>> children;
+    const FBXTemplate* objectTemplate = nullptr;
 
     const FBXProperty& GetProperty(uint32 index) const
     {
@@ -127,6 +135,11 @@ struct FBXObject
         }
 
         return s_empty;
+    }
+
+    FBXObject& operator[](const String& childName)
+    {
+        return const_cast<FBXObject&>(static_cast<const FBXObject&>(*this)[childName]);
     }
 
     const FBXObject& operator[](const String& childName) const
@@ -201,14 +214,12 @@ struct FBXMesh
     {
         if (!result.HasValue())
         {
-            auto verticesAndIndices = Mesh::CalculateIndices(vertices);
-
             MeshDesc meshDesc;
             meshDesc.meshAttributes.vertexAttributes = attributes;
             meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
             meshDesc.meshAttributes.topology = TOP_TRIANGLES;
-            meshDesc.numVertices = uint32(verticesAndIndices.first.Size());
-            meshDesc.numIndices = uint32(verticesAndIndices.second.Size());
+            meshDesc.numVertices = uint32(vertices.Size());
+            meshDesc.numIndices = uint32(indices.Size());
 
             MeshData meshData;
             meshData.vertexData = vertices;
@@ -671,6 +682,7 @@ static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping>& mapping,
 //     }
 // }
 
+HYP_DISABLE_OPTIMIZATION;
 AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 {
     Assert(state.assetManager != nullptr);
@@ -720,6 +732,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     }
     while (true);
 
+    Array<FBXTemplate> objectTemplates;
+
     if (const auto& definitionsNode = root["Definitions"])
     {
         int32 numDefinitions = 0;
@@ -729,20 +743,42 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             countNode.GetFBXPropertyValue<int32>(0, numDefinitions);
         }
 
-        for (uint32 index = 0; index < uint32(numDefinitions); ++index)
-        {
-        }
-
         for (auto& child : definitionsNode.children)
         {
-
             if (child->name == "ObjectType")
             {
-                String definitionName;
-                child->GetFBXPropertyValue(0, definitionName);
+                FBXTemplate& objectTemplate = objectTemplates.EmplaceBack();
+                objectTemplate.name = String::empty;
+                objectTemplate.count = 0;
+
+                child->GetFBXPropertyValue(0, objectTemplate.name);
+                for (auto& templateChild : child->children)
+                {
+                    if (templateChild->name == "Count")
+                    {
+                        templateChild->GetFBXPropertyValue(0, objectTemplate.count);
+                    }
+                    else if (templateChild->name == "PropertyTemplate")
+                    {
+
+                    }
+                }
             }
         }
     }
+
+    const auto getTemplate = [&objectTemplates](UTF8StringView name) -> const FBXTemplate*
+    {
+        for (const FBXTemplate& tmpl : objectTemplates)
+        {
+            if (tmpl.name == name)
+            {
+                return &tmpl;
+            }
+        }
+
+        return nullptr;
+    };
 
     const auto readMatrix = [](const FBXObject& object) -> Mat4f
     {
@@ -919,13 +955,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             if (!child->GetFBXPropertyValue<FBXObjectID>(1, connection.left))
             {
-                HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get left Id value");
+                HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get left id value");
                 continue;
             }
 
             if (!child->GetFBXPropertyValue<FBXObjectID>(2, connection.right))
             {
-                HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get right Id value");
+                HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get right id value");
                 continue;
             }
 
@@ -933,19 +969,29 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         }
     }
 
-    if (const FBXObject& objectsNode = root["Objects"])
+    if (FBXObject& objectsNode = root["Objects"])
     {
-        for (auto& child : objectsNode.children)
+        for (UniquePtr<FBXObject>& child : objectsNode.children)
         {
+            // Get the FBXTemplate for this object, if it exists
+            const FBXTemplate* objectTemplate = getTemplate(child->name);
+            if (!objectTemplate)
+            {
+                HYP_LOG(Assets, Warning, "No template found for FBX object '{}'", child->name);
+                continue;
+            }
+
             FBXObjectID objectId;
             child->GetFBXPropertyValue<FBXObjectID>(0, objectId);
 
             String nodeName;
             child->GetFBXPropertyValue<String>(1, nodeName);
 
+            child->objectTemplate = objectTemplate;
+
             FBXNodeMapping mapping { child.Get() };
 
-            if (child->name == "Pose")
+            if (objectTemplate->name == "Pose")
             {
                 String poseType;
                 child->GetFBXPropertyValue(2, poseType);
@@ -993,7 +1039,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     continue;
                 }
             }
-            else if (child->name == "Deformer")
+            else if (objectTemplate->name == "Deformer")
             {
                 String deformerType;
                 child->GetFBXPropertyValue(2, deformerType);
@@ -1052,7 +1098,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     continue;
                 }
             }
-            else if (child->name == "Geometry")
+            else if (objectTemplate->name == "Geometry")
             {
                 Array<Vec3f> modelVertices;
                 Array<uint32> modelIndices;
@@ -1084,6 +1130,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     const FBXProperty& verticesProperty = verticesNode.GetProperty(0);
                     const SizeType count = verticesProperty.arrayElements.Size();
 
+                    if (count == 0)
+                    {
+                        continue;
+                    }
+
                     if (count % 3 != 0)
                     {
                         return HYP_MAKE_ERROR(AssetLoadError, "Not a valid triangle mesh");
@@ -1093,9 +1144,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                     modelVertices.Resize(numVertices);
 
+                    /// @TODO Optimize me - dont use variant for vertex data + check each time... should use memcpy or similar
                     for (SizeType index = 0; index < numVertices; ++index)
                     {
-                        Vector3 position;
+                        Vec3f position;
 
                         for (uint32 subIndex = 0; subIndex < 3; ++subIndex)
                         {
@@ -1130,6 +1182,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     const FBXProperty& indicesProperty = indicesNode.GetProperty(0);
                     const SizeType count = indicesProperty.arrayElements.Size();
 
+                    if (count == 0)
+                    {
+                        continue;
+                    }
+
                     if (count % 3 != 0)
                     {
                         return HYP_MAKE_ERROR(AssetLoadError, "Not a valid triangle mesh");
@@ -1160,12 +1217,12 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
-                Array<Vertex> vertices;
-                vertices.Resize(modelIndices.Size());
+                Array<Vertex> verticesUnpacked;
+                verticesUnpacked.Resize(modelIndices.Size());
 
                 for (SizeType index = 0; index < modelIndices.Size(); ++index)
                 {
-                    vertices[index].SetPosition(modelVertices[modelIndices[index]]);
+                    verticesUnpacked[index].SetPosition(modelVertices[modelIndices[index]]);
                 }
 
                 for (const String& name : layerNodeNames)
@@ -1192,7 +1249,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                             if (numNormals % 3 != 0)
                             {
-                                return HYP_MAKE_ERROR(AssetLoadError, "Invalid normals count, must be triangulated");
+                                HYP_LOG(Assets, Warning, "Not a valid triangle mesh -- invalid normal count");
+
+                                continue; // continue on, but skip normals
                             }
 
                             for (SizeType triangleIndex = 0; triangleIndex < numNormals / 3; ++triangleIndex)
@@ -1225,21 +1284,23 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                                         }
                                     }
 
-                                    vertices[triangleIndex * 3 + normalIndex].SetNormal(normal);
+                                    verticesUnpacked[triangleIndex * 3 + normalIndex].SetNormal(normal);
                                 }
                             }
                         }
                     }
                 }
 
+                auto newVertsAndIndices = Mesh::CalculateIndices(verticesUnpacked);
+
                 FBXMesh fbxMesh;
-                fbxMesh.vertices = vertices;
-                fbxMesh.indices = modelIndices;
+                fbxMesh.vertices = std::move(newVertsAndIndices.first);
+                fbxMesh.indices = std::move(newVertsAndIndices.second);
                 fbxMesh.attributes = staticMeshVertexAttributes | skeletonVertexAttributes;
 
                 mapping.data.Set(std::move(fbxMesh));
             }
-            else if (child->name == "Model")
+            else if (objectTemplate->name == "Model")
             {
                 String modelType;
                 child->GetFBXPropertyValue<String>(2, modelType);
@@ -1291,6 +1352,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
+                // @FIXME should use template mapping?
                 static const FlatMap<String, FBXNode::Type> nodeTypes = {
                     { "Mesh", FBXNode::Type::NODE },
                     { "LimbNode", FBXNode::Type::LIMB_NODE },
