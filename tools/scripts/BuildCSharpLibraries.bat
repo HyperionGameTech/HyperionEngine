@@ -21,7 +21,7 @@ FOR %%p IN (%projects%) DO (
     IF NOT EXIST "%buildDir%\bin" mkdir "%buildDir%\bin"
 
     SET "DSTPATH=%buildDir%\bin\%%p.dll"
-    SET "SRCPATH=bin\%CONFIG%\net8.0\%%p.dll"
+    SET "SRCPATH=bin\%CONFIG%\net9.0\%%p.dll"
 
     echo Copying %%p.dll to "!DSTPATH!"
     copy "!SRCPATH!" "!DSTPATH!"

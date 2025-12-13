@@ -9,16 +9,17 @@
 #include <scene/Light.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/Scene.hpp>
+#include <scene/View.hpp>
+
 #include <rendering/Texture.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
-#include <scene/components/SkyComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/AudioComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
-#include <scene/components/ReflectionProbeComponent.hpp>
 #include <scene/components/RigidBodyComponent.hpp>
 #include <scene/components/ScriptComponent.hpp>
 #include <scene/ComponentInterface.hpp>
@@ -35,7 +36,6 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 
-#include <scene/View.hpp>
 #include <core/serialization/fbom/FBOMWriter.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>
 
@@ -119,25 +119,11 @@ void DefaultGame::OnLaunch_Impl()
 
     sunNode->AddChild(sunEntity);
 
-    // Add Skybox
-    Handle<Entity> skyboxEntity = scene->GetEntityManager()->AddEntity();
-
-    scene->GetEntityManager()->AddComponent<SkyComponent>(skyboxEntity, SkyComponent {});
-    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skyboxEntity, BoundingBoxComponent { BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)) });
-
-    Handle<Node> skydomeNode = scene->GetRoot()->AddChild();
-    skydomeNode->AddChild(skyboxEntity);
-    skydomeNode->SetName(NAME("Sky"));
-
-    scene->GetEntityManager()->GetComponent<TransformComponent>(skyboxEntity) = TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) };
-    scene->GetEntityManager()->GetComponent<VisibilityStateComponent>(skyboxEntity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
-
     Handle<FirstPersonCameraController> cameraController = CreateObject<FirstPersonCameraController>();
-
     m_camera->AddCameraController(cameraController);
 
     // Test assets
-    RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
+    AssetBatch* batch = AssetManager::GetInstance()->CreateBatch();
     // batch->Add("test_model", "models/sponza/sponza.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("test_model", "models/testbed/testbed.obj");
@@ -214,9 +200,9 @@ void DefaultGame::OnInputEvent(const SystemEvent& event)
 {
     Game::OnInputEvent(event);
 
-    SystemEventType eventType = event.GetType();
+    SystemEvent::EventType eventType = event.GetType();
 
-    if (eventType == sys::SystemEventType::EVENT_KEYDOWN)
+    if (eventType == sys::SystemEventType::SYSTEM_EVENT_KEYDOWN)
     {
         switch (event.GetKeyCode())
         {
@@ -231,7 +217,7 @@ void DefaultGame::OnInputEvent(const SystemEvent& event)
         default:;
         }
     }
-    else if (eventType == SystemEventType::EVENT_MOUSEBUTTON_DOWN)
+    else if (eventType == SystemEventType::SYSTEM_EVENT_MOUSEBUTTON_DOWN)
     {
 
         m_mouseLocked = !m_mouseLocked;
@@ -246,7 +232,7 @@ void DefaultGame::OnInputEvent(const SystemEvent& event)
         }
     }
 
-    else if (eventType == SystemEventType::EVENT_MOUSEMOTION)
+    else if (eventType == SystemEventType::SYSTEM_EVENT_MOUSEMOTION)
     {
         m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event.ToMouseEvent());
     }

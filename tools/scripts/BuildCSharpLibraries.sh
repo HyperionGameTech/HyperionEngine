@@ -25,7 +25,7 @@ for project in "${projects[@]}"; do
         fi
         mkdir -p "$buildDir/bin"
         dstPath="$buildDir/bin/$project.dll"
-        srcPath="bin/$CONFIG/net8.0/$project.dll"
+        srcPath="bin/$CONFIG/net9.0/$project.dll"
         echo "copy $srcPath to $dstPath"
         cp "$srcPath" "$dstPath"
     popd # $project

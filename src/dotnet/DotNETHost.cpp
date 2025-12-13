@@ -354,8 +354,20 @@ private:
         probingPaths.PushBack(FilePath::Relative(GetLibraryPath(), currentPath));
         probingPaths.PushBack(FilePath::Relative(m_basePath, currentPath));
 
+        // clang-format off
         const json::JSONValue runtimeConfigJson(json::JSONObject {
-            { "runtimeOptions", json::JSONObject({ { "tfm", "net8.0" }, { "framework", json::JSONObject({ { "name", "Microsoft.NETCore.App" }, { "version", "8.0.1" } }) }, { "additionalProbingPaths", json::JSONArray(probingPaths) } }) } });
+            {
+                "runtimeOptions", json::JSONObject({
+                    { "tfm", "net9.0" },
+                    { "framework", json::JSONObject({
+                        { "name", "Microsoft.NETCore.App" },
+                        { "version", "9.0.3" } })
+                    },
+                    { "additionalProbingPaths", json::JSONArray(probingPaths) }
+                })
+            }
+        });
+        // clang-format on
 
         String str = runtimeConfigJson.ToString(true);
 

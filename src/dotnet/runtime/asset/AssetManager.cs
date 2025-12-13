@@ -18,9 +18,9 @@ namespace Hyperion
     [ClassBinding(Name = "AssetCollector")]
     public class AssetCollector : ObjectBase
     {
-        private static readonly LogChannel logChannel = LogChannel.ByName("Assets");
+        private static readonly LogChannel _logChannel = LogChannel.ByName("Assets");
 
-        private FileSystemWatcher watcher;
+        private FileSystemWatcher? _watcher;
         public event Action<string, AssetChangeType> AssetChanged;
 
         public AssetCollector()
@@ -29,15 +29,15 @@ namespace Hyperion
 
         public void StartWatching()
         {
-            Logger.Log(logChannel, LogType.Debug, "Start watching: {0}", this.GetBasePath());
+            Logger.Log(_logChannel, LogType.Debug, "Start watching: {0}", this.GetBasePath());
 
-            watcher = new FileSystemWatcher();
-            watcher.Path = this.GetBasePath();
-            watcher.IncludeSubdirectories = true;
-            watcher.NotifyFilter = NotifyFilters.LastWrite;
-            watcher.Filter = "*.*";
+            _watcher = new FileSystemWatcher();
+            _watcher.Path = this.GetBasePath();
+            _watcher.IncludeSubdirectories = true;
+            _watcher.NotifyFilter = NotifyFilters.LastWrite;
+            _watcher.Filter = "*.*";
 
-            watcher.Changed += (source, e) =>
+            _watcher.Changed += (source, e) =>
             {
                 if (!IsHiddenOrSystemFile(e.FullPath))
                 {
@@ -45,7 +45,7 @@ namespace Hyperion
                 }
             };
 
-            watcher.Created += (source, e) =>
+            _watcher.Created += (source, e) =>
             {
                 if (!IsHiddenOrSystemFile(e.FullPath))
                 {
@@ -53,7 +53,7 @@ namespace Hyperion
                 }
             };
 
-            watcher.Deleted += (source, e) =>
+            _watcher.Deleted += (source, e) =>
             {
                 if (!IsHiddenOrSystemFile(e.FullPath))
                 {
@@ -61,7 +61,7 @@ namespace Hyperion
                 }
             };
 
-            watcher.Renamed += (source, e) =>
+            _watcher.Renamed += (source, e) =>
             {
                 if (!IsHiddenOrSystemFile(e.FullPath))
                 {
@@ -69,7 +69,7 @@ namespace Hyperion
                 }
             };
 
-            watcher.EnableRaisingEvents = true;
+            _watcher.EnableRaisingEvents = true;
         }
 
         private bool IsHiddenOrSystemFile(string path)
@@ -99,10 +99,12 @@ namespace Hyperion
 
         public void StopWatching()
         {
-            watcher.EnableRaisingEvents = false;
-            watcher.Dispose();
+            if (_watcher == null)
+                return;
 
-            watcher = null;
+            _watcher.EnableRaisingEvents = false;
+            _watcher.Dispose();
+            _watcher = null;
         }
 
         public void OnAssetChanged(string path, AssetChangeType changeType)
