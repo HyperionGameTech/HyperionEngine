@@ -12,9 +12,10 @@ namespace hyperion {
 HYP_ENUM()
 enum class GameStateMode : uint32
 {
-    EDITOR = 0,
+    STOPPED = 0,
     SIMULATING,
-    PAUSED
+    PAUSED,
+    EDITOR
 };
 
 HYP_STRUCT()
@@ -23,7 +24,7 @@ struct GameState
     HYP_STRUCT_BODY(GameState);
 
     HYP_FIELD()
-    GameStateMode mode = GameStateMode::EDITOR;
+    GameStateMode mode = GameStateMode::STOPPED;
 
     HYP_FIELD()
     float deltaTime = 0.0;
@@ -32,9 +33,9 @@ struct GameState
     float gameTime = 0.0;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsEditor() const
+    HYP_FORCE_INLINE bool IsStopped() const
     {
-        return mode == GameStateMode::EDITOR;
+        return mode == GameStateMode::STOPPED;
     }
 
     HYP_METHOD()
@@ -42,7 +43,7 @@ struct GameState
     {
         return mode == GameStateMode::SIMULATING;
     }
-    
+
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsPaused() const
     {

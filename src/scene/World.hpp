@@ -163,6 +163,9 @@ public:
     void StopSimulating();
 
     HYP_METHOD()
+    void PauseSimulation();
+
+    HYP_METHOD()
     void AddScene(const Handle<Scene>& scene, bool addToStreamingLayer = true);
 
     HYP_METHOD()

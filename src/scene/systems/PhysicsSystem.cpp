@@ -57,6 +57,13 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
 
 void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
+    HYP_SCOPE;
+
+    if (!GetWorld()->GetGameState().IsSimulating())
+    {
+        return;
+    }
+
     for (Scene* scene : scenes)
     {
         if (!ShouldProcessScene(scene))

@@ -6,7 +6,7 @@ using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
 {
-    public class MainWindowViewModel : ViewModelBase
+    public class MainWindowViewModel : ViewModelBase, IDisposable
     {
         public class EditorCommand : ICommand
         {
@@ -48,10 +48,12 @@ namespace Hyperion.Editor.ViewModels
 
         private class SetGameModeCommand : ICommand
         {
+            private readonly EditorSubsystem _editorSubsystem;
             private readonly GameStateMode _mode;
 
-            public SetGameModeCommand(GameStateMode mode)
+            public SetGameModeCommand(EditorSubsystem editorSubsystem, GameStateMode mode)
             {
+                _editorSubsystem = editorSubsystem;
                 _mode = mode;
             }
 
@@ -68,10 +70,12 @@ namespace Hyperion.Editor.ViewModels
                     case GameStateMode.Simulating:
                         _ = EngineManager.PostToGameThread(world.StartSimulating);
                         break;
-                    case GameStateMode.Editor:
+                    case GameStateMode.Paused:
+                        _ = EngineManager.PostToGameThread(world.PauseSimulation);
+                        break;
+                    case GameStateMode.Stopped:
                         _ = EngineManager.PostToGameThread(world.StopSimulating);
                         break;
-                    //case GameStateMode.Paused: // @TODO
                     default:
                         throw new NotImplementedException();
                 }
@@ -118,8 +122,8 @@ namespace Hyperion.Editor.ViewModels
         public ICommand SelectRotateGizmo { get; }
         public ICommand SelectScaleGizmo { get; }
 
-        public ICommand SetGameModePlay { get; }
-        public bool CanSetGameModePlay
+        public ICommand SetGameModePlaying { get; }
+        public bool CanSetGameModePlaying
         {
             get
             {
@@ -134,8 +138,8 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public ICommand SetGameModePause { get; }
-        public bool CanSetGameModePause
+        public ICommand SetGameModePaused { get; }
+        public bool CanSetGameModePaused
         {
             get
             {
@@ -150,8 +154,8 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public ICommand SetGameModeEditor { get; }
-        public bool CanSetGameModeEditor
+        public ICommand SetGameModeStopped { get; }
+        public bool CanSetGameModeStopped
         {
             get
             {
@@ -218,9 +222,9 @@ namespace Hyperion.Editor.ViewModels
             SelectRotateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Rotate);
             SelectScaleGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Scale);
 
-            SetGameModePlay = new SetGameModeCommand(GameStateMode.Simulating);
-            SetGameModeEditor = new SetGameModeCommand(GameStateMode.Editor);
-            //SetGameModePause = new SetGameModeCommand(GameStateMode.Paused);
+            SetGameModePlaying = new SetGameModeCommand(_editorSubsystem, GameStateMode.Simulating);
+            SetGameModePaused = new SetGameModeCommand(_editorSubsystem, GameStateMode.Paused);
+            SetGameModeStopped = new SetGameModeCommand(_editorSubsystem, GameStateMode.Stopped);
 
             Action<EditorProject?> setGameModeChangedHandler = (EditorProject? project) =>
             {
@@ -233,13 +237,13 @@ namespace Hyperion.Editor.ViewModels
                         {
                             Dispatcher.UIThread.Post(() =>
                             {
-                                (SetGameModePlay as SetGameModeCommand)?.RaiseCanExecuteChanged();
-                                (SetGameModeEditor as SetGameModeCommand)?.RaiseCanExecuteChanged();
-                                // (SetGameModePause as SetGameModeCommand)?.RaiseCanExecuteChanged();
+                                (SetGameModePlaying as SetGameModeCommand)?.RaiseCanExecuteChanged();
+                                (SetGameModeStopped as SetGameModeCommand)?.RaiseCanExecuteChanged();
+                                (SetGameModePaused as SetGameModeCommand)?.RaiseCanExecuteChanged();
 
-                                OnPropertyChanged(nameof(CanSetGameModePlay));
-                                OnPropertyChanged(nameof(CanSetGameModePause));
-                                OnPropertyChanged(nameof(CanSetGameModeEditor));
+                                OnPropertyChanged(nameof(CanSetGameModePlaying));
+                                OnPropertyChanged(nameof(CanSetGameModePaused));
+                                OnPropertyChanged(nameof(CanSetGameModeStopped));
                             });
                         });
                 }
@@ -282,6 +286,16 @@ namespace Hyperion.Editor.ViewModels
 
                 HandleFocusedNodeUpdate(focusedNode);
             });
+        }
+
+        public void Dispose()
+        {
+            _gameModeChangedHandler?.Remove();
+            _focusedNodeChangedHandler?.Remove();
+            _currentProjectChangedHandler?.Remove();
+            _selectedGizmoChangedHandler?.Remove();
+            _activeSceneChangedHandler?.Remove();
+            SceneHierarchy.SelectedNodeChanged -= OnSceneHierarchyNodeSelected;
         }
 
         private void HandleActiveSceneChanged(Scene? scene)

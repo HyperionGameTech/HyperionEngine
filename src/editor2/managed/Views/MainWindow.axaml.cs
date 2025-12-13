@@ -18,7 +18,7 @@ namespace Hyperion.Editor
             InitializeComponent();
 
             // Provide engine window to the viewport control via factory
-            EditorViewportControl evc = this.FindControl<EditorViewportControl>("EditorViewportControl");
+            EditorViewportControl? evc = this.FindControl<EditorViewportControl>("EditorViewportControl")
 
             if (evc == null)
             {

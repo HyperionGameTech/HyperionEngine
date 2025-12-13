@@ -17,7 +17,7 @@
 
 #include <core/utilities/StringUtil.hpp>
 
-#include <util/ParseUtil.hpp>
+#include <util/Util.hpp>
 
 namespace hyperion {
 namespace buildtool {

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <util/ParseUtil.hpp>
+#include <util/Util.hpp>
 
 #include <core/Defines.hpp>
 
@@ -361,6 +361,58 @@ String GetGeneratedFilePreamble(const String& srcPath)
         HYP_BUILD_TOOL_VERSION_MINOR,
         HYP_BUILD_TOOL_VERSION_PATCH,
         srcPath.Length() ? srcPath.ReplaceAll("\\", "/") : "<no source file>");
+}
+
+Result ReplaceFileIfDifferent(FilePath& tempFilePath, const FilePath& targetFilePath)
+{
+    if (!targetFilePath.Exists())
+    {
+        // target file doesn't exist; rename temp to target
+        bool renamed = tempFilePath.Rename(targetFilePath);
+
+        if (!renamed)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to rename file: {} to {}", tempFilePath, targetFilePath);
+        }
+
+        tempFilePath = targetFilePath;
+
+        return {};
+    }
+
+    // if file sizes differ, replace the original
+    const SizeType targetFileSize = targetFilePath.FileSizeOnDisk();
+    const SizeType newFileSize = tempFilePath.FileSizeOnDisk();
+
+    if (targetFileSize != newFileSize)
+    {
+        bool result = targetFilePath.Remove();
+        if (!result)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to remove file: {}", targetFilePath);
+        }
+
+        result = tempFilePath.Rename(targetFilePath);
+        if (!result)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to rename file: {} to {}", tempFilePath, targetFilePath);
+        }
+
+        tempFilePath = targetFilePath;
+
+        return {};
+    }
+
+    // sizes are the same; just remove the temp file
+    bool result = tempFilePath.Remove();
+    if (!result)
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to remove file: {}", tempFilePath);
+    }
+
+    tempFilePath = targetFilePath;
+
+    return {};
 }
 
 } // namespace buildtool

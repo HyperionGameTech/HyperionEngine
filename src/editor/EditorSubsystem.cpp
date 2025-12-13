@@ -1496,7 +1496,7 @@ EditorSubsystem::EditorSubsystem()
 
                 //             switch (currentGameStateMode)
                 //             {
-                //             case GameStateMode::EDITOR:
+                //             case GameStateMode::STOPPED:
                 //             {
                 //                 m_delegateHandlers.Remove("World_SceneAddedDuringSimulation");
                 //                 m_delegateHandlers.Remove("World_SceneRemovedDuringSimulation");
@@ -2007,7 +2007,7 @@ void EditorSubsystem::InitViewport()
             //     return UIEventHandlerResult::STOP_BUBBLING;
             // }
 
-            if (GetWorld()->GetGameState().IsEditor())
+            if (GetWorld()->GetGameState().IsStopped())
             {
                 if (IsHoveringGizmo())
                 {
@@ -2138,7 +2138,7 @@ void EditorSubsystem::InitViewport()
 
             // Hover over a manipulation widget when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
-                && GetWorld()->GetGameState().IsEditor()
+                && GetWorld()->GetGameState().IsStopped()
                 && GetSelectedManipulationMode() != EditorManipulationMode::NONE)
             {
                 // Ray test the widget
@@ -2283,7 +2283,7 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            if (GetWorld()->GetGameState().IsEditor())
+            if (GetWorld()->GetGameState().IsStopped())
             {
                 EditorViewport* activeViewport = GetActiveViewport();
                 if (!activeViewport)
@@ -2311,7 +2311,7 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Remove(&backdropPanel->OnKeyUp);
     m_delegateHandlers.Add(backdropPanel->OnKeyUp.Bind([this](const KeyboardEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsEditor())
+            if (!GetWorld()->GetGameState().IsStopped())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -2608,7 +2608,7 @@ void EditorSubsystem::UpdateWatchedNodes()
         return;
     }
 
-    if (GetWorld()->GetGameState().IsEditor())
+    if (GetWorld()->GetGameState().IsStopped())
     {
         if (ShowOnlyActiveScene)
         {

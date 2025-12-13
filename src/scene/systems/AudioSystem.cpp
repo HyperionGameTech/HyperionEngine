@@ -6,6 +6,7 @@
 #include <scene/EntityManager.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 #include <scene/camera/Camera.hpp>
 
 #include <audio/AudioManager.hpp>
@@ -39,7 +40,14 @@ void AudioSystem::OnEntityAdded(Entity* entity)
 
 void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
+    HYP_SCOPE;
+
     if (!AudioManager::GetInstance().IsInitialized())
+    {
+        return;
+    }
+
+    if (!GetWorld()->GetGameState().IsSimulating())
     {
         return;
     }

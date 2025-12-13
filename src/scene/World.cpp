@@ -404,6 +404,11 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 {
     HYP_SCOPE;
 
+    if (m_gameState.IsPaused())
+    {
+        return;
+    }
+
     m_gameState.deltaTime = delta;
 
     for (const Handle<Scene>& scene : m_scenes)
@@ -412,9 +417,12 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
         scene->Update(delta);
     }
 
-    if (m_physicsWorld)
+    if (m_gameState.IsSimulating())
     {
-        m_physicsWorld->Tick(delta);
+        if (m_physicsWorld != nullptr)
+        {
+            m_physicsWorld->Tick(delta);
+        }
     }
 
     m_gameState.gameTime += delta;
@@ -755,7 +763,7 @@ void World::StartSimulating()
 
     const GameStateMode previousGameStateMode = m_gameState.mode;
 
-    if (previousGameStateMode == GameStateMode::EDITOR)
+    if (previousGameStateMode != GameStateMode::PAUSED)
     {
         m_gameState.gameTime = 0.0f;
         m_gameState.deltaTime = 0.0f;
@@ -770,6 +778,24 @@ void World::StopSimulating()
 {
     HYP_SCOPE;
 
+    const GameStateMode previousGameStateMode = m_gameState.mode;
+
+    if (previousGameStateMode == GameStateMode::STOPPED)
+    {
+        return;
+    }
+
+    m_gameState.gameTime = 0.0f;
+    m_gameState.deltaTime = 0.0f;
+    m_gameState.mode = GameStateMode::STOPPED;
+
+    OnGameStateChange(this, previousGameStateMode, GameStateMode::STOPPED);
+}
+
+void World::PauseSimulation()
+{
+    HYP_SCOPE;
+
     if (m_gameState.mode != GameStateMode::SIMULATING)
     {
         return;
@@ -777,13 +803,9 @@ void World::StopSimulating()
 
     const GameStateMode previousGameStateMode = m_gameState.mode;
 
-    // @TODO: Non-editor mode (pause)
+    m_gameState.mode = GameStateMode::PAUSED;
 
-    m_gameState.gameTime = 0.0f;
-    m_gameState.deltaTime = 0.0f;
-    m_gameState.mode = GameStateMode::EDITOR;
-
-    OnGameStateChange(this, previousGameStateMode, GameStateMode::EDITOR);
+    OnGameStateChange(this, previousGameStateMode, GameStateMode::PAUSED);
 }
 
 void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)

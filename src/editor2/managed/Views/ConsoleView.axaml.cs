@@ -15,9 +15,9 @@ namespace Hyperion.Editor
     {
         private ListBox _listBox;
         private TextBox _commandTextBox;
-        private ScrollViewer _scrollViewer;
+        private ScrollViewer? _scrollViewer;
+        private ConsoleViewModel? _viewModel;
         private bool _autoScroll = true;
-        private ConsoleViewModel _viewModel;
 
         public ConsoleView()
         {
@@ -27,8 +27,8 @@ namespace Hyperion.Editor
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
-            _listBox = this.FindControl<ListBox>("LogListBox");
-            _commandTextBox = this.FindControl<TextBox>("CommandTextBox");
+            _listBox = this.FindControl<ListBox>("LogListBox") ?? throw new InvalidOperationException("LogListBox not found in XAML.");
+            _commandTextBox = this.FindControl<TextBox>("CommandTextBox") ?? throw new InvalidOperationException("CommandTextBox not found in XAML.");
         }
 
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -94,7 +94,7 @@ namespace Hyperion.Editor
             }
         }
 
-        private void OnScrollChanged(object sender, ScrollChangedEventArgs e)
+        private void OnScrollChanged(object? sender, ScrollChangedEventArgs e)
         {
             if (_scrollViewer == null) return;
 
@@ -115,7 +115,7 @@ namespace Hyperion.Editor
             }
         }
 
-        private void OnLogsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void OnLogsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             if (_autoScroll)
             {

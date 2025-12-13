@@ -84,8 +84,8 @@ function(RunHypBuildTool version_major version_minor)
     endif()
 endfunction()
 
-# Run HypBuildTool with version 0.8
-# RunHypBuildTool(0 8)
+# Run HypBuildTool with version 0.9
+# RunHypBuildTool(0 9)
 
 set(HYP_DEBUG_MODE 1)
 add_definitions(-DHYP_DEBUG_MODE=1)

@@ -1,12 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_BUILDTOOL_PARSE_UTIL_HPP
-#define HYPERION_BUILDTOOL_PARSE_UTIL_HPP
+#pragma once
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
+#include <core/filesystem/FilePath.hpp>
+
 #include <core/utilities/Optional.hpp>
+#include <core/utilities/Result.hpp>
 
 namespace hyperion {
 namespace buildtool {
@@ -27,7 +29,7 @@ String GetDateTimeString();
 
 String GetGeneratedFilePreamble(const String& srcPath);
 
+Result ReplaceFileIfDifferent(FilePath& tempFilePath, const FilePath& targetFilePath);
+
 } // namespace buildtool
 } // namespace hyperion
-
-#endif

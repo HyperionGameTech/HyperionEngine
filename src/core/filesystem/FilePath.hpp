@@ -149,6 +149,8 @@ public:
 
     HYP_API Time LastModifiedTimestamp() const;
 
+    HYP_API SizeType FileSizeOnDisk() const;
+
     HYP_API String Basename() const;
 
     HYP_API FilePath BasePath() const;
@@ -158,6 +160,8 @@ public:
      * \return true if the file or directory was removed, false otherwise.
      */
     HYP_API bool Remove() const;
+
+    HYP_API bool Rename(const FilePath& newPath) const;
 
     static inline FilePath Current()
     {

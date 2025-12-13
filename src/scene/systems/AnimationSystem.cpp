@@ -3,6 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 #include <scene/EntityManager.hpp>
 
 #include <scene/systems/AnimationSystem.hpp>
@@ -60,6 +61,11 @@ void AnimationSystem::OnEntityRemoved(Entity* entity)
 void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
+
+    if (!GetWorld()->GetGameState().IsSimulating())
+    {
+        return;
+    }
 
     for (Scene* scene : scenes)
     {

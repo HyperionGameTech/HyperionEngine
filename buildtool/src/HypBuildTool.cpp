@@ -30,7 +30,7 @@
 
 #include <analyzer/Analyzer.hpp>
 
-#include <util/ParseUtil.hpp>
+#include <util/Util.hpp>
 
 #if !defined(HYP_BUILD_TOOL_VERSION_MAJOR) || !defined(HYP_BUILD_TOOL_VERSION_MINOR) || !defined(HYP_BUILD_TOOL_VERSION_PATCH)
 #error "HYP_BUILD_TOOL_VERSION_MAJOR, HYP_BUILD_TOOL_VERSION_MINOR, and HYP_BUILD_TOOL_VERSION_PATCH must be defined"
@@ -658,22 +658,25 @@ private:
         }
 
         {
-            FilePath classDeclImplPath = m_analyzer.GetCXXOutputDirectory() / "ClassDecls.cpp";
-            FileByteWriter classDeclImplWriter(classDeclImplPath);
+            const FilePath classDeclImplPath = m_analyzer.GetCXXOutputDirectory() / "ClassDecls.cpp";
+            FilePath tmpClassDeclImplPath = classDeclImplPath + ".tmp";
+            FileByteWriter classDeclImplWriter(tmpClassDeclImplPath);
 
             if (!classDeclImplWriter.IsOpen())
             {
-                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open ClassDecl implementation file: {}", {}, -1, classDeclImplPath));
+                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open ClassDecl implementation file: {}", {}, -1, tmpClassDeclImplPath));
             }
             else
             {
                 if (Result res = cxxModuleGenerator->GenerateClassDeclImplementation(m_analyzer, classDeclImplWriter); res.HasError())
                 {
-                    m_analyzer.AddError(AnalyzerError(res.GetError(), classDeclImplPath));
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), tmpClassDeclImplPath));
                 }
 
                 classDeclImplWriter.Close();
             }
+
+            ReplaceFileIfDifferent(tmpClassDeclImplPath, classDeclImplPath);
         }
 
         if (m_cxxMode == CXXGenerationMode::INL)
@@ -725,12 +728,12 @@ private:
             // Inline mode: generate one small cpp for builtins and per-module .inl files
             if (builtinsModule->GetClasses().Any())
             {
-                FilePath builtinsCppPath = m_analyzer.GetCXXOutputDirectory() / "Builtins.cpp";
-                FileByteWriter builtinsWriter(builtinsCppPath);
+                const FilePath builtinsPath = m_analyzer.GetCXXOutputDirectory() / "Builtins.cpp";
+                FileByteWriter builtinsWriter { builtinsPath };
 
                 if (!builtinsWriter.IsOpen())
                 {
-                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open builtins output file: {}", {}, -1, builtinsCppPath));
+                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open builtins output file: {}", {}, -1, builtinsPath));
                 }
                 else
                 {
@@ -766,13 +769,15 @@ private:
                     }
                 }
 
-                FilePath inlPath = cxxModuleGenerator->GetInlineOutputFilePath(m_analyzer, *mod);
+                const FilePath inlPath = cxxModuleGenerator->GetInlineOutputFilePath(m_analyzer, *mod);
                 Assert(inlPath.BasePath().MkDir(), "Failed to create output directory for {}", inlPath);
 
-                FileByteWriter inlWriter(inlPath);
+                FilePath tmpInlPath = inlPath + ".tmp";
+
+                FileByteWriter inlWriter { tmpInlPath };
                 if (!inlWriter.IsOpen())
                 {
-                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open inline output file: {}", {}, -1, inlPath));
+                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open inline output file: {}", {}, -1, tmpInlPath));
                     continue;
                 }
 
@@ -794,6 +799,8 @@ private:
                     m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
                     continue;
                 }
+
+                ReplaceFileIfDifferent(tmpInlPath, inlPath);
             }
 
             TaskSystem::GetInstance().EnqueueBatch(batch);
@@ -950,16 +957,18 @@ private:
             // No implementation file exists in src; create a small generated .cpp that includes the header and the .inl
             const FilePath relHeaderPath = FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory());
 
-            const FilePath genCppPath = inlPath.BasePath() / (stem + ".generated.cpp");
-            Assert(genCppPath.BasePath().MkDir(), "Failed to create output directory for {}", genCppPath);
+            const FilePath genCxxPath = inlPath.BasePath() / (stem + ".generated.cpp");
+            FilePath tmpGenCxxPath = genCxxPath + ".tmp";
+
+            Assert(genCxxPath.BasePath().MkDir(), "Failed to create output directory for {}", genCxxPath);
 
             // Compute include path for .inl relative to generated dir
             const FilePath relInlPathForGen = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
 
-            FileByteWriter writer { genCppPath };
+            FileByteWriter writer { tmpGenCxxPath };
             if (!writer.IsOpen())
             {
-                return HYP_MAKE_ERROR(Error, "Failed to open generated implementation file '{}' for writing", genCppPath);
+                return HYP_MAKE_ERROR(Error, "Failed to open generated implementation file '{}' for writing", tmpGenCxxPath);
             }
 
             writer.WriteString(GetGeneratedFilePreamble(FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory())));
@@ -989,31 +998,36 @@ private:
             writer.WriteString(HYP_FORMAT("#include <{}>\n", relInlPathForGen.ReplaceAll("\\", "/")));
             writer.Close();
 
-            return {};
+            return ReplaceFileIfDifferent(tmpGenCxxPath, genCxxPath);
         }
 
         // Compute include path relative to generated include root (single source of truth)
         const String includeLine = ComputeInlineIncludeLine(inlPath);
 
-        // Read source file lines
-        FileBufferedReaderSource source { cxxPath };
+        Array<String> lines;
 
-        if (!source.IsOK())
         {
-            return HYP_MAKE_ERROR(Error, "Failed to open source file '{}' for reading during inline include injection", cxxPath);
-        }
+            FileBufferedReaderSource readerSource { cxxPath };
 
-        BufferedByteReader reader { &source };
-
-        Array<String> lines = reader.ReadAllLines();
-
-        for (const String& line : lines)
-        {
-            if (line.Contains(includeLine))
+            if (!readerSource.IsOK())
             {
-                // Already included; don't write to file to avoid forcing unnecessary recompile
-                return {};
+                return HYP_MAKE_ERROR(Error, "Failed to open source file '{}' for reading during inline include injection", cxxPath);
             }
+
+            BufferedByteReader reader { &readerSource };
+
+            lines = reader.ReadAllLines();
+
+            for (const String& line : lines)
+            {
+                if (line.Contains(includeLine))
+                {
+                    // Already included; don't write to file to avoid forcing unnecessary recompile
+                    return {};
+                }
+            }
+
+            reader.Close();
         }
 
         // To determine insertion point,
@@ -1359,18 +1373,19 @@ private:
             }
         }
 
-        // Write back to file
-        FileByteWriter writer { cxxPath };
+        // Write to temp file and replace if different
+        FilePath tmpCxxPath = cxxPath + ".tmp";
+        FileByteWriter writer { tmpCxxPath };
         if (!writer.IsOpen())
         {
-            return HYP_MAKE_ERROR(Error, "Failed to open source file '{}' for writing during inline include injection", cxxPath);
+            return HYP_MAKE_ERROR(Error, "Failed to open source file '{}' for writing during inline include injection", tmpCxxPath);
         }
 
         const String joined = String::Join(lines, '\n') + '\n';
         writer.WriteString(joined);
         writer.Close();
 
-        return {};
+        return ReplaceFileIfDifferent(tmpCxxPath, cxxPath);
     }
 
     // In CPP mode, remove the previously injected inline include line (exact match) and clean up nearby blank lines
@@ -1386,7 +1401,7 @@ private:
         const FilePath baseDir = headerPath.BasePath();
 
         const FilePath cxxPath = baseDir / (stem + ".cpp");
-        const FilePath genCppPath = inlPath.BasePath() / (stem + ".generated.cpp");
+        const FilePath genCxxPath = inlPath.BasePath() / (stem + ".generated.cpp");
 
         const String includeLine = ComputeInlineIncludeLine(inlPath);
 
@@ -1404,7 +1419,9 @@ private:
             }
 
             BufferedByteReader reader { &source };
+
             Array<String> lines = reader.ReadAllLines();
+            const String oldText = String::Join(lines, '\n') + '\n';
 
             // Remove ALL exact matches of the include line to be safe, cleaning surrounding blank lines
             for (;;)
@@ -1589,14 +1606,20 @@ private:
                 }
             }
 
+            const String newText = String::Join(lines, '\n') + '\n';
+
+            if (newText == oldText)
+            {
+                return {}; // nothing changed
+            }
+
             FileByteWriter writer { path };
             if (!writer.IsOpen())
             {
                 return HYP_MAKE_ERROR(Error, "Failed to open source file '{}' for writing during inline include removal", path);
             }
 
-            const String joined = String::Join(lines, '\n') + '\n';
-            writer.WriteString(joined);
+            writer.WriteString(newText);
             writer.Close();
 
             return {};
@@ -1608,7 +1631,7 @@ private:
             return res;
         }
 
-        if (Result res = removeFromFile(genCppPath); res.HasError())
+        if (Result res = removeFromFile(genCxxPath); res.HasError())
         {
             return res;
         }

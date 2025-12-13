@@ -5,9 +5,10 @@ namespace Hyperion
 {
     public enum GameStateMode : uint
     {
-        Editor = 0,
+        Stopped = 0,
         Simulating = 1,
-        Paused = 2
+        Paused = 2,
+        Editor = 3
     }
 
     [ClassBinding(Name="GameState")]

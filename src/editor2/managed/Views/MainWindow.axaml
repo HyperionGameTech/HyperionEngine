@@ -163,16 +163,16 @@
                     Spacing="6">
                     <Button
                         Content="Play"
-                        IsEnabled="{Binding CanSetGameModePlay}"
-                        Command="{Binding SetGameModePlay}" />
+                        IsEnabled="{Binding CanSetGameModePlaying}"
+                        Command="{Binding SetGameModePlaying}" />
                     <Button
                         Content="Pause"
-                        IsEnabled="{Binding CanSetGameModePause}"
-                        Command="{Binding SetGameModePause}" />
+                        IsEnabled="{Binding CanSetGameModePaused}"
+                        Command="{Binding SetGameModePaused}" />
                     <Button
                         Content="Stop"
-                        IsEnabled="{Binding CanSetGameModeEditor}"
-                        Command="{Binding SetGameModeEditor}" />
+                        IsEnabled="{Binding CanSetGameModeStopped}"
+                        Command="{Binding SetGameModeStopped}" />
                 </StackPanel>
             </Grid>
         </Border>

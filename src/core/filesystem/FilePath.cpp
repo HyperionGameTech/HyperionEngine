@@ -76,6 +76,14 @@ bool FilePath::Remove() const
     return std::filesystem::remove(Data());
 }
 
+bool FilePath::Rename(const FilePath& newPath) const
+{
+    std::error_code ec;
+    std::filesystem::rename(Data(), newPath.Data(), ec);
+
+    return !ec;
+}
+
 bool FilePath::Exists() const
 {
     if (Empty())
@@ -119,6 +127,18 @@ Time FilePath::LastModifiedTimestamp() const
 #else
     return Time(st.st_mtime);
 #endif
+}
+
+SizeType FilePath::FileSizeOnDisk() const
+{
+    struct stat st;
+
+    if (stat(Data(), &st) != 0)
+    {
+        return 0;
+    }
+
+    return st.st_size;
 }
 
 String FilePath::Basename() const

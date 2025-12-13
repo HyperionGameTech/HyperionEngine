@@ -13,12 +13,12 @@
 
 #include <core/io/ByteWriter.hpp>
 
-#include <util/ParseUtil.hpp>
+#include <util/Util.hpp>
 
 namespace hyperion {
 namespace buildtool {
 
-static const HashMap<String, String> g_getvalueOverloads = {
+static const HashMap<String, String> s_getValueOverloads = {
     { "bool", "ReadBool" },
     { "sbyte", "ReadInt8" },
     { "byte", "ReadUInt8" },

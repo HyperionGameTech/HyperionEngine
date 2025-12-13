@@ -21,9 +21,9 @@
 
 #include <core/io/BufferedByteReader.hpp>
 
-#include <util/ParseUtil.hpp>
-
 #include <core/json/JSON.hpp>
+
+#include <util/Util.hpp>
 
 namespace hyperion {
 namespace buildtool {
