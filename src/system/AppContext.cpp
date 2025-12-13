@@ -725,49 +725,49 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
     switch (wParam)
     {
     case VK_TAB:
-        return KeyCode::TAB;
+        return KeyCode::KEY_TAB;
     case VK_SHIFT:
     {
         // Distinguish between left and right shift
         const bool isRight = (lParam & (1 << 24)) != 0;
-        return isRight ? KeyCode::RIGHT_SHIFT : KeyCode::LEFT_SHIFT;
+        return isRight ? KeyCode::KEY_RSHIFT : KeyCode::KEY_LSHIFT;
     }
     case VK_CONTROL:
     {
         // Distinguish between left and right control
         const bool isRight = (lParam & (1 << 24)) != 0;
-        return isRight ? KeyCode::RIGHT_CTRL : KeyCode::LEFT_CTRL;
+        return isRight ? KeyCode::KEY_RCTRL : KeyCode::KEY_LCTRL;
     }
     case VK_MENU:
     {
         // Distinguish between left and right alt (menu)
         const bool isRight = (lParam & (1 << 24)) != 0;
-        return isRight ? KeyCode::RIGHT_ALT : KeyCode::LEFT_ALT;
+        return isRight ? KeyCode::KEY_RALT : KeyCode::KEY_LALT;
     }
     case VK_CAPITAL:
-        return KeyCode::CAPSLOCK;
+        return KeyCode::KEY_CAPSLOCK;
     case VK_SPACE:
-        return KeyCode::SPACE;
+        return KeyCode::KEY_SPACE;
     case VK_LEFT:
-        return KeyCode::ARROW_LEFT;
+        return KeyCode::KEY_LEFT;
     case VK_UP:
-        return KeyCode::ARROW_UP;
+        return KeyCode::KEY_UP;
     case VK_RIGHT:
-        return KeyCode::ARROW_RIGHT;
+        return KeyCode::KEY_RIGHT;
     case VK_DOWN:
-        return KeyCode::ARROW_DOWN;
+        return KeyCode::KEY_DOWN;
     case VK_LMENU:
-        return KeyCode::LEFT_ALT;
+        return KeyCode::KEY_LALT;
     case VK_RMENU:
-        return KeyCode::RIGHT_ALT;
+        return KeyCode::KEY_RALT;
     case VK_LCONTROL:
-        return KeyCode::LEFT_CTRL;
+        return KeyCode::KEY_LCTRL;
     case VK_RCONTROL:
-        return KeyCode::RIGHT_CTRL;
+        return KeyCode::KEY_RCTRL;
     case VK_LSHIFT:
-        return KeyCode::LEFT_SHIFT;
+        return KeyCode::KEY_LSHIFT;
     case VK_RSHIFT:
-        return KeyCode::RIGHT_SHIFT;
+        return KeyCode::KEY_RSHIFT;
     default:
         break;
     }
@@ -794,7 +794,7 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
         return KeyCode(wParam);
     }
 
-    return KeyCode::UNKNOWN;
+    return KeyCode::KEY_UNKNOWN;
 }
 
 static bool HandleWindowEvent(

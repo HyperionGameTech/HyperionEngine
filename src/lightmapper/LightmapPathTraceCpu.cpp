@@ -2,6 +2,7 @@
 
 #include <lightmapper/LightmapPathTraceCpu.hpp>
 #include <lightmapper/LightmapAccelerationStructure.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -27,17 +28,15 @@
 #include <scene/EnvGrid.hpp>
 #include <scene/View.hpp>
 
-#include <scene/util/VoxelOctree.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
-
-#include <scene/camera/Camera.hpp>
-#include <scene/camera/OrthoCamera.hpp>
-
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
+
+#include <scene/util/VoxelOctree.hpp>
+
+#include <scene/camera/Camera.hpp>
+#include <scene/camera/OrthoCamera.hpp>
 
 #include <core/config/Config.hpp>
 
