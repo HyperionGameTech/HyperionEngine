@@ -339,14 +339,14 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool()
 RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool& outDescriptorPool)
 {
     Array<VkDescriptorPoolSize> descriptorPoolSizes = {
-        { VK_DESCRIPTOR_TYPE_SAMPLER, 32 },
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 256 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 4096 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 4096 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4096 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 4096 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 64 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 64 }
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 64000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 32000 }
     };
 
     // only add acceleration structure descriptor type if raytracing is supported,

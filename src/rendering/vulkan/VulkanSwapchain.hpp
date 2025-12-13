@@ -24,8 +24,6 @@
 #include <core/Types.hpp>
 #include <core/Constants.hpp>
 
-#define HYP_ENABLE_VSYNC 1
-
 namespace hyperion {
 
 struct VulkanDeviceQueue;
@@ -62,8 +60,6 @@ public:
 
 private:
     RendererResult ChooseSurfaceFormat();
-    RendererResult ChoosePresentMode();
-    RendererResult RetrieveSupportDetails();
     RendererResult RetrieveImageHandles();
 
     VkSwapchainKHR m_handle;

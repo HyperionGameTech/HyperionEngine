@@ -73,7 +73,7 @@ struct AddUIRendererForView : RenderCommand
         EntityBatchAllocatorBase* pBatchAllocator = nullptr;
 
         const Class* entityBatchClass = view->GetViewDesc().entityBatchClass;
-        
+
         if (entityBatchClass != nullptr)
         {
             uiRenderer->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(entityBatchClass->GetTypeId());
@@ -127,6 +127,11 @@ struct SetFinalPassImageView : RenderCommand
 };
 
 #pragma endregion Render commands
+
+UISubsystem::UISubsystem()
+    : UISubsystem(CreateObject<UIStage>())
+{
+}
 
 UISubsystem::UISubsystem(const Handle<UIStage>& uiStage)
     : m_uiStage(uiStage),

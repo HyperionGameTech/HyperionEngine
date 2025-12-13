@@ -161,9 +161,18 @@
                     Grid.Column="2"
                     Orientation="Horizontal"
                     Spacing="6">
-                    <Button Content="Play" />
-                    <Button Content="Pause" />
-                    <Button Content="Stop" />
+                    <Button
+                        Content="Play"
+                        IsEnabled="{Binding CanSetGameModePlay}"
+                        Command="{Binding SetGameModePlay}" />
+                    <Button
+                        Content="Pause"
+                        IsEnabled="{Binding CanSetGameModePause}"
+                        Command="{Binding SetGameModePause}" />
+                    <Button
+                        Content="Stop"
+                        IsEnabled="{Binding CanSetGameModeEditor}"
+                        Command="{Binding SetGameModeEditor}" />
                 </StackPanel>
             </Grid>
         </Border>

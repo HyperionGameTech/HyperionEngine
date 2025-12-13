@@ -46,6 +46,42 @@ namespace Hyperion.Editor.ViewModels
             public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
 
+        private class SetGameModeCommand : ICommand
+        {
+            private readonly GameStateMode _mode;
+
+            public SetGameModeCommand(GameStateMode mode)
+            {
+                _mode = mode;
+            }
+
+            public bool CanExecute(object? parameter) => EngineManager.CurrentProject?.World != null;
+
+            public void Execute(object? parameter)
+            {
+                World? world = EngineManager.CurrentProject?.World;
+                if (world == null)
+                    throw new NullReferenceException("Expected World to not be null when executing SetGameModeCommand!");
+
+                switch (_mode)
+                {
+                    case GameStateMode.Simulating:
+                        _ = EngineManager.PostToGameThread(world.StartSimulating);
+                        break;
+                    case GameStateMode.Editor:
+                        _ = EngineManager.PostToGameThread(world.StopSimulating);
+                        break;
+                    //case GameStateMode.Paused: // @TODO
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+
+            public event EventHandler? CanExecuteChanged;
+
+            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         private string _title = "Hyperion Editor";
         public string Title
         {
@@ -82,12 +118,66 @@ namespace Hyperion.Editor.ViewModels
         public ICommand SelectRotateGizmo { get; }
         public ICommand SelectScaleGizmo { get; }
 
-        private const int GameLaunchWaitIntervalMs = 500;
-        private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up
+        public ICommand SetGameModePlay { get; }
+        public bool CanSetGameModePlay
+        {
+            get
+            {
+                EditorProject? project = EngineManager.CurrentProject;
+
+                if (project == null)
+                {
+                    return false;
+                }
+
+                return project.World.GetGameState().Mode != GameStateMode.Simulating;
+            }
+        }
+
+        public ICommand SetGameModePause { get; }
+        public bool CanSetGameModePause
+        {
+            get
+            {
+                EditorProject? project = EngineManager.CurrentProject;
+
+                if (project == null)
+                {
+                    return false;
+                }
+
+                return project.World.GetGameState().Mode == GameStateMode.Simulating;
+            }
+        }
+
+        public ICommand SetGameModeEditor { get; }
+        public bool CanSetGameModeEditor
+        {
+            get
+            {
+                EditorProject? project = EngineManager.CurrentProject;
+
+                if (project == null)
+                {
+                    return false;
+                }
+
+                return project.World.GetGameState().Mode != GameStateMode.Editor;
+            }
+        }
+
+        private DelegateHandler? _gameModeChangedHandler;
+        private DelegateHandler? _focusedNodeChangedHandler;
+        private DelegateHandler? _currentProjectChangedHandler;
+        private DelegateHandler? _selectedGizmoChangedHandler;
+        private DelegateHandler? _activeSceneChangedHandler;
+
+        private bool _isUpdatingSelectionFromEngine;
 
         private readonly EditorSubsystem _editorSubsystem;
-        private DelegateHandler? _focusedNodeChangedHandler;
-        private bool _isUpdatingSelectionFromEngine;
+
+        private const int GameLaunchWaitIntervalMs = 500;
+        private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up
 
         public MainWindowViewModel()
         {
@@ -96,9 +186,7 @@ namespace Hyperion.Editor.ViewModels
 
             Game? gameInstance = EngineManager.GameInstance;
             if (gameInstance == null)
-            {
                 throw new InvalidOperationException("Game instance is not initialized.");
-            }
 
             int waitedTime = 0;
 
@@ -118,15 +206,11 @@ namespace Hyperion.Editor.ViewModels
 
             World? world = gameInstance.World;
             if (world == null)
-            {
                 throw new InvalidOperationException("Game world is not initialized.");
-            }
 
             EditorSubsystem? editorSubsystem = world.GetSubsystem<EditorSubsystem>();
             if (editorSubsystem == null)
-            {
                 throw new InvalidOperationException("EditorSubsystem is not available in the world.");
-            }
 
             _editorSubsystem = editorSubsystem;
 
@@ -134,12 +218,40 @@ namespace Hyperion.Editor.ViewModels
             SelectRotateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Rotate);
             SelectScaleGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Scale);
 
-            // handle active scene changes
-            _editorSubsystem.GetOnActiveSceneChangedDelegate()
-                .Bind(HandleActiveSceneChanged)
-                .Detach();
+            SetGameModePlay = new SetGameModeCommand(GameStateMode.Simulating);
+            SetGameModeEditor = new SetGameModeCommand(GameStateMode.Editor);
+            //SetGameModePause = new SetGameModeCommand(GameStateMode.Paused);
 
-            _editorSubsystem.GetOnSelectedGizmoChangedDelegate()
+            Action<EditorProject?> setGameModeChangedHandler = (EditorProject? project) =>
+            {
+                _gameModeChangedHandler?.Remove();
+
+                if (project != null)
+                {
+                    _gameModeChangedHandler = project.World.GetOnGameStateChangeDelegate()
+                        .Bind((World world, GameStateMode newMode, GameStateMode prevMode) =>
+                        {
+                            Dispatcher.UIThread.Post(() =>
+                            {
+                                (SetGameModePlay as SetGameModeCommand)?.RaiseCanExecuteChanged();
+                                (SetGameModeEditor as SetGameModeCommand)?.RaiseCanExecuteChanged();
+                                // (SetGameModePause as SetGameModeCommand)?.RaiseCanExecuteChanged();
+
+                                OnPropertyChanged(nameof(CanSetGameModePlay));
+                                OnPropertyChanged(nameof(CanSetGameModePause));
+                                OnPropertyChanged(nameof(CanSetGameModeEditor));
+                            });
+                        });
+                }
+            };
+
+            setGameModeChangedHandler(EngineManager.CurrentProject);
+
+            EditorState editorState = EditorState.Instance;
+            _currentProjectChangedHandler = editorState.GetOnCurrentProjectChangedDelegate()
+                .Bind(setGameModeChangedHandler);
+
+            _selectedGizmoChangedHandler = _editorSubsystem.GetOnSelectedGizmoChangedDelegate()
                 .Bind((EditorGizmoBase? newGizmo, EditorGizmoBase? prevGizmo) =>
                 {
                     Dispatcher.UIThread.Post(() =>
@@ -148,8 +260,11 @@ namespace Hyperion.Editor.ViewModels
                         (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
                         (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
                     });
-                })
-                .Detach();
+                });
+
+            // handle active scene changes
+            _activeSceneChangedHandler = _editorSubsystem.GetOnActiveSceneChangedDelegate()
+                .Bind(HandleActiveSceneChanged);
 
             SceneHierarchy.SelectedNodeChanged += OnSceneHierarchyNodeSelected;
 
@@ -188,7 +303,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    _editorSubsystem.SetFocusedNode(node, false);
+                    _editorSubsystem.SetFocusedNode(node!, false);
                     Inspector.SetSelectedNode(node);
                 }
                 catch (Exception ex)

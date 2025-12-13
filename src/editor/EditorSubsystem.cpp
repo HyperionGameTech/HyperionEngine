@@ -437,7 +437,7 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
                             NodeUnlockTransformScope unlockTransformScope(*focusedNode);
                             focusedNode->SetWorldTranslation(finalPosition);
 
-                            if (Node* parent = node->FindParentWithName("TranslateWidget"))
+                            if (Node* parent = node->FindParentWithName("TranslateGizmo"))
                             {
                                 parent->SetWorldTranslation(finalPosition);
                             }
@@ -451,7 +451,7 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
                             NodeUnlockTransformScope unlockTransformScope(*focusedNode);
                             focusedNode->SetWorldTranslation(origin);
 
-                            if (Node* parent = node->FindParentWithName("TranslateWidget"))
+                            if (Node* parent = node->FindParentWithName("TranslateGizmo"))
                             {
                                 parent->SetWorldTranslation(origin);
                             }
@@ -592,7 +592,7 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
     NodeUnlockTransformScope unlockTransformScope(*focusedNode);
     focusedNode->SetWorldTranslation(translation);
 
-    if (Node* parent = node->FindParentWithName("TranslateWidget"))
+    if (Node* parent = node->FindParentWithName("TranslateGizmo"))
     {
         parent->SetWorldTranslation(translation);
     }
@@ -713,7 +713,7 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
     {
         if (Handle<Node> node = result->Result())
         {
-            node->SetName(NAME("TranslateWidget"));
+            node->SetName(NAME("TranslateGizmo"));
 
             node->SetWorldScale(2.5f);
 
@@ -741,9 +741,7 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                 }
 
                 Entity* childEntity = static_cast<Entity*>(child);
-
-                childEntity->RemoveTag<EntityTag::STATIC>();
-                childEntity->AddTag<EntityTag::DYNAMIC>();
+                childEntity->SetIsDynamic(true);
 
                 VisibilityStateComponent* visibilityState = childEntity->TryGetComponent<VisibilityStateComponent>();
 
@@ -781,7 +779,7 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                 meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
                 meshComponent->material->SetIsDynamic(true);
 
-                childEntity->AddTag<EntityTag::UPDATE_RENDER_PROXY>();
+                childEntity->SetNeedsRenderProxyUpdate();
                 childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(MATERIAL_KEY_ALBEDO))));
             }
 
@@ -798,29 +796,317 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
 #pragma region RotateEditorGizmo
 
-#if 1
+Handle<Node> RotateEditorGizmo::Load_Internal() const
+{
+    auto result = AssetManager::GetInstance()->Load<Node>("models/editor/rotate_gizmo.obj");
+
+    if (result.HasValue())
+    {
+        if (Handle<Node> node = result->Result())
+        {
+            node->SetName(NAME("RotateWidget"));
+
+            node->SetWorldScale(2.5f);
+
+            Handle<Node> axisX = node->FindChildByName("Rotate_X");
+            AssertDebug(axisX != nullptr);
+            axisX->AddTag(NodeTag(NAME("TransformWidgetAxis"), 0));
+
+            Handle<Node> axisY = node->FindChildByName("Rotate_Y");
+            AssertDebug(axisY != nullptr);
+            axisY->AddTag(NodeTag(NAME("TransformWidgetAxis"), 1));
+
+            Handle<Node> axisZ = node->FindChildByName("Rotate_Z");
+            AssertDebug(axisZ != nullptr);
+            axisZ->AddTag(NodeTag(NAME("TransformWidgetAxis"), 2));
+
+            for (Node* child : node->GetDescendants())
+            {
+                if (!child->IsA<Entity>())
+                {
+                    continue;
+                }
+
+                Entity* childEntity = static_cast<Entity*>(child);
+                childEntity->SetIsDynamic(true);
+
+                VisibilityStateComponent* visibilityState = childEntity->TryGetComponent<VisibilityStateComponent>();
+
+                if (visibilityState)
+                {
+                    visibilityState->flags |= VisibilityStateFlags::ALWAYS_VISIBLE;
+                }
+                else
+                {
+                    childEntity->AddComponent<VisibilityStateComponent>(VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE });
+                }
+
+                MeshComponent* meshComponent = childEntity->TryGetComponent<MeshComponent>();
+
+                if (meshComponent)
+                {
+                    MaterialAttributes materialAttributes;
+                    MaterialParameters materialParameters;
+
+                    if (meshComponent->material.IsValid())
+                    {
+                        materialAttributes = meshComponent->material->GetRenderAttributes();
+                        materialParameters = meshComponent->material->GetParameters();
+                    }
+                    else
+                    {
+                        materialParameters = Material::DefaultParameters();
+                    }
+
+                    materialAttributes.bucket = RB_DEBUG;
+
+                    meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
+                    meshComponent->material->SetIsDynamic(true);
+
+                    childEntity->SetNeedsRenderProxyUpdate();
+                    childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(MATERIAL_KEY_ALBEDO))));
+                }
+            }
+
+            return node;
+        }
+    }
+
+    HYP_LOG(Editor, Error, "Failed to load rotate gizmo: {}", result.GetError().GetMessage());
+
+    return Handle<Node>::Null();
+}
+
 void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
 {
     EditorGizmoBase::OnDragStart(camera, mouseEvent, node, hitpoint);
+
+    m_dragData.Unset();
+
+    if (!node->IsA<Entity>())
+    {
+        return;
+    }
+
+    Entity* entity = static_cast<Entity*>(node.Get());
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (!meshComponent || !meshComponent->material)
+    {
+        return;
+    }
+
+    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis");
+
+    if (!axisTag)
+    {
+        return;
+    }
+
+    const int axisIndex = axisTag.data.TryGet<int>(-1);
+
+    if (axisIndex < 0)
+    {
+        return;
+    }
+
+    Handle<Node> focusedNode = m_focusedNode.Lock();
+
+    if (!focusedNode.IsValid())
+    {
+        return;
+    }
+
+    DragData dragData {};
+
+    dragData.axis = Vec3f::Zero();
+    dragData.axis[axisIndex] = 1.0f;
+    dragData.axis = (focusedNode->GetWorldRotation() * dragData.axis).Normalize();
+
+    dragData.planePoint = m_node->GetWorldTranslation();
+    dragData.startRotation = focusedNode->GetWorldRotation();
+
+    Vec3f startVector = hitpoint - dragData.planePoint;
+    startVector = startVector - dragData.axis * startVector.Dot(dragData.axis);
+
+    if (startVector.LengthSquared() < MathUtil::epsilonF)
+    {
+        Vec3f fallback = camera->GetSideVector();
+        fallback = fallback - dragData.axis * fallback.Dot(dragData.axis);
+
+        if (fallback.LengthSquared() < MathUtil::epsilonF)
+        {
+            return;
+        }
+
+        startVector = fallback;
+    }
+
+    dragData.startVector = startVector.Normalize();
+
+    m_dragData = dragData;
 }
 
 void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
     EditorGizmoBase::OnDragEnd(camera, mouseEvent, node);
+
+    if (Handle<EditorProject> project = GetCurrentProject())
+    {
+        if (Handle<Node> focusedNode = m_focusedNode.Lock())
+        {
+            const Quaternion finalRotation = focusedNode->GetWorldRotation();
+            const Quaternion originRotation = m_dragData ? m_dragData->startRotation : finalRotation;
+
+            project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
+                NAME("Rotate"),
+                [manipulationMode = GetManipulationMode(), focusedNode, node = m_node, finalRotation, originRotation]() -> EditorActionFunctions
+                {
+                    return {
+                        [&](EditorSubsystem* editorSubsystem, EditorProject*)
+                        {
+                            NodeUnlockTransformScope unlockTransformScope(*focusedNode);
+                            focusedNode->SetWorldRotation(finalRotation);
+
+                            editorSubsystem->SetSelectedManipulationMode(manipulationMode);
+                            editorSubsystem->SetFocusedNode(focusedNode, true);
+                        },
+                        [&](EditorSubsystem* editorSubsystem, EditorProject*)
+                        {
+                            NodeUnlockTransformScope unlockTransformScope(*focusedNode);
+                            focusedNode->SetWorldRotation(originRotation);
+
+                            editorSubsystem->SetSelectedManipulationMode(manipulationMode);
+                            editorSubsystem->SetFocusedNode(focusedNode, true);
+                        }
+                    };
+                }));
+        }
+    }
+
+    m_dragData.Unset();
 }
 
 bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
+    if (!node->IsA<Entity>())
+    {
+        return false;
+    }
+
+    Entity* entity = static_cast<Entity*>(node.Get());
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (!meshComponent || !meshComponent->material)
+    {
+        return false;
+    }
+
+    meshComponent->material->SetParameter(
+        MATERIAL_KEY_ALBEDO,
+        Vec4f(1.0f, 1.0f, 0.0f, 1.0f));
+
     return true;
 }
 
 bool RotateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
+    if (!node->IsA<Entity>())
+    {
+        return false;
+    }
+
+    Entity* entity = static_cast<Entity*>(node.Get());
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (!meshComponent || !meshComponent->material)
+    {
+        return false;
+    }
+
+    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"))
+    {
+        meshComponent->material->SetParameter(
+            MATERIAL_KEY_ALBEDO,
+            tag.data.TryGet<Vec4f>(Vec4f::Zero()));
+    }
+
     return true;
 }
 
 bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
+    if (!mouseEvent.mouseButtons[MouseButtonState::LEFT])
+    {
+        return false;
+    }
+
+    if (!node->IsA<Entity>())
+    {
+        return false;
+    }
+
+    if (!m_dragData)
+    {
+        return false;
+    }
+
+    Entity* entity = static_cast<Entity*>(node.Get());
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (!meshComponent || !meshComponent->material)
+    {
+        return false;
+    }
+
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
+    const Vec4f rayDirection = (mouseWorld - Vec4f(camera->GetTranslation(), 1.0f)).Normalized();
+
+    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
+
+    RayHit planeRayHit;
+
+    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(m_dragData->planePoint, m_dragData->axis))
+    {
+        planeRayHit = *planeRayHitOpt;
+    }
+    else
+    {
+        return true;
+    }
+
+    Vec3f currentVector = planeRayHit.hitpoint - m_dragData->planePoint;
+    currentVector = currentVector - m_dragData->axis * currentVector.Dot(m_dragData->axis);
+
+    if (currentVector.LengthSquared() < MathUtil::epsilonF)
+    {
+        return true;
+    }
+
+    currentVector.Normalize();
+
+    const Vec3f cross = m_dragData->startVector.Cross(currentVector);
+    const float sinAngle = cross.Dot(m_dragData->axis);
+    const float cosAngle = m_dragData->startVector.Dot(currentVector);
+    const float angle = std::atan2(sinAngle, cosAngle);
+
+    Quaternion deltaRotation = Quaternion::AxisAngles(m_dragData->axis, angle).Inverse();
+    Quaternion newRotation = deltaRotation * m_dragData->startRotation;
+
+    Handle<Node> focusedNode = m_focusedNode.Lock();
+
+    if (!focusedNode.IsValid())
+    {
+        return false;
+    }
+
+    NodeUnlockTransformScope unlockTransformScope(*focusedNode);
+    focusedNode->SetWorldRotation(newRotation);
+
     return true;
 }
 
@@ -828,12 +1114,6 @@ bool RotateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const KeyboardE
 {
     return false;
 }
-
-Handle<Node> RotateEditorGizmo::Load_Internal() const
-{
-    return Handle<Node>::Null();
-}
-#endif
 
 #pragma endregion RotateEditorGizmo
 
@@ -954,6 +1234,7 @@ EditorSubsystem::EditorSubsystem()
 {
     m_gizmos.Insert(CreateObject<NullEditorGizmo>());
     m_gizmos.Insert(CreateObject<TranslateEditorGizmo>());
+    m_gizmos.Insert(CreateObject<RotateEditorGizmo>());
 
     m_editorDelegates = new EditorDelegates();
 

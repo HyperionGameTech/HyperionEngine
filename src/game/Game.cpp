@@ -87,7 +87,13 @@ void Game::OnInputEvent(const SystemEvent& event)
 
     AssertOnThread(g_gameThread);
 
-    // m_uiSubsystem->GetUIStage()->OnInputEvent(g_appContext->GetInputManager().Get(), event);
+    if (UISubsystem* uiSubsystem = m_world->GetSubsystem<UISubsystem>())
+    {
+        if (uiSubsystem->GetUIStage()->OnInputEvent(g_inputManager, event))
+        {
+            return;
+        }
+    }
 }
 
 } // namespace hyperion

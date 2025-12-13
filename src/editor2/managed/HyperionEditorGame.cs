@@ -30,6 +30,9 @@ namespace Hyperion.Editor
 
             World.WorldFlags |= WorldFlags.EditorWorld;
 
+            var uiSubsystem = new UISubsystem();
+            World.AddSubsystem(uiSubsystem);
+
             _editorSubsystem = new EditorSubsystem();
             World.AddSubsystem(_editorSubsystem);
 

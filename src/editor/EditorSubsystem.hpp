@@ -323,7 +323,17 @@ public:
     virtual bool OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node) override;
 
 protected:
+    struct DragData
+    {
+        Vec3f axis;
+        Vec3f planePoint;
+        Vec3f startVector;
+        Quaternion startRotation;
+    };
+
     virtual Handle<Node> Load_Internal() const override;
+
+    Optional<DragData> m_dragData;
 };
 
 HYP_CLASS()

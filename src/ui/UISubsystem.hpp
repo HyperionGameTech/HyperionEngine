@@ -45,9 +45,12 @@ class HYP_API UISubsystem : public Subsystem
     HYP_OBJECT_BODY(UISubsystem);
 
 public:
-    UISubsystem(const Handle<UIStage>& uiStage);
+    UISubsystem();
+    explicit UISubsystem(const Handle<UIStage>& uiStage);
+
     UISubsystem(const UISubsystem& other) = delete;
     UISubsystem& operator=(const UISubsystem& other) = delete;
+
     virtual ~UISubsystem();
 
     HYP_FORCE_INLINE const Handle<UIStage>& GetUIStage() const

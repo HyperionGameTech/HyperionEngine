@@ -33,6 +33,7 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return g_renderBackend;
 }
 
+static constexpr bool VulkanSwapchainUseFIFO = false;
 static constexpr bool UseSrgbFormat = true;
 static constexpr bool UseHdrFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -169,10 +170,11 @@ RendererResult VulkanSwapchain::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot initialize swapchain without a surface");
     }
 
-    HYP_GFX_CHECK(RetrieveSupportDetails());
-    HYP_GFX_CHECK(ChooseSurfaceFormat());
-    HYP_GFX_CHECK(ChoosePresentMode());
+    m_supportDetails = GetRenderBackend()->GetDevice()->GetFeatures().QuerySwapchainSupport(m_surface);
 
+    HYP_GFX_CHECK(ChooseSurfaceFormat());
+
+    m_presentMode = VulkanSwapchainUseFIFO ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
     m_extent = {
         m_supportDetails.capabilities.currentExtent.width,
         m_supportDetails.capabilities.currentExtent.height
@@ -421,20 +423,6 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     }
 
     return HYP_MAKE_ERROR(RendererError, "Failed to find a supported surface format!");
-}
-
-RendererResult VulkanSwapchain::ChoosePresentMode()
-{
-    m_presentMode = HYP_ENABLE_VSYNC ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
-
-    return {};
-}
-
-RendererResult VulkanSwapchain::RetrieveSupportDetails()
-{
-    m_supportDetails = GetRenderBackend()->GetDevice()->GetFeatures().QuerySwapchainSupport(m_surface);
-
-    return {};
 }
 
 RendererResult VulkanSwapchain::RetrieveImageHandles()
