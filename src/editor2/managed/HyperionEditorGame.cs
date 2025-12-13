@@ -57,8 +57,8 @@ namespace Hyperion.Editor
 
             // tmp debug
             AssetBatch ab = new AssetBatch();
-            ab.Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-            ab.Add("test_model", "models/sponza/sponza.obj");
+            ab.Add("test_model", "models/main_sponza/NewSponza_Main_Yup_003.fbx");
+            ab.Add("monkey", "models/monkey.fbx");
             _assetBatchTask = ab.Load();
         }
 
@@ -70,20 +70,14 @@ namespace Hyperion.Editor
             {
                 AssetMap assetMap = _assetBatchTask.Result;
 
-                var zombieAsset = assetMap["zombie"];
+                var monkeyAsset = assetMap["monkey"];
 
-                if (zombieAsset != null && zombieAsset.IsValid)
+                if (monkeyAsset != null && monkeyAsset.IsValid)
                 {
-                    Logger.Log(LogType.Debug, "Zombie asset loaded successfully.");
+                    Assert.Throw(monkeyAsset.Value != null);
 
-                    Assert.Throw(zombieAsset.Value != null);
-
-                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)zombieAsset.Value);
+                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)monkeyAsset.Value);
                     n.SetLocalScale(new Vec3f(0.25f));
-                }
-                else
-                {
-                    Logger.Log(LogType.Error, "Failed to load zombie asset.");
                 }
 
                 var testModelAsset = assetMap["test_model"];
@@ -94,7 +88,7 @@ namespace Hyperion.Editor
                     Assert.Throw(testModelAsset.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
-                    n.SetLocalScale(new Vec3f(0.03f));
+                    //n.SetLocalScale(new Vec3f(0.03f));
                 }
                 else
                 {

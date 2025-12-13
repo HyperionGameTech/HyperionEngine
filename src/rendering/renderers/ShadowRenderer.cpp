@@ -296,7 +296,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         }
 
         RenderCollector& renderCollector = RenderApi::GetRenderCollector(shadowView);
-        renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_LIGHTMAP)));
+        renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT) | (1u << RB_LIGHTMAP)));
 
         if (!combineShadowMapsPass)
         {
