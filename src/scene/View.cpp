@@ -903,11 +903,34 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.lightmapElementId = lightmapElementComponent ? lightmapElementComponent->lightmapElementId : InvalidLightmapElementId;
             meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
             meshProxy.instanceData = meshComponent->instanceData;
-            meshProxy.bufferData.modelMatrix = transformComponent ? transformComponent->transform.GetMatrix() : Mat4f::Identity();
-            meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
             meshProxy.bufferData.userData = reinterpret_cast<EntityShaderData::EntityUserData&>(meshComponent->userData);
+
+            /*meshProxy.bufferData.modelMatrix = entity->GetLocalTransform().GetMatrix();
+
+            if (Node* parent = entity->GetParent())
+            {
+                Stack<Mat4f> parentMatrices;
+                while (parent != nullptr)
+                {
+                    parentMatrices.Push(parent->GetLocalTransform().GetMatrix());
+                    parent = parent->GetParent();
+                }
+
+                Mat4f parentMatrix = Mat4f::Identity();
+
+                while (!parentMatrices.Empty())
+                {
+                    parentMatrix = parentMatrix * parentMatrices.Top();
+                    parentMatrices.Pop();
+                }
+
+                meshProxy.bufferData.modelMatrix = meshProxy.bufferData.modelMatrix * parentMatrix;
+            }*/
+
+            meshProxy.bufferData.modelMatrix = entity->GetWorldTransform().GetMatrix();
+            meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
         }
     }
 }
