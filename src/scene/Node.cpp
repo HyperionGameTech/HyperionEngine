@@ -841,7 +841,7 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
 
     if (m_parentNode != nullptr)
     {
-        worldTransform = m_parentNode->GetWorldTransform() * m_localTransform;
+        worldTransform = m_localTransform * m_parentNode->GetWorldTransform();
 
         if (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSFORM)
         {

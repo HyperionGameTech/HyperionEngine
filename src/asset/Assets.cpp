@@ -9,6 +9,7 @@
 
 #include <asset/model_loaders/FBOMModelLoader.hpp>
 #include <asset/model_loaders/FBXModelLoader.hpp>
+#include <asset/model_loaders/GLTFModelLoader.hpp>
 #include <asset/model_loaders/OBJModelLoader.hpp>
 #include <asset/model_loaders/PLYModelLoader.hpp>
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
@@ -287,6 +288,7 @@ void AssetManager::RegisterDefaultLoaders()
     Register<WAVAudioLoader, AudioSource>("wav");
     Register<FBOMModelLoader, Node>("hypmodel");
     Register<FBXModelLoader, Node>("fbx");
+    Register<GLTFModelLoader, Node>("gltf", "glb");
     // Register<PLYModelLoader, PLYModel>("ply");
     Register<JSONLoader, JSONValue>("json");
     // freetype font loader
