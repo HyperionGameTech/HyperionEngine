@@ -87,7 +87,7 @@ HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RTRadianceUniforms) uniform RTRadi
 layout(location = 0) rayPayloadEXT RayPayload payload;
 
 #define RAY_OFFSET 0.001
-#define NUM_SAMPLES 2
+#define NUM_SAMPLES 1
 #define NUM_BOUNCES 8
 
 struct RayBounceInfo

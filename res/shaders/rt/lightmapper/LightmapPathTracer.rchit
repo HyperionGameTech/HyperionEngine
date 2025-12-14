@@ -200,7 +200,7 @@ void main()
 
     material_color = material.albedo;
 
-    if (HAS_TEXTURE(material, RoughnessMap)) {
+    if (HAS_TEXTURE(material, AlbedoMap)) {
         vec4 albedo_texture = SAMPLE_TEXTURE(material, AlbedoMap, vec2(texcoord.x, 1.0 - texcoord.y));
 
         material_color *= albedo_texture;

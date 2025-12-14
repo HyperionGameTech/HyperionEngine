@@ -105,7 +105,7 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode)
         // 0x18: = - no mapping
         case 0x19: return KeyCode::KEY_9;
         case 0x1A: return KeyCode::KEY_7;
-        case 0x1B: return KeyCode::DASH;
+        case 0x1B: return KeyCode::KEY_DASH;
         case 0x1C: return KeyCode::KEY_8;
         case 0x1D: return KeyCode::KEY_0;
         // 0x1E: ] - no mapping
@@ -114,33 +114,33 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode)
         // 0x21: [ - no mapping
         case 0x22: return KeyCode::KEY_I;
         case 0x23: return KeyCode::KEY_P;
-        case 0x24: return KeyCode::RETURN;
+        case 0x24: return KeyCode::KEY_RETURN;
         case 0x25: return KeyCode::KEY_L;
         case 0x26: return KeyCode::KEY_J;
         // 0x27: ' - no mapping
         case 0x28: return KeyCode::KEY_K;
         // 0x29: ; - no mapping
         // 0x2A: \ - no mapping
-        case 0x2B: return KeyCode::COMMA;
+        case 0x2B: return KeyCode::KEY_COMMA;
         // 0x2C: / - no mapping
         case 0x2D: return KeyCode::KEY_N;
         case 0x2E: return KeyCode::KEY_M;
-        case 0x2F: return KeyCode::PERIOD;
-        case 0x30: return KeyCode::TAB;
-        case 0x31: return KeyCode::SPACE;
-        case 0x32: return KeyCode::TILDE;
-        case 0x33: return KeyCode::BACKSPACE;
+        case 0x2F: return KeyCode::KEY_PERIOD;
+        case 0x30: return KeyCode::KEY_TAB;
+        case 0x31: return KeyCode::KEY_SPACE;
+        case 0x32: return KeyCode::KEY_TILDE;
+        case 0x33: return KeyCode::KEY_BACKSPACE;
         // 0x34: Enter (on Powerbook) - no mapping
-        case 0x35: return KeyCode::ESC;
+        case 0x35: return KeyCode::KEY_ESCAPE;
         // 0x36: Right Cmd - no mapping
         // 0x37: Cmd (Apple) - no mapping
-        case 0x38: return KeyCode::LEFT_SHIFT;
-        case 0x39: return KeyCode::CAPSLOCK;
-        case 0x3A: return KeyCode::LEFT_ALT; // Option
-        case 0x3B: return KeyCode::LEFT_CTRL;
-        case 0x3C: return KeyCode::RIGHT_SHIFT;
-        case 0x3D: return KeyCode::RIGHT_ALT; // Right Option
-        case 0x3E: return KeyCode::RIGHT_CTRL;
+        case 0x38: return KeyCode::KEY_LSHIFT;
+        case 0x39: return KeyCode::KEY_CAPSLOCK;
+        case 0x3A: return KeyCode::KEY_LALT; // Option
+        case 0x3B: return KeyCode::KEY_LCTRL;
+        case 0x3C: return KeyCode::KEY_RSHIFT;
+        case 0x3D: return KeyCode::KEY_RALT; // Right Option
+        case 0x3E: return KeyCode::KEY_RCTRL;
         // 0x3F: Fn/Globe - no mapping
         // 0x40: F17 - no mapping
         // 0x41: Numeric Keypad . - no mapping
@@ -195,13 +195,13 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode)
         case 0x78: return KeyCode::KEY_F2;
         // 0x79: Page Down - no mapping
         case 0x7A: return KeyCode::KEY_F1;
-        case 0x7B: return KeyCode::ARROW_LEFT;
-        case 0x7C: return KeyCode::ARROW_RIGHT;
-        case 0x7D: return KeyCode::ARROW_DOWN;
-        case 0x7E: return KeyCode::ARROW_UP;
+        case 0x7B: return KeyCode::KEY_LEFT;
+        case 0x7C: return KeyCode::KEY_RIGHT;
+        case 0x7D: return KeyCode::KEY_DOWN;
+        case 0x7E: return KeyCode::KEY_UP;
         // 0x7F: Power (on PC) - no mapping
         // 0xA0: Mission Control - no mapping
-        default: return KeyCode::UNKNOWN;
+        default: return KeyCode::KEY_UNKNOWN;
     }
 }
 
