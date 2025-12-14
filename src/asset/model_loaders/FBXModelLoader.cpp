@@ -36,6 +36,8 @@
 #include <core/filesystem/FsUtil.hpp>
 
 #include <core/memory/Memory.hpp>
+#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <core/memory/allocator/SlabAllocator.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
@@ -88,8 +90,8 @@ struct FBXObject
 
     String name;
     Array<FBXProperty> properties;
-    Array<UniquePtr<FBXObject>> children;
-    const FBXTemplate* objectTemplate = nullptr;
+    Array<FBXObject*> children;
+    const FBXTemplate* pTemplate = nullptr;
 
     const FBXProperty& GetProperty(uint32 index) const
     {
@@ -121,16 +123,16 @@ struct FBXObject
 
     const FBXObject& FindChild(const String& childName) const
     {
-        for (auto& child : children)
+        for (FBXObject* pChild : children)
         {
-            if (child == nullptr)
+            if (pChild == nullptr)
             {
                 continue;
             }
 
-            if (child->name == childName)
+            if (pChild->name == childName)
             {
-                return *child.Get();
+                return *pChild;
             }
         }
 
@@ -202,11 +204,17 @@ struct FBXBindPose
 
 struct FBXMesh
 {
+    FBXObject* srcObject = nullptr;
+
+    String name;
+
     FBXObjectID skinId = 0;
 
     Array<Vertex> vertices;
     Array<uint32> indices;
     VertexAttributeSet attributes;
+
+    BoundingBox bounds;
 
     Optional<Handle<Mesh>> result;
 
@@ -226,7 +234,19 @@ struct FBXMesh
             meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
             meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
 
+            bounds = meshData.CalculateAABB();
+
+            const Vec3f boundsMin = bounds.GetMin();
+            const Vec3f boundsCenter = bounds.GetCenter();
+
+            //// offset all vertices by the AABB's center
+            //for (Vertex& vertex : meshData.vertexData)
+            //{
+            //    vertex.SetPosition(vertex.GetPosition() - boundsCenter);
+            //}
+
             Handle<Mesh> mesh = CreateObject<Mesh>();
+            mesh->SetName(CreateNameFromDynamicString(name));
             mesh->SetMeshData(meshDesc, meshData);
 
             result.Set(std::move(mesh));
@@ -279,10 +299,46 @@ const FBXObject FBXObject::s_empty = {};
 
 using FBXVersion = uint32;
 
+struct FBXLoaderMemory
+{
+    Arena arena;
+    SlabAllocator* pObjectAllocator;
+};
+
+thread_local FBXLoaderMemory* s_fbxMemory = nullptr;
+
+static void InitFBXLoaderMemory()
+{
+    if (s_fbxMemory == nullptr)
+    {
+        s_fbxMemory = new FBXLoaderMemory {
+            .arena = Arena(16 * 1024 * 1024) // 16 MB
+        };
+
+        s_fbxMemory->pObjectAllocator = new SlabAllocator(sizeof(FBXObject), alignof(FBXObject), 1024);
+    }
+}
+
+static void DeleteFBXObjectsRecursively(FBXObject* pObject)
+{
+    if (!pObject)
+    {
+        return;
+    }
+
+    for (FBXObject* pChild : pObject->children)
+    {
+        DeleteFBXObjectsRecursively(pChild);
+    }
+
+    pObject->~FBXObject();
+    s_fbxMemory->pObjectAllocator->Free(pObject);
+}
+
 static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty);
 static Result ReadFBXPropertyValue(ByteReader& reader, uint8 type, FBXPropertyValue& outValue);
 static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version);
-static Result ReadFBXNode(ByteReader& reader, FBXVersion version, UniquePtr<FBXObject>& out);
+static Result ReadFBXNode(ByteReader& reader, FBXVersion version, FBXObject*& out);
 static SizeType PrimitiveSize(uint8 primitiveType);
 static bool ReadMagic(ByteReader& reader);
 
@@ -529,9 +585,10 @@ static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version)
     }
 }
 
-static Result ReadFBXNode(ByteReader& reader, FBXVersion version, UniquePtr<FBXObject>& out)
+static Result ReadFBXNode(ByteReader& reader, FBXVersion version, FBXObject*& out)
 {
-    out = MakeUnique<FBXObject>();
+    out = (FBXObject*)s_fbxMemory->pObjectAllocator->Allocate();
+    new (out) FBXObject();
 
     uint64 endPosition = ReadFBXOffset(reader, version);
     uint64 numProperties = ReadFBXOffset(reader, version);
@@ -564,18 +621,17 @@ static Result ReadFBXNode(ByteReader& reader, FBXVersion version, UniquePtr<FBXO
 
     while (reader.Position() < endPosition)
     {
-        UniquePtr<FBXObject> child;
-
-        Result result = ReadFBXNode(reader, version, child);
+        FBXObject* pChildObject = nullptr;
+        Result result = ReadFBXNode(reader, version, pChildObject);
 
         if (!result)
         {
             return result;
         }
 
-        if (child != nullptr)
+        if (pChildObject != nullptr)
         {
-            out->children.PushBack(std::move(child));
+            out->children.PushBack(pChildObject);
         }
     }
 
@@ -682,10 +738,13 @@ static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping>& mapping,
 //     }
 // }
 
-HYP_DISABLE_OPTIMIZATION;
+FBXModelLoader::FBXModelLoader() = default;
+
 AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 {
     Assert(state.assetManager != nullptr);
+
+    InitFBXLoaderMemory();
 
     Handle<Node> top = CreateObject<Node>();
     Handle<Skeleton> rootSkeleton = CreateObject<Skeleton>();
@@ -712,23 +771,30 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     FBXObject root;
 
+    HYP_DEFER({
+        for (FBXObject* pChild : root.children)
+        {
+            DeleteFBXObjectsRecursively(pChild);
+        }    
+    });
+
     do
     {
-        UniquePtr<FBXObject> object;
+        FBXObject* pObject = nullptr;
 
-        Result result = ReadFBXNode(reader, version, object);
+        Result result = ReadFBXNode(reader, version, pObject);
 
         if (!result)
         {
             return HYP_MAKE_ERROR(AssetLoadError, "Failed to read FBX node: {}", 0, result.GetError().GetMessage());
         }
 
-        if (object == nullptr || object->Empty())
+        if (pObject == nullptr || pObject->Empty())
         {
             break;
         }
 
-        root.children.PushBack(std::move(object));
+        root.children.PushBack(pObject);
     }
     while (true);
 
@@ -971,30 +1037,30 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     if (FBXObject& objectsNode = root["Objects"])
     {
-        for (UniquePtr<FBXObject>& child : objectsNode.children)
+        for (FBXObject* pChildObject : objectsNode.children)
         {
             // Get the FBXTemplate for this object, if it exists
-            const FBXTemplate* objectTemplate = getTemplate(child->name);
-            if (!objectTemplate)
+            const FBXTemplate* pTemplate = getTemplate(pChildObject->name);
+            if (!pTemplate)
             {
-                HYP_LOG(Assets, Warning, "No template found for FBX object '{}'", child->name);
+                HYP_LOG(Assets, Warning, "No template found for FBX object '{}'", pChildObject->name);
                 continue;
             }
 
             FBXObjectID objectId;
-            child->GetFBXPropertyValue<FBXObjectID>(0, objectId);
+            pChildObject->GetFBXPropertyValue<FBXObjectID>(0, objectId);
 
             String nodeName;
-            child->GetFBXPropertyValue<String>(1, nodeName);
+            pChildObject->GetFBXPropertyValue<String>(1, nodeName);
 
-            child->objectTemplate = objectTemplate;
+            pChildObject->pTemplate = pTemplate;
 
-            FBXNodeMapping mapping { child.Get() };
+            FBXNodeMapping mapping { pChildObject };
 
-            if (objectTemplate->name == "Pose")
+            if (pTemplate->name == "Pose")
             {
                 String poseType;
-                child->GetFBXPropertyValue(2, poseType);
+                pChildObject->GetFBXPropertyValue(2, poseType);
 
                 if (poseType == "BindPose")
                 {
@@ -1011,18 +1077,18 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         bindPose.name = nodeName;
                     }
 
-                    for (auto& poseChild : child->children)
+                    for (FBXObject* pPoseChild : pChildObject->children)
                     {
-                        if (poseChild->name == "PoseNode")
+                        if (pPoseChild->name == "PoseNode")
                         {
                             FBXPoseNode pose;
 
-                            if (const FBXObject& nodeNode = poseChild->FindChild("Node"))
+                            if (const FBXObject& nodeNode = pPoseChild->FindChild("Node"))
                             {
                                 nodeNode.GetFBXPropertyValue<FBXObjectID>(0, pose.nodeId);
                             }
 
-                            pose.matrix = readMatrix(poseChild->FindChild("Matrix"));
+                            pose.matrix = readMatrix(pPoseChild->FindChild("Matrix"));
 
                             bindPose.poseNodes.PushBack(pose);
                         }
@@ -1039,10 +1105,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     continue;
                 }
             }
-            else if (objectTemplate->name == "Deformer")
+            else if (pTemplate->name == "Deformer")
             {
                 String deformerType;
-                child->GetFBXPropertyValue(2, deformerType);
+                pChildObject->GetFBXPropertyValue(2, deformerType);
 
                 if (deformerType == "Skin")
                 {
@@ -1059,17 +1125,17 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         cluster.name = nameSplit[1];
                     }
 
-                    if (const auto& transformChild = child->FindChild("Transform"))
+                    if (const FBXObject& transformChild = pChildObject->FindChild("Transform"))
                     {
                         cluster.transform = readMatrix(transformChild);
                     }
 
-                    if (const auto& transformLinkChild = child->FindChild("TransformLink"))
+                    if (const FBXObject& transformLinkChild = pChildObject->FindChild("TransformLink"))
                     {
                         cluster.transformLink = readMatrix(transformLinkChild);
                     }
 
-                    if (const auto& indicesChild = child->FindChild("Indexes"))
+                    if (const FBXObject& indicesChild = pChildObject->FindChild("Indexes"))
                     {
                         Result result = ReadBinaryArray<int32>(indicesChild, cluster.vertexIndices);
 
@@ -1079,7 +1145,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         }
                     }
 
-                    if (const auto& weightsChild = child->FindChild("Weights"))
+                    if (const FBXObject& weightsChild = pChildObject->FindChild("Weights"))
                     {
                         Result result = ReadBinaryArray<double>(weightsChild, cluster.boneWeights);
 
@@ -1098,7 +1164,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     continue;
                 }
             }
-            else if (objectTemplate->name == "Geometry")
+            else if (pTemplate->name == "Geometry")
             {
                 Array<Vec3f> modelVertices;
                 Array<uint32> modelIndices;
@@ -1106,7 +1172,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 Array<String> layerNodeNames;
 
-                if (const FBXObject& layerNode = (*child)["Layer"])
+                if (const FBXObject& layerNode = (*pChildObject)["Layer"])
                 {
                     for (const auto& layerNodeChild : layerNode.children)
                     {
@@ -1125,7 +1191,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
-                if (const FBXObject& verticesNode = (*child)["Vertices"])
+                if (const FBXObject& verticesNode = (*pChildObject)["Vertices"])
                 {
                     const FBXProperty& verticesProperty = verticesNode.GetProperty(0);
                     const SizeType count = verticesProperty.arrayElements.Size();
@@ -1177,7 +1243,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
-                if (const FBXObject& indicesNode = (*child)["PolygonVertexIndex"])
+                if (const FBXObject& indicesNode = (*pChildObject)["PolygonVertexIndex"])
                 {
                     const FBXProperty& indicesProperty = indicesNode.GetProperty(0);
                     const SizeType count = indicesProperty.arrayElements.Size();
@@ -1229,7 +1295,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 {
                     if (name == "LayerElementUV")
                     {
-                        if (const auto& uvNode = (*child)[name]["UV"])
+                        if (const FBXObject& uvNode = (*pChildObject)[name]["UV"])
                         {
                             attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0;
 
@@ -1238,9 +1304,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                     else if (name == "LayerElementNormal")
                     {
-                        const FBXVertexMappingType mappingType = GetVertexMappingType((*child)[name]["MappingInformationType"]);
+                        const FBXVertexMappingType mappingType = GetVertexMappingType((*pChildObject)[name]["MappingInformationType"]);
 
-                        if (const auto& normalsNode = (*child)[name]["Normals"])
+                        if (const FBXObject& normalsNode = (*pChildObject)[name]["Normals"])
                         {
                             attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL;
 
@@ -1294,28 +1360,30 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 auto newVertsAndIndices = Mesh::CalculateIndices(verticesUnpacked);
 
                 FBXMesh fbxMesh;
+                fbxMesh.srcObject = pChildObject;
+                fbxMesh.name = nodeName;
                 fbxMesh.vertices = std::move(newVertsAndIndices.first);
                 fbxMesh.indices = std::move(newVertsAndIndices.second);
                 fbxMesh.attributes = staticMeshVertexAttributes | skeletonVertexAttributes;
 
                 mapping.data.Set(std::move(fbxMesh));
             }
-            else if (objectTemplate->name == "Model")
+            else if (pTemplate->name == "Model")
             {
                 String modelType;
-                child->GetFBXPropertyValue<String>(2, modelType);
+                pChildObject->GetFBXPropertyValue<String>(2, modelType);
 
                 Transform transform;
 
-                for (const auto& modelChild : child->children)
+                for (FBXObject* pModelChild : pChildObject->children)
                 {
-                    if (modelChild->name.StartsWith("Properties"))
+                    if (pModelChild->name.StartsWith("Properties"))
                     {
-                        for (const auto& propertiesChild : modelChild->children)
+                        for (FBXObject* pPropertiesChild : pModelChild->children)
                         {
                             String propertiesChildName;
 
-                            if (!propertiesChild->GetFBXPropertyValue<String>(0, propertiesChildName))
+                            if (!pPropertiesChild->GetFBXPropertyValue<String>(0, propertiesChildName))
                             {
                                 continue;
                             }
@@ -1333,20 +1401,20 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                             if (propertiesChildName == "Lcl Translation")
                             {
-                                transform.SetTranslation(ReadVec3f(*propertiesChild));
+                                transform.SetTranslation(ReadVec3f(*pPropertiesChild));
                             }
                             else if (propertiesChildName == "Lcl Scaling")
                             {
-                                transform.SetScale(ReadVec3f(*propertiesChild));
+                                transform.SetScale(ReadVec3f(*pPropertiesChild));
                             }
                             else if (propertiesChildName == "Lcl Rotation")
                             {
-                                Vec3f degrees = ReadVec3f(*propertiesChild);
+                                Vec3f degrees = ReadVec3f(*pPropertiesChild);
                                 Vec3f radians;
                                 radians.x = MathUtil::DegToRad(degrees.x);
                                 radians.y = MathUtil::DegToRad(degrees.y);
                                 radians.z = MathUtil::DegToRad(degrees.z);
-                                transform.SetRotation(Quaternion(radians));
+                                transform.SetRotation(Quaternion(radians).Inverse());
                             }
                         }
                     }
@@ -1557,7 +1625,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             node = bone;
         }
 
+        parentNode->AddChild(node);
+
         node->SetName(CreateNameFromDynamicString(fbxNode.name));
+        node->SetLocalTransform(fbxNode.localTransform);
 
         if (fbxNode.meshId)
         {
@@ -1585,10 +1656,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 Scene* scene = GetDetachedSceneForCurrentThread();
 
                 const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
-                entity->SetLocalBounds(mesh->GetAABB());
+                entity->SetLocalBounds(fbxMesh->bounds);
 
-                scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
-                scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
+                entity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
+                entity->AddComponent<BoundingBoxComponent>(BoundingBoxComponent {});
+
+                //// offset node to center of bounds
+                //node->SetWorldTranslation(node->GetWorldTranslation() + fbxMesh->bounds.GetCenter());
 
                 node->AddChild(entity);
             }
@@ -1614,8 +1688,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 HYP_LOG(Assets, Error, "Unsure how to build child object {}", id);
             }
         }
-
-        parentNode->AddChild(node);
 #endif
     };
 
@@ -1776,13 +1848,15 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     for (const FBXObjectID id : rootFbxNode.childIds)
     {
+        Node* parentNode = top;
+
         if (id)
         {
             FBXNode* childNode;
 
             if (getFbxObject(id, childNode))
             {
-                buildNodes(FBXNode::Type::NODE, *childNode, top.Get());
+                buildNodes(FBXNode::Type::NODE, *childNode, parentNode);
             }
         }
     }
@@ -1792,8 +1866,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         // Add Skeleton and AnimationController to Entities
         // AddSkeletonToEntities(rootSkeleton, top.Get());
     }
-
-    top->UpdateWorldTransform();
 
     if (Skeleton* skeleton = rootSkeleton.Get())
     {
@@ -1810,6 +1882,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             rootBone->UpdateBoneTransform();
         }
     }
+
+    // temp hack
+    top->SetLocalRotation(Quaternion::AxisAngles(Vec3f(1.0f, 0.0f, 0.0f), MathUtil::DegToRad(-90.0f)));
+    top->Scale(0.01f);
 
     return LoadedAsset { top };
 }

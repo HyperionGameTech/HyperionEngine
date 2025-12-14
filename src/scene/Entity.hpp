@@ -119,6 +119,9 @@ protected:
     virtual void OnAttachedToNode(Node* node) override;
     virtual void OnDetachedFromNode(Node* node) override;
 
+    virtual void OnNodeAttached(Node* node) override;
+    virtual void OnNodeDetached(Node* node) override;
+
     virtual void OnAddedToWorld(World* world);
     virtual void OnRemovedFromWorld(World* world);
 

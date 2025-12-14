@@ -200,6 +200,24 @@ void Entity::OnAttachedToNode(Node* node)
     AssertDebug(GetEntityManager() == node->GetScene()->GetEntityManager());
 }
 
+void Entity::OnNodeAttached(Node* node)
+{
+    // needs world bounds update when a child is attached
+    if (EntityManager* entityManager = GetEntityManager())
+    {
+        entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+    }
+}
+
+void Entity::OnNodeDetached(Node* node)
+{
+    // needs world bounds update when a child is detached
+    if (EntityManager* entityManager = GetEntityManager())
+    {
+        entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+    }
+}
+
 void Entity::OnDetachedFromNode(Node* node)
 {
     Node::OnDetachedFromNode(node);
@@ -350,6 +368,7 @@ void Entity::OnTransformUpdated(const Transform& transform)
     TransformComponent& transformComponent = entityManager->GetComponent<TransformComponent>(this);
     transformComponent.transform = m_worldTransform;
 
+    // needs world bounds update
     entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
 
     SetNeedsRenderProxyUpdate();

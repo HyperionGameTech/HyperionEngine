@@ -361,6 +361,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             TextureDesc textureDesc = texture->GetTextureDesc();
             textureDesc.filterModeMin = it.mapping.filterMode;
             textureDesc.filterModeMag = TFM_LINEAR;
+            textureDesc.wrapMode = TWM_REPEAT;
 
             if (it.mapping.srgb)
             {

@@ -944,9 +944,8 @@ protected:
     virtual void OnAttachedToNode(Node* node);
     virtual void OnDetachedFromNode(Node* node);
 
-    /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
-     *  and will update the TransformComponent of the entity if it exists. */
-    void RefreshEntityTransform();
+    virtual void OnNodeAttached(Node* node);
+    virtual void OnNodeDetached(Node* node);
 
     virtual void OnTransformUpdated(const Transform& transform);
     virtual void OnMobilityChanged(bool isStatic);

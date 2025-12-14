@@ -8,8 +8,12 @@
 #include <scene/Scene.hpp>
 #include <scene/SceneOctree.hpp>
 
+#include <core/memory/allocator/ArenaAllocator.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
+
+#include <engine/EngineMemory.hpp>
 
 #include <VisibilityStateUpdaterSystem.generated.inl>
 
@@ -102,7 +106,7 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
 
         SceneOctree& octree = scene->GetOctree();
 
-        HashSet<WeakHandle<Entity>> updatedEntities;
+        Array<WeakHandle<Entity>, SceneAllocator> updatedEntities;
 
         const auto updateVisbilityState = [&octree, &updatedEntities](Entity* entity, VisibilityStateComponent& visibilityStateComponent, BoundingBoxComponent& boundingBoxComponent)
         {
@@ -133,7 +137,7 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
                         visibilityStateComponent.visibilityState = &octant->GetVisibilityState();
                     }
 
-                    updatedEntities.Insert(MakeWeakRef(entity));
+                    updatedEntities.PushBack(MakeWeakRef(entity));
                 }
 
                 return;
@@ -172,7 +176,7 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
                 visibilityStateComponent.visibilityState = &octant->GetVisibilityState();
             }
 
-            updatedEntities.Insert(MakeWeakRef(entity));
+            updatedEntities.PushBack(MakeWeakRef(entity));
         };
 
         for (auto [entity, visibilityStateComponent, boundingBoxComponent, _] : scene->GetEntityManager()->GetEntitySet<VisibilityStateComponent, BoundingBoxComponent, TagComponent<EntityTag::UPDATE_VISIBILITY_STATE>>().GetScopedView(GetComponentInfos()))

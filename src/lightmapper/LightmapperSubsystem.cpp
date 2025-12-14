@@ -65,7 +65,7 @@ void LightmapperSubsystem::Update(float delta)
         }
     }
 
-    Array<ObjectBase*> lightmappersToRemove;
+    Array<ObjectBase*> keysToRemove;
 
     for (auto& it : m_lightmappers)
     {
@@ -73,11 +73,11 @@ void LightmapperSubsystem::Update(float delta)
 
         if (it.second->IsComplete())
         {
-            lightmappersToRemove.PushBack(it.first);
+            keysToRemove.PushBack(it.first);
         }
     }
 
-    for (ObjectBase* obj : lightmappersToRemove)
+    for (ObjectBase* obj : keysToRemove)
     {
         m_lightmappers.Erase(obj);
 
