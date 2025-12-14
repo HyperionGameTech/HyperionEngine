@@ -152,23 +152,17 @@ void main(void)
 #elif TEMPORAL_BLEND_TECHNIQUE == 3
     color = TemporalBlendVarying(input_texture, prev_input_texture, uv, velocity, texel_size, view_space_depth);
 #elif TEMPORAL_BLEND_TECHNIQUE == 4
-    // color.a = 1.0;
-    // previous_color.a = 1.0;
+    color = Texture2D(sampler_nearest, input_texture, uv);
+    vec4 previous_color = Texture2D(sampler_linear, prev_input_texture, uv);
 
     // Moving average over number of frames
-    if (blending_frame_counter > 0.05)
+    if (blending_frame_counter > 0)
     {
-        vec4 previous_color = Texture2D(sampler_linear, prev_input_texture, uv);
-
-        color = ADJUST_COLOR_IN(color);
-        previous_color = ADJUST_COLOR_IN(previous_color);
-
-        // Progressive blending
-        color = previous_color * (float(blending_frame_counter) / float(blending_frame_counter + 1))
-            + color * (1.0 / float(blending_frame_counter + 1));
-
-        color = ADJUST_COLOR_OUT(color);
+        float alpha = 1.0 / float(blending_frame_counter + 1);
+        color = mix(previous_color, color, alpha);
     }
+    
+    color.a = 1.0;
 #endif
 
     imageStore(output_image, clamp(ivec2(coord), ivec2(0), ivec2(output_dimensions) - 1), color);
