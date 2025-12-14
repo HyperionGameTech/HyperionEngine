@@ -7,7 +7,11 @@
 
 #include <scene/Scene.hpp>
 
+#include <core/memory/allocator/ArenaAllocator.hpp>
+
 #include <core/logging/Logger.hpp>
+
+#include <engine/EngineMemory.hpp>
 
 #include <WorldAABBUpdaterSystem.generated.inl>
 
@@ -41,24 +45,23 @@ void WorldAABBUpdaterSystem::Process(float delta, Span<Handle<Scene>> scenes)
             continue;
         }
 
-        HashMap<WeakHandle<Entity>, bool> updatedEntities;
+        Array<Pair<WeakHandle<Entity>, bool>, SceneAllocator> updatedEntities;
 
         for (auto [entity, boundingBoxComponent, transformComponent, _] : scene->GetEntityManager()->GetEntitySet<BoundingBoxComponent, TransformComponent, TagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos()))
         {
-            const bool wasWorldAabbChanged = ProcessEntity(entity, boundingBoxComponent, transformComponent);
-
-            updatedEntities[MakeWeakRef(entity)] = wasWorldAabbChanged;
+            updatedEntities.EmplaceBack(MakeWeakRef(entity), ProcessEntity(entity, boundingBoxComponent, transformComponent));
         }
 
         if (updatedEntities.Any())
         {
             AfterProcess([this, scene, updatedEntities = std::move(updatedEntities)]()
                 {
-                    for (const auto& [entityWeak, wasWorldAabbChanged] : updatedEntities)
+                    for (const auto& pair : updatedEntities)
                     {
-                        Entity* entity = entityWeak.GetUnsafe(); // don't use ptr so it's fine to use GetUnsafe()
+                        Entity* entity = pair.first.GetUnsafe(); // don't use ptr so it's fine to use GetUnsafe()
+                        const bool changed = pair.second;
 
-                        if (wasWorldAabbChanged)
+                        if (changed)
                         {
                             scene->GetEntityManager()->AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE>(entity);
                         }
@@ -73,24 +76,9 @@ void WorldAABBUpdaterSystem::Process(float delta, Span<Handle<Scene>> scenes)
 //! Return true on change
 bool WorldAABBUpdaterSystem::ProcessEntity(Entity* entity, BoundingBoxComponent& boundingBoxComponent, TransformComponent& transformComponent)
 {
-    const BoundingBox localAabb = entity->GetLocalBounds();
+    const BoundingBox worldAabb = entity->GetWorldBounds();
 
-    const BoundingBox prevWorldAabb = boundingBoxComponent.worldAabb;
-    BoundingBox& worldAabb = boundingBoxComponent.worldAabb;
-
-    worldAabb = BoundingBox::Empty();
-
-    const Mat4f transformMatrix = transformComponent.transform.GetMatrix();
-
-    if (localAabb.IsValid())
-    {
-        for (const Vec3f& corner : localAabb.GetCorners())
-        {
-            worldAabb = worldAabb.Union(transformMatrix * corner);
-        }
-    }
-
-    if (prevWorldAabb == worldAabb)
+    if (worldAabb == boundingBoxComponent.worldAabb)
     {
         // no change
         return false;

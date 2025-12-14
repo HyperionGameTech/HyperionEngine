@@ -14,6 +14,7 @@ class FBXModelLoader : public AssetLoaderBase
     HYP_OBJECT_BODY(FBXModelLoader);
 
 public:
+    FBXModelLoader();
     virtual ~FBXModelLoader() = default;
 
     virtual AssetLoadResult LoadAsset(LoaderState& state) const override;

@@ -231,7 +231,7 @@ void EnvProbe::OnTransformUpdated(const Transform& transform)
     Entity::OnTransformUpdated(transform);
 
     // set origin
-    SetOrigin(transform.GetTranslation());
+    //SetOrigin(transform.GetTranslation());
 }
 
 void EnvProbe::CreateView()
@@ -342,10 +342,8 @@ void EnvProbe::SetOrigin(const Vec3f& origin)
         m_aabb.SetCenter(origin);
     }
 
-    if (IsInitCalled() && !IsBaked())
+    if (m_camera != nullptr)
     {
-        AssertDebug(m_camera != nullptr);
-
         m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
     }
 
@@ -358,7 +356,6 @@ void EnvProbe::Update(float delta)
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
-    AssertReady();
 
     if (IsBaked())
     {

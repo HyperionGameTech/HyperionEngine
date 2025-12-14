@@ -434,11 +434,6 @@ void Light::OnTransformUpdated(const Transform& transform)
         m_position.Normalize();
     }
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
-
     UpdateShadowViews();
 }
 
@@ -468,10 +463,7 @@ void Light::SetPosition(const Vec3f& position)
 
     m_position = position;
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 void Light::SetNormal(const Vec3f& normal)
@@ -483,10 +475,7 @@ void Light::SetNormal(const Vec3f& normal)
 
     m_normal = normal;
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 void Light::SetAreaSize(const Vec2f& areaSize)
@@ -498,10 +487,7 @@ void Light::SetAreaSize(const Vec2f& areaSize)
 
     m_areaSize = areaSize;
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 void Light::SetColor(const Color& color)
@@ -513,10 +499,7 @@ void Light::SetColor(const Color& color)
 
     m_color = color;
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 void Light::SetIntensity(float intensity)
@@ -528,10 +511,7 @@ void Light::SetIntensity(float intensity)
 
     m_intensity = intensity;
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 void Light::SetRadius(float radius)
@@ -543,10 +523,7 @@ void Light::SetRadius(float radius)
 
     m_radius = radius;
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 void Light::SetFalloff(float falloff)
@@ -558,10 +535,7 @@ void Light::SetFalloff(float falloff)
 
     m_falloff = falloff;
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 void Light::SetSpotAngles(const Vec2f& spotAngles)
@@ -573,10 +547,7 @@ void Light::SetSpotAngles(const Vec2f& spotAngles)
 
     m_spotAngles = spotAngles;
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 void Light::SetMaterial(Handle<Material> material)
@@ -592,13 +563,9 @@ void Light::SetMaterial(Handle<Material> material)
     }
 
     m_material = std::move(material);
+    InitObject(m_material);
 
-    if (IsInitCalled())
-    {
-        InitObject(m_material);
-
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 Pair<Vec3f, Vec3f> Light::CalculateAreaLightRect() const
@@ -633,10 +600,7 @@ void Light::SetShadowMapDimensions(Vec2u shadowMapDimensions)
 
     m_shadowMapDimensions = shadowMapDimensions;
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
@@ -651,10 +615,7 @@ void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
     // ShadowMapFilter enum members are sequentially ordered so turn it into a flag
     m_flags |= EnumFlags<LightFlags>(1u << shadowMapFilter);
 
-    if (IsInitCalled())
-    {
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 BoundingBox Light::GetAABB() const

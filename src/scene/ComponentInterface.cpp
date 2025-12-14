@@ -38,9 +38,9 @@ const Class* IComponentInterface::GetClass() const
 
 ComponentInterfaceRegistry& ComponentInterfaceRegistry::GetInstance()
 {
-    static ComponentInterfaceRegistry instance;
+    static ComponentInterfaceRegistry s_instance;
 
-    return instance;
+    return s_instance;
 }
 
 ComponentInterfaceRegistry::ComponentInterfaceRegistry()

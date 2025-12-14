@@ -302,6 +302,16 @@ void Node::OnDetachedFromNode(Node* node)
     m_parentNode = nullptr;
 }
 
+void Node::OnNodeAttached(Node* node)
+{
+    // Do nothing
+}
+
+void Node::OnNodeDetached(Node* node)
+{
+    // Do nothing
+}
+
 void Node::SetChildren(const NodeList& children)
 {
     HYP_SCOPE;
@@ -364,6 +374,8 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
     m_childNodes.PushBack(node);
 
+    OnNodeAttached(node);
+
     Node* currentParent = this;
 
     while (currentParent != nullptr)
@@ -410,9 +422,13 @@ bool Node::RemoveChild(const Node* node)
         childNode->UnlockTransform();
     }
 
+    OnNodeDetached(childNode);
+
     childNode->OnDetachedFromNode(this);
-    childNode->SetScene(nullptr);
+
     childNode->UpdateWorldTransform();
+
+    childNode->SetScene(nullptr);
 
     if (wasTransformLocked)
     {
@@ -429,7 +445,6 @@ bool Node::RemoveChild(const Node* node)
     }
 
     UpdateWorldTransform();
-
     SafeDelete(std::move(childNode));
 
     return true;
@@ -478,6 +493,8 @@ void Node::RemoveAllChildren()
         {
             Assert(node.IsValid());
             Assert(node->GetParent() == this);
+
+            OnNodeDetached(node);
 
             node->OnDetachedFromNode(this);
             node->SetScene(nullptr);
@@ -847,13 +864,6 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
 
     m_worldTransform = worldTransform;
 
-    if (m_worldTransform == transformBefore)
-    {
-        return;
-    }
-
-    OnTransformUpdated(m_worldTransform);
-
     if (updateChildTransforms)
     {
         for (const Handle<Node>& node : m_childNodes)
@@ -861,10 +871,13 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
             node->UpdateWorldTransform(true);
         }
     }
-}
 
-void Node::RefreshEntityTransform()
-{
+    if (m_worldTransform == transformBefore)
+    {
+        return;
+    }
+
+    OnTransformUpdated(m_worldTransform);
 }
 
 uint32 Node::CalculateDepth() const
