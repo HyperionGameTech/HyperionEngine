@@ -182,7 +182,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         element.entity = MakeStrongRef(entity);
         element.mesh = meshComponent.mesh;
         element.material = meshComponent.material;
-        element.transform = transformComponent.transform;
+        element.transformMatrix = entity->GetWorldMatrix();
         element.aabb = boundingBoxComponent.worldAabb;
 
         if (!meshComponent.mesh->GetAsset())
@@ -224,7 +224,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
     {
         if (meshDesc.numIndices > 0)
         {
-            const Mat4f transformMatrix = element.transform.GetMatrix();
+            const Mat4f& transformMatrix = element.transformMatrix;
 
             Span<const uint32> meshIndices = Span<const uint32>(
                 reinterpret_cast<const uint32*>(meshData.indexData.Data()),

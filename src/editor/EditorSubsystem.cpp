@@ -926,6 +926,7 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
 
     dragData.planePoint = m_node->GetWorldTranslation();
     dragData.startRotation = focusedNode->GetWorldRotation();
+    dragData.currentRotation = dragData.startRotation;
 
     Vec3f startVector = hitpoint - dragData.planePoint;
     startVector = startVector - dragData.axis * startVector.Dot(dragData.axis);
@@ -956,8 +957,8 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock())
         {
-            const Quaternion finalRotation = focusedNode->GetWorldRotation();
-            const Quaternion originRotation = m_dragData ? m_dragData->startRotation : finalRotation;
+            const Quaternion finalRotation = m_dragData->currentRotation;
+            const Quaternion originRotation = m_dragData->startRotation;
 
             project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
                 NAME("Rotate"),
@@ -1096,6 +1097,8 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
 
     Quaternion deltaRotation = Quaternion::AxisAngles(m_dragData->axis, angle).Inverse();
     Quaternion newRotation = deltaRotation * m_dragData->startRotation;
+
+    m_dragData->currentRotation = newRotation;
 
     Handle<Node> focusedNode = m_focusedNode.Lock();
 

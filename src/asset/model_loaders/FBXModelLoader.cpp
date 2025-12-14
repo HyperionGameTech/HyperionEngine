@@ -139,26 +139,32 @@ struct FBXObject
         return s_empty;
     }
 
-    FBXObject& operator[](const String& childName)
+    HYP_FORCE_INLINE FBXObject& operator[](const String& childName)
     {
         return const_cast<FBXObject&>(static_cast<const FBXObject&>(*this)[childName]);
     }
 
-    const FBXObject& operator[](const String& childName) const
+    HYP_FORCE_INLINE const FBXObject& operator[](const String& childName) const
     {
         return FindChild(childName);
     }
 
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
     {
         return !Empty();
     }
 
-    bool Empty() const
+    HYP_FORCE_INLINE bool Empty() const
     {
         return name.Empty()
             && properties.Empty()
             && children.Empty();
+    }
+
+    HYP_FORCE_INLINE bool IsFBXType(UTF8StringView sv) const
+    {
+        return pTemplate != nullptr
+            && pTemplate->name == sv;
     }
 };
 
@@ -258,14 +264,9 @@ struct FBXMesh
 
 struct FBXNode
 {
-    enum class Type
-    {
-        NODE,
-        LIMB_NODE
-    };
+    FBXObject* srcObject = nullptr;
 
     String name;
-    Type type = Type::NODE;
 
     FBXObjectID parentId = 0;
     FBXObjectID skeletonHolderNodeId = 0;
@@ -771,6 +772,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     FBXObject root;
 
+    FBXNode rootFbxNode;
+    rootFbxNode.name = "[FBX Model Root]";
+    rootFbxNode.srcObject = &root;
+
     HYP_DEFER({
         for (FBXObject* pChild : root.children)
         {
@@ -1217,7 +1222,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                         for (uint32 subIndex = 0; subIndex < 3; ++subIndex)
                         {
-                            const auto& arrayElements = verticesProperty.arrayElements[(index * 3) + SizeType(subIndex)];
+                            const FBXPropertyValue& elem = verticesProperty.arrayElements[(index * 3) + SizeType(subIndex)];
 
                             union
                             {
@@ -1225,11 +1230,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                                 double doubleValue;
                             };
 
-                            if (arrayElements.Get<float>(&floatValue))
+                            if (elem.Get<float>(&floatValue))
                             {
                                 position[subIndex] = floatValue;
                             }
-                            else if (arrayElements.Get<double>(&doubleValue))
+                            else if (elem.Get<double>(&doubleValue))
                             {
                                 position[subIndex] = float(doubleValue);
                             }
@@ -1324,11 +1329,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                             {
                                 for (SizeType normalIndex = 0; normalIndex < 3; ++normalIndex)
                                 {
-                                    Vector3 normal;
+                                    Vec3f normal;
 
                                     for (SizeType elementIndex = 0; elementIndex < 3; ++elementIndex)
                                     {
-                                        const auto& arrayElements = normalsProperty.arrayElements[triangleIndex * 9 + normalIndex * 3 + elementIndex];
+                                        const FBXPropertyValue& elem = normalsProperty.arrayElements[triangleIndex * 9 + normalIndex * 3 + elementIndex];
 
                                         union
                                         {
@@ -1336,11 +1341,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                                             double doubleValue;
                                         };
 
-                                        if (arrayElements.Get<float>(&floatValue))
+                                        if (elem.Get<float>(&floatValue))
                                         {
                                             normal[elementIndex] = floatValue;
                                         }
-                                        else if (arrayElements.Get<double>(&doubleValue))
+                                        else if (elem.Get<double>(&doubleValue))
                                         {
                                             normal[elementIndex] = float(doubleValue);
                                         }
@@ -1420,22 +1425,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
-                // @FIXME should use template mapping?
-                static const FlatMap<String, FBXNode::Type> nodeTypes = {
-                    { "Mesh", FBXNode::Type::NODE },
-                    { "LimbNode", FBXNode::Type::LIMB_NODE },
-                    { "Null", FBXNode::Type::NODE }
-                };
-
-                const auto nodeTypeIt = nodeTypes.Find(modelType);
-
-                const FBXNode::Type nodeType = nodeTypeIt != nodeTypes.End()
-                    ? nodeTypeIt->second
-                    : FBXNode::Type::NODE;
-
                 FBXNode fbxNode;
+                fbxNode.srcObject = pChildObject;
                 fbxNode.name = nodeName;
-                fbxNode.type = nodeType;
                 fbxNode.localTransform = transform;
 
                 mapping.data.Set(fbxNode);
@@ -1444,9 +1436,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             objectMapping[objectId] = std::move(mapping);
         }
     }
-
-    FBXNode rootFbxNode;
-    rootFbxNode.name = "[FBX Model Root]";
 
     for (const FBXConnection& connection : connections)
     {
@@ -1550,7 +1539,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             }
             else if (auto* rightCluster = rightIt->second.data.TryGet<FBXCluster>())
             {
-                if (leftNode->type == FBXNode::Type::LIMB_NODE)
+                if (leftNode->srcObject->IsFBXType("FbxLimbNode"))
                 {
                     rightCluster->limbId = leftIt->first;
 
@@ -1594,25 +1583,16 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     bool foundFirstBone = false;
 
-    Proc<void(FBXNode::Type, FBXNode&, Node*)> buildNodes;
+    Proc<void(FBXNode&, Node*)> buildNodes;
 
-    buildNodes = [&](FBXNode::Type type, FBXNode& fbxNode, Node* parentNode)
+    buildNodes = [&](FBXNode& fbxNode, Node* parentNode)
     {
-#if 1 // temporarily disabled due to 'Internal Server Error' on MSW
         Assert(parentNode != nullptr);
-
-        if (fbxNode.type != type)
-        {
-            return;
-        }
+        Assert(fbxNode.srcObject != nullptr);
 
         Handle<Node> node;
 
-        if (fbxNode.type == FBXNode::Type::NODE)
-        {
-            node = CreateObject<Node>();
-        }
-        else if (fbxNode.type == FBXNode::Type::LIMB_NODE)
+        if (fbxNode.srcObject->IsFBXType("LimbNode"))
         {
             Transform bindingTransform;
             bindingTransform.SetTranslation(fbxNode.localBindMatrix.ExtractTranslation());
@@ -1623,6 +1603,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             bone->SetBindingTransform(bindingTransform);
 
             node = bone;
+        }
+        else
+        {
+            node = CreateObject<Node>();
         }
 
         parentNode->AddChild(node);
@@ -1662,7 +1646,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 entity->AddComponent<BoundingBoxComponent>(BoundingBoxComponent {});
 
                 //// offset node to center of bounds
-                //node->SetWorldTranslation(node->GetWorldTranslation() + fbxMesh->bounds.GetCenter());
+                // node->SetWorldTranslation(node->GetWorldTranslation() + fbxMesh->bounds.GetCenter());
 
                 node->AddChild(entity);
             }
@@ -1680,7 +1664,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 if (getFbxObject(id, childNode))
                 {
-                    buildNodes(type, *childNode, node.Get());
+                    buildNodes(*childNode, node);
 
                     continue;
                 }
@@ -1688,7 +1672,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 HYP_LOG(Assets, Error, "Unsure how to build child object {}", id);
             }
         }
-#endif
     };
 
     auto applyBindPoses = [&]()
@@ -1786,11 +1769,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     buildLimbNodes = [&](FBXNode& fbxNode)
     {
-        if (fbxNode.type == FBXNode::Type::LIMB_NODE)
+        if (fbxNode.srcObject->IsFBXType("FbxLimbNode"))
         {
             foundFirstBone = true;
 
-            buildNodes(FBXNode::Type::LIMB_NODE, fbxNode, rootBone.Get());
+            buildNodes(fbxNode, rootBone);
         }
         else
         {
@@ -1815,7 +1798,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     findFirstLimbNode = [&](FBXNode& fbxNode) -> FBXNode*
     {
-        if (fbxNode.type == FBXNode::Type::LIMB_NODE)
+        Assert(fbxNode.srcObject != nullptr);
+
+        if (fbxNode.srcObject->IsFBXType("FbxLimbNode"))
         {
             return &fbxNode;
         }
@@ -1856,7 +1841,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             if (getFbxObject(id, childNode))
             {
-                buildNodes(FBXNode::Type::NODE, *childNode, parentNode);
+                buildNodes(*childNode, parentNode);
             }
         }
     }

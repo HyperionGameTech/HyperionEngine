@@ -421,13 +421,13 @@ void Light::OnRemovedFromScene(Scene* scene)
     }
 }
 
-void Light::OnTransformUpdated(const Transform& transform)
+void Light::OnTransformUpdated()
 {
     HYP_SCOPE;
 
-    Entity::OnTransformUpdated(transform);
+    Entity::OnTransformUpdated();
 
-    m_position = transform.GetTranslation();
+    m_position = GetWorldTranslation();
 
     if (m_type == LT_DIRECTIONAL)
     {
@@ -634,7 +634,7 @@ BoundingBox Light::GetAABB() const
         return BoundingBox::Empty()
             .Union(rect.first)
             .Union(rect.second)
-            .Union(m_worldTransform.GetTranslation() + m_normal * m_radius);
+            .Union(GetWorldTranslation() + m_normal * m_radius);
     }
 
     if (m_type == LT_POINT)

@@ -113,14 +113,17 @@ void Entity::Init()
     // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform
     if (TransformComponent* transformComponent = m_entityManager->TryGetComponent<TransformComponent>(this))
     {
-        if (!IsTransformLocked())
-        {
-            SetWorldTransform(transformComponent->transform);
-        }
+        transformComponent->translation = GetWorldTranslation();
+        transformComponent->rotation = GetWorldRotation();
+        transformComponent->scale = GetWorldScale();
     }
     else
     {
-        m_entityManager->AddComponent<TransformComponent>(this, TransformComponent { m_worldTransform });
+        m_entityManager->AddComponent<TransformComponent>(this, TransformComponent {
+            GetWorldTranslation(),
+            GetWorldRotation(),
+            GetWorldScale()
+        });
     }
 
     if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))
@@ -142,6 +145,8 @@ void Entity::Init()
     }
 
     m_transformChanged = false;
+
+    SetNeedsRenderProxyUpdate();
 
     SetReady(true);
 }
@@ -345,11 +350,11 @@ void Entity::UnlockTransform()
     Node::UnlockTransform();
 }
 
-void Entity::OnTransformUpdated(const Transform& transform)
+void Entity::OnTransformUpdated()
 {
     HYP_SCOPE;
 
-    Node::OnTransformUpdated(transform);
+    Node::OnTransformUpdated();
 
     if (!IsInitCalled())
     {
@@ -366,7 +371,9 @@ void Entity::OnTransformUpdated(const Transform& transform)
     }
 
     TransformComponent& transformComponent = entityManager->GetComponent<TransformComponent>(this);
-    transformComponent.transform = m_worldTransform;
+    transformComponent.translation = GetWorldTranslation();
+    transformComponent.rotation = GetWorldRotation();
+    transformComponent.scale = GetWorldScale();
 
     // needs world bounds update
     entityManager->AddTags<EntityTag::UPDATE_AABB>(this);

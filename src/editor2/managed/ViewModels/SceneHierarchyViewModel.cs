@@ -16,6 +16,7 @@ namespace Hyperion.Editor.ViewModels
             get => _selectedNode;
             set
             {
+                Dispatcher.UIThread.CheckAccess();
                 if (SetProperty(ref _selectedNode, value) && !_suppressSelectionNotifications)
                 {
                     SelectedNodeChanged?.Invoke(_selectedNode?.Node);
@@ -29,6 +30,8 @@ namespace Hyperion.Editor.ViewModels
 
         public void AttachToScene(Scene? scene)
         {
+            Dispatcher.UIThread.CheckAccess();
+
             _scene = scene;
             RootNodes.Clear();
 
@@ -73,6 +76,8 @@ namespace Hyperion.Editor.ViewModels
 
             try
             {
+                Dispatcher.UIThread.CheckAccess();
+
                 if (node == null || !node.IsValid)
                 {
                     SelectedNode = null;

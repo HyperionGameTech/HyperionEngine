@@ -292,7 +292,7 @@ protected:
     void OnAddedToScene(Scene* scene) override;
     void OnRemovedFromScene(Scene* scene) override;
 
-    void OnTransformUpdated(const Transform& transform) override;
+    void OnTransformUpdated() override;
 
     void CreateShadowViews();
     void UpdateShadowViews();

@@ -153,16 +153,16 @@ public:
         return m_subElement->entity;
     }
 
-    HYP_FORCE_INLINE const Transform& GetTransform() const
+    HYP_FORCE_INLINE const Mat4f& GetTransformMatrix() const
     {
-        return m_subElement->transform;
+        return m_subElement->transformMatrix;
     }
 
     LightmapRayTestResults TestRay(const Ray& ray) const
     {
         LightmapRayTestResults results;
 
-        const Mat4f modelMatrix = m_subElement->transform.GetMatrix();
+        const Mat4f modelMatrix = m_subElement->transformMatrix;
 
         const Ray localSpaceRay = modelMatrix.Inverted() * ray;
 
@@ -234,18 +234,13 @@ class LightmapTopLevelAccelerationStructure
 public:
     ~LightmapTopLevelAccelerationStructure() = default;
 
-    HYP_FORCE_INLINE const Transform& GetTransform() const
-    {
-        return Transform::identity;
-    }
-
     LightmapRayTestResults TestRay(const Ray& ray) const
     {
         LightmapRayTestResults results;
 
         for (const LightmapBottomLevelAccelerationStructure& accelerationStructure : m_accelerationStructures)
         {
-            if (!ray.TestAABB(accelerationStructure.GetTransform() * accelerationStructure.GetRoot().aabb))
+            if (!ray.TestAABB(accelerationStructure.GetTransformMatrix() * accelerationStructure.GetRoot().aabb))
             {
                 continue;
             }

@@ -73,15 +73,11 @@ namespace Hyperion
             }
         }
 
-        public Transform WorldTransform
+        public Mat4f WorldMatrix
         {
             get
             {
-                return this.GetWorldTransform();
-            }
-            set
-            {
-                this.SetWorldTransform(value);
+                return this.GetWorldMatrix();
             }
         }
 

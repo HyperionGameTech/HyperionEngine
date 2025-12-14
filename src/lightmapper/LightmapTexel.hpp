@@ -29,7 +29,7 @@ struct LightmapSubElement
     Handle<Entity> entity;
     Handle<Mesh> mesh;
     Handle<Material> material;
-    Transform transform;
+    Mat4f transformMatrix;
     BoundingBox aabb;
 };
 
@@ -38,7 +38,7 @@ struct LightmapMeshData
     Handle<Mesh> mesh;
     Handle<Material> material;
 
-    Mat4f transform;
+    Mat4f transformMatrix;
 
     Array<Vertex> vertices;
     Array<uint32> indices;

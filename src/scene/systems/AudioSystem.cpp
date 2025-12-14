@@ -120,7 +120,7 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     break;
                 }
 
-                const Vec3f& position = transformComponent.transform.GetTranslation();
+                const Vec3f& position = transformComponent.translation;
 
                 if (!MathUtil::ApproxEqual(position, audioComponent.lastPosition))
                 {

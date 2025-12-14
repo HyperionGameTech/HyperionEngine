@@ -709,7 +709,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
     bool shouldStartRecording = !framebuffer->IsDeferredRecording();
     bool shouldEndRecording = shouldStartRecording;
 
-    Array<InsertBarrier> preRenderBarriers;
+    Array<InsertBarrier, RenderAllocator> preRenderBarriers;
 
     if (!framebuffer->IsDeferredRecording())
     {
