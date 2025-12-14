@@ -477,7 +477,7 @@ void LightmapperBase::Build()
             MakeStrongRef(entity),
             meshComponent.mesh,
             meshComponent.material,
-            transformComponent.transform,
+            Transform(transformComponent.translation, transformComponent.scale, transformComponent.rotation).GetMatrix(),
             boundingBoxComponent.worldAabb });
     }
 
@@ -727,7 +727,7 @@ void Lightmapper<LightmapVolume>::Build()
             MakeStrongRef(entity),
             meshComponent.mesh,
             meshComponent.material,
-            transformComponent.transform,
+            Transform(transformComponent.translation, transformComponent.scale, transformComponent.rotation).GetMatrix(),
             boundingBoxComponent.worldAabb });
     }
 

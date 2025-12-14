@@ -1011,20 +1011,11 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                 if (MeshComponent* meshComponent = m_entityManager->TryGetComponent<MeshComponent>(entry.value);
                     meshComponent && meshComponent->mesh && meshComponent->mesh->GetBVH().IsValid())
                 {
-                    Mat4f modelMatrix = Mat4f::Identity();
-                    Mat4f normalMatrix = Mat4f::Identity();
+                    Mat4f modelMatrix = entry.value->GetWorldMatrix();
+                    Mat4f invModelMatrix = modelMatrix.Inverted();
+                    Mat4f normalMatrix = invModelMatrix.Transposed();
 
-                    Ray localSpaceRay = ray;
-
-                    if (TransformComponent* transformComponent = m_entityManager->TryGetComponent<TransformComponent>(entry.value))
-                    {
-                        modelMatrix = transformComponent->transform.GetMatrix();
-
-                        Mat4f invModelMatrix = modelMatrix.Inverted();
-                        normalMatrix = invModelMatrix.Transposed();
-
-                        localSpaceRay = invModelMatrix * ray;
-                    }
+                    Ray localSpaceRay = invModelMatrix * ray;
 
                     RayTestResults localBvhResults;
 

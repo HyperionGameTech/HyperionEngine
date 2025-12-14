@@ -329,6 +329,7 @@ protected:
         Vec3f planePoint;
         Vec3f startVector;
         Quaternion startRotation;
+        Quaternion currentRotation;
     };
 
     virtual Handle<Node> Load_Internal() const override;

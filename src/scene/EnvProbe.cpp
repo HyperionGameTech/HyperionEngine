@@ -226,9 +226,9 @@ void EnvProbe::OnRemovedFromScene(Scene* scene)
     Invalidate();
 }
 
-void EnvProbe::OnTransformUpdated(const Transform& transform)
+void EnvProbe::OnTransformUpdated()
 {
-    Entity::OnTransformUpdated(transform);
+    Entity::OnTransformUpdated();
 
     // set origin
     //SetOrigin(transform.GetTranslation());

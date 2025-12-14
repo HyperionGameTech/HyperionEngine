@@ -57,7 +57,7 @@ namespace Hyperion.Editor
 
             // tmp debug
             AssetBatch ab = new AssetBatch();
-            ab.Add("test_model", "models/main_sponza/sponza.fbx");
+            ab.Add("test_model", "models/sponza/sponza.obj");
             ab.Add("monkey", "models/monkey.fbx");
             _assetBatchTask = ab.Load();
         }
@@ -88,7 +88,7 @@ namespace Hyperion.Editor
                     Assert.Throw(testModelAsset.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
-                    //n.SetLocalScale(new Vec3f(0.01f));
+                    n.SetLocalScale(new Vec3f(0.03f));
                 }
                 else
                 {

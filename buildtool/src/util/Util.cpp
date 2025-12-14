@@ -6,12 +6,19 @@
 
 #include <core/utilities/Format.hpp>
 
+#include <core/io/BufferedByteReader.hpp>
+
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <regex>
 #include <string>
 #include <sstream>
 
 namespace hyperion {
 namespace buildtool {
+
+HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
 Optional<String> ExtractCXXClassName(const String& line)
 {
@@ -363,6 +370,47 @@ String GetGeneratedFilePreamble(const String& srcPath)
         srcPath.Length() ? srcPath.ReplaceAll("\\", "/") : "<no source file>");
 }
 
+static bool AreFileContentsSame(const FilePath& pathA, const FilePath& pathB)
+{
+    FileBufferedReaderSource sourceA { pathA };
+    FileBufferedReaderSource sourceB { pathB };
+
+    BufferedByteReader readerA { &sourceA };
+    BufferedByteReader readerB { &sourceB };
+
+    if (!readerA.IsOpen() || !readerB.IsOpen())
+    {
+        return false;
+    }
+
+    const SizeType BufferSize = 4096;
+    ByteBuffer bufferA(BufferSize);
+    ByteBuffer bufferB(BufferSize);
+
+    while (true)
+    {
+        SizeType bytesReadA = readerA.ReadBytes(bufferA.Data(), BufferSize);
+        SizeType bytesReadB = readerB.ReadBytes(bufferB.Data(), BufferSize);
+
+        if (bytesReadA != bytesReadB)
+        {
+            return false;
+        }
+
+        if (bytesReadA == 0)
+        {
+            break; // reached end of both files
+        }
+
+        if (Memory::MemCmp(bufferA.Data(), bufferB.Data(), bytesReadA) != 0)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 Result ReplaceFileIfDifferent(FilePath& tempFilePath, const FilePath& targetFilePath)
 {
     if (!targetFilePath.Exists())
@@ -384,7 +432,7 @@ Result ReplaceFileIfDifferent(FilePath& tempFilePath, const FilePath& targetFile
     const SizeType targetFileSize = targetFilePath.FileSizeOnDisk();
     const SizeType newFileSize = tempFilePath.FileSizeOnDisk();
 
-    if (targetFileSize != newFileSize)
+    if (targetFileSize != newFileSize || !AreFileContentsSame(targetFilePath, tempFilePath))
     {
         bool result = targetFilePath.Remove();
         if (!result)

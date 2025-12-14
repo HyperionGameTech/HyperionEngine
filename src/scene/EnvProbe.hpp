@@ -261,7 +261,7 @@ protected:
     virtual void OnAddedToScene(Scene* scene) override;
     virtual void OnRemovedFromScene(Scene* scene) override;
 
-    virtual void OnTransformUpdated(const Transform& transform) override;
+    virtual void OnTransformUpdated() override;
 
     HYP_FORCE_INLINE bool OnlyCollectStaticEntities() const
     {

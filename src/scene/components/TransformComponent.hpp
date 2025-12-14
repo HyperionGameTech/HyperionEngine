@@ -10,19 +10,27 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Component, Label = "Transform Component", Description = "Controls the translation, rotation, and scale of an object.", Editor = false, Serialize = false)
+HYP_STRUCT(Component, Label = "Transform Component", Description = "Holds the translation, rotation, and scale of a node in a scene.", Editor = false, Serialize = false)
 struct TransformComponent
 {
     HYP_STRUCT_BODY(TransformComponent);
 
-    HYP_FIELD(Property = "Transform")
-    Transform transform;
+    HYP_FIELD(Property = "Translation")
+    Vec3f translation;
+
+    HYP_FIELD(Property = "Rotation")
+    Quaternion rotation;
+
+    HYP_FIELD(Property = "Scale")
+    Vec3f scale;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hashCode;
 
-        hashCode.Add(transform);
+        hashCode.Add(translation);
+        hashCode.Add(rotation);
+        hashCode.Add(scale);
 
         return hashCode;
     }

@@ -551,6 +551,8 @@ void View::RemoveScene(Scene* scene)
     m_scenes.Erase(it);
 }
 
+HYP_DISABLE_OPTIMIZATION;
+
 void View::CollectMeshEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
@@ -922,19 +924,22 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                 while (!parentMatrices.Empty())
                 {
-                    parentMatrix = parentMatrix * parentMatrices.Top();
-                    parentMatrices.Pop();
+                    parentMatrix = parentMatrices.Pop() * parentMatrix;
                 }
 
-                meshProxy.bufferData.modelMatrix = meshProxy.bufferData.modelMatrix * parentMatrix;
+                meshProxy.bufferData.modelMatrix = parentMatrix * meshProxy.bufferData.modelMatrix;
             }*/
 
-            meshProxy.bufferData.modelMatrix = entity->GetWorldTransform().GetMatrix();
+            //Mat4f worldMatrix = entity->GetWorldTransform().GetMatrix();
+            //AssertDebug(meshProxy.bufferData.modelMatrix == worldMatrix);
+
+            meshProxy.bufferData.modelMatrix = entity->GetWorldMatrix();
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
         }
     }
 }
 
+HYP_ENABLE_OPTIMIZATION;
 void View::CollectCameras(RenderProxyList& rpl)
 {
     HYP_SCOPE;

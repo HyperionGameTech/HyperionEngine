@@ -242,7 +242,7 @@ World* Node::GetWorld() const
         : g_engineDriver->GetDefaultWorld().Get();
 }
 
-void Node::OnTransformUpdated(const Transform& transform)
+void Node::OnTransformUpdated()
 {
     // Do nothing
 }
@@ -736,11 +736,6 @@ void Node::SetLocalTransform(const Transform& transform)
     UpdateWorldTransform();
 }
 
-Transform Node::GetRelativeTransform(const Transform& parentTransform) const
-{
-    return parentTransform.GetInverse() * m_worldTransform;
-}
-
 void Node::SetIsStatic(bool isStatic)
 {
     constexpr EnumFlags<NodeFlags> ControlledMobilityFlags = NodeFlags::MOBILITY_STATIC | NodeFlags::MOBILITY_DYNAMIC;
@@ -803,7 +798,7 @@ BoundingBox Node::GetLocalBoundsWithChildren() const
 
 BoundingBox Node::GetWorldBounds() const
 {
-    BoundingBox aabb = m_worldTransform * (m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero());
+    BoundingBox aabb = m_worldMatrix * (m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero());
 
     for (const Handle<Node>& child : GetChildren())
     {
@@ -821,6 +816,71 @@ BoundingBox Node::GetWorldBounds() const
     return aabb;
 }
 
+Vec3f Node::GetWorldTranslation() const
+{
+    Vec3f translationWS = m_localTransform.GetTranslation();
+
+    if (m_parentNode != nullptr && !(m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSLATION))
+    {
+        translationWS = m_parentNode->GetWorldMatrix() * translationWS;
+    }
+
+    return translationWS;
+}
+
+void Node::SetWorldTranslation(const Vec3f& translation)
+{
+    if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSLATION))
+    {
+        SetLocalTranslation(translation);
+
+        return;
+    }
+
+    SetLocalTranslation(m_parentNode->GetWorldMatrix().Inverted() * translation);
+}
+
+Vec3f Node::GetWorldScale() const
+{
+    Vec3f scaleWS = m_localTransform.GetScale();
+
+    if (m_parentNode != nullptr && !(m_nodeFlags & NodeFlags::IGNORE_PARENT_SCALE))
+    {
+        scaleWS *= m_parentNode->GetWorldScale();
+    }
+
+    return scaleWS;
+}
+
+void Node::SetWorldScale(const Vec3f& scale)
+{
+    if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IGNORE_PARENT_SCALE))
+    {
+        SetLocalScale(scale);
+
+        return;
+    }
+
+    SetLocalScale(scale / m_parentNode->GetWorldScale());
+}
+
+Quaternion Node::GetWorldRotation() const
+{
+    return Quaternion(m_worldMatrix).Inverse();
+}
+
+void Node::SetWorldRotation(const Quaternion& rotation)
+{
+    if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IGNORE_PARENT_ROTATION))
+    {
+        SetLocalRotation(rotation);
+
+        return;
+    }
+
+    SetLocalRotation(m_parentNode->GetWorldRotation().Inverse() * rotation);
+}
+
 void Node::UpdateWorldTransform(bool updateChildTransforms)
 {
     HYP_SCOPE;
@@ -835,34 +895,43 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
         static_cast<Bone*>(this)->UpdateBoneTransform(); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
     }
 
-    const Transform transformBefore = m_worldTransform;
+    const Mat4f prevWorldMatrix = m_worldMatrix;
 
-    Transform worldTransform = m_localTransform;
+    Mat4f transformMatrix = m_localTransform.GetMatrix();
 
     if (m_parentNode != nullptr)
     {
-        worldTransform = m_localTransform * m_parentNode->GetWorldTransform();
+        transformMatrix = m_parentNode->GetWorldMatrix() * transformMatrix;
 
         if (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSFORM)
         {
             if (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSLATION)
             {
-                worldTransform.GetTranslation() = m_localTransform.GetTranslation();
+                transformMatrix[3] = prevWorldMatrix[3];
+                transformMatrix[3].w = 1.0f;
             }
 
             if (m_nodeFlags & NodeFlags::IGNORE_PARENT_ROTATION)
             {
-                worldTransform.GetRotation() = m_localTransform.GetRotation();
+                transformMatrix[0] = prevWorldMatrix[0];
+                transformMatrix[1] = prevWorldMatrix[1];
+                transformMatrix[2] = prevWorldMatrix[2];
+                transformMatrix.Orthonormalize();
             }
 
             if (m_nodeFlags & NodeFlags::IGNORE_PARENT_SCALE)
             {
-                worldTransform.GetScale() = m_localTransform.GetScale();
+                const Vec3f prevScale = prevWorldMatrix.ExtractScale();
+                const Vec3f currentScale = transformMatrix.ExtractScale();
+                transformMatrix[0] *= prevScale.x / currentScale.x;
+                transformMatrix[1] *= prevScale.y / currentScale.y;
+                transformMatrix[2] *= prevScale.z / currentScale.z;
+                transformMatrix.Orthonormalize();
             }
         }
     }
 
-    m_worldTransform = worldTransform;
+    m_worldMatrix = transformMatrix;
 
     if (updateChildTransforms)
     {
@@ -872,12 +941,12 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
         }
     }
 
-    if (m_worldTransform == transformBefore)
+    if (m_worldMatrix == prevWorldMatrix)
     {
         return;
     }
 
-    OnTransformUpdated(m_worldTransform);
+    OnTransformUpdated();
 }
 
 uint32 Node::CalculateDepth() const
@@ -922,7 +991,8 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
     if (ray.TestAABB(worldAabb))
     {
-        if (IsA(Entity::StaticClass()))
+        const Class* pEntityClass = Entity::StaticClass();
+        if (IsA(pEntityClass))
         {
             ResourceHandle resourceHandle;
             MeshAsset* meshAsset = nullptr;
@@ -963,7 +1033,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
                 if (TransformComponent* transformComponent = entity->TryGetComponent<TransformComponent>())
                 {
-                    modelMatrix = transformComponent->transform.GetMatrix();
+                    modelMatrix = entity->GetWorldMatrix();
                 }
             }
 

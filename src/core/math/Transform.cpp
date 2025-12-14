@@ -48,7 +48,7 @@ Transform Transform::GetInverse() const
 Transform Transform::operator*(const Transform& other) const
 {
     return {
-        translation + ((scale * other.translation).Rotate(rotation)),
+        translation + (rotation * (scale * other.translation)),
         scale * other.scale,
         rotation * other.rotation
     };

@@ -7,6 +7,8 @@ namespace Hyperion
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 16)]
     public struct Quaternion
     {
+        public static readonly Quaternion Identity = new Quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+
         [FieldOffset(0)]
         private float x;
         [FieldOffset(4)]

@@ -780,8 +780,6 @@ void UIObject::UpdateNodeTransform()
 
     Node* parentNode = m_node->GetParent();
 
-    Transform worldTransform = m_node->GetWorldTransform();
-
     if (m_isPositionAbsolute)
     {
         m_node->SetLocalTranslation(Vec3f {
@@ -1775,7 +1773,7 @@ void UIObject::SetLocalBounds(const BoundingBox& aabb)
 {
     HYP_SCOPE;
 
-    Transform transform;
+    Mat4f transformMatrix;
 
     if (Scene* scene = GetScene())
     {
@@ -1785,13 +1783,13 @@ void UIObject::SetLocalBounds(const BoundingBox& aabb)
         {
             node->SetLocalBounds(aabb);
 
-            transform = node->GetWorldTransform();
+            transformMatrix = node->GetWorldMatrix();
         }
 
-        boundingBoxComponent.worldAabb = transform * aabb;
+        boundingBoxComponent.worldAabb = transformMatrix * aabb;
     }
 
-    m_aabb = transform * aabb;
+    m_aabb = transformMatrix * aabb;
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
 }

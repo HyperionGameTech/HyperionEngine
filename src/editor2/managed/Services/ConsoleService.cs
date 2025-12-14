@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Avalonia.Threading;
 using DynamicData;
 
@@ -30,6 +31,8 @@ namespace Hyperion.Editor.Services
         private NativeBindings.LogCallbackDelegate _logCallback;
         private ConcurrentQueue<LogEntry> _logQueue = new ConcurrentQueue<LogEntry>();
         private List<LogEntry> _pendingEntries = new List<LogEntry>();
+        private int _isSubmittingPendingEntries = 0; // atomic
+        private object _lock = new object();
         private static readonly ImmutableDictionary<int, string> LogLevelColors = new Dictionary<int, string>
         {
             { 0, "#00FF00" }, // Debug - Green
@@ -90,30 +93,44 @@ namespace Hyperion.Editor.Services
 
         public void ProcessLogQueue()
         {
-            while (_logQueue.TryDequeue(out LogEntry logEntry))
+            LogEntry[]? entriesArray = null;
+
+            lock (_lock)
             {
-                _pendingEntries.Add(logEntry);
+                while (_logQueue.TryDequeue(out LogEntry logEntry))
+                {
+                    _pendingEntries.Add(logEntry);
+                }
+
+                if (_pendingEntries.Count > 0)
+                {
+                    if (Interlocked.CompareExchange(ref _isSubmittingPendingEntries, 1, 0) == 1)
+                    {
+                        // Another submission is in progress
+                        return;
+                    }
+
+                    entriesArray = _pendingEntries.ToArray();
+                    _pendingEntries.Clear();
+                }
+                else
+                    return;
             }
 
-            if (_pendingEntries.Count > 0)
-            {
-                LogEntry[] entriesArray = _pendingEntries.ToArray();
-
-                Dispatcher.UIThread.Post(() =>
+            Dispatcher.UIThread.Post(() =>
                 {
                     _logsSource.Edit(list =>
                     {
-                        list.AddRange(entriesArray);
-                        
+                        list.AddRange(entriesArray!);
+
                         if (list.Count > 1000)
                         {
                             list.RemoveRange(0, list.Count - 1000);
                         }
                     });
-                });
 
-                _pendingEntries.Clear();
-            }
+                    _isSubmittingPendingEntries = 0;
+                });
         }
     }
 }

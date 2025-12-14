@@ -34,8 +34,13 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
     {
         InitObject(rigidBodyComponent.rigidBody);
 
-        rigidBodyComponent.rigidBody->SetTransform(transformComponent.transform);
-        rigidBodyComponent.transformHashCode = transformComponent.transform.GetHashCode();
+        Transform transform;
+        transform.SetTranslation(transformComponent.translation);
+        transform.SetRotation(transformComponent.rotation);
+        transform.SetScale(transformComponent.scale);
+
+        rigidBodyComponent.rigidBody->SetTransform(transform);
+        rigidBodyComponent.transformHashCode = transform.GetHashCode();
 
         rigidBodyComponent.flags |= RigidBodyComponentFlags::INIT;
 
@@ -74,7 +79,6 @@ void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
         for (auto [entity, rigidBodyComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
         {
             Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
-            Transform& transform = transformComponent.transform;
 
             if (!rigidBody)
             {
@@ -82,8 +86,8 @@ void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
             }
 
             Transform rigidBodyTransform = rigidBody->GetTransform();
-            transform.SetTranslation(rigidBodyTransform.GetTranslation());
-            transform.SetRotation(rigidBodyTransform.GetRotation());
+            transformComponent.translation = rigidBodyTransform.GetTranslation();
+            transformComponent.rotation = rigidBodyTransform.GetRotation();
 
             rigidBody->SetTransform(rigidBodyTransform);
         }

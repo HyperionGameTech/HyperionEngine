@@ -1075,13 +1075,13 @@ void World::UpdateDirtyMeshEntities()
 
             entity->SetNeedsRenderProxyUpdate();
 
-            if (meshComponent.previousModelMatrix == transformComponent.transform.GetMatrix())
+            if (meshComponent.previousModelMatrix == entity->GetWorldMatrix())
             {
                 updatedEntities.Insert(entity);
             }
             else
             {
-                meshComponent.previousModelMatrix = transformComponent.transform.GetMatrix();
+                meshComponent.previousModelMatrix = entity->GetWorldMatrix();
             }
         }
 

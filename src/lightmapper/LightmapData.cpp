@@ -71,7 +71,7 @@ LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subEle
 
         lightmapMeshData.mesh = subElement.mesh;
         lightmapMeshData.material = subElement.material;
-        lightmapMeshData.transform = subElement.transform.GetMatrix();
+        lightmapMeshData.transformMatrix = subElement.transformMatrix;
 
         m_meshVertexPositions[i].Resize(meshData.vertexData.Size() * 3);
         m_meshVertexNormals[i].Resize(meshData.vertexData.Size() * 3);
@@ -93,7 +93,7 @@ LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subEle
             }
         }
 
-        const Mat4f modelMatrix = subElement.transform.GetMatrix();
+        const Mat4f modelMatrix = subElement.transformMatrix;
         const Mat4f normalMatrix = modelMatrix.Inverted().Transpose();
 
         for (SizeType vertexIndex = 0; vertexIndex < meshData.vertexData.Size(); vertexIndex++)
@@ -174,7 +174,7 @@ Result LightmapData<LightmapVolume>::Build()
     {
         LightmapMeshData& lightmapMeshData = m_meshData[meshIndex];
 
-        const Mat4f& transform = lightmapMeshData.transform;
+        const Mat4f& transform = lightmapMeshData.transformMatrix;
         const Mat4f inverseTransform = transform.Inverted();
         const Mat4f normalMatrix = transform.Inverted().Transpose();
         const Mat4f inverseNormalMatrix = normalMatrix.Inverted();
@@ -302,8 +302,8 @@ Result LightmapData<LightmapVolume>::Build()
         lightmapMeshData.vertices.Resize(atlas->meshes[meshIndex].vertexCount);
         lightmapMeshData.indices.Resize(atlas->meshes[meshIndex].indexCount);
 
-        const Mat4f inverseTransform = lightmapMeshData.transform.Inverted();
-        const Mat4f normalMatrix = lightmapMeshData.transform.Inverted().Transpose();
+        const Mat4f inverseTransform = lightmapMeshData.transformMatrix.Inverted();
+        const Mat4f normalMatrix = lightmapMeshData.transformMatrix.Inverted().Transpose();
         const Mat4f inverseNormalMatrix = normalMatrix.Inverted();
 
         for (uint32 j = 0; j < atlas->meshes[meshIndex].indexCount; j++)
