@@ -101,7 +101,7 @@ public:
      *  \param keepAlive Whether or not to allow the object to exist in memory persistently */
     bool SetKeepAlive(bool keepAlive);
 
-    const ManagedMethod* GetMethod(UTF8StringView methodName) const;
+    const ManagedMethod* GetMethod(ANSIStringView methodName) const;
 
     template <class ReturnType, class... Args>
     ReturnType InvokeMethod(const ManagedMethod* methodPtr, Args&&... args)
@@ -110,7 +110,7 @@ public:
     }
 
     template <class ReturnType, class... Args>
-    HYP_FORCE_INLINE ReturnType InvokeMethodByName(UTF8StringView methodName, Args&&... args)
+    HYP_FORCE_INLINE ReturnType InvokeMethodByName(ANSIStringView methodName, Args&&... args)
     {
         Assert(IsValid());
 
@@ -178,7 +178,7 @@ private:
         }
     }
 
-    const ManagedProperty* GetProperty(UTF8StringView methodName) const;
+    const ManagedProperty* GetProperty(ANSIStringView methodName) const;
 
     RC<ManagedClass> m_classPtr;
 #ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE

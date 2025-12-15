@@ -335,7 +335,7 @@ bool AssetPackage::IsSubpackageOf(const AssetPackage& other) const
     return false;
 }
 
-void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
+void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
 {
     HYP_SCOPE;
 
@@ -546,23 +546,6 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
             assetObject->InstanceClass()->GetName(),
             assetObject->GetName(),
             BuildPackagePath());
-
-        // if (doSaveAsset)
-        // {
-        //     AssertDebug(!assetObject->IsTransient());
-
-        //     // save the file in our package
-        //     Result saveAssetResult = assetObject->Save();
-
-        //     if (saveAssetResult.HasError())
-        //     {
-        //         HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
-
-        //         return HYP_MAKE_ERROR(Error, "Failed to save asset object '{}': {}", assetObject->GetName(), saveAssetResult.GetError().GetMessage());
-        //     }
-
-        //     assetObject->SetIsPersistentlyLoaded(false);
-        // }
 
         OnAssetObjectAdded(assetObject, true);
 
@@ -1997,7 +1980,7 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
     HYP_SCOPE;
     AssertReady();
 
-    Handle<AssetPackage> subpackage;
+    Handle<AssetPackage> pkg;
     bool isNew = false;
 
     if (!parentPackage)
@@ -2009,27 +1992,27 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
 
             if (createIfNotExist && packageIt == m_packages.End())
             {
-                subpackage = CreateObject<AssetPackage>(subpackageName);
-                subpackage->m_registry = WeakHandleFromThis();
+                pkg = CreateObject<AssetPackage>(subpackageName);
+                pkg->m_registry = WeakHandleFromThis();
 
-                m_packages.Insert(subpackage);
+                m_packages.Insert(pkg);
 
                 isNew = true;
             }
             else if (packageIt != m_packages.End())
             {
-                subpackage = *packageIt;
+                pkg = *packageIt;
             }
         }
 
-        if (isNew && subpackage)
+        if (isNew && pkg)
         {
-            InitObject(subpackage);
+            InitObject(pkg);
 
-            OnPackageAdded(subpackage);
+            OnPackageAdded(pkg);
         }
 
-        return subpackage;
+        return pkg;
     }
 
     Optional<FilePath> saveOutputDir; // unset if no save needed
@@ -2041,10 +2024,10 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
 
         if (createIfNotExist && packageIt == parentPackage->m_subpackages.End())
         {
-            subpackage = CreateObject<AssetPackage>(subpackageName);
-            subpackage->m_registry = WeakHandleFromThis();
-            subpackage->m_parentPackage = parentPackage;
-            subpackage->m_flags |= parentPackage->m_flags;
+            pkg = CreateObject<AssetPackage>(subpackageName);
+            pkg->m_registry = WeakHandleFromThis();
+            pkg->m_parentPackage = parentPackage;
+            pkg->m_flags |= parentPackage->m_flags;
 
             // If parent package exists on disk, save this package:
             if (!parentPackage->IsTransient() && parentPackage->m_packageDir.Length() != 0)
@@ -2052,35 +2035,25 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
                 saveOutputDir = parentPackage->m_packageDir;
             }
 
-            parentPackage->m_subpackages.Insert(subpackage);
-            parentPackage->OnSubpackageAdded(subpackage);
+            parentPackage->m_subpackages.Insert(pkg);
+            parentPackage->OnSubpackageAdded(pkg);
 
             isNew = true;
         }
         else if (packageIt != m_packages.End())
         {
-            subpackage = *packageIt;
+            pkg = *packageIt;
         }
     }
 
-    if (isNew && subpackage)
+    if (isNew && pkg)
     {
         parentPackage->MarkDirty();
 
-        InitObject(subpackage);
-
-        OnPackageAdded(subpackage);
-
-        // if (saveOutputDir.HasValue())
-        // {
-        //     if (Result saveResult = subpackage->Save(*saveOutputDir); saveResult.HasError())
-        //     {
-        //         HYP_LOG(Assets, Error, "Failed to save new subpackage '{}': {}", subpackage->GetName(), saveResult.GetError().GetMessage());
-        //     }
-        // }
+        InitObject(pkg);
     }
 
-    return subpackage;
+    return pkg;
 }
 
 void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool recursive)

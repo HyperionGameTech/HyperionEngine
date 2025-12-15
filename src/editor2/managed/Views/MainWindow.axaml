@@ -524,17 +524,17 @@
                             <Grid ColumnDefinitions="220, *">
                                 <TreeView
                                     Grid.Column="0"
-                                    ItemsSource="{Binding ContentBrowser.Directories}"
-                                    SelectedItem="{Binding ContentBrowser.SelectedDirectory, Mode=TwoWay}">
+                                    ItemsSource="{Binding ContentBrowser.Packages}"
+                                    SelectedItem="{Binding ContentBrowser.CurrentPackage, Mode=TwoWay}">
                                     <TreeView.ItemTemplate>
-                                        <TreeDataTemplate x:DataType="vm:ContentDirectoryViewModel" ItemsSource="{Binding Children}">
+                                        <TreeDataTemplate x:DataType="vm:AssetPackageViewModel" ItemsSource="{Binding Subpackages}">
                                             <TextBlock Text="{Binding Name}" />
                                         </TreeDataTemplate>
                                     </TreeView.ItemTemplate>
                                 </TreeView>
-                                <ListBox Grid.Column="1" ItemsSource="{Binding ContentBrowser.Items}">
+                                <ListBox Grid.Column="1" ItemsSource="{Binding ContentBrowser.Assets}">
                                     <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:ContentItemViewModel">
+                                        <DataTemplate x:DataType="vm:AssetObjectViewModel">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <TextBlock Text="{Binding DisplayName}" />
                                             </StackPanel>

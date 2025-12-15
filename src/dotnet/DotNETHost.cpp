@@ -658,6 +658,8 @@ void DotNETHost::Initialize(const FilePath& basePath, bool initFromManaged, Init
 
     Assert(m_impl == nullptr);
 
+    HYP_LOG(DotNET, Info, "Initializing .NET Host with base path: {}", basePath);
+
     m_impl = MakeRefCountedPtr<DotNetImpl>();
     m_impl->Initialize(basePath, initFromManaged, callback);
 

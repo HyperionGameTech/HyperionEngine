@@ -21,6 +21,3 @@
 [submodule "submodules/ios-cmake"]
 	path = submodules/ios-cmake
 	url = https://github.com/leetal/ios-cmake
-[submodule "submodules/libui-ng"]
-	path = submodules/libui-ng
-	url = https://github.com/libui-ng/libui-ng

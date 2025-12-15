@@ -135,30 +135,30 @@ UIObject::UIObject(const ThreadId& ownerThreadId)
 {
     m_scrollOffset.SetRate(60.0); // 60hz for scroll offset updates
 
-    OnInit.BindManaged("OnInit", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnAttached.BindManaged("OnAttached", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnRemoved.BindManaged("OnRemoved", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnChildAttached.BindManaged("OnChildAttached", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnChildRemoved.BindManaged("OnChildRemoved", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnMouseDown.BindManaged("OnMouseDown", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnMouseUp.BindManaged("OnMouseUp", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnMouseDrag.BindManaged("OnMouseDrag", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnMouseHover.BindManaged("OnMouseHover", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnMouseLeave.BindManaged("OnMouseLeave", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnMouseMove.BindManaged("OnMouseMove", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnGainFocus.BindManaged("OnGainFocus", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnLoseFocus.BindManaged("OnLoseFocus", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnScroll.BindManaged("OnScroll", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnClick.BindManaged("OnClick", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnRightClick.BindManaged("OnRightClick", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnKeyDown.BindManaged("OnKeyDown", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnKeyUp.BindManaged("OnKeyUp", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnTextChange.BindManaged("OnTextChange", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnSizeChange.BindManaged("OnSizeChange", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnComputedVisibilityChange.BindManaged("OnComputedVisibilityChange", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnEnabled.BindManaged("OnEnabled", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnDisabled.BindManaged("OnDisabled", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
-    OnValueChange.BindManaged("OnValueChange", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnInit.BindMethod("OnInit", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnAttached.BindMethod("OnAttached", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnRemoved.BindMethod("OnRemoved", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnChildAttached.BindMethod("OnChildAttached", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnChildRemoved.BindMethod("OnChildRemoved", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseDown.BindMethod("OnMouseDown", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseUp.BindMethod("OnMouseUp", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseDrag.BindMethod("OnMouseDrag", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseHover.BindMethod("OnMouseHover", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseLeave.BindMethod("OnMouseLeave", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseMove.BindMethod("OnMouseMove", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnGainFocus.BindMethod("OnGainFocus", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnLoseFocus.BindMethod("OnLoseFocus", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnScroll.BindMethod("OnScroll", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnClick.BindMethod("OnClick", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnRightClick.BindMethod("OnRightClick", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnKeyDown.BindMethod("OnKeyDown", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnKeyUp.BindMethod("OnKeyUp", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnTextChange.BindMethod("OnTextChange", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnSizeChange.BindMethod("OnSizeChange", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnComputedVisibilityChange.BindMethod("OnComputedVisibilityChange", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnEnabled.BindMethod("OnEnabled", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnDisabled.BindMethod("OnDisabled", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnValueChange.BindMethod("OnValueChange", GetScriptObjectResource(), UIEventHandlerResult::OK).Detach();
 }
 
 UIObject::UIObject()

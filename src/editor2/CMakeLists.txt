@@ -51,37 +51,6 @@ endif()
 find_program(DOTNET_EXECUTABLE dotnet)
 
 if(DOTNET_EXECUTABLE)
-    # Restore projects we depend on
-    execute_process(
-        COMMAND ${DOTNET_EXECUTABLE} restore "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        RESULT_VARIABLE RESTORE_RESULT_INTEROP
-    )
-
-    if(NOT RESTORE_RESULT_INTEROP EQUAL "0")
-        message(FATAL_ERROR "Failed to restore Hyperion.NET.Interop project. Please ensure that the .NET SDK is installed and accessible.")
-    endif()
-
-    execute_process(
-        COMMAND ${DOTNET_EXECUTABLE} restore "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        RESULT_VARIABLE RESTORE_RESULT_SHARED
-    )
-
-    if(NOT RESTORE_RESULT_SHARED EQUAL "0")
-        message(FATAL_ERROR "Failed to restore Hyperion.NET.Shared project. Please ensure that the .NET SDK is installed and accessible.")
-    endif()
-
-    execute_process(
-        COMMAND ${DOTNET_EXECUTABLE} restore "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        RESULT_VARIABLE RESTORE_RESULT_RUNTIME
-    )
-
-    if(NOT RESTORE_RESULT_RUNTIME EQUAL "0")
-        message(FATAL_ERROR "Failed to restore Hyperion.NET.Runtime project. Please ensure that the .NET SDK is installed and accessible.")
-    endif()
-
     # Generate Hyperion.Editor.csproj
     set(EDITOR_PROJECT_DIR "${CMAKE_SOURCE_DIR}/build/CSharpProjects/Hyperion.Editor")
     file(MAKE_DIRECTORY ${EDITOR_PROJECT_DIR})
@@ -184,22 +153,18 @@ if(DOTNET_EXECUTABLE)
             "${EDITOR_CSPROJ_PATH}"
             TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
         )
-        # If the .NET targets were created (non-MSVC generators) they will exist;
-        # under Visual Studio they are built implicitly via project references.
-        if(TARGET Hyperion.NET.Interop)
-            add_dependencies(Hyperion.Editor Hyperion.NET.Interop)
-        endif()
-        if(TARGET Hyperion.NET.Shared)
-            add_dependencies(Hyperion.Editor Hyperion.NET.Shared)
-        endif()
-        if(TARGET Hyperion.NET.Runtime)
-            add_dependencies(Hyperion.Editor Hyperion.NET.Runtime)
-        endif()
+        add_dependencies(Hyperion.Editor Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop)
     else()
+    # run dotnet restore now
+        execute_process(
+            COMMAND dotnet restore
+            WORKING_DIRECTORY ${EDITOR_PROJECT_DIR}
+        )
+
         add_custom_target(Hyperion.Editor ALL
-            COMMAND ${DOTNET_EXECUTABLE} build "${EDITOR_CSPROJ_PATH}" --configuration ${HYP_BUILD_TYPE}
+            COMMAND ${DOTNET_EXECUTABLE} build "${EDITOR_CSPROJ_PATH}"  --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
             COMMENT "Building Hyperion.Editor"
-            DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime
+            DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
         )
     endif()
 endif()

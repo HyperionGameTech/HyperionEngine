@@ -473,12 +473,6 @@ public:
 
     using NodeList = Array<Handle<Node>, DynamicAllocator>;
 
-    enum class Type : uint32
-    {
-        NODE,
-        BONE
-    };
-
     /*! \brief Construct the node, optionally taking in a name string to improve identification.
      * \param name The name of the Node.
      * \param localTransform An optional parameter representing the local-space transform of this Node.

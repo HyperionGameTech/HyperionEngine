@@ -12,7 +12,7 @@ extern "C"
     {
         Assert(pRegistry != nullptr);
 
-        if (!pOutPackages)
+        if (!pOutPackageHandles)
         {
             return uint32(pRegistry->GetPackages().Size());
         }
@@ -21,7 +21,7 @@ extern "C"
 
         for (uint32 i = 0; i < uint32(packages.Size()); i++)
         {
-            pOutPackages[i] = packages[i];
+            pOutPackageHandles[i] = packages[i];
         }
 
         return uint32(packages.Size());

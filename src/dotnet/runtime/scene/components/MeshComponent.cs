@@ -7,6 +7,8 @@ namespace Hyperion
     [StructLayout(LayoutKind.Explicit, Size = 208, Pack = 16)]
     public unsafe ref struct MeshComponent : IComponent
     {
+        public static Class Class => Class.GetClass(typeof(MeshComponent));
+
         [FieldOffset(0)]
         private Handle<Mesh> _meshHandle;
 
@@ -88,6 +90,15 @@ namespace Hyperion
 
         public ref MeshInstanceData InstanceData => ref _instanceData;
 
-        public static Class Class => Class.GetClass(typeof(MeshComponent));
+        public unsafe IntPtr NativeAddress
+        {
+            get
+            {
+                fixed (MeshComponent* pThis = &this)
+                {
+                    return (IntPtr)pThis;
+                }
+            }
+        }
     }
 }
