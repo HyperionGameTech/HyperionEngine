@@ -53,7 +53,7 @@ ObjectReference ManagedClass::NewManagedObject(void* contextPtr, InitializeObjec
     return m_newObjectFptr(/* keepAlive */ false, nullptr, nullptr, contextPtr, callback);
 }
 
-bool ManagedClass::HasParentClass(UTF8StringView parentClassName) const
+bool ManagedClass::HasParentClass(ANSIStringView parentClassName) const
 {
     const ManagedClass* parentClass = m_parentClass;
 

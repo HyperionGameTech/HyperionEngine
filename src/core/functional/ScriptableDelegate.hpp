@@ -32,11 +32,11 @@ class IScriptableDelegate : public virtual IDelegate
 public:
     virtual ~IScriptableDelegate() = default;
 
-    virtual HYP_NODISCARD DelegateHandler BindManaged(const String& methodName, Proc<ScriptObjectResource*()>&& getFn) = 0;
-    virtual HYP_NODISCARD DelegateHandler BindManaged(const String& methodName, ScriptObjectResource* scriptObjectResource) = 0;
+    virtual HYP_NODISCARD DelegateHandler BindMethod(ANSIStringView methodName, Proc<ScriptObjectResource*()>&& getFn) = 0;
+    virtual HYP_NODISCARD DelegateHandler BindMethod(ANSIStringView methodName, ScriptObjectResource* scriptObjectResource) = 0;
 
 #ifdef HYP_DOTNET
-    virtual HYP_NODISCARD DelegateHandler BindManaged(const String& methodName, UniquePtr<dotnet::ManagedObject>&& object) = 0;
+    virtual HYP_NODISCARD DelegateHandler BindMethod(ANSIStringView methodName, UniquePtr<dotnet::ManagedObject>&& object) = 0;
 #endif
 };
 
@@ -46,7 +46,7 @@ public:
     static void InvokeMethod_Internal(HypData* outReturnHypData, const Method* method, const Handle<ObjectBase>& target, Span<HypData> argsHypData);
 
     template <class HypDataType, class ReturnType, class... Args>
-    static bool InvokeScriptObjectMethod(ScriptObjectResource* scriptObjectResource, const String& methodName, ReturnType* outReturn, Args&&... args)
+    static bool InvokeScriptObjectMethod(ScriptObjectResource* scriptObjectResource, ANSIStringView methodName, ReturnType* outReturn, Args&&... args)
     {
         HYP_CORE_ASSERT(scriptObjectResource != nullptr, "Script object resource is null!");
 
@@ -165,14 +165,14 @@ public:
 
     virtual ~ScriptableDelegate() override = default;
 
-    HYP_NODISCARD virtual DelegateHandler BindManaged(const String& methodName, Proc<ScriptObjectResource*()>&& getFn) override
+    HYP_NODISCARD virtual DelegateHandler BindMethod(ANSIStringView methodName, Proc<ScriptObjectResource*()>&& getFn) override
     {
         if (!getFn)
         {
             return DelegateHandler();
         }
 
-        return Delegate<ReturnType, Args...>::Bind([methodName = methodName, getFn = std::move(getFn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return Delegate<ReturnType, Args...>::Bind([methodName = ANSIString(methodName), getFn = std::move(getFn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 ValueStorage<ReturnType> returnValueStorage;
                 if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<HypData, ReturnType>(getFn(), methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
@@ -192,14 +192,14 @@ public:
     }
 
     template <class DefaultReturnType, typename = std::enable_if_t<std::is_copy_constructible_v<NormalizedType<DefaultReturnType>>>>
-    HYP_NODISCARD DelegateHandler BindManaged(const String& methodName, Proc<ScriptObjectResource*()>&& getFn, DefaultReturnType&& defaultReturn)
+    HYP_NODISCARD DelegateHandler BindMethod(ANSIStringView methodName, Proc<ScriptObjectResource*()>&& getFn, DefaultReturnType&& defaultReturn)
     {
         if (!getFn)
         {
             return DelegateHandler();
         }
 
-        return Delegate<ReturnType, Args...>::Bind([methodName = methodName, getFn = std::move(getFn), defaultReturn = std::forward<DefaultReturnType>(defaultReturn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return Delegate<ReturnType, Args...>::Bind([methodName = ANSIString(methodName), getFn = std::move(getFn), defaultReturn = std::forward<DefaultReturnType>(defaultReturn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 ScriptObjectResource* scriptObjectResource = getFn();
 
@@ -225,14 +225,14 @@ public:
             });
     }
 
-    HYP_NODISCARD virtual DelegateHandler BindManaged(const String& methodName, ScriptObjectResource* scriptObjectResource) override
+    HYP_NODISCARD virtual DelegateHandler BindMethod(ANSIStringView methodName, ScriptObjectResource* scriptObjectResource) override
     {
         if (!scriptObjectResource)
         {
             return DelegateHandler();
         }
 
-        return Delegate<ReturnType, Args...>::Bind([methodName = methodName, scriptObjectResource]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return Delegate<ReturnType, Args...>::Bind([methodName = ANSIString(methodName), scriptObjectResource]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 ValueStorage<ReturnType> returnValueStorage;
                 if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<HypData, ReturnType>(scriptObjectResource, methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
@@ -252,14 +252,14 @@ public:
     }
 
     template <class DefaultReturnType, typename = std::enable_if_t<std::is_copy_constructible_v<NormalizedType<DefaultReturnType>>>>
-    HYP_NODISCARD DelegateHandler BindManaged(const String& methodName, ScriptObjectResource* scriptObjectResource, DefaultReturnType&& defaultReturn)
+    HYP_NODISCARD DelegateHandler BindMethod(ANSIStringView methodName, ScriptObjectResource* scriptObjectResource, DefaultReturnType&& defaultReturn)
     {
         if (!scriptObjectResource)
         {
             return DelegateHandler();
         }
 
-        return Delegate<ReturnType, Args...>::Bind([methodName = methodName, scriptObjectResource, defaultReturn = std::forward<DefaultReturnType>(defaultReturn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return Delegate<ReturnType, Args...>::Bind([methodName = ANSIString(methodName), scriptObjectResource, defaultReturn = std::forward<DefaultReturnType>(defaultReturn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 if (!scriptObjectResource)
                 {
@@ -284,7 +284,7 @@ public:
     }
 
 #ifdef HYP_DOTNET
-    HYP_NODISCARD virtual DelegateHandler BindManaged(const String& methodName, UniquePtr<dotnet::ManagedObject>&& object) override
+    HYP_NODISCARD virtual DelegateHandler BindMethod(ANSIStringView methodName, UniquePtr<dotnet::ManagedObject>&& object) override
     {
         if (!object)
         {
@@ -312,7 +312,7 @@ public:
             return DelegateHandler();
         }
 
-        return Delegate<ReturnType, Args...>::Bind([methodName = methodName, object = std::move(object)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
+        return Delegate<ReturnType, Args...>::Bind([methodName = ANSIString(methodName), object = std::move(object)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 return object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
             });

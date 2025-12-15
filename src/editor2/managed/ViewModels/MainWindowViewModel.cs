@@ -220,6 +220,7 @@ namespace Hyperion.Editor.ViewModels
             _editorSubsystem = editorSubsystem;
 
             ContentBrowser = new ContentBrowserViewModel(_editorSubsystem);
+            ContentBrowser.LoadPackages();
 
             SelectTranslateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Translate);
             SelectRotateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Rotate);

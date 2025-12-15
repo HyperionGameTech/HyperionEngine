@@ -25,5 +25,16 @@ namespace Hyperion
         public void Dispose()
         {
         }
+
+        public unsafe IntPtr NativeAddress
+        {
+            get
+            {
+                fixed (TransformComponent* pThis = &this)
+                {
+                    return (IntPtr)pThis;
+                }
+            }
+        }
     }
 }

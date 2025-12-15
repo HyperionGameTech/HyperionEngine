@@ -7,12 +7,23 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 32)]
     public ref struct BoundingBoxComponent : IComponent
     {
+        public static Class Class => Class.GetClass(typeof(BoundingBoxComponent));
+
         public BoundingBox WorldAABB;
 
         public void Dispose()
         {
         }
         
-        public static Class Class => Class.GetClass(typeof(BoundingBoxComponent));
+        public unsafe IntPtr NativeAddress
+        {
+            get
+            {
+                fixed (BoundingBoxComponent* pThis = &this)
+                {
+                    return (IntPtr)pThis;
+                }
+            }
+        }
     }
 }

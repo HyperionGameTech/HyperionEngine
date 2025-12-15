@@ -14,6 +14,24 @@ namespace Hyperion.Editor.ViewModels
         private string _label;
         protected int _isRefreshing;
 
+        public Property Property => _property;
+
+        public string Label => _label;
+
+        public string Value
+        {
+            get => _value;
+            protected set => SetProperty(ref _value, value);
+        }
+
+        public virtual bool IsTextEditable => false;
+
+        public virtual bool IsEnumEditable => false;
+
+        public virtual bool IsEnumFlagsEditable => false;
+
+        public bool ShowTextValue => !IsTextEditable && !IsEnumEditable && !IsEnumFlagsEditable;
+
         protected InspectorPropertyViewModelBase(ObjectBase? target, Property property, bool isReadOnly = false)
         {
             _target = target ?? throw new ArgumentNullException(nameof(target));
@@ -33,23 +51,6 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public Property Property => _property;
-
-        public string Label => _label;
-
-        public string Value
-        {
-            get => _value;
-            protected set => SetProperty(ref _value, value);
-        }
-
-        public virtual bool IsTextEditable => false;
-
-        public virtual bool IsEnumEditable => false;
-
-        public virtual bool IsEnumFlagsEditable => false;
-
-        public bool ShowTextValue => !IsTextEditable && !IsEnumEditable && !IsEnumFlagsEditable;
         public abstract void RefreshValue();
 
         internal static bool IsNameType(TypeInfo typeInfo)

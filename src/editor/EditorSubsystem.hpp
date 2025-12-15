@@ -427,6 +427,9 @@ public:
 
     const EditorGizmoSet& GetGizmos() const;
 
+    HYP_METHOD()
+    void SetSelectedPackage(const Handle<AssetPackage>& package);
+
     /*! \brief Calculate an appropriate position for inserting a new object into the scene.
      *  Uses raycasting from the camera to find a suitable location that doesn't intersect with existing geometry.
      *
@@ -448,16 +451,19 @@ public:
     ScriptableDelegate<void, Handle<Node>, Handle<Node>, bool> OnFocusedNodeChanged;
 
     HYP_FIELD()
-    ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectClosing;
+    ScriptableDelegate<void, Handle<EditorProject>> OnProjectClosing;
 
     HYP_FIELD()
-    ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectOpened;
+    ScriptableDelegate<void, Handle<EditorProject>> OnProjectOpened;
 
     HYP_FIELD()
-    ScriptableDelegate<void, const Handle<Scene>&> OnActiveSceneChanged;
+    ScriptableDelegate<void, Handle<Scene>> OnActiveSceneChanged;
 
     HYP_FIELD()
     ScriptableDelegate<void, EditorGizmoBase*, EditorGizmoBase*> OnSelectedGizmoChanged;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<AssetPackage>> OnSelectedPackageChanged;
 
 private:
     void LoadEditorUIDefinitions();
@@ -486,7 +492,6 @@ private:
 
     void AddPackageToContentBrowser(const Handle<AssetPackage>& package, bool nested);
     void RemovePackageFromContentBrowser(AssetPackage* package);
-    void SetSelectedPackage(const Handle<AssetPackage>& package);
 
     void SetGizmoCurrentProject(const WeakHandle<EditorProject>& project);
     void InitializeGizmos();

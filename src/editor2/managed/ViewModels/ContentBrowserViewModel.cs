@@ -14,9 +14,22 @@ namespace Hyperion.Editor.ViewModels
     {
         private readonly EditorSubsystem _editorSubsystem;
 
-        public ObservableCollection<ContentDirectoryViewModel> Directories { get; } = new ObservableCollection<ContentDirectoryViewModel>();
-        public ObservableCollection<ContentItemViewModel> Items { get; } = new ObservableCollection<ContentItemViewModel>();
-        public ContentDirectoryViewModel? SelectedDirectory { get; private set; }
+        public ObservableCollection<AssetPackageViewModel> Packages { get; } = new ObservableCollection<AssetPackageViewModel>();
+        public ObservableCollection<AssetObjectViewModel> Assets { get; } = new ObservableCollection<AssetObjectViewModel>();
+        
+        private AssetPackageViewModel? _currentPackage;
+        public AssetPackageViewModel? CurrentPackage
+        {
+            get => _currentPackage;
+            set
+            {
+                _editorSubsystem.SetSelectedPackage(value?.Package ?? null);
+            }
+        }
+
+        private DelegateHandler _onSelectedPackageChangedHandler;
+        private DelegateHandler _onPackageAddedHandler;
+        private DelegateHandler _onPackageRemovedHandler;
 
         public ContentBrowserViewModel(EditorSubsystem editorSubsystem)
         {
@@ -27,17 +40,73 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.CheckAccess();
 
-            Directories.Clear();
-            Items.Clear();
+            Packages.Clear();
+            Assets.Clear();
 
             AssetManager mgr = AssetManager.Instance;
             AssetRegistry registry = mgr.AssetRegistry;
 
-            
+            foreach (AssetPackage pkg in registry.Packages)
+            {
+                if (pkg.Hidden)
+                    continue;
+
+                Packages.Add(new AssetPackageViewModel(pkg));
+            }
+
+            _onSelectedPackageChangedHandler = _editorSubsystem.GetOnSelectedPackageChangedDelegate().Bind((AssetPackage? package) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Assets.Clear();
+                    
+                    if (package != null)
+                    {
+                        foreach (AssetObject asset in package.Assets)
+                        {
+                            Assets.Add(new AssetObjectViewModel(asset));
+                        }
+
+                        _currentPackage = new AssetPackageViewModel(package);
+                    }
+                    else
+                    {
+                        _currentPackage = null;
+                    }
+
+                    OnPropertyChanged(nameof(CurrentPackage));
+                });
+            });
+
+            _onPackageAddedHandler = registry.GetOnPackageAddedDelegate().Bind((AssetPackage package) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (!package.Hidden)
+                    {
+                        Packages.Add(new AssetPackageViewModel(package));
+                    }
+                });
+            });
+
+            _onPackageRemovedHandler = registry.GetOnPackageRemovedDelegate().Bind((AssetPackage package) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    AssetPackageViewModel? packageViewModel = Packages.FirstOrDefault(pvm => pvm.Package == package);
+                    if (packageViewModel != null)
+                    {
+                        Packages.Remove(packageViewModel);
+                    }
+                });
+            });
         }
 
         public void Dispose()
         {
+            _onSelectedPackageChangedHandler?.Dispose();
+            _onPackageAddedHandler?.Dispose();
+            _onPackageRemovedHandler?.Dispose();
         }
     }
 }

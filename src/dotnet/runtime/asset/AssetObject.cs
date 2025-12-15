@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Runtime.InteropServices;
-using Hyperion;
-
 namespace Hyperion
 {
     [ClassBinding(Name = "AssetObjectFlags")]
@@ -32,6 +27,12 @@ namespace Hyperion
                     throw new InvalidOperationException($"Failed to rename AssetObject to '{value}': {res}");
                 }
             }
+        }
+
+        public Name FriendlyName
+        {
+            get => this.GetFriendlyName();      // extension method
+            set => this.SetFriendlyName(value); // extension method
         }
     }
 }

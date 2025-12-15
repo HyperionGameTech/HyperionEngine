@@ -30,5 +30,16 @@ namespace Hyperion
         }
         
         public static Class Class => Class.GetClass(typeof(VisibilityStateComponent));
+
+        public unsafe IntPtr NativeAddress
+        {
+            get
+            {
+                fixed (VisibilityStateComponent* pThis = &this)
+                {
+                    return (IntPtr)pThis;
+                }
+            }
+        }
     }
 }
