@@ -17,7 +17,7 @@
 #include <core/utilities/ForEach.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <core/functional/ScriptableDelegate.hpp>
 
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/SchedulerFwd.hpp>
@@ -213,12 +213,12 @@ public:
         ForEach(set, std::forward<Callback>(callback));
     }
 
-    HYP_FORCE_INLINE const AssetObjectSet& GetAssetObjects() const
+    HYP_FORCE_INLINE const AssetObjectSet& GetAssets() const
     {
         return m_assetObjects;
     }
 
-    void SetAssetObjects(const AssetObjectSet& assetObjects);
+    void SetAssets(const AssetObjectSet& assetObjects);
 
     template <class Callback>
     void ForEachAssetObject(Callback&& callback) const
@@ -297,11 +297,17 @@ public:
     HYP_METHOD()
     void MarkDirty();
 
-    Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
-    Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectRemoved;
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
 
-    Delegate<void, Handle<AssetPackage>> OnSubpackageAdded;
-    Delegate<void, Handle<AssetPackage>> OnSubpackageRemoved;
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectRemoved;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<AssetPackage>> OnSubpackageAdded;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<AssetPackage>> OnSubpackageRemoved;
 
 private:
     void Init() override;
@@ -434,8 +440,11 @@ public:
     /*! \brief Called by AssetManager to perform enqueued tasks that mutate the registry. */
     void Update(float delta);
 
-    Delegate<void, Handle<AssetPackage>> OnPackageAdded;
-    Delegate<void, Handle<AssetPackage>> OnPackageRemoved;
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<AssetPackage>> OnPackageAdded;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<AssetPackage>> OnPackageRemoved;
 
 private:
     void Init() override;

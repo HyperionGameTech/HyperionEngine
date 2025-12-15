@@ -71,9 +71,9 @@ public:
     using NewObjectFunction = ObjectReference (*)(bool keepAlive, const Class* cls, void* nativeObjectPtr, void* contextPtr, InitializeObjectCallbackFunction callback);
     using MarshalObjectFunction = ObjectReference (*)(const void* intptr, uint32 size);
 
-    ManagedClass(const Weak<Assembly>& assembly, String name, uint32 size, TypeId typeId, const Class* cls, ManagedClass* parentClass, EnumFlags<ManagedClassFlags> flags)
+    ManagedClass(const Weak<Assembly>& assembly, const ANSIString& name, uint32 size, TypeId typeId, const Class* cls, ManagedClass* parentClass, EnumFlags<ManagedClassFlags> flags)
         : m_assembly(assembly),
-          m_name(std::move(name)),
+          m_name(name),
           m_size(size),
           m_typeId(typeId),
           m_class(cls),
@@ -92,7 +92,7 @@ public:
 
     ~ManagedClass();
 
-    HYP_FORCE_INLINE const String& GetName() const
+    HYP_FORCE_INLINE const ANSIString& GetName() const
     {
         return m_name;
     }
@@ -158,7 +158,7 @@ public:
      *
      *  \return True if the method exists, otherwise false.
      */
-    HYP_FORCE_INLINE bool HasMethod(UTF8StringView methodName) const
+    HYP_FORCE_INLINE bool HasMethod(ANSIStringView methodName) const
     {
         return m_methods.FindAs(methodName) != m_methods.End();
     }
@@ -203,7 +203,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE ManagedMethod* GetMethod(UTF8StringView methodName)
+    HYP_FORCE_INLINE ManagedMethod* GetMethod(ANSIStringView methodName)
     {
         auto it = m_methods.FindAs(methodName);
         if (it == m_methods.End())
@@ -220,7 +220,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE const ManagedMethod* GetMethod(UTF8StringView methodName) const
+    HYP_FORCE_INLINE const ManagedMethod* GetMethod(ANSIStringView methodName) const
     {
         auto it = m_methods.FindAs(methodName);
         if (it == m_methods.End())
@@ -236,7 +236,7 @@ public:
      *  \param methodName The name of the method to add.
      *  \param methodObject The method object to add.
      */
-    HYP_FORCE_INLINE void AddMethod(const String& methodName, ManagedMethod&& methodObject)
+    HYP_FORCE_INLINE void AddMethod(const ANSIString& methodName, ManagedMethod&& methodObject)
     {
         m_methods[methodName] = std::move(methodObject);
     }
@@ -245,7 +245,7 @@ public:
      *
      *  \return A reference to the map of methods.
      */
-    HYP_FORCE_INLINE const HashMap<String, ManagedMethod>& GetMethods() const
+    HYP_FORCE_INLINE const HashMap<ANSIString, ManagedMethod>& GetMethods() const
     {
         return m_methods;
     }
@@ -256,7 +256,7 @@ public:
      *
      *  \return True if the property exists, otherwise false.
      */
-    HYP_FORCE_INLINE bool HasProperty(UTF8StringView propertyName) const
+    HYP_FORCE_INLINE bool HasProperty(ANSIStringView propertyName) const
     {
         return m_properties.FindAs(propertyName) != m_properties.End();
     }
@@ -267,7 +267,7 @@ public:
      *
      *  \return A pointer to the property object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE ManagedProperty* GetProperty(UTF8StringView propertyName)
+    HYP_FORCE_INLINE ManagedProperty* GetProperty(ANSIStringView propertyName)
     {
         auto it = m_properties.FindAs(propertyName);
         if (it == m_properties.End())
@@ -284,7 +284,7 @@ public:
      *
      *  \return A pointer to the property object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE const ManagedProperty* GetProperty(UTF8StringView propertyName) const
+    HYP_FORCE_INLINE const ManagedProperty* GetProperty(ANSIStringView propertyName) const
     {
         auto it = m_properties.FindAs(propertyName);
         if (it == m_properties.End())
@@ -300,7 +300,7 @@ public:
      *  \param propertyName The name of the property to add.
      *  \param propertyObject The property object to add.
      */
-    HYP_FORCE_INLINE void AddProperty(const String& propertyName, ManagedProperty&& propertyObject)
+    HYP_FORCE_INLINE void AddProperty(const ANSIString& propertyName, ManagedProperty&& propertyObject)
     {
         m_properties[propertyName] = std::move(propertyObject);
     }
@@ -309,7 +309,7 @@ public:
      *
      *  \return A reference to the map of properties.
      */
-    HYP_FORCE_INLINE const HashMap<String, ManagedProperty>& GetProperties() const
+    HYP_FORCE_INLINE const HashMap<ANSIString, ManagedProperty>& GetProperties() const
     {
         return m_properties;
     }
@@ -345,7 +345,7 @@ public:
      *
      *  \return True if this class has the parent class, otherwise false.
      */
-    bool HasParentClass(UTF8StringView parentClassName) const;
+    bool HasParentClass(ANSIStringView parentClassName) const;
 
     /*! \brief Check if this class has \ref{parentClass} as a parent class.
      *
@@ -356,7 +356,7 @@ public:
     bool HasParentClass(const ManagedClass* parentClass) const;
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeStaticMethod(UTF8StringView methodName, Args&&... args)
+    ReturnType InvokeStaticMethod(ANSIStringView methodName, Args&&... args)
     {
         auto it = m_methods.FindAs(methodName);
         Assert(it != m_methods.End(), "Method not found");
@@ -414,14 +414,14 @@ public:
 private:
     void InvokeStaticMethod_Internal(const ManagedMethod* methodPtr, const HypData** argsHypData, HypData* outReturnHypData);
 
-    String m_name;
+    ANSIString m_name;
     uint32 m_size;
     TypeId m_typeId;
     const Class* m_class;
     ManagedClass* m_parentClass;
     EnumFlags<ManagedClassFlags> m_flags;
-    HashMap<String, ManagedMethod> m_methods;
-    HashMap<String, ManagedProperty> m_properties;
+    HashMap<ANSIString, ManagedMethod> m_methods;
+    HashMap<ANSIString, ManagedProperty> m_properties;
 
     Weak<Assembly> m_assembly;
 

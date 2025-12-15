@@ -82,7 +82,7 @@ void ManagedObject::InvokeMethod_Internal(const ManagedMethod* methodPtr, const 
     methodPtr->Invoke(&m_objectReference, argsHypData, outReturnHypData);
 }
 
-const ManagedMethod* ManagedObject::GetMethod(UTF8StringView methodName) const
+const ManagedMethod* ManagedObject::GetMethod(ANSIStringView methodName) const
 {
     if (!IsValid())
     {
@@ -99,7 +99,7 @@ const ManagedMethod* ManagedObject::GetMethod(UTF8StringView methodName) const
     return &it->second;
 }
 
-const ManagedProperty* ManagedObject::GetProperty(UTF8StringView propertyName) const
+const ManagedProperty* ManagedObject::GetProperty(ANSIStringView propertyName) const
 {
     if (!IsValid())
     {
