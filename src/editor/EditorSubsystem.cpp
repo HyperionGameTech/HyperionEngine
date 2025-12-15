@@ -3218,91 +3218,9 @@ void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
         return;
     }
 
-    m_delegateHandlers.Remove(NAME("OnAssetObjectAdded"));
-    m_delegateHandlers.Remove(NAME("OnAssetObjectRemoved"));
-
     m_selectedPackage = package;
 
-    m_contentBrowserContents->GetDataSource()->Clear();
-
-    if (package.IsValid())
-    {
-        m_delegateHandlers.Add(
-            NAME("OnAssetObjectAdded"),
-            package->OnAssetObjectAdded.BindThreaded([this](Handle<AssetObject> assetObject, bool isDirect)
-                {
-                    if (!isDirect)
-                    {
-                        return;
-                    }
-
-                    m_contentBrowserContents->GetDataSource()->Push(assetObject->GetUUID(), HypData(assetObject));
-                },
-                g_gameThread));
-
-        m_delegateHandlers.Add(
-            NAME("OnAssetObjectRemoved"),
-            package->OnAssetObjectRemoved.BindThreaded([this](Handle<AssetObject> assetObject, bool isDirect)
-                {
-                    if (!isDirect)
-                    {
-                        return;
-                    }
-
-                    m_contentBrowserContents->GetDataSource()->Remove(assetObject->GetUUID());
-                },
-                g_gameThread));
-
-        package->ForEachAssetObject([&](const Handle<AssetObject>& assetObject)
-            {
-                m_contentBrowserContents->GetDataSource()->Push(assetObject->GetUUID(), HypData(assetObject));
-
-                return IterationResult::CONTINUE;
-            });
-
-        m_delegateHandlers.Add(
-            NAME("OnSubpackageAdded"),
-            package->OnSubpackageAdded.BindThreaded([this](const Handle<AssetPackage>& subpackage)
-                {
-                    m_contentBrowserContents->GetDataSource()->Push(subpackage->GetUUID(), HypData(subpackage));
-                },
-                g_gameThread));
-
-        m_delegateHandlers.Add(
-            NAME("OnSubpackageRemoved"),
-            package->OnSubpackageRemoved.BindThreaded([this](const Handle<AssetPackage>& subpackage)
-                {
-                    m_contentBrowserContents->GetDataSource()->Remove(subpackage->GetUUID());
-                },
-                g_gameThread));
-
-        g_assetManager->GetAssetRegistry()->LoadSubpackages(package, /* recursive */ false);
-
-        package->ForEachSubpackage([this](const Handle<AssetPackage>& subpackage)
-            {
-                if (subpackage->IsHidden())
-                {
-                    return IterationResult::CONTINUE;
-                }
-
-                m_contentBrowserContents->GetDataSource()->Push(subpackage->GetUUID(), HypData(subpackage));
-
-                return IterationResult::CONTINUE;
-            });
-    }
-
-    HYP_LOG(Editor, Debug, "Num assets in package: {}", m_contentBrowserContents->GetDataSource()->Size());
-
-    if (m_contentBrowserContents->GetDataSource()->Size() == 0)
-    {
-        m_contentBrowserContents->SetIsVisible(false);
-        m_contentBrowserContentsEmpty->SetIsVisible(true);
-    }
-    else
-    {
-        m_contentBrowserContents->SetIsVisible(true);
-        m_contentBrowserContentsEmpty->SetIsVisible(false);
-    }
+    OnSelectedPackageChanged(package);
 }
 
 TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()

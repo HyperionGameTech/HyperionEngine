@@ -560,8 +560,6 @@ public:
             for (const Pair<String, String>& attribute : attributes)
             {
                 const String& attributeName = attribute.first;
-                const String& attributeValue = attribute.second;
-
                 const String attributeNameUpper = attributeName.ToUpper();
 
                 if (s_standardUiObjectAttributes.Contains(attributeNameUpper))
@@ -629,8 +627,10 @@ public:
 
                         IScriptableDelegate* scriptableDelegate = reinterpret_cast<IScriptableDelegate*>(fieldAddress);
 
+                        const ANSIString attributeValue = ANSIString(attribute.second);
+
                         scriptableDelegate
-                            ->BindManaged(
+                            ->BindMethod(
                                 attributeValue,
                                 [uiObjectWeak = MakeWeakRef(uiObject)]() -> ScriptObjectResource*
                                 {

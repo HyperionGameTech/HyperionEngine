@@ -85,7 +85,7 @@ function(RunHypBuildTool version_major version_minor)
 endfunction()
 
 # Run HypBuildTool with version 0.9
-# RunHypBuildTool(0 9)
+RunHypBuildTool(0 9)
 
 set(HYP_DEBUG_MODE 1)
 add_definitions(-DHYP_DEBUG_MODE=1)
@@ -401,99 +401,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_
 # enable HypScript
 add_definitions(-DHYP_SCRIPT=1)
 
-# # enable libui-ng (editor only)
-# if (HYP_EDITOR AND EXISTS "${CMAKE_SOURCE_DIR}/submodules/libui-ng/meson.build")
-#     add_definitions(-DHYP_LIBUI=1)
-
-#     # Find meson and ninja
-#     find_program(MESON_EXECUTABLE meson)
-#     find_program(NINJA_EXECUTABLE ninja)
-
-#     if(NOT MESON_EXECUTABLE)
-#         message(WARNING "Meson not found. libui-ng will not be built. Install meson with: pip install meson")
-#     elseif(NOT NINJA_EXECUTABLE)
-#         message(WARNING "Ninja not found. libui-ng will not be built. Install ninja with: pip install ninja or your package manager")
-#     else()
-#         message(STATUS "Building libui-ng with Meson")
-
-#         set(LIBUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/libui-ng)
-#         set(LIBUI_BUILD_DIR ${CMAKE_BINARY_DIR}/libui-ng-build)
-#         set(LIBUI_INSTALL_DIR ${CMAKE_BINARY_DIR}/libui-ng-install)
-
-#         if(WIN32)
-#             set(LIBUI_LIBRARY_NAME "libui.lib")
-#             set(LIBUI_SHARED_LIBRARY "libui.dll")
-#         elseif(APPLE)
-#             set(LIBUI_LIBRARY_NAME "libui.dylib")
-#             set(LIBUI_SHARED_LIBRARY "libui.dylib")
-#         else()
-#             set(LIBUI_LIBRARY_NAME "libui.so")
-#             set(LIBUI_SHARED_LIBRARY "libui.so")
-#         endif()
-
-#         set(LIBUI_MESON_BUILDTYPE "release")
-
-#         # Build libui-ng using Meson
-#         ExternalProject_Add(libui_external
-#             SOURCE_DIR ${LIBUI_SOURCE_DIR}
-#             BINARY_DIR ${LIBUI_BUILD_DIR}
-#             CONFIGURE_COMMAND ${MESON_EXECUTABLE} setup ${LIBUI_BUILD_DIR} ${LIBUI_SOURCE_DIR}
-#                 --prefix=${LIBUI_INSTALL_DIR}
-#                 --buildtype=${LIBUI_MESON_BUILDTYPE}
-#                 --default-library=shared
-#             BUILD_COMMAND ${NINJA_EXECUTABLE} -C ${LIBUI_BUILD_DIR}
-#             INSTALL_COMMAND ${NINJA_EXECUTABLE} -C ${LIBUI_BUILD_DIR} install
-#             BUILD_ALWAYS FALSE
-#             EXCLUDE_FROM_ALL TRUE
-#         )
-
-#         # Create the install directory structure so CMake doesn't complain
-#         file(MAKE_DIRECTORY ${LIBUI_INSTALL_DIR}/include)
-#         file(MAKE_DIRECTORY ${LIBUI_INSTALL_DIR}/lib)
-#         file(MAKE_DIRECTORY ${LIBUI_INSTALL_DIR}/bin)
-
-#         # Copy the shared library to the output directory as part of the external project
-#         if(WIN32)
-#             set(LIBUI_LIBRARY_PATH "${LIBUI_INSTALL_DIR}/bin/${LIBUI_SHARED_LIBRARY}")
-#         else()
-#             set(LIBUI_LIBRARY_PATH "${LIBUI_INSTALL_DIR}/lib/${LIBUI_SHARED_LIBRARY}")
-#         endif()
-
-#         ExternalProject_Add_Step(libui_external copy_library
-#             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#                 ${LIBUI_LIBRARY_PATH}
-#                 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${LIBUI_SHARED_LIBRARY}
-#             DEPENDEES install
-#             COMMENT "Copying libui shared library to output directory"
-#         )
-
-#         # Create imported target
-#         add_library(libui SHARED IMPORTED)
-#         add_dependencies(libui libui_external)
-
-#         if (WIN32)
-#             set_target_properties(libui PROPERTIES
-#                 IMPORTED_IMPLIB "${LIBUI_INSTALL_DIR}/lib/libui.lib"
-#                 IMPORTED_LOCATION "${LIBUI_INSTALL_DIR}/bin/libui.dll"
-#                 INTERFACE_INCLUDE_DIRECTORIES "${LIBUI_INSTALL_DIR}/include"
-#             )
-#         else()
-#             set_target_properties(libui PROPERTIES
-#                 IMPORTED_LOCATION "${LIBUI_INSTALL_DIR}/lib/${LIBUI_LIBRARY_NAME}"
-#                 INTERFACE_INCLUDE_DIRECTORIES "${LIBUI_INSTALL_DIR}/include"
-#             )
-#         endif()
-
-#         # Add to common libraries
-#         set(COMMON_LIBRARIES
-#             ${COMMON_LIBRARIES}
-#             libui
-#         )
-
-#         message(STATUS "libui-ng will be built and linked")
-#     endif()
-# endif()
-
 set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
 # # Disable .NET support by default (comment to enable)
@@ -543,9 +450,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         set(HYP_BUILD_CSHARP_SOURCES true)
     endif()
 
-    file(GLOB_RECURSE CSHARP_SHARED_SOURCES "src/dotnet/shared/**.cs")
-    file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "src/dotnet/runtime/**.cs" "${HYP_GENERATED_DIR}/csharp/**.cs")
-    file(GLOB_RECURSE CSHARP_INTEROP_SOURCES "src/dotnet/interop/**.cs")
     file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "src/dotnet/scripting/**.cs")
 
     # build C# constant properties shared across all C# projects
@@ -557,179 +461,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         set(CSHARP_CONSTANTS "HYP_IOS;HYP_UNIX")
     elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
         set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
-    endif()
-
-    if(CSHARP_SHARED_SOURCES)# make a directory for the .csproj file
-        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared)
-
-        # generate .csproj file
-        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  <PropertyGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <OutputType>Library</OutputType>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <TargetFramework>net9.0</TargetFramework>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <LangVersion>13.0</LangVersion>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <Nullable>enable</Nullable>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <AssemblyName>Hyperion.NET.Shared</AssemblyName>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
-        if(CSHARP_CONSTANTS)
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
-        endif()
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  </PropertyGroup>\n")
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
-        foreach(CSHARP_SHARED_SOURCE ${CSHARP_SHARED_SOURCES})
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <Compile Include=\"${CSHARP_SHARED_SOURCE}\" />\n")
-        endforeach()
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  </ItemGroup>\n")
-        # copy .dll to output directory
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  </Target>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "</Project>\n")
-
-        # run dotnet restore now
-        execute_process(
-            COMMAND dotnet restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
-        )
-
-        if(NOT DEFINED MSVC)
-            add_custom_target(Hyperion.NET.Shared ALL
-                COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Shared.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll
-                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
-            )
-        endif()
-        # Add to VS solution if using VS generator so project references resolve.
-        if(CMAKE_GENERATOR MATCHES "Visual Studio")
-            enable_language(CSharp)
-            include_external_msproject(
-                Hyperion.NET.Shared
-                "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj"
-                TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
-            )
-        endif()
-    endif()
-
-    if(CSHARP_RUNTIME_SOURCES)# make a directory for the .csproj file
-        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime)
-
-        # generate .csproj file
-        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  <PropertyGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <OutputType>Library</OutputType>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <TargetFramework>net9.0</TargetFramework>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <LangVersion>13.0</LangVersion>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <Nullable>enable</Nullable>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <AssemblyName>Hyperion.NET.Runtime</AssemblyName>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
-        if(CSHARP_CONSTANTS)
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
-        endif()
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </PropertyGroup>\n")
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
-        foreach(CSHARP_RUNTIME_SOURCE ${CSHARP_RUNTIME_SOURCES})
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <Compile Include=\"${CSHARP_RUNTIME_SOURCE}\" />\n")
-        endforeach()
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "      <Private>true</Private>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    </ProjectReference>\n")
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </ItemGroup>\n")
-        # copy .dll to output directory
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </Target>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "</Project>\n")
-
-        # run dotnet restore now
-        execute_process(
-            COMMAND dotnet restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
-        )
-
-        if(NOT DEFINED MSVC)
-            add_custom_target(Hyperion.NET.Runtime ALL
-                COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                DEPENDS Hyperion.NET.Shared
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Runtime.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll
-                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
-            )
-        endif()
-        # Add to VS solution if using VS generator so project references resolve.
-        if(CMAKE_GENERATOR MATCHES "Visual Studio")
-            enable_language(CSharp)
-            include_external_msproject(
-                Hyperion.NET.Runtime
-                "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj"
-                TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
-            )
-        endif()
-    endif()
-
-    if(CSHARP_INTEROP_SOURCES)
-        # make a directory for the .csproj file
-        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop)
-
-        # generate .csproj file
-        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  <PropertyGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <OutputType>Library</OutputType>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <TargetFramework>net9.0</TargetFramework>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <LangVersion>13.0</LangVersion>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <Nullable>enable</Nullable>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <AssemblyName>Hyperion.NET.Interop</AssemblyName>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
-        if(CSHARP_CONSTANTS)
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
-        endif()
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  </PropertyGroup>\n")
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
-        foreach(CSHARP_INTEROP_SOURCE ${CSHARP_INTEROP_SOURCES})
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <Compile Include=\"${CSHARP_INTEROP_SOURCE}\" />\n")
-        endforeach()
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "      <Private>true</Private>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    </ProjectReference>\n")
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  </ItemGroup>\n")
-        # copy .dll to output directory
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  </Target>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "</Project>\n")
-
-        # run dotnet restore now
-        execute_process(
-            COMMAND dotnet restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop
-        )
-
-        if(NOT DEFINED MSVC)
-            add_custom_target(Hyperion.NET.Interop ALL
-                COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                DEPENDS Hyperion.NET.Shared
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Interop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll
-                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop
-            )
-        endif()
     endif()
 
     if(CSHARP_SCRIPTING_SOURCES)
@@ -798,30 +529,14 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             # Enable C# language support for proper project inclusion
             enable_language(CSharp)
 
-            # Include existing .csproj files in the solution
-            include_external_msproject(Hyperion.NET.Shared ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj)
-            include_external_msproject(Hyperion.NET.Runtime ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj)
-            include_external_msproject(Hyperion.NET.Interop ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj)
-
             # Check if Scripting project exists and include it
             if(EXISTS ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
                 include_external_msproject(Hyperion.NET.Scripting ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
 
                 # copy assemblies after build (depends on all C# projects)
                 add_custom_target(CopyCSharpAssemblies ALL
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Shared.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Runtime.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Interop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll
                     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Scripting.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Scripting.dll
-                    DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop Hyperion.NET.Scripting
-                )
-            else()
-                # copy assemblies after build (depends on all C# projects)
-                add_custom_target(CopyCSharpAssemblies ALL
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Shared.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Runtime.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Interop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll
-                   DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
+                    DEPENDS Hyperion.NET.Runtime Hyperion.NET.Scripting
                 )
             endif()
         endif()
@@ -844,21 +559,30 @@ function(collect_sources_and_modules dir out_sources out_modules out_pch_headers
 
     # If this directory has a CMakeLists.txt, consider it a module and skip recursion.
     if(EXISTS "${dir}/CMakeLists.txt")
-        # the subfolder must contain a library with the name hyperion-<subfolder>
-
         set(subdir_basename "")
+        set(sub_library_name "")
+
         string(REGEX MATCH "([^/]+)$" subdir_basename ${dir})
-
-        message(STATUS "Adding subdirectory as module: ${subdir_basename}")
-
+        
         add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/${subdir_basename})
+        
+        if(dir MATCHES "dotnet/runtime")
+            set(sub_library_name "hyperion-dotnet-runtime")
+        elseif(dir MATCHES "dotnet/shared")
+            set(sub_library_name "hyperion-dotnet-shared")
+        elseif(dir MATCHES "dotnet/interop")
+            set(sub_library_name "hyperion-dotnet-interop")
+        else()
+            # the subfolder must contain a library with the name hyperion-<subfolder>
+            set(sub_library_name "hyperion-${subdir_basename}")
+        endif()
 
-        list(APPEND local_modules "hyperion-${subdir_basename}")
+        list(APPEND local_modules ${sub_library_name})
 
         set(${out_sources} "${local_sources}" PARENT_SCOPE)
         set(${out_modules} "${local_modules}" PARENT_SCOPE)
 
-        source_group("hyperion-${subdir_basename} Library Code" FILES ${local_sources})
+        source_group("${sub_library_name} Library Code" FILES ${local_sources})
 
         if (EXISTS "${dir}/${subdir_basename}Pch.hpp")
             list(APPEND local_pch_headers "${dir}/${subdir_basename}Pch.hpp")
@@ -1289,7 +1013,20 @@ set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
 message(STATUS "Sub-libraries: ${SUB_LIBRARIES}")
 
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
-target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARIES})
+
+if(APPLE)
+    # needs to use -force_load on macOS for static libraries to re-export symbols correctly
+    # for the Hyperion.NET assemblies, since we define functions for P/Invoke there.
+    foreach(SUB_LIBRARY ${SUB_LIBRARIES})
+        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*") 
+            target_link_libraries(${BUILD_NAME} PRIVATE -force_load $<TARGET_FILE:${SUB_LIBRARY}>)
+        else()
+            target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
+        endif()
+    endforeach()
+else()
+    target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARIES})
+endif()
 
 # Add dependencies on external projects to ensure they're built before the main library
 if(TARGET glslang_external)

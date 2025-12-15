@@ -7,27 +7,27 @@ namespace Hyperion
 {
     public class DelegateHandler : IDisposable
     {
-        internal IntPtr ptr;
+        internal IntPtr _ptr;
 
         internal DelegateHandler(IntPtr ptr)
         {
-            this.ptr = ptr;
+            _ptr = ptr;
         }
 
         ~DelegateHandler()
         {
-            if (ptr != IntPtr.Zero)
+            if (_ptr != IntPtr.Zero)
             {
-                DelegateHandler_Destroy(ptr);
+                DelegateHandler_Destroy(_ptr);
             }
         }
 
         public void Dispose()
         {
-            if (ptr != IntPtr.Zero)
+            if (_ptr != IntPtr.Zero)
             {
-                DelegateHandler_Destroy(ptr);
-                ptr = IntPtr.Zero;
+                DelegateHandler_Destroy(_ptr);
+                _ptr = IntPtr.Zero;
             }
 
             GC.SuppressFinalize(this);
@@ -38,21 +38,21 @@ namespace Hyperion
         /// </summary>
         public void Detach()
         {
-            if (ptr != IntPtr.Zero)
+            if (_ptr != IntPtr.Zero)
             {
-                DelegateHandler_Detach(ptr);
-
-                Dispose();
+                DelegateHandler_Detach(_ptr);
+                DelegateHandler_Destroy(_ptr);
+                _ptr = IntPtr.Zero;
             }
         }
 
         public void Remove()
         {
-            if (ptr != IntPtr.Zero)
+            if (_ptr != IntPtr.Zero)
             {
-                DelegateHandler_Remove(ptr);
-
-                Dispose();
+                DelegateHandler_Remove(_ptr);
+                DelegateHandler_Destroy(_ptr);
+                _ptr = IntPtr.Zero;
             }
         }
 
@@ -88,18 +88,18 @@ namespace Hyperion
     [NoManagedClass]
     public struct ScriptableDelegate
     {
-        private object target;
-        private IntPtr ptr;
+        private object _target;
+        private IntPtr _ptr;
 
         public ScriptableDelegate(object target, IntPtr ptr)
         {
-            this.target = target;
-            this.ptr = ptr;
+            _target = target;
+            _ptr = ptr;
         }
 
         public DelegateHandler Bind(Delegate del)
         {
-            if (ptr == IntPtr.Zero)
+            if (_ptr == IntPtr.Zero)
             {
                 throw new Exception("Delegate is invalid");
             }
@@ -123,7 +123,7 @@ namespace Hyperion
                 }
 #endif
 
-                IntPtr delegateHandlerPtr = ScriptableDelegate_Bind(ptr, pClass, objectReferencePtr);
+                IntPtr delegateHandlerPtr = ScriptableDelegate_Bind(_ptr, pClass, objectReferencePtr);
 
                 return new DelegateHandler(delegateHandlerPtr);
             }
@@ -131,17 +131,17 @@ namespace Hyperion
 
         public void RemoveAllDetached()
         {
-            if (ptr == IntPtr.Zero)
+            if (_ptr == IntPtr.Zero)
             {
                 throw new Exception("Delegate is invalid");
             }
 
-            ScriptableDelegate_RemoveAllDetached(ptr);
+            ScriptableDelegate_RemoveAllDetached(_ptr);
         }
 
         public bool Remove(ref DelegateHandler delegateHandler)
         {
-            if (ptr == IntPtr.Zero)
+            if (_ptr == IntPtr.Zero)
             {
                 throw new Exception("Delegate is invalid");
             }
@@ -151,7 +151,7 @@ namespace Hyperion
                 throw new ArgumentNullException(nameof(delegateHandler));
             }
 
-            bool wasRemoved = ScriptableDelegate_Remove(ptr, delegateHandler.ptr);
+            bool wasRemoved = ScriptableDelegate_Remove(_ptr, delegateHandler._ptr);
 
             delegateHandler.Dispose();
 

@@ -1,9 +1,4 @@
-using System;
-using System.IO;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Hyperion;
-using System.Reflection.Metadata;
 
 namespace Hyperion
 {
@@ -18,14 +13,14 @@ namespace Hyperion
         {
             get
             {
-                uint count = AssetRegistry_GetPackage(NativeAddress, IntPtr.Zero);
+                uint count = AssetRegistry_GetPackages(NativeAddress, IntPtr.Zero);
                 
                 if (count == 0)
                 {
                     yield break;
                 }
 
-                IntPtr packageHandlePtrs = Marshal.AllocHGlobal(Marshal.SizeOf<Hyperion.Handle<AssetPackage>>() * (int)count);
+                IntPtr packageHandlePtrs = Marshal.AllocHGlobal(Marshal.SizeOf<Hyperion.Handle>() * (int)count);
 
                 try
                 {
@@ -33,9 +28,9 @@ namespace Hyperion
 
                     for (uint i = 0; i < count; i++)
                     {
-                        IntPtr currentPtr = IntPtr.Add(packageHandlePtrs, (int)(i * Marshal.SizeOf<Hyperion.Handle<AssetPackage>>()));
-                        Hyperion.Handle<AssetPackage> packageHandle = Marshal.PtrToStructure<Hyperion.Handle<AssetPackage>>(currentPtr);
-                        AssetPackage? package = packageHandle.GetValue();
+                        IntPtr currentPtr = IntPtr.Add(packageHandlePtrs, (int)(i * Marshal.SizeOf<Hyperion.Handle>()));
+                        Hyperion.Handle packageHandle = Marshal.PtrToStructure<Hyperion.Handle>(currentPtr);
+                        AssetPackage? package = (AssetPackage?)packageHandle.GetValue();
 
                         if (package != null)
                         {

@@ -26,6 +26,104 @@ namespace Hyperion
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 8)]
+    public struct Handle : IDisposable
+    {
+        internal IntPtr ptr;
+
+        public void Dispose()
+        {
+            if (ptr != IntPtr.Zero)
+            {
+                ManagedHandleNativeBindings.Handle_Destruct(ptr);
+                ptr = IntPtr.Zero;
+            }
+        }
+
+        public IntPtr Address
+        {
+            get
+            {
+                return ptr;
+            }
+        }
+
+        public bool IsValid
+        {
+            get
+            {
+                return ptr != IntPtr.Zero;
+            }
+        }
+
+        public object? GetValue()
+        {
+            if (ptr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            HypDataBuffer hypDataBuffer;
+            ManagedHandleNativeBindings.Handle_Get(ptr, out hypDataBuffer);
+
+            object? value = hypDataBuffer.GetValue();
+
+            hypDataBuffer.Dispose();
+
+            return value;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 8)]
+    public struct WeakHandle : IDisposable
+    {
+        internal IntPtr ptr;
+
+        public void Dispose()
+        {
+            if (ptr != IntPtr.Zero)
+            {
+                ManagedHandleNativeBindings.WeakHandle_Destruct(ptr);
+                ptr = IntPtr.Zero;
+            }
+        }
+
+        public IntPtr Address
+        {
+            get
+            {
+                return ptr;
+            }
+        }
+
+        public bool IsValid
+        {
+            get
+            {
+                return ptr != IntPtr.Zero;
+            }
+        }
+
+        public Handle Lock()
+        {
+            if (ptr == IntPtr.Zero)
+            {
+                return new Handle();
+            }
+
+            if (ManagedHandleNativeBindings.WeakHandle_Lock(ptr))
+            {
+                Handle handle = new Handle();
+                handle.ptr = ptr;
+                return handle;
+            }
+            else
+            {
+                return new Handle();
+            }
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 8)]
     public struct Handle<T> : IDisposable where T : ObjectBase
     {
         public static readonly Handle<T> Empty = new Handle<T>();
