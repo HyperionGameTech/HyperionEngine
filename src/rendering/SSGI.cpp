@@ -136,7 +136,7 @@ void SSGI::Create()
             m_config.extent,
             SsgiFormat,
             TemporalBlendTechnique::TECHNIQUE_1,
-            DefaultTemporalBlendingFeedback,
+            0.96,
             g_renderBackend->GetTextureImageView(m_resultTexture),
             m_gbuffer);
 
@@ -276,8 +276,8 @@ void SSGI::FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const
 {
     outUniforms = SSGIUniforms();
     outUniforms.dimensions = Vec4u(m_config.extent, 0, 0);
-    outUniforms.rayStep = 3.0f;
-    outUniforms.numIterations = 8;
+    outUniforms.rayStep = 1.0f;
+    outUniforms.numIterations = 16;
     outUniforms.maxRayDistance = 1000.0f;
     outUniforms.distanceBias = 0.1f;
     outUniforms.offset = 0.001f;

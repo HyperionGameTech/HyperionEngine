@@ -20,7 +20,7 @@ struct RenderSetup;
 
 enum TextureFormat : uint32;
 
-static constexpr double DefaultTemporalBlendingFeedback = 0.92;
+static constexpr double DefaultTemporalBlendingFeedback = 0.8;
 
 enum class TemporalBlendTechnique
 {
