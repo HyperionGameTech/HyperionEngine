@@ -217,6 +217,8 @@ namespace Hyperion
             return await completionSource.Task;
         }
 
+        public AssetRegistry AssetRegistry => this.GetAssetRegistry();
+
         [DllImport("hyperion", EntryPoint = "AssetManager_GetLoaderDefinition")]
         private static extern IntPtr AssetManager_GetLoaderDefinition([In] IntPtr assetManagerPtr, [MarshalAs(UnmanagedType.LPStr)] string path, TypeId desiredTypeId);
 

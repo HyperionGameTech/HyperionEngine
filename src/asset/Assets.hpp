@@ -266,6 +266,7 @@ public:
 
     HYP_API AssetBatch* CreateBatch(const String& identifier = String::empty);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const Handle<AssetRegistry>& GetAssetRegistry() const
     {
         return m_assetRegistry;

@@ -94,6 +94,7 @@ namespace Hyperion.Editor.ViewModels
         }
         public SceneHierarchyViewModel SceneHierarchy { get; }
         public InspectorViewModel Inspector { get; }
+        public ContentBrowserViewModel ContentBrowser { get; }
 
         public EditorCommand NewProject => new EditorCommand("NewProject");
         public EditorCommand OpenProject => new EditorCommand("OpenProject");
@@ -218,6 +219,8 @@ namespace Hyperion.Editor.ViewModels
 
             _editorSubsystem = editorSubsystem;
 
+            ContentBrowser = new ContentBrowserViewModel(_editorSubsystem);
+
             SelectTranslateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Translate);
             SelectRotateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Rotate);
             SelectScaleGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Scale);
@@ -296,6 +299,7 @@ namespace Hyperion.Editor.ViewModels
             _selectedGizmoChangedHandler?.Remove();
             _activeSceneChangedHandler?.Remove();
             SceneHierarchy.SelectedNodeChanged -= OnSceneHierarchyNodeSelected;
+            ContentBrowser.Dispose();
         }
 
         private void HandleActiveSceneChanged(Scene? scene)
