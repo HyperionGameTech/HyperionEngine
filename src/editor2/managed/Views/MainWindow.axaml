@@ -162,17 +162,17 @@
                     Orientation="Horizontal"
                     Spacing="6">
                     <Button
+                        Command="{Binding SetGameModePlaying}"
                         Content="Play"
-                        IsEnabled="{Binding CanSetGameModePlaying}"
-                        Command="{Binding SetGameModePlaying}" />
+                        IsEnabled="{Binding CanSetGameModePlaying}" />
                     <Button
+                        Command="{Binding SetGameModePaused}"
                         Content="Pause"
-                        IsEnabled="{Binding CanSetGameModePaused}"
-                        Command="{Binding SetGameModePaused}" />
+                        IsEnabled="{Binding CanSetGameModePaused}" />
                     <Button
+                        Command="{Binding SetGameModeStopped}"
                         Content="Stop"
-                        IsEnabled="{Binding CanSetGameModeStopped}"
-                        Command="{Binding SetGameModeStopped}" />
+                        IsEnabled="{Binding CanSetGameModeStopped}" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -522,8 +522,25 @@
                     <TabControl Grid.Row="2">
                         <TabItem Header="Content Browser">
                             <Grid ColumnDefinitions="220, *">
-                                <TreeView Grid.Column="0" />
-                                <ListBox Grid.Column="1" />
+                                <TreeView
+                                    Grid.Column="0"
+                                    ItemsSource="{Binding ContentBrowser.Directories}"
+                                    SelectedItem="{Binding ContentBrowser.SelectedDirectory, Mode=TwoWay}">
+                                    <TreeView.ItemTemplate>
+                                        <TreeDataTemplate x:DataType="vm:ContentDirectoryViewModel" ItemsSource="{Binding Children}">
+                                            <TextBlock Text="{Binding Name}" />
+                                        </TreeDataTemplate>
+                                    </TreeView.ItemTemplate>
+                                </TreeView>
+                                <ListBox Grid.Column="1" ItemsSource="{Binding ContentBrowser.Items}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ContentItemViewModel">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding DisplayName}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
                             </Grid>
                         </TabItem>
                         <TabItem Header="Console">
