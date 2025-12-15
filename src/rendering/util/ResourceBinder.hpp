@@ -18,7 +18,7 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 struct ResourceBindingAllocatorBase
 {
-    static constexpr uint32 invalidBinding = ~0u;
+    static constexpr uint32 InvalidBinding = ~0u;
 
     explicit ResourceBindingAllocatorBase(uint32 maxSize)
         : maxSize(maxSize)
@@ -32,7 +32,7 @@ struct ResourceBindingAllocatorBase
         // if maxSize is not ~0u we have to check up to maxSize
         if (maxSize != ~0u && freeIndex >= maxSize)
         {
-            return invalidBinding;
+            return InvalidBinding;
         }
 
         usedIndices.Set(freeIndex, true);
@@ -48,7 +48,7 @@ struct ResourceBindingAllocatorBase
             return;
         }
 
-        if ((maxSize != ~0u && index >= maxSize) || index == invalidBinding)
+        if ((maxSize != ~0u && index >= maxSize) || index == InvalidBinding)
         {
             return;
         }
@@ -147,7 +147,7 @@ class ResourceBinder : public ResourceBinderBase
 
                     if (OnBindingChanged != nullptr)
                     {
-                        OnBindingChanged(object, binding, ResourceBindingAllocatorBase::invalidBinding);
+                        OnBindingChanged(object, binding, ResourceBindingAllocatorBase::InvalidBinding);
                     }
 
                     allocator->FreeIndex(binding);
@@ -229,7 +229,7 @@ class ResourceBinder : public ResourceBinderBase
 
                     if (OnBindingChanged != nullptr)
                     {
-                        OnBindingChanged(object, binding, ResourceBindingAllocatorBase::invalidBinding);
+                        OnBindingChanged(object, binding, ResourceBindingAllocatorBase::InvalidBinding);
                     }
 
                     allocator->FreeIndex(binding);
@@ -247,7 +247,7 @@ class ResourceBinder : public ResourceBinderBase
                 }
 
                 const uint32 index = allocator->AllocateIndex();
-                if (index == ResourceBindingAllocatorBase::invalidBinding)
+                if (index == ResourceBindingAllocatorBase::InvalidBinding)
                 {
                     HYP_LOG(Rendering, Warning, "ResourceBinder<{}>: Maximum size of {} reached, cannot bind more objects!",
                         TypeName<T>().Data(),
@@ -261,7 +261,7 @@ class ResourceBinder : public ResourceBinderBase
 
                 if (OnBindingChanged != nullptr)
                 {
-                    OnBindingChanged(insertResult.first->first.GetUnsafe(), ResourceBindingAllocatorBase::invalidBinding, index);
+                    OnBindingChanged(insertResult.first->first.GetUnsafe(), ResourceBindingAllocatorBase::InvalidBinding, index);
                 }
             }
 
@@ -288,8 +288,8 @@ class ResourceBinder : public ResourceBinderBase
 
                         if (OnBindingChanged != nullptr)
                         {
-                            OnBindingChanged(object, binding, ResourceBindingAllocatorBase::invalidBinding);
-                            OnBindingChanged(object, ResourceBindingAllocatorBase::invalidBinding, binding);
+                            OnBindingChanged(object, binding, ResourceBindingAllocatorBase::InvalidBinding);
+                            OnBindingChanged(object, ResourceBindingAllocatorBase::InvalidBinding, binding);
                         }
                     }
                 }
@@ -450,7 +450,7 @@ public:
 
             if (!m_subclassImplsInitialized.Test(subclassIndex))
             {
-                return ResourceBindingAllocatorBase::invalidBinding;
+                return ResourceBindingAllocatorBase::InvalidBinding;
             }
 
             const Impl& impl = m_subclassImpls[subclassIndex].Get();
@@ -463,7 +463,7 @@ public:
             }
         }
 
-        return ResourceBindingAllocatorBase::invalidBinding;
+        return ResourceBindingAllocatorBase::InvalidBinding;
     }
 
     virtual void ApplyUpdates() override
