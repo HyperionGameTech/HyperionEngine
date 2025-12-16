@@ -23,10 +23,6 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
 endif()
 
-file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
-file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Hyperion Rendering Code" FILES ${SOURCES} ${HEADERS})
-
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 if(IOS)
@@ -122,21 +118,18 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src/rendering
 )
 
-# render backend specific stuff
-if(NOT DEFINED HYP_VULKAN)
-    file(GLOB_RECURSE VULKAN_FILES "src/rendering/vulkan/**/*")
-    foreach(VULKAN_FILE ${VULKAN_FILES})
-        list(REMOVE_ITEM SOURCES ${VULKAN_FILE})
-        list(REMOVE_ITEM HEADERS ${VULKAN_FILE})
-    endforeach()
-endif()
+# Normalize sources/headers to absolute paths under the root
+set(CURRENT_SOURCES "")
+foreach(filepath ${hyperion-rendering_SOURCES})
+    list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
+endforeach()
 
-set(RENDERER_LIBRARIES
-    ${RENDERER_LIBRARIES}
-    ${Vulkan_LIBRARIES}
-)
+set(CURRENT_HEADERS "")
+foreach(filepath ${hyperion-rendering_HEADERS})
+    list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
+endforeach()
 
-add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
 include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
 
@@ -146,11 +139,7 @@ endif()
 
 target_link_libraries(${BUILD_NAME} PRIVATE ${RENDERER_LIBRARIES})
 
-
 # add definitions that should be visible to the main project as well
-if(HYP_VULKAN)
-    target_compile_definitions(${BUILD_NAME} PUBLIC HYP_VULKAN=1)
-endif()
 if(HYP_SDL)
     target_compile_definitions(${BUILD_NAME} PUBLIC HYP_SDL=1)
 endif()
