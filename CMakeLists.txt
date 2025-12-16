@@ -565,15 +565,20 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
         return()
     endif()
 
+    file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR}
+        "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
+    list(APPEND local_sources ${current_sources})
+    file(GLOB current_headers RELATIVE ${CMAKE_SOURCE_DIR}
+        "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl")
+    list(APPEND local_headers ${current_headers})
+
     # If this directory has a CMakeLists.txt, consider it a module
     if(EXISTS "${dir}/CMakeLists.txt")
         set(subdir_basename "")
         set(sub_library_name "")
 
         string(REGEX MATCH "([^/]+)$" subdir_basename ${dir})
-        
-        add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/${subdir_basename})
-        
+
         if(dir MATCHES "dotnet/runtime")
             set(sub_library_name "hyperion-dotnet-runtime")
         elseif(dir MATCHES "dotnet/shared")
@@ -587,31 +592,69 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
 
         list(APPEND local_modules ${sub_library_name})
 
-        set(${out_sources} "${local_sources}" PARENT_SCOPE)
-        set(${out_headers} "${local_headers}" PARENT_SCOPE)
-        set(${out_modules} "${local_modules}" PARENT_SCOPE)
-
-        source_group("${sub_library_name} Library Code" FILES ${local_sources} ${local_headers})
-
         if (EXISTS "${dir}/${subdir_basename}Pch.hpp")
             list(APPEND local_pch_headers "${dir}/${subdir_basename}Pch.hpp")
         endif()
-    else()
-        file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR}
-            "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
-        list(APPEND local_sources ${current_sources})
-        file(GLOB current_headers RELATIVE ${CMAKE_SOURCE_DIR}
-            "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl")
-        list(APPEND local_headers ${current_headers})
 
+        # Recurse into children so nested modules with their own CMakeLists.txt get added
         file(GLOB children LIST_DIRECTORIES true "${dir}/*")
         foreach(child ${children})
             if(IS_DIRECTORY "${child}")
                 collect_sources_and_modules("${child}" child_sources child_headers child_modules child_pch_headers)
-                list(APPEND local_sources ${child_sources})
-                list(APPEND local_headers ${child_headers})
                 list(APPEND local_modules ${child_modules})
                 list(APPEND local_pch_headers ${child_pch_headers})
+
+                if(EXISTS "${child}/CMakeLists.txt")
+                    # Treat child as its own module; do not pull its sources into this target
+                else()
+                    list(APPEND local_sources ${child_sources})
+                    list(APPEND local_headers ${child_headers})
+                endif()
+            endif()
+        endforeach()
+
+        # Avoid double-adding targets if a nested CMakeLists already defined them
+        if(NOT TARGET ${sub_library_name})
+            set("${sub_library_name}_SOURCES" ${local_sources})
+            set("${sub_library_name}_HEADERS" ${local_headers})
+
+            message(STATUS "Sources for ${sub_library_name}: ${${sub_library_name}_SOURCES}")
+
+            add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/${subdir_basename})
+        else()
+            message(STATUS "Skipping add_subdirectory for ${dir} (target ${sub_library_name} already exists)")
+        endif()
+
+        set(${out_sources} "${local_sources}" PARENT_SCOPE)
+        set(${out_headers} "${local_headers}" PARENT_SCOPE)
+        set(${out_modules} "${local_modules}" PARENT_SCOPE)
+        set(${out_pch_headers} "${local_pch_headers}" PARENT_SCOPE)
+
+        source_group("${sub_library_name} Library Code" FILES ${local_sources} ${local_headers})
+    else()
+        file(GLOB children LIST_DIRECTORIES true "${dir}/*")
+        foreach(child ${children})
+            if(IS_DIRECTORY "${child}")
+                if(EXISTS "${child}/CMakeLists.txt")
+                    # Treat child as its own module; do not pull its sources into this target
+                    collect_sources_and_modules("${child}" child_sources child_headers child_modules child_pch_headers)
+                    list(APPEND local_modules ${child_modules})
+                    list(APPEND local_pch_headers ${child_pch_headers})
+
+                    # Remove any files from this module directory that were already added
+                    file(GLOB_RECURSE child_all_sources RELATIVE ${CMAKE_SOURCE_DIR}
+                        "${child}/*.cpp" "${child}/*.cxx" "${child}/*.cc" "${child}/*.c" "${child}/*.mm" "${child}/*.m")
+                    file(GLOB_RECURSE child_all_headers RELATIVE ${CMAKE_SOURCE_DIR}
+                        "${child}/*.hpp" "${child}/*.hxx" "${child}/*.hh" "${child}/*.h" "${child}/*.inl")
+                    list(REMOVE_ITEM local_sources ${child_all_sources})
+                    list(REMOVE_ITEM local_headers ${child_all_headers})
+                else()
+                    collect_sources_and_modules("${child}" child_sources child_headers child_modules child_pch_headers)
+                    list(APPEND local_sources ${child_sources})
+                    list(APPEND local_headers ${child_headers})
+                    list(APPEND local_modules ${child_modules})
+                    list(APPEND local_pch_headers ${child_pch_headers})
+                endif()
             endif()
         endforeach()
 
