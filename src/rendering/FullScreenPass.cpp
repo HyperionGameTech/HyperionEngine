@@ -15,21 +15,19 @@
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderShader.hpp>
+#include <rendering/RenderProxy.hpp>
+#include <rendering/Mesh.hpp>
+#include <rendering/Texture.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
-
-#include <rendering/Mesh.hpp>
-#include <rendering/Texture.hpp>
 
 #include <scene/View.hpp>
 
 #include <core/math/MathUtil.hpp>
 
 #include <core/reflection/Class.hpp>
-
-#include <core/memory/allocator/ArenaAllocator.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

@@ -10,6 +10,7 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderFrame.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/Mesh.hpp>

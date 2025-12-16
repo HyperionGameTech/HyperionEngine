@@ -14,6 +14,8 @@
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 

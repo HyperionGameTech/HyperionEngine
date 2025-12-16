@@ -21,7 +21,7 @@ extern "C"
 
         for (uint32 i = 0; i < uint32(assets.Size()); i++)
         {
-            new (&pOutAssetHandles[i]) Handle<AssetObject>(assets[i]);
+            new (&pOutAssetHandles[i]) Handle<AssetObject>(std::move(assets[i]));
         }
 
         return uint32(assets.Size());
@@ -40,7 +40,7 @@ extern "C"
 
         for (uint32 i = 0; i < uint32(packages.Size()); i++)
         {
-            new (&pOutPackageHandles[i]) Handle<AssetPackage>(packages[i]);
+            new (&pOutPackageHandles[i]) Handle<AssetPackage>(std::move(packages[i]));
         }
 
         return uint32(packages.Size());

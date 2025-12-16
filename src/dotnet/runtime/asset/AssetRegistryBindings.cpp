@@ -21,8 +21,9 @@ extern "C"
 
         for (uint32 i = 0; i < uint32(packages.Size()); i++)
         {
-            pOutPackageHandles[i] = packages[i];
+            new (&pOutPackageHandles[i]) Handle<AssetPackage>(std::move(packages[i]));
         }
+
 
         return uint32(packages.Size());
     }

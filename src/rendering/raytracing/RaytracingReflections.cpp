@@ -8,6 +8,8 @@
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderResult.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderDescriptorSet.hpp>

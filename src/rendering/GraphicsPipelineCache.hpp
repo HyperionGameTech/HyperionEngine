@@ -65,7 +65,7 @@ public:
 
     HYP_FORCE_INLINE bool IsAlive() const
     {
-        return m_pRef != nullptr && *m_pRef != nullptr;
+        return m_pRef && m_pRef->IsValid();
     }
 
     HYP_FORCE_INLINE const GraphicsPipelineRef& operator*() const

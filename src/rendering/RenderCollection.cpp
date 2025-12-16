@@ -5,6 +5,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderMaterial.hpp>
@@ -21,6 +22,7 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/ResourceTracker.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>
