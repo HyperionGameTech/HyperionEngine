@@ -13,9 +13,6 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <HyperionEngine.hpp>
-
 #include <EditorState.generated.inl>
 
 namespace hyperion {

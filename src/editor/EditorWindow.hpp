@@ -7,6 +7,7 @@
 #include <core/containers/String.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/math/Vector2.hpp>
 
