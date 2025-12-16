@@ -4,6 +4,7 @@
 
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGpuBuffer.hpp>

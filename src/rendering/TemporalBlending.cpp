@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "shader_compiler/ShaderCompiler.hpp"
 #include <HyperionPch.hpp>
 
 #include <rendering/TemporalBlending.hpp>
@@ -171,20 +172,18 @@ void TemporalBlending::Resize_Internal(Vec2u newSize)
     SafeDelete(std::move(m_csPerformBlending));
 }
 
-ShaderProperties TemporalBlending::GetShaderProperties() const
+void TemporalBlending::GetShaderProperties(ShaderProperties& outProperties) const
 {
-    ShaderProperties shaderProperties;
-
     switch (m_imageFormat)
     {
     case TF_RGBA8:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8")));
+        outProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8")));
         break;
     case TF_RGBA16F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F")));
+        outProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F")));
         break;
     case TF_RGBA32F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F")));
+        outProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F")));
         break;
     default:
         HYP_NOT_IMPLEMENTED();
@@ -192,10 +191,8 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
 
     static const Name s_feedbackTypes[] = { NAME("LOW"), NAME("MEDIUM"), NAME("HIGH") };
 
-    shaderProperties.Set(ShaderProperty(NAME("TEMPORAL_BLEND_TECHNIQUE"), int(m_technique)));
-    shaderProperties.Set(ShaderProperty(NAME("FEEDBACK"), float(m_feedback)));
-
-    return shaderProperties;
+    outProperties.Set(ShaderProperty(NAME("TEMPORAL_BLEND_TECHNIQUE"), int(m_technique)));
+    outProperties.Set(ShaderProperty(NAME("FEEDBACK"), float(m_feedback)));
 }
 
 void TemporalBlending::CreateImages()
@@ -231,7 +228,10 @@ void TemporalBlending::CreatePipeline()
 {
     SafeDelete(std::move(m_csPerformBlending));
 
-    ShaderRef shader = g_shaderManager->GetOrCreate(NAME("TemporalBlending"), GetShaderProperties());
+    ShaderProperties shaderProperties;
+    GetShaderProperties(shaderProperties);
+
+    ShaderRef shader = g_shaderManager->GetOrCreate(NAME("TemporalBlending"), shaderProperties);
     Assert(shader.IsValid());
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(

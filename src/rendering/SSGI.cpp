@@ -3,6 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/SSGI.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/RenderGlobalState.hpp>

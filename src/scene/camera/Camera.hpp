@@ -4,8 +4,6 @@
 
 #include <core/reflection/Handle.hpp>
 
-#include <core/containers/Queue.hpp>
-
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/math/Vector3.hpp>
@@ -19,9 +17,6 @@
 #include <rendering/RenderObject.hpp>
 
 #include <scene/Entity.hpp>
-
-#include <atomic>
-#include <mutex>
 
 namespace hyperion {
 
@@ -165,20 +160,12 @@ public:
     virtual void UpdateViewMatrix() = 0;
     virtual void UpdateProjectionMatrix() = 0;
 
-    void PushCommand(const CameraCommand& command);
-
 protected:
     virtual void OnAdded();
     virtual void OnRemoved();
 
     virtual void OnActivated();
     virtual void OnDeactivated();
-
-    virtual void RespondToCommand(const CameraCommand& command, float dt)
-    {
-    }
-
-    void UpdateCommandQueue(float dt);
 
     void SetIsMouseLockRequested(bool mouseLockRequested);
 
@@ -190,10 +177,6 @@ protected:
 
     HYP_FIELD(Property = "ProjectionMode", Editor = true)
     CameraProjectionMode m_projectionMode;
-
-    std::mutex m_commandQueueMutex;
-    std::atomic_uint m_commandQueueCount;
-    Queue<CameraCommand> m_commandQueue;
 
     bool m_mouseLockRequested;
 

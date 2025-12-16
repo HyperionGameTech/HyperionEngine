@@ -35,6 +35,7 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/ShaderManager.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

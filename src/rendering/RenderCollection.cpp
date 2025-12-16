@@ -7,6 +7,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderBackend.hpp>

@@ -3,6 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/FullScreenPass.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/TemporalBlending.hpp>

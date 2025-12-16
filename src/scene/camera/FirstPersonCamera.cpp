@@ -167,53 +167,6 @@ void FirstPersonCameraController::UpdateLogic(double dt)
     HYP_SCOPE;
 }
 
-void FirstPersonCameraController::RespondToCommand(const CameraCommand& command, float dt)
-{
-    HYP_SCOPE;
-
-    switch (command.command)
-    {
-    case CameraCommand::CAMERA_COMMAND_MAG:
-    {
-        m_mouseX = command.magData.mouseX;
-        m_mouseY = command.magData.mouseY;
-
-        break;
-    }
-    case CameraCommand::CAMERA_COMMAND_MOVEMENT:
-    {
-        const float speed = movementSpeed; // * static_cast<float>(dt);
-
-        switch (command.movementData.movementType)
-        {
-        case CameraCommand::CAMERA_MOVEMENT_FORWARD:
-            m_moveDeltas += m_camera->m_direction; // * speed;
-
-            break;
-        case CameraCommand::CAMERA_MOVEMENT_BACKWARD:
-            m_moveDeltas -= m_camera->m_direction; // * speed;
-
-            break;
-        case CameraCommand::CAMERA_MOVEMENT_LEFT:
-            m_moveDeltas -= m_dirCrossY; // * speed;
-
-            break;
-        case CameraCommand::CAMERA_MOVEMENT_RIGHT:
-            m_moveDeltas += m_dirCrossY; // * speed;
-
-            break;
-        default:
-            break;
-        }
-
-        break;
-    }
-
-    default:
-        break;
-    }
-}
-
 #pragma endregion FirstPersonCameraController
 
 } // namespace hyperion

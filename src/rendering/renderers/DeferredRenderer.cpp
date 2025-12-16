@@ -8,6 +8,7 @@
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/RenderMaterial.hpp>

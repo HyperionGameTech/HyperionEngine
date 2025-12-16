@@ -248,40 +248,35 @@ add_definitions(-DHYP_SCRIPT=1)
 
 set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
-# # Disable .NET support by default (comment to enable)
-# set(HYP_NO_DOTNET 1)
+# if dotnet headers exist, set HYP_DOTNET to 1
+if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dotnetcore/hostfxr.h")
+    message(STATUS ".NET headers found")
+    set(HYP_DOTNET 1)
 
-if(NOT HYP_NO_DOTNET)
-    # if dotnet headers exist, set HYP_DOTNET to 1
-    if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dotnetcore/hostfxr.h")
-        message(STATUS ".NET headers found")
-        set(HYP_DOTNET 1)
+    if(HYP_DOTNET)
+        if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
+            message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-        if(HYP_DOTNET)
-            if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
-                message(STATUS ".NET core found, setting HYP_DOTNET to 1")
+            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
 
-                set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
+            set(HYP_DOTNET 1)
+        elseif(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
+            message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-                set(HYP_DOTNET 1)
-            elseif(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
-                message(STATUS ".NET core found, setting HYP_DOTNET to 1")
+            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
 
-                set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
+            # copy the dll to the build directory
+            file(COPY "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-                # copy the dll to the build directory
-                file(COPY "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-
-                set(HYP_DOTNET 1)
-            endif()
-
-            add_definitions(-DHYP_DOTNET=1)
-            set(HYP_GENERATE_CSHARP_LIBRARIES true)
+            set(HYP_DOTNET 1)
         endif()
-    else()
-        message(STATUS ".NET headers not found, skipping .NET core runtime")
-        set(HYP_GENERATE_CSHARP_LIBRARIES false)
+
+        add_definitions(-DHYP_DOTNET=1)
+        set(HYP_GENERATE_CSHARP_LIBRARIES true)
     endif()
+else()
+    message(STATUS ".NET headers not found, skipping .NET core runtime")
+    set(HYP_GENERATE_CSHARP_LIBRARIES false)
 endif()
 
 # Build C# libraries
@@ -385,6 +380,179 @@ else()
     message(STATUS "Not building C# libraries, HYP_GENERATE_CSHARP_LIBRARIES is false")
 endif()
 
+# Find rendering backend so rendering module can use it
+# We set it up here instead of in the rendering module so that we can use the
+# Vulkan includes (which will be needed from the main module) as well as  setting up definitions.
+
+if(NOT IOS)
+    set(RENDERING_BACKEND "Vulkan")
+
+    find_package(Vulkan)
+endif()
+
+if (NOT DEFINED RENDERING_BACKEND)
+    if (Vulkan_FOUND)
+        set(RENDERING_BACKEND "Vulkan")
+    else()
+        message(FATAL_ERROR "No rendering backend found")
+    endif()
+endif()
+
+if (RENDERING_BACKEND STREQUAL "Vulkan")
+    add_definitions(-DHYP_VULKAN=1)
+    set(HYP_VULKAN 1)
+
+    message(STATUS "Found Vulkan at: ${Vulkan_INCLUDE_DIRS} ${Vulkan_LIBRARIES}")
+
+    include_directories(${Vulkan_INCLUDE_DIRS})
+else()
+    message(FATAL_ERROR "No rendering backend found!")
+endif()
+
+
+
+if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
+    # if glslang folder exists, link with it.
+    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
+        add_definitions(-DHYP_GLSLANG=1)
+        add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
+
+        # Build glslang as external project to avoid cluttering solution (only for VS and Xcode)
+        if(MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
+            ExternalProject_Add(glslang_external
+                SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/glslang
+                CMAKE_ARGS
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/glslang_install
+                    -DGLSLANG_ENABLE_INSTALL=OFF
+                    -DGLSLANG_ENABLE_INSTALL_DEFAULT=OFF
+                    -DGLSLANG_TESTS=OFF
+                    -DENABLE_GLSLANG_BINARIES=OFF
+                    -DENABLE_SPVREMAPPER=OFF
+                    -DENABLE_SPIRV=ON
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+                    -DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1
+                BUILD_ALWAYS FALSE
+                INSTALL_COMMAND ""
+                EXCLUDE_FROM_ALL TRUE
+            )
+
+            # Create imported targets for all the libraries we need
+            ExternalProject_Get_Property(glslang_external BINARY_DIR)
+
+            add_library(glslang STATIC IMPORTED)
+            add_library(SPIRV STATIC IMPORTED)
+            add_library(glslang-default-resource-limits STATIC IMPORTED)
+            add_library(SPIRV-Tools STATIC IMPORTED)
+            add_library(SPIRV-Tools-opt STATIC IMPORTED)
+            add_library(MachineIndependent STATIC IMPORTED)
+            add_library(GenericCodeGen STATIC IMPORTED)
+            add_library(OSDependent STATIC IMPORTED)
+
+            add_dependencies(glslang glslang_external)
+            add_dependencies(SPIRV glslang_external)
+            add_dependencies(glslang-default-resource-limits glslang_external)
+            add_dependencies(SPIRV-Tools glslang_external)
+            add_dependencies(SPIRV-Tools-opt glslang_external)
+            add_dependencies(MachineIndependent glslang_external)
+            add_dependencies(GenericCodeGen glslang_external)
+            add_dependencies(OSDependent glslang_external)
+
+            # Set the imported library locations
+            if(WIN32)
+                set_target_properties(glslang PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/glslang.lib
+                )
+                set_target_properties(SPIRV PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/SPIRV/${CMAKE_BUILD_TYPE}/SPIRV.lib
+                )
+                set_target_properties(glslang-default-resource-limits PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/glslang-default-resource-limits.lib
+                )
+                set_target_properties(SPIRV-Tools PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/${CMAKE_BUILD_TYPE}/SPIRV-Tools.lib
+                )
+                set_target_properties(SPIRV-Tools-opt PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/opt/${CMAKE_BUILD_TYPE}/SPIRV-Tools-opt.lib
+                )
+                set_target_properties(MachineIndependent PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/MachineIndependent.lib
+                )
+                set_target_properties(GenericCodeGen PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/GenericCodeGen.lib
+                )
+                set_target_properties(OSDependent PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/OSDependent/Windows/${CMAKE_BUILD_TYPE}/OSDependent.lib
+                )
+            else()
+                set_target_properties(glslang PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libglslang.a
+                )
+                set_target_properties(SPIRV PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/SPIRV/${CMAKE_BUILD_TYPE}/libSPIRV.a
+                )
+                set_target_properties(glslang-default-resource-limits PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libglslang-default-resource-limits.a
+                )
+                set_target_properties(SPIRV-Tools PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/${CMAKE_BUILD_TYPE}/libSPIRV-Tools.a
+                )
+                set_target_properties(SPIRV-Tools-opt PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/opt/${CMAKE_BUILD_TYPE}/libSPIRV-Tools-opt.a
+                )
+                set_target_properties(MachineIndependent PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libMachineIndependent.a
+                )
+                set_target_properties(GenericCodeGen PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libGenericCodeGen.a
+                )
+                set_target_properties(OSDependent PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/glslang/OSDependent/Unix/${CMAKE_BUILD_TYPE}/libOSDependent.a
+                )
+            endif()
+
+            include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
+
+            set(RENDERER_LIBRARIES
+                ${RENDERER_LIBRARIES}
+                glslang
+                SPIRV
+                glslang-default-resource-limits
+                SPIRV-Tools
+                SPIRV-Tools-opt
+                MachineIndependent
+                GenericCodeGen
+                OSDependent
+            )
+        else()
+            # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
+            set(GLSLANG_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+            set(GLSLANG_ENABLE_INSTALL_DEFAULT OFF CACHE BOOL "" FORCE)
+            set(GLSLANG_TESTS OFF CACHE BOOL "" FORCE)
+            set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "" FORCE)
+            set(ENABLE_SPVREMAPPER OFF CACHE BOOL "" FORCE)
+            set(ENABLE_SPIRV ON CACHE BOOL "" FORCE)
+            set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+            add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/glslang EXCLUDE_FROM_ALL)
+
+            include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
+
+            set(RENDERER_LIBRARIES
+                ${RENDERER_LIBRARIES}
+                glslang
+                SPIRV
+                glslang-default-resource-limits
+                SPIRV-Tools
+                SPIRV-Tools-opt
+                MachineIndependent
+                GenericCodeGen
+                OSDependent
+            )
+        endif()
+    endif()
+endif()
+
 function(collect_sources_and_modules dir out_sources out_headers out_modules out_pch_headers)
     set(local_sources "")
     set(local_headers "")
@@ -397,7 +565,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
         return()
     endif()
 
-    # If this directory has a CMakeLists.txt, consider it a module and skip recursion.
+    # If this directory has a CMakeLists.txt, consider it a module
     if(EXISTS "${dir}/CMakeLists.txt")
         set(subdir_basename "")
         set(sub_library_name "")
@@ -428,32 +596,30 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
         if (EXISTS "${dir}/${subdir_basename}Pch.hpp")
             list(APPEND local_pch_headers "${dir}/${subdir_basename}Pch.hpp")
         endif()
+    else()
+        file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR}
+            "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
+        list(APPEND local_sources ${current_sources})
+        file(GLOB current_headers RELATIVE ${CMAKE_SOURCE_DIR}
+            "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl")
+        list(APPEND local_headers ${current_headers})
 
-        return()
+        file(GLOB children LIST_DIRECTORIES true "${dir}/*")
+        foreach(child ${children})
+            if(IS_DIRECTORY "${child}")
+                collect_sources_and_modules("${child}" child_sources child_headers child_modules child_pch_headers)
+                list(APPEND local_sources ${child_sources})
+                list(APPEND local_headers ${child_headers})
+                list(APPEND local_modules ${child_modules})
+                list(APPEND local_pch_headers ${child_pch_headers})
+            endif()
+        endforeach()
+
+        set(${out_sources} "${local_sources}" PARENT_SCOPE)
+        set(${out_headers} "${local_headers}" PARENT_SCOPE)
+        set(${out_modules} "${local_modules}" PARENT_SCOPE)
+        set(${out_pch_headers} "${local_pch_headers}" PARENT_SCOPE)
     endif()
-
-    file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR}
-         "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
-    list(APPEND local_sources ${current_sources})
-    file(GLOB current_headers RELATIVE ${CMAKE_SOURCE_DIR}
-         "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl")
-    list(APPEND local_headers ${current_headers})
-
-    file(GLOB children LIST_DIRECTORIES true "${dir}/*")
-    foreach(child ${children})
-        if(IS_DIRECTORY "${child}")
-            collect_sources_and_modules("${child}" child_sources child_headers child_modules child_pch_headers)
-            list(APPEND local_sources ${child_sources})
-            list(APPEND local_headers ${child_headers})
-            list(APPEND local_modules ${child_modules})
-            list(APPEND local_pch_headers ${child_pch_headers})
-        endif()
-    endforeach()
-
-    set(${out_sources} "${local_sources}" PARENT_SCOPE)
-    set(${out_headers} "${local_headers}" PARENT_SCOPE)
-    set(${out_modules} "${local_modules}" PARENT_SCOPE)
-    set(${out_pch_headers} "${local_pch_headers}" PARENT_SCOPE)
 endfunction()
 
 set(SUB_LIBRARIES "")
@@ -513,6 +679,8 @@ if(Bullet_FOUND)
         ${BULLET_LIBRARIES}
     )
 endif()
+
+
 
 if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
     if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/libdatachannel/CMakeLists.txt")
@@ -708,6 +876,7 @@ set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
 message(STATUS "Sub-libraries: ${SUB_LIBRARIES}")
 
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
+target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
 
 
 # add sublibraries as dependencies so any changes get picked up.
@@ -740,6 +909,7 @@ elseif(MSVC)
 else()
     target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARIES})
 endif()
+
 
 # Add dependencies on external projects to ensure they're built before the main library
 
