@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0091 NEW)
 
-set(BUILD_NAME hyperion-system)
+set(BUILD_NAME hyperion-serialization)
 
 project(${BUILD_NAME} CXX C)
 
@@ -26,17 +26,17 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/generated
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/system
+    ${CMAKE_SOURCE_DIR}/src/serialization
 )
 
 # Normalize sources/headers to absolute paths under the root
 set(CURRENT_SOURCES "")
-foreach(filepath ${hyperion-system_SOURCES})
+foreach(filepath ${hyperion-serialization_SOURCES})
     list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
 set(CURRENT_HEADERS "")
-foreach(filepath ${hyperion-system_HEADERS})
+foreach(filepath ${hyperion-serialization_HEADERS})
     list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 

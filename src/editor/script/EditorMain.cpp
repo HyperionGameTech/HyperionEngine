@@ -22,7 +22,7 @@
 
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#include <shadows/ShadowMap.hpp>
+#include <rendering/shadows/ShadowMap.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
 
