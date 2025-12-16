@@ -42,5 +42,9 @@ endforeach()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
+if(${hyperion-serialization_PCH})
+    target_precompile_headers(${BUILD_NAME} PRIVATE ${hyperion-serialization_PCH})
+endif()
+
 add_dependencies(${BUILD_NAME} hyperion-core)
 target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)
