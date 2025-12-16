@@ -7,6 +7,8 @@
 
 #include <scene/Scene.hpp>
 
+#include <core/math/MathUtil.hpp>
+
 #include <core/memory/allocator/ArenaAllocator.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -78,7 +80,8 @@ bool WorldAABBUpdaterSystem::ProcessEntity(Entity* entity, BoundingBoxComponent&
 {
     const BoundingBox worldAabb = entity->GetWorldBounds();
 
-    if (worldAabb == boundingBoxComponent.worldAabb)
+    if (MathUtil::ApproxEqual(boundingBoxComponent.worldAabb.min, worldAabb.min)
+        && MathUtil::ApproxEqual(boundingBoxComponent.worldAabb.max, worldAabb.max))
     {
         // no change
         return false;
