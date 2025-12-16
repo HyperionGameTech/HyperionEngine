@@ -94,9 +94,3 @@ using RendererResult = TResult<void, RendererError>;
     while (0)
 
 } // namespace hyperion
-
-#if HYP_VULKAN
-#include <rendering/vulkan/VulkanResult.hpp>
-#else
-#error Unsupported rendering backend
-#endif

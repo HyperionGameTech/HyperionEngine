@@ -6,6 +6,7 @@
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
+#include <rendering/vulkan/VulkanResult.hpp>
 
 #include <rendering/RenderDevice.hpp>
 

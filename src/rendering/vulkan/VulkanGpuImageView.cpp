@@ -7,6 +7,7 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanResult.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
