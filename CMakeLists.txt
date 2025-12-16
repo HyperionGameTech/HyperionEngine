@@ -534,9 +534,9 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
             set(ENABLE_SPIRV ON CACHE BOOL "" FORCE)
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-            add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/glslang EXCLUDE_FROM_ALL)
-
             include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
+
+            add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/glslang EXCLUDE_FROM_ALL)
 
             set(RENDERER_LIBRARIES
                 ${RENDERER_LIBRARIES}
