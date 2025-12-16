@@ -201,10 +201,6 @@ elseif(MSVC)
     add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
 endif()
 
-if(NOT IOS)
-    find_package(Freetype)
-endif()
-
 # if(NOT IOS)
 #     link_directories(/usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
 
@@ -813,18 +809,6 @@ if(WIN32)
 endif()
 
 if(NOT IOS)
-    if(FREETYPE_FOUND)
-        message(STATUS "Freetype found")
-
-        add_definitions(-DHYP_FREETYPE=1)
-
-        include_directories(${FREETYPE_INCLUDE_DIRS})
-        set(COMMON_LIBRARIES
-            ${COMMON_LIBRARIES}
-            ${FREETYPE_LIBRARIES}
-        )
-    endif()
-
     # if(GST_FOUND)
     #     add_definitions(-DHYP_GSTREAMER=1)
     #     add_definitions(-DHYP_GSTREAMER_BIN_DIR="Z:/gstreamer/1.0/msvc_x86_64/bin")
@@ -936,9 +920,9 @@ target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
 
 
 # add sublibraries as dependencies so any changes get picked up.
-# we'll have to skip hyperion-editor2 though since it depends on the engine's DLL
+# we'll have to skip hyperion-editor though since it depends on the engine's DLL
 foreach(SUB_LIBRARY ${SUB_LIBRARIES})
-    if (NOT SUB_LIBRARY STREQUAL "hyperion-editor2")
+    if (NOT SUB_LIBRARY STREQUAL "hyperion-editor")
         add_dependencies(${BUILD_NAME} ${SUB_LIBRARY})
     endif()
 endforeach()

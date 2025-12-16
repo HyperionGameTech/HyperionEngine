@@ -42,5 +42,9 @@ endforeach()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
+if(${hyperion-streaming_PCH})
+    target_precompile_headers(${BUILD_NAME} PRIVATE ${hyperion-streaming_PCH})
+endif()
+
 add_dependencies(${BUILD_NAME} hyperion-core hyperion-scene hyperion-asset)
 target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core hyperion-scene hyperion-asset)
