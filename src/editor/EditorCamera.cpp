@@ -320,30 +320,6 @@ void EditorCameraController::UpdateLogic(double delta)
     m_camera->SetNextTranslation(translation);
 }
 
-void EditorCameraController::RespondToCommand(const CameraCommand& command, float dt)
-{
-    HYP_SCOPE;
-
-    switch (command.command)
-    {
-    case CameraCommand::CAMERA_COMMAND_MAG:
-    case CameraCommand::CAMERA_COMMAND_MOVEMENT: // fallthrough
-        if (m_mode == EditorCameraControllerMode::INACTIVE)
-        {
-            // Don't handle command
-            return;
-        }
-
-        // Let base class handle command
-        break;
-
-    default:
-        break;
-    }
-
-    FirstPersonCameraController::RespondToCommand(command, dt);
-}
-
 #pragma endregion EditorCameraController
 
 } // namespace hyperion

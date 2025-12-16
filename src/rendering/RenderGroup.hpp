@@ -10,7 +10,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-#include <rendering/ShaderManager.hpp>
+#include <rendering/RenderObject.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 

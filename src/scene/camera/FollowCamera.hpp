@@ -32,8 +32,6 @@ protected:
     virtual void OnDeactivated() override;
 
 private:
-    virtual void RespondToCommand(const CameraCommand& command, float dt) override;
-
     Vec3f m_offset,
         m_realOffset;
 

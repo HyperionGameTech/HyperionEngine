@@ -6,6 +6,7 @@
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderFrame.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>

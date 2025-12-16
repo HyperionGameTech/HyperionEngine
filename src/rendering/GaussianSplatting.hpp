@@ -12,7 +12,6 @@
 
 #include <util/img/Bitmap.hpp>
 
-#include <rendering/ShaderManager.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <core/Constants.hpp>

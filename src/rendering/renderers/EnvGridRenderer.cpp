@@ -4,6 +4,8 @@
 
 #include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
+
+#include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderBackend.hpp>

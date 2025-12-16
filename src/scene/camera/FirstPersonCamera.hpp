@@ -73,8 +73,6 @@ protected:
     virtual void OnActivated() override;
     virtual void OnDeactivated() override;
 
-    virtual void RespondToCommand(const CameraCommand& command, float dt) override;
-
     FirstPersonCameraControllerMode m_mode;
 
     Vec3f m_moveDeltas;

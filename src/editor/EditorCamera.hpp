@@ -60,8 +60,6 @@ public:
 protected:
     virtual void OnActivated() override;
 
-    virtual void RespondToCommand(const CameraCommand& command, float dt) override;
-
     EditorCameraControllerMode m_mode;
 };
 } // namespace hyperion

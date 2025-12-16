@@ -34,9 +34,6 @@ public:
 protected:
     RC<CameraTrack> m_cameraTrack;
     double m_trackTime;
-
-private:
-    virtual void RespondToCommand(const CameraCommand& command, float dt) override;
 };
 
 } // namespace hyperion

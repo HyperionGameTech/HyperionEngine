@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <rendering/ShaderManager.hpp>
-
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
