@@ -319,7 +319,7 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
     textureDesc.filterModeMin = ResolveMinFilter(texture.sampler);
     textureDesc.filterModeMag = ResolveMagFilter(texture.sampler);
     textureDesc.wrapMode = ResolveWrapMode(texture.sampler, ctx);
-    textureDesc.format = ChangeFormatSrgb(textureDesc.format, srgb);
+    textureDesc.format = TextureUtils::ChangeFormatSrgb(textureDesc.format, srgb);
 
     textureHandle->SetTextureDesc(textureDesc);
 
@@ -530,11 +530,11 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
         }
 
         //// @TODO implement handling both metallic and roughness in the same texture
-        //if (Handle<Texture> metallicRoughnessTexture = AcquireTexture(ctx, pbr.metallic_roughness_texture, false))
+        // if (Handle<Texture> metallicRoughnessTexture = AcquireTexture(ctx, pbr.metallic_roughness_texture, false))
         //{
-        //    textures[MaterialTextureKey::METALNESS_MAP] = metallicRoughnessTexture;
-        //    textures[MaterialTextureKey::ROUGHNESS_MAP] = metallicRoughnessTexture;
-        //}
+        //     textures[MaterialTextureKey::METALNESS_MAP] = metallicRoughnessTexture;
+        //     textures[MaterialTextureKey::ROUGHNESS_MAP] = metallicRoughnessTexture;
+        // }
     }
 
     if (material->has_transmission)

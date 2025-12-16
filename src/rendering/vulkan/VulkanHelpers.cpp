@@ -152,7 +152,7 @@ VkSamplerAddressMode ToVkSamplerAddressMode(TextureWrapMode textureWrapMode)
 
 VkImageAspectFlags ToVkImageAspect(TextureFormat fmt)
 {
-    return IsDepthFormat(fmt)
+    return TextureUtils::IsDepthFormat(fmt)
         ? VK_IMAGE_ASPECT_DEPTH_BIT
         : VK_IMAGE_ASPECT_COLOR_BIT;
 }

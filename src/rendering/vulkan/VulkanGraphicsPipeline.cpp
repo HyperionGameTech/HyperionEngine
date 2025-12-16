@@ -327,10 +327,10 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
             continue;
         }
 
-        const bool blendEnabled = m_blendFunction != BlendFunction::None() && FormatSupportsBlending(attachment->GetFormat());
+        const bool blendEnabled = m_blendFunction != BlendFunction::None() && TextureUtils::FormatSupportsBlending(attachment->GetFormat());
 
-        static const VkBlendOp colorBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
-        static const VkBlendOp alphaBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
+        static constexpr VkBlendOp ColorBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
+        static constexpr VkBlendOp AlphaBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
 
         colorBlendAttachments.PushBack(VkPipelineColorBlendAttachmentState {
             .blendEnable = blendEnabled,

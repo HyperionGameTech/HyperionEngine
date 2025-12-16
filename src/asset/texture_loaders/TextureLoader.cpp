@@ -111,7 +111,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 
     ByteBuffer baseMipData = ByteBuffer(imageBytesCount, imageBytes);
 
-    const uint32 numComponents = NumComponents(data.format);
+    const uint32 numComponents = TextureUtils::NumComponents(data.format);
 
     if (numComponents == 3)
     {
@@ -119,7 +119,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         const uint32 size = textureDesc.GetByteSize();
         const uint32 faceOffsetStep = size / textureDesc.NumArrayLayers();
 
-        textureDesc.format = FormatChangeNumComponents(data.format, 4);
+        textureDesc.format = TextureUtils::FormatChangeNumComponents(data.format, 4);
 
         const uint32 newSize = textureDesc.GetByteSize();
         const uint32 newFaceOffsetStep = newSize / textureDesc.NumArrayLayers();
