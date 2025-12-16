@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0091 NEW)
 
-set(BUILD_NAME hyperion-vulkan)
+set(BUILD_NAME hyperion-scene)
 
 project(${BUILD_NAME} CXX C)
 
@@ -21,33 +21,25 @@ endif()
 
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
-add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
-
 include_directories(
-    ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/thirdparty
     ${CMAKE_SOURCE_DIR}/generated
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/rendering
-    ${CMAKE_SOURCE_DIR}/src/rendering/vulkan
+    ${CMAKE_SOURCE_DIR}/src/scene
 )
 
 # Normalize sources/headers to absolute paths under the root
 set(CURRENT_SOURCES "")
-foreach(filepath ${hyperion-vulkan_SOURCES})
+foreach(filepath ${hyperion-scene_SOURCES})
     list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
 set(CURRENT_HEADERS "")
-foreach(filepath ${hyperion-vulkan_HEADERS})
+foreach(filepath ${hyperion-scene_HEADERS})
     list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
-if(${hyperion-vulkan_PCH})
-    target_precompile_headers(${BUILD_NAME} PRIVATE ${hyperion-vulkan_PCH})
-endif()
-
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
-target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core ${Vulkan_LIBRARIES})
+target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)
