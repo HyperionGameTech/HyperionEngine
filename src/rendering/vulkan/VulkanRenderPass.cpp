@@ -9,6 +9,7 @@
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
+#include <rendering/vulkan/VulkanResult.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

@@ -10,6 +10,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <engine/EngineGlobals.hpp>
+
 namespace hyperion {
 
 DOFBlur::DOFBlur(const Vec2u& extent, GBuffer* gbuffer)
@@ -22,19 +24,19 @@ DOFBlur::~DOFBlur() = default;
 
 void DOFBlur::Create()
 {
-    ShaderRef blurHorizontalShader = ShaderManager::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("HORIZONTAL")) }));
+    ShaderRef blurHorizontalShader = g_shaderManager->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("HORIZONTAL")) }));
     Assert(blurHorizontalShader.IsValid());
 
     m_blurHorizontalPass = CreateObject<FullScreenPass>(blurHorizontalShader, TF_RGBA8, m_extent, m_gbuffer);
     m_blurHorizontalPass->Create();
 
-    ShaderRef blurVerticalShader = ShaderManager::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("VERTICAL")) }));
+    ShaderRef blurVerticalShader = g_shaderManager->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("VERTICAL")) }));
     Assert(blurVerticalShader.IsValid());
 
     m_blurVerticalPass = CreateObject<FullScreenPass>(blurVerticalShader, TF_RGBA8, m_extent, m_gbuffer);
     m_blurVerticalPass->Create();
 
-    ShaderRef blurMixShader = ShaderManager::GetInstance()->GetOrCreate(NAME("DOFBlurMix"));
+    ShaderRef blurMixShader = g_shaderManager->GetOrCreate(NAME("DOFBlurMix"));
     Assert(blurMixShader.IsValid());
 
     m_blurMixPass = CreateObject<FullScreenPass>(blurMixShader, TF_RGBA8, m_extent, m_gbuffer);

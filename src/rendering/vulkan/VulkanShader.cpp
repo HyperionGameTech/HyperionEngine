@@ -6,6 +6,7 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanResult.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 

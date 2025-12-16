@@ -101,9 +101,8 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 ${CSPROJ_PATH}
                 TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
             )
-
         endif()
 
-        add_dependencies(${BUILD_NAME} Hyperion.NET.Runtime)
+        add_dependencies(${BUILD_NAME} Hyperion.NET.Runtime hyperion-rendering)
     endif()
 endif()
