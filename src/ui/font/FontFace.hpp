@@ -20,21 +20,21 @@ public:
 
     FontFace() = default;
 
-    HYP_API FontFace(FontEngine::Backend backend, const FilePath& filePath);
+    FontFace(FontEngine::Backend backend, const FilePath& filePath);
 
     FontFace(const FontFace& other) = delete;
     FontFace& operator=(const FontFace& other) = delete;
 
-    HYP_API FontFace(FontFace&& other) noexcept;
-    HYP_API FontFace& operator=(FontFace&& other) noexcept;
-    HYP_API ~FontFace();
+    FontFace(FontFace&& other) noexcept;
+    FontFace& operator=(FontFace&& other) noexcept;
+    ~FontFace();
 
-    HYP_API void Init();
+    void Init();
 
-    HYP_API void RequestPixelSizes(int width, int height);
-    HYP_API void SetGlyphSize(int ptW, int ptH, int screenWidth, int screenHeight);
-    HYP_API GlyphIndex GetGlyphIndex(WChar toFind);
-    HYP_API FontEngine::Font GetFace();
+    void RequestPixelSizes(int width, int height);
+    void SetGlyphSize(int ptW, int ptH, int screenWidth, int screenHeight);
+    GlyphIndex GetGlyphIndex(WChar toFind);
+    FontEngine::Font GetFace();
 
 private:
     FontEngine::Font m_face;
