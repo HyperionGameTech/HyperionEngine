@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0091 NEW)
 
-set(BUILD_NAME hyperion-editor2)
+set(BUILD_NAME hyperion-editor)
 
 project(${BUILD_NAME} CXX C)
 
@@ -23,24 +23,34 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
 endif()
 
-file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/native/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/native/*.cc" "${CMAKE_CURRENT_SOURCE_DIR}/native/*.c")
-file(GLOB_RECURSE HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/native/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/native/*.hpp")
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/native PREFIX "Hyperion Editor Native Code" FILES ${SOURCES} ${HEADERS})
-
 add_definitions(-DHYP_BUILD_LIBRARY=1)
-add_definitions(-DHYP_EDITOR2=1)
+add_definitions(-DHYP_EDITOR=1)
 
 include_directories(
     ${SDL2_INCLUDE_DIRS}
-    ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/thirdparty
+    ${CMAKE_SOURCE_DIR}/generated
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/editor2
+    ${CMAKE_SOURCE_DIR}/src/editor
 )
 
-add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+set(CURRENT_SOURCES "")
+foreach(filepath ${hyperion-editor_SOURCES})
+    list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
+endforeach()
+
+set(CURRENT_HEADERS "")
+foreach(filepath ${hyperion-editor_HEADERS})
+    list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
+endforeach()
+
+add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
+
+if(${hyperion-editor_PCH})
+    target_precompile_headers(${BUILD_NAME} PRIVATE ${hyperion-editor_PCH})
+endif()
 
 # CSHARP_PROJECTS_DIR must be defined (from CMakeLists.txt in src/) as it is used to locate the Hyperion.NET packages
 # check to ensure it is defined

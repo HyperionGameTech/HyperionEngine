@@ -10,11 +10,7 @@
 #include <ui/UIGrid.hpp>
 #include <ui/UITextbox.hpp>
 
-#include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 namespace hyperion {
 

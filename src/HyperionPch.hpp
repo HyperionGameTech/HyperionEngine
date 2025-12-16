@@ -7,6 +7,11 @@
 #include <core/HashCode.hpp>
 #include <core/Constants.hpp>
 
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ObjectBase.hpp>
+
+#include <core/profiling/ProfileScope.hpp>
+
 #include <core/containers/Array.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
@@ -18,6 +23,9 @@
 #include <core/containers/Queue.hpp>
 #include <core/containers/Stack.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 #endif // __cplusplus

@@ -1,10 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <HyperionPch.hpp>
+
 #include <editor/EditorTaskManager.hpp>
 
 #include <editor/ui/EditorUI.hpp>
-
-#include <core/reflection/Class.hpp>
 
 #include <ui/UIObject.hpp>
 #include <ui/UIPanel.hpp>

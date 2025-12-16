@@ -1,13 +1,11 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/Defines.hpp>
+#include <HyperionPch.hpp>
 
 #include <editor/EditorViewport.hpp>
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
 #include <editor/EditorCamera.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -16,9 +14,6 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <EditorViewport.generated.inl>
 
