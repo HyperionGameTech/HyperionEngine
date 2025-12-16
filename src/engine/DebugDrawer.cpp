@@ -9,6 +9,7 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>

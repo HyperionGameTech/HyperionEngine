@@ -39,8 +39,4 @@ void CameraTrackController::UpdateLogic(double dt)
     m_camera->SetDirection(viewVector);
 }
 
-void CameraTrackController::RespondToCommand(const CameraCommand& command, float dt)
-{
-}
-
 } // namespace hyperion

@@ -8,8 +8,6 @@
 
 #include <core/functional/Delegate.hpp>
 
-#include <rendering/ShaderManager.hpp>
-
 #include <rendering/RenderObject.hpp>
 
 namespace hyperion {
@@ -94,7 +92,7 @@ public:
 private:
     void Resize_Internal(Vec2u newSize);
 
-    ShaderProperties GetShaderProperties() const;
+    void GetShaderProperties(class ShaderProperties& outProperties) const;
 
     void CreateImages();
     void CreatePipeline();

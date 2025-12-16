@@ -60,7 +60,6 @@ CameraController::CameraController(CameraProjectionMode projectionMode)
     : m_inputHandler(GetNullInputHandler()),
       m_camera(nullptr),
       m_projectionMode(projectionMode),
-      m_commandQueueCount { 0 },
       m_mouseLockRequested(false)
 {
 }
@@ -103,38 +102,6 @@ void CameraController::OnActivated()
 void CameraController::OnDeactivated()
 {
     SetIsMouseLockRequested(false);
-}
-
-void CameraController::PushCommand(const CameraCommand& command)
-{
-    HYP_SCOPE;
-
-    std::lock_guard guard(m_commandQueueMutex);
-
-    ++m_commandQueueCount;
-
-    m_commandQueue.Push(command);
-}
-
-void CameraController::UpdateCommandQueue(float dt)
-{
-    HYP_SCOPE;
-
-    if (m_commandQueueCount == 0)
-    {
-        return;
-    }
-
-    std::lock_guard guard(m_commandQueueMutex);
-
-    while (m_commandQueue.Any())
-    {
-        RespondToCommand(m_commandQueue.Front(), dt);
-
-        m_commandQueue.Pop();
-    }
-
-    m_commandQueueCount = 0;
 }
 
 void CameraController::SetIsMouseLockRequested(bool mouseLockRequested)
@@ -667,8 +634,7 @@ void Camera::Update(float delta)
         if (const Handle<CameraController>& cameraController = GetCameraController())
         {
             UpdateMouseLocked();
-
-            cameraController->UpdateCommandQueue(delta);
+            
             cameraController->UpdateLogic(delta);
         }
     }
