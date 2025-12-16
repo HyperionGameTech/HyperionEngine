@@ -6,9 +6,6 @@
 #include <editor/EditorProject.hpp>
 #include <editor/EditorSubsystem.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <EditorAction.generated.inl>
 
 namespace hyperion {

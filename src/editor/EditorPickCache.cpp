@@ -14,8 +14,6 @@
 
 #include <util/GameCounter.hpp>
 
-#include <core/logging/Logger.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
