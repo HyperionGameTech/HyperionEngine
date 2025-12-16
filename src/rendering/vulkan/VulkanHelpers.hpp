@@ -21,10 +21,10 @@ VkIndexType ToVkIndexType(GpuElemType);
 VkFormat ToVkFormat(TextureFormat);
 VkFilter ToVkFilter(TextureFilterMode);
 VkSamplerAddressMode ToVkSamplerAddressMode(TextureWrapMode);
-VkImageAspectFlags ToVkImageAspect(TextureFormat internalFormat);
+VkImageAspectFlags ToVkImageAspect(TextureFormat);
 VkImageType ToVkImageType(TextureType);
-VkImageViewType ToVkImageViewType(TextureType type);
-VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type);
+VkImageViewType ToVkImageViewType(TextureType);
+VkDescriptorType ToVkDescriptorType(DescriptorSetElementType);
 
 class VulkanSingleTimeCommands final : public SingleTimeCommands
 {
