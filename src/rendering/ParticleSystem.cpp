@@ -8,22 +8,21 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
-
-#include <rendering/util/SafeDeleter.hpp>
-
 #include <rendering/RenderQueue.hpp>
-
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
-
+#include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
+
+#include <rendering/renderers/DeferredRenderer.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/View.hpp>
 
