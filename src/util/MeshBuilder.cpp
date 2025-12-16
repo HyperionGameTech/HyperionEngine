@@ -406,44 +406,13 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
     Array<uint32> indices;
     uint32 vertexOffset = 0;
 
-    /*const Array<Vertex>& cubeVertices = cubeVerticesAndIndices.first;
-    const Array<uint32>& cubeIndices = cubeVerticesAndIndices.second;
-
-    // Build full box for each voxel AABB
-    for (const auto& aabb : voxelAabbs)
-    {
-        Vec3f mn = aabb.GetMin();
-        Vec3f mx = aabb.GetMax();
-
-        Vec3f size = mx - mn;
-
-        // Create vertices for the cube
-        for (Vertex vertex : cubeVertices)
-        {
-            vertex.position = vertex.GetPosition() * size + mn;
-
-            vertices.PushBack(vertex);
-        }
-
-        // Create indices for the cube
-        for (const uint32 index : cubeIndices)
-        {
-            indices.PushBack(index + vertexOffset);
-        }
-
-        vertexOffset += (uint32)cubeVertices.Size();
-    }*/
-
-    // Mapping from a bounding-box corner index to its coordinate
-    // corners: 0=(min,min,min), 1=(max,min,min), 2=(min,max,min), 3=(max,max,min),
-    //          4=(min,min,max), 5=(max,min,max), 6=(min,max,max), 7=(max,max,max)
     static const int faceCornerIdx[6][4] = {
         { 1, 5, 6, 2 }, // +X
         { 4, 0, 3, 7 }, // -X
         { 3, 2, 6, 7 }, // +Y
         { 0, 1, 5, 4 }, // -Y
-        { 4, 5, 6, 7 }, // +Z (corrected)
-        { 0, 1, 2, 3 }  // -Z (corrected)
+        { 4, 5, 6, 7 }, // +Z
+        { 0, 1, 2, 3 }  // -Z
     };
     static const Vec3i faceNormals[6] = {
         { 1, 0, 0 }, { -1, 0, 0 },
