@@ -146,6 +146,12 @@ if(DOTNET_EXECUTABLE)
         set(HYP_BUILD_TYPE "Release")
     endif()
 
+    # run dotnet restore now
+    execute_process(
+        COMMAND dotnet restore
+        WORKING_DIRECTORY ${EDITOR_PROJECT_DIR}
+    )
+
     if(CMAKE_GENERATOR MATCHES "Visual Studio")
         enable_language(CSharp)
         include_external_msproject(
@@ -155,12 +161,6 @@ if(DOTNET_EXECUTABLE)
         )
         add_dependencies(Hyperion.Editor Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop)
     else()
-    # run dotnet restore now
-        execute_process(
-            COMMAND dotnet restore
-            WORKING_DIRECTORY ${EDITOR_PROJECT_DIR}
-        )
-
         add_custom_target(Hyperion.Editor ALL
             COMMAND ${DOTNET_EXECUTABLE} build "${EDITOR_CSPROJ_PATH}"  --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
             COMMENT "Building Hyperion.Editor"

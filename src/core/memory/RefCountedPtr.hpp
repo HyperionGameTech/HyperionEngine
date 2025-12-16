@@ -81,7 +81,7 @@ template <class CountType>
 HYP_API extern uint32 ReleaseWeak(ControlBlock<CountType>* block);
 
 template <class CountType, class T>
-HYP_API ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
+ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 {
     void* pBlock = HYP_ALLOC_ALIGNED(sizeof(ControlBlock<CountType>), alignof(ControlBlock<CountType>));
 
