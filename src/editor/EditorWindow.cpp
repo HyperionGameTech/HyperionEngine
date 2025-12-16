@@ -1,12 +1,9 @@
-#include <core/Defines.hpp>
+#include <HyperionPch.hpp>
 
 #include <editor/EditorWindow.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/Scheduler.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #ifdef HYP_LIBUI
 #include <ui.h>

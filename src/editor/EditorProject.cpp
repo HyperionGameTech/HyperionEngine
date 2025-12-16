@@ -22,15 +22,9 @@
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <core/reflection/Class.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #include <HyperionEngine.hpp>
 

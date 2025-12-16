@@ -9,12 +9,6 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
