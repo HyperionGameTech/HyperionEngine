@@ -1,3 +1,5 @@
+#include <HyperionPch.hpp>
+
 #include <scene/components/RigidBodyComponent.hpp>
 
 #include <RigidBodyComponent.generated.inl>

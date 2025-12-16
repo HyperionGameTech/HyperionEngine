@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include <core/reflection/ObjectMacros.hpp>
-
+#include <core/Defines.hpp>
 #include <core/HashCode.hpp>
+
+#include <core/reflection/ObjectMacros.hpp>
 
 namespace hyperion {
 
