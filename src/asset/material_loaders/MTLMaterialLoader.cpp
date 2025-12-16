@@ -365,7 +365,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
             if (it.mapping.srgb)
             {
-                textureDesc.format = ChangeFormatSrgb(textureDesc.format, /* makeSrgb */ true);
+                textureDesc.format = TextureUtils::ChangeFormatSrgb(textureDesc.format, /* makeSrgb */ true);
             }
 
             texture->SetTextureDesc(textureDesc);

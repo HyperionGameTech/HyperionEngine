@@ -149,7 +149,7 @@ struct CreateTextureGpuImage : RenderCommand
                 imageData = &placeholderBuffer.Emplace();
                 placeholderBuffer->SetSize(image->GetByteSize());
 
-                const TextureFormat nonSrgbFormat = ChangeFormatSrgb(image->GetTextureFormat(), false);
+                const TextureFormat nonSrgbFormat = TextureUtils::ChangeFormatSrgb(image->GetTextureFormat(), false);
 
                 switch (textureAsset->GetTextureDesc().type)
                 {
@@ -290,12 +290,12 @@ struct CreateTextureGpuImage : RenderCommand
 
 Texture::Texture()
     : Texture(TextureDesc {
-        TT_TEX2D,
-        TF_RGBA8,
-        Vec3u { 1, 1, 1 },
-        TFM_NEAREST,
-        TFM_NEAREST,
-        TWM_CLAMP_TO_EDGE })
+          TT_TEX2D,
+          TF_RGBA8,
+          Vec3u { 1, 1, 1 },
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE })
 {
 }
 
@@ -551,7 +551,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
             tempBuffer.SetSize(dstMipSize, false);
 
             int result = 0;
-            const int numChannels = NumComponents(desc.format);
+            const int numChannels = TextureUtils::NumComponents(desc.format);
 
             if (desc.format >= TF_R16F && desc.format <= TF_RGBA32F)
             {
@@ -686,24 +686,24 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
     DelegateHandler* delegateHandle = new DelegateHandler();
     *delegateHandle = currentFrame->OnFrameEnd
-        .Bind([delegateHandle, name = GetName(), gpuImageRef = MakeStrongRef(m_gpuImage), /* hold a strong reference to our buffer to ensure it is kept alive */
-                  stagingBuffer = MakeStrongRef(stagingBuffer),
-                  callback = std::move(callback)](...) mutable
-            {
-                HYP_LOG(Texture, Debug, "Finish readback for texture {}", name);
+                          .Bind([delegateHandle, name = GetName(), gpuImageRef = MakeStrongRef(m_gpuImage), /* hold a strong reference to our buffer to ensure it is kept alive */
+                                    stagingBuffer = MakeStrongRef(stagingBuffer),
+                                    callback = std::move(callback)](...) mutable
+                              {
+                                  HYP_LOG(Texture, Debug, "Finish readback for texture {}", name);
 
-                ByteBuffer byteBuffer;
-                byteBuffer.SetSize(stagingBuffer->Size());
+                                  ByteBuffer byteBuffer;
+                                  byteBuffer.SetSize(stagingBuffer->Size());
 
-                stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());
+                                  stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());
 
-                SafeDelete(std::move(stagingBuffer));
-                SafeDelete(std::move(gpuImageRef));
+                                  SafeDelete(std::move(stagingBuffer));
+                                  SafeDelete(std::move(gpuImageRef));
 
-                callback(std::move(byteBuffer));
+                                  callback(std::move(byteBuffer));
 
-                delete delegateHandle;
-            });
+                                  delete delegateHandle;
+                              });
 
     SafeDelete(std::move(stagingBuffer));
 }
@@ -761,7 +761,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         uint32(MathUtil::Abs(std::fmodf(uvw.z, 1.0f)) * float(textureDesc.extent.z - 1) + 0.5f)
     };
 
-    const uint32 bytesPerComponent = BytesPerComponent(textureDesc.format);
+    const uint32 bytesPerComponent = TextureUtils::BytesPerComponent(textureDesc.format);
 
     if (bytesPerComponent != 1)
     {
@@ -770,7 +770,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    const uint32 numComponents = NumComponents(textureDesc.format);
+    const uint32 numComponents = TextureUtils::NumComponents(textureDesc.format);
 
     const uint32 index = faceIndex * (textureDesc.extent.x * textureDesc.extent.y * textureDesc.extent.z * bytesPerComponent * numComponents)
         + coord.z * (textureDesc.extent.x * textureDesc.extent.y * bytesPerComponent * numComponents)
@@ -848,7 +848,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
     }
     else
     {
-        if (IsSrgbFormat(textureDesc.format))
+        if (TextureUtils::IsSrgbFormat(textureDesc.format))
         {
             // convert from sRGB to linear
             switch (numComponents)

@@ -183,6 +183,8 @@ enum ResourceState : uint32
     RS_PREDICATION
 };
 
+namespace TextureUtils {
+
 static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
 {
     switch (fmt)
@@ -418,6 +420,8 @@ static inline constexpr bool FormatSupportsBlending(TextureFormat fmt)
     }
 }
 
+} // namespace TextureUtils
+
 template <SizeType Size>
 struct SizedUInt;
 
@@ -448,15 +452,15 @@ using SizedUIntT = typename SizedUInt<Size>::Type;
 template <TextureFormat Format>
 struct TextureFormatHelper
 {
-    static constexpr uint32 numComponents = NumComponents(Format);
-    static constexpr uint32 bytesPerComponent = BytesPerComponent(Format);
-    static constexpr bool isSrgb = IsSrgbFormat(Format);
-    static constexpr bool isFloatType = uint32(Format) >= TF_R16F && uint32(Format) <= TF_RGBA32F;
+    static constexpr uint32 NumComponents = TextureUtils::NumComponents(Format);
+    static constexpr uint32 BytesPerComponent = TextureUtils::BytesPerComponent(Format);
+    static constexpr bool IsSrgb = TextureUtils::IsSrgbFormat(Format);
+    static constexpr bool IsFloatType = uint32(Format) >= TF_R16F && uint32(Format) <= TF_RGBA32F;
 
     using ElementType = std::conditional_t<
-        isFloatType,
+        IsFloatType,
         std::conditional_t<(uint32(Format) <= TF_RGBA16F), Float16, float>,
-        SizedUIntT<bytesPerComponent>>;
+        SizedUIntT<BytesPerComponent>>;
 };
 
 HYP_STRUCT()
@@ -517,12 +521,12 @@ struct TextureDesc
 
     HYP_FORCE_INLINE bool IsDepthStencil() const
     {
-        return IsDepthFormat(format);
+        return TextureUtils::IsDepthFormat(format);
     }
 
     HYP_FORCE_INLINE bool IsSrgb() const
     {
-        return IsSrgbFormat(format);
+        return TextureUtils::IsSrgbFormat(format);
     }
 
     HYP_FORCE_INLINE bool IsBlended() const
@@ -589,8 +593,8 @@ struct TextureDesc
     uint32 GetByteSize() const
     {
         return uint32(extent.x * extent.y * extent.z)
-            * BytesPerComponent(format)
-            * NumComponents(format)
+            * TextureUtils::BytesPerComponent(format)
+            * TextureUtils::NumComponents(format)
             * NumArrayLayers();
     }
 
@@ -605,8 +609,8 @@ struct TextureDesc
         const Vec3u mipExtent = GetMipExtent(mipIndex);
 
         return uint32(mipExtent.x * mipExtent.y * mipExtent.z)
-            * BytesPerComponent(format)
-            * NumComponents(format);
+            * TextureUtils::BytesPerComponent(format)
+            * TextureUtils::NumComponents(format);
     }
 
     HashCode GetHashCode() const
