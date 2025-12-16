@@ -1,3 +1,5 @@
+#include <HyperionPch.hpp>
+
 #include <scene/components/ScriptComponent.hpp>
 
 #include <ScriptComponent.generated.inl>

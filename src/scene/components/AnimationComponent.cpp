@@ -1,3 +1,5 @@
+#include <HyperionPch.hpp>
+
 #include <scene/components/AnimationComponent.hpp>
 
 #include <AnimationComponent.generated.inl>

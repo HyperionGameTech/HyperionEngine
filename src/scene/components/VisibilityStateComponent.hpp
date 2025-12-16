@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include <core/Defines.hpp>
+#include <core/HashCode.hpp>
+
 #include <core/reflection/ObjectMacros.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
@@ -10,8 +13,6 @@
 
 #include <scene/VisibilityState.hpp>
 #include <scene/SceneOctree.hpp>
-
-#include <core/HashCode.hpp>
 
 namespace hyperion {
 

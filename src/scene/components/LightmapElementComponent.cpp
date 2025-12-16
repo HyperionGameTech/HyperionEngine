@@ -1,3 +1,5 @@
+#include <HyperionPch.hpp>
+
 #include <scene/components/LightmapElementComponent.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
