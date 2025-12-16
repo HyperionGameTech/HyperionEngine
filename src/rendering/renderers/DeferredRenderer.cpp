@@ -29,6 +29,8 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderSwapchain.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>

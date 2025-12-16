@@ -21,12 +21,12 @@
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/LightmapElementComponent.hpp>
 
-#include <scene/sky/DynamicSkySubsystem.hpp>
-
 #include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/Texture.hpp>
@@ -179,10 +179,6 @@ View::View(const ViewDesc& viewDesc)
 
             continue;
         }
-
-        // Pool* pool = (m_flags & ViewFlags::NOT_MULTI_BUFFERED)
-        //     ? g_scenePool
-        //     : g_framePools[std::distance(std::begin(m_renderProxyLists), it)];
 
         *it = new RenderProxyList(g_scenePool, /* isShared */ true, /* useRefCounting */ true);
     }
@@ -908,31 +904,6 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
             meshProxy.bufferData.userData = reinterpret_cast<EntityShaderData::EntityUserData&>(meshComponent->userData);
-
-            /*meshProxy.bufferData.modelMatrix = entity->GetLocalTransform().GetMatrix();
-
-            if (Node* parent = entity->GetParent())
-            {
-                Stack<Mat4f> parentMatrices;
-                while (parent != nullptr)
-                {
-                    parentMatrices.Push(parent->GetLocalTransform().GetMatrix());
-                    parent = parent->GetParent();
-                }
-
-                Mat4f parentMatrix = Mat4f::Identity();
-
-                while (!parentMatrices.Empty())
-                {
-                    parentMatrix = parentMatrices.Pop() * parentMatrix;
-                }
-
-                meshProxy.bufferData.modelMatrix = parentMatrix * meshProxy.bufferData.modelMatrix;
-            }*/
-
-            //Mat4f worldMatrix = entity->GetWorldTransform().GetMatrix();
-            //AssertDebug(meshProxy.bufferData.modelMatrix == worldMatrix);
-
             meshProxy.bufferData.modelMatrix = entity->GetWorldMatrix();
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
         }

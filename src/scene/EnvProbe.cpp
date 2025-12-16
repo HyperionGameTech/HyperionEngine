@@ -16,6 +16,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <lightmapper/LightmapperSubsystem.hpp>
 

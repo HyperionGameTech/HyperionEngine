@@ -167,4 +167,6 @@ if(DOTNET_EXECUTABLE)
             DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
         )
     endif()
+
+    add_dependencies(Hyperion.Editor hyperion)
 endif()

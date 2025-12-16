@@ -2,18 +2,10 @@
 
 #pragma once
 
-#include <core/reflection/ObjId.hpp>
-#include <core/reflection/ObjectFwd.hpp>
-
-#include <core/utilities/UserData.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/containers/Bitset.hpp>
-#include <core/containers/FlatMap.hpp>
 #include <core/containers/FixedArray.hpp>
-#include <core/containers/SparsePagedArray.hpp>
 
-#include <core/math/Transform.hpp>
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Mat4f.hpp>
 #include <core/math/Frustum.hpp>
@@ -21,8 +13,6 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/MeshInstanceData.hpp>
 #include <rendering/RenderObject.hpp>
-
-#include <rendering/util/ResourceTracker.hpp>
 
 namespace hyperion {
 

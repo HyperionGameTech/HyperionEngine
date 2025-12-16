@@ -2,31 +2,19 @@
 
 #pragma once
 
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/ArrayMap.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
 
-#include <core/utilities/Pair.hpp>
 #include <core/utilities/Tuple.hpp>
 
 #include <core/memory/resource/Resource.hpp>
 
-#include <core/memory/allocator/ArenaAllocator.hpp>
-
-#include <core/threading/DataRaceDetector.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/TaskSystem.hpp>
-
 #include <core/reflection/ObjId.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/RenderProxy.hpp>
-#include <rendering/RenderMemory.hpp>
 #include <rendering/Shared.hpp>
-#include <rendering/util/ResourceTracker.hpp>
 
-#include <core/Types.hpp>
+#include <rendering/util/ResourceTracker.hpp>
 
 namespace hyperion {
 
@@ -43,6 +31,17 @@ class FogVolume;
 class Material;
 class Texture;
 class Skeleton;
+
+struct RenderProxyCamera;
+struct RenderProxyMesh;
+struct RenderProxyEnvProbe;
+struct RenderProxyLight;
+struct RenderProxyEnvGrid;
+struct RenderProxyLightmapVolume;
+struct RenderProxyParticleVolume;
+struct RenderProxyFogVolume;
+struct RenderProxyMaterial;
+struct RenderProxySkeleton;
 
 HYP_MAKE_HAS_METHOD(UpdateRenderProxy);
 

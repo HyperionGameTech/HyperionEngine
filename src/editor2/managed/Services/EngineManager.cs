@@ -59,7 +59,7 @@ namespace Hyperion.Editor
             }
             catch (Exception ex)
             {
-                throw new Exception("Exception during Hyperion Engine initialization: " + ex.Message);
+                throw new Exception("Exception during Hyperion Engine initialization!", ex);
             }
             finally
             {
