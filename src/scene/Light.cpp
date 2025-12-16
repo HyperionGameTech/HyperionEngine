@@ -13,9 +13,9 @@
 #include <scene/camera/OrthoCamera.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
 
-#include <shadows/ShadowMap.hpp>
-#include <shadows/ShadowMapAllocator.hpp>
-#include <shadows/ShadowCameraHelper.hpp>
+#include <rendering/shadows/ShadowMap.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
+#include <rendering/shadows/ShadowCameraHelper.hpp>
 
 #include <rendering/Material.hpp>
 #include <rendering/RenderProxy.hpp>

@@ -42,4 +42,5 @@ endforeach()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
+add_dependencies(${BUILD_NAME} hyperion-core hyperion-rendering)
 target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)

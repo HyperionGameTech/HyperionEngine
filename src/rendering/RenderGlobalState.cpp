@@ -37,7 +37,7 @@
 
 #include <rendering/raytracing/DDGI.hpp>
 
-#include <shadows/ShadowMapAllocator.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
