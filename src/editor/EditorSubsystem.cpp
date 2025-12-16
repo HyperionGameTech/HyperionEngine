@@ -39,9 +39,6 @@
 #include <asset/AssetBatch.hpp>
 #include <asset/TextureAsset.hpp>
 
-#include <core/serialization/fbom/FBOMReader.hpp>
-#include <core/serialization/fbom/FBOMWriter.hpp>
-
 #include <ui/UISubsystem.hpp>
 #include <ui/UIObject.hpp>
 #include <ui/UIStage.hpp>
@@ -69,9 +66,10 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <rendering/Mesh.hpp>
-
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -3235,20 +3233,6 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
         outputDirectory.MkDir();
     }
 
-    // if (serializedFilePath.Exists())
-    // {
-    //     HypData loadedFontAtlasData;
-
-    //     FBOMReader reader({});
-
-    //     if (FBOMResult err = reader.LoadFromFile(serializedFilePath, loadedFontAtlasData))
-    //     {
-    //         return HYP_MAKE_ERROR(Error, "Failed to load font atlas from file: {}", 0, err.message);
-    //     }
-
-    //     return loadedFontAtlasData.Get<Handle<FontAtlas>>();
-    // }
-
     auto fontFaceAsset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
     if (fontFaceAsset.HasError())
@@ -3290,24 +3274,6 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
             HYP_LOG(Editor, Error, "Failed to add texture asset to package: {}", result.GetError().GetMessage());
         }
     }
-
-    /*if (Result savePackageResult = package->Save(outputDirectory); savePackageResult.HasError())
-    {
-        return savePackageResult.GetError();
-    }*/
-
-    /*FileByteWriter byteWriter { outputFilePath };
-    FBOMWriter writer { FBOMWriterConfig {} };
-    writer.Append(*atlas);
-    auto writeErr = writer.Emit(&byteWriter);
-    byteWriter.Close();
-
-    if (writeErr != FBOMResult::FBOM_OK)
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to save font atlas! {}", 0, writeErr.message);
-    }*/
-
-    // @TODO: Add FontAtlas asset to package.
 
     // need to move in return since return type is wrapped result
     return std::move(atlas);

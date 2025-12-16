@@ -2,21 +2,12 @@
 
 #pragma once
 
-#include <rendering/ShaderManager.hpp>
-#include <rendering/RenderableAttributes.hpp>
-#include <rendering/RenderProxy.hpp>
-
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderObject.hpp>
-
 #include <core/containers/FixedArray.hpp>
-#include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/AtomicVar.hpp>
+#include <core/utilities/Span.hpp>
 
-#include <core/Types.hpp>
+#include <rendering/RenderObject.hpp>
 
 namespace hyperion {
 
@@ -29,10 +20,13 @@ class HYP_API MaterialDescriptorSetManager
 {
 public:
     MaterialDescriptorSetManager();
+
     MaterialDescriptorSetManager(const MaterialDescriptorSetManager& other) = delete;
     MaterialDescriptorSetManager& operator=(const MaterialDescriptorSetManager& other) = delete;
+
     MaterialDescriptorSetManager(MaterialDescriptorSetManager&& other) noexcept = delete;
     MaterialDescriptorSetManager& operator=(MaterialDescriptorSetManager&& other) noexcept = delete;
+
     ~MaterialDescriptorSetManager();
 
     /*! \brief Retrieve the descriptor set for the material and the given frame index. The material must be bound in this frame

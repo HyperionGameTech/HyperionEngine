@@ -13,6 +13,7 @@
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/RenderProxyList.hpp>
 
 namespace hyperion {
 

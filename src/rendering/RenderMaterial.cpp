@@ -18,9 +18,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
-#include <core/profiling/ProfileScope.hpp>
-
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 

@@ -34,10 +34,13 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <HyperionEngine.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+
+#include <HyperionEngine.hpp>
 
 #include <EnvGridRenderer.generated.inl>
 

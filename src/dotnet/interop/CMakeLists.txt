@@ -27,6 +27,8 @@ file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "DotNet Interop Code" FILES ${SOURCES} ${HEADERS})
 
+add_definitions(-DHYP_BUILD_LIBRARY=1)
+
 include_directories(
     ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}

@@ -1016,12 +1016,30 @@ message(STATUS "Sub-libraries: ${SUB_LIBRARIES}")
 
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 
+
+# add sublibraries as dependencies so any changes get picked up.
+# we'll have to skip hyperion-editor2 though since it depends on the engine's DLL
+foreach(SUB_LIBRARY ${SUB_LIBRARIES})
+    if (NOT SUB_LIBRARY STREQUAL "hyperion-editor2")
+        add_dependencies(${BUILD_NAME} ${SUB_LIBRARY})
+    endif()
+endforeach()
+
 if(APPLE)
     # needs to use -force_load on macOS for static libraries to re-export symbols correctly
     # for the Hyperion.NET assemblies, since we define functions for P/Invoke there.
     foreach(SUB_LIBRARY ${SUB_LIBRARIES})
         if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*") 
             target_link_libraries(${BUILD_NAME} PRIVATE -force_load $<TARGET_FILE:${SUB_LIBRARY}>)
+        else()
+            target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
+        endif()
+    endforeach()
+elseif(MSVC)
+    # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior
+    foreach(SUB_LIBRARY ${SUB_LIBRARIES})
+        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*") 
+            target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${SUB_LIBRARY}>")
         else()
             target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
         endif()

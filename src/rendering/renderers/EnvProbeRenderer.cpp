@@ -14,6 +14,8 @@
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderObject.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -33,10 +35,10 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <HyperionEngine.hpp>
-
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+
+#include <HyperionEngine.hpp>
 
 #include <EnvProbeRenderer.generated.inl>
 

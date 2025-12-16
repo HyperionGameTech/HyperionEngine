@@ -13,6 +13,8 @@
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

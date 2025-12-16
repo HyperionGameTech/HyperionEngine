@@ -14,7 +14,9 @@
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
+
 #include <lightmapper/LightmapVolume.hpp>
+
 #include <scene/animation/Skeleton.hpp>
 
 #include <scene/components/MeshComponent.hpp>
@@ -22,11 +24,14 @@
 #include <scene/components/TransformComponent.hpp>
 
 #include <rendering/renderers/UIRenderer.hpp>
+
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
 

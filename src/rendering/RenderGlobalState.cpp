@@ -5,11 +5,12 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/Renderer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/GpuBufferHolderMap.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Material.hpp>
@@ -28,6 +29,7 @@
 
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/EnvGridRenderer.hpp>
+#include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/renderers/ShadowRenderer.hpp>
 
