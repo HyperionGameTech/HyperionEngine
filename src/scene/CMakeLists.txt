@@ -40,6 +40,10 @@ foreach(filepath ${hyperion-scene_HEADERS})
     list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
+if(${hyperion-scene_PCH})
+    target_precompile_headers(${BUILD_NAME} PRIVATE ${hyperion-scene_PCH})
+endif()
+
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
 add_dependencies(${BUILD_NAME} hyperion-core hyperion-rendering)

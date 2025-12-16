@@ -21,6 +21,8 @@ endif()
 
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
+set(UI_LIBRARIES "")
+
 include_directories(
     ${CMAKE_SOURCE_DIR}/thirdparty
     ${CMAKE_SOURCE_DIR}/generated
@@ -28,6 +30,22 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src/core
     ${CMAKE_SOURCE_DIR}/src/ui
 )
+
+if(NOT IOS)
+    find_package(Freetype)
+
+    if(FREETYPE_FOUND)
+        message(STATUS "Freetype found")
+
+        add_definitions(-DHYP_FREETYPE=1)
+
+        include_directories(${FREETYPE_INCLUDE_DIRS})
+        set(UI_LIBRARIES
+            ${UI_LIBRARIES}
+            ${FREETYPE_LIBRARIES}
+        )
+    endif()
+endif()
 
 # Normalize sources/headers to absolute paths under the root
 set(CURRENT_SOURCES "")
@@ -42,5 +60,9 @@ endforeach()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
+if(${hyperion-ui_PCH})
+    target_precompile_headers(${BUILD_NAME} PRIVATE ${hyperion-ui_PCH})
+endif()
+
 add_dependencies(${BUILD_NAME} hyperion-core hyperion-scene hyperion-rendering)
-target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core hyperion-scene hyperion-rendering)
+target_link_libraries(${BUILD_NAME} PRIVATE ${UI_LIBRARIES} hyperion-core hyperion-scene hyperion-rendering)
