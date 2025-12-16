@@ -48,8 +48,10 @@ struct PixelReference
 
     HYP_FORCE_INLINE PixelReference(const PixelReference& other) = default;
     HYP_FORCE_INLINE PixelReference& operator=(const PixelReference& other) = default;
+
     HYP_FORCE_INLINE PixelReference(PixelReference&& other) noexcept = default;
     HYP_FORCE_INLINE PixelReference& operator=(PixelReference&& other) noexcept = default;
+
     HYP_FORCE_INLINE ~PixelReference() = default;
 
     HYP_FORCE_INLINE ComponentType GetComponentRaw(uint32 index) const
@@ -529,10 +531,11 @@ struct ConstPixelReference
     {
     }
 
-    HYP_FORCE_INLINE ConstPixelReference(const ConstPixelReference<ComponentType, NumComponents, IsSrgb>& other) = default;
-    HYP_FORCE_INLINE ConstPixelReference& operator=(const ConstPixelReference<ComponentType, NumComponents, IsSrgb>& other) = default;
-    HYP_FORCE_INLINE ConstPixelReference(ConstPixelReference<ComponentType, NumComponents, IsSrgb>&& other) noexcept = default;
-    HYP_FORCE_INLINE ConstPixelReference& operator=(ConstPixelReference<ComponentType, NumComponents, IsSrgb>&& other) noexcept = default;
+    HYP_FORCE_INLINE ConstPixelReference(const ConstPixelReference& other) = default;
+    HYP_FORCE_INLINE ConstPixelReference& operator=(const ConstPixelReference& other) = default;
+
+    HYP_FORCE_INLINE ConstPixelReference(ConstPixelReference&& other) noexcept = default;
+    HYP_FORCE_INLINE ConstPixelReference& operator=(ConstPixelReference&& other) noexcept = default;
 
     HYP_FORCE_INLINE ConstPixelReference(const PixelReference<ComponentType, NumComponents, IsSrgb>& other)
         : byteOffset(other.byteOffset)

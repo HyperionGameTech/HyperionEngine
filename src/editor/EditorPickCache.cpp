@@ -7,6 +7,7 @@
 #include <core/containers/SparsePagedArray.hpp>
 
 #include <rendering/RenderCollection.hpp>
+#include <rendering/RenderProxyList.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <asset/MeshAsset.hpp>

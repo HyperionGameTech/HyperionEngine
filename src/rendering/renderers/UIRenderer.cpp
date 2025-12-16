@@ -2,20 +2,22 @@
 
 #include <HyperionPch.hpp>
 
-#include <rendering/renderers/UIRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/FinalPass.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
-#include <rendering/Mesh.hpp>
-
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
+#include <rendering/Mesh.hpp>
+
+#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/renderers/UIRenderer.hpp>
 
 #include <scene/View.hpp>
 

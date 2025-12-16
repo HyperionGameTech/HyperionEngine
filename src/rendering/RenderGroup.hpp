@@ -5,7 +5,6 @@
 #include <core/Defines.hpp>
 #include <core/Constants.hpp>
 
-#include <core/reflection/ObjId.hpp>
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
@@ -13,10 +12,7 @@
 
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/CullData.hpp>
-#include <rendering/RenderProxy.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderObject.hpp>
 
 namespace hyperion {
 

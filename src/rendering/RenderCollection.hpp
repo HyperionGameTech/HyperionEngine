@@ -3,7 +3,6 @@
 #pragma once
 
 #include <core/containers/FlatMap.hpp>
-#include <core/containers/ArrayMap.hpp>
 
 #include <core/memory/resource/Resource.hpp>
 
@@ -15,17 +14,13 @@
 
 #include <core/reflection/ObjId.hpp>
 
-#include <core/math/Transform.hpp>
-
 #include <core/Types.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
-#include <rendering/RenderMemory.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
-#include <rendering/RenderProxyList.hpp>
 
 #include <engine/EngineStats.hpp>
 
@@ -34,6 +29,7 @@ namespace hyperion {
 class Scene;
 class Camera;
 class Entity;
+class View;
 class Mesh;
 class RenderGroup;
 struct RenderSetup;
@@ -43,6 +39,7 @@ class ReflectionProbe;
 class Texture;
 class Skeleton;
 class RenderCollector;
+class RenderProxyList;
 struct ResourceContainer;
 struct RenderProxy;
 enum class RenderGroupFlags : uint32;

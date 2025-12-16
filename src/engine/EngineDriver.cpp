@@ -44,6 +44,7 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderCommand.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/RenderDescriptorSet.hpp>

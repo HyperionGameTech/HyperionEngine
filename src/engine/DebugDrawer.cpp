@@ -2,21 +2,27 @@
 
 #include <HyperionPch.hpp>
 
+#include <engine/DebugDrawer.hpp>
+#include <engine/EngineGlobals.hpp>
+#include <engine/EngineStats.hpp>
+
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderShader.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
+
+#include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -33,10 +39,6 @@
 #include <core/memory/resource/Resource.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/DebugDrawer.hpp>
 
 #include <DebugDrawer.generated.inl>
 

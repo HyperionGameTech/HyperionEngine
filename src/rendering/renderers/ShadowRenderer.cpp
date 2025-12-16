@@ -15,6 +15,8 @@
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderFrame.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
 

@@ -16,6 +16,7 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderDevice.hpp>
 #include <rendering/RenderFrame.hpp>
+#include <rendering/RenderProxyList.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>

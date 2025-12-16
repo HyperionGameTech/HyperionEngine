@@ -7,6 +7,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Renderer.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
