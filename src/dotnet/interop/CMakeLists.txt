@@ -75,9 +75,9 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
 
         file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
 
-        # file(APPEND ${CSPROJ_PATH} "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
-        # file(APPEND ${CSPROJ_PATH} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
-        # file(APPEND ${CSPROJ_PATH} "  </Target>\n")
+        file(APPEND ${CSPROJ_PATH} "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
+        file(APPEND ${CSPROJ_PATH} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
+        file(APPEND ${CSPROJ_PATH} "  </Target>\n")
         file(APPEND ${CSPROJ_PATH} "</Project>\n")
 
         execute_process(
@@ -90,7 +90,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
                 DEPENDS Hyperion.NET.Shared
                 DEPENDS hyperion-core
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Interop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop
             )
         else()
@@ -99,12 +98,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 Hyperion.NET.Interop
                 ${CSPROJ_PATH}
                 TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
-            )
-
-            add_custom_target(Hyperion.NET.Interop-copy ALL
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Interop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll
-                DEPENDS Hyperion.NET.Interop
-                DEPENDS hyperion-core
             )
         endif()
 

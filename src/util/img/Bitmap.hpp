@@ -26,13 +26,16 @@ namespace hyperion {
 
 class ByteWriter;
 
-template <class ComponentType, uint32 NumComponents, bool IsSrgb = false>
+template <class TComponent, uint32 TNumComponents, bool TIsSrgb = false>
 struct ConstPixelReference;
 
-template <class ComponentType, uint32 NumComponents, bool IsSrgb = false>
+template <class TComponent, uint32 TNumComponents, bool TIsSrgb = false>
 struct PixelReference
 {
-    static constexpr uint32 numComponents = NumComponents;
+    static constexpr uint32 NumComponents = TNumComponents;
+    static constexpr bool IsSrgb = TIsSrgb;
+
+    using ComponentType = TComponent;
 
     ubyte* byteOffset;
 
@@ -51,7 +54,7 @@ struct PixelReference
 
     HYP_FORCE_INLINE ComponentType GetComponentRaw(uint32 index) const
     {
-        if (index >= numComponents || !byteOffset)
+        if (index >= NumComponents || !byteOffset)
         {
             return 0.0f;
         }
@@ -61,7 +64,7 @@ struct PixelReference
 
     HYP_FORCE_INLINE float GetComponentFloat(uint32 index) const
     {
-        if (index >= numComponents || !byteOffset)
+        if (index >= NumComponents || !byteOffset)
         {
             return 0.0f;
         }
@@ -79,7 +82,7 @@ struct PixelReference
 
         if constexpr (IsSrgb)
         {
-            if (numComponents < 4 || index != 3)
+            if (NumComponents < 4 || index != 3)
             {
                 // convert from sRGB to linear
                 fv = MathUtil::Pow(fv, 2.2f);
@@ -91,7 +94,7 @@ struct PixelReference
 
     HYP_FORCE_INLINE void SetComponentRaw(uint32 index, ComponentType value)
     {
-        if (index >= numComponents || !byteOffset)
+        if (index >= NumComponents || !byteOffset)
         {
             return;
         }
@@ -101,7 +104,7 @@ struct PixelReference
 
     HYP_FORCE_INLINE void SetComponentFloat(uint32 index, float value)
     {
-        if (index >= numComponents || !byteOffset)
+        if (index >= NumComponents || !byteOffset)
         {
             return;
         }
@@ -175,7 +178,7 @@ struct PixelReference
         {
             rg.x = float(*(byteOffset)) / 255.0f;
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rg.y = float(*(byteOffset + 1)) / 255.0f;
             }
@@ -184,7 +187,7 @@ struct PixelReference
         {
             rg.x = *reinterpret_cast<ComponentType*>(byteOffset);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rg.y = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
@@ -222,7 +225,7 @@ struct PixelReference
         {
             *byteOffset = ubyte(r * 255.0f);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 *(byteOffset + 1) = ubyte(g * 255.0f);
             }
@@ -231,7 +234,7 @@ struct PixelReference
         {
             *reinterpret_cast<ComponentType*>(byteOffset) = ComponentType(r);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType)) = ComponentType(g);
             }
@@ -251,12 +254,12 @@ struct PixelReference
         {
             rgb.x = float(*(byteOffset)) / 255.0f;
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rgb.y = float(*(byteOffset + 1)) / 255.0f;
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 rgb.z = float(*(byteOffset + 2)) / 255.0f;
             }
@@ -265,12 +268,12 @@ struct PixelReference
         {
             rgb.x = *reinterpret_cast<ComponentType*>(byteOffset);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rgb.y = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 rgb.z = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
             }
@@ -309,12 +312,12 @@ struct PixelReference
         {
             *byteOffset = ubyte(r * 255.0f);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 *(byteOffset + 1) = ubyte(g * 255.0f);
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 *(byteOffset + 2) = ubyte(b * 255.0f);
             }
@@ -323,12 +326,12 @@ struct PixelReference
         {
             *reinterpret_cast<ComponentType*>(byteOffset) = ComponentType(r);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType)) = ComponentType(g);
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2) = ComponentType(b);
             }
@@ -348,17 +351,17 @@ struct PixelReference
         {
             rgba.x = float(*(byteOffset)) / 255.0f;
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rgba.y = float(*(byteOffset + 1)) / 255.0f;
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 rgba.z = float(*(byteOffset + 2)) / 255.0f;
             }
 
-            if constexpr (numComponents >= 4)
+            if constexpr (NumComponents >= 4)
             {
                 rgba.w = float(*(byteOffset + 3)) / 255.0f;
             }
@@ -367,17 +370,17 @@ struct PixelReference
         {
             rgba.x = *reinterpret_cast<ComponentType*>(byteOffset);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rgba.y = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 rgba.z = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
             }
 
-            if constexpr (numComponents >= 4)
+            if constexpr (NumComponents >= 4)
             {
                 rgba.w = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 3);
             }
@@ -420,17 +423,17 @@ struct PixelReference
         {
             *byteOffset = ubyte(r * 255.0f);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 *(byteOffset + 1) = ubyte(g * 255.0f);
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 *(byteOffset + 2) = ubyte(b * 255.0f);
             }
 
-            if constexpr (numComponents >= 4)
+            if constexpr (NumComponents >= 4)
             {
                 *(byteOffset + 3) = ubyte(a * 255.0f);
             }
@@ -439,17 +442,17 @@ struct PixelReference
         {
             *reinterpret_cast<ComponentType*>(byteOffset) = ComponentType(r);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType)) = ComponentType(g);
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2) = ComponentType(b);
             }
 
-            if constexpr (numComponents >= 4)
+            if constexpr (NumComponents >= 4)
             {
                 *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 3) = ComponentType(a);
             }
@@ -506,10 +509,13 @@ struct PixelReference
     }*/
 };
 
-template <class ComponentType, uint32 NumComponents, bool IsSrgb>
+template <class TComponent, uint32 TNumComponents, bool TIsSrgb>
 struct ConstPixelReference
 {
-    static constexpr uint32 numComponents = NumComponents;
+    static constexpr uint32 NumComponents = TNumComponents;
+    static constexpr bool IsSrgb = TIsSrgb;
+
+    using ComponentType = TComponent;
 
     const ubyte* byteOffset;
 
@@ -541,7 +547,7 @@ struct ConstPixelReference
 
     HYP_FORCE_INLINE ComponentType GetComponentRaw(uint32 index) const
     {
-        if (index >= numComponents || !byteOffset)
+        if (index >= NumComponents || !byteOffset)
         {
             return 0.0f;
         }
@@ -551,7 +557,7 @@ struct ConstPixelReference
 
     HYP_FORCE_INLINE float GetComponentFloat(uint32 index) const
     {
-        if (index >= numComponents || !byteOffset)
+        if (index >= NumComponents || !byteOffset)
         {
             return 0.0f;
         }
@@ -569,7 +575,7 @@ struct ConstPixelReference
 
         if constexpr (IsSrgb)
         {
-            if (numComponents < 4 || index != 3)
+            if (NumComponents < 4 || index != 3)
             {
                 // convert from sRGB to linear
                 fv = MathUtil::Pow(fv, 2.2f);
@@ -612,7 +618,7 @@ struct ConstPixelReference
         {
             rg.x = float(*(byteOffset)) / 255.0f;
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rg.y = float(*(byteOffset + 1)) / 255.0f;
             }
@@ -621,7 +627,7 @@ struct ConstPixelReference
         {
             rg.x = *reinterpret_cast<const ComponentType*>(byteOffset);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rg.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
@@ -649,12 +655,12 @@ struct ConstPixelReference
         {
             rgb.x = float(*(byteOffset)) / 255.0f;
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rgb.y = float(*(byteOffset + 1)) / 255.0f;
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 rgb.z = float(*(byteOffset + 2)) / 255.0f;
             }
@@ -663,12 +669,12 @@ struct ConstPixelReference
         {
             rgb.x = *reinterpret_cast<const ComponentType*>(byteOffset);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rgb.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 rgb.z = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
             }
@@ -696,17 +702,17 @@ struct ConstPixelReference
         {
             rgba.x = float(*(byteOffset)) / 255.0f;
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rgba.y = float(*(byteOffset + 1)) / 255.0f;
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 rgba.z = float(*(byteOffset + 2)) / 255.0f;
             }
 
-            if constexpr (numComponents >= 4)
+            if constexpr (NumComponents >= 4)
             {
                 rgba.w = float(*(byteOffset + 3)) / 255.0f;
             }
@@ -715,17 +721,17 @@ struct ConstPixelReference
         {
             rgba.x = *reinterpret_cast<const ComponentType*>(byteOffset);
 
-            if constexpr (numComponents >= 2)
+            if constexpr (NumComponents >= 2)
             {
                 rgba.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
 
-            if constexpr (numComponents >= 3)
+            if constexpr (NumComponents >= 3)
             {
                 rgba.z = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
             }
 
-            if constexpr (numComponents >= 4)
+            if constexpr (NumComponents >= 4)
             {
                 rgba.w = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 3);
             }
@@ -771,11 +777,11 @@ class Bitmap
 {
 public:
     using PixelComponentType = typename TextureFormatHelper<Format>::ElementType;
-    static constexpr uint32 numComponents = TextureFormatHelper<Format>::numComponents;
-    static constexpr bool isSrgb = TextureFormatHelper<Format>::isSrgb;
+    static constexpr uint32 NumComponents = TextureFormatHelper<Format>::NumComponents;
+    static constexpr bool IsSrgb = TextureFormatHelper<Format>::IsSrgb;
 
-    using PixelReferenceType = PixelReference<PixelComponentType, numComponents, isSrgb>;
-    using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, numComponents, isSrgb>;
+    using PixelReferenceType = PixelReference<PixelComponentType, NumComponents, IsSrgb>;
+    using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, NumComponents, IsSrgb>;
 
     Bitmap()
         : m_width(0),
@@ -793,9 +799,9 @@ public:
 
         HYP_CORE_ASSERT((pixelData.Size() * sizeof(PixelComponentType) == GetByteSize()), "Bad pixel data!");
 
-        for (SizeType i = 0, j = 0; i < pixelData.Size() && j < numPixels; i += numComponents, j++)
+        for (SizeType i = 0, j = 0; i < pixelData.Size() && j < numPixels; i += NumComponents, j++)
         {
-            for (uint32 k = 0; k < numComponents; k++)
+            for (uint32 k = 0; k < NumComponents; k++)
             {
                 GetPixelReference(j).SetComponentRaw(k, pixelData[i + k]);
             }
@@ -860,7 +866,7 @@ public:
 
     HYP_FORCE_INLINE static constexpr uint32 GetNumComponents()
     {
-        return numComponents;
+        return NumComponents;
     }
 
     HYP_FORCE_INLINE uint32 GetWidth() const
@@ -877,7 +883,7 @@ public:
     {
         return SizeType(m_width)
             * SizeType(m_height)
-            * SizeType(numComponents)
+            * SizeType(NumComponents)
             * sizeof(PixelComponentType);
     }
 
@@ -889,7 +895,7 @@ public:
             return PixelReferenceType(nullptr);
         }
 
-        const SizeType byteIndex = (SizeType(idx) % (m_width * m_height)) * numComponents * sizeof(PixelComponentType);
+        const SizeType byteIndex = (SizeType(idx) % (m_width * m_height)) * NumComponents * sizeof(PixelComponentType);
 
         PixelReferenceType pixelReference { m_buffer.Data() + byteIndex };
 
@@ -902,7 +908,7 @@ public:
         const SizeType index = ((SizeType(y) + m_height) % m_height) * m_width
             + ((SizeType(x) + m_width) % m_width);
 
-        PixelReferenceType pixelReference { m_buffer.Data() + index * numComponents * sizeof(PixelComponentType) };
+        PixelReferenceType pixelReference { m_buffer.Data() + index * NumComponents * sizeof(PixelComponentType) };
 
         return pixelReference;
     }
@@ -948,7 +954,7 @@ public:
     }
 
     /*! \brief Get data as 1 byte per component (e.g RGBA8) */
-    ByteBuffer GetUnpackedBytes(uint32 bytesPerPixel = numComponents) const
+    ByteBuffer GetUnpackedBytes(uint32 bytesPerPixel = NumComponents) const
     {
         ByteBuffer byteBuffer;
         byteBuffer.SetSize((m_width * m_height) * bytesPerPixel);
@@ -966,7 +972,7 @@ public:
 
                     const Color color { rgba };
 
-                    for (uint32 j = 0; j < MathUtil::Min(numComponents, bytesPerPixel); j++)
+                    for (uint32 j = 0; j < MathUtil::Min(NumComponents, bytesPerPixel); j++)
                     {
                         bytes[((m_height - y - 1) * m_width + x) * bytesPerPixel + j] = color.bytes[j];
                     }
@@ -981,7 +987,7 @@ public:
                 {
                     ConstPixelReferenceType pixelReference = GetPixelReference(x, y);
 
-                    for (uint32 j = 0; j < MathUtil::Min(numComponents, bytesPerPixel); j++)
+                    for (uint32 j = 0; j < MathUtil::Min(NumComponents, bytesPerPixel); j++)
                     {
                         bytes[((m_height - y - 1) * m_width + x) * bytesPerPixel + j] = ubyte(pixelReference.GetComponentFloat(j) * 255.0f);
                     }
@@ -996,7 +1002,7 @@ public:
     Array<float> GetUnpackedFloats() const
     {
         Array<float> floats;
-        floats.Resize(m_width * m_height * numComponents);
+        floats.Resize(m_width * m_height * NumComponents);
 
         for (uint32 x = 0; x < m_width; x++)
         {
@@ -1004,9 +1010,9 @@ public:
             {
                 ConstPixelReferenceType pixelReference = GetPixelReference(x, y);
 
-                for (uint32 j = 0; j < numComponents; j++)
+                for (uint32 j = 0; j < NumComponents; j++)
                 {
-                    floats[(y * m_width + x) * numComponents + j] = pixelReference.GetComponentFloat(j);
+                    floats[(y * m_width + x) * NumComponents + j] = pixelReference.GetComponentFloat(j);
                 }
             }
         }
@@ -1247,11 +1253,12 @@ class Bitmap3D
 {
 public:
     using PixelComponentType = typename TextureFormatHelper<Format>::ElementType;
-    static constexpr uint32 numComponents = TextureFormatHelper<Format>::numComponents;
-    static constexpr bool isSrgb = TextureFormatHelper<Format>::isSrgb;
 
-    using PixelReferenceType = PixelReference<PixelComponentType, numComponents, isSrgb>;
-    using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, numComponents, isSrgb>;
+    static constexpr uint32 NumComponents = TextureFormatHelper<Format>::NumComponents;
+    static constexpr bool IsSrgb = TextureFormatHelper<Format>::IsSrgb;
+
+    using PixelReferenceType = PixelReference<PixelComponentType, NumComponents, IsSrgb>;
+    using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, NumComponents, IsSrgb>;
 
     Bitmap3D()
         : m_width(0),
@@ -1277,7 +1284,7 @@ public:
 
     HYP_FORCE_INLINE static constexpr uint32 GetNumComponents()
     {
-        return numComponents;
+        return NumComponents;
     }
 
     HYP_FORCE_INLINE uint32 GetWidth() const
@@ -1300,7 +1307,7 @@ public:
         return SizeType(m_width)
             * SizeType(m_height)
             * SizeType(m_depth)
-            * SizeType(numComponents)
+            * SizeType(NumComponents)
             * sizeof(PixelComponentType);
     }
 
@@ -1310,7 +1317,7 @@ public:
         const SizeType index = ((SizeType(z) % m_depth) * m_height + (SizeType(y) % m_height)) * m_width
             + (SizeType(x) % m_width);
 
-        PixelReferenceType pixelReference { m_buffer.Data() + index * numComponents * sizeof(PixelComponentType) };
+        PixelReferenceType pixelReference { m_buffer.Data() + index * NumComponents * sizeof(PixelComponentType) };
 
         return pixelReference;
     }
@@ -1346,7 +1353,7 @@ public:
     }
 
     /*! \brief Get data as 1 byte per component (e.g RGBA8) */
-    ByteBuffer GetUnpackedBytes(uint32 bytesPerPixel = numComponents) const
+    ByteBuffer GetUnpackedBytes(uint32 bytesPerPixel = NumComponents) const
     {
         ByteBuffer byteBuffer;
         byteBuffer.SetSize((m_width * m_height * m_depth) * bytesPerPixel);
@@ -1369,7 +1376,7 @@ public:
                         // keep vertical flip consistent with 2D version; slices are laid out in Z-major order
                         const SizeType idx = ((SizeType(z) * m_height + (m_height - y - 1u)) * m_width + x) * bytesPerPixel;
 
-                        for (uint32 j = 0; j < MathUtil::Min(numComponents, bytesPerPixel); j++)
+                        for (uint32 j = 0; j < MathUtil::Min(NumComponents, bytesPerPixel); j++)
                         {
                             bytes[idx + j] = color.bytes[j];
                         }
@@ -1389,7 +1396,7 @@ public:
 
                         const SizeType idx = ((SizeType(z) * m_height + (m_height - y - 1u)) * m_width + x) * bytesPerPixel;
 
-                        for (uint32 j = 0; j < MathUtil::Min(numComponents, bytesPerPixel); j++)
+                        for (uint32 j = 0; j < MathUtil::Min(NumComponents, bytesPerPixel); j++)
                         {
                             bytes[idx + j] = ubyte(pixelReference.GetComponentFloat(j) * 255.0f);
                         }
@@ -1405,7 +1412,7 @@ public:
     Array<float> GetUnpackedFloats() const
     {
         Array<float> floats;
-        floats.Resize(m_width * m_height * m_depth * numComponents);
+        floats.Resize(m_width * m_height * m_depth * NumComponents);
 
         for (uint32 z = 0; z < m_depth; z++)
         {
@@ -1415,9 +1422,9 @@ public:
                 {
                     ConstPixelReferenceType pixelReference = GetPixelReference(x, y, z);
 
-                    for (uint32 j = 0; j < numComponents; j++)
+                    for (uint32 j = 0; j < NumComponents; j++)
                     {
-                        floats[((z * m_height + y) * m_width + x) * numComponents + j] = pixelReference.GetComponentFloat(j);
+                        floats[((z * m_height + y) * m_width + x) * NumComponents + j] = pixelReference.GetComponentFloat(j);
                     }
                 }
             }

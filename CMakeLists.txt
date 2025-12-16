@@ -532,12 +532,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             # Check if Scripting project exists and include it
             if(EXISTS ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
                 include_external_msproject(Hyperion.NET.Scripting ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
-
-                # copy assemblies after build (depends on all C# projects)
-                add_custom_target(CopyCSharpAssemblies ALL
-                    COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Scripting.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Scripting.dll
-                    DEPENDS Hyperion.NET.Runtime Hyperion.NET.Scripting
-                )
             endif()
         endif()
     endif()
@@ -546,8 +540,9 @@ else()
     message(STATUS "Not building C# libraries, HYP_GENERATE_CSHARP_LIBRARIES is false")
 endif()
 
-function(collect_sources_and_modules dir out_sources out_modules out_pch_headers)
+function(collect_sources_and_modules dir out_sources out_headers out_modules out_pch_headers)
     set(local_sources "")
+    set(local_headers "")
     set(local_modules "")
     set(local_pch_headers "")
 
@@ -580,9 +575,10 @@ function(collect_sources_and_modules dir out_sources out_modules out_pch_headers
         list(APPEND local_modules ${sub_library_name})
 
         set(${out_sources} "${local_sources}" PARENT_SCOPE)
+        set(${out_headers} "${local_headers}" PARENT_SCOPE)
         set(${out_modules} "${local_modules}" PARENT_SCOPE)
 
-        source_group("${sub_library_name} Library Code" FILES ${local_sources})
+        source_group("${sub_library_name} Library Code" FILES ${local_sources} ${local_headers})
 
         if (EXISTS "${dir}/${subdir_basename}Pch.hpp")
             list(APPEND local_pch_headers "${dir}/${subdir_basename}Pch.hpp")
@@ -592,40 +588,50 @@ function(collect_sources_and_modules dir out_sources out_modules out_pch_headers
     endif()
 
     file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR}
-         "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.h" "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hxx" "${dir}/*.inl" "${dir}/*.mm" "${dir}/*.m")
+         "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
     list(APPEND local_sources ${current_sources})
+    file(GLOB current_headers RELATIVE ${CMAKE_SOURCE_DIR}
+         "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl")
+    list(APPEND local_headers ${current_headers})
 
     file(GLOB children LIST_DIRECTORIES true "${dir}/*")
     foreach(child ${children})
         if(IS_DIRECTORY "${child}")
-            collect_sources_and_modules("${child}" child_sources child_modules child_pch_headers)
+            collect_sources_and_modules("${child}" child_sources child_headers child_modules child_pch_headers)
             list(APPEND local_sources ${child_sources})
+            list(APPEND local_headers ${child_headers})
             list(APPEND local_modules ${child_modules})
             list(APPEND local_pch_headers ${child_pch_headers})
         endif()
     endforeach()
 
     set(${out_sources} "${local_sources}" PARENT_SCOPE)
+    set(${out_headers} "${local_headers}" PARENT_SCOPE)
     set(${out_modules} "${local_modules}" PARENT_SCOPE)
     set(${out_pch_headers} "${local_pch_headers}" PARENT_SCOPE)
 endfunction()
 
 set(SUB_LIBRARIES "")
 set(SUB_PCH_HEADERS "")
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES SUB_LIBRARIES SUB_PCH_HEADERS)
-source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${SOURCES})
+
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES HEADERS SUB_LIBRARIES SUB_PCH_HEADERS)
+
+# add top level sources and headers to main engine sources
+source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${SOURCES} ${HEADERS})
 
 set(THIRD_PARTY_SOURCES "")
+set(THIRD_PARTY_HEADERS "")
 set(THIRD_PARTY_LIBRARIES "")
 set(THIRD_PARTY_PCH_HEADERS "")
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES THIRD_PARTY_LIBRARIES THIRD_PARTY_PCH_HEADERS)
-source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES})
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES THIRD_PARTY_PCH_HEADERS)
+source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
 
 # platform specific stuff
 file(GLOB_RECURSE PLATFORM_FILES "src/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
     if(NOT ${PLATFORM_FILE} MATCHES "src/system/platform/${HYP_PLATFORM_NAME_LOWER}")
         list(REMOVE_ITEM SOURCES ${PLATFORM_FILE})
+        list(REMOVE_ITEM HEADERS ${PLATFORM_FILE})
     endif()
 endforeach()
 
@@ -634,13 +640,9 @@ if(NOT DEFINED HYP_VULKAN)
     file(GLOB_RECURSE VULKAN_FILES "src/rendering/vulkan/**/*")
     foreach(VULKAN_FILE ${VULKAN_FILES})
         list(REMOVE_ITEM SOURCES ${VULKAN_FILE})
+        list(REMOVE_ITEM HEADERS ${VULKAN_FILE})
     endforeach()
 endif()
-
-file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp" "src/*.inl")
-
-# add headers / inls to solution
-source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${HEADERS})
 
 # include shader files (under `res/shaders`) in the sln, mark as headers since
 # they are not compiled here
