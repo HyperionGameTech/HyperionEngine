@@ -138,6 +138,7 @@ if(TARGET glslang_build)
 endif()
 
 target_link_libraries(${BUILD_NAME} PRIVATE ${RENDERER_LIBRARIES})
+add_dependencies(${BUILD_NAME} hyperion-core)
 
 # add definitions that should be visible to the main project as well
 if(HYP_SDL)

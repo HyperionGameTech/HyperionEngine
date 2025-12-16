@@ -4,8 +4,8 @@
 
 #include <rendering/renderers/ShadowRenderer.hpp>
 
-#include <shadows/ShadowMapAllocator.hpp>
-#include <shadows/ShadowMap.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
+#include <rendering/shadows/ShadowMap.hpp>
 
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderGlobalState.hpp>

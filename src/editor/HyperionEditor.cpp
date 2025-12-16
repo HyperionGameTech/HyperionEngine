@@ -11,7 +11,7 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/Texture.hpp>
 
-#include <shadows/ShadowMap.hpp>
+#include <rendering/shadows/ShadowMap.hpp>
 
 #include <engine/DebugDrawer.hpp>
 

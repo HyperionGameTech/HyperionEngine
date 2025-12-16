@@ -2,8 +2,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <shadows/ShadowMap.hpp>
-#include <shadows/ShadowMapAllocator.hpp>
+#include <rendering/shadows/ShadowMap.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
