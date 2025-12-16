@@ -9,6 +9,7 @@
 
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderDescriptorSet.hpp>

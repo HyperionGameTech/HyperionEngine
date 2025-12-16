@@ -3,6 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/DepthPyramidRenderer.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderAttachment.hpp>

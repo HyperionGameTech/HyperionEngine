@@ -3,10 +3,11 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/SSRRenderer.hpp>
+#include <rendering/Renderer.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/FullScreenPass.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderBackend.hpp>

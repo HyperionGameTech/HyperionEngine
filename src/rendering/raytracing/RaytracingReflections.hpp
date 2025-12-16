@@ -4,7 +4,6 @@
 
 #include <core/Constants.hpp>
 
-#include <rendering/ShaderManager.hpp>
 #include <rendering/TemporalBlending.hpp>
 
 #include <rendering/RenderObject.hpp>

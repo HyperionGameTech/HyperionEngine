@@ -3,6 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/GaussianSplatting.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderEnvironment.hpp>

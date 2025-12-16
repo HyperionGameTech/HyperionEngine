@@ -5,7 +5,7 @@
 #include <rendering/TemporalAA.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderQueue.hpp>
@@ -15,6 +15,8 @@
 #include <rendering/RenderFramebuffer.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
+
+#include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

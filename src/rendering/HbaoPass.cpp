@@ -3,6 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/HbaoPass.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>

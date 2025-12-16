@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <rendering/ShaderManager.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
 #include <core/utilities/DataMutationState.hpp>

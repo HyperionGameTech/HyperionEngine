@@ -9,6 +9,7 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/ShaderManager.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>

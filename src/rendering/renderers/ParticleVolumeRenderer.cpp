@@ -14,12 +14,12 @@
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/Texture.hpp>
-#include <rendering/Mesh.hpp>
-
+#include <rendering/ShaderManager.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/Texture.hpp>
+#include <rendering/Mesh.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
