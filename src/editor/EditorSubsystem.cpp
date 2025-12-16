@@ -73,7 +73,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <shadows/ShadowMap.hpp>
+#include <rendering/shadows/ShadowMap.hpp>
 
 // temp
 #include <scene/camera/streaming/CameraStreamingVolume.hpp>

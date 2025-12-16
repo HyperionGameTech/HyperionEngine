@@ -1,5 +1,5 @@
 #include <HyperionPch.hpp>
-#include <shadows/ShadowCameraHelper.hpp>
+#include <rendering/shadows/ShadowCameraHelper.hpp>
 
 #include <scene/camera/Camera.hpp>
 
