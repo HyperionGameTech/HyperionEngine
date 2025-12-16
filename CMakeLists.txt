@@ -224,6 +224,13 @@ if(${OpenAL_FOUND})
     add_definitions(-DHYP_OPENAL=1)
 endif()
 
+# PCHs
+set(HYP_PCH
+    "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
+)
+
+# /PCHs
+
 # default definitions
 
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
@@ -553,11 +560,11 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
     endif()
 endif()
 
-function(collect_sources_and_modules dir out_sources out_headers out_modules out_pch_headers)
+function(collect_sources_and_modules dir out_sources out_headers out_modules)
     set(local_sources "")
     set(local_headers "")
     set(local_modules "")
-    set(local_pch_headers "")
+    set(local_pchs "${HYP_PCH}") # start with global PCHs
 
     # if the directory is system/platform/<platform not equal to HYP_PLATFORM_NAME>, skip it
     if(${dir} MATCHES "src/system/platform/.*" AND NOT ${dir} MATCHES "src/system/platform/${HYP_PLATFORM_NAME_LOWER}")
@@ -593,16 +600,15 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
         list(APPEND local_modules ${sub_library_name})
 
         if (EXISTS "${dir}/${subdir_basename}Pch.hpp")
-            list(APPEND local_pch_headers "${dir}/${subdir_basename}Pch.hpp")
+            list(APPEND local_pchs "${dir}/${subdir_basename}Pch.hpp")
         endif()
 
         # Recurse into children so nested modules with their own CMakeLists.txt get added
         file(GLOB children LIST_DIRECTORIES true "${dir}/*")
         foreach(child ${children})
             if(IS_DIRECTORY "${child}")
-                collect_sources_and_modules("${child}" child_sources child_headers child_modules child_pch_headers)
+                collect_sources_and_modules("${child}" child_sources child_headers child_modules)
                 list(APPEND local_modules ${child_modules})
-                list(APPEND local_pch_headers ${child_pch_headers})
 
                 if(EXISTS "${child}/CMakeLists.txt")
                     # Treat child as its own module; do not pull its sources into this target
@@ -617,6 +623,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
         if(NOT TARGET ${sub_library_name})
             set("${sub_library_name}_SOURCES" ${local_sources})
             set("${sub_library_name}_HEADERS" ${local_headers})
+            set("${sub_library_name}_PCH" ${local_pchs})
 
             message(STATUS "Sources for ${sub_library_name}: ${${sub_library_name}_SOURCES}")
 
@@ -628,7 +635,6 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
         set(${out_sources} "${local_sources}" PARENT_SCOPE)
         set(${out_headers} "${local_headers}" PARENT_SCOPE)
         set(${out_modules} "${local_modules}" PARENT_SCOPE)
-        set(${out_pch_headers} "${local_pch_headers}" PARENT_SCOPE)
 
         source_group("${sub_library_name} Library Code" FILES ${local_sources} ${local_headers})
     else()
@@ -637,9 +643,8 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
             if(IS_DIRECTORY "${child}")
                 if(EXISTS "${child}/CMakeLists.txt")
                     # Treat child as its own module; do not pull its sources into this target
-                    collect_sources_and_modules("${child}" child_sources child_headers child_modules child_pch_headers)
+                    collect_sources_and_modules("${child}" child_sources child_headers child_modules)
                     list(APPEND local_modules ${child_modules})
-                    list(APPEND local_pch_headers ${child_pch_headers})
 
                     # Remove any files from this module directory that were already added
                     file(GLOB_RECURSE child_all_sources RELATIVE ${CMAKE_SOURCE_DIR}
@@ -649,11 +654,10 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
                     list(REMOVE_ITEM local_sources ${child_all_sources})
                     list(REMOVE_ITEM local_headers ${child_all_headers})
                 else()
-                    collect_sources_and_modules("${child}" child_sources child_headers child_modules child_pch_headers)
+                    collect_sources_and_modules("${child}" child_sources child_headers child_modules)
                     list(APPEND local_sources ${child_sources})
                     list(APPEND local_headers ${child_headers})
                     list(APPEND local_modules ${child_modules})
-                    list(APPEND local_pch_headers ${child_pch_headers})
                 endif()
             endif()
         endforeach()
@@ -661,14 +665,12 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules out
         set(${out_sources} "${local_sources}" PARENT_SCOPE)
         set(${out_headers} "${local_headers}" PARENT_SCOPE)
         set(${out_modules} "${local_modules}" PARENT_SCOPE)
-        set(${out_pch_headers} "${local_pch_headers}" PARENT_SCOPE)
     endif()
 endfunction()
 
 set(SUB_LIBRARIES "")
-set(SUB_PCH_HEADERS "")
 
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES HEADERS SUB_LIBRARIES SUB_PCH_HEADERS)
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES HEADERS SUB_LIBRARIES)
 
 # add top level sources and headers to main engine sources
 source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${SOURCES} ${HEADERS})
@@ -676,8 +678,7 @@ source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${SOURCES} 
 set(THIRD_PARTY_SOURCES "")
 set(THIRD_PARTY_HEADERS "")
 set(THIRD_PARTY_LIBRARIES "")
-set(THIRD_PARTY_PCH_HEADERS "")
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES THIRD_PARTY_PCH_HEADERS)
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES)
 source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
 
 # platform specific stuff
@@ -901,6 +902,18 @@ set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HE
 
 add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
 
+# PCHs
+target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH})
+
+# if XCode: set the PCH file for the target
+if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
+    set_target_properties(${BUILD_NAME} PROPERTIES
+        XCODE_ATTRIBUTE_GCC_PRECOMPILE_PREFIX_HEADER "YES"
+        XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
+    )
+endif()
+# /PCHs
+
 set(COMMON_LIBRARIES
     ${COMMON_LIBRARIES}
     ${CMAKE_THREADS_LIBS_INIT}
@@ -964,24 +977,6 @@ if(TARGET webgpu_external)
 endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
-
-# PCHs
-set(HYP_PCH_HEADERS
-    "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
-    ${SUB_PCH_HEADERS}
-)
-
-target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH_HEADERS})
-
-# if XCode: set the PCH file for the target
-if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
-    set_target_properties(${BUILD_NAME} PROPERTIES
-        XCODE_ATTRIBUTE_GCC_PRECOMPILE_PREFIX_HEADER "YES"
-        XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
-    )
-endif()
-
-# /PCHs
 
 remove_definitions(-DHYP_BUILD_LIBRARY)
 
