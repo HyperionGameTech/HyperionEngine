@@ -3,7 +3,6 @@
 #pragma once
 
 #include <rendering/Shared.hpp>
-#include <rendering/RenderFramebuffer.hpp>
 #include <rendering/RenderBucket.hpp>
 #include <rendering/ShaderManager.hpp>
 
