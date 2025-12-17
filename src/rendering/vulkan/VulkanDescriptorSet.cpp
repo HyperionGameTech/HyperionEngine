@@ -775,11 +775,7 @@ void VulkanDescriptorSet::SetDebugName(Name name)
 VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* decl)
     : DescriptorTableBase(decl)
 {
-    if (!IsValid())
-    {
-        HYP_LOG(RenderingBackend, Error, "Invalid descriptor table declaration");
-        return;
-    }
+    AssertDebug(decl != nullptr);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
