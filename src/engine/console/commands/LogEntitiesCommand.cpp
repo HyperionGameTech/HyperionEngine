@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <console/commands/LogEntitiesCommand.hpp>
+#include <engine/console/commands/LogEntitiesCommand.hpp>
 
 #include <core/io/ByteWriter.hpp>
 

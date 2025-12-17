@@ -23,7 +23,7 @@
 
 #include <core/cli/CommandLine.hpp>
 
-#include <console/ConsoleCommandManager.hpp>
+#include <engine/console/ConsoleCommandManager.hpp>
 
 #include <system/MessageBox.hpp>
 #include <system/App.hpp>
