@@ -155,7 +155,7 @@ if(MSVC)
     add_definitions("/DNOMINMAX")
 
     if(HYP_DEBUG_MODE)
-        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O1 /MD /Z7 /constexpr:depth1024 /bigobj /MP")
+        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /MD /Z7 /constexpr:depth1024 /bigobj /MP")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/src/Hyperion.natvis")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
     else()
@@ -924,18 +924,15 @@ target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
 
 
 # add sublibraries as dependencies so any changes get picked up.
-# we'll have to skip hyperion-editor though since it depends on the engine's DLL
 foreach(SUB_LIBRARY ${SUB_LIBRARIES})
-    if (NOT SUB_LIBRARY STREQUAL "hyperion-editor")
-        add_dependencies(${BUILD_NAME} ${SUB_LIBRARY})
-    endif()
+    add_dependencies(${BUILD_NAME} ${SUB_LIBRARY})
 endforeach()
 
 if(APPLE)
     # needs to use -force_load on macOS for static libraries to re-export symbols correctly
     # for the Hyperion.NET assemblies, since we define functions for P/Invoke there.
     foreach(SUB_LIBRARY ${SUB_LIBRARIES})
-        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*") 
+        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor")
             target_link_libraries(${BUILD_NAME} PRIVATE -force_load $<TARGET_FILE:${SUB_LIBRARY}>)
         else()
             target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
@@ -944,7 +941,7 @@ if(APPLE)
 elseif(MSVC)
     # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior
     foreach(SUB_LIBRARY ${SUB_LIBRARIES})
-        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*") 
+        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor") 
             target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${SUB_LIBRARY}>")
         else()
             target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})

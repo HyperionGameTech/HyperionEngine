@@ -29,15 +29,15 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-HYP_API extern const FilePath& GetResourceDirectory();
+extern const FilePath& GetResourceDirectory();
 
-#define DEFINE_EDITOR_COMMAND(name)                                        \
-    HYP_API const Class* g_clsEditorCommand##name = nullptr;               \
-                                                                           \
-    HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase")) \
-    HYP_END_CLASS                                                          \
-                                                                           \
-    HYP_REGISTER_STATIC_CLASS(EditorCommand##name)
+#define DEFINE_EDITOR_COMMAND(name)                                                     \
+    HYP_API const Class* g_clsEditorCommand##name = nullptr;                            \
+                                                                                        \
+    HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase"))              \
+    HYP_END_CLASS                                                                       \
+                                                                                        \
+    HYP_EXPORT TClassStaticInit<EditorCommand##name> classInit##EditorCommand##name {};
 
 #pragma region Undo
 
