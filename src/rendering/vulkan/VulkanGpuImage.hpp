@@ -12,12 +12,6 @@
 
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
 
-#include <system/vma/VmaUsage.hpp>
-
-#include <core/math/MathUtil.hpp>
-
-#include <core/Types.hpp>
-
 namespace hyperion {
 
 HYP_CLASS(NoScriptBindings)

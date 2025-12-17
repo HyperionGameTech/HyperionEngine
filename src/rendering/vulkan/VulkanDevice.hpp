@@ -12,6 +12,7 @@
 
 #include <rendering/vulkan/VulkanDeviceQueue.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
+#include <rendering/vulkan/VulkanMemoryAllocator.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
@@ -25,8 +26,6 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/Shared.hpp>
-
-#include <system/vma/VmaUsage.hpp>
 
 namespace hyperion {
 

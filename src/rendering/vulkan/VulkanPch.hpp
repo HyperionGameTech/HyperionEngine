@@ -9,6 +9,7 @@
 
 #include <rendering/vulkan/VulkanMemory.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
+#include <rendering/vulkan/VulkanMemoryAllocator.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineMemory.hpp>

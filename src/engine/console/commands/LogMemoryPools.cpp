@@ -1,6 +1,6 @@
 #include <HyperionPch.hpp>
 
-#include <console/ConsoleCommand.hpp>
+#include <engine/console/ConsoleCommand.hpp>
 
 #include <core/reflection/ClassUtils.hpp>
 

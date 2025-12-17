@@ -22,8 +22,6 @@
 
 #include <system/AppContext.hpp>
 
-#include <system/vma/VmaUsage.hpp>
-
 #include <engine/EngineGlobals.hpp>
 
 #include <cstring>
