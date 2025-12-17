@@ -12,17 +12,6 @@ link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
-set(COMMON_LIBRARIES
-    hyperion-core
-)
-
-if(MSVC)
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP")
-    add_definitions("/DNOMINMAX")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
-endif()
-
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 add_definitions(-DHYP_EDITOR=1)
 
@@ -46,11 +35,12 @@ foreach(filepath ${hyperion-editor_HEADERS})
 endforeach()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
-target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
 
-if(${hyperion-editor_PCH})
-    target_precompile_headers(${BUILD_NAME} PRIVATE ${hyperion-editor_PCH})
+if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
+    target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
+
+target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)
 
 # CSHARP_PROJECTS_DIR must be defined (from CMakeLists.txt in src/) as it is used to locate the Hyperion.NET packages
 # check to ensure it is defined

@@ -6,10 +6,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/utilities/Format.hpp>
-
-#include <core/logging/Logger.hpp>
-
 #include <core/threading/Threads.hpp>
 
 #include <core/io/ByteWriter.hpp>

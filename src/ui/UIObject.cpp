@@ -28,13 +28,6 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <UIObject.generated.inl>
 
 namespace hyperion {

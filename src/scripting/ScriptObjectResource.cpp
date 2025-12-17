@@ -1,13 +1,10 @@
 #include <HyperionPch.hpp>
+
 #include <scripting/ScriptObjectResource.hpp>
 #include <scripting/Script.hpp>
 
-#include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/Object.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <core/debug/Debug.hpp>
 

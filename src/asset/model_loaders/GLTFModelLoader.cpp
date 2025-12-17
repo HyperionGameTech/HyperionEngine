@@ -22,14 +22,10 @@
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#include <core/utilities/Format.hpp>
 #include <core/utilities/StringUtil.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 #include <core/filesystem/FilePath.hpp>
@@ -48,7 +44,6 @@
 #include <core/containers/HashMap.hpp>
 #include <core/reflection/Handle.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #define CGLTF_IMPLEMENTATION

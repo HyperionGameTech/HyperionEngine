@@ -7,11 +7,6 @@
 
 #include <rendering/RenderFrame.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
-#include <engine/EngineGlobals.hpp>
-
 namespace hyperion {
 
 DOFBlur::DOFBlur(const Vec2u& extent, GBuffer* gbuffer)

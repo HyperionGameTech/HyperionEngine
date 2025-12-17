@@ -7,14 +7,10 @@
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/utilities/Format.hpp>
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
 #include <core/reflection/HypDataJSONHelpers.hpp>
-#include <core/reflection/Class.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
@@ -27,12 +23,8 @@
 
 #include <core/json/JSON.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <system/MessageBox.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <AssetObject.generated.inl>

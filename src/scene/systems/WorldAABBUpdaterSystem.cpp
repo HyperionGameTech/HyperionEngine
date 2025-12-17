@@ -11,8 +11,6 @@
 
 #include <core/memory/allocator/ArenaAllocator.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <engine/EngineMemory.hpp>
 
 #include <WorldAABBUpdaterSystem.generated.inl>

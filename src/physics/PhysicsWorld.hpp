@@ -7,8 +7,6 @@
 
 #include <core/math/Vector3.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-
 namespace hyperion {
 
 HYP_CLASS(Abstract)

@@ -12,13 +12,6 @@ link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
-if(MSVC)
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP")
-    add_definitions("/DNOMINMAX")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
-endif()
-
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 include_directories(
@@ -41,6 +34,10 @@ foreach(filepath ${hyperion-asset_HEADERS})
 endforeach()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+
+if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
+    target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
+endif()
 
 add_dependencies(${BUILD_NAME} hyperion-core hyperion-scene)
 

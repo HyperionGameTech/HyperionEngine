@@ -35,14 +35,9 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <core/logging/Logger.hpp>
-
 #include <system/AppContext.hpp>
 
 #include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
 
 #include <UISubsystem.generated.inl>
 

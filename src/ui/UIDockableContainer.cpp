@@ -5,8 +5,6 @@
 #include <ui/UIDockableContainer.hpp>
 #include <ui/UIStage.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <UIDockableContainer.generated.inl>
 
 namespace hyperion {

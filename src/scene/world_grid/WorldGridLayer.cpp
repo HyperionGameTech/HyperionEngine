@@ -12,10 +12,6 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetReference.hpp>
 
-#include <engine/EngineGlobals.hpp>
-
-#include <core/logging/Logger.hpp>
-
 #include <WorldGridLayer.generated.inl>
 
 namespace hyperion {

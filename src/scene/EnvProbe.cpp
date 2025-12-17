@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "core/logging/LoggerFwd.hpp"
 #include <HyperionPch.hpp>
 
 #include <scene/EnvProbe.hpp>
@@ -20,10 +19,6 @@
 
 #include <lightmapper/LightmapperSubsystem.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <EnvProbe.generated.inl>

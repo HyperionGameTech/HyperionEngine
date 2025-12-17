@@ -3,11 +3,8 @@
 #include <HyperionPch.hpp>
 
 #include <scene/System.hpp>
-#include <scene/EntityManager.hpp>
-
 #include <scene/Scene.hpp>
-
-#include <core/reflection/Class.hpp>
+#include <scene/EntityManager.hpp>
 
 #include <System.generated.inl>
 

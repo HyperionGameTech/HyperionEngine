@@ -4,8 +4,6 @@
 
 #include <scene/camera/PerspectiveCamera.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <PerspectiveCamera.generated.inl>
 
 namespace hyperion {

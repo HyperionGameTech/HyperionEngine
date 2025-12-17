@@ -21,10 +21,6 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <vulkan/vulkan.h>

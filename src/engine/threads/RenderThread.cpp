@@ -4,7 +4,6 @@
 
 #include <engine/threads/RenderThread.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 #include <engine/DebugDrawer.hpp>
@@ -14,25 +13,23 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderProxy.hpp>
-
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderDevice.hpp>
 #include <rendering/RenderSwapchain.hpp>
 #include <rendering/RenderConfig.hpp>
 
+#include <rendering/renderers/DeferredRenderer.hpp>
+
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <asset/Assets.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <scene/World.hpp>
 

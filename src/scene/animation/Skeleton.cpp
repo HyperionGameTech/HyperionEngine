@@ -8,15 +8,9 @@
 
 #include <rendering/RenderProxy.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <Skeleton.generated.inl>

@@ -6,15 +6,12 @@
 
 #include <core/cli/CommandLine.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderBackend.hpp>
 
 #include <game/Game.hpp>
 
 #include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
 
 #include <HyperionEngine.hpp>
 

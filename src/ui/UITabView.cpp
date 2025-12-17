@@ -7,9 +7,6 @@
 
 #include <input/InputManager.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <UITabView.generated.inl>
 
 namespace hyperion {

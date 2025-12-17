@@ -8,7 +8,6 @@
 #include <asset/AssetReference.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/utilities/Format.hpp>
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 #include <core/reflection/TypeInfo.hpp>
@@ -16,24 +15,17 @@
 #include <core/threading/Scheduler.hpp>
 
 #include <core/reflection/HypDataJSONHelpers.hpp>
-#include <core/reflection/Class.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/Property.hpp>
 
 #include <core/io/ByteWriter.hpp>
 #include <core/io/BufferedByteReader.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/json/JSON.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/EntityManager.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <AssetRegistry.generated.inl>

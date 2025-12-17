@@ -15,9 +15,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/math/MathUtil.hpp>
 #include <core/math/Transform.hpp>
 

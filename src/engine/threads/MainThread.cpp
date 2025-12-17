@@ -10,7 +10,6 @@
 #include <core/cli/CommandLine.hpp>
 
 #include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
 
 #include <system/SystemEvent.hpp>
 #include <system/AppContext.hpp>

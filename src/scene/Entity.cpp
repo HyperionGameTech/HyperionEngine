@@ -24,13 +24,6 @@
 #include <rendering/Material.hpp>
 #include <rendering/RenderProxy.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
-#include <core/reflection/Class.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <engine/EngineDriver.hpp>
 
 #include <Entity.generated.inl>

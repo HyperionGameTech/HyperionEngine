@@ -12,17 +12,11 @@
 
 #include <core/containers/SparsePagedArray.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
 #include <scene/BVH.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <cstring>

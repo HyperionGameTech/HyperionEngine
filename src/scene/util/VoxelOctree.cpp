@@ -3,14 +3,14 @@
 #include <HyperionPch.hpp>
 
 #include <scene/util/VoxelOctree.hpp>
-#include <scene/Entity.hpp>
 
+#include <scene/Entity.hpp>
 #include <scene/EntityManager.hpp>
+#include <scene/BVH.hpp>
+
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
-
-#include <scene/BVH.hpp>
 
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
@@ -18,13 +18,8 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/TaskThread.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <limits>
 

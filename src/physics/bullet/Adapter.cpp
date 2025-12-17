@@ -11,9 +11,6 @@
 #include <core/math/Vector3.hpp>
 #include <core/math/Quaternion.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #ifdef HYP_BULLET_PHYSICS
 #include "btBulletDynamicsCommon.h"
 

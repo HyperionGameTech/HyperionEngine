@@ -7,9 +7,6 @@
 #include <input/InputManager.hpp>
 #include <input/Mouse.hpp>
 
-#include <core/utilities/Format.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <UITextbox.generated.inl>
 
 namespace hyperion {

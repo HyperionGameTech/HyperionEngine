@@ -3,8 +3,8 @@
 #include <HyperionPch.hpp>
 
 #include <scene/systems/PhysicsSystem.hpp>
-#include <scene/EntityManager.hpp>
 
+#include <scene/EntityManager.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 

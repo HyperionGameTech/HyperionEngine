@@ -17,9 +17,6 @@
 
 #include <core/math/BoundingBox.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <system/AppContext.hpp>
 
 #include <engine/EngineDriver.hpp>

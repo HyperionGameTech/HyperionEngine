@@ -36,13 +36,6 @@
 #include <util/MeshBuilder.hpp>
 #include <util/NoiseFactory.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <engine/EngineGlobals.hpp>
-
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>
 
