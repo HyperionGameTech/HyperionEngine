@@ -177,7 +177,7 @@ namespace Hyperion.Editor
                 throw new InvalidOperationException("Game instance is not available.");
             }
 
-            await gameInstance.PostTask(action);
+            await gameInstance.PostTask(action).ConfigureAwait(false);
         }
 
         public static async Task<T> PostToGameThread<T>(Func<T> func)
@@ -189,7 +189,7 @@ namespace Hyperion.Editor
                 throw new InvalidOperationException("Game instance is not available.");
             }
 
-            return await gameInstance.PostTask(func);
+            return await gameInstance.PostTask(func).ConfigureAwait(false);
         }
     }
 }
