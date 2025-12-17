@@ -14,10 +14,6 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/logging/Logger.hpp>
-
 #include <DrawCall.generated.inl>
 
 namespace hyperion {

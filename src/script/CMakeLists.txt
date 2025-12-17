@@ -16,13 +16,6 @@ set(COMMON_LIBRARIES
     hyperion-core
 )
 
-if(MSVC)
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP")
-    add_definitions("/DNOMINMAX")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
-endif()
-
 file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "HypScript Code" FILES ${SOURCES} ${HEADERS})
@@ -40,4 +33,9 @@ include_directories(
 )
 
 add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
+
+if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
+    target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
+endif()
+
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})

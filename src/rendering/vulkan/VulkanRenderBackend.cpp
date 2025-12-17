@@ -29,14 +29,9 @@
 
 #include <core/config/Config.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <rendering/Texture.hpp>
 
 #include <system/AppContext.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #include <vulkan/vulkan.h>
 

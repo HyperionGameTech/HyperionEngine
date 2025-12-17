@@ -3,13 +3,12 @@
 #include <HyperionPch.hpp>
 
 #include <scene/systems/LightmapSystem.hpp>
+
 #include <scene/EntityManager.hpp>
 #include <scene/Scene.hpp>
 #include <scene/Entity.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
-
-#include <core/logging/Logger.hpp>
 
 #include <LightmapSystem.generated.inl>
 

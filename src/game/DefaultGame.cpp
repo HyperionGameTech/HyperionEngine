@@ -1,8 +1,6 @@
 #include <HyperionPch.hpp>
 #include "DefaultGame.hpp"
 
-#include <rendering/RenderEnvironment.hpp>
-
 #include <engine/DebugDrawer.hpp>
 
 #include <scene/World.hpp>
@@ -11,10 +9,8 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>
-
-#include <rendering/Texture.hpp>
-
 #include <scene/EntityManager.hpp>
+
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/AudioComponent.hpp>
@@ -36,14 +32,15 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 
+#include <rendering/Mesh.hpp>
+#include <rendering/Texture.hpp>
+
 #include <core/serialization/fbom/FBOMWriter.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>
 
-#include <core/logging/Logger.hpp>
 #include <util/MeshBuilder.hpp>
 
 #include <input/InputManager.hpp>
-#include <rendering/Mesh.hpp>
 
 #include <system/SystemEvent.hpp>
 
@@ -52,8 +49,8 @@
 #include <system/AppContext.hpp>
 
 #include <input/Mouse.hpp>
+
 #include <HyperionEngine.hpp>
-#include <engine/EngineGlobals.hpp>
 
 #include <DefaultGame.generated.inl>
 

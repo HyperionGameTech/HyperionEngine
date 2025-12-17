@@ -25,13 +25,9 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/utilities/ByteUtil.hpp>
 #include <core/utilities/DeferredScope.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 namespace hyperion {

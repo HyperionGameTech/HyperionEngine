@@ -21,8 +21,6 @@
 #include <core/memory/allocator/ArenaAllocator.hpp>
 #include <core/memory/pool/Pool.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <core/cli/CommandLine.hpp>
 
 #include <console/ConsoleCommandManager.hpp>

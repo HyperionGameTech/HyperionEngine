@@ -16,8 +16,6 @@
 #include <core/math/Vector3.hpp>
 #include <core/math/MathUtil.hpp>
 
-#include <engine/EngineGlobals.hpp>
-
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 

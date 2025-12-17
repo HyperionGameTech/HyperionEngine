@@ -35,16 +35,8 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <core/threading/Task.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 // #define HYP_DISABLE_VISIBILITY_CHECK

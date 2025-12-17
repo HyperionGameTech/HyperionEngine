@@ -16,14 +16,10 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/Format.hpp>
 
 #include <core/io/ByteWriter.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #include <FontAtlas.generated.inl>
 

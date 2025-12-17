@@ -7,15 +7,10 @@
 #include <system/AppContext.hpp>
 #include <system/SystemEvent.hpp>
 
-#include <engine/EngineGlobals.hpp>
-
 #include <core/utilities/DeferredScope.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/Spinlock.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <InputManager.generated.inl>
 

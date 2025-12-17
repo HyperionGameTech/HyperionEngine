@@ -20,13 +20,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/utilities/Format.hpp>
-
-#include <core/reflection/Class.hpp>
-
 #ifdef HYP_EDITOR
 #include <editor/EditorDelegates.hpp>
 #include <editor/EditorSubsystem.hpp>
@@ -34,7 +27,6 @@
 #include <editor/EditorPickCache.hpp>
 #endif
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <rendering/Mesh.hpp>

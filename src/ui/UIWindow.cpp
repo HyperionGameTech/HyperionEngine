@@ -6,11 +6,6 @@
 #include <ui/UIStage.hpp>
 #include <ui/UIText.hpp>
 
-#include <core/utilities/Format.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <UIWindow.generated.inl>
 
 namespace hyperion {

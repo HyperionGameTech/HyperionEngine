@@ -6,11 +6,6 @@
 
 #include <core/threading/TaskSystem.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 namespace hyperion {
 
 #define HYP_SYSTEMS_PARALLEL_EXECUTION

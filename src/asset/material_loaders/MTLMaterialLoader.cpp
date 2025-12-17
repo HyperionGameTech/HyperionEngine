@@ -10,9 +10,6 @@
 
 #include <rendering/Texture.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/filesystem/FsUtil.hpp>
 
 #ifdef HYP_EDITOR
@@ -20,7 +17,6 @@
 #include <editor/EditorProject.hpp>
 #endif
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <MTLMaterialLoader.generated.inl>

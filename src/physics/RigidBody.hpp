@@ -5,7 +5,6 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>

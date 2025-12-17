@@ -6,12 +6,10 @@
 #include <ui/UIStage.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
-
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
-
 #include <rendering/Texture.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>
@@ -23,13 +21,9 @@
 #include <core/math/Vector3.hpp>
 #include <core/math/Quaternion.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <system/AppContext.hpp>
 
 #include <util/MeshBuilder.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <engine/EngineDriver.hpp>
 

@@ -17,9 +17,6 @@
 // for EnumToString
 #include <core/reflection/Enum.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <VulkanSwapchain.generated.inl>
 
 #include <vulkan/vulkan_core.h>

@@ -5,11 +5,11 @@
 #include <scene/world_grid/WorldGrid.hpp>
 #include <scene/world_grid/WorldGridLayer.hpp>
 
+#include <scene/EntityManager.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 #include <scene/Node.hpp>
 
-#include <scene/EntityManager.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
@@ -20,12 +20,6 @@
 
 #include <core/utilities/ForEach.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <WorldGrid.generated.inl>

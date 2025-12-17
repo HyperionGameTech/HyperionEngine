@@ -5,11 +5,6 @@
 #include <ui/UIButton.hpp>
 #include <ui/UIText.hpp>
 
-#include <core/utilities/Format.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <UIButton.generated.inl>
 
 namespace hyperion {

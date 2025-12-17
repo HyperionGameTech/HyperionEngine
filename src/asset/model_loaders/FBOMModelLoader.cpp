@@ -10,9 +10,6 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/filesystem/FsUtil.hpp>
 
 #include <FBOMModelLoader.generated.inl>

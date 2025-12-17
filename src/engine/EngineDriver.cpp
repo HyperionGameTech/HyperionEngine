@@ -2,9 +2,42 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/Defines.hpp>
+#include <engine/EngineDriver.hpp>
+#include <engine/EngineStats.hpp>
+#include <engine/EngineMemory.hpp>
+#include <engine/DebugDrawer.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <engine/threads/GameThread.hpp>
+#include <engine/threads/MainThread.hpp>
+#include <engine/threads/RenderThread.hpp>
+
+#include <rendering/PostFX.hpp>
+#include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderGroup.hpp>
+#include <rendering/RenderGlobalState.hpp>
+#include <rendering/GBuffer.hpp>
+#include <rendering/FinalPass.hpp>
+#include <rendering/RenderMaterial.hpp>
+#include <rendering/ShaderManager.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/RenderCommand.hpp>
+#include <rendering/RenderProxy.hpp>
+#include <rendering/AsyncCompute.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderDevice.hpp>
+#include <rendering/RenderSwapchain.hpp>
+#include <rendering/RenderConfig.hpp>
+#include <rendering/Texture.hpp>
+
+#include <rendering/renderers/DeferredRenderer.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
+
+#include <scene/World.hpp>
+#include <scene/View.hpp>
+#include <scene/Scene.hpp>
+#include <scene/EntityManager.hpp>
+#include <scene/Subsystem.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 
@@ -14,9 +47,6 @@
 
 #include <core/reflection/Enum.hpp> // For EnumValue()
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <core/cli/CommandLine.hpp>
 
 #include <core/net/NetRequestThread.hpp>
@@ -24,51 +54,11 @@
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
 
-#include <engine/threads/GameThread.hpp>
-#include <engine/threads/MainThread.hpp>
-#include <engine/threads/RenderThread.hpp>
-
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/EngineMemory.hpp>
-#include <engine/EngineGlobals.hpp>
-
-#include <rendering/PostFX.hpp>
-#include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderGroup.hpp>
-#include <rendering/RenderGlobalState.hpp>
-#include <rendering/GBuffer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
-#include <rendering/FinalPass.hpp>
-#include <rendering/RenderMaterial.hpp>
-#include <rendering/ShaderManager.hpp>
-#include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderCommand.hpp>
-#include <rendering/RenderProxy.hpp>
-
-#include <rendering/AsyncCompute.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderSwapchain.hpp>
-#include <rendering/RenderConfig.hpp>
-
-#include <engine/DebugDrawer.hpp>
-
-#include <rendering/util/SafeDeleter.hpp>
-
 #include <asset/Assets.hpp>
 
 #include <streaming/StreamingManager.hpp>
 
 #include <util/MeshBuilder.hpp>
-
-#include <scene/World.hpp>
-#include <scene/View.hpp>
-#include <scene/Scene.hpp>
-#include <scene/EntityManager.hpp>
-#include <scene/Subsystem.hpp>
-
-#include <rendering/Texture.hpp>
 
 #include <system/SystemEvent.hpp>
 

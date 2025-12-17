@@ -16,10 +16,6 @@
 #include <core/reflection/Handle.hpp>
 #include <core/reflection/TypeInfo.hpp>
 #include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/Class.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

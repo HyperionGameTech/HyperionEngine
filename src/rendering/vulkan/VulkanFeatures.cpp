@@ -5,9 +5,6 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/RenderBackend.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 namespace hyperion {
 
 VulkanFeatures::VulkanFeatures()

@@ -13,34 +13,26 @@
 #include <rendering/Renderer.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
-
-#include <rendering/util/SafeDeleter.hpp>
-
 #include <rendering/RenderQueue.hpp>
-
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <rendering/Mesh.hpp>
 
 #include <scene/View.hpp>
 #include <scene/camera/OrthoCamera.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/math/MathUtil.hpp>
 #include <core/math/Color.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <util/NoiseFactory.hpp>
 #include <util/MeshBuilder.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #ifdef HYP_VULKAN

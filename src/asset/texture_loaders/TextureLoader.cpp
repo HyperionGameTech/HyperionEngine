@@ -9,9 +9,6 @@
 
 #include <core/utilities/StringUtil.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <rendering/Texture.hpp>
 
 #include <util/img/ImageUtil.hpp>

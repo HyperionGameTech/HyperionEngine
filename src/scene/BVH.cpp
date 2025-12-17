@@ -3,7 +3,6 @@
 #include <HyperionPch.hpp>
 
 #include <scene/BVH.hpp>
-#include <core/profiling/ProfileScope.hpp>
 
 #include <BVH.generated.inl>
 

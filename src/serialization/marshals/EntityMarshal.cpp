@@ -8,14 +8,7 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/reflection/Class.hpp>
 #include <core/reflection/Property.hpp>
-#include <core/utilities/Format.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/World.hpp>
@@ -29,7 +22,6 @@
 #include <scene/components/MeshComponent.hpp>
 #include <rendering/Mesh.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 namespace hyperion::serialization {

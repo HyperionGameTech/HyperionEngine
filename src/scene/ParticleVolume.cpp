@@ -11,8 +11,6 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <engine/EngineGlobals.hpp>
-
 #include <ParticleVolume.generated.inl>
 
 namespace hyperion {
