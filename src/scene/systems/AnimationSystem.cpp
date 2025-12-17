@@ -13,9 +13,6 @@
 
 #include <core/reflection/Handle.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <AnimationSystem.generated.inl>
 
 namespace hyperion {

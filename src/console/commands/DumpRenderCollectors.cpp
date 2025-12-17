@@ -6,8 +6,6 @@
 
 #include <core/threading/Task.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <scene/View.hpp>
 
 #include <rendering/RenderCommand.hpp>

@@ -4,8 +4,6 @@
 
 #include <scene/camera/FollowCamera.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <FollowCamera.generated.inl>
 
 namespace hyperion {

@@ -7,16 +7,11 @@
 #include <asset/AssetObject.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <AssetReference.generated.inl>
 
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
-
-HYP_API extern Handle<AssetManager> g_assetManager;
 
 static const AssetPath s_invalidAssetPath;
 

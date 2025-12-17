@@ -2,10 +2,6 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-
-#include <core/HashCode.hpp>
-
 namespace hyperion {
 
 HYP_STRUCT()

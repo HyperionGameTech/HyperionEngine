@@ -4,12 +4,7 @@
 
 #include <core/Core.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/threading/Threads.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <dotnet/Assembly.hpp>
 #include <dotnet/ManagedObject.hpp>

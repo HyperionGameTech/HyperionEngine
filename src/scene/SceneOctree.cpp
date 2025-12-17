@@ -16,13 +16,6 @@
 
 #include <rendering/Mesh.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #ifdef HYP_EDITOR
 #include <editor/EditorState.hpp>
 #include <editor/EditorPickCache.hpp>

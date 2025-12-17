@@ -13,9 +13,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <core/profiling/ProfileScope.hpp>
 
 namespace hyperion {

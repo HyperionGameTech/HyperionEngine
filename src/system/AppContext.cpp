@@ -3,12 +3,11 @@
 #include <HyperionPch.hpp>
 
 #include <system/AppContext.hpp>
-#include <core/debug/Debug.hpp>
 #include <system/SystemEvent.hpp>
 
 #include <core/cli/CommandLine.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/config/Config.hpp>
 
@@ -22,7 +21,6 @@
 #include <rendering/vulkan/VulkanSwapchain.hpp>
 #endif
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #ifdef HYP_SDL

@@ -8,10 +8,6 @@
 // for EnumToString
 #include <core/reflection/Enum.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <core/logging/Logger.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);

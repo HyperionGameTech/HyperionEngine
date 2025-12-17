@@ -6,12 +6,7 @@
 
 #include <core/containers/FixedArray.hpp>
 
-#include <core/reflection/Class.hpp>
-
 #include <core/reflection/TypeInfo.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
 
 namespace hyperion {
 

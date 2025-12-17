@@ -1,7 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "Defines.hpp"
-#include <core/logging/Logger.hpp>
+#include <HyperionPch.hpp>
 
 #include <core/threading/Thread.hpp>
 #include <core/threading/Threads.hpp>

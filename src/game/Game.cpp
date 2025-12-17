@@ -10,8 +10,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <scene/World.hpp>
 
 #include <scene/camera/Camera.hpp>
@@ -26,14 +24,11 @@
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/Assembly.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <scripting/ScriptingService.hpp>
 
 #include <system/SystemEvent.hpp>
 #include <system/AppContext.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <Game.generated.inl>

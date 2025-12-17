@@ -30,13 +30,6 @@
 
 #include <core/reflection/Class.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
-
 #include <util/MeshBuilder.hpp>
 
 #include <FullScreenPass.generated.inl>

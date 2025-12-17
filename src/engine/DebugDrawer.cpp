@@ -3,7 +3,6 @@
 #include <HyperionPch.hpp>
 
 #include <engine/DebugDrawer.hpp>
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineStats.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
@@ -38,8 +37,6 @@
 #include <util/MeshBuilder.hpp>
 
 #include <core/memory/resource/Resource.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <DebugDrawer.generated.inl>
 

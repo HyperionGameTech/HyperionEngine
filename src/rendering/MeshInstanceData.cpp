@@ -1,10 +1,8 @@
 #include <HyperionPch.hpp>
+
 #include <rendering/MeshInstanceData.hpp>
 
 #include <core/math/MathUtil.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <MeshInstanceData.generated.inl>
 

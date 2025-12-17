@@ -1,11 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/filesystem/FsUtil.hpp>
-
 #include <core/filesystem/FilePath.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <core/Defines.hpp>
 #include <core/debug/Debug.hpp>

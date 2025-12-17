@@ -6,15 +6,15 @@
 #include <scene/world_grid/WorldGrid.hpp>
 
 #include <scene/EntityManager.hpp>
+#include <scene/EntityTag.hpp>
+#include <scene/Scene.hpp>
+#include <scene/Node.hpp>
+#include <scene/World.hpp>
+
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
-#include <scene/EntityTag.hpp>
-
-#include <scene/Scene.hpp>
-#include <scene/Node.hpp>
-#include <scene/World.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
@@ -24,11 +24,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <util/NoiseFactory.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <TerrainWorldGridPlugin.generated.inl>
 

@@ -8,11 +8,7 @@
 
 #include <input/InputManager.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <core/utilities/DeferredScope.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <UIGrid.generated.inl>
 

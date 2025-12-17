@@ -21,16 +21,10 @@
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <system/AppContext.hpp>
 
 #include <core/math/Halton.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG

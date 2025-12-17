@@ -24,14 +24,7 @@
 
 #include <core/profiling/PerformanceClock.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <core/utilities/DeferredScope.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
 

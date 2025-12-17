@@ -10,9 +10,6 @@
 
 #include <rendering/RenderDevice.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 
 #include <VulkanFence.generated.inl>

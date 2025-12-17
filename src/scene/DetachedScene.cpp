@@ -10,7 +10,6 @@
 #include <core/threading/util/ThreadId.hpp>
 
 #include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
 

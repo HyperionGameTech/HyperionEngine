@@ -4,13 +4,9 @@
 
 #include <console/commands/LogEntitiesCommand.hpp>
 
-#include <core/reflection/Class.hpp>
-
 #include <core/io/ByteWriter.hpp>
 
 #include <core/threading/Threads.hpp>
-
-#include <core/logging/Logger.hpp>
 
 #include <core/json/JSON.hpp>
 
@@ -28,7 +24,6 @@
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <LogEntitiesCommand.generated.inl>

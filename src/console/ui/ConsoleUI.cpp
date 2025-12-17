@@ -9,8 +9,6 @@
 #include <ui/UITextbox.hpp>
 #include <ui/UIListView.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <ConsoleUI.generated.inl>
 
 namespace hyperion {

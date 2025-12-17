@@ -9,8 +9,6 @@
 
 #include <rendering/RenderDevice.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <VulkanSemaphore.generated.inl>
 
 namespace hyperion {

@@ -24,11 +24,7 @@
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 
 #include <engine/DebugDrawer.hpp>
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
 
 #include <EnvGrid.generated.inl>
 

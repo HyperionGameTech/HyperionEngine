@@ -6,17 +6,10 @@
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
-#include <core/utilities/Format.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
 
 #include <rendering/RenderShader.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 namespace hyperion::serialization {
 

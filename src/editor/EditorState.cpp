@@ -9,8 +9,6 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <core/profiling/ProfileScope.hpp>
 
 #include <EditorState.generated.inl>

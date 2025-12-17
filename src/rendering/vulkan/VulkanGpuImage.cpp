@@ -23,9 +23,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <vulkan/vulkan.h>
 
 #include <VulkanGpuImage.generated.inl>

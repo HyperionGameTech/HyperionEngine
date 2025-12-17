@@ -20,16 +20,10 @@
 
 #include <core/memory/MemoryPool.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <core/memory/allocator/ArenaAllocator.hpp>
 
 #include <core/memory/pool/Pool.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <StreamingManager.generated.inl>

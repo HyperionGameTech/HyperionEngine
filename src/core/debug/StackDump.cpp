@@ -2,10 +2,10 @@
 
 #include <core/debug/StackDump.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 #include <core/memory/Memory.hpp>
 #include <core/math/MathUtil.hpp>
+
+#include <core/logging/Logger.hpp>
 
 #ifdef HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN

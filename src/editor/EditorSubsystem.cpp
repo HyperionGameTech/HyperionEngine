@@ -23,8 +23,8 @@
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/FogVolume.hpp>
-
 #include <scene/EntityManager.hpp>
+
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
@@ -62,9 +62,6 @@
 
 #include <core/io/ByteWriter.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -89,7 +86,6 @@
 
 // for EnumToString
 #include <core/reflection/Enum.hpp>
-#include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
 #include <core/math/MathUtil.hpp>
@@ -102,7 +98,6 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/DebugDrawer.hpp>
 
