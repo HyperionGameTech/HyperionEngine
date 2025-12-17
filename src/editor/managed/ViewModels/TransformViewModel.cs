@@ -76,19 +76,21 @@ namespace Hyperion.Editor.ViewModels
                 using HypData data = _property.Get(_target);
                 object? raw = data.GetValue();
 
+                Logger.Log(LogType.Debug, $"ReadTransform got raw value of type: {(raw != null ? raw.GetType().Name : "null")}");
+
                 if (raw is Transform t)
                 {
                     return t;
                 }
-
-                throw new InvalidOperationException($"Property '{_property.Name}' value is not a Transform");
+                
+                return Transform.Identity;
             });
 
-            return default;
+            // return default;
 
             // DEADLOCK??
             
-            //return task.Result;
+            return task.Result;
         }
 
         private void WriteTransform(Transform transform)
