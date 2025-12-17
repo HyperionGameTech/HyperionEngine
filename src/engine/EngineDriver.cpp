@@ -270,14 +270,11 @@ bool EngineDriver::IsRenderLoopActive() const
         && g_renderThreadInstance->IsRunning();
 }
 
-void EngineDriver::StartThreadsForGame(const Handle<Game>& game)
+void EngineDriver::StartThreads()
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
-
     AssertReady();
-
-    Assert(game != nullptr);
 
     Assert(g_renderThreadInstance != nullptr
         && g_gameThreadInstance != nullptr
@@ -286,10 +283,8 @@ void EngineDriver::StartThreadsForGame(const Handle<Game>& game)
     Assert(!g_renderThreadInstance->IsRunning(), "Render thread is already running!");
     Assert(!g_gameThreadInstance->IsRunning(), "Game thread is already running!");
 
-    g_gameThreadInstance->SetGame(game);
-
-    Assert(g_gameThreadInstance->Start(), "Failed to start game thread!");
     Assert(g_renderThreadInstance->Start(), "Failed to start render thread!");
+    Assert(g_gameThreadInstance->Start(), "Failed to start game thread!");
     Assert(g_mainThreadInstance->Start(), "Failed to start main thread!");
 }
 
