@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <UIPch.hpp>
 
 #include <ui/font/FontAtlas.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -17,7 +17,6 @@
 #include <asset/AssetRegistry.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
-#include <core/utilities/Format.hpp>
 
 #include <core/io/ByteWriter.hpp>
 

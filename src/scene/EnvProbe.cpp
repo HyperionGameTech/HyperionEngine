@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/EnvProbe.hpp>
 #include <scene/View.hpp>
@@ -227,7 +227,7 @@ void EnvProbe::OnTransformUpdated()
     Entity::OnTransformUpdated();
 
     // set origin
-    //SetOrigin(transform.GetTranslation());
+    // SetOrigin(transform.GetTranslation());
 }
 
 void EnvProbe::CreateView()

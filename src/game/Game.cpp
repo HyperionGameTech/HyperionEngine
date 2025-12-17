@@ -17,8 +17,6 @@
 #include <ui/UISubsystem.hpp>
 #include <ui/UIStage.hpp>
 
-#include <engine/DebugDrawer.hpp>
-
 #include <dotnet/DotNETHost.hpp>
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/ManagedObject.hpp>
@@ -29,7 +27,9 @@
 #include <system/SystemEvent.hpp>
 #include <system/AppContext.hpp>
 
+#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/DebugDrawer.hpp>
 
 #include <Game.generated.inl>
 

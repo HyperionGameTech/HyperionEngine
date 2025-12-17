@@ -27,12 +27,12 @@ extern "C"
     HYP_EXPORT void AssetBatch_LoadAsync(AssetBatch* batch, void (*callback)(void*))
     {
         batch->OnComplete.Bind([callback](AssetMap& assetMap)
-            {
-                AssetMap* pNewAssetMap = new AssetMap(std::move(assetMap));
+                             {
+                                 AssetMap* pNewAssetMap = new AssetMap(std::move(assetMap));
 
-                // Note: Will be deleted when AssetMap_Destroy is called from C#.
-                callback(pNewAssetMap);
-            })
+                                 // Note: Will be deleted when AssetMap_Destroy is called from C#.
+                                 callback(pNewAssetMap);
+                             })
             .Detach();
 
         batch->LoadAsync();

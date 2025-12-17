@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <StreamingPch.hpp>
 
 #include <streaming/StreamingManager.hpp>
 #include <streaming/StreamingCell.hpp>
@@ -13,8 +13,6 @@
 #include <core/threading/Thread.hpp>
 #include <core/threading/TaskThread.hpp>
 #include <core/threading/TaskSystem.hpp>
-
-#include <core/reflection/Class.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -416,7 +414,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
             tasks.PopBack().Execute();
         }
     }
-    
+
     for (auto it = m_layers.Begin(); it != m_layers.End();)
     {
         LayerData& layerData = *it;
@@ -437,11 +435,11 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         WorldGridLayer* layer = layerData.layer;
         AssertDebug(layer != nullptr);
-        
+
         if (!layer)
         {
             ++it;
-            
+
             continue;
         }
 
@@ -495,12 +493,12 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
             for (const Handle<StreamingCell>& cell : cellsToRemove)
             {
                 AssertDebug(cell != nullptr);
-                
+
                 if (!cell)
                 {
                     continue;
                 }
-                
+
                 AssertDebug(cells.IsCellLocked(cell->GetPatchInfo().coord),
                     "StreamingCell with coord {} is not locked for unloading!",
                     cell->GetPatchInfo().coord);
@@ -761,7 +759,7 @@ void StreamingManager::RemoveStreamingVolume(StreamingVolumeBase* volume)
 void StreamingManager::AddWorldGridLayer(const Handle<WorldGridLayer>& layer)
 {
     HYP_SCOPE;
-    
+
     if (!layer)
     {
         return;

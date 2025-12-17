@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 
@@ -14,26 +14,17 @@
 
 #include <core/functional/Proc.hpp>
 
-#include <core/threading/TaskSystem.hpp>
-
 #include <core/io/ByteWriter.hpp>
+#include <core/io/BufferedByteReader.hpp>
 
 #include <util/ini/INIFile.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <asset/Assets.hpp>
 
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMWriter.hpp>
 
 #include <core/math/MathUtil.hpp>
 
-#include <HyperionEngine.hpp>
-
 #include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
 
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
@@ -42,7 +33,6 @@
 #define HYP_SHADER_REFLECTION
 
 #ifdef HYP_GLSLANG
-
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/Include/Types.h>
 #include <glslang/Include/glslang_c_interface.h>
@@ -51,13 +41,13 @@
 #ifdef HYP_SHADER_REFLECTION
 #include <glslang/MachineIndependent/reflection.h>
 #endif
-
 #endif
 
 #ifdef HYP_VULKAN
 #include <vulkan/vulkan.h>
-
 #endif
+
+#include <HyperionEngine.hpp>
 
 #include <ShaderCompiler.generated.inl>
 
@@ -935,7 +925,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
                 if (type->isStruct())
                 {
                     for (auto it = type->getStruct()->begin();
-                        it != type->getStruct()->end(); ++it)
+                         it != type->getStruct()->end(); ++it)
                     {
                         String fieldTypeName;
 

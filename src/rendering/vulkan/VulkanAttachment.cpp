@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanAttachment.hpp>
 #include <rendering/vulkan/VulkanGpuImage.hpp>

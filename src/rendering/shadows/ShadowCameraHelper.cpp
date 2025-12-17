@@ -1,9 +1,8 @@
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
+
 #include <rendering/shadows/ShadowCameraHelper.hpp>
 
 #include <scene/camera/Camera.hpp>
-
-#include <core/logging/Logger.hpp>
 
 namespace hyperion {
 

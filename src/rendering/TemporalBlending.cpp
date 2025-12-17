@@ -1,7 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "shader_compiler/ShaderCompiler.hpp"
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/GBuffer.hpp>
@@ -22,10 +21,6 @@
 #include <scene/View.hpp>
 
 #include <core/threading/Threads.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
 
@@ -68,12 +63,12 @@ TemporalBlending::TemporalBlending(
     const GpuImageViewRef& inputImageView,
     GBuffer* gbuffer)
     : TemporalBlending(
-          extent,
-          TF_RGBA8,
-          technique,
-          feedback,
-          inputImageView,
-          gbuffer)
+        extent,
+        TF_RGBA8,
+        technique,
+        feedback,
+        inputImageView,
+        gbuffer)
 {
 }
 

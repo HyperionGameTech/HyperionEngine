@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/CrashHandler.hpp>
 
@@ -260,10 +260,10 @@ void CrashHandler::HandleGPUCrash(RendererResult result)
     const String message = String("A GPU crash has been detected. The application will now exit.")
         + (g_savedDumpFilesPerThread.Any()
                 ? HYP_FORMAT("\nCrash dump(s) has been saved to: {}\n\nPlease attach these when submitting a bug report.",
-                      String::Join(g_savedDumpFilesPerThread, '\n', [](const Array<FilePath>* item)
-                          {
-                              return item ? String::Join(*item, '\n') : String();
-                          }))
+                    String::Join(g_savedDumpFilesPerThread, '\n', [](const Array<FilePath>* item)
+                        {
+                            return item ? String::Join(*item, '\n') : String();
+                        }))
                 : "\nCrash dump state is unknown.");
 
     HYP_LOG(Rendering, Fatal, "GPU Crash Detected!\n{}", message);

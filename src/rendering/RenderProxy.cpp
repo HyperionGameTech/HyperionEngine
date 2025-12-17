@@ -1,5 +1,7 @@
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
+
 #include <rendering/RenderProxy.hpp>
+
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <RenderProxy.generated.inl>

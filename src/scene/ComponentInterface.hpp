@@ -3,9 +3,6 @@
 #pragma once
 
 #include <core/reflection/TypeInfoFwd.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Variant.hpp>
-#include <core/utilities/EnumFlags.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
@@ -13,14 +10,6 @@
 #include <core/containers/TypeMap.hpp>
 
 #include <core/Name.hpp>
-
-#include <core/serialization/Serialization.hpp>
-
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/Mat4f.hpp>
-#include <core/math/Quaternion.hpp>
 
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/ObjectFwd.hpp>

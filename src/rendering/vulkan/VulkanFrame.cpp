@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanFence.hpp>
@@ -116,7 +116,6 @@ RendererResult VulkanFrame::Submit(
     postRenderQueue.Execute(commandBuffer);
     commandBuffer->End();
 
-    
     VulkanSemaphore* waitSemaphore = nullptr;
     VulkanSemaphore* signalSemaphore = nullptr;
 

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderMaterial.hpp>
@@ -30,9 +30,7 @@
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
-
 #include <rendering/renderers/ShadowRenderer.hpp>
-
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
 
 #include <rendering/raytracing/DDGI.hpp>
@@ -59,25 +57,18 @@
 
 #include <core/memory/pool/Pool.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 // for EnumToString
 #include <core/reflection/Enum.hpp>
-#include <core/reflection/Class.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <util/BlueNoise.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineStats.hpp>
 
 #include <system/AppContext.hpp>
 
-#include <HyperionEngine.hpp>
-
 #include <rendering/util/ResourceBinder.hpp>
+
+#include <HyperionEngine.hpp>
 
 #include <semaphore>
 

@@ -1,4 +1,4 @@
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/Renderer.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -11,8 +11,6 @@
 
 #include <scene/View.hpp>
 
-#include <core/threading/Task.hpp>
-#include <core/threading/TaskSystem.hpp>
 #include <core/threading/Threads.hpp>
 
 #include <core/profiling/PerformanceClock.hpp>

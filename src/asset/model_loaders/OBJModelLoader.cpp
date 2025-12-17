@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <AssetPch.hpp>
 
 #include <asset/model_loaders/OBJModelLoader.hpp>
 #include <asset/Assets.hpp>
@@ -313,7 +313,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         String materialLibraryPath = String(FileSystem::RelativePath(
             (StringUtil::BasePath(model.filepath) + "/" + model.materialLibrary).Data(),
             FileSystem::CurrentPath())
-                .c_str());
+                                                .c_str());
 
         if (!materialLibraryPath.EndsWith(".mtl"))
         {

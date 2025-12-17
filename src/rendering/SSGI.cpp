@@ -1,11 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/SSGI.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderQueue.hpp>
@@ -17,24 +16,19 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 
+#include <rendering/renderers/DeferredRenderer.hpp>
+
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <core/threading/Threads.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <rendering/Texture.hpp>
 
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
 #include <scene/View.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #include <SSGI.generated.inl>
 

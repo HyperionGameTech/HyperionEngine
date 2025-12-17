@@ -8,8 +8,9 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-
 #include <rendering/RenderShader.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 namespace hyperion::serialization {
 
