@@ -8,7 +8,10 @@ namespace Hyperion.Editor.ViewModels
     public class NodeViewModel : ViewModelBase
     {
         private readonly Node _node;
+        private readonly NodeViewModel? _parent;
+
         public Node Node => _node;
+        public NodeViewModel? Parent => _parent;
 
         private string _name;
         public string Name
@@ -41,12 +44,20 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<NodeViewModel> Children { get; } = new ObservableCollection<NodeViewModel>();
 
+        private bool _isExpanded;
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set => SetProperty(ref _isExpanded, value);
+        }
+
         private DelegateHandler? _onChildAdded;
         private DelegateHandler? _onChildRemoved;
 
-        public NodeViewModel(Node node)
+        public NodeViewModel(Node node, NodeViewModel? parent = null)
         {
             _node = node;
+            _parent = parent;
             _name = node.Name.ToString();
 
             // Initialize existing children
@@ -56,7 +67,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (child != null)
                 {
-                    Children.Add(new NodeViewModel(child));
+                    Children.Add(new NodeViewModel(child, this));
                 }
             }
 
@@ -72,7 +83,7 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                Dispatcher.UIThread.Invoke(() => target!.Children.Add(new NodeViewModel(child)));
+                Dispatcher.UIThread.Invoke(() => target!.Children.Add(new NodeViewModel(child, target)));
             });
 
             _onChildRemoved = node.GetOnChildRemovedDelegate().Bind((Node child, bool isDirect) =>
