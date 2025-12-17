@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/systems/ScriptableSystem.hpp>
 #include <scene/Entity.hpp>

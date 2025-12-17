@@ -5,8 +5,6 @@
 #include <ui/UIObject.hpp>
 
 #include <core/reflection/Class.hpp>
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 using namespace hyperion;
 

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/Renderer.hpp>
@@ -21,11 +21,7 @@
 
 #include <scene/View.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <core/threading/Threads.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #include <SSRRenderer.generated.inl>
 

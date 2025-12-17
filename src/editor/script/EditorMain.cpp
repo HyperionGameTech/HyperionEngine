@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <EditorPch.hpp>
 
 #include <editor/script/EditorMain.hpp>
 
@@ -30,17 +30,11 @@
 
 #include <system/MessageBox.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <asset/Assets.hpp>
 
 // test
 #include <editor/nativeui/TestNativeUI.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <EditorMain.generated.inl>

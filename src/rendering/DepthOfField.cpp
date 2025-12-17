@@ -1,10 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/DepthOfField.hpp>
 #include <rendering/ShaderManager.hpp>
-
 #include <rendering/RenderFrame.hpp>
 
 namespace hyperion {

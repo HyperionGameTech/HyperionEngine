@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <EditorPch.hpp>
 
 #include <editor/EditorState.hpp>
 #include <editor/EditorProject.hpp>
@@ -8,8 +8,6 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <EditorState.generated.inl>
 

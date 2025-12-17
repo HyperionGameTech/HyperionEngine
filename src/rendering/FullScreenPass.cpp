@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/ShaderManager.hpp>
@@ -27,8 +27,6 @@
 #include <scene/View.hpp>
 
 #include <core/math/MathUtil.hpp>
-
-#include <core/reflection/Class.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -104,13 +102,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-          shader,
-          descriptorTable,
-          FramebufferRef::Null(),
-          imageFormat,
-          extent,
-          gbuffer,
-          flags)
+        shader,
+        descriptorTable,
+        FramebufferRef::Null(),
+        imageFormat,
+        extent,
+        gbuffer,
+        flags)
 {
 }
 
@@ -121,13 +119,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-          shader,
-          DescriptorTableRef::Null(),
-          FramebufferRef::Null(),
-          imageFormat,
-          extent,
-          gbuffer,
-          flags)
+        shader,
+        DescriptorTableRef::Null(),
+        FramebufferRef::Null(),
+        imageFormat,
+        extent,
+        gbuffer,
+        flags)
 {
 }
 

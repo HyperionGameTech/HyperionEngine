@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderObject.hpp>
@@ -23,12 +23,8 @@
 // for EnumToString
 #include <core/reflection/Enum.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <util/img/Bitmap.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <Texture.generated.inl>
@@ -290,12 +286,12 @@ struct CreateTextureGpuImage : RenderCommand
 
 Texture::Texture()
     : Texture(TextureDesc {
-          TT_TEX2D,
-          TF_RGBA8,
-          Vec3u { 1, 1, 1 },
-          TFM_NEAREST,
-          TFM_NEAREST,
-          TWM_CLAMP_TO_EDGE })
+        TT_TEX2D,
+        TF_RGBA8,
+        Vec3u { 1, 1, 1 },
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE })
 {
 }
 

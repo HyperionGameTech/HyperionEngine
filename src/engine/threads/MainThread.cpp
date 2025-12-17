@@ -2,14 +2,15 @@
 
 #include <HyperionPch.hpp>
 
+#include <engine/EngineGlobals.hpp>
+#include <engine/EngineDriver.hpp>
+
 #include <engine/threads/MainThread.hpp>
 #include <engine/threads/RenderThread.hpp>
 
 #include <core/threading/Threads.hpp>
 
 #include <core/cli/CommandLine.hpp>
-
-#include <engine/EngineDriver.hpp>
 
 #include <system/SystemEvent.hpp>
 #include <system/AppContext.hpp>

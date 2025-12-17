@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/ShaderManager.hpp>
@@ -38,7 +38,6 @@
 
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>
-
 #endif
 
 #include <ParticleSystem.generated.inl>

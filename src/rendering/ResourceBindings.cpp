@@ -1,11 +1,8 @@
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderGlobalState.hpp>
-#include <rendering/renderers/EnvGridRenderer.hpp>
-#include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/RenderMaterial.hpp>
-#include <rendering/RenderMemory.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
@@ -13,10 +10,8 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <rendering/renderers/EnvGridRenderer.hpp>
+#include <rendering/renderers/EnvProbeRenderer.hpp>
 
 #include <rendering/util/ResourceBinder.hpp>
 
@@ -27,8 +22,6 @@
 #include <scene/animation/Skeleton.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
 

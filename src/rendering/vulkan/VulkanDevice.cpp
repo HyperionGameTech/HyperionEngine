@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanInstance.hpp>
@@ -300,11 +300,11 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
                 "Device does not support required extensions:\n\t{}",
                 -1,
                 String::Join(Map(
-                    missingRequiredExtensionStrings,
-                    [](const String& s)
-                    {
-                        return s;
-                    }),
+                                 missingRequiredExtensionStrings,
+                                 [](const String& s)
+                                 {
+                                     return s;
+                                 }),
                     "\n\t"));
         }
     }
@@ -543,30 +543,22 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
     Array<VulkanDeviceQueue, InlineAllocator<4>> queues;
     Array<VulkanDeviceQueue**, InlineAllocator<4>> queueMembers;
 
-    queues.PushBack({
-        .type = VulkanDeviceQueueType::GRAPHICS,
-        .familyIndex = m_queueFamilyIndices.graphicsFamily.Get()
-    });
+    queues.PushBack({ .type = VulkanDeviceQueueType::GRAPHICS,
+        .familyIndex = m_queueFamilyIndices.graphicsFamily.Get() });
     queueMembers.PushBack(&m_queueGraphics);
 
-    queues.PushBack({
-        .type = VulkanDeviceQueueType::TRANSFER,
-        .familyIndex = m_queueFamilyIndices.transferFamily.Get()
-    });
+    queues.PushBack({ .type = VulkanDeviceQueueType::TRANSFER,
+        .familyIndex = m_queueFamilyIndices.transferFamily.Get() });
     queueMembers.PushBack(&m_queueTransfer);
 
-    queues.PushBack({
-        .type = VulkanDeviceQueueType::COMPUTE,
-        .familyIndex = m_queueFamilyIndices.computeFamily.Get()
-    });
+    queues.PushBack({ .type = VulkanDeviceQueueType::COMPUTE,
+        .familyIndex = m_queueFamilyIndices.computeFamily.Get() });
     queueMembers.PushBack(&m_queueCompute);
 
     if (needPresentation)
     {
-        queues.PushBack({
-            .type = VulkanDeviceQueueType::PRESENT,
-            .familyIndex = m_queueFamilyIndices.presentFamily.Get()
-        });
+        queues.PushBack({ .type = VulkanDeviceQueueType::PRESENT,
+            .familyIndex = m_queueFamilyIndices.presentFamily.Get() });
         queueMembers.PushBack(&m_queuePresent);
     }
 

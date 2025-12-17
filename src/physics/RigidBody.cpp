@@ -9,6 +9,7 @@
 #include <scene/Scene.hpp>
 
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineGlobals.hpp>
 
 #include <RigidBody.generated.inl>
 

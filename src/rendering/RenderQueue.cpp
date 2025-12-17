@@ -1,19 +1,16 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/Mesh.hpp>
-
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderComputePipeline.hpp>
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/Mesh.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 
 #include <util/MeshBuilder.hpp>
 

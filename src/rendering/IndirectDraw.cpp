@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/ShaderManager.hpp>
@@ -14,6 +14,7 @@
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/Mesh.hpp>
 
 #include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
@@ -21,18 +22,9 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/Mesh.hpp>
-
 #include <scene/View.hpp>
 
 #include <core/math/MathUtil.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
 

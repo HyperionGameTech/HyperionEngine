@@ -1,6 +1,6 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>

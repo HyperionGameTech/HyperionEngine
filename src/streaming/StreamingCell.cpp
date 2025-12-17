@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <StreamingPch.hpp>
 
 #include <streaming/StreamingCell.hpp>
 
@@ -78,7 +78,7 @@ void StreamingCell::OnStreamStart_Impl()
                 assetReference.GetAssetPath().ToString(),
                 InstanceClass()->GetName(),
                 m_cellInfo.coord);
-            
+
             if (!assetReference.Resolve())
             {
                 HYP_LOG(Streaming, Warning, "Failed to resolve AssetReference {} in OnStreamStart", assetReference.GetAssetPath().ToString());
@@ -95,7 +95,7 @@ void StreamingCell::OnLoaded_Impl()
         InstanceClass()->GetName(),
         m_cellInfo.coord,
         m_assetReferences.Size());
-    
+
     OnCellLoaded(this);
 }
 
@@ -105,7 +105,7 @@ void StreamingCell::OnRemoved_Impl()
         InstanceClass()->GetName(),
         m_cellInfo.coord,
         m_assetReferences.Size());
-    
+
     OnCellUnloaded(this);
 
     for (AssetReference& assetReference : m_assetReferences)
