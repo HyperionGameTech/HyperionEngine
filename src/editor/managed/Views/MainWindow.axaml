@@ -255,6 +255,11 @@
                             Grid.Row="1"
                             ItemsSource="{Binding SceneHierarchy.RootNodes}"
                             SelectedItem="{Binding SceneHierarchy.SelectedNode}">
+                            <TreeView.ItemContainerTheme>
+                                <ControlTheme TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}" x:DataType="vm:NodeViewModel">
+                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                </ControlTheme>
+                            </TreeView.ItemContainerTheme>
                             <TreeView.ItemTemplate>
                                 <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
                                     <TextBlock FontStyle="{Binding NameFontStyle}" Text="{Binding DisplayName}" />
