@@ -818,6 +818,8 @@ void Init()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
+    HYP_LOG(Rendering, Debug, "RenderApi::Init() called");
+
     AssertDebug(!AtomicAdd(&s_isInit, 0), "Init() called while rendering subsystem is already initialized!");
 
     s_threadFrameIndex = &s_frameIndex[CONSUMER];
@@ -867,8 +869,10 @@ void Init()
 
     registry.funcs.Clear();
 
-    int32 value = AtomicExchange(&s_isInit, 1);
-    AssertDebug(value == 0);
+    int32 prevValue = AtomicExchange(&s_isInit, 1);
+    AssertDebug(prevValue == 0);
+
+    HYP_LOG(Rendering, Debug, "RenderApi::Init() completed successfully");
 }
 
 void Shutdown()
