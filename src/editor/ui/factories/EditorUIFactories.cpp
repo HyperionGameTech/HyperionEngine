@@ -1,4 +1,4 @@
-#include <HyperionPch.hpp>
+#include <EditorPch.hpp>
 
 #include <editor/ui/EditorUI.hpp>
 #include <editor/ui/EditorPropertyPanel.hpp>
@@ -27,10 +27,7 @@
 
 #include <core/threading/Task.hpp>
 
-#include <core/reflection/Class.hpp>
 #include <core/reflection/Property.hpp>
-
-#include <core/logging/Logger.hpp>
 
 namespace hyperion {
 

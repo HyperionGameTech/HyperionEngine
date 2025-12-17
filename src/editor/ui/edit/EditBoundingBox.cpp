@@ -1,9 +1,7 @@
-#include <HyperionPch.hpp>
+#include <EditorPch.hpp>
 
 #include <editor/ui/edit/EditBoundingBox.hpp>
 #include <editor/ui/EditorUI.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <core/reflection/Property.hpp>
 
@@ -12,8 +10,6 @@
 #include <ui/UIGrid.hpp>
 #include <ui/UIText.hpp>
 #include <ui/UIDataSource.hpp>
-
-#include <core/logging/Logger.hpp>
 
 #include <EditBoundingBox.generated.inl>
 

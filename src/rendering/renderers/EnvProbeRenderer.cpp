@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -32,12 +32,6 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <HyperionEngine.hpp>
@@ -332,7 +326,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
         DescriptorTableRef& descriptorTable = descriptorTables[mipIndex];
-            
+
         descriptorTable = g_renderBackend->MakeDescriptorTable(shader->GetCompiledShader()->GetDescriptorTableDeclaration());
         descriptorTable->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}_{}", envProbe->Id().Value(), mipIndex));
 
@@ -374,8 +368,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
                 .baseArrayLayer = 0,
                 .baseMipLevel = mipIndex,
                 .numLayers = 6,
-                .numLevels = 1
-            });
+                .numLevels = 1 });
 
         frame->renderQueue << BindComputePipeline(pipelines[mipIndex]);
 
@@ -396,8 +389,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
                 .baseArrayLayer = 0,
                 .baseMipLevel = mipIndex,
                 .numLayers = 6,
-                .numLevels = 1
-            });
+                .numLevels = 1 });
     }
 
     DelegateHandler* delegateHandle = new DelegateHandler();

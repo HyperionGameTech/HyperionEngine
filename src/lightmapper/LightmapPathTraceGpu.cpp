@@ -63,6 +63,7 @@
 #include <system/AppContext.hpp>
 
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
 

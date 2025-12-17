@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/world_grid/terrain/TerrainWorldGridPlugin.hpp>
 #include <scene/world_grid/WorldGrid.hpp>

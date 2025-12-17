@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <AssetPch.hpp>
 
 #include <asset/model_loaders/FBXModelLoader.hpp>
 
@@ -242,10 +242,10 @@ struct FBXMesh
             const Vec3f boundsCenter = bounds.GetCenter();
 
             //// offset all vertices by the AABB's center
-            //for (Vertex& vertex : meshData.vertexData)
+            // for (Vertex& vertex : meshData.vertexData)
             //{
-            //    vertex.SetPosition(vertex.GetPosition() - boundsCenter);
-            //}
+            //     vertex.SetPosition(vertex.GetPosition() - boundsCenter);
+            // }
 
             Handle<Mesh> mesh = CreateObject<Mesh>();
             mesh->SetName(CreateNameFromDynamicString(name));
@@ -776,7 +776,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         for (FBXObject* pChild : root.children)
         {
             DeleteFBXObjectsRecursively(pChild);
-        }    
+        }
     });
 
     do
@@ -827,7 +827,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                     else if (templateChild->name == "PropertyTemplate")
                     {
-
                     }
                 }
             }

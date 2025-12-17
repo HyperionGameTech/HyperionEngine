@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>
 
@@ -9,9 +9,9 @@
 namespace hyperion {
 OrthoCameraController::OrthoCameraController()
     : OrthoCameraController(
-          -100.0f, 100.0f,
-          -100.0f, 100.0f,
-          -100.0f, 100.0f)
+        -100.0f, 100.0f,
+        -100.0f, 100.0f,
+        -100.0f, 100.0f)
 {
 }
 

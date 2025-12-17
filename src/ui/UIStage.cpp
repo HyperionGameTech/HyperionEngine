@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <UIPch.hpp>
 
 #include <ui/UIStage.hpp>
 #include <ui/UIButton.hpp>
@@ -856,7 +856,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
 
-        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::* ClickDelegateMember;
+        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::*ClickDelegateMember;
         const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ClickDelegateMember delegateMember = nullptr)
         {
             if (buttons != mouseButtonToCheck)

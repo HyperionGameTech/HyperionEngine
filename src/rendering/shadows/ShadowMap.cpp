@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/shadows/ShadowMap.hpp>
 #include <rendering/shadows/ShadowMapAllocator.hpp>

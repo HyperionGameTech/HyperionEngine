@@ -4,7 +4,6 @@
 
 #include <ui/UIDataSource.hpp>
 
-#include <core/reflection/Class.hpp>
 using namespace hyperion;
 
 extern "C"

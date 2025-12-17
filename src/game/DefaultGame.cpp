@@ -1,6 +1,7 @@
 #include <HyperionPch.hpp>
 #include "DefaultGame.hpp"
 
+#include <engine/EngineGlobals.hpp>
 #include <engine/DebugDrawer.hpp>
 
 #include <scene/World.hpp>

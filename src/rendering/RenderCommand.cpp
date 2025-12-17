@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderBackend.hpp>

@@ -1,10 +1,10 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMap.hpp>
-#include <rendering/Buffers.hpp>
+
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
@@ -19,12 +19,6 @@
 #include <scene/View.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
-#include <core/logging/Logger.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #include <ShadowMapAllocator.generated.inl>
 

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <AssetPch.hpp>
 
 #include <asset/skeleton_loaders/OgreXMLSkeletonLoader.hpp>
 

@@ -1,4 +1,4 @@
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/components/LightmapElementComponent.hpp>
 
@@ -12,7 +12,6 @@ LightmapElementComponent::LightmapElementComponent()
     : lightmapVolumeUuid(Uuid::Invalid()),
       lightmapElementId(InvalidLightmapElementId)
 {
-
 }
 
 } // namespace hyperion

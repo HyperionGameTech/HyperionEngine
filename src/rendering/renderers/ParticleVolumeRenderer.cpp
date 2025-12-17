@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
 
@@ -24,7 +24,6 @@
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/ParticleVolume.hpp>
-
 #include <scene/View.hpp>
 
 #include <scene/camera/Camera.hpp>
@@ -33,8 +32,6 @@
 #include <util/NoiseFactory.hpp>
 
 #include <core/math/MathUtil.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>

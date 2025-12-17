@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <AssetPch.hpp>
 
 #include <asset/MeshAsset.hpp>
 

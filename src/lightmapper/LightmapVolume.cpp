@@ -35,6 +35,7 @@
 #include <core/threading/Threads.hpp>
 
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineGlobals.hpp>
 
 #include <LightmapVolume.generated.inl>
 

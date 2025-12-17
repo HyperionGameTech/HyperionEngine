@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/camera/Camera.hpp>
 #include <scene/camera/streaming/CameraStreamingVolume.hpp>
@@ -631,7 +631,7 @@ void Camera::Update(float delta)
         if (const Handle<CameraController>& cameraController = GetCameraController())
         {
             UpdateMouseLocked();
-            
+
             cameraController->UpdateLogic(delta);
         }
     }

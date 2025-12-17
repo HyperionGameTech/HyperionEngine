@@ -36,6 +36,7 @@
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/TaskThread.hpp>
 
+#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/DebugDrawer.hpp>
 

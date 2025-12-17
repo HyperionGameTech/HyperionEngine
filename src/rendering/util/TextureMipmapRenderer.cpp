@@ -1,4 +1,4 @@
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/util/TextureMipmapRenderer.hpp>
 #include <rendering/util/SafeDeleter.hpp>
@@ -15,8 +15,6 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
 

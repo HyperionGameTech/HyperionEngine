@@ -5,9 +5,6 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
