@@ -2,7 +2,6 @@
 
 #include <system/SystemEvent.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/threads/MainThread.hpp>
 
 #include <input/InputManager.hpp>

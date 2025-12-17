@@ -29,16 +29,7 @@
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/utilities/Format.hpp>
-
 #include <core/config/Config.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -48,7 +39,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <asset/Assets.hpp>

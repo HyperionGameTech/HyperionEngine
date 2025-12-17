@@ -31,14 +31,8 @@
 // for EnumToString
 #include <core/reflection/Enum.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <core/utilities/Float16.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <Light.generated.inl>

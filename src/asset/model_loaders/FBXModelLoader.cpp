@@ -26,9 +26,6 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/functional/Proc.hpp>
 
 #include <core/compression/Archive.hpp>
@@ -39,7 +36,6 @@
 #include <core/memory/allocator/ArenaAllocator.hpp>
 #include <core/memory/allocator/SlabAllocator.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <algorithm>

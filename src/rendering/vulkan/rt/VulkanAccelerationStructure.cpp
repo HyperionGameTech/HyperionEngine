@@ -17,10 +17,8 @@
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <core/utilities/Range.hpp>
-#include <core/math/MathUtil.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <VulkanAccelerationStructure.generated.inl>
 

@@ -49,15 +49,8 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <core/reflection/Class.hpp>
-
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/TaskThread.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <core/utilities/Time.hpp>
 #include <core/utilities/DeferredScope.hpp>
@@ -69,7 +62,6 @@
 
 #include <system/AppContext.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <Lightmapper.generated.inl>

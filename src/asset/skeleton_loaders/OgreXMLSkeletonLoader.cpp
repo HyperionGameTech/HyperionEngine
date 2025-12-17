@@ -11,9 +11,6 @@
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Animation.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/utilities/StringUtil.hpp>
 
 #include <util/xml/SAXParser.hpp>

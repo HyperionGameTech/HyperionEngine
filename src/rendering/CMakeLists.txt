@@ -16,13 +16,6 @@ set(RENDERER_LIBRARIES
     hyperion-core
 )
 
-if(MSVC)
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP")
-    add_definitions("/DNOMINMAX")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
-endif()
-
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 if(IOS)
@@ -130,6 +123,10 @@ foreach(filepath ${hyperion-rendering_HEADERS})
 endforeach()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+
+if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
+    target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
+endif()
 
 include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
 

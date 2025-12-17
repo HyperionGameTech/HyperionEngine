@@ -3,20 +3,13 @@
 #include <HyperionPch.hpp>
 
 #include <engine/EngineStats.hpp>
-#include <engine/EngineGlobals.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <core/math/MathUtil.hpp>
-#include <core/profiling/ProfileScope.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/util/SafeDeleter.hpp>
-
-#include <cfloat>
 
 #include <EngineStats.generated.inl>
 

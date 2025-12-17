@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <core/Constants.hpp>
-
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
 
@@ -26,8 +24,6 @@
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/Shared.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 

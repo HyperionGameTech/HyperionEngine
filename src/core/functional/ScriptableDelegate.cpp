@@ -18,11 +18,11 @@ HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObje
 {
     if (objectPtr)
     {
-        HYP_LOG(DotNET, Error, "ScriptableDelegate: {} (Obj: {})", message, objectPtr->GetClass()->GetName());
+        HYP_LOG(Core, Error, "ScriptableDelegate: {} (Obj: {})", message, objectPtr->GetClass()->GetName());
     }
     else
     {
-        HYP_LOG(DotNET, Error, "ScriptableDelegate: {}", message);
+        HYP_LOG(Core, Error, "ScriptableDelegate: {}", message);
     }
 }
 

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <core/Constants.hpp>
+#include <core/Types.hpp>
+#include <core/Defines.hpp>
+
 #include <script/SourceFile.hpp>
 #include <script/compiler/ErrorList.hpp>
 
@@ -10,10 +14,6 @@
 #include <core/reflection/HypData.hpp>
 
 #include <core/memory/Pimpl.hpp>
-
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
-#include <core/Defines.hpp>
 
 namespace hyperion {
 

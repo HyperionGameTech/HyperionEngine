@@ -17,24 +17,17 @@
 
 #include <core/memory/resource/Resource.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/DotNETHost.hpp>
 
 #include <scripting/ScriptingService.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
-
 #endif
 
 #include <ScriptSystem.generated.inl>

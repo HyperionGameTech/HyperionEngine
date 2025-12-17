@@ -8,8 +8,6 @@
 
 #include <asset/AssetReference.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <StreamingCell.generated.inl>
 
 namespace hyperion {

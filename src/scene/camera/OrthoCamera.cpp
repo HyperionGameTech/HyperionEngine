@@ -4,11 +4,6 @@
 
 #include <scene/camera/OrthoCamera.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <OrthoCamera.generated.inl>
 
 namespace hyperion {

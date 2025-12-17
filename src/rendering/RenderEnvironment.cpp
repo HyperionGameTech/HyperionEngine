@@ -11,20 +11,13 @@
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/GaussianSplatting.hpp>
 
-#include <engine/DebugDrawer.hpp>
-
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <system/AppContext.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <util/MeshBuilder.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <engine/DebugDrawer.hpp>
 #include <engine/EngineDriver.hpp>
 
 namespace hyperion {

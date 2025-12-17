@@ -3,15 +3,13 @@
 #include <HyperionPch.hpp>
 
 #include <scene/systems/VisibilityStateUpdaterSystem.hpp>
+
 #include <scene/EntityManager.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/SceneOctree.hpp>
 
 #include <core/memory/allocator/ArenaAllocator.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
 
 #include <engine/EngineMemory.hpp>
 

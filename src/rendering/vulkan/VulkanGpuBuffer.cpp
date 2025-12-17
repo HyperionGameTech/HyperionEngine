@@ -12,9 +12,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <core/math/MathUtil.hpp>
 
 #include <engine/EngineDriver.hpp>

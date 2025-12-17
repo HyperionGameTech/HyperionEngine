@@ -13,10 +13,7 @@
 
 #include <core/utilities/StringView.hpp>
 
-#include <core/reflection/Class.hpp>
 #include <core/reflection/ClassRegistry.hpp>
-
-#include <core/logging/Logger.hpp>
 
 namespace hyperion {
 

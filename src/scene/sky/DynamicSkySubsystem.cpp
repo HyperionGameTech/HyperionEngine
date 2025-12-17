@@ -23,15 +23,10 @@
 
 #include <core/threading/Scheduler.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
 #include <util/MeshBuilder.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #include <DynamicSkySubsystem.generated.inl>
 

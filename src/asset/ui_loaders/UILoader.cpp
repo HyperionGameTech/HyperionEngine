@@ -3,6 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <asset/ui_loaders/UILoader.hpp>
+
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 #include <asset/ScriptAsset.hpp>
@@ -35,15 +36,11 @@
 
 #include <core/json/JSON.hpp>
 
-#include <core/reflection/Class.hpp>
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/HypDataJSONHelpers.hpp>
 
 #include <core/functional/Delegate.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <core/Name.hpp>
 

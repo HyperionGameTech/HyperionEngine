@@ -2,20 +2,12 @@
 
 #pragma once
 
-#include <core/Types.hpp>
-
-#include <core/Name.hpp>
-
 #include <core/memory/Pimpl.hpp>
 #include <core/memory/pool/Pool.hpp>
-
-#include <core/reflection/ObjectBase.hpp>
 
 #include <core/threading/util/ThreadId.hpp>
 
 #include <core/profiling/PerformanceClock.hpp>
-
-#include <core/containers/FixedArray.hpp>
 
 #include <util/GameCounter.hpp>
 

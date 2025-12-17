@@ -13,7 +13,6 @@
 #include <util/MeshBuilder.hpp>
 
 #include <scene/World.hpp>
-
 #include <scene/EntityManager.hpp>
 
 #include <scene/components/MeshComponent.hpp>
@@ -30,13 +29,8 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <input/InputManager.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <UIStage.generated.inl>

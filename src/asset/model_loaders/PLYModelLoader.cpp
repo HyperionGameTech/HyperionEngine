@@ -11,9 +11,6 @@
 
 #include <core/filesystem/FsUtil.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <algorithm>
 
 #include <PLYModelLoader.generated.inl>

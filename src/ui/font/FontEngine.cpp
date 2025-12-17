@@ -7,9 +7,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #ifdef HYP_FREETYPE
 
 #include <ft2build.h>

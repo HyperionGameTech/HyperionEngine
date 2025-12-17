@@ -18,9 +18,6 @@
 
 #include <core/utilities/Span.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <core/debug/Debug.hpp>
 
 #include <system/AppContext.hpp>

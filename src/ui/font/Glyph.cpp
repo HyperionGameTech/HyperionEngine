@@ -8,8 +8,6 @@
 
 #include <rendering/Texture.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #ifdef HYP_FREETYPE
 
 #include <ft2build.h>

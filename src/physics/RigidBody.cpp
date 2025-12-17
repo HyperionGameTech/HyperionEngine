@@ -8,7 +8,6 @@
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <RigidBody.generated.inl>

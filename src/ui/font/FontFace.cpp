@@ -5,8 +5,6 @@
 #include <ui/font/FontEngine.hpp>
 #include <ui/font/FontFace.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #ifdef HYP_FREETYPE
 
 #include <ft2build.h>

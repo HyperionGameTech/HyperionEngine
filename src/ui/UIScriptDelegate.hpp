@@ -9,8 +9,6 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/DeferredScope.hpp>
 
-#include <core/logging/Logger.hpp>
-
 #include <scene/Scene.hpp>
 #include <scene/components/ScriptComponent.hpp>
 

@@ -6,10 +6,6 @@
 #include <ui/UIStage.hpp>
 #include <ui/UIButton.hpp>
 
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
 #include <UIPanel.generated.inl>
 
 namespace hyperion {

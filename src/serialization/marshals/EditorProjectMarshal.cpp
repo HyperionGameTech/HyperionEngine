@@ -7,17 +7,10 @@
 #include <core/serialization/fbom/FBOMObject.hpp>
 #include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <editor/EditorProject.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 namespace hyperion::serialization {
 

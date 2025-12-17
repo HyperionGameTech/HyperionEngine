@@ -20,15 +20,10 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <core/logging/Logger.hpp>
-
 #include <util/MeshBuilder.hpp>
 
 #include <system/AppContext.hpp>
 
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #define HYP_RENDER_UI_IN_FINAL_PASS

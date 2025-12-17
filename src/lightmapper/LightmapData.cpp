@@ -12,9 +12,6 @@
 
 #include <scene/util/VoxelOctree.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <util/NoiseFactory.hpp>
 
 #ifdef HYP_XATLAS

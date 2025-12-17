@@ -9,11 +9,6 @@
 
 #include <rendering/Texture.hpp>
 
-#include <core/utilities/Format.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
 #include <core/json/JSON.hpp>
 
 #include <FontAtlasLoader.generated.inl>

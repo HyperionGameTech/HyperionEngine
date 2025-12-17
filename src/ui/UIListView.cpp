@@ -9,11 +9,6 @@
 #include <input/InputManager.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
-#include <core/utilities/Format.hpp>
-
-#include <core/logging/Logger.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
 
 #include <UIListView.generated.inl>
 

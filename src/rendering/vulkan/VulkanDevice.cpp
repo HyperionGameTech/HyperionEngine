@@ -11,10 +11,8 @@
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/AsyncCompute.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <core/debug/Debug.hpp>
+
 #include <VulkanDevice.generated.inl>
 
 namespace hyperion {

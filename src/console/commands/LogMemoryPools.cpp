@@ -6,8 +6,6 @@
 
 #include <core/memory/MemoryPool.hpp>
 
-#include <core/logging/Logger.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Console);

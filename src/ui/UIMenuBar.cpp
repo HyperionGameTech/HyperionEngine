@@ -11,11 +11,6 @@
 #include <input/InputManager.hpp>
 #include <input/Mouse.hpp>
 
-#include <core/reflection/Class.hpp>
-
-#include <core/utilities/Format.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <UIMenuBar.generated.inl>
 
 namespace hyperion {
