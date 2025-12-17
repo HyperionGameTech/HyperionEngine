@@ -1,9 +1,8 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/Mesh.hpp>
-
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderCommand.hpp>
@@ -93,10 +92,10 @@ Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology)
 
 Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology)
     : Mesh(
-          vertexData,
-          indexData,
-          topology,
-          staticMeshVertexAttributes | skeletonVertexAttributes)
+        vertexData,
+        indexData,
+        topology,
+        staticMeshVertexAttributes | skeletonVertexAttributes)
 {
 }
 

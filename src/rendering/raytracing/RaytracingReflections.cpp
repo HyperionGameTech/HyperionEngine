@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -29,8 +29,6 @@
 #include <scene/EnvGrid.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 #include <RaytracingReflections.generated.inl>
 
@@ -184,7 +182,7 @@ void RaytracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
 void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Ray traced reflections");
-    
+
     AssertDebug(renderSetup.world && renderSetup.view);
 
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);

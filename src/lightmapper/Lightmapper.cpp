@@ -62,6 +62,7 @@
 
 #include <system/AppContext.hpp>
 
+#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <Lightmapper.generated.inl>

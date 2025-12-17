@@ -6,9 +6,15 @@
 #include <core/Defines.hpp>
 #include <core/HashCode.hpp>
 #include <core/Constants.hpp>
+#include <core/Name.hpp>
+
+#include <core/memory/ByteBuffer.hpp>
+#include <core/memory/RefCountedPtr.hpp>
+#include <core/memory/UniquePtr.hpp>
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/ObjectBase.hpp>
+#include <core/reflection/ObjectMacros.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -26,6 +32,6 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <engine/EngineGlobals.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #endif // __cplusplus

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <SystemPch.hpp>
 
 #include <system/AppContext.hpp>
 #include <system/SystemEvent.hpp>

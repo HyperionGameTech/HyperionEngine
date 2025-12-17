@@ -1,4 +1,4 @@
-#include <HyperionPch.hpp>
+#include <EditorPch.hpp>
 
 #include <editor/EditorWindow.hpp>
 
@@ -61,7 +61,8 @@ void EditorWindow::Show()
         m_header->IncRefStrong(); // to keep this alive until window closing
 
         m_window = uiNewWindow(m_title.Data(), m_windowSize.x, m_windowSize.y, 0);
-        uiWindowOnClosing(m_window, [](uiWindow* w, void* data)
+        uiWindowOnClosing(
+            m_window, [](uiWindow* w, void* data)
             {
                 EditorWindow* editorWindow = static_cast<EditorWindow*>(data);
 

@@ -24,7 +24,6 @@ extern "C"
             new (&pOutPackageHandles[i]) Handle<AssetPackage>(std::move(packages[i]));
         }
 
-
         return uint32(packages.Size());
     }
 } // extern "C"

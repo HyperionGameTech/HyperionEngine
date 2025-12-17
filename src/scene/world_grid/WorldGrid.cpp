@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/world_grid/WorldGrid.hpp>
 #include <scene/world_grid/WorldGridLayer.hpp>
@@ -163,7 +163,7 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
     if (isReady)
     {
         AssertOnThread(g_gameThread);
-        
+
         for (Handle<WorldGridLayer>& layer : m_layers)
         {
             layer->OnRemoved(this);
@@ -204,7 +204,7 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
 
         Handle<WorldGridLayer>& layer = instance.Get<Handle<WorldGridLayer>>();
         AssertDebug(layer != nullptr);
-        
+
         layer->SetName(layerDesc.layerName);
 
         // setup layer members
@@ -219,7 +219,7 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
         if (isReady)
         {
             InitObject(layer);
-            
+
             layer->OnAdded(this);
 
             g_streamingManager->AddWorldGridLayer(layer);

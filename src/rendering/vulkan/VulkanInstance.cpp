@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanInstance.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
@@ -268,11 +268,12 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 #ifdef HYP_DEBUG_MODE
 RendererResult VulkanInstance::SetupDebug()
 {
-    static const Array<const char*> layers {
+    static const Array<const char*> layers
+    {
         "VK_LAYER_KHRONOS_validation"
 #if !defined(HYP_APPLE) || !HYP_APPLE
-        ,
-        "VK_LAYER_LUNARG_monitor"
+            ,
+            "VK_LAYER_LUNARG_monitor"
 #endif
     };
 

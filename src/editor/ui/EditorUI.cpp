@@ -1,15 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <EditorPch.hpp>
 
 #include <editor/ui/EditorUI.hpp>
 
 #include <ui/UIDataSource.hpp>
 
-#include <core/reflection/Class.hpp>
 #include <core/reflection/TypeInfo.hpp>
-
-#include <core/logging/Logger.hpp>
 
 namespace hyperion {
 

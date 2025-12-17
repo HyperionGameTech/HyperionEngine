@@ -1,4 +1,4 @@
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/components/AudioComponent.hpp>
 

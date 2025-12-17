@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <ScenePch.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/Scene.hpp>
@@ -112,11 +112,7 @@ void Entity::Init()
     }
     else
     {
-        m_entityManager->AddComponent<TransformComponent>(this, TransformComponent {
-            GetWorldTranslation(),
-            GetWorldRotation(),
-            GetWorldScale()
-        });
+        m_entityManager->AddComponent<TransformComponent>(this, TransformComponent { GetWorldTranslation(), GetWorldRotation(), GetWorldScale() });
     }
 
     if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <RenderingPch.hpp>
 
 #include <rendering/TemporalAA.hpp>
 #include <rendering/RenderEnvironment.hpp>
@@ -25,10 +25,6 @@
 #include <core/math/MathUtil.hpp>
 
 #include <core/threading/Threads.hpp>
-
-#include <core/profiling/ProfileScope.hpp>
-
-#include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
 

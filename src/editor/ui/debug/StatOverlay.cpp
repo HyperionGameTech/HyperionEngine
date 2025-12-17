@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <EditorPch.hpp>
 
 #include <editor/ui/debug/StatOverlay.hpp>
 
@@ -9,14 +9,6 @@
 
 #include <scene/World.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
-#include <core/utilities/Format.hpp>
-
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <engine/EngineStats.hpp>
 
 #include <StatOverlay.generated.inl>

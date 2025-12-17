@@ -1,6 +1,6 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
@@ -188,15 +188,15 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     static VulkanDynamicFunctions s_instance;
     g_vulkanDynamicFunctions = &s_instance;
 
-#define HYP_LOAD_FN(function)                                                                                           \
-    do                                                                                                                  \
-    {                                                                                                                   \
-        s_instance.function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function));    \
-        if (!s_instance.function)                                                                                       \
-        {                                                                                                               \
-            HYP_LOG(RenderingBackend, Warning, "Failed to load Vulkan function {}", #function);                         \
-        }                                                                                                               \
-    }                                                                                                                   \
+#define HYP_LOAD_FN(function)                                                                                        \
+    do                                                                                                               \
+    {                                                                                                                \
+        s_instance.function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function)); \
+        if (!s_instance.function)                                                                                    \
+        {                                                                                                            \
+            HYP_LOG(RenderingBackend, Warning, "Failed to load Vulkan function {}", #function);                      \
+        }                                                                                                            \
+    }                                                                                                                \
     while (0)
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)

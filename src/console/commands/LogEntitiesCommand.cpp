@@ -13,7 +13,6 @@
 #include <scene/Scene.hpp>
 #include <scene/Node.hpp>
 #include <scene/World.hpp>
-
 #include <scene/EntityManager.hpp>
 #include <scene/ComponentInterface.hpp>
 #include <scene/components/UIComponent.hpp>
@@ -24,6 +23,7 @@
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
 
+#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 #include <LogEntitiesCommand.generated.inl>

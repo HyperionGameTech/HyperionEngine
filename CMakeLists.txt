@@ -155,9 +155,9 @@ if(MSVC)
     add_definitions("/DNOMINMAX")
 
     if(HYP_DEBUG_MODE)
-        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O1 /MD /Zi /constexpr:depth1024 /bigobj /MP")
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /NATVIS:${CMAKE_SOURCE_DIR}/src/Hyperion.natvis")
-        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE}")
+        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O1 /MD /Z7 /constexpr:depth1024 /bigobj /MP")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/src/Hyperion.natvis")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
     else()
         set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /Oy /MD /constexpr:depth1024 /bigobj /MP")
     endif()
@@ -593,8 +593,14 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
 
         list(APPEND local_modules ${sub_library_name})
 
-        if (EXISTS "${dir}/${subdir_basename}Pch.hpp")
-            list(APPEND local_pchs "${dir}/${subdir_basename}Pch.hpp")
+        # Find files ending with Pch.hpp to add to PCHs for this module
+        file(GLOB pch_files RELATIVE ${CMAKE_SOURCE_DIR} "${dir}/*Pch.hpp")
+
+        if (pch_files)
+            message(STATUS "Found PCH files in ${dir}: ${pch_files}")
+            foreach(pch_file ${pch_files})
+                list(APPEND local_pchs "${CMAKE_SOURCE_DIR}/${pch_file}")
+            endforeach()
         endif()
 
         # Recurse into children so nested modules with their own CMakeLists.txt get added

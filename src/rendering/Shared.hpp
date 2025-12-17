@@ -2,24 +2,9 @@
 
 #pragma once
 
-#include <rendering/RenderResult.hpp>
-
-#include <core/containers/String.hpp>
-
-#include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Float16.hpp>
-#include <core/Name.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-
-#include <core/math/Extent.hpp>
 #include <core/math/Vector2.hpp>
-
-#include <core/reflection/ObjectMacros.hpp>
-
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
 
 namespace hyperion {
 

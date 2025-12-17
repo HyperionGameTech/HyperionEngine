@@ -2,6 +2,7 @@
 
 #include <HyperionPch.hpp>
 
+#include <engine/EngineGlobals.hpp>
 #include <engine/DebugDrawer.hpp>
 #include <engine/EngineStats.hpp>
 

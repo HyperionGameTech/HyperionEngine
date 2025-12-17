@@ -5,9 +5,9 @@
 #include <dotnet/runtime/asset/AssetMapBindings.hpp>
 
 #include <scene/Node.hpp>
-#include <rendering/Material.hpp>
-
 #include <scene/animation/Skeleton.hpp>
+
+#include <rendering/Material.hpp>
 
 #include <audio/AudioSource.hpp>
 

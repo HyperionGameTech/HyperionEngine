@@ -4,6 +4,7 @@
 
 #include <engine/threads/RenderThread.hpp>
 
+#include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 #include <engine/DebugDrawer.hpp>
