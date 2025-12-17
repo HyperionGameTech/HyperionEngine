@@ -48,20 +48,43 @@ void GameThread::SetGame(const Handle<Game>& game)
 {
     if (IsRunning())
     {
-        Task<void> future;
-
-        GetScheduler().Enqueue([this, game = game, promise = future.Promise()]()
+        auto impl = [this, game = game]()
+        {
+            if (m_game == game)
             {
-                m_game = game;
+                // same instance, nothing to do
+                return;
+            }
 
-                Assert(m_game != nullptr);
+            m_game = game;
 
+            if (m_game != nullptr)
+            {
                 InitObject(m_game);
 
-                promise->Fulfill();
-            });
+                // m_isLaunched is only ever modified from this thread
+                // so we use RELAXED for the load here
+                if (!m_game->m_isLaunched.Get(MemoryOrder::RELAXED))
+                {
+                    m_game->OnLaunch();
+                    m_game->m_isLaunched.Set(true, MemoryOrder::RELEASE);
 
-        future.Await();
+                    m_game->OnLaunched();
+                }
+            }
+        };
+
+        if (IsOnThread(m_id))
+        {
+            impl();
+        }
+        else
+        {
+            HYP_LOG(GameThread, Info, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
+    
+            GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+
 
         return;
     }
@@ -76,18 +99,26 @@ void GameThread::operator()()
     InitObject(defaultWorld);
     g_engineDriver->SetDefaultWorld(defaultWorld);
 
-    GameCounter counter;
-
-    Assert(m_game != nullptr);
-    InitObject(m_game);
-
-    m_game->OnLaunch();
-    m_game->m_isLaunched.Set(true, MemoryOrder::RELEASE);
-
-    // @TODO Make this less fragile
     while (!RenderApi::IsInit())
     {
-        ThreadSleep(10); // wait for rendering subsystem to initialize
+        ThreadSleep(10); // wait for rendering subsystem to initialize before launching game
+    }
+
+    HYP_LOG(GameThread, Info, "Render api initialized, starting game loop...");
+
+    GameCounter counter;
+
+    if (m_game != nullptr)
+    {
+        InitObject(m_game);
+
+        if (!m_game->m_isLaunched.Get(MemoryOrder::RELAXED))
+        {
+            m_game->OnLaunch();
+            m_game->m_isLaunched.Set(true, MemoryOrder::RELEASE);
+
+            m_game->OnLaunched();
+        }
     }
 
     Queue<Scheduler::ScheduledTask> tasks;
@@ -131,7 +162,10 @@ void GameThread::operator()()
                 {
                     g_inputManager->CheckEvent(&event);
 
-                    m_game->HandleEvent(std::move(event));
+                    if (m_game != nullptr)
+                    {
+                        m_game->HandleEvent(std::move(event));
+                    }
                 }
             }
         }
@@ -144,7 +178,10 @@ void GameThread::operator()()
 
         g_engineDriver->GameThreadUpdate(counter.delta);
 
-        m_game->OnUpdate(counter.delta);
+        if (m_game != nullptr)
+        {
+            m_game->OnUpdate(counter.delta);
+        }
 
         g_engineDriver->GetDebugDrawer()->Update(counter.delta);
 

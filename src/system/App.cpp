@@ -13,6 +13,8 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <engine/threads/GameThread.hpp>
+
 #include <HyperionEngine.hpp>
 
 namespace hyperion {
@@ -42,8 +44,9 @@ void App::LaunchGame(const Handle<Game>& game)
     AssertOnThread(g_mainThread);
 
     Assert(game != nullptr);
+    Assert(g_engineDriver != nullptr && g_gameThreadInstance->IsRunning());
 
-    g_engineDriver->StartThreadsForGame(game);
+    g_gameThreadInstance->SetGame(game);
 
     const CommandLineArguments& cmdArgs = CoreApi_GetCommandLineArguments();
 

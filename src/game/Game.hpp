@@ -5,6 +5,8 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
+#include <core/functional/ScriptableDelegate.hpp>
+
 #include <core/Defines.hpp>
 
 namespace hyperion {
@@ -50,6 +52,9 @@ public:
     }
 
     void HandleEvent(SystemEvent&& event);
+    
+    HYP_FIELD()
+    ScriptableDelegate<void> OnLaunched;
 
 protected:
     void Init() override final;
