@@ -177,7 +177,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _selectedGizmoChangedHandler;
         private DelegateHandler? _activeSceneChangedHandler;
 
-        private bool _isUpdatingSelectionFromEngine;
+        private int _isUpdatingSelectionFromEngine = 0; // atomic
 
         private readonly EditorSubsystem _editorSubsystem;
 
@@ -313,7 +313,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnSceneHierarchyNodeSelected(Node? node)
         {
-            if (_isUpdatingSelectionFromEngine)
+            if (_isUpdatingSelectionFromEngine != 0)
             {
                 return;
             }
@@ -323,13 +323,14 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     _editorSubsystem.SetFocusedNode(node!, false);
-                    Inspector.SetSelectedNode(node);
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(LogType.Warn, $"Failed to set focused node: {ex.Message}");
                 }
             });
+
+            Inspector.SetSelectedNode(node);
         }
 
         private void BindFocusedNodeChanged()
@@ -352,19 +353,25 @@ namespace Hyperion.Editor.ViewModels
 
         private void HandleFocusedNodeUpdate(Node? node)
         {
-            _isUpdatingSelectionFromEngine = true;
-
-            try
+            if (Interlocked.CompareExchange(ref _isUpdatingSelectionFromEngine, 1, 0) != 0)
             {
-                Node? validNode = node != null && node.IsValid ? node : null;
+                return;
+            }
 
-                Inspector.SetSelectedNode(validNode);
-                SceneHierarchy.SelectNodeFromEngine(validNode);
-            }
-            finally
+            Dispatcher.UIThread.Post(() =>
             {
-                _isUpdatingSelectionFromEngine = false;
-            }
+                try
+                {
+                    Node? validNode = node != null && node.IsValid ? node : null;
+
+                    Inspector.SetSelectedNode(validNode);
+                    SceneHierarchy.SelectNodeFromEngine(validNode);
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref _isUpdatingSelectionFromEngine, 0);
+                }
+            });
         }
     }
 }

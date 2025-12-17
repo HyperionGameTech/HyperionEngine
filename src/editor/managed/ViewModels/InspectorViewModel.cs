@@ -60,6 +60,8 @@ namespace Hyperion.Editor.ViewModels
 
         public void SetSelectedNode(Node? node)
         {
+            Dispatcher.UIThread.CheckAccess();
+            
             SelectedNode = node;
             RefreshProperties();
         }

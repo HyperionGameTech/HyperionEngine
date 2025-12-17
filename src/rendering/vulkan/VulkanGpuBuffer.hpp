@@ -10,7 +10,7 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
-#include <system/vma/VmaUsage.hpp>
+#include <rendering/vulkan/VulkanMemoryAllocator.hpp>
 
 namespace hyperion {
 

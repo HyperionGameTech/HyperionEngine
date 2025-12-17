@@ -8,8 +8,6 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <system/vma/VmaUsage.hpp>
-
 #include <core/Types.hpp>
 
 #include <vulkan/vulkan.h>

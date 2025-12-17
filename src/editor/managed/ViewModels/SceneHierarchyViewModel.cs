@@ -72,12 +72,12 @@ namespace Hyperion.Editor.ViewModels
 
         public void SelectNodeFromEngine(Node? node)
         {
+            Dispatcher.UIThread.CheckAccess();
+
             _suppressSelectionNotifications = true;
 
             try
             {
-                Dispatcher.UIThread.CheckAccess();
-
                 if (node == null || !node.IsValid)
                 {
                     SelectedNode = null;
@@ -85,11 +85,29 @@ namespace Hyperion.Editor.ViewModels
                 }
 
                 NodeViewModel? viewModel = FindNodeViewModel(node.NativeAddress);
+
+                if (viewModel != null)
+                {
+                    ExpandAncestors(viewModel);
+                }
+
                 SelectedNode = viewModel;
             }
             finally
             {
                 _suppressSelectionNotifications = false;
+            }
+        }
+
+        private static void ExpandAncestors(NodeViewModel node)
+        {
+            node.IsExpanded = true;
+
+            NodeViewModel? current = node.Parent;
+            while (current != null)
+            {
+                current.IsExpanded = true; // @TODO Make it expand the tree node in UI!!
+                current = current.Parent;
             }
         }
 

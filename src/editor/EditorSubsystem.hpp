@@ -46,7 +46,6 @@ struct MouseEvent;
 struct KeyboardEvent;
 class View;
 class EditorViewport;
-class ConsoleUI;
 class LightmapVolume;
 
 namespace sys {
@@ -474,7 +473,6 @@ private:
     void InitSceneOutline();
     void InitContentBrowser();
     void InitDetailView();
-    void InitConsoleUI();
     void InitDebugOverlays();
     void InitGizmoSelection();
     void InitActiveSceneSelection();
@@ -534,8 +532,6 @@ private:
 
     // top-left, bottom-left, top-right, bottom-right
     FixedArray<Handle<UIObject>, 4> m_debugOverlayContainers;
-
-    Handle<ConsoleUI> m_consoleUi;
 
     Handle<UIListView> m_contentBrowserDirectoryList;
     Handle<AssetPackage> m_selectedPackage;

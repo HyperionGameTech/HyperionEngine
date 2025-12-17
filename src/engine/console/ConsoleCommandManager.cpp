@@ -2,8 +2,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <console/ConsoleCommandManager.hpp>
-#include <console/ConsoleCommand.hpp>
+#include <engine/console/ConsoleCommandManager.hpp>
+#include <engine/console/ConsoleCommand.hpp>
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Threads.hpp>

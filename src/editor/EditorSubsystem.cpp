@@ -82,8 +82,6 @@
 #include <lightmapper/LightmapperSubsystem.hpp>
 #include <lightmapper/LightmapData.hpp>
 
-#include <console/ui/ConsoleUI.hpp>
-
 // for EnumToString
 #include <core/reflection/Enum.hpp>
 #include <core/reflection/ClassRegistry.hpp>
@@ -1890,99 +1888,7 @@ void EditorSubsystem::InitViewport()
 
     uiSubsystem->GetUIStage()->UpdateSize(true);
 
-    //// bind console key
-    // m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
-    //     {
-    //         // Check we aren't entering text in non-console text field
-    //         UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    //         Assert(uiSubsystem != nullptr && uiSubsystem->GetUIStage() != nullptr);
-
-    //        // if (Handle<UIObject> focusedObject = uiSubsystem->GetUIStage()->GetFocusedObject().Lock())
-    //        // {
-    //        //     if (focusedObject->IsA<UITextbox>() && (m_consoleUi && !m_consoleUi->HasFocus()))
-    //        //     {
-    //        //         HYP_BREAKPOINT;
-    //        //         return UIEventHandlerResult::OK;
-    //        //     }
-    //        // }
-
-    //        if (event.keyCode == KeyCode::TILDE)
-    //        {
-    //            const bool isConsoleOpen = m_consoleUi && m_consoleUi->IsVisible();
-
-    //            if (isConsoleOpen)
-    //            {
-    //                m_consoleUi->SetIsVisible(false);
-
-    //                for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
-    //                {
-    //                    if (!debugOverlayContainer)
-    //                    {
-    //                        continue;
-    //                    }
-
-    //                    debugOverlayContainer->SetIsVisible(true);
-    //                }
-    //            }
-    //            else
-    //            {
-    //                m_consoleUi->SetIsVisible(true);
-
-    //                for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
-    //                {
-    //                    if (!debugOverlayContainer)
-    //                    {
-    //                        continue;
-    //                    }
-
-    //                    debugOverlayContainer->SetIsVisible(false);
-    //                }
-    //            }
-
-    //            return UIEventHandlerResult::STOP_BUBBLING;
-    //        }
-
-    //        return UIEventHandlerResult::OK;
-    //    }));
-
     Vec2u viewportSize = MathUtil::Max(Vec2u(uiSubsystem->GetUIStage()->GetActualSize()), Vec2u::One());
-    // m_camera->SetDimensions(Vec2i(viewportSize));
-
-    // Handle<EditorViewport> editorViewport = CreateObject<EditorViewport>();
-    // InitObject(editorViewport);
-
-    // AddViewport(editorViewport);
-
-    // HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewportSize);
-    // editorViewport->OnAdded(this);
-    // m_editorViewports.PushBack(editorViewport);
-
-    // m_delegateHandlers.Remove(&uiSubsystem->GetUIStage()->OnSizeChange);
-    // m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnSizeChange.Bind([this, uiStageWeak = uiSubsystem->GetUIStage().ToWeak(), cameraWeak = m_camera.ToWeak()]()
-    //     {
-    //         Handle<UIObject> uiStage = uiStageWeak.Lock();
-    //         if (!uiStage)
-    //         {
-    //             HYP_LOG(Editor, Warning, "Scene image object is no longer valid!");
-    //             return UIEventHandlerResult::ERR;
-    //         }
-
-    //         Handle<Camera> camera = cameraWeak.Lock();
-    //         if (!camera)
-    //         {
-    //             HYP_LOG(Editor, Warning, "Camera is no longer valid!");
-    //             return UIEventHandlerResult::ERR;
-    //         }
-
-    //         Vec2i viewportSize = MathUtil::Max(uiStage->GetActualSize(), Vec2i::One());
-    //         camera->SetDimensions(viewportSize);
-
-    //         HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewportSize);
-
-    //         return UIEventHandlerResult::OK;
-    //     }));
-
-    // m_camera->SetDimensions(Vec2i(viewportSize));
 
     m_delegateHandlers.Remove(&backdropPanel->OnClick);
     m_delegateHandlers.Add(backdropPanel->OnClick.Bind([this](const MouseEvent& event)
@@ -2342,7 +2248,6 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    // InitConsoleUI();
     InitDebugOverlays();
     InitGizmoSelection();
 }
@@ -2795,27 +2700,6 @@ void EditorSubsystem::InitDetailView()
                         }
                     } });
         }));
-}
-
-void EditorSubsystem::InitConsoleUI()
-{
-    HYP_SCOPE;
-
-    UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    AssertDebug(uiSubsystem != nullptr);
-
-    if (m_consoleUi != nullptr)
-    {
-        m_consoleUi->RemoveFromParent();
-    }
-
-    m_consoleUi = uiSubsystem->GetUIStage()->CreateUIObject<ConsoleUI>(NAME("Console"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
-    AssertDebug(m_consoleUi.IsValid());
-
-    m_consoleUi->SetDepth(150);
-    m_consoleUi->SetIsVisible(false);
-
-    uiSubsystem->GetUIStage()->AddChildUIObject(m_consoleUi);
 }
 
 void EditorSubsystem::InitDebugOverlays()
