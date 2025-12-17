@@ -25,8 +25,8 @@ namespace Hyperion.Editor.ViewModels
 
         private class SetGizmoCommand : ICommand
         {
-            private readonly EditorSubsystem _editorSubsystem;
-            private readonly EditorManipulationMode _mode;
+            private EditorSubsystem _editorSubsystem;
+            private EditorManipulationMode _mode;
 
             public SetGizmoCommand(EditorSubsystem editorSubsystem, EditorManipulationMode mode)
             {
@@ -48,8 +48,8 @@ namespace Hyperion.Editor.ViewModels
 
         private class SetGameModeCommand : ICommand
         {
-            private readonly EditorSubsystem _editorSubsystem;
-            private readonly GameStateMode _mode;
+            private EditorSubsystem _editorSubsystem;
+            private GameStateMode _mode;
 
             public SetGameModeCommand(EditorSubsystem editorSubsystem, GameStateMode mode)
             {
@@ -92,9 +92,9 @@ namespace Hyperion.Editor.ViewModels
             get => _title;
             set => SetProperty(ref _title, value);
         }
-        public SceneHierarchyViewModel SceneHierarchy { get; }
-        public InspectorViewModel Inspector { get; }
-        public ContentBrowserViewModel ContentBrowser { get; }
+        public SceneHierarchyViewModel SceneHierarchy { get; private set; }
+        public InspectorViewModel Inspector { get; private set; }
+        public ContentBrowserViewModel ContentBrowser { get; private set; }
 
         public EditorCommand NewProject => new EditorCommand("NewProject");
         public EditorCommand OpenProject => new EditorCommand("OpenProject");
@@ -119,11 +119,11 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
         public EditorCommand AddFogVolume => new EditorCommand("AddFogVolume");
 
-        public ICommand SelectTranslateGizmo { get; }
-        public ICommand SelectRotateGizmo { get; }
-        public ICommand SelectScaleGizmo { get; }
+        public ICommand SelectTranslateGizmo { get; private set; }
+        public ICommand SelectRotateGizmo { get; private set; }
+        public ICommand SelectScaleGizmo { get; private set; }
 
-        public ICommand SetGameModePlaying { get; }
+        public ICommand SetGameModePlaying { get; private set; }
         public bool CanSetGameModePlaying
         {
             get
@@ -139,7 +139,7 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public ICommand SetGameModePaused { get; }
+        public ICommand SetGameModePaused { get; private set; }
         public bool CanSetGameModePaused
         {
             get
@@ -155,7 +155,7 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public ICommand SetGameModeStopped { get; }
+        public ICommand SetGameModeStopped { get; private set; }
         public bool CanSetGameModeStopped
         {
             get
@@ -171,6 +171,7 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private DelegateHandler? _gameInstanceLaunchedHandler;
         private DelegateHandler? _gameModeChangedHandler;
         private DelegateHandler? _focusedNodeChangedHandler;
         private DelegateHandler? _currentProjectChangedHandler;
@@ -178,8 +179,9 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _activeSceneChangedHandler;
 
         private int _isUpdatingSelectionFromEngine = 0; // atomic
+        private bool _isReady = false;
 
-        private readonly EditorSubsystem _editorSubsystem;
+        private EditorSubsystem _editorSubsystem;
 
         private const int GameLaunchWaitIntervalMs = 500;
         private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up
@@ -195,20 +197,26 @@ namespace Hyperion.Editor.ViewModels
 
             int waitedTime = 0;
 
-            while (!gameInstance.IsLaunched())
+            if (gameInstance.IsLaunched())
             {
-                Logger.Log(LogType.Info, "Waiting for game to launch...");
+                Init(gameInstance);
 
-                Thread.Sleep(GameLaunchWaitIntervalMs);
-
-                waitedTime += GameLaunchWaitIntervalMs;
-
-                if (waitedTime >= MaxGameLaunchWaitTimeMs)
-                {
-                    throw new TimeoutException("Timed out waiting for game to launch!");
-                }
+                return;
             }
 
+            Logger.Log(LogType.Info, "Game instance not yet launched, setting up callback to be notified when ready");
+
+            _gameInstanceLaunchedHandler = gameInstance.GetOnLaunchedDelegate().Bind(() =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Init(gameInstance);
+                });
+            });
+        }
+
+        private void Init(Game gameInstance)
+        {
             World? world = gameInstance.World;
             if (world == null)
                 throw new InvalidOperationException("Game world is not initialized.");
@@ -290,6 +298,8 @@ namespace Hyperion.Editor.ViewModels
 
                 HandleFocusedNodeUpdate(focusedNode);
             });
+
+            _isReady = true;
         }
 
         public void Dispose()
@@ -307,13 +317,18 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.Invoke(() =>
             {
+                if (!_isReady)
+                {
+                    return;
+                }
+
                 SceneHierarchy.AttachToScene(scene);
             });
         }
 
         private void OnSceneHierarchyNodeSelected(Node? node)
         {
-            if (_isUpdatingSelectionFromEngine != 0)
+            if (!_isReady || _isUpdatingSelectionFromEngine != 0)
             {
                 return;
             }
@@ -360,6 +375,12 @@ namespace Hyperion.Editor.ViewModels
 
             Dispatcher.UIThread.Post(() =>
             {
+                if (!_isReady)
+                {
+                    Interlocked.Exchange(ref _isUpdatingSelectionFromEngine, 0);
+                    return;
+                }
+
                 try
                 {
                     Node? validNode = node != null && node.IsValid ? node : null;

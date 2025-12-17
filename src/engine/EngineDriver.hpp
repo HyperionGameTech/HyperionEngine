@@ -112,7 +112,7 @@ public:
 
     bool IsRenderLoopActive() const;
 
-    void StartThreadsForGame(const Handle<Game>& game);
+    void StartThreads();
 
     void MainThreadUpdate();
     void RequestStop();

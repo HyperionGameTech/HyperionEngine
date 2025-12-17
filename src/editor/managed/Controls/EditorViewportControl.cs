@@ -14,6 +14,8 @@ namespace Hyperion.Editor
         public AppContextBase? AppContext { get; private set; } = null;
         public EditorViewport? Viewport { get; private set; } = null;
 
+        private DelegateHandler? _gameLaunchedHandler;
+
         public EditorViewportControl()
         {
             Viewport = new EditorViewport();
@@ -34,19 +36,7 @@ namespace Hyperion.Editor
                 height = DefaultHeight;
             }
 
-            HyperionEditorGame? gameInstance = EngineManager.GameInstance;
-            if (gameInstance == null)
-            {
-                throw new InvalidOperationException("Game instance is not initialized.");
-            }
-
-            EditorSubsystem? editorSubsystem = gameInstance.EditorSubsystem;
-            if (editorSubsystem == null)
-            {
-                throw new InvalidOperationException("EditorSubsystem is not initialized.");
-            }
-
-            editorSubsystem.AddViewport(Viewport);
+            InitEditorViewport(Viewport);
 
             WindowOptions windowOptions = new WindowOptions();
             windowOptions.title = "EditorViewport";
@@ -99,6 +89,9 @@ namespace Hyperion.Editor
 
         protected override void DestroyNativeControlCore(IPlatformHandle control)
         {
+            _gameLaunchedHandler?.Remove();
+            _gameLaunchedHandler = null;
+
             if (Window != null)
             {
                 if (AppContext.GetMainWindow() == Window)
@@ -128,6 +121,47 @@ namespace Hyperion.Editor
 
                 // Window.SetSize(new Vec2i(width, height));
             }
+        }
+
+        void InitEditorViewport(EditorViewport viewport)
+        {
+            HyperionEditorGame? gameInstance = EngineManager.GameInstance;
+
+            if (gameInstance == null)
+            {
+                throw new InvalidOperationException("EngineManager.GameInstance is null.");
+            }
+
+            if (gameInstance.IsLaunched())
+            {
+                _ = EngineManager.PostToGameThread(() =>
+                {
+                    EditorSubsystem? editorSubsystem = gameInstance.EditorSubsystem;
+                    if (editorSubsystem == null)
+                    {
+                        throw new InvalidOperationException("EditorSubsystem is not initialized!");
+                    }
+
+                    editorSubsystem.AddViewport(viewport);
+                });
+
+                return;
+            }
+
+            // not launched; add handler for after launch
+            _gameLaunchedHandler = gameInstance.GetOnLaunchedDelegate().Bind(() =>
+            {
+                _ = EngineManager.PostToGameThread(() =>
+                {
+                    EditorSubsystem? editorSubsystem = gameInstance.EditorSubsystem;
+                    if (editorSubsystem == null)
+                    {
+                        throw new InvalidOperationException("EditorSubsystem is not initialized!");
+                    }
+
+                    editorSubsystem.AddViewport(viewport);
+                });
+            });
         }
     }
 }

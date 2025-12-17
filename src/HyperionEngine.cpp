@@ -383,6 +383,7 @@ extern "C"
         g_gameThreadInstance = new GameThread();
 
         InitObject(g_engineDriver);
+        g_engineDriver->StartThreads();
 
         return 1;
     }
