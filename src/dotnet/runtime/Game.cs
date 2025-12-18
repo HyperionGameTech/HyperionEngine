@@ -4,15 +4,22 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name = "Game")]
-    public abstract class Game : ObjectBase
+    public class Game : ObjectBase
     {
         public World World
         {
             get => this.GetWorld();
         }
 
-        public abstract void OnLaunch();
-        public abstract void OnUpdate(float deltaTime);
+        protected virtual void OnLaunch()
+        {
+            InvokeNativeMethod("OnLaunch_Impl");
+        }
+
+        protected virtual void OnUpdate(float deltaTime)
+        {
+            InvokeNativeMethod("OnUpdate_Impl", [deltaTime]);
+        }
 
         public async Task<T> PostTask<T>(Func<T> func)
         {
@@ -22,11 +29,6 @@ namespace Hyperion
 
             Action? inner = () =>
             {
-                if (gcHandle == null)
-                {
-                    throw new Exception("GCHandle is null in callback");
-                }
-
                 try
                 {
                     T result = func.Invoke();

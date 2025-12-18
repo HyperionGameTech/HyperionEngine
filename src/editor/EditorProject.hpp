@@ -22,6 +22,7 @@ namespace hyperion {
 
 class Scene;
 class World;
+class Game;
 class AssetCollector;
 class AssetPackage;
 class EditorActionStack;
@@ -37,7 +38,8 @@ public:
 
     EditorProject();
 
-    explicit EditorProject(Name name);
+    explicit EditorProject(const Handle<Game>& gameInstance);
+    EditorProject(Name name, const Handle<Game>& gameInstance);
 
     EditorProject(const EditorProject& other) = delete;
     EditorProject& operator=(const EditorProject& other) = delete;
@@ -64,11 +66,17 @@ public:
     HYP_METHOD()
     void SetName(Name name);
 
-    HYP_METHOD(Property = "World")
-    HYP_FORCE_INLINE const Handle<World>& GetWorld() const
+    HYP_METHOD()
+    const Handle<World>& GetWorld() const;
+
+    HYP_METHOD(Property = "GameInstance")
+    HYP_FORCE_INLINE const Handle<Game>& GetGame() const
     {
-        return m_world;
+        return m_gameInstance;
     }
+
+    HYP_METHOD(Property = "GameInstance")
+    void SetGame(const Handle<Game>& gameInstance);
 
     HYP_METHOD()
     HYP_FORCE_INLINE Time GetLastSavedTime() const
@@ -146,8 +154,8 @@ private:
     HYP_FIELD(Property = "FilePath")
     FilePath m_filepath;
 
-    HYP_FIELD(Property = "World")
-    Handle<World> m_world;
+    HYP_FIELD(Property = "GameInstance")
+    Handle<Game> m_gameInstance;
 
     HYP_FIELD(Transient)
     Handle<AssetPackage> m_package;

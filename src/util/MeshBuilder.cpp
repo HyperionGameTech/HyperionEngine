@@ -326,7 +326,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
     SizeType vertexOffset = 0;
     SizeType indexOffset = 0;
 
-    for (SizeType meshIndex = 0; meshIndex < 2; meshIndex++)
+    for (int meshIndex = 0; meshIndex < 2; meshIndex++)
     {
         const SizeType vertexOffsetBefore = vertexOffset;
 

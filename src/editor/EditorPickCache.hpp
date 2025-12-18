@@ -31,7 +31,7 @@ struct EditorPickCacheEntry
     Array<uint32, EpcAllocator> indices;
 };
 
-class HYP_API EditorPickCache
+class EditorPickCache
 {
 public:
     static constexpr SizeType MaxMemoryUsageBytes = (32 * 1024 * 1024); // 32 MiB
