@@ -12,7 +12,7 @@
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
-#include <rendering/RenderGpuImage.hpp>
+#include <rendering/GpuImage.hpp>
 
 namespace hyperion {
 

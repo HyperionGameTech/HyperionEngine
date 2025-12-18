@@ -3,8 +3,8 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderComputePipeline.hpp>
-#include <rendering/RenderShader.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderBackend.hpp>
 
 #include <core/reflection/Handle.hpp>

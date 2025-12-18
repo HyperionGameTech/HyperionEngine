@@ -27,7 +27,7 @@
 
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderCommand.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderProxyList.hpp>
@@ -79,7 +79,7 @@ struct AddUIRendererForView : RenderCommand
             uiRenderer->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(entityBatchClass->GetTypeId());
         }
 
-        g_renderGlobalState->AddRenderer(GRT_UI, uiRenderer);
+        g_renderInterface->AddRenderer(GRT_UI, uiRenderer);
 
         HYPERION_RETURN_OK;
     }
@@ -96,7 +96,7 @@ struct RemoveUIRenderer : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        g_renderGlobalState->RemoveRenderer(GRT_UI, uiRenderer);
+        g_renderInterface->RemoveRenderer(GRT_UI, uiRenderer);
 
         HYPERION_RETURN_OK;
     }
@@ -117,10 +117,10 @@ struct SetFinalPassImageView : RenderCommand
     {
         if (!imageView)
         {
-            imageView = g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d);
+            imageView = g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d);
         }
 
-        g_renderGlobalState->finalPass->SetUILayerImageView(imageView);
+        g_renderInterface->finalPass->SetUILayerImageView(imageView);
 
         HYPERION_RETURN_OK;
     }

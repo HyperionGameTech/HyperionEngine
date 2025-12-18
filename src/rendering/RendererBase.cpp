@@ -1,7 +1,7 @@
 #include <RenderingPch.hpp>
 
-#include <rendering/Renderer.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RendererBase.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/RenderBackend.hpp>
@@ -15,7 +15,7 @@
 
 #include <core/profiling/PerformanceClock.hpp>
 
-#include <Renderer.generated.inl>
+#include <RendererBase.generated.inl>
 
 namespace hyperion {
 

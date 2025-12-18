@@ -3,8 +3,8 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/CullData.hpp>
-#include <rendering/RenderGpuImageView.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/GpuImageView.hpp>
+#include <rendering/GpuBuffer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

@@ -34,7 +34,7 @@
 #include <system/AppContext.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>

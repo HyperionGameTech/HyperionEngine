@@ -10,13 +10,13 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderQueue.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderComputePipeline.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -447,7 +447,7 @@ void GaussianSplattingInstance::CreateGraphicsPipeline()
 
 #if 0
     // FIXME
-    m_graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+    m_graphicsPipeline = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         descriptorTable,
         { &m_framebuffer, 1 },

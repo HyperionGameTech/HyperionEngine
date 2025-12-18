@@ -4,7 +4,7 @@
 
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
-#include <rendering/RenderSwapchain.hpp>
+#include <rendering/Swapchain.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI

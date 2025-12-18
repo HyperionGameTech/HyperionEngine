@@ -15,7 +15,7 @@
 #include <core/reflection/Handle.hpp>
 
 #include <rendering/RenderBucket.hpp>
-#include <rendering/RenderGpuImage.hpp>
+#include <rendering/GpuImage.hpp>
 #include <rendering/Shared.hpp>
 
 namespace hyperion {

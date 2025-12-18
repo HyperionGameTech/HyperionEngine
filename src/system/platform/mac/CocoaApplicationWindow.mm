@@ -15,7 +15,7 @@
 
 #include <rendering/RenderBackend.hpp>
 
-#include <rendering/RenderDevice.hpp>
+#include <rendering/Device.hpp>
 #include <rendering/vulkan/VulkanSwapchain.hpp>
 
 #include <system/SystemEvent.hpp>

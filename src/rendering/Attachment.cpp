@@ -2,10 +2,10 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderAttachment.hpp>
+#include <rendering/Attachment.hpp>
 #include <rendering/Texture.hpp>
 
-#include <RenderAttachment.generated.inl>
+#include <Attachment.generated.inl>
 
 namespace hyperion {
 

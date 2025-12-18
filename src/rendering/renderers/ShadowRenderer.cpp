@@ -7,14 +7,14 @@
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMap.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderComputePipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/ComputePipeline.hpp>
 #include <rendering/FullScreenPass.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
@@ -137,7 +137,7 @@ void ShadowRendererBase::Shutdown()
     {
         for (ShadowMap* shadowMap : shadowMaps)
         {
-            bool shadowMapFreed = g_renderGlobalState->shadowMapAllocator->FreeShadowMap(shadowMap);
+            bool shadowMapFreed = g_renderInterface->shadowMapAllocator->FreeShadowMap(shadowMap);
             AssertDebug(shadowMapFreed, "Failed to free shadow map");
         }
     }
@@ -156,7 +156,7 @@ int ShadowRendererBase::RunCleanupCycle(int maxIter)
 
             if (it->second.shadowMap != nullptr)
             {
-                bool shadowMapFreed = g_renderGlobalState->shadowMapAllocator->FreeShadowMap(it->second.shadowMap);
+                bool shadowMapFreed = g_renderInterface->shadowMapAllocator->FreeShadowMap(it->second.shadowMap);
                 AssertDebug(shadowMapFreed, "Failed to free shadow map for Light {}!", it->first.Id());
             }
 
@@ -431,7 +431,7 @@ Handle<PassData> ShadowRendererBase::CreateViewPassData(View* view, PassDataExt&
 
 ShadowMap* PointShadowRenderer::AllocateShadowMap(Light* light)
 {
-    return g_renderGlobalState->shadowMapAllocator->AllocateShadowMap(
+    return g_renderInterface->shadowMapAllocator->AllocateShadowMap(
         ShadowMapType::SMT_OMNI,
         light->GetShadowMapFilter(),
         light->GetShadowMapDimensions());
@@ -443,7 +443,7 @@ ShadowMap* PointShadowRenderer::AllocateShadowMap(Light* light)
 
 ShadowMap* DirectionalShadowRenderer::AllocateShadowMap(Light* light)
 {
-    return g_renderGlobalState->shadowMapAllocator->AllocateShadowMap(
+    return g_renderInterface->shadowMapAllocator->AllocateShadowMap(
         ShadowMapType::SMT_DIRECTIONAL,
         light->GetShadowMapFilter(),
         light->GetShadowMapDimensions());

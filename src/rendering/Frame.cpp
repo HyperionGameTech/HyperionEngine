@@ -2,12 +2,12 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderConfig.hpp>
 
-#include <RenderFrame.generated.inl>
+#include <Frame.generated.inl>
 
 namespace hyperion {
 void FrameBase::MarkDescriptorSetUsed(DescriptorSet* descriptorSet)

@@ -5,7 +5,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderSwapchain.hpp>
+#include <rendering/Swapchain.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 

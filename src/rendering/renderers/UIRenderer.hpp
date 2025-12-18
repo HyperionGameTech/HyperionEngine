@@ -4,7 +4,7 @@
 
 #include <core/memory/resource/Resource.hpp>
 
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderObject.hpp>
 

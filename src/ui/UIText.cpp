@@ -5,11 +5,11 @@
 #include <ui/UIText.hpp>
 #include <ui/UIStage.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 #include <rendering/Texture.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>

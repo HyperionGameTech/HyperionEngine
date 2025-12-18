@@ -10,18 +10,18 @@
 #include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Device.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -903,7 +903,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 
 #pragma endregion Lightmapper < LightmapVolume>
 
-#pragma region Lightmapper<ReflectionProbe>
+#pragma region Lightmapper < ReflectionProbe>
 
 Lightmapper<ReflectionProbe>::Lightmapper(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe)
     : LightmapperBase(std::move(config), envProbe, MakeStrongRef(envProbe->GetScene()), envProbe->GetAABB()),

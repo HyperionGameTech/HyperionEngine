@@ -5,14 +5,14 @@
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
 
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
-#include <rendering/RenderComputePipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/GraphicsPipeline.hpp>
+#include <rendering/ComputePipeline.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderProxyList.hpp>
@@ -195,7 +195,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
         Assert(descriptorSet != nullptr);
 
         descriptorSet->SetElement("ParticlesBuffer", state.particleBuffer);
-        descriptorSet->SetElement("ParticleTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("ParticleTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
     DeferCreate(state.graphicsDescriptorTable);
@@ -333,7 +333,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         // @TODO Just add an OnResize or something and remove this extra framebuffer check
         || !(*state.graphicsPipelineHandle)->GetFramebuffers().Contains(framebuffer))
     {
-        state.graphicsPipelineHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+        state.graphicsPipelineHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             state.particleShader,
             state.graphicsDescriptorTable,
             Span<const FramebufferRef>(&framebuffer, 1),

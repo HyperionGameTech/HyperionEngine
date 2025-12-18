@@ -6,7 +6,7 @@
 
 #include <core/cli/CommandLine.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderBackend.hpp>
 
 #include <game/Game.hpp>

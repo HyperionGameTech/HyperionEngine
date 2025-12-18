@@ -15,8 +15,8 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/Renderer.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/RendererBase.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>

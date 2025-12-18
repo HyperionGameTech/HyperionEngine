@@ -3,11 +3,11 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderMaterial.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
@@ -43,7 +43,7 @@ void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
         return;
     }
 
-    const DescriptorSetDeclaration* decl = g_renderGlobalState->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
+    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };
@@ -56,7 +56,7 @@ void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
         // set dummy placeholder textures for each material
         for (Name textureName : Material::s_textureNames)
         {
-            m_fallbackMaterialDescriptorSets[frameIndex]->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+            m_fallbackMaterialDescriptorSets[frameIndex]->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
         }
 
         DeferCreate(m_fallbackMaterialDescriptorSets[frameIndex]);
@@ -105,7 +105,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
 
     AssertOnThread(g_renderThread);
 
-    const DescriptorSetDeclaration* decl = g_renderGlobalState->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
+    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
     Assert(decl != nullptr);
 
     DescriptorSetLayout layout { decl };
@@ -123,7 +123,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
         // set dummy placeholder textures for each material
         for (Name textureName : Material::s_textureNames)
         {
-            descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+            descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
         }
 
         descriptorSets[frameIndex] = std::move(descriptorSet);
@@ -160,7 +160,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
 
     AssertOnThread(g_renderThread);
 
-    const DescriptorSetDeclaration* decl = g_renderGlobalState->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
+    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };
@@ -203,7 +203,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
             }
 
             // set placeholder texture
-            descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+            descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
         }
 
         descriptorSets[frameIndex] = std::move(descriptorSet);
