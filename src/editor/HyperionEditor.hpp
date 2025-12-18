@@ -25,7 +25,10 @@ public:
     virtual void OnInputEvent(const SystemEvent& event) override;
 
 protected:
+    HYP_METHOD()
     virtual void OnLaunch_Impl() override;
+
+    HYP_METHOD()
     virtual void OnUpdate_Impl(float delta) override;
 
     HyperionEditorImpl* m_impl;

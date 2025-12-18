@@ -6,67 +6,34 @@ namespace Hyperion
     [ClassBinding(Name = "EditorProject")]
     public class EditorProject : ObjectBase
     {
-        private static LogChannel logChannel = LogChannel.ByName("Editor");
+        private static LogChannel _logChannel = LogChannel.ByName("Editor");
 
         public Uuid Uuid
         {
-            get
-            {
-                return this.GetUUID();
-            }
+            get => this.GetUUID();
         }
 
         public Name Name
         {
-            get
-            {
-                return this.GetName();
-            }
-            set
-            {
-                this.SetName(value);
-            }
+            get => this.GetName();
+            set => this.SetName(value);
         }
 
-        public World World
+        public World World => this.GetWorld();
+
+        public Game GameInstance
         {
-            get
-            {
-                return this.GetWorld();
-            }
+            get => this.GetGame();
+            set => this.SetGame(value);
         }
 
-        public Time LastSavedTime
-        {
-            get
-            {
-                return this.GetLastSavedTime();
-            }
-        }
+        public Time LastSavedTime => this.GetLastSavedTime();
 
-        public string FilePath
-        {
-            get
-            {
-                return this.GetFilePath();
-            }
-        }
+        public string FilePath => this.GetFilePath();
 
-        public bool IsSaved
-        {
-            get
-            {
-                return this.IsSaved();
-            }
-        }
+        public bool IsSaved => this.IsSaved();
 
-        public EditorActionStack ActionStack
-        {
-            get
-            {
-                return this.GetActionStack();
-            }
-        }
+        public EditorActionStack ActionStack => this.GetActionStack();
 
         public Name GetNextDefaultProjectName(string defaultProjectName)
         {
@@ -79,7 +46,7 @@ namespace Hyperion
             }
             catch (Exception e)
             {
-                Logger.Log(logChannel, LogType.Error, "Failed to get files in projects directory: " + e.Message);
+                Logger.Log(_logChannel, LogType.Error, "Failed to get files in projects directory: " + e.Message);
             }
 
             for (int i = 1; i < int.MaxValue; i++)

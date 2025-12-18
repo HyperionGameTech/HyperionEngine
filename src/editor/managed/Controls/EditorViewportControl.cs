@@ -125,7 +125,7 @@ namespace Hyperion.Editor
 
         void InitEditorViewport(EditorViewport viewport)
         {
-            HyperionEditorGame? gameInstance = EngineManager.GameInstance;
+            HyperionEditorGame? gameInstance = EngineManager.GameInstance as HyperionEditorGame;
 
             if (gameInstance == null)
             {

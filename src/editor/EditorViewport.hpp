@@ -28,8 +28,7 @@ class EditorViewport : public ObjectBase
     HYP_OBJECT_BODY(EditorViewport);
 
 public:
-    explicit EditorViewport(
-        const Handle<Camera>& camera = Handle<Camera>::Null());
+    explicit EditorViewport(const Handle<Camera>& camera = Handle<Camera>::Null());
     ~EditorViewport() override;
 
     HYP_METHOD()

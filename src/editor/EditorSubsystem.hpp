@@ -3,28 +3,18 @@
 #pragma once
 
 #include <editor/ui/EditorUI.hpp>
+
 #include <editor/EditorActionStack.hpp>
 #include <editor/EditorTask.hpp>
 #include <editor/EditorTaskManager.hpp>
 
 #include <scene/Subsystem.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashSet.hpp>
-
-#include <core/math/BoundingBox.hpp>
-
 #include <core/functional/Delegate.hpp>
-
-#include <core/threading/Threads.hpp>
-
-#include <core/utilities/Uuid.hpp>
-
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/RefCountedPtr.hpp>
 
 namespace hyperion {
 
+class Game;
 class World;
 class Scene;
 class Camera;

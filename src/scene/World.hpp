@@ -17,7 +17,7 @@
 
 namespace hyperion {
 
-class EditorDelegates;
+class Game;
 class View;
 class Scene;
 class Subsystem;
@@ -58,6 +58,8 @@ class HYP_API World final : public ObjectBase
 {
     HYP_OBJECT_BODY(World);
 
+    friend class Game;
+
 public:
     using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, DynamicNodeAllocator>;
 
@@ -82,6 +84,12 @@ public:
     HYP_FORCE_INLINE void SetName(Name name)
     {
         m_name = name;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE Game* GetGame() const
+    {
+        return m_gameInstance;
     }
 
     HYP_METHOD(Property = "WorldFlags", Serialize)
@@ -276,6 +284,9 @@ private:
 
     HYP_FIELD(Property = "Name", Serialize)
     Name m_name;
+
+    HYP_FIELD(Property = "GameInstance", Transient)
+    Game* m_gameInstance;
 
     HYP_FIELD(Property = "WorldFlags", Serialize)
     EnumFlags<WorldFlags> m_worldFlags;

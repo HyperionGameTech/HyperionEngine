@@ -57,6 +57,7 @@ extern "C"
 
     HYP_API Game* Hyp_CreateGame(const char* gameClassName);
     HYP_API void Hyp_DestroyGame(Game* pGame);
+    HYP_API void Hyp_LaunchGame(Game* pGame);
 
     // Only for use in detached mode (-Detached CLI flag)
     HYP_API void Hyp_MainThreadUpdate();
