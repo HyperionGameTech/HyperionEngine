@@ -85,7 +85,7 @@ namespace Hyperion.Editor
 
             GameInstance = new HyperionEditorGame();
 
-            if (NativeBindings.Hyp_LaunchGame(GameInstance.NativeAddress) == 0)
+            if (EngineDriver.Instance.SetGame(GameInstance) == 0)
             {
                 throw new Exception("Failed to launch HyperionEditor instance");
             }

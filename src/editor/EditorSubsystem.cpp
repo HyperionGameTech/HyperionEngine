@@ -1813,7 +1813,7 @@ void EditorSubsystem::CreateHighlightNode()
     // Handle<Mesh> mesh = MeshBuilder::Cube();
     // InitObject(mesh);
 
-    // Handle<Material> material = g_materialSystem->GetOrCreate(
+    // Handle<Material> material = g_materialCache->GetOrCreate(
     //     {
     //         .shaderDefinition = ShaderDefinition {
     //             NAME("Forward"),
