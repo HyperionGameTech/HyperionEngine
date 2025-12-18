@@ -39,27 +39,5 @@ App::~App()
 {
 }
 
-void App::LaunchGame(const Handle<Game>& game)
-{
-    AssertOnThread(g_mainThread);
-
-    Assert(game != nullptr);
-    Assert(g_engineDriver != nullptr && g_gameThreadInstance->IsRunning());
-
-    g_gameThreadInstance->SetGame(game);
-
-    const CommandLineArguments& cmdArgs = CoreApi_GetCommandLineArguments();
-
-    if (!cmdArgs["Detached"].ToBool() && g_mainThread != g_renderThread)
-    {
-        while (g_engineDriver->IsRenderLoopActive())
-        {
-            SystemEvent event;
-            while (g_appContext->PollEvents(event))
-                ;
-        }
-    }
-}
-
 } // namespace sys
 } // namespace hyperion

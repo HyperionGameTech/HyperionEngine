@@ -15,7 +15,7 @@ namespace hyperion {
 struct ShaderDefinition;
 class ShaderProperties;
 
-class HYP_API ShaderManager
+class ShaderManager
 {
 public:
     static ShaderManager* GetInstance();

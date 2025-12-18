@@ -876,7 +876,7 @@ private:
     HashMap<String, Handle<Material>> m_materials;
 };
 
-class HYP_API MaterialCache
+class MaterialCache
 {
 public:
     static MaterialCache* GetInstance();

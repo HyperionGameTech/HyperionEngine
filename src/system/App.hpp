@@ -25,8 +25,6 @@ public:
     App& operator=(App&& other) noexcept = delete;
     virtual ~App();
 
-    void LaunchGame(const Handle<Game>& game);
-
 protected:
     App();
 };
