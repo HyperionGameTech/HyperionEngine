@@ -12,8 +12,6 @@
 
 #include <rendering/vulkan/VulkanPipeline.hpp>
 
-#include <vulkan/vulkan.h>
-
 namespace hyperion {
 
 HYP_CLASS(NoScriptBindings)

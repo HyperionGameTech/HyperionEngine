@@ -19,8 +19,6 @@
 
 #include <VulkanSwapchain.generated.inl>
 
-#include <vulkan/vulkan_core.h>
-
 namespace hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;

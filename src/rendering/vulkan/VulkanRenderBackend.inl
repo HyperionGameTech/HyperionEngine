@@ -13,20 +13,6 @@
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/Pimpl.hpp>
 
-#include <vulkan/vulkan.h>
-
-#ifdef HYP_WINDOWS
-#include <vulkan/vulkan_win32.h>
-#endif
-
-#ifdef HYP_MACOS
-#include <vulkan/vulkan_metal.h>
-#endif
-
-#ifdef HYP_LINUX
-#include <vulkan/vulkan_xlib.h>
-#endif
-
 namespace hyperion {
 
 namespace sys {

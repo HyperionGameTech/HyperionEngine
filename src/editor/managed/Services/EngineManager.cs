@@ -86,7 +86,7 @@ namespace Hyperion.Editor
                 return;
 
             GameInstance = new HyperionEditorGame();
-            EngineDriver.Instance.SetGame(GameInstance);
+            EngineDriver.Instance.GameInstance = GameInstance;
 
             EditorState editorState = EditorState.Instance;
             Debug.Assert(editorState != null, "Failed to get EditorState instance");
@@ -115,7 +115,7 @@ namespace Hyperion.Editor
             _onCurrentProjectChanged = null;
 
             GameInstance = game;
-            EngineDriver.Instance.SetGame(GameInstance);
+            EngineDriver.Instance.SetGameInstance(GameInstance);
         }
 
         public static void Shutdown()
