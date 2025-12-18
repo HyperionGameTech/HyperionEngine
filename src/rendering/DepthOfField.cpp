@@ -4,7 +4,7 @@
 
 #include <rendering/DepthOfField.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 
 namespace hyperion {
 

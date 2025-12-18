@@ -12,7 +12,7 @@
 #include <streaming/StreamingManager.hpp>
 #include <streaming/StreamingVolume.hpp>
 
-#include <rendering/RenderFramebuffer.hpp>
+#include <rendering/Framebuffer.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <system/AppContext.hpp>

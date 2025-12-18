@@ -12,8 +12,8 @@
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 
-#include <rendering/RenderComputePipeline.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 
 #include <VulkanCommandBuffer.generated.inl>
 

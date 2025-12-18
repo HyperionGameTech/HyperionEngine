@@ -9,8 +9,8 @@
 #include <rendering/Buffers.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderShader.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/Shader.hpp>
+#include <rendering/GpuBuffer.hpp>
 
 namespace hyperion {
 
@@ -154,15 +154,15 @@ struct GlobalGpuBuffers
     }
 };
 
-class RenderGlobalState
+class RenderInterface
 {
     friend class ResourceBinderBase;
 
 public:
-    RenderGlobalState();
-    RenderGlobalState(const RenderGlobalState& other) = delete;
-    RenderGlobalState& operator=(const RenderGlobalState& other) = delete;
-    ~RenderGlobalState();
+    RenderInterface();
+    RenderInterface(const RenderInterface& other) = delete;
+    RenderInterface& operator=(const RenderInterface& other) = delete;
+    ~RenderInterface();
 
     void UpdateBuffers(Frame* frame);
 

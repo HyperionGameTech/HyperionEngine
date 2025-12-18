@@ -7,14 +7,14 @@
 
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderGpuImage.hpp>
-#include <rendering/RenderGpuImageView.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderComputePipeline.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/GpuImage.hpp>
+#include <rendering/GpuImageView.hpp>
+#include <rendering/GpuBuffer.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/ComputePipeline.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -31,8 +31,6 @@
 #include <core/math/MathUtil.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
-
-#include <engine/EngineDriver.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -340,8 +338,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
             descriptorSet->SetElement("UniformBuffer", uniformBuffer);
             descriptorSet->SetElement("ColorTexture", colorAttachment->GetImageView());
-            descriptorSet->SetElement("SamplerLinear", g_renderGlobalState->placeholderData->GetSamplerLinear());
-            descriptorSet->SetElement("SamplerNearest", g_renderGlobalState->placeholderData->GetSamplerNearest());
+            descriptorSet->SetElement("SamplerLinear", g_renderInterface->placeholderData->GetSamplerLinear());
+            descriptorSet->SetElement("SamplerNearest", g_renderInterface->placeholderData->GetSamplerNearest());
             descriptorSet->SetElement("OutImage", imageView);
         }
 
@@ -491,8 +489,8 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
             Assert(computeShDescriptorSet != nullptr);
 
             computeShDescriptorSet->SetElement("InColorCubemap", colorAttachment->GetImageView());
-            computeShDescriptorSet->SetElement("InNormalsCubemap", normalsAttachment ? normalsAttachment->GetImageView() : g_renderGlobalState->placeholderData->GetImageViewCube1x1R8());
-            computeShDescriptorSet->SetElement("InDepthCubemap", depthAttachment ? depthAttachment->GetImageView() : g_renderGlobalState->placeholderData->GetImageViewCube1x1R8());
+            computeShDescriptorSet->SetElement("InNormalsCubemap", normalsAttachment ? normalsAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
+            computeShDescriptorSet->SetElement("InDepthCubemap", depthAttachment ? depthAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
             computeShDescriptorSet->SetElement("InputSHTilesBuffer", shTilesBuffers[i]);
 
             if (i != ShNumLevels - 1)
@@ -570,7 +568,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     RenderQueue& asyncRenderQueue = *asyncRenderQueuePtr;
 
     asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[0],
@@ -646,7 +644,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     // Finalize - build into final buffer
     asyncRenderQueue << InsertBarrier(shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     pipelines[MODE_FINALIZE].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
 
@@ -661,7 +659,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     asyncRenderQueue << BindComputePipeline(pipelines[MODE_FINALIZE].second);
     asyncRenderQueue << DispatchCompute(pipelines[MODE_FINALIZE].second, Vec3u { 1, 1, 1 });
 
-    asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegateHandle = new DelegateHandler();
     *delegateHandle = frame->OnFrameEnd.Bind([envProbe = MakeStrongRef(envProbe), pipelines = std::move(pipelines), descriptorTables = std::move(computeShDescriptorTables), delegateHandle](Frame* frame) mutable
@@ -673,7 +671,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
             EnvProbeShaderData readbackBuffer;
 
-            // g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
+            // g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
             // // Enqueue on game thread, not safe to write on render thread.
             // GetThreadById(g_gameThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]() mutable

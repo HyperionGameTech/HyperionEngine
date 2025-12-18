@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 
 #include <core/math/Mat4f.hpp>
 #include <core/math/Vector2.hpp>

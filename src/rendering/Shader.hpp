@@ -10,7 +10,7 @@
 #include <core/Defines.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderDevice.hpp>
+#include <rendering/Device.hpp>
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>

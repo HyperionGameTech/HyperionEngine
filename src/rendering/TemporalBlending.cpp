@@ -6,13 +6,13 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderComputePipeline.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/GraphicsPipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -265,10 +265,10 @@ void TemporalBlending::CreatePipeline()
             ->SetElement("VelocityImage", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
 
         descriptorTable->GetDescriptorSet("TemporalBlendingDescriptorSet", frameIndex)
-            ->SetElement("SamplerLinear", g_renderGlobalState->placeholderData->GetSamplerLinear());
+            ->SetElement("SamplerLinear", g_renderInterface->placeholderData->GetSamplerLinear());
 
         descriptorTable->GetDescriptorSet("TemporalBlendingDescriptorSet", frameIndex)
-            ->SetElement("SamplerNearest", g_renderGlobalState->placeholderData->GetSamplerNearest());
+            ->SetElement("SamplerNearest", g_renderInterface->placeholderData->GetSamplerNearest());
 
         descriptorTable->GetDescriptorSet("TemporalBlendingDescriptorSet", frameIndex)
             ->SetElement("OutImage", g_renderBackend->GetTextureImageView((*textures[frameIndex % 2])));

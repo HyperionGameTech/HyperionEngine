@@ -8,7 +8,7 @@
 #include <editor/EditorState.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/Texture.hpp>
 
 #include <rendering/shadows/ShadowMap.hpp>

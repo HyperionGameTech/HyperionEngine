@@ -17,7 +17,7 @@
 #include <scene/systems/ScriptSystem.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 

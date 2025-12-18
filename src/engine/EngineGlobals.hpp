@@ -19,7 +19,7 @@ class AssetManager;
 class SafeDeleter;
 class ShaderManager;
 class MaterialCache;
-class RenderGlobalState;
+class RenderInterface;
 class IRenderBackend;
 class ShaderCompiler;
 class EditorState;
@@ -48,7 +48,7 @@ extern Handle<EngineStats> g_engineStats;
 extern ShaderManager* g_shaderManager;
 extern MaterialCache* g_materialCache;
 extern SafeDeleter* g_safeDeleter;
-extern RenderGlobalState* g_renderGlobalState;
+extern RenderInterface* g_renderInterface;
 extern ShaderCompiler* g_shaderCompiler;
 extern Handle<InputManager> g_inputManager;
 

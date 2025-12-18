@@ -6,13 +6,13 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderProxyList.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/IndirectDraw.hpp>

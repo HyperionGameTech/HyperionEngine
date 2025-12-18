@@ -5,12 +5,12 @@
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMap.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/FullScreenPass.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/Texture.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>

@@ -1,14 +1,14 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 
 #include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
@@ -81,8 +81,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
     {
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-                ->SetElement("EnvProbeTextures", prev, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("EnvProbeTextures", prev, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
         }
     }
 
@@ -101,11 +101,11 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("EnvProbeTextures", next,
                     proxyCasted->texture != nullptr
                         ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxyCasted->texture))
-                        : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultCubemap));
+                        : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
         }
     }
 }
@@ -160,10 +160,10 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
         // @TODO: Set based on binding index
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("LightFieldColorTexture", g_renderBackend->GetTextureImageView(legacyEnvGrid->GetLightFieldIrradianceTexture()));
 
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("LightFieldDepthTexture", g_renderBackend->GetTextureImageView(legacyEnvGrid->GetLightFieldDepthTexture()));
         }
 
@@ -180,7 +180,7 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
         // Set our voxel grid texture in the global descriptor set so we can use it in shaders
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("VoxelGridTexture", g_renderBackend->GetTextureImageView(legacyEnvGrid->GetVoxelGridTexture()));
         }
     }
@@ -276,7 +276,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
     {
         if (prev != ~0u)
         {
-            g_renderGlobalState->materialDescriptorSetManager->Remove(prev);
+            g_renderInterface->materialDescriptorSetManager->Remove(prev);
         }
 
         if (next != ~0u)
@@ -291,7 +291,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
             RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
 
-            g_renderGlobalState->materialDescriptorSetManager->Allocate(
+            g_renderInterface->materialDescriptorSetManager->Allocate(
                 next,
                 proxyCasted->boundTextureIndices.ToSpan(),
                 proxyCasted->boundTextures.ToSpan());
@@ -308,11 +308,11 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
     {
         if (next != ~0u)
         {
-            g_renderGlobalState->bindlessStorage->AddResource(texture->Id(), g_renderBackend->GetTextureImageView(MakeStrongRef(texture)));
+            g_renderInterface->bindlessStorage->AddResource(texture->Id(), g_renderBackend->GetTextureImageView(MakeStrongRef(texture)));
         }
         else
         {
-            g_renderGlobalState->bindlessStorage->RemoveResource(texture->Id());
+            g_renderInterface->bindlessStorage->RemoveResource(texture->Id());
         }
     }
 

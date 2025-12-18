@@ -12,8 +12,8 @@
 #include <core/config/Config.hpp>
 
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/Device.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanInstance.hpp>

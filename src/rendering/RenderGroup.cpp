@@ -3,7 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderGroup.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -12,9 +12,9 @@
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderBackend.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -169,7 +169,7 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
 
     Assert(descriptorTable.IsValid());
 
-    GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+    GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         descriptorTable,
         { &view->GetOutputTarget().GetFramebuffer(m_renderableAttributes.GetMaterialAttributes().bucket), 1 },
@@ -361,7 +361,7 @@ static void RenderAll(
         // Bind material descriptor set
         if (materialDescriptorSetIndex != ~0u && !useBindlessTextures)
         {
-            const DescriptorSetRef& materialDescriptorSet = g_renderGlobalState->materialDescriptorSetManager->ForBoundMaterial(drawCalls.materials[i], frame->GetFrameIndex());
+            const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(drawCalls.materials[i], frame->GetFrameIndex());
 
             frame->renderQueue << BindDescriptorSet(materialDescriptorSet, pipeline, {}, materialDescriptorSetIndex);
         }
@@ -424,7 +424,7 @@ static void RenderAll(
         // Bind material descriptor set
         if (materialDescriptorSetIndex != ~0u && !useBindlessTextures)
         {
-            const DescriptorSetRef& materialDescriptorSet = g_renderGlobalState->materialDescriptorSetManager->ForBoundMaterial(instancedDrawCalls.materials[i], frameIndex);
+            const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(instancedDrawCalls.materials[i], frameIndex);
 
             frame->renderQueue << BindDescriptorSet(
                 materialDescriptorSet,
@@ -604,7 +604,7 @@ static void RenderAll_Parallel(
                     // Bind material descriptor set
                     if (materialDescriptorSetIndex != ~0u && !useBindlessTextures)
                     {
-                        const DescriptorSetRef& materialDescriptorSet = g_renderGlobalState->materialDescriptorSetManager->ForBoundMaterial(drawCalls.materials[i], frameIndex);
+                        const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(drawCalls.materials[i], frameIndex);
 
                         renderQueue << BindDescriptorSet(materialDescriptorSet, pipeline, {}, materialDescriptorSetIndex);
                     }
@@ -697,7 +697,7 @@ static void RenderAll_Parallel(
                     // Bind material descriptor set
                     if (materialDescriptorSetIndex != ~0u && !useBindlessTextures)
                     {
-                        const DescriptorSetRef& materialDescriptorSet = g_renderGlobalState->materialDescriptorSetManager->ForBoundMaterial(instancedDrawCalls.materials[i], frameIndex);
+                        const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(instancedDrawCalls.materials[i], frameIndex);
 
                         renderQueue << BindDescriptorSet(
                             materialDescriptorSet,

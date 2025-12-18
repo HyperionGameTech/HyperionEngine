@@ -25,7 +25,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorState.hpp>
@@ -81,10 +81,9 @@ void GameThread::SetGame(const Handle<Game>& game)
         else
         {
             HYP_LOG(GameThread, Info, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
-    
+
             GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
         }
-
 
         return;
     }

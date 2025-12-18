@@ -5,16 +5,16 @@
 
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderQueue.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 
 namespace hyperion {
 

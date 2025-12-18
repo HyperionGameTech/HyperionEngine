@@ -28,7 +28,7 @@
 
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 
 #define HYP_SHADER_REFLECTION
 

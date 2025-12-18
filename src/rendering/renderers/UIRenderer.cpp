@@ -8,11 +8,11 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
@@ -116,7 +116,7 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
 
         if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::ALBEDO_MAP))
         {
-            if (albedoTexture != g_renderGlobalState->placeholderData->defaultTexture2d)
+            if (albedoTexture != g_renderInterface->placeholderData->defaultTexture2d)
             {
                 ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
                 shaderDefinition.GetProperties().Set(NAME("TEXTURED"));

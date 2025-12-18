@@ -15,7 +15,7 @@
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

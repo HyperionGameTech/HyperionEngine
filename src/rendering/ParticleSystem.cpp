@@ -10,13 +10,13 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderQueue.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderComputePipeline.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
@@ -220,13 +220,13 @@ void ParticleSpawner::CreateGraphicsPipeline()
         Assert(descriptorSet != nullptr);
 
         descriptorSet->SetElement("ParticlesBuffer", m_particleBuffer);
-        descriptorSet->SetElement("ParticleTexture", m_params.texture ? g_renderBackend->GetTextureImageView(m_params.texture) : g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("ParticleTexture", m_params.texture ? g_renderBackend->GetTextureImageView(m_params.texture) : g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
     DeferCreate(descriptorTable);
 
 #if 0
-    m_graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+    m_graphicsPipeline = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         descriptorTable,
         { &m_framebuffer, 1 },
