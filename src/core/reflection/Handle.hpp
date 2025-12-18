@@ -19,8 +19,6 @@ struct Handle;
 template <class T>
 struct WeakHandle;
 
-struct AnyHandle;
-
 struct HandleBase
 {
 };
@@ -355,6 +353,23 @@ struct Handle final : HandleBase
         // Ref count incremented above in condition
 
         return handle;
+    }
+
+    /*! \brief Sets this handle to null and returns the pointer to the object that was being referenced.
+     *  \note The reference count will not be decremented, so the object will still be alive. Thus, creating a new handle from the returned pointer will cause a memory leak as the ref count will be doubly incremented.
+     *  \internal For internal use only, used for marshalling objects between C++ and C#.
+     *  \return The pointer to the object that was being referenced. */
+    HYP_NODISCARD T* Release()
+    {
+        if (!IsValid())
+        {
+            return nullptr;
+        }
+
+        T* address = static_cast<T*>(ptr);
+        ptr = nullptr;
+
+        return address;
     }
 };
 
@@ -695,7 +710,7 @@ struct WeakHandle final
 
 /*! \brief A dynamic Handle type. Type is stored at runtime instead of compile time.
  *  An AnyHandle is able to be punned to a Handle<T> permitted that T is the actual type of the held object
- *  \todo Deprecate in favour of Handle<ObjectBase>. */
+ *  \todo Deprecate in favour of AnyHandle. */
 struct AnyHandle final
 {
     using IdType = ObjIdBase;

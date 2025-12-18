@@ -1572,10 +1572,10 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
 
                 if (m_parent->UseHandles())
                 {
-                    AnyHandle handle = std::move(value.Get<AnyHandle>());
+                    Handle<ObjectBase> handle = std::move(value.Get<Handle<ObjectBase>>());
                     Assert(handle.IsValid());
 
-                    out = HypData(AnyHandle(this, handle.Get()));
+                    out = HypData(std::move(handle));
                 }
                 else
                 {
