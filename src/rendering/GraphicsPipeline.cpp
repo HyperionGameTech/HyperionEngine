@@ -2,16 +2,16 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderGraphicsPipeline.hpp>
-#include <rendering/RenderFramebuffer.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderShader.hpp>
+#include <rendering/GraphicsPipeline.hpp>
+#include <rendering/Framebuffer.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/Shader.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 
-#include <RenderGraphicsPipeline.generated.inl>
+#include <GraphicsPipeline.generated.inl>
 
 namespace hyperion {
 

@@ -8,14 +8,14 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderFramebuffer.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/Framebuffer.hpp>
+#include <rendering/GraphicsPipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderMemory.hpp>
-#include <rendering/RenderShader.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
@@ -442,7 +442,7 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet& renderableAttr
     Assert(m_shader != nullptr);
     Assert(m_framebuffer != nullptr);
 
-    m_graphicsPipelineCacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+    m_graphicsPipelineCacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         m_descriptorTable.GetOr(DescriptorTableRef::Null()),
         { &m_framebuffer, 1 },

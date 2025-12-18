@@ -5,7 +5,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/ParticleSystem.hpp>

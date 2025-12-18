@@ -15,7 +15,7 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderMaterial.hpp>
@@ -24,9 +24,9 @@
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/AsyncCompute.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderSwapchain.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/Device.hpp>
+#include <rendering/Swapchain.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Texture.hpp>
 

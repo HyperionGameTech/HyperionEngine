@@ -4,7 +4,7 @@
 
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI
@@ -17,8 +17,8 @@
 #include <rendering/vulkan/VulkanStructs.hpp>
 
 #include <rendering/RenderPipeline.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderShader.hpp>
+#include <rendering/Device.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/Shared.hpp>
 

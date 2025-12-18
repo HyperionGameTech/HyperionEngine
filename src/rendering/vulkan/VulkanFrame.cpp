@@ -9,7 +9,7 @@
 #include <rendering/vulkan/VulkanRenderPass.hpp>
 #include <rendering/vulkan/VulkanSwapchain.hpp>
 
-#include <rendering/RenderDevice.hpp>
+#include <rendering/Device.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>

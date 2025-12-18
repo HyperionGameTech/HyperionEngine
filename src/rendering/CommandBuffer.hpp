@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/Device.hpp>
+#include <rendering/GpuBuffer.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>

@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <rendering/RenderFramebuffer.hpp>
-#include <rendering/RenderGpuImage.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderCommandBuffer.hpp>
+#include <rendering/Framebuffer.hpp>
+#include <rendering/GpuImage.hpp>
+#include <rendering/GpuBuffer.hpp>
+#include <rendering/CommandBuffer.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/Shared.hpp>

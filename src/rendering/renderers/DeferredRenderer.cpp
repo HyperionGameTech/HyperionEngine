@@ -12,7 +12,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/RenderMaterial.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/SSGI.hpp>
@@ -23,12 +23,12 @@
 #include <rendering/Texture.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/GpuBuffer.hpp>
+#include <rendering/Device.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderSwapchain.hpp>
+#include <rendering/Swapchain.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -319,7 +319,7 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
         m_shader = g_shaderManager->GetOrCreate(NAME("DeferredIndirect"), shaderProperties);
         Assert(m_shader.IsValid());
 
-        return g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+        return g_renderInterface->graphicsPipelineCache->GetOrCreate(
             m_shader,
             nullptr,
             { &m_framebuffer, 1 },
@@ -337,7 +337,7 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("DeferredDirectDescriptorSet", frameIndex);
         Assert(descriptorSet.IsValid());
 
-        descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("MaterialsBuffer", g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
         descriptorSet->SetElement("LTCSampler", m_ltcSampler);
         descriptorSet->SetElement("LTCMatrixTexture", g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
@@ -346,7 +346,7 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 
     Assert(descriptorTable->Create());
 
-    return g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+    return g_renderInterface->graphicsPipelineCache->GetOrCreate(
         shader,
         descriptorTable,
         { &m_framebuffer, 1 },
@@ -508,7 +508,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             // Bind material descriptor set (for area lights)
             if (materialDescriptorSetIndex != ~0u && !useBindlessTextures)
             {
-                const DescriptorSetRef& materialDescriptorSet = g_renderGlobalState->materialDescriptorSetManager->ForBoundMaterial(light->GetMaterial(), frame->GetFrameIndex());
+                const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(light->GetMaterial(), frame->GetFrameIndex());
 
                 frame->renderQueue << BindDescriptorSet(
                     materialDescriptorSet,
@@ -681,11 +681,11 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         Assert(descriptorSet != nullptr);
 
         // @TODO: Get rid of wasted lightmap volume descriptor set!!
-        descriptorSet->SetElement("IrradianceTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
-        descriptorSet->SetElement("RadianceTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
-        descriptorSet->SetElement("Sampler", g_renderGlobalState->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement("GBufferSampler", g_renderGlobalState->placeholderData->GetSamplerNearest());
-        descriptorSet->SetElement("LightmapVolumeUniforms", g_renderGlobalState->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms), /* exactSize */ true));
+        descriptorSet->SetElement("IrradianceTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("RadianceTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("Sampler", g_renderInterface->placeholderData->GetSamplerLinear());
+        descriptorSet->SetElement("GBufferSampler", g_renderInterface->placeholderData->GetSamplerNearest());
+        descriptorSet->SetElement("LightmapVolumeUniforms", g_renderInterface->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms), /* exactSize */ true));
     }
 
     Assert(descriptorTable->Create());
@@ -713,10 +713,10 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         Assert(uniformBuffer->Create());
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        descriptorSet->SetElement("IrradianceTexture", g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
-        descriptorSet->SetElement("RadianceTexture", g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderGlobalState->placeholderData->defaultTexture2d));
-        descriptorSet->SetElement("Sampler", g_renderGlobalState->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement("GBufferSampler", g_renderGlobalState->placeholderData->GetSamplerNearest());
+        descriptorSet->SetElement("IrradianceTexture", g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("RadianceTexture", g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("Sampler", g_renderInterface->placeholderData->GetSamplerLinear());
+        descriptorSet->SetElement("GBufferSampler", g_renderInterface->placeholderData->GetSamplerNearest());
         descriptorSet->SetElement("LightmapVolumeUniforms", uniformBuffer);
 
         Assert(descriptorSet->Create());
@@ -724,7 +724,7 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
 
     FramebufferRef framebufferStrong = MakeStrongRef(framebuffer);
 
-    data.graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+    data.graphicsPipeline = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         descriptorTable,
         { &framebufferStrong, 1 },
@@ -893,8 +893,8 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* frame
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("FogVolume", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("DataMap", proxy->volumeTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->volumeTexture)) : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture3d));
-        descriptorSet->SetElement("NoiseMap", proxy->noiseTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->noiseTexture)) : g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture3d));
+        descriptorSet->SetElement("DataMap", proxy->volumeTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->volumeTexture)) : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture3d));
+        descriptorSet->SetElement("NoiseMap", proxy->noiseTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->noiseTexture)) : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture3d));
         descriptorSet->SetElement("FogVolumeUniforms", data.uniformBuffer);
     }
 
@@ -913,7 +913,7 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* frame
 
     FramebufferRef framebufferStrong = MakeStrongRef(framebuffer);
 
-    data.graphicsPipeline = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+    data.graphicsPipeline = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         descriptorTable,
         { &framebufferStrong, 1 },
@@ -1116,7 +1116,7 @@ void EnvGridPass::CreatePipeline()
 
         Assert(descriptorTable->Create());
 
-        GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+        GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             shader,
             descriptorTable,
             { &m_framebuffer, 1 },
@@ -1328,7 +1328,7 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
 
         Assert(descriptorTable->Create());
 
-        GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+        GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             shader,
             descriptorTable,
             { &m_framebuffer, 1 },
@@ -1824,7 +1824,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const DescriptorSetDeclaration* decl = g_renderGlobalState->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("View");
+    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("View");
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };
@@ -1882,7 +1882,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
         }
         else
         {
-            descriptorSet->SetElement("SSRResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("SSRResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
             passData.cachedSsrTexture = nullptr;
         }
 
@@ -1892,7 +1892,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
         }
         else
         {
-            descriptorSet->SetElement("SSGIResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("SSGIResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
         if (passData.hbao)
@@ -1901,7 +1901,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
         }
         else
         {
-            descriptorSet->SetElement("SSAOResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("SSAOResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
         descriptorSet->SetElement("DeferredResult", passData.combinePass->GetFinalImageView());
@@ -2221,7 +2221,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     // Render shadows for shadow casting lights
     for (uint32 lightType = 0; lightType < LT_MAX; lightType++)
     {
-        RendererBase* shadowRenderer = g_renderGlobalState->globalRenderers[GRT_SHADOW_MAP][lightType];
+        RendererBase* shadowRenderer = g_renderInterface->globalRenderers[GRT_SHADOW_MAP][lightType];
 
         if (!lights[lightType].Any() || !shadowRenderer)
         {
@@ -2264,7 +2264,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             // check for dynamic env probes to render
             for (uint32 envProbeType = 0; envProbeType <= EPT_REFLECTION; envProbeType++)
             {
-                if (RendererBase* renderer = g_renderGlobalState->globalRenderers[GRT_ENV_PROBE][envProbeType])
+                if (RendererBase* renderer = g_renderInterface->globalRenderers[GRT_ENV_PROBE][envProbeType])
                 {
                     for (EnvProbe* envProbe : envProbes[envProbeType])
                     {
@@ -2300,7 +2300,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
                 envGridRs.envGrid = envGrid;
 
-                g_renderGlobalState->globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridRs);
+                g_renderInterface->globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridRs);
 
                 envGridRs.light = nullptr;
                 envGridRs.envGrid = nullptr;
@@ -2506,7 +2506,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             {
                 if (!currentSsrTexture)
                 {
-                    passData.descriptorSets[i]->SetElement("SSRResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+                    passData.descriptorSets[i]->SetElement("SSRResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
                     continue;
                 }
 
@@ -2723,7 +2723,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 RenderSetup newRs = rs.Fork();
                 newRs.volume = particleVolume;
 
-                g_renderGlobalState->globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, newRs);
+                g_renderInterface->globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, newRs);
             }
         }
 

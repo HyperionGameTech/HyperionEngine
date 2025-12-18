@@ -8,7 +8,7 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/RenderShader.hpp>
+#include <rendering/Shader.hpp>
 
 #include <engine/EngineGlobals.hpp>
 

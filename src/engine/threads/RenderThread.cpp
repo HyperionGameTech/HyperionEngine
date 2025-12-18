@@ -12,7 +12,7 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderMaterial.hpp>
@@ -21,9 +21,9 @@
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/AsyncCompute.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderSwapchain.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/Device.hpp>
+#include <rendering/Swapchain.hpp>
 #include <rendering/RenderConfig.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -109,7 +109,7 @@ void RenderThread::Update()
         g_renderBackend->PrepareSwapchain(swapchain);
     }
 
-    g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
+    g_renderInterface->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
 
     Swapchain* swapchain = nullptr;
 
@@ -124,7 +124,7 @@ void RenderThread::Update()
     {
         uint32 numViewsRendered = 0;
 
-        RendererBase* mainRenderer = g_renderGlobalState->globalRenderers[GRT_MAIN][0];
+        RendererBase* mainRenderer = g_renderInterface->globalRenderers[GRT_MAIN][0];
         AssertDebug(mainRenderer != nullptr);
 
         RenderSetup rs;
@@ -140,7 +140,7 @@ void RenderThread::Update()
             // for editor world, render UI as well
             if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
             {
-                if (RendererBase* uiRenderer = g_renderGlobalState->globalRenderers[GRT_UI][0])
+                if (RendererBase* uiRenderer = g_renderInterface->globalRenderers[GRT_UI][0])
                 {
                     uiRenderer->RenderFrame(frame, rs);
                 }
@@ -156,16 +156,16 @@ void RenderThread::Update()
 
         rs.world = nullptr;
 
-        if (!g_renderGlobalState->finalPass)
+        if (!g_renderInterface->finalPass)
         {
-            g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool);
-            g_renderGlobalState->finalPass->Create();
+            g_renderInterface->finalPass = PoolNew<FinalPass>(*g_renderPool);
+            g_renderInterface->finalPass->Create();
         }
 
-        g_renderGlobalState->finalPass->Render(frame, rs);
+        g_renderInterface->finalPass->Render(frame, rs);
     }
 
-    g_renderGlobalState->UpdateBuffers(frame);
+    g_renderInterface->UpdateBuffers(frame);
 
     g_renderBackend->SubmitCommandBuffers(swapchain);
 

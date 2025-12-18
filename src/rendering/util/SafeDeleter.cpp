@@ -4,7 +4,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/AtomicVar.hpp>

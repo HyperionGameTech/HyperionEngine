@@ -6,20 +6,20 @@
 #include <engine/DebugDrawer.hpp>
 #include <engine/EngineStats.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderShader.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 
@@ -917,7 +917,7 @@ GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet at
     Handle<View> view = passData->view.Lock();
     Assert(view.IsValid());
 
-    GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+    GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         m_descriptorTable,
         { &view->GetOutputTarget().GetFramebuffer(RB_DEBUG), 1 },

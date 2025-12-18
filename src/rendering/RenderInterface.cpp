@@ -2,9 +2,9 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderMaterial.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/GpuBufferHolderMap.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -17,11 +17,11 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderShader.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderMemory.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderSwapchain.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/Swapchain.hpp>
 #include <rendering/FinalPass.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
@@ -72,7 +72,7 @@
 
 #include <semaphore>
 
-#include <RenderGlobalState.generated.inl>
+#include <RenderInterface.generated.inl>
 
 namespace hyperion {
 
@@ -482,7 +482,7 @@ public:
                 const int staticIndex = resourceClass->GetStaticIndex();
                 AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *resourceClass->GetName());
 
-                GpuBufferHolderBase* gpuBufferHolder = buf < GRB_MAX ? g_renderGlobalState->gpuBuffers[buf] : nullptr;
+                GpuBufferHolderBase* gpuBufferHolder = buf < GRB_MAX ? g_renderInterface->gpuBuffers[buf] : nullptr;
 
                 if (!s_subtypeBindings.HasIndex(staticIndex))
                 {
@@ -858,11 +858,11 @@ void Init()
         }
     }
 
-    g_renderGlobalState = PoolNew<RenderGlobalState>(*g_renderPool);
-    g_renderGlobalState->materialDescriptorSetManager->CreateFallbackMaterialDescriptorSet();
+    g_renderInterface = PoolNew<RenderInterface>(*g_renderPool);
+    g_renderInterface->materialDescriptorSetManager->CreateFallbackMaterialDescriptorSet();
 
-    g_renderGlobalState->finalPass = PoolNew<FinalPass>(*g_renderPool);
-    g_renderGlobalState->finalPass->Create();
+    g_renderInterface->finalPass = PoolNew<FinalPass>(*g_renderPool);
+    g_renderInterface->finalPass->Create();
 
     ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
     registry.InvokeAll(*s_resources);
@@ -909,8 +909,8 @@ void Shutdown()
     PoolDelete(*g_renderPool, s_resources);
     s_resources = nullptr;
 
-    PoolDelete(*g_renderPool, g_renderGlobalState);
-    g_renderGlobalState = nullptr;
+    PoolDelete(*g_renderPool, g_renderInterface);
+    g_renderInterface = nullptr;
 
     Assert(g_renderBackend->Destroy());
 
@@ -1355,16 +1355,16 @@ void EndFrame_RenderThread()
     int numCleanupCycles = FrameCleanupBudget;
     for (uint32 i = 0; i < GRT_MAX && numCleanupCycles > 0; i++)
     {
-        for (uint32 j = 0; j < g_renderGlobalState->globalRenderers[i].Size() && numCleanupCycles > 0; j++)
+        for (uint32 j = 0; j < g_renderInterface->globalRenderers[i].Size() && numCleanupCycles > 0; j++)
         {
-            if (RendererBase* renderer = g_renderGlobalState->globalRenderers[i][j])
+            if (RendererBase* renderer = g_renderInterface->globalRenderers[i][j])
             {
                 numCleanupCycles -= renderer->RunCleanupCycle(numCleanupCycles);
             }
         }
     }
 
-    numCleanupCycles -= g_renderGlobalState->graphicsPipelineCache->RunCleanupCycle(16);
+    numCleanupCycles -= g_renderInterface->graphicsPipelineCache->RunCleanupCycle(16);
 
     for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
     {
@@ -1422,9 +1422,9 @@ void EndFrame_RenderThread()
 
 } // namespace RenderApi
 
-#pragma region RenderGlobalState
+#pragma region RenderInterface
 
-RenderGlobalState::RenderGlobalState()
+RenderInterface::RenderInterface()
     : shadowMapAllocator(PoolNew<ShadowMapAllocator>(*g_renderPool)),
       gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
@@ -1501,7 +1501,7 @@ RenderGlobalState::RenderGlobalState()
     globalRenderers[GRT_PARTICLE_VOLUME][0] = new ParticleVolumeRenderer;
 }
 
-RenderGlobalState::~RenderGlobalState()
+RenderInterface::~RenderInterface()
 {
     bindlessStorage->UnsetAllResources();
     PoolDelete(*g_renderPool, bindlessStorage);
@@ -1543,7 +1543,7 @@ RenderGlobalState::~RenderGlobalState()
     graphicsPipelineCache = nullptr;
 }
 
-void RenderGlobalState::UpdateBuffers(Frame* frame)
+void RenderInterface::UpdateBuffers(Frame* frame)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1559,7 +1559,7 @@ void RenderGlobalState::UpdateBuffers(Frame* frame)
     StagingBufferPool::GetInstance().Cleanup(frameIndex);
 }
 
-void RenderGlobalState::AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
+void RenderInterface::AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1572,7 +1572,7 @@ void RenderGlobalState::AddRenderer(GlobalRendererType globalRendererType, Rende
     globalRenderers[globalRendererType].PushBack(renderer);
 }
 
-void RenderGlobalState::RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
+void RenderInterface::RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1587,7 +1587,7 @@ void RenderGlobalState::RemoveRenderer(GlobalRendererType globalRendererType, Re
     globalRenderers[globalRendererType].Erase(renderer);
 }
 
-void RenderGlobalState::CreateBlueNoiseBuffer()
+void RenderInterface::CreateBlueNoiseBuffer()
 {
     HYP_SCOPE;
 
@@ -1624,7 +1624,7 @@ void RenderGlobalState::CreateBlueNoiseBuffer()
     }
 }
 
-void RenderGlobalState::CreateSphereSamplesBuffer()
+void RenderInterface::CreateSphereSamplesBuffer()
 {
     HYP_SCOPE;
 
@@ -1655,7 +1655,7 @@ void RenderGlobalState::CreateSphereSamplesBuffer()
     }
 }
 
-void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
+void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1759,7 +1759,7 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
     }
 }
 
-#pragma endregion RenderGlobalState
+#pragma endregion RenderInterface
 
 namespace RenderApi {
 

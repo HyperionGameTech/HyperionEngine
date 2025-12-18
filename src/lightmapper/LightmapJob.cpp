@@ -8,19 +8,19 @@
 #include <lightmapper/LightmapPathTraceGpu.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Device.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 
 #include <lightmapper/LightmapVolume.hpp>
 
@@ -422,7 +422,7 @@ void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
 
 #pragma endregion LightmapJob < LightmapVolume>
 
-#pragma region LightmapJob<ReflectionProbe>
+#pragma region LightmapJob < ReflectionProbe>
 
 LightmapJob<ReflectionProbe>::~LightmapJob()
 {
@@ -442,7 +442,7 @@ void LightmapJob<ReflectionProbe>::Process_Internal(bool* outIsReadyToProcess)
 
 #pragma endregion LightmapJob < ReflectionProbe>
 
-#pragma region LightmapJob<FogVolume>
+#pragma region LightmapJob < FogVolume>
 
 LightmapJob<FogVolume>::~LightmapJob()
 {

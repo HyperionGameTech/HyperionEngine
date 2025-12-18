@@ -2,7 +2,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderCommandBuffer.hpp>
+#include <rendering/CommandBuffer.hpp>
 
 #include <engine/EngineDriver.hpp>
 

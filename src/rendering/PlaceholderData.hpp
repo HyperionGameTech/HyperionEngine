@@ -8,11 +8,11 @@
 #include <core/reflection/Handle.hpp>
 
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderGpuImage.hpp>
-#include <rendering/RenderGpuImageView.hpp>
-#include <rendering/RenderSampler.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderDevice.hpp>
+#include <rendering/GpuImage.hpp>
+#include <rendering/GpuImageView.hpp>
+#include <rendering/Sampler.hpp>
+#include <rendering/GpuBuffer.hpp>
+#include <rendering/Device.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <core/math/MathUtil.hpp>

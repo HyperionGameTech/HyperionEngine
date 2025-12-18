@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <rendering/RenderAttachment.hpp>
-#include <rendering/RenderGpuImage.hpp>
-#include <rendering/RenderGpuImageView.hpp>
-#include <rendering/RenderSampler.hpp>
+#include <rendering/Attachment.hpp>
+#include <rendering/GpuImage.hpp>
+#include <rendering/GpuImageView.hpp>
+#include <rendering/Sampler.hpp>
 
 #include <core/Defines.hpp>
 

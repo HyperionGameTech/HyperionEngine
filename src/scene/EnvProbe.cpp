@@ -10,11 +10,11 @@
 #include <scene/EntityManager.hpp>
 
 #include <rendering/Texture.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/Shared.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <lightmapper/LightmapperSubsystem.hpp>

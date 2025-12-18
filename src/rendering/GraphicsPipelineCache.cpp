@@ -6,10 +6,10 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderCommand.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/GraphicsPipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderResult.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderMemory.hpp>
 
 // For CompiledShader
@@ -208,15 +208,15 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
 {
     AssertDebug(cacheHandle.m_pRef != nullptr);
 
-    CachedPipelinesMap* cachedPipelines = g_renderGlobalState->graphicsPipelineCache->m_cachedPipelines;
+    CachedPipelinesMap* cachedPipelines = g_renderInterface->graphicsPipelineCache->m_cachedPipelines;
     AssertDebug(cachedPipelines != nullptr);
 
     if (lock)
     {
-        g_renderGlobalState->graphicsPipelineCache->m_mutex.Lock();
+        g_renderInterface->graphicsPipelineCache->m_mutex.Lock();
     }
 
-    const SizeType index = g_renderGlobalState->graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_pRef);
+    const SizeType index = g_renderInterface->graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_pRef);
     AssertDebug(index != SizeType(-1));
 
     int& refCount = cachedPipelines->refCountMap.Get(index);
@@ -224,7 +224,7 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
 
     if (lock)
     {
-        g_renderGlobalState->graphicsPipelineCache->m_mutex.Unlock();
+        g_renderInterface->graphicsPipelineCache->m_mutex.Unlock();
     }
 }
 

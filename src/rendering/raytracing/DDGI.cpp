@@ -7,14 +7,14 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderComputePipeline.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderGpuImage.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/GpuBuffer.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/GpuImage.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -65,13 +65,13 @@ struct SetDDGIDescriptors : RenderCommand
     {
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("DDGIUniforms", uniformBuffers[frameIndex]);
 
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("DDGIIrradianceTexture", irradianceImageView);
 
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("DDGIDepthTexture", depthImageView);
         }
 
@@ -92,14 +92,14 @@ struct UnsetDDGIDescriptors : RenderCommand
         // remove result image from global descriptor set
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-                ->SetElement("DDGIUniforms", g_renderGlobalState->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(DDGIUniforms), false));
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("DDGIUniforms", g_renderInterface->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(DDGIUniforms), false));
 
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-                ->SetElement("DDGIIrradianceTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("DDGIIrradianceTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
 
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-                ->SetElement("DDGIDepthTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("DDGIDepthTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
         HYPERION_RETURN_OK;
@@ -274,7 +274,7 @@ void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         descriptorSet->SetElement("MeshDescriptionsBuffer", meshDescriptionsBuffer);
         descriptorSet->SetElement("DDGIUniforms", m_uniformBuffers[frameIndex]);
         descriptorSet->SetElement("ProbeRayData", m_radianceBuffer);
-        descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("MaterialsBuffer", g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     };
 
     if (m_pipeline != nullptr)

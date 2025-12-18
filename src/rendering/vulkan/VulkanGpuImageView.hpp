@@ -4,7 +4,7 @@
 
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
-#include <rendering/RenderGpuImageView.hpp>
+#include <rendering/GpuImageView.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI

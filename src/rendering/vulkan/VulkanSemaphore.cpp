@@ -7,7 +7,7 @@
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
 
-#include <rendering/RenderDevice.hpp>
+#include <rendering/Device.hpp>
 
 #include <VulkanSemaphore.generated.inl>
 

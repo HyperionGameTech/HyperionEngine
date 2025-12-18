@@ -7,12 +7,12 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/GraphicsPipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -121,7 +121,7 @@ void HBAO::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
 
     m_descriptorTable = descriptorTable;
 
-    m_graphicsPipelineCacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+    m_graphicsPipelineCacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         descriptorTable,
         { &m_framebuffer, 1 },
