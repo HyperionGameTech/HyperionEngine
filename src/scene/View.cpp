@@ -69,69 +69,62 @@ ViewOutputTarget::ViewOutputTarget(const Handle<GBuffer>& gbuffer)
 
 ViewOutputTarget::~ViewOutputTarget()
 {
-    if (m_impl.Is<GBuffer>())
-    {
-        SafeDelete(reinterpret_cast<Handle<GBuffer>&&>(std::move(m_impl)));
-    }
-    else if (m_impl.Is<Framebuffer>())
-    {
-        SafeDelete(reinterpret_cast<FramebufferRef&&>(std::move(m_impl)));
-    }
+    SafeDelete(std::move(m_impl));
 }
 
 const Handle<GBuffer>& ViewOutputTarget::GetGBuffer() const
 {
-    if (!m_impl.Is<GBuffer>())
+    if (!m_impl)
     {
         return Handle<GBuffer>::Null();
     }
 
-    return static_cast<const Handle<GBuffer>&>(m_impl);
+    return ObjCast<GBuffer>(m_impl);
 }
 
 const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
 {
-    if (m_impl.Is<Framebuffer>())
+    if (!m_impl)
     {
-        return static_cast<const FramebufferRef&>(m_impl);
+        return FramebufferRef::Null();
     }
 
-    if (m_impl.Is<GBuffer>())
+    if (m_impl->IsA(GBuffer::StaticClass()))
     {
-        return static_cast<const Handle<GBuffer>&>(m_impl)->GetBucket(RenderBucket::RB_OPAQUE).GetFramebuffer();
+        return static_cast<GBuffer&>(*m_impl).GetBucket(RenderBucket::RB_OPAQUE).GetFramebuffer();
     }
 
-    return FramebufferRef::Null();
+    return ObjCast<Framebuffer>(m_impl);
 }
 
 const FramebufferRef& ViewOutputTarget::GetFramebuffer(RenderBucket rb) const
 {
-    if (m_impl.Is<Framebuffer>())
+    if (!m_impl)
     {
-        return static_cast<const FramebufferRef&>(m_impl);
+        return FramebufferRef::Null();
     }
 
-    if (m_impl.Is<GBuffer>())
+    if (m_impl->IsA(GBuffer::StaticClass()))
     {
-        return static_cast<const Handle<GBuffer>&>(m_impl)->GetBucket(rb).GetFramebuffer();
+        return static_cast<GBuffer&>(*m_impl).GetBucket(rb).GetFramebuffer();
     }
 
-    return FramebufferRef::Null();
+    return ObjCast<Framebuffer>(m_impl);
 }
 
 Span<const FramebufferRef> ViewOutputTarget::GetFramebuffers() const
 {
-    if (!m_impl.IsValid())
+    if (!m_impl)
     {
-        return {};
+        return { };
     }
 
-    if (m_impl.Is<GBuffer>())
+    if (m_impl->IsA(GBuffer::StaticClass()))
     {
-        return static_cast<const Handle<GBuffer>&>(m_impl)->GetFramebuffers();
+        return static_cast<GBuffer&>(*m_impl).GetFramebuffers();
     }
 
-    return { &static_cast<const FramebufferRef&>(m_impl), 1 };
+    return { &ObjCast<Framebuffer>(m_impl), 1 };
 }
 
 #pragma endregion ViewOutputTarget
