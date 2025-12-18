@@ -25,7 +25,7 @@ HYP_API ObjectContainerBase* GetObjectContainerForClass(const Class* cls)
     return cls->GetObjectContainer();
 }
 
-#pragma region AnyHandle
+#pragma region Handle < ObjectBase>
 
 const AnyHandle AnyHandle::empty = {};
 
@@ -186,6 +186,6 @@ void* AnyHandle::Release()
     return address;
 }
 
-#pragma endregion AnyHandle
+#pragma endregion Handle < ObjectBase>
 
 } // namespace hyperion

@@ -2,6 +2,9 @@
 
 #include <HyperionPch.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <core/threading/Thread.hpp>
 #include <core/threading/Threads.hpp>
 #include <core/threading/Mutex.hpp>

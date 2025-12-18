@@ -444,14 +444,14 @@ HYP_API bool GetString(const HypData& data, const Script_String** out)
     return true;
 }
 
-HYP_API const AnyHandle& ScriptApi_GetObject(const HypData& data)
+HYP_API const Handle<ObjectBase>& ScriptApi_GetObject(const HypData& data)
 {
-    if (!data.Is<AnyHandle>())
+    if (!data.Is<Handle<ObjectBase>>())
     {
-        return AnyHandle::empty;
+        return Handle<ObjectBase>::empty;
     }
 
-    return data.Get<AnyHandle>();
+    return data.Get<Handle<ObjectBase>>();
 }
 
 HYP_API int CompareAsPointers(const HypData& lhs, const HypData& rhs)
