@@ -270,6 +270,25 @@ bool EngineDriver::IsRenderLoopActive() const
         && g_renderThreadInstance->IsRunning();
 }
 
+void EngineDriver::SetGame(const Handle<Game>& game)
+{
+    AssertOnThread(g_mainThread);
+
+    Assert(game != nullptr);
+    Assert(g_gameThreadInstance->IsRunning());
+
+    g_currentGame = game;
+
+    g_gameThreadInstance->SetGame(game);
+}
+
+const Handle<Game>& EngineDriver::GetGame() const
+{
+    AssertOnThread(g_mainThread);
+
+    return g_currentGame;
+}
+
 void EngineDriver::StartThreads()
 {
     HYP_SCOPE;

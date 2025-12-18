@@ -115,8 +115,14 @@ public:
     void StartThreads();
 
     void MainThreadUpdate();
-    void RequestStop();
 
+    HYP_METHOD()
+    void SetGame(const Handle<Game>& game);
+
+    HYP_METHOD()
+    const Handle<Game>& GetGame() const;
+
+    void RequestStop();
     void FinalizeStop();
 
     Delegate<void, World*> OnCurrentWorldChanged;
