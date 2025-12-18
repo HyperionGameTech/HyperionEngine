@@ -934,7 +934,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
             {
                 HYP_LOG(Core, Warning, "Failed to load AssetObject from AssetReference: {}", assetReference.GetAssetPath());
 
-                target = HypData(AnyHandle(targetClass, nullptr));
+                target = HypData(Handle<ObjectBase>::Null());
 
                 return false;
             }

@@ -17,7 +17,6 @@
 
 namespace hyperion {
 
-struct AnyHandle;
 struct HypData;
 struct Method;
 
@@ -212,7 +211,7 @@ extern HYP_API bool GetBoolean(const HypData& data, bool* out);
 
 extern HYP_API bool GetString(const HypData& data, const Script_String** out);
 
-extern HYP_API const AnyHandle& ScriptApi_GetObject(const HypData& data);
+extern HYP_API const Handle<ObjectBase>& ScriptApi_GetObject(const HypData& data);
 
 extern HYP_API int CompareAsPointers(const HypData& lhs, const HypData& rhs);
 extern HYP_API int CompareAsFunctions(const HypData& lhs, const HypData& rhs);

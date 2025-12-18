@@ -133,7 +133,7 @@ public:
     Span<const FramebufferRef> GetFramebuffers() const;
 
 private:
-    AnyHandle m_impl;
+    Handle<ObjectBase> m_impl;
 };
 
 HYP_CLASS()

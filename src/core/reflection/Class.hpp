@@ -624,7 +624,7 @@ public:
      *  The underlying data will be moved or have ownership taken.
      *  \param memory A view to the memory of the underlying object.
      *  \returns True if the operation was successful. */
-    virtual bool ToHypData(ByteView memory, HypData& outHypData) const
+    virtual HYP_DEPRECATED bool ToHypData(ByteView memory, HypData& outHypData) const
     {
         return false;
     }
@@ -784,7 +784,7 @@ public:
         {
             if constexpr (std::is_base_of_v<ObjectBase, T>)
             {
-                outHypData = HypData(AnyHandle(ptr));
+                outHypData = HypData(Handle<ObjectBase>::FromPointer(static_cast<ObjectBase*>(ptr)));
             }
             else
             {

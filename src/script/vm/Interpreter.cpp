@@ -1023,7 +1023,7 @@ public:
 
         const Class* cls = nullptr;
 
-        if (const AnyHandle& object = ScriptApi_GetObject(src))
+        if (const Handle<ObjectBase>& object = ScriptApi_GetObject(src))
         {
             cls = object.ptr->InstanceClass();
         }
@@ -1049,7 +1049,7 @@ public:
 
         const Class* cls = nullptr;
 
-        if (const AnyHandle& object = ScriptApi_GetObject(*pValue))
+        if (const Handle<ObjectBase>& object = ScriptApi_GetObject(*pValue))
         {
             cls = object.ptr->InstanceClass();
         }
@@ -1083,7 +1083,7 @@ public:
 
         const Class* cls = nullptr;
 
-        if (const AnyHandle& object = ScriptApi_GetObject(src))
+        if (const Handle<ObjectBase>& object = ScriptApi_GetObject(src))
         {
             // instance member access
             cls = object.ptr->InstanceClass();
@@ -2477,7 +2477,7 @@ public:
 
         const Class* cls = nullptr;
 
-        if (const AnyHandle& object = ScriptApi_GetObject(value))
+        if (const Handle<ObjectBase>& object = ScriptApi_GetObject(value))
         {
             cls = object.ptr->InstanceClass();
         }

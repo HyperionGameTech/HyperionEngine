@@ -127,7 +127,7 @@ struct HypData
         Name,
         ObjIdBase,
         ClassRef,
-        AnyHandle,
+        Handle<ObjectBase>,
         RC<void>,
         AnyRef,
         Any,
@@ -150,8 +150,8 @@ struct HypData
 
         || std::is_same_v<T, ClassRef>
 
-        /*! Handle<T> gets stored as AnyHandle, which holds TypeId for conversion */
-        || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, AnyHandle> || std::is_base_of_v<ObjectBase, T>
+        /*! Handle<T> gets stored as Handle<ObjectBase>, which holds TypeId for conversion */
+        || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, Handle<ObjectBase>> || std::is_base_of_v<ObjectBase, T>
 
         /*! RC<T> gets stored as RC<void> and can be converted back */
         || std::is_base_of_v<typename RC<void>::RefCountedPtrBase, T>
@@ -289,7 +289,7 @@ struct HypData
             return AnyRef();
         }
 
-        if (AnyHandle* anyHandlePtr = value.TryGet<AnyHandle>())
+        if (Handle<ObjectBase>* anyHandlePtr = value.TryGet<Handle<ObjectBase>>())
         {
             return anyHandlePtr->ToRef();
         }
@@ -837,7 +837,7 @@ template <>
 struct HypDataHelper<void*>
 {
     using StorageType = void*;
-    using ConvertibleFrom = Tuple<AnyRef, AnyHandle, RC<void>>;
+    using ConvertibleFrom = Tuple<AnyRef, Handle<ObjectBase>, RC<void>>;
 
     HYP_FORCE_INLINE bool Is(void* value) const
     {
@@ -850,7 +850,7 @@ struct HypDataHelper<void*>
         return true;
     }
 
-    HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
+    HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
         return true;
     }
@@ -870,7 +870,7 @@ struct HypDataHelper<void*>
         return value.GetPointer();
     }
 
-    HYP_FORCE_INLINE void* Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE void* Get(const Handle<ObjectBase>& value) const
     {
         return value.ToRef().GetPointer();
     }
@@ -952,7 +952,7 @@ struct HypDataHelper<ObjIdBase>
     }
 };
 
-/// ObjId<T> specialization - stores as ObjIdBase internally, converts to/from ObjIdBase and AnyHandle.
+/// ObjId<T> specialization - stores as ObjIdBase internally, converts to/from ObjIdBase and Handle<ObjectBase>.
 
 template <class T>
 struct HypDataHelperDecl<ObjId<T>>
@@ -962,16 +962,17 @@ struct HypDataHelperDecl<ObjId<T>>
 template <class T>
 struct HypDataHelper<ObjId<T>> : HypDataHelper<ObjIdBase>
 {
-    using ConvertibleFrom = Tuple<AnyHandle>;
+    using ConvertibleFrom = Tuple<Handle<ObjectBase>>;
 
     HYP_FORCE_INLINE bool Is(const ObjIdBase& value) const
     {
-        return true; // can't do anything more to check as ObjIdBase doesn't hold type info.
+        return IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
     }
 
-    HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
+    HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
-        return value.Is<T>();
+        // allow null handles through
+        return !value || IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
     }
 
     HYP_FORCE_INLINE ObjId<T> Get(ObjIdBase value) const
@@ -979,7 +980,7 @@ struct HypDataHelper<ObjId<T>> : HypDataHelper<ObjIdBase>
         return ObjId<T>(value);
     }
 
-    HYP_FORCE_INLINE ObjId<T> Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE ObjId<T> Get(const Handle<ObjectBase>& value) const
     {
         return ObjId<T>(value.Id());
     }
@@ -1040,46 +1041,46 @@ struct HypDataHelper<ClassRef>
     }
 };
 
-/// AnyHandle specialization - stores as AnyHandle internally, serializable
+/// Handle<ObjectBase> specialization - stores as Handle<ObjectBase> internally, serializable
 
 template <>
-struct HypDataHelperDecl<AnyHandle>
+struct HypDataHelperDecl<Handle<ObjectBase>>
 {
 };
 
 template <>
-struct HypDataHelper<AnyHandle>
+struct HypDataHelper<Handle<ObjectBase>>
 {
-    using StorageType = AnyHandle;
+    using StorageType = Handle<ObjectBase>;
     using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
+    HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
         // should never be hit
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_FORCE_INLINE AnyHandle& Get(AnyHandle& value) const
+    HYP_FORCE_INLINE Handle<ObjectBase>& Get(Handle<ObjectBase>& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE const AnyHandle& Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE const Handle<ObjectBase>& Get(const Handle<ObjectBase>& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, const AnyHandle& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, const Handle<ObjectBase>& value) const
     {
         hypData.Set_Internal(value);
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, AnyHandle&& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, Handle<ObjectBase>&& value) const
     {
         hypData.Set_Internal(std::move(value));
     }
 
-    static FBOMResult Serialize(const AnyHandle& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    static FBOMResult Serialize(const Handle<ObjectBase>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         HYP_SCOPE;
 
@@ -1116,7 +1117,7 @@ struct HypDataHelper<AnyHandle>
 
         if (!data)
         {
-            out = HypData(AnyHandle {});
+            out = HypData(Handle<ObjectBase> {});
 
             return FBOMResult::FBOM_OK;
         }
@@ -1144,41 +1145,42 @@ struct HypDataHelper<AnyHandle>
     }
 };
 
-/// Handle<T> specialization - stores as AnyHandle internally, converts to/from AnyHandle
+/// Handle<T> specialization - stores as Handle<ObjectBase> internally, converts to/from Handle<ObjectBase>
 
 template <class T>
-struct HypDataHelperDecl<Handle<T>>
+struct HypDataHelperDecl<Handle<T>, std::enable_if_t<!std::is_same_v<T, ObjectBase>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
+struct HypDataHelper<Handle<T>> : HypDataHelper<Handle<ObjectBase>, std::enable_if_t<!std::is_same_v<T, ObjectBase>>>
 {
     using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
+    HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
-        return value.Is<T>();
+        // Allow null handles through
+        return !value || IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
     }
 
-    HYP_FORCE_INLINE Handle<T>& Get(AnyHandle& value) const
+    HYP_FORCE_INLINE Handle<T>& Get(Handle<ObjectBase>& value) const
     {
-        return *reinterpret_cast<Handle<T>*>(&value);
+        return reinterpret_cast<Handle<T>&>(value);
     }
 
-    HYP_FORCE_INLINE const Handle<T>& Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE const Handle<T>& Get(const Handle<ObjectBase>& value) const
     {
-        return *reinterpret_cast<const Handle<T>*>(&value);
+        return reinterpret_cast<const Handle<T>&>(value);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const Handle<T>& value) const
     {
-        HypDataHelper<AnyHandle>::Set(hypData, AnyHandle(value));
+        HypDataHelper<Handle<ObjectBase>>::Set(hypData, reinterpret_cast<const Handle<ObjectBase>&>(value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, Handle<T>&& value) const
     {
-        HypDataHelper<AnyHandle>::Set(hypData, AnyHandle(std::move(value)));
+        HypDataHelper<Handle<ObjectBase>>::Set(hypData, reinterpret_cast<Handle<ObjectBase>&&>(std::move(value)));
     }
 
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
@@ -1215,7 +1217,7 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
     }
 };
 
-/// Objects can be stored inline via AnyHandle like Handle<T>, and converted to/from Handle<T>
+/// Objects can be stored inline via Handle<ObjectBase> like Handle<T>, and converted to/from Handle<T>
 
 template <class T>
 struct HypDataHelperDecl<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>>
@@ -1227,12 +1229,12 @@ struct HypDataHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> : Hy
 {
     using ConvertibleFrom = Tuple<AnyRef>;
 
-    HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
+    HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
         return HypDataHelper<Handle<T>>::Is(value);
     }
 
-    HYP_FORCE_INLINE T& Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE T& Get(const Handle<ObjectBase>& value) const
     {
         return *HypDataHelper<Handle<T>>::Get(value);
     }
@@ -1473,7 +1475,7 @@ struct HypDataHelperDecl<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_s
 template <class T>
 struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>> : HypDataHelper<AnyRef>
 {
-    using ConvertibleFrom = Tuple<AnyHandle, RC<void>>;
+    using ConvertibleFrom = Tuple<Handle<ObjectBase>, RC<void>>;
 
     HYP_FORCE_INLINE bool Is(const AnyRef& value) const
     {
@@ -1481,9 +1483,9 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
         return !value.HasValue() || value.Is<T>();
     }
 
-    HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
+    HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
-        return !value || value.Is<T>();
+        return !value || IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
     }
 
     HYP_FORCE_INLINE bool Is(const RC<void>& value) const
@@ -1503,16 +1505,14 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
         return static_cast<T*>(value.GetPointer());
     }
 
-    HYP_FORCE_INLINE T* Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE T* Get(const Handle<ObjectBase>& value) const
     {
         if (!value)
         {
             return nullptr;
         }
 
-        HYP_CORE_ASSERT(value.Is<T>());
-
-        return value.TryGet<T>();
+        return reinterpret_cast<const Handle<T>&>(value).Get();
     }
 
     HYP_FORCE_INLINE T* Get(const RC<void>& value) const
@@ -1586,7 +1586,7 @@ struct HypDataHelper<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>> : H
         return HypDataHelper<T*>::Get(value);
     }
 
-    HYP_FORCE_INLINE const T* Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE const T* Get(const Handle<ObjectBase>& value) const
     {
         return HypDataHelper<T*>::Get(value);
     }
@@ -3708,7 +3708,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
 template <class T>
 struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !ImplementationExistsV<HypDataHelperDecl<T>>>> : HypDataHelper<Any>
 {
-    using ConvertibleFrom = Tuple<T*, AnyRef, AnyHandle, RC<void>>;
+    using ConvertibleFrom = Tuple<T*, AnyRef, Handle<ObjectBase>, RC<void>>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
@@ -3726,11 +3726,12 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !Imple
         return value.Is<T>();
     }
 
-    HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
+    HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
         if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
-            return value.Is<T>();
+            // Dereferencing a null pointer would be bad - so we'll just pretend it's not the type
+            return IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
         }
         else
         {
@@ -3758,13 +3759,11 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !Imple
         return value.Get<T>();
     }
 
-    HYP_FORCE_INLINE T& Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE T& Get(const Handle<ObjectBase>& value) const
     {
         if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
-            AssertDebug(value.IsValid() && value.Is<T>());
-
-            return *value.Cast<T>();
+            return *static_cast<T*>(value.Get());
         }
         else
         {
@@ -3774,8 +3773,6 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !Imple
 
     HYP_FORCE_INLINE T& Get(const RC<void>& value) const
     {
-        AssertDebug(value.IsValid() && value.Is<T>());
-
         return *value.CastUnchecked<T>();
     }
 
