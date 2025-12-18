@@ -5,7 +5,6 @@
 
 namespace hyperion {
 class EditorSubsystem;
-namespace editor {
 
 class HyperionEditorImpl;
 
@@ -34,8 +33,5 @@ protected:
     HyperionEditorImpl* m_impl;
     Handle<EditorSubsystem> m_editorSubsystem;
 };
-} // namespace editor
-
-using editor::HyperionEditor;
 
 } // namespace hyperion

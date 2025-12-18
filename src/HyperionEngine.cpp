@@ -137,7 +137,7 @@ MainThread* g_mainThreadInstance;
 GameThread* g_gameThreadInstance;
 RenderThread* g_renderThreadInstance;
 
-Handle<Game> g_currentGame; // active game instance, read/write only from the main thread
+Handle<Game> g_gameInstance; // active game instance, read/write only from the main thread
 
 #ifdef HYP_VULKAN
 VulkanRenderBackend* g_renderBackend;
@@ -511,7 +511,7 @@ extern "C"
 
         Assert(pGame != nullptr);
         Assert(g_gameThreadInstance != nullptr && g_gameThreadInstance->IsRunning());
-        
+
         g_gameThreadInstance->SetGame(MakeStrongRef(pGame));
     }
 
