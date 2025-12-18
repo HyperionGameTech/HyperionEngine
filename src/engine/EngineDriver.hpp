@@ -117,10 +117,10 @@ public:
     void MainThreadUpdate();
 
     HYP_METHOD()
-    void SetGame(const Handle<Game>& game);
+    void SetGameInstance(Game* gameInstance);
 
     HYP_METHOD()
-    const Handle<Game>& GetGame() const;
+    Game* GetGameInstance() const;
 
     void RequestStop();
     void FinalizeStop();

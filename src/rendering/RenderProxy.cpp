@@ -1,6 +1,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderProxy.hpp>
+#include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

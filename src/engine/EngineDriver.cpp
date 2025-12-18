@@ -68,6 +68,8 @@
 
 #include <scripting/ScriptingService.hpp>
 
+#include <game/Game.hpp>
+
 #include <HyperionEngine.hpp>
 
 #define HYP_PROCESS_VIEWS_ASYNC 1
@@ -270,23 +272,24 @@ bool EngineDriver::IsRenderLoopActive() const
         && g_renderThreadInstance->IsRunning();
 }
 
-void EngineDriver::SetGame(const Handle<Game>& game)
+void EngineDriver::SetGameInstance(Game* gameInstance)
 {
     AssertOnThread(g_mainThread);
 
-    Assert(game != nullptr);
+    Assert(gameInstance != nullptr);
     Assert(g_gameThreadInstance->IsRunning());
 
-    g_currentGame = game;
+    Handle<Game> gameInstanceStrong = MakeStrongRef(gameInstance);
 
-    g_gameThreadInstance->SetGame(game);
+    g_gameInstance = gameInstanceStrong;
+    g_gameThreadInstance->SetGame(gameInstanceStrong);
 }
 
-const Handle<Game>& EngineDriver::GetGame() const
+Game* EngineDriver::GetGameInstance() const
 {
     AssertOnThread(g_mainThread);
 
-    return g_currentGame;
+    return g_gameInstance;
 }
 
 void EngineDriver::StartThreads()

@@ -56,7 +56,7 @@ extern MainThread* g_mainThreadInstance;
 extern GameThread* g_gameThreadInstance;
 extern RenderThread* g_renderThreadInstance;
 
-extern Handle<Game> g_currentGame;
+extern Handle<Game> g_gameInstance;
 
 #ifdef HYP_VULKAN
 extern VulkanRenderBackend* g_renderBackend;

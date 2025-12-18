@@ -1507,12 +1507,12 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
 
     HYP_FORCE_INLINE T* Get(const Handle<ObjectBase>& value) const
     {
-        if (!value)
+        if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
-            return nullptr;
+            return static_cast<T*>(value.Get());
         }
 
-        return reinterpret_cast<const Handle<T>&>(value).Get();
+        return nullptr;
     }
 
     HYP_FORCE_INLINE T* Get(const RC<void>& value) const
