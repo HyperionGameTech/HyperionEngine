@@ -23,7 +23,7 @@ extern "C"
 
         if (hypData != nullptr)
         {
-            AnyHandle& handle = hypData->Get<AnyHandle>();
+            Handle<ObjectBase>& handle = hypData->Get<Handle<ObjectBase>>();
 
             if (handle.IsValid())
             {
@@ -67,7 +67,7 @@ extern "C"
 
         if (hypData != nullptr)
         {
-            AnyHandle& handle = hypData->Get<AnyHandle>();
+            Handle<ObjectBase>& handle = hypData->Get<Handle<ObjectBase>>();
 
             if (handle.IsValid())
             {
