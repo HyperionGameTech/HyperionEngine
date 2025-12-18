@@ -15,6 +15,8 @@
 
 #include <scene/camera/Camera.hpp>
 
+#include <game/Game.hpp>
+
 #include <core/serialization/fbom/FBOMWriter.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMDeserializedObject.hpp>
@@ -41,12 +43,18 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 static const String s_defaultProjectName = "Project";
 
 EditorProject::EditorProject()
-    : EditorProject(Name::Invalid())
+    : EditorProject(Handle<Game>::Null())
 {
 }
 
-EditorProject::EditorProject(Name name)
+EditorProject::EditorProject(const Handle<Game>& gameInstance)
+    : EditorProject(Name::Invalid(), gameInstance)
+{
+}
+
+EditorProject::EditorProject(Name name, const Handle<Game>& gameInstance)
     : m_name(name),
+      m_gameInstance(gameInstance),
       m_lastSavedTime(~0ull)
 {
     m_actionStack = CreateObject<EditorActionStack>(WeakHandleFromThis());
@@ -54,7 +62,7 @@ EditorProject::EditorProject(Name name)
 
 EditorProject::~EditorProject()
 {
-    SafeDelete(std::move(m_world));
+    SafeDelete(std::move(m_gameInstance));
 }
 
 void EditorProject::Init()
@@ -71,12 +79,12 @@ void EditorProject::Init()
     InitObject(m_package);
     InitObject(m_actionStack);
 
-    if (!m_world)
+    if (!m_gameInstance)
     {
-        m_world = CreateObject<World>(NAME_FMT("{}_World", m_name));
+        m_gameInstance = CreateObject<Game>(); // base game instance
     }
 
-    InitObject(m_world);
+    InitObject(m_gameInstance);
 
     SetReady(true);
 }
@@ -96,13 +104,27 @@ void EditorProject::SetName(Name name)
     }
     else if (IsInitCalled())
     {
-        AssertDebug(m_world != nullptr);
-        m_world->SetName(NAME_FMT("{}_World", m_name));
-
         if (Result createPackageResult = CreatePackage(); createPackageResult.HasError())
         {
             HYP_LOG(Editor, Error, "Failed to create asset package for project '{}': {}", m_name, createPackageResult.GetError().GetMessage());
         }
+    }
+}
+
+const Handle<World>& EditorProject::GetWorld() const
+{
+    Assert(m_gameInstance != nullptr);
+
+    return m_gameInstance->GetWorld();
+}
+
+void EditorProject::SetGame(const Handle<Game>& gameInstance)
+{
+    m_gameInstance = gameInstance;
+
+    if (IsInitCalled())
+    {
+        InitObject(m_gameInstance);
     }
 }
 
@@ -158,9 +180,9 @@ void EditorProject::AddScene(const Handle<Scene>& scene)
         return;
     }
 
-    AssertDebug(m_world != nullptr);
+    AssertDebug(m_gameInstance != nullptr && m_gameInstance->GetWorld() != nullptr);
 
-    m_world->AddScene(scene, /* addToStreamingLayer */ true);
+    m_gameInstance->GetWorld()->AddScene(scene, /* addToStreamingLayer */ true);
 }
 
 void EditorProject::RemoveScene(Scene* scene)
@@ -172,9 +194,9 @@ void EditorProject::RemoveScene(Scene* scene)
         return;
     }
 
-    AssertDebug(m_world != nullptr);
+    AssertDebug(m_gameInstance != nullptr && m_gameInstance->GetWorld() != nullptr);
 
-    m_world->RemoveScene(scene, /* removeFromStreamingLayer */ true);
+    m_gameInstance->GetWorld()->RemoveScene(scene, /* removeFromStreamingLayer */ true);
 }
 
 FilePath EditorProject::GetProjectsDirectory() const

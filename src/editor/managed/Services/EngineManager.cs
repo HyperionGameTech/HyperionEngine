@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using Hyperion;
 
 namespace Hyperion.Editor
@@ -9,9 +10,10 @@ namespace Hyperion.Editor
     {
 
         public static bool IsInitialized { get; private set; }
-        public static HyperionEditorGame? GameInstance { get; private set; }
+        public static Game? GameInstance { get; private set; }
 
         public static EditorProject? CurrentProject { get; private set; }
+        private static DelegateHandler? _onCurrentProjectChanged;
 
         public static void Initialize()
         {
@@ -80,30 +82,40 @@ namespace Hyperion.Editor
 
         public static void InitializeEditor()
         {
-            if (GameInstance != null)
+            if (GameInstance is HyperionEditorGame)
                 return;
 
             GameInstance = new HyperionEditorGame();
-
-            if (EngineDriver.Instance.SetGame(GameInstance) == 0)
-            {
-                throw new Exception("Failed to launch HyperionEditor instance");
-            }
-
-            World editorWorld = GameInstance.World;
+            EngineDriver.Instance.SetGame(GameInstance);
 
             EditorState editorState = EditorState.Instance;
-            Assert.Throw(editorState != null, "Failed to get EditorState instance");
+            Debug.Assert(editorState != null, "Failed to get EditorState instance");
 
             CurrentProject = editorState.CurrentProject;
 
-            ScriptableDelegate del = editorState.GetOnCurrentProjectChangedDelegate();
-            del.Bind((EditorProject newProject) =>
+            _onCurrentProjectChanged?.Remove();
+            _onCurrentProjectChanged = editorState.GetOnCurrentProjectChangedDelegate().Bind((EditorProject newProject) =>
             {
                 CurrentProject = newProject;
 
                 Logger.Log(LogType.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
-            }).Detach();
+            });
+        }
+
+        public static void InitializeGame(Game game)
+        {
+            if (game is HyperionEditorGame)
+                throw new ArgumentException("InitializeGame() shouldn't be called with an instance of HyperionEditorGame - use InitializeEditor() instead");
+
+            if (game == GameInstance)
+                // already set
+                return;
+
+            _onCurrentProjectChanged?.Remove();
+            _onCurrentProjectChanged = null;
+
+            GameInstance = game;
+            EngineDriver.Instance.SetGame(GameInstance);
         }
 
         public static void Shutdown()

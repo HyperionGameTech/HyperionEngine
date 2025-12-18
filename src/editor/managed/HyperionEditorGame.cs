@@ -24,7 +24,7 @@ namespace Hyperion.Editor
         {
         }
 
-        public override void OnLaunch()
+        protected override void OnLaunch()
         {
             Logger.Log(LogType.Debug, "HyperionEditorGame Launched");
 
@@ -62,7 +62,7 @@ namespace Hyperion.Editor
             _assetBatchTask = ab.Load();
         }
 
-        public override void OnUpdate(float deltaTime)
+        protected override void OnUpdate(float deltaTime)
         {
             // Logger.Log(LogType.Debug, "HyperionEditorGame Update called with deltaTime: " + deltaTime);
 

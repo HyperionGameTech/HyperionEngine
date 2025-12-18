@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows.Input;
 using Avalonia.Threading;
@@ -18,7 +19,7 @@ namespace Hyperion.Editor.ViewModels
             }
 
             public bool CanExecute(object? parameter) => !string.IsNullOrEmpty(_name);
-            public void Execute(object? parameter) => EngineManager.GameInstance?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommand" + _name));
+            public void Execute(object? parameter) => (EngineManager.GameInstance as HyperionEditorGame)?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommand" + _name));
             public event EventHandler? CanExecuteChanged;
             public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -48,12 +49,11 @@ namespace Hyperion.Editor.ViewModels
 
         private class SetGameModeCommand : ICommand
         {
-            private EditorSubsystem _editorSubsystem;
+            private static int _isChangingGameMode = 0;
             private GameStateMode _mode;
 
-            public SetGameModeCommand(EditorSubsystem editorSubsystem, GameStateMode mode)
+            public SetGameModeCommand(GameStateMode mode)
             {
-                _editorSubsystem = editorSubsystem;
                 _mode = mode;
             }
 
@@ -61,20 +61,64 @@ namespace Hyperion.Editor.ViewModels
 
             public void Execute(object? parameter)
             {
-                World? world = EngineManager.CurrentProject?.World;
-                if (world == null)
-                    throw new NullReferenceException("Expected World to not be null when executing SetGameModeCommand!");
+                if (Interlocked.CompareExchange(ref _isChangingGameMode, 1, 0) != 0)
+                {
+                    Logger.Log(LogType.Warn, "Cannot set game mode; already setting");
+                    return;
+                }
+
+                Game? gameInstance = EngineManager.CurrentProject?.GameInstance;
+                Debug.Assert(gameInstance != null);
 
                 switch (_mode)
                 {
                     case GameStateMode.Simulating:
-                        _ = EngineManager.PostToGameThread(world.StartSimulating);
+                        EngineManager.InitializeGame(gameInstance);
+
+                        _ = EngineManager.PostToGameThread(() =>
+                        {
+                            try
+                            {
+                                gameInstance.World.StartSimulating();
+                            }
+                            finally
+                            {
+                                Interlocked.Exchange(ref _isChangingGameMode, 0);
+                            }
+                        });
+
                         break;
                     case GameStateMode.Paused:
-                        _ = EngineManager.PostToGameThread(world.PauseSimulation);
+                        _ = EngineManager.PostToGameThread(() =>
+                        {
+                            try
+                            {
+                                gameInstance.World.PauseSimulation();
+                            }
+                            finally
+                            {
+                                Interlocked.Exchange(ref _isChangingGameMode, 0);
+                            }
+                        });
+
                         break;
                     case GameStateMode.Stopped:
-                        _ = EngineManager.PostToGameThread(world.StopSimulating);
+                        _ = EngineManager.PostToGameThread(() =>
+                        {
+                            gameInstance.World.StopSimulating();
+
+                            Dispatcher.UIThread.Post(() =>
+                            {
+                                try
+                                {
+                                    EngineManager.InitializeEditor();
+                                }
+                                finally
+                                {
+                                    Interlocked.Exchange(ref _isChangingGameMode, 0);
+                                }
+                            });
+                        });
                         break;
                     default:
                         throw new NotImplementedException();
@@ -195,8 +239,6 @@ namespace Hyperion.Editor.ViewModels
             if (gameInstance == null)
                 throw new InvalidOperationException("Game instance is not initialized.");
 
-            int waitedTime = 0;
-
             if (gameInstance.IsLaunched())
             {
                 Init(gameInstance);
@@ -217,6 +259,9 @@ namespace Hyperion.Editor.ViewModels
 
         private void Init(Game gameInstance)
         {
+            if (!(gameInstance is HyperionEditorGame))
+                throw new InvalidOperationException("Game instance must be an instance of HyperionEditorGame on editor startup!");
+
             World? world = gameInstance.World;
             if (world == null)
                 throw new InvalidOperationException("Game world is not initialized.");
@@ -234,9 +279,9 @@ namespace Hyperion.Editor.ViewModels
             SelectRotateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Rotate);
             SelectScaleGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Scale);
 
-            SetGameModePlaying = new SetGameModeCommand(_editorSubsystem, GameStateMode.Simulating);
-            SetGameModePaused = new SetGameModeCommand(_editorSubsystem, GameStateMode.Paused);
-            SetGameModeStopped = new SetGameModeCommand(_editorSubsystem, GameStateMode.Stopped);
+            SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
+            SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
+            SetGameModeStopped = new SetGameModeCommand(GameStateMode.Stopped);
 
             Action<EditorProject?> setGameModeChangedHandler = (EditorProject? project) =>
             {
@@ -259,11 +304,17 @@ namespace Hyperion.Editor.ViewModels
                             });
                         });
                 }
+
+                OnPropertyChanged(nameof(CanSetGameModePlaying));
+                OnPropertyChanged(nameof(CanSetGameModePaused));
+                OnPropertyChanged(nameof(CanSetGameModeStopped));
             };
 
             setGameModeChangedHandler(EngineManager.CurrentProject);
 
             EditorState editorState = EditorState.Instance;
+
+            // when project changes we also want to update the play/pause/stop buttons
             _currentProjectChangedHandler = editorState.GetOnCurrentProjectChangedDelegate()
                 .Bind(setGameModeChangedHandler);
 

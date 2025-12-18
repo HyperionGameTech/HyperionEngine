@@ -39,6 +39,8 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
+#include <game/Game.hpp>
+
 #include <engine/EngineDriver.hpp>
 
 #include <asset/Assets.hpp>
@@ -74,6 +76,7 @@ World::World()
 World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     : ObjectBase(),
       m_name(name),
+      m_gameInstance(nullptr),
       m_worldFlags(worldFlags),
       m_raytracingView(nullptr),
       m_rootSynchronousExecutionGroup(nullptr)

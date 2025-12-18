@@ -70,12 +70,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/shadows/ShadowMap.hpp>
-
-// temp
-#include <scene/camera/streaming/CameraStreamingVolume.hpp>
-#include <streaming/StreamingManager.hpp>
-
 #include <ui/font/FontAtlas.hpp>
 
 // temp
@@ -88,13 +82,11 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <dotnet/ManagedClass.hpp>
-
 #include <scripting/ScriptingService.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <util/MeshBuilder.hpp>
+
+#include <game/Game.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/DebugDrawer.hpp>
