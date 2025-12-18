@@ -127,7 +127,7 @@ Handle<StreamingManager> g_streamingManager;
 Handle<EngineStats> g_engineStats;
 Handle<Logger> g_logger;
 ShaderManager* g_shaderManager;
-MaterialCache* g_materialSystem;
+MaterialCache* g_materialCache;
 SafeDeleter* g_safeDeleter;
 RenderGlobalState* g_renderGlobalState;
 ShaderCompiler* g_shaderCompiler;
@@ -136,6 +136,8 @@ Handle<InputManager> g_inputManager;
 MainThread* g_mainThreadInstance;
 GameThread* g_gameThreadInstance;
 RenderThread* g_renderThreadInstance;
+
+Handle<Game> g_currentGame; // active game instance, read/write only from the main thread
 
 #ifdef HYP_VULKAN
 VulkanRenderBackend* g_renderBackend;
@@ -312,7 +314,7 @@ extern "C"
 #endif
 
         g_shaderManager = new ShaderManager;
-        g_materialSystem = new MaterialCache;
+        g_materialCache = new MaterialCache;
         g_safeDeleter = new SafeDeleter;
 
         g_shaderCompiler = new ShaderCompiler;
@@ -399,7 +401,6 @@ extern "C"
         g_engineDriver->RequestStop();
 
         g_mainThreadInstance->Stop();
-
         g_gameThreadInstance->Join();
 
         g_renderThreadInstance->Join();
@@ -440,8 +441,8 @@ extern "C"
         delete g_shaderManager;
         g_shaderManager = nullptr;
 
-        delete g_materialSystem;
-        g_materialSystem = nullptr;
+        delete g_materialCache;
+        g_materialCache = nullptr;
 
         g_engineDriver.Reset();
 
@@ -596,18 +597,6 @@ extern "C"
         }
 
         pGame->GetObjectHeader_Internal()->DecRefStrong();
-    }
-
-    HYP_EXPORT int Hyp_LaunchGame(Game* pGame)
-    {
-        if (!pGame)
-        {
-            return 0;
-        }
-
-        App::GetInstance().LaunchGame(MakeStrongRef(pGame));
-
-        return 1;
     }
 
     HYP_EXPORT void Hyp_MainThreadUpdate()

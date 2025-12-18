@@ -211,7 +211,7 @@ public:
             return err;
         }
 
-        Handle<Material> newMaterial = g_materialSystem->GetOrCreate(
+        Handle<Material> newMaterial = g_materialCache->GetOrCreate(
             material->GetName(),
             material->GetRenderAttributes(),
             material->GetParameters(),

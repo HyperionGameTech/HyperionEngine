@@ -572,7 +572,7 @@ bool MaterialGroup::Remove(const String& name)
 
 MaterialCache* MaterialCache::GetInstance()
 {
-    return g_materialSystem;
+    return g_materialCache;
 }
 
 void MaterialCache::Add(const Handle<Material>& material)
