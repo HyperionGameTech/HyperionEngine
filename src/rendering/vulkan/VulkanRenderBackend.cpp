@@ -33,16 +33,6 @@
 
 #include <system/AppContext.hpp>
 
-#include <vulkan/vulkan.h>
-
-#ifdef HYP_WINDOWS
-#include <vulkan/vulkan_win32.h>
-#endif
-
-#ifdef HYP_MACOS
-#include <vulkan/vulkan_metal.h>
-#endif
-
 #define CHECK_FRAME_RESULT(result)                  \
     do                                              \
     {                                               \

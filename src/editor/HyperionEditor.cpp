@@ -97,8 +97,6 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 
 static const Name s_nameEditorWorld = NAME("EditorWorld");
 
-namespace editor {
-
 #pragma region HyperionEditor
 
 HyperionEditor::HyperionEditor()
@@ -241,5 +239,4 @@ void HyperionEditor::OnInputEvent(const SystemEvent& event)
 
 #pragma endregion HyperionEditor
 
-} // namespace editor
 } // namespace hyperion

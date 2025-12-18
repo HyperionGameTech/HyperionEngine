@@ -10,10 +10,11 @@
 
 #include <core/functional/ScriptableDelegate.hpp>
 
-#include <engine/EngineMemory.hpp>
-
 #include <core/memory/allocator/ArenaAllocator.hpp>
+
 #include <core/memory/pool/Pool.hpp>
+
+#include <engine/EngineMemory.hpp>
 
 namespace hyperion {
 

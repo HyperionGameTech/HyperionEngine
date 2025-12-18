@@ -32,5 +32,11 @@ namespace Hyperion
         public EngineDriver()
         {
         }
+
+        public Game? GameInstance
+        {
+            get => this.GetGameInstance();      // extension method
+            set => this.SetGameInstance(value); // extension method
+        }
     }
 }

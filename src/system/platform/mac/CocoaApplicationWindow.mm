@@ -5,22 +5,25 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CAMetalLayer.h>
 
+#include <SystemPch.hpp>
+
 #include <system/AppContext.hpp>
+#include <system/SystemEvent.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/Scheduler.hpp>
 
 #include <core/debug/Debug.hpp>
-#include <core/logging/Logger.hpp>
 
 #include <rendering/RenderBackend.hpp>
-
 #include <rendering/Device.hpp>
+
+#ifdef HYP_VULKAN
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_metal.h>
+
 #include <rendering/vulkan/VulkanSwapchain.hpp>
-
-#include <system/SystemEvent.hpp>
-
-#include <engine/EngineGlobals.hpp>
+#endif
 
 using namespace hyperion;
 
