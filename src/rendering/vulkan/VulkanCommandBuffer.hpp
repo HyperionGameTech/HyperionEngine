@@ -4,7 +4,7 @@
 
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
-#include <rendering/RenderCommandBuffer.hpp>
+#include <rendering/CommandBuffer.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI

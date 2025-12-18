@@ -7,14 +7,14 @@
 
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderGpuImage.hpp>
-#include <rendering/RenderGpuImageView.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderComputePipeline.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/GpuImage.hpp>
+#include <rendering/GpuImageView.hpp>
+#include <rendering/GpuBuffer.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -302,15 +302,15 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridRendere
         DescriptorSetRef descriptorSet = descriptorTable->GetDescriptorSet("VoxelizeProbeDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("InColorImage", colorAttachment ? colorAttachment->GetImageView() : g_renderGlobalState->placeholderData->GetImageViewCube1x1R8());
-        descriptorSet->SetElement("InNormalsImage", normalsAttachment ? normalsAttachment->GetImageView() : g_renderGlobalState->placeholderData->GetImageViewCube1x1R8());
-        descriptorSet->SetElement("InDepthImage", depthAttachment ? depthAttachment->GetImageView() : g_renderGlobalState->placeholderData->GetImageViewCube1x1R8());
+        descriptorSet->SetElement("InColorImage", colorAttachment ? colorAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
+        descriptorSet->SetElement("InNormalsImage", normalsAttachment ? normalsAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
+        descriptorSet->SetElement("InDepthImage", depthAttachment ? depthAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
 
-        descriptorSet->SetElement("SamplerLinear", g_renderGlobalState->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement("SamplerNearest", g_renderGlobalState->placeholderData->GetSamplerNearest());
+        descriptorSet->SetElement("SamplerLinear", g_renderInterface->placeholderData->GetSamplerLinear());
+        descriptorSet->SetElement("SamplerNearest", g_renderInterface->placeholderData->GetSamplerNearest());
 
-        descriptorSet->SetElement("EnvGridBuffer", 0, sizeof(EnvGridShaderData), g_renderGlobalState->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex));
-        descriptorSet->SetElement("EnvProbesBuffer", g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("EnvGridBuffer", 0, sizeof(EnvGridShaderData), g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("EnvProbesBuffer", g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
         descriptorSet->SetElement("OutVoxelGridImage", g_renderBackend->GetTextureImageView(envGrid->GetVoxelGridTexture()));
     }
@@ -423,9 +423,9 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
             const DescriptorSetRef& computeShDescriptorSet = pd.computeShDescriptorTables[i]->GetDescriptorSet("ComputeSHDescriptorSet", frameIndex);
             Assert(computeShDescriptorSet != nullptr);
 
-            computeShDescriptorSet->SetElement("InColorCubemap", g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultCubemap));
-            computeShDescriptorSet->SetElement("InNormalsCubemap", g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultCubemap));
-            computeShDescriptorSet->SetElement("InDepthCubemap", g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultCubemap));
+            computeShDescriptorSet->SetElement("InColorCubemap", g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
+            computeShDescriptorSet->SetElement("InNormalsCubemap", g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
+            computeShDescriptorSet->SetElement("InDepthCubemap", g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
             computeShDescriptorSet->SetElement("InputSHTilesBuffer", pd.shTilesBuffers[i]);
 
             if (i != ShNumLevels - 1)
@@ -506,8 +506,8 @@ void EnvGridRenderer::CreateLightFieldData(LegacyEnvGrid* envGrid, EnvGridRender
             descriptorSet->SetElement("InColorImage", framebuffer->GetAttachment(0)->GetImageView());
             descriptorSet->SetElement("InNormalsImage", framebuffer->GetAttachment(1)->GetImageView());
             descriptorSet->SetElement("InDepthImage", framebuffer->GetAttachment(2)->GetImageView());
-            descriptorSet->SetElement("SamplerLinear", g_renderGlobalState->placeholderData->GetSamplerLinear());
-            descriptorSet->SetElement("SamplerNearest", g_renderGlobalState->placeholderData->GetSamplerNearest());
+            descriptorSet->SetElement("SamplerLinear", g_renderInterface->placeholderData->GetSamplerLinear());
+            descriptorSet->SetElement("SamplerNearest", g_renderInterface->placeholderData->GetSamplerNearest());
             descriptorSet->SetElement("OutColorImage", g_renderBackend->GetTextureImageView(envGrid->GetLightFieldIrradianceTexture()));
             descriptorSet->SetElement("OutDepthImage", g_renderBackend->GetTextureImageView(envGrid->GetLightFieldDepthTexture()));
         }
@@ -779,7 +779,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame* frame,
     RenderQueue& asyncRenderQueue = *asyncRenderQueuePtr;
 
     asyncRenderQueue << InsertBarrier(pd->shTilesBuffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     asyncRenderQueue << BindDescriptorTable(
         pd->computeShDescriptorTables[0],
@@ -855,7 +855,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame* frame,
 
     // Finalize - build into final buffer
     asyncRenderQueue << InsertBarrier(pd->shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     pd->finalizeSh->SetPushConstants(&pushConstants, sizeof(pushConstants));
 
@@ -871,7 +871,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame* frame,
     asyncRenderQueue << BindComputePipeline(pd->finalizeSh);
     asyncRenderQueue << DispatchCompute(pd->finalizeSh, Vec3u { 1, 1, 1 });
 
-    asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegateHandle = new DelegateHandler();
     *delegateHandle = frame->OnFrameEnd.Bind(
@@ -887,7 +887,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame* frame,
             EnvProbeSphericalHarmonics shData;
             Memory::MemCpy(shData.values, readbackBuffer.shData, sizeof(readbackBuffer.shData));
 
-            // g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
+            // g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
             // Enqueue on game thread, not safe to write on render thread.
             GetThreadById(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData]() mutable

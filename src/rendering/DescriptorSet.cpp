@@ -3,17 +3,17 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderGpuImageView.hpp>
-#include <rendering/RenderSampler.hpp>
+#include <rendering/GpuBuffer.hpp>
+#include <rendering/GpuImageView.hpp>
+#include <rendering/Sampler.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <RenderDescriptorSet.generated.inl>
+#include <DescriptorSet.generated.inl>
 
 namespace hyperion {
 #pragma region DescriptorSetDeclaration

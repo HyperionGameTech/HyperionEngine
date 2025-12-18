@@ -5,13 +5,13 @@
 #include <rendering/SSGI.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderComputePipeline.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/ComputePipeline.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>

@@ -6,7 +6,7 @@
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
@@ -15,14 +15,14 @@
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Device.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/Renderer.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RendererBase.hpp>
+#include <rendering/DescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -311,8 +311,8 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, Lightmap
         descriptorSet->SetElement("HitsBuffer", jd.HitsBufferGpu);
         descriptorSet->SetElement("RaysBuffer", jd.RayBuffers[frameIndex]);
 
-        descriptorSet->SetElement("LightsBuffer", g_renderGlobalState->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
-        descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("LightsBuffer", g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("MaterialsBuffer", g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
         descriptorSet->SetElement("RTRadianceUniforms", jd.UniformBuffers[frameIndex]);
 
@@ -460,13 +460,13 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     frame->renderQueue << BindRaytracingPipeline(m_raytracingPipeline);
 
     frame->renderQueue << BindDescriptorSet(
-        g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(GlobalSetName, frame->GetFrameIndex()),
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet(GlobalSetName, frame->GetFrameIndex()),
         m_raytracingPipeline,
         { { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
             { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } });
 
     frame->renderQueue << BindDescriptorSet(
-        g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(MaterialSetName, frame->GetFrameIndex()),
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet(MaterialSetName, frame->GetFrameIndex()),
         m_raytracingPipeline);
 
     frame->renderQueue << BindDescriptorSet(jd.Sets[frame->GetFrameIndex()], m_raytracingPipeline);

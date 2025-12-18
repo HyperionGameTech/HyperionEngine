@@ -3,8 +3,8 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/RenderGlobalState.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/RenderInterface.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/RenderCommand.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>

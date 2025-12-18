@@ -11,7 +11,7 @@
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderResult.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/GpuBuffer.hpp>
 
 #include <core/math/MathUtil.hpp>
 #include <core/math/Extent.hpp>

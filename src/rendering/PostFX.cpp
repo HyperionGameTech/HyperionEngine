@@ -5,7 +5,7 @@
 #include <rendering/PostFX.hpp>
 
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -63,7 +63,7 @@ void PostFXPass::CreateDescriptors()
     //     : NAME("PostFXPostStack");
 
     // for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++) {
-    //     g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+    //     g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
     //         ->SetElement(descriptorName, m_effectIndex, m_framebuffer->GetAttachment(0)->GetImageView());
     // }
 }

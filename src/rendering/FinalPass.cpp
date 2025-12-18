@@ -8,11 +8,11 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderGlobalState.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderSwapchain.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderInterface.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/Swapchain.hpp>
+#include <rendering/GraphicsPipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -82,7 +82,7 @@ void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
                 }
                 else
                 {
-                    descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+                    descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
                 }
             }
 
@@ -145,7 +145,7 @@ FinalPassData* FinalPass::GetOrCreatePassData(Swapchain* swapchain)
         }
         else
         {
-            descriptorSet->SetElement("InTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("InTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
     }
 
@@ -204,7 +204,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
             }
             else
             {
-                descriptorSet->SetElement("InTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+                descriptorSet->SetElement("InTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
             }
         }
     }
@@ -229,7 +229,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     AssertDebug(descriptorSetIndex != ~0u);
 
     // Render each sub-view
-    DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderGlobalState->globalRenderers[GRT_MAIN][0]);
+    DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderInterface->globalRenderers[GRT_MAIN][0]);
     AssertDebug(dr != nullptr);
 
     frame->renderQueue << BindVertexBuffer(m_quadMesh->GetVertexBuffer());

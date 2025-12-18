@@ -8,7 +8,7 @@
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
 
-#include <rendering/RenderDevice.hpp>
+#include <rendering/Device.hpp>
 
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 

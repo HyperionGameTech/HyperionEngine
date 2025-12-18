@@ -6,7 +6,7 @@
 
 #include <core/math/Mat4f.hpp>
 
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <core/Types.hpp>

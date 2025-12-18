@@ -6,14 +6,14 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderAttachment.hpp>
-#include <rendering/RenderComputePipeline.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderGpuImage.hpp>
-#include <rendering/RenderGpuImageView.hpp>
-#include <rendering/RenderSampler.hpp>
-#include <rendering/RenderShader.hpp>
+#include <rendering/Attachment.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/GpuImage.hpp>
+#include <rendering/GpuImageView.hpp>
+#include <rendering/Sampler.hpp>
+#include <rendering/Shader.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 

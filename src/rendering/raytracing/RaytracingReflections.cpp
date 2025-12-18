@@ -2,18 +2,18 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -47,7 +47,7 @@ struct UnsetRTRadianceImageInGlobalDescriptorSet : RenderCommand
         // remove result image from global descriptor set
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)->SetElement("RTRadianceResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)->SetElement("RTRadianceResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
         return result;
@@ -96,7 +96,7 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
         descriptorSet->SetElement("MeshDescriptionsBuffer", tlas->GetMeshDescriptionsBuffer());
         descriptorSet->SetElement("OutputImage", g_renderBackend->GetTextureImageView(m_texture));
         descriptorSet->SetElement("RTRadianceUniforms", m_uniformBuffers[frameIndex]);
-        descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("MaterialsBuffer", g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     };
 
     if (m_raytracingPipeline != nullptr)
@@ -137,7 +137,7 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
     {
         descriptorTable->Update(frameIndex, /* force */ true);
 
-        g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
             ->SetElement("RTRadianceResultTexture", g_renderBackend->GetTextureImageView(m_temporalBlending->GetResultTexture()));
     }
 }

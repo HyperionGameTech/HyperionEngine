@@ -32,7 +32,7 @@
 #include <streaming/StreamingManager.hpp>
 
 #include <rendering/Material.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -129,7 +129,7 @@ Handle<Logger> g_logger;
 ShaderManager* g_shaderManager;
 MaterialCache* g_materialCache;
 SafeDeleter* g_safeDeleter;
-RenderGlobalState* g_renderGlobalState;
+RenderInterface* g_renderInterface;
 ShaderCompiler* g_shaderCompiler;
 Handle<InputManager> g_inputManager;
 
@@ -640,11 +640,11 @@ extern "C"
 
         if (g_logRedirectId == -1)
         {
-            //g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
-            //    Bitset(~0u), // All channels
-            //    nullptr,
-            //    HandleLogMessage,
-            //    HandleLogMessage // Use same handler for errors for now
+            // g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
+            //     Bitset(~0u), // All channels
+            //     nullptr,
+            //     HandleLogMessage,
+            //     HandleLogMessage // Use same handler for errors for now
             //);
         }
     }

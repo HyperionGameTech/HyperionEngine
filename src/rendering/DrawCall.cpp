@@ -4,7 +4,7 @@
 
 #include <rendering/DrawCall.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <rendering/Mesh.hpp>
@@ -20,13 +20,13 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
-extern RenderGlobalState* g_renderGlobalState;
+extern RenderInterface* g_renderInterface;
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
 {
-    return g_renderGlobalState->gpuBufferHolders;
+    return g_renderInterface->gpuBufferHolders;
 }
 
 // Register allocator for the batch type used if none other is specified

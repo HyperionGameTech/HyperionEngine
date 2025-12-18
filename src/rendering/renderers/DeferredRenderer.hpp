@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PostFX.hpp>
 #include <rendering/ParticleSystem.hpp>

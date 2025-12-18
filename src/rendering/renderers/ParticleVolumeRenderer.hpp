@@ -4,7 +4,7 @@
 
 #include <core/containers/HashMap.hpp>
 
-#include <rendering/Renderer.hpp>
+#include <rendering/RendererBase.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
 namespace hyperion {
@@ -33,9 +33,9 @@ protected:
 private:
     struct VolumeState
     {
-        GpuBufferRef particleBuffer;    // SSBO of ParticleShaderData
-        GpuBufferRef indirectBuffer;    // struct IndirectDrawCommand
-        Handle<Texture> noiseMap;       // 128x128
+        GpuBufferRef particleBuffer; // SSBO of ParticleShaderData
+        GpuBufferRef indirectBuffer; // struct IndirectDrawCommand
+        Handle<Texture> noiseMap;    // 128x128
 
         ComputePipelineRef updatePipeline;
         GraphicsPipelineCacheHandle graphicsPipelineHandle;

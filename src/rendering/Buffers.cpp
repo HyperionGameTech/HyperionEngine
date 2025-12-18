@@ -5,7 +5,7 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderQueue.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

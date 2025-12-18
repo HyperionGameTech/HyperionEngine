@@ -3,7 +3,7 @@
 #pragma once
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderGpuImage.hpp>
+#include <rendering/GpuImage.hpp>
 
 #include <core/functional/Proc.hpp>
 #include <core/functional/Delegate.hpp>

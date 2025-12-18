@@ -7,12 +7,12 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderQueue.hpp>
-#include <rendering/RenderFrame.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderComputePipeline.hpp>
-#include <rendering/RenderFramebuffer.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/Framebuffer.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
 
@@ -108,8 +108,8 @@ void TemporalAA::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetu
 
         descriptorSet->SetElement("InDepthTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
 
-        descriptorSet->SetElement("SamplerLinear", g_renderGlobalState->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement("SamplerNearest", g_renderGlobalState->placeholderData->GetSamplerNearest());
+        descriptorSet->SetElement("SamplerLinear", g_renderInterface->placeholderData->GetSamplerLinear());
+        descriptorSet->SetElement("SamplerNearest", g_renderInterface->placeholderData->GetSamplerNearest());
 
         descriptorSet->SetElement("OutColorImage", g_renderBackend->GetTextureImageView((*textures[frameIndex % 2])));
 

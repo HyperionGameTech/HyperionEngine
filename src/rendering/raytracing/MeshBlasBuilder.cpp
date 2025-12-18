@@ -6,7 +6,7 @@
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <rendering/RenderCommand.hpp>
-#include <rendering/RenderFrame.hpp>
+#include <rendering/Frame.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/RenderBackend.hpp>

@@ -2,9 +2,9 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/GpuBuffer.hpp>
 
-#include <RenderGpuBuffer.generated.inl>
+#include <GpuBuffer.generated.inl>
 
 namespace hyperion {
 

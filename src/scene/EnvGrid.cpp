@@ -14,11 +14,11 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 
 #include <rendering/Texture.hpp>
-#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderProxyList.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 
 #include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>

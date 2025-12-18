@@ -11,7 +11,7 @@
 
 #include <rendering/RenderResult.hpp>
 #include <rendering/Shared.hpp>
-#include <rendering/RenderShader.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <core/Types.hpp>

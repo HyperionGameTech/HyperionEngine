@@ -8,7 +8,7 @@
 #include <rendering/vulkan/VulkanStructs.hpp>
 
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/DescriptorSet.hpp>
 #include <rendering/AsyncCompute.hpp>
 
 #include <core/debug/Debug.hpp>
