@@ -46,6 +46,8 @@ Game::~Game()
 {
     if (m_world)
     {
+        m_world->m_gameInstance = nullptr;
+
         g_engineDriver->RemoveWorld(m_world);
     }
 }
@@ -59,6 +61,9 @@ void Game::Init()
     {
         m_world = CreateObject<World>(s_nameMainWorld, WorldFlags::DEFAULT);
     }
+
+    AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
+    m_world->m_gameInstance = this;
 
     InitObject(m_world);
     g_engineDriver->AddWorld(m_world);

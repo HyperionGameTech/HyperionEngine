@@ -20,8 +20,7 @@ int main(int argc, char** argv)
     
     Handle<game::DefaultGame> defaultGame = CreateObject<game::DefaultGame>();
     
-    App::GetInstance().LaunchGame(defaultGame);
-
+    Hyp_LaunchGame(defaultGame);
     Hyp_Shutdown();
     
     return 0;

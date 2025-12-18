@@ -21,7 +21,7 @@ class SystemEvent;
 
 using sys::SystemEvent;
 
-HYP_CLASS(Abstract)
+HYP_CLASS()
 class HYP_API Game : public ObjectBase
 {
     friend class GameThread;
@@ -66,16 +66,14 @@ protected:
 
     virtual void OnInputEvent(const SystemEvent& event);
 
+    HYP_METHOD()
     virtual void OnLaunch_Impl()
     {
-        // must be implemented by derived class
-        HYP_PURE_VIRTUAL();
     }
 
+    HYP_METHOD()
     virtual void OnUpdate_Impl(float delta)
     {
-        // must be implemented by derived class
-        HYP_PURE_VIRTUAL();
     }
 
     const Handle<UISubsystem>& GetUISubsystem() const

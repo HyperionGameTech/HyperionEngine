@@ -505,6 +505,16 @@ extern "C"
 #endif
     }
 
+    HYP_EXPORT void Hyp_LaunchGame(Game* pGame)
+    {
+        AssertOnThread(g_mainThread);
+
+        Assert(pGame != nullptr);
+        Assert(g_gameThreadInstance != nullptr && g_gameThreadInstance->IsRunning());
+        
+        g_gameThreadInstance->SetGame(MakeStrongRef(pGame));
+    }
+
     HYP_EXPORT AppContextBase* Hyp_GetAppContext()
     {
         return g_appContext.Get();
