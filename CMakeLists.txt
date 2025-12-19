@@ -405,7 +405,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
 
     message(STATUS "Found Vulkan at: ${Vulkan_INCLUDE_DIRS} ${Vulkan_LIBRARIES}")
 
-    include_directories(${Vulkan_INCLUDE_DIRS})
+    include_directories(BEFORE ${Vulkan_INCLUDE_DIRS})
 else()
     message(FATAL_ERROR "No rendering backend found!")
 endif()
