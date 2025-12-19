@@ -122,7 +122,7 @@ class HYP_API EditorGizmoBase : public ObjectBase
 
 public:
     EditorGizmoBase();
-    virtual ~EditorGizmoBase() = default;
+    virtual ~EditorGizmoBase();
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Node>& GetNode() const
@@ -199,6 +199,7 @@ protected:
 
     WeakHandle<Node> m_focusedNode;
     Handle<Node> m_node;
+    struct InputMouseLockScope* m_mouseLockScope;
 
 private:
     EditorSubsystem* m_editorSubsystem;
