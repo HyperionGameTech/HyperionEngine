@@ -85,7 +85,7 @@ namespace Hyperion
     /// Represents a native (C++) Delegate (see core/functional/Delegate.hpp)
     /// Unrelated to C# built-in delegate type
     /// </summary>
-    [NoManagedClass]
+    [NoNativeClass]
     public struct ScriptableDelegate
     {
         private object _target;

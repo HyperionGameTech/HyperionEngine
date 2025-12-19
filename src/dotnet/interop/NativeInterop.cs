@@ -354,10 +354,10 @@ namespace Hyperion
 
         private static unsafe IntPtr InitManagedClass(Type type, bool isCoreAssembly)
         {
-            // Skip classes with the NoManagedClass attribute
-            if (TryGetAttributeByName(type, "NoManagedClass") != null)
+            // Skip classes with the NoNativeClass attribute
+            if (TryGetAttributeByName(type, "NoNativeClass") != null)
             {
-                Logger.Log(LogType.Debug, "Skipping managed class for type: {0} due to NoManagedClass attribute", type.Name);
+                Logger.Log(LogType.Debug, "Skipping managed class for type: {0} due to NoNativeClass attribute", type.Name);
 
                 return IntPtr.Zero;
             }

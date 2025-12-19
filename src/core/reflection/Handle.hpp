@@ -706,6 +706,19 @@ struct WeakHandle final
 
         return handle;
     }
+
+    HYP_NODISCARD T* Release()
+    {
+        if (!IsValid())
+        {
+            return nullptr;
+        }
+
+        T* address = static_cast<T*>(ptr);
+        ptr = nullptr;
+
+        return address;
+    }
 };
 
 /*! \brief A dynamic Handle type. Type is stored at runtime instead of compile time.

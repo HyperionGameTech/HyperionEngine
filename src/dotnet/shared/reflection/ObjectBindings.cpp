@@ -79,6 +79,13 @@ extern "C"
         /// NOTE: CREATED_FROM_MANAGED is set to true here, so we don't set keep alive to true
     }
 
+    HYP_EXPORT void Object_GetId(ObjectBase* obj, ObjIdBase* outId)
+    {
+        AssertDebug(outId != nullptr);
+
+        *outId = obj ? obj->Id() : ObjIdBase();
+    }
+
     HYP_EXPORT uint32 Object_GetRefCountStrong(const Class* cls, void* nativeAddress)
     {
         Assert(cls != nullptr);

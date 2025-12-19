@@ -3,8 +3,11 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public static class ManagedHandleNativeBindings
+    public static partial class ManagedHandleNativeBindings
     {
+        [DllImport("hyperion", EntryPoint = "Object_GetId")]
+        internal static extern void Object_GetId([In] IntPtr nativeAddress, [Out] out ObjIdBase outIdValue);
+
         [DllImport("hyperion", EntryPoint = "Handle_Get")]
         internal static extern void Handle_Get(IntPtr ptr, [Out] out HypDataBuffer outHypDataBuffer);
 
@@ -12,7 +15,7 @@ namespace Hyperion
         internal static extern void Handle_Set([In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "Handle_Destruct")]
-        public static extern void Handle_Destruct(IntPtr ptr);
+        internal static extern void Handle_Destruct(IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "WeakHandle_Lock")]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -77,6 +80,25 @@ namespace Hyperion
     public struct WeakHandle : IDisposable
     {
         internal IntPtr ptr;
+
+        public WeakHandle()
+        {
+            this.ptr = IntPtr.Zero;
+        }
+
+        public WeakHandle(object? value)
+        {
+            if (value == null)
+            {
+                ptr = IntPtr.Zero;
+                return;
+            }
+
+            using (HypData hypData = new HypData(value))
+            {
+                ManagedHandleNativeBindings.WeakHandle_Set(ref hypData.Buffer, out ptr);
+            }
+        }
 
         public void Dispose()
         {
@@ -167,6 +189,16 @@ namespace Hyperion
             }
         }
 
+        public ObjIdBase Id
+        {
+            get
+            {
+                ObjIdBase id;
+                ManagedHandleNativeBindings.Object_GetId(ptr, out id);
+                return id;
+            }
+        }
+
         public IntPtr Address
         {
             get
@@ -234,6 +266,16 @@ namespace Hyperion
             {
                 ManagedHandleNativeBindings.WeakHandle_Destruct(ptr);
                 ptr = IntPtr.Zero;
+            }
+        }
+
+        public ObjIdBase Id
+        {
+            get
+            {
+                ObjIdBase id;
+                ManagedHandleNativeBindings.Object_GetId(ptr, out id);
+                return id;
             }
         }
 
