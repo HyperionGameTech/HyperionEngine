@@ -42,8 +42,6 @@ extern VkImageLayout GetVkImageLayout(ResourceState);
 extern VkAccessFlags GetVkAccessMask(ResourceState);
 extern VkPipelineStageFlags GetVkShaderStageMask(ResourceState, bool, ShaderModuleType);
 
-#pragma endregion VulkanImagePlatformImpl
-
 #pragma region VulkanGpuImage
 
 VulkanGpuImage::VulkanGpuImage(const TextureDesc& textureDesc, EnumFlags<GpuImageFlags> flags)

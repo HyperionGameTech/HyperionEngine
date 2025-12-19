@@ -237,8 +237,18 @@ void GenerateLightmapsEditorTask::Tick(float delta)
 #pragma region EditorGizmoBase
 
 EditorGizmoBase::EditorGizmoBase()
-    : m_isDragging(false)
+    : m_isDragging(false),
+      m_mouseLockScope(nullptr)
 {
+}
+
+EditorGizmoBase::~EditorGizmoBase()
+{
+    if (m_mouseLockScope)
+    {
+        delete m_mouseLockScope;
+        m_mouseLockScope = nullptr;
+    }
 }
 
 void EditorGizmoBase::Init()
@@ -303,11 +313,23 @@ void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
 void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
 {
     m_isDragging = true;
+
+    if (!m_mouseLockScope)
+    {
+        m_mouseLockScope = new InputMouseLockScope();
+    }
+
+    //*m_mouseLockScope = g_inputManager->AcquireMouseLock();
 }
 
 void EditorGizmoBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
     m_isDragging = false;
+
+    if (m_mouseLockScope)
+    {
+        //m_mouseLockScope->Reset();
+    }
 }
 
 Handle<EditorProject> EditorGizmoBase::GetCurrentProject() const
@@ -3618,7 +3640,7 @@ void EditorSubsystem::SetActiveViewport(EditorViewport* viewport)
     {
         Handle<EditorViewport> viewportStrong = MakeStrongRef(viewport);
         m_editorViewports.PushFront(viewportStrong);
-        OnActiveSceneChanged(viewportStrong);
+        OnActiveViewportChanged(viewportStrong);
         return;
     }
 
@@ -3632,7 +3654,7 @@ void EditorSubsystem::SetActiveViewport(EditorViewport* viewport)
 
     std::swap(m_editorViewports[0], m_editorViewports[idx]);
 
-    OnActiveSceneChanged(MakeStrongRef(viewport));
+    OnActiveViewportChanged(MakeStrongRef(viewport));
 }
 
 void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
