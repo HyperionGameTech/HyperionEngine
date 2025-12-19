@@ -430,7 +430,7 @@ extern "C"
             return false;
         }
 
-        // @TODO Implement for dynamic struct types
+        /// \todo Implement for dynamic struct types
 
         const Class* cls = GetClass(hypData->GetTypeId());
 

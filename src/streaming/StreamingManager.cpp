@@ -460,7 +460,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
             GetDesiredCellsForLayer(layerData, volume, desiredCells);
         }
 
-        // @TODO Use bitset via IDs, or by cell index (x * height + y, would need constant max dimensions for that) to track desired cells and undesired cells.
+        /// \todo Use bitset via IDs, or by cell index (x * height + y, would need constant max dimensions for that) to track desired cells and undesired cells.
         Array<Vec2i, StreamingTempAllocator> cellsToAdd = desiredCells.ToArray();
         Array<Handle<StreamingCell>, StreamingTempAllocator> cellsToRemove;
 

@@ -362,7 +362,7 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
 
         ConstAnyRef ref = ConstAnyRef(in);
 
-        /// @TODO: Move Marshal to Class.
+        //// \todo : Move Marshal to Class.
 
         if constexpr (std::is_base_of_v<ObjectBase, NormalizedType<T>>)
         {

@@ -568,7 +568,7 @@ void SkyProbe::Init()
 {
     m_texture = CreateObject<Texture>(TextureDesc {
         TT_CUBEMAP,
-        TF_RGBA16F, // @TODO smaller format
+        TF_RGBA16F, /// \todo smaller format
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR,

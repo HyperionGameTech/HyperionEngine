@@ -219,7 +219,7 @@ namespace Hyperion
             return new Vec3f(left.x / right, left.y / right, left.z / right);
         }
 
-        // @TODO: Remaining methods
+        /// \todo : Remaining methods
 
         public override string ToString()
         {

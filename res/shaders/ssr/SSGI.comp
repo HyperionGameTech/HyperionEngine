@@ -107,7 +107,7 @@ bool TraceRays(
 
     int i = 0;
 
-    // @TODO Use hi-z buffer instead of fixed step
+    /// \todo Use hi-z buffer instead of fixed step
 
     for (; i < ssr_params.num_iterations; i++)
     {

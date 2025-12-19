@@ -102,13 +102,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-        shader,
-        descriptorTable,
-        FramebufferRef::Null(),
-        imageFormat,
-        extent,
-        gbuffer,
-        flags)
+          shader,
+          descriptorTable,
+          FramebufferRef::Null(),
+          imageFormat,
+          extent,
+          gbuffer,
+          flags)
 {
 }
 
@@ -119,13 +119,13 @@ FullScreenPass::FullScreenPass(
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-        shader,
-        DescriptorTableRef::Null(),
-        FramebufferRef::Null(),
-        imageFormat,
-        extent,
-        gbuffer,
-        flags)
+          shader,
+          DescriptorTableRef::Null(),
+          FramebufferRef::Null(),
+          imageFormat,
+          extent,
+          gbuffer,
+          flags)
 {
 }
 
@@ -444,7 +444,6 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet& renderableAttr
 
     m_graphicsPipelineCacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        m_descriptorTable.GetOr(DescriptorTableRef::Null()),
         { &m_framebuffer, 1 },
         renderableAttributes);
 
@@ -775,16 +774,30 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
         }
     }
 
-    if (renderSetup.view != nullptr && renderSetup.view->GetCamera() != nullptr)
+    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
+
+    if (m_descriptorTable.HasValue())
     {
+        // bind whole group if set
         frame->renderQueue << BindDescriptorTable(
-            graphicsPipeline->GetDescriptorTable(),
+            m_descriptorTable.GetUnchecked(),
             graphicsPipeline,
-            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.HasView() ? renderSetup.view->GetCamera() : nullptr, 0) } } } },
             frame->GetFrameIndex());
     }
+    else
+    {
+        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global"_sh);
 
-    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+        if (globalDescriptorSetIndex != ~0u)
+        {
+            frame->renderQueue << BindDescriptorSet(
+                g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frame->GetFrameIndex()),
+                graphicsPipeline,
+                { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.HasView() ? renderSetup.view->GetCamera() : nullptr, 0) } },
+                globalDescriptorSetIndex);
+        }
+    }
 
     if (viewDescriptorSetIndex != ~0u)
     {

@@ -41,7 +41,7 @@ public:
         m_allocation.SetToInitialState();
     }
 
-    /*! \brief Constructs a ByteBuffer with the given size, allocating memory on the heap if \ref{count} != 0.
+    /*! \brief Constructs a ByteBuffer with the given size, allocating memory on the heap if \p count != 0.
      *  \param count The size of the ByteBuffer in bytes. If count is zero, no memory is allocated and the ByteBuffer is set to an empty state.
      *  \param zeroize If true, the memory is initialized to zero. */
     explicit TByteBuffer(SizeType count, bool zeroize = true)
@@ -65,7 +65,7 @@ public:
         }
     }
 
-    /*! \brief Constructs a ByteBuffer with the given size and data, allocating memory on the heap if \ref{count} != 0 and copies the data into the buffer. */
+    /*! \brief Constructs a ByteBuffer with the given size and data, allocating memory on the heap if \p count != 0 and copies the data into the buffer. */
     explicit TByteBuffer(SizeType count, const void* data)
         : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_size(count)
@@ -83,7 +83,7 @@ public:
         m_allocation.InitFromRangeCopy(reinterpret_cast<const ubyte*>(data), reinterpret_cast<const ubyte*>(data) + m_size);
     }
 
-    /*! \brief Constructs a ByteBuffer from a \ref{ByteView}, allocating memory on the heap if the view is not empty and copies the data into the buffer.
+    /*! \brief Constructs a ByteBuffer from \p view, allocating memory on the heap if the view is not empty and copies the data into the buffer.
      *  \param view The ByteView to copy to the ByteBuffer. */
     explicit TByteBuffer(const ByteView& view)
         : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
@@ -102,7 +102,7 @@ public:
         m_allocation.InitFromRangeCopy(view.Begin(), view.End());
     }
 
-    /*! \brief Constructs a ByteBuffer from a \ref{ConstByteView}, allocating memory on the heap if the view is not empty and copies the data into the buffer.
+    /*! \brief Constructs a ByteBuffer from a \ref ConstByteView, allocating memory on the heap if the view is not empty and copies the data into the buffer.
      *  \param view The ConstByteView to copy to the ByteBuffer. */
     explicit TByteBuffer(const ConstByteView& view)
         : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
@@ -274,11 +274,11 @@ public:
         m_allocation.Free(m_pAllocator);
     }
 
-    /*! \brief Writes \ref{count} bytes of \ref{data} to the ByteBuffer at the given \ref{offset}.
+    /*! \brief Writes \p count bytes of \p data to the ByteBuffer at the given \p offset.
      *  \warning The ByteBuffer must have enough capacity to hold the data, otherwise an assertion will be thrown.
      *  \param count The number of bytes to write to the ByteBuffer.
      *  \param offset The offset in the ByteBuffer to write to.
-     *  \param data A pointer to the data to write to the ByteBuffer. It must be a pointer to a valid memory location with at least \ref{count} bytes of data. */
+     *  \param data A pointer to the data to write to the ByteBuffer. It must be a pointer to a valid memory location with at least \p count bytes of data. */
     HYP_FORCE_INLINE void Write(SizeType count, SizeType offset, const void* data)
     {
         if (count == 0)
@@ -306,7 +306,7 @@ public:
         return byteArray;
     }
 
-    /*! \brief Returns a \ref{ByteView} of the ByteBuffer's data. The ByteView will point to the same data as the ByteBuffer, so changes to the ByteBuffer will be reflected in the ByteView.
+    /*! \brief Returns a \ref ByteView of the ByteBuffer's data. The ByteView will point to the same data as the ByteBuffer, so changes to the ByteBuffer will be reflected in the ByteView.
      *  \param offset The offset in the ByteBuffer to start the view from.
      *  \param size The size of the view. If size is larger than the ByteBuffer's size, it will be clamped to the ByteBuffer's size.
      *  \return A ByteView of the ByteBuffer's data. */
@@ -320,7 +320,7 @@ public:
         return ByteView(Data() + offset, size);
     }
 
-    /*! \brief Returns a \ref{ConstByteView} of the ByteBuffer's data. The ConstByteView will point to the same data as the ByteBuffer, so changes to the ByteBuffer will be reflected in the ConstByteView.
+    /*! \brief Returns a \ref ConstByteView of the ByteBuffer's data. The ConstByteView will point to the same data as the ByteBuffer, so changes to the ByteBuffer will be reflected in the ConstByteView.
      *  \param offset The offset in the ByteBuffer to start the view from.
      *  \param size The size of the view. If size is larger than the ByteBuffer's size, it will be clamped to the ByteBuffer's size.
      *  \return A ConstByteView of the ByteBuffer's data. */
@@ -506,8 +506,8 @@ public:
         return m_size == 0;
     }
 
-    /*! \brief Returns a reference to the byte at \ref{index} in the ByteBuffer.
-     *  \deprecated Use \ref{Read} to read bytes from the ByteBuffer in bulk.
+    /*! \brief Returns a reference to the byte at \p index in the ByteBuffer.
+     *  \deprecated Use \ref Read to read bytes from the ByteBuffer in bulk.
      *  \warning The index must be within the bounds of the ByteBuffer or undefined behavior will occur.
      *  \param index The index of the byte to return.
      *  \return A reference to the byte at the given index. */
@@ -516,8 +516,8 @@ public:
         return *(m_allocation.GetBuffer() + index);
     }
 
-    /*! \brief Returns a the byte at \ref{index} in the ByteBuffer by value.
-     *  \deprecated Use \ref{Read} to read bytes from the ByteBuffer in bulk.
+    /*! \brief Returns a the byte at \p index in the ByteBuffer by value.
+     *  \deprecated Use \ref Read to read bytes from the ByteBuffer in bulk.
      *  \warning The index must be within the bounds of the ByteBuffer or undefined behavior will occur.
      *  \param index The index of the byte to return.
      *  \return The byte at the given index. */

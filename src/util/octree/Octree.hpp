@@ -309,8 +309,8 @@ protected:
 
     void Invalidate();
 
-    /*! \brief If \ref{allowRebuild} is true, removes any potentially empty octants above the entry.
-        If \ref{allowRebuild} is false, marks them as dirty so they get removed on the next call to PerformUpdates()
+    /*! \brief If \p allowRebuild is true, removes any potentially empty octants above the entry.
+        If \p allowRebuild is false, marks them as dirty so they get removed on the next call to PerformUpdates()
     */
     void CollapseParents(bool allowRebuild);
 

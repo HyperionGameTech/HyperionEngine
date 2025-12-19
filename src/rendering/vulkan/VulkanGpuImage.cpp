@@ -356,7 +356,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
         VmaPool pool;
         res = vmaCreatePool(GetRenderBackend()->GetDevice()->GetAllocator(), &poolCreateInfo, &pool);
-        VULKAN_CHECK(res); /// @TODO Have to destroy this pool later!
+        VULKAN_CHECK(res); //// \todo Have to destroy this pool later!
 
         allocInfo.pool = pool;
 

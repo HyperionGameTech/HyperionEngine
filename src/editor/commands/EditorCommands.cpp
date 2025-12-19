@@ -31,12 +31,12 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 
 extern const FilePath& GetResourceDirectory();
 
-#define DEFINE_EDITOR_COMMAND(name)                                                     \
-    HYP_API const Class* g_clsEditorCommand##name = nullptr;                            \
-                                                                                        \
-    HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase"))              \
-    HYP_END_CLASS                                                                       \
-                                                                                        \
+#define DEFINE_EDITOR_COMMAND(name)                                        \
+    HYP_API const Class* g_clsEditorCommand##name = nullptr;               \
+                                                                           \
+    HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase")) \
+    HYP_END_CLASS                                                          \
+                                                                           \
     HYP_EXPORT TClassStaticInit<EditorCommand##name> classInit##EditorCommand##name {};
 
 #pragma region Undo
@@ -249,7 +249,7 @@ public:
             return;
         }
 
-        // @TODO: Allow building a bounding box in editor before starting the task.
+        /// \todo : Allow building a bounding box in editor before starting the task.
         BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
 
         Handle<LightmapVolume> lightmapVolume = CreateObject<LightmapVolume>(lightmapVolumeAabb);

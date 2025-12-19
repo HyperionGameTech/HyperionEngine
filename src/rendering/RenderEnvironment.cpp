@@ -8,7 +8,6 @@
 #include <rendering/Frame.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
-#include <rendering/ParticleSystem.hpp>
 #include <rendering/GaussianSplatting.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
@@ -28,15 +27,11 @@ RenderEnvironment::RenderEnvironment()
 
 RenderEnvironment::~RenderEnvironment()
 {
-    m_particleSystem.Reset();
     m_gaussianSplatting.Reset();
 }
 
 void RenderEnvironment::Initialize()
 {
-    m_particleSystem = CreateObject<ParticleSystem>();
-    InitObject(m_particleSystem);
-
     m_gaussianSplatting = CreateObject<GaussianSplatting>();
     InitObject(m_gaussianSplatting);
 }

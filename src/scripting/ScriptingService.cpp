@@ -238,7 +238,7 @@ void ScriptingService::Update()
 }
 
 // Called from any thread - most likely from C# thread pool
-// @TODO: Use scheduler to push task to game thread instead
+/// \todo : Use scheduler to push task to game thread instead
 void ScriptingService::PushScriptEvent(const ScriptEvent& event)
 {
     Mutex::Guard guard(m_scriptEventQueueMutex);

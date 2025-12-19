@@ -84,7 +84,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, EntitiesBuffer) readonly buffer EntitiesBuff
 };
 #endif
 
-// @TODO Refactor to use LightsBuffer instead
+/// \todo Refactor to use LightsBuffer instead
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
 {

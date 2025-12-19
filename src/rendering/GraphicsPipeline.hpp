@@ -107,13 +107,6 @@ public:
         m_depthWrite = depthWrite;
     }
 
-    HYP_FORCE_INLINE const DescriptorTableRef& GetDescriptorTable() const
-    {
-        return m_descriptorTable;
-    }
-
-    void SetDescriptorTable(const DescriptorTableRef& descriptorTable);
-
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
     {
         return m_shader;
@@ -142,12 +135,13 @@ public:
 
     virtual RendererResult Create();
 
+    uint32 GetDescriptorSetIndex(StringHash nameHash) const;
+
     virtual void Bind(CommandBuffer* commandBuffer) = 0;
     virtual void Bind(CommandBuffer* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent) = 0;
 
     virtual bool MatchesSignature(
         const Shader* shader,
-        const DescriptorTableDeclaration& descriptorTableDecl,
         const Array<const Framebuffer*>& framebuffers,
         const RenderableAttributeSet& attributes) const;
 
@@ -157,11 +151,12 @@ public:
     uint32 lastFrame = uint32(-1);
 
 protected:
-    GraphicsPipelineBase() = default;
+    GraphicsPipelineBase()
+    {
+    }
 
-    GraphicsPipelineBase(const ShaderRef& shader, const DescriptorTableRef& descriptorTable)
-        : m_shader(shader),
-          m_descriptorTable(descriptorTable)
+    explicit GraphicsPipelineBase(const ShaderRef& shader)
+        : m_shader(shader)
     {
     }
 
@@ -180,7 +175,6 @@ protected:
     bool m_depthWrite = true;
 
     ShaderRef m_shader;
-    DescriptorTableRef m_descriptorTable;
     Array<FramebufferRef> m_framebuffers;
 
 #ifdef HYP_DEBUG_MODE

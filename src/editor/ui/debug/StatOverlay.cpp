@@ -122,7 +122,7 @@ void StatOverlay::Update_Impl(float delta)
     {
         if (m_memoryUsageTextElement.IsValid())
         {
-            // @TODO
+            /// \todo
         }
 
         m_deltaAccumGame = 0.0f;

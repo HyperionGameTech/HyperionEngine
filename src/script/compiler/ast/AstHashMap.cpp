@@ -173,7 +173,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    // @TODO: Cache generic instance types
+    /// \todo : Cache generic instance types
     m_mapTypeExpr.Reset(new AstTemplateInstantiation(
         RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_mapType, m_location)), m_location)),
         { RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_keyType, m_location)), m_location)),

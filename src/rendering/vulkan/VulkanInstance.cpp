@@ -198,7 +198,7 @@ ExtensionMap VulkanInstance::GetExtensionMap()
     map[VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME] = true;
 #endif
 
-    // @TODO: other platforms
+    /// \todo : other platforms
 #endif
 
     return map;

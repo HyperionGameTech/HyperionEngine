@@ -15,7 +15,7 @@ namespace filesystem {
 
 class FilePath;
 
-/// @TODO: Refactor FsUtil to use FilePath instead of std::string
+//// \todo : Refactor FsUtil to use FilePath instead of std::string
 
 class FileSystem
 {

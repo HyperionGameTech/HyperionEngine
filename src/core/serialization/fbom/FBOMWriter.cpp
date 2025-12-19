@@ -175,7 +175,7 @@ FBOMResult FBOMWriter::Emit(ByteWriter* out, bool writeHeader)
     if (FileByteWriter* fileByteWriter = dynamic_cast<FileByteWriter*>(out))
     {
         basePath = fileByteWriter->GetFilePath().BasePath();
-        // @TODO Use a config property instead of `fileByteWriter->GetFilePath()` - so resaving an object doesn't change the path
+        /// \todo Use a config property instead of `fileByteWriter->GetFilePath()` - so resaving an object doesn't change the path
         externalPath = FilePath(fileByteWriter->GetFilePath().StripExtension() + "_external");
     }
 

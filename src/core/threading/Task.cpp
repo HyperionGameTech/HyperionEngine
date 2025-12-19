@@ -133,7 +133,7 @@ TaskCallbackChain& TaskCallbackChain::operator=(TaskCallbackChain&& other) noexc
 
 void TaskCallbackChain::Add(Proc<void()>&& callback)
 {
-    // @TODO: Smarter implementation possibly using semaphores that are set up with a value when task is first initialized,
+    /// \todo : Smarter implementation possibly using semaphores that are set up with a value when task is first initialized,
     // need a way to tell if the added callback will never be executed because the task completed.
     Mutex::Guard guard(m_mutex);
 

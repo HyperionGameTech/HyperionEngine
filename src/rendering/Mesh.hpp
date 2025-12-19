@@ -190,7 +190,7 @@ private:
     mutable BoundingBox m_aabb;
 
     HYP_FIELD(Transient)
-    BVHNode m_bvh; // @TODO: Move to MeshAsset to serialize there, serialization on Mesh is creating too large files.
+    BVHNode m_bvh; /// \todo : Move to MeshAsset to serialize there, serialization on Mesh is creating too large files.
 
     HYP_FIELD()
     EnumFlags<MeshFlags> m_flags;

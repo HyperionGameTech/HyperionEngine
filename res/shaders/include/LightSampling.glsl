@@ -69,7 +69,7 @@ vec4 SampleRectLightTexture(in Light light, in vec3 pts[4])
 
     float dist = abs(dist_area) / pow(area_sqr, 0.75);
 
-    // @TODO Pre-filter area light texs
+    /// \todo Pre-filter area light texs
     float lod = log(2048.0 * dist) / log(3.0);
 
     float lod_a = floor(lod);

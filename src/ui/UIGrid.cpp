@@ -498,7 +498,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase* dataSource)
                 RemoveChildUIObject(uiObject);
             }
 
-            // @TODO: Rebuild grid layout so that there are no empty rows/columns
+            /// \todo : Rebuild grid layout so that there are no empty rows/columns
         });
 
     m_dataSourceOnElementUpdateHandler = dataSource->OnElementUpdate.Bind([this, dataSource](UIDataSourceBase* dataSourcePtr, UIDataSourceElement* element, UIDataSourceElement* parent)

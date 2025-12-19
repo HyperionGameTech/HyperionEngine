@@ -448,7 +448,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 // add a $construct member. It'll need to call the user-defined constructor (if any).
                 // user-defined constructor is a function member with the same name as the class
 
-                // @TODO: Call base class constructor if applicable
+                /// \todo : Call base class constructor if applicable
                 Optional<SymbolTypeMember> userDefinedConstructorMember;
                 for (const SymbolTypeMember& member : m_symbolType->GetMembers())
                 {
@@ -772,7 +772,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            // @TODO Struct types
+            /// \todo Struct types
             instrType->flags = (ClassFlags)((uint8)instrType->flags | (uint8)ClassFlags::CLASS_TYPE);
         }
 

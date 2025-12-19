@@ -13,7 +13,7 @@
 namespace hyperion {
 namespace serialization {
 
-// @TODO: Use GlobalContext interface so we can use ArenaAllocator while loading
+/// \todo : Use GlobalContext interface so we can use ArenaAllocator while loading
 class FBOMLoadContext
 {
 public:

@@ -199,9 +199,43 @@ String EnumToString(EnumType value)
 {
     using EnumUnderlyingType = std::underlying_type_t<NormalizedType<EnumType>>;
 
+    constexpr bool IsFlags = IsEnumFlags<NormalizedType<EnumType>>::value;
+
     if (Name name; EnumMemberName(value, name))
     {
         return name.LookupString();
+    }
+
+    return HYP_FORMAT("{}", EnumUnderlyingType(value));
+}
+
+/*! \brief Builds a string by concatenating the names of the set flags for \p value.
+ *  \tparam EnumType The enum type the member is a part of.
+ *  \param value The string value of the enum member to find the name of, or EnumName(value) if the member is not found.
+ *  \returns The name of the enum member, or a string representation of the enum value if the member is not found.
+ */
+template <class EnumType, typename = std::enable_if_t<std::is_enum_v<NormalizedType<EnumType>>>>
+String EnumToString(EnumFlags<EnumType> value)
+{
+    using EnumUnderlyingType = std::underlying_type_t<NormalizedType<EnumType>>;
+
+    // Set each bit that is set in value
+    Array<Name, InlineAllocator<8>> flagNames;
+
+    // loop over the set bits
+    FOR_EACH_BIT(EnumUnderlyingType(value), bit)
+    {
+        EnumType flagValue = static_cast<NormalizedType<EnumType>>(EnumUnderlyingType(1) << bit);
+
+        if (Name flagName; EnumMemberName(flagValue, flagName))
+        {
+            flagNames.PushBack(flagName);
+        }
+    }
+
+    if (!flagNames.Empty())
+    {
+        return String::Join(flagNames, " | ");
     }
 
     return HYP_FORMAT("{}", EnumUnderlyingType(value));

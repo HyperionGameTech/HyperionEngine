@@ -65,7 +65,7 @@ static inline void ForEach(Container&& container, Mutex& mutex, Callback&& callb
     }
 }
 
-/*! \brief Execute a lambda for each item in the container, in \ref{numBatches} batches.
+/*! \brief Execute a lambda for each item in the container, in \p numBatches batches.
  *  Container must be a contiguous container.
  *  Callback is called with a Span of items for each batch, and should return a IterationResult.
  *

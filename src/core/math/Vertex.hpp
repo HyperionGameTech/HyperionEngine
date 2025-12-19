@@ -458,7 +458,7 @@ struct alignas(16) Vertex
         }
     }
 
-    /*! \brief Read the attribute from the vertex into \ref{ptr}. The value at \ref{ptr} must be able to hold sizeof(float) * 4.
+    /*! \brief Read the attribute from the vertex into \p ptr. The value at \p ptr must be able to hold sizeof(float) * 4.
      *  If an invalid attribute is passed, the function does nothing.
      *
      *  \param attr The attribute to read.

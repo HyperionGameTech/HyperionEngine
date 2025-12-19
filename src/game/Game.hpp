@@ -33,7 +33,7 @@ public:
     Game();
     virtual ~Game();
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "World")
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
     {
         return m_world;
@@ -45,14 +45,14 @@ public:
     HYP_METHOD(Scriptable)
     virtual void OnUpdate(float delta) final;
 
-    HYP_METHOD()
+    void HandleEvent(SystemEvent&& event);
+
+    HYP_METHOD(Property = "IsLaunched", Transient)
     bool IsLaunched() const
     {
         return m_isLaunched.Get(MemoryOrder::ACQUIRE);
     }
 
-    void HandleEvent(SystemEvent&& event);
-    
     HYP_FIELD()
     ScriptableDelegate<void> OnLaunched;
 
@@ -81,8 +81,11 @@ protected:
         return m_uiSubsystem;
     }
 
-    Handle<UISubsystem> m_uiSubsystem;
+    HYP_FIELD(Property = "World", Serialize)
     Handle<World> m_world;
+
+    Handle<UISubsystem> m_uiSubsystem;
+
     AtomicVar<bool> m_isLaunched;
 };
 

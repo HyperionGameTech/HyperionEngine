@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 namespace Hyperion
 {
@@ -253,7 +254,7 @@ namespace Hyperion
             for (int i = 0; i < attributes.Length; i++)
             {
                 object attribute = attributes[i];
-                Assert.Throw(attribute != null);
+                Debug.Assert(attribute != null);
 
                 Type attributeType = attribute!.GetType();
 
@@ -520,7 +521,7 @@ namespace Hyperion
                     try
                     {
 #if DEBUG
-                        Assert.Throw(methodInfo != null, "MethodInfo is null for method: " + item.Key + " in type: " + type.Name);
+                        Debug.Assert(methodInfo != null, "MethodInfo is null for method: " + item.Key + " in type: " + type.Name);
 #endif
 
                         object?[] parameters;
@@ -531,7 +532,7 @@ namespace Hyperion
                         if (!methodInfo.IsStatic)
                         {
 #if DEBUG
-                            Assert.Throw(thisObjectReferencePtr != IntPtr.Zero, "This object reference pointer is null for method: " + methodInfo.Name + " in type: " + type.Name);
+                            Debug.Assert(thisObjectReferencePtr != IntPtr.Zero, "This object reference pointer is null for method: " + methodInfo.Name + " in type: " + type.Name);
 #endif
 
                             ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
@@ -586,22 +587,22 @@ namespace Hyperion
             }
 
             // Add new object, free object delegates
-            managedClassDesc.SetNewObjectFunction(assemblyGuid, new NewObjectDelegate((bool keepAlive, IntPtr classPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
+            managedClassDesc.SetNewObjectFunction(assemblyGuid, new NewObjectDelegate((bool keepAlive, IntPtr pClass, IntPtr nativeAddress, IntPtr pCtx, IntPtr pCallback) =>
             {
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
-                Assert.Throw(obj != null);
+                Debug.Assert(obj != null);
 
                 // Call the constructor
                 ConstructorInfo? constructorInfo;
                 object[]? parameters = null;
 
-                if (classPtr != IntPtr.Zero)
+                if (pClass != IntPtr.Zero)
                 {
                     if (nativeAddress == IntPtr.Zero)
                         throw new ArgumentNullException(nameof(nativeAddress));
 
-                    Type? objType = obj!.GetType();
+                    Type? objType = obj.GetType();
 
                     if (objType == null)
                         throw new InvalidOperationException("Failed to get object type for object of type: " + type.Name);
@@ -612,7 +613,7 @@ namespace Hyperion
                     if (classPtrField == null || nativeAddressField == null)
                         throw new InvalidOperationException("Could not find classPtr or nativeAddress field on class " + type.Name);
 
-                    classPtrField.SetValue(obj, classPtr);
+                    classPtrField.SetValue(obj, pClass);
                     nativeAddressField.SetValue(obj, nativeAddress);
                 }
 
@@ -626,15 +627,15 @@ namespace Hyperion
                 GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
                 GCHandle? gcHandleStrong = null;
 
-                if (callbackPtr != IntPtr.Zero)
+                if (pCallback != IntPtr.Zero)
                 {
                     if (!type.IsValueType)
                         throw new InvalidOperationException("InitializeObjectCallback can only be used with value types");
 
                     gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Pinned);
 
-                    InitializeObjectCallbackDelegate callbackDelegate = Marshal.GetDelegateForFunctionPointer<InitializeObjectCallbackDelegate>(callbackPtr);
-                    callbackDelegate(contextPtr, ((GCHandle)gcHandleStrong).AddrOfPinnedObject(), (uint)Marshal.SizeOf(type));
+                    InitializeObjectCallbackDelegate callbackDelegate = Marshal.GetDelegateForFunctionPointer<InitializeObjectCallbackDelegate>(pCallback);
+                    callbackDelegate(pCtx, ((GCHandle)gcHandleStrong).AddrOfPinnedObject(), (uint)Marshal.SizeOf(type));
 
                     if (!keepAlive)
                     {
@@ -671,7 +672,7 @@ namespace Hyperion
 
                 // Marshal object from pointer
                 object? obj = Marshal.PtrToStructure(ptr, type);
-                Assert.Throw(obj != null, "Failed to marshal object from pointer");
+                Debug.Assert(obj != null, "Failed to marshal object from pointer");
 
                 return new ObjectReference
                 {
@@ -839,7 +840,7 @@ namespace Hyperion
                 gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
 
 #if DEBUG
-            Assert.Throw(objectReferenceRef.WeakHandle == IntPtr.Zero && objectReferenceRef.StrongHandle == IntPtr.Zero, "ObjectReference already has handles assigned");
+            Debug.Assert(objectReferenceRef.WeakHandle == IntPtr.Zero && objectReferenceRef.StrongHandle == IntPtr.Zero, "ObjectReference already has handles assigned");
 #endif
 
             // @NOTE: reassign ref

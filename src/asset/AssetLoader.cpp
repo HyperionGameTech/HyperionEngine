@@ -25,7 +25,7 @@ HYP_API void LoadedAsset::OnPostLoad()
         return;
     }
 
-    // @TODO: Change to use T::InstanceClass() from TLoadedAsset<T>, as types might not be an exact match
+    /// \todo : Change to use T::InstanceClass() from TLoadedAsset<T>, as types might not be an exact match
     const Class* cls = GetClass(value.GetTypeId());
 
     if (!cls)

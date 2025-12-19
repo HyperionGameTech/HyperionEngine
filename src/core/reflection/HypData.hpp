@@ -1231,7 +1231,7 @@ struct HypDataHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> : Hy
 
     HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
-        return HypDataHelper<Handle<T>>::Is(value);
+        return value && HypDataHelper<Handle<T>>::Is(value);
     }
 
     HYP_FORCE_INLINE T& Get(const Handle<ObjectBase>& value) const
@@ -1337,7 +1337,8 @@ struct HypDataHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : HypDataHelpe
 {
     HYP_FORCE_INLINE bool Is(const RC<void>& value) const
     {
-        return value.Is<T>();
+        // allow null pointers
+        return !value || value.Is<T>();
     }
 
     HYP_FORCE_INLINE RC<T>& Get(RC<void>& value) const
@@ -3731,7 +3732,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !Imple
         if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
             // Dereferencing a null pointer would be bad - so we'll just pretend it's not the type
-            return IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
+            return value && IsA(GetClass(TypeId::ForType<T>()), GetClass(value.GetTypeId()));
         }
         else
         {

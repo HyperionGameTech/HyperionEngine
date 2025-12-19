@@ -14,7 +14,7 @@ Script_GC::Script_GC()
 Script_GC::~Script_GC()
 {
     // clear all allocated memory
-    /// @TODO: Need to set Script_GC index of all Values to INVALID_GC_INDEX then destruct
+    //// \todo : Need to set Script_GC index of all Values to INVALID_GC_INDEX then destruct
 }
 
 void Script_GC::MoveToTrackedMemory(HypData& inOutRefValue)

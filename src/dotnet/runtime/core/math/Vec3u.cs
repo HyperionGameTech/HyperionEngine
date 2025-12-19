@@ -156,7 +156,7 @@ namespace Hyperion
             return new Vec3u(left.x / right, left.y / right, left.z / right);
         }
 
-        // @TODO: Remaining methods
+        /// \todo : Remaining methods
 
         public override string ToString()
         {

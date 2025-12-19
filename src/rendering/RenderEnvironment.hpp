@@ -15,7 +15,6 @@
 
 namespace hyperion {
 
-class ParticleSystem;
 class GaussianSplatting;
 
 class HYP_API RenderEnvironment final
@@ -26,11 +25,6 @@ public:
     RenderEnvironment& operator=(const RenderEnvironment& other) = delete;
     ~RenderEnvironment();
 
-    const Handle<ParticleSystem>& GetParticleSystem() const
-    {
-        return m_particleSystem;
-    }
-
     const Handle<GaussianSplatting>& GetGaussianSplatting() const
     {
         return m_gaussianSplatting;
@@ -39,8 +33,6 @@ public:
     void Initialize();
 
 private:
-    Handle<ParticleSystem> m_particleSystem;
-
     Handle<GaussianSplatting> m_gaussianSplatting;
 };
 

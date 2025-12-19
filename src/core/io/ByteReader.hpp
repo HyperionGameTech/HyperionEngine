@@ -29,7 +29,7 @@ public:
         ReadBytes(static_cast<void*>(ptr), size);
     }
 
-    /*! \brief Reads from the current position, to current position + \ref{size}.
+    /*! \brief Reads from the current position, to current position + \p size.
         If that position is greater than the maximum position, the number of bytes is truncated.
         Endianness is not taken into account
         @returns The number of bytes read */

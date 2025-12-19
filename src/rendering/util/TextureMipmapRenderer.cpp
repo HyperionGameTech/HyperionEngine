@@ -77,10 +77,11 @@ struct RenderTextureMipmapLevels : RenderCommand
                 pass->Begin(frame, NullRenderSetup());
 
                 renderQueue << BindDescriptorTable(
-                    pass->GetGraphicsPipeline()->GetDescriptorTable(),
+                    *pass->GetDescriptorTable(),
                     pass->GetGraphicsPipeline(),
                     {},
                     frame->GetFrameIndex());
+
                 frame->renderQueue << BindVertexBuffer(pass->GetQuadMesh()->GetVertexBuffer());
                 frame->renderQueue << BindIndexBuffer(pass->GetQuadMesh()->GetIndexBuffer());
                 frame->renderQueue << DrawIndexed(6);

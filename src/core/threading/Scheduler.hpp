@@ -64,8 +64,8 @@ public:
 
     virtual bool TakeOwnershipOfTask(TaskID id, TaskExecutorBase* executor) = 0;
 
-    /*! \brief Has \ref{threadId} given us work to complete?
-     *  Returns true if \ref{threadId} might be waiting on us to complete some work for them. */
+    /*! \brief Has \p threadId given us work to complete?
+     *  Returns true if \p threadId might be waiting on us to complete some work for them. */
     virtual bool HasWorkAssignedFromThread(ThreadId threadId) const = 0;
 
 protected:

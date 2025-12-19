@@ -183,7 +183,7 @@ namespace Hyperion
             return new Vec4u(left.x / right, left.y / right, left.z / right, left.w / right);
         }
 
-        // @TODO: Remaining methods
+        /// \todo : Remaining methods
 
         public override string ToString()
         {

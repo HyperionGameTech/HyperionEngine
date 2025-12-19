@@ -433,7 +433,7 @@ inline Char32 *utf32Strcat(Char32 *dst, const Char32 *src)
 #endif
 
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
- *   \ref{str} _must_ be at least sizeof(Char32)
+ *   \p str _must_ be at least sizeof(Char32)
  */
 static inline Char32 Char8to32(const char* str)
 {
@@ -487,7 +487,7 @@ static inline Char32 Char8to32(const char* str)
 }
 
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
- *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(Char32))
+ *   \p str _must_ be at least the the size of `max` (defaults to sizeof(Char32))
  */
 static inline Char32 Char8to32(const char* str, SizeType max, SizeType& outCodepoints)
 {
@@ -541,7 +541,7 @@ static inline Char32 Char8to32(const char* str, SizeType max, SizeType& outCodep
 }
 
 /*! \brief Convert a single UTF-32 char to UTF-8 array of code points.
- *  The array at \ref{dst} MUST have a sizeof Char32 (4 bytes)
+ *  The array at \p dst MUST have a sizeof Char32 (4 bytes)
  */
 static inline void Char32to8(Char32 src, Char8* dst, SizeType& outCodepoints)
 {
@@ -640,7 +640,7 @@ inline Char32 CharAt(const utf::Char8* str, SizeType max, SizeType index)
 }
 
 /*! \brief Get the UTF-8 char (array of code points) at the specific index of the string.
- *  \ref{dst} MUST have a size of at least the sizeof Char32, so 4 bytes.
+ *  \p dst MUST have a size of at least the sizeof Char32, so 4 bytes.
  */
 inline void CharAt(const Char8* str, Char8* dst, SizeType max, SizeType index)
 {
@@ -702,8 +702,8 @@ inline SizeType AppendString8(uint32_t cp, Char8* result)
     }
 }
 
-/*! \brief Pass nullptr to \ref{result} on the first call to get the size needed for the buffer.
- * *  Then call the function again with the memory allocated for \ref{result}. */
+/*! \brief Pass nullptr to \p result on the first call to get the size needed for the buffer.
+ * *  Then call the function again with the memory allocated for \p result. */
 inline SizeType ToUtf8(const Char16* start, const Char16* end, Char8* result)
 {
     SizeType len = 0;
@@ -730,8 +730,8 @@ inline SizeType ToUtf8(const Char16* start, const Char16* end, Char8* result)
     return len;
 }
 
-/*! \brief Pass nullptr to \ref{result} on the first call to get the size needed for the buffer.
- * *  Then call the function again with the memory allocated for \ref{result}. */
+/*! \brief Pass nullptr to \p result on the first call to get the size needed for the buffer.
+ * *  Then call the function again with the memory allocated for \p result. */
 inline SizeType ToUtf8(const Char32* start, const Char32* end, Char8* result)
 {
     SizeType len = 0;
@@ -746,8 +746,8 @@ inline SizeType ToUtf8(const Char32* start, const Char32* end, Char8* result)
     return len;
 }
 
-/*! \brief Pass nullptr to \ref{result} on the first call to get the size needed for the buffer.
- * *  Then call the function again with the memory allocated for \ref{result}. */
+/*! \brief Pass nullptr to \p result on the first call to get the size needed for the buffer.
+ * *  Then call the function again with the memory allocated for \p result. */
 inline SizeType ToUtf8(const wchar_t* start, const wchar_t* end, Char8* result)
 {
 #ifdef _WIN32
@@ -944,11 +944,11 @@ inline SizeType ToWide(const Char32* start, const Char32* end, wchar_t* result)
 }
 
 /*! \brief How to use:
-    if buffer length is not known, pass nullptr for \ref{result}.
-    bufferLength will be set to the size needed for \ref{result}.
+    if buffer length is not known, pass nullptr for \p result.
+    bufferLength will be set to the size needed for \p result.
     Next, call the function again, passing in the previously mentioned
-    value for \ref{bufferLength}. The resulting string will be written into the provided
-    param, \ref{result}, so it'll need to have \ref{bufferLength} bytes allocated to it. */
+    value for \p bufferLength. The resulting string will be written into the provided
+    param, \p result, so it'll need to have \p bufferLength bytes allocated to it. */
 template <class T, class CharType>
 inline void ToString(T value, SizeType& bufferLength, CharType* result)
 {

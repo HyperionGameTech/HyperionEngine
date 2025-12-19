@@ -56,7 +56,7 @@ void PostFXPass::CreateDescriptors()
         return;
     }
 
-    // @TODO Reimplement
+    /// \todo Reimplement
 
     // const Name descriptorName = m_stage == POST_PROCESSING_STAGE_PRE_SHADING
     //     ? NAME("PostFXPreStack")

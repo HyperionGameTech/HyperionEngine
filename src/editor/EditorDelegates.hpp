@@ -102,7 +102,7 @@ public:
     EditorDelegates& operator=(EditorDelegates&& other) = delete;
     ~EditorDelegates() = default;
 
-    /*! \brief Receive events and changes to any node that is a descendant of the given \ref{rootNode}. */
+    /*! \brief Receive events and changes to any node that is a descendant of the given \p rootNode. */
     HYP_API void AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const Property> propertiesToWatch, Proc<void(Node*, const Property*)>&& proc);
     HYP_API int RemoveNodeWatcher(StringHash watcherKey, Node* rootNode);
     HYP_API int RemoveNodeWatchers(StringHash watcherKey);

@@ -277,7 +277,7 @@ public:
     }
 
 #ifdef HYP_ENABLE_MT_CHECK
-    /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \ref{dataAccessFlags}.
+    /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \p dataAccessFlags.
      *  \return A scoped view of this EntitySet.
      */
     HYP_FORCE_INLINE EntitySetView<Components...> GetScopedView(EnumFlags<DataAccessFlags> dataAccessFlags, ANSIStringView currentFunction = "", ANSIStringView message = "")
@@ -285,7 +285,7 @@ public:
         return EntitySetView<Components...>(*this, dataAccessFlags, currentFunction, message);
     }
 
-    /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \ref{componentInfos}.
+    /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \p componentInfos.
      *  \param componentInfos The ComponentInfo objects to use for the view.
      *  \return A scoped view of this EntitySet.
      */
@@ -294,7 +294,7 @@ public:
         return EntitySetView<Components...>(*this, componentInfos);
     }
 #else
-    /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \ref{dataAccessFlags}.
+    /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \p dataAccessFlags.
      *  \return A scoped view of this EntitySet.
      */
     template <class... Args>

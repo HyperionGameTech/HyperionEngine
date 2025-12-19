@@ -5,7 +5,6 @@
 #include <rendering/RendererBase.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PostFX.hpp>
-#include <rendering/ParticleSystem.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/TemporalAA.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
@@ -101,6 +100,7 @@ private:
     const DeferredPassMode m_mode;
 
     FixedArray<GraphicsPipelineCacheHandle, LT_MAX> m_directLightGraphicsPipelines;
+    FixedArray<FixedArray<DescriptorSetRef, NumFramesInFlight>, LT_MAX> m_directPassDescriptorSets;
 
     Handle<Texture> m_ltcMatrixTexture;
     Handle<Texture> m_ltcBrdfTexture;
@@ -379,6 +379,7 @@ private:
     GpuImageViewRef m_deferredResultImageView;
 
     FixedArray<GraphicsPipelineCacheHandle, CMT_MAX> m_cubemapGraphicsPipelines;
+    FixedArray<DescriptorTableRef, CMT_MAX> m_cubemapDescriptorTables;
 
     UniquePtr<SSRRenderer> m_ssrRenderer;
 

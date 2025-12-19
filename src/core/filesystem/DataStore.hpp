@@ -77,12 +77,12 @@ public:
      *  \returns true if the directory was created or already exists, false otherwise */
     bool MakeDirectory() const;
 
-    /*! \brief Write a byte buffer keyed by \ref{key} to the data store
+    /*! \brief Write a byte buffer keyed by \p key to the data store
      *  \param key The key to use for the data that will be written
      *  \param byteBuffer The byte buffer to write */
     virtual void Write(const String& key, const ByteBuffer& byteBuffer);
 
-    /*! \brief Read a byte buffer keyed by \ref{key} from the data store
+    /*! \brief Read a byte buffer keyed by \p key from the data store
      *  \param key The key to use for the data that will be read
      *  \param outByteBuffer The byte buffer to read into
      *  \returns true if the read was successful, false otherwise */
