@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "vulkan/vulkan_core.h"
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 
@@ -35,5 +36,30 @@ public:
 
     virtual RendererResult Execute() override;
 };
+
+template <class T>
+concept VulkanStruct = requires(T a) {
+    { a.sType } -> std::same_as<VkStructureType&>;
+    { a.pNext } -> std::same_as<const void*&>;
+};
+
+namespace VulkanHelpers {
+
+/*! \brief Chains pNext of pStruct to pNext of pNextStruct.
+ *  If pStruct already has a pNext, the new pNextStruct is appended to the end of the chain. */
+template <VulkanStruct TBaseType, VulkanStruct TNextType>
+static inline void ChainNext(TBaseType& inStruct, TNextType* pNext)
+{
+    VkBaseOutStructure* pCurr = (VkBaseOutStructure*)&inStruct;
+
+    while (pCurr->pNext != nullptr)
+    {
+        pCurr = pCurr->pNext;
+    }
+
+    pCurr->pNext = (VkBaseOutStructure*)pNext;
+}
+
+} // namespace VulkanHelpers
 
 } // namespace hyperion

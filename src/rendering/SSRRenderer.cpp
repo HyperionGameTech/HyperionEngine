@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "Shared.hpp"
 #include <RenderingPch.hpp>
 
 #include <rendering/SSRRenderer.hpp>
@@ -159,7 +160,7 @@ void SSRRenderer::CreatePasses()
 
         // Create framebuffer for UVs texture
         FramebufferRef writeUvsFramebuffer = g_renderBackend->MakeFramebuffer(m_uvsTexture->GetExtent().GetXY());
-        writeUvsFramebuffer->AddAttachment(
+        AttachmentRef attachment = writeUvsFramebuffer->AddAttachment(
             0,
             m_uvsTexture->GetGpuImage(),
             LoadOperation::CLEAR,
@@ -343,11 +344,16 @@ void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
     // PASS 1 -- write UVs
     m_writeUvs->Render(frame, renderSetup);
 
-    // // shouldn't need this? renderpass should handle transitions?
-    // frame->renderQueue << InsertBarrier(m_uvsTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+    // frame->renderQueue << InsertBarrier(
+    //     m_uvsTexture->GetGpuImage(),
+    //     RS_SHADER_RESOURCE);
 
-    // PASS 2 - sample textures
+    // PASS 2 -- fill color buffer using mip chain to sample based on roughness
     m_sampleGbuffer->Render(frame, renderSetup);
+
+    // frame->renderQueue << InsertBarrier(
+    //     m_sampledResultTexture->GetGpuImage(),
+    //     RS_SHADER_RESOURCE);
 
     if (UseTemporalBlending && m_temporalBlending != nullptr)
     {

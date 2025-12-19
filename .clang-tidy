@@ -19,7 +19,7 @@ CheckOptions:
   - { key: readability-identifier-naming.EnumCase,                        value: CamelCase }
   - { key: readability-identifier-naming.EnumConstantCase,                value: UPPER_CASE }
   - { key: readability-identifier-naming.EnumConstantIgnoredRegexp,       value: "^((.*)_$)|(Info)|(Warn)|(Error)|(Fatal)|(Debug)|(RenInfo)|(RenWarn)|(RenError)|(RenDebug)|(^UUIDv.*$)|(^value$)" }
-  - { key: readability-identifier-naming.NamespaceCase,                   value: camelBack }
+  - { key: readability-identifier-naming.NamespaceCase,                   value: CamelCase }
   - { key: readability-identifier-naming.ParameterCase,                   value: camelBack }
   - { key: readability-identifier-naming.ParameterIgnoredRegexp,          value: "^_(.*)$" }
   - { key: readability-identifier-naming.GlobalVariableCase,              value: camelBack }
