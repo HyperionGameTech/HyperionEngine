@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using Hyperion;
@@ -10,10 +11,13 @@ namespace Hyperion.Editor
     {
 
         public static bool IsInitialized { get; private set; }
-        public static Game? GameInstance { get; private set; }
+        public static HyperionEditorGame? EditorGame { get; private set; }
+        public static Game? GameInstance { get; private set; } // Local copy of EngineDriver.Instance.GameInstance
 
         public static EditorProject? CurrentProject { get; private set; }
         private static DelegateHandler? _onCurrentProjectChanged;
+        private static DelegateHandler? _gameLaunchedHandler;
+        private static ConcurrentDictionary<ObjIdBase, EditorViewport> _registeredViewports = new ConcurrentDictionary<ObjIdBase, EditorViewport>();
 
         public static void Initialize()
         {
@@ -82,11 +86,9 @@ namespace Hyperion.Editor
 
         public static void InitializeEditor()
         {
-            if (GameInstance is HyperionEditorGame)
-                return;
-
-            GameInstance = new HyperionEditorGame();
-            EngineDriver.Instance.GameInstance = GameInstance;
+            EditorGame ??= new HyperionEditorGame();
+            GameInstance = EditorGame;
+            EngineDriver.Instance.GameInstance = EditorGame;
 
             EditorState editorState = EditorState.Instance;
             Debug.Assert(editorState != null, "Failed to get EditorState instance");
@@ -107,20 +109,16 @@ namespace Hyperion.Editor
             if (game is HyperionEditorGame)
                 throw new ArgumentException("InitializeGame() shouldn't be called with an instance of HyperionEditorGame - use InitializeEditor() instead");
 
-            if (game == GameInstance)
-                // already set
-                return;
-
             _onCurrentProjectChanged?.Remove();
             _onCurrentProjectChanged = null;
-
+            
+            EngineDriver.Instance.GameInstance = game;
             GameInstance = game;
-            EngineDriver.Instance.SetGameInstance(GameInstance);
         }
 
         public static void Shutdown()
         {
-            GameInstance = null;
+            EditorGame = null;
 
             NativeBindings.Hyp_Shutdown();
             IsInitialized = false;
@@ -202,6 +200,123 @@ namespace Hyperion.Editor
             }
 
             return await gameInstance.PostTask(func).ConfigureAwait(false);
+        }
+
+        public static void RegisterViewport(EditorViewport viewport)
+        {
+            if (!_registeredViewports.TryAdd(viewport.Id, viewport))
+            {
+                Logger.Log(LogType.Warn, "EditorViewport is already registered.");
+                return;
+            }
+
+            if (EditorGame == null)
+            {
+                return;
+            }
+
+            if (EditorGame.IsLaunched())
+            {
+                _ = EngineManager.PostToGameThread(() =>
+                {
+                    EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
+                    if (editorSubsystem == null)
+                    {
+                        throw new InvalidOperationException("EditorSubsystem is not initialized!");
+                    }
+
+                    if (!_registeredViewports.ContainsKey(viewport.Id))
+                    {
+                        Logger.Log(LogType.Warn, $"EditorViewport {viewport.Id} is no longer registered - skipping addition to EditorSubsystem.");
+                        return;
+                    }
+
+                    editorSubsystem.AddViewport(viewport);
+                });
+
+                return;
+            }
+            
+            WeakHandle<EditorViewport> viewportWeak = new WeakHandle<EditorViewport>(viewport);
+
+            // not launched; add handler for after launch
+            _gameLaunchedHandler = EditorGame.GetOnLaunchedDelegate().Bind(() =>
+            {
+                _ = EngineManager.PostToGameThread(() =>
+                {
+                    try
+                    {
+                        EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
+                        if (editorSubsystem == null)
+                        {
+                            throw new InvalidOperationException("EditorSubsystem is not initialized!");
+                        }
+
+                        EditorViewport? registeredViewport = null;
+                        if (!_registeredViewports.TryGetValue(viewportWeak.Id, out registeredViewport))
+                        {
+                            Logger.Log(LogType.Warn, $"EditorViewport {viewportWeak.Id} is no longer registered - skipping addition to EditorSubsystem.");
+                            return;
+                        }
+
+                        editorSubsystem.AddViewport(registeredViewport);
+                    }
+                    finally
+                    {
+                        viewportWeak.Dispose();
+                    }
+                });
+            });
+        }
+
+        public static void UnregisterViewport(EditorViewport viewport, bool removeFromList = true)
+        {
+            EditorViewport? removedViewport = null;
+
+            if (removeFromList)
+            {
+                if (!_registeredViewports.TryRemove(viewport.Id, out removedViewport))
+                {
+                    return;
+                }
+
+                if (removedViewport == null)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                removedViewport = viewport;
+            }
+
+            if (EditorGame == null)
+            {
+                return;
+            }
+            
+            if (EditorGame.IsLaunched())
+            {
+                _ = EngineManager.PostToGameThread(() =>
+                {
+                    EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
+                    if (editorSubsystem == null)
+                    {
+                        throw new InvalidOperationException("EditorSubsystem is not initialized!");
+                    }
+
+                    editorSubsystem.RemoveViewport(removedViewport);
+                });
+            }
+        }
+
+        public static void DisableAllViewports()
+        {
+            if (EditorGame == null)
+            {
+                return;
+            }
+
         }
     }
 }

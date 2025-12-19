@@ -33,6 +33,7 @@ namespace Hyperion
         {
         }
 
+        [MainThreadOnly]
         public Game? GameInstance
         {
             get => this.GetGameInstance();      // extension method

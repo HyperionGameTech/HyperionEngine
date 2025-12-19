@@ -481,7 +481,6 @@ private:
     void AddPackageToContentBrowser(const Handle<AssetPackage>& package, bool nested);
     void RemovePackageFromContentBrowser(AssetPackage* package);
 
-    void SetGizmoCurrentProject(const WeakHandle<EditorProject>& project);
     void InitializeGizmos();
     void ShutdownGizmos();
 
@@ -504,7 +503,6 @@ private:
 
     EditorManipulationMode m_selectedManipulationMode;
     EditorGizmoSet m_gizmos;
-    WeakHandle<EditorProject> m_gizmoCurrentProject;
 
     WeakHandle<EditorGizmoBase> m_hoveredGizmo;
     WeakHandle<Node> m_hoveredGizmoNode;

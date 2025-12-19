@@ -440,6 +440,34 @@ void EngineDriver::GameThreadUpdate(float delta)
         EnqueueWorldRender(world);
     }
 
+    // Remove non-unqiue views
+    for (auto it = viewsToProcess.Begin(); it != viewsToProcess.End();)
+    {
+        const SizeType idx = viewsToProcess.IndexOf(it);
+        if (idx != std::distance(viewsToProcess.Begin(), it))
+        {
+            it = viewsToProcess.Erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    // Remove non-unique subsystems
+    for (auto it = subsystemsToProcess.Begin(); it != subsystemsToProcess.End();)
+    {
+        const SizeType idx = subsystemsToProcess.IndexOf(it);
+        if (idx != std::distance(subsystemsToProcess.Begin(), it))
+        {
+            it = subsystemsToProcess.Erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
     // Update worlds and their systems asynchronously - execution defined by
     // component descriptors on systems.
     TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);

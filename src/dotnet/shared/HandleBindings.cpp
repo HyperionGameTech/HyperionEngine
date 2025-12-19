@@ -8,6 +8,12 @@ using namespace hyperion;
 
 extern "C"
 {
+    HYP_EXPORT void Handle_GetId(ObjectBase* ptr, ObjIdBase* outId)
+    {
+        AssertDebug(outId != nullptr);
+
+        *outId = ptr ? ptr->Id() : ObjIdBase();
+    }
 
     HYP_EXPORT void Handle_Get(ObjectBase* ptr, ValueStorage<HypData>* outHypData)
     {

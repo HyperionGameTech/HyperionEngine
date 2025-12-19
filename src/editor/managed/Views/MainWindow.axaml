@@ -256,7 +256,10 @@
                             ItemsSource="{Binding SceneHierarchy.RootNodes}"
                             SelectedItem="{Binding SceneHierarchy.SelectedNode}">
                             <TreeView.ItemContainerTheme>
-                                <ControlTheme TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}" x:DataType="vm:NodeViewModel">
+                                <ControlTheme
+                                    x:DataType="vm:NodeViewModel"
+                                    BasedOn="{StaticResource {x:Type TreeViewItem}}"
+                                    TargetType="TreeViewItem">
                                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                                 </ControlTheme>
                             </TreeView.ItemContainerTheme>
