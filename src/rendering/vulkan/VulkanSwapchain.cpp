@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "VulkanSemaphore.hpp"
 #include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanSwapchain.hpp>
@@ -84,6 +85,7 @@ VulkanSwapchain::~VulkanSwapchain()
     }
 
     SafeDelete(std::move(m_images));
+    SafeDelete(std::move(m_presentSemaphores));
     SafeDelete(std::move(m_framebuffers));
 
     vkDestroySwapchainKHR(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
@@ -128,10 +130,10 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     }
 #endif
 
-    VulkanSemaphore* renderFinishedSemaphore = frame->GetRenderFinishedSemaphore(this);
-    Assert(renderFinishedSemaphore != nullptr && renderFinishedSemaphore->IsCreated());
+    VulkanSemaphore* presentSemaphore = GetCurrentPresentSemaphore();
+    Assert(presentSemaphore != nullptr && presentSemaphore->IsCreated());
 
-    VkSemaphore signalSemaphores[] = { renderFinishedSemaphore->GetVulkanHandle() };
+    VkSemaphore signalSemaphores[] = { presentSemaphore->GetVulkanHandle() };
 
     VkPresentInfoKHR presentInfo { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
     presentInfo.waitSemaphoreCount = 1;
@@ -263,6 +265,14 @@ RendererResult VulkanSwapchain::Create()
         HYP_GFX_CHECK(framebuffer->Create());
     }
 
+    // Create present semaphores
+    m_presentSemaphores.Resize(m_images.Size());
+    for (uint32 i = 0; i < m_presentSemaphores.Size(); i++)
+    {
+        m_presentSemaphores[i] = CreateObject<VulkanSemaphore>();
+        HYP_GFX_CHECK(m_presentSemaphores[i]->Create());
+    }
+
     return {};
 }
 
@@ -314,6 +324,7 @@ void VulkanSwapchain::Recreate()
 
     Array<VulkanGpuImageRef> oldImages = std::move(m_images);
     Array<VulkanFramebufferRef> oldFramebuffers = std::move(m_framebuffers);
+    Array<VulkanSemaphoreRef> oldPresentSemaphores = std::move(m_presentSemaphores);
 
     m_oldHandle = m_handle;
     m_handle = VK_NULL_HANDLE; // so Create() knows it's a new swapchain
@@ -332,6 +343,7 @@ void VulkanSwapchain::Recreate()
     // cleanup old resources
     oldFramebuffers.Clear();
     oldImages.Clear();
+    oldPresentSemaphores.Clear();
 
     OnRecreated();
 
