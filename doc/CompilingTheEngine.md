@@ -7,7 +7,6 @@ Hyperion has a few required dependencies to compile. In addition, there are seve
 
 * CMake - We currently use CMake to generate project files and Makefiles. You'll see multiple CMakeLists.txt files which define how projects are generated.
 * (macOS only) MoltenVK - As Hyperion uses a Vulkan rendering backend on Apple platforms, the MoltenVK library is needed in order to translate Vulkan API calls to Metal calls as well as convert SPIR-V shader code to Metal Shading Language.
-* SDL2 - Hyperion uses SDL2 for window management, input handling, and other platform-specific functionality.
 
 ## Optional* dependencies
 
@@ -49,7 +48,7 @@ Run the appropriate script depending on your platform whenever you want to repro
 
 Similiarly to how you can invoke the build tool manually, you can also compile it separately via the following scripts:
 * `BuildHypBuildTool.bat` (Windows only)
-* `BuildHypBuildTool.sh` (Linux/macOS/others)
+* `BuildHypBuildTool.sh` (macOS / Unix)
 
 Run these scripts from the command line to compile buildtool separately from the rest of the engine. This might be useful for debugging purposes or to ensure that any changes in buildtool itself are incorporated without needing to recompile the entire engine immediately.
 
@@ -60,7 +59,7 @@ While the engine itself compiles as a dynamic library, the main driver for the e
 After CMake has been configured and the build tool has been run, you should be able to build the engine itself. Depending on your current platform, CMake will have generated into the build folder:
 
 * Visual Studio Solution files (.sln) (Windows only) - Visual Studio now supports CMake projects directly, so you're able to just open the root directory of the cloned repository. You can also use these generated solution files.
-* Makefiles (Linux/macOS, etc.)
+* Makefiles (for Unix based OSes)
 
 ## Build Scripts
 
