@@ -58,9 +58,9 @@ namespace Hyperion.Editor.ViewModels
                 _mode = mode;
             }
 
-            public bool CanExecute(object? parameter) =>
-                EngineManager.GameInstance?.World?.GetGameState().Mode != _mode
-                    && Interlocked.CompareExchange(ref _isChangingGameMode, 0, 0) == 0;
+            public bool CanExecute(object? parameter) => true; // TEMP : debug
+                // EngineManager.GameInstance?.World?.GetGameState().Mode != _mode
+                //     && Interlocked.CompareExchange(ref _isChangingGameMode, 0, 0) == 0;
 
             public void Execute(object? parameter)
             {

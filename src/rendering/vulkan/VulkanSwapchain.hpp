@@ -47,6 +47,16 @@ public:
         return m_surface;
     }
 
+    HYP_FORCE_INLINE const Array<VulkanSemaphoreRef>& GetPresentSemaphores() const
+    {
+        return m_presentSemaphores;
+    }
+
+    HYP_FORCE_INLINE const VulkanSemaphoreRef& GetCurrentPresentSemaphore() const
+    {
+        return m_presentSemaphores[m_acquiredImageIndex];
+    }
+
     virtual bool IsCreated() const override;
 
     void NextFrame();
@@ -68,6 +78,7 @@ private:
     VkSurfaceFormatKHR m_surfaceFormat;
     VkPresentModeKHR m_presentMode;
     VulkanSwapchainSupportDetails m_supportDetails;
+    Array<VulkanSemaphoreRef> m_presentSemaphores;
 };
 
 } // namespace hyperion
