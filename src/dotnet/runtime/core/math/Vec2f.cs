@@ -151,7 +151,7 @@ namespace Hyperion
             return new Vec2f(left.x / right, left.y / right);
         }
 
-        // @TODO: Remaining methods
+        /// \todo : Remaining methods
 
         public override string ToString()
         {

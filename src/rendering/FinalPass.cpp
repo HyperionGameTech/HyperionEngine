@@ -68,12 +68,9 @@ void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
     {
         if (passData.renderTextureToScreenPass != nullptr)
         {
-            const DescriptorTableRef& descriptorTable = passData.renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable();
-            Assert(descriptorTable.IsValid());
-
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
+                const DescriptorSetRef& descriptorSet = passData.descriptorSets[frameIndex];
                 Assert(descriptorSet != nullptr);
 
                 if (imageView != nullptr)
@@ -132,11 +129,12 @@ FinalPassData* FinalPass::GetOrCreatePassData(Swapchain* swapchain)
     const DescriptorTableDeclaration* descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
     Assert(descriptorTableDecl != nullptr);
 
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
+    const DescriptorSetDeclaration* descriptorSetDecl = descriptorTableDecl->FindDescriptorSetDeclaration("RenderTextureToScreenDescriptorSet"_sh);
+    Assert(descriptorSetDecl != nullptr);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
+        DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(descriptorSetDecl));
         Assert(descriptorSet != nullptr);
 
         if (m_uiLayerImageView != nullptr)
@@ -147,13 +145,14 @@ FinalPassData* FinalPass::GetOrCreatePassData(Swapchain* swapchain)
         {
             descriptorSet->SetElement("InTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
-    }
 
-    DeferCreate(descriptorTable);
+        Assert(descriptorSet->Create());
+
+        passData.descriptorSets[frameIndex] = std::move(descriptorSet);
+    }
 
     passData.renderTextureToScreenPass = CreateObject<FullScreenPass>(
         renderTextureToScreenShader,
-        std::move(descriptorTable),
         swapchain->GetImageFormat(),
         swapchain->GetExtent(),
         nullptr);
@@ -191,13 +190,11 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     // Check UI updates
     if (passData->lastUiImageView != m_uiLayerImageView)
     {
-        passData->dirtyFrameIndices = (1u << NumFramesInFlight) - 1;
-        passData->lastUiImageView = m_uiLayerImageView;
-
-        const DescriptorTableRef& descriptorTable = passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable();
         for (uint32 i = 0; i < NumFramesInFlight; i++)
         {
-            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", i);
+            DescriptorSetRef& descriptorSet = passData->descriptorSets[i];
+            Assert(descriptorSet != nullptr);
+
             if (m_uiLayerImageView != nullptr)
             {
                 descriptorSet->SetElement("InTexture", m_uiLayerImageView);
@@ -207,6 +204,9 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
                 descriptorSet->SetElement("InTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
             }
         }
+
+        passData->dirtyFrameIndices = (1u << NumFramesInFlight) - 1;
+        passData->lastUiImageView = m_uiLayerImageView;
     }
 
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -215,18 +215,20 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     const FramebufferRef& framebuffer = rs.swapchain->GetFramebuffers()[acquiredImageIndex];
     AssertDebug(framebuffer != nullptr);
 
+    const uint32 globalDescriptorSetIndex = passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorSetIndex("Global"_sh);
+
+    const uint32 descriptorSetIndex = passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorSetIndex("RenderTextureToScreenDescriptorSet");
+    AssertDebug(descriptorSetIndex != ~0u);
+
     frame->renderQueue << BeginFramebuffer(framebuffer);
 
     frame->renderQueue << BindGraphicsPipeline(passData->renderTextureToScreenPass->GetGraphicsPipeline(), Viewport { rs.swapchain->GetExtent() });
 
-    frame->renderQueue << BindDescriptorTable(
-        passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable(),
+    frame->renderQueue << BindDescriptorSet(
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex),
         passData->renderTextureToScreenPass->GetGraphicsPipeline(),
         {},
-        frameIndex);
-
-    const uint32 descriptorSetIndex = passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex("RenderTextureToScreenDescriptorSet");
-    AssertDebug(descriptorSetIndex != ~0u);
+        globalDescriptorSetIndex);
 
     // Render each sub-view
     DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderInterface->globalRenderers[GRT_MAIN][0]);
@@ -262,13 +264,13 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         // If the UI pass has needs to be updated for the current frame index, do it
         if (passData->dirtyFrameIndices & (1u << frameIndex))
         {
-            passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->Update(frameIndex);
+            passData->descriptorSets[frameIndex]->Update(frameIndex);
 
             passData->dirtyFrameIndices &= ~(1u << frameIndex);
         }
 
         frame->renderQueue << BindDescriptorSet(
-            passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex),
+            passData->descriptorSets[frameIndex],
             passData->renderTextureToScreenPass->GetGraphicsPipeline(),
             {},
             descriptorSetIndex);

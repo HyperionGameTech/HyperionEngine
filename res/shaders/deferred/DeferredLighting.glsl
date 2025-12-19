@@ -169,7 +169,7 @@ vec3 SampleEnvProbe(uint env_probe_index, vec3 N)
 #endif
 }
 
-// @TODO: Optimize me - entire EnvProbe entity being copied with each struct member being copied as a separate instruction.
+/// \todo : Optimize me - entire EnvProbe entity being copied with each struct member being copied as a separate instruction.
 vec3 CalculateEnvGridIrradiance(vec3 P, vec3 N, vec3 V)
 {
     int base_probe_index_at_point = int(GetLocalEnvProbeIndex(env_grid, P));

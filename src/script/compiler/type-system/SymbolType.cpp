@@ -1573,7 +1573,7 @@ const SymbolType* SymbolType::TypePromotion(const SymbolType* lptr, const Symbol
         }
     }
 
-    // @TODO Check for common base
+    /// \todo Check for common base
     return BuiltinTypes::s_errorType;
 }
 

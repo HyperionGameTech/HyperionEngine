@@ -1210,7 +1210,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                     modelVertices.Resize(numVertices);
 
-                    /// @TODO Optimize me - dont use variant for vertex data + check each time... should use memcpy or similar
+                    //// \todo Optimize me - dont use variant for vertex data + check each time... should use memcpy or similar
                     for (SizeType index = 0; index < numVertices; ++index)
                     {
                         Vec3f position;

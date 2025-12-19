@@ -696,7 +696,7 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
         Vec3f worldTranslation = node->GetWorldTranslation() + moveVec;
         if (snapMovement)
         {
-            // @TODO: Configurable snap value
+            /// \todo : Configurable snap value
             worldTranslation[dominantAxis] = std::fmodf(worldTranslation[dominantAxis], 1.0f);
         }
 
@@ -1220,7 +1220,7 @@ void EditorSubsystem::ShutdownGizmos()
 
 #pragma region EditorSubsystem
 
-static constexpr bool ShowOnlyActiveScene = true; // @TODO: Make this configurable
+static constexpr bool ShowOnlyActiveScene = true; /// \todo : Make this configurable
 
 #ifdef HYP_EDITOR
 
@@ -1349,7 +1349,6 @@ EditorSubsystem::EditorSubsystem()
                 HYP_LOG(Editor, Info, "Opening project: {}", *project->GetName());
 
                 InitObject(project);
-
                 InitializeGizmos();
 
                 g_engineDriver->AddWorld(project->GetWorld());
@@ -1360,6 +1359,9 @@ EditorSubsystem::EditorSubsystem()
                 {
                     Assert(scene != nullptr);
 
+                    HYP_LOG(Editor, Debug, "Found scene '{}' in project '{}' with flags: {}", *scene->GetName(), *project->GetName(),
+                        EnumToString(scene->GetSceneFlags()));
+
                     if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
                     {
                         continue;
@@ -1369,21 +1371,17 @@ EditorSubsystem::EditorSubsystem()
                     {
                         activeScene = scene;
                     }
+                }
 
-                    // m_delegateHandlers.Add(
-                    //     scene->OnRootNodeChanged
-                    //         .Bind([this](const Handle<Node>& newRoot, const Handle<Node>& prevRoot)
-                    //             {
-                    //                 UpdateWatchedNodes();
-                    //             }));
+                if (!activeScene.IsValid())
+                {
+                    HYP_LOG(Editor, Warning, "No foreground scenes found in project {}!", *project->GetName());
                 }
 
                 for (const Handle<EditorViewport>& vp : m_editorViewports)
                 {
                     vp->OnAdded(this);
                 }
-
-                // UpdateWatchedNodes();
 
                 m_delegateHandlers.Add(
                     project->GetWorld()->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
@@ -1405,20 +1403,10 @@ EditorSubsystem::EditorSubsystem()
                                 vp->OnSceneAdded(scene);
                             }
 
-                            // m_delegateHandlers.Add(
-                            //     scene->OnRootNodeChanged
-                            //         .Bind([this](const Handle<Node>& newRoot, const Handle<Node>& prevRoot)
-                            //             {
-                            //                 UpdateWatchedNodes();
-                            //             }));
-
                             if (!m_activeScene)
                             {
                                 SetActiveScene(scene);
                             }
-
-                            // // reinitialize scene selector on scene add
-                            // InitActiveSceneSelection();
                         }));
 
                 m_delegateHandlers.Add(
@@ -1448,94 +1436,6 @@ EditorSubsystem::EditorSubsystem()
 
                 m_delegateHandlers.Remove("OnPackageAdded");
                 m_delegateHandlers.Remove("OnPackageRemoved");
-
-                // if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
-                // {
-                //     m_contentBrowserDirectoryList->GetDataSource()->Clear();
-
-                //     for (const Handle<AssetPackage>& package : g_assetManager->GetAssetRegistry()->GetPackages())
-                //     {
-                //         Assert(package.IsValid());
-
-                //         if (!package->IsReady())
-                //         {
-                //             HYP_LOG(Editor, Debug, "Package {} with UUID {} is not ready; skipping adding to content browser", package->GetName(), package->GetUUID());
-
-                //             continue;
-                //         }
-
-                //         AddPackageToContentBrowser(package, true);
-                //     }
-
-                //     m_delegateHandlers.Add(
-                //         NAME("OnPackageAdded"),
-                //         g_assetManager->GetAssetRegistry()->OnPackageAdded.BindThreaded([this](const Handle<AssetPackage>& package)
-                //             {
-                //                 AddPackageToContentBrowser(package, false);
-                //             },
-                //             g_gameThread));
-
-                //     m_delegateHandlers.Add(
-                //         NAME("OnPackageRemoved"),
-                //         g_assetManager->GetAssetRegistry()->OnPackageRemoved.BindThreaded([this](const Handle<AssetPackage>& package)
-                //             {
-                //                 RemovePackageFromContentBrowser(package);
-                //             },
-                //             g_gameThread));
-                // }
-
-                // m_delegateHandlers.Add(
-                //     NAME("OnGameStateChange"),
-                //     GetWorld()->OnGameStateChange.Bind([this](World* world, GameStateMode previousGameStateMode, GameStateMode currentGameStateMode)
-                //         {
-                //             UpdateWatchedNodes();
-
-                //             switch (currentGameStateMode)
-                //             {
-                //             case GameStateMode::STOPPED:
-                //             {
-                //                 m_delegateHandlers.Remove("World_SceneAddedDuringSimulation");
-                //                 m_delegateHandlers.Remove("World_SceneRemovedDuringSimulation");
-
-                //                 break;
-                //             }
-                //             case GameStateMode::SIMULATING: // fallthrough
-                //             case GameStateMode::PAUSED:
-                //             {
-                //                 // unset manipulation widgets
-                //                 SetSelectedManipulationMode(EditorManipulationMode::NONE);
-
-                //                 m_delegateHandlers.Add(
-                //                     NAME("World_SceneAddedDuringSimulation"),
-                //                     world->OnSceneAdded.Bind([this](World*, const Handle<Scene>& scene)
-                //                         {
-                //                             if (!scene.IsValid())
-                //                             {
-                //                                 return;
-                //                             }
-
-                //                             StartWatchingNode(scene->GetRoot());
-                //                         }));
-
-                //                 m_delegateHandlers.Add(
-                //                     NAME("World_SceneRemovedDuringSimulation"),
-                //                     world->OnSceneRemoved.Bind([this](World*, Scene* scene)
-                //                         {
-                //                             if (!scene)
-                //                             {
-                //                                 return;
-                //                             }
-
-                //                             StopWatchingNode(scene->GetRoot());
-                //                         }));
-
-                //                 break;
-                //             }
-                //             default:
-                //                 HYP_UNREACHABLE();
-                //                 break;
-                //             }
-                //         }));
 
                 SetActiveScene(activeScene);
             })
@@ -1773,7 +1673,7 @@ void EditorSubsystem::Update(float delta)
         }
     }
 
-    // @TODO: Prioritize based on distance from camera
+    /// \todo : Prioritize based on distance from camera
     for (Mesh* mesh : pickRpl.GetMeshes())
     {
         g_editorState->GetPickCache().PutEntry(mesh);
@@ -3322,7 +3222,7 @@ void EditorSubsystem::ShowImportContentDialog()
                     {
                         HYP_LOG(Editor, Info, "{} assets loaded.", results.Size());
 
-                        // @TODO Open folder the assets ended up in
+                        /// \todo Open folder the assets ended up in
                     })
                 .Detach();
 
@@ -3370,7 +3270,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         HYP_LOG(Editor, Debug, "Set focused node: {}\t{}\t is static ? {}", focusedNode->GetName(), focusedNode->GetWorldTranslation(),
             focusedNode->IsStatic());
 
-        // @TODO watch for transform changes and update the highlight node
+        /// \todo watch for transform changes and update the highlight node
 
         // m_scene->GetRoot()->AddChild(m_highlightNode);
         // m_highlightNode->SetWorldScale(m_focusedNode->GetWorldBounds().GetExtent() * 0.5f);

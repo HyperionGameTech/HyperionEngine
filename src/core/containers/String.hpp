@@ -208,15 +208,15 @@ public:
      *  so in most cases, you'll want to use GetChar() instead.
      *  Returns a reference so &str[0] can be used for backwards compatibility
      *
-     * \ref{index} must be less than \ref{Size()}.
+     * \p index must be less than \ref Size().
      */
     const CharType& operator[](SizeType index) const;
 
     /*! \brief Get a char from the String at the given index.
      * For UTF-8 strings, the character is encoded as a 32-bit value.
-     * \note If needing to access raw character data, \ref{operator[]} should be used instead.
+     * \note If needing to access raw character data, \ref operator[] should be used instead.
      *
-     * \ref{index} must be less than \ref{Length()}.
+     * \p index must be less than \ref Length().
      */
     WidestCharType GetChar(SizeType index) const;
 
@@ -309,7 +309,7 @@ public:
     }
 
     /*! \brief Find the index of the first occurrence of the substring
-     * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref{GetChar} method,
+     * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref GetChar method,
      *       as the index is the character index, not the byte index. */
     HYP_FORCE_INLINE SizeType FindFirstIndex(const utilities::StringView<TStringType>& substr) const
     {
@@ -323,7 +323,7 @@ public:
     }
 
     /*! \brief Find the index of the last occurrence of the substring
-     * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref{GetChar} method,
+     * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref GetChar method,
      *       as the index is the character index, not the byte index. */
     HYP_FORCE_INLINE SizeType FindLastIndex(const utilities::StringView<TStringType>& substr) const
     {
@@ -348,7 +348,7 @@ public:
         return Size() > Length();
     }
 
-    /*! \brief Reserve space for the string. \ref{capacity} + 1 is used, to make space for the null character. */
+    /*! \brief Reserve space for the string. \p capacity + 1 is used, to make space for the null character. */
     HYP_FORCE_INLINE void Reserve(SizeType capacity)
     {
         Base::Reserve(capacity + 1);

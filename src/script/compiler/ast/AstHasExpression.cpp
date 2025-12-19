@@ -82,10 +82,7 @@ void AstHasExpression::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            // @TODO: If we have 'final' classes,
-            // we could make this return false.
-            // we have to do a run-time check as there could always be a deriving class
-            // which has this member.
+            /*! \todo : If we have 'final' classes, we could make this return false. we have to do a run-time check as there could always be a deriving class which has this member. */
             m_hasMember = TRI_INDETERMINATE;
         }
     }

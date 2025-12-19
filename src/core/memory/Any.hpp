@@ -285,7 +285,7 @@ public:
         return held == typeId || IsA(hyperion::GetClass(typeId), ptr, held);
     }
 
-    /*! \brief Returns true if the held object is of type \ref{typeId}.
+    /*! \brief Returns true if the held object is of type \p typeId.
      *  If the type with the given Id has a Class registered, this function will also return true if the held object is a subclass of the type. */
     HYP_FORCE_INLINE bool Is(TypeId typeId) const
     {

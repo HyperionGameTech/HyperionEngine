@@ -127,7 +127,6 @@ public:
 
     virtual VulkanGraphicsPipelineRef MakeGraphicsPipeline(
         const VulkanShaderRef& shader,
-        const VulkanDescriptorTableRef& descriptorTable,
         Span<const VulkanFramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes) override;
 

@@ -84,7 +84,6 @@ public:
 
     virtual GraphicsPipelineRef MakeGraphicsPipeline(
         const ShaderRef& shader,
-        const DescriptorTableRef& descriptorTable,
         Span<const FramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes) = 0;
 

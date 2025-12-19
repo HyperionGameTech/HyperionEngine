@@ -90,7 +90,7 @@ public:
             *reinterpret_cast<HypData*>(memberAddress) = data;
         };
 
-        // @TODO: Serialize/Deserialize
+        /// \todo : Serialize/Deserialize
     }
 
     template <class ThisType, class FieldType>

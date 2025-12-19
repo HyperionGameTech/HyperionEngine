@@ -352,7 +352,7 @@ public:
 
     /*! \brief Return the size of the string. For UTF-8 strings, this is the number of bytes.
      *  For other types, this is the number of characters.
-     *  \note For UTF-8 strings, use the \ref{Length} function to get the number of characters.
+     *  \note For UTF-8 strings, use the \ref Length function to get the number of characters.
      *  \returns The size of the string. */
     HYP_FORCE_INLINE constexpr SizeType Size() const
     {
@@ -360,7 +360,7 @@ public:
     }
 
     /*! \brief Return the length of the string. For UTF-8 strings, this is the number of characters.
-     *  For other types, this is the same as the \ref{Size} function.
+     *  For other types, this is the same as the \ref Size function.
      *  \returns The length of the string in characters. */
     HYP_FORCE_INLINE constexpr SizeType Length() const
     {
@@ -377,7 +377,7 @@ public:
     /*! \brief Get a char from the String at the given index.
      *  For UTF-8 strings, the character is encoded as a 32-bit value.
      *
-     *  \ref{index} must be less than \ref{Length()}.
+     *  \p index must be less than \ref{Length()}.
      *
      *  \returns The character at the given index. If the index is out of bounds, it returns a null character. */
     WidestCharType GetChar(SizeType index) const

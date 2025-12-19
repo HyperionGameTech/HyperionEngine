@@ -11,6 +11,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RendererBase.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderQueue.hpp>
@@ -449,7 +450,6 @@ void GaussianSplattingInstance::CreateGraphicsPipeline()
     // FIXME
     m_graphicsPipeline = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        descriptorTable,
         { &m_framebuffer, 1 },
         RenderableAttributeSet(
             MeshAttributes {
@@ -673,13 +673,28 @@ void GaussianSplatting::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const GraphicsPipelineRef& graphicsPipeline = m_gaussianSplattingInstance->GetGraphicsPipeline();
 
+    const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global"_sh);
+    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
+
     frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, renderSetup.view->GetViewport());
 
-    frame->renderQueue << BindDescriptorTable(
-        graphicsPipeline->GetDescriptorTable(),
+    frame->renderQueue << BindDescriptorSet(
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex),
         graphicsPipeline,
-        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
-        frameIndex);
+        { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
+        globalDescriptorSetIndex);
+
+    if (viewDescriptorSetIndex != ~0u)
+    {
+        Assert(renderSetup.HasView());
+        Assert(renderSetup.passData != nullptr);
+
+        frame->renderQueue << BindDescriptorSet(
+            renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
+            graphicsPipeline,
+            {},
+            viewDescriptorSetIndex);
+    }
 
     frame->renderQueue << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
     frame->renderQueue << BindIndexBuffer(m_quadMesh->GetIndexBuffer());

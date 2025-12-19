@@ -2186,7 +2186,7 @@ RC<ASTFunctionType> Parser::ParseFunctionType(const RC<ASTType>& returnType)
         }
         else if (Match(TK_OPEN_BRACE, false))
         {
-            // @TODO Implement function body parsing
+            /// \todo Implement function body parsing
         }
     }
 

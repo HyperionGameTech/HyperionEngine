@@ -692,14 +692,14 @@ public:
     HYP_METHOD(Property = "Depth")
     void SetDepth(int depth);
 
-    /*! \brief Check if the UI object accepts focus. All UIObjects accept focus by default, unless overridden by derived classes or set using \ref{SetAcceptsFocus}.
+    /*! \brief Check if the UI object accepts focus. All UIObjects accept focus by default, unless overridden by derived classes or set using \ref SetAcceptsFocus.
      *  \return True if the this object accepts focus, false otherwise */
     HYP_METHOD(Property = "AcceptsFocus")
     virtual bool AcceptsFocus() const;
 
     /*! \brief Set whether the UI object accepts focus.
      *  \details If set to true, the UI object can receive focus. If set to false, the UI object cannot receive focus.
-     *  \note If a class deriving \ref{UIObject} overrides \ref{AcceptsFocus}, this function has no effect. */
+     *  \note If a class deriving \ref UIObject overrides \ref AcceptsFocus, this function has no effect. */
     HYP_METHOD(Property = "AcceptsFocus")
     void SetAcceptsFocus(bool acceptsFocus);
 
@@ -889,17 +889,17 @@ public:
 
     void SetCurrentValue(HypData&& value, bool triggerEvent = true);
 
-    /*! \brief Check if the UI object has focus. If \ref{includeChildren} is true, also return true if any child objects have focus.
+    /*! \brief Check if the UI object has focus. If \p includeChildren is true, also return true if any child objects have focus.
      *  \details The focus state of the UI object is used to determine if the object is currently focused.
      *  \param includeChildren If true, check if any child objects have focus.
      *  \return True if the object has focus, false otherwise. */
     bool HasFocus(bool includeChildren = true) const;
 
-    /*! \brief Check if \ref{other} is either a parent of this object or is equal to the current object.
-     *  \details Comparison is performed by using \ref{Node::IsOrHasParent}. If either this or \ref{other} does not have a Node,
+    /*! \brief Check if \p other is either a parent of this object or is equal to the current object.
+     *  \details Comparison is performed by using \ref{Node::IsOrHasParent}. If either this or \p other does not have a Node,
      *  false is returned.
      *  \param other The UIObject to check if it is a parent of this object.
-     *  \return Whether \ref{other} is a parent of this object or equal to the current object.
+     *  \return Whether \p other is a parent of this object or equal to the current object.
      */
     bool IsOrHasParent(const UIObject* other) const;
 
@@ -956,7 +956,7 @@ public:
      *  \details This will remove all child UIObjects from this object, including all descendants from their parents.
         Use this primarily when the entire UIObject and all descendants should be freed from memory, and will not be used again.
      *  This is a deep removal, meaning that all child UIObjects and their children will be removed.
-     *  \note This does not remove the UIObject itself, only its children. To remove the UIObject itself, use \ref{RemoveFromParent}.
+     *  \note This does not remove the UIObject itself, only its children. To remove the UIObject itself, use \ref RemoveFromParent.
      *  \returns The number of child UIObjects removed. */
     HYP_METHOD()
     virtual void ClearDeep();
@@ -964,7 +964,7 @@ public:
     /*! \brief Remove this object from its parent UI object, if applicable.
      *  \note It is possible that you are removing the last strong reference to `this` by calling this method,
      *  invalidating the pointer. Proper care must be taken to ensure `this` is not reused after calling this method.
-     *  If you need to use the object again, use \ref{DetachFromParent} which returns a strong reference counted pointer to `this`,
+     *  If you need to use the object again, use \ref DetachFromParent which returns a strong reference counted pointer to `this`,
      *  ensuring it does not get instantly deleted.
      *  \returns A boolean indicating whether or not the object could be removed from its parent */
     HYP_METHOD()
@@ -1016,7 +1016,7 @@ public:
 
     /*! \brief Removes the script component from this UIObject.
      *  If the UIObject has a script component, it will be removed. Only the script component directly attached to the UIObject will be removed.
-     *  Subsequent calls to \ref{GetScriptComponent} will return the closest script component to this UIObject in the scene hierarchy, if one exists. */
+     *  Subsequent calls to \ref GetScriptComponent will return the closest script component to this UIObject in the scene hierarchy, if one exists. */
     void RemoveScriptComponent();
 
     HYP_METHOD()
@@ -1150,7 +1150,7 @@ public:
     /*! \internal */
     void ForEachChildUIObject_Proc(ProcRef<IterationResult(UIObject*)> proc, bool deep = true) const;
 
-    /*! \brief Spawn a new UIObject with the given Class \ref{cls}. The object will not be attached to the current UIStage.
+    /*! \brief Spawn a new UIObject with the given Class \p cls. The object will not be attached to the current UIStage.
      *  The object will not be named. To name the object, use the other CreateUIObject overload.
      *
      *  \param cls The Class associated with the UIObject type you wish to spawn.

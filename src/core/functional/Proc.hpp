@@ -205,21 +205,21 @@ class ProcRef;
 template <class ReturnType, class... Args>
 class Proc<ReturnType(Args...)> : ProcBase
 {
-    static constexpr uint32 s_inlineStorageSizeBytes = 16;
+    static constexpr uint32 InlineStorageSizeBytes = 16;
 
-    using InlineStorageType = ValueStorage<char, s_inlineStorageSizeBytes>;
+    using InlineStorageType = ValueStorage<char, InlineStorageSizeBytes>;
     using Impl = Proc_Impl<ReturnType(Args...), InlineStorageType>;
 
 public:
     friend class ProcRef<ReturnType(Args...)>;
 
-    /*! \brief Constructs an empty Proc object. \ref{IsValid} will return false, indicating that the underlying functor object or function pointer is invalid. */
+    /*! \brief Constructs an empty Proc object. \ref IsValid will return false, indicating that the underlying functor object or function pointer is invalid. */
     Proc()
         : m_impl {}
     {
     }
 
-    /*! \brief Constructs an empty Proc object. \ref{IsValid} will return false, indicating that the underlying functor object or function pointer is invalid. */
+    /*! \brief Constructs an empty Proc object. \ref IsValid will return false, indicating that the underlying functor object or function pointer is invalid. */
     Proc(std::nullptr_t)
         : Proc()
     {
@@ -243,7 +243,7 @@ public:
             void* ptr = &m_impl.memory;
             const UIntPtr addressAligned = HYP_ALIGN_ADDRESS(ptr, alignof(FuncNormalized));
 
-            if (addressAligned + sizeof(FuncNormalized) <= UIntPtr(ptr) + s_inlineStorageSizeBytes)
+            if (addressAligned + sizeof(FuncNormalized) <= UIntPtr(ptr) + InlineStorageSizeBytes)
             {
                 Memory::Construct<FuncNormalized>(std::assume_aligned<alignof(FuncNormalized)>(reinterpret_cast<FuncNormalized*>(addressAligned)), std::forward<Func>(fn));
 
@@ -355,7 +355,7 @@ public:
         return m_impl.invokeFn(m_impl.GetPointer(), std::forward<Args>(args)...);
     }
 
-    /*! \brief Resets the Proc object, releasing any resources it may hold. \ref{IsValid} will return false after calling this function. */
+    /*! \brief Resets the Proc object, releasing any resources it may hold. \ref IsValid will return false after calling this function. */
     HYP_FORCE_INLINE void Reset()
     {
         m_impl.Reset();

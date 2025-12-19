@@ -116,7 +116,7 @@ Span<const FramebufferRef> ViewOutputTarget::GetFramebuffers() const
 {
     if (!m_impl)
     {
-        return { };
+        return {};
     }
 
     if (m_impl->IsA(GBuffer::StaticClass()))
@@ -954,7 +954,7 @@ void View::CollectLights(RenderProxyList& rpl)
                     isLightInFrustum = m_camera->GetFrustum().ContainsBoundingSphere(light->GetBoundingSphere());
                     break;
                 case LT_SPOT:
-                    // @TODO Implement frustum culling for spot lights
+                    /// \todo Implement frustum culling for spot lights
                     isLightInFrustum = true;
                     break;
                 case LT_AREA_RECT:

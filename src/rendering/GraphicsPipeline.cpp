@@ -17,7 +17,6 @@ namespace hyperion {
 
 GraphicsPipelineBase::~GraphicsPipelineBase()
 {
-    SafeDelete(std::move(m_descriptorTable));
     SafeDelete(std::move(m_shader));
     SafeDelete(std::move(m_framebuffers));
 }
@@ -44,9 +43,16 @@ RendererResult GraphicsPipelineBase::Create()
     HYPERION_RETURN_OK;
 }
 
-void GraphicsPipelineBase::SetDescriptorTable(const DescriptorTableRef& descriptorTable)
+uint32 GraphicsPipelineBase::GetDescriptorSetIndex(StringHash nameHash) const
 {
-    m_descriptorTable = descriptorTable;
+    const DescriptorTableDeclaration* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+
+    if (decl == nullptr)
+    {
+        return ~0u;
+    }
+
+    return decl->GetDescriptorSetIndex(nameHash);
 }
 
 void GraphicsPipelineBase::SetShader(const ShaderRef& shader)
@@ -62,7 +68,6 @@ void GraphicsPipelineBase::SetFramebuffers(const Array<FramebufferRef>& framebuf
 
 bool GraphicsPipelineBase::MatchesSignature(
     const Shader* shader,
-    const DescriptorTableDeclaration& descriptorTableDecl,
     const Array<const Framebuffer*>& framebuffers,
     const RenderableAttributeSet& attributes) const
 {
@@ -86,11 +91,6 @@ bool GraphicsPipelineBase::MatchesSignature(
         {
             return false;
         }
-    }
-
-    if (descriptorTableDecl.GetHashCode() != m_descriptorTable->GetDeclaration()->GetHashCode())
-    {
-        return false;
     }
 
     if (framebuffers.Size() != 0)

@@ -180,7 +180,7 @@ extern "C"
             DynamicClassInstance* dynamicClassNonConst = const_cast<DynamicClassInstance*>(dynamicClass);
             dynamicClassNonConst->SetManagedClass(classObject);
 
-            // @TODO Implement unregistering of dynamic hyp classes
+            /// \todo Implement unregistering of dynamic hyp classes
             ClassRegistry::GetInstance().RegisterClass(typeId, dynamicClassNonConst);
         }
 

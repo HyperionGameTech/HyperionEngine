@@ -620,7 +620,7 @@ public:
         return CreateInstanceArray_Internal(elements, out);
     }
 
-    /*! \brief Create a new HypData from \ref{memory}. The object at \ref{memory} must have the type of this Class's TypeId.
+    /*! \brief Create a new HypData from \p memory. The object at \p memory must have the type of this Class's TypeId.
      *  The underlying data will be moved or have ownership taken.
      *  \param memory A view to the memory of the underlying object.
      *  \returns True if the operation was successful. */
@@ -920,7 +920,7 @@ class DynamicClassInstance final : public Class
 {
 public:
 #ifdef HYP_DOTNET
-    DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* classPtr, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members);
+    DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* pManagedClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members);
 #endif
 
 #ifdef HYP_SCRIPT

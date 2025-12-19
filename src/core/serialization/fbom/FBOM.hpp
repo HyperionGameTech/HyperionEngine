@@ -90,8 +90,8 @@ struct FBOMVersion
 
     /*! \brief Returns an integer indicating whether the two version are compatible or not.
      *  If the returned value is equal to zero, the two versions are compatible.
-     *  If the returned value is less than zero, \ref{lhs} is incompatible, due to being outdated.
-     *  If the returned value is greater than zero, \ref{lhs} is incompatible, due to being newer. */
+     *  If the returned value is less than zero, \p lhs is incompatible, due to being outdated.
+     *  If the returned value is greater than zero, \p lhs is incompatible, due to being newer. */
     HYP_FORCE_INLINE static int TestCompatibility(const FBOMVersion& lhs, const FBOMVersion& rhs, EnumFlags<FBOMVersionCompareMode> compareMode = FBOMVersionCompareMode::DEFAULT)
     {
         if (compareMode & FBOMVersionCompareMode::MAJOR)
@@ -152,7 +152,7 @@ public:
      *  an object, based on its type Id. */
     void RegisterLoader(TypeId typeId, ANSIStringView name, UniquePtr<FBOMMarshalerBase>&& marshal);
 
-    /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for \ref{T}'s type Id,
+    /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for \p T's type Id,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:
      *      For classes that have a Class associated, the ObjectMarshal will be used.
      *      Otherwise, no marshal will be used, and this function will return nullptr.

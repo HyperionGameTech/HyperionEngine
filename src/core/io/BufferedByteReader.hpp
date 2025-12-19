@@ -313,7 +313,7 @@ public:
         m_source = nullptr;
     }
 
-    /*! \brief Reads the next \ref{count} bytes from the file and returns a ByteBuffer.
+    /*! \brief Reads the next \p count bytes from the file and returns a ByteBuffer.
         If position + count is greater than the number of remaining bytes, the ByteBuffer is truncated. */
     ByteBuffer ReadBytes(SizeType count)
     {
@@ -351,8 +351,8 @@ public:
         return byteBuffer;
     }
 
-    /*! \brief Attempts to read \ref{count} bytes from the file into
-        \ref{ptr}. If size is greater than the number of remaining bytes,
+    /*! \brief Attempts to read \p count bytes from the file into
+        \p ptr. If size is greater than the number of remaining bytes,
         it is capped to (num remaining bytes).
         @returns The number of bytes read */
     SizeType ReadBytes(ubyte* ptr, SizeType count)

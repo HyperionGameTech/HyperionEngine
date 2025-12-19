@@ -95,7 +95,7 @@ void WorldGridLayer::AddStreamingObject(const AssetObject* assetObject, const Ve
         g_assetManager->GetAssetRegistry()->RegisterAsset(HYP_FORMAT("$Temp/{}", assetObject->GetUUID()), MakeStrongRef(assetObject));
     }
 
-    // @TODO How will we update if the obj moves to a different path in editor?? - FIXME when we add some Delegate like OnAssetPathChanged to AssetObject
+    /// \todo How will we update if the obj moves to a different path in editor?? - FIXME when we add some Delegate like OnAssetPathChanged to AssetObject
 
     if (assetObject->IsTransient())
     {
@@ -142,7 +142,7 @@ void WorldGridLayer::RemoveStreamingObject(const AssetObject* assetObject)
 
     HYP_LOG(Streaming, Warning, "Object {} not found in layer {}", assetObject->GetName(), m_name);
 
-    // @TODO needs to remove from actual StreamingCell if already loaded!!
+    /// \todo needs to remove from actual StreamingCell if already loaded!!
 }
 
 #pragma endregion WorldGridLayer

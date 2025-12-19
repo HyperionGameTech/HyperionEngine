@@ -212,7 +212,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         {
             cacheIt->second.combineShadowMapsPass = CreateCombineShadowMapsPass(
                 shadowMap->GetFilterMode(),
-                shadowMap->GetImageView()->GetImage()->GetTextureFormat(), // @TODO get format from Light's settings
+                shadowMap->GetImageView()->GetImage()->GetTextureFormat(), /// \todo get format from Light's settings
                 shadowMap->GetAtlasElement()->dimensions,
                 lightProxy->shadowViews);
 
@@ -285,7 +285,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         rpl.BeginRead();
         renderProxyLists.PushBack(&rpl);
 
-        // // @TODO Add OR shadow matrix changed check! or simply invalidate on change and check if invalidated?
+        // /// \todo Add OR shadow matrix changed check! or simply invalidate on change and check if invalidated?
         if (!rpl.GetMeshEntities().GetDiff().NeedsUpdate() && !rpl.GetSkeletons().GetDiff().NeedsUpdate())
         {
             continue;

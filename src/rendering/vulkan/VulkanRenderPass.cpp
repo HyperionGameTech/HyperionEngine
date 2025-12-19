@@ -139,7 +139,7 @@ void VulkanRenderPass::CreateDependencies()
                     storeDependency->srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
                     storeDependency->srcAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-                    storeDependency->dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT; // @TODO: revisit if compute bit needed if we change SSR to be fragment shader
+                    storeDependency->dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT; /// \todo : revisit if compute bit needed if we change SSR to be fragment shader
                     storeDependency->dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
                 }
                 else
@@ -147,7 +147,7 @@ void VulkanRenderPass::CreateDependencies()
                     storeDependency->srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
                     storeDependency->srcAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-                    storeDependency->dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT; // @TODO: revisit if compute bit needed if we change SSR to be fragment shader
+                    storeDependency->dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT; /// \todo : revisit if compute bit needed if we change SSR to be fragment shader
                     storeDependency->dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
                 }
 

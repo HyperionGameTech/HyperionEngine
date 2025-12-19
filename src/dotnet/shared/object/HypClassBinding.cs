@@ -12,7 +12,7 @@ namespace Hyperion
 
         public Class GetClass(Type type)
         {
-            // @TODO Needs to deal with DynamicStruct.
+            /// \todo Needs to deal with DynamicStruct.
 
             // temp; refactor
             if (type.IsValueType && IsDynamic)

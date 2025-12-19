@@ -228,6 +228,21 @@ public:
         return nullptr;
     }
 
+    HYP_FORCE_INLINE T& GetUnchecked() &
+    {
+        return reinterpret_cast<T&>(Base::m_storage);
+    }
+
+    HYP_FORCE_INLINE const T& GetUnchecked() const&
+    {
+        return reinterpret_cast<const T&>(Base::m_storage);
+    }
+
+    HYP_FORCE_INLINE T GetUnchecked() &&
+    {
+        return reinterpret_cast<T&&>(Base::m_storage);
+    }
+
     HYP_FORCE_INLINE T& Get() &
     {
         HYP_CORE_ASSERT(Base::m_hasValue);

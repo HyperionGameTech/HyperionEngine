@@ -303,7 +303,6 @@ GraphicsPipelineCache::~GraphicsPipelineCache()
 
 GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
     const ShaderRef& shader,
-    const DescriptorTableRef& descriptorTable,
     Span<const FramebufferRef> framebuffers,
     const RenderableAttributeSet& attributes)
 {
@@ -316,48 +315,14 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
         return {};
     }
 
-    const DescriptorTableDeclaration* descriptorTableDecl = nullptr;
-
-    DescriptorTableRef table;
-
-    if (descriptorTable)
-    {
-        table = descriptorTable;
-        descriptorTableDecl = table->GetDeclaration();
-    }
-    else
-    {
-        descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    }
-
-    Assert(descriptorTableDecl != nullptr);
-
     GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(
         shader,
-        *descriptorTableDecl,
         framebuffers,
         attributes);
 
     if (cacheHandle.IsAlive())
     {
         return cacheHandle;
-    }
-
-    if (!table)
-    {
-        table = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
-        if (!table.IsValid())
-        {
-#ifdef HYP_DEBUG_MODE
-            HYP_LOG(Rendering, Error, "Failed to create descriptor table for shader: {}", shader->GetDebugName());
-#else
-            HYP_LOG(Rendering, Error, "Failed to create descriptor table for shader");
-#endif
-
-            return {};
-        }
-
-        DeferCreate(table);
     }
 
     Proc<void(GraphicsPipeline*, uint32)> newCallback([this, attributes](GraphicsPipeline* graphicsPipeline, uint32 slot)
@@ -375,7 +340,6 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
 
     GraphicsPipelineRef graphicsPipeline = g_renderBackend->MakeGraphicsPipeline(
         shader,
-        table,
         framebuffers,
         attributes);
 
@@ -429,7 +393,6 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
 
 GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     const ShaderRef& shader,
-    const DescriptorTableDeclaration& descriptorTableDecl,
     Span<const FramebufferRef> framebuffers,
     const RenderableAttributeSet& attributes)
 {
@@ -461,10 +424,10 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     {
         Assert(pPipeline != nullptr);
 
-        if ((*pPipeline)->MatchesSignature(shader, descriptorTableDecl, Map(framebuffers, [](const FramebufferRef& framebuffer)
-                                                                            {
-                                                                                return static_cast<const Framebuffer*>(framebuffer.Get());
-                                                                            }),
+        if ((*pPipeline)->MatchesSignature(shader, Map(framebuffers, [](const FramebufferRef& framebuffer)
+                                                       {
+                                                           return static_cast<const Framebuffer*>(framebuffer.Get());
+                                                       }),
                 attributes))
         {
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG

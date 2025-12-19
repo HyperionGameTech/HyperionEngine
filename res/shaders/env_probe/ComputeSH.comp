@@ -196,7 +196,7 @@ void main(void)
         CURRENT_TILE.coeffs_weights[i] = vec4(0.0);
     }
 
-    // @TODO Optimize this
+    /// \todo Optimize this
     if (all(equal(gl_GlobalInvocationID.xyz, ivec3(0))))
     {
         for (int i = 0; i < 9; i++)
@@ -219,7 +219,7 @@ void main(void)
 
     vec4 position = vec4(world_position.xyz + dir * dist_dist2.r, 1.0);
 
-    // @TODO: Sample existing envgrid probes in the world for multi bounce lighting
+    /// \todo : Sample existing envgrid probes in the world for multi bounce lighting
 
     vec4 indirect = SampleSky(normal);
     vec4 color = (indirect + CalculateDirectLighting(position.xyz, normal)) * (albedo * (1.0 / HYP_FMATH_PI));

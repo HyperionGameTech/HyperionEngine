@@ -133,7 +133,7 @@ public:
         return m_entityManager;
     }
 
-    /*! \brief Set the EntityManager for the Octree to use. For internal use from \ref{Scene} only
+    /*! \brief Set the EntityManager for the Octree to use. For internal use from \ref Scene only
      *  \internal */
     void SetEntityManager(const Handle<EntityManager>& entityManager);
 

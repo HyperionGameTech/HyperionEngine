@@ -47,7 +47,7 @@ struct MeshRaytracingData
 class IRenderProxy
 {
 protected:
-    virtual ~IRenderProxy() = default; // @TODO: Get rid of virtual dtor
+    virtual ~IRenderProxy() = default; /// \todo : Get rid of virtual dtor
 
 public:
     int version = 0;

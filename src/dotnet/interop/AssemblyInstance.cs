@@ -343,7 +343,7 @@ namespace Hyperion
                 referencedAssembly.Unload();
             }
 
-            // @TODO Remove DynamicStruct instances for the assembly
+            /// \todo Remove DynamicStruct instances for the assembly
 
             int numMethodsRemoved = ManagedMethodCache.Instance.RemoveForAssembly(guid);
             int numDelegatesRemoved = DelegateCache.Instance.RemoveForAssembly(guid);

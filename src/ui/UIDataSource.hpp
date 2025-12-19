@@ -558,7 +558,7 @@ public:
     HYP_METHOD()
     virtual void Clear() override
     {
-        // @TODO check if delegate has any functions bound,
+        /// \todo check if delegate has any functions bound,
         // or better yet, have a way to call in bulk (prevent lots of mutex locks/unlocks)
         for (auto it = m_values.Begin(); it != m_values.End(); ++it)
         {

@@ -102,13 +102,14 @@ struct Formatter<StringType, Name>
 
 } // namespace utilities
 
-#if 0
 // Name string literal conversion
-Name operator "" _n(const char *, SizeType);
+Name operator""_name(const char*, SizeType);
 
-// Name (weak) string literal conversion
-constexpr StringHash operator "" _nw(const char *, SizeType);
-#endif
+// StringHash literal conversion
+consteval StringHash operator""_sh(const char* str, SizeType)
+{
+    return StringHash(str);
+}
 
 #if defined(HYP_COMPILE_TIME_NAME_HASHING) && HYP_COMPILE_TIME_NAME_HASHING
 

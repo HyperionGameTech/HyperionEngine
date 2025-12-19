@@ -82,7 +82,7 @@ void main()
     color_output = vec4(Tonemap(color_output.rgb), 1.0);
 
 #ifdef OUTPUT_PQ_HDR
-    const float peakNits = 1000.0; // @TODO: Make configurable
+    const float peakNits = 1000.0; /// \todo : Make configurable
     color_output.rgb = LinearToPQ(color_output.rgb, peakNits);
 #endif
 }

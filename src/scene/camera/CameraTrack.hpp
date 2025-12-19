@@ -38,7 +38,7 @@ public:
         m_duration = duration;
     }
 
-    /*! \brief Get a blended CameraTrackPivot at \ref{timestamp} */
+    /*! \brief Get a blended CameraTrackPivot at \p timestamp */
     CameraTrackPivot GetPivotAt(double timestamp) const;
 
     void AddPivot(const CameraTrackPivot& pivot);

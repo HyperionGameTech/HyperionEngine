@@ -35,7 +35,7 @@ class GraphicsPipelineCacheHandle
     // called only by GraphicsPipelineCache, must be called within mutex lock of the cache as it does not perform any locking
     explicit GraphicsPipelineCacheHandle(GraphicsPipelineRef* pRef);
     static void UpdateRefCount(GraphicsPipelineCacheHandle& cacheHandle, int delta, bool lock);
-    
+
 public:
     GraphicsPipelineCacheHandle() = default;
 
@@ -87,13 +87,12 @@ public:
     GraphicsPipelineCache& operator=(GraphicsPipelineCache&&) = delete;
     ~GraphicsPipelineCache();
 
-    /*! \brief Gets or creates a graphics pipeline based on the provided shader, descriptor table, framebuffers, and attributes.
+    /*! \brief Gets or creates a graphics pipeline based on the provided shader, framebuffers, and attributes.
      *  Returns a pointer to the reference, do not store a strong reference to it as it will be discarded after a certain number of frames if not used.
      *  Instead, use the returned pointer to access the graphics pipeline. It's guaranteed to be valid for at least 10 frames after this method returns.
      */
     GraphicsPipelineCacheHandle GetOrCreate(
         const ShaderRef& shader,
-        const DescriptorTableRef& descriptorTable,
         Span<const FramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes);
 
@@ -102,7 +101,6 @@ public:
 private:
     GraphicsPipelineCacheHandle FindGraphicsPipeline(
         const ShaderRef& shader,
-        const DescriptorTableDeclaration& descriptorTableDecl,
         Span<const FramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes);
 

@@ -258,7 +258,7 @@ void main()
     //     const Light light = HYP_GET_LIGHT(light_index);
 
     //     // skip directional lights
-    //     // @TODO: Implement more light types besides point lights
+    //     /// \todo : Implement more light types besides point lights
     //     if (light.type != HYP_LIGHT_TYPE_POINT) {
     //         continue;
     //     }
