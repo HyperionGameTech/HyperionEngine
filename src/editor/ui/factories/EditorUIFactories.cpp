@@ -926,7 +926,7 @@ public:
             Handle<UIGridColumn> componentsGridContainerScriptColumn = componentsGridContainerScriptRow->AddColumn();
 
 #if 0
-            // @TODO: Rewrite this once working
+            /// \todo : Rewrite this once working
             if (entityManager->HasComponent<ScriptComponent>(entity)) {
                 Handle<UIButton> editScriptButton = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 editScriptButton->SetText("Edit Script");
@@ -982,7 +982,7 @@ public:
 
                     Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
 
-                    // @TODO: better name for script asset
+                    /// \todo : better name for script asset
                     Result assetObjectResult = scriptsPackage->AddAssetObject(scriptAsset).Await();
 
                     if (assetObjectResult.HasError())
@@ -1057,7 +1057,7 @@ public:
         // add the HypData UIObject to the list view
         listView->AddChildUIObject(hypDataElement);
 
-        // @TODO: Add components to the list view
+        /// \todo : Add components to the list view
 
         return listView;
     }
@@ -1157,7 +1157,7 @@ public:
 
     void Update(UIObject* uiObject, const EditorNodePropertyRef& value) const
     {
-        // // @TODO Implement without recreating the UI element
+        // /// \todo Implement without recreating the UI element
 
         // Handle<Node> nodeRc = value.node.Lock();
         // Assert(nodeRc != nullptr);

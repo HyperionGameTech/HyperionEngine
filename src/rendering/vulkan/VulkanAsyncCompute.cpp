@@ -77,7 +77,7 @@ RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    // @TODO: Call RenderQueue::Prepare to set descriptor sets to be used for the frame.
+    /// \todo : Call RenderQueue::Prepare to set descriptor sets to be used for the frame.
 
     HYP_GFX_CHECK(m_commandBuffers[frameIndex]->Begin());
     renderQueue.Execute(m_commandBuffers[frameIndex]);

@@ -1185,7 +1185,7 @@ void UIObject::SetTextColor(const Color& textColor)
 
     m_textColor = textColor;
 
-    /// @TODO OnTextColorUpdate() is not implemented yet, but it should be called here
+    //// \todo OnTextColorUpdate() is not implemented yet, but it should be called here
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, true);
 }

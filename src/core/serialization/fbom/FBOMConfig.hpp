@@ -19,7 +19,7 @@ struct FBOMConfig
 {
 };
 
-// @TODO Convert these structs to use Configuration system (see core/config/Config.hpp)
+/// \todo Convert these structs to use Configuration system (see core/config/Config.hpp)
 
 struct FBOMWriterConfig : public FBOMConfig<FBOMWriterConfig>
 {

@@ -300,7 +300,7 @@ public:
         return UIntPtr(Base::Get()) < UIntPtr(other.Base::Get());
     }
 
-    /*! \brief Drops any currently held valeu and constructs a new value using \ref{value}.
+    /*! \brief Drops any currently held valeu and constructs a new value using \p value.
 
         Ty may be a derived class of T, and the type Id of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>(). */

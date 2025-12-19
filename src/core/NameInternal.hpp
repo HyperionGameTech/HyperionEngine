@@ -30,14 +30,14 @@ extern HYP_API Name CreateNameFromDynamicString(const ANSIString& str);
 
 /*! \brief A name is a hashed string that is used to identify objects, components, and other entities in the engine.
  *  \details Names have their text components stored in a global registry and are internally.
- *  A \ref{Name} holds a 64 bit unsigned integer representing the hash, allowing for fast lookups and comparisons.
+ *  A \ref Name holds a 64 bit unsigned integer representing the hash, allowing for fast lookups and comparisons.
  *
- *  To create a name at compile time, use the \ref{HYP_NAME} macro.
+ *  To create a name at compile time, use the \ref HYP_NAME macro.
  *  \code{.cpp}
  *  Name name = NAME("MyName");
  *  \endcode
  *
- *  To create a name at runtime, use the \ref{CreateNameFromDynamicString} function.
+ *  To create a name at runtime, use the \ref CreateNameFromDynamicString function.
  *  \code{.cpp}
  *  Name name = CreateNameFromDynamicString("MyName");
  *  \endcode

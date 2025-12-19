@@ -350,7 +350,7 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
         return 0;
     }
 
-    // @TODO: Radiance map won't need as many samples as irradiance due to having less variance in directions,
+    /// \todo : Radiance map won't need as many samples as irradiance due to having less variance in directions,
     // we should separate LightmapJob to be per- shading type, so the radiance one can finish earlier.
 
     for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *m_params.renderers)

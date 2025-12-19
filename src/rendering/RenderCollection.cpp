@@ -1002,7 +1002,7 @@ void RenderCollector::ExecuteDrawCalls(
     {
         bool allEmpty = true;
 
-        for (const auto& mappings : mappingsByBucket)
+        for (auto& mappings : mappingsByBucket)
         {
             if (mappings.Any())
             {
@@ -1031,13 +1031,13 @@ void RenderCollector::ExecuteDrawCalls(
         frame->renderQueue << BeginFramebuffer(framebuffer);
     }
 
-    for (const auto& mappings : groupsView)
+    for (auto& mappings : groupsView)
     {
-        for (const auto& it : mappings)
+        for (auto& it : mappings)
         {
             const RenderableAttributeSet& attributes = it.first;
 
-            const DrawCallCollectionMapping& mapping = it.second;
+            DrawCallCollectionMapping& mapping = it.second;
             AssertDebug(mapping.IsValid());
 
             const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
@@ -1050,7 +1050,7 @@ void RenderCollector::ExecuteDrawCalls(
             const Handle<RenderGroup>& renderGroup = mapping.renderGroup;
             AssertDebug(renderGroup != nullptr);
 
-            const DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
+            DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
 
             IndirectRenderer* indirectRenderer = mapping.indirectRenderer;
 

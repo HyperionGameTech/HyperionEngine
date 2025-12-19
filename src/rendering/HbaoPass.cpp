@@ -83,6 +83,8 @@ HBAO::HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer)
 
 HBAO::~HBAO()
 {
+    SafeDelete(std::move(m_uniformBuffer));
+    SafeDelete(std::move(m_descriptorSet));
 }
 
 void HBAO::Create()
@@ -106,24 +108,21 @@ void HBAO::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
 {
     HYP_SCOPE;
 
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+    const DescriptorTableDeclaration* descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    Assert(descriptorTableDecl != nullptr);
 
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("HBAODescriptorSet", frameIndex);
-        Assert(descriptorSet != nullptr);
+    const DescriptorSetDeclaration* descriptorSetDecl = descriptorTableDecl->FindDescriptorSetDeclaration("HBAODescriptorSet"_sh);
+    Assert(descriptorSetDecl != nullptr);
 
-        descriptorSet->SetElement("UniformBuffer", m_uniformBuffer);
-    }
+    m_descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(descriptorSetDecl));
+    Assert(m_descriptorSet != nullptr);
 
-    DeferCreate(descriptorTable);
+    m_descriptorSet->SetElement("UniformBuffer", m_uniformBuffer);
 
-    m_descriptorTable = descriptorTable;
+    Assert(m_descriptorSet->Create());
 
     m_graphicsPipelineCacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        descriptorTable,
         { &m_framebuffer, 1 },
         renderableAttributes);
 }
@@ -150,6 +149,7 @@ void HBAO::Resize_Internal(Vec2u newSize)
     HYP_SCOPE;
 
     SafeDelete(std::move(m_uniformBuffer));
+    SafeDelete(std::move(m_descriptorSet));
 
     FullScreenPass::Resize_Internal(newSize);
 }
@@ -160,6 +160,7 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.world && renderSetup.view);
+    AssertDebug(renderSetup.passData != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -167,25 +168,31 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline();
 
-    frame->renderQueue << BindDescriptorTable(
-        graphicsPipeline->GetDescriptorTable(),
+    const uint32 descriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("HBAODescriptorSet"_sh);
+    AssertDebug(descriptorSetIndex != ~0u);
+
+    const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global"_sh);
+    AssertDebug(globalDescriptorSetIndex != ~0u);
+
+    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
+
+    frame->renderQueue << BindDescriptorSet(
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex),
         graphicsPipeline,
-        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
-        frameIndex);
+        { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
+        globalDescriptorSetIndex);
 
-    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+    frame->renderQueue << BindDescriptorSet(
+        m_descriptorSet,
+        graphicsPipeline,
+        {},
+        descriptorSetIndex);
 
-    if (viewDescriptorSetIndex != ~0u)
-    {
-        Assert(renderSetup.HasView());
-        Assert(renderSetup.passData != nullptr);
-
-        frame->renderQueue << BindDescriptorSet(
-            renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
-            graphicsPipeline,
-            {},
-            viewDescriptorSetIndex);
-    }
+    frame->renderQueue << BindDescriptorSet(
+        renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
+        graphicsPipeline,
+        {},
+        viewDescriptorSetIndex);
 
     frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
     frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());

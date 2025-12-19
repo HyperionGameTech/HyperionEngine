@@ -330,12 +330,11 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     const FramebufferRef& framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
     if (!state.graphicsPipelineHandle.IsAlive()
-        // @TODO Just add an OnResize or something and remove this extra framebuffer check
+        /// \todo Just add an OnResize or something and remove this extra framebuffer check
         || !(*state.graphicsPipelineHandle)->GetFramebuffers().Contains(framebuffer))
     {
         state.graphicsPipelineHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             state.particleShader,
-            state.graphicsDescriptorTable,
             Span<const FramebufferRef>(&framebuffer, 1),
             state.renderableAttributes);
     }

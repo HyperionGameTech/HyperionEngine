@@ -524,7 +524,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
             textures[MaterialTextureKey::ALBEDO_MAP] = baseColorTexture;
         }
 
-        //// @TODO implement handling both metallic and roughness in the same texture
+        ///// \todo implement handling both metallic and roughness in the same texture
         // if (Handle<Texture> metallicRoughnessTexture = AcquireTexture(ctx, pbr.metallic_roughness_texture, false))
         //{
         //     textures[MaterialTextureKey::METALNESS_MAP] = metallicRoughnessTexture;

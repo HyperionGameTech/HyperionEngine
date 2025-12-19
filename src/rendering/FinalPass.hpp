@@ -23,6 +23,7 @@ struct FinalPassData
 {
     SwapchainWeakRef swapchain;
     Handle<FullScreenPass> renderTextureToScreenPass;
+    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
     GpuImageViewRef lastUiImageView;
     uint8 dirtyFrameIndices = 0;
 };

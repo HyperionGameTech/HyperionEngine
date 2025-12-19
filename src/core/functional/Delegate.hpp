@@ -293,7 +293,7 @@ public:
         return m_numProcs.Get(MemoryOrder::ACQUIRE) != 0;
     }
 
-    /*! \brief Bind a Proc<> to the Delegate. The bound function will always be called on the thread that Bind() is called from if \ref{requireCurrentThread} is set to true.
+    /*! \brief Bind a Proc<> to the Delegate. The bound function will always be called on the thread that Bind() is called from if \ref requireCurrentThread is set to true.
      *  \note The handler will be removed when the last reference to the returned DelegateHandler is removed.
      *  This makes it easy to manage resource cleanup, as you can store the DelegateHandler as a class member and when the object is destroyed, the handler will be removed from the Delegate.
      *
@@ -428,7 +428,7 @@ public:
     /*! \brief Broadcast a message to all bound handlers.
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
-     *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
+     *  \return The result returned from the final handler that was called, or a default constructed \ref ReturnType if no handlers were bound. */
     template <class... ArgTypes>
     ReturnType Broadcast(ArgTypes&&... args)
     {
@@ -776,7 +776,7 @@ public:
         return m_impl->AnyBound();
     }
 
-    /*! \brief Bind a Proc<> to the Delegate. The bound function will always be called on the thread that Bind() is called from if \ref{requireCurrentThread} is set to true.
+    /*! \brief Bind a Proc<> to the Delegate.
      *  \note The handler will be removed when the last reference to the returned DelegateHandler is removed.
      *  This makes it easy to manage resource cleanup, as you can store the DelegateHandler as a class member and when the object is destroyed, the handler will be removed from the Delegate.
      *
@@ -863,7 +863,7 @@ public:
     /*! \brief Broadcast a message to all bound handlers.
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
-     *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
+     *  \return The result returned from the final handler that was called, or a default constructed \ref ReturnType if no handlers were bound. */
     template <class... ArgTypes>
     ReturnType Broadcast(ArgTypes&&... args)
     {
@@ -889,7 +889,7 @@ public:
     /*! \brief Call operator overload - alias method for Broadcast().
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
-     *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
+     *  \return The result returned from the final handler that was called, or a default constructed \ref ReturnType if no handlers were bound. */
     template <class... ArgTypes>
     HYP_FORCE_INLINE ReturnType operator()(ArgTypes&&... args) const
     {
@@ -950,7 +950,7 @@ public:
         return true;
     }
 
-    /*! \brief Remove all delegate handlers that are bound to the given \ref{delegate}
+    /*! \brief Remove all delegate handlers that are bound to the given \p delegate
      *  \returns The number of delegate handlers that were removed. */
     template <class ReturnType, class... Args>
     HYP_FORCE_INLINE int Remove(Delegate<ReturnType, Args...>* delegate)

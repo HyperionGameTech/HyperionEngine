@@ -738,7 +738,7 @@ Task<Result> AssetPackage::MergePackage(const Handle<AssetPackage>& package)
         Handle<AssetPackage> strongThis = MakeStrongRef(this);
 
         // needed for GetPackageFromPath() / GetSubpackage().
-        // @TODO: Refactor to call these methods on AssetPackage directly?
+        /// \todo : Refactor to call these methods on AssetPackage directly?
         Handle<AssetRegistry> registry = m_registry.Lock();
         Assert(registry != nullptr);
 
@@ -867,7 +867,7 @@ void AssetPackage::Rename(Name name)
     m_name = name;
     m_friendlyName = friendlyName;
 
-    // @TODO Update AssetObject TRANSIENT_BY_PROXY flags if changed
+    /// \todo Update AssetObject TRANSIENT_BY_PROXY flags if changed
 }
 
 bool AssetPackage::HasAssetWithName(Name assetName) const
@@ -1561,7 +1561,7 @@ void AssetRegistry::PostTask(Func&& fn, Task<FutureType>* pOutFuture)
     }
 }
 
-// @TODO Revisit, this will have more overhead now that we execute a lot of functions
+/// \todo Revisit, this will have more overhead now that we execute a lot of functions
 // on the game thread (would probably be faster to just do it synchronously)
 void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 {
@@ -2557,7 +2557,7 @@ void AssetRegistry::RegisterAssetsRecursively(
         return;
     }
 
-    /// @TODO: Change to a Stack, recursion could get impressively deep.
+    //// \todo : Change to a Stack, recursion could get impressively deep.
 
     HashSet<const ObjectBase*> visited; // to avoid infinite recursion
 
@@ -2706,7 +2706,7 @@ void AssetRegistry::RegisterAssetsRecursively(
         }
 
         // special handling for Entity: needs to collect from components
-        // @TODO: Move to a method that can be overridden for custom handling?
+        /// \todo : Move to a method that can be overridden for custom handling?
         if (current.Is<Entity>())
         {
             const Entity& entity = current.Get<Entity>();

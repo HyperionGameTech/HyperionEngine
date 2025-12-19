@@ -50,21 +50,21 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     {
         AssertDebug(sor->GetManagedObject() != nullptr);
 
-        if (dotnet::ManagedClass* classPtr = sor->GetManagedObject()->GetClass())
+        if (dotnet::ManagedClass* pManagedClass = sor->GetManagedObject()->GetClass())
         {
-            if (dotnet::ManagedMethod* methodPtr = classPtr->GetMethod(methodName))
+            if (dotnet::ManagedMethod* pManagedMethod = pManagedClass->GetMethod(methodName))
             {
-                if (!methodPtr->GetAttributes().HasAttribute("ScriptMethodStub"))
+                if (!pManagedMethod->GetAttributes().HasAttribute("ScriptMethodStub"))
                 {
                     // Stubbed method, don't waste cycles calling it if it's not implemented
                     if constexpr (!std::is_void_v<ReturnType>)
                     {
                         AssertDebug(outReturnValue != nullptr);
-                        new (outReturnValue) ReturnType(sor->GetManagedObject()->InvokeMethod<ReturnType>(methodPtr, std::forward<ArgTypes>(args)...));
+                        new (outReturnValue) ReturnType(sor->GetManagedObject()->InvokeMethod<ReturnType>(pManagedMethod, std::forward<ArgTypes>(args)...));
                     }
                     else
                     {
-                        sor->GetManagedObject()->InvokeMethod<void>(methodPtr, std::forward<ArgTypes>(args)...);
+                        sor->GetManagedObject()->InvokeMethod<void>(pManagedMethod, std::forward<ArgTypes>(args)...);
                     }
                 }
             }
@@ -99,7 +99,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     }
 #endif
 
-    // @TODO add native script support here
+    /// \todo add native script support here
 }
 
 ScriptSystem::ScriptSystem()

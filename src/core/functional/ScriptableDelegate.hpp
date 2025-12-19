@@ -322,7 +322,7 @@ public:
     /*! \brief Call operator overload - alias method for Broadcast().
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
-     *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
+     *  \return The result returned from the final handler that was called, or a default constructed \ref ReturnType if no handlers were bound. */
     template <class... ArgTypes>
     HYP_FORCE_INLINE ReturnType operator()(ArgTypes&&... args) const
     {

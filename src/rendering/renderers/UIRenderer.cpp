@@ -175,12 +175,12 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         frame->renderQueue << BeginFramebuffer(framebuffer);
     }
 
-    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::ConstIterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
     Array<IteratorType> iterators;
 
-    for (const auto& mappings : mappingsByBucket)
+    for (auto& mappings : mappingsByBucket)
     {
-        for (const auto& it : mappings)
+        for (auto& it : mappings)
         {
             iterators.PushBack(&it);
         }
@@ -197,16 +197,17 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     for (SizeType index = 0; index < iterators.Size(); index++)
     {
-        const auto& it = *iterators[index];
+        auto& it = *iterators[index];
 
         const RenderableAttributeSet& attributes = it.first;
-        const DrawCallCollectionMapping& mapping = it.second;
+
+        DrawCallCollectionMapping& mapping = it.second;
         Assert(mapping.IsValid());
 
         const Handle<RenderGroup>& renderGroup = mapping.renderGroup;
         Assert(renderGroup.IsValid());
 
-        const DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
+        DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
 
         ParallelRenderingState* parallelRenderingState = nullptr;
 

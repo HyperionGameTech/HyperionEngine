@@ -64,7 +64,7 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
             }
             else
             {
-                /// @TODO: Store self in a temporary variable instead of cloning so we don't evaluate it multiple times
+                //// \todo : Store self in a temporary variable instead of cloning so we don't evaluate it multiple times
                 RC<AstExpression> selfTarget = CloneAstNode(leftTarget);
                 Assert(selfTarget != nullptr);
 

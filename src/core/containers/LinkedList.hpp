@@ -239,7 +239,7 @@ public:
         return Size() != 0;
     }
 
-    /*! \brief Access the element at \ref{index}. Note that the LinkedList must be traversed until we reach the element,
+    /*! \brief Access the element at \p index. Note that the LinkedList must be traversed until we reach the element,
      *  so this is operation is not O(1), but O(n) where n is the number of elements in the LinkedList */
     HYP_FORCE_INLINE T& operator[](SizeType index)
     {
@@ -261,7 +261,7 @@ public:
         return node->value.Get();
     }
 
-    /*! \brief Access the element at \ref{index}. Note that the LinkedList must be traversed until we reach the element,
+    /*! \brief Access the element at \p index. Note that the LinkedList must be traversed until we reach the element,
      *  so this is operation is not O(1), but O(n) where n is the number of elements in the LinkedList */
     HYP_FORCE_INLINE const T& operator[](SizeType index) const
     {

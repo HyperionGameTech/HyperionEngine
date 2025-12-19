@@ -189,7 +189,7 @@ public:
         if (channel.id >= Logger::MaxChannels)
         {
             // log channel overflow! revert to Log_Misc
-            /// @TODO: Dynamic channels with ID >= MaxChannels should be checked using a dynamic bitset w/ mutex
+            //// \todo : Dynamic channels with ID >= MaxChannels should be checked using a dynamic bitset w/ mutex
             channelPtr = &g_logChannel_Misc;
             return;
         }

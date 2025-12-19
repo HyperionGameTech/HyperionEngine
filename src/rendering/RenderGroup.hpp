@@ -88,7 +88,7 @@ public:
     void PerformRendering(
         Frame* frame,
         const RenderSetup& renderSetup,
-        const DrawCallCollection& drawCallCollection,
+        DrawCallCollection& drawCallCollection,
         IndirectRenderer* indirectRenderer,
         ParallelRenderingState* parallelRenderingState);
 

@@ -347,7 +347,7 @@ public:
      */
     bool HasParentClass(ANSIStringView parentClassName) const;
 
-    /*! \brief Check if this class has \ref{parentClass} as a parent class.
+    /*! \brief Check if this class has \p parentClass as a parent class.
      *
      *  \param parentClass The parent class to check.
      *

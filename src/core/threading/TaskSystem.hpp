@@ -257,7 +257,7 @@ public:
      */
     HYP_API Array<bool> DequeueBatch(TaskBatch* batch);
 
-    /*! \brief Creates a TaskBatch which will call the lambda for \ref{numItems} times in parallel.
+    /*! \brief Creates a TaskBatch which will call the lambda for \p numItems times in parallel.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
         The lambda will be called with (item, index) for each item. */
     template <class CallbackFunction>
@@ -272,7 +272,7 @@ public:
             std::forward<CallbackFunction>(cb));
     }
 
-    /*! \brief Creates a TaskBatch which will call the lambda for \ref{numItems} times in parallel.
+    /*! \brief Creates a TaskBatch which will call the lambda for \p numItems times in parallel.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
         The lambda will be called with (item, index) for each item. */
     template <class CallbackFunction>
@@ -285,8 +285,8 @@ public:
             std::forward<CallbackFunction>(cb));
     }
 
-    /*! \brief Creates a TaskBatch which will call the lambda for \ref{numItems} times in parallel.
-     *  The tasks will be split evenly into \ref{numBatches} batches.
+    /*! \brief Creates a TaskBatch which will call the lambda for \p numItems times in parallel.
+     *  The tasks will be split evenly into \p numBatches batches.
         The lambda will be called with (item, index) for each item. */
     template <class CallbackFunction>
     void ParallelForEach(TaskThreadPool& pool, uint32 numBatches, uint32 numItems, CallbackFunction&& cb)

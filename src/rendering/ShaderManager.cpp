@@ -118,7 +118,7 @@ public:
                 }
             }
 
-            // @TODO: remove bad value from cache?
+            /// \todo : remove bad value from cache?
         }
 
         RC<CompiledShader> compiledShader = MakeRefCountedPtr<CompiledShader>();
