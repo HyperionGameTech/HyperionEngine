@@ -13,8 +13,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 namespace hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;

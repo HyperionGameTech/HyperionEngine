@@ -1,6 +1,7 @@
 #include <SystemPch.hpp>
 
 #include <system/SystemEvent.hpp>
+#include <system/AppContext.hpp>
 
 #include <engine/threads/MainThread.hpp>
 
@@ -20,35 +21,25 @@ namespace sys {
 
 MouseEvent SystemEvent::ToMouseEvent() const
 {
-    Vec2i absolutePosition = m_eventData.Get<Vec2i>();
-
-    MouseEvent me {
-        .position = Vec2f(absolutePosition),
-        .previousPosition = Vec2f(g_inputManager->GetPreviousMousePosition()),
-        .absolutePosition = absolutePosition,
-        .mouseButtons = GetMouseButtons()
-    };
-
-    return me;
+    return ToMouseEvent(m_window ? Vec2f(m_window->GetDimensions()) : Vec2f::One());
 }
 
 MouseEvent SystemEvent::ToMouseEvent(const Vec2f& surfaceSize) const
 {
-    Vec2i absolutePosition = m_eventData.Get<Vec2i>();
+    MouseEvent me {};
+    me.mouseButtons = GetMouseButtons();
 
-    Vec2f relativePosition = Vec2f(absolutePosition);
+    me.absolutePos = m_eventData.Get<Vec2i>();
+    me.absolutePrevPos = g_inputManager->GetPreviousMousePosition();
 
-    if (!relativePosition.IsZero())
+    me.relativePos = Vec2f(me.absolutePos);
+    me.relativePrevPos = Vec2f(me.absolutePrevPos);
+
+    if (!surfaceSize.IsZero())
     {
-        relativePosition = Vec2f(absolutePosition) / surfaceSize;
+        me.relativePos /= surfaceSize;
+        me.relativePrevPos /= surfaceSize;
     }
-
-    MouseEvent me {
-        .position = relativePosition,
-        .previousPosition = Vec2f(g_inputManager->GetPreviousMousePosition()),
-        .absolutePosition = absolutePosition,
-        .mouseButtons = GetMouseButtons(),
-    };
 
     return me;
 }

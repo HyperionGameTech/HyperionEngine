@@ -207,7 +207,7 @@ void DefaultGame::OnInputEvent(const SystemEvent& event)
 
     Vec3f movementVector;
 
-    if (eventType == sys::SystemEventType::SYSTEM_EVENT_KEYDOWN)
+    if (eventType == SystemEvent::EventType::KEYDOWN)
     {
         switch (event.GetKeyCode())
         {
@@ -229,14 +229,14 @@ void DefaultGame::OnInputEvent(const SystemEvent& event)
         default:;
         }
     }
-    else if (eventType == SystemEventType::SYSTEM_EVENT_MOUSEBUTTON_DOWN)
+    else if (eventType == SystemEvent::EventType::MOUSEBUTTON_DOWN)
     {
         g_inputManager->PushMouseLockState(true);
     }
 
-    else if (eventType == SystemEventType::SYSTEM_EVENT_MOUSEMOTION)
+    else if (eventType == SystemEvent::EventType::MOUSEMOTION)
     {
-        m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event.ToMouseEvent());
+        m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event.ToMouseEvent(Vec2f(m_camera->GetDimensions())));
     }
 
     m_camera->SetTranslation(m_camera->GetTranslation() + ((Vec3f(deltaTime) * movementVector) * m_camera->GetDirection()) * Vec3f(movementSpeed));

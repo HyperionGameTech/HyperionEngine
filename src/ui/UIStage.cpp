@@ -609,9 +609,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     if (Handle<UIObject> uiObject = it.first.Lock())
                     {
                         MouseEvent mouseEvent {
-                            .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                            .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                            .absolutePosition = mousePosition,
+                            .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                            .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                            .absolutePos = mousePosition,
+                            .absolutePrevPos = previousMousePosition,
                             .mouseButtons = mouseButtons
                         };
 
@@ -665,9 +666,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     {
                         // Already hovered, trigger mouse move event instead
                         UIEventHandlerResult currentResult = uiObject->OnMouseMove(MouseEvent {
-                            .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                            .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                            .absolutePosition = mousePosition,
+                            .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                            .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                            .absolutePos = mousePosition,
+                            .absolutePrevPos = previousMousePosition,
                             .mouseButtons = mouseButtons });
 
                         mouseMoveEventHandlerResult |= currentResult;
@@ -713,9 +715,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     uiObject->SetFocusState(uiObject->GetFocusState() | UIObjectFocusState::HOVER);
 
                     UIEventHandlerResult currentResult = uiObject->OnMouseHover(MouseEvent {
-                        .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                        .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                        .absolutePosition = mousePosition,
+                        .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                        .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                        .absolutePos = mousePosition,
+                        .absolutePrevPos = previousMousePosition,
                         .mouseButtons = mouseButtons });
 
                     mouseHoverEventHandlerResult |= currentResult;
@@ -753,9 +756,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::HOVER);
 
                     uiObject->OnMouseLeave(MouseEvent {
-                        .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                        .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                        .absolutePosition = mousePosition,
+                        .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                        .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                        .absolutePos = mousePosition,
+                        .absolutePrevPos = previousMousePosition,
                         .mouseButtons = inputManager->GetButtonStates() });
                 }
 
@@ -824,9 +828,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 }
 
                 const UIEventHandlerResult onMouseDownResult = uiObject->OnMouseDown(MouseEvent {
-                    .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                    .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                    .absolutePosition = mousePosition,
+                    .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                    .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                    .absolutePos = mousePosition,
+                    .absolutePrevPos = previousMousePosition,
                     .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons });
 
                 eventHandlerResult |= onMouseDownResult;
@@ -856,7 +861,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
 
-        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::*ClickDelegateMember;
+        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::* ClickDelegateMember;
         const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ClickDelegateMember delegateMember = nullptr)
         {
             if (buttons != mouseButtonToCheck)
@@ -883,9 +888,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     if (delegateMember != nullptr)
                     {
                         const UIEventHandlerResult result = (uiObject->*delegateMember)(MouseEvent {
-                            .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                            .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                            .absolutePosition = mousePosition,
+                            .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                            .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                            .absolutePos = mousePosition,
+                            .absolutePrevPos = previousMousePosition,
                             .mouseButtons = buttons });
 
                         eventHandlerResult |= result;
@@ -930,9 +936,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 }
 
                 UIEventHandlerResult currentResult = uiObject->OnMouseUp(MouseEvent {
-                    .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                    .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                    .absolutePosition = mousePosition,
+                    .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                    .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                    .absolutePos = mousePosition,
+                    .absolutePrevPos = previousMousePosition,
                     .mouseButtons = (stateMouseButtons & ~buttons) });
 
                 eventHandlerResult |= currentResult;
@@ -984,9 +991,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 // }
 
                 UIEventHandlerResult currentResult = uiObject->OnScroll(MouseEvent {
-                    .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                    .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                    .absolutePosition = mousePosition,
+                    .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                    .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                    .absolutePos = mousePosition,
+                    .absolutePrevPos = previousMousePosition,
                     .mouseButtons = inputManager->GetButtonStates(),
                     .wheel = wheel });
 
