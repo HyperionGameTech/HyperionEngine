@@ -38,6 +38,11 @@
 
 namespace hyperion {
 
+#ifdef HYP_DEBUG_MODE
+constexpr bool EnableVulkanSynchronizationValidation = true;
+constexpr bool EnableVulkanVerboseValidationLogging = true;
+#endif
+
 static inline VulkanRenderBackend* GetRenderBackend()
 {
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
@@ -222,9 +227,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
         HYP_LOG(RenderingBackend, Error, "Vulkan: [{}, {}]: {}",
             callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
-
-        HYP_BREAKPOINT;
-
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
         HYP_LOG(RenderingBackend, Info, "Vulkan: [{}, {}]: {}",
@@ -264,21 +266,22 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 #endif
 
 #ifdef HYP_DEBUG_MODE
+
 RendererResult VulkanInstance::SetupDebug()
 {
-    static const Array<const char*> layers
-    {
+    static const Array<const char*> s_requestedLayers = {
         "VK_LAYER_KHRONOS_validation"
 #if !defined(HYP_APPLE) || !HYP_APPLE
-            ,
-            "VK_LAYER_LUNARG_monitor"
+        ,
+        "VK_LAYER_LUNARG_monitor"
 #endif
     };
 
-    m_validationLayers = CheckValidationLayerSupport(layers);
+    m_validationLayers = CheckValidationLayerSupport(s_requestedLayers);
 
     return {};
 }
+
 #endif
 
 VulkanInstance::VulkanInstance()
@@ -320,8 +323,13 @@ RendererResult VulkanInstance::SetupDebugMessenger()
     Assert(m_vkDebugMessenger == VK_NULL_HANDLE);
 
     VkDebugUtilsMessengerCreateInfoEXT messengerInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
-    messengerInfo.messageSeverity = (VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT);
-    messengerInfo.messageType = (VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT);
+    messengerInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+        | (EnableVulkanVerboseValidationLogging ? VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT : 0);
+    messengerInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     messengerInfo.pfnUserCallback = &DebugCallback;
     messengerInfo.pUserData = nullptr;
 
@@ -333,11 +341,11 @@ RendererResult VulkanInstance::SetupDebugMessenger()
 }
 #endif
 
-RendererResult VulkanInstance::Initialize(bool enableDebug)
+RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 {
 #ifdef HYP_DEBUG_MODE
     /* Set up our debug and validation layers */
-    if (enableDebug)
+    if (enableDebugLayers)
     {
         HYP_GFX_CHECK(SetupDebug());
     }
@@ -377,6 +385,45 @@ RendererResult VulkanInstance::Initialize(bool enableDebug)
 
 #ifdef HYP_DEBUG_MODE
     extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+    // Synchronization validation setup
+    constexpr const char LayerName[] = "VK_LAYER_KHRONOS_validation";
+    constexpr VkBool32 TrueValue = VK_TRUE;
+    constexpr VkBool32 FalseValue = VK_TRUE;
+    constexpr uint32 DuplicateMessageLimit = EnableVulkanVerboseValidationLogging ? 0 : 10;
+
+    Array<VkLayerSettingEXT, VulkanAllocator> layerSettings;
+
+    VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo { VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT };
+
+    if (enableDebugLayers)
+    {
+        layerSettings.PushBack({ LayerName, "duplicate_message_limit", VK_LAYER_SETTING_TYPE_UINT32_EXT, 1, &DuplicateMessageLimit });
+
+        layerSettings.PushBack({ LayerName, "validate_core", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &TrueValue });
+        layerSettings.PushBack({ LayerName, "thread_safety", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &TrueValue });
+
+        if (EnableVulkanSynchronizationValidation)
+        {
+            layerSettings.PushBack({ LayerName, "validate_sync", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &TrueValue });
+        }
+
+        if (EnableVulkanVerboseValidationLogging)
+        {
+            // No message limit for verbose logging.
+            layerSettings.PushBack({ LayerName, "enable_message_limit", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &FalseValue });
+        }
+
+        if (!layerSettings.Empty())
+        {
+            layerSettingsCreateInfo.settingCount = uint32(layerSettings.Size());
+            layerSettingsCreateInfo.pSettings = layerSettings.Data();
+
+            VulkanHelpers::ChainNext(createInfo, &layerSettingsCreateInfo);
+
+            AssertDebug(createInfo.pNext == &layerSettingsCreateInfo);
+        }
+    }
 #endif
 
     HYP_LOG(RenderingBackend, Info, "Found {} extensions:", extensionNames.Size());
@@ -407,7 +454,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebug)
     vkDestroySurfaceKHR(m_instance, surface, nullptr);
 
 #ifdef HYP_DEBUG_MODE
-    if (enableDebug)
+    if (enableDebugLayers)
     {
         SetupDebugMessenger();
     }

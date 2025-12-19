@@ -660,15 +660,15 @@ RendererResult VulkanRenderBackend::Initialize()
         HYP_LOG(RenderingBackend, Debug, "Vulkan debug layers enabled");
     }
 
-    const bool enableDebug = s_cfgDebugLayers.ToBool(false);
+    const bool enableDebugLayers = s_cfgDebugLayers.ToBool(false);
 #else
-    const bool enableDebug = false;
+    const bool enableDebugLayers = false;
 #endif
 
     g_vulkanArena = PoolNew<TArena<RenderAllocator>>(*g_renderPool, VulkanArenaSize);
 
     m_instance = PoolNew<VulkanInstance>(*g_renderPool);
-    Assert(m_instance->Initialize(enableDebug));
+    Assert(m_instance->Initialize(enableDebugLayers));
 
     VulkanDeviceQueue* deviceQueue = GetDevice()->GetPresentQueue();
 
