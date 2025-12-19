@@ -109,6 +109,21 @@ namespace Hyperion
             _nativeAddress = IntPtr.Zero;
         }
 
+        public ObjIdBase Id
+        {
+            get
+            {
+                if (_nativeAddress == IntPtr.Zero)
+                {
+                    throw new Exception("Native address is null - cannot get Id");
+                }
+
+                ObjIdBase id;
+                Object_GetId(_nativeAddress, out id);
+                return id;
+            }
+        }
+
         public bool IsValid
         {
             get
@@ -254,6 +269,9 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Object_Initialize")]
         private static extern void Object_Initialize([In] IntPtr classPtr, [In] IntPtr pClass, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
+
+        [DllImport("hyperion", EntryPoint = "Object_GetId")]
+        private static extern void Object_GetId([In] IntPtr nativeAddress, [Out] out ObjIdBase outIdValue);
 
         [DllImport("hyperion", EntryPoint = "Object_GetRefCountStrong")]
         private static extern uint Object_GetRefCountStrong([In] IntPtr classPtr, [In] IntPtr nativeAddress);
