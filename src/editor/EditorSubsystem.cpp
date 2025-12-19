@@ -1161,18 +1161,6 @@ const EditorSubsystem::EditorGizmoSet& EditorSubsystem::GetGizmos() const
     return m_gizmos;
 }
 
-void EditorSubsystem::SetGizmoCurrentProject(const WeakHandle<EditorProject>& project)
-{
-    AssertOnThread(g_gameThread);
-
-    m_gizmoCurrentProject = project;
-
-    for (auto& it : m_gizmos)
-    {
-        it->SetCurrentProject(project);
-    }
-}
-
 void EditorSubsystem::InitializeGizmos()
 {
     AssertOnThread(g_gameThread);
@@ -1180,7 +1168,7 @@ void EditorSubsystem::InitializeGizmos()
     for (const Handle<EditorGizmoBase>& widget : m_gizmos)
     {
         widget->SetEditorSubsystem(this);
-        widget->SetCurrentProject(m_gizmoCurrentProject);
+        widget->SetCurrentProject(m_currentProject);
 
         InitObject(widget);
     }
@@ -1340,7 +1328,6 @@ EditorSubsystem::EditorSubsystem()
                 InitObject(project);
 
                 InitializeGizmos();
-                SetGizmoCurrentProject(project);
 
                 g_engineDriver->AddWorld(project->GetWorld());
 

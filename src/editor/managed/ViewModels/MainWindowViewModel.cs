@@ -19,27 +19,28 @@ namespace Hyperion.Editor.ViewModels
             }
 
             public bool CanExecute(object? parameter) => !string.IsNullOrEmpty(_name);
-            public void Execute(object? parameter) => (EngineManager.GameInstance as HyperionEditorGame)?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommand" + _name));
+            public void Execute(object? parameter) => EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommand" + _name));
             public event EventHandler? CanExecuteChanged;
             public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private class SetGizmoCommand : ICommand
         {
-            private EditorSubsystem _editorSubsystem;
             private EditorManipulationMode _mode;
 
-            public SetGizmoCommand(EditorSubsystem editorSubsystem, EditorManipulationMode mode)
+            public SetGizmoCommand(EditorManipulationMode mode)
             {
-                _editorSubsystem = editorSubsystem;
                 _mode = mode;
             }
 
-            public bool CanExecute(object? parameter) => _editorSubsystem != null;
+            public bool CanExecute(object? parameter) => true; // dont check as it needs to be called on the game thread
 
             public void Execute(object? parameter)
             {
-                _ = EngineManager.PostToGameThread(() => _editorSubsystem.SetSelectedManipulationMode(_mode));
+                EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+                Debug.Assert(editorSubsystem != null);
+
+                _ = EngineManager.PostToGameThread(() => editorSubsystem.SetSelectedManipulationMode(_mode));
             }
 
             public event EventHandler? CanExecuteChanged;
@@ -57,7 +58,9 @@ namespace Hyperion.Editor.ViewModels
                 _mode = mode;
             }
 
-            public bool CanExecute(object? parameter) => EngineManager.CurrentProject?.World != null;
+            public bool CanExecute(object? parameter) =>
+                EngineManager.GameInstance?.World?.GetGameState().Mode != _mode
+                    && Interlocked.CompareExchange(ref _isChangingGameMode, 0, 0) == 0;
 
             public void Execute(object? parameter)
             {
@@ -67,12 +70,25 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                Game? gameInstance = EngineManager.CurrentProject?.GameInstance;
-                Debug.Assert(gameInstance != null);
+                Game? currentGameInstance = EngineManager.GameInstance;
+                Debug.Assert(currentGameInstance != null);
+
+                Game? gameInstance = currentGameInstance;
 
                 switch (_mode)
                 {
                     case GameStateMode.Simulating:
+                    {
+                        if (currentGameInstance is HyperionEditorGame hyperionEditorGame)
+                        {
+                            gameInstance = hyperionEditorGame.EditorSubsystem?.CurrentProject?.GameInstance;
+                            Debug.Assert(gameInstance != null, "Failed to get game instance from current project");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("Cannot enter Simulating mode when game instance is not HyperionEditorGame");
+                        }
+
                         EngineManager.InitializeGame(gameInstance);
 
                         _ = EngineManager.PostToGameThread(() =>
@@ -88,6 +104,7 @@ namespace Hyperion.Editor.ViewModels
                         });
 
                         break;
+                    }
                     case GameStateMode.Paused:
                         _ = EngineManager.PostToGameThread(() =>
                         {
@@ -166,6 +183,14 @@ namespace Hyperion.Editor.ViewModels
         public ICommand SelectTranslateGizmo { get; private set; }
         public ICommand SelectRotateGizmo { get; private set; }
         public ICommand SelectScaleGizmo { get; private set; }
+        public bool CanSelectGizmo
+        {
+            get
+            {
+                return _editorSubsystem != null
+                    && EngineManager.GameInstance?.World?.GetGameState().Mode == GameStateMode.Editor;
+            }
+        }
 
         public ICommand SetGameModePlaying { get; private set; }
         public bool CanSetGameModePlaying
@@ -235,36 +260,41 @@ namespace Hyperion.Editor.ViewModels
             SceneHierarchy = new SceneHierarchyViewModel();
             Inspector = new InspectorViewModel();
 
-            Game? gameInstance = EngineManager.GameInstance;
-            if (gameInstance == null)
-                throw new InvalidOperationException("Game instance is not initialized.");
+            HyperionEditorGame? editorGame = EngineManager.EditorGame;
+            if (editorGame == null)
+                throw new InvalidOperationException("Editor game instance is not initialized.");
 
-            if (gameInstance.IsLaunched())
+            if (editorGame.IsLaunched())
             {
-                Init(gameInstance);
+                Init(editorGame);
 
                 return;
             }
 
             Logger.Log(LogType.Info, "Game instance not yet launched, setting up callback to be notified when ready");
 
-            _gameInstanceLaunchedHandler = gameInstance.GetOnLaunchedDelegate().Bind(() =>
+            _gameInstanceLaunchedHandler = editorGame.GetOnLaunchedDelegate().Bind(() =>
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    Init(gameInstance);
+                    Init(editorGame);
                 });
             });
+
+            SelectTranslateGizmo = new SetGizmoCommand(EditorManipulationMode.Translate);
+            SelectRotateGizmo = new SetGizmoCommand(EditorManipulationMode.Rotate);
+            SelectScaleGizmo = new SetGizmoCommand(EditorManipulationMode.Scale);
+
+            SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
+            SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
+            SetGameModeStopped = new SetGameModeCommand(GameStateMode.Stopped);
         }
 
-        private void Init(Game gameInstance)
+        private void Init(HyperionEditorGame editorGame)
         {
-            if (!(gameInstance is HyperionEditorGame))
-                throw new InvalidOperationException("Game instance must be an instance of HyperionEditorGame on editor startup!");
-
-            World? world = gameInstance.World;
+            World? world = editorGame.World;
             if (world == null)
-                throw new InvalidOperationException("Game world is not initialized.");
+                throw new InvalidOperationException("Editor world is not initialized.");
 
             EditorSubsystem? editorSubsystem = world.GetSubsystem<EditorSubsystem>();
             if (editorSubsystem == null)
@@ -275,16 +305,9 @@ namespace Hyperion.Editor.ViewModels
             ContentBrowser = new ContentBrowserViewModel(_editorSubsystem);
             ContentBrowser.LoadPackages();
 
-            SelectTranslateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Translate);
-            SelectRotateGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Rotate);
-            SelectScaleGizmo = new SetGizmoCommand(_editorSubsystem, EditorManipulationMode.Scale);
-
-            SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
-            SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
-            SetGameModeStopped = new SetGameModeCommand(GameStateMode.Stopped);
-
             Action<EditorProject?> setGameModeChangedHandler = (EditorProject? project) =>
             {
+                _selectedGizmoChangedHandler?.Remove();
                 _gameModeChangedHandler?.Remove();
 
                 if (project != null)
@@ -297,17 +320,36 @@ namespace Hyperion.Editor.ViewModels
                                 (SetGameModePlaying as SetGameModeCommand)?.RaiseCanExecuteChanged();
                                 (SetGameModeStopped as SetGameModeCommand)?.RaiseCanExecuteChanged();
                                 (SetGameModePaused as SetGameModeCommand)?.RaiseCanExecuteChanged();
-
                                 OnPropertyChanged(nameof(CanSetGameModePlaying));
                                 OnPropertyChanged(nameof(CanSetGameModePaused));
                                 OnPropertyChanged(nameof(CanSetGameModeStopped));
+
+                                (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                                (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                                (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                                OnPropertyChanged(nameof(CanSelectGizmo));
                             });
                         });
                 }
 
+                _selectedGizmoChangedHandler = _editorSubsystem.GetOnSelectedGizmoChangedDelegate()
+                    .Bind((EditorGizmoBase? newGizmo, EditorGizmoBase? prevGizmo) =>
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                            (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                            (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+
+                            OnPropertyChanged(nameof(CanSelectGizmo));
+                        });
+                    });
+
                 OnPropertyChanged(nameof(CanSetGameModePlaying));
                 OnPropertyChanged(nameof(CanSetGameModePaused));
                 OnPropertyChanged(nameof(CanSetGameModeStopped));
+
+                OnPropertyChanged(nameof(CanSelectGizmo));
             };
 
             setGameModeChangedHandler(EngineManager.CurrentProject);
@@ -317,17 +359,6 @@ namespace Hyperion.Editor.ViewModels
             // when project changes we also want to update the play/pause/stop buttons
             _currentProjectChangedHandler = editorState.GetOnCurrentProjectChangedDelegate()
                 .Bind(setGameModeChangedHandler);
-
-            _selectedGizmoChangedHandler = _editorSubsystem.GetOnSelectedGizmoChangedDelegate()
-                .Bind((EditorGizmoBase? newGizmo, EditorGizmoBase? prevGizmo) =>
-                {
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                        (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                        (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                    });
-                });
 
             // handle active scene changes
             _activeSceneChangedHandler = _editorSubsystem.GetOnActiveSceneChangedDelegate()

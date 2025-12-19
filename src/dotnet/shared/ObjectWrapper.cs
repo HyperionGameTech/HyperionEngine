@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [NoManagedClass]
+    [NoNativeClass]
     public struct ObjectWrapper
     {
         public object obj;

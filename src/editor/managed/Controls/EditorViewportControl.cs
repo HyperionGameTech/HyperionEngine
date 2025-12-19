@@ -125,43 +125,7 @@ namespace Hyperion.Editor
 
         void InitEditorViewport(EditorViewport viewport)
         {
-            HyperionEditorGame? gameInstance = EngineManager.GameInstance as HyperionEditorGame;
-
-            if (gameInstance == null)
-            {
-                throw new InvalidOperationException("EngineManager.GameInstance is null.");
-            }
-
-            if (gameInstance.IsLaunched())
-            {
-                _ = EngineManager.PostToGameThread(() =>
-                {
-                    EditorSubsystem? editorSubsystem = gameInstance.EditorSubsystem;
-                    if (editorSubsystem == null)
-                    {
-                        throw new InvalidOperationException("EditorSubsystem is not initialized!");
-                    }
-
-                    editorSubsystem.AddViewport(viewport);
-                });
-
-                return;
-            }
-
-            // not launched; add handler for after launch
-            _gameLaunchedHandler = gameInstance.GetOnLaunchedDelegate().Bind(() =>
-            {
-                _ = EngineManager.PostToGameThread(() =>
-                {
-                    EditorSubsystem? editorSubsystem = gameInstance.EditorSubsystem;
-                    if (editorSubsystem == null)
-                    {
-                        throw new InvalidOperationException("EditorSubsystem is not initialized!");
-                    }
-
-                    editorSubsystem.AddViewport(viewport);
-                });
-            });
+            EngineManager.RegisterViewport(viewport);
         }
     }
 }
