@@ -248,17 +248,8 @@ RendererResult VulkanSwapchain::Create()
 
     for (const VulkanGpuImageRef& image : m_images)
     {
-        HYP_GFX_ASSERT(image != nullptr);
-
-        if (!image->IsCreated())
-        {
-            HYP_GFX_CHECK(HYP_MAKE_ERROR(RendererError, "Image is not created!"));
-        }
-
-        if (image->GetResourceState() != RS_PRESENT)
-        {
-            HYP_GFX_CHECK(HYP_MAKE_ERROR(RendererError, "Image resource state is not PRESENT!"));
-        }
+        AssertDebug(image && image->IsCreated());
+        AssertDebug(image->GetResourceState() == RS_PRESENT);
 
         VulkanFramebufferRef& framebuffer = m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(m_extent, RTT_PRESENT));
         framebuffer->AddAttachment(0, image, LoadOperation::CLEAR, StoreOperation::STORE);

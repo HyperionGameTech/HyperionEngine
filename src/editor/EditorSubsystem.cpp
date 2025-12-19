@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "threading/Threads.hpp"
 #include <EditorPch.hpp>
 
 #include <editor/EditorSubsystem.hpp>
@@ -3596,7 +3597,42 @@ void EditorSubsystem::SetActiveScene(const WeakHandle<Scene>& scene)
 
 EditorViewport* EditorSubsystem::GetActiveViewport() const
 {
+    AssertOnThread(g_gameThread);
+
     return m_editorViewports.Empty() ? nullptr : m_editorViewports[0];
+}
+
+void EditorSubsystem::SetActiveViewport(EditorViewport* viewport)
+{
+    HYP_SCOPE;
+
+    AssertOnThread(g_gameThread);
+
+    if (!viewport)
+    {
+        return;
+    }
+
+    auto it = m_editorViewports.Find(viewport);
+    if (it != m_editorViewports.End())
+    {
+        Handle<EditorViewport> viewportStrong = MakeStrongRef(viewport);
+        m_editorViewports.PushFront(viewportStrong);
+        OnActiveSceneChanged(viewportStrong);
+        return;
+    }
+
+    const SizeType idx = m_editorViewports.IndexOf(it);
+    AssertDebug(idx != -1);
+
+    if (idx == 0)
+    {
+        return; // already active VP
+    }
+
+    std::swap(m_editorViewports[0], m_editorViewports[idx]);
+
+    OnActiveSceneChanged(MakeStrongRef(viewport));
 }
 
 void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
@@ -3620,9 +3656,17 @@ void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
         }
 
         InitObject(viewport);
+        Handle<EditorViewport> viewportStrong = MakeStrongRef(viewport);
 
         viewport->OnAdded(strongThis);
-        strongThis->m_editorViewports.PushBack(viewport);
+        strongThis->m_editorViewports.PushBack(viewportStrong);
+
+        // active VP is always the first one in the array
+        // if size == 1 it's because we just added the first one
+        if (strongThis->m_editorViewports.Size() == 1)
+        {
+            OnActiveViewportChanged(viewportStrong);
+        }
     };
 
     if (IsOnThread(g_gameThread))
@@ -3662,9 +3706,23 @@ void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
         auto it = strongThis->m_editorViewports.Find(viewport);
         if (it != strongThis->m_editorViewports.End())
         {
-            viewport->OnRemoved(strongThis);
+            Handle<EditorViewport> viewportStrong;
+
+            const SizeType idx = strongThis->m_editorViewports.IndexOf(it);
+
+            if (idx == 0)
+            {
+                viewportStrong = MakeStrongRef(*it);
+            }
 
             strongThis->m_editorViewports.Erase(it);
+
+            if (viewportStrong)
+            {
+                OnActiveViewportChanged(viewportStrong);
+            }
+
+            viewport->OnRemoved(strongThis);
         }
     };
 

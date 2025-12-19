@@ -17,7 +17,9 @@ namespace Hyperion.Editor
         public static EditorProject? CurrentProject { get; private set; }
         private static DelegateHandler? _onCurrentProjectChanged;
         private static DelegateHandler? _gameLaunchedHandler;
-        private static ConcurrentDictionary<ObjIdBase, EditorViewport> _registeredViewports = new ConcurrentDictionary<ObjIdBase, EditorViewport>();
+        private static List<EditorViewport> _registeredViewports = new List<EditorViewport>();
+        private static Lock _lockViewports = new Lock();
+        private static bool _editorViewportsEnabled = true;
 
         public static void Initialize()
         {
@@ -87,7 +89,31 @@ namespace Hyperion.Editor
         public static void InitializeEditor()
         {
             EditorGame ??= new HyperionEditorGame();
+
+            if (EditorGame.IsLaunched())
+            {
+                _lockViewports.Enter();
+                try
+                {
+                    EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
+                    if (editorSubsystem == null)
+                    {
+                        throw new InvalidOperationException("EditorSubsystem is not initialized!");
+                    }
+
+                    foreach (EditorViewport vp in _registeredViewports)
+                    {
+                        editorSubsystem.AddViewport(vp);
+                    }
+                }
+                finally
+                {
+                    _lockViewports.Exit();
+                }
+            }
+
             GameInstance = EditorGame;
+            
             EngineDriver.Instance.GameInstance = EditorGame;
 
             EditorState editorState = EditorState.Instance;
@@ -102,6 +128,8 @@ namespace Hyperion.Editor
 
                 Logger.Log(LogType.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
             });
+
+            SetEditorViewportsEnabled(true);
         }
 
         public static void InitializeGame(Game game)
@@ -114,6 +142,8 @@ namespace Hyperion.Editor
             
             EngineDriver.Instance.GameInstance = game;
             GameInstance = game;
+
+            SetEditorViewportsEnabled(false);
         }
 
         public static void Shutdown()
@@ -204,11 +234,17 @@ namespace Hyperion.Editor
 
         public static void RegisterViewport(EditorViewport viewport)
         {
-            if (!_registeredViewports.TryAdd(viewport.Id, viewport))
+            _lockViewports.Enter();
+
+            if (_registeredViewports.Contains(viewport))
             {
-                Logger.Log(LogType.Warn, "EditorViewport is already registered.");
+                _lockViewports.Exit();
                 return;
             }
+
+            _registeredViewports.Add(viewport);
+
+            _lockViewports.Exit();
 
             if (EditorGame == null)
             {
@@ -219,19 +255,30 @@ namespace Hyperion.Editor
             {
                 _ = EngineManager.PostToGameThread(() =>
                 {
-                    EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
-                    if (editorSubsystem == null)
-                    {
-                        throw new InvalidOperationException("EditorSubsystem is not initialized!");
-                    }
+                    _lockViewports.Enter();
 
-                    if (!_registeredViewports.ContainsKey(viewport.Id))
+                    try
                     {
-                        Logger.Log(LogType.Warn, $"EditorViewport {viewport.Id} is no longer registered - skipping addition to EditorSubsystem.");
-                        return;
-                    }
+                        EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
+                        if (editorSubsystem == null)
+                        {
+                            throw new InvalidOperationException("EditorSubsystem is not initialized!");
+                        }
 
-                    editorSubsystem.AddViewport(viewport);
+                        // check still registered
+                        EditorViewport? registeredViewport = _registeredViewports.Find(v => v.Id == viewport.Id);
+                        if (registeredViewport == null)
+                        {
+                            Logger.Log(LogType.Warn, $"EditorViewport {viewport.Id} is no longer registered - skipping addition to EditorSubsystem.");
+                            return;
+                        }
+
+                        editorSubsystem.AddViewport(viewport);
+                    }
+                    finally
+                    {
+                        _lockViewports.Exit();
+                    }
                 });
 
                 return;
@@ -244,6 +291,15 @@ namespace Hyperion.Editor
             {
                 _ = EngineManager.PostToGameThread(() =>
                 {
+                    // if set to disabled in the time between
+                    if (!_editorViewportsEnabled)
+                    {
+                        viewportWeak.Dispose();
+                        return;
+                    }
+
+                    _lockViewports.Enter();
+
                     try
                     {
                         EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
@@ -252,17 +308,19 @@ namespace Hyperion.Editor
                             throw new InvalidOperationException("EditorSubsystem is not initialized!");
                         }
 
-                        EditorViewport? registeredViewport = null;
-                        if (!_registeredViewports.TryGetValue(viewportWeak.Id, out registeredViewport))
+                        EditorViewport? registeredViewport = _registeredViewports.Find(v => v.Id == viewportWeak.Id);
+                        if (registeredViewport == null)
                         {
                             Logger.Log(LogType.Warn, $"EditorViewport {viewportWeak.Id} is no longer registered - skipping addition to EditorSubsystem.");
                             return;
                         }
-
+                    
                         editorSubsystem.AddViewport(registeredViewport);
                     }
                     finally
                     {
+                        _lockViewports.Exit();
+
                         viewportWeak.Dispose();
                     }
                 });
@@ -271,24 +329,18 @@ namespace Hyperion.Editor
 
         public static void UnregisterViewport(EditorViewport viewport, bool removeFromList = true)
         {
-            EditorViewport? removedViewport = null;
+            _lockViewports.Enter();
 
             if (removeFromList)
             {
-                if (!_registeredViewports.TryRemove(viewport.Id, out removedViewport))
+                if (!_registeredViewports.Remove(viewport))
                 {
+                    _lockViewports.Exit();
                     return;
                 }
+            }
 
-                if (removedViewport == null)
-                {
-                    return;
-                }
-            }
-            else
-            {
-                removedViewport = viewport;
-            }
+            _lockViewports.Exit();
 
             if (EditorGame == null)
             {
@@ -299,24 +351,91 @@ namespace Hyperion.Editor
             {
                 _ = EngineManager.PostToGameThread(() =>
                 {
+                    _lockViewports.Enter();
+
+                    try
+                    {
+                        EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
+                        if (editorSubsystem == null)
+                        {
+                            throw new InvalidOperationException("EditorSubsystem is not initialized!");
+                        }
+
+                        // check it is still not contained in the list
+                        EditorViewport? removedViewport = _registeredViewports.Find(v => v.Id == viewport.Id);
+                        if (removedViewport != null)
+                        {
+                            Logger.Log(LogType.Warn, $"EditorViewport {viewport.Id} is still registered (re-added?) - skipping removal from EditorSubsystem.");
+                            return;
+                        }
+
+                        editorSubsystem.RemoveViewport(removedViewport);
+                    }
+                    finally
+                    {
+                        _lockViewports.Exit();
+                    }
+                });
+            }
+        }
+
+        /// <summary>
+        /// Disables/enables all registered editor viewports by removing or adding them to the EditorSubsystem. Calls on
+        /// the game thread.
+        /// </summary>
+        public static void SetEditorViewportsEnabled(bool enabled)
+        {
+            if (_editorViewportsEnabled == enabled)
+            {
+                // already in desired state
+                return;
+            }
+
+            _editorViewportsEnabled = enabled;
+            
+            if (EditorGame == null || !EditorGame.IsLaunched())
+            {
+                return;
+            }
+
+            _ = EngineManager.PostToGameThread(() =>
+            {
+                if (_editorViewportsEnabled != enabled)
+                {
+                    // state changed since here
+                    return;
+                }
+
+                _lockViewports.Enter();
+
+                try
+                {
                     EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
                     if (editorSubsystem == null)
                     {
                         throw new InvalidOperationException("EditorSubsystem is not initialized!");
                     }
 
-                    editorSubsystem.RemoveViewport(removedViewport);
-                });
-            }
-        }
-
-        public static void DisableAllViewports()
-        {
-            if (EditorGame == null)
-            {
-                return;
-            }
-
+                    if (enabled)
+                    {
+                        foreach (EditorViewport vp in _registeredViewports)
+                        {
+                            editorSubsystem.AddViewport(vp);
+                        }
+                    }
+                    else
+                    {
+                        foreach (EditorViewport vp in _registeredViewports)
+                        {
+                            editorSubsystem.RemoveViewport(vp);
+                        }
+                    }
+                }
+                finally
+                {
+                    _lockViewports.Exit();
+                }
+            });
         }
     }
 }
