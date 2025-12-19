@@ -56,7 +56,6 @@ public:
     }
 
     VulkanSemaphore* GetImageAvailableSemaphore(const VulkanSwapchain* swapchain, bool createIfNotExist = true);
-    VulkanSemaphore* GetRenderFinishedSemaphore(const VulkanSwapchain* swapchain, bool createIfNotExist = true);
 
     void RecreateFence();
     void RecreateSemaphores(const VulkanSwapchain* swapchain);
@@ -69,19 +68,18 @@ private:
         &KeyBy_Identity<VulkanRenderPass*>,
         NodeAllocator<VulkanAllocator>>;
 
-    struct VulkanSwapchainSemaphores
+    struct VulkanSwapchainData
     {
         VulkanSwapchainWeakRef swapchainWeak; // always keep a weak ref so we can check validatity when iterating
         VulkanSemaphoreRef imageAvailableSemaphore;
-        VulkanSemaphoreRef renderFinishedSemaphore;
     };
 
-    static void InitVulkanSwapchainSemaphores(VulkanSwapchainSemaphores& semaphores);
+    static void InitVulkanSwapchainData(VulkanSwapchainData& swapchainData);
 
     VulkanFenceRef m_queueSubmitFence;
     VulkanRenderPassesSet m_renderPasses;
 
-    HashMap<const VulkanSwapchain*, VulkanSwapchainSemaphores> m_swapchainSemaphores;
+    HashMap<const VulkanSwapchain*, VulkanSwapchainData> m_swapchainData;
 };
 
 } // namespace hyperion
