@@ -10,10 +10,6 @@
 #include <rendering/vulkan/VulkanResult.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
-#include <rendering/vulkan/VulkanFeatures.hpp>
-
-#include <rendering/ComputePipeline.hpp>
-#include <rendering/GraphicsPipeline.hpp>
 
 #include <VulkanCommandBuffer.generated.inl>
 

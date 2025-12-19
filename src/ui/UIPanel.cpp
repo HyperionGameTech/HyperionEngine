@@ -299,7 +299,7 @@ void UIPanel::UpdateScrollbarSize(ScrollAxis axis)
                         const int i = ScrollAxisToIndex(axis);
                         Assert(i != -1);
 
-                        m_initialDragPosition[i] = Vec2i(eventData.position * Vec2f(thumb->GetActualSize()));
+                        m_initialDragPosition[i] = Vec2i(eventData.relativePos * Vec2f(thumb->GetActualSize()));
                     }
 
                     return UIEventHandlerResult::STOP_BUBBLING;
@@ -331,7 +331,7 @@ void UIPanel::UpdateScrollbarSize(ScrollAxis axis)
                             const int i = ScrollAxisToIndex(axis);
                             Assert(i != -1);
 
-                            const Vec2f mousePositionRelative = Vec2f(eventData.absolutePosition - m_initialDragPosition[i]) - scrollbar->GetAbsolutePosition();
+                            const Vec2f mousePositionRelative = Vec2f(eventData.absolutePos - m_initialDragPosition[i]) - scrollbar->GetAbsolutePosition();
                             const float mouseRelevantPosition = mousePositionRelative[i];
 
                             Vec2f ratios;

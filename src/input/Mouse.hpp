@@ -31,19 +31,22 @@ enum class MouseButtonState : uint32
 
 HYP_MAKE_ENUM_FLAGS(MouseButtonState)
 
-HYP_STRUCT(Size = 48)
+HYP_STRUCT()
 struct MouseEvent
 {
     HYP_STRUCT_BODY(MouseEvent);
 
     HYP_FIELD()
-    Vec2f position;
+    Vec2f relativePos;
 
     HYP_FIELD()
-    Vec2f previousPosition;
+    Vec2f relativePrevPos;
 
     HYP_FIELD()
-    Vec2i absolutePosition;
+    Vec2i absolutePos;
+
+    HYP_FIELD()
+    Vec2i absolutePrevPos;
 
     HYP_FIELD()
     EnumFlags<MouseButtonState> mouseButtons = MouseButtonState::NONE;
