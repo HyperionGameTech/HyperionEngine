@@ -355,6 +355,9 @@ public:
     EditorViewport* GetActiveViewport() const;
 
     HYP_METHOD()
+    void SetActiveViewport(EditorViewport* viewport);
+
+    HYP_METHOD()
     void AddViewport(const Handle<EditorViewport>& viewport);
 
     HYP_METHOD()
@@ -453,6 +456,9 @@ public:
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<AssetPackage>> OnSelectedPackageChanged;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<EditorViewport>> OnActiveViewportChanged;
 
 private:
     void LoadEditorUIDefinitions();
