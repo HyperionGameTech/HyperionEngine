@@ -49,7 +49,7 @@ extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObje
 
 using AssetPackageSet = HashSet<Handle<AssetPackage>, &AssetPackage_KeyByFunction>;
 
-/// @TODO: Make AssetObjectSet hold AssetReferences instead, and periodically release
+//// \todo : Make AssetObjectSet hold AssetReferences instead, and periodically release
 /// 	  AssetObjects that have no references to them (besides the loaded reference itself).
 using AssetObjectSet = HashSet<Handle<AssetObject>, &AssetObject_KeyByFunction>;
 

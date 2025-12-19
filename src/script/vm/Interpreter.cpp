@@ -2028,7 +2028,7 @@ public:
         // load value from register
         HypData* value = Deref(instance->thread.m_regs[reg]);
 
-        // @TODO Allow throwing the arugment
+        /// \todo Allow throwing the arugment
 
         vm->ThrowException(instance, Script_Exception("User exception"));
     }
@@ -3554,7 +3554,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, HypData&& value, uint
                 argsHypData[argIndex] = &srcValue;
             }
 
-            // @TODO: Implement
+            /// \todo : Implement
             // disable auto gc so no collections happen during a native function
             //            enableAutoGc = false;
 

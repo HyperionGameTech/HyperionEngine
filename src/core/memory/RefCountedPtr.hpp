@@ -806,7 +806,7 @@ public:
             return result;
         }
 
-        // @TODO: Fix thread safety issue, check Handle.hpp for proper handling.
+        /// \todo : Fix thread safety issue, check Handle.hpp for proper handling.
         uint32 count;
 
         if constexpr (std::is_integral_v<CountType>)

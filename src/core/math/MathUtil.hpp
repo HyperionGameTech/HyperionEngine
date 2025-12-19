@@ -26,8 +26,7 @@ namespace hyperion {
 template <class T>
 constexpr bool isMathVectorV = isVec2<T> || isVec3<T> || isVec4<T>;
 
-namespace MathUtil
-{
+namespace MathUtil {
 
 template <class T>
 constexpr T pi = T(3.14159265358979);
@@ -635,7 +634,7 @@ HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Pow(const T& value
 {
     T result;
 
-    // @TODO: simd
+    /// \todo : simd
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(result.values); i++)
     {
         result.values[i] = Pow(value.values[i], exponent);
@@ -700,7 +699,7 @@ HYP_FORCE_INLINE constexpr uint64 FastLog2_Pow2(uint64 value)
 }
 
 // https://www.techiedelight.com/round-next-highest-power-2/
-HYP_FORCE_INLINE  constexpr uint64 NextPowerOf2(uint64 value)
+HYP_FORCE_INLINE constexpr uint64 NextPowerOf2(uint64 value)
 {
     // decrement `n` (to handle the case when `n` itself
     // is a power of 2)
@@ -710,7 +709,7 @@ HYP_FORCE_INLINE  constexpr uint64 NextPowerOf2(uint64 value)
     return 1ull << (FastLog2(value) + 1);
 }
 
-HYP_FORCE_INLINE  constexpr uint64 PreviousPowerOf2(uint64 value)
+HYP_FORCE_INLINE constexpr uint64 PreviousPowerOf2(uint64 value)
 {
     if (value <= 1)
     {
@@ -758,6 +757,6 @@ Vec2f EncodeOctahedralCoord(const Vec3f& in);
 Vec3f DecodeOctahedralCoord(const Vec2f& in);
 Vec2f NormalizeOctahedralCoord(const Vec2i& coord, const Vec2i& extent);
 
-};
+}; // namespace MathUtil
 
 } // namespace hyperion

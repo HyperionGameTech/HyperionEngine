@@ -29,7 +29,7 @@ namespace hyperion {
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 // #define HYP_SYSTEM_LOG_PERFORMANCE
 
-// @TODO: Move to ComponentContainer.cpp
+/// \todo : Move to ComponentContainer.cpp
 #pragma region ComponentContainer
 
 bool ComponentContainerBase::TryGetComponent(ComponentId id, HypData& outHypData)

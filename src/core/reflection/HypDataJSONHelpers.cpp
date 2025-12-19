@@ -1213,7 +1213,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             }
         }
 
-        // @TODO String representation of enum values
+        /// \todo String representation of enum values
 
         return false;
     }

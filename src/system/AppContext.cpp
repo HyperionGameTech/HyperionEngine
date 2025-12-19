@@ -1114,7 +1114,7 @@ Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions wind
     return window;
 }
 
-/// @TODO : Move Windows implementation to sys/platform/win32 file to reduce code bloat.
+//// \todo : Move Windows implementation to sys/platform/win32 file to reduce code bloat.
 #ifdef HYP_WINDOWS
 
 int Win32AppContext::PollEvents(SystemEvent& event)

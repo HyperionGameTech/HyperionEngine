@@ -69,6 +69,7 @@ private:
 
     HBAOConfig m_config;
 
+    DescriptorSetRef m_descriptorSet;
     GpuBufferRef m_uniformBuffer;
 };
 

@@ -256,7 +256,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     HYP_GFX_CHECK(commandBuffer->End());
 
-    // @TODO Refactor to use frame's fence instead, just need to make Frame able to not be presentable
+    /// \todo Refactor to use frame's fence instead, just need to make Frame able to not be presentable
     fence = CreateObject<VulkanFence>();
     HYP_GFX_CHECK(fence->Create());
     HYP_GFX_CHECK(fence->Reset());

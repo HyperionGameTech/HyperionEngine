@@ -286,7 +286,7 @@ void UISubsystem::Update(float delta)
 
             MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
 
-            // @TODO Include a way to determine the parent tree of the UI Object because some objects will
+            /// \todo Include a way to determine the parent tree of the UI Object because some objects will
             // have the same depth but should be rendered in a different order.
             rpl.GetMeshEntities().Track(entity.Id(), entity, entity->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ false);
 

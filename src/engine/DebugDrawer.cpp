@@ -919,7 +919,6 @@ GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet at
 
     GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        m_descriptorTable,
         { &view->GetOutputTarget().GetFramebuffer(RB_DEBUG), 1 },
         attributes);
 

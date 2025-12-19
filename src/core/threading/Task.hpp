@@ -661,7 +661,7 @@ protected:
     SchedulerBase* m_assignedScheduler;
 };
 
-// @TODO: Refactor so we can use a custom deleter for the task executor.
+/// \todo : Refactor so we can use a custom deleter for the task executor.
 // use pre-allocated memory for manually fulfilled instances, so that Fulfill() and Await()
 // on a task from the same thread doesn't cost much more than a typical function call.
 
@@ -733,7 +733,7 @@ public:
     }
 
     /*! \brief Initialize the task without scheduling it.
-     *  The task must be resolved with the \ref{Fulfill} method. */
+     *  The task must be resolved with the \ref Fulfill method. */
     TaskPromise<ReturnType>* Promise()
     {
         Reset();
@@ -790,7 +790,7 @@ public:
 protected:
     virtual void Await_Internal() const override
     {
-        // @TODO: Move semaphore to this - executor may be deleted for FIRE_AND_FORGET tasks as we don't own it.
+        /// \todo : Move semaphore to this - executor may be deleted for FIRE_AND_FORGET tasks as we don't own it.
 
         m_executor->GetNotifier().Await();
 
@@ -918,7 +918,7 @@ public:
     }
 
     /*! \brief Initialize the task without scheduling it.
-     *  The task must be resolved with the \ref{Fulfill} method. */
+     *  The task must be resolved with the \ref Fulfill method. */
     TaskPromise<void>* Promise()
     {
         Reset();
@@ -1072,7 +1072,7 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
                     continue;
                 }
 
-                // @TODO : What if task finished right before callback was set?
+                /// \todo : What if task finished right before callback was set?
 
                 task.GetTaskExecutor()->GetCallbackChain().Add([&semaphore, &completionStates, &calledStates, &tasks, taskIndex = i]()
                 {
@@ -1161,7 +1161,7 @@ struct TaskAwaitAll_Impl<Task<void>>
                     continue;
                 }
 
-                // @TODO : What if task finished right before callback was set?
+                /// \todo : What if task finished right before callback was set?
 
                 task.GetTaskExecutor()->GetCallbackChain().Add([&semaphore, &completionStates, &calledStates, &tasks, taskIndex = i]()
                 {

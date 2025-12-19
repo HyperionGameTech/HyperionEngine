@@ -362,7 +362,7 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
             }
             else
             {
-                // @TODO Need to load all scenes from the streaming layer into the world before removing it
+                /// \todo Need to load all scenes from the streaming layer into the world before removing it
             }
         }
 
@@ -1268,7 +1268,7 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
             m_delegateHandlers.Remove(&layer->OnStreamingObjectsLoaded);
             m_delegateHandlers.Remove(&layer->OnStreamingObjectsUnloaded);
 
-            // @TODO remove Scenes if layer is scene streaming layer?
+            /// \todo remove Scenes if layer is scene streaming layer?
         }
     }
     else
@@ -1291,7 +1291,7 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
     {
         BindStreamingDelegates(m_delegateHandlers, this, layer);
 
-        // @TODO if scene streaming is enabled and we're Init()'d, stream them in!
+        /// \todo if scene streaming is enabled and we're Init()'d, stream them in!
     }
 
     if (IsInitCalled())

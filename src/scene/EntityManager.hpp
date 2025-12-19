@@ -517,7 +517,7 @@ public:
         ComponentMap componentIds;
 
         auto componentIt = entityData->FindComponent<Component>();
-        // @TODO: Replace the component if it already exists
+        /// \todo : Replace the component if it already exists
         Assert(componentIt == entityData->components.End(), "Entity already has component of type {}", TypeNameWithoutNamespace<Component>().Data());
 
         static const TypeId componentTypeId = TypeId::ForType<Component>();
@@ -837,7 +837,7 @@ private:
     EntityContainer m_entities;
     DataRaceDetector m_entitiesDataRaceDetector;
     HashMap<EntitySetId, UniquePtr<EntitySetBase>> m_entitySets;
-    mutable Mutex m_entitySetsMutex; // @TODO : try to remove?
+    mutable Mutex m_entitySetsMutex; /// \todo : try to remove?
     TypeMap<HashSet<EntitySetId>> m_componentEntitySets;
 
     Array<SystemExecutionGroup*> m_systemExecutionGroups;

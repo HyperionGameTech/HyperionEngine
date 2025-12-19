@@ -474,7 +474,7 @@ public:
 
     HYP_NODISCARD Array<T, AllocatorType> Slice(int first, int last) const;
 
-    /*! \brief Modify the array by appending all items in \ref{other} to the current array. */
+    /*! \brief Modify the array by appending all items in \p other to the current array. */
     template <class OtherAllocatorType>
     void Concat(const Array<T, OtherAllocatorType>& other)
     {

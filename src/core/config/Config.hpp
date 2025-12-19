@@ -203,7 +203,7 @@ public:
     {
         if (configName.Empty())
         {
-            // @TODO Log error
+            /// \todo Log error
             return {};
         }
 

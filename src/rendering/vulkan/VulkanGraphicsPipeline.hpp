@@ -50,7 +50,7 @@ class VulkanGraphicsPipeline final : public GraphicsPipelineBase, public VulkanP
 
 public:
     VulkanGraphicsPipeline();
-    VulkanGraphicsPipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
+    explicit VulkanGraphicsPipeline(const VulkanShaderRef& shader);
     ~VulkanGraphicsPipeline();
 
     HYP_FORCE_INLINE const VulkanRenderPassRef& GetRenderPass() const

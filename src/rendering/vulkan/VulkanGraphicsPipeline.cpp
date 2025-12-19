@@ -133,9 +133,9 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline()
 {
 }
 
-VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable)
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanShaderRef& shader)
     : VulkanPipelineBase(),
-      GraphicsPipelineBase(shader, descriptorTable)
+      GraphicsPipelineBase(shader)
 {
 }
 
@@ -369,11 +369,6 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
     const uint32 maxSetLayouts = GetRenderBackend()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
-
-    if (!m_descriptorTable.IsValid())
-    {
-        return HYP_MAKE_ERROR(RendererError, "No descriptor table set for pipeline");
-    }
 
     Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
 

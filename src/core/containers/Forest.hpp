@@ -117,7 +117,7 @@ public:
         Node* m_prev;
     };
 
-    // @TODO: Change to not require a queue, instead,
+    /// \todo : Change to not require a queue, instead,
     // advance inline
     struct Iterator
     {

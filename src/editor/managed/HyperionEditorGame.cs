@@ -112,7 +112,7 @@ namespace Hyperion.Editor
         {
             WeakReference weakThis = new WeakReference(this);
 
-            // @TODO Move to MainWindowModelView
+            /// \todo Move to MainWindowModelView
             _onActionStackStateChanged?.Remove();
             _onActionStackStateChanged = project.ActionStack.GetOnStateChangeDelegate()
                 .Bind((EditorActionStackState newState) =>
@@ -205,7 +205,7 @@ namespace Hyperion.Editor
         {
             Logger.Log(LogType.Debug, "UpdateUndo called");
 
-            // @TODO: Model after EditorMain.cpp
+            /// \todo : Model after EditorMain.cpp
         }
 
         private void UpdateRedo()
@@ -213,7 +213,7 @@ namespace Hyperion.Editor
             Logger.Log(LogType.Debug, "UpdateRedo called");
 
 
-            // @TODO: Model after EditorMain.cpp
+            /// \todo : Model after EditorMain.cpp
         }
     }
 }

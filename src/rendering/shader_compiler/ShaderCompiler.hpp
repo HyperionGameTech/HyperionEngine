@@ -430,7 +430,7 @@ public:
         return Set(ShaderProperty(name, flags), enabled);
     }
 
-    /*! \brief Applies \ref{other} properties onto this set */
+    /*! \brief Applies \p other properties onto this set */
     void Merge(const ShaderProperties& other)
     {
         for (const ShaderProperty& property : other.m_props)
@@ -481,7 +481,7 @@ public:
         return *this;
     }
 
-    /*! \brief Adds a new static property with key \ref{key}
+    /*! \brief Adds a new static property with key \p key
      *  Static properties are applied to every shader variant and do not create new permutations. */
     ShaderProperties& AddStatic(Name key)
     {
@@ -503,7 +503,7 @@ public:
         return *this;
     }
 
-    /*! \brief Adds a new value group property with key \ref{key} and possible enum values \ref{enumValues}
+    /*! \brief Adds a new value group property with key \p key and possible enum values \p enumValues
      *  Value groups create new shader variants but their values are mututally exclusive to each other.
      *  i.e, only one value from the value group can be selected at a time. This reduces the number of
      *  shader variants generated compared to permutations. */

@@ -321,7 +321,6 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 
         return g_renderInterface->graphicsPipelineCache->GetOrCreate(
             m_shader,
-            nullptr,
             { &m_framebuffer, 1 },
             renderableAttributes);
     }
@@ -329,26 +328,8 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
     ShaderRef shader = g_shaderManager->GetOrCreate(NAME("DeferredDirect"), shaderProperties);
     Assert(shader != nullptr);
 
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("DeferredDirectDescriptorSet", frameIndex);
-        Assert(descriptorSet.IsValid());
-
-        descriptorSet->SetElement("MaterialsBuffer", g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-
-        descriptorSet->SetElement("LTCSampler", m_ltcSampler);
-        descriptorSet->SetElement("LTCMatrixTexture", g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
-        descriptorSet->SetElement("LTCBRDFTexture", g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
-    }
-
-    Assert(descriptorTable->Create());
-
     return g_renderInterface->graphicsPipelineCache->GetOrCreate(
         shader,
-        descriptorTable,
         { &m_framebuffer, 1 },
         renderableAttributes);
 }
@@ -429,6 +410,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     {
         const LightType lightType = LightType(lightTypeIndex);
 
+        DescriptorSetRef& directPassDescriptorSet = m_directPassDescriptorSets[lightTypeIndex][frame->GetFrameIndex()];
+
         for (Light* light : rpl.GetLights())
         {
             if (light->GetLightType() != lightTypeIndex)
@@ -455,13 +438,33 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             const GraphicsPipelineRef& pipeline = *m_directLightGraphicsPipelines[lightTypeIndex];
 
-            const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
-            const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+            if (pipelineChanged && !directPassDescriptorSet.IsValid())
+            {
+                // create direct pass descriptor set
+                const DescriptorTableDeclaration* descriptorTableDecl = pipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
+                AssertDebug(descriptorTableDecl != nullptr);
+
+                const DescriptorSetDeclaration* descriptorSetDecl = descriptorTableDecl->FindDescriptorSetDeclaration("DeferredDirectDescriptorSet"_sh);
+                AssertDebug(descriptorSetDecl != nullptr);
+
+                directPassDescriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(descriptorSetDecl));
+                Assert(directPassDescriptorSet.IsValid());
+
+                directPassDescriptorSet->SetElement("MaterialsBuffer", g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frame->GetFrameIndex()));
+                directPassDescriptorSet->SetElement("LTCSampler", m_ltcSampler);
+                directPassDescriptorSet->SetElement("LTCMatrixTexture", g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
+                directPassDescriptorSet->SetElement("LTCBRDFTexture", g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
+
+                Assert(directPassDescriptorSet->Create());
+            }
+
+            const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorSetIndex("Global");
+            const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorSetIndex("View");
             const uint32 materialDescriptorSetIndex = lightType == LT_AREA_RECT
-                ? pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Material")
+                ? pipeline->GetDescriptorSetIndex("Material")
                 : ~0u;
 
-            const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("DeferredDirectDescriptorSet");
+            const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorSetIndex("DeferredDirectDescriptorSet");
 
             if (pipelineChanged)
             {
@@ -473,7 +476,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 if (materialDescriptorSetIndex != ~0u && useBindlessTextures)
                 {
                     frame->renderQueue << BindDescriptorSet(
-                        pipeline->GetDescriptorTable()->GetDescriptorSet("Material", frame->GetFrameIndex()),
+                        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Material", frame->GetFrameIndex()),
                         pipeline,
                         {},
                         materialDescriptorSetIndex);
@@ -482,7 +485,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 if (deferredDirectDescriptorSetIndex != ~0u)
                 {
                     frame->renderQueue << BindDescriptorSet(
-                        pipeline->GetDescriptorTable()->GetDescriptorSet("DeferredDirectDescriptorSet", frame->GetFrameIndex()),
+                        directPassDescriptorSet,
                         pipeline,
                         {},
                         deferredDirectDescriptorSetIndex);
@@ -493,7 +496,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             }
 
             frame->renderQueue << BindDescriptorSet(
-                pipeline->GetDescriptorTable()->GetDescriptorSet("Global", frame->GetFrameIndex()),
+                g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frame->GetFrameIndex()),
                 pipeline,
                 { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
                     { "CurrentLight", ShaderDataOffset<LightShaderData>(light, 0) } },
@@ -669,27 +672,6 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         .compareOp = SCO_EQUAL // match values with equal atlas index when we render
     };
 
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-    descriptorTable->SetDebugName(NAME_FMT("DescriptorTable_{}", m_shader->GetCompiledShader()->GetName()));
-
-    const uint32 lightmapVolumeDescriptorSetIndex = descriptorTable->GetDescriptorSetIndex("LightmapVolume");
-    AssertDebug(lightmapVolumeDescriptorSetIndex != ~0u);
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("LightmapVolume", frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        // @TODO: Get rid of wasted lightmap volume descriptor set!!
-        descriptorSet->SetElement("IrradianceTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        descriptorSet->SetElement("RadianceTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        descriptorSet->SetElement("Sampler", g_renderInterface->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement("GBufferSampler", g_renderInterface->placeholderData->GetSamplerNearest());
-        descriptorSet->SetElement("LightmapVolumeUniforms", g_renderInterface->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms), /* exactSize */ true));
-    }
-
-    Assert(descriptorTable->Create());
-
     SafeDelete(std::move(data.descriptorSets));
 
     for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
@@ -726,7 +708,6 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
 
     data.graphicsPipeline = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        descriptorTable,
         { &framebufferStrong, 1 },
         RenderableAttributeSet(meshAttributes, materialAttributes));
 
@@ -746,7 +727,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.world && renderSetup.volume);
+    AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
     LightmapVolume* volume = ObjCast<LightmapVolume>(renderSetup.volume);
     AssertDebug(volume != nullptr);
@@ -760,9 +741,13 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     }
 
     LightmapVolumePassData& data = GetLightmapVolumePassData(volume);
-    /// @TODO: Add clean up of data after lightmap volume has been removed
+    //// \todo : Add clean up of data after lightmap volume has been removed
 
     const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline(framebuffer, data);
+
+    const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global"_sh);
+    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
+    const uint32 lightmapVolumeDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("LightmapVolume"_sh);
 
     for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
     {
@@ -771,16 +756,11 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
 
-        if (renderSetup.view != nullptr && renderSetup.view->GetCamera() != nullptr)
-        {
-            frame->renderQueue << BindDescriptorTable(
-                graphicsPipeline->GetDescriptorTable(),
-                graphicsPipeline,
-                { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
-                frame->GetFrameIndex());
-        }
-
-        const uint32 viewDescriptorSetIndex = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex("View");
+        frame->renderQueue << BindDescriptorSet(
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frame->GetFrameIndex()),
+            graphicsPipeline,
+            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
+            globalDescriptorSetIndex);
 
         if (viewDescriptorSetIndex != ~0u)
         {
@@ -793,9 +773,6 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 viewDescriptorSetIndex);
         }
 
-        const uint32 lightmapVolumeDescriptorSetIndex = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex("LightmapVolume");
-        AssertDebug(lightmapVolumeDescriptorSetIndex != ~0u);
-
         frame->renderQueue << BindDescriptorSet(
             data.descriptorSets[atlasIndex],
             graphicsPipeline,
@@ -804,7 +781,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
         frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-        frame->renderQueue << DrawIndexed(6); // @TODO: Draw a box transformed to the size of the lightmap volume
+        frame->renderQueue << DrawIndexed(6); /// \todo : Draw a box transformed to the size of the lightmap volume
     }
 
     // reset stencil state back to default
@@ -903,7 +880,7 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* frame
 
     Assert(descriptorTable->Create());
 
-    // @TODO Don't throw away old descriptor table if only uniforms changed!
+    /// \todo Don't throw away old descriptor table if only uniforms changed!
     if (data.descriptorTable)
     {
         SafeDelete(std::move(data.descriptorTable));
@@ -915,7 +892,6 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* frame
 
     data.graphicsPipeline = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        descriptorTable,
         { &framebufferStrong, 1 },
         renderableAttributes);
 
@@ -1118,7 +1094,6 @@ void EnvGridPass::CreatePipeline()
 
         GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             shader,
-            descriptorTable,
             { &m_framebuffer, 1 },
             renderableAttributes);
 
@@ -1186,8 +1161,8 @@ void EnvGridPass::Render(Frame* frame, const RenderSetup& rs)
 
         const GraphicsPipelineRef& graphicsPipeline = *cacheHandle;
 
-        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
-        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global"_sh);
+        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
 
         graphicsPipeline->SetPushConstants(m_pushConstantData.Data(), m_pushConstantData.Size());
 
@@ -1204,7 +1179,7 @@ void EnvGridPass::Render(Frame* frame, const RenderSetup& rs)
         }
 
         frame->renderQueue << BindDescriptorSet(
-            graphicsPipeline->GetDescriptorTable()->GetDescriptorSet("Global", frameIndex),
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex),
             graphicsPipeline,
             { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
                 { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(envGrid, 0) } },
@@ -1327,10 +1302,10 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
             shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
         Assert(descriptorTable->Create());
+        m_cubemapDescriptorTables[it.first] = std::move(descriptorTable);
 
         GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             shader,
-            descriptorTable,
             { &m_framebuffer, 1 },
             renderableAttributes);
 
@@ -1426,6 +1401,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         }
 
         const GraphicsPipelineRef& graphicsPipeline = *m_cubemapGraphicsPipelines[cubemapType];
+        const DescriptorTable* descriptorTable = m_cubemapDescriptorTables[cubemapType];
 
         graphicsPipeline->SetPushConstants(m_pushConstantData.Data(), m_pushConstantData.Size());
 
@@ -1441,8 +1417,8 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
             frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
         }
 
-        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
-        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global");
+        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View");
 
         for (EnvProbe* envProbe : probes)
         {
@@ -1459,7 +1435,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
             //     RenderApi::GetFrameIndex_RenderThread());
 
             frame->renderQueue << BindDescriptorSet(
-                graphicsPipeline->GetDescriptorTable()->GetDescriptorSet("Global", frameIndex),
+                descriptorTable->GetDescriptorSet("Global", frameIndex),
                 graphicsPipeline,
                 { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
                     { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(envProbe) } },
@@ -2110,7 +2086,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     });
 
     // Collect view-independent renderable types from all views, binned
-    /// @TODO: We could use the existing binning by subclass that ResourceTracker now provides.
+    //// \todo : We could use the existing binning by subclass that ResourceTracker now provides.
     FixedArray<FlatSet<EnvProbe*>, EPT_MAX> envProbes;
     FixedArray<FlatSet<Light*>, LT_MAX> lights;
     FlatSet<EnvGrid*> envGrids;
@@ -2519,11 +2495,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     PerformOcclusionCulling(frame, rs, renderCollector);
 
-    // if (doParticles)
-    // {
-    //     environment->GetParticleSystem()->UpdateParticles(frame, rs);
-    // }
-
     // if (doGaussianSplatting)
     // {
     //     environment->GetGaussianSplatting()->UpdateSplats(frame, rs);
@@ -2692,7 +2663,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
 
             frame->renderQueue << BindDescriptorTable(
-                pipeline->GetDescriptorTable(),
+                passData.combinePass->GetDescriptorTable().GetUnchecked(),
                 pipeline,
                 {},
                 frameIndex);

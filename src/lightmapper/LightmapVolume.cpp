@@ -118,7 +118,7 @@ struct LightmapVolumeAtlasBlit : RenderCommand
                 uint16 elementIndex;
                 LightmapElement::GetAtlasAndElementIndex(elementTexturesIt.first, atlasIndex, elementIndex);
 
-                // @TODO: Add assertion that atlasIndex == our current atlas index
+                /// \todo : Add assertion that atlasIndex == our current atlas index
 
                 Assert(elementIndex < lightmapElements.Size());
 
@@ -498,7 +498,7 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 
     proxy->bufferData.aabbMax = Vec4f(m_localBounds.max, 1.0f);
     proxy->bufferData.aabbMin = Vec4f(m_localBounds.min, 1.0f);
-    proxy->bufferData.textureIndex = ~0u; // @TODO: Set the correct texture index based on the element
+    proxy->bufferData.textureIndex = ~0u; /// \todo : Set the correct texture index based on the element
 }
 
 void LightmapVolume::UpdateAtlasTextures(

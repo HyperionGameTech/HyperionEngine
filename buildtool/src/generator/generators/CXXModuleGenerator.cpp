@@ -585,7 +585,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                         writer.WriteString("    }\n");
                         writer.WriteString("\n");
                         writer.WriteString("#endif // HYP_DOTNET\n");
-                        writer.WriteString("\n"); // @TODO: support HYP_SCRIPT here
+                        writer.WriteString("\n"); /// \todo : support HYP_SCRIPT here
                         writer.WriteString(HYP_FORMAT("    {}_Impl({});\n", member.name, methodArgsStringCall));
                         writer.WriteString("}\n");
                     }
@@ -606,7 +606,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                         writer.WriteString("    }\n");
                         writer.WriteString("\n");
                         writer.WriteString("#endif // HYP_DOTNET\n");
-                        writer.WriteString("\n"); // @TODO: support HYP_SCRIPT here
+                        writer.WriteString("\n"); /// \todo : support HYP_SCRIPT here
                         writer.WriteString(HYP_FORMAT("    return {}_Impl({});\n", member.name, methodArgsStringCall));
                         writer.WriteString("}\n");
                     }

@@ -106,7 +106,7 @@ namespace Hyperion.Editor.ViewModels
             NodeViewModel? current = node.Parent;
             while (current != null)
             {
-                current.IsExpanded = true; // @TODO Make it expand the tree node in UI!!
+                current.IsExpanded = true; /// \todo Make it expand the tree node in UI!!
                 current = current.Parent;
             }
         }

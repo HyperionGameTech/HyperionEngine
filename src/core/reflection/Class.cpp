@@ -1333,16 +1333,16 @@ bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& out
 #pragma region DynamicClassInstance
 
 #ifdef HYP_DOTNET
-DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* classPtr, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* pManagedClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
     : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | ClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
 
     m_objectContainer = nullptr;
 
-    if (classPtr != nullptr)
+    if (pManagedClass != nullptr)
     {
-        SetManagedClass(classPtr->RefCountedPtrFromThis());
+        SetManagedClass(pManagedClass->RefCountedPtrFromThis());
     }
 
     m_parent = parentClass;

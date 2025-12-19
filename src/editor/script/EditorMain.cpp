@@ -410,7 +410,7 @@ UIEventHandlerResult EditorMain::RebuildLightmaps(const MouseEvent& event)
         return UIEventHandlerResult::ERR;
     }
 
-    // @TODO : Allow selection of scene(s) and volume(s) to generate for?
+    /// \todo : Allow selection of scene(s) and volume(s) to generate for?
 
     Array<Handle<ObjectBase>> sources;
 
@@ -940,7 +940,7 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
         return UIEventHandlerResult::ERR;
     }
 
-    // @TODO: Allow building a bounding box in editor before starting the task.
+    /// \todo : Allow building a bounding box in editor before starting the task.
     BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
 
     Handle<LightmapVolume> lightmapVolume = CreateObject<LightmapVolume>(lightmapVolumeAabb);

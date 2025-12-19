@@ -868,7 +868,6 @@ VulkanDescriptorTableRef VulkanRenderBackend::MakeDescriptorTable(const Descript
 
 VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
     const VulkanShaderRef& shader,
-    const VulkanDescriptorTableRef& descriptorTable,
     Span<const VulkanFramebufferRef> framebuffers,
     const RenderableAttributeSet& attributes)
 {
@@ -886,16 +885,7 @@ VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
         }
     }
 
-    VulkanGraphicsPipelineRef graphicsPipeline;
-
-    if (descriptorTable.IsValid())
-    {
-        graphicsPipeline = CreateObject<VulkanGraphicsPipeline>(VulkanShaderRef::empty, VulkanDescriptorTableRef(descriptorTable));
-    }
-    else
-    {
-        graphicsPipeline = CreateObject<VulkanGraphicsPipeline>();
-    }
+    VulkanGraphicsPipelineRef graphicsPipeline = CreateObject<VulkanGraphicsPipeline>();
 
     if (shader.IsValid())
     {
@@ -905,8 +895,6 @@ VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
         graphicsPipeline->SetDebugName(NAME_FMT("GraphicsPipeline_{}", shader->GetDebugName().IsValid() ? *shader->GetDebugName() : "<unnamed shader>"));
 #endif
     }
-
-    HYP_GFX_ASSERT(graphicsPipeline->GetDescriptorTable().IsValid());
 
     graphicsPipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
     graphicsPipeline->SetTopology(attributes.GetMeshAttributes().topology);
@@ -1161,7 +1149,7 @@ QueryImageCapabilitiesResult VulkanRenderBackend::QueryImageCapabilities(const T
         vkImageCreateFlags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 
-    // @TODO Implement me.
+    /// \todo Implement me.
 
     HYP_NOT_IMPLEMENTED();
 }

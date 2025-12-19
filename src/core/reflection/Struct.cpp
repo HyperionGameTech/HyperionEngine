@@ -72,7 +72,7 @@ DynamicStructInstance::DynamicStructInstance(
     m_size = size;
     m_alignment = alignof(void*);
 
-    // @TODO Register the ManagedClass (dotnet::ManagedClass) for this. We need the assembly.
+    /// \todo Register the ManagedClass (dotnet::ManagedClass) for this. We need the assembly.
     ClassRegistry::GetInstance().RegisterClass(typeId, this);
 }
 

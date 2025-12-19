@@ -157,7 +157,7 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
         AssertDebug(legacyEnvGrid->GetLightFieldIrradianceTexture().IsValid());
         AssertDebug(legacyEnvGrid->GetLightFieldDepthTexture().IsValid());
 
-        // @TODO: Set based on binding index
+        /// \todo : Set based on binding index
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
@@ -270,7 +270,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
     RenderApi::AssignResourceBinding(material, next);
 
-    /// @TODO: Needs to notify that mesh descriptions buffer needs to be updated for ray tracing.
+    //// \todo : Needs to notify that mesh descriptions buffer needs to be updated for ray tracing.
 
     if (!s_isBindlessSupported)
     {
