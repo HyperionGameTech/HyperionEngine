@@ -65,7 +65,7 @@ bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
         return false;
     }
 
-    const Vec2f delta = (evt.position - evt.previousPosition) * 1.0f;
+    const Vec2f delta = (evt.relativePos - evt.relativePrevPos) * 1.0f;
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 

@@ -319,7 +319,7 @@ void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent
         m_mouseLockScope = new InputMouseLockScope();
     }
 
-    //*m_mouseLockScope = g_inputManager->AcquireMouseLock();
+    *m_mouseLockScope = g_inputManager->AcquireMouseLock();
 }
 
 void EditorGizmoBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
@@ -328,7 +328,7 @@ void EditorGizmoBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& 
 
     if (m_mouseLockScope)
     {
-        //m_mouseLockScope->Reset();
+        m_mouseLockScope->Reset();
     }
 }
 
@@ -385,7 +385,7 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
         .nodeOrigin = focusedNode->GetWorldTranslation()
     };
 
-    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.relativePos);
     const Vec4f rayDirection = mouseWorld.Normalized();
 
     const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
@@ -555,7 +555,7 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
     {
         return false;
     }
-    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.relativePos);
     const Vec4f rayDirection = mouseWorld.Normalized();
 
     const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
@@ -1070,7 +1070,7 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
         return false;
     }
 
-    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.relativePos);
     const Vec4f rayDirection = (mouseWorld - Vec4f(camera->GetTranslation(), 1.0f)).Normalized();
 
     const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
@@ -1918,7 +1918,7 @@ void EditorSubsystem::InitViewport()
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
 
-                const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.position);
+                const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
                 const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
@@ -1994,7 +1994,7 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
-            if (!g_inputManager->IsMouseLocked() && IsHoveringGizmo())
+            if (IsHoveringGizmo())
             {
                 // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
                 Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
@@ -2007,7 +2007,7 @@ void EditorSubsystem::InitViewport()
                     return UIEventHandlerResult::ERR;
                 }
 
-                if (gizmo->OnMouseMove(activeViewport->GetCamera(), event, Handle<Node>(node)))
+                if (gizmo->OnMouseMove(activeViewport->GetCamera(), event, node))
                 {
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
@@ -2047,7 +2047,7 @@ void EditorSubsystem::InitViewport()
             {
                 // Ray test the widget
 
-                const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.position);
+                const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
                 const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
@@ -2076,9 +2076,9 @@ void EditorSubsystem::InitViewport()
                             return UIEventHandlerResult::STOP_BUBBLING;
                         }
 
-                        if (gizmo->OnMouseHover(activeViewport->GetCamera(), event, Handle<Node>(entity)))
+                        if (gizmo->OnMouseHover(activeViewport->GetCamera(), event, entity))
                         {
-                            SetHoveredGizmo(event, gizmo, Handle<Node>(entity));
+                            SetHoveredGizmo(event, gizmo, entity);
 
                             return UIEventHandlerResult::STOP_BUBBLING;
                         }
@@ -2116,7 +2116,7 @@ void EditorSubsystem::InitViewport()
 
                 if (!gizmo->IsDragging())
                 {
-                    const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.position);
+                    const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
                     const Vec4f rayDirection = mouseWorld.Normalized();
 
                     const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
@@ -2128,6 +2128,8 @@ void EditorSubsystem::InitViewport()
                         for (const RayHit& rayHit : results)
                         {
                             gizmo->OnDragStart(activeViewport->GetCamera(), event, node, rayHit.hitpoint);
+
+                            break;
                         }
                     }
                 }
@@ -2165,7 +2167,7 @@ void EditorSubsystem::InitViewport()
 
                 if (gizmo->IsDragging())
                 {
-                    gizmo->OnDragEnd(activeViewport->GetCamera(), event, Handle<Node>(node));
+                    gizmo->OnDragEnd(activeViewport->GetCamera(), event, node);
                 }
 
                 return UIEventHandlerResult::STOP_BUBBLING;
@@ -3586,7 +3588,7 @@ void EditorSubsystem::SetHoveredGizmo(
 
         if (hoveredGizmoNode && hoveredGizmo)
         {
-            hoveredGizmo->OnMouseLeave(activeViewport->GetCamera(), event, Handle<Node>(hoveredGizmoNode));
+            hoveredGizmo->OnMouseLeave(activeViewport->GetCamera(), event, hoveredGizmoNode);
         }
     }
 

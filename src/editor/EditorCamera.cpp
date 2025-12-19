@@ -166,10 +166,10 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     const double moveMultiplier = 25.0 * s_editorMoveSensitivity.ToDouble(1.0);
 
     // double for moar bits!!1
-    const double mouseDeltaX = double(evt.position.x) - double(evt.previousPosition.x);
-    const double mouseDeltaY = double(evt.position.y) - double(evt.previousPosition.y);
+    const double mouseDeltaX = double(evt.relativePos.x) - double(evt.relativePrevPos.x);
+    const double mouseDeltaY = double(evt.relativePos.y) - double(evt.relativePrevPos.y);
 
-    const Vec2f deltaSign = Vec2f(MathUtil::Sign(evt.position - evt.previousPosition)) * float(m_deltaTime);
+    const Vec2f deltaSign = Vec2f(MathUtil::Sign(evt.relativePos - evt.relativePrevPos)) * float(m_deltaTime);
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 
@@ -177,9 +177,9 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     const bool isCtrlPressed = IsKeyDown(KeyCode::KEY_LCTRL) || IsKeyDown(KeyCode::KEY_RCTRL);
     const bool isMoveKeyPressed = (GetKeyStates() & g_wasdBits).Count() != 0;
 
-    constexpr EnumFlags<MouseButtonState> leftAndRightButtons = MouseButtonState::LEFT | MouseButtonState::RIGHT;
+    constexpr EnumFlags<MouseButtonState> ButtonsLR = MouseButtonState::LEFT | MouseButtonState::RIGHT;
 
-    if (isAltPressed || (evt.mouseButtons & leftAndRightButtons) == leftAndRightButtons)
+    if (isAltPressed || (evt.mouseButtons & ButtonsLR) == ButtonsLR)
     {
         if (!isMoveKeyPressed) // so we don't try to move using cam when any movement keys are pressed. would be annoying.
         {
