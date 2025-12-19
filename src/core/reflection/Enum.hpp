@@ -4,6 +4,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/HypData.hpp>
+#include <core/reflection/StaticField.hpp>
 
 namespace hyperion {
 
@@ -127,12 +128,12 @@ HYP_API extern HypData GetEnumMemberValue(const IHypMember& enumMember);
  *  void Function(Name name, EnumType value, bool *stopIteration)
  *  \endcode
  */
-template <class EnumType, class Function, typename = std::enable_if_t<std::is_enum_v<EnumType>>>
+template <class EnumType, class Function, typename = std::enable_if_t<std::is_enum_v<NormalizedType<EnumType>>>>
 void ForEachEnumMember(Function&& function)
 {
-    using EnumUnderlyingType = std::underlying_type_t<EnumType>;
+    using EnumUnderlyingType = std::underlying_type_t<NormalizedType<EnumType>>;
 
-    const Class* cls = GetClass<EnumType>();
+    const Class* cls = GetClass<NormalizedType<EnumType>>();
 
     if (!cls || !cls->IsEnumType())
     {
@@ -141,10 +142,10 @@ void ForEachEnumMember(Function&& function)
 
     bool stopIteration = false;
 
-    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_STATIC_FIELD))
+    for (StaticField* pStaticField : cls->GetStaticFields())
     {
         // If the function sets stopIteration to true, stop iteration
-        function(member.GetName(), static_cast<EnumType>(GetEnumMemberValue(member).Get<EnumUnderlyingType>()), &stopIteration);
+        function(pStaticField->GetName(), static_cast<NormalizedType<EnumType>>(pStaticField->Get().Get<EnumUnderlyingType>()), &stopIteration);
 
         if (stopIteration)
         {
@@ -153,33 +154,56 @@ void ForEachEnumMember(Function&& function)
     }
 }
 
-/*! \brief Find the name of an enum member for a given Class, using the members' value.
- *  \tparam EnumType The enum type the member is a part of. The enum must have a Class associated with it, otherwise this function will return an empty String.
- *  If the member is not found in the registered Class, this function will return a default string (e.g "EnumType(value)").
+/*! \brief Find the name of an enum member for a given Class, using the members' value. If the enum value is found,
+ *  the name is written to \p outName and the function returns true. If the member is not found, the function returns false.
+ *  \tparam EnumType The enum type the member is a part of.
  *  \param value The string value of the enum member to find the name of, or EnumName(value) if the member is not found.
+ *  \param outName Reference to a Name where the found name will be written.
+ *  \returns True if the member was found, false otherwise.
  */
-template <class EnumType, typename = std::enable_if_t<std::is_enum_v<EnumType>>>
-String EnumToString(EnumType value)
+template <class EnumType, typename = std::enable_if_t<std::is_enum_v<NormalizedType<EnumType>>>>
+bool EnumMemberName(EnumType value, Name& outName)
 {
     using EnumUnderlyingType = std::underlying_type_t<EnumType>;
 
-    const Class* cls = GetClass<EnumType>();
+    outName = Name();
+
+    const Class* cls = GetClass<NormalizedType<EnumType>>();
 
     if (!cls || !cls->IsEnumType())
     {
-        return String::empty;
+        return false;
     }
 
-    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_STATIC_FIELD))
+    for (StaticField* pStaticField : cls->GetStaticFields())
     {
-        // If the function sets stopIteration to true, stop iteration
-        if (static_cast<EnumType>(GetEnumMemberValue(member).Get<EnumUnderlyingType>()) == value)
+        if (static_cast<NormalizedType<EnumType>>(pStaticField->Get().Get<EnumUnderlyingType>()) == value)
         {
-            return *member.GetName();
+            outName = pStaticField->GetName();
+            return true;
         }
     }
 
     // If no member found return a string of the value
+    return false;
+}
+
+/*! \brief Find the name of an enum member for a given Class, using the members' value. If the enum value is found,
+ *  the name is returned as a String. If the member is not found, a string representation of the enum value is returned.
+ *  \tparam EnumType The enum type the member is a part of.
+ *  \param value The string value of the enum member to find the name of, or EnumName(value) if the member is not found.
+ *  \returns The name of the enum member, or a string representation of the enum value if the member is not found.
+ */
+template <class EnumType, typename = std::enable_if_t<std::is_enum_v<NormalizedType<EnumType>>>>
+String EnumToString(EnumType value)
+{
+    using EnumUnderlyingType = std::underlying_type_t<NormalizedType<EnumType>>;
+
+    if (Name name; EnumMemberName(value, name))
+    {
+        return name.LookupString();
+    }
+
     return HYP_FORMAT("{}", EnumUnderlyingType(value));
 }
 
@@ -188,21 +212,21 @@ String EnumToString(EnumType value)
  *  \param name The name of the enum member to get the value of.
  *  \param errorValue The value to return if the member is not found.
  */
-template <class EnumType, typename = std::enable_if_t<std::is_enum_v<EnumType>>>
+template <class EnumType, typename = std::enable_if_t<std::is_enum_v<NormalizedType<EnumType>>>>
 EnumType EnumValue(StringHash memberName, EnumType errorValue = EnumType())
 {
-    using EnumUnderlyingType = std::underlying_type_t<EnumType>;
+    using EnumUnderlyingType = std::underlying_type_t<NormalizedType<EnumType>>;
 
-    const Class* cls = GetClass<EnumType>();
+    const Class* cls = GetClass<NormalizedType<EnumType>>();
 
     if (!cls || !cls->IsEnumType())
     {
         return errorValue;
     }
 
-    if (IHypMember* pMember = cls->GetMember(memberName, HypMemberType::TYPE_STATIC_FIELD))
+    if (StaticField* pStaticField = cls->GetStaticField(memberName))
     {
-        return static_cast<EnumType>(GetEnumMemberValue(*pMember).Get<EnumUnderlyingType>());
+        return static_cast<NormalizedType<EnumType>>(pStaticField->Get().Get<EnumUnderlyingType>());
     }
 
     return errorValue;
