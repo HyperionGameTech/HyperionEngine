@@ -18,6 +18,7 @@
 
 #include <rendering/vulkan/VulkanMemory.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
+#include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanMemoryAllocator.hpp>
 
 #include <engine/EngineGlobals.hpp>
