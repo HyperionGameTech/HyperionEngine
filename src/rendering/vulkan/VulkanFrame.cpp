@@ -38,11 +38,10 @@ VulkanFrame::VulkanFrame(uint32 frameIndex)
 
 VulkanFrame::~VulkanFrame()
 {
-    for (auto& it : m_swapchainSemaphores)
+    for (auto& it : m_swapchainData)
     {
-        VulkanSwapchainSemaphores& semaphores = it.second;
-        SafeDelete(std::move(semaphores.imageAvailableSemaphore));
-        SafeDelete(std::move(semaphores.renderFinishedSemaphore));
+        VulkanSwapchainData& data = it.second;
+        SafeDelete(std::move(data.imageAvailableSemaphore));
     }
 
     SafeDelete(std::move(m_queueSubmitFence));
@@ -122,7 +121,7 @@ RendererResult VulkanFrame::Submit(
     if (swapchain != nullptr)
     {
         waitSemaphore = GetImageAvailableSemaphore(swapchain, /* createIfNotExist */ true);
-        signalSemaphore = GetRenderFinishedSemaphore(swapchain, /* createIfNotExist */ true);
+        signalSemaphore = swapchain->GetCurrentPresentSemaphore();
 
         AssertDebug(waitSemaphore != nullptr && signalSemaphore != nullptr);
     }
@@ -151,77 +150,48 @@ void VulkanFrame::RecreateSemaphores(const VulkanSwapchain* swapchain)
 {
     Assert(swapchain != nullptr);
 
-    auto it = m_swapchainSemaphores.Find(swapchain);
-    if (it == m_swapchainSemaphores.End())
+    auto it = m_swapchainData.Find(swapchain);
+    if (it == m_swapchainData.End())
     {
-        VulkanSwapchainSemaphores semaphores;
-        semaphores.swapchainWeak = MakeWeakRef(swapchain);
+        VulkanSwapchainData swapchainData;
+        swapchainData.swapchainWeak = MakeWeakRef(swapchain);
 
-        m_swapchainSemaphores.Insert({ swapchain, std::move(semaphores) });
-        it = m_swapchainSemaphores.Find(swapchain);
+        m_swapchainData.Insert({ swapchain, std::move(swapchainData) });
+        it = m_swapchainData.Find(swapchain);
     }
 
     VulkanSemaphoreRef& imageAvailableSemaphore = it->second.imageAvailableSemaphore;
-    VulkanSemaphoreRef& renderFinishedSemaphore = it->second.renderFinishedSemaphore;
 
     // reset immediately
-    imageAvailableSemaphore.Reset();
-    renderFinishedSemaphore.Reset();
-
     imageAvailableSemaphore = CreateObject<VulkanSemaphore>();
-    renderFinishedSemaphore = CreateObject<VulkanSemaphore>();
 
     RendererResult res = imageAvailableSemaphore->Create();
     Assert(res, "Failed to recreate image available semaphore: {}", res.GetError().GetMessage());
-
-    res = renderFinishedSemaphore->Create();
-    Assert(res, "Failed to recreate render finished semaphore: {}", res.GetError().GetMessage());
 }
 
 VulkanSemaphore* VulkanFrame::GetImageAvailableSemaphore(const VulkanSwapchain* swapchain, bool createIfNotExist)
 {
-    auto it = m_swapchainSemaphores.Find(swapchain);
-    if (it == m_swapchainSemaphores.End())
+    auto it = m_swapchainData.Find(swapchain);
+    if (it == m_swapchainData.End())
     {
         if (!createIfNotExist)
         {
             return nullptr;
         }
 
-        it = m_swapchainSemaphores.Emplace(swapchain).first;
-        InitVulkanSwapchainSemaphores(it->second);
+        it = m_swapchainData.Emplace(swapchain).first;
+        InitVulkanSwapchainData(it->second);
     }
 
     return it->second.imageAvailableSemaphore;
 }
 
-VulkanSemaphore* VulkanFrame::GetRenderFinishedSemaphore(const VulkanSwapchain* swapchain, bool createIfNotExist)
+void VulkanFrame::InitVulkanSwapchainData(VulkanSwapchainData& swapchainData)
 {
-    auto it = m_swapchainSemaphores.Find(swapchain);
-    if (it == m_swapchainSemaphores.End())
-    {
-        if (!createIfNotExist)
-        {
-            return nullptr;
-        }
+    swapchainData.imageAvailableSemaphore = CreateObject<VulkanSemaphore>();
 
-        it = m_swapchainSemaphores.Emplace(swapchain).first;
-        InitVulkanSwapchainSemaphores(it->second);
-    }
-
-    return it->second.renderFinishedSemaphore;
-}
-
-void VulkanFrame::InitVulkanSwapchainSemaphores(VulkanSwapchainSemaphores& semaphores)
-{
-    semaphores.imageAvailableSemaphore = CreateObject<VulkanSemaphore>();
-    semaphores.renderFinishedSemaphore = CreateObject<VulkanSemaphore>();
-
-    RendererResult res = semaphores.imageAvailableSemaphore->Create();
+    RendererResult res = swapchainData.imageAvailableSemaphore->Create();
     Assert(res, "Failed to create image available semaphore: {}", res.GetError().GetMessage());
-
-    res = semaphores.renderFinishedSemaphore->Create();
-    Assert(res, "Failed to create render finished semaphore: {}", res.GetError().GetMessage());
 }
 
 void VulkanFrame::ResetTransientStates()
@@ -245,8 +215,8 @@ void VulkanFrame::ResetTransientStates()
 
     m_renderPasses.Clear();
 
-    // remove invalid swapchain semaphores
-    for (auto it = m_swapchainSemaphores.Begin(); it != m_swapchainSemaphores.End();)
+    // remove invalid swapchain data
+    for (auto it = m_swapchainData.Begin(); it != m_swapchainData.End();)
     {
         const VulkanSwapchain* swapchain = it->first;
         AssertDebug(swapchain != nullptr);
@@ -255,9 +225,8 @@ void VulkanFrame::ResetTransientStates()
         {
             // swapchain is destroyed, remove semaphores
             SafeDelete(std::move(it->second.imageAvailableSemaphore));
-            SafeDelete(std::move(it->second.renderFinishedSemaphore));
 
-            it = m_swapchainSemaphores.Erase(it);
+            it = m_swapchainData.Erase(it);
         }
         else
         {
