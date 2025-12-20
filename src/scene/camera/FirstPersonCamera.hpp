@@ -24,7 +24,7 @@ class HYP_API FirstPersonCameraInputHandler : public InputHandlerBase
 
 public:
     FirstPersonCameraInputHandler();
-    explicit FirstPersonCameraInputHandler(const WeakHandle<CameraController>& controller);
+    explicit FirstPersonCameraInputHandler(FirstPersonCameraController* controller);
     virtual ~FirstPersonCameraInputHandler() override = default;
 
 protected:
@@ -38,7 +38,7 @@ protected:
     virtual bool OnClick_Impl(const MouseEvent& evt) override;
 
 private:
-    WeakHandle<FirstPersonCameraController> m_controller;
+    FirstPersonCameraController* m_controller;
 };
 
 HYP_CLASS()

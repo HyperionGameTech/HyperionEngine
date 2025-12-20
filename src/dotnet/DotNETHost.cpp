@@ -10,6 +10,8 @@
 
 #include <core/dll/DynamicLibrary.hpp>
 
+#include <core/memory/pool/Pool.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -559,17 +561,24 @@ public:
 
 DotNETHost& DotNETHost::GetInstance()
 {
-    static DotNETHost instance;
+    static DotNETHost s_instance;
 
-    return instance;
+    return s_instance;
 }
 
 DotNETHost::DotNETHost()
-    : m_isInitialized(false)
+    : m_isInitialized(false),
+      m_impl(nullptr)
 {
 }
 
-DotNETHost::~DotNETHost() = default;
+DotNETHost::~DotNETHost()
+{
+    if (m_impl != nullptr)
+    {
+        Shutdown();
+    }
+}
 
 bool DotNETHost::EnsureInitialized() const
 {
@@ -660,7 +669,7 @@ void DotNETHost::Initialize(const FilePath& basePath, bool initFromManaged, Init
 
     HYP_LOG(DotNET, Info, "Initializing .NET Host with base path: {}", basePath);
 
-    m_impl = MakeRefCountedPtr<DotNetImpl>();
+    m_impl = new DotNetImpl();
     m_impl->Initialize(basePath, initFromManaged, callback);
 
     m_isInitialized = true;
@@ -680,7 +689,8 @@ void DotNETHost::Shutdown()
 
     HYP_NAMED_SCOPE("Shutdown .NET System");
 
-    m_impl.Reset();
+    delete m_impl;
+    m_impl = nullptr;
 
     m_isInitialized = false;
 }

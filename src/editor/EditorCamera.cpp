@@ -49,7 +49,12 @@ static const Bitset g_wasdBits = CreateWasdBitset(true);
 
 #pragma region EditorCameraInputHandler
 
-EditorCameraInputHandler::EditorCameraInputHandler(const WeakHandle<CameraController>& controller)
+EditorCameraInputHandler::EditorCameraInputHandler()
+    : m_controller(nullptr)
+{
+}
+
+EditorCameraInputHandler::EditorCameraInputHandler(EditorCameraController* controller)
     : m_controller(controller)
 {
 }
@@ -61,18 +66,15 @@ bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
         return true;
     }
 
-    if (Handle<EditorCameraController> controller = m_controller.Lock())
+    if (m_controller && m_controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
     {
-        if (controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
+        if (evt.keyCode == KeyCode::KEY_ESCAPE)
         {
-            if (evt.keyCode == KeyCode::KEY_ESCAPE)
-            {
-                controller->SetMode(EditorCameraControllerMode::INACTIVE);
-                return true;
-            }
-
+            m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
             return true;
         }
+
+        return true;
     }
 
     return false;
@@ -85,18 +87,15 @@ bool EditorCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
         return true;
     }
 
-    if (Handle<EditorCameraController> controller = m_controller.Lock())
+    if (m_controller && m_controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
     {
-        if (controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
+        if (evt.keyCode == KeyCode::KEY_ESCAPE)
         {
-            if (evt.keyCode == KeyCode::KEY_ESCAPE)
-            {
-                controller->SetMode(EditorCameraControllerMode::INACTIVE);
-                return true;
-            }
-
+            m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
             return true;
         }
+
+        return true;
     }
 
     return false;
@@ -104,33 +103,29 @@ bool EditorCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
 
 bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 {
-    HYP_SCOPE;
-
-    if (Handle<EditorCameraController> controller = m_controller.Lock())
+    if (!m_controller)
     {
-        controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
-
-        return true;
+        return false;
     }
 
-    return false;
+    m_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
+
+    return true;
 }
 
 bool EditorCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
 {
-    HYP_SCOPE;
-
-    if (Handle<EditorCameraController> controller = m_controller.Lock())
+    if (!m_controller)
     {
-        if (!(evt.mouseButtons & (MouseButtonState::LEFT | MouseButtonState::RIGHT)))
-        {
-            controller->SetMode(EditorCameraControllerMode::INACTIVE);
-        }
-
-        return true;
+        return false;
     }
 
-    return false;
+    if (!(evt.mouseButtons & (MouseButtonState::LEFT | MouseButtonState::RIGHT)))
+    {
+        m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
+    }
+
+    return true;
 }
 
 bool EditorCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
@@ -147,14 +142,12 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     static const ConfigurationValue& s_editorLookSensitivity = CoreApi_GetGlobalConfig().Get("Editor.Camera.LookSensitivity");
     static const ConfigurationValue& s_editorMoveSensitivity = CoreApi_GetGlobalConfig().Get("Editor.Camera.MoveSensitivity");
 
-    Handle<EditorCameraController> controller = m_controller.Lock();
-
-    if (!controller.IsValid())
+    if (!m_controller)
     {
         return false;
     }
 
-    Camera* camera = controller->GetCamera();
+    Camera* camera = m_controller->GetCamera();
 
     if (!camera)
     {
@@ -231,14 +224,14 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 
 bool EditorCameraInputHandler::OnMouseLeave_Impl(const MouseEvent& evt)
 {
-    if (Handle<EditorCameraController> controller = m_controller.Lock())
+    if (!m_controller)
     {
-        controller->SetMode(EditorCameraControllerMode::INACTIVE);
-
-        return true;
+        return false;
     }
 
-    return false;
+    m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
+
+    return true;
 }
 
 bool EditorCameraInputHandler::OnClick_Impl(const MouseEvent& evt)
@@ -254,7 +247,7 @@ EditorCameraController::EditorCameraController()
     : FirstPersonCameraController(),
       m_mode(EditorCameraControllerMode::INACTIVE)
 {
-    m_inputHandler = CreateObject<EditorCameraInputHandler>(WeakHandleFromThis());
+    m_inputHandler = CreateObject<EditorCameraInputHandler>(this);
     InitObject(m_inputHandler);
 }
 
@@ -291,7 +284,7 @@ void EditorCameraController::UpdateLogic(double delta)
 
     FirstPersonCameraController::UpdateLogic(delta);
 
-    static constexpr float speed = 15.0f;
+    static constexpr float MovementSpeed = 15.0f;
 
     Vec3f translation = m_camera->GetTranslation();
 
@@ -302,19 +295,19 @@ void EditorCameraController::UpdateLogic(double delta)
 
     if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))
     {
-        translation += direction * delta * speed;
+        translation += direction * delta * MovementSpeed;
     }
     if (m_inputHandler->IsKeyDown(KeyCode::KEY_S))
     {
-        translation -= direction * delta * speed;
+        translation -= direction * delta * MovementSpeed;
     }
     if (m_inputHandler->IsKeyDown(KeyCode::KEY_A))
     {
-        translation -= dirCrossY * delta * speed;
+        translation -= dirCrossY * delta * MovementSpeed;
     }
     if (m_inputHandler->IsKeyDown(KeyCode::KEY_D))
     {
-        translation += dirCrossY * delta * speed;
+        translation += dirCrossY * delta * MovementSpeed;
     }
 
     m_camera->SetNextTranslation(translation);
