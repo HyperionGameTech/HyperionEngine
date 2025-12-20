@@ -13,7 +13,7 @@
 #include <rendering/RenderMemory.hpp>
 
 // For CompiledShader
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
