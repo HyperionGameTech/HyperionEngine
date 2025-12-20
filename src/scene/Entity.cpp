@@ -422,7 +422,7 @@ void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
     AssertDebug(m_entityManager == entityManager);
 }
 
-Array<HypData, DynamicAllocator> Entity::SerializeComponents() const
+Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 {
     HYP_SCOPE;
 
@@ -433,7 +433,7 @@ Array<HypData, DynamicAllocator> Entity::SerializeComponents() const
         return {};
     }
 
-    Array<HypData, DynamicAllocator> resultArray;
+    Array<BoxedValue, DynamicAllocator> resultArray;
 
     auto serializeEntityAndComponents = [this, entityManager, &resultArray]()
     {
@@ -490,7 +490,7 @@ Array<HypData, DynamicAllocator> Entity::SerializeComponents() const
                 continue;
             }
 
-            resultArray.PushBack(HypData(entityManager->TryGetComponent(componentTypeId, this)));
+            resultArray.PushBack(BoxedValue(entityManager->TryGetComponent(componentTypeId, this)));
             serializedComponents.Insert(componentTypeId);
         }
     };
@@ -514,7 +514,7 @@ Array<HypData, DynamicAllocator> Entity::SerializeComponents() const
     return resultArray;
 }
 
-void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& components)
+void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& components)
 {
     HYP_SCOPE;
 
@@ -527,7 +527,7 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
 
     AssertDebug(m_entityManager != nullptr);
 
-    for (const HypData& componentData : components)
+    for (const BoxedValue& componentData : components)
     {
         const TypeInfo& componentTypeInfo = *componentData.GetTypeInfo();
 

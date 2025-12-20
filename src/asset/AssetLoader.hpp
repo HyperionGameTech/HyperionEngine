@@ -8,7 +8,7 @@
 #include <core/reflection/ObjId.hpp>
 #include <core/reflection/Handle.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
@@ -38,16 +38,16 @@ HYP_API extern void OnPostLoad_Impl(const Class* cls, void* objectPtr);
 
 struct LoadedAsset
 {
-    HypData value;
+    BoxedValue value;
 
     LoadedAsset() = default;
 
-    LoadedAsset(HypData&& value)
+    LoadedAsset(BoxedValue&& value)
         : value(std::move(value))
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<LoadedAsset, T> && !IsHypDataV<T> && !std::is_same_v<T, TResult<LoadedAsset, AssetLoadError>>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<LoadedAsset, T> && !IsBoxedValueV<T> && !std::is_same_v<T, TResult<LoadedAsset, AssetLoadError>>>>
     LoadedAsset(T&& value)
         : value(std::forward<T>(value))
     {

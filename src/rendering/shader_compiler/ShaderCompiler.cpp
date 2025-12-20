@@ -1230,7 +1230,7 @@ static bool LoadBatchFromFile(
 
     FBOMResult err;
 
-    HypData value;
+    BoxedValue value;
 
     if ((err = reader.LoadFromFile(filepath, value)))
     {

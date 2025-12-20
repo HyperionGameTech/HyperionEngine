@@ -9,10 +9,10 @@ namespace Hyperion
         internal static extern void Object_GetId([In] IntPtr nativeAddress, [Out] out ObjIdBase outIdValue);
 
         [DllImport("hyperion", EntryPoint = "Handle_Get")]
-        internal static extern void Handle_Get(IntPtr ptr, [Out] out HypDataBuffer outHypDataBuffer);
+        internal static extern void Handle_Get(IntPtr ptr, [Out] out BoxedValueInternal outBoxed);
 
         [DllImport("hyperion", EntryPoint = "Handle_Set")]
-        internal static extern void Handle_Set([In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr ptr);
+        internal static extern void Handle_Set([In] ref BoxedValueInternal boxedInternal, [Out] out IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "Handle_Destruct")]
         internal static extern void Handle_Destruct(IntPtr ptr);
@@ -22,7 +22,7 @@ namespace Hyperion
         internal static extern bool WeakHandle_Lock(IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "WeakHandle_Set")]
-        internal static extern void WeakHandle_Set([In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr ptr);
+        internal static extern void WeakHandle_Set([In] ref BoxedValueInternal boxedInternal, [Out] out IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "WeakHandle_Destruct")]
         internal static extern void WeakHandle_Destruct(IntPtr ptr);
@@ -65,12 +65,12 @@ namespace Hyperion
                 return null;
             }
 
-            HypDataBuffer hypDataBuffer;
-            ManagedHandleNativeBindings.Handle_Get(ptr, out hypDataBuffer);
+            BoxedValueInternal boxedInternal;
+            ManagedHandleNativeBindings.Handle_Get(ptr, out boxedInternal);
 
-            object? value = hypDataBuffer.GetValue();
+            object? value = boxedInternal.GetValue();
 
-            hypDataBuffer.Dispose();
+            boxedInternal.Dispose();
 
             return value;
         }
@@ -94,9 +94,9 @@ namespace Hyperion
                 return;
             }
 
-            using (HypData hypData = new HypData(value))
+            using (BoxedValue boxed = new BoxedValue(value))
             {
-                ManagedHandleNativeBindings.WeakHandle_Set(ref hypData.Buffer, out ptr);
+                ManagedHandleNativeBindings.WeakHandle_Set(ref boxed.Buffer, out ptr);
             }
         }
 
@@ -172,12 +172,12 @@ namespace Hyperion
                 throw new Exception("Type " + typeof(T).Name + " does not have a registered Class");
             }
 
-            HypDataBuffer hypDataBuffer = new HypDataBuffer();
-            hypDataBuffer.SetValue((T)value);
+            BoxedValueInternal boxedInternal = new BoxedValueInternal();
+            boxedInternal.SetValue((T)value);
 
-            ManagedHandleNativeBindings.Handle_Set(ref hypDataBuffer, out ptr);
+            ManagedHandleNativeBindings.Handle_Set(ref boxedInternal, out ptr);
 
-            hypDataBuffer.Dispose();
+            boxedInternal.Dispose();
         }
 
         public void Dispose()
@@ -222,12 +222,12 @@ namespace Hyperion
                 return null;
             }
 
-            HypDataBuffer hypDataBuffer;
-            ManagedHandleNativeBindings.Handle_Get(ptr, out hypDataBuffer);
+            BoxedValueInternal boxedInternal;
+            ManagedHandleNativeBindings.Handle_Get(ptr, out boxedInternal);
 
-            T? value = (T?)hypDataBuffer.GetValue();
+            T? value = (T?)boxedInternal.GetValue();
 
-            hypDataBuffer.Dispose();
+            boxedInternal.Dispose();
 
             return value;
         }
@@ -254,9 +254,9 @@ namespace Hyperion
                 return;
             }
 
-            using (HypData hypData = new HypData(value))
+            using (BoxedValue boxed = new BoxedValue(value))
             {
-                ManagedHandleNativeBindings.WeakHandle_Set(ref hypData.Buffer, out ptr);
+                ManagedHandleNativeBindings.WeakHandle_Set(ref boxed.Buffer, out ptr);
             }
         }
 

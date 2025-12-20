@@ -55,7 +55,7 @@ namespace json {
 class JSONValue;
 } // namespace json
 
-struct HypData;
+struct BoxedValue;
 
 template <class T, class T2>
 struct HypDataHelper;

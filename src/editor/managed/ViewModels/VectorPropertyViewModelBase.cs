@@ -198,8 +198,8 @@ namespace Hyperion.Editor.ViewModels
         {
             Task<TStruct> task = EngineManager.PostToGameThread<TStruct>(() =>
             {
-                using HypData data = _property.Get(_target);
-                object? raw = data.GetValue();
+                using BoxedValue boxed = _property.Get(_target);
+                object? raw = boxed.GetValue();
 
                 if (raw is TStruct casted)
                 {
@@ -225,8 +225,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using HypData data = new HypData(value);
-                    _property.Set(_target, data);
+                    using BoxedValue boxed = new BoxedValue(value);
+                    _property.Set(_target, boxed);
                 }
                 catch (Exception ex)
                 {

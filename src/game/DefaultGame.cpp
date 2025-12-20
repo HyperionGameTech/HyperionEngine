@@ -28,7 +28,8 @@
 
 #include <script/HypScript.hpp>
 
-#include <asset/AssetBatch.hpp>
+#include <asset/ScriptAsset.hpp>
+
 #include <asset/AssetObject.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
@@ -121,74 +122,29 @@ void DefaultGame::OnLaunch_Impl()
     Handle<FirstPersonCameraController> cameraController = CreateObject<FirstPersonCameraController>();
     m_camera->AddCameraController(cameraController);
 
-    // Test assets
-    AssetBatch* batch = AssetManager::GetInstance()->CreateBatch();
-    // batch->Add("test_model", "models/sponza/sponza.obj");
-    // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-    // batch->Add("test_model", "models/testbed/testbed.obj");
 
-    batch->OnComplete
-        .Bind([this, scene](AssetMap& results)
-            {
-                // Assert(results["test_model"].IsValid());
-                // Assert(results["zombie"].IsValid());
+    
+    // temp: add test script component
 
-                // Handle<Node> node = results["test_model"].ExtractAs<Node>();
+    Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
 
-                // node->Scale(0.03f);
-                // node->SetName(NAME("test_model"));
-                // node->LockTransform();
+    // register the package
+    Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();
+    Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
-                // scene->GetRoot()->AddChild(node);
+    ResourceHandle resourceHandle(*scriptAsset->GetResource());
 
-                // if (auto& zombieAsset = results["zombie"]; zombieAsset.IsValid())
-                // {
-                //     Handle<Node> zombie = zombieAsset.ExtractAs<Node>();
-                //     zombie->Scale(0.25f);
-                //     zombie->Translate(Vec3f(0, 2.0f, -1.0f));
+    ScriptData* scriptData = scriptAsset->GetScriptData();
+    Assert(scriptData != nullptr);
 
-                //     const Handle<Entity>& firstEntity = ObjCast<Entity>(zombie->GetChild(0)->GetChild(0));
-                //     Assert(firstEntity != nullptr);
+    scriptAsset->GetScriptData()->language = SL_HYPSCRIPT;
+    Memory::StrCpy(scriptData->path.Data(), "tmp.hyp", ArraySize(scriptData->path));
+    Memory::StrCpy(scriptData->className.Data(), "MyClass", ArraySize(scriptData->className));
 
-                //     // if (auto* meshComponent = zombie->TryGetComponent<MeshComponent>())
-                //     // {
-                //     //     meshComponent->material = meshComponent->material->Clone();
-                //     //     meshComponent->material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f));
-                //     //     meshComponent->material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.1f);
-                //     //     meshComponent->material->SetParameter(MaterialParameterKey::MATERIAL_KEY_METALNESS, 0.0f);
-                //     //     InitObject(meshComponent->material);
-                //     // }
+    ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
+        TAssetReference<ScriptAsset>(scriptAsset) });
 
-                //     // zombie->AddComponent<AudioComponent>(AudioComponent { .audioSource = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav")->Result(), .playbackState = { .loopMode = AudioLoopMode::ALM_ONCE, .speed = 2.0f } });
-
-                //     // temp: add test script component
-
-                //     // Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
-
-                //     // register the package
-                //     // Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();
-                //     // Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
-
-                //     // ResourceHandle resourceHandle(*scriptAsset->GetResource());
-
-                //     // ScriptData* scriptData = scriptAsset->GetScriptData();
-                //     // Assert(scriptData != nullptr);
-
-                //     // scriptAsset->GetScriptData()->language = SL_HYPSCRIPT;
-                //     // Memory::StrCpy(scriptData->path.Data(), "tmp.hyp", ArraySize(scriptData->path));
-                //     // Memory::StrCpy(scriptData->className.Data(), "MyClass", ArraySize(scriptData->className));
-
-                //     // ScriptComponent& scriptComponent = firstEntity->AddComponent<ScriptComponent>(ScriptComponent {
-                //     //     TAssetReference<ScriptAsset>(scriptAsset) });
-
-                //     zombie->SetName(NAME("zombie"));
-
-                //     scene->GetRoot()->AddChild(zombie);
-                // }
-            })
-        .Detach();
-
-    batch->LoadAsync();
+    GetWorld()->StartSimulating();
 }
 
 void DefaultGame::OnUpdate_Impl(float delta)

@@ -126,7 +126,7 @@ namespace Hyperion
             }
         }
 
-        public HypDataBuffer InvokeNativeWithThis(ObjectBase thisObject, object[]? args = null)
+        public BoxedValueInternal InvokeNativeWithThis(ObjectBase thisObject, object[]? args = null)
         {
             if (_ptr == IntPtr.Zero)
             {
@@ -148,15 +148,15 @@ namespace Hyperion
                 throw new InvalidOperationException("Cannot invoke method: Invalid number of arguments - expected " + numParams + " but got " + numArgs);
             }
 
-            bool shouldStackAlloc = numArgs * Marshal.SizeOf<HypDataBuffer>() < 1024;
+            bool shouldStackAlloc = numArgs * Marshal.SizeOf<BoxedValueInternal>() < 1024;
 
-            Span<HypDataBuffer> hypDataArgsBuffers = shouldStackAlloc
-                ? stackalloc HypDataBuffer[(int)numArgs]
-                : new HypDataBuffer[(int)numArgs];
+            Span<BoxedValueInternal> hypDataArgsBuffers = shouldStackAlloc
+                ? stackalloc BoxedValueInternal[(int)numArgs]
+                : new BoxedValueInternal[(int)numArgs];
 
             int argIndex = 0;
 
-            HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
+            BoxedValueInternal.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
             hypDataArgsBuffers[argIndex].SetValue(thisObject);
             argIndex++;
 
@@ -164,17 +164,17 @@ namespace Hyperion
             {
                 for (; argIndex < numArgs; argIndex++)
                 {
-                    HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
+                    BoxedValueInternal.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
                     hypDataArgsBuffers[argIndex].SetValue(args[argIndex - 1]);
                 }
             }
 
-            HypDataBuffer resultBuffer;
+            BoxedValueInternal resultBuffer;
 
-            // Args is pointer to contiguous HypDataBuffer objects
+            // Args is pointer to contiguous BoxedValueInternal objects
             unsafe
             {
-                fixed (HypDataBuffer* pArgs = hypDataArgsBuffers)
+                fixed (BoxedValueInternal* pArgs = hypDataArgsBuffers)
                 {
                     bool result = Method_Invoke(_ptr, (IntPtr)pArgs, numArgs, out resultBuffer);
 
@@ -189,7 +189,7 @@ namespace Hyperion
             return resultBuffer;
         }
 
-        public HypDataBuffer InvokeNative(params object[] args)
+        public BoxedValueInternal InvokeNative(params object[] args)
         {
             if (_ptr == IntPtr.Zero)
             {
@@ -223,11 +223,11 @@ namespace Hyperion
                 throw new InvalidOperationException("Cannot invoke method: Invalid number of arguments - expected " + numParams + " but got " + numArgs);
             }
 
-            bool shouldStackAlloc = numArgs * Marshal.SizeOf<HypDataBuffer>() < 1024;
+            bool shouldStackAlloc = numArgs * Marshal.SizeOf<BoxedValueInternal>() < 1024;
 
-            Span<HypDataBuffer> hypDataArgsBuffers = numArgs > 0
-                ? (shouldStackAlloc ? stackalloc HypDataBuffer[(int)numArgs] : new HypDataBuffer[(int)numArgs])
-                : Span<HypDataBuffer>.Empty;
+            Span<BoxedValueInternal> hypDataArgsBuffers = numArgs > 0
+                ? (shouldStackAlloc ? stackalloc BoxedValueInternal[(int)numArgs] : new BoxedValueInternal[(int)numArgs])
+                : Span<BoxedValueInternal>.Empty;
 
             if (numArgs > 0)
             {
@@ -235,24 +235,24 @@ namespace Hyperion
 
                 if (thisObject != null)
                 {
-                    HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
+                    BoxedValueInternal.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
                     hypDataArgsBuffers[argIndex].SetValue(thisObject);
                     argIndex++;
                 }
 
                 for (; argIndex < numArgs; argIndex++)
                 {
-                    HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
+                    BoxedValueInternal.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
                     hypDataArgsBuffers[argIndex].SetValue(args[argIndex]);
                 }
             }
 
-            HypDataBuffer resultBuffer;
+            BoxedValueInternal resultBuffer;
 
-            // Args is pointer to contiguous HypDataBuffer objects
+            // Args is pointer to contiguous BoxedValueInternal objects
             unsafe
             {
-                fixed (HypDataBuffer* pArgs = hypDataArgsBuffers)
+                fixed (BoxedValueInternal* pArgs = hypDataArgsBuffers)
                 {
                     bool result = Method_Invoke(_ptr, (IntPtr)pArgs, numArgs, out resultBuffer);
 
@@ -267,9 +267,9 @@ namespace Hyperion
             return resultBuffer;
         }
 
-        public HypData Invoke(params object[] args)
+        public BoxedValue Invoke(params object[] args)
         {
-            return HypData.FromBuffer(InvokeNative(args));
+            return BoxedValue.FromBuffer(InvokeNative(args));
         }
 
         [DllImport("hyperion", EntryPoint = "Method_GetName")]
@@ -292,6 +292,6 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Method_Invoke")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern unsafe bool Method_Invoke([In] IntPtr methodPtr, [In] IntPtr argsPtr, uint numArgs, [Out] out HypDataBuffer outResult);
+        private static extern unsafe bool Method_Invoke([In] IntPtr methodPtr, [In] IntPtr argsPtr, uint numArgs, [Out] out BoxedValueInternal outResult);
     }
 }

@@ -1,6 +1,6 @@
 #include <script/vm/SymbolTable.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 namespace hyperion {
 
@@ -19,12 +19,12 @@ void Script_SymbolTable::MarkAll()
     // not needed anymore
 }
 
-bool Script_SymbolTable::Find(const char* name, HypData*& out)
+bool Script_SymbolTable::Find(const char* name, BoxedValue*& out)
 {
     return Find(HashCode::GetHashCode(name).Value(), out);
 }
 
-bool Script_SymbolTable::Find(HashCode::ValueType hash, HypData*& out)
+bool Script_SymbolTable::Find(HashCode::ValueType hash, BoxedValue*& out)
 {
     auto it = m_symbols.FindByHashCode(HashCode(hash));
 
@@ -40,14 +40,14 @@ bool Script_SymbolTable::Find(HashCode::ValueType hash, HypData*& out)
     return true;
 }
 
-auto Script_SymbolTable::Store(const char* name, HypData&& value) -> typename SymbolMap::InsertResult
+auto Script_SymbolTable::Store(const char* name, BoxedValue&& value) -> typename SymbolMap::InsertResult
 {
     return Store(HashCode::GetHashCode(name).Value(), std::move(value));
 }
 
-auto Script_SymbolTable::Store(HashCode::ValueType hash, HypData&& value) -> typename SymbolMap::InsertResult
+auto Script_SymbolTable::Store(HashCode::ValueType hash, BoxedValue&& value) -> typename SymbolMap::InsertResult
 {
-    return m_symbols.Insert(hash, new HypData(std::move(value)));
+    return m_symbols.Insert(hash, new BoxedValue(std::move(value)));
 }
 
 } // namespace hyperion

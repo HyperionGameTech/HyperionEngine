@@ -294,12 +294,12 @@ namespace Hyperion
 
         public T Spawn<T>(Name name, Vec2i position, UIObjectSize size) where T : UIObject
         {
-            HypDataBuffer hypDataBuffer;
-            UIObject_Spawn(NativeAddress, Class.GetClass(typeof(T)).Address, ref name, ref position, ref size, out hypDataBuffer);
+            BoxedValueInternal boxedInternal;
+            UIObject_Spawn(NativeAddress, Class.GetClass(typeof(T)).Address, ref name, ref position, ref size, out boxedInternal);
 
-            UIObject? result = (UIObject?)hypDataBuffer.GetValue();
+            UIObject? result = (UIObject?)boxedInternal.GetValue();
 
-            hypDataBuffer.Dispose();
+            boxedInternal.Dispose();
 
             if (result == null)
             {
@@ -319,41 +319,41 @@ namespace Hyperion
 
         public UIObject? Find(Name name)
         {
-            HypDataBuffer hypDataBuffer;
+            BoxedValueInternal boxedInternal;
 
-            if (!UIObject_Find(NativeAddress, Class.GetClass(typeof(UIObject)).Address, ref name, out hypDataBuffer))
+            if (!UIObject_Find(NativeAddress, Class.GetClass(typeof(UIObject)).Address, ref name, out boxedInternal))
             {
                 return null;
             }
 
-            UIObject? result = (UIObject?)hypDataBuffer.GetValue();
+            UIObject? result = (UIObject?)boxedInternal.GetValue();
 
-            hypDataBuffer.Dispose();
+            boxedInternal.Dispose();
 
             return result;
         }
 
         public T? Find<T>(Name name) where T : UIObject
         {
-            HypDataBuffer hypDataBuffer;
+            BoxedValueInternal boxedInternal;
 
-            if (!UIObject_Find(NativeAddress, Class.GetClass(typeof(T)).Address, ref name, out hypDataBuffer))
+            if (!UIObject_Find(NativeAddress, Class.GetClass(typeof(T)).Address, ref name, out boxedInternal))
             {
                 return null;
             }
 
-            T? result = (T?)hypDataBuffer.GetValue();
+            T? result = (T?)boxedInternal.GetValue();
 
-            hypDataBuffer.Dispose();
+            boxedInternal.Dispose();
 
             return result;
         }
 
         [DllImport("hyperion", EntryPoint = "UIObject_Spawn")]
-        private static extern void UIObject_Spawn([In] IntPtr spawnParentPtr, [In] IntPtr classPtr, [In] ref Name name, [In] ref Vec2i position, [In] ref UIObjectSize size, [Out] out HypDataBuffer outHypData);
+        private static extern void UIObject_Spawn([In] IntPtr spawnParentPtr, [In] IntPtr classPtr, [In] ref Name name, [In] ref Vec2i position, [In] ref UIObjectSize size, [Out] out BoxedValueInternal outHypData);
 
         [DllImport("hyperion", EntryPoint = "UIObject_Find")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool UIObject_Find([In] IntPtr parentPtr, [In] IntPtr classPtr, [In] ref Name name, [Out] out HypDataBuffer outHypData);
+        private static extern bool UIObject_Find([In] IntPtr parentPtr, [In] IntPtr classPtr, [In] ref Name name, [Out] out BoxedValueInternal outHypData);
     }
 }

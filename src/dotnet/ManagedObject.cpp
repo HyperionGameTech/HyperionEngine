@@ -67,7 +67,7 @@ void ManagedObject::Reset()
     m_keepAlive.Set(false, MemoryOrder::RELEASE);
 }
 
-void ManagedObject::InvokeMethod_Internal(const ManagedMethod* methodPtr, const HypData** argsHypData, HypData* outReturnHypData)
+void ManagedObject::InvokeMethod_Internal(const ManagedMethod* methodPtr, const BoxedValue** argsHypData, BoxedValue* outReturnHypData)
 {
     Assert(IsValid());
 

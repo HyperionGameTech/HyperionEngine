@@ -11,9 +11,9 @@ using namespace hyperion;
 
 extern "C"
 {
-    HYP_EXPORT void RefCountedPtr_Get(UIntPtr address, ValueStorage<HypData>* outHypData)
+    HYP_EXPORT void RefCountedPtr_Get(UIntPtr address, ValueStorage<BoxedValue>* pOutBoxed)
     {
-        Assert(outHypData != nullptr);
+        Assert(pOutBoxed != nullptr);
 
         auto* base = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>*>(address);
         AssertDebug(base != nullptr);
@@ -21,7 +21,7 @@ extern "C"
         RC<void> rc;
         rc.SetBlock_Internal(base->GetBlock_Internal(), /* incRef */ true);
 
-        outHypData->Construct(std::move(rc));
+        pOutBoxed->Construct(std::move(rc));
     }
 
     HYP_EXPORT void RefCountedPtr_IncRef(UIntPtr address)

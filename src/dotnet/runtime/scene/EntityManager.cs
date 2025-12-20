@@ -24,22 +24,22 @@ namespace Hyperion
 
             unsafe
             {
-                HypDataBuffer hypDataBuffer = new HypDataBuffer();
+                BoxedValueInternal boxedInternal = new BoxedValueInternal();
 
                 try
                 {
-                    if (!EntityManager_AddTypedEntity(NativeAddress, cls.Address, &hypDataBuffer))
+                    if (!EntityManager_AddTypedEntity(NativeAddress, cls.Address, &boxedInternal))
                     {
                         throw new Exception("Failed to add entity of type " + typeof(T).Name);
                     }
 
-                    T entity = (T)hypDataBuffer.GetValue();
+                    T entity = (T)boxedInternal.GetValue();
 
                     return entity;
                 }
                 finally
                 {
-                    hypDataBuffer.Dispose();
+                    boxedInternal.Dispose();
                 }
             }
         }
@@ -154,6 +154,6 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddTypedEntity")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static unsafe extern bool EntityManager_AddTypedEntity(IntPtr pManager, IntPtr pClass, [Out] HypDataBuffer* pOutHypData);
+        private static unsafe extern bool EntityManager_AddTypedEntity(IntPtr pManager, IntPtr pClass, [Out] BoxedValueInternal* pOutHypData);
     }
 }

@@ -11,7 +11,7 @@
 
 #include <core/Name.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ObjectFwd.hpp>
 
 #include <scene/ComponentFactory.hpp>
@@ -27,7 +27,7 @@ enum class EntityTag : uint64;
 template <EntityTag Tag>
 struct TagComponent;
 
-extern HYP_API bool ComponentInterface_CreateInstance(const Class* cls, HypData& outHypData);
+extern HYP_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outHypData);
 
 enum class ComponentInterfaceFlags : uint32
 {
@@ -51,7 +51,7 @@ public:
     virtual const TypeInfo& GetTypeInfo() const = 0;
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const = 0;
 
-    virtual bool CreateInstance(HypData& out) const = 0;
+    virtual bool CreateInstance(BoxedValue& out) const = 0;
 
     virtual bool GetShouldSerialize() const = 0;
 
@@ -112,7 +112,7 @@ public:
         return m_componentContainerFactory;
     }
 
-    virtual bool CreateInstance(HypData& out) const override
+    virtual bool CreateInstance(BoxedValue& out) const override
     {
         return ComponentInterface_CreateInstance(GetClass(), out);
     }
@@ -190,9 +190,9 @@ public:
         return m_componentContainerFactory;
     }
 
-    virtual bool CreateInstance(HypData& out) const override
+    virtual bool CreateInstance(BoxedValue& out) const override
     {
-        out = HypData(TagComponent<Tag> {});
+        out = BoxedValue(TagComponent<Tag> {});
 
         return true;
     }

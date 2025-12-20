@@ -87,7 +87,7 @@ bool ManagedClass::HasParentClass(const ManagedClass* parentClass) const
     return false;
 }
 
-void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* methodPtr, const HypData** argsHypData, HypData* outReturnHypData)
+void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* methodPtr, const BoxedValue** argsHypData, BoxedValue* outReturnHypData)
 {
     RC<Assembly> assembly = m_assembly.Lock();
 

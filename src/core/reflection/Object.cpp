@@ -107,7 +107,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
 #endif
 
 #ifdef HYP_SCRIPT
-            HypData obj;
+            BoxedValue obj;
 
             if (!scriptObjectResource)
             {
@@ -194,12 +194,12 @@ ObjectBase::~ObjectBase()
                 for (Field* field : cls->GetFields())
                 {
                     // align field offset
-                    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
+                    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
 
-                    HypData* fieldPtr = (HypData*)(UIntPtr(this) + fieldOffset);
-                    fieldPtr->~HypData();
+                    BoxedValue* fieldPtr = (BoxedValue*)(UIntPtr(this) + fieldOffset);
+                    fieldPtr->~BoxedValue();
 
-                    fieldOffset += sizeof(HypData);
+                    fieldOffset += sizeof(BoxedValue);
                 }
 
                 cls = cls->GetParent();

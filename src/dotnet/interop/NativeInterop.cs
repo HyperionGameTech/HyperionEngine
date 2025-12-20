@@ -553,7 +553,7 @@ namespace Hyperion
 
                         if (retPtr != IntPtr.Zero)
                         {
-                            ((HypDataBuffer*)retPtr)->SetValue(returnValue);
+                            ((BoxedValueInternal*)retPtr)->SetValue(returnValue);
                         }
                     }
                     catch (Exception ex)
@@ -697,7 +697,7 @@ namespace Hyperion
 
             parameters = new object?[numParams];
 
-            HypDataBuffer* paramPtr = *(HypDataBuffer**)argsHypDataPtr;
+            BoxedValueInternal* paramPtr = *(BoxedValueInternal**)argsHypDataPtr;
             int paramsOffset = 0;
 
             for (int paramIndex = 0; paramIndex < numParams; paramIndex++)
@@ -713,7 +713,7 @@ namespace Hyperion
                     // Calculate array size by iterating until we hit a null pointer.
                     int paramArraySize = 0;
 
-                    for (IntPtr currentParamPtr = argsHypDataPtr + paramsOffset; (IntPtr)(*((HypDataBuffer**)currentParamPtr)) != IntPtr.Zero; currentParamPtr += sizeof(IntPtr))
+                    for (IntPtr currentParamPtr = argsHypDataPtr + paramsOffset; (IntPtr)(*((BoxedValueInternal**)currentParamPtr)) != IntPtr.Zero; currentParamPtr += sizeof(IntPtr))
                     {
                         paramArraySize++;
                     }
@@ -749,7 +749,7 @@ namespace Hyperion
                         paramArray.SetValue(paramValue, paramElementIndex);
 
                         paramsOffset += sizeof(IntPtr);
-                        paramPtr = *(HypDataBuffer**)(argsHypDataPtr + paramsOffset);
+                        paramPtr = *(BoxedValueInternal**)(argsHypDataPtr + paramsOffset);
 
                         paramElementIndex++;
                     }
@@ -769,7 +769,7 @@ namespace Hyperion
                 }
 
                 paramsOffset += sizeof(IntPtr);
-                paramPtr = *(HypDataBuffer**)(argsHypDataPtr + paramsOffset);
+                paramPtr = *(BoxedValueInternal**)(argsHypDataPtr + paramsOffset);
             }
         }
 
@@ -782,7 +782,7 @@ namespace Hyperion
             object? thisObject = objectReferenceRef.LoadObject();
             object? returnValue = propertyInfo.GetValue((object?)thisObject);
 
-            ((HypDataBuffer*)outReturnHypDataPtr)->SetValue(returnValue);
+            ((BoxedValueInternal*)outReturnHypDataPtr)->SetValue(returnValue);
         }
 
         public static unsafe void InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
@@ -792,7 +792,7 @@ namespace Hyperion
             ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
             object? thisObject = objectReferenceRef.LoadObject();
-            object? value = (*(HypDataBuffer**)argsHypDataPtr)->GetValue();
+            object? value = (*(BoxedValueInternal**)argsHypDataPtr)->GetValue();
 
             propertyInfo.SetValue((object?)thisObject, value);
         }

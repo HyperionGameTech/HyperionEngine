@@ -3,7 +3,7 @@
 #pragma once
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/StaticField.hpp>
 
 namespace hyperion {
@@ -40,8 +40,8 @@ public:
     virtual TypeId GetUnderlyingTypeId() const override = 0;
 
 protected:
-    virtual bool CreateInstance_Internal(HypData& out) const override = 0;
-    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override = 0;
+    virtual bool CreateInstance_Internal(BoxedValue& out) const override = 0;
+    virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override = 0;
 };
 
 template <class T>
@@ -87,14 +87,14 @@ public:
     }
 
 protected:
-    virtual bool CreateInstance_Internal(HypData& out) const override
+    virtual bool CreateInstance_Internal(BoxedValue& out) const override
     {
-        out = HypData(T {});
+        out = BoxedValue(T {});
 
         return true;
     }
 
-    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
+    virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override
     {
         Array<T> array;
         array.ResizeUninitialized(elements.Size());
@@ -110,7 +110,7 @@ protected:
             array[i] = elements[i].Get<T>();
         }
 
-        out = HypData(std::move(array));
+        out = BoxedValue(std::move(array));
 
         return true;
     }
@@ -118,7 +118,7 @@ protected:
 
 #pragma region Utility functions
 
-HYP_API extern HypData GetEnumMemberValue(const IHypMember& enumMember);
+HYP_API extern BoxedValue GetEnumMemberValue(const IHypMember& enumMember);
 
 /*! \brief Iterate over the members of an enum Class.
  *  \tparam EnumType The enum type to iterate over. The enum must have a Class associated with it, otherwise this function will do nothing.

@@ -22,12 +22,12 @@ public:
     virtual ~EditorPropertyPanelBase() override;
 
     HYP_METHOD(Scriptable)
-    void Build(const HypData& hypData, const Property* property);
+    void Build(const BoxedValue& boxed, const Property* property);
 
 protected:
     virtual void Init() override;
 
-    virtual void Build_Impl(const HypData& hypData, const Property* property)
+    virtual void Build_Impl(const BoxedValue& boxed, const Property* property)
     {
         HYP_PURE_VIRTUAL();
     }

@@ -220,7 +220,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                 {
                     if (cls.type == ClassDefinitionType::STRUCT)
                     {
-                        writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{}))\n",
+                        writer.WriteString(HYP_FORMAT("            using (BoxedValueInternal resultData = ObjectBase.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{}))\n",
                             cls.name, uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                         writer.WriteString("            {\n");
 
@@ -237,7 +237,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                     }
                     else if (cls.type == ClassDefinitionType::CLASS)
                     {
-                        writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = obj.GetMethod(new Name({})).InvokeNative(obj{}))\n",
+                        writer.WriteString(HYP_FORMAT("            using (BoxedValueInternal resultData = obj.GetMethod(new Name({})).InvokeNative(obj{}))\n",
                             uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                         writer.WriteString("            {\n");
 

@@ -1369,7 +1369,7 @@ void UIObject::SetIsEnabled(bool isEnabled)
         /* deep */ true);
 }
 
-void UIObject::SetCurrentValue(HypData&& value, bool triggerEvent)
+void UIObject::SetCurrentValue(BoxedValue&& value, bool triggerEvent)
 {
     HYP_SCOPE;
 
@@ -3068,7 +3068,7 @@ Handle<UIObject> UIObject::CreateUIObject(const Class* cls, Name name, Vec2i pos
 
     AssertOnOwnerThread();
 
-    HypData uiObjectHypData;
+    BoxedValue uiObjectHypData;
     if (!cls->CreateInstance(uiObjectHypData))
     {
         return Handle<UIObject>::empty;

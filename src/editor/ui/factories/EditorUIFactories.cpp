@@ -33,7 +33,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData& targetData, const Property* property)
+static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const BoxedValue& targetData, const Property* property)
 {
     Assert(spawnParent != nullptr);
     Assert(property != nullptr);
@@ -134,12 +134,12 @@ static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData
     return propertyPanelCasted;
 }
 
-class HypDataUIElementFactory : public UIElementFactory<HypData>
+class HypDataUIElementFactory : public UIElementFactory<BoxedValue>
 {
 public:
-    Handle<UIObject> Create(UIObject* parent, const HypData& value) const
+    Handle<UIObject> Create(UIObject* parent, const BoxedValue& value) const
     {
-        const HypData& target = value;
+        const BoxedValue& target = value;
 
         const Class* cls = GetClass(value.GetTypeId());
         Assert(cls != nullptr);
@@ -204,7 +204,7 @@ public:
             Handle<UIElementFactoryBase> factory = UIElementFactoryRegistry::GetInstance().GetFactory(*propertyClass->GetTypeInfo());
             if (factory)
             {
-                HypData propertyValue = property->Get(target);
+                BoxedValue propertyValue = property->Get(target);
                 Handle<UIObject> element = factory->CreateUIObject(parent, propertyValue, /* context */ {});
                 if (element)
                 {
@@ -225,13 +225,13 @@ public:
         return grid;
     }
 
-    void Update(UIObject* uiObject, const HypData& value) const
+    void Update(UIObject* uiObject, const BoxedValue& value) const
     {
         // @TODO
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(HypData, HypDataUIElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(BoxedValue, HypDataUIElementFactory);
 
 template <int StringType>
 class StringUIElementFactory : public UIElementFactory<containers::String<StringType>>
@@ -263,7 +263,7 @@ public:
     Handle<UIObject> Create(UIObject* parent, const Vec3f& value) const
     {
         Handle<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        grid->SetCurrentValue(HypData(value), false);
+        grid->SetCurrentValue(BoxedValue(value), false);
 
         Handle<UIGridRow> row = grid->AddRow();
 
@@ -293,7 +293,7 @@ public:
 
                         Vec3f vec = grid->GetCurrentValue().Get<Vec3f>();
                         vec.x = x;
-                        grid->SetCurrentValue(HypData(vec));
+                        grid->SetCurrentValue(BoxedValue(vec));
 
                         return UIEventHandlerResult::OK;
                     })
@@ -330,7 +330,7 @@ public:
 
                         Vec3f vec = grid->GetCurrentValue().Get<Vec3f>();
                         vec.y = y;
-                        grid->SetCurrentValue(HypData(vec));
+                        grid->SetCurrentValue(BoxedValue(vec));
 
                         return UIEventHandlerResult::OK;
                     })
@@ -366,7 +366,7 @@ public:
 
                         Vec3f vec = grid->GetCurrentValue().Get<Vec3f>();
                         vec.z = z;
-                        grid->SetCurrentValue(HypData(vec));
+                        grid->SetCurrentValue(BoxedValue(vec));
 
                         return UIEventHandlerResult::OK;
                     })
@@ -419,7 +419,7 @@ public:
                             return UIEventHandlerResult::ERR;
                         }
 
-                        grid->SetCurrentValue(HypData(intValue));
+                        grid->SetCurrentValue(BoxedValue(intValue));
 
                         return UIEventHandlerResult::OK;
                     })
@@ -445,7 +445,7 @@ public:
     Handle<UIObject> Create(UIObject* parent, const Quaternion& value) const
     {
         Handle<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        grid->SetCurrentValue(HypData(value), /* triggerEvent */ false);
+        grid->SetCurrentValue(BoxedValue(value), /* triggerEvent */ false);
 
         Handle<UIGridRow> row = grid->AddRow();
 
@@ -478,7 +478,7 @@ public:
                         Vec3f euler(MathUtil::DegToRad(roll), quat.Pitch(), quat.Yaw());
 
                         quat = Quaternion(euler);
-                        grid->SetCurrentValue(HypData(quat));
+                        grid->SetCurrentValue(BoxedValue(quat));
 
                         return UIEventHandlerResult::OK;
                     })
@@ -518,7 +518,7 @@ public:
                         Vec3f euler(quat.Roll(), MathUtil::DegToRad(pitch), quat.Yaw());
 
                         quat = Quaternion(euler);
-                        grid->SetCurrentValue(HypData(quat));
+                        grid->SetCurrentValue(BoxedValue(quat));
 
                         return UIEventHandlerResult::OK;
                     })
@@ -558,7 +558,7 @@ public:
                         Vec3f euler(quat.Roll(), quat.Pitch(), MathUtil::DegToRad(yaw));
 
                         quat = Quaternion(euler);
-                        grid->SetCurrentValue(HypData(quat));
+                        grid->SetCurrentValue(BoxedValue(quat));
 
                         return UIEventHandlerResult::OK;
                     })
@@ -726,7 +726,7 @@ public:
                 ComponentContainerBase* componentContainer = entityManager->TryGetContainer(componentTypeId);
                 Assert(componentContainer != nullptr);
 
-                HypData componentHypData;
+                BoxedValue componentHypData;
 
                 if (!componentContainer->TryGetComponent(it.second, componentHypData))
                 {
@@ -1045,16 +1045,16 @@ public:
 #endif
 
         Handle<UIListView> listView = parent->CreateUIObject<UIListView>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        // add the generic properties (HypData) of the entity
-        // get the factory for the HypData type
-        Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<HypData>();
+        // add the generic properties (BoxedValue) of the entity
+        // get the factory for the BoxedValue type
+        Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<BoxedValue>();
         Assert(factory != nullptr);
 
-        // create a UIObject for the HypData
-        Handle<UIObject> hypDataElement = factory->CreateUIObject(parent, HypData(entity), {});
+        // create a UIObject for the BoxedValue
+        Handle<UIObject> hypDataElement = factory->CreateUIObject(parent, BoxedValue(entity), {});
         Assert(hypDataElement != nullptr);
 
-        // add the HypData UIObject to the list view
+        // add the BoxedValue UIObject to the list view
         listView->AddChildUIObject(hypDataElement);
 
         /// \todo : Add components to the list view
@@ -1120,7 +1120,7 @@ public:
             contentColumn->SetIsEnabled(editEnabledAttributeValue.GetBool());
         }
 
-        Handle<UIObject> propertyPanel = CreatePropertyPanel(parent, HypData(node), value.property);
+        Handle<UIObject> propertyPanel = CreatePropertyPanel(parent, BoxedValue(node), value.property);
 
         // handle property panel defined
         if (propertyPanel)
@@ -1134,7 +1134,7 @@ public:
         Handle<UIElementFactoryBase> factory = UIElementFactoryRegistry::GetInstance().GetFactory(value.property->GetTypeInfo());
         if (factory)
         {
-            HypData propertyValue = value.property->Get(HypData(node));
+            BoxedValue propertyValue = value.property->Get(BoxedValue(node));
             Handle<UIObject> element = factory->CreateUIObject(parent, propertyValue, /* context */ {});
             if (element)
             {
@@ -1170,7 +1170,7 @@ public:
 
         // content->RemoveAllChildUIObjects();
 
-        // Handle<UIObject> element = factory->CreateUIObject(uiObject, value.property->Get(HypData(nodeRc)), AnyRef(const_cast<EditorNodePropertyRef&>(value)));
+        // Handle<UIObject> element = factory->CreateUIObject(uiObject, value.property->Get(BoxedValue(nodeRc)), AnyRef(const_cast<EditorNodePropertyRef&>(value)));
         // Assert(element != nullptr);
 
         // content->AddChildUIObject(element);

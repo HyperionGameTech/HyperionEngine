@@ -262,7 +262,7 @@ void HypScript::Run(Script_Instance* instance)
     m_impl->vm->Execute(instance);
 }
 
-HypData HypScript::CallFunctionArgV(Script_Instance* instance, const HypData& value, HypData* args, ArgCount numArgs)
+BoxedValue HypScript::CallFunctionArgV(Script_Instance* instance, const BoxedValue& value, BoxedValue* args, ArgCount numArgs)
 {
     Assert(instance != nullptr);
     Assert(IsFunction(value));
@@ -281,7 +281,7 @@ HypData HypScript::CallFunctionArgV(Script_Instance* instance, const HypData& va
     // and we don't want to move the underlying value
     Script_VMData vmData;
     vmData.type = Script_VMData::VALUE_REF;
-    vmData.valueRef = const_cast<HypData*>(&value);
+    vmData.valueRef = const_cast<BoxedValue*>(&value);
 
     m_impl->vm->InvokeNow(instance, ScriptApi_MakeValue(vmData), numArgs);
 
@@ -293,16 +293,16 @@ HypData HypScript::CallFunctionArgV(Script_Instance* instance, const HypData& va
     return std::move(instance->thread.GetRegisters()[0]);
 }
 
-void HypScript::ReadLastReturnValue(Script_Instance* instance, HypData& outValue)
+void HypScript::ReadLastReturnValue(Script_Instance* instance, BoxedValue& outValue)
 {
     Assert(instance != nullptr);
 
     outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_impl->vm->GetGC());
 }
 
-bool HypScript::GetMember(Script_Instance* instance, const HypData& targetValue, const char* memberName, HypData& outValue)
+bool HypScript::GetMember(Script_Instance* instance, const BoxedValue& targetValue, const char* memberName, BoxedValue& outValue)
 {
-    outValue = HypData();
+    outValue = BoxedValue();
 
     if (!targetValue.IsValid())
     {
@@ -364,7 +364,7 @@ bool HypScript::GetMember(Script_Instance* instance, const HypData& targetValue,
     return false;
 }
 
-bool HypScript::SetField(HypData& targetValue, const char* memberName, HypData&& value)
+bool HypScript::SetField(BoxedValue& targetValue, const char* memberName, BoxedValue&& value)
 {
     if (!targetValue.IsValid())
     {
@@ -393,11 +393,11 @@ bool HypScript::SetField(HypData& targetValue, const char* memberName, HypData&&
     return true;
 }
 
-bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, HypData& outValue)
+bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, BoxedValue& outValue)
 {
-    outValue = HypData();
+    outValue = BoxedValue();
 
-    HypData* pValue;
+    BoxedValue* pValue;
     if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;
@@ -413,11 +413,11 @@ bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, H
     return true;
 }
 
-bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, HypData& outValue, bool getReference)
+bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, BoxedValue& outValue, bool getReference)
 {
-    outValue = HypData();
+    outValue = BoxedValue();
 
-    HypData* pValue;
+    BoxedValue* pValue;
     if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;

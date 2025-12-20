@@ -32,11 +32,11 @@ namespace hyperion {
 /// \todo : Move to ComponentContainer.cpp
 #pragma region ComponentContainer
 
-bool ComponentContainerBase::TryGetComponent(ComponentId id, HypData& outHypData)
+bool ComponentContainerBase::TryGetComponent(ComponentId id, BoxedValue& outHypData)
 {
     if (AnyRef ref = TryGetComponent(id))
     {
-        outHypData = HypData(ref);
+        outHypData = BoxedValue(ref);
 
         return true;
     }
@@ -292,10 +292,10 @@ void EntityManager::Shutdown()
                     entity->OnComponentRemoved(componentRef);
                 }
 
-                HypData componentHypData;
+                BoxedValue componentHypData;
                 if (!componentContainerIt->second->RemoveComponent(componentId, componentHypData))
                 {
-                    HYP_FAIL("Failed to get component of type '%s' as HypData when removing it from entity '{}'",
+                    HYP_FAIL("Failed to get component of type '%s' as BoxedValue when removing it from entity '{}'",
                         *GetComponentTypeName(componentTypeId), entity->Id());
                 }
 
@@ -474,15 +474,15 @@ Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
     Assert(cls != nullptr, "Class must not be null");
     Assert(cls->IsDerivedFrom(Entity::StaticClass()), "Class must be a subclass of Entity");
 
-    HypData data;
-    if (!cls->CreateInstance(data))
+    BoxedValue boxed;
+    if (!cls->CreateInstance(boxed))
     {
         HYP_LOG(Entity, Error, "Failed to create instance of class {}", cls->GetName());
 
         return Handle<Entity>::empty;
     }
 
-    Handle<Entity> entity = std::move(data.Get<Handle<Entity>>());
+    Handle<Entity> entity = std::move(boxed.Get<Handle<Entity>>());
 
     if (!entity.IsValid())
     {
@@ -628,8 +628,8 @@ bool EntityManager::RemoveEntity(Entity* entity)
 
     const ObjId<Entity> entityId = entity->Id();
 
-    // Components generically stored as HypData by TypeId - to add to other EntityManager
-    TypeMap<HypData> componentHypDatas;
+    // Components generically stored as BoxedValue by TypeId - to add to other EntityManager
+    TypeMap<BoxedValue> componentHypDatas;
 
     HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
 
@@ -648,10 +648,10 @@ bool EntityManager::RemoveEntity(Entity* entity)
         AnyRef componentRef = componentContainerIt->second->TryGetComponent(componentId);
         Assert(componentRef.HasValue(), "Component of type '{}' with id {} does not exist in component container", *GetComponentTypeName(componentTypeId), componentId);
 
-        HypData componentHypData;
+        BoxedValue componentHypData;
         if (!componentContainerIt->second->RemoveComponent(componentId, componentHypData))
         {
-            HYP_FAIL("Failed to get component of type '{}' as HypData when moving between EntityManagers", *GetComponentTypeName(componentTypeId));
+            HYP_FAIL("Failed to get component of type '{}' as BoxedValue when moving between EntityManagers", *GetComponentTypeName(componentTypeId));
         }
 
         componentHypDatas.Set(componentTypeId, std::move(componentHypData));
@@ -663,7 +663,7 @@ bool EntityManager::RemoveEntity(Entity* entity)
     {
         Mutex::Guard entitySetsGuard(m_entitySetsMutex);
 
-        for (KeyValuePair<TypeId, HypData>& it : componentHypDatas)
+        for (KeyValuePair<TypeId, BoxedValue>& it : componentHypDatas)
         {
             const TypeId componentTypeId = it.first;
 
@@ -703,8 +703,8 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
     AssertOnThread(m_ownerThreadId);
 
-    // Components generically stored as HypData by TypeId - to add to other EntityManager
-    Array<HypData> componentHypDatas;
+    // Components generically stored as BoxedValue by TypeId - to add to other EntityManager
+    Array<BoxedValue> componentHypDatas;
 
     { // Remove components and entity from this and store them to be added to the other EntityManager
         HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
@@ -739,10 +739,10 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
                 entity->OnComponentRemoved(componentRef);
             }
 
-            HypData componentHypData;
+            BoxedValue componentHypData;
             if (!componentContainerIt->second->RemoveComponent(componentId, componentHypData))
             {
-                HYP_FAIL("Failed to get component of type '{}' as HypData when moving between EntityManagers", *GetComponentTypeName(componentTypeId));
+                HYP_FAIL("Failed to get component of type '{}' as BoxedValue when moving between EntityManagers", *GetComponentTypeName(componentTypeId));
             }
 
             componentHypDatas.PushBack(std::move(componentHypData));
@@ -761,7 +761,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         {
             Mutex::Guard entitySetsGuard(m_entitySetsMutex);
 
-            for (const HypData& componentData : componentHypDatas)
+            for (const BoxedValue& componentData : componentHypDatas)
             {
                 const TypeId componentTypeId = componentData.GetTypeId();
                 EnsureValidComponentType(componentTypeId);
@@ -808,7 +808,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
         ComponentMap componentIds;
 
-        for (HypData& componentData : componentHypDatas)
+        for (BoxedValue& componentData : componentHypDatas)
         {
             const TypeId componentTypeId = componentData.GetTypeId();
             EnsureValidComponentType(componentTypeId);
@@ -896,7 +896,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
     }
 }
 
-void EntityManager::AddComponent(Entity* entity, const HypData& componentData)
+void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData)
 {
     AssertDebug(!componentData.IsNull());
 
@@ -976,7 +976,7 @@ void EntityManager::AddComponent(Entity* entity, const HypData& componentData)
     NotifySystemsOfEntityAdded(entityHandle, componentIds);
 }
 
-void EntityManager::AddComponent(Entity* entity, HypData&& componentData)
+void EntityManager::AddComponent(Entity* entity, BoxedValue&& componentData)
 {
     AssertDebug(!componentData.IsNull());
 
@@ -1208,7 +1208,7 @@ void EntityManager::AddTag(Entity* entity, EntityTag tag)
     ComponentContainerBase* container = TryGetContainer(componentTypeInfo.id);
     Assert(container != nullptr, "Component container does not exist for component type {}", componentTypeInfo.name);
 
-    HypData componentHypData;
+    BoxedValue componentHypData;
 
     if (!componentInterface->CreateInstance(componentHypData))
     {

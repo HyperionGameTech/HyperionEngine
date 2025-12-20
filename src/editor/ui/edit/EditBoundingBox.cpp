@@ -24,26 +24,26 @@ EditBoundingBox::EditBoundingBox()
 
 EditBoundingBox::~EditBoundingBox() = default;
 
-void EditBoundingBox::Build_Impl(const HypData& hypData, const Property* property)
+void EditBoundingBox::Build_Impl(const BoxedValue& boxed, const Property* property)
 {
     HYP_NAMED_SCOPE("EditBoundingBox::Build");
 
-    Assert(hypData.IsValid());
+    Assert(boxed.IsValid());
 
-    const Handle<ObjectBase>& target = hypData.Get<Handle<ObjectBase>>();
+    const Handle<ObjectBase>& target = boxed.Get<Handle<ObjectBase>>();
     Assert(target != nullptr);
 
     Assert(property != nullptr);
     Assert(property->CanGet());
 
-    HypData resultData = property->Get(hypData);
+    BoxedValue resultData = property->Get(boxed);
     Assert(resultData.IsValid());
 
     BoundingBox boundingBox = resultData.Get<BoundingBox>();
     m_currentValue = std::move(resultData);
 
     OnValueChange
-        .Bind([targetWeak = MakeWeakRef(target), property](const HypData& value) -> UIEventHandlerResult
+        .Bind([targetWeak = MakeWeakRef(target), property](const BoxedValue& value) -> UIEventHandlerResult
             {
                 Handle<ObjectBase> target = targetWeak.Lock();
                 if (!target || !property->CanSet())
@@ -51,7 +51,7 @@ void EditBoundingBox::Build_Impl(const HypData& hypData, const Property* propert
                     return UIEventHandlerResult::ERR;
                 }
 
-                HypData targetData(target.ToRef());
+                BoxedValue targetData(target.ToRef());
                 property->Set(targetData, value);
 
                 return UIEventHandlerResult::OK;
@@ -74,9 +74,9 @@ void EditBoundingBox::Build_Impl(const HypData& hypData, const Property* propert
 
         if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Vec3f>())
         {
-            Handle<UIObject> minElement = factory->CreateUIObject(this, HypData(boundingBox.min), {});
+            Handle<UIObject> minElement = factory->CreateUIObject(this, BoxedValue(boundingBox.min), {});
 
-            m_delegateHandlers.Add(minElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
+            m_delegateHandlers.Add(minElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const BoxedValue& value) -> UIEventHandlerResult
                 {
                     Handle<EditBoundingBox> strongThis = weakThis.Lock();
                     if (!strongThis)
@@ -86,7 +86,7 @@ void EditBoundingBox::Build_Impl(const HypData& hypData, const Property* propert
 
                     BoundingBox currentValue = GetCurrentValue().Get<BoundingBox>();
                     currentValue.min = value.Get<Vec3f>();
-                    SetCurrentValue(HypData(currentValue));
+                    SetCurrentValue(BoxedValue(currentValue));
 
                     return UIEventHandlerResult::OK;
                 }));
@@ -108,9 +108,9 @@ void EditBoundingBox::Build_Impl(const HypData& hypData, const Property* propert
 
         if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Vec3f>())
         {
-            Handle<UIObject> maxElement = factory->CreateUIObject(this, HypData(boundingBox.max), {});
+            Handle<UIObject> maxElement = factory->CreateUIObject(this, BoxedValue(boundingBox.max), {});
 
-            m_delegateHandlers.Add(maxElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
+            m_delegateHandlers.Add(maxElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const BoxedValue& value) -> UIEventHandlerResult
                 {
                     Handle<EditBoundingBox> strongThis = weakThis.Lock();
                     if (!strongThis)
@@ -120,7 +120,7 @@ void EditBoundingBox::Build_Impl(const HypData& hypData, const Property* propert
 
                     BoundingBox currentValue = GetCurrentValue().Get<BoundingBox>();
                     currentValue.max = value.Get<Vec3f>();
-                    SetCurrentValue(HypData(currentValue));
+                    SetCurrentValue(BoxedValue(currentValue));
 
                     return UIEventHandlerResult::OK;
                 }));

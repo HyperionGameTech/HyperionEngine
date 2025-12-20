@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/Method.hpp>
 
 #include <core/functional/ScriptableDelegate.hpp>
@@ -26,13 +26,13 @@ HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObje
     }
 }
 
-void ScriptableDelegateHelper::InvokeMethod_Internal(HypData* outReturnHypData, const Method* method, const Handle<ObjectBase>& target, Span<HypData> argsHypData)
+void ScriptableDelegateHelper::InvokeMethod_Internal(BoxedValue* pOutBoxed, const Method* method, const Handle<ObjectBase>& target, Span<BoxedValue> argsHypData)
 {
     HYP_CORE_ASSERT(method != nullptr, "Method cannot be null");
 
-    if (outReturnHypData)
+    if (pOutBoxed)
     {
-        *outReturnHypData = method->Invoke(argsHypData);
+        *pOutBoxed = method->Invoke(argsHypData);
     }
     else
     {

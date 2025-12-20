@@ -48,7 +48,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
         FontAtlasTextureSet result;
 
@@ -119,7 +119,7 @@ public:
             result.AddAtlas(key, textureObject.m_deserializedObject->Get<Handle<Texture>>(), isMainAtlas);
         }
 
-        out = HypData(result);
+        out = BoxedValue(result);
 
         return { FBOMResult::FBOM_OK };
     }
@@ -156,7 +156,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
         FBOMObject atlasTexturesObject;
 
@@ -217,7 +217,7 @@ public:
 
         Handle<FontAtlas> result = CreateObject<FontAtlas>(atlasTextures, Vec2i(cellDimensions), std::move(glyphMetrics), std::move(symbolList));
 
-        out = HypData(std::move(result));
+        out = BoxedValue(std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }

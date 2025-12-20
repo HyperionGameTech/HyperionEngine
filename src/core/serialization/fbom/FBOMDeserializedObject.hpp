@@ -16,14 +16,14 @@
 #include <type_traits>
 
 namespace hyperion {
-struct HypData;
+struct BoxedValue;
 } // namespace hyperion
 
 namespace hyperion::serialization {
 
 struct FBOMDeserializedObject
 {
-    UniquePtr<HypData> ptr;
+    UniquePtr<BoxedValue> ptr;
 
     FBOMDeserializedObject() = default;
 
@@ -39,7 +39,7 @@ struct FBOMDeserializedObject
     // HYP_FORCE_INLINE void Set(const typename SerializationWrapper<T>::Type &value)
     // {
     //     if (!ptr) {
-    //         ptr = MakeUnique<HypData>();
+    //         ptr = MakeUnique<BoxedValue>();
     //     }
 
     //     return ptr->Set<typename SerializationWrapper<T>::Type>(value);
@@ -49,7 +49,7 @@ struct FBOMDeserializedObject
     // HYP_FORCE_INLINE void Set(typename SerializationWrapper<T>::Type &&value)
     // {
     //     if (!ptr) {
-    //         ptr = MakeUnique<HypData>();
+    //         ptr = MakeUnique<BoxedValue>();
     //     }
 
     //     return ptr->Set<typename SerializationWrapper<T>::Type>(std::move(value));

@@ -9,7 +9,7 @@
 
 namespace hyperion::dotnet {
 
-void ManagedProperty::InvokeGetter_Internal(const ManagedObject* pManagedObject, HypData* outReturnHypData)
+void ManagedProperty::InvokeGetter_Internal(const ManagedObject* pManagedObject, BoxedValue* outReturnHypData)
 {
     Assert(pManagedObject != nullptr);
     Assert(pManagedObject->GetClass() != nullptr);
@@ -19,7 +19,7 @@ void ManagedProperty::InvokeGetter_Internal(const ManagedObject* pManagedObject,
     assembly->GetInvokeGetterFunction()(m_guid, const_cast<ObjectReference*>(&pManagedObject->GetObjectReference()), nullptr, outReturnHypData);
 }
 
-void ManagedProperty::InvokeSetter_Internal(const ManagedObject* pManagedObject, const HypData** valueHypData)
+void ManagedProperty::InvokeSetter_Internal(const ManagedObject* pManagedObject, const BoxedValue** valueHypData)
 {
     Assert(pManagedObject != nullptr);
     Assert(pManagedObject->GetClass() != nullptr);

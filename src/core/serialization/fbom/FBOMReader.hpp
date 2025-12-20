@@ -32,7 +32,7 @@
 
 namespace hyperion {
 
-struct HypData;
+struct BoxedValue;
 
 namespace compression {
 class Archive;
@@ -72,11 +72,11 @@ public:
 
     FBOMResult Deserialize(FBOMLoadContext& context, BufferedReader& reader, FBOMObjectLibrary& out, bool readHeader = true);
     FBOMResult Deserialize(FBOMLoadContext& context, BufferedReader& reader, FBOMObject& out);
-    FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out);
-    FBOMResult Deserialize(FBOMLoadContext& context, BufferedReader& reader, HypData& out);
+    FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out);
+    FBOMResult Deserialize(FBOMLoadContext& context, BufferedReader& reader, BoxedValue& out);
 
     FBOMResult LoadFromFile(const String& path, FBOMObject& out);
-    FBOMResult LoadFromFile(const String& path, HypData& out);
+    FBOMResult LoadFromFile(const String& path, BoxedValue& out);
 
     FBOMResult ReadObject(FBOMLoadContext& context, BufferedReader* reader, FBOMObject& outObject, FBOMObject* root, bool deserializeObject = true);
     FBOMResult ReadObjectType(FBOMLoadContext& context, BufferedReader* reader, FBOMType& outType);

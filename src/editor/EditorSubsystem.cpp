@@ -2247,7 +2247,7 @@ static void AddNodeToSceneOutline(const Handle<UIListView>& listView, Node* node
             parentNodeUuid = parentNode->GetUUID();
         }
 
-        dataSource->Push(node->GetUUID(), HypData(std::move(editorNodeWeak)), parentNodeUuid);
+        dataSource->Push(node->GetUUID(), BoxedValue(std::move(editorNodeWeak)), parentNodeUuid);
     }
 
     for (Node* child : node->GetChildren())
@@ -2567,7 +2567,7 @@ void EditorSubsystem::InitDetailView()
                     nodePropertyRef.description = attr.GetString();
                 }
 
-                dataSource->Push(Uuid(), HypData(std::move(nodePropertyRef)));
+                dataSource->Push(Uuid(), BoxedValue(std::move(nodePropertyRef)));
             }
 
             m_editorDelegates->AddNodeWatcher(
@@ -2940,7 +2940,7 @@ void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage>& pac
 
         Uuid parentPackageUuid = parentPackage.IsValid() ? parentPackage->GetUUID() : Uuid::Invalid();
 
-        dataSource->Push(package->GetUUID(), HypData(package), parentPackageUuid);
+        dataSource->Push(package->GetUUID(), BoxedValue(package), parentPackageUuid);
     }
 
     if (nested)
@@ -3106,7 +3106,7 @@ bool EditorSubsystem::ExecuteCommandByName(Name name)
         return false;
     }
 
-    HypData instanceData;
+    BoxedValue instanceData;
     if (!commandClass->CreateInstance(instanceData))
     {
         HYP_LOG(Editor, Error, "Failed to construct command instance: {}", name);

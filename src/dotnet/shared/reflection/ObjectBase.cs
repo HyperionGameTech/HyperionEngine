@@ -211,7 +211,7 @@ namespace Hyperion
 
             Method method = GetMethod(name);
 
-            using HypDataBuffer resultData = method.InvokeNativeWithThis(this, args);
+            using BoxedValueInternal resultData = method.InvokeNativeWithThis(this, args);
             return (T?)resultData.GetValue();
         }
 
@@ -224,7 +224,7 @@ namespace Hyperion
 
             Method method = GetMethod(name);
 
-            using HypDataBuffer resultData = method.InvokeNativeWithThis(this, args);
+            using BoxedValueInternal resultData = method.InvokeNativeWithThis(this, args);
         }
 
         public object? ReadNativeField(Name name)

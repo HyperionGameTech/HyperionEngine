@@ -101,21 +101,21 @@ private:
     Mutex m_mutex;
 };
 
-static ThreadMap g_staticThreadMap = {};
-static ThreadMap g_dynamicThreadMap = {};
+static ThreadMap s_staticThreadMap = {};
+static ThreadMap s_dynamicThreadMap = {};
 
-thread_local ThreadBase* g_currentThread = nullptr;
+thread_local ThreadBase* s_currentThread = nullptr;
 
 #ifdef HYP_ENABLE_THREAD_ID
-thread_local ThreadId g_currentThreadId = ThreadId::Invalid();
+thread_local ThreadId s_currentThreadId = ThreadId::Invalid();
 #else
-static const ThreadId g_currentThreadId = ThreadId::Invalid();
+static const ThreadId s_currentThreadId = ThreadId::Invalid();
 #endif
 
 void SetCurrentThreadId(const ThreadId& id)
 {
 #ifdef HYP_ENABLE_THREAD_ID
-    g_currentThreadId = id;
+    s_currentThreadId = id;
 #endif
 
 #ifdef HYP_WINDOWS
@@ -143,11 +143,11 @@ void RegisterThread(const ThreadId& id, ThreadBase* thread)
 
     if (id.IsDynamic())
     {
-        success = g_dynamicThreadMap.Add(thread);
+        success = s_dynamicThreadMap.Add(thread);
     }
     else
     {
-        success = g_staticThreadMap.Add(thread);
+        success = s_staticThreadMap.Add(thread);
     }
 
     AssertDebug(success, "Thread {} ({}) could not be registered",
@@ -163,11 +163,11 @@ void UnregisterThread(const ThreadId& id)
 
     if (id.IsDynamic())
     {
-        g_dynamicThreadMap.Remove(id);
+        s_dynamicThreadMap.Remove(id);
     }
     else
     {
-        g_staticThreadMap.Remove(id);
+        s_staticThreadMap.Remove(id);
     }
 }
 
@@ -180,11 +180,11 @@ bool IsThreadRegistered(const ThreadId& id)
 
     if (id.IsDynamic())
     {
-        return g_dynamicThreadMap.Get(id) != nullptr;
+        return s_dynamicThreadMap.Get(id) != nullptr;
     }
     else
     {
-        return g_staticThreadMap.Get(id) != nullptr;
+        return s_staticThreadMap.Get(id) != nullptr;
     }
 }
 
@@ -197,17 +197,17 @@ ThreadBase* GetThreadById(const ThreadId& threadId)
 
     if (threadId.IsDynamic())
     {
-        return g_dynamicThreadMap.Get(threadId);
+        return s_dynamicThreadMap.Get(threadId);
     }
     else
     {
-        return g_staticThreadMap.Get(threadId);
+        return s_staticThreadMap.Get(threadId);
     }
 }
 
 ThreadBase* CurrentThreadObject()
 {
-    return g_currentThread;
+    return s_currentThread;
 }
 
 void SetCurrentThreadObject(ThreadBase* thread)
@@ -217,7 +217,7 @@ void SetCurrentThreadObject(ThreadBase* thread)
     AssertDebug(IsThreadRegistered(thread->Id()), "Thread %u (%s) is not registered",
         thread->Id().GetValue(), *thread->Id().GetName());
 
-    g_currentThread = thread;
+    s_currentThread = thread;
 
     SetCurrentThreadId(thread->Id());
     SetCurrentThreadPriority(thread->GetPriority());
@@ -305,7 +305,7 @@ const ThreadId& CurrentThreadId()
     // For non-thread object threads (e.g .NET finalizer threads),
     // read the thread name from the OS and allocate a new thread Id.
     // SetCurrentThreadId() should be called before CurrentThreadId() for any threads that should not use the OS-created name.
-    if (!g_currentThreadId.IsValid())
+    if (!s_currentThreadId.IsValid())
     {
 #ifdef HYP_WINDOWS
         PWCHAR threadName[256];
@@ -324,21 +324,21 @@ const ThreadId& CurrentThreadId()
 
         if (SUCCEEDED(result))
         {
-            g_currentThreadId = ThreadId(CreateNameFromDynamicString(&threadNameMb[0]), /* forceUnique */ true);
+            s_currentThreadId = ThreadId(CreateNameFromDynamicString(&threadNameMb[0]), /* forceUnique */ true);
         }
         else
         {
-            g_currentThreadId = ThreadId(NAME("Unknown"), /* forceUnique */ true);
+            s_currentThreadId = ThreadId(NAME("Unknown"), /* forceUnique */ true);
         }
 #elif HYP_UNIX
         char threadName[256];
         pthread_getname_np(pthread_self(), threadName, sizeof(threadName));
 
-        g_currentThreadId = ThreadId(CreateNameFromDynamicString(threadName), /* forceUnique */ true);
+        s_currentThreadId = ThreadId(CreateNameFromDynamicString(threadName), /* forceUnique */ true);
 #endif
     }
 
-    return g_currentThreadId;
+    return s_currentThreadId;
 }
 
 void SetCurrentThreadPriority(ThreadPriorityValue priority)

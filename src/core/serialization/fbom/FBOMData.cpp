@@ -10,7 +10,7 @@
 #include <core/io/BufferedByteReader.hpp>
 #include <core/io/ByteWriter.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <core/memory/Memory.hpp>
 

@@ -20,7 +20,7 @@ HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(const TypeInfo& t
     {
         if (const Class* cls = typeInfo.GetClass())
         {
-            factory = UIElementFactoryRegistry::GetInstance().GetFactory(TypeOf<HypData>());
+            factory = UIElementFactoryRegistry::GetInstance().GetFactory(TypeOf<BoxedValue>());
         }
 
         if (!factory)

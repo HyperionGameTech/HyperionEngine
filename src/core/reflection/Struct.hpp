@@ -3,7 +3,7 @@
 #pragma once
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <core/serialization/fbom/FBOMObject.hpp>
 #include <core/serialization/fbom/FBOMData.hpp>
@@ -41,18 +41,18 @@ public:
 
     virtual bool CanCreateInstance() const override = 0;
 
-    virtual bool ToHypData(ByteView memory, HypData& outHypData) const override = 0;
+    virtual bool ToHypData(ByteView memory, BoxedValue& outHypData) const override = 0;
 
     virtual FBOMResult SerializeStruct(ConstAnyRef value, FBOMObject& out) const = 0;
-    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const = 0;
+    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const = 0;
 
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override
     {
     }
 
-    virtual bool CreateInstance_Internal(HypData& out) const override = 0;
-    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override = 0;
+    virtual bool CreateInstance_Internal(BoxedValue& out) const override = 0;
+    virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override = 0;
 
     HYP_API bool CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, SizeType size) const;
 };
@@ -122,7 +122,7 @@ public:
         }
     }
 
-    virtual bool ToHypData(ByteView memory, HypData& outHypData) const override
+    virtual bool ToHypData(ByteView memory, BoxedValue& outHypData) const override
     {
         if constexpr (std::is_abstract_v<T>)
         {
@@ -132,7 +132,7 @@ public:
         {
             HYP_CORE_ASSERT(memory.Size() == sizeof(T));
 
-            outHypData = HypData(std::move(*reinterpret_cast<T*>(memory.Data())));
+            outHypData = BoxedValue(std::move(*reinterpret_cast<T*>(memory.Data())));
 
             return true;
         }
@@ -179,7 +179,7 @@ public:
         return { FBOMResult::FBOM_ERR, "Type does not have an associated marshal class registered, and is not marked as bitwise serializable" };
     }
 
-    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
         HYP_SCOPE;
 
@@ -218,7 +218,7 @@ public:
                     return err;
                 }
 
-                out = HypData(std::move(result));
+                out = BoxedValue(std::move(result));
 
                 return { FBOMResult::FBOM_OK };
             }
@@ -248,11 +248,11 @@ protected:
         callbackWrapperCasted->GetCallback()(*static_cast<T*>(objectPtr));
     }
 
-    virtual bool CreateInstance_Internal(HypData& out) const override
+    virtual bool CreateInstance_Internal(BoxedValue& out) const override
     {
         if constexpr (std::is_default_constructible_v<T>)
         {
-            out = HypData(T {});
+            out = BoxedValue(T {});
 
             return true;
         }
@@ -262,7 +262,7 @@ protected:
         }
     }
 
-    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
+    virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override
     {
         Array<T> array;
         array.Reserve(elements.Size());
@@ -277,7 +277,7 @@ protected:
             array.PushBack(std::move(elements[i].Get<T>()));
         }
 
-        out = HypData(std::move(array));
+        out = BoxedValue(std::move(array));
 
         return true;
     }
@@ -310,14 +310,14 @@ public:
         return true;
     }
 
-    virtual bool ToHypData(ByteView memory, HypData& out) const override;
+    virtual bool ToHypData(ByteView memory, BoxedValue& out) const override;
 
     virtual FBOMResult SerializeStruct(ConstAnyRef in, FBOMObject& out) const override
     {
         HYP_NOT_IMPLEMENTED();
     }
 
-    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
         HYP_NOT_IMPLEMENTED();
     }
@@ -327,14 +327,14 @@ protected:
     {
     }
 
-    virtual bool CreateInstance_Internal(HypData& out) const override
+    virtual bool CreateInstance_Internal(BoxedValue& out) const override
     {
         HYP_NOT_IMPLEMENTED();
 
         return false;
     }
 
-    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
+    virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override
     {
         HYP_NOT_IMPLEMENTED();
 

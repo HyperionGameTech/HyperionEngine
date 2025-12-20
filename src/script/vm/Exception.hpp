@@ -6,7 +6,7 @@
 
 namespace hyperion {
 
-struct HypData;
+struct BoxedValue;
 
 class Script_Exception
 {
@@ -36,8 +36,8 @@ public:
     static Script_Exception NullReferenceException();
     static Script_Exception DivisionByZeroException();
     static Script_Exception OutOfBoundsException(SizeType index, SizeType size);
-    static Script_Exception MemberNotFoundException(HypData* pValue, HashCode::ValueType hashCode);
-    static Script_Exception InvalidMemberAccessException(HypData* pValue);
+    static Script_Exception MemberNotFoundException(BoxedValue* pValue, HashCode::ValueType hashCode);
+    static Script_Exception InvalidMemberAccessException(BoxedValue* pValue);
     static Script_Exception FileOpenException(const char* fileName);
     static Script_Exception UnopenedFileWriteException();
     static Script_Exception UnopenedFileReadException();

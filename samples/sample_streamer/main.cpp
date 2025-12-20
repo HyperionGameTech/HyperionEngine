@@ -20,7 +20,8 @@ int main(int argc, char** argv)
     
     Handle<game::DefaultGame> defaultGame = CreateObject<game::DefaultGame>();
     
-    Hyp_LaunchGame(defaultGame);
+    Hyp_SetGame(defaultGame);
+    Hyp_LaunchThreads();
     Hyp_Shutdown();
     
     return 0;
