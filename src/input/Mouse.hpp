@@ -82,8 +82,8 @@ struct InputMouseLockScope
     {
     }
 
-    InputMouseLockScope(InputMouseLockState& mouseLockState)
-        : mouseLockState(&mouseLockState)
+    InputMouseLockScope(InputMouseLockState* mouseLockState)
+        : mouseLockState(mouseLockState)
     {
     }
 

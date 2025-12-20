@@ -194,8 +194,8 @@ private:
     void SetKey(KeyCode key, bool pressed);
     void SetMouseButton(MouseButtonKey btn, bool pressed);
 
-    void ApplyMouseLockState(const InputMouseLockState* mouseLockState);
-    void RemoveMouseLockState(const InputMouseLockState* mouseLockState);
+    void ApplyMouseLockState(InputMouseLockState* mouseLockState);
+    void RemoveMouseLockState(InputMouseLockState* mouseLockState);
 
     InputState m_inputState;
     Vec2i m_mousePosition;
@@ -203,7 +203,7 @@ private:
     Vec2i m_windowSize;
     bool m_isMouseLocked;
 
-    LinkedList<InputMouseLockState> m_mouseLockStates;
+    Array<InputMouseLockState*> m_mouseLockStates;
     Mutex m_mouseLockStatesMutex;
 
     ApplicationWindow* m_window;

@@ -18,6 +18,8 @@
 
 namespace hyperion {
 
+static SlabAllocator s_inputMouseLockStateAllocator(sizeof(InputMouseLockState), alignof(InputMouseLockState), 32, AF_THREAD_SAFE);
+
 #pragma region InputEventSink
 
 InputEventSink::InputEventSink()
@@ -113,6 +115,13 @@ InputManager::InputManager()
 
 InputManager::~InputManager()
 {
+    SetIsMouseLocked(false);
+
+    for (InputMouseLockState* state : m_mouseLockStates)
+    {
+        state->~InputMouseLockState();
+        s_inputMouseLockStateAllocator.Free(state);
+    }
 }
 
 void InputManager::CheckEvent(SystemEvent* event)
@@ -167,12 +176,12 @@ bool InputManager::IsMouseLocked() const
 
 void InputManager::PushMouseLockState(bool mouseLocked)
 {
-    Mutex::Guard guard(m_mouseLockStatesMutex);
+    InputMouseLockState* mouseLockState = (InputMouseLockState*)s_inputMouseLockStateAllocator.Allocate();
 
-    InputMouseLockState& mouseLockState = m_mouseLockStates.PushBack(InputMouseLockState {
-        mouseLocked });
+    new (mouseLockState) InputMouseLockState;
+    mouseLockState->locked = mouseLocked;
 
-    ApplyMouseLockState(&mouseLockState);
+    ApplyMouseLockState(mouseLockState);
 }
 
 void InputManager::PopMouseLockState()
@@ -181,21 +190,27 @@ void InputManager::PopMouseLockState()
 
     if (m_mouseLockStates.Empty())
     {
+        // Default state if none active
+        SetIsMouseLocked(false);
+
         return;
     }
 
-    m_mouseLockStates.PopBack();
+    InputMouseLockState* lastState = m_mouseLockStates.PopBack();
+    SetIsMouseLocked(lastState->locked);
 
-    ApplyMouseLockState(m_mouseLockStates.Any() ? &m_mouseLockStates.Back() : nullptr);
+    lastState->~InputMouseLockState();
+    s_inputMouseLockStateAllocator.Free(lastState);
 }
 
 InputMouseLockScope InputManager::AcquireMouseLock()
 {
-    Mutex::Guard guard(m_mouseLockStatesMutex);
+    InputMouseLockState* mouseLockState = (InputMouseLockState*)s_inputMouseLockStateAllocator.Allocate();
 
-    InputMouseLockState& mouseLockState = m_mouseLockStates.PushBack(InputMouseLockState { true });
+    new (mouseLockState) InputMouseLockState;
+    mouseLockState->locked = true;
 
-    ApplyMouseLockState(&mouseLockState);
+    ApplyMouseLockState(mouseLockState);
 
     return InputMouseLockScope { mouseLockState };
 }
@@ -349,25 +364,50 @@ EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
     return state;
 }
 
-void InputManager::ApplyMouseLockState(const InputMouseLockState* mouseLockState)
+void InputManager::ApplyMouseLockState(InputMouseLockState* mouseLockState)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_gameThread); /// \todo Move to main thread
+
+    Mutex::Guard guard(m_mouseLockStatesMutex);
 
     if (!mouseLockState)
     {
-        // apply default state
-
-        SetIsMouseLocked(false);
+        if (m_mouseLockStates.Empty())
+        {
+            // apply default state
+            SetIsMouseLocked(false);
+        }
 
         return;
     }
 
+    SizeType currentIndex = m_mouseLockStates.IndexOf(mouseLockState);
+
+    //if (currentIndex != -1)
+    //{
+    //    if (currentIndex == m_mouseLockStates.Size() - 1)
+    //    {
+    //        return; // already active
+    //    }
+
+    //    std::swap(m_mouseLockStates[currentIndex], m_mouseLockStates[m_mouseLockStates.Size() - 1]);
+
+    //    SetIsMouseLocked(mouseLockState->locked);
+
+    //    return;
+    //}
+
+    m_mouseLockStates.PushBack(mouseLockState);
+
     SetIsMouseLocked(mouseLockState->locked);
 }
 
-void InputManager::RemoveMouseLockState(const InputMouseLockState* mouseLockState)
+void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
 {
+    HYP_SCOPE;
+    AssertOnThread(g_gameThread); /// \todo Move to main thread
+
     if (!mouseLockState)
     {
         return;
@@ -375,9 +415,7 @@ void InputManager::RemoveMouseLockState(const InputMouseLockState* mouseLockStat
 
     Mutex::Guard guard(m_mouseLockStatesMutex);
 
-    InputMouseLockState* mouseLock = const_cast<InputMouseLockState*>(mouseLockState);
-
-    auto it = m_mouseLockStates.Find(*(mouseLock));
+    auto it = m_mouseLockStates.Find(mouseLockState);
     Assert(it != m_mouseLockStates.End());
 
     auto eraseIt = m_mouseLockStates.Erase(it);
@@ -385,7 +423,7 @@ void InputManager::RemoveMouseLockState(const InputMouseLockState* mouseLockStat
     if (eraseIt == m_mouseLockStates.End())
     {
         // Update mouse lock state since last was removed
-        ApplyMouseLockState(m_mouseLockStates.Any() ? &m_mouseLockStates.Back() : nullptr);
+        ApplyMouseLockState(m_mouseLockStates.Any() ? m_mouseLockStates.Back() : nullptr);
     }
 }
 
