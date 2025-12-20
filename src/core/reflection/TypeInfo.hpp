@@ -59,7 +59,7 @@ enum class TypeInfoFlags : uint32
 HYP_MAKE_ENUM_FLAGS(TypeInfoFlags)
 
 class Class;
-struct HypData;
+struct BoxedValue;
 struct GenericArrayWrapper;
 
 struct Float16;
@@ -210,7 +210,7 @@ public:
     virtual ITypeInfoHandler* Clone() const = 0;
     virtual Type GetHandlerType() const = 0;
 
-    virtual bool CreateInstance(HypData& outInstance) const = 0;
+    virtual bool CreateInstance(BoxedValue& outInstance) const = 0;
 };
 
 class ITypeInfoArrayHandler : public ITypeInfoHandler
@@ -225,14 +225,14 @@ public:
         return TYPE_ARRAY;
     }
 
-    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual bool GetElementAt(const HypData& instance, SizeType index, HypData& outValue) const = 0;
-    virtual bool SetElementAt(const HypData& instance, SizeType index, HypData&& value) const = 0;
+    virtual bool GetElementAt(const BoxedValue& instance, SizeType index, BoxedValue& outValue) const = 0;
+    virtual bool SetElementAt(const BoxedValue& instance, SizeType index, BoxedValue&& value) const = 0;
 
-    virtual SizeType GetSize(const HypData& instance) const = 0;
+    virtual SizeType GetSize(const BoxedValue& instance) const = 0;
 
-    virtual void Resize(const HypData& instance, SizeType newSize) const = 0;
+    virtual void Resize(const BoxedValue& instance, SizeType newSize) const = 0;
 };
 
 class ITypeInfoLinkedListHandler : public ITypeInfoHandler
@@ -247,14 +247,14 @@ public:
         return TYPE_LINKEDLIST;
     }
 
-    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual AnyRef GetElementAt(const HypData& instance, SizeType index) const = 0;
-    virtual void SetElementAt(const HypData& instance, SizeType index, const HypData& value) const = 0;
+    virtual AnyRef GetElementAt(const BoxedValue& instance, SizeType index) const = 0;
+    virtual void SetElementAt(const BoxedValue& instance, SizeType index, const BoxedValue& value) const = 0;
 
-    virtual SizeType GetSize(const HypData& instance) const = 0;
+    virtual SizeType GetSize(const BoxedValue& instance) const = 0;
 
-    virtual void Resize(const HypData& instance, SizeType newSize) const = 0;
+    virtual void Resize(const BoxedValue& instance, SizeType newSize) const = 0;
 };
 
 class ITypeInfoMapHandler : public ITypeInfoHandler
@@ -269,15 +269,15 @@ public:
         return TYPE_MAP;
     }
 
-    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual AnyRef GetValueAt(const HypData& instance, const HypData& key) const = 0;
-    virtual void SetValueAt(const HypData& instance, const HypData& key, const HypData& value) const = 0;
+    virtual AnyRef GetValueAt(const BoxedValue& instance, const BoxedValue& key) const = 0;
+    virtual void SetValueAt(const BoxedValue& instance, const BoxedValue& key, const BoxedValue& value) const = 0;
 
-    virtual bool ContainsKey(const HypData& instance, const HypData& key) const = 0;
-    virtual bool RemoveKey(const HypData& instance, const HypData& key) const = 0;
+    virtual bool ContainsKey(const BoxedValue& instance, const BoxedValue& key) const = 0;
+    virtual bool RemoveKey(const BoxedValue& instance, const BoxedValue& key) const = 0;
 
-    virtual SizeType GetSize(const HypData& instance) const = 0;
+    virtual SizeType GetSize(const BoxedValue& instance) const = 0;
 };
 
 class ITypeInfoSetHandler : public ITypeInfoHandler
@@ -292,18 +292,18 @@ public:
         return TYPE_SET;
     }
 
-    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual bool Contains(const HypData& instance, const HypData& value) const = 0;
-    virtual bool Insert(const HypData& instance, const HypData& value) const = 0;
-    virtual bool Remove(const HypData& instance, const HypData& value) const = 0;
+    virtual bool Contains(const BoxedValue& instance, const BoxedValue& value) const = 0;
+    virtual bool Insert(const BoxedValue& instance, const BoxedValue& value) const = 0;
+    virtual bool Remove(const BoxedValue& instance, const BoxedValue& value) const = 0;
 
-    virtual SizeType GetSize(const HypData& instance) const = 0;
+    virtual SizeType GetSize(const BoxedValue& instance) const = 0;
 
     /*! \brief Create an iterator for the set
      *  \param instance The set instance to iterate over
      *  \return A new iterator (caller takes ownership and must delete) */
-    virtual ITypeInfoIterator* CreateIterator(const HypData& instance) const = 0;
+    virtual ITypeInfoIterator* CreateIterator(const BoxedValue& instance) const = 0;
 };
 
 class ITypeInfoStringHandler : public ITypeInfoHandler
@@ -316,12 +316,12 @@ public:
         return TYPE_STRING;
     }
 
-    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
     virtual ITypeInfoHandler* Clone() const override = 0;
 
-    virtual String GetValue(const HypData& instance) const = 0;
-    virtual void SetValue(const HypData& instance, const UTF8StringView& str) const = 0;
+    virtual String GetValue(const BoxedValue& instance) const = 0;
+    virtual void SetValue(const BoxedValue& instance, const UTF8StringView& str) const = 0;
 };
 
 class ITypeInfoVectorHandler : public ITypeInfoHandler
@@ -334,14 +334,14 @@ public:
         return TYPE_VECTOR;
     }
 
-    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
     virtual ITypeInfoHandler* Clone() const override = 0;
 
     virtual int GetNumComponents() const = 0;
 
-    virtual AnyRef GetComponent(const HypData& instance, int index) const = 0;
-    virtual void SetComponent(const HypData& instance, int index, const HypData& value) const = 0;
+    virtual AnyRef GetComponent(const BoxedValue& instance, int index) const = 0;
+    virtual void SetComponent(const BoxedValue& instance, int index, const BoxedValue& value) const = 0;
 };
 
 class ITypeInfoMatrixHandler : public ITypeInfoHandler
@@ -354,15 +354,15 @@ public:
         return TYPE_MATRIX;
     }
 
-    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
     virtual ITypeInfoHandler* Clone() const override = 0;
 
     virtual int GetNumRows() const = 0;
     virtual int GetNumColumns() const = 0;
 
-    virtual AnyRef GetElement(const HypData& instance, int row, int column) const = 0;
-    virtual void SetElement(const HypData& instance, int row, int column, const HypData& value) const = 0;
+    virtual AnyRef GetElement(const BoxedValue& instance, int row, int column) const = 0;
+    virtual void SetElement(const BoxedValue& instance, int row, int column, const BoxedValue& value) const = 0;
 };
 
 class ITypeInfoVariantHandler : public ITypeInfoHandler
@@ -375,17 +375,17 @@ public:
         return TYPE_VARIANT;
     }
 
-    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
     virtual ITypeInfoHandler* Clone() const override = 0;
 
     virtual int GetNumTypes() const = 0;
     virtual const TypeInfo* GetTypeInfoAtIndex(int typeIndex) const = 0;
 
-    virtual int GetCurrentTypeIndex(const HypData& instance) const = 0;
+    virtual int GetCurrentTypeIndex(const BoxedValue& instance) const = 0;
 
-    virtual AnyRef GetValue(const HypData& instance) const = 0;
-    virtual bool SetValue(const HypData& instance, const HypData& value) const = 0;
+    virtual AnyRef GetValue(const BoxedValue& instance) const = 0;
+    virtual bool SetValue(const BoxedValue& instance, const BoxedValue& value) const = 0;
 };
 
 /*! \brief Additional type information for containers and complex types */
@@ -438,7 +438,7 @@ struct HYP_API TypeInfoEx
     HashCode GetHashCode() const;
 };
 
-template <class T, class HypDataType = HypData, class EnableIf = void>
+template <class T, class HypDataType = BoxedValue, class EnableIf = void>
 struct TypeInfoImpl;
 
 template <class T, class HypDataType>
@@ -687,9 +687,9 @@ struct TypeInfo
                 result.flags |= TypeInfoFlags::FLOAT_TYPE;
             }
 
-            if constexpr (ImplementationExistsV<TypeInfoImpl<NormalizedT, HypData>>)
+            if constexpr (ImplementationExistsV<TypeInfoImpl<NormalizedT, BoxedValue>>)
             {
-                TypeInfoImpl<NormalizedT, HypData>()(result);
+                TypeInfoImpl<NormalizedT, BoxedValue>()(result);
             }
 
             ValueStorage<Mutex::Guard> guardStorage;
@@ -959,7 +959,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArra
 
     result.flags |= TypeInfoFlags::ARRAY_TYPE;
 
-    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<HypData>();
+    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<BoxedValue>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
 
     result.extendedInfo.handler = new GenericArrayHandler();
@@ -1065,7 +1065,7 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>::operator()(Type
                 return false;
             }
 
-            outValue = HypData(AnyRef(&array[index]));
+            outValue = BoxedValue(AnyRef(&array[index]));
 
             return true;
         }
@@ -1236,7 +1236,7 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, HypDataTyp
 
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
-            outInstance = HypData(MapType {});
+            outInstance = BoxedValue(MapType {});
             return true;
         }
 
@@ -1321,7 +1321,7 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, HypDataType>::operator()(Type
 
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
-            outInstance = HypData(MapType {});
+            outInstance = BoxedValue(MapType {});
             return true;
         }
 
@@ -1407,7 +1407,7 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>::operator()(Typ
 
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
-            outInstance = HypData(MapType {});
+            outInstance = BoxedValue(MapType {});
             return true;
         }
 
@@ -1751,7 +1751,7 @@ void TypeInfoImpl<utilities::Variant<Types...>, HypDataType>::operator()(TypeInf
 
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
-            outInstance = HypData(VariantType {});
+            outInstance = BoxedValue(VariantType {});
             return true;
         }
 
@@ -1832,7 +1832,7 @@ void TypeInfoImpl<math::Vec2<T>, HypDataType>::operator()(TypeInfo& result) cons
 
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
-            outInstance = HypData(Vec2Type {});
+            outInstance = BoxedValue(Vec2Type {});
             return true;
         }
 
@@ -1897,7 +1897,7 @@ void TypeInfoImpl<math::Vec3<T>, HypDataType>::operator()(TypeInfo& result) cons
 
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
-            outInstance = HypData(Vec3Type {});
+            outInstance = BoxedValue(Vec3Type {});
             return true;
         }
 
@@ -1967,7 +1967,7 @@ void TypeInfoImpl<math::Vec4<T>, HypDataType>::operator()(TypeInfo& result) cons
 
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
-            outInstance = HypData(Vec4Type {});
+            outInstance = BoxedValue(Vec4Type {});
             return true;
         }
 
@@ -2042,7 +2042,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat3f>>>::o
 
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
-            outInstance = HypData(MatrixType {});
+            outInstance = BoxedValue(MatrixType {});
             return true;
         }
 
@@ -2102,7 +2102,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat4f>>>::o
 
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
-            outInstance = HypData(MatrixType {});
+            outInstance = BoxedValue(MatrixType {});
             return true;
         }
 

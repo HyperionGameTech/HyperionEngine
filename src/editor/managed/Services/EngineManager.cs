@@ -64,6 +64,8 @@ namespace Hyperion.Editor
                 {
                     throw new Exception("Failed to initialize Hyperion Engine. NativeBindings.Hyp_Initialize returned false.");
                 }
+
+                NativeBindings.Hyp_LaunchThreads();
             }
             catch (Exception ex)
             {

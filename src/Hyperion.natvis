@@ -335,7 +335,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::HypData">
+  <Type Name="hyperion::BoxedValue">
     <Expand>
       <Item Name="[Metadata]">extData</Item>
       <ExpandedItem>value</ExpandedItem>

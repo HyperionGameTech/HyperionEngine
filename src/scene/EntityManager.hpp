@@ -57,7 +57,7 @@ HYP_MAKE_ENUM_FLAGS(EntityManagerFlags)
 
 class World;
 class Scene;
-struct HypData;
+struct BoxedValue;
 class Node;
 
 using ComponentMap = TypeMap<ComponentId>;
@@ -493,8 +493,8 @@ public:
         return entityData->components;
     }
 
-    void AddComponent(Entity* entity, const HypData& componentData);
-    void AddComponent(Entity* entity, HypData&& componentData);
+    void AddComponent(Entity* entity, const BoxedValue& componentData);
+    void AddComponent(Entity* entity, BoxedValue&& componentData);
 
     bool RemoveComponent(TypeId componentTypeId, Entity* entity);
 
@@ -600,7 +600,7 @@ public:
         // Notify systems that entity is being removed from them
         removedComponents.Set(componentTypeId, componentId);
 
-        HypData componentHypData;
+        BoxedValue componentHypData;
 
         if (!GetContainer<Component>().RemoveComponent(componentId, componentHypData))
         {

@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/Class.hpp>
 
 #include <core/reflection/TypeInfo.hpp>

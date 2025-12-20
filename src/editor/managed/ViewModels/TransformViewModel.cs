@@ -43,9 +43,9 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     Transform transform;
-                    using (HypData data = _property.Get(_target))
+                    using (BoxedValue boxed = _property.Get(_target))
                     {
-                        object? raw = data.GetValue();
+                        object? raw = boxed.GetValue();
                         transform = raw is Transform t ? t : Transform.Identity;
                     }
 
@@ -73,8 +73,8 @@ namespace Hyperion.Editor.ViewModels
         {
             Task<Transform> task = EngineManager.PostToGameThread<Transform>(() =>
             {
-                using HypData data = _property.Get(_target);
-                object? raw = data.GetValue();
+                using BoxedValue boxed = _property.Get(_target);
+                object? raw = boxed.GetValue();
 
                 Logger.Log(LogType.Debug, $"ReadTransform got raw value of type: {(raw != null ? raw.GetType().Name : "null")}");
 
@@ -104,8 +104,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using HypData data = new HypData(transform);
-                    _property.Set(_target, data);
+                    using BoxedValue boxed = new BoxedValue(transform);
+                    _property.Set(_target, boxed);
                 }
                 catch (Exception ex)
                 {

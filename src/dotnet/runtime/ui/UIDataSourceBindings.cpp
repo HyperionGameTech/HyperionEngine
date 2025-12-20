@@ -9,7 +9,7 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void UIDataSourceBase_Push(UIDataSourceBase* dataSource, const Uuid* uuid, HypData* dataPtr, const Uuid* parentUuid)
+    HYP_EXPORT void UIDataSourceBase_Push(UIDataSourceBase* dataSource, const Uuid* uuid, BoxedValue* dataPtr, const Uuid* parentUuid)
     {
         Assert(dataSource != nullptr);
         Assert(uuid != nullptr);

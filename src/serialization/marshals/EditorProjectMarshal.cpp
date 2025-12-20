@@ -29,10 +29,10 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
         Handle<EditorProject> editorProject = CreateObject<EditorProject>();
-        out = HypData(editorProject);
+        out = BoxedValue(editorProject);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, EditorProject::StaticClass(), out))
         {

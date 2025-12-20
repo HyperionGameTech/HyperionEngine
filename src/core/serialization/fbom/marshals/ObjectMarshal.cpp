@@ -204,7 +204,7 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
     const TypeInfo* pTypeInfo = cls->GetTypeInfo();
     AssertDebug(pTypeInfo != nullptr);
 
-    HypData targetData { AnyRef(pTypeInfo, const_cast<void*>(in.GetPointer())) };
+    BoxedValue targetData { AnyRef(pTypeInfo, const_cast<void*>(in.GetPointer())) };
 
     out = FBOMObject(FBOMObjectType(cls));
 
@@ -281,7 +281,7 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 
             FBOMData data;
 
-            if (Result serializeResult = member.Serialize(Span<HypData>(&targetData, 1), data, flags); serializeResult.HasError())
+            if (Result serializeResult = member.Serialize(Span<BoxedValue>(&targetData, 1), data, flags); serializeResult.HasError())
             {
                 return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to serialize member '{}' of Class '{}': {}", member.GetName(), cls->GetName(), serializeResult.GetError().GetMessage()) };
             }
@@ -293,7 +293,7 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
     return { FBOMResult::FBOM_OK };
 }
 
-FBOMResult ObjectMarshal::Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const
+FBOMResult ObjectMarshal::Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const
 {
     const Class* cls = in.GetClass();
 
@@ -322,7 +322,7 @@ FBOMResult ObjectMarshal::Deserialize(FBOMLoadContext& context, const FBOMObject
     return Deserialize_Internal(context, in, cls, out);
 }
 HYP_DISABLE_OPTIMIZATION;
-FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const Class* cls, HypData& target) const
+FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const Class* cls, BoxedValue& target) const
 {
     Assert(cls != nullptr);
     Assert(target.IsValid());
@@ -401,7 +401,7 @@ FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const F
 
         if (assetObject)
         {
-            target = HypData(assetObject);
+            target = BoxedValue(assetObject);
 
             return {};
         }

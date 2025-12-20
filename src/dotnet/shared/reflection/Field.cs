@@ -56,8 +56,8 @@ namespace Hyperion
 
             object? result = null;
 
-            HypDataBuffer targetData = new HypDataBuffer();
-            HypDataBuffer outData = new HypDataBuffer();
+            BoxedValueInternal targetData = new BoxedValueInternal();
+            BoxedValueInternal outData = new BoxedValueInternal();
 
             try
             {
@@ -85,6 +85,6 @@ namespace Hyperion
         private static extern uint Field_GetOffset([In] IntPtr fieldPtr);
 
         [DllImport("hyperion", EntryPoint = "Field_Get")]
-        private static extern void Field_Get([In] IntPtr fieldPtr, [In] ref HypDataBuffer targetData, [Out] out HypDataBuffer outData);
+        private static extern void Field_Get([In] IntPtr fieldPtr, [In] ref BoxedValueInternal targetData, [Out] out BoxedValueInternal outData);
     }
 }

@@ -8,18 +8,18 @@ namespace Hyperion
         internal static extern void Asset_Destroy([In] IntPtr pLoadedAsset);
 
         [DllImport("hyperion", EntryPoint = "Asset_GetHypData")]
-        internal static extern void Asset_GetHypData([In] IntPtr pLoadedAsset, [Out] out HypDataBuffer outDataBuffer);
+        internal static extern void Asset_GetHypData([In] IntPtr pLoadedAsset, [Out] out BoxedValueInternal outDataBuffer);
     }
 
     public class LoadedAsset : IDisposable
     {
-        private HypData? _data = null;
+        private BoxedValue? _data = null;
 
         public LoadedAsset(IntPtr pLoadedAsset)
         {
             if (pLoadedAsset != IntPtr.Zero)
             {
-                HypDataBuffer dataBuffer;
+                BoxedValueInternal dataBuffer;
                 AssetNativeFunctions.Asset_GetHypData(pLoadedAsset, out dataBuffer);
 
                 if (dataBuffer.IsNull)
@@ -28,7 +28,7 @@ namespace Hyperion
                     return;
                 }
 
-                _data = HypData.FromBuffer(dataBuffer);
+                _data = BoxedValue.FromBuffer(dataBuffer);
             }
         }
 
@@ -62,13 +62,13 @@ namespace Hyperion
 
     public class LoadedAsset<T> : IDisposable
     {
-        private HypData? _data = null;
+        private BoxedValue? _data = null;
 
         public LoadedAsset(IntPtr pLoadedAsset)
         {
             if (pLoadedAsset != IntPtr.Zero)
             {
-                HypDataBuffer dataBuffer;
+                BoxedValueInternal dataBuffer;
                 AssetNativeFunctions.Asset_GetHypData(pLoadedAsset, out dataBuffer);
 
                 if (dataBuffer.IsNull)
@@ -77,7 +77,7 @@ namespace Hyperion
                     return;
                 }
 
-                _data = HypData.FromBuffer(dataBuffer);
+                _data = BoxedValue.FromBuffer(dataBuffer);
             }
         }
 

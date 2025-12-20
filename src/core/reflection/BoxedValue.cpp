@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ObjectPool.hpp>
 
 #include <core/threading/Mutex.hpp>
@@ -49,9 +49,9 @@ HYP_API void RegisterHypDataSerializeFunction(TypeId typeId, HypDataSerializeFun
     map[typeId] = func;
 }
 
-HYP_API void SetHypDataFromReference(HypData& hypData, AnyRef ref)
+HYP_API void SetHypDataFromReference(BoxedValue& boxed, AnyRef ref)
 {
-    HypDataHelper<AnyRef> {}.Set(hypData, ref);
+    HypDataHelper<AnyRef> {}.Set(boxed, ref);
 }
 
 } // namespace hyperion

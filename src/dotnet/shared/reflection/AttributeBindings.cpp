@@ -13,56 +13,56 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT int8 ClassAttribute_GetName(ClassAttribute* attribute, Name* outName)
+    HYP_EXPORT int8 ClassAttribute_GetName(ClassAttribute* pAttr, Name* pOutName)
     {
-        Assert(attribute != nullptr);
-        Assert(outName != nullptr);
+        Assert(pAttr != nullptr);
+        Assert(pOutName != nullptr);
 
-        *outName = attribute->GetName();
+        *pOutName = pAttr->GetName();
 
         return true;
     }
 
-    HYP_EXPORT int8 ClassAttribute_IsString(ClassAttribute* attribute)
+    HYP_EXPORT int8 ClassAttribute_IsString(ClassAttribute* pAttr)
     {
-        Assert(attribute != nullptr);
+        Assert(pAttr != nullptr);
 
-        return attribute->GetValue().IsString();
+        return pAttr->GetValue().IsString();
     }
 
-    HYP_EXPORT const char* ClassAttribute_GetString(ClassAttribute* attribute)
+    HYP_EXPORT const char* ClassAttribute_GetString(ClassAttribute* pAttr)
     {
-        Assert(attribute != nullptr);
+        Assert(pAttr != nullptr);
 
-        return attribute->GetValue().GetString().Data();
+        return pAttr->GetValue().GetString().Data();
     }
 
-    HYP_EXPORT int8 ClassAttribute_IsBool(ClassAttribute* attribute)
+    HYP_EXPORT int8 ClassAttribute_IsBool(ClassAttribute* pAttr)
     {
-        Assert(attribute != nullptr);
+        Assert(pAttr != nullptr);
 
-        return attribute->GetValue().IsBool();
+        return pAttr->GetValue().IsBool();
     }
 
-    HYP_EXPORT int8 ClassAttribute_GetBool(ClassAttribute* attribute)
+    HYP_EXPORT int8 ClassAttribute_GetBool(ClassAttribute* pAttr)
     {
-        Assert(attribute != nullptr);
+        Assert(pAttr != nullptr);
 
-        return attribute->GetValue().GetBool();
+        return pAttr->GetValue().GetBool();
     }
 
-    HYP_EXPORT int8 ClassAttribute_IsInt(ClassAttribute* attribute)
+    HYP_EXPORT int8 ClassAttribute_IsInt(ClassAttribute* pAttr)
     {
-        Assert(attribute != nullptr);
+        Assert(pAttr != nullptr);
 
-        return attribute->GetValue().IsInt();
+        return pAttr->GetValue().IsInt();
     }
 
-    HYP_EXPORT int8 ClassAttribute_GetInt(ClassAttribute* attribute)
+    HYP_EXPORT int8 ClassAttribute_GetInt(ClassAttribute* pAttr)
     {
-        Assert(attribute != nullptr);
+        Assert(pAttr != nullptr);
 
-        return attribute->GetValue().GetInt();
+        return pAttr->GetValue().GetInt();
     }
 
 } // extern "C"

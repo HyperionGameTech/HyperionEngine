@@ -22,107 +22,107 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void HypData_Construct(ValueStorage<HypData>* hypDataStorage)
+    HYP_EXPORT void HypData_Construct(ValueStorage<BoxedValue>* pBoxed)
     {
-        Assert(hypDataStorage != nullptr);
+        Assert(pBoxed != nullptr);
 
-        hypDataStorage->Construct();
+        pBoxed->Construct();
     }
 
-    HYP_EXPORT void HypData_Destruct(ValueStorage<HypData>* hypDataStorage)
+    HYP_EXPORT void HypData_Destruct(ValueStorage<BoxedValue>* pBoxed)
     {
-        Assert(hypDataStorage != nullptr);
+        Assert(pBoxed != nullptr);
 
-        hypDataStorage->Destruct();
+        pBoxed->Destruct();
     }
 
-    HYP_EXPORT void HypData_GetTypeId(const HypData* hypData, TypeId* outTypeId)
+    HYP_EXPORT void HypData_GetTypeId(const BoxedValue* pBoxed, TypeId* outTypeId)
     {
-        if (!hypData || !outTypeId)
+        if (!pBoxed || !outTypeId)
         {
             return;
         }
 
-        *outTypeId = hypData->GetTypeId();
+        *outTypeId = pBoxed->GetTypeId();
     }
 
-    HYP_EXPORT const TypeInfo* HypData_GetTypeInfo(const HypData* hypData)
+    HYP_EXPORT const TypeInfo* HypData_GetTypeInfo(const BoxedValue* pBoxed)
     {
-        if (!hypData)
+        if (!pBoxed)
         {
             return nullptr;
         }
 
-        return hypData->GetTypeInfo();
+        return pBoxed->GetTypeInfo();
     }
 
-    HYP_EXPORT const void* HypData_GetPointer(const HypData* hypData)
+    HYP_EXPORT const void* HypData_GetPointer(const BoxedValue* pBoxed)
     {
-        if (!hypData)
+        if (!pBoxed)
         {
             return nullptr;
         }
 
-        return hypData->ToRef().GetPointer();
+        return pBoxed->ToRef().GetPointer();
     }
 
-    HYP_EXPORT int8 HypData_IsNull(const HypData* hypData)
+    HYP_EXPORT int8 HypData_IsNull(const BoxedValue* pBoxed)
     {
-        if (!hypData)
+        if (!pBoxed)
         {
             return true;
         }
 
-        return hypData->IsNull();
+        return pBoxed->IsNull();
     }
 
-    HYP_EXPORT void HypData_Reset(HypData* hypData)
+    HYP_EXPORT void HypData_Reset(BoxedValue* pBoxed)
     {
-        if (hypData)
+        if (pBoxed)
         {
-            hypData->Reset();
+            pBoxed->Reset();
         }
     }
 
-#define HYP_DEFINE_HYPDATA_GET(type, name)                                                 \
-    HYP_EXPORT int8 HypData_Get##name(const HypData* hypData, int8 strict, type* outValue) \
-    {                                                                                      \
-        if (!hypData || !outValue)                                                         \
-        {                                                                                  \
-            return false;                                                                  \
-        }                                                                                  \
-                                                                                           \
-        if (hypData->Is<type>(bool(strict)))                                               \
-        {                                                                                  \
-            *outValue = hypData->Get<type>();                                              \
-                                                                                           \
-            return true;                                                                   \
-        }                                                                                  \
-                                                                                           \
-        return false;                                                                      \
+#define HYP_DEFINE_HYPDATA_GET(type, name)                                                    \
+    HYP_EXPORT int8 HypData_Get##name(const BoxedValue* pBoxed, int8 strict, type* pOutValue) \
+    {                                                                                         \
+        if (!pBoxed || !pOutValue)                                                            \
+        {                                                                                     \
+            return false;                                                                     \
+        }                                                                                     \
+                                                                                              \
+        if (pBoxed->Is<type>(bool(strict)))                                                   \
+        {                                                                                     \
+            *pOutValue = pBoxed->Get<type>();                                                 \
+                                                                                              \
+            return true;                                                                      \
+        }                                                                                     \
+                                                                                              \
+        return false;                                                                         \
     }
 
-#define HYP_DEFINE_HYPDATA_IS(type, name)                                 \
-    HYP_EXPORT int8 HypData_Is##name(const HypData* hypData, int8 strict) \
-    {                                                                     \
-        if (!hypData)                                                     \
-        {                                                                 \
-            return false;                                                 \
-        }                                                                 \
-                                                                          \
-        return hypData->Is<type>(bool(strict));                           \
+#define HYP_DEFINE_HYPDATA_IS(type, name)                                   \
+    HYP_EXPORT int8 HypData_Is##name(const BoxedValue* pBoxed, int8 strict) \
+    {                                                                       \
+        if (!pBoxed)                                                        \
+        {                                                                   \
+            return false;                                                   \
+        }                                                                   \
+                                                                            \
+        return pBoxed->Is<type>(bool(strict));                              \
     }
 
-#define HYP_DEFINE_HYPDATA_SET(type, name)                          \
-    HYP_EXPORT int8 HypData_Set##name(HypData* hypData, type value) \
-    {                                                               \
-        if (!hypData)                                               \
-        {                                                           \
-            return false;                                           \
-        }                                                           \
-                                                                    \
-        *hypData = HypData(value);                                  \
-        return true;                                                \
+#define HYP_DEFINE_HYPDATA_SET(type, name)                            \
+    HYP_EXPORT int8 HypData_Set##name(BoxedValue* pBoxed, type value) \
+    {                                                                 \
+        if (!pBoxed)                                                  \
+        {                                                             \
+            return false;                                             \
+        }                                                             \
+                                                                      \
+        *pBoxed = BoxedValue(value);                                  \
+        return true;                                                  \
     }
 
     HYP_DEFINE_HYPDATA_GET(int8, Int8)
@@ -168,28 +168,28 @@ extern "C"
 #undef HYP_DEFINE_HYPDATA_IS
 #undef HYP_DEFINE_HYPDATA_SET
 
-    HYP_EXPORT int8 HypData_IsArray(const HypData* hypData)
+    HYP_EXPORT int8 HypData_IsArray(const BoxedValue* pBoxed)
     {
-        if (!hypData)
+        if (!pBoxed)
         {
             return false;
         }
 
-        return hypData->IsArray();
+        return pBoxed->IsArray();
     }
 
-    HYP_EXPORT int8 HypData_GetArraySize(const HypData* hypData, int32* outSize)
+    HYP_EXPORT int8 HypData_GetArraySize(const BoxedValue* pBoxed, int32* pOutSize)
     {
-        if (!hypData || !outSize)
+        if (!pBoxed || !pOutSize)
         {
             return false;
         }
 
-        if (hypData->IsArray())
+        if (pBoxed->IsArray())
         {
-            const GenericArrayWrapper& arrayWrapper = hypData->Get<GenericArrayWrapper>();
+            const GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
 
-            *outSize = int32(arrayWrapper.Size());
+            *pOutSize = int32(arrayWrapper.Size());
 
             return true;
         }
@@ -197,60 +197,60 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_GetArrayElem(HypData* hypData, int32 index, HypData* outArrayElem)
+    HYP_EXPORT int8 HypData_GetArrayElem(BoxedValue* pBoxed, int32 index, BoxedValue* pOutArrayElem)
     {
-        if (!hypData || !outArrayElem)
+        if (!pBoxed || !pOutArrayElem)
         {
             return false;
         }
 
-        if (hypData->IsArray())
+        if (pBoxed->IsArray())
         {
-            GenericArrayWrapper& arrayWrapper = hypData->Get<GenericArrayWrapper>();
+            GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
 
-            return arrayWrapper.GetElementAt(SizeType(index), *outArrayElem);
+            return arrayWrapper.GetElementAt(SizeType(index), *pOutArrayElem);
         }
 
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetArray(HypData* hypData, const Class* cls, HypData* elements, uint32 size)
+    HYP_EXPORT int8 HypData_SetArray(BoxedValue* pBoxed, const Class* pClass, BoxedValue* pElements, uint32 size)
     {
-        if (!hypData || !cls || !elements)
+        if (!pBoxed || !pClass || !pElements)
         {
             return false;
         }
 
-        if (!cls->CanCreateInstance())
+        if (!pClass->CanCreateInstance())
         {
             return false;
         }
 
-        return cls->CreateInstanceArray(Span<HypData>(elements, elements + size), *hypData, /* allowAbstract */ false);
+        return pClass->CreateInstanceArray(Span<BoxedValue>(pElements, pElements + size), *pBoxed, /* allowAbstract */ false);
     }
 
-    HYP_EXPORT int8 HypData_IsString(const HypData* hypData)
+    HYP_EXPORT int8 HypData_IsString(const BoxedValue* pBoxed)
     {
-        if (!hypData)
+        if (!pBoxed)
         {
             return false;
         }
 
-        return hypData->Is<String>();
+        return pBoxed->Is<String>();
     }
 
-    HYP_EXPORT int8 HypData_GetString(const HypData* hypData, const char** outStr)
+    HYP_EXPORT int8 HypData_GetString(const BoxedValue* pBoxed, const char** ppOutStringValue)
     {
-        if (!hypData || !outStr)
+        if (!pBoxed || !ppOutStringValue)
         {
             return false;
         }
 
-        if (hypData->Is<String>())
+        if (pBoxed->Is<String>())
         {
-            const String& str = hypData->Get<String>();
+            const String& str = pBoxed->Get<String>();
 
-            *outStr = str.Data();
+            *ppOutStringValue = str.Data();
 
             return true;
         }
@@ -258,38 +258,38 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetString(HypData* hypData, const char* str)
+    HYP_EXPORT int8 HypData_SetString(BoxedValue* pBoxed, const char* pStringValue)
     {
-        if (!hypData || !str)
+        if (!pBoxed || !pStringValue)
         {
             return false;
         }
 
-        *hypData = HypData(String(str));
+        *pBoxed = BoxedValue(String(pStringValue));
 
         return true;
     }
 
-    HYP_EXPORT int8 HypData_IsId(const HypData* hypData)
+    HYP_EXPORT int8 HypData_IsId(const BoxedValue* pBoxed)
     {
-        if (!hypData)
+        if (!pBoxed)
         {
             return false;
         }
 
-        return hypData->Is<ObjIdBase>();
+        return pBoxed->Is<ObjIdBase>();
     }
 
-    HYP_EXPORT int8 HypData_GetId(const HypData* hypData, ObjIdBase* outId)
+    HYP_EXPORT int8 HypData_GetId(const BoxedValue* pBoxed, ObjIdBase* pOutId)
     {
-        if (!hypData || !outId)
+        if (!pBoxed || !pOutId)
         {
             return false;
         }
 
-        if (hypData->Is<ObjIdBase>())
+        if (pBoxed->Is<ObjIdBase>())
         {
-            *outId = hypData->Get<ObjIdBase>();
+            *pOutId = pBoxed->Get<ObjIdBase>();
 
             return true;
         }
@@ -297,38 +297,38 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetId(HypData* hypData, ObjIdBase* id)
+    HYP_EXPORT int8 HypData_SetId(BoxedValue* pBoxed, ObjIdBase* pId)
     {
-        if (!hypData || !id)
+        if (!pBoxed || !pId)
         {
             return false;
         }
 
-        *hypData = HypData(*id);
+        *pBoxed = BoxedValue(*pId);
 
         return true;
     }
 
-    HYP_EXPORT int8 HypData_IsName(const HypData* hypData)
+    HYP_EXPORT int8 HypData_IsName(const BoxedValue* pBoxed)
     {
-        if (!hypData)
+        if (!pBoxed)
         {
             return false;
         }
 
-        return hypData->Is<Name>();
+        return pBoxed->Is<Name>();
     }
 
-    HYP_EXPORT int8 HypData_GetName(const HypData* hypData, Name* outName)
+    HYP_EXPORT int8 HypData_GetName(const BoxedValue* pBoxed, Name* pOutName)
     {
-        if (!hypData || !outName)
+        if (!pBoxed || !pOutName)
         {
             return false;
         }
 
-        if (hypData->Is<Name>())
+        if (pBoxed->Is<Name>())
         {
-            *outName = hypData->Get<Name>();
+            *pOutName = pBoxed->Get<Name>();
 
             return true;
         }
@@ -336,34 +336,34 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetName(HypData* hypData, Name nameValue)
+    HYP_EXPORT int8 HypData_SetName(BoxedValue* pBoxed, Name nameValue)
     {
-        if (!hypData)
+        if (!pBoxed)
         {
             return false;
         }
 
-        *hypData = HypData(nameValue);
+        *pBoxed = BoxedValue(nameValue);
 
         return true;
     }
 
-    HYP_EXPORT int8 HypData_GetObject(const HypData* hypData, dotnet::ObjectReference* outObjectReference)
+    HYP_EXPORT int8 HypData_GetObject(const BoxedValue* pBoxed, dotnet::ObjectReference* pOutObjectReference)
     {
 #ifdef HYP_DOTNET
-        if (!hypData || !outObjectReference)
+        if (!pBoxed || !pOutObjectReference)
         {
             return false;
         }
 
-        if (hypData->IsNull())
+        if (pBoxed->IsNull())
         {
-            HYP_LOG(Object, Error, "Cannot get Object from null HypData");
+            HYP_LOG(Object, Error, "Cannot get Object from null BoxedValue");
 
             return false;
         }
 
-        const Class* cls = GetClass(hypData->GetTypeId());
+        const Class* cls = GetClass(pBoxed->GetTypeId());
 
         if (!cls)
         {
@@ -375,17 +375,17 @@ extern "C"
             return false;
         }
 
-        if (!hypData->ToRef().HasValue())
+        if (!pBoxed->ToRef().HasValue())
         {
-            // Null HypData refs still return true - null handling happens on managed side
+            // Null BoxedValue refs still return true - null handling happens on managed side
             return true;
         }
 
         dotnet::ObjectReference objectReference;
 
-        if (cls->GetManagedObject(hypData->ToRef().GetPointer(), objectReference))
+        if (cls->GetManagedObject(pBoxed->ToRef().GetPointer(), objectReference))
         {
-            *outObjectReference = objectReference;
+            *pOutObjectReference = objectReference;
 
             return true;
         }
@@ -398,32 +398,44 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT int8 HypData_SetObject(HypData* hypData, const Class* cls, void* address)
+    HYP_EXPORT int8 HypData_SetObject(BoxedValue* pBoxed, const Class* pClass, void* address)
     {
-        if (!hypData || !cls || !address)
+        if (!pBoxed || !pClass || !address)
         {
             return false;
         }
 
-        const TypeId typeId = cls->GetTypeId();
+        const TypeId typeId = pClass->GetTypeId();
 
-        if (cls->IsClassType())
+        if (pClass->IsClassType())
         {
-            return cls->ToHypData(ByteView(reinterpret_cast<ubyte*>(address), cls->GetSize()), *hypData);
+            return pClass->ToHypData(ByteView(reinterpret_cast<ubyte*>(address), pClass->GetSize()), *pBoxed);
         }
 
         return false;
     }
 
-    HYP_EXPORT int8 HypData_GetStruct(const HypData* hypData, dotnet::ObjectReference* outObjectReference)
+    HYP_EXPORT int8 HypData_SetNullObject(BoxedValue* pBoxed)
     {
-#ifdef HYP_DOTNET
-        if (!hypData || !outObjectReference)
+        if (!pBoxed)
         {
             return false;
         }
 
-        ConstAnyRef ref = hypData->ToRef();
+        *pBoxed = BoxedValue(Handle<ObjectBase>::Null());
+
+        return true;
+    }
+
+    HYP_EXPORT int8 HypData_GetStruct(const BoxedValue* pBoxed, dotnet::ObjectReference* pOutObjectReference)
+    {
+#ifdef HYP_DOTNET
+        if (!pBoxed || !pOutObjectReference)
+        {
+            return false;
+        }
+
+        ConstAnyRef ref = pBoxed->ToRef();
 
         if (!ref.HasValue())
         {
@@ -432,7 +444,7 @@ extern "C"
 
         /// \todo Implement for dynamic struct types
 
-        const Class* cls = GetClass(hypData->GetTypeId());
+        const Class* cls = GetClass(pBoxed->GetTypeId());
 
         if (!cls)
         {
@@ -448,7 +460,7 @@ extern "C"
         {
             Assert(managedClass->GetMarshalObjectFunction() != nullptr);
 
-            *outObjectReference = managedClass->GetMarshalObjectFunction()(ref.GetPointer(), uint32(cls->GetSize()));
+            *pOutObjectReference = managedClass->GetMarshalObjectFunction()(ref.GetPointer(), uint32(cls->GetSize()));
 
             return true;
         }
@@ -459,53 +471,53 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT int8 HypData_SetStruct(HypData* hypData, const Class* cls, uint32 size, void* objectPtr)
+    HYP_EXPORT int8 HypData_SetStruct(BoxedValue* pBoxed, const Class* pClass, uint32 size, void* pStructData)
     {
-        if (!hypData || !cls || !objectPtr)
+        if (!pBoxed || !pClass || !pStructData)
         {
             return false;
         }
 
-        if (!cls->IsStructType())
+        if (!pClass->IsStructType())
         {
-            HYP_LOG(Object, Error, "Class {} is not a struct type", cls->GetName());
+            HYP_LOG(Object, Error, "Class {} is not a struct type", pClass->GetName());
 
             return false;
         }
 
-        const Struct* pStruct = static_cast<const Struct*>(cls);
+        const Struct* pStruct = static_cast<const Struct*>(pClass);
 
         if (size != pStruct->GetSize())
         {
             HYP_LOG(Object, Error, "Given a buffer size of {} but Class {} has a size of {}",
-                size, cls->GetName(), pStruct->GetSize());
+                size, pClass->GetName(), pStruct->GetSize());
 
             return false;
         }
 
-        return pStruct->ToHypData(ByteView(reinterpret_cast<ubyte*>(objectPtr), size), *hypData);
+        return pStruct->ToHypData(ByteView(reinterpret_cast<ubyte*>(pStructData), size), *pBoxed);
     }
 
-    HYP_EXPORT int8 HypData_IsByteBuffer(const HypData* hypData)
+    HYP_EXPORT int8 HypData_IsByteBuffer(const BoxedValue* pBoxed)
     {
-        if (!hypData)
+        if (!pBoxed)
         {
             return false;
         }
 
-        return hypData->Is<ByteBuffer>();
+        return pBoxed->Is<ByteBuffer>();
     }
 
-    HYP_EXPORT int8 HypData_GetByteBuffer(const HypData* hypData, const void** outPtr, uint32* outSize)
+    HYP_EXPORT int8 HypData_GetByteBuffer(const BoxedValue* pBoxed, const void** outPtr, uint32* outSize)
     {
-        if (!hypData || !outPtr || !outSize)
+        if (!pBoxed || !outPtr || !outSize)
         {
             return false;
         }
 
-        if (hypData->Is<ByteBuffer>())
+        if (pBoxed->Is<ByteBuffer>())
         {
-            const ByteBuffer& byteBuffer = hypData->Get<ByteBuffer>();
+            const ByteBuffer& byteBuffer = pBoxed->Get<ByteBuffer>();
 
             *outPtr = byteBuffer.Data();
             *outSize = uint32(byteBuffer.Size());
@@ -516,14 +528,14 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetByteBuffer(HypData* hypData, const void* ptr, uint32 size)
+    HYP_EXPORT int8 HypData_SetByteBuffer(BoxedValue* pBoxed, const void* ptr, uint32 size)
     {
-        if (!hypData || !ptr)
+        if (!pBoxed || !ptr)
         {
             return false;
         }
 
-        *hypData = HypData(ByteBuffer(size, ptr));
+        *pBoxed = BoxedValue(ByteBuffer(size, ptr));
 
         return true;
     }

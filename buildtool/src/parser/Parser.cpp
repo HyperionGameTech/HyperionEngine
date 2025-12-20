@@ -252,7 +252,7 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
             { "Vec4f", { "Vec4f" } },
             { "TypeId", { "TypeId" } },
             { "ByteBuffer", { "ByteBuffer" } },
-            { "HypData", g_hypscriptAnyTypeMapping },
+            { "BoxedValue", g_hypscriptAnyTypeMapping },
             { "string", { "string" } },
             { "String", { "string" } },
             { "ANSIString", { "string" } },

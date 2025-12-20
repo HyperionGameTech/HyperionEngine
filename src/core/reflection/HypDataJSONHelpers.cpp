@@ -9,7 +9,7 @@
 #include <core/reflection/Field.hpp>
 #include <core/reflection/StaticField.hpp>
 #include <core/reflection/Method.hpp>
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/LinkedList.hpp>
@@ -49,7 +49,7 @@ static thread_local HashSet<Pair<TypeId, const void*>> s_serializedObjects;
 static constexpr bool ForceWriteClassNamesWhenTypesDiffer = true;
 
 bool HypDataToJSON(
-    const HypData& value,
+    const BoxedValue& value,
     json::JSONValue& outJson,
     ToJSONOptions opts)
 {
@@ -97,7 +97,7 @@ bool HypDataToJSON(
 
     if (isAssetObject && assetReference.IsValid() && opts.saveAssetObjectsAsReferences && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
     {
-        return HypDataToJSON(HypData(assetReference), outJson, opts);
+        return HypDataToJSON(BoxedValue(assetReference), outJson, opts);
     }
 
     assetReference = AssetReference(); // reset
@@ -171,7 +171,7 @@ bool HypDataToJSON(
             }
 
             json::JSONValue jsonValue;
-            if (!HypDataToJSON(HypData(element), jsonValue, opts))
+            if (!HypDataToJSON(BoxedValue(element), jsonValue, opts))
             {
                 return false;
             }
@@ -210,7 +210,7 @@ bool HypDataToJSON(
                 }
 
                 json::JSONValue jsonValue;
-                if (!HypDataToJSON(HypData(element), jsonValue, opts))
+                if (!HypDataToJSON(BoxedValue(element), jsonValue, opts))
                 {
                     return false;
                 }
@@ -255,7 +255,7 @@ bool HypDataToJSON(
 
         for (SizeType i = 0; i < size; i++)
         {
-            HypData element;
+            BoxedValue element;
 
             if (!handler->GetElementAt(value, i, element))
             {
@@ -326,7 +326,7 @@ bool HypDataToJSON(
             ToJSONOptions newOpts = opts;
             newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-            HypData elementData(element);
+            BoxedValue elementData(element);
 
             if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->GetClass() != elementData.GetTypeInfo()->GetClass())
             {
@@ -434,7 +434,7 @@ bool HypDataToJSON(
             newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::NEVER;
         }
 
-        return HypDataToJSON(HypData(activeValue), outJson, newOpts);
+        return HypDataToJSON(BoxedValue(activeValue), outJson, newOpts);
     }
 
     const Class* cls = GetClass(value.GetTypeId());
@@ -445,7 +445,7 @@ bool HypDataToJSON(
 
         if (!s_serializedObjects.Insert(pair).second)
         {
-            HYP_LOG(Core, Warning, "Detected circular reference when serializing HypData to JSON!");
+            HYP_LOG(Core, Warning, "Detected circular reference when serializing BoxedValue to JSON!");
 
             return false;
         }
@@ -470,14 +470,14 @@ bool HypDataToJSON(
         return true;
     }
 
-    HYP_LOG(Core, Warning, "Don't know how to serialize HypData with type \"{}\" to JSON", typeInfo.name);
+    HYP_LOG(Core, Warning, "Don't know how to serialize BoxedValue with type \"{}\" to JSON", typeInfo.name);
 
     return false;
 }
 
 bool ObjectToJSON(
     const Class* cls,
-    const HypData& target,
+    const BoxedValue& target,
     json::JSONObject& outJson,
     ToJSONOptions opts)
 {
@@ -504,8 +504,8 @@ bool ObjectToJSON(
             }
             else
             {
-                HypData returnValue;
-                toJsonMethod->Invoke(Array<HypData*> { const_cast<HypData*>(&target), &returnValue });
+                BoxedValue returnValue;
+                toJsonMethod->Invoke(Array<BoxedValue*> { const_cast<BoxedValue*>(&target), &returnValue });
 
                 if (returnValue.Is<json::JSONValue>())
                 {
@@ -573,7 +573,7 @@ bool ObjectToJSON(
             {
                 const Property* property = static_cast<const Property*>(&member);
 
-                HypData value = property->Get(target);
+                BoxedValue value = property->Get(target);
 
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
@@ -620,7 +620,7 @@ bool ObjectToJSON(
             {
                 const Field* field = static_cast<const Field*>(&member);
 
-                HypData value = field->Get(target);
+                BoxedValue value = field->Get(target);
 
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
@@ -669,7 +669,7 @@ bool ObjectToJSON(
             {
                 const StaticField* staticField = static_cast<const StaticField*>(&member);
 
-                HypData value = staticField->Get();
+                BoxedValue value = staticField->Get();
 
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
@@ -735,7 +735,7 @@ bool ObjectToJSON(
     return true;
 }
 
-bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, HypData& target)
+bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, BoxedValue& target)
 {
     auto resolveMember = [&target](const IHypMember& member, const json::JSONValue& value) -> bool
     {
@@ -746,9 +746,9 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
             const Property& property = static_cast<const Property&>(member);
             const TypeInfo& typeInfo = property.GetTypeInfo();
 
-            HypData hypData;
+            BoxedValue boxed;
 
-            if (!JSONToHypData(value, typeInfo, hypData))
+            if (!JSONToHypData(value, typeInfo, boxed))
             {
                 HYP_LOG(Core, Warning, "Failed to deserialize property \"{}\" from json",
                     member.GetName());
@@ -756,13 +756,13 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
                 return false;
             }
 
-            if (hypData.IsNull())
+            if (boxed.IsNull())
             {
                 // dont set null values
                 return true;
             }
 
-            property.Set(target, hypData);
+            property.Set(target, boxed);
 
             return true;
         }
@@ -771,9 +771,9 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
             const Field& field = static_cast<const Field&>(member);
             const TypeInfo& typeInfo = field.GetTypeInfo();
 
-            HypData hypData;
+            BoxedValue boxed;
 
-            if (!JSONToHypData(value, typeInfo, hypData))
+            if (!JSONToHypData(value, typeInfo, boxed))
             {
                 HYP_LOG(Core, Warning, "Failed to deserialize field \"{}\" from json",
                     member.GetName());
@@ -781,13 +781,13 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
                 return false;
             }
 
-            if (hypData.IsNull())
+            if (boxed.IsNull())
             {
                 // dont set null values
                 return true;
             }
 
-            field.Set(target, hypData);
+            field.Set(target, boxed);
 
             return true;
         }
@@ -917,7 +917,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
         // target wants an AssetPath, we can give it the AssetPath
         if (targetClass == AssetPath::StaticClass())
         {
-            target = HypData(assetReference.GetAssetPath());
+            target = BoxedValue(assetReference.GetAssetPath());
 
             return true;
         }
@@ -926,7 +926,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
         {
             if (Handle<AssetObject> assetObject = assetReference.Resolve(); assetObject.IsValid())
             {
-                target = HypData(std::move(assetObject));
+                target = BoxedValue(std::move(assetObject));
 
                 return true;
             }
@@ -934,7 +934,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
             {
                 HYP_LOG(Core, Warning, "Failed to load AssetObject from AssetReference: {}", assetReference.GetAssetPath());
 
-                target = HypData(Handle<ObjectBase>::Null());
+                target = BoxedValue(Handle<ObjectBase>::Null());
 
                 return false;
             }
@@ -949,7 +949,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, 
     return true;
 }
 
-bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, HypData& outHypData)
+bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, BoxedValue& outHypData)
 {
     if (typeInfo.IsBoolType())
     {
@@ -959,7 +959,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             return false;
         }
 
-        outHypData = HypData(jsonValue.AsBool());
+        outHypData = BoxedValue(jsonValue.AsBool());
         return true;
     }
 
@@ -981,7 +981,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            outHypData = HypData(int8(number));
+            outHypData = BoxedValue(int8(number));
             return true;
         }
 
@@ -993,7 +993,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            outHypData = HypData(int16(number));
+            outHypData = BoxedValue(int16(number));
             return true;
         }
 
@@ -1005,7 +1005,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            outHypData = HypData(int32(number));
+            outHypData = BoxedValue(int32(number));
             return true;
         }
 
@@ -1017,7 +1017,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            outHypData = HypData(int64(number));
+            outHypData = BoxedValue(int64(number));
             return true;
         }
 
@@ -1029,7 +1029,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            outHypData = HypData(uint8(number));
+            outHypData = BoxedValue(uint8(number));
             return true;
         }
 
@@ -1041,7 +1041,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            outHypData = HypData(uint16(number));
+            outHypData = BoxedValue(uint16(number));
             return true;
         }
 
@@ -1053,7 +1053,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            outHypData = HypData(uint32(number));
+            outHypData = BoxedValue(uint32(number));
             return true;
         }
 
@@ -1065,7 +1065,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            outHypData = HypData(uint64(number));
+            outHypData = BoxedValue(uint64(number));
             return true;
         }
 
@@ -1079,7 +1079,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                     return false;
                 }
 
-                outHypData = HypData(SizeType(number));
+                outHypData = BoxedValue(SizeType(number));
                 return true;
             }
         }
@@ -1102,19 +1102,19 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         {
             // Clamp to representable range of Float16
             const double clamped = MathUtil::Clamp(double(number), double(-FLT16_MAX), double(FLT16_MAX));
-            outHypData = HypData(Float16(float(MathUtil::Clamp(double(clamped), double(-FLT16_MAX), double(FLT16_MAX)))));
+            outHypData = BoxedValue(Float16(float(MathUtil::Clamp(double(clamped), double(-FLT16_MAX), double(FLT16_MAX)))));
             return true;
         }
 
         if (typeInfo.id == TypeId::ForType<float>())
         {
-            outHypData = HypData(float(MathUtil::Clamp(double(number), double(-FLT_MAX), double(FLT_MAX))));
+            outHypData = BoxedValue(float(MathUtil::Clamp(double(number), double(-FLT_MAX), double(FLT_MAX))));
             return true;
         }
 
         if (typeInfo.id == TypeId::ForType<double>())
         {
-            outHypData = HypData(double(number));
+            outHypData = BoxedValue(double(number));
             return true;
         }
 
@@ -1139,7 +1139,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         ITypeInfoStringHandler* stringHandler = static_cast<ITypeInfoStringHandler*>(handler);
 
-        HypData stringInstance;
+        BoxedValue stringInstance;
         if (!stringHandler->CreateInstance(stringInstance))
         {
             HYP_LOG(Core, Warning, "Failed to create instance of string type");
@@ -1168,42 +1168,42 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         {
             if (underlyingTypeInfo->id == TypeId::ForType<int8>())
             {
-                outHypData = HypData(jsonValue.ToInt8());
+                outHypData = BoxedValue(jsonValue.ToInt8());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<int16>())
             {
-                outHypData = HypData(jsonValue.ToInt16());
+                outHypData = BoxedValue(jsonValue.ToInt16());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<int32>())
             {
-                outHypData = HypData(jsonValue.ToInt32());
+                outHypData = BoxedValue(jsonValue.ToInt32());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<int64>())
             {
-                outHypData = HypData(jsonValue.ToInt64());
+                outHypData = BoxedValue(jsonValue.ToInt64());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<uint8>())
             {
-                outHypData = HypData(jsonValue.ToUInt8());
+                outHypData = BoxedValue(jsonValue.ToUInt8());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<uint16>())
             {
-                outHypData = HypData(jsonValue.ToUInt16());
+                outHypData = BoxedValue(jsonValue.ToUInt16());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<uint32>())
             {
-                outHypData = HypData(jsonValue.ToUInt32());
+                outHypData = BoxedValue(jsonValue.ToUInt32());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<uint64>())
             {
-                outHypData = HypData(jsonValue.ToUInt64());
+                outHypData = BoxedValue(jsonValue.ToUInt64());
                 return true;
             }
             else
@@ -1234,13 +1234,13 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             return false;
         }
 
-        outHypData = HypData(Uuid(*jsonString));
+        outHypData = BoxedValue(Uuid(*jsonString));
         return true;
     }
 
     if (typeInfo.id == TypeId::ForType<Name>())
     {
-        outHypData = HypData(Name(CreateNameFromDynamicString(*jsonValue.ToString())));
+        outHypData = BoxedValue(Name(CreateNameFromDynamicString(*jsonValue.ToString())));
         return true;
     }
 
@@ -1262,7 +1262,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         ITypeInfoVectorHandler* vectorHandler = static_cast<ITypeInfoVectorHandler*>(handler);
 
-        HypData vectorInstance;
+        BoxedValue vectorInstance;
         if (!vectorHandler->CreateInstance(vectorInstance))
         {
             return false;
@@ -1288,7 +1288,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         for (int i = 0; i < int(jsonArray.Size()); i++)
         {
-            HypData elementData;
+            BoxedValue elementData;
 
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
             {
@@ -1323,7 +1323,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         ITypeInfoMatrixHandler* matrixHandler = static_cast<ITypeInfoMatrixHandler*>(handler);
 
-        HypData matrixInstance;
+        BoxedValue matrixInstance;
         if (!matrixHandler->CreateInstance(matrixInstance))
         {
             return false;
@@ -1349,7 +1349,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         for (SizeType i = 0; i < jsonArray.Size(); i++)
         {
-            HypData elementData;
+            BoxedValue elementData;
 
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
             {
@@ -1391,7 +1391,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         ITypeInfoArrayHandler* arrayHandler = static_cast<ITypeInfoArrayHandler*>(handler);
 
-        HypData arrayInstance;
+        BoxedValue arrayInstance;
         if (!arrayHandler->CreateInstance(arrayInstance))
         {
             HYP_LOG(Core, Warning, "Failed to create instance of array type {}", typeInfo.name);
@@ -1409,7 +1409,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 continue;
             }
 
-            HypData elementData;
+            BoxedValue elementData;
 
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
             {
@@ -1456,7 +1456,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         ITypeInfoSetHandler* setHandler = static_cast<ITypeInfoSetHandler*>(handler);
 
-        HypData setInstance;
+        BoxedValue setInstance;
         if (!setHandler->CreateInstance(setInstance))
         {
             HYP_LOG(Core, Warning, "Failed to create instance of set type {}", typeInfo.name);
@@ -1472,7 +1472,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 continue;
             }
 
-            HypData elementData;
+            BoxedValue elementData;
 
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
             {
@@ -1507,7 +1507,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         {
             // create empty variant on null/undefined
 
-            HypData variantInstance;
+            BoxedValue variantInstance;
             if (!variantHandler->CreateInstance(variantInstance))
             {
                 HYP_LOG(Core, Warning, "Failed to create instance of variant type {}", typeInfo.name);
@@ -1531,11 +1531,11 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 continue;
             }
 
-            HypData variantData;
+            BoxedValue variantData;
 
             if (JSONToHypData(jsonValue, *variantTypeInfo, variantData))
             {
-                HypData variantInstance;
+                BoxedValue variantInstance;
 
                 if (!variantHandler->CreateInstance(variantInstance))
                 {
@@ -1562,7 +1562,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     if (jsonValue.IsNull() && typeInfo.IsClass())
     {
         // null object
-        outHypData = HypData();
+        outHypData = BoxedValue();
 
         return true;
     }
@@ -1595,7 +1595,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (instanceClass)
         {
-            HypData instance;
+            BoxedValue instance;
 
             if (!instanceClass->CreateInstance(instance))
             {
@@ -1619,7 +1619,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         return false;
     }
 
-    HYP_LOG(Core, Warning, "Failed to deserialize JSON to HypData of type: {}, no handle logic for JSON value: {}",
+    HYP_LOG(Core, Warning, "Failed to deserialize JSON to BoxedValue of type: {}, no handle logic for JSON value: {}",
         typeInfo.name, jsonValue.ToString(true));
 
     return false;

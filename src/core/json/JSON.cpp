@@ -12,7 +12,7 @@
 #include <core/io/BufferedByteReader.hpp>
 
 // needed for TypeInfo
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 namespace hyperion {
 namespace json {
@@ -209,7 +209,7 @@ JSONSubscriptWrapper<const T> SelectHelper(const JSONSubscriptWrapper<const T>& 
 
 #pragma endregion Helpers
 
-#pragma region JSONSubscriptWrapper<JSONValue>
+#pragma region JSONSubscriptWrapper < JSONValue>
 
 JSONValue& JSONSubscriptWrapper<JSONValue>::Get() const
 {
@@ -462,7 +462,7 @@ HashCode JSONSubscriptWrapper<JSONValue>::GetHashCode() const
 
 #pragma endregion JSONSubscriptWrapper < JSONValue>
 
-#pragma region JSONSubscriptWrapper<const JSONValue>
+#pragma region JSONSubscriptWrapper < const JSONValue>
 
 const JSONValue& JSONSubscriptWrapper<const JSONValue>::Get() const
 {

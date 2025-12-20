@@ -6,7 +6,7 @@
 #include <script/vm/GC.hpp>
 #include <script/vm/Exception.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/Class.hpp>
 #include <core/reflection/HypMember.hpp>
 #include <core/reflection/Field.hpp>
@@ -52,7 +52,7 @@
 
 namespace hyperion {
 
-using ScriptArray = Array<HypData, DynamicAllocator>;
+using ScriptArray = Array<BoxedValue, DynamicAllocator>;
 
 extern const char* LookupTypeName(const TypeId& typeId);
 
@@ -107,28 +107,28 @@ static const HashMap<TypeId, String (*)(const void*)> s_builtinToStringFunctions
 };
 // clang-format on
 
-static inline Script_VMData* GetVMData(HypData& data)
+static inline Script_VMData* GetVMData(BoxedValue& data)
 {
     return reinterpret_cast<Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
-static inline const Script_VMData* GetVMData(const HypData& data)
+static inline const Script_VMData* GetVMData(const BoxedValue& data)
 {
     return reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
-template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<HypData, NormalizedType<T>>>>
-static inline HypData ScriptApi_MakeValue(T&& data)
+template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<BoxedValue, NormalizedType<T>>>>
+static inline BoxedValue ScriptApi_MakeValue(T&& data)
 {
-    return HypData(HypData(std::forward<T>(data)));
+    return BoxedValue(BoxedValue(std::forward<T>(data)));
 }
 
-HypData ScriptApi_MakeValue(HypData&& data)
+BoxedValue ScriptApi_MakeValue(BoxedValue&& data)
 {
-    return HypData(std::move(data));
+    return BoxedValue(std::move(data));
 }
 
-HypData ScriptApi_MakeValue(const Script_VMData& data)
+BoxedValue ScriptApi_MakeValue(const Script_VMData& data)
 {
     static_assert(sizeof(Script_VMData) <= sizeof(HypData_UserData128), "Script_VMData must fit inside HypData_UserData128");
     static_assert(alignof(Script_VMData) <= alignof(HypData_UserData128), "Script_VMData must have alignment less than or equal to HypData_UserData128");
@@ -136,61 +136,61 @@ HypData ScriptApi_MakeValue(const Script_VMData& data)
     HypData_UserData128 ud;
     Memory::MemCpy(&ud, &data, sizeof(Script_VMData));
 
-    return HypData(ud);
+    return BoxedValue(ud);
 }
 
-HypData ScriptApi_MakeValue(const Number& number)
+BoxedValue ScriptApi_MakeValue(const Number& number)
 {
-    ValueStorage<HypData> resultStorage;
-    HypData* ptr = resultStorage.GetPointer();
+    ValueStorage<BoxedValue> resultStorage;
+    BoxedValue* ptr = resultStorage.GetPointer();
 
     if (number.flags & Number::FLAG_FLOATING_POINT)
     {
         if (number.flags & Number::FLAG_32_BIT)
         {
-            new (ptr) HypData(static_cast<float>(number.f));
+            new (ptr) BoxedValue(static_cast<float>(number.f));
         }
         else // if (number.flags & Number::FLAG_64_BIT)
         {
-            new (ptr) HypData(number.f);
+            new (ptr) BoxedValue(number.f);
         }
     }
     else if (number.flags & Number::FLAG_SIGNED)
     {
         if (number.flags & Number::FLAG_8_BIT)
         {
-            new (ptr) HypData(static_cast<int8>(number.i));
+            new (ptr) BoxedValue(static_cast<int8>(number.i));
         }
         else if (number.flags & Number::FLAG_16_BIT)
         {
-            new (ptr) HypData(static_cast<int16>(number.i));
+            new (ptr) BoxedValue(static_cast<int16>(number.i));
         }
         else if (number.flags & Number::FLAG_32_BIT)
         {
-            new (ptr) HypData(static_cast<int32>(number.i));
+            new (ptr) BoxedValue(static_cast<int32>(number.i));
         }
         else // if (number.flags & Number::FLAG_64_BIT)
         {
-            new (ptr) HypData(number.i);
+            new (ptr) BoxedValue(number.i);
         }
     }
     else if (number.flags & Number::FLAG_UNSIGNED)
     {
         if (number.flags & Number::FLAG_8_BIT)
         {
-            new (ptr) HypData(static_cast<uint8>(number.u));
+            new (ptr) BoxedValue(static_cast<uint8>(number.u));
         }
         else if (number.flags & Number::FLAG_16_BIT)
         {
-            new (ptr) HypData(static_cast<uint16>(number.u));
+            new (ptr) BoxedValue(static_cast<uint16>(number.u));
         }
         else if (number.flags & Number::FLAG_32_BIT)
         {
-            new (ptr) HypData(static_cast<uint32>(number.u));
+            new (ptr) BoxedValue(static_cast<uint32>(number.u));
         }
         else // if (number.flags & Number::FLAG_64_BIT)
         {
-            new (ptr) HypData(number.u);
+            new (ptr) BoxedValue(number.u);
         }
     }
     else
@@ -198,11 +198,11 @@ HypData ScriptApi_MakeValue(const Number& number)
         HYP_UNREACHABLE();
     }
 
-    return reinterpret_cast<HypData&&>(*ptr);
+    return reinterpret_cast<BoxedValue&&>(*ptr);
 }
 
 /*! \brief Use for loading into registers - does not promote to tracked memory so the lifetime of `refValue` must be managed by the caller */
-HypData ScriptApi_MakeRef(HypData* pValue)
+BoxedValue ScriptApi_MakeRef(BoxedValue* pValue)
 {
     Assert(pValue != nullptr);
 
@@ -216,7 +216,7 @@ HypData ScriptApi_MakeRef(HypData* pValue)
     return ScriptApi_MakeValue(vmData);
 }
 
-HypData ScriptApi_MakeTrackedRef(HypData* pValue, Script_GC* gc)
+BoxedValue ScriptApi_MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
 {
     Assert(gc != nullptr);
     Assert(pValue != nullptr);
@@ -237,7 +237,7 @@ HypData ScriptApi_MakeTrackedRef(HypData* pValue, Script_GC* gc)
 #define PASS_AS_REF(value) ((value).Is<Any>())
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
-HypData ScriptApi_ShallowCopy(HypData& refValue, Script_GC* gc)
+BoxedValue ScriptApi_ShallowCopy(BoxedValue& refValue, Script_GC* gc)
 {
     if (IsRef(refValue))
     {
@@ -250,7 +250,7 @@ HypData ScriptApi_ShallowCopy(HypData& refValue, Script_GC* gc)
         return ScriptApi_MakeRef(&refValue);
     }
 
-    HypData newHypData;
+    BoxedValue newHypData;
 
     Visit(refValue.value, [&newHypData](const auto& val)
         {
@@ -260,7 +260,7 @@ HypData ScriptApi_ShallowCopy(HypData& refValue, Script_GC* gc)
     return newHypData;
 }
 
-bool ScriptApi_ShouldValuePassByRef(const HypData& value)
+bool ScriptApi_ShouldValuePassByRef(const BoxedValue& value)
 {
     if (!value.IsValid())
     {
@@ -337,7 +337,7 @@ const char* ScriptApi_GetTypeString(TypeId typeId)
     return s_unknownTypeString;
 }
 
-const char* ScriptApi_GetTypeString(const HypData& data)
+const char* ScriptApi_GetTypeString(const BoxedValue& data)
 {
     if (!data.IsValid())
     {
@@ -380,9 +380,9 @@ const char* ScriptApi_GetTypeString(const HypData& data)
     return s_unknownTypeString;
 }
 
-bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int maxDepth, int currDepth);
+bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, int maxDepth, int currDepth);
 
-bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int maxDepth, int currDepth)
+bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, int maxDepth, int currDepth)
 {
     if (currDepth >= maxDepth && maxDepth >= 0)
     {
@@ -422,7 +422,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
                     outString += Script_String(", ");
                 }
 
-                HypData element;
+                BoxedValue element;
                 if (pArray->GetElementAt(i, element))
                 {
                     outString += ScriptApi_ValueToString(element, currDepth + 1);
@@ -474,7 +474,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
         if (toStringMethod != nullptr)
         {
-            HypData result = toStringMethod->Invoke(Span<HypData> { const_cast<HypData*>(&data), 1 });
+            BoxedValue result = toStringMethod->Invoke(Span<BoxedValue> { const_cast<BoxedValue*>(&data), 1 });
 
             if (const Script_String* str = result.TryGet<Script_String>().TryGet())
             {
@@ -553,7 +553,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
     return false;
 }
 
-String ScriptApi_ValueToString(const HypData& data, int currDepth)
+String ScriptApi_ValueToString(const BoxedValue& data, int currDepth)
 {
     static constexpr int MaxDepth = 3;
 
@@ -609,7 +609,7 @@ Script_RegisterMemory::Script_RegisterMemory()
 const uint16 Script_StaticMemory::staticSize = 2048;
 
 Script_StaticMemory::Script_StaticMemory()
-    : m_data(new HypData[staticSize])
+    : m_data(new BoxedValue[staticSize])
 {
 }
 
@@ -701,7 +701,7 @@ public:
             "Stack offset out of bounds (%u)",
             offset);
 
-        HypData& srcValue = stackMemory[stackMemory.GetStackPointer() - offset];
+        BoxedValue& srcValue = stackMemory[stackMemory.GetStackPointer() - offset];
 
         // read value from stack at (sp - offset)
         // into the the register
@@ -720,7 +720,7 @@ public:
             index,
             stackMemory.GetStackPointer());
 
-        HypData& srcValue = stackMemory[index];
+        BoxedValue& srcValue = stackMemory[index];
 
         // read value from stack at the index into the the register
         instance->thread.m_regs[reg] = PASS_AS_REF(srcValue)
@@ -732,7 +732,7 @@ public:
     {
         // read value from static memory
         // at the index into the the register
-        HypData& srcValue = vm->m_staticMemory[index];
+        BoxedValue& srcValue = vm->m_staticMemory[index];
 
         instance->thread.m_regs[reg] = PASS_AS_REF(srcValue)
             ? ScriptApi_MakeRef(&srcValue)
@@ -766,7 +766,7 @@ public:
 
     SCRIPT_INLINE void OpLoadArrayIdx(RegisterIndex dstReg, RegisterIndex srcReg, RegisterIndex indexReg)
     {
-        HypData& src = *Deref(instance->thread.m_regs[srcReg]);
+        BoxedValue& src = *Deref(instance->thread.m_regs[srcReg]);
 
         Number key;
 
@@ -799,7 +799,7 @@ public:
                     return;
                 }
 
-                HypData& srcValue = (*array)[key.i];
+                BoxedValue& srcValue = (*array)[key.i];
 
                 instance->thread.m_regs[dstReg] = PASS_AS_REF(srcValue)
                     ? ScriptApi_MakeRef(&srcValue)
@@ -814,7 +814,7 @@ public:
                     return;
                 }
 
-                HypData& srcValue = (*array)[key.u];
+                BoxedValue& srcValue = (*array)[key.u];
 
                 instance->thread.m_regs[dstReg] = PASS_AS_REF(srcValue)
                     ? ScriptApi_MakeRef(&srcValue)
@@ -831,7 +831,7 @@ public:
     SCRIPT_INLINE void OpLoadOffsetRef(RegisterIndex reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
-        HypData newRef = ScriptApi_MakeTrackedRef(Deref(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset]), vm->GetGC());
+        BoxedValue newRef = ScriptApi_MakeTrackedRef(Deref(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset]), vm->GetGC());
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
@@ -845,25 +845,25 @@ public:
             index,
             stackMemory.GetStackPointer());
 
-        HypData newRef = ScriptApi_MakeTrackedRef(Deref(stackMemory[index]), vm->GetGC());
+        BoxedValue newRef = ScriptApi_MakeTrackedRef(Deref(stackMemory[index]), vm->GetGC());
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
     SCRIPT_INLINE void OpLoadRef(RegisterIndex dstReg, RegisterIndex srcReg)
     {
-        HypData newRef = ScriptApi_MakeTrackedRef(Deref(instance->thread.m_regs[srcReg]), vm->GetGC());
+        BoxedValue newRef = ScriptApi_MakeTrackedRef(Deref(instance->thread.m_regs[srcReg]), vm->GetGC());
         instance->thread.m_regs[dstReg] = std::move(newRef);
     }
 
     SCRIPT_INLINE void OpLoadDeref(RegisterIndex dstReg, RegisterIndex srcReg)
     {
-        HypData& src = *Deref(instance->thread.m_regs[srcReg]); // double deref to get the actual value
+        BoxedValue& src = *Deref(instance->thread.m_regs[srcReg]); // double deref to get the actual value
         instance->thread.m_regs[dstReg] = ScriptApi_ShallowCopy(*Deref(src), vm->GetGC());
     }
 
     SCRIPT_INLINE void OpLoadNull(RegisterIndex reg)
     {
-        instance->thread.m_regs[reg] = HypData();
+        instance->thread.m_regs[reg] = BoxedValue();
     }
 
     SCRIPT_INLINE void OpLoadTrue(RegisterIndex reg)
@@ -887,7 +887,7 @@ public:
             return;
         }
 
-        HypData classValue = ScriptApi_MakeValue(HypData(ClassRef(cls)));
+        BoxedValue classValue = ScriptApi_MakeValue(BoxedValue(ClassRef(cls)));
 
         instance->thread.m_regs[reg] = std::move(classValue);
     }
@@ -913,7 +913,7 @@ public:
 
     SCRIPT_INLINE void OpMovArrayIdx(RegisterIndex dstReg, uint32 index, RegisterIndex srcReg)
     {
-        HypData& src = *Deref(instance->thread.m_regs[dstReg]);
+        BoxedValue& src = *Deref(instance->thread.m_regs[dstReg]);
 
         if (!src.Is<ScriptArray>())
         {
@@ -930,8 +930,8 @@ public:
             return;
         }
 
-        HypData& srcValue = *Deref(instance->thread.m_regs[srcReg]);
-        HypData& dstValue = array[index];
+        BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
+        BoxedValue& dstValue = array[index];
 
         dstValue = PASS_AS_REF(srcValue)
             ? ScriptApi_MakeRef(&srcValue)
@@ -940,7 +940,7 @@ public:
 
     SCRIPT_INLINE void OpMovArrayIdxReg(RegisterIndex dstReg, RegisterIndex indexReg, RegisterIndex srcReg)
     {
-        HypData& src = *Deref(instance->thread.m_regs[dstReg]);
+        BoxedValue& src = *Deref(instance->thread.m_regs[dstReg]);
 
         if (!src.Is<ScriptArray>())
         {
@@ -951,7 +951,7 @@ public:
         ScriptArray& array = src.Get<ScriptArray>();
 
         Number index;
-        HypData& indexRegisterValue = instance->thread.m_regs[indexReg];
+        BoxedValue& indexRegisterValue = instance->thread.m_regs[indexReg];
 
         if (!GetSignedOrUnsigned(indexRegisterValue, &index))
         {
@@ -984,8 +984,8 @@ public:
                 return;
             }
 
-            HypData& srcValue = *Deref(instance->thread.m_regs[srcReg]);
-            HypData& dstValue = array[indexValue];
+            BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
+            BoxedValue& dstValue = array[indexValue];
 
             dstValue = PASS_AS_REF(srcValue)
                 ? ScriptApi_MakeRef(&srcValue)
@@ -1002,8 +1002,8 @@ public:
                 return;
             }
 
-            HypData& srcValue = *Deref(instance->thread.m_regs[srcReg]);
-            HypData& dstValue = array[indexValue];
+            BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
+            BoxedValue& dstValue = array[indexValue];
 
             dstValue = PASS_AS_REF(srcValue)
                 ? ScriptApi_MakeRef(&srcValue)
@@ -1018,8 +1018,8 @@ public:
 
     SCRIPT_INLINE void OpCheckHasMember(RegisterIndex dstReg, RegisterIndex srcReg, uint64 hash)
     {
-        HypData& src = *Deref(instance->thread.m_regs[srcReg]);
-        HypData& result = instance->thread.m_regs[dstReg];
+        BoxedValue& src = *Deref(instance->thread.m_regs[srcReg]);
+        BoxedValue& result = instance->thread.m_regs[dstReg];
 
         const Class* cls = nullptr;
 
@@ -1045,7 +1045,7 @@ public:
 
     SCRIPT_INLINE void OpSetField(RegisterIndex dstReg, uint64 hash, RegisterIndex srcReg)
     {
-        HypData* pValue = Deref(instance->thread.m_regs[dstReg]);
+        BoxedValue* pValue = Deref(instance->thread.m_regs[dstReg]);
 
         const Class* cls = nullptr;
 
@@ -1079,7 +1079,7 @@ public:
 
     SCRIPT_INLINE void OpGetMember(RegisterIndex dstReg, RegisterIndex srcReg, uint64 hash)
     {
-        HypData& src = *Deref(instance->thread.m_regs[srcReg]);
+        BoxedValue& src = *Deref(instance->thread.m_regs[srcReg]);
 
         const Class* cls = nullptr;
 
@@ -1172,7 +1172,7 @@ public:
 
     SCRIPT_INLINE void OpPushArray(RegisterIndex dstReg, RegisterIndex srcReg)
     {
-        HypData& dst = *Deref(instance->thread.m_regs[dstReg]);
+        BoxedValue& dst = *Deref(instance->thread.m_regs[dstReg]);
 
         if (!dst.Is<ScriptArray>())
         {
@@ -1240,7 +1240,7 @@ public:
     SCRIPT_INLINE void OpRet()
     {
         // get top of stack (should be the address before jumping)
-        HypData& top = instance->thread.GetStack().Top();
+        BoxedValue& top = instance->thread.GetStack().Top();
 
         Script_VMData* vmData = GetVMData(top);
         Assert(vmData != nullptr);
@@ -1276,7 +1276,7 @@ public:
     SCRIPT_INLINE void OpEndTry()
     {
         // pop the try catch info from the stack
-        HypData& top = instance->thread.m_stack.Top();
+        BoxedValue& top = instance->thread.m_stack.Top();
 
         Script_VMData* vmData = GetVMData(top);
         Assert(vmData != nullptr);
@@ -1292,13 +1292,13 @@ public:
     SCRIPT_INLINE void OpNew(RegisterIndex dst, RegisterIndex src) // come back to this
     {
         // read value from register
-        HypData& classValue = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& classValue = *Deref(instance->thread.m_regs[src]);
 
         const ClassRef& classRef = classValue.Get<ClassRef>();
         Assert(classRef.IsValid());
 
-        HypData hypData;
-        if (!classRef->CreateInstance(hypData))
+        BoxedValue boxed;
+        if (!classRef->CreateInstance(boxed))
         {
             vm->ThrowException(
                 instance,
@@ -1310,7 +1310,7 @@ public:
             return;
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(std::move(hypData));
+        instance->thread.m_regs[dst] = ScriptApi_MakeValue(std::move(boxed));
     }
 
     SCRIPT_INLINE void OpNewArray(RegisterIndex dst, uint32 size)
@@ -1461,7 +1461,7 @@ public:
                     // Create constant
                     members.PushBack(HypMember(StaticField(
                         CreateNameFromDynamicString(memberNameStr),
-                        &TypeInfo::ForType<HypData>(), // TypeId(memberTypeIdValue),
+                        &TypeInfo::ForType<BoxedValue>(), // TypeId(memberTypeIdValue),
                         size,
                         attrs.ToSpan())));
 
@@ -1482,7 +1482,7 @@ public:
                     // Create field
                     members.PushBack(HypMember(Field(
                         CreateNameFromDynamicString(memberNameStr),
-                        &TypeInfo::ForType<HypData>(),    // TypeId(memberTypeIdValue),
+                        &TypeInfo::ForType<BoxedValue>(), // TypeId(memberTypeIdValue),
                         &TypeInfo::ForType<ObjectBase>(), // TypeId(targetTypeIdValue),
                         offset,
                         size,
@@ -1503,7 +1503,7 @@ public:
 
                     // load function info from stack address
                     Assert(stackOffset <= instance->thread.GetStack().GetStackPointer(), "Stack offset out of bounds!");
-                    HypData& funcValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - stackOffset];
+                    BoxedValue& funcValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - stackOffset];
 
                     Script_VMData* funcVmData = GetVMData(funcValue);
                     Assert(funcVmData != nullptr);
@@ -1514,7 +1514,7 @@ public:
 
                     Method method(
                         CreateNameFromDynamicString(memberNameStr),
-                        &TypeInfo::ForType<HypData>(),    // TypeId(memberTypeIdValue),
+                        &TypeInfo::ForType<BoxedValue>(), // TypeId(memberTypeIdValue),
                         &TypeInfo::ForType<ObjectBase>(), // TypeId(targetTypeIdValue),
                         functionAddress,
                         funcVmData->func.m_flags | flags, // combine flags
@@ -1533,7 +1533,7 @@ public:
 
                     for (uint8 j = 0; j < nargs; j++)
                     {
-                        method.GetParameters().PushBack(MethodParameter { &TypeInfo::ForType<HypData>() });
+                        method.GetParameters().PushBack(MethodParameter { &TypeInfo::ForType<BoxedValue>() });
                     }
 
                     members.PushBack(HypMember(std::move(method)));
@@ -1552,7 +1552,7 @@ public:
         Assert(hitEnd);
 
         // Read parent class register
-        HypData& parentClassValue = instance->thread.m_regs[reg];
+        BoxedValue& parentClassValue = instance->thread.m_regs[reg];
 
         const Class* parentClass = nullptr;
 
@@ -1575,7 +1575,7 @@ public:
 
         ClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
 
-        HypData classValue = ScriptApi_MakeValue(ClassRef(newClass));
+        BoxedValue classValue = ScriptApi_MakeValue(ClassRef(newClass));
 
         // promote the class object to tracked gc memory so it doesn't instantly get destroyed
         instance->thread.m_regs[reg] = ScriptApi_MakeTrackedRef(&classValue, vm->GetGC());
@@ -1591,8 +1591,8 @@ public:
         }
 
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1647,7 +1647,7 @@ public:
     SCRIPT_INLINE void OpCmpZ(RegisterIndex reg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[reg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[reg]);
 
         Number num;
 
@@ -1681,8 +1681,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1708,8 +1708,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1735,8 +1735,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1762,8 +1762,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1802,8 +1802,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1873,8 +1873,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1900,8 +1900,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1927,8 +1927,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1953,8 +1953,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -1979,8 +1979,8 @@ public:
         RegisterIndex dstReg)
     {
         // load values from registers
-        HypData* lhs = Deref(instance->thread.m_regs[lhsReg]);
-        HypData* rhs = Deref(instance->thread.m_regs[rhsReg]);
+        BoxedValue* lhs = Deref(instance->thread.m_regs[lhsReg]);
+        BoxedValue* rhs = Deref(instance->thread.m_regs[rhsReg]);
 
         Number a, b;
 
@@ -2003,7 +2003,7 @@ public:
     SCRIPT_INLINE void OpNot(RegisterIndex reg)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[reg]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[reg]);
 
         Number num;
 
@@ -2026,7 +2026,7 @@ public:
     SCRIPT_INLINE void OpThrow(RegisterIndex reg)
     {
         // load value from register
-        HypData* value = Deref(instance->thread.m_regs[reg]);
+        BoxedValue* value = Deref(instance->thread.m_regs[reg]);
 
         /// \todo Allow throwing the arugment
 
@@ -2035,9 +2035,9 @@ public:
 
     SCRIPT_INLINE void OpExportSymbol(RegisterIndex reg, uint64 hash)
     {
-        HypData& srcValue = *Deref(instance->thread.m_regs[reg]);
+        BoxedValue& srcValue = *Deref(instance->thread.m_regs[reg]);
 
-        HypData newValue = PASS_AS_REF(srcValue)
+        BoxedValue newValue = PASS_AS_REF(srcValue)
             ? ScriptApi_MakeTrackedRef(&srcValue, vm->GetGC())
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
 
@@ -2050,7 +2050,7 @@ public:
     SCRIPT_INLINE void OpNeg(RegisterIndex reg)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[reg]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[reg]);
 
         Number num;
 
@@ -2102,7 +2102,7 @@ public:
     SCRIPT_INLINE void OpCastU8(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
         Number num;
 
@@ -2135,7 +2135,7 @@ public:
     SCRIPT_INLINE void OpCastU16(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
         Number num;
 
@@ -2168,7 +2168,7 @@ public:
     SCRIPT_INLINE void OpCastU32(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
         Number num;
 
         if (!GetNumber(value, &num))
@@ -2200,7 +2200,7 @@ public:
     SCRIPT_INLINE void OpCastU64(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
         Number num;
 
         if (!GetNumber(value, &num))
@@ -2231,7 +2231,7 @@ public:
 
     SCRIPT_INLINE void OpCastI8(RegisterIndex dst, RegisterIndex src)
     {
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
         Number num;
 
         if (!GetNumber(value, &num))
@@ -2262,7 +2262,7 @@ public:
 
     SCRIPT_INLINE void OpCastI16(RegisterIndex dst, RegisterIndex src)
     {
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
         Number num;
 
         if (!GetNumber(value, &num))
@@ -2293,7 +2293,7 @@ public:
 
     SCRIPT_INLINE void OpCastI32(RegisterIndex dst, RegisterIndex src)
     {
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
         Number num;
 
         if (!GetNumber(value, &num))
@@ -2324,7 +2324,7 @@ public:
 
     SCRIPT_INLINE void OpCastI64(RegisterIndex dst, RegisterIndex src)
     {
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
         Number num;
 
         if (!GetNumber(value, &num))
@@ -2356,7 +2356,7 @@ public:
     SCRIPT_INLINE void OpCastF32(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
         Number num;
 
         if (!GetNumber(value, &num))
@@ -2388,7 +2388,7 @@ public:
     SCRIPT_INLINE void OpCastF64(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
         Number num;
 
         if (!GetNumber(value, &num))
@@ -2420,7 +2420,7 @@ public:
     SCRIPT_INLINE void OpCastBool(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
         // use same logic as CmpZ to determine truthiness
         bool result = false;
@@ -2450,7 +2450,7 @@ public:
     SCRIPT_INLINE void OpCastString(RegisterIndex dst, RegisterIndex src)
     {
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
         const Script_String* pString = nullptr;
 
@@ -2467,13 +2467,13 @@ public:
     SCRIPT_INLINE void OpCastDynamic(RegisterIndex dst, RegisterIndex src)
     {
         // dst register holds ClassRef object
-        HypData& classValue = *Deref(instance->thread.m_regs[dst]);
+        BoxedValue& classValue = *Deref(instance->thread.m_regs[dst]);
 
         const ClassRef& classRef = classValue.Get<ClassRef>();
         Assert(classRef.IsValid());
 
         // load value from register
-        HypData& value = *Deref(instance->thread.m_regs[src]);
+        BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
         const Class* cls = nullptr;
 
@@ -3453,7 +3453,7 @@ SCRIPT_INLINE static void HandleInstruction(
         MemoryBufferedReaderSource source { buffer };
         BufferedReader bufferedReader { &source };
 
-        HypData result;
+        BoxedValue result;
         if (FBOMResult err = reader.Deserialize(ctx, bufferedReader, result))
         {
             // throw exception for invalid data:
@@ -3534,22 +3534,22 @@ void Script_Interpreter::ThrowException(Script_Instance* instance, const Script_
     }
 }
 
-void Script_Interpreter::Invoke(Script_Instance* instance, HypData&& value, uint8 nargs)
+void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
     Script_Stream* bs = &instance->stream;
 
-    HypData& deref = *Deref(value);
+    BoxedValue& deref = *Deref(value);
 
     if (IsFunction(deref))
     {
         if (IsNativeFunction(deref))
         {
-            HypData** argsHypData = (HypData**)StackAlloc((nargs > 0 ? nargs : 1) * sizeof(HypData*));
+            BoxedValue** argsHypData = (BoxedValue**)StackAlloc((nargs > 0 ? nargs : 1) * sizeof(BoxedValue*));
 
             for (int argIndex = 0; argIndex < nargs; argIndex++)
             {
-                HypData& srcValue = *Deref(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex]);
+                BoxedValue& srcValue = *Deref(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex]);
 
                 argsHypData[argIndex] = &srcValue;
             }
@@ -3574,7 +3574,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, HypData&& value, uint
                 }
             }
 
-            HypData resultHypData = vmData->nativeFunc->Invoke(Span<HypData*>(argsHypData, nargs));
+            BoxedValue resultHypData = vmData->nativeFunc->Invoke(Span<BoxedValue*>(argsHypData, nargs));
 
             // set register 0 to the result
             instance->thread.GetRegisters()[0] = ScriptApi_MakeValue(std::move(resultHypData));
@@ -3656,7 +3656,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, HypData&& value, uint
     ThrowException(instance, Script_Exception(buffer));
 }
 
-void Script_Interpreter::InvokeNow(Script_Instance* instance, HypData&& value, uint8 nargs)
+void Script_Interpreter::InvokeNow(Script_Instance* instance, BoxedValue&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
     Script_Stream* bs = &instance->stream;
@@ -3667,7 +3667,7 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, HypData&& value, u
 
     InstructionHandler handler(this, instance);
 
-    HypData* deref = Deref(value);
+    BoxedValue* deref = Deref(value);
     Assert(deref != nullptr);
 
     Script_VMData* pVmData = GetVMData(*deref);
@@ -3745,7 +3745,7 @@ void Script_Interpreter::CreateTrace(Script_Instance* instance, Script_Trace* ou
             break;
         }
 
-        const HypData& top = instance->thread.m_stack[sp - 1];
+        const BoxedValue& top = instance->thread.m_stack[sp - 1];
 
         const Script_VMData* topVmData = GetVMData(top);
 
@@ -3769,7 +3769,7 @@ bool Script_Interpreter::HandleException(Script_Instance* instance)
         Assert(instance->thread.m_exceptionState.m_exceptionDepth != 0);
         --instance->thread.m_exceptionState.m_exceptionDepth;
 
-        HypData* top = &instance->thread.m_stack.Top();
+        BoxedValue* top = &instance->thread.m_stack.Top();
         Script_VMData* topVmData = GetVMData(*top);
 
         while (topVmData && topVmData->type != Script_VMData::TRY_CATCH_INFO)

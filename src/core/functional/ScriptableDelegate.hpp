@@ -19,7 +19,7 @@ namespace hyperion {
 
 class Method;
 class ObjectBase;
-struct HypData;
+struct BoxedValue;
 
 extern "C" Method* Class_GetMethod(const Class* cls, const Name* methodName);
 
@@ -43,7 +43,7 @@ public:
 class ScriptableDelegateHelper
 {
 public:
-    static void InvokeMethod_Internal(HypData* outReturnHypData, const Method* method, const Handle<ObjectBase>& target, Span<HypData> argsHypData);
+    static void InvokeMethod_Internal(BoxedValue* pOutBoxed, const Method* method, const Handle<ObjectBase>& target, Span<BoxedValue> argsHypData);
 
     template <class HypDataType, class ReturnType, class... Args>
     static bool InvokeScriptObjectMethod(ScriptObjectResource* scriptObjectResource, ANSIStringView methodName, ReturnType* outReturn, Args&&... args)
@@ -111,7 +111,7 @@ public:
             return false;
         }
 
-        return InvokeMethod<HypData, ReturnType>(method, nativeObject, outReturn, std::forward<Args>(args)...);
+        return InvokeMethod<BoxedValue, ReturnType>(method, nativeObject, outReturn, std::forward<Args>(args)...);
     }
 
     template <class HypDataType, class ReturnType, class... Args>
@@ -175,7 +175,7 @@ public:
         return Delegate<ReturnType, Args...>::Bind([methodName = ANSIString(methodName), getFn = std::move(getFn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 ValueStorage<ReturnType> returnValueStorage;
-                if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<HypData, ReturnType>(getFn(), methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
+                if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<BoxedValue, ReturnType>(getFn(), methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
                 {
                     return ReturnType();
                 }
@@ -209,7 +209,7 @@ public:
                 }
 
                 ValueStorage<ReturnType> returnValueStorage;
-                if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<HypData, ReturnType>(getFn(), methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
+                if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<BoxedValue, ReturnType>(getFn(), methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
                 {
                     return defaultReturn;
                 }
@@ -235,7 +235,7 @@ public:
         return Delegate<ReturnType, Args...>::Bind([methodName = ANSIString(methodName), scriptObjectResource]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
                 ValueStorage<ReturnType> returnValueStorage;
-                if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<HypData, ReturnType>(scriptObjectResource, methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
+                if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<BoxedValue, ReturnType>(scriptObjectResource, methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
                 {
                     return ReturnType();
                 }
@@ -267,7 +267,7 @@ public:
                 }
 
                 ValueStorage<ReturnType> returnValueStorage;
-                if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<HypData, ReturnType>(scriptObjectResource, methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
+                if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<BoxedValue, ReturnType>(scriptObjectResource, methodName, returnValueStorage.GetPointer(), std::forward<ArgTypes>(args)...))
                 {
                     return defaultReturn;
                 }

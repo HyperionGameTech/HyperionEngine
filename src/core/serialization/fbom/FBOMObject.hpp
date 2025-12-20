@@ -32,7 +32,7 @@
 namespace hyperion {
 
 class Class;
-struct HypData;
+struct BoxedValue;
 
 HYP_API extern TypeId GetTypeIdForClass(const Class* cls);
 
@@ -87,7 +87,7 @@ public:
     FBOMType m_objectType;
     Array<FBOMObject, DynamicAllocator> m_children;
     FlatMap<ANSIString, FBOMData> properties;
-    RC<HypData> m_deserializedObject;
+    RC<BoxedValue> m_deserializedObject;
     Optional<FBOMExternalObjectInfo> m_externalInfo;
     UniqueId m_uniqueId;
 
@@ -266,7 +266,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
     static FBOMResult Serialize(const T& in, FBOMObject& outObject, EnumFlags<FBOMObjectSerializeFlags> flags = FBOMObjectSerializeFlags::NONE)
     {
-        return FBOMObjectSerialize_Impl<T> {}.template Serialize<HypData>(in, outObject, flags);
+        return FBOMObjectSerialize_Impl<T> {}.template Serialize<BoxedValue>(in, outObject, flags);
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
@@ -282,10 +282,10 @@ public:
         return object;
     }
 
-    static FBOMResult Deserialize(FBOMLoadContext& context, TypeId typeId, const FBOMObject& in, HypData& out);
+    static FBOMResult Deserialize(FBOMLoadContext& context, TypeId typeId, const FBOMObject& in, BoxedValue& out);
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out)
+    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out)
     {
         return FBOMObjectSerialize_Impl<T> {}.Deserialize(context, in, out);
     }
@@ -418,7 +418,7 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
         return FBOMResult::FBOM_OK;
     }
 
-    FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out)
+    FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out)
     {
         FBOMMarshalerBase* marshal = FBOMObject::GetMarshal<T>();
 

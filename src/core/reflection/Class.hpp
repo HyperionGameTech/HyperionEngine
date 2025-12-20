@@ -4,7 +4,7 @@
 
 #include <core/reflection/ObjectFwd.hpp>
 #include <core/reflection/ObjectEnums.hpp>
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 #include <core/reflection/ClassAttribute.hpp>
 
@@ -604,7 +604,7 @@ public:
 
     virtual bool CanCreateInstance() const = 0;
 
-    HYP_FORCE_INLINE bool CreateInstance(HypData& out, bool allowAbstract = false) const
+    HYP_FORCE_INLINE bool CreateInstance(BoxedValue& out, bool allowAbstract = false) const
     {
         HYP_CORE_ASSERT(CanCreateInstance() && (allowAbstract || !IsAbstract()), "Cannot create a new instance for Class %s!\n\tCanCreateInstance: %s\tIsAbstract: %s\tAllow abstract: %s",
             GetName().LookupString(), CanCreateInstance() ? "true" : "false", IsAbstract() ? "true" : "false", allowAbstract ? "true" : "false");
@@ -612,7 +612,7 @@ public:
         return CreateInstance_Internal(out);
     }
 
-    HYP_FORCE_INLINE bool CreateInstanceArray(Span<HypData> elements, HypData& out, bool allowAbstract = false) const
+    HYP_FORCE_INLINE bool CreateInstanceArray(Span<BoxedValue> elements, BoxedValue& out, bool allowAbstract = false) const
     {
         HYP_CORE_ASSERT(CanCreateInstance() && (allowAbstract || !IsAbstract()), "Cannot create a new instance for Class %s!\n\tCanCreateInstance: %s\tIsAbstract: %s\tAllow abstract: %s",
             GetName().LookupString(), CanCreateInstance() ? "true" : "false", IsAbstract() ? "true" : "false", allowAbstract ? "true" : "false");
@@ -620,11 +620,11 @@ public:
         return CreateInstanceArray_Internal(elements, out);
     }
 
-    /*! \brief Create a new HypData from \p memory. The object at \p memory must have the type of this Class's TypeId.
+    /*! \brief Create a new BoxedValue from \p memory. The object at \p memory must have the type of this Class's TypeId.
      *  The underlying data will be moved or have ownership taken.
      *  \param memory A view to the memory of the underlying object.
      *  \returns True if the operation was successful. */
-    virtual HYP_DEPRECATED bool ToHypData(ByteView memory, HypData& outHypData) const
+    virtual HYP_DEPRECATED bool ToHypData(ByteView memory, BoxedValue& outHypData) const
     {
         return false;
     }
@@ -651,12 +651,12 @@ protected:
     {
     }
 
-    virtual bool CreateInstance_Internal(HypData& out) const
+    virtual bool CreateInstance_Internal(BoxedValue& out) const
     {
         return false;
     }
 
-    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const
+    virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const
     {
         return false;
     }
@@ -771,7 +771,7 @@ public:
         }
     }
 
-    virtual bool ToHypData(ByteView memory, HypData& outHypData) const override
+    virtual bool ToHypData(ByteView memory, BoxedValue& outHypData) const override
     {
         HYP_CORE_ASSERT(memory.Size() == sizeof(T),
             "Expected memory size to be %zu but got %zu! This could indicate a type safety violation.",
@@ -784,7 +784,7 @@ public:
         {
             if constexpr (std::is_base_of_v<ObjectBase, T>)
             {
-                outHypData = HypData(Handle<ObjectBase>::FromPointer(static_cast<ObjectBase*>(ptr)));
+                outHypData = BoxedValue(Handle<ObjectBase>::FromPointer(static_cast<ObjectBase*>(ptr)));
             }
             else
             {
@@ -795,7 +795,7 @@ public:
         }
         else
         {
-            outHypData = HypData(Any(ptr));
+            outHypData = BoxedValue(Any(ptr));
 
             return true;
         }
@@ -824,19 +824,19 @@ protected:
         callbackWrapperCasted->GetCallback()(*static_cast<T*>(objectPtr));
     }
 
-    virtual bool CreateInstance_Internal(HypData& out) const override
+    virtual bool CreateInstance_Internal(BoxedValue& out) const override
     {
         if constexpr (std::is_default_constructible_v<T>)
         {
             if constexpr (std::is_base_of_v<ObjectBase, T>)
             {
-                out = HypData(CreateObject<T>());
+                out = BoxedValue(CreateObject<T>());
 
                 return true;
             }
             else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
             {
-                out = HypData(MakeRefCountedPtr<T>());
+                out = BoxedValue(MakeRefCountedPtr<T>());
 
                 return true;
             }
@@ -851,7 +851,7 @@ protected:
         }
     }
 
-    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
+    virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override
     {
         if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
@@ -868,7 +868,7 @@ protected:
                 array.PushBack(std::move(elements[i].Get<Handle<T>>()));
             }
 
-            out = HypData(std::move(array));
+            out = BoxedValue(std::move(array));
 
             return true;
         }
@@ -887,7 +887,7 @@ protected:
                 array.PushBack(std::move(elements[i].Get<RC<T>>()));
             }
 
-            out = HypData(std::move(array));
+            out = BoxedValue(std::move(array));
 
             return true;
         }
@@ -906,7 +906,7 @@ protected:
                 array.PushBack(std::move(elements[i].Get<T>()));
             }
 
-            out = HypData(std::move(array));
+            out = BoxedValue(std::move(array));
 
             return true;
         }
@@ -941,7 +941,7 @@ public:
 
     virtual bool CanCreateInstance() const override;
 
-    virtual bool ToHypData(ByteView memory, HypData& outHypData) const override;
+    virtual bool ToHypData(ByteView memory, BoxedValue& outHypData) const override;
 
     using Class::AddField;
     using Class::AddMethod;
@@ -958,8 +958,8 @@ public:
 
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override;
-    virtual bool CreateInstance_Internal(HypData& out) const override;
-    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override;
+    virtual bool CreateInstance_Internal(BoxedValue& out) const override;
+    virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override;
 
     TypeId m_enumUnderlyingTypeId;
 

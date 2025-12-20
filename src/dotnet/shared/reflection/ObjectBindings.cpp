@@ -48,7 +48,7 @@ extern "C"
             // Suppress default managed object creation
             GlobalContextScope scope(ObjectInitializerContext { cls, ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
-            HypData value;
+            BoxedValue value;
 
             // Set allowAbstract to true so we can use classes marked as `Abstract=true`.
             // allowing the managed class to override methods of an abstract class

@@ -33,12 +33,12 @@ Script_HashMap::~Script_HashMap()
 {
 }
 
-void Script_HashMap::SetElement(VMMapKey&& key, HypData&& value)
+void Script_HashMap::SetElement(VMMapKey&& key, BoxedValue&& value)
 {
     m_map.Set(std::move(key), std::move(value));
 }
 
-HypData* Script_HashMap::GetElement(const VMMapKey& key)
+BoxedValue* Script_HashMap::GetElement(const VMMapKey& key)
 {
     auto it = m_map.Find(key);
 
@@ -50,7 +50,7 @@ HypData* Script_HashMap::GetElement(const VMMapKey& key)
     return &it->second;
 }
 
-const HypData* Script_HashMap::GetElement(const VMMapKey& key) const
+const BoxedValue* Script_HashMap::GetElement(const VMMapKey& key) const
 {
     auto it = m_map.Find(key);
 

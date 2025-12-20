@@ -58,7 +58,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using HypData _ = _method.Invoke(_target);
+                    using BoxedValue _ = _method.Invoke(_target);
                 }
                 catch (Exception ex)
                 {

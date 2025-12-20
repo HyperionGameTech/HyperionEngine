@@ -129,7 +129,7 @@ public:
 
         UIEventHandlerResult result;
 
-        if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<HypData, UIEventHandlerResult>(
+        if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<BoxedValue, UIEventHandlerResult>(
                 scriptComponent->scriptObjectResource,
                 m_methodName,
                 &result,

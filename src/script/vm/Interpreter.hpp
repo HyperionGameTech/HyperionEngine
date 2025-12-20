@@ -7,7 +7,7 @@
 
 #include <core/containers/HeapArray.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <core/Types.hpp>
 
@@ -34,15 +34,15 @@ static constexpr int g_typePromoLut[10][10] = {
 
 #define MATCH_TYPES(leftType, rightType) ((NumericType)g_typePromoLut[(leftType)][(rightType)])
 
-extern HypData ScriptApi_MakeValue(const Script_VMData& data);
-extern HypData ScriptApi_MakeValue(const Number& number);
-extern HypData ScriptApi_MakeValue(HypData&& data);
-extern HypData ScriptApi_MakeRef(HypData* refValue);
-extern HypData ScriptApi_MakeTrackedRef(HypData* refValue, Script_GC* gc);
-extern HypData ScriptApi_ShallowCopy(HypData& value, Script_GC* gc);
-extern bool ScriptApi_ShouldValuePassByRef(const HypData& value);
-extern const char* ScriptApi_GetTypeString(const HypData& data);
-extern String ScriptApi_ValueToString(const HypData& data, int currDepth = 0);
+extern BoxedValue ScriptApi_MakeValue(const Script_VMData& data);
+extern BoxedValue ScriptApi_MakeValue(const Number& number);
+extern BoxedValue ScriptApi_MakeValue(BoxedValue&& data);
+extern BoxedValue ScriptApi_MakeRef(BoxedValue* refValue);
+extern BoxedValue ScriptApi_MakeTrackedRef(BoxedValue* refValue, Script_GC* gc);
+extern BoxedValue ScriptApi_ShallowCopy(BoxedValue& value, Script_GC* gc);
+extern bool ScriptApi_ShouldValuePassByRef(const BoxedValue& value);
+extern const char* ScriptApi_GetTypeString(const BoxedValue& data);
+extern String ScriptApi_ValueToString(const BoxedValue& data, int currDepth = 0);
 
 class Script_GC;
 
@@ -50,14 +50,14 @@ struct Script_RegisterMemory
 {
     static constexpr uint32 NumRegisters = 8;
 
-    HypData data[NumRegisters];
+    BoxedValue regs[NumRegisters];
     int flags = 0;
 
     Script_RegisterMemory();
 
-    HYP_FORCE_INLINE HypData& operator[](uint8 index)
+    HYP_FORCE_INLINE BoxedValue& operator[](uint8 index)
     {
-        return data[index];
+        return regs[index];
     }
 
     HYP_FORCE_INLINE void ResetFlags()
@@ -79,14 +79,14 @@ public:
     Script_StaticMemory& operator=(Script_StaticMemory&& other) noexcept = delete;
     ~Script_StaticMemory();
 
-    HYP_FORCE_INLINE HypData& operator[](SizeType index)
+    HYP_FORCE_INLINE BoxedValue& operator[](SizeType index)
     {
         AssertDebug(index < staticSize, "out of bounds");
         return m_data[index];
     }
 
 private:
-    HypData* m_data;
+    BoxedValue* m_data;
 };
 
 class Script_StackMemory
@@ -107,13 +107,13 @@ public:
     /** Mark all items on the stack to not be garbage collected */
     void MarkAll();
 
-    HYP_FORCE_INLINE HypData* GetData()
+    HYP_FORCE_INLINE BoxedValue* GetData()
     {
-        return reinterpret_cast<HypData*>(m_data.Data());
+        return reinterpret_cast<BoxedValue*>(m_data.Data());
     }
-    HYP_FORCE_INLINE const HypData* GetData() const
+    HYP_FORCE_INLINE const BoxedValue* GetData() const
     {
-        return reinterpret_cast<const HypData*>(m_data.Data());
+        return reinterpret_cast<const BoxedValue*>(m_data.Data());
     }
 
     HYP_FORCE_INLINE SizeType GetStackPointer() const
@@ -121,7 +121,7 @@ public:
         return m_sp;
     }
 
-    HYP_FORCE_INLINE HypData& operator[](SizeType index)
+    HYP_FORCE_INLINE BoxedValue& operator[](SizeType index)
     {
         AssertDebug(index < STACK_SIZE, "out of bounds");
         AssertDebug(index < m_sp, "reading uninitialized stack memory");
@@ -129,7 +129,7 @@ public:
         return m_data[index].Get();
     }
 
-    HYP_FORCE_INLINE const HypData& operator[](SizeType index) const
+    HYP_FORCE_INLINE const BoxedValue& operator[](SizeType index) const
     {
         Assert(index < STACK_SIZE, "out of bounds");
         Assert(index < m_sp, "reading uninitialized stack memory");
@@ -138,24 +138,24 @@ public:
     }
 
     // return the top value from the stack
-    HYP_FORCE_INLINE HypData& Top()
+    HYP_FORCE_INLINE BoxedValue& Top()
     {
         Assert(m_sp > 0, "read from empty stack");
         return m_data[m_sp - 1].Get();
     }
 
     // return the top value from the stack
-    HYP_FORCE_INLINE const HypData& Top() const
+    HYP_FORCE_INLINE const BoxedValue& Top() const
     {
         Assert(m_sp > 0, "read from empty stack");
         return m_data[m_sp - 1].Get();
     }
 
     // push a value to the stack
-    HYP_FORCE_INLINE void Push(HypData&& value)
+    HYP_FORCE_INLINE void Push(BoxedValue&& value)
     {
         Assert(m_sp < STACK_SIZE, "stack overflow");
-        new (&m_data[m_sp++]) HypData(std::move(value));
+        new (&m_data[m_sp++]) BoxedValue(std::move(value));
     }
 
     // pop top value from the stack
@@ -178,7 +178,7 @@ public:
         }
     }
 
-    HeapArray<ValueStorage<HypData>, STACK_SIZE> m_data;
+    HeapArray<ValueStorage<BoxedValue>, STACK_SIZE> m_data;
     SizeType m_sp;
 };
 
@@ -244,12 +244,12 @@ public:
 
     void Invoke(
         Script_Instance* instance,
-        HypData&& value,
+        BoxedValue&& value,
         uint8 nargs);
 
     void InvokeNow(
         Script_Instance* instance,
-        HypData&& value,
+        BoxedValue&& value,
         uint8 nargs);
 
     void Execute(Script_Instance* instance);

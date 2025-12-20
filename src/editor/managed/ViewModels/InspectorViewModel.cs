@@ -410,7 +410,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (conditionMethod != null)
                 {
-                    using HypData resultData = conditionMethod.Value.Invoke(SelectedNode);
+                    using BoxedValue resultData = conditionMethod.Value.Invoke(SelectedNode);
                     object? result = resultData.GetValue();
 
                     if (result is bool boolResult)

@@ -12,15 +12,15 @@ namespace Hyperion
 
         public void Push(Uuid uuid, object value, Uuid? parentUuid = null)
         {
-            HypDataBuffer hypDataBuffer = new HypDataBuffer();
-            hypDataBuffer.SetValue(value);
+            BoxedValueInternal boxedInternal = new BoxedValueInternal();
+            boxedInternal.SetValue(value);
 
-            Push(uuid, ref hypDataBuffer, parentUuid);
+            Push(uuid, ref boxedInternal, parentUuid);
 
-            hypDataBuffer.Dispose();
+            boxedInternal.Dispose();
         }
 
-        public void Push(Uuid uuid, ref HypDataBuffer buffer, Uuid? parentUuid = null)
+        public void Push(Uuid uuid, ref BoxedValueInternal buffer, Uuid? parentUuid = null)
         {
             Uuid parentUuidOrDefault = parentUuid ?? Uuid.Invalid;
 
@@ -28,7 +28,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "UIDataSourceBase_Push")]
-        private static extern void UIDataSourceBase_Push([In] IntPtr uiDataSource, [In] ref Uuid uuid, [In] ref HypDataBuffer data, [In] ref Uuid parentUUID);
+        private static extern void UIDataSourceBase_Push([In] IntPtr uiDataSource, [In] ref Uuid uuid, [In] ref BoxedValueInternal data, [In] ref Uuid parentUUID);
     }
 
     [ClassBinding(Name = "UIDataSource")]

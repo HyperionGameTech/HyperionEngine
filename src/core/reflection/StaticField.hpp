@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ClassAttribute.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 
@@ -48,9 +48,9 @@ public:
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
-        m_getProc = [value]() -> HypData
+        m_getProc = [value]() -> BoxedValue
         {
-            return HypData(value);
+            return BoxedValue(value);
         };
 
         m_serializeProc = [value](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
@@ -71,9 +71,9 @@ public:
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
-        m_getProc = [pValue]() -> HypData
+        m_getProc = [pValue]() -> BoxedValue
         {
-            return HypData(AnyRef(const_cast<NormalizedType<ConstantType>*>(pValue)));
+            return BoxedValue(AnyRef(const_cast<NormalizedType<ConstantType>*>(pValue)));
         };
 
         m_serializeProc = [pValue](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
@@ -137,7 +137,7 @@ public:
         return Serialize({}, out);
     }
 
-    virtual Result Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
+    virtual Result Serialize(Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
     {
         if (!CanSerialize())
         {
@@ -152,7 +152,7 @@ public:
         return m_serializeProc(out, flags);
     }
 
-    virtual Result Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& data) const override
+    virtual Result Deserialize(FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) const override
     {
         return HYP_MAKE_ERROR(Error, "Static field cannot be deserialized");
     }
@@ -184,7 +184,7 @@ public:
             && m_size != 0;
     }
 
-    HYP_FORCE_INLINE HypData Get() const
+    HYP_FORCE_INLINE BoxedValue Get() const
     {
         return m_getProc();
     }
@@ -195,7 +195,7 @@ private:
     uint32 m_size;
     ClassAttributeSet m_attributes;
 
-    Proc<HypData()> m_getProc;
+    Proc<BoxedValue()> m_getProc;
     Proc<Result(FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
 };
 

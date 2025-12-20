@@ -23,9 +23,9 @@ struct HypDataHelper<HWND> : HypDataHelper<void*>
         return static_cast<HWND>(value);
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, HWND value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, HWND value) const
     {
-        hypData.Set_Internal(static_cast<void*>(value));
+        boxed.Set_Internal(static_cast<void*>(value));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(HWND value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -33,7 +33,7 @@ struct HypDataHelper<HWND> : HypDataHelper<void*>
         return { FBOMResult::FBOM_ERR, "Serialization of HWND is not supported." };
     }
 
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
+    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
     {
         return { FBOMResult::FBOM_ERR, "Deserialization of HWND is not supported." };
     }

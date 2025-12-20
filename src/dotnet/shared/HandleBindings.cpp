@@ -8,32 +8,32 @@ using namespace hyperion;
 
 extern "C"
 {
-    HYP_EXPORT void Handle_GetId(ObjectBase* ptr, ObjIdBase* outId)
+    HYP_EXPORT void Handle_GetId(ObjectBase* pObject, ObjIdBase* pOutId)
     {
-        AssertDebug(outId != nullptr);
+        AssertDebug(pOutId != nullptr);
 
-        *outId = ptr ? ptr->Id() : ObjIdBase();
+        *pOutId = pObject ? pObject->Id() : ObjIdBase();
     }
 
-    HYP_EXPORT void Handle_Get(ObjectBase* ptr, ValueStorage<HypData>* outHypData)
+    HYP_EXPORT void Handle_Get(ObjectBase* pObject, ValueStorage<BoxedValue>* pOutBoxed)
     {
-        Assert(outHypData != nullptr);
-        Assert(ptr != nullptr);
+        Assert(pOutBoxed != nullptr);
+        Assert(pObject != nullptr);
 
-        outHypData->Construct(AnyRef(ptr->GetObjectHeader_Internal()->cls->GetTypeInfo(), ptr));
+        pOutBoxed->Construct(AnyRef(pObject->GetObjectHeader_Internal()->cls->GetTypeInfo(), pObject));
     }
 
-    HYP_EXPORT void Handle_Set(HypData* hypData, ObjectBase** outPtr)
+    HYP_EXPORT void Handle_Set(BoxedValue* pBoxed, ObjectBase** pOutObject)
     {
-        Assert(outPtr != nullptr);
+        Assert(pOutObject != nullptr);
 
-        if (hypData != nullptr)
+        if (pBoxed != nullptr)
         {
-            Handle<ObjectBase>& handle = hypData->Get<Handle<ObjectBase>>();
+            Handle<ObjectBase>& handle = pBoxed->Get<Handle<ObjectBase>>();
 
             if (handle.IsValid())
             {
-                *outPtr = handle.ptr;
+                *pOutObject = handle.ptr;
 
                 (void)handle.Release();
 
@@ -41,22 +41,22 @@ extern "C"
             }
         }
 
-        *outPtr = nullptr;
+        *pOutObject = nullptr;
     }
 
-    HYP_EXPORT void Handle_Destruct(ObjectBase* ptr)
+    HYP_EXPORT void Handle_Destruct(ObjectBase* pOutObject)
     {
-        if (ptr != nullptr)
+        if (pOutObject != nullptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefStrong();
+            pOutObject->GetObjectHeader_Internal()->DecRefStrong();
         }
     }
 
-    HYP_EXPORT uint8 WeakHandle_Lock(ObjectBase* ptr)
+    HYP_EXPORT uint8 WeakHandle_Lock(ObjectBase* pObject)
     {
-        Assert(ptr != nullptr);
+        Assert(pObject != nullptr);
 
-        ObjectHeader* header = ptr->GetObjectHeader_Internal();
+        ObjectHeader* header = pObject->GetObjectHeader_Internal();
         AssertDebug(header != nullptr);
 
         if (!header->TryIncRefStrong())
@@ -67,19 +67,19 @@ extern "C"
         return 1;
     }
 
-    HYP_EXPORT void WeakHandle_Set(HypData* hypData, ObjectBase** outPtr)
+    HYP_EXPORT void WeakHandle_Set(BoxedValue* pBoxed, ObjectBase** pOutObject)
     {
-        Assert(outPtr != nullptr);
+        Assert(pOutObject != nullptr);
 
-        if (hypData != nullptr)
+        if (pBoxed != nullptr)
         {
-            Handle<ObjectBase>& handle = hypData->Get<Handle<ObjectBase>>();
+            Handle<ObjectBase>& handle = pBoxed->Get<Handle<ObjectBase>>();
 
             if (handle.IsValid())
             {
                 handle.ptr->GetObjectHeader_Internal()->IncRefWeak();
 
-                *outPtr = handle.ptr;
+                *pOutObject = handle.ptr;
 
                 handle.Reset();
 
@@ -87,14 +87,14 @@ extern "C"
             }
         }
 
-        *outPtr = nullptr;
+        *pOutObject = nullptr;
     }
 
-    HYP_EXPORT void WeakHandle_Destruct(ObjectBase* ptr)
+    HYP_EXPORT void WeakHandle_Destruct(ObjectBase* pObject)
     {
-        if (ptr != nullptr)
+        if (pObject != nullptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefWeak();
+            pObject->GetObjectHeader_Internal()->DecRefWeak();
         }
     }
 

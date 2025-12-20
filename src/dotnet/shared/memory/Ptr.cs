@@ -6,7 +6,7 @@ namespace Hyperion
     public static class PtrNativeBindings
     {
         [DllImport("hyperion", EntryPoint = "Ptr_Get")]
-        internal static extern void Ptr_Get(IntPtr pTypeInfo, IntPtr pObject, [Out] out HypDataBuffer outHypDataBuffer);
+        internal static extern void Ptr_Get(IntPtr pTypeInfo, IntPtr pObject, [Out] out BoxedValueInternal outBoxed);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -43,12 +43,12 @@ namespace Hyperion
                 return default(T);
             }
 
-            HypDataBuffer hypDataBuffer;
-            PtrNativeBindings.Ptr_Get(((Class)cls).TypeInfo.Address, ptr, out hypDataBuffer);
+            BoxedValueInternal boxedInternal;
+            PtrNativeBindings.Ptr_Get(((Class)cls).TypeInfo.Address, ptr, out boxedInternal);
 
-            T? value = (T?)hypDataBuffer.GetValue();
+            T? value = (T?)boxedInternal.GetValue();
 
-            hypDataBuffer.Dispose();
+            boxedInternal.Dispose();
 
             return value;
         }

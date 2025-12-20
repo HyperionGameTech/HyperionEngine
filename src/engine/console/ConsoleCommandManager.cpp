@@ -100,15 +100,15 @@ int ConsoleCommandManager::FindAndRegisterCommands()
                     return IterationResult::CONTINUE;
                 }
 
-                HypData hypData;
-                if (!cls->CreateInstance(hypData))
+                BoxedValue boxed;
+                if (!cls->CreateInstance(boxed))
                 {
                     HYP_LOG(Console, Error, "Failed to create instance of class: {}", cls->GetName());
 
                     return IterationResult::CONTINUE;
                 }
 
-                commands.PushBack(std::move(hypData.Get<Handle<ConsoleCommandBase>>()));
+                commands.PushBack(std::move(boxed.Get<Handle<ConsoleCommandBase>>()));
 
                 return IterationResult::CONTINUE;
             }

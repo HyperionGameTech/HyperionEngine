@@ -10,7 +10,7 @@
 #include <core/utilities/Format.hpp>
 #include <core/utilities/StringUtil.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -287,7 +287,7 @@ FBOMResult FBOMReader::Deserialize(FBOMLoadContext& context, BufferedReader& rea
     return { FBOMResult::FBOM_OK };
 }
 
-FBOMResult FBOMReader::Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out)
+FBOMResult FBOMReader::Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out)
 {
     const FBOMMarshalerBase* marshal = GetMarshalForType(in.m_objectType);
 
@@ -304,7 +304,7 @@ FBOMResult FBOMReader::Deserialize(FBOMLoadContext& context, const FBOMObject& i
     return { FBOMResult::FBOM_OK };
 }
 
-FBOMResult FBOMReader::Deserialize(FBOMLoadContext& context, BufferedReader& reader, HypData& out)
+FBOMResult FBOMReader::Deserialize(FBOMLoadContext& context, BufferedReader& reader, BoxedValue& out)
 {
     FBOMObject obj;
 
@@ -395,7 +395,7 @@ FBOMResult FBOMReader::LoadFromFile(const String& path, FBOMObject& out)
     return Deserialize(context, reader, out);
 }
 
-FBOMResult FBOMReader::LoadFromFile(const String& path, HypData& out)
+FBOMResult FBOMReader::LoadFromFile(const String& path, BoxedValue& out)
 {
     FBOMObject object;
 

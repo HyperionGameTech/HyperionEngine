@@ -45,10 +45,10 @@ public:
         return result;
     }
 
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
         Handle<AssetPackage> assetPackage = CreateObject<AssetPackage>();
-        out = HypData(assetPackage);
+        out = BoxedValue(assetPackage);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, AssetPackage::StaticClass(), out))
         {

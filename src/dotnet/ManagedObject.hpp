@@ -126,15 +126,15 @@ private:
      * */
     void Reset();
 
-    void InvokeMethod_Internal(const ManagedMethod* methodPtr, const HypData** argsHypData, HypData* outReturnHypData);
+    void InvokeMethod_Internal(const ManagedMethod* methodPtr, const BoxedValue** argsHypData, BoxedValue* outReturnHypData);
 
     template <class ReturnType, class... Args>
     ReturnType InvokeMethod_CheckArgs(const ManagedMethod* methodPtr, Args&&... args)
     {
         if constexpr (sizeof...(args) != 0)
         {
-            HypData* argsArray = (HypData*)StackAlloc(sizeof(HypData) * sizeof...(args));
-            const HypData* argsArrayPtr[sizeof...(args) + 1]; // Mark last as nullptr so C# can use it as a null terminator
+            BoxedValue* argsArray = (BoxedValue*)StackAlloc(sizeof(BoxedValue) * sizeof...(args));
+            const BoxedValue* argsArrayPtr[sizeof...(args) + 1]; // Mark last as nullptr so C# can use it as a null terminator
 
             SetArgs_HypData(std::make_index_sequence<sizeof...(args)>(), argsArray, argsArrayPtr, std::forward<Args>(args)...);
 
@@ -144,7 +144,7 @@ private:
             }
             else
             {
-                HypData returnHypData;
+                BoxedValue returnHypData;
                 InvokeMethod_Internal(methodPtr, argsArrayPtr, &returnHypData);
 
                 if (returnHypData.IsNull())
@@ -157,7 +157,7 @@ private:
         }
         else
         {
-            const HypData* argsArrayPtr[] = { nullptr };
+            const BoxedValue* argsArrayPtr[] = { nullptr };
 
             if constexpr (std::is_void_v<ReturnType>)
             {
@@ -165,7 +165,7 @@ private:
             }
             else
             {
-                HypData returnHypData;
+                BoxedValue returnHypData;
                 InvokeMethod_Internal(methodPtr, argsArrayPtr, &returnHypData);
 
                 if (returnHypData.IsNull())

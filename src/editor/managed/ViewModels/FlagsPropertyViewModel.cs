@@ -33,8 +33,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using HypData data = _property.Get(_target);
-                    object? rawValue = data.GetValue();
+                    using BoxedValue boxed = _property.Get(_target);
+                    object? rawValue = boxed.GetValue();
 
                     Dispatcher.UIThread.Post(() =>
                     {
@@ -128,8 +128,8 @@ namespace Hyperion.Editor.ViewModels
                         combined |= Convert.ToUInt64(entry.Value);
                     }
 
-                    using HypData data = new HypData(combined);
-                    _property.Set(_target, data);
+                    using BoxedValue boxed = new BoxedValue(combined);
+                    _property.Set(_target, boxed);
 
                     Dispatcher.UIThread.Post(() =>
                     {

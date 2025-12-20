@@ -24,7 +24,7 @@ AssetLoadResult FBOMModelLoader::LoadAsset(LoaderState& state) const
 
     FBOMReader reader { FBOMReaderConfig {} };
 
-    HypData result;
+    BoxedValue result;
 
     if (FBOMResult err = reader.LoadFromFile(state.filepath, result))
     {

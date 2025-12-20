@@ -882,12 +882,12 @@ public:
     HYP_METHOD(Property = "IsEnabled")
     void SetIsEnabled(bool isEnabled);
 
-    HYP_FORCE_INLINE const HypData& GetCurrentValue() const
+    HYP_FORCE_INLINE const BoxedValue& GetCurrentValue() const
     {
         return m_currentValue;
     }
 
-    void SetCurrentValue(HypData&& value, bool triggerEvent = true);
+    void SetCurrentValue(BoxedValue&& value, bool triggerEvent = true);
 
     /*! \brief Check if the UI object has focus. If \p includeChildren is true, also return true if any child objects have focus.
      *  \details The focus state of the UI object is used to determine if the object is currently focused.
@@ -1286,7 +1286,7 @@ public:
     ScriptableDelegate<UIEventHandlerResult> OnDisabled;
 
     HYP_FIELD()
-    ScriptableDelegate<UIEventHandlerResult, const HypData&> OnValueChange;
+    ScriptableDelegate<UIEventHandlerResult, const BoxedValue&> OnValueChange;
 
 protected:
     HYP_METHOD()
@@ -1421,7 +1421,7 @@ protected:
     EnumFlags<UIObjectUpdateType> m_deferredUpdates;
     EnumFlags<UIObjectUpdateType> m_lockedUpdates;
 
-    HypData m_currentValue;
+    BoxedValue m_currentValue;
 
 private:
     template <class T>

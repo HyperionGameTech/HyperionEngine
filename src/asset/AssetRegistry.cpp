@@ -1056,7 +1056,7 @@ Result AssetPackage::SaveManifest(ByteWriter& stream) const
     HYP_SCOPE;
 
     json::JSONObject manifestJson;
-    ObjectToJSON(InstanceClass(), HypData(HandleFromThis()), manifestJson);
+    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson);
 
     // need to set virtual path property for loading
     manifestJson["Path"] = *BuildPackagePath();
@@ -2220,7 +2220,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
             outPackage->m_flags |= (parentPackage ? parentPackage->m_flags : EnumFlags<AssetPackageFlags>(APF_NONE));
 
             {
-                HypData packageData = HypData(outPackage);
+                BoxedValue packageData = BoxedValue(outPackage);
 
                 if (!JSONToObject(parseResult.value.AsObject(), outPackage->InstanceClass(), packageData))
                 {
@@ -2545,7 +2545,7 @@ Task<Result> AssetRegistry::RegisterAsset(const UTF8StringView& path, const Hand
 
 void AssetRegistry::RegisterAssetsRecursively(
     const UTF8StringView& packagePath,
-    const HypData& target,
+    const BoxedValue& target,
     bool forceRelocation,
     ProcRef<String(const AssetObject&)> getObjectSubpath)
 {
@@ -2563,8 +2563,8 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     bool shouldFollowAssetPaths = false;
 
-    Proc<void(const Handle<AssetPackage>&, const HypData&)> iterate;
-    iterate = [&](const Handle<AssetPackage>& inPackage, const HypData& current) -> void
+    Proc<void(const Handle<AssetPackage>&, const BoxedValue&)> iterate;
+    iterate = [&](const Handle<AssetPackage>& inPackage, const BoxedValue& current) -> void
     {
         Assert(inPackage != nullptr);
 
@@ -2692,7 +2692,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             for (SizeType i = 0; i < size; ++i)
             {
-                HypData element;
+                BoxedValue element;
                 if (!array.GetElementAt(i, element))
                 {
                     HYP_LOG(Assets, Warning, "Failed to get element at index {} of array of type {}", i, LookupTypeName(current.GetTypeId()));
@@ -2725,7 +2725,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                             continue;
                         }
 
-                        iterate(parentPackage, HypData(componentRef));
+                        iterate(parentPackage, BoxedValue(componentRef));
                     }
                 }
             }
@@ -2737,13 +2737,13 @@ void AssetRegistry::RegisterAssetsRecursively(
 
         const Class* cls = GetClass(current.GetTypeId());
 
-        const HypData* pHypData = &current;
-        HypData tmpHypData;
+        const BoxedValue* pBoxed = &current;
+        BoxedValue tmpBoxed;
 
         if (assetObject != nullptr)
         {
-            tmpHypData = HypData(assetObject);
-            pHypData = &tmpHypData;
+            tmpBoxed = BoxedValue(assetObject);
+            pBoxed = &tmpBoxed;
 
             cls = assetObject->InstanceClass();
         }
@@ -2772,19 +2772,19 @@ void AssetRegistry::RegisterAssetsRecursively(
                 continue;
             }
 
-            HypData memberData;
+            BoxedValue memberData;
             switch (member.GetMemberType())
             {
             case HypMemberType::TYPE_PROPERTY:
             {
                 const Property* property = static_cast<const Property*>(&member);
-                memberData = property->Get(*pHypData);
+                memberData = property->Get(*pBoxed);
                 break;
             }
             case HypMemberType::TYPE_FIELD:
             {
                 const Field* field = static_cast<const Field*>(&member);
-                memberData = field->Get(*pHypData);
+                memberData = field->Get(*pBoxed);
                 break;
             }
             default:

@@ -241,7 +241,7 @@ Result EditorProject::SaveAs(FilePath filepath)
 
         g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
             objectsSubpackage->BuildPackagePath(),
-            HypData(AnyRef(*this)),
+            BoxedValue(AnyRef(*this)),
             /* forceRelocation */ false,
             [](const AssetObject& assetObject) -> String
             {

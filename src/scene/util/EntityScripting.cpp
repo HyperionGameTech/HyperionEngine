@@ -77,10 +77,10 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 
         HypScript& hs = HypScript::GetInstance();
 
-        HypData functionValue;
+        BoxedValue functionValue;
         if (hs.GetFunctionHandle(data->instance, methodName, functionValue))
         {
-            HypData returnValue = hs.CallFunction(data->instance, functionValue);
+            BoxedValue returnValue = hs.CallFunction(data->instance, functionValue);
 
             if constexpr (!std::is_void_v<ReturnType>)
             {
@@ -108,11 +108,11 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
             if constexpr (!std::is_void_v<ReturnType>)
             {
                 AssertDebug(outReturnValue != nullptr);
-                new (outReturnValue) ReturnType(method->Invoke(Span<HypData> { { HypData(nativeObject), HypData(std::forward<ArgTypes>(args))... } }));
+                new (outReturnValue) ReturnType(method->Invoke(Span<BoxedValue> { { BoxedValue(nativeObject), BoxedValue(std::forward<ArgTypes>(args))... } }));
             }
             else
             {
-                (void)method->Invoke(Span<HypData> { { HypData(nativeObject), HypData(std::forward<ArgTypes>(args))... } });
+                (void)method->Invoke(Span<BoxedValue> { { BoxedValue(nativeObject), BoxedValue(std::forward<ArgTypes>(args))... } });
             }
         }
     }
@@ -364,7 +364,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 // run the script to initialize classes, functions, etc.
                 hs.Run(instance);
 
-                sor = AllocateResource<ScriptObjectResource>(instance, HypData());
+                sor = AllocateResource<ScriptObjectResource>(instance, BoxedValue());
                 sor->IncRef();
 
                 if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_ADDED_CALLED))

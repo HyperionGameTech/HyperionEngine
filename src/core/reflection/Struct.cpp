@@ -96,7 +96,7 @@ bool DynamicStructInstance::GetManagedObject(const void* objectPtr, dotnet::Obje
 }
 #endif
 
-bool DynamicStructInstance::ToHypData(ByteView memory, HypData& out) const
+bool DynamicStructInstance::ToHypData(ByteView memory, BoxedValue& out) const
 {
     void* data = Memory::Allocate(m_size);
     Memory::MemCpy(data, memory.Data(), m_size);
@@ -104,7 +104,7 @@ bool DynamicStructInstance::ToHypData(ByteView memory, HypData& out) const
     const TypeInfo* pTypeInfo = GetTypeInfo();
     AssertDebug(pTypeInfo != nullptr);
 
-    out = HypData(Any::FromVoidPointer(pTypeInfo, data, m_copyFunction, m_destructFunction));
+    out = BoxedValue(Any::FromVoidPointer(pTypeInfo, data, m_copyFunction, m_destructFunction));
 
     return true;
 }

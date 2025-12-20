@@ -40,10 +40,10 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
         Handle<AssetRegistry> assetRegistry = CreateObject<AssetRegistry>();
-        out = HypData(assetRegistry);
+        out = BoxedValue(assetRegistry);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, AssetRegistry::StaticClass(), out))
         {

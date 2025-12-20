@@ -192,7 +192,7 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
             continue;
         }
 
-        HypData instance;
+        BoxedValue instance;
         if (!cls->CreateInstance(instance, /* allowAbstract */ false))
         {
             HYP_LOG(WorldGrid, Error, "Failed to create instance of layer class '{}'!", cls->GetName());

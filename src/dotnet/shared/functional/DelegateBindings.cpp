@@ -16,54 +16,54 @@ using namespace hyperion::dotnet;
 extern "C"
 {
 #ifdef HYP_DOTNET
-    HYP_EXPORT DelegateHandler* ScriptableDelegate_Bind(IScriptableDelegate* delegate, ManagedClass* pClass, ObjectReference* objectReference)
+    HYP_EXPORT DelegateHandler* ScriptableDelegate_Bind(IScriptableDelegate* pDelegate, ManagedClass* pClass, ObjectReference* pObjectReference)
     {
-        Assert(delegate != nullptr);
-        Assert(objectReference != nullptr);
+        Assert(pDelegate != nullptr);
+        Assert(pObjectReference != nullptr);
         Assert(pClass != nullptr);
 
-        return new DelegateHandler(delegate->BindMethod("DynamicInvoke", MakeUnique<ManagedObject>(pClass->RefCountedPtrFromThis(), *objectReference, ObjectFlags::CREATED_FROM_MANAGED)));
+        return new DelegateHandler(pDelegate->BindMethod("DynamicInvoke", MakeUnique<ManagedObject>(pClass->RefCountedPtrFromThis(), *pObjectReference, ObjectFlags::CREATED_FROM_MANAGED)));
     }
 #endif
 
-    HYP_EXPORT int ScriptableDelegate_RemoveAllDetached(IScriptableDelegate* delegate)
+    HYP_EXPORT int ScriptableDelegate_RemoveAllDetached(IScriptableDelegate* pDelegate)
     {
-        Assert(delegate != nullptr);
+        Assert(pDelegate != nullptr);
 
-        return delegate->RemoveAllDetached();
+        return pDelegate->RemoveAllDetached();
     }
 
-    HYP_EXPORT int8 ScriptableDelegate_Remove(IScriptableDelegate* delegate, DelegateHandler* delegateHandler)
+    HYP_EXPORT int8 ScriptableDelegate_Remove(IScriptableDelegate* pDelegate, DelegateHandler* pHandle)
     {
-        Assert(delegate != nullptr);
+        Assert(pDelegate != nullptr);
 
-        if (!delegateHandler)
+        if (!pHandle)
         {
             return 0;
         }
 
-        return delegate->Remove(std::move(*delegateHandler));
+        return pDelegate->Remove(std::move(*pHandle));
     }
 
-    HYP_EXPORT void DelegateHandler_Detach(DelegateHandler* delegateHandler)
+    HYP_EXPORT void DelegateHandler_Detach(DelegateHandler* pHandle)
     {
-        Assert(delegateHandler != nullptr);
+        Assert(pHandle != nullptr);
 
-        delegateHandler->Detach();
+        pHandle->Detach();
     }
 
-    HYP_EXPORT void DelegateHandler_Remove(DelegateHandler* delegateHandler)
+    HYP_EXPORT void DelegateHandler_Remove(DelegateHandler* pHandle)
     {
-        Assert(delegateHandler != nullptr);
+        Assert(pHandle != nullptr);
 
-        delegateHandler->Reset();
+        pHandle->Reset();
     }
 
-    HYP_EXPORT void DelegateHandler_Destroy(DelegateHandler* delegateHandler)
+    HYP_EXPORT void DelegateHandler_Destroy(DelegateHandler* pHandle)
     {
-        Assert(delegateHandler != nullptr);
+        Assert(pHandle != nullptr);
 
-        delete delegateHandler;
+        delete pHandle;
     }
 
 } // extern "C"

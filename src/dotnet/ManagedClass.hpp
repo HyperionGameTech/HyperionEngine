@@ -12,7 +12,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <dotnet/ManagedMethod.hpp>
 #include <dotnet/ManagedProperty.hpp>
@@ -366,8 +366,8 @@ public:
 
         if constexpr (sizeof...(args) != 0)
         {
-            HypData* argsArray = (HypData*)StackAlloc(sizeof(HypData) * sizeof...(args));
-            const HypData* argsArrayPtr[sizeof...(args) + 1]; // Mark last as nullptr so C# can use it as a null terminator
+            BoxedValue* argsArray = (BoxedValue*)StackAlloc(sizeof(BoxedValue) * sizeof...(args));
+            const BoxedValue* argsArrayPtr[sizeof...(args) + 1]; // Mark last as nullptr so C# can use it as a null terminator
 
             SetArgs_HypData(std::make_index_sequence<sizeof...(args)>(), argsArray, argsArrayPtr, std::forward<Args>(args)...);
 
@@ -377,7 +377,7 @@ public:
             }
             else
             {
-                HypData returnHypData;
+                BoxedValue returnHypData;
                 InvokeStaticMethod_Internal(methodPtr, argsArrayPtr, &returnHypData);
 
                 if (returnHypData.IsNull())
@@ -390,7 +390,7 @@ public:
         }
         else
         {
-            const HypData* argsArrayPtr[] = { nullptr };
+            const BoxedValue* argsArrayPtr[] = { nullptr };
 
             if constexpr (std::is_void_v<ReturnType>)
             {
@@ -398,7 +398,7 @@ public:
             }
             else
             {
-                HypData returnHypData;
+                BoxedValue returnHypData;
                 InvokeStaticMethod_Internal(methodPtr, argsArrayPtr, &returnHypData);
 
                 if (returnHypData.IsNull())
@@ -412,7 +412,7 @@ public:
     }
 
 private:
-    void InvokeStaticMethod_Internal(const ManagedMethod* methodPtr, const HypData** argsHypData, HypData* outReturnHypData);
+    void InvokeStaticMethod_Internal(const ManagedMethod* methodPtr, const BoxedValue** argsHypData, BoxedValue* outReturnHypData);
 
     ANSIString m_name;
     uint32 m_size;

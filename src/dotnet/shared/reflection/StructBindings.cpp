@@ -16,14 +16,14 @@ extern "C"
 {
 
     HYP_EXPORT Struct* Struct_CreateDynamicStruct(
-        const TypeId* typeId,
-        const char* typeName,
+        const TypeId* pTypeId,
+        const char* pTypeName,
         uint32 size,
         DynamicStructInstance_CopyFunction copyFunction,
         DynamicStructInstance_DestructFunction destructFunction)
     {
-        Assert(typeId != nullptr);
-        Assert(typeName != nullptr);
+        Assert(pTypeId != nullptr);
+        Assert(pTypeName != nullptr);
         Assert(copyFunction != nullptr);
         Assert(destructFunction != nullptr);
 
@@ -35,8 +35,8 @@ extern "C"
         }
 
         return new DynamicStructInstance(
-            *typeId,
-            CreateNameFromDynamicString(typeName),
+            *pTypeId,
+            CreateNameFromDynamicString(pTypeName),
             size,
             Span<const ClassAttribute>(),
             ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,

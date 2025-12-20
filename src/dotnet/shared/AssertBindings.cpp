@@ -10,20 +10,20 @@ using namespace hyperion;
 
 extern "C"
 {
-    HYP_EXPORT void Assert_Throw(const char* message, const char* funcName, uint32 line)
+    HYP_EXPORT void Assert_Throw(const char* pMessage, const char* pFuncName, uint32 line)
     {
-        if (!message)
+        if (!pMessage)
         {
-            message = "<no message>";
+            pMessage = "<no message>";
         }
 
-        if (funcName != nullptr)
+        if (pFuncName != nullptr)
         {
-            HYP_FAIL("{}:{}: Assertion failed!\n\t{}", funcName, line, message);
+            HYP_FAIL("{}:{}: Assertion failed!\n\t{}", pFuncName, line, pMessage);
         }
         else
         {
-            HYP_FAIL("Assertion failed!\n\t{}", message);
+            HYP_FAIL("Assertion failed!\n\t{}", pMessage);
         }
     }
 

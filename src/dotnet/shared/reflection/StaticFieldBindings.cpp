@@ -11,32 +11,32 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void StaticField_GetName(const StaticField* staticField, Name* outName)
+    HYP_EXPORT void StaticField_GetName(const StaticField* pStaticField, Name* pOutName)
     {
-        if (!staticField || !outName)
+        if (!pStaticField || !pOutName)
         {
             return;
         }
 
-        *outName = staticField->GetName();
+        *pOutName = pStaticField->GetName();
     }
 
-    HYP_EXPORT void StaticField_GetTypeId(const StaticField* staticField, TypeId* outTypeId)
+    HYP_EXPORT void StaticField_GetTypeId(const StaticField* pStaticField, TypeId* pOutTypeId)
     {
-        if (!staticField || !outTypeId)
+        if (!pStaticField || !pOutTypeId)
         {
             return;
         }
 
-        *outTypeId = staticField->GetTypeId();
+        *pOutTypeId = pStaticField->GetTypeId();
     }
 
-    HYP_EXPORT void StaticField_Get(const StaticField* staticField, HypData* outData)
+    HYP_EXPORT void StaticField_Get(const StaticField* pStaticField, BoxedValue* pOutBoxed)
     {
-        Assert(staticField != nullptr);
-        Assert(outData != nullptr);
+        Assert(pStaticField != nullptr);
+        Assert(pOutBoxed != nullptr);
 
-        *outData = staticField->Get();
+        *pOutBoxed = pStaticField->Get();
     }
 
 } // extern "C"

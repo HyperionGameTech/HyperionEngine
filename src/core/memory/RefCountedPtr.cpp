@@ -2,7 +2,7 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <core/reflection/TypeInfo.hpp>
 

@@ -41,7 +41,7 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 class AssetRegistry;
 class AssetPackage;
 class AssetObject;
-struct HypData;
+struct BoxedValue;
 class ByteWriter;
 
 extern StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
@@ -431,7 +431,7 @@ public:
      * \param getObjectSubpath Optional callback to determine the sub-path for each asset object being registered. */
     void RegisterAssetsRecursively(
         const UTF8StringView& packagePath,
-        const HypData& target,
+        const BoxedValue& target,
         bool forceRelocation = false,
         ProcRef<String(const AssetObject&)> getObjectSubpath = nullptr);
 

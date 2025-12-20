@@ -26,26 +26,26 @@ EditName::EditName()
 
 EditName::~EditName() = default;
 
-void EditName::Build_Impl(const HypData& hypData, const Property* property)
+void EditName::Build_Impl(const BoxedValue& boxed, const Property* property)
 {
     HYP_NAMED_SCOPE("EditName::Build");
 
-    Assert(hypData.IsValid());
+    Assert(boxed.IsValid());
 
-    const Handle<Node>& node = hypData.Get<Handle<Node>>();
+    const Handle<Node>& node = boxed.Get<Handle<Node>>();
     Assert(node != nullptr);
 
     Assert(property != nullptr);
     Assert(property->CanGet());
 
-    HypData resultData = property->Get(hypData);
+    BoxedValue resultData = property->Get(boxed);
     Assert(resultData.IsValid());
 
     Name nameValue = resultData.Get<Name>();
     m_currentValue = std::move(resultData);
 
     OnValueChange
-        .Bind([nodeWeak = node.ToWeak(), property](const HypData& value) -> UIEventHandlerResult
+        .Bind([nodeWeak = node.ToWeak(), property](const BoxedValue& value) -> UIEventHandlerResult
             {
                 Handle<Node> node = nodeWeak.Lock();
                 if (!node || !property->CanSet())
@@ -53,7 +53,7 @@ void EditName::Build_Impl(const HypData& hypData, const Property* property)
                     return UIEventHandlerResult::ERR;
                 }
 
-                HypData targetData(node.ToRef());
+                BoxedValue targetData(node.ToRef());
                 property->Set(targetData, value);
 
                 return UIEventHandlerResult::OK;
@@ -69,9 +69,9 @@ void EditName::Build_Impl(const HypData& hypData, const Property* property)
 
         if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<String>())
         {
-            Handle<UIObject> nameElement = factory->CreateUIObject(this, HypData(nameValue.ToString()), {});
+            Handle<UIObject> nameElement = factory->CreateUIObject(this, BoxedValue(nameValue.ToString()), {});
 
-            m_delegateHandlers.Add(nameElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
+            m_delegateHandlers.Add(nameElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const BoxedValue& value) -> UIEventHandlerResult
                 {
                     Handle<EditName> strongThis = weakThis.Lock();
                     if (!strongThis)
@@ -82,7 +82,7 @@ void EditName::Build_Impl(const HypData& hypData, const Property* property)
                     String str = value.Get<String>();
                     Name newName = CreateNameFromDynamicString(str);
 
-                    SetCurrentValue(HypData(newName));
+                    SetCurrentValue(BoxedValue(newName));
 
                     return UIEventHandlerResult::OK;
                 }));

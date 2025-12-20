@@ -11,6 +11,9 @@ namespace Hyperion.Editor
         public static extern int Hyp_Initialize(int argc, IntPtr argv);
 
         [DllImport("hyperion")]
+        public static extern void Hyp_LaunchThreads();
+
+        [DllImport("hyperion")]
         public static extern void Hyp_Shutdown();
 
         [DllImport("hyperion")]

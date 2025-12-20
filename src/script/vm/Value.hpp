@@ -17,7 +17,7 @@
 
 namespace hyperion {
 
-struct HypData;
+struct BoxedValue;
 struct Method;
 
 enum class Script_FunctionAddress : uint32;
@@ -137,7 +137,7 @@ struct alignas(8) Script_VMData
 {
     union
     {
-        HypData* valueRef;
+        BoxedValue* valueRef;
 
         struct
         {
@@ -183,41 +183,41 @@ struct alignas(8) Script_VMData
 
 enum class GCIndex : uint32;
 
-extern HYP_API bool IsGarbage(const HypData& data);
+extern HYP_API bool IsGarbage(const BoxedValue& data);
 
-extern HYP_API bool IsFunction(const HypData& data);
-extern HYP_API bool IsNativeFunction(const HypData& data);
+extern HYP_API bool IsFunction(const BoxedValue& data);
+extern HYP_API bool IsNativeFunction(const BoxedValue& data);
 
-extern HYP_API bool IsRef(const HypData& data);
-extern HYP_API HypData* GetRef(const HypData& data);
+extern HYP_API bool IsRef(const BoxedValue& data);
+extern HYP_API BoxedValue* GetRef(const BoxedValue& data);
 
-extern HYP_API HypData* Deref(HypData& data);
-extern HYP_API const HypData* Deref(const HypData& data);
+extern HYP_API BoxedValue* Deref(BoxedValue& data);
+extern HYP_API const BoxedValue* Deref(const BoxedValue& data);
 
-extern HYP_API void AssignValue(HypData& data, HypData&& other, bool assignRef);
+extern HYP_API void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef);
 
-extern HYP_API bool GetUnsigned(const HypData& data, uint64* out);
-extern HYP_API bool GetInteger(const HypData& data, int64* out);
-extern HYP_API bool GetSignedOrUnsigned(const HypData& data, Number* out);
+extern HYP_API bool GetUnsigned(const BoxedValue& data, uint64* out);
+extern HYP_API bool GetInteger(const BoxedValue& data, int64* out);
+extern HYP_API bool GetSignedOrUnsigned(const BoxedValue& data, Number* out);
 
-extern HYP_API bool GetFloatingPoint(const HypData& data, double* out);
+extern HYP_API bool GetFloatingPoint(const BoxedValue& data, double* out);
 
-extern HYP_API bool GetNumber(const HypData& data, double* out);
-extern HYP_API bool GetNumber(const HypData& data, Number* out);
+extern HYP_API bool GetNumber(const BoxedValue& data, double* out);
+extern HYP_API bool GetNumber(const BoxedValue& data, Number* out);
 
-extern HYP_API NumericType GetNumericType(const HypData& data);
+extern HYP_API NumericType GetNumericType(const BoxedValue& data);
 
-extern HYP_API bool GetBoolean(const HypData& data, bool* out);
+extern HYP_API bool GetBoolean(const BoxedValue& data, bool* out);
 
-extern HYP_API bool GetString(const HypData& data, const Script_String** out);
+extern HYP_API bool GetString(const BoxedValue& data, const Script_String** out);
 
-extern HYP_API const Handle<ObjectBase>& ScriptApi_GetObject(const HypData& data);
+extern HYP_API const Handle<ObjectBase>& ScriptApi_GetObject(const BoxedValue& data);
 
-extern HYP_API int CompareAsPointers(const HypData& lhs, const HypData& rhs);
-extern HYP_API int CompareAsFunctions(const HypData& lhs, const HypData& rhs);
-extern HYP_API int CompareAsNativeFunctions(const HypData& lhs, const HypData& rhs);
+extern HYP_API int CompareAsPointers(const BoxedValue& lhs, const BoxedValue& rhs);
+extern HYP_API int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs);
+extern HYP_API int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs);
 
-extern HYP_API const char* GetTypeString(const HypData& data);
-extern HYP_API String ToString(const HypData& data);
+extern HYP_API const char* GetTypeString(const BoxedValue& data);
+extern HYP_API String ToString(const BoxedValue& data);
 
 } // namespace hyperion

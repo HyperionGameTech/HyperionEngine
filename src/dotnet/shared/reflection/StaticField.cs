@@ -43,7 +43,7 @@ namespace Hyperion
 
             object? result = null;
 
-            HypDataBuffer outData = new HypDataBuffer();
+            BoxedValueInternal outData = new BoxedValueInternal();
 
             try
             {
@@ -66,6 +66,6 @@ namespace Hyperion
         private static extern void StaticField_GetTypeId([In] IntPtr constantPtr, [Out] out TypeId typeId);
 
         [DllImport("hyperion", EntryPoint = "StaticField_Get")]
-        private static extern bool StaticField_Get([In] IntPtr staticFieldPtr, out HypDataBuffer outData);
+        private static extern bool StaticField_Get([In] IntPtr staticFieldPtr, out BoxedValueInternal outData);
     }
 }

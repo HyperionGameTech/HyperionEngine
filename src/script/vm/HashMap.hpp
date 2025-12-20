@@ -6,7 +6,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
@@ -20,7 +20,7 @@ class Script_HashMap
 public:
     struct VMMapKey
     {
-        HypData key;
+        BoxedValue key;
         uint64 hash;
 
         HYP_FORCE_INLINE bool operator==(const VMMapKey& other) const
@@ -39,7 +39,7 @@ public:
         }
     };
 
-    using InternalMapType = HashMap<VMMapKey, HypData, DynamicNodeAllocator>;
+    using InternalMapType = HashMap<VMMapKey, BoxedValue, DynamicNodeAllocator>;
 
     Script_HashMap();
     Script_HashMap(const Script_HashMap& other) = delete;
@@ -68,10 +68,10 @@ public:
         return this == &other;
     }
 
-    void SetElement(VMMapKey&& key, HypData&& value);
+    void SetElement(VMMapKey&& key, BoxedValue&& value);
 
-    HypData* GetElement(const VMMapKey& key);
-    const HypData* GetElement(const VMMapKey& key) const;
+    BoxedValue* GetElement(const VMMapKey& key);
+    const BoxedValue* GetElement(const VMMapKey& key) const;
 
 private:
     InternalMapType m_map;

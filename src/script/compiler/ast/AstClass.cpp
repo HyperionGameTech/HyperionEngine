@@ -28,7 +28,7 @@
 #include <script/compiler/emit/StorageOperation.hpp>
 
 #include <core/reflection/Object.hpp>
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Method.hpp>
 
@@ -75,13 +75,13 @@ AstClass::AstClass(
     EnumFlags<AstClassFlags> flags,
     const SourceLocation& location)
     : AstClass(
-          name,
-          RC<AstTypeSpecifier>(),
-          dataMembers,
-          functionMembers,
-          staticMembers,
-          flags,
-          location)
+        name,
+        RC<AstTypeSpecifier>(),
+        dataMembers,
+        functionMembers,
+        staticMembers,
+        flags,
+        location)
 {
     m_baseType = baseType;
 }
@@ -615,7 +615,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
         ClassTable::StaticFieldInfo staticFieldInfo {};
         staticFieldInfo.name = decl->GetName();
-        staticFieldInfo.typeId = TypeId::ForType<HypData>();
+        staticFieldInfo.typeId = TypeId::ForType<BoxedValue>();
         staticFieldInfo.targetTypeId = TypeId::ForType<ObjectBase>();
 
         chunk->Append(decl->Build(visitor, mod));
@@ -637,7 +637,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
         ClassTable::MethodInfo methodInfo {};
         methodInfo.name = decl->GetName();
-        methodInfo.typeId = TypeId::ForType<HypData>();
+        methodInfo.typeId = TypeId::ForType<BoxedValue>();
         methodInfo.targetTypeId = TypeId::ForType<ObjectBase>();
 
         // flags will be combined with the function's other flags (e.g VARIDIC) with the member is created during execution
@@ -682,8 +682,8 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
                 if (!member.GetType()->IsOrHasBase(*BuiltinTypes::s_functionBaseType)) // skip methods, they don't take up space on the instance
                 {
                     // align field offset
-                    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
-                    fieldOffset += sizeof(HypData);
+                    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
+                    fieldOffset += sizeof(BoxedValue);
                 }
             }
 
@@ -699,18 +699,18 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         if (!member.GetType()->IsOrHasBase(*BuiltinTypes::s_functionBaseType)) // skip methods, they are handled above
         {
             // align field offset
-            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
+            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
 
             ClassTable::FieldInfo fieldInfo {};
             fieldInfo.name = member.GetName();
-            fieldInfo.typeId = TypeId::ForType<HypData>();
+            fieldInfo.typeId = TypeId::ForType<BoxedValue>();
             fieldInfo.targetTypeId = TypeId::ForType<ObjectBase>();
             fieldInfo.offset = uint32(fieldOffset);
-            fieldInfo.size = uint32(sizeof(HypData));
+            fieldInfo.size = uint32(sizeof(BoxedValue));
 
             fields.PushBack(fieldInfo);
 
-            fieldOffset += sizeof(HypData);
+            fieldOffset += sizeof(BoxedValue);
         }
     }
 
