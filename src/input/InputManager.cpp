@@ -229,25 +229,12 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
 
-    if (m_isMouseLocked == isMouseLocked)
+    if (!m_window)
     {
         return;
     }
 
-    if (isMouseLocked)
-    {
-        if (m_window)
-        {
-            m_window->SetIsMouseLocked(true);
-        }
-    }
-    else
-    {
-        if (m_window)
-        {
-            m_window->SetIsMouseLocked(false);
-        }
-    }
+    m_window->SetIsMouseLocked(isMouseLocked);
 
     m_isMouseLocked = isMouseLocked;
 }

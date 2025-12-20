@@ -149,6 +149,9 @@ public:
     virtual void SetIsMouseLocked(bool locked) = 0;
 
     HYP_METHOD()
+    virtual bool IsMouseLocked() const = 0;
+
+    HYP_METHOD()
     virtual bool HasMouseFocus() const = 0;
 
     HYP_METHOD()
@@ -186,25 +189,28 @@ class HYP_API SDLApplicationWindow final : public ApplicationWindow
 
 public:
     SDLApplicationWindow(ANSIString title, Vec2i size);
-    virtual ~SDLApplicationWindow() override;
+    ~SDLApplicationWindow() override;
 
     HYP_METHOD()
-    virtual void SetMousePosition(Vec2i position) override;
+    void SetMousePosition(Vec2i position) override;
 
     HYP_METHOD()
-    virtual Vec2i GetMousePosition() const override;
+    Vec2i GetMousePosition() const override;
 
     HYP_METHOD()
-    virtual Vec2i GetDimensions() const override;
+    Vec2i GetDimensions() const override;
 
     HYP_METHOD()
-    virtual void SetIsMouseLocked(bool locked) override;
+    void SetIsMouseLocked(bool locked) override;
 
     HYP_METHOD()
-    virtual bool HasMouseFocus() const override;
+    bool IsMouseLocked() const override;
 
     HYP_METHOD()
-    virtual bool IsHighDPI() const override;
+    bool HasMouseFocus() const override;
+
+    HYP_METHOD()
+    bool IsHighDPI() const override;
 
     void Initialize(WindowOptions windowOptions);
 };
@@ -309,6 +315,12 @@ public:
     void SetIsMouseLocked(bool locked) override;
 
     HYP_METHOD()
+    bool IsMouseLocked() const override
+    {
+        return m_mouseLocked;
+    }
+
+    HYP_METHOD()
     bool HasMouseFocus() const override;
 
 #ifdef HYP_WINDOWS
@@ -322,9 +334,10 @@ private:
     LRESULT WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     HINSTANCE m_hinst = nullptr;
-    bool m_mouseLocked = false;
     bool m_useWndProc = false;
 #endif
+
+    bool m_mouseLocked = false;
 };
 
 HYP_CLASS()
@@ -372,6 +385,12 @@ public:
     void SetIsMouseLocked(bool locked) override;
 
     HYP_METHOD()
+    bool IsMouseLocked() const override
+    {
+        return m_mouseLocked;
+    }
+
+    HYP_METHOD()
     bool HasMouseFocus() const override;
 
     HYP_METHOD()
@@ -405,23 +424,18 @@ public:
         return m_useCocoaEvents;
     }
 
-    HYP_FORCE_INLINE bool IsMouseLocked() const
-    {
-        return m_mouseLocked;
-    }
-
     bool HandleNSEvent(NSEvent* nsEvent, SystemEvent& event);
 
 private:
     void* m_windowDelegate = nullptr;
     void* m_metalLayer = nullptr;
-    bool m_mouseLocked = false;
     bool m_isEmbeddedView = false;
     mutable Vec2i m_mousePosition = Vec2i::Zero();
     bool m_useCocoaEvents = false;
 #endif
 
     void* m_nsView = nullptr;
+    bool m_mouseLocked = false;
 };
 
 HYP_CLASS()
