@@ -117,10 +117,16 @@ InputManager::~InputManager()
 {
     SetIsMouseLocked(false);
 
-    for (InputMouseLockState* state : m_mouseLockStates)
+    for (int i = 0; i < int(m_mouseLockStates.Size()); i++)
     {
-        state->~InputMouseLockState();
-        s_inputMouseLockStateAllocator.Free(state);
+        InputMouseLockState* state = m_mouseLockStates[i];
+        auto it = m_mouseLockStates.Begin() + i;
+
+        if (m_mouseLockStates.IndexOf(it) == i)
+        {
+            state->~InputMouseLockState();
+            s_inputMouseLockStateAllocator.Free(state);
+        }
     }
 }
 
@@ -199,8 +205,11 @@ void InputManager::PopMouseLockState()
     InputMouseLockState* lastState = m_mouseLockStates.PopBack();
     SetIsMouseLocked(lastState->locked);
 
-    lastState->~InputMouseLockState();
-    s_inputMouseLockStateAllocator.Free(lastState);
+    if (!m_mouseLockStates.Contains(lastState))
+    {
+        lastState->~InputMouseLockState();
+        s_inputMouseLockStateAllocator.Free(lastState);
+    }
 }
 
 InputMouseLockScope InputManager::AcquireMouseLock()
@@ -382,7 +391,7 @@ void InputManager::ApplyMouseLockState(InputMouseLockState* mouseLockState)
         return;
     }
 
-    SizeType currentIndex = m_mouseLockStates.IndexOf(mouseLockState);
+    //SizeType currentIndex = m_mouseLockStates.IndexOf(mouseLockState);
 
     //if (currentIndex != -1)
     //{
@@ -420,10 +429,15 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
 
     auto eraseIt = m_mouseLockStates.Erase(it);
 
-    if (eraseIt == m_mouseLockStates.End())
+    if (!m_mouseLockStates.Contains(mouseLockState))
     {
-        // Update mouse lock state since last was removed
-        ApplyMouseLockState(m_mouseLockStates.Any() ? m_mouseLockStates.Back() : nullptr);
+        mouseLockState->~InputMouseLockState();
+        s_inputMouseLockStateAllocator.Free(mouseLockState);
+    }
+
+    if (eraseIt == m_mouseLockStates.End()) // was it at the end?
+    {
+        SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
     }
 }
 
