@@ -12,7 +12,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/shader_compiler/ShaderCompiler.hpp> // For CompiledShader
+#include <rendering/util/ShaderCompiler.hpp> // For CompiledShader
 
 #include <core/debug/Debug.hpp>
 

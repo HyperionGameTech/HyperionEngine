@@ -37,7 +37,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanRenderBackend.hpp>

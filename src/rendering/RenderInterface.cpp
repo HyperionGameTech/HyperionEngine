@@ -26,6 +26,7 @@
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/ShaderPropertyCache.hpp>
 
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/EnvGridRenderer.hpp>
@@ -1270,8 +1271,8 @@ void BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                 i != Bitset::NotFound;
-                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                i != Bitset::NotFound;
+                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1431,7 +1432,8 @@ RenderInterface::RenderInterface()
       materialDescriptorSetManager(PoolNew<MaterialDescriptorSetManager>(*g_renderPool)),
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
-      finalPass(nullptr)
+      finalPass(nullptr),
+      shaderPropertyCache(PoolNew<ShaderPropertyCache>(*g_renderPool))
 {
     AssertOnThread(g_renderThread);
 
@@ -1541,6 +1543,9 @@ RenderInterface::~RenderInterface()
 
     PoolDelete(*g_renderPool, graphicsPipelineCache);
     graphicsPipelineCache = nullptr;
+
+    PoolDelete(*g_renderPool, shaderPropertyCache);
+    shaderPropertyCache = nullptr;
 }
 
 void RenderInterface::UpdateBuffers(Frame* frame)

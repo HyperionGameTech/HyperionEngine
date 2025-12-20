@@ -39,7 +39,7 @@
 #include <rendering/raytracing/RaytracingReflections.hpp>
 #include <rendering/raytracing/DDGI.hpp>
 
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
