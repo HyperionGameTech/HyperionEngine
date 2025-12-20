@@ -12,7 +12,7 @@
 
 #include <core/functional/Delegate.hpp>
 
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 namespace hyperion {
 namespace net {

@@ -8,7 +8,7 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 namespace hyperion {
 

@@ -7,7 +7,7 @@
 
 #include <rendering/DescriptorSet.hpp>
 
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);

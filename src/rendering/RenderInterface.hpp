@@ -40,6 +40,7 @@ struct RenderStatsCounts;
 struct Viewport;
 class FinalPass;
 class ResourceBinderBase;
+class ShaderPropertyCache;
 
 namespace RenderApi {
 
@@ -187,6 +188,8 @@ public:
     GraphicsPipelineCache* graphicsPipelineCache;
 
     FinalPass* finalPass;
+
+    ShaderPropertyCache* shaderPropertyCache;
 
 private:
     void CreateBlueNoiseBuffer();
