@@ -153,50 +153,30 @@ void DefaultGame::OnUpdate_Impl(float delta)
 
 void DefaultGame::OnInputEvent(const SystemEvent& event)
 {
-    const float movementSpeed = 25.0f;
-
     Game::OnInputEvent(event);
 
-    const float deltaTime = GetWorld()->GetGameState().deltaTime;
+    CameraController* controller = m_camera->GetCameraController();
 
-    SystemEvent::EventType eventType = event.GetType();
-
-    Vec3f movementVector;
-
-    if (eventType == SystemEvent::EventType::KEYDOWN)
+    switch (event.GetType())
     {
-        switch (event.GetKeyCode())
-        {
-        case hyperion::KeyCode::KEY_W:
-            movementVector.z = 1.0f;
-            break;
-        case hyperion::KeyCode::KEY_A:
-            movementVector.x = -1.0f;
-            break;
-        case hyperion::KeyCode::KEY_S:
-            movementVector.z = -1.0f;
-            break;
-        case hyperion::KeyCode::KEY_D:
-            movementVector.x = 1.0f;
-            break;
-        case hyperion::KeyCode::KEY_ESCAPE:
-            g_inputManager->PopMouseLockState();
-            break;
-        default:;
-        }
+    case SystemEvent::EventType::KEYUP:
+        controller->GetInputHandler()->OnKeyUp(event.ToKeyboardEvent());
+        break;
+    case SystemEvent::EventType::KEYDOWN:
+        controller->GetInputHandler()->OnKeyDown(event.ToKeyboardEvent());
+        break;
+    case SystemEvent::EventType::MOUSEBUTTON_DOWN:
+        controller->GetInputHandler()->OnMouseDown(event.ToMouseEvent(Vec2f(m_camera->GetDimensions())));
+        break;
+    case SystemEvent::EventType::MOUSEBUTTON_UP:
+        controller->GetInputHandler()->OnMouseUp(event.ToMouseEvent(Vec2f(m_camera->GetDimensions())));
+        break;
+    case SystemEvent::EventType::MOUSEMOTION:
+        controller->GetInputHandler()->OnMouseMove(event.ToMouseEvent(Vec2f(m_camera->GetDimensions())));
+        break;
+    default:
+        break;
     }
-    else if (eventType == SystemEvent::EventType::MOUSEBUTTON_DOWN)
-    {
-        g_inputManager->PushMouseLockState(true);
-    }
-
-    else if (eventType == SystemEvent::EventType::MOUSEMOTION)
-    {
-        m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event.ToMouseEvent(Vec2f(m_camera->GetDimensions())));
-    }
-
-    m_camera->SetTranslation(m_camera->GetTranslation() + ((Vec3f(deltaTime) * movementVector) * m_camera->GetDirection()) * Vec3f(movementSpeed));
-    // m_camera->GetCameraController()->GetInputHandler();
 }
 
 } // namespace game

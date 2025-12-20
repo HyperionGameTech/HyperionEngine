@@ -29,6 +29,11 @@ FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(const WeakHandle<Ca
 
 bool FirstPersonCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
 {
+    if (evt.keyCode == KeyCode::KEY_ESCAPE)
+    {
+        m_controller.GetUnsafe()->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
+    }
+
     return InputHandlerBase::OnKeyDown_Impl(evt);
 }
 
@@ -39,6 +44,8 @@ bool FirstPersonCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
 
 bool FirstPersonCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 {
+    m_controller.GetUnsafe()->SetMode(FirstPersonCameraControllerMode::MOUSE_LOCKED);
+
     return InputHandlerBase::OnMouseDown_Impl(evt);
 }
 
@@ -117,6 +124,8 @@ void FirstPersonCameraController::OnActivated()
     HYP_SCOPE;
 
     PerspectiveCameraController::OnActivated();
+
+    SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
 }
 
 void FirstPersonCameraController::OnDeactivated()

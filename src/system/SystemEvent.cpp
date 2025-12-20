@@ -29,7 +29,7 @@ MouseEvent SystemEvent::ToMouseEvent(const Vec2f& surfaceSize) const
     MouseEvent me {};
     me.mouseButtons = GetMouseButtons();
 
-    me.absolutePos = m_eventData.Get<Vec2i>();
+    me.absolutePos = m_eventData.Is<Vec2i>() ? m_eventData.GetUnchecked<Vec2i>() : Vec2i::Zero();
     me.absolutePrevPos = g_inputManager->GetPreviousMousePosition();
 
     me.relativePos = Vec2f(me.absolutePos);
@@ -42,6 +42,15 @@ MouseEvent SystemEvent::ToMouseEvent(const Vec2f& surfaceSize) const
     }
 
     return me;
+}
+
+KeyboardEvent SystemEvent::ToKeyboardEvent() const
+{
+    KeyboardEvent kbe {};
+    kbe.inputManager = g_inputManager;
+    kbe.keyCode = m_eventData.Is<KeyCode>() ? m_eventData.GetUnchecked<KeyCode>() : KeyCode::KEY_UNKNOWN;
+
+    return kbe;
 }
 
 #ifdef HYP_SDL
