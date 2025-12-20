@@ -11,7 +11,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 #include <core/debug/Debug.hpp>
 

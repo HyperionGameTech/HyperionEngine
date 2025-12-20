@@ -4,7 +4,7 @@
 
 #include <rendering/Shared.hpp>
 #include <rendering/RenderBucket.hpp>
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
