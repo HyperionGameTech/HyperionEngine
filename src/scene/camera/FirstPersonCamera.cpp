@@ -17,21 +17,21 @@ static const float movementBlending = 0.01f;
 #pragma region FirstPersonCameraInputHandler
 
 FirstPersonCameraInputHandler::FirstPersonCameraInputHandler()
-    : m_controller()
+    : m_controller(nullptr)
 {
 }
 
-FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(const WeakHandle<CameraController>& controller)
-    : m_controller(WeakHandle<FirstPersonCameraController>(controller))
+FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(FirstPersonCameraController* controller)
+    : m_controller(controller)
 {
-    Assert(m_controller.IsValid(), "Null camera controller or not of type FirstPersonCameraInputHandler");
+    Assert(m_controller != nullptr);
 }
 
 bool FirstPersonCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
 {
     if (evt.keyCode == KeyCode::KEY_ESCAPE)
     {
-        m_controller.GetUnsafe()->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
+        m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
     }
 
     return InputHandlerBase::OnKeyDown_Impl(evt);
@@ -44,7 +44,7 @@ bool FirstPersonCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
 
 bool FirstPersonCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 {
-    m_controller.GetUnsafe()->SetMode(FirstPersonCameraControllerMode::MOUSE_LOCKED);
+    m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_LOCKED);
 
     return InputHandlerBase::OnMouseDown_Impl(evt);
 }
@@ -58,14 +58,12 @@ bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    Handle<FirstPersonCameraController> controller = m_controller.Lock();
-
-    if (!controller.IsValid())
+    if (!m_controller || !m_controller->IsMouseLockRequested())
     {
         return false;
     }
 
-    Camera* camera = controller->GetCamera();
+    Camera* camera = m_controller->GetCamera();
 
     if (!camera)
     {
@@ -116,7 +114,7 @@ FirstPersonCameraController::FirstPersonCameraController(FirstPersonCameraContro
       m_prevMouseX(0.0f),
       m_prevMouseY(0.0f)
 {
-    m_inputHandler = CreateObject<FirstPersonCameraInputHandler>(WeakHandleFromThis());
+    m_inputHandler = CreateObject<FirstPersonCameraInputHandler>(this);
 }
 
 void FirstPersonCameraController::OnActivated()
@@ -148,6 +146,8 @@ void FirstPersonCameraController::SetMode(FirstPersonCameraControllerMode mode)
     case FirstPersonCameraControllerMode::MOUSE_LOCKED:
         CameraController::SetIsMouseLockRequested(true);
 
+        break;
+    default:
         break;
     }
 
