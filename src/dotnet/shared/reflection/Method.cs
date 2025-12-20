@@ -189,7 +189,7 @@ namespace Hyperion
             return resultBuffer;
         }
 
-        public BoxedValueInternal InvokeNative(params object[] args)
+        public BoxedValueInternal InvokeNative(params object?[] args)
         {
             if (_ptr == IntPtr.Zero)
             {
@@ -225,42 +225,47 @@ namespace Hyperion
 
             bool shouldStackAlloc = numArgs * Marshal.SizeOf<BoxedValueInternal>() < 1024;
 
-            Span<BoxedValueInternal> hypDataArgsBuffers = numArgs > 0
+            Span<BoxedValueInternal> argsBuffers = numArgs > 0
                 ? (shouldStackAlloc ? stackalloc BoxedValueInternal[(int)numArgs] : new BoxedValueInternal[(int)numArgs])
                 : Span<BoxedValueInternal>.Empty;
-
-            if (numArgs > 0)
-            {
-                int argIndex = 0;
-
-                if (thisObject != null)
-                {
-                    BoxedValueInternal.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
-                    hypDataArgsBuffers[argIndex].SetValue(thisObject);
-                    argIndex++;
-                }
-
-                for (; argIndex < numArgs; argIndex++)
-                {
-                    BoxedValueInternal.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
-                    hypDataArgsBuffers[argIndex].SetValue(args[argIndex]);
-                }
-            }
 
             BoxedValueInternal resultBuffer;
 
             // Args is pointer to contiguous BoxedValueInternal objects
             unsafe
             {
-                fixed (BoxedValueInternal* pArgs = hypDataArgsBuffers)
+                fixed (BoxedValueInternal* pArgs = argsBuffers)
                 {
-                    bool result = Method_Invoke(_ptr, (IntPtr)pArgs, numArgs, out resultBuffer);
+                    int argIndex = 0;
 
-                    for (int i = 0; i < numArgs; i++)
-                        hypDataArgsBuffers[i].Dispose();
+                    try
+                    {
+                        if (numArgs > 0)
+                        {
+                            if (thisObject != null)
+                            {
+                                BoxedValueInternal.HypData_Construct(ref argsBuffers[argIndex]);
+                                argsBuffers[argIndex].SetValue(thisObject);
+                                argIndex++;
+                            }
 
-                    if (!result)
-                        throw new InvalidOperationException("Failed to invoke method");
+                            for (; argIndex < numArgs; argIndex++)
+                            {
+                                BoxedValueInternal.HypData_Construct(ref argsBuffers[argIndex]);
+                                argsBuffers[argIndex].SetValue(args[argIndex]);
+                            }
+                        }
+
+                        bool result = Method_Invoke(_ptr, (IntPtr)pArgs, numArgs, out resultBuffer);
+
+                        if (!result)
+                            throw new InvalidOperationException("Failed to invoke method");
+                    }
+                    finally
+                    {
+                        for (int i = 0; i < argIndex; i++)
+                            argsBuffers[i].Dispose();
+                    }
                 }
             }
 
