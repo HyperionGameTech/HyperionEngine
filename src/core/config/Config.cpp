@@ -305,7 +305,7 @@ bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
     HYP_CORE_ASSERT(cls != nullptr);
     HYP_CORE_ASSERT(ptr != nullptr);
 
-    HypData targetHypData = HypData(AnyRef(cls->GetTypeInfo(), const_cast<void*>(ptr)));
+    BoxedValue targetHypData = BoxedValue(AnyRef(cls->GetTypeInfo(), const_cast<void*>(ptr)));
 
     if (!JSONToObject(GetSubobject().AsObject(), cls, targetHypData))
     {

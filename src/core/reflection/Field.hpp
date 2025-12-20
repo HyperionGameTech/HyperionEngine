@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ClassAttribute.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 #include <core/reflection/TypeId.hpp>
@@ -56,9 +56,9 @@ public:
         HYP_CORE_ASSERT(m_typeInfo != nullptr, "TypeInfo cannot be null");
         HYP_CORE_ASSERT(m_targetTypeInfo != nullptr, "Target TypeInfo cannot be null");
 
-        HYP_CORE_ASSERT(TypeInfo_GetId(*typeInfo) == TypeId::ForType<HypData>(), "Field must be HypData for script objects");
+        HYP_CORE_ASSERT(TypeInfo_GetId(*typeInfo) == TypeId::ForType<BoxedValue>(), "Field must be BoxedValue for script objects");
 
-        m_getProc = [offset](const HypData& targetData) -> HypData
+        m_getProc = [offset](const BoxedValue& targetData) -> BoxedValue
         {
             ConstAnyRef targetRef = targetData.ToRef();
 
@@ -71,10 +71,10 @@ public:
             const UIntPtr memberAddress = baseAddress + offset;
             HYP_CORE_ASSERT(memberAddress != 0, "Invalid member address");
 
-            return *reinterpret_cast<const HypData*>(memberAddress);
+            return *reinterpret_cast<const BoxedValue*>(memberAddress);
         };
 
-        m_setProc = [offset](HypData& targetData, const HypData& data) -> void
+        m_setProc = [offset](BoxedValue& targetData, const BoxedValue& data) -> void
         {
             AnyRef targetRef = targetData.ToRef();
 
@@ -87,14 +87,14 @@ public:
             const UIntPtr memberAddress = baseAddress + offset;
             HYP_CORE_ASSERT(memberAddress != 0, "Invalid member address");
 
-            *reinterpret_cast<HypData*>(memberAddress) = data;
+            *reinterpret_cast<BoxedValue*>(memberAddress) = data;
         };
 
         /// \todo : Serialize/Deserialize
     }
 
     template <class ThisType, class FieldType>
-    Field(Name name, FieldType ThisType::* member, uint32 offset, const Span<const ClassAttribute>& attributes = {})
+    Field(Name name, FieldType ThisType::*member, uint32 offset, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<FieldType>()),
           m_targetTypeInfo(&TypeOf<ThisType>()),
@@ -107,7 +107,7 @@ public:
             m_flags |= HypMemberFlags::DELEGATE;
         }
 
-        m_getProc = [member](const HypData& targetData) -> HypData
+        m_getProc = [member](const BoxedValue& targetData) -> BoxedValue
         {
             decltype(auto) target = targetData.Get<ThisType>();
 
@@ -117,26 +117,26 @@ public:
             if constexpr (std::is_base_of_v<IContainer, NormalizedType<FieldType>> && !IsStringV<NormalizedType<FieldType>>)
             {
                 // Containers are always returned as a reference to avoid copies
-                return HypData(GenericArrayWrapper(GenericArrayWrapper::AS_REFERENCE, (target.*member)));
+                return BoxedValue(GenericArrayWrapper(GenericArrayWrapper::AS_REFERENCE, (target.*member)));
             }
             else
             {
-                return HypData(AnyRef(&(target.*member)));
+                return BoxedValue(AnyRef(&(target.*member)));
             }
 #else
             if constexpr (IsDelegateV<NormalizedType<FieldType>>)
             {
                 // special handling for delegate fields: always return reference instead of value.
-                return HypData(AnyRef(&(target.*member)));
+                return BoxedValue(AnyRef(&(target.*member)));
             }
             else
             {
-                return HypData(target.*member);
+                return BoxedValue(target.*member);
             }
 #endif
         };
 
-        m_setProc = [member](HypData& targetData, const HypData& data) -> void
+        m_setProc = [member](BoxedValue& targetData, const BoxedValue& data) -> void
         {
             if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
             {
@@ -183,7 +183,7 @@ public:
             }
         };
 
-        m_serializeProc = [member](const HypData& targetData, EnumFlags<FBOMDataFlags> flags, FBOMData& outData) -> Result
+        m_serializeProc = [member](const BoxedValue& targetData, EnumFlags<FBOMDataFlags> flags, FBOMData& outData) -> Result
         {
             decltype(auto) target = targetData.Get<ThisType>();
 
@@ -195,7 +195,7 @@ public:
             return {};
         };
 
-        m_deserializeProc = [member](FBOMLoadContext& context, HypData& targetData, const FBOMData& data) -> Result
+        m_deserializeProc = [member](FBOMLoadContext& context, BoxedValue& targetData, const FBOMData& data) -> Result
         {
             if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
             {
@@ -208,7 +208,7 @@ public:
                     return HYP_MAKE_ERROR(Error, "Invalid target type");
                 }
 
-                HypData value;
+                BoxedValue value;
 
                 if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Deserialize(context, data, value))
                 {
@@ -293,7 +293,7 @@ public:
         return IsValid() && m_deserializeProc.IsValid();
     }
 
-    virtual Result Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
+    virtual Result Serialize(Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
     {
         if (!CanSerialize())
         {
@@ -308,7 +308,7 @@ public:
         return m_serializeProc(*args.Data(), flags, out);
     }
 
-    virtual Result Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& in) const override
+    virtual Result Deserialize(FBOMLoadContext& context, BoxedValue& target, const FBOMData& in) const override
     {
         if (!CanDeserialize())
         {
@@ -355,12 +355,12 @@ public:
         return m_size;
     }
 
-    HYP_FORCE_INLINE HypData Get(const HypData& targetData) const
+    HYP_FORCE_INLINE BoxedValue Get(const BoxedValue& targetData) const
     {
         return m_getProc(targetData);
     }
 
-    HYP_FORCE_INLINE void Set(HypData& targetData, const HypData& data) const
+    HYP_FORCE_INLINE void Set(BoxedValue& targetData, const BoxedValue& data) const
     {
         return m_setProc(targetData, data);
     }
@@ -374,11 +374,11 @@ private:
 
     ClassAttributeSet m_attributes;
 
-    Proc<HypData(const HypData&)> m_getProc;
-    Proc<void(HypData&, const HypData&)> m_setProc;
+    Proc<BoxedValue(const BoxedValue&)> m_getProc;
+    Proc<void(BoxedValue&, const BoxedValue&)> m_setProc;
 
-    Proc<Result(const HypData& target, EnumFlags<FBOMDataFlags> flags, FBOMData& outData)> m_serializeProc;
-    Proc<Result(FBOMLoadContext& context, HypData& target, const FBOMData& inData)> m_deserializeProc;
+    Proc<Result(const BoxedValue& target, EnumFlags<FBOMDataFlags> flags, FBOMData& outData)> m_serializeProc;
+    Proc<Result(FBOMLoadContext& context, BoxedValue& target, const FBOMData& inData)> m_deserializeProc;
 };
 
 } // namespace hyperion

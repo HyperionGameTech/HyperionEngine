@@ -102,11 +102,11 @@ extern "C"
 
         const TypeInfo& typeInfo = pContainer->GetComponentTypeInfo();
 
-        HypData hd(AnyRef(&typeInfo, pComponent));
-        pManager->AddComponent(pEntity, hd);
+        BoxedValue boxed(AnyRef(&typeInfo, pComponent));
+        pManager->AddComponent(pEntity, boxed);
     }
 
-    HYP_EXPORT int8 EntityManager_AddTypedEntity(EntityManager* pManager, const Class* pClass, HypData* pOutHypData)
+    HYP_EXPORT int8 EntityManager_AddTypedEntity(EntityManager* pManager, const Class* pClass, BoxedValue* pOutHypData)
     {
         Assert(pManager != nullptr);
         Assert(pClass != nullptr);
@@ -119,7 +119,7 @@ extern "C"
             return false;
         }
 
-        *pOutHypData = HypData(entityHandle);
+        *pOutHypData = BoxedValue(entityHandle);
 
         return true;
     }

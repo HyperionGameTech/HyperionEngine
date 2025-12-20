@@ -14,7 +14,7 @@ namespace Hyperion
             {
                 if (_instance == null)
                 {
-                    using (HypDataBuffer resultData = ObjectBase.GetMethod(Class.GetClass(typeof(EngineStats)), new Name("GetInstance", weak: true)).InvokeNative())
+                    using (BoxedValueInternal resultData = ObjectBase.GetMethod(Class.GetClass(typeof(EngineStats)), new Name("GetInstance", weak: true)).InvokeNative())
                     {
                         _instance = (EngineStats)resultData.GetValue();
 

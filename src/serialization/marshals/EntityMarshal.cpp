@@ -156,7 +156,7 @@ public:
         return result;
     }
 
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
         const Class* cls = in.GetClass();
         Assert(cls);
@@ -172,7 +172,7 @@ public:
         }
 
         const Handle<Entity>& entity = out.Get<Handle<Entity>>();
-        HypData entityData = HypData(entity);
+        BoxedValue entityData = BoxedValue(entity);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, in.GetClass(), entityData))
         {

@@ -80,7 +80,7 @@ namespace Hyperion
             return new ClassAttribute(pAttr);
         }
 
-        public HypData Get(ObjectBase obj)
+        public BoxedValue Get(ObjectBase obj)
         {
             if (_ptr == IntPtr.Zero)
             {
@@ -92,17 +92,17 @@ namespace Hyperion
                 throw new InvalidOperationException("Cannot invoke getter: Invalid target object");
             }
 
-            HypDataBuffer resultBuffer;
+            BoxedValueInternal resultBuffer;
 
             if (!Property_InvokeGetter(_ptr, obj.Class.Address, obj.NativeAddress, out resultBuffer))
             {
                 throw new InvalidOperationException("Failed to invoke getter");
             }
 
-            return HypData.FromBuffer(resultBuffer);
+            return BoxedValue.FromBuffer(resultBuffer);
         }
 
-        public void Set(ObjectBase obj, HypData value)
+        public void Set(ObjectBase obj, BoxedValue value)
         {
             if (_ptr == IntPtr.Zero)
             {
@@ -136,11 +136,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Property_InvokeGetter")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool Property_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out HypDataBuffer outResult);
+        private static extern bool Property_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out BoxedValueInternal outResult);
 
         [DllImport("hyperion", EntryPoint = "Property_InvokeSetter")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool Property_InvokeSetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [In] ref HypDataBuffer value);
+        private static extern bool Property_InvokeSetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [In] ref BoxedValueInternal value);
 
         [DllImport("hyperion", EntryPoint = "Property_GetAttributes")]
         internal static extern uint Property_GetAttributes([In] IntPtr propertyPtr, [Out] IntPtr attributesPtr);

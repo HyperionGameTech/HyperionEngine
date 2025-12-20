@@ -13,7 +13,7 @@
 
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <core/reflection/ObjId.hpp>
 #include <core/Util.hpp>
@@ -142,7 +142,7 @@ public:
      *
      *  \return True if the component was found, false otherwise
      */
-    bool TryGetComponent(ComponentId id, HypData& outHypData);
+    bool TryGetComponent(ComponentId id, BoxedValue& outHypData);
 
     /*! \brief Checks if the component container has a component with the given Id.
      *
@@ -152,21 +152,21 @@ public:
      */
     virtual bool HasComponent(ComponentId id) const = 0;
 
-    /*! \brief Adds a component to the component container, using HypData to store the component data generically.
+    /*! \brief Adds a component to the component container, using BoxedValue to store the component data generically.
      *
-     *  \param componentData The HypData containing the component data to add.
+     *  \param componentData The BoxedValue containing the component data to add.
      *
      *  \return The Id of the added component.
      */
-    virtual ComponentId AddComponent(const HypData& componentData) = 0;
+    virtual ComponentId AddComponent(const BoxedValue& componentData) = 0;
 
-    /*! \brief Adds a component to the component container, using HypData to store the component data generically.
+    /*! \brief Adds a component to the component container, using BoxedValue to store the component data generically.
      *
-     *  \param componentData The HypData containing the component data to add.
+     *  \param componentData The BoxedValue containing the component data to add.
      *
      *  \return The Id of the added component.
      */
-    virtual ComponentId AddComponent(HypData&& componentData) = 0;
+    virtual ComponentId AddComponent(BoxedValue&& componentData) = 0;
 
     /*! \brief Removes the component with the given Id from the component container.
      *
@@ -176,14 +176,14 @@ public:
      */
     virtual bool RemoveComponent(ComponentId id) = 0;
 
-    /*! \brief Removes the component with the given Id from the component container and stores the component object in HypData
+    /*! \brief Removes the component with the given Id from the component container and stores the component object in BoxedValue
      *
      *  \param id The Id of the component to remove.
      *  \param outHypData Out reference to store the component data in
      *
      *  \return True if the component was removed, false otherwise.
      */
-    virtual bool RemoveComponent(ComponentId id, HypData& outHypData) = 0;
+    virtual bool RemoveComponent(ComponentId id, BoxedValue& outHypData) = 0;
 
     /*! \brief Moves the component with the given Id from this component container to the given component container.
      *       The component container must be of the same type as this component container, otherwise an assertion will be thrown.
@@ -331,7 +331,7 @@ public:
         return Pair<ComponentId, Component&> { id, insertResult.first->second };
     }
 
-    virtual ComponentId AddComponent(const HypData& componentData) override
+    virtual ComponentId AddComponent(const BoxedValue& componentData) override
     {
         Assert(componentData.IsValid(), "Cannot add an invalid component");
         Assert(componentData.Is<Component>(), "Component data is not of the correct type");
@@ -339,7 +339,7 @@ public:
         return AddComponent(componentData.Get<Component>()).first;
     }
 
-    virtual ComponentId AddComponent(HypData&& componentData) override
+    virtual ComponentId AddComponent(BoxedValue&& componentData) override
     {
         Assert(componentData.IsValid(), "Cannot add an invalid component");
         Assert(componentData.Is<Component>(), "Component is not of the correct type");
@@ -363,7 +363,7 @@ public:
         return false;
     }
 
-    virtual bool RemoveComponent(ComponentId id, HypData& outHypData) override
+    virtual bool RemoveComponent(ComponentId id, BoxedValue& outHypData) override
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
@@ -371,7 +371,7 @@ public:
 
         if (it != m_components.End())
         {
-            outHypData = HypData(std::move(it->second));
+            outHypData = BoxedValue(std::move(it->second));
 
             m_components.Erase(it);
 

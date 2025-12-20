@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ClassAttribute.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 
@@ -42,7 +42,7 @@ struct MethodParameter
 #pragma region CallMethod
 
 template <class FunctionType, class ReturnType, class... ArgTypes, SizeType... Indices>
-HYP_FORCE_INLINE decltype(auto) CallMethod_Impl(FunctionType fn, HypData** args, std::index_sequence<Indices...>)
+HYP_FORCE_INLINE decltype(auto) CallMethod_Impl(FunctionType fn, BoxedValue** args, std::index_sequence<Indices...>)
 {
     auto assertArgType = [args]<SizeType Index>(std::integral_constant<SizeType, Index>) -> bool
     {
@@ -65,7 +65,7 @@ HYP_FORCE_INLINE decltype(auto) CallMethod_Impl(FunctionType fn, HypData** args,
 }
 
 template <class FunctionType, class ReturnType, class... ArgTypes>
-decltype(auto) CallMethod(FunctionType fn, HypData** args)
+decltype(auto) CallMethod(FunctionType fn, BoxedValue** args)
 {
     return CallMethod_Impl<FunctionType, ReturnType, ArgTypes...>(fn, args, std::make_index_sequence<sizeof...(ArgTypes)> {});
 }
@@ -187,7 +187,7 @@ public:
         : m_name(name),
           m_flags(MethodFlags::MEMBER),
           m_attributes(attributes),
-          m_proc([memFn](HypData** args, SizeType numArgs) -> HypData
+          m_proc([memFn](BoxedValue** args, SizeType numArgs) -> BoxedValue
               {
                   HYP_CORE_ASSERT(numArgs == sizeof...(ArgTypes) + 1);
 
@@ -197,11 +197,11 @@ public:
                   {
                       CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args);
 
-                      return HypData();
+                      return BoxedValue();
                   }
                   else
                   {
-                      return HypData(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args));
+                      return BoxedValue(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args));
                   }
               })
     {
@@ -215,7 +215,7 @@ public:
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
 
-        m_serializeProc = [memFn](Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+        m_serializeProc = [memFn](Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
             if (args.Size() != sizeof...(ArgTypes) + 1)
             {
@@ -224,7 +224,7 @@ public:
 
             const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
 
-            HypData** argPtrs = (HypData**)StackAlloc(args.Size() * sizeof(HypData*));
+            BoxedValue** argPtrs = (BoxedValue**)StackAlloc(args.Size() * sizeof(BoxedValue*));
             for (SizeType i = 0; i < args.Size(); ++i)
             {
                 argPtrs[i] = &args[i];
@@ -245,7 +245,7 @@ public:
             return {};
         };
 
-        m_deserializeProc = [memFn](FBOMLoadContext& context, Span<HypData> args, const FBOMData& data) -> Result
+        m_deserializeProc = [memFn](FBOMLoadContext& context, Span<BoxedValue> args, const FBOMData& data) -> Result
         {
             if (args.Size() != sizeof...(ArgTypes))
             {
@@ -256,14 +256,14 @@ public:
             {
                 const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
 
-                HypData value;
+                BoxedValue value;
 
                 if (FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
                 {
                     return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
                 }
 
-                HypData** argPtrs = (HypData**)StackAlloc((args.Size() + 1) * sizeof(HypData*));
+                BoxedValue** argPtrs = (BoxedValue**)StackAlloc((args.Size() + 1) * sizeof(BoxedValue*));
                 for (SizeType i = 0; i < args.Size(); ++i)
                 {
                     argPtrs[i] = &args[i];
@@ -287,7 +287,7 @@ public:
         : m_name(name),
           m_flags(MethodFlags::MEMBER),
           m_attributes(attributes),
-          m_proc([memFn](HypData** args, SizeType numArgs) -> HypData
+          m_proc([memFn](BoxedValue** args, SizeType numArgs) -> BoxedValue
               {
                   HYP_CORE_ASSERT(numArgs == sizeof...(ArgTypes) + 1);
 
@@ -298,11 +298,11 @@ public:
                   {
                       CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args);
 
-                      return HypData();
+                      return BoxedValue();
                   }
                   else
                   {
-                      return HypData(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args));
+                      return BoxedValue(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args));
                   }
               })
     {
@@ -316,7 +316,7 @@ public:
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
 
-        m_serializeProc = [memFn](Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+        m_serializeProc = [memFn](Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
             if (args.Size() != sizeof...(ArgTypes) + 1)
             {
@@ -325,7 +325,7 @@ public:
 
             const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
 
-            HypData** argPtrs = (HypData**)StackAlloc(args.Size() * sizeof(HypData*));
+            BoxedValue** argPtrs = (BoxedValue**)StackAlloc(args.Size() * sizeof(BoxedValue*));
             for (SizeType i = 0; i < args.Size(); ++i)
             {
                 argPtrs[i] = &args[i];
@@ -346,7 +346,7 @@ public:
             return {};
         };
 
-        m_deserializeProc = [memFn](FBOMLoadContext& context, Span<HypData> args, const FBOMData& data) -> Result
+        m_deserializeProc = [memFn](FBOMLoadContext& context, Span<BoxedValue> args, const FBOMData& data) -> Result
         {
             if (args.Size() != sizeof...(ArgTypes))
             {
@@ -357,14 +357,14 @@ public:
             {
                 const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
 
-                HypData value;
+                BoxedValue value;
 
                 if (FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
                 {
                     return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
                 }
 
-                HypData** argPtrs = (HypData**)StackAlloc((args.Size() + 1) * sizeof(HypData*));
+                BoxedValue** argPtrs = (BoxedValue**)StackAlloc((args.Size() + 1) * sizeof(BoxedValue*));
                 for (SizeType i = 0; i < args.Size(); ++i)
                 {
                     argPtrs[i] = &args[i];
@@ -389,7 +389,7 @@ public:
         : m_name(name),
           m_flags(MethodFlags::STATIC),
           m_attributes(attributes),
-          m_proc([fn](HypData** args, SizeType numArgs) -> HypData
+          m_proc([fn](BoxedValue** args, SizeType numArgs) -> BoxedValue
               {
                   HYP_CORE_ASSERT(numArgs == sizeof...(ArgTypes));
 
@@ -397,11 +397,11 @@ public:
                   {
                       CallMethod<decltype(fn), ReturnType, ArgTypes...>(fn, args);
 
-                      return HypData();
+                      return BoxedValue();
                   }
                   else
                   {
-                      return HypData(CallMethod<decltype(fn), ReturnType, ArgTypes...>(fn, args));
+                      return BoxedValue(CallMethod<decltype(fn), ReturnType, ArgTypes...>(fn, args));
                   }
               })
     {
@@ -454,7 +454,7 @@ public:
         return m_deserializeProc.IsValid();
     }
 
-    virtual Result Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
+    virtual Result Serialize(Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
     {
         if (!CanSerialize())
         {
@@ -464,14 +464,14 @@ public:
         return m_serializeProc(args, out, flags);
     }
 
-    virtual Result Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& data) const override
+    virtual Result Deserialize(FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) const override
     {
         if (!m_deserializeProc.IsValid())
         {
             return HYP_MAKE_ERROR(Error, "Method is not deserializable");
         }
 
-        return m_deserializeProc(context, Span<HypData>(&target, 1), data);
+        return m_deserializeProc(context, Span<BoxedValue>(&target, 1), data);
     }
 
     virtual const ClassAttributeSet& GetAttributes() const override
@@ -504,9 +504,9 @@ public:
         return m_flags;
     }
 
-    HYP_FORCE_INLINE HypData Invoke(Span<HypData> args) const
+    HYP_FORCE_INLINE BoxedValue Invoke(Span<BoxedValue> args) const
     {
-        HypData** argPtrs = (HypData**)StackAlloc(args.Size() * sizeof(HypData*));
+        BoxedValue** argPtrs = (BoxedValue**)StackAlloc(args.Size() * sizeof(BoxedValue*));
         for (SizeType i = 0; i < args.Size(); ++i)
         {
             argPtrs[i] = &args[i];
@@ -515,14 +515,14 @@ public:
         return m_proc(argPtrs, args.Size());
     }
 
-    HYP_FORCE_INLINE HypData Invoke(Span<HypData*> args) const
+    HYP_FORCE_INLINE BoxedValue Invoke(Span<BoxedValue*> args) const
     {
         return m_proc(args.Data(), args.Size());
     }
 
-    HYP_FORCE_INLINE HypData Invoke(const Array<HypData*>& args) const
+    HYP_FORCE_INLINE BoxedValue Invoke(const Array<BoxedValue*>& args) const
     {
-        return m_proc(const_cast<HypData**>(args.Data()), args.Size());
+        return m_proc(const_cast<BoxedValue**>(args.Data()), args.Size());
     }
 
 #ifdef HYP_SCRIPT
@@ -545,10 +545,10 @@ private:
     EnumFlags<MethodFlags> m_flags;
     ClassAttributeSet m_attributes;
 
-    Proc<HypData(HypData**, SizeType)> m_proc;
+    Proc<BoxedValue(BoxedValue**, SizeType)> m_proc;
 
-    Proc<Result(Span<HypData>, FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
-    Proc<Result(FBOMLoadContext&, Span<HypData>, const FBOMData&)> m_deserializeProc;
+    Proc<Result(Span<BoxedValue>, FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
+    Proc<Result(FBOMLoadContext&, Span<BoxedValue>, const FBOMData&)> m_deserializeProc;
 
 #ifdef HYP_SCRIPT
     Script_FunctionAddress m_scriptAddress;

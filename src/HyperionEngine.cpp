@@ -385,7 +385,6 @@ extern "C"
         g_gameThreadInstance = new GameThread();
 
         InitObject(g_engineDriver);
-        g_engineDriver->StartThreads();
 
         return 1;
     }
@@ -505,14 +504,25 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT void Hyp_LaunchGame(Game* pGame)
+    HYP_EXPORT void Hyp_SetGame(Game* pGame)
     {
         AssertOnThread(g_mainThread);
 
-        Assert(pGame != nullptr);
-        Assert(g_gameThreadInstance != nullptr && g_gameThreadInstance->IsRunning());
+        Assert(g_gameThreadInstance != nullptr);
 
-        g_gameThreadInstance->SetGame(MakeStrongRef(pGame));
+        g_gameThreadInstance->SetGame(pGame ? MakeStrongRef(pGame) : Handle<Game>::Null());
+    }
+
+    HYP_EXPORT void Hyp_LaunchThreads()
+    {
+        AssertOnThread(g_mainThread);
+
+        Assert(g_engineDriver != nullptr && g_engineDriver->IsReady());
+
+        if (!g_gameThreadInstance || !g_gameThreadInstance->IsRunning())
+        {
+            g_engineDriver->StartThreads();
+        }
     }
 
     HYP_EXPORT AppContextBase* Hyp_GetAppContext()
@@ -583,14 +593,14 @@ extern "C"
             return nullptr;
         }
 
-        HypData hd;
-        if (!pGameClass->CreateInstance(hd) || !hd.Is<Game>())
+        BoxedValue boxed;
+        if (!pGameClass->CreateInstance(boxed) || !boxed.Is<Game>())
         {
             HYP_LOG(Engine, Error, "Failed to create game: could not create instance of class '{}'", gameClassName);
             return nullptr;
         }
 
-        Handle<Game>& gameHandle = hd.Get<Handle<Game>>();
+        Handle<Game>& gameHandle = boxed.Get<Handle<Game>>();
         AssertDebug(gameHandle.IsValid());
 
         Game* pGame = static_cast<Game*>(gameHandle.ptr);

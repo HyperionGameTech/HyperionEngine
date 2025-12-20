@@ -352,11 +352,11 @@ void UITextbox::SubmitTextChange()
         if (clearOnSubmit)
         {
             SetText_Internal(String::empty);
-            SetCurrentValue(HypData(String::empty));
+            SetCurrentValue(BoxedValue(String::empty));
         }
         else
         {
-            SetCurrentValue(HypData(text));
+            SetCurrentValue(BoxedValue(text));
         }
     }
 }

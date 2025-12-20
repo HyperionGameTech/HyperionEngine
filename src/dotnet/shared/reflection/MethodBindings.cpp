@@ -106,7 +106,7 @@ extern "C"
         return &*it;
     }
 
-    HYP_EXPORT bool Method_Invoke(const Method* method, HypData* args, uint32 numArgs, HypData* outResult)
+    HYP_EXPORT bool Method_Invoke(const Method* method, BoxedValue* args, uint32 numArgs, BoxedValue* outResult)
     {
         if (!method || !outResult)
         {
@@ -118,7 +118,7 @@ extern "C"
             return false;
         }
 
-        Span<HypData> argsView(args, numArgs);
+        Span<BoxedValue> argsView(args, numArgs);
 
         *outResult = method->Invoke(argsView);
 

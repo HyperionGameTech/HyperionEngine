@@ -34,7 +34,7 @@ public:
         {
             FBOMData tagsData;
 
-            if (FBOMResult err = HypData::Serialize(inObject.GetTags(), tagsData))
+            if (FBOMResult err = BoxedValue::Serialize(inObject.GetTags(), tagsData))
             {
                 return err;
             }
@@ -60,11 +60,11 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
         NodeTagSet tags;
 
-        if (FBOMResult err = HypData::Deserialize(context, in.GetProperty("Tags"), tags))
+        if (FBOMResult err = BoxedValue::Deserialize(context, in.GetProperty("Tags"), tags))
         {
             return err;
         }
@@ -92,7 +92,7 @@ public:
         }
 
         const Handle<Node>& node = out.Get<Handle<Node>>();
-        Assert(node != nullptr, "Deserialized HypData is not a valid Node handle");
+        Assert(node != nullptr, "Deserialized BoxedValue is not a valid Node handle");
 
         for (NodeTag& tag : tags)
         {

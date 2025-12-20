@@ -46,8 +46,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using HypData data = _property.Get(_target);
-                    object? rawValue = data.GetValue();
+                    using BoxedValue boxed = _property.Get(_target);
+                    object? rawValue = boxed.GetValue();
 
                     Dispatcher.UIThread.Post(() =>
                     {
@@ -82,8 +82,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using HypData data = new HypData(value);
-                    _property.Set(_target, data);
+                    using BoxedValue boxed = new BoxedValue(value);
+                    _property.Set(_target, boxed);
 
                     Dispatcher.UIThread.Post(() =>
                     {

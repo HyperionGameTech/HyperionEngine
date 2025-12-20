@@ -14,11 +14,11 @@ HYP_API extern Handle<Logger> g_logger;
 extern "C"
 {
 
-    HYP_EXPORT void Logger_Log(LogChannel* channel, uint32 logLevel, const char* funcName, uint32 line, const char* message)
+    HYP_EXPORT void Logger_Log(LogChannel* pChannel, uint32 logLevel, const char* pFuncName, uint32 line, const char* pMessage)
     {
-        if (!channel)
+        if (!pChannel)
         {
-            channel = &g_logChannel_Script;
+            pChannel = &g_logChannel_Script;
         }
 
         if (logLevel > uint32(LogLevel::FATAL))
@@ -29,61 +29,61 @@ extern "C"
         switch (LogLevel(logLevel))
         {
         case LogLevel::DEBUG:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Debug()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Debug()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
 
             break;
         case LogLevel::INFO:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Info()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Info()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
 
             break;
         case LogLevel::WARNING:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Warning()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Warning()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
 
             break;
         case LogLevel::ERR:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Error()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Error()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
 
             break;
         case LogLevel::FATAL:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Fatal()), StaticString("{}\n")>(logging::GetLogger(), *channel, message);
+            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Fatal()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
 
             break;
         }
     }
 
-    HYP_EXPORT const LogChannel* Logger_FindLogChannel(StringHash* name)
+    HYP_EXPORT const LogChannel* Logger_FindLogChannel(StringHash* pNameHash)
     {
-        if (!name)
+        if (!pNameHash)
         {
             return nullptr;
         }
 
-        return g_logger->FindLogChannel(*name);
+        return g_logger->FindLogChannel(*pNameHash);
     }
 
-    HYP_EXPORT LogChannel* Logger_CreateLogChannel(const char* name)
+    HYP_EXPORT LogChannel* Logger_CreateLogChannel(const char* pName)
     {
-        const Name channelName = CreateNameFromDynamicString(name);
+        const Name channelName = CreateNameFromDynamicString(pName);
 
         // owns allocation
-        LogChannel* logChannel = new LogChannel(channelName, &g_logChannel_Script);
+        LogChannel* pChannel = new LogChannel(channelName, &g_logChannel_Script);
 
-        g_logger->CreateDynamicLogChannel(*logChannel).Release();
+        g_logger->CreateDynamicLogChannel(*pChannel).Release();
 
-        return logChannel;
+        return pChannel;
     }
 
-    HYP_EXPORT void Logger_DestroyLogChannel(LogChannel* logChannel)
+    HYP_EXPORT void Logger_DestroyLogChannel(LogChannel* pChannel)
     {
-        if (!logChannel)
+        if (!pChannel)
         {
             return;
         }
 
-        g_logger->RemoveDynamicLogChannel(logChannel);
+        g_logger->RemoveDynamicLogChannel(pChannel);
 
         // owns allocation
-        delete logChannel;
+        delete pChannel;
     }
 
 } // extern "C"

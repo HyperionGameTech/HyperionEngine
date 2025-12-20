@@ -23,7 +23,7 @@ public:
 
     ~Script_GC();
 
-    void MoveToTrackedMemory(HypData& inOutRefValue);
+    void MoveToTrackedMemory(BoxedValue& inOutRefValue);
 
 private:
     SlabAllocator m_allocator;

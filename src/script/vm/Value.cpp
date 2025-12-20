@@ -3,7 +3,7 @@
 #include <script/vm/String.hpp>
 #include <script/vm/HashMap.hpp>
 
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Method.hpp>
 
@@ -19,8 +19,8 @@ namespace hyperion {
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
-extern const char* ScriptApi_GetTypeString(const HypData& data);
-extern String ScriptApi_ValueToString(const HypData& data, int currDepth = 0);
+extern const char* ScriptApi_GetTypeString(const BoxedValue& data);
+extern String ScriptApi_ValueToString(const BoxedValue& data, int currDepth = 0);
 
 static const String g_nullString = "null";
 static const String g_referenceString = "<reference>";
@@ -38,32 +38,32 @@ static const TypeId g_typeIdF64 = TypeId::ForType<float64>();
 static const TypeId g_typeIdBool = TypeId::ForType<bool>();
 static const TypeId g_typeIdString = TypeId::ForType<Script_String>();
 
-static inline ValueStorage<HypData> MakeGarbageValue()
+static inline ValueStorage<BoxedValue> MakeGarbageValue()
 {
-    ValueStorage<HypData> storage;
-    Memory::MemSet(&storage, 0xFFu, sizeof(HypData));
+    ValueStorage<BoxedValue> storage;
+    Memory::MemSet(&storage, 0xFFu, sizeof(BoxedValue));
 
     return storage;
 }
 
-static const ValueStorage<HypData> s_uninitializedValue = MakeGarbageValue();
+static const ValueStorage<BoxedValue> s_uninitializedValue = MakeGarbageValue();
 
-static inline Script_VMData* GetVMData(HypData& data)
+static inline Script_VMData* GetVMData(BoxedValue& data)
 {
     return reinterpret_cast<Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
-static inline const Script_VMData* GetVMData(const HypData& data)
+static inline const Script_VMData* GetVMData(const BoxedValue& data)
 {
     return reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
-HYP_API bool IsGarbage(const HypData& data)
+HYP_API bool IsGarbage(const BoxedValue& data)
 {
     return data.extData.scriptGcIndex == GARBAGE_GC_INDEX;
 }
 
-HYP_API bool IsFunction(const HypData& data)
+HYP_API bool IsFunction(const BoxedValue& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -75,7 +75,7 @@ HYP_API bool IsFunction(const HypData& data)
     return vmData->type == Script_VMData::FUNCTION || vmData->type == Script_VMData::NATIVE_FUNCTION;
 }
 
-HYP_API bool IsNativeFunction(const HypData& data)
+HYP_API bool IsNativeFunction(const BoxedValue& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -87,7 +87,7 @@ HYP_API bool IsNativeFunction(const HypData& data)
     return vmData->type == Script_VMData::NATIVE_FUNCTION;
 }
 
-HYP_API bool IsRef(const HypData& data)
+HYP_API bool IsRef(const BoxedValue& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -99,7 +99,7 @@ HYP_API bool IsRef(const HypData& data)
     return vmData->type == Script_VMData::VALUE_REF;
 }
 
-HYP_API HypData* GetRef(const HypData& data)
+HYP_API BoxedValue* GetRef(const BoxedValue& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -111,9 +111,9 @@ HYP_API HypData* GetRef(const HypData& data)
     return vmData->valueRef;
 }
 
-HYP_API HypData* Deref(HypData& data)
+HYP_API BoxedValue* Deref(BoxedValue& data)
 {
-    HypData* deref = GetRef(data);
+    BoxedValue* deref = GetRef(data);
 
     if (deref != nullptr)
     {
@@ -125,9 +125,9 @@ HYP_API HypData* Deref(HypData& data)
     return &data;
 }
 
-const HypData* Deref(const HypData& data)
+const BoxedValue* Deref(const BoxedValue& data)
 {
-    HypData* deref = GetRef(data);
+    BoxedValue* deref = GetRef(data);
 
     if (deref != nullptr)
     {
@@ -139,9 +139,9 @@ const HypData* Deref(const HypData& data)
     return &data;
 }
 
-HYP_API void AssignValue(HypData& data, HypData&& other, bool assignRef)
+HYP_API void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef)
 {
-    HypData* ref;
+    BoxedValue* ref;
 
     AssertDebug(other.extData.scriptGcIndex == INVALID_GC_INDEX);
 
@@ -150,20 +150,20 @@ HYP_API void AssignValue(HypData& data, HypData&& other, bool assignRef)
         GCIndex prevGcIndex = ref->extData.scriptGcIndex;
         ref->extData.scriptGcIndex = INVALID_GC_INDEX;
 
-        ref->~HypData();
-        new (ref) HypData(std::move(other));
+        ref->~BoxedValue();
+        new (ref) BoxedValue(std::move(other));
 
         ref->extData.scriptGcIndex = prevGcIndex;
     }
     else
     {
-        data.~HypData();
+        data.~BoxedValue();
 
-        new (&data) HypData(std::move(other));
+        new (&data) BoxedValue(std::move(other));
     }
 }
 
-HYP_API bool GetUnsigned(const HypData& data, uint64* out)
+HYP_API bool GetUnsigned(const BoxedValue& data, uint64* out)
 {
     if (!data.Is<uint64>(/* strict */ false))
     {
@@ -175,7 +175,7 @@ HYP_API bool GetUnsigned(const HypData& data, uint64* out)
     return true;
 }
 
-HYP_API bool GetInteger(const HypData& data, int64* out)
+HYP_API bool GetInteger(const BoxedValue& data, int64* out)
 {
     if (!data.Is<int64>(/* strict */ false))
     {
@@ -187,7 +187,7 @@ HYP_API bool GetInteger(const HypData& data, int64* out)
     return true;
 }
 
-HYP_API bool GetSignedOrUnsigned(const HypData& data, Number* out)
+HYP_API bool GetSignedOrUnsigned(const BoxedValue& data, Number* out)
 {
     const TypeId typeId = data.GetTypeId();
 
@@ -250,7 +250,7 @@ HYP_API bool GetSignedOrUnsigned(const HypData& data, Number* out)
     return false;
 }
 
-HYP_API bool GetFloatingPoint(const HypData& data, double* out)
+HYP_API bool GetFloatingPoint(const BoxedValue& data, double* out)
 {
     if (!data.Is<double>(/* strict */ true) && !data.Is<float>(/* strict */ true))
     {
@@ -262,7 +262,7 @@ HYP_API bool GetFloatingPoint(const HypData& data, double* out)
     return true;
 }
 
-HYP_API bool GetNumber(const HypData& data, double* out)
+HYP_API bool GetNumber(const BoxedValue& data, double* out)
 {
     Number number;
     if (!GetNumber(data, &number))
@@ -294,7 +294,7 @@ HYP_API bool GetNumber(const HypData& data, double* out)
     return false;
 }
 
-HYP_API bool GetNumber(const HypData& data, Number* out)
+HYP_API bool GetNumber(const BoxedValue& data, Number* out)
 {
     const TypeId typeId = data.GetTypeId();
 
@@ -371,7 +371,7 @@ HYP_API bool GetNumber(const HypData& data, Number* out)
     return false;
 }
 
-HYP_API NumericType GetNumericType(const HypData& data)
+HYP_API NumericType GetNumericType(const BoxedValue& data)
 {
     const TypeId typeId = data.GetTypeId();
 
@@ -419,7 +419,7 @@ HYP_API NumericType GetNumericType(const HypData& data)
     return NT_INVALID;
 }
 
-HYP_API bool GetBoolean(const HypData& data, bool* out)
+HYP_API bool GetBoolean(const BoxedValue& data, bool* out)
 {
     if (!data.Is<bool>())
     {
@@ -430,7 +430,7 @@ HYP_API bool GetBoolean(const HypData& data, bool* out)
     return true;
 }
 
-HYP_API bool GetString(const HypData& data, const Script_String** out)
+HYP_API bool GetString(const BoxedValue& data, const Script_String** out)
 {
     AssertDebug(out != nullptr);
 
@@ -444,7 +444,7 @@ HYP_API bool GetString(const HypData& data, const Script_String** out)
     return true;
 }
 
-HYP_API const Handle<ObjectBase>& ScriptApi_GetObject(const HypData& data)
+HYP_API const Handle<ObjectBase>& ScriptApi_GetObject(const BoxedValue& data)
 {
     if (!data.Is<Handle<ObjectBase>>())
     {
@@ -454,7 +454,7 @@ HYP_API const Handle<ObjectBase>& ScriptApi_GetObject(const HypData& data)
     return data.Get<Handle<ObjectBase>>();
 }
 
-HYP_API int CompareAsPointers(const HypData& lhs, const HypData& rhs)
+HYP_API int CompareAsPointers(const BoxedValue& lhs, const BoxedValue& rhs)
 {
     void* a = lhs.ToRef().GetPointer();
     void* b = rhs.ToRef().GetPointer();
@@ -474,7 +474,7 @@ HYP_API int CompareAsPointers(const HypData& lhs, const HypData& rhs)
     }
 }
 
-HYP_API int CompareAsFunctions(const HypData& lhs, const HypData& rhs)
+HYP_API int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
 {
     const Script_VMData* lhsVmData = GetVMData(lhs);
     const Script_VMData* rhsVmData = GetVMData(rhs);
@@ -489,7 +489,7 @@ HYP_API int CompareAsFunctions(const HypData& lhs, const HypData& rhs)
         : CF_NONE;
 }
 
-HYP_API int CompareAsNativeFunctions(const HypData& lhs, const HypData& rhs)
+HYP_API int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
 {
     const Script_VMData* lhsVmData = GetVMData(lhs);
     const Script_VMData* rhsVmData = GetVMData(rhs);
@@ -504,16 +504,16 @@ HYP_API int CompareAsNativeFunctions(const HypData& lhs, const HypData& rhs)
         : CF_NONE;
 }
 
-HYP_API const char* GetTypeString(const HypData& data)
+HYP_API const char* GetTypeString(const BoxedValue& data)
 {
     return ScriptApi_GetTypeString(data);
 }
 
-HYP_API String ToString(const HypData& data)
+HYP_API String ToString(const BoxedValue& data)
 {
     if (IsRef(data))
     {
-        if (HypData* ref = GetRef(data))
+        if (BoxedValue* ref = GetRef(data))
         {
             if (IsRef(*ref))
             {

@@ -12,7 +12,7 @@ namespace Hyperion
         internal static extern void RefCountedPtr_DecRef(IntPtr address);
 
         [DllImport("hyperion", EntryPoint = "RefCountedPtr_Get")]
-        internal static extern void RefCountedPtr_Get(IntPtr address, [Out] out HypDataBuffer outHypDataBuffer);
+        internal static extern void RefCountedPtr_Get(IntPtr address, [Out] out BoxedValueInternal outBoxed);
 
         [DllImport("hyperion", EntryPoint = "WeakRefCountedPtr_IncRef")]
         internal static extern void WeakRefCountedPtr_IncRef(IntPtr address);
@@ -138,12 +138,12 @@ namespace Hyperion
                 throw new Exception("Type " + typeof(T).Name + " does not have a registered Class");
             }
 
-            HypDataBuffer hypDataBuffer;
-            RefCountedPtrNativeBindings.RefCountedPtr_Get(ptr, out hypDataBuffer);
+            BoxedValueInternal boxedInternal;
+            RefCountedPtrNativeBindings.RefCountedPtr_Get(ptr, out boxedInternal);
 
-            T? value = (T?)hypDataBuffer.GetValue();
+            T? value = (T?)boxedInternal.GetValue();
 
-            hypDataBuffer.Dispose();
+            boxedInternal.Dispose();
 
             return value;
         }

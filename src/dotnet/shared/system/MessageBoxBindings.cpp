@@ -9,15 +9,15 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void MessageBox_Show(int type, const char* title, const char* message, int buttons, const char** buttonTexts, void (**buttonCallbacks)(void))
+    HYP_EXPORT void MessageBox_Show(int type, const char* pTitle, const char* pMessage, int buttons, const char** ppButtonTexts, void (**ppCallbacks)(void))
     {
-        SystemMessageBox messageBox { MessageBoxType(type), title, message };
+        SystemMessageBox messageBox { MessageBoxType(type), pTitle, pMessage };
 
         for (int i = 0; i < buttons; i++)
         {
-            messageBox.Button(buttonTexts[i], [buttonCallbacks, i]() -> void
+            messageBox.Button(ppButtonTexts[i], [ppCallbacks, i]() -> void
                 {
-                    buttonCallbacks[i]();
+                    ppCallbacks[i]();
                 });
         }
 

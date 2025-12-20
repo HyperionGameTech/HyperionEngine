@@ -171,7 +171,7 @@ Script_Exception Script_Exception::OutOfBoundsException(SizeType index, SizeType
     return Script_Exception(buffer);
 }
 
-Script_Exception Script_Exception::MemberNotFoundException(HypData* pValue, HashCode::ValueType hashCode)
+Script_Exception Script_Exception::MemberNotFoundException(BoxedValue* pValue, HashCode::ValueType hashCode)
 {
     return FormattedException(
         HYP_STATIC_STRING("Member with hash code %llu not found on type: `%s`"),
@@ -179,7 +179,7 @@ Script_Exception Script_Exception::MemberNotFoundException(HypData* pValue, Hash
         pValue ? GetTypeString(*pValue) : "<null>");
 }
 
-Script_Exception Script_Exception::InvalidMemberAccessException(HypData* pValue)
+Script_Exception Script_Exception::InvalidMemberAccessException(BoxedValue* pValue)
 {
     return FormattedException(
         HYP_STATIC_STRING("Invalid member access on type `%s`!"),

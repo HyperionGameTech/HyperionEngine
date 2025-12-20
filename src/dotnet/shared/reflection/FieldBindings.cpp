@@ -41,7 +41,7 @@ extern "C"
         return field->GetOffset();
     }
 
-    HYP_EXPORT void Field_Get(const Field* field, const HypData* targetData, HypData* outData)
+    HYP_EXPORT void Field_Get(const Field* field, const BoxedValue* targetData, BoxedValue* outData)
     {
         Assert(field != nullptr);
         Assert(targetData != nullptr);

@@ -11,18 +11,18 @@
 
 namespace hyperion {
 
-using ScriptArray = Array<HypData, DynamicAllocator>;
+using ScriptArray = Array<BoxedValue, DynamicAllocator>;
 
 HYP_API const Class* g_clsScriptArray = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(ScriptArray, -1, 0, {})
     Method(NAME("Size"), &Type::Size),
-    Method(NAME("PushBack"), +[](ScriptArray& array, const HypData& arg) -> AnyRef
+    Method(NAME("PushBack"), +[](ScriptArray& array, const BoxedValue& arg) -> AnyRef
         {
             return AnyRef(array.PushBack(arg));
         }),
-    Method(NAME("PopBack"), +[](ScriptArray& array) -> HypData
+    Method(NAME("PopBack"), +[](ScriptArray& array) -> BoxedValue
         {
             Assert(!array.Empty());
             return array.PopBack();

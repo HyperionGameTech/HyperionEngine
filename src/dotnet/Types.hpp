@@ -8,7 +8,7 @@
 
 namespace hyperion {
 
-struct HypData;
+struct BoxedValue;
 
 namespace dotnet {
 
@@ -16,10 +16,10 @@ struct ObjectReference;
 
 using Delegate = std::add_pointer_t<void()>;
 
-using InvokeMethodFunction = void (*)(ObjectReference*, const HypData**, HypData*);
+using InvokeMethodFunction = void (*)(ObjectReference*, const BoxedValue**, BoxedValue*);
 
-using InvokeGetterFunction = void (*)(ManagedGuid, ObjectReference*, const HypData**, HypData*);
-using InvokeSetterFunction = void (*)(ManagedGuid, ObjectReference*, const HypData**, HypData*);
+using InvokeGetterFunction = void (*)(ManagedGuid, ObjectReference*, const BoxedValue**, BoxedValue*);
+using InvokeSetterFunction = void (*)(ManagedGuid, ObjectReference*, const BoxedValue**, BoxedValue*);
 
 } // namespace dotnet
 } // namespace hyperion

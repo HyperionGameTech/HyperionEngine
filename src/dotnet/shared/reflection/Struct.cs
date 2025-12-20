@@ -136,7 +136,7 @@ namespace Hyperion
             }
         }
 
-        public object? MarshalFromHypData(ref HypDataBuffer buffer)
+        public object? MarshalFromHypData(ref BoxedValueInternal buffer)
         {
             TypeId typeId = buffer.TypeId;
             Assert.Throw(typeId == cls.TypeId, "TypeId mismatch: " + typeId + " != " + cls.TypeId);

@@ -15,7 +15,7 @@
 #include <core/Constants.hpp>
 
 namespace hyperion {
-struct HypData;
+struct BoxedValue;
 class Class;
 } // namespace hyperion
 
@@ -34,7 +34,7 @@ public:
     virtual TypeId GetTypeId() const = 0;
 
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const = 0;
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const = 0;
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const = 0;
 };
 
 template <class T>
@@ -89,7 +89,7 @@ public:
     }
 
     virtual FBOMResult Serialize(const ClassType& in, FBOMObject& out) const = 0;
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override = 0;
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override = 0;
 };
 
 #define HYP_DEFINE_MARSHAL(T, MarshalType)                                                                              \

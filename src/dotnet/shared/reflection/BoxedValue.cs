@@ -69,12 +69,12 @@ namespace Hyperion
     }
 
     /// <summary>
-    ///  Represents HypData.hpp from the core/object library
+    ///  Represents BoxedValue.hpp from the core/object library
     ///  Needs to be a struct to be passed by value, has a fixed size of 32 bytes
     ///  Destructor needs to be called manually (HypData_Destruct)
     /// </summary>
     [StructLayout(LayoutKind.Explicit, Size = 32, Pack = 8)]
-    public unsafe struct HypDataBuffer : IDisposable
+    public unsafe struct BoxedValueInternal : IDisposable
     {
         [FieldOffset(0)]
         private fixed byte _buffer[24];
@@ -126,7 +126,7 @@ namespace Hyperion
         {
             if (value == null)
             {
-                HypData_Reset(ref this);
+                HypData_SetNullObject(ref this);
                 return;
             }
 
@@ -218,7 +218,7 @@ namespace Hyperion
             {
                 if (!HypData_SetObject(ref this, _obj.Class.Address, _obj.NativeAddress))
                 {
-                    throw new InvalidOperationException("Failed to set HypData to ObjectBase instance for Class: " + _obj.Class.Name);
+                    throw new InvalidOperationException("Failed to set BoxedValue to ObjectBase instance for Class: " + _obj.Class.Name);
                 }
 
                 return;
@@ -301,7 +301,7 @@ namespace Hyperion
                         return;
                     }
 
-                    throw new NotImplementedException("Unsupported enum type to construct HypData: " + type.FullName);
+                    throw new NotImplementedException("Unsupported enum type to construct BoxedValue: " + type.FullName);
                 }
 
                 Class? cls = null;
@@ -339,32 +339,32 @@ namespace Hyperion
 
                 unsafe
                 {
-                    // Create array of HypData
-                    HypDataBuffer[] hypDataBufferArray = new HypDataBuffer[array.Length];
+                    // Create array of BoxedValue
+                    BoxedValueInternal[] arr = new BoxedValueInternal[array.Length];
 
-                    for (int i = 0; i < hypDataBufferArray.Length; i++)
+                    for (int i = 0; i < arr.Length; i++)
                     {
-                        hypDataBufferArray[i].SetValue(array.GetValue(i));
+                        arr[i].SetValue(array.GetValue(i));
                     }
 
                     try
                     {
-                        fixed (HypDataBuffer* ptr = hypDataBufferArray)
+                        fixed (BoxedValueInternal* ptr = arr)
                         {
-                            if (!HypData_SetArray(ref this, ((Class)cls).Address, (IntPtr)ptr, (uint)hypDataBufferArray.Length))
+                            if (!HypData_SetArray(ref this, ((Class)cls).Address, (IntPtr)ptr, (uint)arr.Length))
                             {
                                 throw new InvalidOperationException("Failed to set array!");
                             }
 
-                            Logger.Log(LogType.Debug, "HypData.SetValue: Set array of type " + ((Class)cls).Name + " with length " + hypDataBufferArray.Length + " type Id: " + this.TypeId.Value);
+                            Logger.Log(LogType.Debug, "BoxedValue.SetValue: Set array of type " + ((Class)cls).Name + " with length " + arr.Length + " type Id: " + TypeId.Value);
                         }
                     }
                     finally
                     {
-                        // Dispose all HypDataBuffer instances
-                        foreach (HypDataBuffer hypDataBuffer in hypDataBufferArray)
+                        // Dispose all BoxedValueInternal instances
+                        foreach (BoxedValueInternal boxedInternal in arr)
                         {
-                            hypDataBuffer.Dispose();
+                            boxedInternal.Dispose();
                         }
                     }
                 }
@@ -372,7 +372,7 @@ namespace Hyperion
                 return;
             }
 
-            throw new NotImplementedException("Unsupported type to construct HypData: " + type.FullName);
+            throw new NotImplementedException("Unsupported type to construct BoxedValue: " + type.FullName);
         }
 
         public unsafe object? GetValue()
@@ -468,7 +468,7 @@ namespace Hyperion
 
             if (HypData_IsArray(ref this))
             {
-                HypDataBuffer* pArray;
+                BoxedValueInternal* pArray;
                 int arraySize;
 
                 if (!HypData_GetArraySize(ref this, out arraySize))
@@ -480,7 +480,7 @@ namespace Hyperion
 
                 for (int i = 0; i < arraySize; i++)
                 {
-                    HypDataBuffer elementHypData;
+                    BoxedValueInternal elementHypData;
                     if (!HypData_GetArrayElem(ref this, i, &elementHypData))
                     {
                         throw new InvalidOperationException("Failed to get array element at index " + i);
@@ -533,7 +533,7 @@ namespace Hyperion
                 return dynamicStruct.MarshalFromHypData(ref this);
             }
 
-            throw new NotImplementedException("Unsupported type to get value from HypData. Current TypeId: " + TypeId.Value);
+            throw new NotImplementedException("Unsupported type to get value from BoxedValue. Current TypeId: " + TypeId.Value);
         }
 
         public sbyte ReadInt8()
@@ -550,7 +550,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get sbyte from HypData");
+            throw new InvalidOperationException("Failed to get sbyte from BoxedValue");
         }
 
         public short ReadInt16()
@@ -567,7 +567,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get short from HypData");
+            throw new InvalidOperationException("Failed to get short from BoxedValue");
         }
 
         public int ReadInt32()
@@ -584,7 +584,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get int from HypData");
+            throw new InvalidOperationException("Failed to get int from BoxedValue");
         }
 
         public long ReadInt64()
@@ -601,7 +601,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get long from HypData");
+            throw new InvalidOperationException("Failed to get long from BoxedValue");
         }
 
         public byte ReadUInt8()
@@ -618,7 +618,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get byte from HypData");
+            throw new InvalidOperationException("Failed to get byte from BoxedValue");
         }
 
         public ushort ReadUInt16()
@@ -635,7 +635,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get ushort from HypData");
+            throw new InvalidOperationException("Failed to get ushort from BoxedValue");
         }
 
         public uint ReadUInt32()
@@ -652,7 +652,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get uint from HypData");
+            throw new InvalidOperationException("Failed to get uint from BoxedValue");
         }
 
         public ulong ReadUInt64()
@@ -669,7 +669,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get ulong from HypData");
+            throw new InvalidOperationException("Failed to get ulong from BoxedValue");
         }
 
         public float ReadFloat()
@@ -686,7 +686,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get float from HypData");
+            throw new InvalidOperationException("Failed to get float from BoxedValue");
         }
 
         public double ReadDouble()
@@ -703,7 +703,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get double from HypData");
+            throw new InvalidOperationException("Failed to get double from BoxedValue");
         }
 
         public bool ReadBool()
@@ -720,7 +720,7 @@ namespace Hyperion
                 return value;
             }
 
-            throw new InvalidOperationException("Failed to get bool from HypData");
+            throw new InvalidOperationException("Failed to get bool from BoxedValue");
         }
 
         public IntPtr ReadIntPtr()
@@ -737,7 +737,7 @@ namespace Hyperion
                 return value.valueIntPtr;
             }
 
-            throw new InvalidOperationException("Failed to get IntPtr from HypData");
+            throw new InvalidOperationException("Failed to get IntPtr from BoxedValue");
         }
 
         public string ReadString()
@@ -754,7 +754,7 @@ namespace Hyperion
                 return Marshal.PtrToStringUTF8(stringPtr) ?? string.Empty;
             }
 
-            throw new InvalidOperationException("Failed to get string from HypData");
+            throw new InvalidOperationException("Failed to get string from BoxedValue");
         }
 
         public Name ReadName()
@@ -771,7 +771,7 @@ namespace Hyperion
                 return name;
             }
 
-            throw new InvalidOperationException("Failed to get Name from HypData");
+            throw new InvalidOperationException("Failed to get Name from BoxedValue");
         }
 
         public ObjIdBase ReadId()
@@ -788,7 +788,7 @@ namespace Hyperion
                 return new ObjIdBase(new TypeId((uint)(idValue >> 32)), (uint)(idValue & 0xFFFFFFFFu));
             }
 
-            throw new InvalidOperationException("Failed to get Id from HypData");
+            throw new InvalidOperationException("Failed to get Id from BoxedValue");
         }
 
         public T? ReadObject<T>() where T : ObjectBase
@@ -805,14 +805,14 @@ namespace Hyperion
                 return (T?)objectReference.LoadObject();
             }
 
-            throw new InvalidOperationException("Failed to get ObjectBase from HypData");
+            throw new InvalidOperationException("Failed to get ObjectBase from BoxedValue");
         }
 
         public T ReadStruct<T>() where T : struct
         {
             if (IsNull)
             {
-                throw new InvalidOperationException("Cannot read struct from null HypData");
+                throw new InvalidOperationException("Cannot read struct from null BoxedValue");
             }
 
             ObjectReference objectReference;
@@ -827,7 +827,7 @@ namespace Hyperion
                 return (T)dynamicStruct.MarshalFromHypData(ref this);
             }
 
-            throw new NotImplementedException("Unsupported type to get struct from HypData. Current TypeId: " + TypeId.Value);
+            throw new NotImplementedException("Unsupported type to get struct from BoxedValue. Current TypeId: " + TypeId.Value);
         }
 
         public byte[] ReadByteBuffer()
@@ -862,264 +862,268 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "HypData_Construct")]
-        internal static extern void HypData_Construct([In] ref HypDataBuffer hypData);
+        internal static extern void HypData_Construct([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_Destruct")]
-        internal static extern void HypData_Destruct([In] ref HypDataBuffer hypData);
+        internal static extern void HypData_Destruct([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_Reset")]
-        internal static extern void HypData_Reset([In] ref HypDataBuffer hypData);
+        internal static extern void HypData_Reset([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetTypeId")]
-        internal static extern void HypData_GetTypeId([In] ref HypDataBuffer hypData, [Out] out TypeId typeId);
+        internal static extern void HypData_GetTypeId([In] ref BoxedValueInternal boxed, [Out] out TypeId typeId);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetTypeInfo")]
-        internal static extern IntPtr HypData_GetTypeInfo([In] ref HypDataBuffer hypData);
+        internal static extern IntPtr HypData_GetTypeInfo([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetPointer")]
-        internal static extern IntPtr HypData_GetPointer([In] ref HypDataBuffer hypData);
+        internal static extern IntPtr HypData_GetPointer([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsNull")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsNull([In] ref HypDataBuffer hypData);
+        internal static extern bool HypData_IsNull([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetInt8")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetInt8([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out sbyte outValue);
+        internal static extern bool HypData_GetInt8([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out sbyte outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetInt16")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetInt16([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out short outValue);
+        internal static extern bool HypData_GetInt16([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out short outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetInt32")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetInt32([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out int outValue);
+        internal static extern bool HypData_GetInt32([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out int outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetInt64")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetInt64([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out long outValue);
+        internal static extern bool HypData_GetInt64([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out long outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetUInt8")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetUInt8([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out byte outValue);
+        internal static extern bool HypData_GetUInt8([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out byte outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetUInt16")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetUInt16([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out ushort outValue);
+        internal static extern bool HypData_GetUInt16([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out ushort outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetUInt32")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetUInt32([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out uint outValue);
+        internal static extern bool HypData_GetUInt32([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out uint outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetUInt64")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetUInt64([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out ulong outValue);
+        internal static extern bool HypData_GetUInt64([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out ulong outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetFloat")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetFloat([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out float outValue);
+        internal static extern bool HypData_GetFloat([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out float outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetDouble")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetDouble([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out double outValue);
+        internal static extern bool HypData_GetDouble([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out double outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetBool")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetBool([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out bool outValue);
+        internal static extern bool HypData_GetBool([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out bool outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetIntPtr")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetIntPtr([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out IntPtr outValue);
+        internal static extern bool HypData_GetIntPtr([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict, [Out] out IntPtr outValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetArraySize")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetArraySize([In] ref HypDataBuffer hypData, [Out] out int outSize);
+        internal static extern bool HypData_GetArraySize([In] ref BoxedValueInternal boxed, [Out] out int outSize);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetArrayElem")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetArrayElem([In] ref HypDataBuffer hypData, int index, [Out] HypDataBuffer* outArrayElem);
+        internal static extern bool HypData_GetArrayElem([In] ref BoxedValueInternal boxed, int index, [Out] BoxedValueInternal* outArrayElem);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetString")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetString([In] ref HypDataBuffer hypData, [Out] out IntPtr outStringPtr);
+        internal static extern bool HypData_GetString([In] ref BoxedValueInternal boxed, [Out] out IntPtr outStringPtr);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetId")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetId([In] ref HypDataBuffer hypData, [Out] out ulong outIdValue);
+        internal static extern bool HypData_GetId([In] ref BoxedValueInternal boxed, [Out] out ulong outIdValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetName")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetName([In] ref HypDataBuffer hypData, [Out] out Name outNameValue);
+        internal static extern bool HypData_GetName([In] ref BoxedValueInternal boxed, [Out] out Name outNameValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetObject")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetObject([In] ref HypDataBuffer hypData, [Out] out ObjectReference outObjectReference);
+        internal static extern bool HypData_GetObject([In] ref BoxedValueInternal boxed, [Out] out ObjectReference outObjectReference);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetStruct")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetStruct([In] ref HypDataBuffer hypData, [Out] out ObjectReference outObjectReference);
+        internal static extern bool HypData_GetStruct([In] ref BoxedValueInternal boxed, [Out] out ObjectReference outObjectReference);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetByteBuffer")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetByteBuffer([In] ref HypDataBuffer hypData, [Out] out IntPtr outBufferPtr, [Out] out uint outBufferSize);
+        internal static extern bool HypData_GetByteBuffer([In] ref BoxedValueInternal boxed, [Out] out IntPtr outBufferPtr, [Out] out uint outBufferSize);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsInt8")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsInt8([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsInt8([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsInt16")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsInt16([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsInt16([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsInt32")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsInt32([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsInt32([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsInt64")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsInt64([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsInt64([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsUInt8")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsUInt8([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsUInt8([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsUInt16")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsUInt16([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsUInt16([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsUInt32")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsUInt32([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsUInt32([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsUInt64")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsUInt64([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsUInt64([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsFloat")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsFloat([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsFloat([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsDouble")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsDouble([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsDouble([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsBool")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsBool([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsBool([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsIntPtr")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsIntPtr([In] ref HypDataBuffer hypData, [MarshalAs(UnmanagedType.I1)] bool strict);
+        internal static extern bool HypData_IsIntPtr([In] ref BoxedValueInternal boxed, [MarshalAs(UnmanagedType.I1)] bool strict);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsArray")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsArray([In] ref HypDataBuffer hypData);
+        internal static extern bool HypData_IsArray([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsString")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsString([In] ref HypDataBuffer hypData);
+        internal static extern bool HypData_IsString([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsByteBuffer")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsByteBuffer([In] ref HypDataBuffer hypData);
+        internal static extern bool HypData_IsByteBuffer([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsId")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsId([In] ref HypDataBuffer hypData);
+        internal static extern bool HypData_IsId([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsName")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsName([In] ref HypDataBuffer hypData);
+        internal static extern bool HypData_IsName([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetInt8")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetInt8([In] ref HypDataBuffer hypData, sbyte value);
+        internal static extern bool HypData_SetInt8([In] ref BoxedValueInternal boxed, sbyte value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetInt16")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetInt16([In] ref HypDataBuffer hypData, short value);
+        internal static extern bool HypData_SetInt16([In] ref BoxedValueInternal boxed, short value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetInt32")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetInt32([In] ref HypDataBuffer hypData, int value);
+        internal static extern bool HypData_SetInt32([In] ref BoxedValueInternal boxed, int value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetInt64")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetInt64([In] ref HypDataBuffer hypData, long value);
+        internal static extern bool HypData_SetInt64([In] ref BoxedValueInternal boxed, long value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetUInt8")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetUInt8([In] ref HypDataBuffer hypData, byte value);
+        internal static extern bool HypData_SetUInt8([In] ref BoxedValueInternal boxed, byte value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetUInt16")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetUInt16([In] ref HypDataBuffer hypData, ushort value);
+        internal static extern bool HypData_SetUInt16([In] ref BoxedValueInternal boxed, ushort value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetUInt32")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetUInt32([In] ref HypDataBuffer hypData, uint value);
+        internal static extern bool HypData_SetUInt32([In] ref BoxedValueInternal boxed, uint value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetUInt64")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetUInt64([In] ref HypDataBuffer hypData, ulong value);
+        internal static extern bool HypData_SetUInt64([In] ref BoxedValueInternal boxed, ulong value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetFloat")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetFloat([In] ref HypDataBuffer hypData, float value);
+        internal static extern bool HypData_SetFloat([In] ref BoxedValueInternal boxed, float value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetDouble")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetDouble([In] ref HypDataBuffer hypData, double value);
+        internal static extern bool HypData_SetDouble([In] ref BoxedValueInternal boxed, double value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetBool")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetBool([In] ref HypDataBuffer hypData, bool value);
+        internal static extern bool HypData_SetBool([In] ref BoxedValueInternal boxed, bool value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetIntPtr")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetIntPtr([In] ref HypDataBuffer hypData, IntPtr value);
+        internal static extern bool HypData_SetIntPtr([In] ref BoxedValueInternal boxed, IntPtr value);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetArray")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetArray([In] ref HypDataBuffer hypData, [In] IntPtr classPtr, [In] IntPtr arrayPtr, uint arraySize);
+        internal static extern bool HypData_SetArray([In] ref BoxedValueInternal boxed, [In] IntPtr pClass, [In] IntPtr arrayPtr, uint arraySize);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetString")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetString([In] ref HypDataBuffer hypData, [In] IntPtr stringPtr);
+        internal static extern bool HypData_SetString([In] ref BoxedValueInternal boxed, [In] IntPtr stringPtr);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetId")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetId([In] ref HypDataBuffer hypData, ref ObjIdBase id);
+        internal static extern bool HypData_SetId([In] ref BoxedValueInternal boxed, ref ObjIdBase id);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetName")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetName([In] ref HypDataBuffer hypData, Name name);
+        internal static extern bool HypData_SetName([In] ref BoxedValueInternal boxed, Name name);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetObject")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetObject([In] ref HypDataBuffer hypData, [In] IntPtr classPtr, [In] IntPtr nativeAddress);
+        internal static extern bool HypData_SetObject([In] ref BoxedValueInternal boxed, [In] IntPtr pClass, [In] IntPtr nativeAddress);
+
+        [DllImport("hyperion", EntryPoint = "HypData_SetNullObject")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_SetNullObject([In] ref BoxedValueInternal boxed);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetStruct")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetStruct([In] ref HypDataBuffer hypData, [In] IntPtr classPtr, uint objectSize, [In] IntPtr objectPtr);
+        internal static extern bool HypData_SetStruct([In] ref BoxedValueInternal boxed, [In] IntPtr pClass, uint objectSize, [In] IntPtr pStructData);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetByteBuffer")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetByteBuffer([In] ref HypDataBuffer hypData, [In] IntPtr bufferPtr, uint bufferSize);
+        internal static extern bool HypData_SetByteBuffer([In] ref BoxedValueInternal boxed, [In] IntPtr bufferPtr, uint bufferSize);
     }
 
-    public class HypData : IDisposable
+    public class BoxedValue : IDisposable
     {
-        private HypDataBuffer _data;
+        private BoxedValueInternal _data;
         private bool _disposed = false;
 
-        private HypData()
+        private BoxedValue()
         {
         }
 
-        public HypData(object? value)
+        public BoxedValue(object? value)
         {
-            HypDataBuffer.HypData_Construct(ref _data);
+            BoxedValueInternal.HypData_Construct(ref _data);
 
             if (value != null)
             {
@@ -1127,12 +1131,12 @@ namespace Hyperion
             }
         }
 
-        public static HypData FromBuffer(HypDataBuffer data)
+        public static BoxedValue FromBuffer(BoxedValueInternal data)
         {
-            HypData hypData = new HypData();
-            hypData._data = data;
+            BoxedValue boxed = new BoxedValue();
+            boxed._data = data;
 
-            return hypData;
+            return boxed;
         }
 
         public void Dispose()
@@ -1144,7 +1148,7 @@ namespace Hyperion
             }
         }
 
-        ~HypData()
+        ~BoxedValue()
         {
             Dispose();
         }
@@ -1181,7 +1185,7 @@ namespace Hyperion
             }
         }
 
-        public ref HypDataBuffer Buffer
+        public ref BoxedValueInternal Buffer
         {
             get
             {
@@ -1193,7 +1197,7 @@ namespace Hyperion
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(HypData));
+                throw new ObjectDisposedException(nameof(BoxedValue));
             }
 
             return _data.GetValue();
@@ -1203,7 +1207,7 @@ namespace Hyperion
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(HypData));
+                throw new ObjectDisposedException(nameof(BoxedValue));
             }
 
             _data.SetValue(value);

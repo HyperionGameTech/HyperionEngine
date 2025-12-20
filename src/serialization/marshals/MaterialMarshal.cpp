@@ -91,7 +91,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
 #if 0
         MaterialAttributes attributes;
@@ -204,7 +204,7 @@ public:
 #endif
 
         Handle<Material> material = CreateObject<Material>();
-        HypData materialData = HypData(material);
+        BoxedValue materialData = BoxedValue(material);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, Material::StaticClass(), materialData))
         {
@@ -218,7 +218,7 @@ public:
             material->GetTextures());
         material.Reset();
 
-        materialData = HypData(std::move(newMaterial));
+        materialData = BoxedValue(std::move(newMaterial));
         out = std::move(materialData);
 
         return { FBOMResult::FBOM_OK };

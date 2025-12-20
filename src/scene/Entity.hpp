@@ -20,7 +20,7 @@ class Scene;
 class Node;
 class EntityManager;
 struct Transform;
-struct HypData;
+struct BoxedValue;
 enum class EntityTag : uint64;
 
 struct EntityInitInfo
@@ -145,10 +145,10 @@ private:
     void SetEntityManager(const Handle<EntityManager>& entityManager);
 
     HYP_METHOD(Property = "Components", NoScriptBindings, EditOrder = 1000)
-    Array<HypData, DynamicAllocator> SerializeComponents() const;
+    Array<BoxedValue, DynamicAllocator> SerializeComponents() const;
 
     HYP_METHOD(Property = "Components", NoScriptBindings, LoadOrder = 1000)
-    void DeserializeComponents(const Array<HypData, DynamicAllocator>& components);
+    void DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& components);
 
     World* m_world;
     EntityManager* m_entityManager;

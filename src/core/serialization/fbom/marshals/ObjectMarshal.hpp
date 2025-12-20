@@ -20,7 +20,7 @@
 namespace hyperion {
 
 class ObjectBase;
-struct HypData;
+struct BoxedValue;
 
 template <class T>
 class ClassInstance;
@@ -65,7 +65,7 @@ public:
     virtual TypeId GetTypeId() const override final;
 
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override;
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override;
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override;
 
 protected:
     /*! \brief Deserialize into an existing object.
@@ -75,7 +75,7 @@ protected:
      *  \param ref The instance to deserialize into.
      *  \return The result of the deserialization.
      */
-    virtual FBOMResult Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const Class* cls, HypData& target) const;
+    virtual FBOMResult Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const Class* cls, BoxedValue& target) const;
 };
 
 } // namespace hyperion::serialization

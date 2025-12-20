@@ -17,7 +17,7 @@ public:
     EditBoundingBox();
     virtual ~EditBoundingBox() override;
 
-    virtual void Build_Impl(const HypData& hypData, const Property* property) override;
+    virtual void Build_Impl(const BoxedValue& boxed, const Property* property) override;
 };
 
 } // namespace hyperion

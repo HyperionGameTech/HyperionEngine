@@ -19,14 +19,14 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void Property_GetName(const Property* property, Name* outName)
+    HYP_EXPORT void Property_GetName(const Property* pProperty, Name* pOutName)
     {
-        if (!property || !outName)
+        if (!pProperty || !pOutName)
         {
             return;
         }
 
-        *outName = property->GetName();
+        *pOutName = pProperty->GetName();
     }
 
     HYP_EXPORT void Property_GetTypeId(const Property* property, TypeId* outTypeId)
@@ -49,7 +49,7 @@ extern "C"
         return &property->GetTypeInfo();
     }
 
-    HYP_EXPORT bool Property_InvokeGetter(const Property* property, const Class* targetClass, void* targetPtr, HypData* outResult)
+    HYP_EXPORT bool Property_InvokeGetter(const Property* property, const Class* targetClass, void* targetPtr, BoxedValue* outResult)
     {
         if (!property || !targetClass || !targetPtr || !outResult)
         {
@@ -61,14 +61,14 @@ extern "C"
             return false;
         }
 
-        HypData targetData { AnyRef(targetClass->GetTypeInfo(), targetPtr) };
+        BoxedValue targetData { AnyRef(targetClass->GetTypeInfo(), targetPtr) };
 
         *outResult = property->Get(targetData);
 
         return true;
     }
 
-    HYP_EXPORT bool Property_InvokeSetter(const Property* property, const Class* targetClass, void* targetPtr, HypData* value)
+    HYP_EXPORT bool Property_InvokeSetter(const Property* property, const Class* targetClass, void* targetPtr, BoxedValue* value)
     {
         if (!property || !targetClass || !targetPtr || !value)
         {
@@ -80,7 +80,7 @@ extern "C"
             return false;
         }
 
-        HypData targetData { AnyRef(targetClass->GetTypeInfo(), targetPtr) };
+        BoxedValue targetData { AnyRef(targetClass->GetTypeInfo(), targetPtr) };
 
         property->Set(targetData, *value);
 

@@ -35,7 +35,7 @@ extern "C"
         return nullptr;
     }
 
-    HYP_EXPORT void UIObject_Spawn(UIObject* spawnParent, const Class* cls, Name* name, Vec2i* position, UIObjectSize* size, HypData* outHypData)
+    HYP_EXPORT void UIObject_Spawn(UIObject* spawnParent, const Class* cls, Name* name, Vec2i* position, UIObjectSize* size, BoxedValue* outHypData)
     {
         Assert(spawnParent != nullptr);
         Assert(cls != nullptr);
@@ -45,10 +45,10 @@ extern "C"
         Assert(outHypData != nullptr);
 
         Handle<UIObject> uiObject = spawnParent->CreateUIObject(cls, *name, *position, *size);
-        *outHypData = HypData(std::move(uiObject));
+        *outHypData = BoxedValue(std::move(uiObject));
     }
 
-    HYP_EXPORT int8 UIObject_Find(UIObject* parent, const Class* cls, Name* name, HypData* outHypData)
+    HYP_EXPORT int8 UIObject_Find(UIObject* parent, const Class* cls, Name* name, BoxedValue* outHypData)
     {
         Assert(parent != nullptr);
         Assert(cls != nullptr);
@@ -70,7 +70,7 @@ extern "C"
             return false;
         }
 
-        *outHypData = HypData(std::move(uiObject));
+        *outHypData = BoxedValue(std::move(uiObject));
 
         return true;
     }

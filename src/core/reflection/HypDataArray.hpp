@@ -29,7 +29,7 @@ using serialization::FBOMResult;
 #pragma region GenericArrayWrapper
 
 struct GenericArrayWrapper;
-struct HypData;
+struct BoxedValue;
 
 struct GenericArrayWrapper
 {
@@ -59,9 +59,9 @@ struct GenericArrayWrapper
         void (*copyCtor)(void** pDst, void* src);
         SerializeFunction serializeFunction;
 
-        AnyRef (*pushBack)(GenericArrayWrapper& array, HypData&& value);
-        bool (*getElementAt)(GenericArrayWrapper& array, SizeType index, HypData& out);
-        bool (*setElementAt)(GenericArrayWrapper& array, SizeType index, HypData&& value);
+        AnyRef (*pushBack)(GenericArrayWrapper& array, BoxedValue&& value);
+        bool (*getElementAt)(GenericArrayWrapper& array, SizeType index, BoxedValue& out);
+        bool (*setElementAt)(GenericArrayWrapper& array, SizeType index, BoxedValue&& value);
         SizeType (*size)(const GenericArrayWrapper& array);
         bool (*resize)(GenericArrayWrapper& array, SizeType newSize);
     };
@@ -273,7 +273,7 @@ struct GenericArrayWrapper
         return functionTable.pushBack != nullptr;
     }
 
-    HYP_FORCE_INLINE AnyRef PushBack(HypData&& value)
+    HYP_FORCE_INLINE AnyRef PushBack(BoxedValue&& value)
     {
         HYP_CORE_ASSERT(IsValid());
         HYP_CORE_ASSERT(CanPushBack());
@@ -286,7 +286,7 @@ struct GenericArrayWrapper
         return functionTable.getElementAt != nullptr;
     }
 
-    HYP_FORCE_INLINE bool GetElementAt(SizeType index, HypData& out)
+    HYP_FORCE_INLINE bool GetElementAt(SizeType index, BoxedValue& out)
     {
         if (!IsValid() || !CanGetElementByIndex() || index >= Size())
         {
@@ -296,7 +296,7 @@ struct GenericArrayWrapper
         return functionTable.getElementAt(*this, index, out);
     }
 
-    HYP_FORCE_INLINE bool SetElementAt(SizeType index, HypData&& value)
+    HYP_FORCE_INLINE bool SetElementAt(SizeType index, BoxedValue&& value)
     {
         if (!IsValid() || !CanGetElementByIndex() || index >= Size())
         {

@@ -7,7 +7,7 @@
 #include <core/utilities/Format.hpp>
 
 #include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 
 #include <sstream>
 
@@ -175,7 +175,7 @@ FBOMResult FBOMObject::Visit(UniqueId id, FBOMWriter* writer, ByteWriter* out, E
     return writer->Write(out, *this, id, attributes);
 }
 
-FBOMResult FBOMObject::Deserialize(FBOMLoadContext& context, TypeId typeId, const FBOMObject& in, HypData& out)
+FBOMResult FBOMObject::Deserialize(FBOMLoadContext& context, TypeId typeId, const FBOMObject& in, BoxedValue& out)
 {
     FBOMMarshalerBase* marshal = GetMarshal(typeId);
 

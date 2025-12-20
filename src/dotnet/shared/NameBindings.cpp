@@ -16,40 +16,40 @@ extern "C"
     static_assert(sizeof(Name) == 8, "Name size mismatch, ensure C# implementation matches C++");
     static_assert(std::is_standard_layout_v<Name>, "Name is not standard layout");
 
-    HYP_EXPORT void Name_FromString(const char* str, bool weak, Name* outName)
+    HYP_EXPORT void Name_FromString(const char* pString, bool weak, Name* pOutName)
     {
-        if (!outName)
+        if (!pOutName)
         {
             return;
         }
 
-        if (!str)
+        if (!pString)
         {
-            *outName = Name::Invalid();
+            *pOutName = Name::Invalid();
 
             return;
         }
 
         if (weak)
         {
-            *outName = Name(CreateStringHashFromDynamicString(str).hashCode);
+            *pOutName = Name(CreateStringHashFromDynamicString(pString).hashCode);
         }
         else
         {
-            *outName = Name(CreateNameFromDynamicString(str).hashCode);
+            *pOutName = Name(CreateNameFromDynamicString(pString).hashCode);
         }
     }
 
-    HYP_EXPORT const char* Name_LookupString(const Name* name)
+    HYP_EXPORT const char* Name_LookupString(const Name* pName)
     {
-        static const char invalidNameString[] = "";
+        static const char s_invalidNameString[] = "";
 
-        if (!name)
+        if (!pName)
         {
-            return invalidNameString;
+            return s_invalidNameString;
         }
 
-        return name->LookupString();
+        return pName->LookupString();
     }
 
 } // extern "C"

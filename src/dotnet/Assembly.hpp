@@ -14,7 +14,7 @@
 namespace hyperion {
 
 class Class;
-struct HypData;
+struct BoxedValue;
 
 enum class AssemblyFlags : uint32
 {

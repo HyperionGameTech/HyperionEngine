@@ -75,14 +75,14 @@ Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
     FBOMReader reader { FBOMReaderConfig {} };
     FBOMResult err;
 
-    HypData data;
-    if ((err = reader.Deserialize(context, stream, data)))
+    BoxedValue boxed;
+    if ((err = reader.Deserialize(context, stream, boxed)))
     {
         return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
     }
 
-    Extract_Internal(data.ToRef());
-    data.Reset();
+    Extract_Internal(boxed.ToRef());
+    boxed.Reset();
 
     return {};
 }
@@ -484,7 +484,7 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
     json::JSONObject manifestJson;
 
-    ObjectToJSON(InstanceClass(), HypData(HandleFromThis()), manifestJson, { .skipTransientProperties = true, .writeClassNames = true });
+    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, { .skipTransientProperties = true, .writeClassNames = true });
 
     stream.WriteString(json::JSONValue(std::move(manifestJson)).ToString(true));
 
@@ -542,7 +542,7 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Class '{}' is not derived from AssetObject!", classNameValue.AsString());
     }
 
-    HypData binData;
+    BoxedValue binData;
 
     if (pBinStream)
     {
@@ -558,7 +558,7 @@ Result AssetObject::Load(
         AssertDebug(binData.IsValid());
     }
 
-    HypData targetData;
+    BoxedValue targetData;
     if (!cls->CreateInstance(targetData))
     {
         return HYP_MAKE_ERROR(Error, "Failed to create instance of class '{}'", classNameValue.AsString());

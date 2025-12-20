@@ -22,8 +22,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using HypData data = _property.Get(_target);
-                    object? rawValue = data.GetValue();
+                    using BoxedValue boxed = _property.Get(_target);
+                    object? rawValue = boxed.GetValue();
 
                     Dispatcher.UIThread.Post(() =>
                     {

@@ -33,7 +33,7 @@ struct ASTType;
 struct CSharpTypeMapping
 {
     String typeName;                   // Name of the type in C#
-    Optional<String> getValueOverload; // Method to use instead of GetValue() if a specific one is defined in HypData.cs
+    Optional<String> getValueOverload; // Method to use instead of GetValue() if a specific one is defined in BoxedValue.cs
 };
 
 struct HypScriptTypeMapping

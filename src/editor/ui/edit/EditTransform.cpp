@@ -23,26 +23,26 @@ EditTransform::EditTransform()
 
 EditTransform::~EditTransform() = default;
 
-void EditTransform::Build_Impl(const HypData& hypData, const Property* property)
+void EditTransform::Build_Impl(const BoxedValue& boxed, const Property* property)
 {
     HYP_NAMED_SCOPE("EditTransform::Build");
 
-    Assert(hypData.IsValid());
+    Assert(boxed.IsValid());
 
-    const Handle<Node>& node = hypData.Get<Handle<Node>>();
+    const Handle<Node>& node = boxed.Get<Handle<Node>>();
     Assert(node != nullptr);
 
     Assert(property != nullptr);
     Assert(property->CanGet());
 
-    HypData resultData = property->Get(hypData);
+    BoxedValue resultData = property->Get(boxed);
     Assert(resultData.IsValid());
 
     Transform transform = resultData.Get<Transform>();
     m_currentValue = std::move(resultData);
 
     OnValueChange
-        .Bind([nodeWeak = node.ToWeak(), property](const HypData& value) -> UIEventHandlerResult
+        .Bind([nodeWeak = node.ToWeak(), property](const BoxedValue& value) -> UIEventHandlerResult
             {
                 Handle<Node> node = nodeWeak.Lock();
                 if (!node || !property->CanSet())
@@ -52,7 +52,7 @@ void EditTransform::Build_Impl(const HypData& hypData, const Property* property)
 
                 NodeUnlockTransformScope scope(*node);
 
-                HypData targetData(node.ToRef());
+                BoxedValue targetData(node.ToRef());
                 property->Set(targetData, value);
 
                 return UIEventHandlerResult::OK;
@@ -75,9 +75,9 @@ void EditTransform::Build_Impl(const HypData& hypData, const Property* property)
 
         if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Vec3f>())
         {
-            Handle<UIObject> translationElement = factory->CreateUIObject(this, HypData(transform.GetTranslation()), {});
+            Handle<UIObject> translationElement = factory->CreateUIObject(this, BoxedValue(transform.GetTranslation()), {});
 
-            m_delegateHandlers.Add(translationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
+            m_delegateHandlers.Add(translationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const BoxedValue& value) -> UIEventHandlerResult
                 {
                     Handle<EditTransform> strongThis = weakThis.Lock();
                     if (!strongThis)
@@ -87,7 +87,7 @@ void EditTransform::Build_Impl(const HypData& hypData, const Property* property)
 
                     Transform currentValue = GetCurrentValue().Get<Transform>();
                     currentValue.SetTranslation(value.Get<Vec3f>());
-                    SetCurrentValue(HypData(currentValue));
+                    SetCurrentValue(BoxedValue(currentValue));
 
                     return UIEventHandlerResult::OK;
                 }));
@@ -109,9 +109,9 @@ void EditTransform::Build_Impl(const HypData& hypData, const Property* property)
 
         if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Quaternion>())
         {
-            Handle<UIObject> rotationElement = factory->CreateUIObject(this, HypData(transform.GetRotation()), {});
+            Handle<UIObject> rotationElement = factory->CreateUIObject(this, BoxedValue(transform.GetRotation()), {});
 
-            m_delegateHandlers.Add(rotationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
+            m_delegateHandlers.Add(rotationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const BoxedValue& value) -> UIEventHandlerResult
                 {
                     Handle<EditTransform> strongThis = weakThis.Lock();
                     if (!strongThis)
@@ -121,7 +121,7 @@ void EditTransform::Build_Impl(const HypData& hypData, const Property* property)
 
                     Transform currentValue = GetCurrentValue().Get<Transform>();
                     currentValue.SetRotation(value.Get<Quaternion>());
-                    SetCurrentValue(HypData(currentValue));
+                    SetCurrentValue(BoxedValue(currentValue));
 
                     return UIEventHandlerResult::OK;
                 }));
@@ -143,9 +143,9 @@ void EditTransform::Build_Impl(const HypData& hypData, const Property* property)
 
         if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Vec3f>())
         {
-            Handle<UIObject> scaleElement = factory->CreateUIObject(this, HypData(transform.GetScale()), {});
+            Handle<UIObject> scaleElement = factory->CreateUIObject(this, BoxedValue(transform.GetScale()), {});
 
-            m_delegateHandlers.Add(scaleElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
+            m_delegateHandlers.Add(scaleElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const BoxedValue& value) -> UIEventHandlerResult
                 {
                     Handle<EditTransform> strongThis = weakThis.Lock();
                     if (!strongThis)
@@ -155,7 +155,7 @@ void EditTransform::Build_Impl(const HypData& hypData, const Property* property)
 
                     Transform currentValue = GetCurrentValue().Get<Transform>();
                     currentValue.SetScale(value.Get<Vec3f>());
-                    SetCurrentValue(HypData(currentValue));
+                    SetCurrentValue(BoxedValue(currentValue));
 
                     return UIEventHandlerResult::OK;
                 }));

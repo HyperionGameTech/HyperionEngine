@@ -23,9 +23,9 @@ public:
         return ObjectMarshal::Serialize(in, out);
     }
 
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
-        out = HypData(CompiledShader());
+        out = BoxedValue(CompiledShader());
 
         CompiledShader& compiledShader = out.Get<CompiledShader>();
 

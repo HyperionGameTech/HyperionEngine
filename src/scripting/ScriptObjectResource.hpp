@@ -17,7 +17,7 @@
 #include <core/Types.hpp>
 
 #ifdef HYP_SCRIPT
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #endif
 
 namespace hyperion {
@@ -49,7 +49,7 @@ struct ScriptObjectData_HypScript final
     static constexpr ScriptLanguage Language = SL_HYPSCRIPT;
 
     Script_Instance* instance = nullptr;
-    HypData obj;
+    BoxedValue obj;
 };
 #endif
 
@@ -73,7 +73,7 @@ public:
     ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
-    ScriptObjectResource(Script_Instance* hypScriptInstance, HypData&& hypScriptValue);
+    ScriptObjectResource(Script_Instance* hypScriptInstance, BoxedValue&& hypScriptValue);
 #endif
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;

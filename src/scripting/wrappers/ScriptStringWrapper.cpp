@@ -24,7 +24,7 @@ HYP_BEGIN_STRUCT(String, -1, 0, {})
         {
             return str.Length();
         }),
-    Method(NAME("Join"), +[](const Array<HypData>& elems, const String& sep) -> String
+    Method(NAME("Join"), +[](const Array<BoxedValue>& elems, const String& sep) -> String
         {
             String result;
 
@@ -40,7 +40,7 @@ HYP_BEGIN_STRUCT(String, -1, 0, {})
 
             return result;
         }),
-    Method(NAME("$invoke"), +[](const HypData& value) -> String
+    Method(NAME("$invoke"), +[](const BoxedValue& value) -> String
         {
             return ToString(value);
         })

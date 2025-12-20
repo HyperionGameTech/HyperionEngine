@@ -244,23 +244,23 @@ Property* MakeProperty(const Field* field)
     result.m_getter = PropertyGetter();
     result.m_getter.typeInfo.targetTypeId = field->GetTargetTypeId();
     result.m_getter.typeInfo.valueTypeId = field->GetTypeId();
-    result.m_getter.getProc = [field](const HypData& target) -> HypData
+    result.m_getter.getProc = [field](const BoxedValue& target) -> BoxedValue
     {
         return field->Get(target);
     };
-    result.m_getter.serializeProc = [field](const HypData& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+    result.m_getter.serializeProc = [field](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
     {
-        return field->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, out, flags);
+        return field->Serialize(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 }, out, flags);
     };
 
     result.m_setter = PropertySetter();
     result.m_setter.typeInfo.targetTypeId = field->GetTargetTypeId();
     result.m_setter.typeInfo.valueTypeId = field->GetTypeId();
-    result.m_setter.setProc = [field](HypData& target, const HypData& value) -> void
+    result.m_setter.setProc = [field](BoxedValue& target, const BoxedValue& value) -> void
     {
         field->Set(target, value);
     };
-    result.m_setter.deserializeProc = [field](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> Result
+    result.m_setter.deserializeProc = [field](FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) -> Result
     {
         return field->Deserialize(context, target, value);
     };
@@ -374,13 +374,13 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         result.m_getter = PropertyGetter();
         result.m_getter.typeInfo.targetTypeInfo = targetTypeInfo;
         result.m_getter.typeInfo.valueTypeInfo = typeInfo;
-        result.m_getter.getProc = [getter](const HypData& target) -> HypData
+        result.m_getter.getProc = [getter](const BoxedValue& target) -> BoxedValue
         {
-            return getter->Invoke(Span<HypData> { const_cast<HypData*>(&target), 1 });
+            return getter->Invoke(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 });
         };
-        result.m_getter.serializeProc = [getter](const HypData& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+        result.m_getter.serializeProc = [getter](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
-            return getter->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, out, flags);
+            return getter->Serialize(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 }, out, flags);
         };
         result.m_originalMember = getter;
         result.m_ownerClass = getter->GetOwnerClass();
@@ -390,13 +390,13 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         result.m_getter = PropertyGetter();
         result.m_getter.typeInfo.targetTypeInfo = targetTypeInfo;
         result.m_getter.typeInfo.valueTypeInfo = typeInfo;
-        result.m_getter.getProc = [field](const HypData& target) -> HypData
+        result.m_getter.getProc = [field](const BoxedValue& target) -> BoxedValue
         {
             return field->Get(target);
         };
-        result.m_getter.serializeProc = [field](const HypData& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+        result.m_getter.serializeProc = [field](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
-            return field->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, out, flags);
+            return field->Serialize(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 }, out, flags);
         };
 
         if (!result.m_originalMember)
@@ -415,11 +415,11 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         result.m_setter = PropertySetter();
         result.m_setter.typeInfo.targetTypeInfo = targetTypeInfo;
         result.m_setter.typeInfo.valueTypeInfo = setter->GetParameters()[0].typeInfo;
-        result.m_setter.setProc = [setter](HypData& target, const HypData& value) -> void
+        result.m_setter.setProc = [setter](BoxedValue& target, const BoxedValue& value) -> void
         {
-            setter->Invoke(Span<HypData*> { { &target, const_cast<HypData*>(&value) } });
+            setter->Invoke(Span<BoxedValue*> { { &target, const_cast<BoxedValue*>(&value) } });
         };
-        result.m_setter.deserializeProc = [setter](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> Result
+        result.m_setter.deserializeProc = [setter](FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) -> Result
         {
             return setter->Deserialize(context, target, value);
         };
@@ -439,11 +439,11 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         result.m_setter = PropertySetter();
         result.m_setter.typeInfo.targetTypeInfo = targetTypeInfo;
         result.m_setter.typeInfo.valueTypeInfo = typeInfo;
-        result.m_setter.setProc = [field](HypData& target, const HypData& value) -> void
+        result.m_setter.setProc = [field](BoxedValue& target, const BoxedValue& value) -> void
         {
             field->Set(target, value);
         };
-        result.m_setter.deserializeProc = [field](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> Result
+        result.m_setter.deserializeProc = [field](FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) -> Result
         {
             return field->Deserialize(context, target, value);
         };
@@ -500,7 +500,7 @@ static void InitFormattedStringMap(void* mem)
     ADD_TYPE_NAME(void*);
     ADD_TYPE_NAME(char*);
     ADD_TYPE_NAME(const char*);
-    ADD_TYPE_NAME(HypData);
+    ADD_TYPE_NAME(BoxedValue);
     ADD_TYPE_NAME(ConstAnyRef);
     ADD_TYPE_NAME(AnyRef);
     ADD_TYPE_NAME(Any);
@@ -1380,9 +1380,9 @@ DynamicClassInstance::DynamicClassInstance(
 
         for (const Field* field : cls->GetFields())
         {
-            // In dynamic classes for scripts, all fields are stored as HypData
-            const SizeType fieldSize = sizeof(HypData);
-            const SizeType fieldAlignment = alignof(HypData);
+            // In dynamic classes for scripts, all fields are stored as BoxedValue
+            const SizeType fieldSize = sizeof(BoxedValue);
+            const SizeType fieldAlignment = alignof(BoxedValue);
 
             dynamicSize = ByteUtil::AlignAs(dynamicSize, fieldAlignment);
 
@@ -1526,7 +1526,7 @@ bool DynamicClassInstance::CanCreateInstance() const
     return false;
 }
 
-bool DynamicClassInstance::ToHypData(ByteView memory, HypData& outHypData) const
+bool DynamicClassInstance::ToHypData(ByteView memory, BoxedValue& outHypData) const
 {
     if (m_parent != nullptr)
     {
@@ -1544,7 +1544,7 @@ void DynamicClassInstance::PostLoad_Internal(void* objectPtr) const
 {
 }
 
-bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
+bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 {
     ScriptObjectResource* scriptObjectResource = nullptr;
     bool isCreated = false;
@@ -1561,7 +1561,7 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
             GlobalContextScope scope(ObjectInitializerContext { this, ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
             {
-                HypData value;
+                BoxedValue value;
 
                 if (!m_parent->CreateInstance(value, /* allowAbstract */ true))
                 {
@@ -1575,7 +1575,7 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
                     Handle<ObjectBase> handle = std::move(value.Get<Handle<ObjectBase>>());
                     Assert(handle.IsValid());
 
-                    out = HypData(std::move(handle));
+                    out = BoxedValue(std::move(handle));
                 }
                 else
                 {
@@ -1675,19 +1675,19 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
 
         const DynamicClassInstance* dynamicParentInstance = static_cast<const DynamicClassInstance*>(dynamicParent);
 
-        // Init all fields to HypData()
+        // Init all fields to BoxedValue()
         for (Field* field : dynamicParentInstance->GetFields())
         {
             // align field offset
-            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
+            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
 
-            AssertDebug(fieldOffset + sizeof(HypData) <= m_size,
-                "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(HypData), m_size);
+            AssertDebug(fieldOffset + sizeof(BoxedValue) <= m_size,
+                "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(BoxedValue), m_size);
 
-            HypData* fieldPtr = (HypData*)(UIntPtr(target) + fieldOffset);
-            new (fieldPtr) HypData();
+            BoxedValue* fieldPtr = (BoxedValue*)(UIntPtr(target) + fieldOffset);
+            new (fieldPtr) BoxedValue();
 
-            fieldOffset += sizeof(HypData);
+            fieldOffset += sizeof(BoxedValue);
         }
     }
 
@@ -1695,20 +1695,20 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
     for (Field* field : GetFields())
     {
         // align field offset
-        fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
-        AssertDebug(fieldOffset + sizeof(HypData) <= m_size,
-            "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(HypData), m_size);
+        fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
+        AssertDebug(fieldOffset + sizeof(BoxedValue) <= m_size,
+            "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(BoxedValue), m_size);
 
-        HypData* fieldPtr = (HypData*)(UIntPtr(target) + fieldOffset);
-        new (fieldPtr) HypData();
+        BoxedValue* fieldPtr = (BoxedValue*)(UIntPtr(target) + fieldOffset);
+        new (fieldPtr) BoxedValue();
 
-        fieldOffset += sizeof(HypData);
+        fieldOffset += sizeof(BoxedValue);
     }
 
     Handle<ObjectBase> handle;
     handle.ptr = static_cast<ObjectBase*>(target);
 
-    HypData obj(std::move(handle));
+    BoxedValue obj(std::move(handle));
     out = obj;
 
     PopGlobalContext<ObjectInitializerContext>();
@@ -1740,7 +1740,7 @@ bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
     return isCreated;
 }
 
-bool DynamicClassInstance::CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const
+bool DynamicClassInstance::CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const
 {
     HYP_NOT_IMPLEMENTED();
 }

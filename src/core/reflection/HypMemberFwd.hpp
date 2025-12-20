@@ -20,7 +20,7 @@ namespace hyperion {
 
 class ClassAttributeSet;
 struct ClassAttributeValue;
-struct HypData;
+struct BoxedValue;
 class Class;
 
 enum class FBOMDataFlags : uint32;
@@ -104,8 +104,8 @@ public:
     virtual bool CanSerialize() const = 0;
     virtual bool CanDeserialize() const = 0;
 
-    virtual Result Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const = 0;
-    virtual Result Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& value) const = 0;
+    virtual Result Serialize(Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const = 0;
+    virtual Result Deserialize(FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) const = 0;
 
     virtual const ClassAttributeSet& GetAttributes() const = 0;
     virtual const ClassAttributeValue& GetAttribute(StringHash key) const = 0;

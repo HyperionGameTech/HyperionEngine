@@ -9,7 +9,7 @@
 
 namespace hyperion {
 
-struct HypData;
+struct BoxedValue;
 class Class;
 
 namespace utilities {
@@ -45,14 +45,14 @@ struct ToJSONOptions
     FollowAssetPathsMode followAssetPaths = WITH_ATTRIBUTE;
 };
 
-/*! \brief Converts a HypData to a JSONValue.
+/*! \brief Converts a BoxedValue to a JSONValue.
  *
- *  \param value The HypData to convert.
+ *  \param value The BoxedValue to convert.
  *  \param outJson The output JSONValue.
  *  \return True if conversion was successful, false otherwise.
  */
 bool HypDataToJSON(
-    const HypData& value,
+    const BoxedValue& value,
     json::JSONValue& outJson,
     ToJSONOptions opts = ToJSONOptions {});
 
@@ -62,34 +62,34 @@ bool HypDataToJSON(
  *  Members marked with the "transient" attribute are skipped if skipTransientProperties is true.
  *  Members with the "jsonpath" attribute are serialized using the specified JSON path.
  *  \param cls The Class of the object.
- *  \param target The HypData object to serialize.
+ *  \param target The BoxedValue object to serialize.
  *  \param outJson The output JSONObject.
  *  \return True if serialization was successful, false otherwise.
  */
 bool ObjectToJSON(
     const Class* cls,
-    const HypData& target,
+    const BoxedValue& target,
     json::JSONObject& outJson,
     ToJSONOptions opts = ToJSONOptions {});
 
-/*! \brief Converts a JSONValue to HypData
+/*! \brief Converts a JSONValue to BoxedValue
  *
  *  \param jsonValue The JSONValue to convert.
  *  \param typeInfo The TypeInfo for the target type.
- *  \param outHypData The output HypData.
+ *  \param outHypData The output BoxedValue.
  *  \return True if conversion was successful, false otherwise.
  */
-bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, HypData& outHypData);
+bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, BoxedValue& outHypData);
 
-/*! \brief Deserializes a JSONObject to a HypData object.
+/*! \brief Deserializes a JSONObject to a BoxedValue object.
  *  Only fields and properties of the Class are deserialized.
  *  Members marked with the "jsonignore" attribute are skipped.
  *  Members with the "jsonpath" attribute are deserialized using the specified JSON path.
  *  \param jsonObject The JSONObject to deserialize.
  *  \param targetClass The desired Class of the target object. (can be null if target already has a type)
- *  \param target The output HypData object.
+ *  \param target The output BoxedValue object.
  *  \return True if deserialization was successful, false otherwise.
  */
-bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, HypData& target);
+bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, BoxedValue& target);
 
 } // namespace hyperion

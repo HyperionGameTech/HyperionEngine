@@ -17,7 +17,7 @@
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <core/reflection/TypeInfoFwd.hpp>
-#include <core/reflection/HypData.hpp>
+#include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
@@ -83,10 +83,10 @@ public:
     virtual TypeId GetElementTypeId() const;
 
     HYP_METHOD(Scriptable)
-    Handle<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const;
+    Handle<UIObject> CreateUIObject(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const;
 
     HYP_METHOD(Scriptable)
-    void UpdateUIObject(UIObject* uiObject, const HypData& value, const HypData& context) const;
+    void UpdateUIObject(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const;
 
 protected:
     virtual TypeId GetElementTypeId_Impl() const
@@ -94,12 +94,12 @@ protected:
         HYP_PURE_VIRTUAL();
     }
 
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const HypData& value, const HypData& context) const
+    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const
     {
         HYP_PURE_VIRTUAL();
     }
 
-    virtual void UpdateUIObject_Impl(UIObject* uiObject, const HypData& value, const HypData& context) const
+    virtual void UpdateUIObject_Impl(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const
     {
         HYP_PURE_VIRTUAL();
     }
@@ -121,7 +121,7 @@ private:
         return TypeId::ForType<T>();
     }
 
-    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const HypData& value, const HypData& context) const override final
+    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const override final
     {
         HYP_MT_CHECK_RW(m_contextDataRaceDetector);
 
@@ -130,7 +130,7 @@ private:
 
         Handle<UIObject> result;
 
-        if constexpr (IsHypDataV<T>)
+        if constexpr (IsBoxedValueV<T>)
         {
             return Create(parent, value);
         }
@@ -140,14 +140,14 @@ private:
         }
     }
 
-    virtual void UpdateUIObject_Impl(UIObject* uiObject, const HypData& value, const HypData& context) const override final
+    virtual void UpdateUIObject_Impl(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const override final
     {
         HYP_MT_CHECK_RW(m_contextDataRaceDetector);
 
         m_context = context.ToRef();
         HYP_DEFER({ m_context = AnyRef(); });
 
-        if constexpr (IsHypDataV<T>)
+        if constexpr (IsBoxedValueV<T>)
         {
             return Update(uiObject, value);
         }
@@ -174,14 +174,14 @@ private:
 class HYP_API UIDataSourceElement
 {
 public:
-    template <class T, typename = std::enable_if_t<!IsHypDataV<T>>>
+    template <class T, typename = std::enable_if_t<!IsBoxedValueV<T>>>
     UIDataSourceElement(Uuid uuid, T&& value)
         : m_uuid(uuid),
-          m_value(HypData(std::forward<T>(value)))
+          m_value(BoxedValue(std::forward<T>(value)))
     {
     }
 
-    UIDataSourceElement(Uuid uuid, HypData&& value)
+    UIDataSourceElement(Uuid uuid, BoxedValue&& value)
         : m_uuid(uuid),
           m_value(std::move(value))
     {
@@ -217,19 +217,19 @@ public:
         return m_uuid;
     }
 
-    HYP_FORCE_INLINE HypData& GetValue()
+    HYP_FORCE_INLINE BoxedValue& GetValue()
     {
         return m_value;
     }
 
-    HYP_FORCE_INLINE const HypData& GetValue() const
+    HYP_FORCE_INLINE const BoxedValue& GetValue() const
     {
         return m_value;
     }
 
 private:
     Uuid m_uuid;
-    HypData m_value;
+    BoxedValue m_value;
 };
 
 HYP_CLASS(Abstract)
@@ -255,15 +255,15 @@ public:
     UIDataSourceBase& operator=(UIDataSourceBase&& other) noexcept = delete;
     virtual ~UIDataSourceBase() = default;
 
-    virtual Result Push(const Uuid& uuid, HypData&& value, const Uuid& parentUuid = Uuid::Invalid()) = 0;
+    virtual Result Push(const Uuid& uuid, BoxedValue&& value, const Uuid& parentUuid = Uuid::Invalid()) = 0;
     virtual const UIDataSourceElement* Get(const Uuid& uuid) const = 0;
-    virtual void Set(const Uuid& uuid, HypData&& value) = 0;
+    virtual void Set(const Uuid& uuid, BoxedValue&& value) = 0;
     virtual void ForceUpdate(const Uuid& uuid) = 0;
     virtual bool Remove(const Uuid& uuid) = 0;
     virtual void RemoveAllWithPredicate(ProcRef<bool(UIDataSourceElement*)> predicate) = 0;
 
-    virtual Handle<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const = 0;
-    virtual void UpdateUIObject(UIObject* uiObject, const HypData& value, const HypData& context) const = 0;
+    virtual Handle<UIObject> CreateUIObject(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const = 0;
+    virtual void UpdateUIObject(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const = 0;
 
     virtual UIDataSourceElement* FindWithPredicate(ProcRef<bool(const UIDataSourceElement*)> predicate) = 0;
 
@@ -340,7 +340,7 @@ public:
     UIDataSource& operator=(UIDataSource&& other) noexcept = delete;
     virtual ~UIDataSource() override = default;
 
-    virtual Result Push(const Uuid& uuid, HypData&& value, const Uuid& parentUuid) override
+    virtual Result Push(const Uuid& uuid, BoxedValue&& value, const Uuid& parentUuid) override
     {
         if (value.IsNull())
         {
@@ -392,7 +392,7 @@ public:
         return &*it;
     }
 
-    virtual void Set(const Uuid& uuid, HypData&& value) override
+    virtual void Set(const Uuid& uuid, BoxedValue&& value) override
     {
         auto it = m_values.FindIf([&uuid](const auto& item)
             {
@@ -495,7 +495,7 @@ public:
         return nullptr;
     }
 
-    virtual Handle<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const override
+    virtual Handle<UIObject> CreateUIObject(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const override
     {
         if (m_createUiObjectProc.IsValid())
         {
@@ -516,7 +516,7 @@ public:
         return nullptr;
     }
 
-    virtual void UpdateUIObject(UIObject* uiObject, const HypData& value, const HypData& context) const override
+    virtual void UpdateUIObject(UIObject* uiObject, const BoxedValue& value, const BoxedValue& context) const override
     {
         if (m_updateUiObjectProc.IsValid())
         {
@@ -588,8 +588,8 @@ private:
 
     Forest<UIDataSourceElement> m_values;
 
-    Proc<Handle<UIObject>(UIObject*, const HypData&, const HypData&)> m_createUiObjectProc;
-    Proc<void(UIObject*, const HypData&, const HypData&)> m_updateUiObjectProc;
+    Proc<Handle<UIObject>(UIObject*, const BoxedValue&, const BoxedValue&)> m_createUiObjectProc;
+    Proc<void(UIObject*, const BoxedValue&, const BoxedValue&)> m_updateUiObjectProc;
 };
 
 struct HYP_API UIElementFactoryRegistrationBase
