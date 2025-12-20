@@ -87,7 +87,7 @@ private:
     bool EnsureInitialized() const;
 
     bool m_isInitialized;
-    RC<DotNetImplBase> m_impl;
+    DotNetImplBase* m_impl;
 
     GlobalFunctions m_globalFunctions;
 };
