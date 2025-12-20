@@ -42,16 +42,18 @@ struct MethodParameter
 #pragma region CallMethod
 
 template <class FunctionType, class ReturnType, class... ArgTypes, SizeType... Indices>
-HYP_FORCE_INLINE decltype(auto) CallMethod_Impl(FunctionType fn, BoxedValue** args, std::index_sequence<Indices...>)
+static inline decltype(auto) CallMethod_Impl(FunctionType fn, BoxedValue** args, std::index_sequence<Indices...>)
 {
     auto assertArgType = [args]<SizeType Index>(std::integral_constant<SizeType, Index>) -> bool
     {
-        const bool condition = args[Index]->Is<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>(/* strict */ false);
+        BoxedValue& arg = *args[Index];
+
+        const bool condition = arg.Is<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>(/* strict */ false);
 
         if (!condition)
         {
             HYP_FAIL("Unexpected argument of type {} at index {} (expected {})",
-                TypeInfo_GetName(*args[Index]->GetTypeInfo()),
+                TypeInfo_GetName(*arg.GetTypeInfo()),
                 Index,
                 TypeNameHelper<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>::value.Data());
         }
@@ -65,7 +67,7 @@ HYP_FORCE_INLINE decltype(auto) CallMethod_Impl(FunctionType fn, BoxedValue** ar
 }
 
 template <class FunctionType, class ReturnType, class... ArgTypes>
-decltype(auto) CallMethod(FunctionType fn, BoxedValue** args)
+static inline decltype(auto) CallMethod(FunctionType fn, BoxedValue** args)
 {
     return CallMethod_Impl<FunctionType, ReturnType, ArgTypes...>(fn, args, std::make_index_sequence<sizeof...(ArgTypes)> {});
 }

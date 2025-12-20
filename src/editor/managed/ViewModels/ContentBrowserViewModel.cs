@@ -54,6 +54,8 @@ namespace Hyperion.Editor.ViewModels
                 Packages.Add(new AssetPackageViewModel(pkg));
             }
 
+            OnPropertyChanged(nameof(Packages));
+
             _onSelectedPackageChangedHandler = _editorSubsystem.GetOnSelectedPackageChangedDelegate().Bind((AssetPackage? package) =>
             {
                 Dispatcher.UIThread.Post(() =>
@@ -74,6 +76,7 @@ namespace Hyperion.Editor.ViewModels
                         _currentPackage = null;
                     }
 
+                    OnPropertyChanged(nameof(Assets));
                     OnPropertyChanged(nameof(CurrentPackage));
                 });
             });
@@ -85,6 +88,8 @@ namespace Hyperion.Editor.ViewModels
                     if (!package.Hidden)
                     {
                         Packages.Add(new AssetPackageViewModel(package));
+
+                        OnPropertyChanged(nameof(Packages));
                     }
                 });
             });
@@ -94,9 +99,12 @@ namespace Hyperion.Editor.ViewModels
                 Dispatcher.UIThread.Post(() =>
                 {
                     AssetPackageViewModel? packageViewModel = Packages.FirstOrDefault(pvm => pvm.Package == package);
+
                     if (packageViewModel != null)
                     {
                         Packages.Remove(packageViewModel);
+
+                        OnPropertyChanged(nameof(Packages));
                     }
                 });
             });
