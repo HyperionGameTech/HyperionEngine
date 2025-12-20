@@ -1,7 +1,8 @@
 #pragma once
+
 #include <core/Defines.hpp>
 
-#include "Game.hpp"
+#include <game/Game.hpp>
 
 #include <core/reflection/Handle.hpp>
 

@@ -313,6 +313,11 @@ void SDLApplicationWindow::SetIsMouseLocked(bool locked)
     }
 }
 
+bool SDLApplicationWindow::IsMouseLocked() const
+{
+    return false; /// \todo
+}
+
 bool SDLApplicationWindow::HasMouseFocus() const
 {
     const SDL_Window* focusWindow = SDL_GetMouseFocus();
@@ -369,6 +374,11 @@ Vec2i SDLApplicationWindow::GetDimensions() const
 }
 
 void SDLApplicationWindow::SetIsMouseLocked(bool locked)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+bool SDLApplicationWindow::IsMouseLocked() const
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -595,7 +605,6 @@ int SDLAppContext::PollEvents(SystemEvent& event)
 
 namespace {
 
-/*! @brief  Registry for Win32 window classes to ensure they are unregistered on app exit. */
 struct Win32WindowRegistry
 {
     HashSet<WideString> registeredClasses;
@@ -838,6 +847,13 @@ static bool HandleWindowEvent(
         pt.y = HIWORD(lParam);
 
         event.GetEventData().Set(Vec2i(pt.x, pt.y));
+
+        if (window->IsMouseLocked())
+        {
+            // recenter the mouse
+            Vec2i center = window->GetDimensions() / 2;
+            window->SetMousePosition(center);
+        }
 
         return true;
     }

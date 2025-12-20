@@ -182,7 +182,13 @@ public:
 
     HYP_FORCE_INLINE void SetWindow(ApplicationWindow* window)
     {
+        if (m_window == window)
+        {
+            return;
+        }
+
         m_window = window;
+        m_isMouseLocked = false; // window->IsMouseLocked();
     }
 
 private:

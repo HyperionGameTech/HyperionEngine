@@ -176,6 +176,8 @@ public:
     MouseEvent ToMouseEvent() const;
     MouseEvent ToMouseEvent(const Vec2f& surfaceSize) const;
 
+    KeyboardEvent ToKeyboardEvent() const;
+
     Vec2i GetWindowResizeDimensions() const
     {
         if (m_eventType != WINDOW_RESIZED)
