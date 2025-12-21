@@ -57,7 +57,7 @@ struct EngineStatsRecorderImpl
 
 struct DeferredInitStat
 {
-    EngineStatBase* pStat;
+    EngineStatBase* stat;
     String path;
 };
 
@@ -67,20 +67,20 @@ static Array<DeferredInitStat>& GetDeferredInitStats()
     return s_deferredInitStats;
 }
 
-static void InitStat(EngineStats* pEngineStats, EngineStatBase* pStat, UTF8StringView path)
+static void InitStat(EngineStats* stats, EngineStatBase* stat, UTF8StringView path)
 {
-    AssertDebug(pStat != nullptr);
+    AssertDebug(stat != nullptr);
 
-    if (!pEngineStats)
+    if (!stats)
     {
         DeferredInitStat& dis = GetDeferredInitStats().EmplaceBack();
-        dis.pStat = pStat;
+        dis.stat = stat;
         dis.path = path;
 
         return;
     }
 
-    EngineStats& engineStats = *pEngineStats;
+    EngineStats& engineStats = *stats;
 
     EngineStatGroup* currentGroup = static_cast<EngineStatGroup*>(engineStats.root);
     Assert(currentGroup != nullptr);
@@ -141,15 +141,15 @@ static void InitStat(EngineStats* pEngineStats, EngineStatBase* pStat, UTF8Strin
         }
     }
 
-    pStat->name = CreateNameFromDynamicString(statName);
+    stat->name = CreateNameFromDynamicString(statName);
 
-    if (pStat->type != EST_GROUP)
+    if (stat->type != EST_GROUP)
     {
-        pStat->id = s_nextStatId.Increment(1, MemoryOrder::RELAXED);
-        engineStats.linearStats[pStat->id] = pStat;
+        stat->id = s_nextStatId.Increment(1, MemoryOrder::RELAXED);
+        engineStats.linearStats[stat->id] = stat;
     }
 
-    currentGroup->stats.PushBack(pStat);
+    currentGroup->stats.PushBack(stat);
 }
 
 #pragma region EngineStats
@@ -180,7 +180,7 @@ EngineStats::EngineStats()
     {
         for (DeferredInitStat& dis : deferredInitStats)
         {
-            InitStat(this, dis.pStat, UTF8StringView(dis.path));
+            InitStat(this, dis.stat, UTF8StringView(dis.path));
         }
 
         deferredInitStats.Clear();

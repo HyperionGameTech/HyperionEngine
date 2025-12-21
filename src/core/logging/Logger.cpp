@@ -75,10 +75,10 @@ static LogChannelIdGenerator s_logChannelIdGenerator {};
 
 struct LoggerRedirect
 {
-    Bitset ChannelMask;
-    void* pContext = nullptr;
-    LoggerWriteFnPtr WriteFn;
-    LoggerWriteFnPtr WriteErrorFn;
+    Bitset channelMask;
+    void* context = nullptr;
+    LoggerWriteFnPtr writeFn;
+    LoggerWriteFnPtr writeErrorFn;
 };
 
 class BasicLoggerOutputStream : public ILoggerOutputStream
@@ -163,9 +163,9 @@ public:
             return;
         }
 
-        for (Bitset::BitIndex bitIndex : it->second.ChannelMask)
+        for (Bitset::BitIndex bitIndex : it->second.channelMask)
         {
-            if (m_contexts[bitIndex] != it->second.pContext)
+            if (m_contexts[bitIndex] != it->second.context)
             {
                 continue;
             }
@@ -765,20 +765,20 @@ void Logger::LogScript(const LogChannel& channel, const LogCategory& category, c
 {
     constexpr UTF8StringView NewlineChunk = UTF8StringView("\n");
 
-    const LogChannel* pChannel = &channel;
+    const LogChannel* channelPtr = &channel;
 
     if (channel.id == ~0u)
     {
         // default to script channel if not set
-        pChannel = &g_logChannel_Script;
+        channelPtr = &g_logChannel_Script;
     }
     else if (channel.id >= Logger::MaxChannels)
     {
         // log channel overflow! revert to Log_Misc
-        pChannel = &g_logChannel_Misc;
+        channelPtr = &g_logChannel_Misc;
     }
 
-    if (!IsChannelEnabled(*pChannel))
+    if (!IsChannelEnabled(*channelPtr))
     {
         return;
     }
@@ -797,7 +797,7 @@ void Logger::LogScript(const LogChannel& channel, const LogCategory& category, c
 
     // don't handle fatal here; scripts shouldn't be able to cause fatal errors
 
-    Log(*pChannel, lm);
+    Log(*channelPtr, lm);
 }
 
 #pragma endregion Logger

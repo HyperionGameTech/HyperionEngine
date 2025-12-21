@@ -30,10 +30,10 @@ class GraphicsPipelineCacheHandle
     // indirect pointer to the graphics pipeline. we can check if it is alive by dereferencing this pointer.
     // the indirect pointer is valid as long as this cache handle exists. graphics pipelines are destroyed after a certain number of frames if not used,
     // so you need to call IsAlive() to check if the underlying graphics pipeline is still valid and if not, request a new one.
-    GraphicsPipelineRef* m_pRef = nullptr;
+    GraphicsPipelineRef* m_ptr = nullptr;
 
     // called only by GraphicsPipelineCache, must be called within mutex lock of the cache as it does not perform any locking
-    explicit GraphicsPipelineCacheHandle(GraphicsPipelineRef* pRef);
+    explicit GraphicsPipelineCacheHandle(GraphicsPipelineRef* graphicsPipelinePtr);
     static void UpdateRefCount(GraphicsPipelineCacheHandle& cacheHandle, int delta, bool lock);
 
 public:
@@ -43,20 +43,20 @@ public:
     GraphicsPipelineCacheHandle& operator=(const GraphicsPipelineCacheHandle&);
 
     GraphicsPipelineCacheHandle(GraphicsPipelineCacheHandle&& other) noexcept
-        : m_pRef(other.m_pRef)
+        : m_ptr(other.m_ptr)
     {
-        other.m_pRef = nullptr;
+        other.m_ptr = nullptr;
     }
 
     GraphicsPipelineCacheHandle& operator=(GraphicsPipelineCacheHandle&& other) noexcept
     {
-        if (m_pRef == other.m_pRef)
+        if (m_ptr == other.m_ptr)
         {
             return *this;
         }
 
-        m_pRef = other.m_pRef;
-        other.m_pRef = nullptr;
+        m_ptr = other.m_ptr;
+        other.m_ptr = nullptr;
 
         return *this;
     }
@@ -65,13 +65,13 @@ public:
 
     HYP_FORCE_INLINE bool IsAlive() const
     {
-        return m_pRef && m_pRef->IsValid();
+        return m_ptr && m_ptr->IsValid();
     }
 
     HYP_FORCE_INLINE const GraphicsPipelineRef& operator*() const
     {
         AssertDebug(IsAlive());
-        return *m_pRef;
+        return *m_ptr;
     }
 };
 

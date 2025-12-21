@@ -243,20 +243,20 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderProxyParticleVolume* pProxy = static_cast<RenderProxyParticleVolume*>(RenderApi::GetRenderProxy(particleVolume));
-    AssertDebug(pProxy != nullptr);
+    RenderProxyParticleVolume* proxy = static_cast<RenderProxyParticleVolume*>(RenderApi::GetRenderProxy(particleVolume));
+    AssertDebug(proxy != nullptr);
 
-    VolumeState& state = EnsureVolumeState(pProxy);
+    VolumeState& state = EnsureVolumeState(proxy);
 
     // ensure particle texture bound
-    if (pProxy->particleTexture)
+    if (proxy->particleTexture)
     {
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             const DescriptorSetRef& descriptorSet = state.graphicsDescriptorTable->GetDescriptorSet("ParticleDescriptorSet", frameIndex);
             AssertDebug(descriptorSet != nullptr);
 
-            descriptorSet->SetElement("ParticleTexture", g_renderBackend->GetTextureImageView(MakeStrongRef(pProxy->particleTexture)));
+            descriptorSet->SetElement("ParticleTexture", g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->particleTexture)));
         }
     }
 
@@ -284,12 +284,12 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         uint32 globalCounter;
     } pushConstants;
 
-    pushConstants.origin = pProxy->bufferData.originStartSize;
-    pushConstants.spawnRadius = pProxy->bufferData.spawnRadius;
-    pushConstants.randomness = pProxy->bufferData.randomness;
-    pushConstants.avgLifespan = pProxy->bufferData.avgLifespan;
-    pushConstants.maxParticles = pProxy->bufferData.maxParticles;
-    pushConstants.maxParticlesSqrt = pProxy->bufferData.maxParticlesSqrt;
+    pushConstants.origin = proxy->bufferData.originStartSize;
+    pushConstants.spawnRadius = proxy->bufferData.spawnRadius;
+    pushConstants.randomness = proxy->bufferData.randomness;
+    pushConstants.avgLifespan = proxy->bufferData.avgLifespan;
+    pushConstants.maxParticles = proxy->bufferData.maxParticles;
+    pushConstants.maxParticlesSqrt = proxy->bufferData.maxParticlesSqrt;
     pushConstants.deltaTime = 0.016f; // TODO: real render delta
     pushConstants.globalCounter = m_counter;
 
@@ -318,7 +318,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
                 viewDescriptorSetIndex);
         }
 
-        const SizeType maxParticles = pProxy->bufferData.maxParticles;
+        const SizeType maxParticles = proxy->bufferData.maxParticles;
         rq << DispatchCompute(state.updatePipeline, Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });
 
         rq << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);

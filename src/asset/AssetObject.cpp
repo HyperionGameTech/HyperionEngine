@@ -493,7 +493,7 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
 Result AssetObject::Load(
     BufferedReader& manifestStream,
-    BufferedReader* pBinStream,
+    BufferedReader* binStream,
     Handle<AssetObject>& outAssetObject)
 {
     HYP_SCOPE;
@@ -503,7 +503,7 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Manifest stream is not open");
     }
 
-    if (pBinStream && !pBinStream->IsOpen())
+    if (binStream && !binStream->IsOpen())
     {
         return HYP_MAKE_ERROR(Error, "Data stream given, but it is not open");
     }
@@ -544,13 +544,13 @@ Result AssetObject::Load(
 
     BoxedValue binData;
 
-    if (pBinStream)
+    if (binStream)
     {
         FBOMLoadContext context;
         FBOMReader reader { FBOMReaderConfig {} };
         FBOMResult err;
 
-        if ((err = reader.Deserialize(context, *pBinStream, binData)))
+        if ((err = reader.Deserialize(context, *binStream, binData)))
         {
             return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
         }

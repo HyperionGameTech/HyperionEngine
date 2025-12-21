@@ -94,17 +94,17 @@ static Result InitializeHypScriptLib(HypScript& hs)
 
     ErrorList errorList;
 
-    Script_Instance* pInstance = hs.Compile(sourceFile, errorList);
+    Script_Instance* instance = hs.Compile(sourceFile, errorList);
 
     if (errorList.HasFatalErrors())
     {
         return HYP_MAKE_ERROR(Error, "Failed to compile Lib.hyp! The script system will not function correctly.");
     }
 
-    Assert(pInstance != nullptr);
+    Assert(instance != nullptr);
 
     // run the main script to initialize classes, functions, etc.
-    hs.Run(pInstance);
+    hs.Run(instance);
 
     return {};
 }
@@ -397,18 +397,18 @@ bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, B
 {
     outValue = BoxedValue();
 
-    BoxedValue* pValue;
-    if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
+    BoxedValue* value;
+    if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), value))
     {
         return false;
     }
 
-    if (!IsFunction(*pValue))
+    if (!IsFunction(*value))
     {
         return false;
     }
 
-    outValue = *pValue;
+    outValue = *value;
 
     return true;
 }
@@ -417,23 +417,23 @@ bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, Bo
 {
     outValue = BoxedValue();
 
-    BoxedValue* pValue;
-    if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
+    BoxedValue* value;
+    if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), value))
     {
         return false;
     }
 
-    Assert(pValue != nullptr);
-    pValue = Deref(*pValue);
+    Assert(value != nullptr);
+    value = Deref(*value);
 
-    if (getReference || ScriptApi_ShouldValuePassByRef(*pValue))
+    if (getReference || ScriptApi_ShouldValuePassByRef(*value))
     {
-        outValue = ScriptApi_MakeRef(pValue);
+        outValue = ScriptApi_MakeRef(value);
 
         return true;
     }
 
-    outValue = *pValue;
+    outValue = *value;
 
     return true;
 }

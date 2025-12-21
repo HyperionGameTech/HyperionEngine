@@ -498,23 +498,23 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     deviceQueues.Add(m_queueCompute);
     deviceQueues.Add(m_queuePresent);
 
-    for (VulkanDeviceQueue* pDeviceQueue : deviceQueues)
+    for (VulkanDeviceQueue* deviceQueue : deviceQueues)
     {
-        if (!pDeviceQueue)
+        if (!deviceQueue)
         {
             continue;
         }
 
-        pDeviceQueue->queue = GetQueue(pDeviceQueue->familyIndex, 0);
+        deviceQueue->queue = GetQueue(deviceQueue->familyIndex, 0);
 
-        for (uint32 commandBufferIndex = 0; commandBufferIndex < pDeviceQueue->commandPools.Size(); commandBufferIndex++)
+        for (uint32 commandBufferIndex = 0; commandBufferIndex < deviceQueue->commandPools.Size(); commandBufferIndex++)
         {
             VkCommandPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-            poolInfo.queueFamilyIndex = pDeviceQueue->familyIndex;
+            poolInfo.queueFamilyIndex = deviceQueue->familyIndex;
             poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-            VkResult result = vkCreateCommandPool(GetDevice(), &poolInfo, nullptr, &pDeviceQueue->commandPools[commandBufferIndex]);
-            Assert(result == VK_SUCCESS, "Could not create command pool for queue family index {}! VkResult: {}", pDeviceQueue->familyIndex, result);
+            VkResult result = vkCreateCommandPool(GetDevice(), &poolInfo, nullptr, &deviceQueue->commandPools[commandBufferIndex]);
+            Assert(result == VK_SUCCESS, "Could not create command pool for queue family index {}! VkResult: {}", deviceQueue->familyIndex, result);
         }
     }
 

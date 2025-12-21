@@ -4,16 +4,13 @@
 
 #include <audio/AudioManager.hpp>
 
-#include <cstring>
-#include <iostream>
-
 namespace hyperion {
 
 AudioManager& AudioManager::GetInstance()
 {
-    static AudioManager instance;
+    static AudioManager s_instance;
 
-    return instance;
+    return s_instance;
 }
 
 AudioManager::AudioManager()
@@ -34,7 +31,8 @@ bool AudioManager::Initialize()
     m_device = alcOpenDevice(NULL);
     if (!m_device)
     {
-        std::cout << "Failed to open OpenAL device\n";
+        HYP_LOG(Audio, Error, "Failed to open OpenAL device!");
+
         m_isInitialized = false;
         return false;
     }
@@ -43,7 +41,8 @@ bool AudioManager::Initialize()
     alcMakeContextCurrent(m_context);
     if (!m_context)
     {
-        std::cout << "Failed to open OpenAL context\n";
+        HYP_LOG(Audio, Error, "Failed to open OpenAL context!");
+
         m_isInitialized = false;
         return false;
     }

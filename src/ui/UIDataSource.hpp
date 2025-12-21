@@ -53,9 +53,9 @@ public:
 
         const FixedArray<const TypeInfo*, sizeof...(Types)> typeInfos = { &TypeOf<Types>()... };
 
-        for (const TypeInfo* pTypeInfo : typeInfos)
+        for (const TypeInfo* typeInfo : typeInfos)
         {
-            Handle<UIElementFactoryBase> factory = GetFactory(*pTypeInfo);
+            Handle<UIElementFactoryBase> factory = GetFactory(*typeInfo);
             Assert(factory != nullptr);
 
             factories.PushBack(factory);

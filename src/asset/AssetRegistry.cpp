@@ -2308,33 +2308,31 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
 
                         const FilePath binPath = entry.StripExtension();
 
-                        BufferedReader* pDataStream = nullptr;
-                        FileBufferedReaderSource* pDataSource = nullptr;
+                        BufferedReader* dataStream = nullptr;
+                        FileBufferedReaderSource* dataSource = nullptr;
 
                         if (binPath.Exists() && !binPath.IsDirectory())
                         {
-                            pDataSource = new FileBufferedReaderSource { binPath };
-                            pDataStream = new BufferedReader { pDataSource };
+                            dataSource = new FileBufferedReaderSource { binPath };
+                            dataStream = new BufferedReader { dataSource };
                         }
 
                         HYP_DEFER({
-                            if (pDataStream)
+                            if (dataStream)
                             {
-                                pDataStream->Close();
-                                delete pDataStream;
+                                dataStream->Close();
+                                delete dataStream;
                             }
 
-                            if (pDataSource)
+                            if (dataSource)
                             {
-                                delete pDataSource;
+                                delete dataSource;
                             }
                         });
 
-                        HYP_LOG(Assets, Debug, "Loading asset from manifest: {}\tHas binary? {}", entry, pDataStream != nullptr);
-
                         Handle<AssetObject> assetObject;
 
-                        if (Result loadAssetResult = AssetObject::Load(manifestStream, pDataStream, assetObject); loadAssetResult.HasError())
+                        if (Result loadAssetResult = AssetObject::Load(manifestStream, dataStream, assetObject); loadAssetResult.HasError())
                         {
                             HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
 
@@ -2574,11 +2572,11 @@ void AssetRegistry::RegisterAssetsRecursively(
         }
 
         {
-            ObjectBase* pObject = current.TryGet<ObjectBase*>().GetOr(nullptr);
-            if (pObject && !visited.Insert(pObject).second)
+            ObjectBase* object = current.TryGet<ObjectBase*>().GetOr(nullptr);
+            if (object && !visited.Insert(object).second)
             {
                 HYP_LOG(Assets, Info, "Already visited {} with ID {}, skipping to avoid infinite recursion",
-                    pObject->InstanceClass() ? *pObject->InstanceClass()->GetName() : "<no class>", pObject->Id());
+                    object->InstanceClass() ? *object->InstanceClass()->GetName() : "<no class>", object->Id());
 
                 return;
             }
@@ -2588,36 +2586,36 @@ void AssetRegistry::RegisterAssetsRecursively(
         Handle<AssetObject> assetObject;
 
         Optional<AssetReference> tmpAssetReference;
-        const AssetReference* pAssetReference = nullptr;
+        const AssetReference* assetReference = nullptr;
 
         if (current.Is<AssetObject>())
         {
             assetObject = MakeStrongRef(&current.Get<AssetObject>());
             Assert(assetObject != nullptr);
 
-            pAssetReference = &tmpAssetReference.Emplace(assetObject);
+            assetReference = &tmpAssetReference.Emplace(assetObject);
         }
         else if (current.Is<AssetPath>() && shouldFollowAssetPaths)
         {
-            pAssetReference = &tmpAssetReference.Emplace(current.Get<AssetPath>());
+            assetReference = &tmpAssetReference.Emplace(current.Get<AssetPath>());
         }
         else if (current.Is<AssetReference>())
         {
-            pAssetReference = &current.Get<AssetReference>();
+            assetReference = &current.Get<AssetReference>();
         }
 
-        if (pAssetReference && !pAssetReference->IsValid())
+        if (assetReference && !assetReference->IsValid())
         {
-            pAssetReference = nullptr;
+            assetReference = nullptr;
         }
 
-        if (pAssetReference && !assetObject)
+        if (assetReference && !assetObject)
         {
-            assetObject = pAssetReference->Resolve();
+            assetObject = assetReference->Resolve();
 
             if (!assetObject)
             {
-                HYP_LOG(Assets, Warning, "AssetReference {} failed to resolve!", pAssetReference->GetAssetPath().ToString());
+                HYP_LOG(Assets, Warning, "AssetReference {} failed to resolve!", assetReference->GetAssetPath().ToString());
             }
         }
 
@@ -2658,9 +2656,9 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             parentPackage = std::move(newPackage);
         }
-        else if (pAssetReference)
+        else if (assetReference)
         {
-            Array<Name> chain = pAssetReference->GetAssetPath().GetChain();
+            Array<Name> chain = assetReference->GetAssetPath().GetChain();
 
             if (chain.Size() > 1) // has at least one package in chain
             {
@@ -2737,13 +2735,13 @@ void AssetRegistry::RegisterAssetsRecursively(
 
         const Class* cls = GetClass(current.GetTypeId());
 
-        const BoxedValue* pBoxed = &current;
+        const BoxedValue* boxed = &current;
         BoxedValue tmpBoxed;
 
         if (assetObject != nullptr)
         {
             tmpBoxed = BoxedValue(assetObject);
-            pBoxed = &tmpBoxed;
+            boxed = &tmpBoxed;
 
             cls = assetObject->InstanceClass();
         }
@@ -2778,13 +2776,13 @@ void AssetRegistry::RegisterAssetsRecursively(
             case HypMemberType::TYPE_PROPERTY:
             {
                 const Property* property = static_cast<const Property*>(&member);
-                memberData = property->Get(*pBoxed);
+                memberData = property->Get(*boxed);
                 break;
             }
             case HypMemberType::TYPE_FIELD:
             {
                 const Field* field = static_cast<const Field*>(&member);
-                memberData = field->Get(*pBoxed);
+                memberData = field->Get(*boxed);
                 break;
             }
             default:

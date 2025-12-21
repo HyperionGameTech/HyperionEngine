@@ -41,23 +41,11 @@ namespace Hyperion
 
         public IntPtr Address
         {
-            get
-            {
-                return ptr;
-            }
-            set
-            {
-                ptr = value;
-            }
+            get => ptr;
+            set => ptr = value;
         }
 
-        public bool IsValid
-        {
-            get
-            {
-                return ptr != IntPtr.Zero;
-            }
-        }
+        public bool IsValid => ptr != IntPtr.Zero;
 
         public Name Name
         {
@@ -89,77 +77,18 @@ namespace Hyperion
             }
         }
 
-        public uint Size
-        {
-            get
-            {
-                return Class_GetSize(ptr);
-            }
-        }
+        public uint Size => Class_GetSize(ptr);
 
-        public ClassFlags Flags
-        {
-            get
-            {
-                return (ClassFlags)Class_GetFlags(ptr);
-            }
-        }
+        public ClassFlags Flags => (ClassFlags)Class_GetFlags(ptr);
 
-        public bool IsClassType
-        {
-            get
-            {
-                return (Flags & ClassFlags.ClassType) != 0;
-            }
-        }
+        public bool IsClassType => (Flags & ClassFlags.ClassType) != 0;
+        public bool IsStructType => (Flags & ClassFlags.StructType) != 0;
+        public bool IsEnumType => (Flags & ClassFlags.EnumType) != 0;
+        public bool IsAbstract => (Flags & ClassFlags.Abstract) != 0;
+        public bool IsPODType => (Flags & ClassFlags.PODType) != 0;
+        public bool IsDynamic => (Flags & ClassFlags.Dynamic) != 0;
 
-        public bool IsStructType
-        {
-            get
-            {
-                return (Flags & ClassFlags.StructType) != 0;
-            }
-        }
-
-        public bool IsEnumType
-        {
-            get
-            {
-                return (Flags & ClassFlags.EnumType) != 0;
-            }
-        }
-
-        public bool IsAbstract
-        {
-            get
-            {
-                return (Flags & ClassFlags.Abstract) != 0;
-            }
-        }
-
-        public bool is_pod_type
-        {
-            get
-            {
-                return (Flags & ClassFlags.PODType) != 0;
-            }
-        }
-
-        public bool IsDynamic
-        {
-            get
-            {
-                return (Flags & ClassFlags.Dynamic) != 0;
-            }
-        }
-
-        public ClassAllocationMethod AllocationMethod
-        {
-            get
-            {
-                return (ClassAllocationMethod)Class_GetAllocationMethod(ptr);
-            }
-        }
+        public ClassAllocationMethod AllocationMethod => (ClassAllocationMethod)Class_GetAllocationMethod(ptr);
 
         public bool IsReferenceCounted
         {

@@ -49,12 +49,12 @@ public:
         Assert(symbolType != nullptr);
         Assert(!symbolType->IsRegistered());
 
-        SymbolTypeRegistration* pRegistration = (SymbolTypeRegistration*)allocator.Allocate();
-        new (pRegistration) SymbolTypeRegistration(symbolType);
+        SymbolTypeRegistration* registration = (SymbolTypeRegistration*)allocator.Allocate();
+        new (registration) SymbolTypeRegistration(symbolType);
 
-        ptrs.PushBack(pRegistration);
+        ptrs.PushBack(registration);
 
-        return pRegistration;
+        return registration;
     }
 
     SlabAllocator allocator;
