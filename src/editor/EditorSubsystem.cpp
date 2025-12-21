@@ -1877,7 +1877,10 @@ void EditorSubsystem::InitViewport()
                 SetHoveredGizmo(event, nullptr, Handle<Node>::Null());
             }
 
-            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseLeave(event);
+            if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseLeave(event))
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
             return UIEventHandlerResult::OK;
         }));
@@ -1913,9 +1916,12 @@ void EditorSubsystem::InitViewport()
                 }
             }
 
-            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
+            if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDrag(event))
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
-            return UIEventHandlerResult::STOP_BUBBLING;
+            return UIEventHandlerResult::OK;
         }));
 
     m_delegateHandlers.Remove(&backdropPanel->OnMouseMove);
@@ -1975,7 +1981,10 @@ void EditorSubsystem::InitViewport()
                 SetHoveredGizmo(event, nullptr, Handle<Node>::Null());
             }
 
-            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseMove(event);
+            if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseMove(event))
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
             return UIEventHandlerResult::OK;
         }));
@@ -2026,9 +2035,12 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDown(event);
+            if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDown(event))
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
-            return UIEventHandlerResult::STOP_BUBBLING;
+            return UIEventHandlerResult::OK;
         }));
 
     m_delegateHandlers.Remove(&backdropPanel->OnMouseUp);
@@ -2062,9 +2074,12 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseUp(event);
+            if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseUp(event))
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
-            return UIEventHandlerResult::STOP_BUBBLING;
+            return UIEventHandlerResult::OK;
         }));
 
     m_delegateHandlers.Remove(&backdropPanel->OnKeyDown);

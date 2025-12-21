@@ -430,8 +430,8 @@ public:
         if (!useStagingBuffers)
         {
             dstBuffer->Flush(
-                m_dirtyRanges[frameIndex].GetStart(),
-                SizeType(m_dirtyRanges[frameIndex].Distance()));
+                m_dirtyRanges[frameIndex].GetStart() * sizeof(StructType),
+                SizeType(m_dirtyRanges[frameIndex].Distance()) * sizeof(StructType));
         }
 
         m_dirtyRanges[frameIndex].Reset();

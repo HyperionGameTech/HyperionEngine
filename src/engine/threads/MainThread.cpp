@@ -80,7 +80,7 @@ void MainThread::Update()
     {
         if (event.GetWindow() != nullptr)
         {
-            event.GetWindow()->GetInputManager()->ProcessEvent(&event);
+            event.GetWindow()->GetInputManager()->ProcessEvent(std::move(event));
         }
     }
 

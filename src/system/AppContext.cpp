@@ -683,60 +683,15 @@ Win32ApplicationWindow::~Win32ApplicationWindow()
     Win32WindowRegistry::GetInstance().Unregister(wTitle.Data());
 }
 
-void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
-{
-    m_title = windowOptions.title;
-    m_size = windowOptions.dimensions;
-    m_useWndProc = (windowOptions.flags & uint32(WindowFlags::EVENTS_POLLING)) == 0;
-
-    WideString wTitle = m_title.ToWide();
-
-    WNDCLASSEXW wc {};
-    wc.cbSize = sizeof(WNDCLASSEXW);
-    wc.lpfnWndProc = &Win32ApplicationWindow::StaticWndProc;
-    wc.hInstance = m_hinst;
-    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wc.lpszClassName = wTitle.Data();
-
-    ATOM classAtom = RegisterClassExW(&wc);
-    Assert(classAtom != 0, "Failed to register Win32 window class! Win32 Error: {}", GetLastError());
-
-    Win32WindowRegistry::GetInstance().Register(wTitle);
-
-    int x = 0, y = 0;
-
-    DWORD style = WS_VISIBLE;
-
-    if (!(windowOptions.flags & uint32(WindowFlags::HEADLESS)))
-    {
-        style |= WS_OVERLAPPEDWINDOW;
-
-        x = CW_USEDEFAULT;
-        y = CW_USEDEFAULT;
-    }
-
-    if (windowOptions.parentHwnd != nullptr)
-    {
-        style |= WS_CHILD;
-        style &= ~WS_OVERLAPPEDWINDOW;
-    }
-
-    RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };
-    AdjustWindowRect(&r, style, FALSE);
-
-    m_hwnd = CreateWindowW(
-        wc.lpszClassName, wTitle.Data(), style,
-        x, y,
-        r.right - r.left, r.bottom - r.top,
-        windowOptions.parentHwnd, nullptr, m_hinst, this);
-
-    if (!m_hwnd)
-    {
-        HYP_FAIL("Failed to create Win32 window! Error code: {}", GetLastError());
-    }
-
-    UpdateWindow(m_hwnd);
-}
+#ifndef HID_USAGE_PAGE_GENERIC
+#define HID_USAGE_PAGE_GENERIC ((USHORT)0x01)
+#endif
+#ifndef HID_USAGE_GENERIC_MOUSE
+#define HID_USAGE_GENERIC_MOUSE ((USHORT)0x02)
+#endif
+#ifndef HID_USAGE_GENERIC_KEYBOARD
+#define HID_USAGE_GENERIC_KEYBOARD ((USHORT)0x06)
+#endif
 
 static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
 {
@@ -816,6 +771,201 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
     return KeyCode::KEY_UNKNOWN;
 }
 
+void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
+{
+    HRAWINPUT hRawInput = (HRAWINPUT)rawInput;
+    UINT size = 0;
+
+    GetRawInputData(hRawInput, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+
+    if (size == 0)
+    {
+        return;
+    }
+
+    void* lpb = alloca(size);
+    if (GetRawInputData(hRawInput, RID_INPUT, lpb, &size, sizeof(RAWINPUTHEADER)) != size)
+    {
+        return;
+    }
+
+    RAWINPUT* raw = (RAWINPUT*)lpb;
+
+    SystemEvent event;
+    PlatformEvent platformEvent {};
+    platformEvent.win32Event.hwnd = m_hwnd;
+    platformEvent.win32Event.message = WM_INPUT;
+
+    if (raw->header.dwType == RIM_TYPEMOUSE)
+    {
+        int xRel = raw->data.mouse.lLastX;
+        int yRel = raw->data.mouse.lLastY;
+
+        m_virtualMousePos.x += xRel;
+        m_virtualMousePos.y += yRel;
+
+        event = SystemEvent(SystemEvent::MOUSEMOTION, this, platformEvent);
+        event.GetEventData().Set(Vec2f(xRel, yRel));
+
+        m_inputManager->ProcessEvent(std::move(event));
+
+        if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
+        {
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
+            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
+            m_inputManager->ProcessEvent(std::move(event));
+        }
+        if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
+        {
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
+            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
+            m_inputManager->ProcessEvent(std::move(event));
+        }
+        if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
+        {
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
+            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
+            m_inputManager->ProcessEvent(std::move(event));
+        }
+        if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
+        {
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
+            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
+            m_inputManager->ProcessEvent(std::move(event));
+        }
+        if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
+        {
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
+            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
+            m_inputManager->ProcessEvent(std::move(event));
+        }
+        if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
+        {
+            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
+            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
+            m_inputManager->ProcessEvent(std::move(event));
+        }
+
+        if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
+        {
+            event = SystemEvent(SystemEvent::MOUSESCROLL, this, platformEvent);
+            event.GetEventData().Set(Vec2i(0, (short)raw->data.mouse.usButtonData));
+            m_inputManager->ProcessEvent(std::move(event));
+        }
+    }
+    else if (raw->header.dwType == RIM_TYPEKEYBOARD)
+    {
+        USHORT virtualKey = raw->data.keyboard.VKey;
+        UINT makeCode = raw->data.keyboard.MakeCode;
+        UINT flags = raw->data.keyboard.Flags;
+
+        if (virtualKey == 255)
+        {
+            return;
+        }
+
+        if (virtualKey == VK_SHIFT || virtualKey == VK_CONTROL || virtualKey == VK_MENU)
+        {
+            virtualKey = LOWORD(MapVirtualKeyW(makeCode, MAPVK_VSC_TO_VK_EX));
+        }
+
+        bool isDown = !(flags & RI_KEY_BREAK);
+
+        LPARAM fakeLParam = 0;
+        if (flags & RI_KEY_E0)
+        {
+            fakeLParam |= (1 << 24);
+        }
+
+        KeyCode keyCode = MapWin32VirtualKeyToKeyCode(fakeLParam, virtualKey);
+
+        event = SystemEvent(isDown ? SystemEvent::KEYDOWN : SystemEvent::KEYUP, this, platformEvent);
+        event.GetEventData().Set(keyCode);
+
+        m_inputManager->ProcessEvent(std::move(event));
+    }
+}
+
+void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
+{
+    m_title = windowOptions.title;
+    m_size = windowOptions.dimensions;
+    m_useWndProc = (windowOptions.flags & uint32(WindowFlags::EVENTS_POLLING)) == 0;
+
+    WideString wTitle = m_title.ToWide();
+
+    WNDCLASSEXW wc {};
+    wc.cbSize = sizeof(WNDCLASSEXW);
+    wc.lpfnWndProc = &Win32ApplicationWindow::StaticWndProc;
+    wc.hInstance = m_hinst;
+    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wc.lpszClassName = wTitle.Data();
+
+    ATOM classAtom = RegisterClassExW(&wc);
+    Assert(classAtom != 0, "Failed to register Win32 window class! Win32 Error: {}", GetLastError());
+
+    Win32WindowRegistry::GetInstance().Register(wTitle);
+
+    int x = 0, y = 0;
+
+    DWORD style = WS_VISIBLE;
+
+    if (!(windowOptions.flags & uint32(WindowFlags::HEADLESS)))
+    {
+        style |= WS_OVERLAPPEDWINDOW;
+
+        x = CW_USEDEFAULT;
+        y = CW_USEDEFAULT;
+    }
+
+    if (windowOptions.parentHwnd != nullptr)
+    {
+        style |= WS_CHILD;
+        style &= ~WS_OVERLAPPEDWINDOW;
+    }
+
+    RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };
+    AdjustWindowRect(&r, style, FALSE);
+
+    m_hwnd = CreateWindowW(
+        wc.lpszClassName, wTitle.Data(), style,
+        x, y,
+        r.right - r.left, r.bottom - r.top,
+        windowOptions.parentHwnd, nullptr, m_hinst, this);
+
+    if (!m_hwnd)
+    {
+        HYP_FAIL("Failed to create Win32 window! Error code: {}", GetLastError());
+    }
+
+    UpdateWindow(m_hwnd);
+
+    // // Register raw input
+    // RAWINPUTDEVICE rid[2];
+
+    // rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    // rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+    // rid[0].dwFlags = RIDEV_NOLEGACY;
+    // rid[0].hwndTarget = m_hwnd;
+
+    // rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    // rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+    // rid[1].dwFlags = RIDEV_NOLEGACY;
+    // rid[1].hwndTarget = m_hwnd;
+
+    // if (!RegisterRawInputDevices(rid, 2, sizeof(rid[0])))
+    // {
+    //     HYP_FAIL("Failed to register raw input devices! Win32 Error: {}", GetLastError());
+    // }
+
+    // POINT pt;
+    // if (GetCursorPos(&pt))
+    // {
+    //     ScreenToClient(m_hwnd, &pt);
+    //     m_virtualMousePos = { pt.x, pt.y };
+    // }
+}
+
 static bool HandleWindowEvent(
     Win32ApplicationWindow* window, SystemEvent& event,
     HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -829,6 +979,9 @@ static bool HandleWindowEvent(
 
     switch (msg)
     {
+    case WM_INPUT:
+        window->ProcessRawInput((void*)lParam);
+        return true;
     case WM_KEYDOWN:
         event = SystemEvent(SystemEvent::KEYDOWN, window, platformEvent);
         event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
@@ -941,7 +1094,7 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 
         if (eventType != SystemEvent::INVALID)
         {
-            window->GetInputManager()->ProcessEvent(&event);
+            window->GetInputManager()->ProcessEvent(std::move(event));
 
             return 0;
         }
@@ -1004,6 +1157,8 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 
 void Win32ApplicationWindow::SetMousePosition(Vec2i position)
 {
+    m_virtualMousePos = position;
+
     POINT pt { position.x, position.y };
     ClientToScreen(m_hwnd, &pt);
     SetCursorPos(pt.x, pt.y);
@@ -1011,7 +1166,7 @@ void Win32ApplicationWindow::SetMousePosition(Vec2i position)
 
 Vec2i Win32ApplicationWindow::GetMousePosition() const
 {
-    POINT pt {};
+    POINT pt;
     GetCursorPos(&pt);
     ScreenToClient(m_hwnd, &pt);
     return { pt.x, pt.y };
