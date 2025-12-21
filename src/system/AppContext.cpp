@@ -1067,6 +1067,18 @@ static bool HandleWindowEvent(
 
         break;
     }
+    case WM_SETFOCUS:
+    {
+        event = SystemEvent(SystemEvent::WINDOW_FOCUS_GAINED, window, platformEvent);
+
+        return true;
+    }
+    case WM_KILLFOCUS:
+    {
+        event = SystemEvent(SystemEvent::WINDOW_FOCUS_LOST, window, platformEvent);
+
+        return true;
+    }
     case WM_CLOSE:
     case WM_DESTROY:
     {
@@ -1182,20 +1194,28 @@ Vec2i Win32ApplicationWindow::GetDimensions() const
 void Win32ApplicationWindow::SetIsMouseLocked(bool locked)
 {
     if (m_mouseLocked == locked)
+    {
         return;
+    }
+
     m_mouseLocked = locked;
 
     if (locked)
     {
+        while (::ShowCursor(FALSE) >= 0)
+            ;
+
+        SetCapture(m_hwnd);
+
         RECT rc {};
         GetClientRect(m_hwnd, &rc);
+
         POINT tl { rc.left, rc.top }, br { rc.right, rc.bottom };
         ClientToScreen(m_hwnd, &tl);
         ClientToScreen(m_hwnd, &br);
+
         RECT clip { tl.x, tl.y, br.x, br.y };
         ClipCursor(&clip);
-        SetCapture(m_hwnd);
-        ShowCursor(FALSE);
     }
     else
     {

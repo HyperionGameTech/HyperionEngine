@@ -68,6 +68,12 @@ public:
     HYP_METHOD(Scriptable)
     bool OnClick(const MouseEvent& evt);
 
+    HYP_METHOD(Scriptable)
+    bool OnGainFocus(const MouseEvent& evt);
+
+    HYP_METHOD(Scriptable)
+    bool OnLoseFocus(const MouseEvent& evt);
+
     bool IsKeyDown(KeyCode key) const;
     bool IsKeyUp(KeyCode key) const;
 
@@ -98,6 +104,12 @@ protected:
 
     HYP_METHOD()
     virtual bool OnClick_Impl(const MouseEvent& evt) = 0;
+
+    HYP_METHOD()
+    virtual bool OnGainFocus_Impl(const MouseEvent& evt) = 0;
+
+    HYP_METHOD()
+    virtual bool OnLoseFocus_Impl(const MouseEvent& evt) = 0;
 
 private:
     Bitset m_keyStates;
@@ -158,6 +170,16 @@ private:
     }
 
     virtual bool OnClick_Impl(const MouseEvent& evt) override
+    {
+        return false;
+    }
+
+    virtual bool OnGainFocus_Impl(const MouseEvent& evt) override
+    {
+        return false;
+    }
+
+    virtual bool OnLoseFocus_Impl(const MouseEvent& evt) override
     {
         return false;
     }

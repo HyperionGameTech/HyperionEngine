@@ -91,7 +91,7 @@ struct StagingBufferPoolImpl
         for (CachedStagingBuffer& cachedBuffer : cachedBuffers[frameIndex])
         {
             // find first that fits to reuse
-            if (cachedBuffer.size >= bufferSize && cachedBuffer.lastUsedFrame != currFrame)
+            if (cachedBuffer.size >= bufferSize && (int64(currFrame) - int64(cachedBuffer.lastUsedFrame)) >= NumFramesInFlight)
             {
                 cachedBuffer.offset = offset;
                 cachedBuffer.size = bufferSize;

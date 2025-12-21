@@ -36,6 +36,8 @@ protected:
     virtual bool OnMouseDrag_Impl(const MouseEvent& evt) override;
     virtual bool OnMouseLeave_Impl(const MouseEvent& evt) override;
     virtual bool OnClick_Impl(const MouseEvent& evt) override;
+    virtual bool OnGainFocus_Impl(const MouseEvent& evt) override;
+    virtual bool OnLoseFocus_Impl(const MouseEvent& evt) override;
 
 private:
     FirstPersonCameraController* m_controller;

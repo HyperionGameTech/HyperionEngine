@@ -2125,6 +2125,14 @@ void EditorSubsystem::InitViewport()
         {
             m_editorCameraEnabled = true;
 
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
+
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnGainFocus(event);
+
             return UIEventHandlerResult::OK;
         }));
 
@@ -2132,6 +2140,14 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Add(backdropPanel->OnLoseFocus.Bind([this](const MouseEvent& event)
         {
             m_editorCameraEnabled = false;
+
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
+            {
+                return UIEventHandlerResult::OK;
+            }
+
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnLoseFocus(event);
 
             return UIEventHandlerResult::OK;
         }));
