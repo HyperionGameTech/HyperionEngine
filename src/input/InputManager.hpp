@@ -10,11 +10,6 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-#include <core/containers/Bitset.hpp>
-#include <core/containers/LinkedList.hpp>
-
-#include <core/containers/Bitset.hpp>
-
 #include <core/math/Vector2.hpp>
 
 #include <core/threading/Semaphore.hpp>
@@ -34,8 +29,8 @@ using sys::SystemEvent;
 
 struct InputState
 {
-    Bitset keyStates;
-    EnumFlags<MouseButtonState> mouseButtonStates;
+    mutable volatile int32 keyStates[NUM_KEYBOARD_KEYS / 32 + 1];
+    mutable volatile int32 mouseButtonStates;
 
     InputState()
         : keyStates {},
@@ -44,11 +39,7 @@ struct InputState
     }
 };
 
-class InputEventNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>
-{
-};
-
-using SystemEvents = Array<SystemEvent, DynamicAllocator>;
+class InputEventQueue;
 
 HYP_CLASS()
 class InputManager : public ObjectBase
@@ -58,7 +49,7 @@ class InputManager : public ObjectBase
     friend struct InputMouseLockScope;
 
 public:
-    HYP_API InputManager();
+    explicit InputManager(ApplicationWindow* ownerWindow);
 
     InputManager(const InputManager& other) = delete;
     InputManager& operator=(const InputManager& other) = delete;
@@ -66,44 +57,41 @@ public:
     InputManager(InputManager&& other) noexcept = delete;
     InputManager& operator=(InputManager&& other) noexcept = delete;
 
-    HYP_API ~InputManager();
+    ~InputManager();
 
     HYP_METHOD()
-    HYP_API bool IsMouseLocked() const;
+    bool IsMouseLocked() const;
 
     HYP_METHOD()
-    HYP_API void PushMouseLockState(bool mouseLocked);
+    void PushMouseLockState(bool mouseLocked);
 
     HYP_METHOD()
-    HYP_API void PopMouseLockState();
+    void PopMouseLockState();
 
-    HYP_API InputMouseLockScope AcquireMouseLock();
+    InputMouseLockScope AcquireMouseLock();
 
     HYP_METHOD()
-    const Vec2i& GetMousePosition() const
+    Vec2i GetMousePosition() const
     {
-        Mutex::Guard guard(m_snapshotMtx);
-        return m_pFrontBuffer->m_mousePosition;
+        return m_mousePosition;
     }
 
     HYP_METHOD()
-    HYP_API void SetMousePosition(Vec2i position);
+    void SetMousePosition(Vec2i position);
 
-    HYP_FORCE_INLINE const Vec2i& GetPreviousMousePosition() const
+    HYP_FORCE_INLINE Vec2i GetPreviousMousePosition() const
     {
-        Mutex::Guard guard(m_snapshotMtx);
-        return m_pFrontBuffer->m_previousMousePosition;
+        return m_previousMousePosition;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Vec2i& GetWindowSize() const
+    HYP_FORCE_INLINE Vec2i GetWindowSize() const
     {
-        Mutex::Guard guard(m_snapshotMtx);
-        return m_pFrontBuffer->m_windowSize;
+        return m_windowSize;
     }
 
     HYP_METHOD()
-    HYP_API bool IsKeyDown(KeyCode key) const;
+    bool IsKeyDown(KeyCode key) const;
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsKeyUp(KeyCode key) const
@@ -130,9 +118,9 @@ public:
     }
 
     HYP_METHOD()
-    HYP_API bool IsButtonDown(MouseButtonKey btn) const;
+    bool IsButtonDown(MouseButtonKey btn) const;
 
-    HYP_API EnumFlags<MouseButtonState> GetButtonStates() const;
+   EnumFlags<MouseButtonState> GetButtonStates() const;
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsButtonUp(MouseButtonKey btn) const
@@ -142,17 +130,7 @@ public:
 
     HYP_FORCE_INLINE ApplicationWindow* GetWindow() const
     {
-        return m_window;
-    }
-
-    HYP_FORCE_INLINE void SetWindow(ApplicationWindow* window)
-    {
-        if (m_window == window)
-        {
-            return;
-        }
-
-        m_window = window;
+        return m_ownerWindow;
     }
 
     void ProcessEvent(SystemEvent* event);
@@ -174,27 +152,66 @@ private:
     void ApplyMouseLockState(InputMouseLockState* mouseLockState);
     void RemoveMouseLockState(InputMouseLockState* mouseLockState);
 
-    struct Snapshot
+    struct AtomicVec2i
     {
-        SystemEvents eventQueue;
-        InputState m_inputState;
-        Vec2i m_mousePosition;
-        Vec2i m_previousMousePosition;
-        Vec2i m_windowSize;
-        bool m_isMouseLocked;
-    } m_snapshots[2];
+        volatile int32 x;
+        volatile int32 y;
 
-    Snapshot* m_pFrontBuffer;
-    Snapshot* m_pBackBuffer;
+        AtomicVec2i()
+            : x(x),
+              y(y)
+        {
+        }
 
-    uint32 m_frontBufferOffset;
+        AtomicVec2i(const Vec2i& vec)
+            : x(vec.x),
+              y(vec.y)
+        {
+        }
 
-    mutable Mutex m_snapshotMtx;
+        AtomicVec2i(const AtomicVec2i& other)
+            : x(AtomicAdd(const_cast<volatile int32*>(&other.x), 0)),
+              y(AtomicAdd(const_cast<volatile int32*>(&other.y), 0))
+        {
+        }
+
+        AtomicVec2i& operator=(const AtomicVec2i& other)
+        {
+            AtomicExchange(&x, AtomicAdd(const_cast<volatile int32*>(&other.x), 0));
+            AtomicExchange(&y, AtomicAdd(const_cast<volatile int32*>(&other.y), 0));
+
+            return *this;
+        }
+
+        HYP_FORCE_INLINE operator Vec2i() const
+        {
+            return Vec2i(
+                AtomicAdd(const_cast<volatile int32*>(&x), 0),
+                AtomicAdd(const_cast<volatile int32*>(&y), 0));
+        }
+
+        HYP_FORCE_INLINE AtomicVec2i& operator=(const Vec2i& vec)
+        {
+            AtomicExchange(&x, vec.x);
+            AtomicExchange(&y, vec.y);
+
+            return *this;
+        }
+    };
+
+    InputEventQueue* m_eventQueue;
+    InputState m_inputState;
+
+    AtomicVec2i m_mousePosition;
+    AtomicVec2i m_previousMousePosition;
+    AtomicVec2i m_windowSize;
+
+    bool m_isMouseLocked;
 
     Array<InputMouseLockState*> m_mouseLockStates;
     Mutex m_mouseLockStatesMutex;
 
-    ApplicationWindow* m_window;
+    ApplicationWindow* m_ownerWindow;
 };
 
 } // namespace hyperion

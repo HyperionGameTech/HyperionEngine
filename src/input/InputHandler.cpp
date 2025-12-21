@@ -14,45 +14,41 @@ namespace hyperion {
 #pragma region InputHandlerBase
 
 InputHandlerBase::InputHandlerBase()
-    : m_inputState(MakePimpl<InputState>()),
+    : m_mouseButtonStates(0),
       m_deltaTime(0.016667)
 {
+    m_keyStates.SetNumBits(NUM_KEYBOARD_KEYS);
 }
 
 InputHandlerBase::~InputHandlerBase()
 {
 }
 
-const Bitset& InputHandlerBase::GetKeyStates() const
-{
-    return m_inputState->keyStates;
-}
-
 bool InputHandlerBase::IsKeyDown(KeyCode key) const
 {
-    return m_inputState->keyStates.Test(uint32(key));
+    return m_keyStates.Test(uint32(key));
 }
 
 bool InputHandlerBase::IsKeyUp(KeyCode key) const
 {
-    return !m_inputState->keyStates.Test(uint32(key));
+    return !m_keyStates.Test(uint32(key));
 }
 
 bool InputHandlerBase::IsMouseButtonDown(MouseButtonKey btn) const
 {
-    return m_inputState->mouseButtonStates & MouseButtonState(1u << uint32(btn));
+    return m_mouseButtonStates & MouseButtonState(1u << uint32(btn));
 }
 
 bool InputHandlerBase::IsMouseButtonUp(MouseButtonKey btn) const
 {
-    return !(m_inputState->mouseButtonStates & MouseButtonState(1u << uint32(btn)));
+    return !(m_mouseButtonStates & MouseButtonState(1u << uint32(btn)));
 }
 
 bool InputHandlerBase::OnKeyDown_Impl(const KeyboardEvent& evt)
 {
     if (uint32(evt.keyCode) < NUM_KEYBOARD_KEYS)
     {
-        m_inputState->keyStates.Set(uint32(evt.keyCode), true);
+        m_keyStates.Set(uint32(evt.keyCode), true);
     }
 
     // default to not handled
@@ -63,7 +59,7 @@ bool InputHandlerBase::OnKeyUp_Impl(const KeyboardEvent& evt)
 {
     if (uint32(evt.keyCode) < NUM_KEYBOARD_KEYS)
     {
-        m_inputState->keyStates.Set(uint32(evt.keyCode), false);
+        m_keyStates.Set(uint32(evt.keyCode), false);
     }
 
     // default to not handled
@@ -72,13 +68,7 @@ bool InputHandlerBase::OnKeyUp_Impl(const KeyboardEvent& evt)
 
 bool InputHandlerBase::OnMouseDown_Impl(const MouseEvent& evt)
 {
-    FOR_EACH_BIT(uint32(evt.mouseButtons), i)
-    {
-        if (i < NUM_MOUSE_BUTTONS)
-        {
-            m_inputState->mouseButtonStates |= (1u << i);
-        }
-    }
+    m_mouseButtonStates |= evt.mouseButtons;
 
     // default to not handled
     return false;
@@ -86,13 +76,7 @@ bool InputHandlerBase::OnMouseDown_Impl(const MouseEvent& evt)
 
 bool InputHandlerBase::OnMouseUp_Impl(const MouseEvent& evt)
 {
-    FOR_EACH_BIT(uint32(evt.mouseButtons), i)
-    {
-        if (i < NUM_MOUSE_BUTTONS)
-        {
-            m_inputState->mouseButtonStates &= (1u << i);
-        }
-    }
+    m_mouseButtonStates &= evt.mouseButtons;
 
     // default to not handled
     return false;

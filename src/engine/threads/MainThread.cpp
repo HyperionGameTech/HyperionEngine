@@ -70,13 +70,19 @@ void MainThread::Update()
         }
     }
 
+    for (ApplicationWindow* window : g_appContext->GetWindows())
+    {
+        window->GetInputManager()->MainThreadUpdate();
+    }
+
     SystemEvent event;
     while (g_appContext->PollEvents(event))
     {
-        g_inputManager->ProcessEvent(&event);
+        if (event.GetWindow() != nullptr)
+        {
+            event.GetWindow()->GetInputManager()->ProcessEvent(&event);
+        }
     }
-
-    g_inputManager->MainThreadUpdate();
 
 #ifdef HYP_LIBUI
     uiMainSteps();
