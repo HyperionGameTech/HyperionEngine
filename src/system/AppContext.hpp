@@ -24,7 +24,6 @@
 #include <rendering/RenderObject.hpp>
 
 #include <input/Mouse.hpp>
-#include <input/InputManager.hpp>
 
 #ifdef HYP_VULKAN
 #include <vulkan/vulkan_core.h>
@@ -41,6 +40,7 @@ using HWND = void*;
 #endif
 
 class Game;
+class InputManager;
 
 #ifdef HYP_VULKAN
 class VulkanInstance;
@@ -97,14 +97,10 @@ public:
     ApplicationWindow& operator=(const ApplicationWindow& other) = delete;
     virtual ~ApplicationWindow();
 
-    HYP_FORCE_INLINE InputEventSink& GetInputEventSink()
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<InputManager>& GetInputManager() const
     {
-        return m_inputEventSink;
-    }
-
-    HYP_FORCE_INLINE const InputEventSink& GetInputEventSink() const
-    {
-        return m_inputEventSink;
+        return m_inputManager;
     }
 
     HYP_METHOD()
@@ -171,7 +167,7 @@ public:
 protected:
     ANSIString m_title;
     Vec2i m_size;
-    InputEventSink m_inputEventSink;
+    Handle<InputManager> m_inputManager;
     HWND m_hwnd;
     SwapchainRef m_swapchain;
 

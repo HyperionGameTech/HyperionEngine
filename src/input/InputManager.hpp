@@ -50,25 +50,6 @@ class InputEventNotifier final : public Semaphore<int32, SemaphoreDirection::WAI
 
 using SystemEvents = Array<SystemEvent, DynamicAllocator>;
 
-class HYP_API InputEventSink
-{
-public:
-    InputEventSink();
-    InputEventSink(const InputEventSink& other) = delete;
-    InputEventSink& operator=(const InputEventSink& other) = delete;
-    InputEventSink(InputEventSink&& other) noexcept = delete;
-    InputEventSink& operator=(InputEventSink&& other) noexcept = delete;
-    ~InputEventSink();
-
-    void Push(SystemEvent&& evt);
-    bool Poll(SystemEvents& outEvents);
-
-private:
-    InputEventNotifier m_notifier;
-    SystemEvents m_events;
-    volatile int64 m_lockState;
-};
-
 HYP_CLASS()
 class InputManager : public ObjectBase
 {
@@ -87,8 +68,6 @@ public:
 
     HYP_API ~InputManager();
 
-    HYP_API void CheckEvent(SystemEvent* event);
-
     HYP_METHOD()
     HYP_API bool IsMouseLocked() const;
 
@@ -103,7 +82,8 @@ public:
     HYP_METHOD()
     const Vec2i& GetMousePosition() const
     {
-        return GetBufferedData()->m_mousePosition;
+        Mutex::Guard guard(m_snapshotMtx);
+        return m_pFrontBuffer->m_mousePosition;
     }
 
     HYP_METHOD()
@@ -111,33 +91,15 @@ public:
 
     HYP_FORCE_INLINE const Vec2i& GetPreviousMousePosition() const
     {
-        return GetBufferedData()->m_previousMousePosition;
+        Mutex::Guard guard(m_snapshotMtx);
+        return m_pFrontBuffer->m_previousMousePosition;
     }
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Vec2i& GetWindowSize() const
     {
-        return GetBufferedData()->m_windowSize;
-    }
-
-    void KeyDown(KeyCode key)
-    {
-        SetKey(key, true);
-    }
-
-    void KeyUp(KeyCode key)
-    {
-        SetKey(key, false);
-    }
-
-    void MouseButtonDown(MouseButtonKey btn)
-    {
-        SetMouseButton(btn, true);
-    }
-
-    void MouseButtonUp(MouseButtonKey btn)
-    {
-        SetMouseButton(btn, false);
+        Mutex::Guard guard(m_snapshotMtx);
+        return m_pFrontBuffer->m_windowSize;
     }
 
     HYP_METHOD()
@@ -193,8 +155,12 @@ public:
         m_window = window;
     }
 
+    void ProcessEvent(SystemEvent* event);
+
     void MainThreadUpdate();
-    void GameThreadSync();
+    void BufferSwap();
+
+    bool PollEvent(SystemEvent& outEvent);
 
 private:
     void SetIsMouseLocked(bool isMouseLocked);
@@ -208,73 +174,22 @@ private:
     void ApplyMouseLockState(InputMouseLockState* mouseLockState);
     void RemoveMouseLockState(InputMouseLockState* mouseLockState);
 
-    struct BufferedData
+    struct Snapshot
     {
-        enum
-        {
-            PRODUCER,
-            CONSUMER,
-            SHARED
-        };
-
+        SystemEvents eventQueue;
         InputState m_inputState;
         Vec2i m_mousePosition;
         Vec2i m_previousMousePosition;
         Vec2i m_windowSize;
         bool m_isMouseLocked;
-    } m_bufferedData[3]; // 0 = main thread, 1 = game thread, 2 = shared copy
+    } m_snapshots[2];
 
-    class BufferedDataLockScope
-    {
-    public:
-        BufferedDataLockScope(BufferedData* pBufferedData, volatile int32* pLockState)
-            : m_pBufferedData(pBufferedData),
-              m_pLockState(pLockState)
-        {
-        }
+    Snapshot* m_pFrontBuffer;
+    Snapshot* m_pBackBuffer;
 
-        BufferedDataLockScope(const BufferedDataLockScope& other) = delete;
-        BufferedDataLockScope& operator=(const BufferedDataLockScope& other) = delete;
+    uint32 m_frontBufferOffset;
 
-        BufferedDataLockScope(BufferedDataLockScope&& other) noexcept
-            : m_pBufferedData(other.m_pBufferedData),
-              m_pLockState(other.m_pLockState)
-        {
-            other.m_pBufferedData = nullptr;
-            other.m_pLockState = nullptr;
-        }
-
-        BufferedDataLockScope& operator=(BufferedDataLockScope&& other) noexcept = delete;
-
-        ~BufferedDataLockScope()
-        {
-            if (m_pLockState)
-                AtomicDecrement(m_pLockState);
-        }
-
-        BufferedData* operator->()
-        {
-            return m_pBufferedData;
-        }
-
-        const BufferedData* operator->() const
-        {
-            return m_pBufferedData;
-        }
-
-    private:
-        BufferedData* m_pBufferedData;
-        volatile int32* m_pLockState;
-    };
-
-    volatile int32 m_lockState;
-
-    BufferedDataLockScope GetBufferedData();
-
-    HYP_FORCE_INLINE const BufferedDataLockScope GetBufferedData() const
-    {
-        return const_cast<InputManager*>(this)->GetBufferedData();
-    }
+    mutable Mutex m_snapshotMtx;
 
     Array<InputMouseLockState*> m_mouseLockStates;
     Mutex m_mouseLockStatesMutex;

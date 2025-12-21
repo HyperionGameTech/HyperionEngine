@@ -20,50 +20,7 @@ namespace hyperion {
 
 static SlabAllocator s_inputMouseLockStateAllocator(sizeof(InputMouseLockState), alignof(InputMouseLockState), 32, AF_THREAD_SAFE);
 
-#pragma region InputEventSink
-
-InputEventSink::InputEventSink()
-    : m_lockState(0)
-{
-}
-
-InputEventSink::~InputEventSink() = default;
-
-void InputEventSink::Push(SystemEvent&& evt)
-{
-    Spinlock<SPMC> spinlock(&m_lockState);
-    spinlock.LockWriter();
-    HYP_DEFER({ spinlock.UnlockWriter(); });
-
-    m_events.PushBack(std::move(evt));
-
-    m_notifier.Produce(1);
-}
-
-bool InputEventSink::Poll(SystemEvents& outEvents)
-{
-    if (!m_notifier.IsInSignalState())
-    {
-        return false;
-    }
-
-    Spinlock<SPMC> spinlock(&m_lockState);
-    spinlock.LockReader();
-    HYP_DEFER({ spinlock.UnlockReader(); });
-
-    if (m_events.Empty())
-    {
-        return false;
-    }
-
-    outEvents = std::move(m_events);
-
-    m_notifier.Release(outEvents.Size());
-
-    return true;
-}
-
-#pragma endregion InputEventSink
+constexpr bool UseSharedBuffer = false; // use to reduce contention but may cause out-of-sync between events and global state
 
 #pragma region InputMouseLockScope
 
@@ -74,9 +31,9 @@ InputMouseLockScope& InputMouseLockScope::operator=(InputMouseLockScope&& other)
         return *this;
     }
 
-    if (mouseLockState)
+    if (mouseLockState && inputMgr)
     {
-        g_inputManager->RemoveMouseLockState(mouseLockState);
+        inputMgr->RemoveMouseLockState(mouseLockState);
     }
 
     mouseLockState = other.mouseLockState;
@@ -87,17 +44,17 @@ InputMouseLockScope& InputMouseLockScope::operator=(InputMouseLockScope&& other)
 
 InputMouseLockScope::~InputMouseLockScope()
 {
-    if (mouseLockState)
+    if (mouseLockState && inputMgr)
     {
-        g_inputManager->RemoveMouseLockState(mouseLockState);
+        inputMgr->RemoveMouseLockState(mouseLockState);
     }
 }
 
 void InputMouseLockScope::Reset()
 {
-    if (mouseLockState)
+    if (mouseLockState && inputMgr)
     {
-        g_inputManager->RemoveMouseLockState(mouseLockState);
+        inputMgr->RemoveMouseLockState(mouseLockState);
 
         mouseLockState = nullptr;
     }
@@ -109,8 +66,8 @@ void InputMouseLockScope::Reset()
 
 InputManager::InputManager()
     : m_window(nullptr),
-      m_bufferedData(),
-      m_lockState(0)
+      m_pFrontBuffer(nullptr),
+      m_pBackBuffer(nullptr)
 {
 }
 
@@ -131,68 +88,10 @@ InputManager::~InputManager()
     }
 }
 
-InputManager::BufferedDataLockScope InputManager::GetBufferedData()
-{
-    const bool isMainThread = IsOnThread(g_mainThread);
-    const int idx = int(isMainThread ? BufferedData::PRODUCER : BufferedData::CONSUMER);
-
-#ifdef HYP_DEBUG_MODE
-    if (!isMainThread)
-    {
-        AssertOnThread(g_gameThread);
-    }
-#endif
-
-    // 0 = main thread
-    // 1 = game thread copy
-    return { &m_bufferedData[idx], nullptr };
-}
-
-void InputManager::CheckEvent(SystemEvent* event)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_mainThread);
-
-    switch (event->GetType())
-    {
-    case SystemEvent::KEYDOWN:
-        KeyDown(event->GetKeyCode());
-
-        break;
-    case SystemEvent::KEYUP:
-        KeyUp(event->GetKeyCode());
-
-        break;
-    case SystemEvent::MOUSEBUTTON_DOWN:
-        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
-        {
-            MouseButtonDown(MouseButtonKey(index));
-        }
-
-        break;
-    case SystemEvent::MOUSEBUTTON_UP:
-        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
-        {
-            MouseButtonUp(MouseButtonKey(index));
-        }
-
-        break;
-    case SystemEvent::MOUSEMOTION:
-        UpdateMousePosition();
-
-        break;
-    case SystemEvent::WINDOW_RESIZED:
-        UpdateWindowSize(event->GetWindowResizeDimensions());
-
-        break;
-    default:
-        return;
-    }
-}
-
 bool InputManager::IsMouseLocked() const
 {
-    return GetBufferedData()->m_isMouseLocked;
+    Mutex::Guard guard(m_snapshotMtx);
+    return m_pBackBuffer->m_isMouseLocked;
 }
 
 void InputManager::PushMouseLockState(bool mouseLocked)
@@ -251,16 +150,16 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+    Mutex::Guard guard(m_snapshotMtx);
 
-    if (bd.m_isMouseLocked == isMouseLocked)
+    if (m_pBackBuffer->m_isMouseLocked == isMouseLocked)
     {
         return; // already set
     }
 
     if (m_window)
     {
-        //m_window->SetIsMouseLocked(isMouseLocked);
+        m_window->SetIsMouseLocked(isMouseLocked);
     }
     else
     {
@@ -268,7 +167,7 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
         isMouseLocked = false;
     }
 
-    bd.m_isMouseLocked = isMouseLocked;
+    m_pBackBuffer->m_isMouseLocked = isMouseLocked;
 }
 
 void InputManager::SetMousePosition(Vec2i position)
@@ -281,9 +180,9 @@ void InputManager::SetMousePosition(Vec2i position)
         return;
     }
 
-    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+    Mutex::Guard guard(m_snapshotMtx);
 
-    bd.m_mousePosition = position;
+    m_pBackBuffer->m_mousePosition = position;
 
     m_window->SetMousePosition(position);
 }
@@ -298,15 +197,15 @@ void InputManager::UpdateMousePosition()
         return;
     }
 
-    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+    Mutex::Guard guard(m_snapshotMtx);
 
-    bd.m_previousMousePosition = bd.m_mousePosition;
-    bd.m_mousePosition = m_window->GetMousePosition();
+    m_pBackBuffer->m_previousMousePosition = m_pBackBuffer->m_mousePosition;
+    m_pBackBuffer->m_mousePosition = m_window->GetMousePosition();
 
-    if (bd.m_isMouseLocked && m_window != nullptr)
+    if (m_pBackBuffer->m_isMouseLocked && m_window != nullptr)
     {
-        m_window->SetMousePosition(bd.m_previousMousePosition);
-        bd.m_mousePosition = m_window->GetMousePosition();
+        m_window->SetMousePosition(m_pBackBuffer->m_previousMousePosition);
+        m_pBackBuffer->m_mousePosition = m_window->GetMousePosition();
     }
 }
 
@@ -320,25 +219,25 @@ void InputManager::UpdateWindowSize(Vec2i newSize)
         return;
     }
 
-    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+    Mutex::Guard guard(m_snapshotMtx);
 
-    if (bd.m_windowSize == newSize)
+    if (m_pBackBuffer->m_windowSize == newSize)
     {
         return;
     }
 
-    bd.m_windowSize = newSize;
+    m_pBackBuffer->m_windowSize = newSize;
 }
 
 void InputManager::SetKey(KeyCode key, bool pressed)
 {
     AssertOnThread(g_mainThread);
 
-    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+    Mutex::Guard guard(m_snapshotMtx);
 
     if (uint32(key) < NUM_KEYBOARD_KEYS)
     {
-        bd.m_inputState.keyStates.Set(uint32(key), pressed);
+        m_pBackBuffer->m_inputState.keyStates.Set(uint32(key), pressed);
     }
 }
 
@@ -346,26 +245,28 @@ void InputManager::SetMouseButton(MouseButtonKey btn, bool pressed)
 {
     AssertOnThread(g_mainThread);
 
-    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+    Mutex::Guard guard(m_snapshotMtx);
 
     if (uint32(btn) < NUM_MOUSE_BUTTONS)
     {
         if (pressed)
         {
-            bd.m_inputState.mouseButtonStates |= MouseButtonState(1u << uint32(btn));
+            m_pBackBuffer->m_inputState.mouseButtonStates |= MouseButtonState(1u << uint32(btn));
         }
         else
         {
-            bd.m_inputState.mouseButtonStates &= MouseButtonState(~(1u << uint32(btn)));
+            m_pBackBuffer->m_inputState.mouseButtonStates &= MouseButtonState(~(1u << uint32(btn)));
         }
     }
 }
 
 bool InputManager::IsKeyDown(KeyCode key) const
 {
+    Mutex::Guard guard(m_snapshotMtx);
+
     if (uint32(key) < NUM_KEYBOARD_KEYS)
     {
-        return GetBufferedData()->m_inputState.keyStates.Test(uint32(key));
+        return m_pFrontBuffer->m_inputState.keyStates.Test(uint32(key));
     }
 
     return false;
@@ -373,9 +274,11 @@ bool InputManager::IsKeyDown(KeyCode key) const
 
 bool InputManager::IsButtonDown(MouseButtonKey btn) const
 {
+    Mutex::Guard guard(m_snapshotMtx);
+
     if (uint32(btn) < NUM_MOUSE_BUTTONS)
     {
-        return GetBufferedData()->m_inputState.mouseButtonStates & MouseButtonState(1u << uint32(btn));
+        return m_pFrontBuffer->m_inputState.mouseButtonStates & MouseButtonState(1u << uint32(btn));
     }
 
     return false;
@@ -383,13 +286,13 @@ bool InputManager::IsButtonDown(MouseButtonKey btn) const
 
 EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
 {
-    EnumFlags<MouseButtonState> state = MouseButtonState::NONE;
+    Mutex::Guard guard(m_snapshotMtx);
 
-    const BufferedDataLockScope bd = GetBufferedData();
+    EnumFlags<MouseButtonState> state = MouseButtonState::NONE;
 
     for (uint32 i = 0; i < NUM_MOUSE_BUTTONS; i++)
     {
-        if (bd->m_inputState.mouseButtonStates & MouseButtonState(1u << i))
+        if (m_pFrontBuffer->m_inputState.mouseButtonStates & MouseButtonState(1u << i))
         {
             state |= MouseButtonState(1u << i);
         }
@@ -451,27 +354,76 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
     }
 }
 
-void InputManager::GameThreadSync()
+void InputManager::ProcessEvent(SystemEvent* event)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_mainThread);
+
+    Mutex::Guard guard(m_snapshotMtx);
+
+    switch (event->GetType())
+    {
+    case SystemEvent::KEYDOWN:
+        SetKey(event->GetKeyCode(), true);
+
+        break;
+    case SystemEvent::KEYUP:
+        SetKey(event->GetKeyCode(), false);
+
+        break;
+    case SystemEvent::MOUSEBUTTON_DOWN:
+        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
+        {
+            SetMouseButton(MouseButtonKey(index), true);
+        }
+
+        break;
+    case SystemEvent::MOUSEBUTTON_UP:
+        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
+        {
+            SetMouseButton(MouseButtonKey(index), false);
+        }
+
+        break;
+    case SystemEvent::MOUSEMOTION:
+        UpdateMousePosition();
+
+        break;
+    case SystemEvent::WINDOW_RESIZED:
+        UpdateWindowSize(event->GetWindowResizeDimensions());
+
+        break;
+    default:
+        break;
+    }
+
+    m_pBackBuffer->eventQueue.PushBack(std::move(*event));
+}
+
+void InputManager::BufferSwap()
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
 
-    constexpr int MaxSpins = 32;
-    int numSpins = 0;
+    Mutex::Guard guard(m_snapshotMtx);
 
-    do
+    m_pFrontBuffer->eventQueue.Clear();
+    m_frontBufferOffset = 0;
+
+    std::swap(m_pFrontBuffer, m_pBackBuffer);
+}
+
+bool InputManager::PollEvent(SystemEvent& outEvent)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_gameThread);
+
+    if (m_frontBufferOffset >= m_pFrontBuffer->eventQueue.Size())
     {
-        int32 currentValue = 0;
-        if (AtomicCompareExchange(&m_lockState, currentValue, 1))
-        {
-            m_bufferedData[BufferedData::CONSUMER] = m_bufferedData[BufferedData::SHARED];
-
-            AtomicDecrement(&m_lockState);
-
-            return;
-        }
+        return false;
     }
-    while (numSpins++ < MaxSpins);
+
+    outEvent = std::move(m_pFrontBuffer->eventQueue[m_frontBufferOffset++]);
 }
 
 void InputManager::MainThreadUpdate()
@@ -479,24 +431,8 @@ void InputManager::MainThreadUpdate()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
+    Mutex::Guard guard(m_mouseLockStatesMutex);
     SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
-
-    constexpr int MaxSpins = 32;
-    int numSpins = 0;
-
-    do
-    {
-        int32 currentValue = 0;
-        if (AtomicCompareExchange(&m_lockState, currentValue, 1))
-        {
-            m_bufferedData[BufferedData::SHARED] = m_bufferedData[BufferedData::PRODUCER];
-
-            AtomicDecrement(&m_lockState);
-
-            return;
-        }
-    }
-    while (numSpins++ < MaxSpins);
 }
 
 #pragma endregion InputManager

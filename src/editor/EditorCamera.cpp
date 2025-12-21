@@ -108,7 +108,7 @@ bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
         return false;
     }
 
-    if (g_inputManager->GetButtonStates() & (MouseButtonState::LEFT | MouseButtonState::RIGHT))
+    if (evt.mouseButtons & (MouseButtonState::LEFT | MouseButtonState::RIGHT))
     {
         m_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
     }
@@ -123,7 +123,7 @@ bool EditorCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
         return false;
     }
 
-    if (!(g_inputManager->GetButtonStates() & (MouseButtonState::LEFT | MouseButtonState::RIGHT)))
+    if (!(evt.mouseButtons & (MouseButtonState::LEFT | MouseButtonState::RIGHT)))
     {
         m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
     }

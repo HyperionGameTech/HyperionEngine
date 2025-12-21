@@ -50,7 +50,6 @@ extern MaterialCache* g_materialCache;
 extern SafeDeleter* g_safeDeleter;
 extern RenderInterface* g_renderInterface;
 extern ShaderCompiler* g_shaderCompiler;
-extern Handle<InputManager> g_inputManager;
 
 extern MainThread* g_mainThreadInstance;
 extern GameThread* g_gameThreadInstance;

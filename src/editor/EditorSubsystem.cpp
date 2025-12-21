@@ -318,8 +318,8 @@ void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent
     {
         m_mouseLockScope = new InputMouseLockScope();
     }
-
-    *m_mouseLockScope = g_inputManager->AcquireMouseLock();
+    
+    *m_mouseLockScope = g_appContext->GetMainWindow()->GetInputManager()->AcquireMouseLock();
 }
 
 void EditorGizmoBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
@@ -1909,14 +1909,12 @@ void EditorSubsystem::InitViewport()
 
                 if (gizmo->OnMouseMove(activeViewport->GetCamera(), event, node))
                 {
-                    return UIEventHandlerResult::OK;
+                    return UIEventHandlerResult::STOP_BUBBLING;
                 }
             }
 
             activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
 
-            
-            
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
@@ -1928,8 +1926,6 @@ void EditorSubsystem::InitViewport()
             {
                 return UIEventHandlerResult::OK;
             }
-
-            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseMove(event);
 
             // Hover over a manipulation widget when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
@@ -1978,6 +1974,8 @@ void EditorSubsystem::InitViewport()
 
                 SetHoveredGizmo(event, nullptr, Handle<Node>::Null());
             }
+
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseMove(event);
 
             return UIEventHandlerResult::OK;
         }));
