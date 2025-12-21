@@ -493,14 +493,7 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
                 CGFloat deltaX = [nsEvent deltaX];
                 CGFloat deltaY = [nsEvent deltaY];
                 
-                Vec2i currentPos = GetMousePosition();
-                Vec2i newPos = currentPos + Vec2i((int)deltaX, (int)deltaY);
-                
-                Vec2i windowSize = GetDimensions();
-                newPos.x = MathUtil::Clamp(newPos.x, 0, windowSize.x - 1);
-                newPos.y = MathUtil::Clamp(newPos.y, 0, windowSize.y - 1);
-
-                SetMousePosition(newPos);
+                Vec2i newPos = GetMousePosition() + Vec2i((int)deltaX, (int)deltaY);
                 
                 event.GetEventData().Set(newPos);
             }

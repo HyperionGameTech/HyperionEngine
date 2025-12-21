@@ -64,7 +64,7 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 
 #ifdef HYP_DEBUG_MODE
 #define HYP_LOG_TEMP(fmt, ...) \
-    hyperion::logging::LogTemp(hyperion::logging::GetLogger(), &(HYP_FORMAT(fmt "\n", ##__VA_ARGS__))[0])
+    hyperion::logging::LogTemp(hyperion::logging::GetLogger(), &(HYP_FORMAT(fmt, ##__VA_ARGS__))[0])
 #else
 #define HYP_LOG_TEMP(fmt, ...)
 #endif
