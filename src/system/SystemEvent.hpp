@@ -14,6 +14,44 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
+
+HYP_ENUM()
+enum class EventFlags : uint8
+{
+    NONE = 0x0,
+    RELATIVE_MOUSE = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(EventFlags);
+
+HYP_ENUM()
+enum class EventType : uint32
+{
+    INVALID = ~0u,
+
+    WINDOW_EVENT = 0x0200,
+    SHUTDOWN = 0x0100,
+
+    KEYDOWN = 0x0300,
+    KEYUP = 0x0301,
+
+    MOUSEMOTION = 0x0400,
+    MOUSEBUTTON_DOWN = 0x0401,
+    MOUSEBUTTON_UP = 0x0402,
+    MOUSESCROLL = 0x0403,
+
+    FILE_DROP = 0x1000,
+
+    WINDOW_MOVED = 0x0204,
+    WINDOW_RESIZED = 0x0205,
+
+    WINDOW_FOCUS_GAINED = 0x020C,
+    WINDOW_FOCUS_LOST = 0x020D,
+
+    WINDOW_CLOSE = 0x0203,
+    WINDOW_MINIMIZED = 0x0206
+};
+
 namespace sys {
 
 class ApplicationWindow;
@@ -55,35 +93,9 @@ class HYP_API SystemEvent final
 public:
     using EventData = Variant<EnumFlags<MouseButtonState>, KeyCode, FilePath, Vec2i, Vec2f, void*>;
 
-    enum EventType : uint32
-    {
-        INVALID = ~0u,
-
-        WINDOW_EVENT = 0x0200,
-        SHUTDOWN = 0x0100,
-
-        KEYDOWN = 0x0300,
-        KEYUP = 0x0301,
-
-        MOUSEMOTION = 0x0400,
-        MOUSEBUTTON_DOWN = 0x0401,
-        MOUSEBUTTON_UP = 0x0402,
-        MOUSESCROLL = 0x0403,
-
-        FILE_DROP = 0x1000,
-
-        WINDOW_MOVED = 0x0204,
-        WINDOW_RESIZED = 0x0205,
-
-        WINDOW_FOCUS_GAINED = 0x020C,
-        WINDOW_FOCUS_LOST = 0x020D,
-
-        WINDOW_CLOSE = 0x0203,
-        WINDOW_MINIMIZED = 0x0206
-    };
-
     SystemEvent()
         : m_eventType(EventType::INVALID),
+          m_flags(EventFlags::NONE),
           m_window(nullptr),
           m_platformEvent(),
           m_eventData()
@@ -142,6 +154,11 @@ public:
         return m_eventType;
     }
 
+    HYP_FORCE_INLINE EnumFlags<SystemEventFlags> GetFlags() const
+    {
+        return m_flags;
+    }
+
     HYP_FORCE_INLINE ApplicationWindow* GetWindow() const
     {
         return m_window;
@@ -180,7 +197,7 @@ public:
 
     Vec2i GetWindowResizeDimensions() const
     {
-        if (m_eventType != WINDOW_RESIZED)
+        if (m_eventType != EventType::WINDOW_RESIZED)
         {
             return Vec2i::Zero();
         }
@@ -198,7 +215,7 @@ public:
 
     HYP_FORCE_INLINE Vec2i GetMouseWheel() const
     {
-        if (m_eventType != MOUSESCROLL)
+        if (m_eventType != EventType::MOUSESCROLL)
         {
             return Vec2i::Zero();
         }
@@ -216,12 +233,12 @@ public:
 
     HYP_FORCE_INLINE bool IsAbsoluteMousePosition() const
     {
-        return m_eventType == MOUSEMOTION && m_eventData.Is<Vec2i>();
+        return m_eventType == EventType::MOUSEMOTION && m_eventData.Is<Vec2i>();
     }
 
     HYP_FORCE_INLINE Vec2f GetMousePositionDeltas() const
     {
-        if (m_eventType != MOUSEMOTION)
+        if (m_eventType != EventType::MOUSEMOTION)
         {
             return Vec2f::Zero();
         }
@@ -239,7 +256,7 @@ public:
 
     HYP_FORCE_INLINE Vec2i GetMousePosition() const
     {
-        if (m_eventType != MOUSEMOTION)
+        if (m_eventType != EventType::MOUSEMOTION)
         {
             return Vec2i::Zero();
         }
@@ -277,37 +294,16 @@ public:
 
 private:
     EventType m_eventType;
+    EnumFlags<SystemEventFlags> m_flags;
     ApplicationWindow* m_window;
     PlatformEvent m_platformEvent;
     EventData m_eventData;
-};
-
-// for backwards compatibility
-enum SystemEventType : uint32
-{
-    SYSTEM_EVENT_INVALID = SystemEvent::INVALID,
-    SYSTEM_EVENT_WINDOW_EVENT = SystemEvent::WINDOW_EVENT,
-    SYSTEM_EVENT_SHUTDOWN = SystemEvent::SHUTDOWN,
-    SYSTEM_EVENT_KEYDOWN = SystemEvent::KEYDOWN,
-    SYSTEM_EVENT_KEYUP = SystemEvent::KEYUP,
-    SYSTEM_EVENT_MOUSEMOTION = SystemEvent::MOUSEMOTION,
-    SYSTEM_EVENT_MOUSEBUTTON_DOWN = SystemEvent::MOUSEBUTTON_DOWN,
-    SYSTEM_EVENT_MOUSEBUTTON_UP = SystemEvent::MOUSEBUTTON_UP,
-    SYSTEM_EVENT_MOUSESCROLL = SystemEvent::MOUSESCROLL,
-    SYSTEM_EVENT_FILE_DROP = SystemEvent::FILE_DROP,
-    SYSTEM_EVENT_WINDOW_MOVED = SystemEvent::WINDOW_MOVED,
-    SYSTEM_EVENT_WINDOW_RESIZED = SystemEvent::WINDOW_RESIZED,
-    SYSTEM_EVENT_WINDOW_FOCUS_GAINED = SystemEvent::WINDOW_FOCUS_GAINED,
-    SYSTEM_EVENT_WINDOW_FOCUS_LOST = SystemEvent::WINDOW_FOCUS_LOST,
-    SYSTEM_EVENT_WINDOW_CLOSE = SystemEvent::WINDOW_CLOSE,
-    SYSTEM_EVENT_WINDOW_MINIMIZED = SystemEvent::WINDOW_MINIMIZED
 };
 
 } // namespace sys
 
 using sys::PlatformEvent;
 using sys::SystemEvent;
-using sys::SystemEventType;
 
 #ifdef HYP_WINDOWS
 using sys::Win32Event;

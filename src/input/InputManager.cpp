@@ -256,6 +256,10 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
     m_previousMousePosition = m_mousePosition;
     m_mousePosition = m_ownerWindow->GetMousePosition();
 
+    // On lock state changed, sync the virtual positions to the physical ones
+    m_previousVirtualMousePosition = m_previousMousePosition;
+    m_virtualMousePosition = m_mousePosition;
+
     if (m_ownerWindow)
     {
         m_ownerWindow->SetIsMouseLocked(isMouseLocked);
@@ -267,27 +271,6 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
     }
 
     m_isMouseLocked = isMouseLocked;
-}
-
-void InputManager::SetMousePosition(Vec2i position)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_mainThread);
-
-    if (!m_ownerWindow)
-    {
-        return;
-    }
-
-    if (m_isMouseLocked)
-    {
-        return;
-    }
-
-    m_previousMousePosition = m_mousePosition;
-    m_mousePosition = position;
-
-    m_ownerWindow->SetMousePosition(position);
 }
 
 void InputManager::UpdateMousePosition(SystemEvent& event)
@@ -302,12 +285,24 @@ void InputManager::UpdateMousePosition(SystemEvent& event)
 
     if (m_isMouseLocked)
     {
+        const Vec2i deltas = event.IsAbsoluteMousePosition()
+            ? event.GetMousePosition() - Vec2i(m_previousMousePosition)
+            : Vec2i(event.GetMousePositionDeltas());
+
+        HYP_LOG_TEMP("Deltas: {}", deltas);
+
+        // if locked, only update the virtual position
+        m_virtualMousePosition = Vec2i(m_virtualMousePosition) + deltas;
+
         return;
     }
 
     m_mousePosition = event.IsAbsoluteMousePosition()
         ? event.GetMousePosition()
         : Vec2i(m_previousMousePosition) + Vec2i(event.GetMousePositionDeltas());
+
+    // not locked, keep virtual position synced with the physical one.
+    m_virtualMousePosition = m_mousePosition;
 }
 
 void InputManager::UpdateWindowSize(Vec2i newSize)
@@ -538,8 +533,15 @@ void InputManager::MainThreadUpdate()
     Mutex::Guard guard(m_mouseLockStatesMutex);
     SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
 
-    m_previousMousePosition = m_mousePosition;
+    if (m_ownerWindow->IsMouseLocked())
+    {
+        m_ownerWindow->SetMousePosition(m_previousMousePosition);
+    }
+
     m_mousePosition = m_ownerWindow->GetMousePosition();
+    m_previousMousePosition = m_mousePosition;
+
+    m_previousVirtualMousePosition = m_virtualMousePosition;
 }
 
 #pragma endregion InputManager

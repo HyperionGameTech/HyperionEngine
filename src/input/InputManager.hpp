@@ -76,12 +76,21 @@ public:
         return m_mousePosition;
     }
 
-    HYP_METHOD()
-    void SetMousePosition(Vec2i position);
-
-    HYP_FORCE_INLINE Vec2i GetPreviousMousePosition() const
+    Vec2i GetPreviousMousePosition() const
     {
         return m_previousMousePosition;
+    }
+
+    HYP_METHOD()
+    Vec2i GetVirtualMousePosition() const
+    {
+        return m_virtualMousePosition;
+    }
+
+    HYP_METHOD()
+    Vec2i GetPreviousVirtualMousePosition() const
+    {
+        return m_previousVirtualMousePosition;
     }
 
     HYP_METHOD()
@@ -204,6 +213,10 @@ private:
 
     AtomicVec2i m_mousePosition;
     AtomicVec2i m_previousMousePosition;
+
+    AtomicVec2i m_virtualMousePosition;
+    AtomicVec2i m_previousVirtualMousePosition;
+
     AtomicVec2i m_windowSize;
 
     bool m_isMouseLocked;

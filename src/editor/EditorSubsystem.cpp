@@ -555,7 +555,10 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
     {
         return false;
     }
-    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.relativePos);
+
+    InputManager* inputMgr = g_appContext->GetMainWindow()->GetInputManager();
+
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(Vec2f(inputMgr->GetVirtualMousePosition()) / Vec2f(camera->GetDimensions()));
     const Vec4f rayDirection = mouseWorld.Normalized();
 
     const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
