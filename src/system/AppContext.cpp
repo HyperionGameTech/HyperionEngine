@@ -3,7 +3,7 @@
 #include <SystemPch.hpp>
 
 #include <system/AppContext.hpp>
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 
 #include <core/cli/CommandLine.hpp>
 
@@ -48,8 +48,6 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Core);
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
-
-namespace sys {
 
 #pragma region ApplicationWindow
 
@@ -437,9 +435,9 @@ Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions window
     return window;
 }
 
-int SDLAppContext::PollEvents(SystemEvent& event)
+int SDLAppContext::PollEvents(Event& event)
 {
-    event = SystemEvent();
+    event = Event();
 
     SDL_Event& sdlEvent = event.GetPlatformEvent().sdlEvent;
 
@@ -451,7 +449,7 @@ int SDLAppContext::PollEvents(SystemEvent& event)
         {
         case SDL_DROPFILE:
         {
-            event = SystemEvent(SystemEvent::FILE_DROP, PlatformEvent(sdlEvent));
+            event = Event(EventType::FILE_DROP, PlatformEvent(sdlEvent));
             // set event data variant to the file path
             event.GetEventData().Set(FilePath(sdlEvent.drop.file));
 
@@ -467,10 +465,10 @@ int SDLAppContext::PollEvents(SystemEvent& event)
             switch (sdlEvent.type)
             {
             case SDL_KEYDOWN:
-                event = SystemEvent(SystemEvent::KEYDOWN, PlatformEvent(sdlEvent));
+                event = Event(EventType::KEYDOWN, PlatformEvent(sdlEvent));
                 break;
             case SDL_KEYUP:
-                event = SystemEvent(SystemEvent::KEYUP, PlatformEvent(sdlEvent));
+                event = Event(EventType::KEYUP, PlatformEvent(sdlEvent));
                 break;
             default:
                 HYP_UNREACHABLE();
@@ -482,7 +480,7 @@ int SDLAppContext::PollEvents(SystemEvent& event)
         }
         case SDL_MOUSEMOTION:
         {
-            event = SystemEvent(SystemEvent::MOUSEMOTION, PlatformEvent(sdlEvent));
+            event = Event(EventType::MOUSEMOTION, PlatformEvent(sdlEvent));
             event.GetEventData().Set(Vec2i(sdlEvent.motion.x, sdlEvent.motion.y));
             break;
         }
@@ -492,10 +490,10 @@ int SDLAppContext::PollEvents(SystemEvent& event)
             switch (sdlEvent.type)
             {
             case SDL_MOUSEBUTTONDOWN:
-                event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, PlatformEvent(sdlEvent));
+                event = Event(EventType::MOUSEBUTTON_DOWN, PlatformEvent(sdlEvent));
                 break;
             case SDL_MOUSEBUTTONUP:
-                event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, PlatformEvent(sdlEvent));
+                event = Event(EventType::MOUSEBUTTON_UP, PlatformEvent(sdlEvent));
                 break;
             default:
                 HYP_UNREACHABLE();
@@ -524,7 +522,7 @@ int SDLAppContext::PollEvents(SystemEvent& event)
         }
         case SDL_MOUSEWHEEL:
         {
-            event = SystemEvent(SystemEvent::MOUSESCROLL, PlatformEvent(sdlEvent));
+            event = Event(EventType::MOUSESCROLL, PlatformEvent(sdlEvent));
             event.GetEventData().Set(Vec2i(sdlEvent.wheel.x, sdlEvent.wheel.y));
             break;
         }
@@ -537,7 +535,7 @@ int SDLAppContext::PollEvents(SystemEvent& event)
                 int width = sdlEvent.window.data1;
                 int height = sdlEvent.window.data2;
 
-                event = SystemEvent(SystemEvent::WINDOW_RESIZED, PlatformEvent(sdlEvent));
+                event = Event(EventType::WINDOW_RESIZED, PlatformEvent(sdlEvent));
                 event.GetEventData().Set(Vec2i(width, height));
 
                 break;
@@ -591,7 +589,7 @@ Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions window
     HYP_NOT_IMPLEMENTED();
 }
 
-int SDLAppContext::PollEvents(SystemEvent& event)
+int SDLAppContext::PollEvents(Event& event)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -791,7 +789,8 @@ void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
 
     RAWINPUT* raw = (RAWINPUT*)lpb;
 
-    SystemEvent event;
+    Event event;
+
     PlatformEvent platformEvent {};
     platformEvent.win32Event.hwnd = m_hwnd;
     platformEvent.win32Event.message = WM_INPUT;
@@ -801,51 +800,51 @@ void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
         int xRel = raw->data.mouse.lLastX;
         int yRel = raw->data.mouse.lLastY;
 
-        event = SystemEvent(SystemEvent::MOUSEMOTION, this, platformEvent);
+        event = Event(EventType::MOUSEMOTION, this, platformEvent);
         event.GetEventData().Set(Vec2f(xRel, yRel));
 
         m_inputManager->ProcessEvent(std::move(event));
 
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
         {
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
             m_inputManager->ProcessEvent(std::move(event));
         }
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
         {
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
             m_inputManager->ProcessEvent(std::move(event));
         }
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
         {
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
             m_inputManager->ProcessEvent(std::move(event));
         }
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
         {
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
             m_inputManager->ProcessEvent(std::move(event));
         }
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
         {
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
             m_inputManager->ProcessEvent(std::move(event));
         }
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
         {
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
             m_inputManager->ProcessEvent(std::move(event));
         }
 
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
         {
-            event = SystemEvent(SystemEvent::MOUSESCROLL, this, platformEvent);
+            event = Event(EventType::MOUSESCROLL, this, platformEvent);
             event.GetEventData().Set(Vec2i(0, (short)raw->data.mouse.usButtonData));
             m_inputManager->ProcessEvent(std::move(event));
         }
@@ -876,7 +875,7 @@ void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
 
         KeyCode keyCode = MapWin32VirtualKeyToKeyCode(fakeLParam, virtualKey);
 
-        event = SystemEvent(isDown ? SystemEvent::KEYDOWN : SystemEvent::KEYUP, this, platformEvent);
+        event = Event(isDown ? EventType::KEYDOWN : EventType::KEYUP, this, platformEvent);
         event.GetEventData().Set(keyCode);
 
         m_inputManager->ProcessEvent(std::move(event));
@@ -964,7 +963,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
 }
 
 static bool HandleWindowEvent(
-    Win32ApplicationWindow* window, SystemEvent& event,
+    Win32ApplicationWindow* window, Event& event,
     HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     PlatformEvent platformEvent {};
@@ -980,18 +979,18 @@ static bool HandleWindowEvent(
         window->ProcessRawInput((void*)lParam);
         return true;
     case WM_KEYDOWN:
-        event = SystemEvent(SystemEvent::KEYDOWN, window, platformEvent);
+        event = Event(EventType::KEYDOWN, window, platformEvent);
         event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
 
         return true;
     case WM_KEYUP:
-        event = SystemEvent(SystemEvent::KEYUP, window, platformEvent);
+        event = Event(EventType::KEYUP, window, platformEvent);
         event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
 
         return true;
     case WM_MOUSEMOVE:
     {
-        event = SystemEvent(SystemEvent::MOUSEMOTION, window, platformEvent);
+        event = Event(EventType::MOUSEMOTION, window, platformEvent);
 
         POINT pt;
         pt.x = LOWORD(lParam);
@@ -1001,44 +1000,44 @@ static bool HandleWindowEvent(
 
         if (window->IsMouseLocked())
         {
-         //   window->SetMousePosition(window->GetInputManager()->GetPreviousMousePosition());
+            //   window->SetMousePosition(window->GetInputManager()->GetPreviousMousePosition());
         }
 
         return true;
     }
     case WM_LBUTTONDOWN:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, window, platformEvent);
+        event = Event(EventType::MOUSEBUTTON_DOWN, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
 
         return true;
     case WM_LBUTTONUP:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, window, platformEvent);
+        event = Event(EventType::MOUSEBUTTON_UP, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
 
         return true;
     case WM_MBUTTONDOWN:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, window, platformEvent);
+        event = Event(EventType::MOUSEBUTTON_DOWN, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
 
         return true;
     case WM_MBUTTONUP:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, window, platformEvent);
+        event = Event(EventType::MOUSEBUTTON_UP, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
 
         return true;
     case WM_RBUTTONDOWN:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, window, platformEvent);
+        event = Event(EventType::MOUSEBUTTON_DOWN, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
 
         return true;
     case WM_RBUTTONUP:
-        event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, window, platformEvent);
+        event = Event(EventType::MOUSEBUTTON_UP, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
 
         return true;
     case WM_MOUSEWHEEL:
     {
-        event = SystemEvent(SystemEvent::MOUSESCROLL, window, platformEvent);
+        event = Event(EventType::MOUSESCROLL, window, platformEvent);
 
         int delta = GET_WHEEL_DELTA_WPARAM(wParam);
         event.GetEventData().Set(Vec2i(0, delta));
@@ -1047,7 +1046,7 @@ static bool HandleWindowEvent(
     }
     case WM_MOUSEHWHEEL:
     {
-        event = SystemEvent(SystemEvent::MOUSESCROLL, window, platformEvent);
+        event = Event(EventType::MOUSESCROLL, window, platformEvent);
 
         int delta = GET_WHEEL_DELTA_WPARAM(wParam);
         event.GetEventData().Set(Vec2i(delta, 0));
@@ -1062,7 +1061,7 @@ static bool HandleWindowEvent(
         {
             WCHAR filePath[MAX_PATH];
             DragQueryFileW(hDrop, i, filePath, MAX_PATH);
-            event = SystemEvent(SystemEvent::FILE_DROP, window, platformEvent);
+            event = Event(Event::FILE_DROP, window, platformEvent);
             event.GetEventData().Set(FilePath(filePath));
         }
         DragFinish(hDrop);*/
@@ -1071,20 +1070,20 @@ static bool HandleWindowEvent(
     }
     case WM_SETFOCUS:
     {
-        event = SystemEvent(SystemEvent::WINDOW_FOCUS_GAINED, window, platformEvent);
+        event = Event(EventType::WINDOW_FOCUS_GAINED, window, platformEvent);
 
         return true;
     }
     case WM_KILLFOCUS:
     {
-        event = SystemEvent(SystemEvent::WINDOW_FOCUS_LOST, window, platformEvent);
+        event = Event(EventType::WINDOW_FOCUS_LOST, window, platformEvent);
 
         return true;
     }
     case WM_CLOSE:
     case WM_DESTROY:
     {
-        event = SystemEvent(SystemEvent::WINDOW_CLOSE, window, platformEvent);
+        event = Event(EventType::WINDOW_CLOSE, window, platformEvent);
 
         return true;
     }
@@ -1101,12 +1100,12 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
     AssertDebug(window != nullptr);
 
-    SystemEvent event;
+    Event event;
     if (HandleWindowEvent(window, event, hWnd, msg, wParam, lParam))
     {
-        const SystemEvent::EventType eventType = event.GetType();
+        const EventType eventType = event.GetType();
 
-        if (eventType != SystemEvent::INVALID)
+        if (eventType != EventType::INVALID)
         {
             window->GetInputManager()->ProcessEvent(std::move(event));
 
@@ -1155,7 +1154,7 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 
         window->HandleResize(Vec2i(width, height));
 
-        // event = SystemEvent(SystemEvent::WINDOW_RESIZED, platformEvent);
+        // event = Event(Event::WINDOW_RESIZED, platformEvent);
         // event.GetEventData().Set(Vec2i(width, height));
 
         break;
@@ -1299,11 +1298,11 @@ Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions wind
 //// \todo : Move Windows implementation to sys/platform/win32 file to reduce code bloat.
 #ifdef HYP_WINDOWS
 
-int Win32AppContext::PollEvents(SystemEvent& event)
+int Win32AppContext::PollEvents(Event& event)
 {
     AssertOnThread(g_mainThread);
 
-    event = SystemEvent();
+    event = Event();
 
     MSG msg {};
 
@@ -1319,9 +1318,9 @@ int Win32AppContext::PollEvents(SystemEvent& event)
             if (HandleWindowEvent(window, event,
                     msg.hwnd, msg.message, msg.wParam, msg.lParam))
             {
-                const SystemEvent::EventType eventType = event.GetType();
+                const EventType eventType = event.GetType();
 
-                if (eventType != SystemEvent::INVALID)
+                if (eventType != EventType::INVALID)
                 {
                     if (window)
                     {
@@ -1383,7 +1382,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
                 Assert(DestroyWindow(m_hwnd));
                 UnregisterClassW(DummyClassName, m_hInstance);
 
-                sys::Win32_UnregisterWindowClass(DummyClassName);
+                Win32_UnregisterWindowClass(DummyClassName);
             }
 
         private:
@@ -1405,7 +1404,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
             HYP_FAIL("Failed to register Win32 window class for Vulkan dummy window! Win32 Error: {}", GetLastError());
         }
 
-        sys::Win32_RegisterWindowClass(DummyClassName);
+        Win32_RegisterWindowClass(DummyClassName);
 
         HWND hwnd = CreateWindowExW(
             0,
@@ -1439,7 +1438,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
 
 #else
 
-int Win32AppContext::PollEvents(SystemEvent& event)
+int Win32AppContext::PollEvents(Event& event)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -1514,7 +1513,7 @@ Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions wind
     HYP_NOT_IMPLEMENTED();
 }
 
-int CocoaAppContext::PollEvents(SystemEvent& event)
+int CocoaAppContext::PollEvents(Event& event)
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -1523,5 +1522,4 @@ int CocoaAppContext::PollEvents(SystemEvent& event)
 
 #pragma endregion CocoaAppContext
 
-} // namespace sys
 } // namespace hyperion

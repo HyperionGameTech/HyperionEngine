@@ -24,11 +24,7 @@
 
 namespace hyperion {
 
-namespace sys {
 class ApplicationWindow;
-} // namespace sys
-
-using sys::ApplicationWindow;
 
 class VulkanInstance;
 class VulkanAsyncCompute;

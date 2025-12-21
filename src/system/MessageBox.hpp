@@ -10,7 +10,6 @@
 #include <core/functional/Proc.hpp>
 
 namespace hyperion {
-namespace sys {
 
 enum class MessageBoxType : int
 {
@@ -56,11 +55,5 @@ private:
     String m_message;
     Array<MessageBoxButton> m_buttons;
 };
-
-} // namespace sys
-
-using sys::MessageBoxButton;
-using sys::MessageBoxType;
-using sys::SystemMessageBox;
 
 } // namespace hyperion

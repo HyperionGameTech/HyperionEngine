@@ -52,8 +52,6 @@ enum class EventType : uint32
     WINDOW_MINIMIZED = 0x0206
 };
 
-namespace sys {
-
 class ApplicationWindow;
 
 #ifdef HYP_WINDOWS
@@ -88,45 +86,52 @@ union PlatformEvent
 #endif
 };
 
-class HYP_API SystemEvent final
+class HYP_API Event final
 {
 public:
     using EventData = Variant<EnumFlags<MouseButtonState>, KeyCode, FilePath, Vec2i, Vec2f, void*>;
 
-    SystemEvent()
+    Event()
         : m_eventType(EventType::INVALID),
           m_flags(EventFlags::NONE),
           m_window(nullptr),
           m_platformEvent(),
-          m_eventData()
+          m_eventData(),
+          m_timestamp(Time(0))
     {
         Memory::MemSet(&m_platformEvent, 0x0, sizeof(PlatformEvent));
     }
 
-    SystemEvent(EventType eventType, ApplicationWindow* window, PlatformEvent platformEvent)
+    Event(EventType eventType, ApplicationWindow* window, PlatformEvent platformEvent)
         : m_eventType(eventType),
+          m_flags(EventFlags::NONE),
           m_window(window),
-          m_platformEvent(platformEvent)
+          m_platformEvent(platformEvent),
+          m_timestamp(Time::Now())
     {
     }
 
-    SystemEvent(const SystemEvent& other) = delete;
-    SystemEvent& operator=(const SystemEvent& other) = delete;
+    Event(const Event& other) = delete;
+    Event& operator=(const Event& other) = delete;
 
-    SystemEvent(SystemEvent&& other) noexcept
+    Event(Event&& other) noexcept
         : m_eventType(other.m_eventType),
+          m_flags(other.m_flags),
           m_window(other.m_window),
           m_platformEvent(other.m_platformEvent),
-          m_eventData(std::move(other.m_eventData))
+          m_eventData(std::move(other.m_eventData)),
+          m_timestamp(other.m_timestamp)
     {
         other.m_eventType = EventType::INVALID;
+        other.m_flags = EventFlags::NONE;
         other.m_window = nullptr;
+        other.m_timestamp = Time(0);
 
         m_platformEvent = other.m_platformEvent;
         Memory::MemSet(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
     }
 
-    SystemEvent& operator=(SystemEvent&& other) noexcept
+    Event& operator=(Event&& other) noexcept
     {
         if (this == &other)
         {
@@ -134,27 +139,31 @@ public:
         }
 
         m_eventType = other.m_eventType;
+        m_flags = other.m_flags;
         m_window = other.m_window;
         m_platformEvent = other.m_platformEvent;
+        m_timestamp = other.m_timestamp;
 
         m_eventData = std::move(other.m_eventData);
 
         other.m_eventType = EventType::INVALID;
+        other.m_flags = EventFlags::NONE;
         other.m_window = nullptr;
+        other.m_timestamp = Time(0);
 
         Memory::MemSet(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
 
         return *this;
     }
 
-    ~SystemEvent();
+    ~Event();
 
     HYP_FORCE_INLINE EventType GetType() const
     {
         return m_eventType;
     }
 
-    HYP_FORCE_INLINE EnumFlags<SystemEventFlags> GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<EventFlags> GetFlags() const
     {
         return m_flags;
     }
@@ -188,6 +197,11 @@ public:
         }
 
         return *mouseButtonState;
+    }
+
+    HYP_FORCE_INLINE const Time& GetTimestamp() const
+    {
+        return m_timestamp;
     }
 
     MouseEvent ToMouseEvent() const;
@@ -294,23 +308,11 @@ public:
 
 private:
     EventType m_eventType;
-    EnumFlags<SystemEventFlags> m_flags;
+    EnumFlags<EventFlags> m_flags;
     ApplicationWindow* m_window;
     PlatformEvent m_platformEvent;
     EventData m_eventData;
+    Time m_timestamp;
 };
-
-} // namespace sys
-
-using sys::PlatformEvent;
-using sys::SystemEvent;
-
-#ifdef HYP_WINDOWS
-using sys::Win32Event;
-#endif
-
-#ifdef HYP_MACOS
-using sys::CocoaEvent;
-#endif
 
 } // namespace hyperion

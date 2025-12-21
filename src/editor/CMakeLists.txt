@@ -73,7 +73,7 @@ if(DOTNET_EXECUTABLE)
 
     file(WRITE ${EDITOR_CSPROJ_PATH} "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "  <PropertyGroup>\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "    <OutputType>WinExe</OutputType>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "    <OutputType>Exe</OutputType>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <TargetFramework>net9.0</TargetFramework>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <Nullable>enable</Nullable>\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <ImplicitUsings>enable</ImplicitUsings>\n")

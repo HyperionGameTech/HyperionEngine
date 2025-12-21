@@ -77,13 +77,11 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "KeyboardEvent")]
-    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct KeyboardEvent
     {
-        [FieldOffset(0)]
+        private IntPtr _baseEvent;
         private Ptr<InputManager> inputManager;
-
-        [FieldOffset(8)]
         private KeyCode keyCode;
     }
 }

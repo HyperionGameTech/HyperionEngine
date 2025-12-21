@@ -14,12 +14,7 @@ namespace hyperion {
 class UISubsystem;
 class World;
 class Scene;
-
-namespace sys {
-class SystemEvent;
-} // namespace sys
-
-using sys::SystemEvent;
+class Event;
 
 HYP_CLASS()
 class HYP_API Game : public ObjectBase
@@ -45,7 +40,7 @@ public:
     HYP_METHOD(Scriptable)
     virtual void OnUpdate(float delta) final;
 
-    void HandleEvent(SystemEvent&& event);
+    void HandleEvent(Event&& event);
 
     HYP_METHOD(Property = "IsLaunched", Transient)
     bool IsLaunched() const
@@ -64,7 +59,7 @@ protected:
         HYP_PURE_VIRTUAL();
     }
 
-    virtual void OnInputEvent(const SystemEvent& event);
+    virtual void OnInputEvent(const Event& event);
 
     HYP_METHOD()
     virtual void OnLaunch_Impl()

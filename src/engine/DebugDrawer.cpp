@@ -55,7 +55,8 @@ static RenderableAttributeSet GetRenderableAttributes()
             .bucket = RB_DEBUG,
             .fillMode = FM_FILL,
             .blendFunction = BlendFunction::None(),
-            .flags = MAF_DEPTH_TEST });
+            .flags = MAF_DEPTH_TEST
+        });
 }
 
 struct DebugDrawCommand

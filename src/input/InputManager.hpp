@@ -19,13 +19,8 @@
 
 namespace hyperion {
 
-namespace sys {
 class ApplicationWindow;
-class SystemEvent;
-} // namespace sys
-
-using sys::ApplicationWindow;
-using sys::SystemEvent;
+class Event;
 
 struct InputState
 {
@@ -142,17 +137,17 @@ public:
         return m_ownerWindow;
     }
 
-    void ProcessEvent(SystemEvent&& event);
+    void ProcessEvent(Event&& event);
 
     void MainThreadUpdate();
     void BufferSwap();
 
-    bool PollEvent(SystemEvent& outEvent);
+    bool PollEvent(Event& outEvent);
 
 private:
     void SetIsMouseLocked(bool isMouseLocked);
 
-    void UpdateMousePosition(SystemEvent& event);
+    void UpdateMousePosition(Event& event);
     void UpdateWindowSize(Vec2i newSize);
 
     void SetKey(KeyCode key, bool pressed);
@@ -219,12 +214,12 @@ private:
 
     AtomicVec2i m_windowSize;
 
-    bool m_isMouseLocked;
-
-    Array<InputMouseLockState*> m_mouseLockStates;
+    Array<InputMouseLockState*, Pool> m_mouseLockStates;
     Mutex m_mouseLockStatesMutex;
 
     ApplicationWindow* m_ownerWindow;
+
+    bool m_isMouseLocked;
 };
 
 } // namespace hyperion

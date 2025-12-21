@@ -28,18 +28,9 @@
 #include <input/Keyboard.hpp>
 
 namespace hyperion {
-namespace sys {
-class SystemEvent;
-} // namespace sys
 
-using sys::SystemEvent;
-
+class Event;
 class InputManager;
-
-} // namespace hyperion
-
-namespace hyperion {
-
 class UIButton;
 class FontAtlas;
 
@@ -163,7 +154,7 @@ public:
         return m_updateManager;
     }
 
-    UIEventHandlerResult OnInputEvent(const SystemEvent& event);
+    UIEventHandlerResult OnInputEvent(const Event& event);
 
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
     bool TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects, EnumFlags<UIRayTestFlags> flags = UIRayTestFlags::DEFAULT);

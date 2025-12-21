@@ -8,6 +8,7 @@
 namespace hyperion {
 
 class InputManager;
+class Event;
 
 HYP_ENUM()
 enum class KeyCode : uint16
@@ -92,10 +93,12 @@ enum class KeyCode : uint16
 
 HYP_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, char& outChar);
 
-HYP_STRUCT(Size = 16)
+HYP_STRUCT()
 struct KeyboardEvent
 {
     HYP_STRUCT_BODY(KeyboardEvent);
+
+    const Event* baseEvent = nullptr;
 
     HYP_FIELD()
     InputManager* inputManager = nullptr;

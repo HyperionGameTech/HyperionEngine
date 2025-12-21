@@ -22,11 +22,7 @@ namespace hyperion {
 
 class CameraStreamingVolume;
 class RenderProxyCamera;
-
-namespace sys {
 class ApplicationWindow;
-} // namespace sys
-using sys::ApplicationWindow;
 
 HYP_ENUM()
 enum class CameraProjectionMode : uint32

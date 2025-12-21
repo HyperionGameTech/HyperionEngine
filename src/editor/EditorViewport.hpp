@@ -13,14 +13,8 @@ class Camera;
 class View;
 class Scene;
 class EditorSubsystem;
-
-namespace sys {
 class ApplicationWindow;
 struct WindowOptions;
-} // namespace sys
-
-using sys::ApplicationWindow;
-using sys::WindowOptions;
 
 HYP_CLASS()
 class EditorViewport : public ObjectBase

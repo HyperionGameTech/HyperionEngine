@@ -24,7 +24,7 @@
 
 #include <scripting/ScriptingService.hpp>
 
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 #include <system/AppContext.hpp>
 
 #include <engine/EngineGlobals.hpp>
@@ -73,7 +73,7 @@ void Game::Init()
     // m_uiSubsystem = m_world->AddSubsystem(CreateObject<UISubsystem>(uiStage));
 }
 
-void Game::HandleEvent(SystemEvent&& event)
+void Game::HandleEvent(Event&& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
@@ -81,7 +81,7 @@ void Game::HandleEvent(SystemEvent&& event)
     OnInputEvent(event);
 }
 
-void Game::OnInputEvent(const SystemEvent& event)
+void Game::OnInputEvent(const Event& event)
 {
     HYP_SCOPE;
 

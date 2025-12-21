@@ -37,12 +37,7 @@ struct KeyboardEvent;
 class View;
 class EditorViewport;
 class LightmapVolume;
-
-namespace sys {
 class AppContextBase;
-} // namespace sys
-
-using sys::AppContextBase;
 
 HYP_CLASS()
 class GenerateLightmapsEditorTask : public TickableEditorTask

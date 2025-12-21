@@ -78,7 +78,7 @@
 #include <lightmapper/LightmapperSubsystem.hpp>
 #include <lightmapper/LightmapData.hpp>
 
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 #include <system/AppContext.hpp>
 
 #include <core/config/Config.hpp>
@@ -232,7 +232,7 @@ void HyperionEditor::OnUpdate_Impl(float delta)
 {
 }
 
-void HyperionEditor::OnInputEvent(const SystemEvent& event)
+void HyperionEditor::OnInputEvent(const Event& event)
 {
     Game::OnInputEvent(event);
 }

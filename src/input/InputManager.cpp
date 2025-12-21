@@ -5,7 +5,7 @@
 #include <input/InputManager.hpp>
 
 #include <system/AppContext.hpp>
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -18,7 +18,26 @@
 
 namespace hyperion {
 
-static SlabAllocator s_inputMouseLockStateAllocator(sizeof(InputMouseLockState), alignof(InputMouseLockState), 32, AF_THREAD_SAFE);
+static Pool& GetInputPool()
+{
+    static Pool s_inputPool(
+        1 * 1024 * 1024,
+        PF_THREAD_SAFE);
+
+    return s_inputPool;
+}
+
+static TSlabAllocator<Pool>& GetMouseLockStateAllocator()
+{
+    static TSlabAllocator<Pool> s_mouseLockStateAllocator(
+        &GetInputPool(),
+        sizeof(InputMouseLockState),
+        alignof(InputMouseLockState),
+        32,
+        AF_THREAD_SAFE);
+
+    return s_mouseLockStateAllocator;
+}
 
 #pragma region InputEventQueue
 
@@ -31,7 +50,8 @@ public:
     static constexpr uint32 MaxSize = 1024;
 
     InputEventQueue()
-        : m_head(0),
+        : m_buffer(&GetInputPool()),
+          m_head(0),
           m_tail(0)
     {
         m_buffer.Resize(MaxSize);
@@ -45,8 +65,8 @@ public:
 
     ~InputEventQueue();
 
-    bool Push(SystemEvent&& evt);
-    bool Pop(SystemEvent& outEvent);
+    bool Push(Event&& evt);
+    bool Pop(Event& outEvent);
 
 private:
     HYP_FORCE_INLINE static bool Full(uint32 head, uint32 tail)
@@ -59,7 +79,7 @@ private:
         return head == tail;
     }
 
-    Array<ValueStorage<SystemEvent>, DynamicAllocator> m_buffer;
+    Array<ValueStorage<Event>, Pool> m_buffer;
 
     mutable volatile int32 m_head;
     mutable volatile int32 m_tail;
@@ -78,7 +98,7 @@ InputEventQueue::~InputEventQueue()
     }
 }
 
-bool InputEventQueue::Push(SystemEvent&& evt)
+bool InputEventQueue::Push(Event&& evt)
 {
     const uint32 head = std::bit_cast<uint32>(AtomicAdd(&m_head, 0));
     const uint32 tail = std::bit_cast<uint32>(AtomicAdd(&m_tail, 0));
@@ -88,14 +108,14 @@ bool InputEventQueue::Push(SystemEvent&& evt)
         return false;
     }
 
-    new (&m_buffer[head]) SystemEvent(std::move(evt));
+    new (&m_buffer[head]) Event(std::move(evt));
 
     AtomicExchange(&m_head, (head + 1) & (MaxSize - 1));
 
     return true;
 }
 
-bool InputEventQueue::Pop(SystemEvent& outEvent)
+bool InputEventQueue::Pop(Event& outEvent)
 {
     const uint32 head = std::bit_cast<uint32>(AtomicAdd(&m_head, 0));
     const uint32 tail = std::bit_cast<uint32>(AtomicAdd(&m_tail, 0));
@@ -163,7 +183,9 @@ void InputMouseLockScope::Reset()
 
 InputManager::InputManager(ApplicationWindow* ownerWindow)
     : m_eventQueue(new InputEventQueue),
-      m_ownerWindow(ownerWindow)
+      m_mouseLockStates(&GetInputPool()),
+      m_ownerWindow(ownerWindow),
+      m_isMouseLocked(false)
 {
     AssertDebug(ownerWindow != nullptr);
 }
@@ -180,7 +202,7 @@ InputManager::~InputManager()
         if (m_mouseLockStates.IndexOf(it) == i)
         {
             state->~InputMouseLockState();
-            s_inputMouseLockStateAllocator.Free(state);
+            GetMouseLockStateAllocator().Free(state);
         }
     }
 
@@ -194,7 +216,7 @@ bool InputManager::IsMouseLocked() const
 
 void InputManager::PushMouseLockState(bool mouseLocked)
 {
-    InputMouseLockState* mouseLockState = (InputMouseLockState*)s_inputMouseLockStateAllocator.Allocate();
+    InputMouseLockState* mouseLockState = (InputMouseLockState*)GetMouseLockStateAllocator().Allocate();
 
     new (mouseLockState) InputMouseLockState;
     mouseLockState->locked = mouseLocked;
@@ -227,13 +249,13 @@ void InputManager::PopMouseLockState()
     if (!m_mouseLockStates.Contains(lastState))
     {
         lastState->~InputMouseLockState();
-        s_inputMouseLockStateAllocator.Free(lastState);
+        GetMouseLockStateAllocator().Free(lastState);
     }
 }
 
 InputMouseLockScope InputManager::AcquireMouseLock()
 {
-    InputMouseLockState* mouseLockState = (InputMouseLockState*)s_inputMouseLockStateAllocator.Allocate();
+    InputMouseLockState* mouseLockState = (InputMouseLockState*)GetMouseLockStateAllocator().Allocate();
 
     new (mouseLockState) InputMouseLockState;
     mouseLockState->locked = true;
@@ -273,7 +295,7 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
     m_isMouseLocked = isMouseLocked;
 }
 
-void InputManager::UpdateMousePosition(SystemEvent& event)
+void InputManager::UpdateMousePosition(Event& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
@@ -439,7 +461,7 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
     if (!m_mouseLockStates.Contains(mouseLockState))
     {
         mouseLockState->~InputMouseLockState();
-        s_inputMouseLockStateAllocator.Free(mouseLockState);
+        GetMouseLockStateAllocator().Free(mouseLockState);
     }
 
     if (eraseIt == m_mouseLockStates.End() && IsOnThread(g_mainThread)) // was it at the end?
@@ -448,51 +470,51 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
     }
 }
 
-void InputManager::ProcessEvent(SystemEvent&& event)
+void InputManager::ProcessEvent(Event&& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
     switch (event.GetType())
     {
-    case SystemEvent::KEYDOWN:
+    case EventType::KEYDOWN:
         SetKey(event.GetKeyCode(), true);
 
         break;
-    case SystemEvent::KEYUP:
+    case EventType::KEYUP:
         SetKey(event.GetKeyCode(), false);
 
         break;
-    case SystemEvent::MOUSEBUTTON_DOWN:
+    case EventType::MOUSEBUTTON_DOWN:
         for (Bitset::BitIndex index : Bitset(event.GetMouseButtons()))
         {
             SetMouseButton(MouseButtonKey(index), true);
         }
 
         break;
-    case SystemEvent::MOUSEBUTTON_UP:
+    case EventType::MOUSEBUTTON_UP:
         for (Bitset::BitIndex index : Bitset(event.GetMouseButtons()))
         {
             SetMouseButton(MouseButtonKey(index), false);
         }
 
         break;
-    case SystemEvent::MOUSEMOTION:
+    case EventType::MOUSEMOTION:
         UpdateMousePosition(event);
 
         break;
-    case SystemEvent::WINDOW_RESIZED:
+    case EventType::WINDOW_RESIZED:
         UpdateWindowSize(event.GetWindowResizeDimensions());
 
         break;
-    case SystemEvent::WINDOW_FOCUS_LOST:
+    case EventType::WINDOW_FOCUS_LOST:
         if (m_isMouseLocked && m_ownerWindow && m_ownerWindow->IsMouseLocked())
         {
             m_ownerWindow->SetIsMouseLocked(false);
         }
 
         break;
-    case SystemEvent::WINDOW_FOCUS_GAINED:
+    case EventType::WINDOW_FOCUS_GAINED:
         if (m_isMouseLocked && m_ownerWindow && !m_ownerWindow->IsMouseLocked())
         {
             m_ownerWindow->SetIsMouseLocked(true);
@@ -503,7 +525,7 @@ void InputManager::ProcessEvent(SystemEvent&& event)
         break;
     }
 
-    const SystemEvent::EventType eventType = event.GetType();
+    const EventType eventType = event.GetType();
 
     if (!m_eventQueue->Push(std::move(event)))
     {
@@ -517,7 +539,7 @@ void InputManager::BufferSwap()
     AssertOnThread(g_gameThread);
 }
 
-bool InputManager::PollEvent(SystemEvent& outEvent)
+bool InputManager::PollEvent(Event& outEvent)
 {
     HYP_SCOPE;
     AssertOnThread(g_gameThread);

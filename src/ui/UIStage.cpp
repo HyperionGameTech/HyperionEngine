@@ -25,7 +25,7 @@
 #include <rendering/Texture.hpp>
 
 #include <system/AppContext.hpp>
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -565,7 +565,7 @@ void UIStage::ComputeActualSize(const UIObjectSize& inSize, Vec2i& outActualSize
     outActualSize = m_surfaceSize;
 }
 
-UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
+UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -586,7 +586,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
     switch (event.GetType())
     {
-    case SystemEvent::WINDOW_FOCUS_LOST:
+    case EventType::WINDOW_FOCUS_LOST:
     {
         const Vec2i mousePosition = inputManager->GetMousePosition();
 
@@ -606,6 +606,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                         uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
                         UIEventHandlerResult currentResult = uiObject->OnMouseUp(MouseEvent {
+                            .baseEvent = &event,
                             .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                             .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                             .absolutePos = Vec2f(mousePosition),
@@ -621,6 +622,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                 uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::HOVER);
 
                 uiObject->OnMouseLeave(MouseEvent {
+                    .baseEvent = &event,
                     .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePos = Vec2f(mousePosition),
@@ -644,18 +646,19 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                 if (Handle<UIObject> uiObject = weakUiObject.Lock(); uiObject.IsValid())
                 {
                     uiObject->OnKeyUp(KeyboardEvent {
+                        .baseEvent = &event,
                         .inputManager = inputManager,
                         .keyCode = keyCode
                     });
                 }
             }
         }
-        
+
         m_keyedDownObjects.Clear();
 
         break;
     }
-    case SystemEvent::MOUSEMOTION:
+    case EventType::MOUSEMOTION:
     {
         // check intersects with objects on mouse movement.
         // for any objects that had mouse held on them,
@@ -681,6 +684,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                     if (Handle<UIObject> uiObject = it.first.Lock(); uiObject.IsValid())
                     {
                         MouseEvent mouseEvent {
+                            .baseEvent = &event,
                             .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                             .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                             .absolutePos = Vec2f(mousePosition),
@@ -738,6 +742,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                     {
                         // Already hovered, trigger mouse move event instead
                         UIEventHandlerResult currentResult = uiObject->OnMouseMove(MouseEvent {
+                            .baseEvent = &event,
                             .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                             .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                             .absolutePos = Vec2f(mousePosition),
@@ -788,6 +793,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                     uiObject->SetFocusState(uiObject->GetFocusState() | UIObjectFocusState::HOVER);
 
                     UIEventHandlerResult currentResult = uiObject->OnMouseHover(MouseEvent {
+                        .baseEvent = &event,
                         .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                         .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePos = Vec2f(mousePosition),
@@ -827,6 +833,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                             uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
                             UIEventHandlerResult currentResult = uiObject->OnMouseUp(MouseEvent {
+                                .baseEvent = &event,
                                 .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                                 .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                                 .absolutePos = Vec2f(mousePosition),
@@ -842,6 +849,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                     uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::HOVER);
 
                     uiObject->OnMouseLeave(MouseEvent {
+                        .baseEvent = &event,
                         .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                         .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePos = Vec2f(mousePosition),
@@ -860,7 +868,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         break;
     }
-    case SystemEvent::MOUSEBUTTON_DOWN:
+    case EventType::MOUSEBUTTON_DOWN:
     {
         const Vec2i mousePosition = inputManager->GetMousePosition();
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
@@ -917,6 +925,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                 }
 
                 const UIEventHandlerResult onMouseDownResult = uiObject->OnMouseDown(MouseEvent {
+                    .baseEvent = &event,
                     .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePos = Vec2f(mousePosition),
@@ -935,7 +944,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         break;
     }
-    case SystemEvent::MOUSEBUTTON_UP:
+    case EventType::MOUSEBUTTON_UP:
     {
         const Vec2i mousePosition = inputManager->GetMousePosition();
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
@@ -946,7 +955,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
 
-        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::* ClickDelegateMember;
+        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::*ClickDelegateMember;
         const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ClickDelegateMember delegateMember = nullptr)
         {
             if (buttons != mouseButtonToCheck)
@@ -973,6 +982,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                     if (delegateMember != nullptr)
                     {
                         const UIEventHandlerResult result = (uiObject->*delegateMember)(MouseEvent {
+                            .baseEvent = &event,
                             .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                             .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                             .absolutePos = Vec2f(mousePosition),
@@ -1022,6 +1032,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                 }
 
                 UIEventHandlerResult currentResult = uiObject->OnMouseUp(MouseEvent {
+                    .baseEvent = &event,
                     .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePos = Vec2f(mousePosition),
@@ -1050,7 +1061,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         break;
     }
-    case SystemEvent::MOUSESCROLL:
+    case EventType::MOUSESCROLL:
     {
         const Vec2i mousePosition = inputManager->GetMousePosition();
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
@@ -1078,6 +1089,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                 // }
 
                 UIEventHandlerResult currentResult = uiObject->OnScroll(MouseEvent {
+                    .baseEvent = &event,
                     .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePos = Vec2f(mousePosition),
@@ -1097,7 +1109,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         break;
     }
-    case SystemEvent::KEYDOWN:
+    case EventType::KEYDOWN:
     {
         const KeyCode keyCode = event.GetKeyCode();
 
@@ -1123,6 +1135,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                 keyState.heldTime = 0.0f;
 
                 UIEventHandlerResult currentResult = uiObject->OnKeyDown(KeyboardEvent {
+                    .baseEvent = &event,
                     .inputManager = inputManager,
                     .keyCode = keyCode
                 });
@@ -1147,7 +1160,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         break;
     }
-    case SystemEvent::KEYUP:
+    case EventType::KEYUP:
     {
         const KeyCode keyCode = event.GetKeyCode();
 
@@ -1163,6 +1176,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
             if (Handle<UIObject> uiObject = weakUiObject.Lock(); uiObject.IsValid())
             {
                 uiObject->OnKeyUp(KeyboardEvent {
+                    .baseEvent = &event,
                     .inputManager = inputManager,
                     .keyCode = keyCode
                 });

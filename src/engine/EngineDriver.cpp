@@ -61,7 +61,7 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 
 #include <system/AppContext.hpp>
 #include <system/App.hpp>
@@ -96,7 +96,7 @@ EngineStatTimer g_renderThreadUpdateTimer("Frame/RenderThreadUpdate");
 void HandleSignal(int signum)
 {
 #ifdef HYP_WINDOWS
-    sys::Win32_CleanupWindowClasses();
+    Win32_CleanupWindowClasses();
 #endif
 
     exit(signum);
