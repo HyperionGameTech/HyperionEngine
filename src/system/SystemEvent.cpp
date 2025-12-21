@@ -30,7 +30,7 @@ MouseEvent SystemEvent::ToMouseEvent(const Vec2f& surfaceSize) const
     me.mouseButtons = GetMouseButtons();
 
     me.absolutePos = m_eventData.Is<Vec2i>() ? m_eventData.GetUnchecked<Vec2i>() : Vec2i::Zero();
-    me.absolutePrevPos = g_inputManager->GetPreviousMousePosition();
+    me.absolutePrevPos = m_window ? m_window->GetInputManager()->GetPreviousMousePosition() : me.absolutePos;
 
     me.relativePos = Vec2f(me.absolutePos);
     me.relativePrevPos = Vec2f(me.absolutePrevPos);
@@ -47,7 +47,7 @@ MouseEvent SystemEvent::ToMouseEvent(const Vec2f& surfaceSize) const
 KeyboardEvent SystemEvent::ToKeyboardEvent() const
 {
     KeyboardEvent kbe {};
-    kbe.inputManager = g_inputManager;
+    kbe.inputManager = m_window ? m_window->GetInputManager() : nullptr;
     kbe.keyCode = m_eventData.Is<KeyCode>() ? m_eventData.GetUnchecked<KeyCode>() : KeyCode::KEY_UNKNOWN;
 
     return kbe;

@@ -25,6 +25,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <input/InputManager.hpp>
+
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
@@ -713,7 +715,7 @@ void Camera::UpdateMouseLocked()
     {
         if (!m_mouseLockScope)
         {
-            m_mouseLockScope = g_inputManager->AcquireMouseLock();
+            m_mouseLockScope = g_appContext->GetMainWindow()->GetInputManager()->AcquireMouseLock();
 
             return;
         }
