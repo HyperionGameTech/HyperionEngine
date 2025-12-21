@@ -43,14 +43,12 @@
 #include <util/MeshBuilder.hpp>
 
 #include <input/InputManager.hpp>
-
+#include <input/Mouse.hpp>
 #include <input/Event.hpp>
 
 #include <core/config/Config.hpp>
 
 #include <system/AppContext.hpp>
-
-#include <input/Mouse.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -81,6 +79,7 @@ void DefaultGame::OnLaunch_Impl()
     m_camera = CreateObject<Camera>();
     m_camera->SetFOV(85.0f);
     m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
+    m_camera->SetWindow(g_appContext->GetMainWindow());
 
     InitObject(m_camera);
 

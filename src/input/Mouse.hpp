@@ -64,16 +64,7 @@ struct MouseEvent
 struct InputMouseLockState
 {
     bool locked = false;
-
-    HYP_FORCE_INLINE bool operator==(const InputMouseLockState& other) const
-    {
-        return locked == other.locked;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const InputMouseLockState& other) const
-    {
-        return locked != other.locked;
-    }
+    bool syncToVirtualPosition = false;
 };
 
 struct InputMouseLockScope
@@ -104,20 +95,20 @@ struct InputMouseLockScope
         other.mouseLockState = nullptr;
     }
 
-    HYP_API InputMouseLockScope& operator=(InputMouseLockScope&& other) noexcept;
+    InputMouseLockScope& operator=(InputMouseLockScope&& other) noexcept;
 
-    HYP_API ~InputMouseLockScope();
+    ~InputMouseLockScope();
 
-    HYP_API void Reset();
+    void Reset();
 
-    HYP_FORCE_INLINE explicit operator bool() const
+    bool operator!() const
     {
-        return mouseLockState != nullptr && mouseLockState->locked;
+        return !inputMgr || !mouseLockState;
     }
 
-    HYP_FORCE_INLINE bool operator!() const
+    explicit operator bool() const
     {
-        return mouseLockState == nullptr || !mouseLockState->locked;
+        return inputMgr && mouseLockState;
     }
 };
 

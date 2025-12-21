@@ -320,7 +320,7 @@ void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent
         m_mouseLockScope = new InputMouseLockScope();
     }
 
-    *m_mouseLockScope = g_appContext->GetMainWindow()->GetInputManager()->AcquireMouseLock();
+    *m_mouseLockScope = g_appContext->GetMainWindow()->GetInputManager()->AcquireMouseLock(/* syncToVirtualPosition */ true);
 }
 
 void EditorGizmoBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)

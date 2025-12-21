@@ -77,7 +77,7 @@ endif()
 
 file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Core Library Code" FILES ${SOURCES} ${HEADERS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${SOURCES} ${HEADERS})
 
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 

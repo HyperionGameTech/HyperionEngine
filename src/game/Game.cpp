@@ -25,7 +25,6 @@
 #include <scripting/ScriptingService.hpp>
 
 #include <input/Event.hpp>
-#include <system/AppContext.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
