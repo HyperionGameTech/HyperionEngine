@@ -73,7 +73,7 @@ void MainThread::Update()
     SystemEvent event;
     while (g_appContext->PollEvents(event))
     {
-        g_inputManager->CheckEvent(&event);
+        g_inputManager->ProcessEvent(&event);
     }
 
     g_inputManager->MainThreadUpdate();

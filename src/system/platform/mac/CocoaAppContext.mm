@@ -254,8 +254,6 @@ int CocoaAppContext::PollEvents(SystemEvent& event)
             && !cocoaWindow->UseCocoaEvents() // if we are using Cocoa events, they are already handled in the CocoaApplicationWindow methods
             && cocoaWindow->HandleNSEvent(nsEvent, event))
         {
-            cocoaWindow->GetInputEventSink().Push(std::move(event));
-
             return 1;
         }
     }

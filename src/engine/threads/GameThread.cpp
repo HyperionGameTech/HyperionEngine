@@ -25,6 +25,8 @@
 
 #include <asset/Assets.hpp>
 
+#include <input/InputManager.hpp>
+
 #include <rendering/RenderInterface.hpp>
 
 #ifdef HYP_EDITOR
@@ -121,7 +123,6 @@ void GameThread::operator()()
     }
 
     Queue<Scheduler::ScheduledTask> tasks;
-    SystemEvents events;
 
     while (!m_stopRequested.Get(MemoryOrder::RELAXED))
     {
@@ -153,23 +154,19 @@ void GameThread::operator()()
 
         g_assetManager->Update(counter.delta);
 
-        g_inputManager->GameThreadSync();
-
         if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
         {
-            if (mainWindow->GetInputEventSink().Poll(events))
+            mainWindow->GetInputManager()->BufferSwap();
+
+            SystemEvent event;
+            while (mainWindow->GetInputManager()->PollEvent(event))
             {
-                for (SystemEvent& event : events)
+                if (m_game != nullptr)
                 {
-                    if (m_game != nullptr)
-                    {
-                        m_game->HandleEvent(std::move(event));
-                    }
+                    m_game->HandleEvent(std::move(event));
                 }
             }
         }
-
-        events.Clear();
 
 #ifdef HYP_EDITOR
         g_editorState->Update(counter.delta);

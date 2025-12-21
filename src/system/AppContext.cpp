@@ -34,6 +34,8 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <input/InputManager.hpp>
+
 #ifdef HYP_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
@@ -54,7 +56,8 @@ namespace sys {
 ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
     : m_title(std::move(title)),
       m_size(size),
-      m_hwnd(nullptr)
+      m_hwnd(nullptr),
+      m_inputManager(CreateObject<InputManager>())
 {
 }
 
@@ -174,7 +177,6 @@ void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
     }
 
     m_mainWindow = window;
-    g_inputManager->SetWindow(m_mainWindow);
 
     if (RenderApi::IsInit())
     {
@@ -213,7 +215,6 @@ void AppContextBase::RemoveWindow(ApplicationWindow* window)
         if (m_mainWindow == window)
         {
             m_mainWindow = nullptr;
-            g_inputManager->SetWindow(nullptr);
 
             OnCurrentWindowChanged(nullptr);
         }
@@ -940,9 +941,7 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 
         if (eventType != SystemEvent::INVALID)
         {
-            g_inputManager->CheckEvent(&event);
-
-            window->GetInputEventSink().Push(std::move(event));
+            window->GetInputManager()->ProcessEvent(&event);
 
             return 0;
         }
@@ -1151,8 +1150,6 @@ int Win32AppContext::PollEvents(SystemEvent& event)
                 {
                     if (window)
                     {
-                        window->GetInputEventSink().Push(std::move(event));
-
                         return 1;
                     }
                 }
