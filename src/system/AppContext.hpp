@@ -333,7 +333,6 @@ private:
 
     HINSTANCE m_hinst = nullptr;
     bool m_useWndProc = false;
-    Vec2i m_virtualMousePos;
 #endif
 
     bool m_mouseLocked = false;

@@ -801,9 +801,6 @@ void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
         int xRel = raw->data.mouse.lLastX;
         int yRel = raw->data.mouse.lLastY;
 
-        m_virtualMousePos.x += xRel;
-        m_virtualMousePos.y += yRel;
-
         event = SystemEvent(SystemEvent::MOUSEMOTION, this, platformEvent);
         event.GetEventData().Set(Vec2f(xRel, yRel));
 
@@ -1002,6 +999,11 @@ static bool HandleWindowEvent(
 
         event.GetEventData().Set(Vec2i(pt.x, pt.y));
 
+        if (window->IsMouseLocked())
+        {
+         //   window->SetMousePosition(window->GetInputManager()->GetPreviousMousePosition());
+        }
+
         return true;
     }
     case WM_LBUTTONDOWN:
@@ -1169,8 +1171,6 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 
 void Win32ApplicationWindow::SetMousePosition(Vec2i position)
 {
-    m_virtualMousePos = position;
-
     POINT pt { position.x, position.y };
     ClientToScreen(m_hwnd, &pt);
     SetCursorPos(pt.x, pt.y);
