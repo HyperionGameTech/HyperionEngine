@@ -446,7 +446,7 @@ EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId)
     return pBatchAllocator;
 }
 
-void RegisterEntityBatchAllocator(const TypeId& typeId, EntityBatchAllocatorBase* (*createFn)())
+void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn)
 {
     if (!typeId || !createFn)
     {

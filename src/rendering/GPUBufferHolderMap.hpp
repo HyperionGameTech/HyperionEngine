@@ -26,7 +26,7 @@ public:
     }
 
     template <class T, GpuBufferType BufferType = GpuBufferType::SSBO>
-    GpuBufferHolder<T, BufferType>* GetOrCreate(uint32 initialCount = 0)
+    GpuBufferHolder<T, BufferType>* GetOrCreate(uint32 initialCount, bool cpuAccessible)
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
@@ -36,7 +36,7 @@ public:
         {
             HYP_MT_CHECK_WRITE(m_dataRaceDetector);
 
-            it = m_holders.Set<T>(MakeUnique<GpuBufferHolder<T, BufferType>>(initialCount)).first;
+            it = m_holders.Set<T>(MakeUnique<GpuBufferHolder<T, BufferType>>(initialCount, cpuAccessible)).first;
         }
 
         return static_cast<GpuBufferHolder<T, BufferType>*>(it->second.Get());

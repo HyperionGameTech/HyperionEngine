@@ -1909,23 +1909,14 @@ void EditorSubsystem::InitViewport()
 
                 if (gizmo->OnMouseMove(activeViewport->GetCamera(), event, node))
                 {
-                    return UIEventHandlerResult::STOP_BUBBLING;
+                    return UIEventHandlerResult::OK;
                 }
             }
 
             activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
 
-            // handle move before we reset mouse pos
-            if (g_inputManager->IsMouseLocked())
-            {
-                const Vec2f position = uiStage->GetAbsolutePosition();
-                const Vec2i size = uiStage->GetActualSize();
-
-                g_inputManager->SetMousePosition(Vec2i(position + Vec2f(size) * 0.5f));
-
-                return UIEventHandlerResult::OK;
-            }
-
+            
+            
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
 

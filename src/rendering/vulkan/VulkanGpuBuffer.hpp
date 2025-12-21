@@ -71,6 +71,8 @@ public:
     virtual void Map() const override;
     virtual void Unmap() const override;
 
+    virtual void Flush(SizeType offset, SizeType count) override;
+
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif

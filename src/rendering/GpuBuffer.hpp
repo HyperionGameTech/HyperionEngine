@@ -64,6 +64,10 @@ public:
         m_requireCpuAccessible = requireCpuAccessible;
     }
 
+    virtual void Flush(SizeType offset, SizeType count)
+    {
+    }
+
     virtual void InsertBarrier(CommandBuffer* commandBuffer, ResourceState newState) const = 0;
     virtual void InsertBarrier(CommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const = 0;
 
