@@ -153,14 +153,14 @@ void GameThread::operator()()
 
         g_assetManager->Update(counter.delta);
 
+        g_inputManager->GameThreadSync();
+
         if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
         {
             if (mainWindow->GetInputEventSink().Poll(events))
             {
                 for (SystemEvent& event : events)
                 {
-                    g_inputManager->CheckEvent(&event);
-
                     if (m_game != nullptr)
                     {
                         m_game->HandleEvent(std::move(event));

@@ -15,6 +15,8 @@
 
 #include <core/debug/Debug.hpp>
 
+#include <input/InputManager.hpp>
+
 #include <rendering/RenderBackend.hpp>
 #include <rendering/Device.hpp>
 
@@ -164,6 +166,8 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
             SystemEvent systemEvent;                                                \
             if (_hyperionWindow->HandleNSEvent(event, systemEvent))                 \
             {                                                                       \
+                g_inputManager->CheckEvent(&systemEvent);                           \
+                                                                                    \
                 _hyperionWindow->GetInputEventSink().Push(std::move(systemEvent));  \
             }                                                                       \
         }                                                                           \

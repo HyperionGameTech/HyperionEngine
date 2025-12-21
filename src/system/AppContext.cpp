@@ -848,13 +848,6 @@ static bool HandleWindowEvent(
 
         event.GetEventData().Set(Vec2i(pt.x, pt.y));
 
-        if (window->IsMouseLocked())
-        {
-            // recenter the mouse
-            Vec2i center = window->GetDimensions() / 2;
-            window->SetMousePosition(center);
-        }
-
         return true;
     }
     case WM_LBUTTONDOWN:
@@ -947,12 +940,11 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 
         if (eventType != SystemEvent::INVALID)
         {
-            if (window)
-            {
-                window->GetInputEventSink().Push(std::move(event));
+            g_inputManager->CheckEvent(&event);
 
-                return 0;
-            }
+            window->GetInputEventSink().Push(std::move(event));
+
+            return 0;
         }
     }
 
@@ -1161,11 +1153,11 @@ int Win32AppContext::PollEvents(SystemEvent& event)
                     {
                         window->GetInputEventSink().Push(std::move(event));
 
-                        return 0;
+                        return 1;
                     }
                 }
 
-                return 1;
+                return 0;
             }
         }
     }

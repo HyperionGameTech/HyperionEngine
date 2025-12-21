@@ -11,6 +11,7 @@
 #include <system/SystemEvent.hpp>
 
 #include <input/Keyboard.hpp>
+#include <input/InputManager.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/Scheduler.hpp>

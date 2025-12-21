@@ -78,10 +78,13 @@ class InputManager : public ObjectBase
 
 public:
     HYP_API InputManager();
+
     InputManager(const InputManager& other) = delete;
     InputManager& operator=(const InputManager& other) = delete;
+
     InputManager(InputManager&& other) noexcept = delete;
     InputManager& operator=(InputManager&& other) noexcept = delete;
+
     HYP_API ~InputManager();
 
     HYP_API void CheckEvent(SystemEvent* event);
@@ -100,7 +103,7 @@ public:
     HYP_METHOD()
     const Vec2i& GetMousePosition() const
     {
-        return m_mousePosition;
+        return GetBufferedData()->m_mousePosition;
     }
 
     HYP_METHOD()
@@ -108,13 +111,13 @@ public:
 
     HYP_FORCE_INLINE const Vec2i& GetPreviousMousePosition() const
     {
-        return m_previousMousePosition;
+        return GetBufferedData()->m_previousMousePosition;
     }
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Vec2i& GetWindowSize() const
     {
-        return m_windowSize;
+        return GetBufferedData()->m_windowSize;
     }
 
     void KeyDown(KeyCode key)
@@ -188,8 +191,10 @@ public:
         }
 
         m_window = window;
-        m_isMouseLocked = false; // window->IsMouseLocked();
     }
+
+    void MainThreadUpdate();
+    void GameThreadSync();
 
 private:
     void SetIsMouseLocked(bool isMouseLocked);
@@ -203,11 +208,73 @@ private:
     void ApplyMouseLockState(InputMouseLockState* mouseLockState);
     void RemoveMouseLockState(InputMouseLockState* mouseLockState);
 
-    InputState m_inputState;
-    Vec2i m_mousePosition;
-    Vec2i m_previousMousePosition;
-    Vec2i m_windowSize;
-    bool m_isMouseLocked;
+    struct BufferedData
+    {
+        enum
+        {
+            PRODUCER,
+            CONSUMER,
+            SHARED
+        };
+
+        InputState m_inputState;
+        Vec2i m_mousePosition;
+        Vec2i m_previousMousePosition;
+        Vec2i m_windowSize;
+        bool m_isMouseLocked;
+    } m_bufferedData[3]; // 0 = main thread, 1 = game thread, 2 = shared copy
+
+    class BufferedDataLockScope
+    {
+    public:
+        BufferedDataLockScope(BufferedData* pBufferedData, volatile int32* pLockState)
+            : m_pBufferedData(pBufferedData),
+              m_pLockState(pLockState)
+        {
+        }
+
+        BufferedDataLockScope(const BufferedDataLockScope& other) = delete;
+        BufferedDataLockScope& operator=(const BufferedDataLockScope& other) = delete;
+
+        BufferedDataLockScope(BufferedDataLockScope&& other) noexcept
+            : m_pBufferedData(other.m_pBufferedData),
+              m_pLockState(other.m_pLockState)
+        {
+            other.m_pBufferedData = nullptr;
+            other.m_pLockState = nullptr;
+        }
+
+        BufferedDataLockScope& operator=(BufferedDataLockScope&& other) noexcept = delete;
+
+        ~BufferedDataLockScope()
+        {
+            if (m_pLockState)
+                AtomicDecrement(m_pLockState);
+        }
+
+        BufferedData* operator->()
+        {
+            return m_pBufferedData;
+        }
+
+        const BufferedData* operator->() const
+        {
+            return m_pBufferedData;
+        }
+
+    private:
+        BufferedData* m_pBufferedData;
+        volatile int32* m_pLockState;
+    };
+
+    volatile int32 m_lockState;
+
+    BufferedDataLockScope GetBufferedData();
+
+    HYP_FORCE_INLINE const BufferedDataLockScope GetBufferedData() const
+    {
+        return const_cast<InputManager*>(this)->GetBufferedData();
+    }
 
     Array<InputMouseLockState*> m_mouseLockStates;
     Mutex m_mouseLockStatesMutex;
