@@ -110,7 +110,7 @@ bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 
     if (evt.mouseButtons & (MouseButtonState::LEFT | MouseButtonState::RIGHT))
     {
-        m_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
+        m_controller->SetMode(EditorCameraControllerMode::FOCUSED);
     }
 
     return true;

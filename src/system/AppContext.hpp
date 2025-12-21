@@ -325,12 +325,15 @@ public:
         return m_hinst;
     }
 
+    void ProcessRawInput(void* rawInput);
+
 private:
     static LRESULT __stdcall StaticWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     LRESULT WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     HINSTANCE m_hinst = nullptr;
     bool m_useWndProc = false;
+    Vec2i m_virtualMousePos;
 #endif
 
     bool m_mouseLocked = false;

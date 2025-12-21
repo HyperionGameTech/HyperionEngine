@@ -54,7 +54,7 @@ void UIWindow::Init()
                 {
                     if (m_windowFlags & UIWindowFlags::ALLOW_DRAG)
                     {
-                        m_mouseDragStart = event.absolutePos;
+                        m_mouseDragStart = Vec2i(event.absolutePos);
 
                         return UIEventHandlerResult::STOP_BUBBLING;
                     }
@@ -83,10 +83,10 @@ void UIWindow::Init()
                                        {
                                            if (m_mouseDragStart.HasValue())
                                            {
-                                               Vec2i delta = event.absolutePos - *m_mouseDragStart;
+                                               Vec2i delta = Vec2i(event.absolutePos) - *m_mouseDragStart;
                                                SetPosition(GetPosition() + delta);
 
-                                               m_mouseDragStart = event.absolutePos;
+                                               m_mouseDragStart = Vec2i(event.absolutePos);
                                            }
 
                                            return UIEventHandlerResult::STOP_BUBBLING;

@@ -331,7 +331,7 @@ void UIPanel::UpdateScrollbarSize(ScrollAxis axis)
                             const int i = ScrollAxisToIndex(axis);
                             Assert(i != -1);
 
-                            const Vec2f mousePositionRelative = Vec2f(eventData.absolutePos - m_initialDragPosition[i]) - scrollbar->GetAbsolutePosition();
+                            const Vec2f mousePositionRelative = eventData.absolutePos - Vec2f(m_initialDragPosition[i]) - scrollbar->GetAbsolutePosition();
                             const float mouseRelevantPosition = mousePositionRelative[i];
 
                             Vec2f ratios;

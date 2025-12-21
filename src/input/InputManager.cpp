@@ -130,7 +130,10 @@ InputMouseLockScope& InputMouseLockScope::operator=(InputMouseLockScope&& other)
     }
 
     mouseLockState = other.mouseLockState;
+    inputMgr = other.inputMgr;
+
     other.mouseLockState = nullptr;
+    other.inputMgr = nullptr;
 
     return *this;
 }
@@ -148,9 +151,10 @@ void InputMouseLockScope::Reset()
     if (mouseLockState && inputMgr)
     {
         inputMgr->RemoveMouseLockState(mouseLockState);
-
-        mouseLockState = nullptr;
     }
+
+    mouseLockState = nullptr;
+    inputMgr = nullptr;
 }
 
 #pragma endregion InputMouseLockScope
@@ -277,7 +281,7 @@ void InputManager::SetMousePosition(Vec2i position)
     m_ownerWindow->SetMousePosition(position);
 }
 
-void InputManager::UpdateMousePosition()
+void InputManager::UpdateMousePosition(const SystemEvent& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
@@ -288,7 +292,9 @@ void InputManager::UpdateMousePosition()
     }
 
     m_previousMousePosition = m_mousePosition;
-    m_mousePosition = m_ownerWindow->GetMousePosition();
+    m_mousePosition = event.IsAbsoluteMousePosition()
+        ? event.GetMousePosition()
+        : Vec2i(m_mousePosition) + Vec2i(event.GetMousePositionDeltas());
 
     if (m_isMouseLocked && m_ownerWindow != nullptr)
     {
@@ -440,50 +446,50 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
     }
 }
 
-void InputManager::ProcessEvent(SystemEvent* event)
+void InputManager::ProcessEvent(SystemEvent&& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    switch (event->GetType())
+    switch (event.GetType())
     {
     case SystemEvent::KEYDOWN:
-        SetKey(event->GetKeyCode(), true);
+        SetKey(event.GetKeyCode(), true);
 
         break;
     case SystemEvent::KEYUP:
-        SetKey(event->GetKeyCode(), false);
+        SetKey(event.GetKeyCode(), false);
 
         break;
     case SystemEvent::MOUSEBUTTON_DOWN:
-        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
+        for (Bitset::BitIndex index : Bitset(event.GetMouseButtons()))
         {
             SetMouseButton(MouseButtonKey(index), true);
         }
 
         break;
     case SystemEvent::MOUSEBUTTON_UP:
-        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
+        for (Bitset::BitIndex index : Bitset(event.GetMouseButtons()))
         {
             SetMouseButton(MouseButtonKey(index), false);
         }
 
         break;
     case SystemEvent::MOUSEMOTION:
-        UpdateMousePosition();
+        UpdateMousePosition(event);
 
         break;
     case SystemEvent::WINDOW_RESIZED:
-        UpdateWindowSize(event->GetWindowResizeDimensions());
+        UpdateWindowSize(event.GetWindowResizeDimensions());
 
         break;
     default:
         break;
     }
 
-    const SystemEvent::EventType eventType = event->GetType();
+    const SystemEvent::EventType eventType = event.GetType();
 
-    if (!m_eventQueue->Push(std::move(*event)))
+    if (!m_eventQueue->Push(std::move(event)))
     {
         HYP_LOG(Input, Warning, "Input event queue full! Skipped event of type {}", eventType);
     }
@@ -508,8 +514,8 @@ void InputManager::MainThreadUpdate()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    //Mutex::Guard guard(m_mouseLockStatesMutex);
-    //SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
+    Mutex::Guard guard(m_mouseLockStatesMutex);
+    SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
 }
 
 #pragma endregion InputManager

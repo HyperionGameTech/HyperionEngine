@@ -30,8 +30,8 @@ namespace Hyperion
         public Ptr<InputManager> inputManager;
         public Vec2f relativePos;
         public Vec2f relativePrevPos;
-        public Vec2i absolutePos;
-        private Vec2i absolutePrevPos;
+        public Vec2f absolutePos;
+        private Vec2f absolutePrevPos;
         public MouseButtonState mouseButtons;
         public Vec2i wheel;
         public bool isDown;

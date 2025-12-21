@@ -166,13 +166,13 @@ void DefaultGame::OnInputEvent(const SystemEvent& event)
         controller->GetInputHandler()->OnKeyDown(event.ToKeyboardEvent());
         break;
     case SystemEvent::EventType::MOUSEBUTTON_DOWN:
-        controller->GetInputHandler()->OnMouseDown(event.ToMouseEvent(Vec2f(m_camera->GetDimensions())));
+        controller->GetInputHandler()->OnMouseDown(event.ToMouseEvent());
         break;
     case SystemEvent::EventType::MOUSEBUTTON_UP:
-        controller->GetInputHandler()->OnMouseUp(event.ToMouseEvent(Vec2f(m_camera->GetDimensions())));
+        controller->GetInputHandler()->OnMouseUp(event.ToMouseEvent());
         break;
     case SystemEvent::EventType::MOUSEMOTION:
-        controller->GetInputHandler()->OnMouseMove(event.ToMouseEvent(Vec2f(m_camera->GetDimensions())));
+        controller->GetInputHandler()->OnMouseMove(event.ToMouseEvent());
         break;
     default:
         break;
