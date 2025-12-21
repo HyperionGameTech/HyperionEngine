@@ -808,7 +808,25 @@ namespace logging {
 
 HYP_API void LogTemp(Logger& logger, const char* str)
 {
-    LogDynamic<HYP_MAKE_CONST_ARG(&LogCategory::Debug), HYP_MAKE_CONST_ARG(&g_logChannel_Temp)>(logger, str);
+    static constexpr const LogCategory& Category = LogCategory::Debug;
+
+    if constexpr (!Category.IsEnabled())
+    {
+        return;
+    }
+
+    static const LogChannel& s_channel = g_logChannel_Temp;
+    static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Category.GetLevel()>());
+
+    logger.Log(
+        s_channel,
+        LogMessage {
+            Category.GetLevel(),
+            Time::Now().ToMilliseconds(),
+            Span<StringView<StringType::UTF8>> {
+                { s_prefix, str, "\n" }
+            }
+        });
 }
 
 } // namespace logging
