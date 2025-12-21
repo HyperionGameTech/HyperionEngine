@@ -61,6 +61,8 @@ EditorCameraInputHandler::EditorCameraInputHandler(EditorCameraController* contr
 
 bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
 {
+    InputHandlerBase::OnKeyDown_Impl(evt);
+
     if (InputHandlerBase::OnKeyDown_Impl(evt))
     {
         return true;
@@ -82,10 +84,7 @@ bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
 
 bool EditorCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
 {
-    if (InputHandlerBase::OnKeyUp_Impl(evt))
-    {
-        return true;
-    }
+    InputHandlerBase::OnKeyUp_Impl(evt);
 
     if (m_controller && m_controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
     {
@@ -103,6 +102,8 @@ bool EditorCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
 
 bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 {
+    InputHandlerBase::OnMouseDown_Impl(evt);
+
     if (!m_controller)
     {
         return false;
@@ -110,7 +111,7 @@ bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 
     if (evt.mouseButtons & (MouseButtonState::LEFT | MouseButtonState::RIGHT))
     {
-        m_controller->SetMode(EditorCameraControllerMode::FOCUSED);
+        m_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
     }
 
     return true;
@@ -118,12 +119,14 @@ bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 
 bool EditorCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
 {
+    InputHandlerBase::OnMouseUp_Impl(evt);
+
     if (!m_controller)
     {
         return false;
     }
 
-    if (!(evt.mouseButtons & (MouseButtonState::LEFT | MouseButtonState::RIGHT)))
+    if (!IsKeyDown(KeyCode::KEY_LEFT) && !IsKeyDown(KeyCode::KEY_RIGHT))
     {
         m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
     }
@@ -133,8 +136,6 @@ bool EditorCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
 
 bool EditorCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
 {
-    HYP_SCOPE;
-
     return false;
 }
 
@@ -227,6 +228,8 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 
 bool EditorCameraInputHandler::OnMouseLeave_Impl(const MouseEvent& evt)
 {
+    InputHandlerBase::OnMouseLeave_Impl(evt);
+
     if (!m_controller)
     {
         return false;
