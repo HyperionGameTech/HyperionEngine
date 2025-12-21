@@ -26,7 +26,7 @@ MouseEvent SystemEvent::ToMouseEvent() const
 
     if (m_window != nullptr)
     {
-        offsetMousePos = IsAbsoluteMousePosition() ? Vec2f(m_window->GetInputManager()->GetMousePosition()) : Vec2f::Zero();
+        offsetMousePos = IsAbsoluteMousePosition() ? Vec2f::Zero() : Vec2f(m_window->GetInputManager()->GetMousePosition());
         surfaceSize = Vec2f(m_window->GetDimensions());
     }
 
