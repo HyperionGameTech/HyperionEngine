@@ -27,6 +27,7 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential)]
     public struct MouseEvent
     {
+        private IntPtr _baseEvent;
         public Ptr<InputManager> inputManager;
         public Vec2f relativePos;
         public Vec2f relativePrevPos;

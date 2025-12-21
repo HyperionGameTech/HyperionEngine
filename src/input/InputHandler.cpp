@@ -11,11 +11,13 @@
 
 namespace hyperion {
 
+static constexpr double InitialDeltaTime = 1.0 / 60.0;
+
 #pragma region InputHandlerBase
 
 InputHandlerBase::InputHandlerBase()
     : m_mouseButtonStates(0),
-      m_deltaTime(0.016667)
+      m_deltaTime(InitialDeltaTime)
 {
     m_keyStates.SetNumBits(NUM_KEYBOARD_KEYS);
 }

@@ -18,7 +18,7 @@
 #include <util/GameCounter.hpp>
 
 #include <system/AppContext.hpp>
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
@@ -156,7 +156,7 @@ void GameThread::operator()()
 
         if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
         {
-            SystemEvent event;
+            Event event;
             while (mainWindow->GetInputManager()->PollEvent(event))
             {
                 if (m_game != nullptr)

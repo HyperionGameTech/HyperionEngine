@@ -2,7 +2,7 @@
 
 #include <system/App.hpp>
 #include <system/AppContext.hpp>
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 
 #include <core/cli/CommandLine.hpp>
 
@@ -23,8 +23,6 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 
 extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
-namespace sys {
-
 App& App::GetInstance()
 {
     static App s_instance;
@@ -39,5 +37,4 @@ App::~App()
 {
 }
 
-} // namespace sys
 } // namespace hyperion

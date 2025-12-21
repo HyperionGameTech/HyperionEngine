@@ -29,7 +29,6 @@ extern "C"
 }
 
 namespace hyperion {
-namespace sys {
 
 SystemMessageBox::SystemMessageBox(MessageBoxType type)
     : m_type(type)
@@ -187,5 +186,4 @@ void SystemMessageBox::Show(bool showBlocking) const
 #endif
 }
 
-} // namespace sys
 } // namespace hyperion

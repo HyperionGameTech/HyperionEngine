@@ -21,7 +21,7 @@ public:
     HyperionEditor& operator=(HyperionEditor&& other) noexcept = delete;
     virtual ~HyperionEditor() override;
 
-    virtual void OnInputEvent(const SystemEvent& event) override;
+    virtual void OnInputEvent(const Event& event) override;
 
 protected:
     HYP_METHOD()

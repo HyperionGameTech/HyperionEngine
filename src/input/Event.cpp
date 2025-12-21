@@ -1,13 +1,15 @@
-#include <SystemPch.hpp>
+#include <HyperionPch.hpp>
 
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
+#include <input/InputManager.hpp>
+
 #include <system/AppContext.hpp>
+
+#include <core/threading/Task.hpp>
 
 #include <engine/threads/MainThread.hpp>
 
-#include <input/InputManager.hpp>
-
-#include <core/threading/Task.hpp>
+#include <Event.generated.inl>
 
 namespace hyperion {
 
@@ -15,11 +17,9 @@ namespace hyperion {
 extern void DestroyCocoaEvent(CocoaEvent& cocoaEvent);
 #endif
 
-namespace sys {
-
 #pragma region Helper methods
 
-MouseEvent SystemEvent::ToMouseEvent() const
+MouseEvent Event::ToMouseEvent() const
 {
     Vec2f offsetMousePos = Vec2f::Zero();
     Vec2f surfaceSize = Vec2f::One();
@@ -33,9 +33,10 @@ MouseEvent SystemEvent::ToMouseEvent() const
     return ToMouseEvent(offsetMousePos, surfaceSize);
 }
 
-MouseEvent SystemEvent::ToMouseEvent(const Vec2f& offsetMousePos, const Vec2f& surfaceSize) const
+MouseEvent Event::ToMouseEvent(const Vec2f& offsetMousePos, const Vec2f& surfaceSize) const
 {
     MouseEvent me {};
+    me.baseEvent = this;
     me.mouseButtons = GetMouseButtons();
 
     me.absolutePos = IsAbsoluteMousePosition() ? Vec2f(GetMousePosition()) : (offsetMousePos + GetMousePositionDeltas());
@@ -53,9 +54,10 @@ MouseEvent SystemEvent::ToMouseEvent(const Vec2f& offsetMousePos, const Vec2f& s
     return me;
 }
 
-KeyboardEvent SystemEvent::ToKeyboardEvent() const
+KeyboardEvent Event::ToKeyboardEvent() const
 {
     KeyboardEvent kbe {};
+    kbe.baseEvent = this;
     kbe.inputManager = m_window ? m_window->GetInputManager() : nullptr;
     kbe.keyCode = m_eventData.Is<KeyCode>() ? m_eventData.GetUnchecked<KeyCode>() : KeyCode::KEY_UNKNOWN;
 
@@ -112,10 +114,15 @@ static EnumFlags<MouseButtonState> GetMouseButtonState(int sdlButton)
 
 #pragma endregion Helper methods
 
-#pragma region SystemEvent
+#pragma region Event
 
-SystemEvent::~SystemEvent()
+Event::~Event()
 {
+#ifdef HYP_DEBUG_MODE
+    // To allow easier debugging of stale events
+    m_timestamp = Time(0);
+#endif
+
 #ifdef HYP_MACOS
     if (m_eventType == INVALID)
     {
@@ -141,7 +148,6 @@ SystemEvent::~SystemEvent()
 #endif
 }
 
-#pragma endregion SystemEvent
+#pragma endregion Event
 
-} // namespace sys
 } // namespace hyperion

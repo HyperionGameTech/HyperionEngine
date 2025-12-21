@@ -30,9 +30,7 @@
 using namespace hyperion;
 
 namespace hyperion {
-namespace sys {
 KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
-} // namespace sys
 } // namespace hyperion
 
 #pragma mark - HyperionMetalView
@@ -240,8 +238,6 @@ HANDLE_COCOA_EVENT(keyUp)
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
-
-namespace sys {
 
 CocoaApplicationWindow::CocoaApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size),
@@ -722,5 +718,4 @@ bool CocoaApplicationWindow::IsHighDPI() const
     return [window backingScaleFactor] > 1.0;
 }
 
-} // namespace sys
 } // namespace hyperion

@@ -14,7 +14,7 @@
 
 #include <input/InputManager.hpp>
 
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 #include <system/AppContext.hpp>
 
 namespace hyperion {
@@ -70,7 +70,7 @@ void MainThread::Update()
         }
     }
 
-    SystemEvent event;
+    Event event;
     while (g_appContext->PollEvents(event))
     {
         if (event.GetWindow() != nullptr)
@@ -83,10 +83,6 @@ void MainThread::Update()
     {
         window->GetInputManager()->MainThreadUpdate();
     }
-
-#ifdef HYP_LIBUI
-    uiMainSteps();
-#endif
 
     if (s_renderOnMainThread
         && g_renderThreadInstance

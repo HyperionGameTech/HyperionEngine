@@ -51,8 +51,8 @@ class FontAtlas : public ObjectBase
     HYP_OBJECT_BODY(FontAtlas);
 
 public:
-    static constexpr uint32 s_symbolColumns = 20;
-    static constexpr uint32 s_symbolRows = 5;
+    static constexpr uint32 SymbolColumns = 20;
+    static constexpr uint32 SymbolRows = 5;
 
     using SymbolList = Array<FontFace::WChar>;
     using GlyphMetricsBuffer = Array<Glyph::Metrics>;
@@ -71,8 +71,10 @@ public:
 
     FontAtlas(const FontAtlas& other) = delete;
     FontAtlas& operator=(const FontAtlas& other) = delete;
+
     FontAtlas(FontAtlas&& other) noexcept = delete;
     FontAtlas& operator=(FontAtlas&& other) noexcept = delete;
+
     ~FontAtlas();
 
     HYP_API Result RenderAtlasTextures();

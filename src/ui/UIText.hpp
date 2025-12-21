@@ -21,17 +21,9 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
-namespace sys {
-class SystemEvent;
-} // namespace sys
 
-using sys::SystemEvent;
-
+class Event;
 class InputManager;
-
-} // namespace hyperion
-
-namespace hyperion {
 
 class Texture;
 

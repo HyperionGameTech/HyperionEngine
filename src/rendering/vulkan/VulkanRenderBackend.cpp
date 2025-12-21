@@ -60,10 +60,8 @@ static inline VulkanRenderBackend* GetRenderBackend()
 }
 
 #ifdef HYP_WINDOWS
-namespace sys {
 void Win32_RegisterWindowClass(const WideString& className);
 void Win32_UnregisterWindowClass(const WideString& className);
-} // namespace sys
 #endif
 
 #pragma region VulkanRenderConfig
