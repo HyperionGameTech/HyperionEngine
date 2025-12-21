@@ -70,11 +70,6 @@ void MainThread::Update()
         }
     }
 
-    for (ApplicationWindow* window : g_appContext->GetWindows())
-    {
-        window->GetInputManager()->MainThreadUpdate();
-    }
-
     SystemEvent event;
     while (g_appContext->PollEvents(event))
     {
@@ -82,6 +77,11 @@ void MainThread::Update()
         {
             event.GetWindow()->GetInputManager()->ProcessEvent(std::move(event));
         }
+    }
+
+    for (ApplicationWindow* window : g_appContext->GetWindows())
+    {
+        window->GetInputManager()->MainThreadUpdate();
     }
 
 #ifdef HYP_LIBUI
