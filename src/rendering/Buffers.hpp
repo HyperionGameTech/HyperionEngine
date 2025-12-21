@@ -257,13 +257,12 @@ public:
     }
 
     /*! \brief Builds the necessary staging buffer updates for the dirty ranges.
-     *  If \p useStagingBuffers is false, no staging buffers will be created and the data is directly copied to the GPU buffer.
+     *  If the buffer is CPU accessible, no staging buffers will be created and the data is directly copied to the GPU buffer.
      *  The resulting \p outChunkStarts, \p outChunkEnds, and \p outStagingBuffers can be used to perform the actual copy operation.
      */
     void BuildUpdates(
         uint32 frameIndex,
         GpuBuffer* dstBuffer,
-        bool useStagingBuffers,
         Array<uint32, RenderAllocator>& outChunkStarts,
         Array<uint32, RenderAllocator>& outChunkEnds,
         Array<GpuBuffer*, RenderAllocator>& outStagingBuffers)
@@ -311,10 +310,12 @@ public:
             const uint32 bufferOffset = offset * uint32(sizeof(StructType));
             const uint32 bufferSize = Base::numElementsPerBlock * uint32(sizeof(StructType));
 
-            dirtyBlocks.PushBack({ blockIndex,
+            dirtyBlocks.PushBack({
+                blockIndex,
                 bufferOffset,
                 bufferSize,
-                blockIt->buffer.GetPointer() });
+                blockIt->buffer.GetPointer()
+            });
         }
 
         if (dirtyBlocks.Empty())
@@ -323,114 +324,30 @@ public:
             return;
         }
 
-        // Batch blocks into staging buffers, packing non-contiguous ranges to minimize staging buffer count
-        // Strategy: Fill staging buffers up to a size limit, allowing gaps for non-contiguous blocks
-        static constexpr uint32 MaxStagingBufferSize = 1u << 20; // 1MB max per staging buffer
-        static constexpr uint32 MaxGapSize = 1u << 16;           // 64KB max gap to tolerate (wastes some bandwidth but reduces buffer count)
-
-        struct StagingBatch
+        // dirty copy + flush for cpu accessbile
+        if (dstBuffer->IsCpuAccessible())
         {
-            Array<uint32> blockIndices; // indices into dirtyBlocks
-            uint32 minOffset = ~0u;     // minimum buffer offset in this batch
-            uint32 maxOffset = 0;       // maximum buffer offset (exclusive end) in this batch
-
-            uint32 GetTotalSize() const
+            for (DirtyBlockInfo& dirtyBlock : dirtyBlocks)
             {
-                return maxOffset - minOffset;
+                dstBuffer->Copy(dirtyBlock.bufferOffset, dirtyBlock.bufferSize, dirtyBlock.dataPtr);
+                dstBuffer->Flush(dirtyBlock.bufferOffset, dirtyBlock.bufferSize);
             }
 
-            uint32 GetDataSize(const Array<DirtyBlockInfo>& dirtyBlocks) const
-            {
-                uint32 size = 0;
-                for (uint32 idx : blockIndices)
-                {
-                    size += dirtyBlocks[idx].bufferSize;
-                }
-                return size;
-            }
-        };
+            m_dirtyRanges[frameIndex].Reset();
 
-        Array<StagingBatch, RenderAllocator> batches;
-        batches.Reserve(dirtyBlocks.Size()); // worst case: one batch per block
-
-        for (uint32 i = 0; i < dirtyBlocks.Size(); ++i)
-        {
-            const DirtyBlockInfo& block = dirtyBlocks[i];
-            bool addedToBatch = false;
-
-            // Try to add to existing batch
-            for (StagingBatch& batch : batches)
-            {
-                const uint32 newMinOffset = MathUtil::Min(batch.minOffset, block.bufferOffset);
-                const uint32 newMaxOffset = MathUtil::Max(batch.maxOffset, block.bufferOffset + block.bufferSize);
-                const uint32 newTotalSize = newMaxOffset - newMinOffset;
-                const uint32 newDataSize = batch.GetDataSize(dirtyBlocks) + block.bufferSize;
-                const uint32 wastedSpace = newTotalSize - newDataSize;
-
-                // Add to this batch if it doesn't exceed size limits and gap isn't too large
-                if (!useStagingBuffers || (newTotalSize <= MaxStagingBufferSize && wastedSpace <= MaxGapSize))
-                {
-                    batch.blockIndices.PushBack(i);
-                    batch.minOffset = newMinOffset;
-                    batch.maxOffset = newMaxOffset;
-                    addedToBatch = true;
-
-                    break;
-                }
-            }
-
-            // Create new batch if couldn't add to existing one
-            if (!addedToBatch)
-            {
-                StagingBatch newBatch;
-                newBatch.blockIndices.PushBack(i);
-                newBatch.minOffset = block.bufferOffset;
-                newBatch.maxOffset = block.bufferOffset + block.bufferSize;
-                batches.PushBack(std::move(newBatch));
-            }
+            return;
         }
 
-        // Create staging buffers and copy data for each batch
-        for (const StagingBatch& batch : batches)
+        for (DirtyBlockInfo& dirtyBlock : dirtyBlocks)
         {
-            const uint32 stagingBufferSize = batch.GetTotalSize();
-            const uint32 startOffset = batch.minOffset;
+            GpuBuffer* stagingBuffer = StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, 0, dirtyBlock.bufferSize);
+            Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
 
-            if (useStagingBuffers)
-            {
-                GpuBuffer* stagingBuffer = StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, startOffset, stagingBufferSize);
-                Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
+            stagingBuffer->Copy(0, dirtyBlock.bufferSize, dirtyBlock.dataPtr);
 
-                // Copy each block in the batch to the appropriate offset in the staging buffer
-                for (uint32 blockIdx : batch.blockIndices)
-                {
-                    const DirtyBlockInfo& block = dirtyBlocks[blockIdx];
-                    const uint32 stagingOffset = block.bufferOffset - startOffset;
-
-                    stagingBuffer->Copy(stagingOffset, block.bufferSize, block.dataPtr);
-                }
-
-                outStagingBuffers.PushBack(stagingBuffer);
-
-                outChunkStarts.PushBack(startOffset);
-                outChunkEnds.PushBack(startOffset + stagingBufferSize);
-            }
-            else
-            {
-                // Directly copy to the main GPU buffer
-                for (uint32 blockIdx : batch.blockIndices)
-                {
-                    const DirtyBlockInfo& block = dirtyBlocks[blockIdx];
-                    dstBuffer->Copy(block.bufferOffset, block.bufferSize, block.dataPtr);
-                }
-            }
-        }
-
-        if (!useStagingBuffers)
-        {
-            dstBuffer->Flush(
-                m_dirtyRanges[frameIndex].GetStart() * sizeof(StructType),
-                SizeType(m_dirtyRanges[frameIndex].Distance()) * sizeof(StructType));
+            outStagingBuffers.PushBack(stagingBuffer);
+            outChunkStarts.PushBack(dirtyBlock.bufferOffset);
+            outChunkEnds.PushBack(dirtyBlock.bufferOffset + dirtyBlock.bufferSize);
         }
 
         m_dirtyRanges[frameIndex].Reset();
@@ -479,19 +396,21 @@ public:
     {
         const uint32 frameIndex = frame->GetFrameIndex();
 
-        Array<GpuBuffer*, RenderAllocator> stagingBuffers;
         Array<uint32, RenderAllocator> chunkStarts;
         Array<uint32, RenderAllocator> chunkEnds;
-
-        const bool useStagingBuffers = !m_gpuBuffer->IsCpuAccessible();
+        Array<GpuBuffer*, RenderAllocator> stagingBuffers;
 
         m_pool.BuildUpdates(
             frameIndex,
             m_gpuBuffer,
-            useStagingBuffers,
             chunkStarts,
             chunkEnds,
             stagingBuffers);
+
+        if (stagingBuffers.Empty())
+        {
+            return;
+        }
 
         // sanity check, ensure that the chunks are in ascending order
         for (SizeType i = 1; i < chunkStarts.Size(); ++i)
@@ -508,14 +427,11 @@ public:
             AssertDebug(chunkEnds[i] <= gpuBufferSize);
         }
 
-        if (!useStagingBuffers)
-        {
-            GpuBufferHolderBase::CopyStagingToGpu(
-                frame,
-                stagingBuffers.ToSpan(),
-                chunkStarts.ToSpan(),
-                chunkEnds.ToSpan());
-        }
+        GpuBufferHolderBase::CopyStagingToGpu(
+            frame,
+            stagingBuffers.ToSpan(),
+            chunkStarts.ToSpan(),
+            chunkEnds.ToSpan());
     }
 
     virtual void MarkDirty(uint32 index) override

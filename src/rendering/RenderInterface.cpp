@@ -639,9 +639,9 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
 }
 
 template <class ElementType, class ProxyType>
-static HYP_FORCE_INLINE void CopyRenderProxy(ResourceSubtypeData& subtypeData, const ObjId<ElementType>& id, ProxyType* pNewProxy)
+static HYP_FORCE_INLINE void CopyRenderProxy(ResourceSubtypeData& subtypeData, const ObjId<ElementType>& id, ProxyType* newProxy)
 {
-    AssertDebug(pNewProxy != nullptr);
+    AssertDebug(newProxy != nullptr);
 
     const uint32 idx = id.ToIndex();
 
@@ -650,7 +650,7 @@ static HYP_FORCE_INLINE void CopyRenderProxy(ResourceSubtypeData& subtypeData, c
         LookupTypeName(id.GetTypeId()),
         subtypeData.typeInfo->name);
 
-    subtypeData.proxies.Set(idx, static_cast<IRenderProxy*>(pNewProxy));
+    subtypeData.proxies.Set(idx, static_cast<IRenderProxy*>(newProxy));
     subtypeData.indicesPendingUpdate.Set(idx, true);
 }
 
@@ -1024,10 +1024,10 @@ IRenderProxy* GetRenderProxy(const ObjectBase* resource)
         return nullptr; // no proxy for this resource
     }
 
-    IRenderProxy* pProxy = subtypeData.proxies.Get(resourceId.ToIndex());
-    AssertDebug(pProxy != nullptr);
+    IRenderProxy* proxy = subtypeData.proxies.Get(resourceId.ToIndex());
+    AssertDebug(proxy != nullptr);
 
-    return pProxy;
+    return proxy;
 }
 
 void UpdateGpuData(const ObjectBase* resource)
@@ -1055,10 +1055,10 @@ void UpdateGpuData(const ObjectBase* resource)
 
     const uint32 idx = resourceId.ToIndex();
 
-    IRenderProxy* pProxy = subtypeData.proxies.Get(idx);
-    AssertDebug(pProxy != nullptr);
+    IRenderProxy* proxy = subtypeData.proxies.Get(idx);
+    AssertDebug(proxy != nullptr);
 
-    subtypeData.SetGpuElem(bindingIndex, pProxy);
+    subtypeData.SetGpuElem(bindingIndex, proxy);
 
     // set it as no longer needing update next frame since we updated immediately
     subtypeData.indicesPendingUpdate.Set(idx, false);
@@ -1197,14 +1197,10 @@ void BeginFrame_RenderThread()
                     }
                 }
 
-                ResourceBinderBase** ppResourceBinder = &subtypeData.resourceBinders[0];
-
-                while (*ppResourceBinder != nullptr)
+                for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
                 {
-                    ResourceBinderBase* pResourceBinder = *ppResourceBinder;
-                    pResourceBinder->Consider(elem.resource, forceRebind);
-
-                    ++ppResourceBinder;
+                    ResourceBinderBase* resourceBinder = *it;
+                    resourceBinder->Consider(elem.resource, forceRebind);
                 }
             }
         }
@@ -1246,12 +1242,10 @@ void BeginFrame_RenderThread()
         {
             Bitset currentBoundIndices;
 
-            ResourceBinderBase** ppResourceBinder = &subtypeData.resourceBinders[0];
-            while (*ppResourceBinder != nullptr)
+            for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
             {
-                currentBoundIndices |= (*ppResourceBinder)->GetBoundIndices(subtypeData.typeInfo->id);
-
-                ++ppResourceBinder;
+                ResourceBinderBase* resourceBinder = *it;
+                currentBoundIndices |= resourceBinder->GetBoundIndices(subtypeData.typeInfo->id);
             }
 
             if (currentBoundIndices.Count() == 0)
@@ -1379,12 +1373,10 @@ void EndFrame_RenderThread()
             // dead items)
             subtypeData.indicesPendingUpdate.Set(i, false);
 
-            ResourceBinderBase** ppResourceBinder = &subtypeData.resourceBinders[0];
-
-            while (*ppResourceBinder != nullptr)
+            for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
             {
-                (*ppResourceBinder)->Deconsider(rd.resource);
-                ++ppResourceBinder;
+                ResourceBinderBase* resourceBinder = *it;
+                resourceBinder->Deconsider(rd.resource);
             }
 
             subtypeData.data.EraseAt(i);

@@ -490,6 +490,20 @@ void InputManager::ProcessEvent(SystemEvent&& event)
         UpdateWindowSize(event.GetWindowResizeDimensions());
 
         break;
+    case SystemEvent::WINDOW_FOCUS_LOST:
+        if (m_isMouseLocked && m_ownerWindow && m_ownerWindow->IsMouseLocked())
+        {
+            m_ownerWindow->SetIsMouseLocked(false);
+        }
+
+        break;
+    case SystemEvent::WINDOW_FOCUS_GAINED:
+        if (m_isMouseLocked && m_ownerWindow && !m_ownerWindow->IsMouseLocked())
+        {
+            m_ownerWindow->SetIsMouseLocked(true);
+        }
+
+        break;
     default:
         break;
     }
