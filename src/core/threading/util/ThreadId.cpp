@@ -14,7 +14,7 @@
 namespace hyperion {
 namespace threading {
 
-const ThreadId ThreadId::invalid = ThreadId();
+const ThreadId ThreadId::s_invalid = ThreadId();
 
 class GlobalThreadIdCache
 {
@@ -125,12 +125,12 @@ static uint32 AllocateThreadId(Name name, uint32 allocateFlags)
             ? GetStaticThreadIdCache().AllocateIndex(name)
             : GetStaticThreadIdCache().FindOrAllocateIndex(name);
 
-        HYP_CORE_ASSERT(threadIdValue < g_maxStaticThreadIds, "Maximum static thread id value exceeded!");
+        HYP_CORE_ASSERT(threadIdValue < MaxStaticThreadIds, "Maximum static thread id value exceeded!");
 
         threadIdValue = 1u << (threadIdValue - 1);
     }
 
-    HYP_CORE_ASSERT((((threadIdValue << 4) & g_threadIdMask) >> 4) == threadIdValue,
+    HYP_CORE_ASSERT((((threadIdValue << 4) & ThreadIdMask) >> 4) == threadIdValue,
         "Thread Id value %u exceeds maximum value!",
         threadIdValue);
 
@@ -141,8 +141,8 @@ static uint32 MakeThreadIdValue(Name name, ThreadCategory category, uint32 alloc
 {
     uint32 value = 0;
 
-    value |= (uint32(category) & g_threadCategoryMask);
-    value |= (AllocateThreadId(name, allocateFlags) << 4) & g_threadIdMask;
+    value |= (uint32(category) & ThreadCategoryMask);
+    value |= (AllocateThreadId(name, allocateFlags) << 4) & ThreadIdMask;
     value |= ((allocateFlags & ThreadId::AllocateFlags::DYNAMIC) ? 1u : 0u) << 31;
 
     return value;
@@ -155,7 +155,7 @@ const ThreadId& ThreadId::Current()
 
 const ThreadId& ThreadId::Invalid()
 {
-    return invalid;
+    return s_invalid;
 }
 
 ThreadId::ThreadId(Name name, bool forceUnique)
@@ -188,9 +188,14 @@ StaticThreadId::StaticThreadId(Name name, bool forceUnique)
 }
 
 StaticThreadId::StaticThreadId(uint32 staticThreadIndex)
+    : StaticThreadId(staticThreadIndex, Name::Invalid())
 {
-    m_name = GetStaticThreadIdCache().FindNameByIndex(staticThreadIndex + 1);
-    m_value = ((1u << staticThreadIndex) << 4) & g_threadIdMask;
+}
+
+StaticThreadId::StaticThreadId(uint32 staticThreadIndex, Name name)
+{
+    m_name = name.IsValid() ? name : GetStaticThreadIdCache().FindNameByIndex(staticThreadIndex + 1);
+    m_value = ((1u << staticThreadIndex) << 4) & ThreadIdMask;
 }
 
 #pragma endregion StaticThreadId

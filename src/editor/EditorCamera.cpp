@@ -26,7 +26,7 @@ extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
 HYP_DECLARE_LOG_CHANNEL(Camera);
 
-static Bitset CreateWasdBitset(bool includeArrowKeys = true)
+static Bitset GetMovementKeys(bool includeArrowKeys = true)
 {
     Bitset bits;
     bits.Set(uint32(KeyCode::KEY_W), true);
@@ -45,7 +45,7 @@ static Bitset CreateWasdBitset(bool includeArrowKeys = true)
     return bits;
 }
 
-static const Bitset g_wasdBits = CreateWasdBitset(true);
+static const Bitset s_movementKeys = GetMovementKeys(true);
 
 #pragma region EditorCameraInputHandler
 
@@ -167,7 +167,7 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 
     const bool isAltPressed = IsKeyDown(KeyCode::KEY_LALT) || IsKeyDown(KeyCode::KEY_RALT);
     const bool isCtrlPressed = IsKeyDown(KeyCode::KEY_LCTRL) || IsKeyDown(KeyCode::KEY_RCTRL);
-    const bool isMoveKeyPressed = (GetKeyStates() & g_wasdBits).Count() != 0;
+    const bool isMoveKeyPressed = (GetKeyStates() & s_movementKeys).Count() != 0;
 
     constexpr EnumFlags<MouseButtonState> ButtonsLR = MouseButtonState::LEFT | MouseButtonState::RIGHT;
 
@@ -301,34 +301,6 @@ void EditorCameraController::UpdateLogic(double delta)
     HYP_SCOPE;
 
     FirstPersonCameraController::UpdateLogic(delta);
-
-    static constexpr float MovementSpeed = 15.0f;
-
-    Vec3f translation = m_camera->GetTranslation();
-
-    const Vec3f direction = m_camera->GetDirection();
-    const Vec3f dirCrossY = direction.Cross(m_camera->GetUpVector());
-
-    m_inputHandler->SetDeltaTime(delta);
-
-    if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))
-    {
-        translation += direction * delta * MovementSpeed;
-    }
-    if (m_inputHandler->IsKeyDown(KeyCode::KEY_S))
-    {
-        translation -= direction * delta * MovementSpeed;
-    }
-    if (m_inputHandler->IsKeyDown(KeyCode::KEY_A))
-    {
-        translation -= dirCrossY * delta * MovementSpeed;
-    }
-    if (m_inputHandler->IsKeyDown(KeyCode::KEY_D))
-    {
-        translation += dirCrossY * delta * MovementSpeed;
-    }
-
-    m_camera->SetNextTranslation(translation);
 }
 
 #pragma endregion EditorCameraController

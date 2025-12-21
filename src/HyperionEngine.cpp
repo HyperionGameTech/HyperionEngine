@@ -239,7 +239,7 @@ extern "C"
 
         if (CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool(true))
         {
-            g_renderThread = g_mainThread;
+            g_renderThread = StaticThreadId(g_mainThread.GetStaticThreadIndex(), NAME("Render"));
         }
         else
         {

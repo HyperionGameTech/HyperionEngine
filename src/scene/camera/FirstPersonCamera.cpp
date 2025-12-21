@@ -8,7 +8,7 @@
 
 namespace hyperion {
 
-static const float mouseSensitivity = 1.0f;
+static const float mouseSensitivity = 25.0f;
 static const float mouseBlending = 0.35f;
 static const float movementSpeed = 5.0f;
 static const float movementSpeed2 = movementSpeed * 2.0f;
@@ -70,7 +70,7 @@ bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
         return false;
     }
 
-    const Vec2f delta = (evt.relativePos - evt.relativePrevPos) * 1.0f;
+    Vec2f delta = (evt.relativePos - evt.relativePrevPos) * mouseSensitivity;
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 
@@ -180,9 +180,37 @@ void FirstPersonCameraController::Init()
     InitObject(m_inputHandler);
 }
 
-void FirstPersonCameraController::UpdateLogic(double dt)
+void FirstPersonCameraController::UpdateLogic(double delta)
 {
     HYP_SCOPE;
+
+    static constexpr float MovementSpeed = 15.0f;
+
+    Vec3f translation = m_camera->GetTranslation();
+
+    const Vec3f direction = m_camera->GetDirection();
+    const Vec3f dirCrossY = direction.Cross(m_camera->GetUpVector());
+
+    m_inputHandler->SetDeltaTime(delta);
+
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))
+    {
+        translation += direction * delta * MovementSpeed;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_S))
+    {
+        translation -= direction * delta * MovementSpeed;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_A))
+    {
+        translation -= dirCrossY * delta * MovementSpeed;
+    }
+    if (m_inputHandler->IsKeyDown(KeyCode::KEY_D))
+    {
+        translation += dirCrossY * delta * MovementSpeed;
+    }
+
+    m_camera->SetNextTranslation(translation);
 }
 
 #pragma endregion FirstPersonCameraController
