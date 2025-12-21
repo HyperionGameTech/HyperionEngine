@@ -102,6 +102,20 @@ bool FirstPersonCameraInputHandler::OnClick_Impl(const MouseEvent& evt)
     return false;
 }
 
+bool FirstPersonCameraInputHandler::OnGainFocus_Impl(const MouseEvent& evt)
+{
+    m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
+
+    return true;
+}
+
+bool FirstPersonCameraInputHandler::OnLoseFocus_Impl(const MouseEvent& evt)
+{
+    m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_LOCKED);
+
+    return true;
+}
+
 #pragma endregion FirstPersonCameraInputHandler
 
 #pragma region FirstPersonCameraController

@@ -240,6 +240,23 @@ bool EditorCameraInputHandler::OnClick_Impl(const MouseEvent& evt)
     return false;
 }
 
+bool EditorCameraInputHandler::OnGainFocus_Impl(const MouseEvent& evt)
+{
+    return false;
+}
+
+bool EditorCameraInputHandler::OnLoseFocus_Impl(const MouseEvent& evt)
+{
+    if (!m_controller)
+    {
+        return false;
+    }
+
+    m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
+
+    return false;
+}
+
 #pragma endregion EditorCameraInputHandler
 
 #pragma region EditorCameraController
