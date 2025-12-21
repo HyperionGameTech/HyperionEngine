@@ -152,23 +152,24 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
         {
             CGFloat scale = self.window.backingScaleFactor;
             metalLayer.contentsScale = scale;
-            metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * scale, 
-                                                  self.bounds.size.height * scale);
+            metalLayer.drawableSize = CGSizeMake(
+                self.bounds.size.width * scale, 
+                self.bounds.size.height * scale);
         }
     }
 }
 
-#define HANDLE_COCOA_EVENT(method)                                                  \
-    - (void)method:(NSEvent *)event                                                 \
-    {                                                                               \
-        if (_hyperionWindow && _hyperionWindow->UseCocoaEvents())                   \
-        {                                                                           \
-            SystemEvent systemEvent;                                                \
-            if (_hyperionWindow->HandleNSEvent(event, systemEvent))                 \
-            {                                                                       \
-                g_inputManager->ProcessEvent(&systemEvent);                         \
-            }                                                                       \
-        }                                                                           \
+#define HANDLE_COCOA_EVENT(method)                                                          \
+    - (void)method:(NSEvent *)event                                                         \
+    {                                                                                       \
+        if (_hyperionWindow && _hyperionWindow->UseCocoaEvents())                           \
+        {                                                                                   \
+            SystemEvent systemEvent;                                                        \
+            if (_hyperionWindow->HandleNSEvent(event, systemEvent))                         \
+            {                                                                               \
+                _hyperionWindow->GetInputManager()->ProcessEvent(std::move(systemEvent));   \
+            }                                                                               \
+        }                                                                                   \
     }
 
 HANDLE_COCOA_EVENT(mouseMoved)
@@ -483,54 +484,50 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
         {
             event = SystemEvent(SystemEvent::MOUSEMOTION, this, platformEvent);
             
-            // bool isMouseLocked = IsMouseLocked();
+            bool isMouseLocked = IsMouseLocked();
+
+            HYP_LOG_TEMP("Mouse moved event received, position: ({}, {}), isMouseLocked: {}", [nsEvent locationInWindow].x, [nsEvent locationInWindow].y, isMouseLocked);
             
-            // if (isMouseLocked)
-            // {
+            if (isMouseLocked)
+            {
                 CGFloat deltaX = [nsEvent deltaX];
                 CGFloat deltaY = [nsEvent deltaY];
                 
-                // Vec2i currentPos = GetMousePosition();
-                // Vec2i newPos = currentPos + Vec2i((int)deltaX, (int)deltaY);
+                Vec2i currentPos = GetMousePosition();
+                Vec2i newPos = currentPos + Vec2i((int)deltaX, (int)deltaY);
                 
-                // Vec2i windowSize = GetDimensions();
-                // newPos.x = MathUtil::Clamp(newPos.x, 0, windowSize.x - 1);
-                // newPos.y = MathUtil::Clamp(newPos.y, 0, windowSize.y - 1);
+                Vec2i windowSize = GetDimensions();
+                newPos.x = MathUtil::Clamp(newPos.x, 0, windowSize.x - 1);
+                newPos.y = MathUtil::Clamp(newPos.y, 0, windowSize.y - 1);
 
-                // SetMousePosition(newPos);
+                SetMousePosition(newPos);
                 
-                event.GetEventData().Set(Vec2f(deltaX, deltaY));
-            // }
-            // else
-            // {
-            //     NSPoint location = [nsEvent locationInWindow];
+                event.GetEventData().Set(newPos);
+            }
+            else
+            {
+                NSPoint location = [nsEvent locationInWindow];
 
-            //     if (m_isEmbeddedView)
-            //     {
-            //         HyperionMetalView* view = (HyperionMetalView*)m_nsView;
-            //         AssertDebug(view != nil, "HyperionMetalView is null in HandleNSEvent mouse move handling for embedded view with title: {}", m_title);
+                if (m_isEmbeddedView && m_nsView)
+                {
+                    // Convert to view coordinates
+                    HyperionMetalView* view = (HyperionMetalView*)m_nsView;
+                    location = [view convertPoint:location fromView:nil];
                     
-            //         NSPoint viewPoint = [view convertPoint:location fromView:nil];
-                    
-            //         // Flip Y coordinate (Cocoa has origin at bottom-left)
-            //         NSRect frame = [view frame];
-            //         viewPoint.y = frame.size.height - viewPoint.y;
-            //     }
-            //     else
-            //     {
-            //         NSWindow* nsWindow = (NSWindow*)m_hwnd;
-            //         AssertDebug(nsWindow != nil, "NSWindow is null in HandleNSEvent mouse move handling for window with title: {}", m_title);
-                    
-            //         // Flip Y coordinate (Cocoa has origin at bottom-left)
-            //         if (nsWindow)
-            //         {
-            //             NSRect frame = [nsWindow.contentView frame];
-            //             location.y = frame.size.height - location.y;
-            //         }
-            //     }
+                    // Flip Y coordinate
+                    NSRect viewFrame = [view frame];
+                    location.y = viewFrame.size.height - location.y;
+                }
+                else
+                {
+                    // Flip Y coordinate for window content view
+                    NSWindow* window = (NSWindow*)m_hwnd;
+                    NSRect contentFrame = [window.contentView frame];
+                    location.y = contentFrame.size.height - location.y;
+                }
 
-            //     event.GetEventData().Set(Vec2i((int)location.x, (int)location.y));
-            // }
+                event.GetEventData().Set(Vec2i((int)location.x, (int)location.y));
+            }
             
             return true;
         }

@@ -78,7 +78,7 @@ void Game::HandleEvent(SystemEvent&& event)
     HYP_SCOPE;
     AssertOnThread(g_gameThread);
 
-    OnInputEvent(std::move(event));
+    OnInputEvent(event);
 }
 
 void Game::OnInputEvent(const SystemEvent& event)

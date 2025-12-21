@@ -599,6 +599,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
         const Vec2i mousePosition = inputManager->GetMousePosition();
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
+
         //
         //        HYP_LOG(UI, Debug, "Mouse move event: position: {}, previous position: {}, buttons: {}, object mouse states size: {}",
         //            mousePosition, previousMousePosition, mouseButtons.enumValue, m_objectMouseStates.Size());
@@ -622,9 +623,9 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                             .mouseButtons = mouseButtons
                         };
 
-                        //if (MathUtil::Abs(it.second.originalMousePosition - mouseScreen).LengthSquared() < invSurfaceSize.LengthSquared())
+                        // if (MathUtil::Abs(it.second.originalMousePosition - mouseScreen).LengthSquared() < invSurfaceSize.LengthSquared())
                         //{
-                            // If the mouse position hasn't changed significantly, don't trigger a drag event
+                        //  If the mouse position hasn't changed significantly, don't trigger a drag event
                         //    continue;
                         //}
 
@@ -642,6 +643,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
         }
 
         Array<Handle<UIObject>> rayTestResults;
+
+        HYP_LOG_TEMP("Mouse Move: {}, {}", mouseScreen.x, mouseScreen.y);
 
         if (TestRay(mouseScreen, rayTestResults))
         {
@@ -892,7 +895,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
 
-        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::*ClickDelegateMember;
+        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::* ClickDelegateMember;
         const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ClickDelegateMember delegateMember = nullptr)
         {
             if (buttons != mouseButtonToCheck)
