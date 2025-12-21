@@ -27,30 +27,30 @@ RC<Assembly> ManagedClass::GetAssembly() const
 
 ManagedObject* ManagedClass::NewObject()
 {
-    Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
+    Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class {}", m_name);
 
     ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, nullptr, nullptr, nullptr, nullptr);
 
     return new ManagedObject(RefCountedPtrFromThis(), objectReference);
 }
 
-ManagedObject* ManagedClass::NewObject(const Class* cls, void* pOwner)
+ManagedObject* ManagedClass::NewObject(const Class* pClass, void* pOwner)
 {
-    Assert(cls != nullptr);
+    Assert(pClass != nullptr);
     Assert(pOwner != nullptr);
 
-    Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
+    Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class {}", m_name);
 
-    ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, cls, pOwner, nullptr, nullptr);
+    ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, pClass, pOwner, nullptr, nullptr);
 
     return new ManagedObject(RefCountedPtrFromThis(), objectReference);
 }
 
-ObjectReference ManagedClass::NewManagedObject(void* contextPtr, InitializeObjectCallbackFunction callback)
+ObjectReference ManagedClass::NewManagedObject(void* pCtx, InitializeObjectCallbackFunction pCallback)
 {
-    Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
+    Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class {}", m_name);
 
-    return m_newObjectFptr(/* keepAlive */ false, nullptr, nullptr, contextPtr, callback);
+    return m_newObjectFptr(/* keepAlive */ false, nullptr, nullptr, pCtx, pCallback);
 }
 
 bool ManagedClass::HasParentClass(ANSIStringView parentClassName) const
@@ -70,24 +70,24 @@ bool ManagedClass::HasParentClass(ANSIStringView parentClassName) const
     return false;
 }
 
-bool ManagedClass::HasParentClass(const ManagedClass* parentClass) const
+bool ManagedClass::HasParentClass(const ManagedClass* pParentClass) const
 {
-    const ManagedClass* currentParentClass = m_parentClass;
+    const ManagedClass* pCurrent = m_parentClass;
 
-    while (currentParentClass)
+    while (pCurrent)
     {
-        if (currentParentClass == parentClass)
+        if (pCurrent == pParentClass)
         {
             return true;
         }
 
-        currentParentClass = currentParentClass->GetParentClass();
+        pCurrent = pCurrent->GetParentClass();
     }
 
     return false;
 }
 
-void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* methodPtr, const BoxedValue** argsHypData, BoxedValue* outReturnHypData)
+void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** ppArgs, BoxedValue* pOutReturn)
 {
     RC<Assembly> assembly = m_assembly.Lock();
 
@@ -96,7 +96,7 @@ void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* methodPtr, c
         HYP_THROW("Cannot use managed class: assembly has been unloaded");
     }
 
-    methodPtr->Invoke({}, argsHypData, outReturnHypData);
+    pMethod->Invoke({}, ppArgs, pOutReturn);
 }
 
 } // namespace hyperion::dotnet

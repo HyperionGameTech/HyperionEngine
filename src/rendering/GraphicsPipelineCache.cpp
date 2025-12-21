@@ -66,10 +66,10 @@ public:
     {
         Assert(Base::HasIndex(slot));
 
-        GraphicsPipelineRef* pGraphicsPipeline = &Base::Get(slot);
-        Assert(pGraphicsPipeline != nullptr);
+        GraphicsPipelineRef* graphicsPipelinePtr = &Base::Get(slot);
+        Assert(graphicsPipelinePtr != nullptr);
 
-        attrMap[renderableAttributes].PushBack(pGraphicsPipeline);
+        attrMap[renderableAttributes].PushBack(graphicsPipelinePtr);
         reverseAttrMap[slot] = renderableAttributes;
     }
 
@@ -77,7 +77,7 @@ public:
     {
         Assert(Base::HasIndex(slot));
 
-        GraphicsPipelineRef* pGraphicsPipeline = &Base::Get(slot);
+        GraphicsPipelineRef* graphicsPipelinePtr = &Base::Get(slot);
 
         auto reverseAttrMapIt = reverseAttrMap.Find(slot);
         Assert(reverseAttrMapIt != reverseAttrMap.End());
@@ -88,7 +88,7 @@ public:
         // Remove the graphics pipeline from the attribute map
         auto& pipelines = attrMapIt->second;
 
-        auto it = pipelines.Find(pGraphicsPipeline);
+        auto it = pipelines.Find(graphicsPipelinePtr);
         Assert(it != pipelines.end(), "Graphics pipeline not found in attribute map!");
         pipelines.Erase(it);
 
@@ -100,7 +100,7 @@ public:
 
         reverseAttrMap.Erase(reverseAttrMapIt);
 
-        SafeDelete(std::move(*pGraphicsPipeline));
+        SafeDelete(std::move(*graphicsPipelinePtr));
     }
 
     GraphicsPipelineCacheHandle Alloc(uint32& outSlot)
@@ -157,9 +157,9 @@ public:
         return Base::IndexOf(iter);
     }
 
-    SizeType IndexOf(const GraphicsPipelineRef* pGraphicsPipeline) const
+    SizeType IndexOf(const GraphicsPipelineRef* graphicsPipelinePtr) const
     {
-        if (!pGraphicsPipeline)
+        if (!graphicsPipelinePtr)
         {
             return SizeType(-1);
         }
@@ -176,7 +176,7 @@ public:
             typename Base::Page* page = Base::m_pages[pageIdx];
             AssertDebug(page != nullptr);
 
-            if (UIntPtr(pGraphicsPipeline) < UIntPtr(&page->storage) || UIntPtr(pGraphicsPipeline) >= UIntPtr(&page->storage) + pageStorageSizeBytes)
+            if (UIntPtr(graphicsPipelinePtr) < UIntPtr(&page->storage) || UIntPtr(graphicsPipelinePtr) >= UIntPtr(&page->storage) + pageStorageSizeBytes)
             {
                 continue; // pointer not in this page
             }
@@ -184,7 +184,7 @@ public:
             // calculate the index of the graphics pipeline, using the offset relative to the page's storage address
             // to get the index within the page.
             // then, we add the page index multiplied by the page size to get the absolute index in the SparsePagedArray.
-            return (pageIdx << Base::PageSizeBits) + ((UIntPtr(pGraphicsPipeline) - UIntPtr(&page->storage)) / sizeof(GraphicsPipelineRef));
+            return (pageIdx << Base::PageSizeBits) + ((UIntPtr(graphicsPipelinePtr) - UIntPtr(&page->storage)) / sizeof(GraphicsPipelineRef));
         }
 
         return SizeType(-1);
@@ -206,7 +206,7 @@ public:
 
 void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& cacheHandle, int delta, bool lock)
 {
-    AssertDebug(cacheHandle.m_pRef != nullptr);
+    AssertDebug(cacheHandle.m_ptr != nullptr);
 
     CachedPipelinesMap* cachedPipelines = g_renderInterface->graphicsPipelineCache->m_cachedPipelines;
     AssertDebug(cachedPipelines != nullptr);
@@ -216,7 +216,7 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
         g_renderInterface->graphicsPipelineCache->m_mutex.Lock();
     }
 
-    const SizeType index = g_renderInterface->graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_pRef);
+    const SizeType index = g_renderInterface->graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_ptr);
     AssertDebug(index != SizeType(-1));
 
     int& refCount = cachedPipelines->refCountMap.Get(index);
@@ -228,11 +228,11 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
     }
 }
 
-GraphicsPipelineCacheHandle::GraphicsPipelineCacheHandle(GraphicsPipelineRef* pRef)
+GraphicsPipelineCacheHandle::GraphicsPipelineCacheHandle(GraphicsPipelineRef* graphicsPipelinePtr)
 {
-    m_pRef = pRef;
+    m_ptr = graphicsPipelinePtr;
 
-    if (m_pRef)
+    if (m_ptr)
     {
         // created within lock so no need to lock it.
         UpdateRefCount(*this, 1, /* lock */ false);
@@ -240,9 +240,9 @@ GraphicsPipelineCacheHandle::GraphicsPipelineCacheHandle(GraphicsPipelineRef* pR
 }
 
 GraphicsPipelineCacheHandle::GraphicsPipelineCacheHandle(const GraphicsPipelineCacheHandle& other)
-    : m_pRef(other.m_pRef)
+    : m_ptr(other.m_ptr)
 {
-    if (m_pRef)
+    if (m_ptr)
     {
         UpdateRefCount(*this, 1, /* lock */ true);
     }
@@ -250,20 +250,20 @@ GraphicsPipelineCacheHandle::GraphicsPipelineCacheHandle(const GraphicsPipelineC
 
 GraphicsPipelineCacheHandle& GraphicsPipelineCacheHandle::operator=(const GraphicsPipelineCacheHandle& other)
 {
-    if (m_pRef == other.m_pRef)
+    if (m_ptr == other.m_ptr)
     {
         // no change, nothing to do
         return *this;
     }
 
-    if (m_pRef)
+    if (m_ptr)
     {
         UpdateRefCount(*this, -1, /* lock */ true);
     }
 
-    m_pRef = other.m_pRef;
+    m_ptr = other.m_ptr;
 
-    if (m_pRef)
+    if (m_ptr)
     {
         UpdateRefCount(*this, 1, /* lock */ true);
     }
@@ -273,7 +273,7 @@ GraphicsPipelineCacheHandle& GraphicsPipelineCacheHandle::operator=(const Graphi
 
 GraphicsPipelineCacheHandle::~GraphicsPipelineCacheHandle()
 {
-    if (m_pRef)
+    if (m_ptr)
     {
         UpdateRefCount(*this, -1, /* lock */ true);
     }
@@ -346,10 +346,10 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
     uint32 slot = ~0u;
 
     cacheHandle = m_cachedPipelines->Alloc(slot);
-    Assert(cacheHandle.m_pRef != nullptr && slot != ~0u);
+    Assert(cacheHandle.m_ptr != nullptr && slot != ~0u);
 
     // set new allocated slot to the graphics pipeline we just created
-    *cacheHandle.m_pRef = std::move(graphicsPipeline);
+    *cacheHandle.m_ptr = std::move(graphicsPipeline);
 
     struct CreateGraphicsPipelineAndAddToCache : RenderCommand
     {
@@ -386,7 +386,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
         }
     };
 
-    PUSH_RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache, *cacheHandle.m_pRef, slot, std::move(newCallback));
+    PUSH_RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache, *cacheHandle.m_ptr, slot, std::move(newCallback));
 
     return cacheHandle;
 }

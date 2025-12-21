@@ -451,7 +451,7 @@ private:
     void LoadPackagesAsync(bool loadSubpackages = false);
 
     template <class Func, class FutureType = void>
-    void PostTask(Func&& fn, Task<FutureType>* pOutFuture = nullptr);
+    void PostTask(Func&& fn, Task<FutureType>* outFuture = nullptr);
 
     void PruneTransientPackages();
 

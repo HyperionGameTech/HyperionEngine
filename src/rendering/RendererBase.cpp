@@ -188,9 +188,9 @@ const Handle<PassData>& RendererBase::TryGetViewPassData(View* view)
 
     AssertDebug(view->InstanceClass() == View::StaticClass(), "View cannot be subclassed"); // indices would get messed up
 
-    if (Handle<PassData>* pPassData = m_viewPassData.TryGet(view->Id().ToIndex()))
+    if (Handle<PassData>* passData = m_viewPassData.TryGet(view->Id().ToIndex()))
     {
-        return *pPassData;
+        return *passData;
     }
 
     return Handle<PassData>::empty;
@@ -205,9 +205,9 @@ const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt*
 
     AssertDebug(view->InstanceClass() == View::StaticClass(), "View cannot be subclassed"); // indices would get messed up
 
-    Handle<PassData>* pPassData = m_viewPassData.TryGet(view->Id().ToIndex());
+    Handle<PassData>* passDataHandle = m_viewPassData.TryGet(view->Id().ToIndex());
 
-    if (!pPassData)
+    if (!passDataHandle)
     {
         NullPassDataExt nullPassDataExt {};
 
@@ -220,11 +220,11 @@ const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt*
 
         InitObject(pd);
 
-        pPassData = &*m_viewPassData.Set(view->Id().ToIndex(), pd);
+        passDataHandle = &*m_viewPassData.Set(view->Id().ToIndex(), pd);
     }
-    else if (forceNew || (*pPassData)->view.GetUnsafe() != view)
+    else if (forceNew || (*passDataHandle)->view.GetUnsafe() != view)
     {
-        Handle<PassData>& pd = *pPassData;
+        Handle<PassData>& pd = *passDataHandle;
         pd.Reset();
 
         NullPassDataExt nullPassDataExt {};
@@ -239,10 +239,10 @@ const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt*
         m_viewPassData.Set(view->Id().ToIndex(), pd);
     }
 
-    AssertDebug(pPassData != nullptr && *pPassData != nullptr);
-    AssertDebug((*pPassData)->view.GetUnsafe() == view);
+    AssertDebug(passDataHandle != nullptr && *passDataHandle != nullptr);
+    AssertDebug((*passDataHandle)->view.GetUnsafe() == view);
 
-    return *pPassData;
+    return *passDataHandle;
 }
 
 #pragma region RendererBase

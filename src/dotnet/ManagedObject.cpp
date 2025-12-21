@@ -13,31 +13,31 @@
 namespace hyperion::dotnet {
 
 ManagedObject::ManagedObject()
-    : m_classPtr(nullptr),
+    : m_managedClass(nullptr),
       m_objectReference { nullptr, nullptr },
       m_objectFlags(ObjectFlags::NONE),
       m_keepAlive(false)
 {
 }
 
-ManagedObject::ManagedObject(const RC<ManagedClass>& classPtr, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags)
-    : m_classPtr(classPtr),
+ManagedObject::ManagedObject(const RC<ManagedClass>& managedClass, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags)
+    : m_managedClass(managedClass),
       m_objectReference(objectReference),
       m_objectFlags(objectFlags),
       m_keepAlive(false)
 {
-    if (classPtr != nullptr)
+    if (managedClass != nullptr)
     {
 #ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
-        m_assembly = classPtr->GetAssembly();
+        m_assembly = managedClass->GetAssembly();
 #else
-        m_assembly = classPtr->GetAssembly().ToWeak();
+        m_assembly = managedClass->GetAssembly().ToWeak();
 #endif
     }
 
     if (m_objectReference.weakHandle != nullptr)
     {
-        Assert(m_classPtr != nullptr, "Class pointer not set!");
+        Assert(m_managedClass != nullptr, "Class pointer not set!");
 
         if (!(m_objectFlags & ObjectFlags::CREATED_FROM_MANAGED))
         {
@@ -60,14 +60,14 @@ void ManagedObject::Reset()
         Assert(SetKeepAlive(false), "Failed to set keep alive to false!");
     }
 
-    m_classPtr.Reset();
+    m_managedClass.Reset();
     m_assembly.Reset();
     m_objectReference = ObjectReference { nullptr, nullptr };
     m_objectFlags = ObjectFlags::NONE;
     m_keepAlive.Set(false, MemoryOrder::RELEASE);
 }
 
-void ManagedObject::InvokeMethod_Internal(const ManagedMethod* methodPtr, const BoxedValue** argsHypData, BoxedValue* outReturnHypData)
+void ManagedObject::InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** ppArgs, BoxedValue* pOutReturn)
 {
     Assert(IsValid());
 
@@ -79,7 +79,7 @@ void ManagedObject::InvokeMethod_Internal(const ManagedMethod* methodPtr, const 
 
     Assert(assembly != nullptr && assembly->IsLoaded());
 
-    methodPtr->Invoke(&m_objectReference, argsHypData, outReturnHypData);
+    pMethod->Invoke(&m_objectReference, ppArgs, pOutReturn);
 }
 
 const ManagedMethod* ManagedObject::GetMethod(ANSIStringView methodName) const
@@ -89,9 +89,9 @@ const ManagedMethod* ManagedObject::GetMethod(ANSIStringView methodName) const
         return nullptr;
     }
 
-    auto it = m_classPtr->GetMethods().FindAs(methodName);
+    auto it = m_managedClass->GetMethods().FindAs(methodName);
 
-    if (it == m_classPtr->GetMethods().End())
+    if (it == m_managedClass->GetMethods().End())
     {
         return nullptr;
     }
@@ -106,9 +106,9 @@ const ManagedProperty* ManagedObject::GetProperty(ANSIStringView propertyName) c
         return nullptr;
     }
 
-    auto it = m_classPtr->GetProperties().FindAs(propertyName);
+    auto it = m_managedClass->GetProperties().FindAs(propertyName);
 
-    if (it == m_classPtr->GetProperties().End())
+    if (it == m_managedClass->GetProperties().End())
     {
         return nullptr;
     }

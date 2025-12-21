@@ -345,7 +345,7 @@ public:
 
     static Result Load(
         BufferedReader& manifestStream,
-        BufferedReader* pBinStream, // optional
+        BufferedReader* binStream, // optional
         Handle<AssetObject>& outAssetObject);
 
 protected:

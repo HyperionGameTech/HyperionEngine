@@ -57,7 +57,7 @@ class HYP_API ManagedObject final
 {
 public:
     ManagedObject();
-    ManagedObject(const RC<ManagedClass>& classPtr, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags = ObjectFlags::NONE);
+    ManagedObject(const RC<ManagedClass>& managedClass, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags = ObjectFlags::NONE);
 
     ManagedObject(const ManagedObject&) = delete;
     ManagedObject& operator=(const ManagedObject&) = delete;
@@ -70,7 +70,7 @@ public:
 
     HYP_FORCE_INLINE const RC<ManagedClass>& GetClass() const
     {
-        return m_classPtr;
+        return m_managedClass;
     }
 
     HYP_FORCE_INLINE const ObjectReference& GetObjectReference() const
@@ -104,9 +104,9 @@ public:
     const ManagedMethod* GetMethod(ANSIStringView methodName) const;
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeMethod(const ManagedMethod* methodPtr, Args&&... args)
+    ReturnType InvokeMethod(const ManagedMethod* pMethod, Args&&... args)
     {
-        return InvokeMethod_CheckArgs<ReturnType>(methodPtr, std::forward<Args>(args)...);
+        return InvokeMethod_CheckArgs<ReturnType>(pMethod, std::forward<Args>(args)...);
     }
 
     template <class ReturnType, class... Args>
@@ -114,10 +114,10 @@ public:
     {
         Assert(IsValid());
 
-        const ManagedMethod* methodPtr = GetMethod(methodName);
-        Assert(methodPtr != nullptr, "Method {} not found", methodName);
+        const ManagedMethod* pMethod = GetMethod(methodName);
+        Assert(pMethod != nullptr, "Method {} not found", methodName);
 
-        return InvokeMethod_CheckArgs<ReturnType>(methodPtr, std::forward<Args>(args)...);
+        return InvokeMethod_CheckArgs<ReturnType>(pMethod, std::forward<Args>(args)...);
     }
 
 private:
@@ -126,10 +126,10 @@ private:
      * */
     void Reset();
 
-    void InvokeMethod_Internal(const ManagedMethod* methodPtr, const BoxedValue** argsHypData, BoxedValue* outReturnHypData);
+    void InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** argsHypData, BoxedValue* outReturnHypData);
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeMethod_CheckArgs(const ManagedMethod* methodPtr, Args&&... args)
+    ReturnType InvokeMethod_CheckArgs(const ManagedMethod* pMethod, Args&&... args)
     {
         if constexpr (sizeof...(args) != 0)
         {
@@ -140,12 +140,12 @@ private:
 
             if constexpr (std::is_void_v<ReturnType>)
             {
-                InvokeMethod_Internal(methodPtr, argsArrayPtr, nullptr);
+                InvokeMethod_Internal(pMethod, argsArrayPtr, nullptr);
             }
             else
             {
                 BoxedValue returnHypData;
-                InvokeMethod_Internal(methodPtr, argsArrayPtr, &returnHypData);
+                InvokeMethod_Internal(pMethod, argsArrayPtr, &returnHypData);
 
                 if (returnHypData.IsNull())
                 {
@@ -161,12 +161,12 @@ private:
 
             if constexpr (std::is_void_v<ReturnType>)
             {
-                InvokeMethod_Internal(methodPtr, argsArrayPtr, nullptr);
+                InvokeMethod_Internal(pMethod, argsArrayPtr, nullptr);
             }
             else
             {
                 BoxedValue returnHypData;
-                InvokeMethod_Internal(methodPtr, argsArrayPtr, &returnHypData);
+                InvokeMethod_Internal(pMethod, argsArrayPtr, &returnHypData);
 
                 if (returnHypData.IsNull())
                 {
@@ -180,7 +180,7 @@ private:
 
     const ManagedProperty* GetProperty(ANSIStringView methodName) const;
 
-    RC<ManagedClass> m_classPtr;
+    RC<ManagedClass> m_managedClass;
 #ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
     RC<Assembly> m_assembly; // Keep a reference to the assembly to prevent it from being unloaded while this object is alive.
 #else

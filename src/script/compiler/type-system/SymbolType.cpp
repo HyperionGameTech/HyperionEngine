@@ -628,11 +628,11 @@ bool SymbolType::TypeCompatible(
         }
 
         // use the underlying type for compatibility checks
-        const SymbolType* pUnderlyingType = right.GetBaseType();
-        Assert(pUnderlyingType != nullptr);
+        const SymbolType* underlyingType = right.GetBaseType();
+        Assert(underlyingType != nullptr);
 
         return TypeCompatible(
-            *pUnderlyingType,
+            *underlyingType,
             strictNumbers,
             strictAny,
             strictEnum,
@@ -877,16 +877,16 @@ bool SymbolType::FindMemberDeep(UTF8StringView name, SymbolTypeMember& out, uint
 
     outDepth++;
 
-    const SymbolType* pBase = GetBaseType();
+    const SymbolType* base = GetBaseType();
 
-    while (pBase != nullptr)
+    while (base != nullptr)
     {
-        if (pBase->FindMember(name, out, outIndex))
+        if (base->FindMember(name, out, outIndex))
         {
             return true;
         }
 
-        pBase = pBase->GetBaseType();
+        base = base->GetBaseType();
 
         outDepth++;
     }
@@ -947,16 +947,16 @@ bool SymbolType::IsOrHasBase(const SymbolType& baseType) const
 
 bool SymbolType::HasBase(const SymbolType& baseType) const
 {
-    const SymbolType* pBase = m_base;
+    const SymbolType* base = m_base;
 
-    while (pBase != nullptr)
+    while (base != nullptr)
     {
-        if (pBase->TypeEqual(baseType))
+        if (base->TypeEqual(baseType))
         {
             return true;
         }
 
-        pBase = pBase->GetBaseType();
+        base = base->GetBaseType();
     }
 
     return false;
@@ -1336,7 +1336,7 @@ SymbolType* SymbolType::GenericInstance(
     Array<SymbolTypeMember> allStaticMembers;
     allStaticMembers.Reserve((genericType ? genericType->GetStaticMembers().Size() : 0) + staticMembers.Size());
 
-    const SymbolType* pBase = genericType ? genericType->GetBaseType() : nullptr;
+    const SymbolType* base = genericType ? genericType->GetBaseType() : nullptr;
 
     if (genericType != nullptr)
     {
@@ -1431,7 +1431,7 @@ SymbolType* SymbolType::GenericInstance(
     SymbolType* result = new SymbolType(
         name,
         TYPE_GENERIC_INSTANCE,
-        pBase,
+        base,
         nullptr,
         std::move(allMembers),
         std::move(allStaticMembers));

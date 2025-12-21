@@ -417,7 +417,7 @@ void EngineDriver::GameThreadUpdate(float delta)
     Array<Subsystem*, SceneAllocator> subsystemsToProcess;
 
     TaskBatch worldUpdateTaskBatch;
-    TaskBatch* pCurrBatch = &worldUpdateTaskBatch;
+    TaskBatch* currBatch = &worldUpdateTaskBatch;
 
     for (uint32 i = 0; i < uint32(m_worlds.Size()); i++)
     {
@@ -426,14 +426,14 @@ void EngineDriver::GameThreadUpdate(float delta)
         world->CollectViews(viewsToProcess);
         world->CollectSubsystems(subsystemsToProcess);
 
-        world->BeginUpdate(*pCurrBatch, delta);
+        world->BeginUpdate(*currBatch, delta);
 
         if (i != uint32(m_worlds.Size() - 1))
         {
             // get the tail to pass to the next world's BeginUpdate()
-            while (pCurrBatch->nextBatch != nullptr)
+            while (currBatch->nextBatch != nullptr)
             {
-                pCurrBatch = pCurrBatch->nextBatch;
+                currBatch = currBatch->nextBatch;
             }
         }
 

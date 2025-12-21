@@ -70,8 +70,6 @@ struct AddUIRendererForView : RenderCommand
 
         UIRenderer* uiRenderer = PoolNew<UIRenderer>(*g_renderPool, view);
 
-        EntityBatchAllocatorBase* pBatchAllocator = nullptr;
-
         const Class* entityBatchClass = view->GetViewDesc().entityBatchClass;
 
         if (entityBatchClass != nullptr)
