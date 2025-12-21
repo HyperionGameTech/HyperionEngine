@@ -1068,15 +1068,11 @@ static bool HandleWindowEvent(
 
         break;
     }
-    case WM_SETFOCUS:
+    case WM_ACTIVATE:
     {
-        event = Event(EventType::WINDOW_FOCUS_GAINED, window, platformEvent);
+        bool isActive = (LOWORD(wParam) != WA_INACTIVE);
 
-        return true;
-    }
-    case WM_KILLFOCUS:
-    {
-        event = Event(EventType::WINDOW_FOCUS_LOST, window, platformEvent);
+        event = Event(isActive ? EventType::WINDOW_FOCUS_GAINED : EventType::WINDOW_FOCUS_LOST, window, platformEvent);
 
         return true;
     }

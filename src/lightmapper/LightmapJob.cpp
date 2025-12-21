@@ -6,6 +6,7 @@
 #include <lightmapper/Lightmapper.hpp>
 #include <lightmapper/LightmapPathTraceCpu.hpp>
 #include <lightmapper/LightmapPathTraceGpu.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderInterface.hpp>
@@ -21,8 +22,6 @@
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RendererBase.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <scene/World.hpp>
 #include <scene/View.hpp>

@@ -58,12 +58,15 @@ public:
     bool IsMouseLocked() const;
 
     HYP_METHOD()
-    void PushMouseLockState(bool mouseLocked);
+    void PushMouseLockState(bool mouseLocked, bool syncToVirtualPosition = false);
 
     HYP_METHOD()
     void PopMouseLockState();
 
-    InputMouseLockScope AcquireMouseLock();
+    /*! \brief Acquire a new mouse lock scope. The input device will be locked until the object goes out of scope or another state takes precedence over this one.
+    *   \param [syncToVirtualPosition] If true, when the state is removed, the mouse state will be synchronized with the virtual mouse position (that is, the internal position that
+    *   continues to be updated regardless of whether or not the actual mouse is locked) */
+    InputMouseLockScope AcquireMouseLock(bool syncToVirtualPosition = false);
 
     HYP_METHOD()
     Vec2i GetMousePosition() const
@@ -124,7 +127,8 @@ public:
     HYP_METHOD()
     bool IsButtonDown(MouseButtonKey btn) const;
 
-   EnumFlags<MouseButtonState> GetButtonStates() const;
+    HYP_METHOD()
+    EnumFlags<MouseButtonState> GetButtonStates() const;
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsButtonUp(MouseButtonKey btn) const
@@ -132,6 +136,7 @@ public:
         return !IsButtonDown(btn);
     }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE ApplicationWindow* GetWindow() const
     {
         return m_ownerWindow;
@@ -145,7 +150,7 @@ public:
     bool PollEvent(Event& outEvent);
 
 private:
-    void SetIsMouseLocked(bool isMouseLocked);
+    void SetIsMouseLocked(bool locked);
 
     void UpdateMousePosition(Event& event);
     void UpdateWindowSize(Vec2i newSize);
@@ -220,6 +225,7 @@ private:
     ApplicationWindow* m_ownerWindow;
 
     bool m_isMouseLocked;
+    bool m_syncToVirtualPosition;
 };
 
 } // namespace hyperion

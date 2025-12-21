@@ -53,12 +53,18 @@ ThreadBase::ThreadBase(const ThreadId& id, ThreadPriorityValue priority)
 {
     AssertDebug(id.IsValid(), "ThreadId must be valid");
 
-    RegisterThread(m_id, this);
+    if (GetThreadById(id) == nullptr)
+    {
+        RegisterThread(m_id, this);
+    }
 }
 
 ThreadBase::~ThreadBase()
 {
-    UnregisterThread(m_id);
+    if (GetThreadById(m_id) == this)
+    {
+        UnregisterThread(m_id);
+    }
 
     if (m_tls)
     {

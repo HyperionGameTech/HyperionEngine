@@ -155,7 +155,7 @@ UIObject::UIObject(const ThreadId& ownerThreadId)
 }
 
 UIObject::UIObject()
-    : UIObject(ThreadId::invalid)
+    : UIObject(ThreadId::Invalid())
 {
 }
 

@@ -251,10 +251,6 @@ Result LightmapData<LightmapVolume>::Build()
                         m_meshIndices[meshIndex][triangleIndex * 3 + 2]
                     };
 
-                    Assert(triangleIndices[0] * 3 < m_meshVertexPositions[meshIndex].Size());
-                    Assert(triangleIndices[1] * 3 < m_meshVertexPositions[meshIndex].Size());
-                    Assert(triangleIndices[2] * 3 < m_meshVertexPositions[meshIndex].Size());
-
                     const Vec3f vertexPositions[3] = {
                         Vec3f(m_meshVertexPositions[meshIndex][triangleIndices[0] * 3], m_meshVertexPositions[meshIndex][triangleIndices[0] * 3 + 1], m_meshVertexPositions[meshIndex][triangleIndices[0] * 3 + 2]),
                         Vec3f(m_meshVertexPositions[meshIndex][triangleIndices[1] * 3], m_meshVertexPositions[meshIndex][triangleIndices[1] * 3 + 1], m_meshVertexPositions[meshIndex][triangleIndices[1] * 3 + 2]),

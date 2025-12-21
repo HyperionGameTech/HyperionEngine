@@ -3,9 +3,9 @@
 #include <HyperionPch.hpp>
 
 #include <input/InputManager.hpp>
+#include <input/Event.hpp>
 
 #include <system/AppContext.hpp>
-#include <input/Event.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -185,7 +185,8 @@ InputManager::InputManager(ApplicationWindow* ownerWindow)
     : m_eventQueue(new InputEventQueue),
       m_mouseLockStates(&GetInputPool()),
       m_ownerWindow(ownerWindow),
-      m_isMouseLocked(false)
+      m_isMouseLocked(false),
+      m_syncToVirtualPosition(false)
 {
     AssertDebug(ownerWindow != nullptr);
 }
@@ -214,12 +215,13 @@ bool InputManager::IsMouseLocked() const
     return m_isMouseLocked;
 }
 
-void InputManager::PushMouseLockState(bool mouseLocked)
+void InputManager::PushMouseLockState(bool mouseLocked, bool syncToVirtualPosition)
 {
     InputMouseLockState* mouseLockState = (InputMouseLockState*)GetMouseLockStateAllocator().Allocate();
 
     new (mouseLockState) InputMouseLockState;
     mouseLockState->locked = mouseLocked;
+    mouseLockState->syncToVirtualPosition = syncToVirtualPosition;
 
     ApplyMouseLockState(mouseLockState);
 }
@@ -253,46 +255,54 @@ void InputManager::PopMouseLockState()
     }
 }
 
-InputMouseLockScope InputManager::AcquireMouseLock()
+InputMouseLockScope InputManager::AcquireMouseLock(bool syncToVirtualPosition)
 {
     InputMouseLockState* mouseLockState = (InputMouseLockState*)GetMouseLockStateAllocator().Allocate();
 
     new (mouseLockState) InputMouseLockState;
     mouseLockState->locked = true;
+    mouseLockState->syncToVirtualPosition = syncToVirtualPosition;
 
     ApplyMouseLockState(mouseLockState);
 
     return InputMouseLockScope { this, mouseLockState };
 }
 
-void InputManager::SetIsMouseLocked(bool isMouseLocked)
+void InputManager::SetIsMouseLocked(bool locked)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    if (m_isMouseLocked == isMouseLocked)
+    if (!m_ownerWindow)
+    {
+        return;
+    }
+
+    if (m_isMouseLocked == locked)
     {
         return; // already set
     }
 
+    if (!locked)
+    {
+        if (m_syncToVirtualPosition)
+        {
+            // Set the new mouse position to the virtual mouse position we had before,
+            // so things line up as expected
+            m_ownerWindow->SetMousePosition(m_virtualMousePosition);
+        }
+    }
+
+    // sync the virtual positions to the physical ones
     m_previousMousePosition = m_mousePosition;
     m_mousePosition = m_ownerWindow->GetMousePosition();
 
-    // On lock state changed, sync the virtual positions to the physical ones
     m_previousVirtualMousePosition = m_previousMousePosition;
     m_virtualMousePosition = m_mousePosition;
 
-    if (m_ownerWindow)
-    {
-        m_ownerWindow->SetIsMouseLocked(isMouseLocked);
-    }
-    else
-    {
-        // set to false if no window
-        isMouseLocked = false;
-    }
+    m_ownerWindow->SetIsMouseLocked(locked);
 
-    m_isMouseLocked = isMouseLocked;
+    m_isMouseLocked = locked;
 }
 
 void InputManager::UpdateMousePosition(Event& event)
@@ -311,10 +321,11 @@ void InputManager::UpdateMousePosition(Event& event)
             ? event.GetMousePosition() - Vec2i(m_previousMousePosition)
             : Vec2i(event.GetMousePositionDeltas());
 
-        HYP_LOG_TEMP("Deltas: {}", deltas);
-
         // if locked, only update the virtual position
-        m_virtualMousePosition = Vec2i(m_virtualMousePosition) + deltas;
+        Vec2i newVirtualMousePosition = Vec2i(m_virtualMousePosition) + deltas;
+        newVirtualMousePosition = MathUtil::Clamp(newVirtualMousePosition, Vec2i::Zero(), m_ownerWindow->GetDimensions() - 1);
+
+        m_virtualMousePosition = newVirtualMousePosition;
 
         return;
     }
@@ -429,6 +440,8 @@ void InputManager::ApplyMouseLockState(InputMouseLockState* mouseLockState)
         {
             // apply default state
             SetIsMouseLocked(false);
+
+            m_syncToVirtualPosition = false;
         }
 
         return;
@@ -439,6 +452,8 @@ void InputManager::ApplyMouseLockState(InputMouseLockState* mouseLockState)
     if (IsOnThread(g_mainThread))
     {
         SetIsMouseLocked(mouseLockState->locked);
+
+        m_syncToVirtualPosition = mouseLockState->syncToVirtualPosition;
     }
 }
 
@@ -466,7 +481,19 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
 
     if (eraseIt == m_mouseLockStates.End() && IsOnThread(g_mainThread)) // was it at the end?
     {
-        SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
+        if (m_mouseLockStates.Any())
+        {
+            InputMouseLockState* nextMouseLockState = m_mouseLockStates.Back();
+            AssertDebug(nextMouseLockState != nullptr);
+
+            SetIsMouseLocked(nextMouseLockState->locked);
+
+            m_syncToVirtualPosition = nextMouseLockState->syncToVirtualPosition;
+        }
+        else
+        {
+            SetIsMouseLocked(false); // default state
+        }
     }
 }
 
@@ -553,7 +580,22 @@ void InputManager::MainThreadUpdate()
     AssertOnThread(g_mainThread);
 
     Mutex::Guard guard(m_mouseLockStatesMutex);
-    SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
+
+    if (m_mouseLockStates.Any())
+    {
+        InputMouseLockState* mouseLockState = m_mouseLockStates.Back();
+        AssertDebug(mouseLockState != nullptr);
+
+        SetIsMouseLocked(mouseLockState->locked);
+
+        m_syncToVirtualPosition = mouseLockState->syncToVirtualPosition;
+    }
+    else
+    {
+        SetIsMouseLocked(false); // default state
+
+        m_syncToVirtualPosition = false;
+    }
 
     if (m_ownerWindow->IsMouseLocked())
     {
