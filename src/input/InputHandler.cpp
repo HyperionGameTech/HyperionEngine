@@ -76,7 +76,7 @@ bool InputHandlerBase::OnMouseDown_Impl(const MouseEvent& evt)
 
 bool InputHandlerBase::OnMouseUp_Impl(const MouseEvent& evt)
 {
-    m_mouseButtonStates &= evt.mouseButtons;
+    m_mouseButtonStates &= ~evt.mouseButtons;
 
     // default to not handled
     return false;

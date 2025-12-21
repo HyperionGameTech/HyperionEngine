@@ -2005,14 +2005,7 @@ void EditorSubsystem::InitViewport()
                 Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
                 Handle<Node> node = m_hoveredGizmoNode.Lock();
 
-                if (!gizmo || !node)
-                {
-                    HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
-
-                    return UIEventHandlerResult::ERR;
-                }
-
-                if (!gizmo->IsDragging())
+                if (gizmo && node && !gizmo->IsDragging())
                 {
                     const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
                     const Vec4f rayDirection = mouseWorld.Normalized();
@@ -2054,6 +2047,8 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }
 
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseUp(event);
+
             if (IsHoveringGizmo())
             {
                 Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
@@ -2071,11 +2066,6 @@ void EditorSubsystem::InitViewport()
                     gizmo->OnDragEnd(activeViewport->GetCamera(), event, node);
                 }
 
-                return UIEventHandlerResult::STOP_BUBBLING;
-            }
-
-            if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseUp(event))
-            {
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 

@@ -753,7 +753,10 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         for (auto it = m_hoveredUiObjects.Begin(); it != m_hoveredUiObjects.End();)
         {
-            const auto rayTestResultsIt = rayTestResults.FindAs(*it);
+            const bool isInBounds = mouseScreen.x >= 0.0f && mouseScreen.y >= 0.0f
+                && mouseScreen.x < 1.0f && mouseScreen.y < 1.0f;
+
+            const auto rayTestResultsIt = isInBounds ? rayTestResults.FindAs(*it) : rayTestResults.End();
 
             if (rayTestResultsIt == rayTestResults.End())
             {
@@ -767,6 +770,28 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                         .absolutePos = Vec2f(mousePosition),
                         .absolutePrevPos = Vec2f(previousMousePosition),
                         .mouseButtons = inputManager->GetButtonStates() });
+
+                    auto mouseStatesIt = m_objectMouseStates.Find(uiObject);
+                    if (mouseStatesIt != m_objectMouseStates.End())
+                    {
+                        EnumFlags<MouseButtonState>& stateMouseButtons = mouseStatesIt->second.mouseButtons;
+
+                        if (stateMouseButtons != MouseButtonState::NONE) // no overlap; skip
+                        {
+                            // trigger mouse up
+                            uiObject->SetFocusState(uiObject->GetFocusState() & ~UIObjectFocusState::PRESSED);
+
+                            UIEventHandlerResult currentResult = uiObject->OnMouseUp(MouseEvent {
+                                .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                                .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                                .absolutePos = Vec2f(mousePosition),
+                                .absolutePrevPos = Vec2f(previousMousePosition),
+                                .mouseButtons = stateMouseButtons });
+
+                            eventHandlerResult |= currentResult;
+                            mouseStatesIt = m_objectMouseStates.Erase(mouseStatesIt);
+                        }
+                    }
                 }
 
                 it = m_hoveredUiObjects.Erase(it);
@@ -867,7 +892,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
 
-        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::* ClickDelegateMember;
+        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::*ClickDelegateMember;
         const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ClickDelegateMember delegateMember = nullptr)
         {
             if (buttons != mouseButtonToCheck)
@@ -946,7 +971,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                     .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePos = Vec2f(mousePosition),
                     .absolutePrevPos = Vec2f(previousMousePosition),
-                    .mouseButtons = (stateMouseButtons & ~buttons) });
+                    .mouseButtons = stateMouseButtons & buttons });
 
                 eventHandlerResult |= currentResult;
 
