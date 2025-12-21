@@ -524,12 +524,8 @@ void InputManager::MainThreadUpdate()
     Mutex::Guard guard(m_mouseLockStatesMutex);
     SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
 
-    if (m_isMouseLocked)
-    {
-        //    m_ownerWindow->SetMousePosition(m_previousMousePosition);
-    }
-
     m_previousMousePosition = m_mousePosition;
+    m_mousePosition = m_ownerWindow->GetMousePosition();
 }
 
 #pragma endregion InputManager

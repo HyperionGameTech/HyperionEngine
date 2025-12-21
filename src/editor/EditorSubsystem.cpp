@@ -1821,6 +1821,8 @@ void EditorSubsystem::InitViewport()
                 const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
+                HYP_LOG_TEMP("Mouse World: {}, Ray Direction: {}", mouseWorld, rayDirection);
+
                 const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
 
                 RayTestResults results;
@@ -1877,10 +1879,7 @@ void EditorSubsystem::InitViewport()
                 SetHoveredGizmo(event, nullptr, Handle<Node>::Null());
             }
 
-            if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseLeave(event))
-            {
-                return UIEventHandlerResult::STOP_BUBBLING;
-            }
+            activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseLeave(event);
 
             return UIEventHandlerResult::OK;
         }));
@@ -2020,12 +2019,10 @@ void EditorSubsystem::InitViewport()
                         {
                             gizmo->OnDragStart(activeViewport->GetCamera(), event, node, rayHit.hitpoint);
 
-                            break;
+                            return UIEventHandlerResult::STOP_BUBBLING;
                         }
                     }
                 }
-
-                return UIEventHandlerResult::STOP_BUBBLING;
             }
 
             if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseDown(event))
@@ -2054,19 +2051,10 @@ void EditorSubsystem::InitViewport()
                 Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
                 Handle<Node> node = m_hoveredGizmoNode.Lock();
 
-                if (!gizmo || !node)
-                {
-                    HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
-
-                    return UIEventHandlerResult::ERR;
-                }
-
-                if (gizmo->IsDragging())
+                if (gizmo && node && gizmo->IsDragging())
                 {
                     gizmo->OnDragEnd(activeViewport->GetCamera(), event, node);
                 }
-
-                return UIEventHandlerResult::STOP_BUBBLING;
             }
 
             return UIEventHandlerResult::OK;
@@ -2075,22 +2063,24 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Remove(&backdropPanel->OnKeyDown);
     m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
         {
-            // On escape press, stop simulating if we're currently simulating
-            if (event.keyCode == KeyCode::KEY_ESCAPE && GetWorld()->GetGameState().IsSimulating())
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
             {
-                GetWorld()->StopSimulating();
-
-                return UIEventHandlerResult::STOP_BUBBLING;
+                return UIEventHandlerResult::OK;
             }
 
-            if (GetWorld()->GetGameState().IsStopped())
+            if (GetWorld()->GetGameState().IsSimulating())
             {
-                EditorViewport* activeViewport = GetActiveViewport();
-                if (!activeViewport)
+                // On escape press, stop simulating if we're currently simulating
+                if (event.keyCode == KeyCode::KEY_ESCAPE)
                 {
-                    return UIEventHandlerResult::OK;
-                }
+                    GetWorld()->StopSimulating();
 
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+            }
+            else
+            {
                 if (m_focusedNode.IsValid())
                 {
                     if (GetGizmo(EditorManipulationMode::TRANSLATE)->OnKeyPress(activeViewport->GetCamera(), event, m_focusedNode.Lock()))
@@ -2098,11 +2088,11 @@ void EditorSubsystem::InitViewport()
                         return UIEventHandlerResult::STOP_BUBBLING;
                     }
                 }
+            }
 
-                if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnKeyDown(event))
-                {
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
+            if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnKeyDown(event))
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
             }
 
             return UIEventHandlerResult::OK;

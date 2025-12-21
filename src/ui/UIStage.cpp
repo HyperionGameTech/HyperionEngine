@@ -596,7 +596,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 
         const EnumFlags<MouseButtonState> mouseButtons = inputManager->GetButtonStates();
 
-        const Vec2i mousePosition = inputManager->GetMousePosition();
+        const Vec2i mousePosition = event.GetMousePosition();
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
 
@@ -623,11 +623,11 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                             .mouseButtons = mouseButtons
                         };
 
-                        // if (MathUtil::Abs(it.second.originalMousePosition - mouseScreen).LengthSquared() < invSurfaceSize.LengthSquared())
-                        //{
-                        //  If the mouse position hasn't changed significantly, don't trigger a drag event
-                        //    continue;
-                        //}
+                        if (MathUtil::Abs(it.second.originalMousePosition - mouseScreen).LengthSquared() < invSurfaceSize.LengthSquared())
+                        {
+                            // If the mouse position hasn't changed significantly, don't trigger a drag event
+                            continue;
+                        }
 
                         UIEventHandlerResult currentResult = uiObject->OnMouseDrag(mouseEvent);
 
@@ -826,11 +826,6 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
             {
                 const Handle<UIObject>& uiObject = *it;
 
-                if (!firstHit)
-                {
-                    firstHit = uiObject.Get();
-                }
-
                 auto mouseButtonPressedStatesIt = m_objectMouseStates.FindAs(uiObject);
 
                 if (mouseButtonPressedStatesIt != m_objectMouseStates.End())
@@ -848,6 +843,13 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                     if (!uiObject->AcceptsFocus() || !uiObject->IsEnabled())
                     {
                         continue;
+                    }
+
+                    if (!firstHit)
+                    {
+                        firstHit = uiObject.Get();
+
+                        uiObject->Focus();
                     }
 
                     mouseButtonPressedStatesIt = m_objectMouseStates.Set(uiObject, { event.GetMouseButtons(), 0.0f }).first;
@@ -874,11 +876,6 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                 {
                     break;
                 }
-            }
-
-            if (firstHit != nullptr && firstHit->AcceptsFocus() && firstHit->IsEnabled())
-            {
-                firstHit->Focus();
             }
         }
 
@@ -1059,6 +1056,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
         while (uiObject != nullptr)
         {
             auto it = keyedDown.FindAs(uiObject);
+
+            HYP_LOG_TEMP("Key Down Event: {} on {}", int(keyCode), uiObject->GetName());
 
             if (it == keyedDown.End() || ShouldTriggerKeyDownEvent(it->second))
             {
