@@ -41,8 +41,6 @@ void DestroyCocoaEvent(CocoaEvent& cocoaEvent)
     }
 }
 
-namespace sys {
-
 CocoaAppContext::CocoaAppContext(ANSIString name, const CommandLineArguments& arguments)
     : AppContextBase(std::move(name), arguments)
 {
@@ -392,5 +390,4 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
     return surface;
 }
 
-} // namespace sys
 } // namespace hyperion

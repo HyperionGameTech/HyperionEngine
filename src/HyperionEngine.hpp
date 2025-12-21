@@ -26,17 +26,9 @@ class CommandLineArguments;
 
 using cli::CommandLineArguments;
 
-namespace sys {
-
 class AppContextBase;
 class ApplicationWindow;
 struct WindowOptions;
-
-} // namespace sys
-
-using sys::AppContextBase;
-using sys::ApplicationWindow;
-using sys::WindowOptions;
 
 class Game;
 

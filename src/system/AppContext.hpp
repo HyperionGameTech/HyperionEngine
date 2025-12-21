@@ -69,9 +69,7 @@ struct CommandLineArgumentDefinitions;
 using cli::CommandLineArgumentDefinitions;
 using cli::CommandLineArguments;
 
-namespace sys {
-
-class SystemEvent;
+class Event;
 
 HYP_STRUCT()
 struct WindowOptions
@@ -252,7 +250,7 @@ public:
     HYP_METHOD()
     void RemoveWindow(ApplicationWindow* window);
 
-    virtual int PollEvents(SystemEvent& event) = 0;
+    virtual int PollEvents(Event& event) = 0;
 
     HYP_FIELD()
     ScriptableDelegate<void, ApplicationWindow*> OnCurrentWindowChanged;
@@ -276,7 +274,7 @@ public:
     HYP_METHOD()
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
 
-    int PollEvents(SystemEvent& event) override;
+    int PollEvents(Event& event) override;
 
 #ifdef HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(
@@ -350,7 +348,7 @@ public:
     HYP_METHOD()
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
 
-    int PollEvents(SystemEvent& event) override;
+    int PollEvents(Event& event) override;
 
 #ifdef HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(
@@ -422,7 +420,7 @@ public:
         return m_useCocoaEvents;
     }
 
-    bool HandleNSEvent(NSEvent* nsEvent, SystemEvent& event);
+    bool HandleNSEvent(NSEvent* nsEvent, Event& event);
 
 private:
     void* m_windowDelegate = nullptr;
@@ -448,7 +446,7 @@ public:
     HYP_METHOD()
     Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
 
-    int PollEvents(SystemEvent& event) override;
+    int PollEvents(Event& event) override;
 
 #ifdef HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(
@@ -457,28 +455,8 @@ public:
 #endif
 };
 
-} // namespace sys
-
-using sys::SystemEvent;
-
-using sys::WindowOptions;
-
-using sys::AppContextBase;
-using sys::ApplicationWindow;
-
-using sys::SDLAppContext;
-using sys::SDLApplicationWindow;
-
-using sys::Win32AppContext;
-using sys::Win32ApplicationWindow;
-
-using sys::CocoaAppContext;
-using sys::CocoaApplicationWindow;
-
 #ifdef HYP_WINDOWS
-namespace sys {
 HYP_API void Win32_CleanupWindowClasses();
-}
 #endif
 
 #include <system/helpers/AppContextHelpers.inl>

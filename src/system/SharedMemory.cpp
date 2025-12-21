@@ -14,7 +14,6 @@
 #endif
 
 namespace hyperion {
-namespace sys {
 
 SharedMemory::SharedMemory(const String& id, SizeType size, Mode mode)
     : m_id(id),
@@ -127,5 +126,4 @@ void SharedMemory::Write(const void* data, SizeType count)
     Memory::MemCpy(m_address, data, count);
 }
 
-} // namespace sys
 } // namespace hyperion

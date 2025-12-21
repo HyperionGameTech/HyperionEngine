@@ -497,7 +497,7 @@ extern "C"
         g_renderThreadInstance = nullptr;
 
 #ifdef HYP_WINDOWS
-        sys::Win32_CleanupWindowClasses();
+        Win32_CleanupWindowClasses();
 #endif
     }
 

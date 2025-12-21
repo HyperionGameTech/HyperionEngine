@@ -44,7 +44,7 @@
 
 #include <input/InputManager.hpp>
 
-#include <system/SystemEvent.hpp>
+#include <input/Event.hpp>
 
 #include <core/config/Config.hpp>
 
@@ -122,8 +122,6 @@ void DefaultGame::OnLaunch_Impl()
     Handle<FirstPersonCameraController> cameraController = CreateObject<FirstPersonCameraController>();
     m_camera->AddCameraController(cameraController);
 
-
-    
     // temp: add test script component
 
     Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
@@ -151,7 +149,7 @@ void DefaultGame::OnUpdate_Impl(float delta)
 {
 }
 
-void DefaultGame::OnInputEvent(const SystemEvent& event)
+void DefaultGame::OnInputEvent(const Event& event)
 {
     Game::OnInputEvent(event);
 
@@ -159,19 +157,19 @@ void DefaultGame::OnInputEvent(const SystemEvent& event)
 
     switch (event.GetType())
     {
-    case SystemEvent::EventType::KEYUP:
+    case EventType::KEYUP:
         controller->GetInputHandler()->OnKeyUp(event.ToKeyboardEvent());
         break;
-    case SystemEvent::EventType::KEYDOWN:
+    case EventType::KEYDOWN:
         controller->GetInputHandler()->OnKeyDown(event.ToKeyboardEvent());
         break;
-    case SystemEvent::EventType::MOUSEBUTTON_DOWN:
+    case EventType::MOUSEBUTTON_DOWN:
         controller->GetInputHandler()->OnMouseDown(event.ToMouseEvent());
         break;
-    case SystemEvent::EventType::MOUSEBUTTON_UP:
+    case EventType::MOUSEBUTTON_UP:
         controller->GetInputHandler()->OnMouseUp(event.ToMouseEvent());
         break;
-    case SystemEvent::EventType::MOUSEMOTION:
+    case EventType::MOUSEMOTION:
         controller->GetInputHandler()->OnMouseMove(event.ToMouseEvent());
         break;
     default:

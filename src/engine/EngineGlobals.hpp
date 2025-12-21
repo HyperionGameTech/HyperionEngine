@@ -8,12 +8,7 @@
 
 namespace hyperion {
 
-namespace sys {
 class AppContextBase;
-} // namespace sys
-
-using sys::AppContextBase;
-
 class EngineDriver;
 class AssetManager;
 class SafeDeleter;

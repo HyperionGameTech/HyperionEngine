@@ -13,12 +13,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(GameThread);
 
-namespace sys {
 class AppContextBase;
-} // namespace sys
-
-using sys::AppContextBase;
-
 class Game;
 
 class GameThread final : public Thread<Scheduler>

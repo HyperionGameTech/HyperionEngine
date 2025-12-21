@@ -137,7 +137,7 @@ Result FontAtlas::RenderAtlasTextures()
 {
     Assert(m_face != nullptr);
 
-    if ((m_symbolList.Size() / s_symbolColumns) > s_symbolRows)
+    if ((m_symbolList.Size() / SymbolColumns) > SymbolRows)
     {
         HYP_LOG(Font, Warning, "Symbol list size is greater than the allocated font atlas!");
     }
@@ -154,16 +154,16 @@ Result FontAtlas::RenderAtlasTextures()
 
         HYP_LOG(Font, Info, "Rendering font atlas for pixel size {}", scaledExtent.y);
 
-        UniquePtr<FontAtlasBitmap> atlasBitmap = MakeUnique<FontAtlasBitmap>(uint32(scaledExtent.x * s_symbolColumns), uint32(scaledExtent.y * s_symbolRows));
+        UniquePtr<FontAtlasBitmap> atlasBitmap = MakeUnique<FontAtlasBitmap>(uint32(scaledExtent.x * SymbolColumns), uint32(scaledExtent.y * SymbolRows));
 
         for (SizeType i = 0; i < m_symbolList.Size(); i++)
         {
             const FontFace::WChar symbol = m_symbolList[i];
 
-            const Vec2i index { int(i % s_symbolColumns), int(i / s_symbolColumns) };
+            const Vec2i index { int(i % SymbolColumns), int(i / SymbolColumns) };
             const Vec2i offset = index * scaledExtent;
 
-            if (index.y > s_symbolRows)
+            if (index.y > SymbolRows)
             {
                 break;
             }

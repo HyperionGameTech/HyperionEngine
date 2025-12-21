@@ -9,6 +9,7 @@
 namespace hyperion {
 
 class InputManager;
+class Event;
 
 HYP_ENUM()
 enum MouseButtonKey : uint32
@@ -35,6 +36,8 @@ HYP_STRUCT()
 struct MouseEvent
 {
     HYP_STRUCT_BODY(MouseEvent);
+
+    const Event* baseEvent = nullptr;
 
     HYP_FIELD()
     Vec2f relativePos;

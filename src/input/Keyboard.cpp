@@ -4,6 +4,7 @@
 
 #include <input/Keyboard.hpp>
 #include <input/InputManager.hpp>
+#include <input/Event.hpp>
 
 #include <core/debug/Debug.hpp>
 

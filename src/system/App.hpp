@@ -10,8 +10,6 @@ namespace hyperion {
 class Game;
 class GameThread;
 
-namespace sys {
-
 class AppContextBase;
 
 class HYP_API App final
@@ -28,9 +26,5 @@ public:
 protected:
     App();
 };
-
-} // namespace sys
-
-using sys::App;
 
 } // namespace hyperion

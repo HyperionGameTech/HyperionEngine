@@ -55,6 +55,7 @@
 #include <ui/UITextbox.hpp>
 
 #include <input/InputManager.hpp>
+#include <input/Event.hpp>
 
 #include <system/AppContext.hpp>
 #include <system/OpenFileDialog.hpp>
@@ -347,12 +348,11 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
 
     m_dragData.Unset();
 
-    if (!node->IsA<Entity>())
+    Entity* entity = ObjCast<Entity>(node);
+    if (!entity)
     {
         return;
     }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
@@ -476,12 +476,11 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
 
 bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    if (!node->IsA<Entity>())
+    Entity* entity = ObjCast<Entity>(node);
+    if (!entity)
     {
         return false;
     }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
@@ -499,12 +498,11 @@ bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const Mous
 
 bool TranslateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    if (!node->IsA<Entity>())
+    Entity* entity = ObjCast<Entity>(node);
+    if (!entity)
     {
         return false;
     }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
@@ -530,17 +528,16 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
         return false;
     }
 
-    if (!node->IsA<Entity>())
-    {
-        return false;
-    }
-
     if (!m_dragData)
     {
         return false;
     }
 
-    Entity* entity = static_cast<Entity*>(node.Get());
+    Entity* entity = ObjCast<Entity>(node);
+    if (!entity)
+    {
+        return false;
+    }
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
@@ -556,7 +553,10 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
         return false;
     }
 
-    InputManager* inputMgr = g_appContext->GetMainWindow()->GetInputManager();
+    AssertDebug(mouseEvent.baseEvent->GetWindow() != nullptr);
+
+    InputManager* inputMgr = mouseEvent.baseEvent->GetWindow()->GetInputManager();
+    AssertDebug(inputMgr != nullptr);
 
     const Vec4f mouseWorld = camera->TransformScreenToWorld(Vec2f(inputMgr->GetVirtualMousePosition()) / Vec2f(camera->GetDimensions()));
     const Vec4f rayDirection = mouseWorld.Normalized();
@@ -720,7 +720,7 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
     if (result.HasValue())
     {
-        if (Handle<Node> node = result->Result())
+        if (Handle<Node> node = result->Result(); node.IsValid())
         {
             node->SetName(NAME("TranslateGizmo"));
 
@@ -811,7 +811,7 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
 
     if (result.HasValue())
     {
-        if (Handle<Node> node = result->Result())
+        if (Handle<Node> node = result->Result(); node.IsValid())
         {
             node->SetName(NAME("RotateWidget"));
 
@@ -892,12 +892,11 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
 
     m_dragData.Unset();
 
-    if (!node->IsA<Entity>())
+    Entity* entity = ObjCast<Entity>(node);
+    if (!entity)
     {
         return;
     }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
@@ -962,9 +961,9 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 {
     EditorGizmoBase::OnDragEnd(camera, mouseEvent, node);
 
-    if (Handle<EditorProject> project = GetCurrentProject())
+    if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
     {
-        if (Handle<Node> focusedNode = m_focusedNode.Lock())
+        if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
             const Quaternion finalRotation = m_dragData->currentRotation;
             const Quaternion originRotation = m_dragData->startRotation;
@@ -1000,12 +999,11 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 
 bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    if (!node->IsA<Entity>())
+    Entity* entity = ObjCast<Entity>(node);
+    if (!entity)
     {
         return false;
     }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
@@ -1023,12 +1021,11 @@ bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEv
 
 bool RotateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    if (!node->IsA<Entity>())
+    Entity* entity = ObjCast<Entity>(node);
+    if (!entity)
     {
         return false;
     }
-
-    Entity* entity = static_cast<Entity*>(node.Get());
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
@@ -1054,17 +1051,16 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
         return false;
     }
 
-    if (!node->IsA<Entity>())
-    {
-        return false;
-    }
-
     if (!m_dragData)
     {
         return false;
     }
 
-    Entity* entity = static_cast<Entity*>(node.Get());
+    Entity* entity = ObjCast<Entity>(node);
+    if (!entity)
+    {
+        return false;
+    }
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
@@ -1073,7 +1069,12 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
         return false;
     }
 
-    const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.relativePos);
+    AssertDebug(mouseEvent.baseEvent->GetWindow() != nullptr);
+
+    InputManager* inputMgr = mouseEvent.baseEvent->GetWindow()->GetInputManager();
+    AssertDebug(inputMgr != nullptr);
+
+    const Vec4f mouseWorld = camera->TransformScreenToWorld(Vec2f(inputMgr->GetVirtualMousePosition()) / Vec2f(camera->GetDimensions()));
     const Vec4f rayDirection = (mouseWorld - Vec4f(camera->GetTranslation(), 1.0f)).Normalized();
 
     const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
@@ -1284,7 +1285,7 @@ EditorSubsystem::EditorSubsystem()
                             .Bind(
                                 [taskWeak = MakeWeakRef(runningTask.GetTask())](...)
                                 {
-                                    if (Handle<EditorTaskBase> task = taskWeak.Lock())
+                                    if (Handle<EditorTaskBase> task = taskWeak.Lock(); task.IsValid())
                                     {
                                         task->Cancel();
                                     }
@@ -1566,7 +1567,7 @@ void EditorSubsystem::OnAddedToWorld()
 
     CreateHighlightNode();
 
-    if (Handle<AssetCollector> baseAssetCollector = g_assetManager->GetBaseAssetCollector())
+    if (Handle<AssetCollector> baseAssetCollector = g_assetManager->GetBaseAssetCollector(); baseAssetCollector.IsValid())
     {
         baseAssetCollector->StartWatching();
     }
@@ -1625,7 +1626,7 @@ void EditorSubsystem::Update(float delta)
 
     if (m_focusedNode.IsValid())
     {
-        if (Handle<Node> focusedNode = m_focusedNode.Lock())
+        if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
             DebugDrawCommandList& dbg = g_engineDriver->GetDebugDrawer()->CreateCommandList();
 
@@ -2420,7 +2421,7 @@ void EditorSubsystem::UpdateWatchedNodes()
     {
         if (ShowOnlyActiveScene)
         {
-            if (Handle<Scene> activeScene = m_activeScene.Lock())
+            if (Handle<Scene> activeScene = m_activeScene.Lock(); activeScene.IsValid())
             {
                 StartWatchingNode(activeScene->GetRoot());
             }
@@ -2462,7 +2463,7 @@ void EditorSubsystem::InitDetailView()
 
             if (shouldSelectInOutline)
             {
-                if (Handle<UIListView> outlineListView = outlineListViewWeak.Lock())
+                if (Handle<UIListView> outlineListView = outlineListViewWeak.Lock(); outlineListView.IsValid())
                 {
                     if (node.IsValid())
                     {
@@ -2747,7 +2748,7 @@ void EditorSubsystem::InitActiveSceneSelection()
 
     // activeSceneMenuItem->RemoveAllChildUIObjects();
 
-    if (Handle<Scene> activeScene = m_activeScene.Lock())
+    if (Handle<Scene> activeScene = m_activeScene.Lock(); activeScene.IsValid())
     {
         activeSceneMenuItem->SetText(HYP_FORMAT("Active Scene: {}", activeScene->GetName()));
     }
@@ -2841,9 +2842,9 @@ void EditorSubsystem::InitActiveSceneSelection()
 
                     SetActiveScene(scene);
 
-                    if (Handle<UIMenuItem> activeSceneMenuItem = activeSceneMenuItemWeak.Lock())
+                    if (Handle<UIMenuItem> activeSceneMenuItem = activeSceneMenuItemWeak.Lock(); activeSceneMenuItem.IsValid())
                     {
-                        if (Handle<UIMenuItem> sceneMenuItem = sceneMenuItemWeak.Lock())
+                        if (Handle<UIMenuItem> sceneMenuItem = sceneMenuItemWeak.Lock(); sceneMenuItem.IsValid())
                         {
                             activeSceneMenuItem->SetSelectedSubItem(sceneMenuItem);
                             activeSceneMenuItem->SetText(HYP_FORMAT("Active Scene: {}", scene->GetName()));
@@ -2880,7 +2881,7 @@ void EditorSubsystem::InitContentBrowser()
                     {
                         if (const NodeTag& assetPackageTag = listViewItem->GetNodeTag("AssetPackage"); assetPackageTag.IsValid())
                         {
-                            if (Handle<AssetPackage> assetPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(assetPackageTag.ToString(), /* createIfNotExist */ false))
+                            if (Handle<AssetPackage> assetPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(assetPackageTag.ToString(), /* createIfNotExist */ false); assetPackage.IsValid())
                             {
                                 SetSelectedPackage(assetPackage);
 
@@ -3193,7 +3194,7 @@ void EditorSubsystem::ShowImportContentDialog()
     ShowOpenFileDialog(
         "Select the file(s) to import into the project",
         GetResourceDirectory(),
-        { "obj", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
+        { "obj", "fbx", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
         /* allowMultiple */ true, /* allowDirectories */ false,
         [](TResult<Array<FilePath>>&& result)
         {
@@ -3260,11 +3261,11 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
 
     m_focusedNode = focusedNode;
 
-    if (Handle<Node> focusedNode = m_focusedNode.Lock())
+    if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
     {
         if (focusedNode->GetScene() != nullptr)
         {
-            if (const Handle<Entity>& entity = ObjCast<Entity>(focusedNode))
+            if (Entity* entity = ObjCast<Entity>(focusedNode))
             {
                 entity->AddTag<EntityTag::EDITOR_FOCUSED>();
             }
@@ -3297,7 +3298,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
 
     if (previousFocusedNode != nullptr)
     {
-        if (const Handle<Entity>& entity = ObjCast<Entity>(previousFocusedNode))
+        if (Entity* entity = ObjCast<Entity>(previousFocusedNode))
         {
             entity->RemoveTag<EntityTag::EDITOR_FOCUSED>();
         }
