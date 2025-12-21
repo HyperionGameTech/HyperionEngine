@@ -116,10 +116,10 @@ struct StagingBufferPoolImpl
         newBuffer.buffer->SetDebugName(HYP_NAME("StagingBufferPoolTempBuffer"));
 #endif
 
-        HYP_GFX_ASSERT(newBuffer.buffer->Create());
+        Assert(newBuffer.buffer->Create());
 
         auto insertResult = cachedBuffers[frameIndex].Insert(std::move(newBuffer));
-        HYP_GFX_ASSERT(insertResult.second); // must be inserted
+        AssertDebug(insertResult.second); // must be inserted
 
         return insertResult.first->buffer;
     }
@@ -167,7 +167,7 @@ GpuBufferHolderBase::~GpuBufferHolderBase()
 void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initialCount, SizeType size)
 {
     HYP_SCOPE;
-    // AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread);
 
     if (initialCount == 0)
     {
@@ -180,39 +180,40 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
     const SizeType gpuBufferSize = MathUtil::NextMultiple(size * initialCount, structSize);
 
     m_gpuBuffer = g_renderBackend->MakeGpuBuffer(bufferType, gpuBufferSize);
+    m_gpuBuffer->SetRequireCpuAccessible(m_cpuAccessible);
     m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", *m_structTypeInfo->name));
-    DeferCreate(m_gpuBuffer);
+    Assert(m_gpuBuffer->Create());
 }
 
-void GpuBufferHolderBase::CopyToGpuBuffer(
+void GpuBufferHolderBase::CopyStagingToGpu(
     Frame* frame,
-    const Array<GpuBuffer*>& stagingBuffers,
-    const Array<uint32>& chunkStarts,
-    const Array<uint32>& chunkEnds)
+    Span<GpuBuffer* const> stagingBuffers,
+    Span<const uint32> chunkStarts,
+    Span<const uint32> chunkEnds)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    if (stagingBuffers.Empty())
+    if (chunkEnds.Size() == 0)
     {
         return;
     }
 
-    Assert(stagingBuffers.Size() == chunkStarts.Size());
-    Assert(stagingBuffers.Size() == chunkEnds.Size());
+    AssertDebug(stagingBuffers.Size() == chunkStarts.Size());
+    AssertDebug(stagingBuffers.Size() == chunkEnds.Size());
 
     // gauranteed to be ordered ascending due to the way we build the staging buffers
-    const uint32 rangeStart = chunkStarts.Front();
-    const uint32 rangeEnd = chunkEnds.Back();
+    const uint32 rangeStart = chunkStarts[0];
+    const uint32 rangeEnd = chunkEnds[chunkEnds.Size() - 1];
 
     const uint32 frameIndex = frame->GetFrameIndex();
     RenderQueue& rq = frame->preRenderQueue;
 
-    Assert(m_gpuBuffer != nullptr);
+    AssertDebug(m_gpuBuffer != nullptr);
 
     const SizeType requiredBufferSize = rangeEnd;
 
-    Assert(m_gpuBuffer->Size() >= requiredBufferSize);
+    AssertDebug(m_gpuBuffer->Size() >= requiredBufferSize);
 
     rq << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
 
@@ -222,10 +223,10 @@ void GpuBufferHolderBase::CopyToGpuBuffer(
         const uint32 chunkStart = chunkStarts[i];
         const uint32 chunkEnd = chunkEnds[i];
 
-        Assert(stagingBuffer != nullptr);
-        Assert(stagingBuffer->IsCreated());
-        Assert(chunkEnd >= chunkStart);
-        Assert(chunkEnd - chunkStart <= stagingBuffer->Size(),
+        AssertDebug(stagingBuffer != nullptr);
+        AssertDebug(stagingBuffer->IsCreated());
+        AssertDebug(chunkEnd >= chunkStart);
+        AssertDebug(chunkEnd - chunkStart <= stagingBuffer->Size(),
             "Staging buffer size is too small! Staging buffer size = {}, required size = {}",
             stagingBuffer->Size(), chunkEnd - chunkStart);
 

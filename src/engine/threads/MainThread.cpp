@@ -12,6 +12,8 @@
 
 #include <core/cli/CommandLine.hpp>
 
+#include <input/InputManager.hpp>
+
 #include <system/SystemEvent.hpp>
 #include <system/AppContext.hpp>
 
@@ -70,7 +72,11 @@ void MainThread::Update()
 
     SystemEvent event;
     while (g_appContext->PollEvents(event))
-        ;
+    {
+        g_inputManager->CheckEvent(&event);
+    }
+
+    g_inputManager->MainThreadUpdate();
 
 #ifdef HYP_LIBUI
     uiMainSteps();

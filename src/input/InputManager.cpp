@@ -109,7 +109,8 @@ void InputMouseLockScope::Reset()
 
 InputManager::InputManager()
     : m_window(nullptr),
-      m_isMouseLocked(false)
+      m_bufferedData(),
+      m_lockState(0)
 {
 }
 
@@ -130,10 +131,27 @@ InputManager::~InputManager()
     }
 }
 
+InputManager::BufferedDataLockScope InputManager::GetBufferedData()
+{
+    const bool isMainThread = IsOnThread(g_mainThread);
+    const int idx = int(isMainThread ? BufferedData::PRODUCER : BufferedData::CONSUMER);
+
+#ifdef HYP_DEBUG_MODE
+    if (!isMainThread)
+    {
+        AssertOnThread(g_gameThread);
+    }
+#endif
+
+    // 0 = main thread
+    // 1 = game thread copy
+    return { &m_bufferedData[idx], nullptr };
+}
+
 void InputManager::CheckEvent(SystemEvent* event)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_mainThread);
 
     switch (event->GetType())
     {
@@ -174,10 +192,7 @@ void InputManager::CheckEvent(SystemEvent* event)
 
 bool InputManager::IsMouseLocked() const
 {
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
-
-    return m_isMouseLocked;
+    return GetBufferedData()->m_isMouseLocked;
 }
 
 void InputManager::PushMouseLockState(bool mouseLocked)
@@ -196,14 +211,21 @@ void InputManager::PopMouseLockState()
 
     if (m_mouseLockStates.Empty())
     {
-        // Default state if none active
-        SetIsMouseLocked(false);
+        if (IsOnThread(g_mainThread))
+        {
+            // Default state if none active
+            SetIsMouseLocked(false);
+        }
 
         return;
     }
 
     InputMouseLockState* lastState = m_mouseLockStates.PopBack();
-    SetIsMouseLocked(lastState->locked);
+
+    if (IsOnThread(g_mainThread))
+    {
+        SetIsMouseLocked(lastState->locked);
+    }
 
     if (!m_mouseLockStates.Contains(lastState))
     {
@@ -227,30 +249,41 @@ InputMouseLockScope InputManager::AcquireMouseLock()
 void InputManager::SetIsMouseLocked(bool isMouseLocked)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_mainThread);
 
-    if (!m_window)
+    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+
+    if (bd.m_isMouseLocked == isMouseLocked)
     {
-        return;
+        return; // already set
     }
 
-    m_window->SetIsMouseLocked(isMouseLocked);
+    if (m_window)
+    {
+        //m_window->SetIsMouseLocked(isMouseLocked);
+    }
+    else
+    {
+        // set to false if no window
+        isMouseLocked = false;
+    }
 
-    m_isMouseLocked = isMouseLocked;
+    bd.m_isMouseLocked = isMouseLocked;
 }
 
 void InputManager::SetMousePosition(Vec2i position)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_mainThread);
 
     if (!m_window)
     {
         return;
     }
 
-    m_previousMousePosition = m_mousePosition;
-    m_mousePosition = position;
+    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+
+    bd.m_mousePosition = position;
 
     m_window->SetMousePosition(position);
 }
@@ -258,72 +291,81 @@ void InputManager::SetMousePosition(Vec2i position)
 void InputManager::UpdateMousePosition()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_mainThread);
 
     if (!m_window)
     {
         return;
     }
 
-    m_previousMousePosition = m_mousePosition;
-    m_mousePosition = m_window->GetMousePosition();
+    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+
+    bd.m_previousMousePosition = bd.m_mousePosition;
+    bd.m_mousePosition = m_window->GetMousePosition();
+
+    if (bd.m_isMouseLocked && m_window != nullptr)
+    {
+        m_window->SetMousePosition(bd.m_previousMousePosition);
+        bd.m_mousePosition = m_window->GetMousePosition();
+    }
 }
 
 void InputManager::UpdateWindowSize(Vec2i newSize)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_mainThread);
 
     if (!m_window)
     {
         return;
     }
 
-    if (m_windowSize == newSize)
+    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
+
+    if (bd.m_windowSize == newSize)
     {
         return;
     }
 
-    m_windowSize = newSize;
+    bd.m_windowSize = newSize;
 }
 
 void InputManager::SetKey(KeyCode key, bool pressed)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_mainThread);
+
+    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
 
     if (uint32(key) < NUM_KEYBOARD_KEYS)
     {
-        m_inputState.keyStates.Set(uint32(key), pressed);
+        bd.m_inputState.keyStates.Set(uint32(key), pressed);
     }
 }
 
 void InputManager::SetMouseButton(MouseButtonKey btn, bool pressed)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_mainThread);
+
+    BufferedData& bd = m_bufferedData[BufferedData::PRODUCER];
 
     if (uint32(btn) < NUM_MOUSE_BUTTONS)
     {
         if (pressed)
         {
-            m_inputState.mouseButtonStates |= MouseButtonState(1u << uint32(btn));
+            bd.m_inputState.mouseButtonStates |= MouseButtonState(1u << uint32(btn));
         }
         else
         {
-            m_inputState.mouseButtonStates &= MouseButtonState(~(1u << uint32(btn)));
+            bd.m_inputState.mouseButtonStates &= MouseButtonState(~(1u << uint32(btn)));
         }
     }
 }
 
 bool InputManager::IsKeyDown(KeyCode key) const
 {
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
-
     if (uint32(key) < NUM_KEYBOARD_KEYS)
     {
-        return m_inputState.keyStates.Test(uint32(key));
+        return GetBufferedData()->m_inputState.keyStates.Test(uint32(key));
     }
 
     return false;
@@ -331,12 +373,9 @@ bool InputManager::IsKeyDown(KeyCode key) const
 
 bool InputManager::IsButtonDown(MouseButtonKey btn) const
 {
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
-
     if (uint32(btn) < NUM_MOUSE_BUTTONS)
     {
-        return m_inputState.mouseButtonStates & MouseButtonState(1u << uint32(btn));
+        return GetBufferedData()->m_inputState.mouseButtonStates & MouseButtonState(1u << uint32(btn));
     }
 
     return false;
@@ -344,14 +383,13 @@ bool InputManager::IsButtonDown(MouseButtonKey btn) const
 
 EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
 {
-    HYP_SCOPE;
-    AssertOnThread(g_gameThread);
-
     EnumFlags<MouseButtonState> state = MouseButtonState::NONE;
+
+    const BufferedDataLockScope bd = GetBufferedData();
 
     for (uint32 i = 0; i < NUM_MOUSE_BUTTONS; i++)
     {
-        if (m_inputState.mouseButtonStates & MouseButtonState(1u << i))
+        if (bd->m_inputState.mouseButtonStates & MouseButtonState(1u << i))
         {
             state |= MouseButtonState(1u << i);
         }
@@ -363,13 +401,12 @@ EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
 void InputManager::ApplyMouseLockState(InputMouseLockState* mouseLockState)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread); /// \todo Move to main thread
 
     Mutex::Guard guard(m_mouseLockStatesMutex);
 
     if (!mouseLockState)
     {
-        if (m_mouseLockStates.Empty())
+        if (m_mouseLockStates.Empty() && IsOnThread(g_mainThread))
         {
             // apply default state
             SetIsMouseLocked(false);
@@ -378,31 +415,17 @@ void InputManager::ApplyMouseLockState(InputMouseLockState* mouseLockState)
         return;
     }
 
-    //SizeType currentIndex = m_mouseLockStates.IndexOf(mouseLockState);
-
-    //if (currentIndex != -1)
-    //{
-    //    if (currentIndex == m_mouseLockStates.Size() - 1)
-    //    {
-    //        return; // already active
-    //    }
-
-    //    std::swap(m_mouseLockStates[currentIndex], m_mouseLockStates[m_mouseLockStates.Size() - 1]);
-
-    //    SetIsMouseLocked(mouseLockState->locked);
-
-    //    return;
-    //}
-
     m_mouseLockStates.PushBack(mouseLockState);
 
-    SetIsMouseLocked(mouseLockState->locked);
+    if (IsOnThread(g_mainThread))
+    {
+        SetIsMouseLocked(mouseLockState->locked);
+    }
 }
 
 void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread); /// \todo Move to main thread
 
     if (!mouseLockState)
     {
@@ -422,10 +445,58 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
         s_inputMouseLockStateAllocator.Free(mouseLockState);
     }
 
-    if (eraseIt == m_mouseLockStates.End()) // was it at the end?
+    if (eraseIt == m_mouseLockStates.End() && IsOnThread(g_mainThread)) // was it at the end?
     {
         SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
     }
+}
+
+void InputManager::GameThreadSync()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_gameThread);
+
+    constexpr int MaxSpins = 32;
+    int numSpins = 0;
+
+    do
+    {
+        int32 currentValue = 0;
+        if (AtomicCompareExchange(&m_lockState, currentValue, 1))
+        {
+            m_bufferedData[BufferedData::CONSUMER] = m_bufferedData[BufferedData::SHARED];
+
+            AtomicDecrement(&m_lockState);
+
+            return;
+        }
+    }
+    while (numSpins++ < MaxSpins);
+}
+
+void InputManager::MainThreadUpdate()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_mainThread);
+
+    SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
+
+    constexpr int MaxSpins = 32;
+    int numSpins = 0;
+
+    do
+    {
+        int32 currentValue = 0;
+        if (AtomicCompareExchange(&m_lockState, currentValue, 1))
+        {
+            m_bufferedData[BufferedData::SHARED] = m_bufferedData[BufferedData::PRODUCER];
+
+            AtomicDecrement(&m_lockState);
+
+            return;
+        }
+    }
+    while (numSpins++ < MaxSpins);
 }
 
 #pragma endregion InputManager
