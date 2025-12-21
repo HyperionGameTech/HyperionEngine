@@ -75,15 +75,18 @@ struct InputMouseLockState
 
 struct InputMouseLockScope
 {
+    InputManager* inputMgr;
     InputMouseLockState* mouseLockState;
 
     InputMouseLockScope()
-        : mouseLockState(nullptr)
+        : inputMgr(nullptr),
+          mouseLockState(nullptr)
     {
     }
 
-    InputMouseLockScope(InputMouseLockState* mouseLockState)
-        : mouseLockState(mouseLockState)
+    InputMouseLockScope(InputManager* inputMgr, InputMouseLockState* mouseLockState)
+        : inputMgr(inputMgr),
+          mouseLockState(mouseLockState)
     {
     }
 
@@ -91,8 +94,11 @@ struct InputMouseLockScope
     InputMouseLockScope& operator=(const InputMouseLockScope& other) = delete;
 
     InputMouseLockScope(InputMouseLockScope&& other) noexcept
-        : mouseLockState(other.mouseLockState)
+        : inputMgr(other.inputMgr), 
+          mouseLockState(other.mouseLockState)
     {
+        other.inputMgr = nullptr;
+        other.mouseLockState = nullptr;
     }
 
     HYP_API InputMouseLockScope& operator=(InputMouseLockScope&& other) noexcept;

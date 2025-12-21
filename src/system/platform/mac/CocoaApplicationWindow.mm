@@ -166,7 +166,7 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
             SystemEvent systemEvent;                                                \
             if (_hyperionWindow->HandleNSEvent(event, systemEvent))                 \
             {                                                                       \
-                g_inputManager->CheckEvent(&systemEvent);                           \
+                g_inputManager->ProcessEvent(&systemEvent);                         \
                                                                                     \
                 _hyperionWindow->GetInputEventSink().Push(std::move(systemEvent));  \
             }                                                                       \
