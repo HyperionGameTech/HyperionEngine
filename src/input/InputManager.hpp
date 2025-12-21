@@ -143,7 +143,7 @@ public:
 private:
     void SetIsMouseLocked(bool isMouseLocked);
 
-    void UpdateMousePosition(const SystemEvent& event);
+    void UpdateMousePosition(SystemEvent& event);
     void UpdateWindowSize(Vec2i newSize);
 
     void SetKey(KeyCode key, bool pressed);
@@ -158,8 +158,8 @@ private:
         volatile int32 y;
 
         AtomicVec2i()
-            : x(x),
-              y(y)
+            : x(0),
+              y(0)
         {
         }
 

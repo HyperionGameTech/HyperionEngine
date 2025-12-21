@@ -253,6 +253,9 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
         return; // already set
     }
 
+    m_previousMousePosition = m_mousePosition;
+    m_mousePosition = m_ownerWindow->GetMousePosition();
+
     if (m_ownerWindow)
     {
         m_ownerWindow->SetIsMouseLocked(isMouseLocked);
@@ -269,19 +272,25 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
 void InputManager::SetMousePosition(Vec2i position)
 {
     HYP_SCOPE;
-    //AssertOnThread(g_mainThread);
+    AssertOnThread(g_mainThread);
 
     if (!m_ownerWindow)
     {
         return;
     }
 
+    if (m_isMouseLocked)
+    {
+        return;
+    }
+
+    m_previousMousePosition = m_mousePosition;
     m_mousePosition = position;
 
     m_ownerWindow->SetMousePosition(position);
 }
 
-void InputManager::UpdateMousePosition(const SystemEvent& event)
+void InputManager::UpdateMousePosition(SystemEvent& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
@@ -291,10 +300,18 @@ void InputManager::UpdateMousePosition(const SystemEvent& event)
         return;
     }
 
-    m_previousMousePosition = m_mousePosition;
-    m_mousePosition = event.IsAbsoluteMousePosition()
-        ? event.GetMousePosition()
-        : Vec2i(m_mousePosition) + Vec2i(event.GetMousePositionDeltas());
+    if (event.IsAbsoluteMousePosition())
+    {
+        // set to relative:
+        event.GetEventData().Set(Vec2f(Vec2i(m_previousMousePosition) - event.GetMousePosition()));
+    }
+
+    if (m_isMouseLocked)
+    {
+        return;
+    }
+
+    m_mousePosition = Vec2i(m_previousMousePosition) + Vec2i(event.GetMousePositionDeltas());
 }
 
 void InputManager::UpdateWindowSize(Vec2i newSize)
@@ -510,6 +527,13 @@ void InputManager::MainThreadUpdate()
 
     Mutex::Guard guard(m_mouseLockStatesMutex);
     SetIsMouseLocked(m_mouseLockStates.Any() ? m_mouseLockStates.Back()->locked : false);
+
+    if (m_isMouseLocked)
+    {
+    //    m_ownerWindow->SetMousePosition(m_previousMousePosition);
+    }
+
+    m_previousMousePosition = m_mousePosition;
 }
 
 #pragma endregion InputManager

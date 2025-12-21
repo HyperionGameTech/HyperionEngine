@@ -622,11 +622,11 @@ UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
                             .mouseButtons = mouseButtons
                         };
 
-                        if (MathUtil::Abs(it.second.originalMousePosition - mouseScreen).LengthSquared() < invSurfaceSize.LengthSquared())
-                        {
+                        //if (MathUtil::Abs(it.second.originalMousePosition - mouseScreen).LengthSquared() < invSurfaceSize.LengthSquared())
+                        //{
                             // If the mouse position hasn't changed significantly, don't trigger a drag event
-                            continue;
-                        }
+                        //    continue;
+                        //}
 
                         UIEventHandlerResult currentResult = uiObject->OnMouseDrag(mouseEvent);
 
