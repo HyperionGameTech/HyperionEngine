@@ -269,7 +269,7 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
 void InputManager::SetMousePosition(Vec2i position)
 {
     HYP_SCOPE;
-    AssertOnThread(g_mainThread);
+    //AssertOnThread(g_mainThread);
 
     if (!m_ownerWindow)
     {
@@ -295,12 +295,6 @@ void InputManager::UpdateMousePosition(const SystemEvent& event)
     m_mousePosition = event.IsAbsoluteMousePosition()
         ? event.GetMousePosition()
         : Vec2i(m_mousePosition) + Vec2i(event.GetMousePositionDeltas());
-
-    if (m_isMouseLocked && m_ownerWindow != nullptr)
-    {
-        m_ownerWindow->SetMousePosition(m_previousMousePosition);
-        m_mousePosition = m_ownerWindow->GetMousePosition();
-    }
 }
 
 void InputManager::UpdateWindowSize(Vec2i newSize)

@@ -87,13 +87,13 @@ bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
 
 bool FirstPersonCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 {
-    HYP_SCOPE;
-
     return false;
 }
 
 bool FirstPersonCameraInputHandler::OnMouseLeave_Impl(const MouseEvent& evt)
 {
+    InputHandlerBase::OnMouseLeave_Impl(evt);
+
     return false;
 }
 
