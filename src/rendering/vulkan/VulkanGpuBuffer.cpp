@@ -248,36 +248,39 @@ VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type)
     }
 }
 
-VmaMemoryUsage GetVkMemoryUsage(GpuBufferType type)
+VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible = false)
 {
     switch (type)
     {
     case GpuBufferType::MESH_VERTEX_BUFFER:
-        return VMA_MEMORY_USAGE_GPU_ONLY;
+        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::MESH_INDEX_BUFFER:
-        return VMA_MEMORY_USAGE_GPU_ONLY;
+        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::CBUFF:
-        return VMA_MEMORY_USAGE_AUTO;
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
     case GpuBufferType::SSBO:
-        return VMA_MEMORY_USAGE_AUTO;
+        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::ATOMIC_COUNTER:
-        return VMA_MEMORY_USAGE_GPU_ONLY;
+        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::STAGING_BUFFER:
         return VMA_MEMORY_USAGE_CPU_ONLY;
     case GpuBufferType::INDIRECT_ARGS_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::SHADER_BINDING_TABLE:
-        return VMA_MEMORY_USAGE_AUTO;
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
     case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:
-        return VMA_MEMORY_USAGE_AUTO;
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
     case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
-        return VMA_MEMORY_USAGE_AUTO;
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
     case GpuBufferType::RT_MESH_VERTEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::RT_MESH_INDEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::SCRATCH_BUFFER:
-        return VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
     default:
         return VMA_MEMORY_USAGE_UNKNOWN;
     }
@@ -317,7 +320,7 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool req
     case GpuBufferType::SCRATCH_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     default:
-        HYP_THROW("Invalid gpu buffer type for allocation create flags");
+        HYP_FAIL("Invalid gpu buffer type for allocation create flags");
     }
 }
 
@@ -379,6 +382,30 @@ void VulkanGpuBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
     Memory::MemCpy(reinterpret_cast<void*>(UIntPtr(m_mapping) + offset), ptr, count);
 }
 
+void VulkanGpuBuffer::Read(SizeType count, void* outPtr) const
+{
+    if (m_mapping == nullptr)
+    {
+        Map();
+
+        HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
+    }
+
+    Memory::MemCpy(outPtr, m_mapping, count);
+}
+
+void VulkanGpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
+{
+    if (m_mapping == nullptr)
+    {
+        Map();
+
+        HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
+    }
+
+    Memory::MemCpy(outPtr, reinterpret_cast<void*>(UIntPtr(m_mapping) + UIntPtr(offset)), count);
+}
+
 void VulkanGpuBuffer::Map() const
 {
     if (m_mapping != nullptr)
@@ -402,28 +429,17 @@ void VulkanGpuBuffer::Unmap() const
     m_mapping = nullptr;
 }
 
-void VulkanGpuBuffer::Read(SizeType count, void* outPtr) const
+void VulkanGpuBuffer::Flush(SizeType offset, SizeType count)
 {
-    if (m_mapping == nullptr)
+    if (!IsCreated())
     {
-        Map();
-
-        HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
+        return;
     }
 
-    Memory::MemCpy(outPtr, m_mapping, count);
-}
+    AssertDebug(offset + count <= Size());
 
-void VulkanGpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
-{
-    if (m_mapping == nullptr)
-    {
-        Map();
-
-        HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
-    }
-
-    Memory::MemCpy(outPtr, reinterpret_cast<void*>(UIntPtr(m_mapping) + UIntPtr(offset)), count);
+    VkResult result = vmaFlushAllocation(GetRenderBackend()->GetDevice()->GetAllocator(), m_vmaAllocation, offset, count);
+    Assert(result == VK_SUCCESS);
 }
 
 bool VulkanGpuBuffer::IsCreated() const
@@ -605,7 +621,7 @@ RendererResult VulkanGpuBuffer::Create()
     }
 
     m_vkBufferUsageFlags = GetVkUsageFlags(m_type);
-    m_vmaUsage = GetVkMemoryUsage(m_type);
+    m_vmaUsage = GetVmaMemoryUsage(m_type, m_requireCpuAccessible);
     m_vmaAllocationCreateFlags = GetVkAllocationCreateFlags(m_type, m_requireCpuAccessible);
 
     if (m_size == 0)
