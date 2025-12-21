@@ -715,8 +715,8 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
             VmaAllocation vmaAllocation;
         };
 
-        Mutex::Guard* pGuard = nullptr;
-        HYP_DEFER({ if (pGuard) delete pGuard; });
+        Mutex::Guard* guard = nullptr;
+        HYP_DEFER({ if (guard) delete guard; });
 
         // safely destroy the buffer after the GPU is done with it:
         VulkanBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<VulkanBufferDeleter>([](void* ptr)
@@ -725,7 +725,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
 
                 vmaDestroyBuffer(GetRenderBackend()->GetDevice()->GetAllocator(), bufferDeleter->buffer, bufferDeleter->vmaAllocation);
             },
-            &pGuard);
+            &guard);
 
         new (deleter) VulkanBufferDeleter {
             .buffer = m_handle,

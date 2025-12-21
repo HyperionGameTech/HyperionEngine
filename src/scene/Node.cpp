@@ -983,8 +983,8 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
     if (ray.TestAABB(worldAabb))
     {
-        const Class* pEntityClass = Entity::StaticClass();
-        if (IsA(pEntityClass))
+        const Class* entityClass = Entity::StaticClass();
+        if (IsA(entityClass))
         {
             ResourceHandle resourceHandle;
             MeshAsset* meshAsset = nullptr;
@@ -1191,9 +1191,9 @@ const NodeTag& Node::GetTag(StringHash key) const
 
     static const NodeTag emptyTag = NodeTag();
 
-    const NodeTag* pTag = m_tags.Get(key);
+    const NodeTag* tag = m_tags.Get(key);
 
-    return pTag != nullptr ? *pTag : emptyTag;
+    return tag != nullptr ? *tag : emptyTag;
 }
 
 bool Node::HasTag(StringHash key) const

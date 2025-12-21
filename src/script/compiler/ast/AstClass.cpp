@@ -671,11 +671,11 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     if (!IsEnum())
     {
         // iterate through parent types and add up their fields to get offset
-        const SymbolType* pBaseType = m_symbolType->GetBaseType();
+        const SymbolType* base = m_symbolType->GetBaseType();
 
-        while (pBaseType != nullptr && !pBaseType->TypeEqual(*BuiltinTypes::s_objectType))
+        while (base != nullptr && !base->TypeEqual(*BuiltinTypes::s_objectType))
         {
-            for (const SymbolTypeMember& member : pBaseType->GetMembers())
+            for (const SymbolTypeMember& member : base->GetMembers())
             {
                 Assert(member.GetType() != nullptr);
 
@@ -687,7 +687,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
                 }
             }
 
-            pBaseType = pBaseType->GetBaseType();
+            base = base->GetBaseType();
         }
     }
 
@@ -730,13 +730,13 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     {
         chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (IsProxyClass() ? " <Proxy>" : "")));
 
-        const SymbolType* pBase = m_symbolType->GetBaseType();
+        const SymbolType* base = m_symbolType->GetBaseType();
 
-        if (pBase != nullptr && !pBase->TypeEqual(*BuiltinTypes::s_objectType))
+        if (base != nullptr && !base->TypeEqual(*BuiltinTypes::s_objectType))
         {
-            chunk->Append(BytecodeUtil::Make<Comment>("Base type: " + pBase->GetName()));
+            chunk->Append(BytecodeUtil::Make<Comment>("Base type: " + base->GetName()));
 
-            chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(pBase->GetName())));
+            chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(base->GetName())));
         }
         else
         {

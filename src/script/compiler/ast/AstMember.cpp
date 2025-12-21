@@ -198,9 +198,9 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
         if (!isStaticMemberAccess)
         {
             // continue up the base type chain for non-static member access
-            if (const SymbolType* pBase = m_targetType->GetBaseType())
+            if (const SymbolType* base = m_targetType->GetBaseType())
             {
-                m_targetType = pBase->GetUnaliased();
+                m_targetType = base->GetUnaliased();
 
                 continue;
             }
