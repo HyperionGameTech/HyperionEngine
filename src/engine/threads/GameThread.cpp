@@ -156,8 +156,6 @@ void GameThread::operator()()
 
         if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
         {
-            mainWindow->GetInputManager()->BufferSwap();
-
             SystemEvent event;
             while (mainWindow->GetInputManager()->PollEvent(event))
             {

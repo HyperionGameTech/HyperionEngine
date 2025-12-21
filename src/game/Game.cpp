@@ -89,7 +89,7 @@ void Game::OnInputEvent(const SystemEvent& event)
 
     if (UISubsystem* uiSubsystem = m_world->GetSubsystem<UISubsystem>())
     {
-        if (uiSubsystem->GetUIStage()->OnInputEvent(g_inputManager, event))
+        if (uiSubsystem->GetUIStage()->OnInputEvent(event))
         {
             return;
         }

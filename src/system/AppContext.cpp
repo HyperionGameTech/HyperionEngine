@@ -57,7 +57,7 @@ ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
     : m_title(std::move(title)),
       m_size(size),
       m_hwnd(nullptr),
-      m_inputManager(CreateObject<InputManager>())
+      m_inputManager(CreateObject<InputManager>(this))
 {
 }
 

@@ -163,9 +163,7 @@ public:
         return m_updateManager;
     }
 
-    UIEventHandlerResult OnInputEvent(
-        InputManager* inputManager,
-        const SystemEvent& event);
+    UIEventHandlerResult OnInputEvent(const SystemEvent& event);
 
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
     bool TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects, EnumFlags<UIRayTestFlags> flags = UIRayTestFlags::DEFAULT);

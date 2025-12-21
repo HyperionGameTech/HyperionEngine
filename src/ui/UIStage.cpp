@@ -565,9 +565,7 @@ void UIStage::ComputeActualSize(const UIObjectSize& inSize, Vec2i& outActualSize
     outActualSize = m_surfaceSize;
 }
 
-UIEventHandlerResult UIStage::OnInputEvent(
-    InputManager* inputManager,
-    const SystemEvent& event)
+UIEventHandlerResult UIStage::OnInputEvent(const SystemEvent& event)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -575,6 +573,14 @@ UIEventHandlerResult UIStage::OnInputEvent(
     UIEventHandlerResult eventHandlerResult = UIEventHandlerResult::OK;
 
     RayTestResults rayTestResults;
+
+    InputManager* inputManager = event.GetWindow() ? event.GetWindow()->GetInputManager() : nullptr;
+    AssertDebug(inputManager != nullptr);
+
+    if (!inputManager)
+    {
+        return {};
+    }
 
     const Vec2i previousMousePosition = inputManager->GetPreviousMousePosition();
 

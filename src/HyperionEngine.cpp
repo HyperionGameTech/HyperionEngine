@@ -131,7 +131,6 @@ MaterialCache* g_materialCache;
 SafeDeleter* g_safeDeleter;
 RenderInterface* g_renderInterface;
 ShaderCompiler* g_shaderCompiler;
-Handle<InputManager> g_inputManager;
 
 MainThread* g_mainThreadInstance;
 GameThread* g_gameThreadInstance;
@@ -265,8 +264,6 @@ extern "C"
 
         g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
         g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
-
-        g_inputManager = CreateObject<InputManager>();
 
         g_logger = CreateObject<Logger>();
         g_logger->fatalErrorHook = &HandleFatalError;
