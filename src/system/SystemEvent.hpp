@@ -53,7 +53,7 @@ union PlatformEvent
 class HYP_API SystemEvent final
 {
 public:
-    using EventData = Variant<EnumFlags<MouseButtonState>, KeyCode, FilePath, Vec2i, void*>;
+    using EventData = Variant<EnumFlags<MouseButtonState>, KeyCode, FilePath, Vec2i, Vec2f, void*>;
 
     enum EventType : uint32
     {
@@ -174,7 +174,7 @@ public:
     }
 
     MouseEvent ToMouseEvent() const;
-    MouseEvent ToMouseEvent(const Vec2f& surfaceSize) const;
+    MouseEvent ToMouseEvent(const Vec2f& offsetMousePos, const Vec2f& surfaceSize) const;
 
     KeyboardEvent ToKeyboardEvent() const;
 
@@ -212,6 +212,47 @@ public:
         }
 
         return *mouseWheel;
+    }
+
+    HYP_FORCE_INLINE bool IsAbsoluteMousePosition() const
+    {
+        return m_eventType == MOUSEMOTION && m_eventData.Is<Vec2i>();
+    }
+
+    HYP_FORCE_INLINE Vec2f GetMousePositionDeltas() const
+    {
+        if (m_eventType != MOUSEMOTION)
+        {
+            return Vec2f::Zero();
+        }
+
+        const Vec2f* deltas = m_eventData.TryGet<Vec2f>();
+        AssertDebug(deltas != nullptr);
+
+        if (!deltas)
+        {
+            return Vec2f::Zero();
+        }
+
+        return *deltas;
+    }
+
+    HYP_FORCE_INLINE Vec2i GetMousePosition() const
+    {
+        if (m_eventType != MOUSEMOTION)
+        {
+            return Vec2i::Zero();
+        }
+
+        const Vec2i* pos = m_eventData.TryGet<Vec2i>();
+        AssertDebug(pos != nullptr);
+
+        if (!pos)
+        {
+            return Vec2i::Zero();
+        }
+
+        return *pos;
     }
 
     HYP_FORCE_INLINE PlatformEvent& GetPlatformEvent()

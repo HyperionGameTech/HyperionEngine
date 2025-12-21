@@ -133,7 +133,7 @@ public:
         return m_ownerWindow;
     }
 
-    void ProcessEvent(SystemEvent* event);
+    void ProcessEvent(SystemEvent&& event);
 
     void MainThreadUpdate();
     void BufferSwap();
@@ -143,7 +143,7 @@ public:
 private:
     void SetIsMouseLocked(bool isMouseLocked);
 
-    void UpdateMousePosition();
+    void UpdateMousePosition(const SystemEvent& event);
     void UpdateWindowSize(Vec2i newSize);
 
     void SetKey(KeyCode key, bool pressed);

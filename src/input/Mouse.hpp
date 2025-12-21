@@ -43,10 +43,10 @@ struct MouseEvent
     Vec2f relativePrevPos;
 
     HYP_FIELD()
-    Vec2i absolutePos;
+    Vec2f absolutePos;
 
     HYP_FIELD()
-    Vec2i absolutePrevPos;
+    Vec2f absolutePrevPos;
 
     HYP_FIELD()
     EnumFlags<MouseButtonState> mouseButtons = MouseButtonState::NONE;

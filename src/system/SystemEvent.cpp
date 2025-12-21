@@ -21,19 +21,28 @@ namespace sys {
 
 MouseEvent SystemEvent::ToMouseEvent() const
 {
-    return ToMouseEvent(m_window ? Vec2f(m_window->GetDimensions()) : Vec2f::One());
+    Vec2f offsetMousePos = Vec2f::Zero();
+    Vec2f surfaceSize = Vec2f::One();
+
+    if (m_window != nullptr)
+    {
+        offsetMousePos = Vec2f(m_window->GetInputManager()->GetMousePosition());
+        surfaceSize = Vec2f(m_window->GetDimensions());
+    }
+
+    return ToMouseEvent(offsetMousePos, surfaceSize);
 }
 
-MouseEvent SystemEvent::ToMouseEvent(const Vec2f& surfaceSize) const
+MouseEvent SystemEvent::ToMouseEvent(const Vec2f& offsetMousePos, const Vec2f& surfaceSize) const
 {
     MouseEvent me {};
     me.mouseButtons = GetMouseButtons();
 
-    me.absolutePos = m_eventData.Is<Vec2i>() ? m_eventData.GetUnchecked<Vec2i>() : Vec2i::Zero();
-    me.absolutePrevPos = m_window ? m_window->GetInputManager()->GetPreviousMousePosition() : me.absolutePos;
+    me.absolutePos = IsAbsoluteMousePosition() ? Vec2f(GetMousePosition()) : (offsetMousePos + GetMousePositionDeltas());
+    me.absolutePrevPos = offsetMousePos;
 
-    me.relativePos = Vec2f(me.absolutePos);
-    me.relativePrevPos = Vec2f(me.absolutePrevPos);
+    me.relativePos = me.absolutePos;
+    me.relativePrevPos = me.absolutePrevPos;
 
     if (!surfaceSize.IsZero())
     {
