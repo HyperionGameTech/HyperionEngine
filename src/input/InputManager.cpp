@@ -300,18 +300,14 @@ void InputManager::UpdateMousePosition(SystemEvent& event)
         return;
     }
 
-    if (event.IsAbsoluteMousePosition())
-    {
-        // set to relative:
-        event.GetEventData().Set(Vec2f(Vec2i(m_previousMousePosition) - event.GetMousePosition()));
-    }
-
     if (m_isMouseLocked)
     {
         return;
     }
 
-    m_mousePosition = Vec2i(m_previousMousePosition) + Vec2i(event.GetMousePositionDeltas());
+    m_mousePosition = event.IsAbsoluteMousePosition()
+        ? event.GetMousePosition()
+        : Vec2i(m_previousMousePosition) + Vec2i(event.GetMousePositionDeltas());
 }
 
 void InputManager::UpdateWindowSize(Vec2i newSize)
@@ -530,7 +526,7 @@ void InputManager::MainThreadUpdate()
 
     if (m_isMouseLocked)
     {
-    //    m_ownerWindow->SetMousePosition(m_previousMousePosition);
+        //    m_ownerWindow->SetMousePosition(m_previousMousePosition);
     }
 
     m_previousMousePosition = m_mousePosition;
