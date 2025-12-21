@@ -318,7 +318,7 @@ void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent
     {
         m_mouseLockScope = new InputMouseLockScope();
     }
-    
+
     *m_mouseLockScope = g_appContext->GetMainWindow()->GetInputManager()->AcquireMouseLock();
 }
 
