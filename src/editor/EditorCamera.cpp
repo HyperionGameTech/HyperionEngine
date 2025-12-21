@@ -63,11 +63,6 @@ bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
 {
     InputHandlerBase::OnKeyDown_Impl(evt);
 
-    if (InputHandlerBase::OnKeyDown_Impl(evt))
-    {
-        return true;
-    }
-
     if (m_controller && m_controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
     {
         if (evt.keyCode == KeyCode::KEY_ESCAPE)
