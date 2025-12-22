@@ -57,7 +57,7 @@ extern ResourceBinderBase* g_materialBinder;
 extern ResourceBinderBase* g_textureBinder;
 extern ResourceBinderBase* g_skeletonBinder;
 
-// Call at start of engine before render / game thread start ticking.
+// Call at start of engine before render / sim thread start ticking.
 // Allocates containers declared in RenderGlobalState.cpp via DECLARE_RENDER_DATA_CONTAINER
 void Init();
 void Shutdown();
@@ -80,10 +80,10 @@ void EndFrameSim();
 void BeginFrameRender();
 void EndFrameRender();
 
-/*! \brief Get the RenderProxyList for the Game thread to write to for the current frame, for the given view.
- *  The game thread adds proxies of entities, lights, envprobes, etc. to this list, which the render thread will
+/*! \brief Get the RenderProxyList for the Sim thread to write to for the current frame, for the given view.
+ *  The sim thread adds proxies of entities, lights, envprobes, etc. to this list, which the render thread will
  *  use when rendering the frame.
- *  \note This is only valid to call from the game thread, or from a task that is initiated by the game thread. */
+ *  \note This is only valid to call from the sim thread, or from a task that is initiated by the sim thread. */
 RenderProxyList& GetProducerProxyList(View* view);
 
 /*! \brief Get the RenderProxyList for the Render thread to read from for the current frame, for the given view.

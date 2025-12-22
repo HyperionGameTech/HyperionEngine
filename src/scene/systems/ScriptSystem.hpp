@@ -27,7 +27,7 @@ public:
         return false;
     }
 
-    virtual bool RequiresGameThread() const override
+    virtual bool RequiresSimThread() const override
     {
         return true;
     }

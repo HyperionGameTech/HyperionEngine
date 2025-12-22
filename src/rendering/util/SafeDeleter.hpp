@@ -264,7 +264,7 @@ public:
     // returns number of entries that were deleted
     int ForceDeleteAll(uint32 bufferIndex);
 
-    // copy from temp entry list to game thread / render thread queue
+    // copy from temp entry list to sim thread / render thread queue
     void UpdateEntryListQueue();
 
     /*! \brief Allocate storage for a safe deleter of type T. The instance will need to be constructed using placement new by the caller.
@@ -346,7 +346,7 @@ private:
     EntryListBase& GetEntryList(Mutex::Guard** ppGuard, uint32 desiredIdx = ~0u);
     void UpdateCounter(uint32 bufferIndex);
 
-    // for calling on another thread than game thread / render thread.
+    // for calling on another thread than sim thread / render thread.
     Mutex m_mutex;
 
     LinkedList<EntryList<DynamicAllocator>> m_tempEntryLists;
@@ -359,8 +359,8 @@ private:
 extern HYP_API SafeDeleter* GetSafeDeleterInstance();
 
 /*! \brief Defers deletion of a resource until enough frames have passed that the renderer can finish using it.
- *   It is garanteed that the number of frames before deletion is at least the number of frames before the game thread and render thread will sync,
- *   so calling this function on the game thread for example will ensure that the resource is not deleted until the render thread has a chance to finish using it. */
+ *   It is garanteed that the number of frames before deletion is at least the number of frames before the sim thread and render thread will sync,
+ *   so calling this function on the sim thread for example will ensure that the resource is not deleted until the render thread has a chance to finish using it. */
 template <class T>
 static inline void SafeDelete(T&& value)
 {

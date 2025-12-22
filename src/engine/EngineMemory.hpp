@@ -53,7 +53,7 @@ using RenderAllocator = AllocatorInstance<Pool, &g_renderPool>;
 using StreamingAllocator = AllocatorInstance<Pool, &g_streamingPool>;
 
 HYP_API extern TArena<RenderAllocator>* g_renderArena; // Arena for scene-related temporary allocations during the frame (render thread only)
-HYP_API extern TArena<SceneAllocator>* g_sceneArena;   // Arena for scene-related temporary allocations during the frame (game thread only)
+HYP_API extern TArena<SceneAllocator>* g_sceneArena;   // Arena for scene-related temporary allocations during the frame (sim thread only)
 HYP_API extern TArena<StreamingAllocator>* g_streamingArena;
 
 using RenderTempAllocator = AllocatorInstance<TArena<RenderAllocator>, &g_renderArena>;

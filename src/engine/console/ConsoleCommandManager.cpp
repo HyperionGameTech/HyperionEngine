@@ -206,7 +206,7 @@ Result ConsoleCommandManager::ExecuteCommand(const String& commandLine)
 
         if (auto parseResult = commandLineParser.Parse(commandLine); parseResult.HasValue())
         {
-            // execute all commands on the game thread
+            // execute all commands on the sim thread
             if (IsOnThread(g_simThread))
             {
                 return (*it)->Execute(parseResult.GetValue());

@@ -55,7 +55,7 @@ public:
     ScriptableDelegate<void> OnCancel;
 };
 
-HYP_CLASS(Abstract, Description = "A task that runs on the game thread and is has Process() called every tick")
+HYP_CLASS(Abstract, Description = "A task that runs on the sim thread and is has Process() called every tick")
 class HYP_API TickableEditorTask : public EditorTaskBase
 {
     HYP_OBJECT_BODY(TickableEditorTask);

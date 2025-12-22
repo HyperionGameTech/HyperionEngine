@@ -38,7 +38,7 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            _ = EngineManager.PostToGameThread(() =>
+            _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {
@@ -71,7 +71,7 @@ namespace Hyperion.Editor.ViewModels
 
         private Transform ReadTransform()
         {
-            Task<Transform> task = EngineManager.PostToGameThread<Transform>(() =>
+            Task<Transform> task = EngineManager.PostToSimThread<Transform>(() =>
             {
                 using BoxedValue boxed = _property.Get(_target);
                 object? raw = boxed.GetValue();
@@ -100,7 +100,7 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            _ = EngineManager.PostToGameThread(() =>
+            _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {

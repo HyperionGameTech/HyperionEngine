@@ -190,11 +190,11 @@ public:
     }
 
     /*! \brief Get the Viewport of this View.
-     *  Thread-safe but only callable from the Game thread or Render thread as it is buffered over multiple frames. */
+     *  Thread-safe but only callable from the Sim thread or Render thread as it is buffered over multiple frames. */
     const Viewport& GetViewport() const;
 
     /*! \brief Set the Viewport of this View.
-     *  Only callable on the Game thread. */
+     *  Only callable on the Sim thread. */
     void SetViewport(const Viewport& viewport);
 
     HYP_FORCE_INLINE const Handle<Texture>& GetReadbackTexture() const

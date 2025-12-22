@@ -21,7 +21,7 @@ extern "C"
 
         if (IsOnThread(g_simThread))
         {
-            // Execute immediately if already on the game thread
+            // Execute immediately if already on the sim thread
             pTaskFunc();
             return;
         }

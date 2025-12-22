@@ -673,7 +673,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
             // g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
-            // // Enqueue on game thread, not safe to write on render thread.
+            // // Enqueue on sim thread, not safe to write on render thread.
             // GetThreadById(g_simThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]() mutable
             //     {
             //         HYP_LOG(Rendering, Debug, "EnvProbe {} SH data computed:", envProbe->Id());

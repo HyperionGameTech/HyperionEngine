@@ -24,7 +24,7 @@ public:
     bool AllowParallelExecution() const override;
 
     HYP_METHOD(Scriptable)
-    bool RequiresGameThread() const override;
+    bool RequiresSimThread() const override;
 
     HYP_METHOD(Scriptable)
     bool AllowUpdate() const override;
@@ -75,9 +75,9 @@ private:
     }
 
     HYP_METHOD()
-    bool RequiresGameThread_Impl() const
+    bool RequiresSimThread_Impl() const
     {
-        return SystemBase::RequiresGameThread();
+        return SystemBase::RequiresSimThread();
     }
 
     HYP_METHOD()

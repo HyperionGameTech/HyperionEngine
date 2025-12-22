@@ -58,16 +58,16 @@ A [`Camera`](../src/scene/camera/Camera.hpp) is a subclass of `Entity` that prov
 A [`Light`](../src/scene/Light.hpp) is a subclass of `Entity` that defines a light source in the scene. Just like other types of entities, a `Light` can also be attached to a `Node` in the scene hierarchy, allowing it to inherit transformations from its parent node. Lights can have different types (e.g., directional, point, spot) and properties (e.g., color, intensity) that affect how they illuminate the scene.
 
 ### Subsystem
-A [`Subsystem`](../src/scene/Subsystem.hpp) is a world-level system that can be added to a `World` to provide additional functionality. Subsystems are not localized to any `Scene` or `View` on the world. Subsystems have an `Update(delta)` method that is called every frame on the game thread allowing them to perform necessary updates.
+A [`Subsystem`](../src/scene/Subsystem.hpp) is a world-level system that can be added to a `World` to provide additional functionality. Subsystems are not localized to any `Scene` or `View` on the world. Subsystems have an `Update(delta)` method that is called every frame on the sim thread allowing them to perform necessary updates.
 
 ### SceneOctree
 A [`SceneOctree`](../src/scene/SceneOctree.hpp) is a spatial partitioning structure used to efficiently manage and query the entities in a scene. It divides the 3D space into smaller regions (octants) to optimize collection and collision detection.
 
 ## Rendering
-Rendering in Hyperion is kept mostly separate from scene management. Due to the way Hyperion's multi-threading system works, the rendering system is designed to be as independent as possible from the scene management system. As such, some data has to be proxied from the scene management system to the rendering system. This is done via subclasses of `IRenderProxy` which are written to from the game thread and read from the render thread, buffered over multiple frames to ensure to minimize contention.
+Rendering in Hyperion is kept mostly separate from scene management. Due to the way Hyperion's multi-threading system works, the rendering system is designed to be as independent as possible from the scene management system. As such, some data has to be proxied from the scene management system to the rendering system. This is done via subclasses of `IRenderProxy` which are written to from the sim thread and read from the render thread, buffered over multiple frames to ensure to minimize contention.
 
 ### RenderProxy
-[`RenderProxy`](../src/rendering/RenderProxy.hpp) is a base class for objects that need to be rendered in the scene. It provides a way to pass data from the game thread to the render thread. Each `RenderProxy` subclass is responsible for providing the necessary data for rendering, such as transform, material, and other properties. The render thread will read these proxies and use them to render the objects in the scene.
+[`RenderProxy`](../src/rendering/RenderProxy.hpp) is a base class for objects that need to be rendered in the scene. It provides a way to pass data from the sim thread to the render thread. Each `RenderProxy` subclass is responsible for providing the necessary data for rendering, such as transform, material, and other properties. The render thread will read these proxies and use them to render the objects in the scene.
 
 ### RenderProxyList
 [`RenderProxyList`](../src/rendering/RenderProxy.hpp) is a collection of `RenderProxy` objects that are used to render a specific type of object in the scene. It can track updates on objects (added/removed/changed) between frames via bitwise operations using object IDs.

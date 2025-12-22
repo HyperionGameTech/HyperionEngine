@@ -18,7 +18,7 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            _ = EngineManager.PostToGameThread(() =>
+            _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {

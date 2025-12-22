@@ -28,7 +28,7 @@ public:
     Subsystem& operator=(Subsystem&& other) = delete;
     virtual ~Subsystem();
 
-    virtual bool RequiresUpdateOnGameThread() const
+    virtual bool RequiresUpdateOnSimThread() const
     {
         return true;
     }
@@ -44,8 +44,8 @@ public:
     {
     }
     virtual void Update(float delta) = 0;
-    virtual void OnSceneAttached(const Handle<Scene>& scene) { };
-    virtual void OnSceneDetached(Scene* scene) { };
+    virtual void OnSceneAttached(const Handle<Scene>& scene) {};
+    virtual void OnSceneDetached(Scene* scene) {};
 
 protected:
     virtual void Init() override

@@ -21,7 +21,7 @@ namespace hyperion {
 struct StreamingCellRuntimeInfo
 {
     Vec2i coord;
-    StreamingCellState state; // used internally on streaming thread and worker threads - not game thread safe.
+    StreamingCellState state; // used internally on streaming thread and worker threads - not sim thread safe.
     AtomicVar<bool> isLocked;
     Handle<StreamingCell> cell;
 

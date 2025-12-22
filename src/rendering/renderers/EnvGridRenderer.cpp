@@ -889,7 +889,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame* frame,
 
             // g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
-            // Enqueue on game thread, not safe to write on render thread.
+            // Enqueue on sim thread, not safe to write on render thread.
             GetThreadById(g_simThread)->GetScheduler().Enqueue([probe = std::move(probe), shData]() mutable
                 {
                     probe->SetSphericalHarmonicsData(shData);
