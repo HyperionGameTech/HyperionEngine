@@ -44,6 +44,13 @@ if(MSVC)
     set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
 endif()
 
+if(CMAKE_GENERATOR MATCHES "Xcode")
+    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_GENERATE_SCHEME ON)
+    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_ENABLE_GPU_API_VALIDATION OFF)
+    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_ENABLE_GPU_FRAME_CAPTURE_MODE "Metal")
+    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_LAUNCH_CONFIGURATION_NAME "${HYP_BUILD_TYPE}")
+    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_HIDE_BUILDABLE_NAME OFF)
+endif()
 
 # link with shared library hyperion
 add_dependencies(${BUILD_NAME} hyperion)

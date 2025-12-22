@@ -24,6 +24,8 @@
 #include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/Method.hpp>
 
+#include <engine/Game.hpp>
+
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
 #endif

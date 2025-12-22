@@ -112,7 +112,7 @@ public:
 
     bool IsRenderLoopActive() const;
 
-    void StartThreads();
+    bool StartThreads();
 
     void MainThreadUpdate();
 

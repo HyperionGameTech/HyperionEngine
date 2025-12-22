@@ -20,20 +20,20 @@ CameraTrackController::CameraTrackController(RC<CameraTrack> cameraTrack)
 {
 }
 
-void CameraTrackController::UpdateLogic(double dt)
+void CameraTrackController::UpdateLogic(double delta)
 {
     if (!m_cameraTrack)
     {
         return;
     }
 
-    m_trackTime += dt;
+    m_trackTime += delta;
 
     const double currentTrackTime = std::fmod(m_trackTime, m_cameraTrack->GetDuration());
 
     const CameraTrackPivot pivot = m_cameraTrack->GetPivotAt(currentTrackTime);
 
-    const Vector3 viewVector = (pivot.transform.GetRotation() * -Vector3::UnitZ()).Normalized();
+    const Vec3f viewVector = (pivot.transform.GetRotation() * -Vec3f::UnitZ()).Normalized();
 
     m_camera->SetNextTranslation(pivot.transform.GetTranslation());
     m_camera->SetDirection(viewVector);

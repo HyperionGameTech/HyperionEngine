@@ -115,12 +115,21 @@ void Entity::Init()
         m_entityManager->AddComponent<TransformComponent>(this, TransformComponent { GetWorldTranslation(), GetWorldRotation(), GetWorldScale() });
     }
 
+    if (BoundingBoxComponent* boundingBoxComponent = m_entityManager->TryGetComponent<BoundingBoxComponent>(this))
+    {
+        boundingBoxComponent->worldAabb = GetWorldBounds();
+    }
+    else
+    {
+        m_entityManager->AddComponent<BoundingBoxComponent>(this, BoundingBoxComponent { GetWorldBounds() });
+    }
+
     if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))
     {
         m_entityManager->AddComponent<VisibilityStateComponent>(this, {});
     }
 
-    m_entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+    m_entityManager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(this);
 
     if (IsStatic())
     {
@@ -199,7 +208,8 @@ void Entity::OnNodeAttached(Node* node)
     // needs world bounds update when a child is attached
     if (EntityManager* entityManager = GetEntityManager())
     {
-        entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+        BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
+        boundingBoxComponent.worldAabb = GetWorldBounds();
     }
 }
 
@@ -208,7 +218,8 @@ void Entity::OnNodeDetached(Node* node)
     // needs world bounds update when a child is detached
     if (EntityManager* entityManager = GetEntityManager())
     {
-        entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+        BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
+        boundingBoxComponent.worldAabb = GetWorldBounds();
     }
 }
 
@@ -242,6 +253,13 @@ void Entity::OnAddedToScene(Scene* scene)
 void Entity::OnRemovedFromScene(Scene* scene)
 {
     AssertDebug(scene != nullptr);
+
+    if (EntityManager* entityManager = GetEntityManager())
+    {
+        VisibilityStateComponent& visibilityStateComponent = entityManager->GetComponent<VisibilityStateComponent>(this);
+        visibilityStateComponent.octantId = OctantId::Invalid();
+        visibilityStateComponent.visibilityState = nullptr;
+    }
 }
 
 void Entity::OnComponentAdded(AnyRef component)
@@ -364,8 +382,10 @@ void Entity::OnTransformUpdated()
     transformComponent.rotation = GetWorldRotation();
     transformComponent.scale = GetWorldScale();
 
-    // needs world bounds update
-    entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+    BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
+    boundingBoxComponent.worldAabb = GetWorldBounds();
+
+    entityManager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(this);
 
     SetNeedsRenderProxyUpdate();
 }

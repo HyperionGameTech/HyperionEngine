@@ -19,7 +19,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
 namespace RenderApi {
-HYP_API extern uint32 GetFrameCounter();
+extern uint32 GetFrameCounter();
 } // namespace RenderApi
 
 static constexpr int MinResidency = 1;

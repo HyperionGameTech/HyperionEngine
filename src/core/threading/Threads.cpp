@@ -19,10 +19,12 @@
 
 namespace hyperion {
 
-HYP_API const StaticThreadId g_mainThread = StaticThreadId(NAME("MainThread"));
+const StaticThreadId g_mainThread = StaticThreadId(NAME("MainThread"));
 
-HYP_API StaticThreadId g_simThread;
-HYP_API StaticThreadId g_renderThread; // set in Hyp_Initialize()
+// set in Hyp_Initialize()
+StaticThreadId g_simThread;
+StaticThreadId g_renderThread;
+StaticThreadId g_visThread;
 
 namespace threading {
 

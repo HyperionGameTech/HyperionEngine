@@ -88,7 +88,7 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <game/Game.hpp>
+#include <engine/Game.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/DebugDrawer.hpp>
@@ -1485,7 +1485,6 @@ EditorSubsystem::EditorSubsystem()
                 m_delegateHandlers.Remove("SetBuildBVHFlag");
                 m_delegateHandlers.Remove("OnPackageAdded");
                 m_delegateHandlers.Remove("OnPackageRemoved");
-                m_delegateHandlers.Remove("OnGameStateChange");
 
                 // if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
                 // {
@@ -1815,7 +1814,7 @@ void EditorSubsystem::InitViewport()
             //     return UIEventHandlerResult::STOP_BUBBLING;
             // }
 
-            if (GetWorld()->GetGameState().IsStopped())
+            if (GetWorld()->GetGameState().IsEditMode())
             {
                 if (IsHoveringGizmo())
                 {
@@ -1936,7 +1935,7 @@ void EditorSubsystem::InitViewport()
 
             // Hover over a manipulation widget when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
-                && GetWorld()->GetGameState().IsStopped()
+                && GetWorld()->GetGameState().IsEditMode()
                 && GetSelectedManipulationMode() != EditorManipulationMode::NONE)
             {
                 // Ray test the widget
@@ -2059,31 +2058,15 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Remove(&backdropPanel->OnKeyDown);
     m_delegateHandlers.Add(backdropPanel->OnKeyDown.Bind([this](const KeyboardEvent& event)
         {
-            EditorViewport* activeViewport = GetActiveViewport();
-            if (!activeViewport)
+            if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
 
-            if (GetWorld()->GetGameState().IsSimulating())
+            EditorViewport* activeViewport = GetActiveViewport();
+            if (!activeViewport)
             {
-                // On escape press, stop simulating if we're currently simulating
-                if (event.keyCode == KeyCode::KEY_ESCAPE)
-                {
-                    GetWorld()->StopSimulating();
-
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
-            }
-            else
-            {
-                if (m_focusedNode.IsValid())
-                {
-                    if (GetGizmo(EditorManipulationMode::TRANSLATE)->OnKeyPress(activeViewport->GetCamera(), event, m_focusedNode.Lock()))
-                    {
-                        return UIEventHandlerResult::STOP_BUBBLING;
-                    }
-                }
+                return UIEventHandlerResult::OK;
             }
 
             if (activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnKeyDown(event))
@@ -2097,7 +2080,7 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Remove(&backdropPanel->OnKeyUp);
     m_delegateHandlers.Add(backdropPanel->OnKeyUp.Bind([this](const KeyboardEvent& event)
         {
-            if (!GetWorld()->GetGameState().IsStopped())
+            if (!GetWorld()->GetGameState().IsEditMode())
             {
                 return UIEventHandlerResult::OK;
             }
@@ -2409,7 +2392,7 @@ void EditorSubsystem::UpdateWatchedNodes()
         return;
     }
 
-    if (GetWorld()->GetGameState().IsStopped())
+    if (GetWorld()->GetGameState().IsEditMode())
     {
         if (ShowOnlyActiveScene)
         {

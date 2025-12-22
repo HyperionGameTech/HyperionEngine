@@ -29,7 +29,7 @@ public:
         m_cameraTrack = std::move(cameraTrack);
     }
 
-    virtual void UpdateLogic(double dt) override;
+    virtual void UpdateLogic(double delta) override;
 
 protected:
     RC<CameraTrack> m_cameraTrack;
@@ -37,4 +37,3 @@ protected:
 };
 
 } // namespace hyperion
-

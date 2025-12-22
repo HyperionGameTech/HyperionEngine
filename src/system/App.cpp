@@ -9,7 +9,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderBackend.hpp>
 
-#include <game/Game.hpp>
+#include <engine/Game.hpp>
 
 #include <engine/EngineDriver.hpp>
 

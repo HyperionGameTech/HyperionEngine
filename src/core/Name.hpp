@@ -26,8 +26,8 @@ HYP_API extern Name RegisterName(NameRegistry* nameRegistry, NameID id, const AN
 
 HYP_API extern bool ShouldLockNameRegistry();
 
-HYP_API extern void NameRegistry_Initialize();
-HYP_API extern void NameRegistry_Shutdown();
+extern void InitNameRegistry();
+extern void DestroyNameRegistry();
 
 struct NameRegistration
 {

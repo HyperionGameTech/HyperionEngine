@@ -10,7 +10,6 @@
 #include <scene/SystemExecutionGroup.hpp>
 #include <scene/Subsystem.hpp>
 
-#include <scene/systems/WorldAABBUpdaterSystem.hpp>
 #include <scene/systems/VisibilityStateUpdaterSystem.hpp>
 #include <scene/systems/LightmapSystem.hpp>
 #include <scene/systems/AnimationSystem.hpp>
@@ -39,7 +38,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <game/Game.hpp>
+#include <engine/Game.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -166,7 +165,6 @@ void World::Init()
         InitObject(m_worldGrid);
     }
 
-    AddSystem(CreateObject<WorldAABBUpdaterSystem>());
     AddSystem(CreateObject<VisibilityStateUpdaterSystem>());
     AddSystem(CreateObject<LightmapSystem>());
     AddSystem(CreateObject<AnimationSystem>());
@@ -375,6 +373,18 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
     }
 }
 
+const GameState& World::GetGameState() const
+{
+    if (m_gameInstance != nullptr)
+    {
+        return m_gameInstance->GetGameState();
+    }
+
+    // fallback
+    static GameState s_defaultGameState;
+    return s_defaultGameState;
+}
+
 void World::ProcessViewAsync(View* view)
 {
     HYP_SCOPE;
@@ -397,28 +407,16 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 {
     HYP_SCOPE;
 
-    if (m_gameState.IsPaused())
-    {
-        return;
-    }
-
-    m_gameState.deltaTime = delta;
-
     for (const Handle<Scene>& scene : m_scenes)
     {
         AssertDebug(scene != nullptr);
         scene->Update(delta);
     }
 
-    if (m_gameState.IsSimulating())
+    if (m_physicsWorld != nullptr)
     {
-        if (m_physicsWorld != nullptr)
-        {
-            m_physicsWorld->Tick(delta);
-        }
+        m_physicsWorld->Tick(delta);
     }
-
-    m_gameState.gameTime += delta;
 
     m_rootSynchronousExecutionGroup = nullptr;
 
@@ -513,8 +511,6 @@ void World::EndUpdate()
 
         m_rootSynchronousExecutionGroup = nullptr;
     }
-
-    UpdateDirtyMeshEntities();
 
 #if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
     for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
@@ -743,62 +739,6 @@ bool World::RemoveSubsystem(Subsystem* subsystem)
     m_subsystemsArray.Erase(arrayIt);
 
     return true;
-}
-
-void World::StartSimulating()
-{
-    HYP_SCOPE;
-
-    if (m_gameState.mode == GameStateMode::SIMULATING)
-    {
-        return;
-    }
-
-    const GameStateMode previousGameStateMode = m_gameState.mode;
-
-    if (previousGameStateMode != GameStateMode::PAUSED)
-    {
-        m_gameState.gameTime = 0.0f;
-        m_gameState.deltaTime = 0.0f;
-    }
-
-    m_gameState.mode = GameStateMode::SIMULATING;
-
-    OnGameStateChange(this, previousGameStateMode, GameStateMode::SIMULATING);
-}
-
-void World::StopSimulating()
-{
-    HYP_SCOPE;
-
-    const GameStateMode previousGameStateMode = m_gameState.mode;
-
-    if (previousGameStateMode == GameStateMode::STOPPED)
-    {
-        return;
-    }
-
-    m_gameState.gameTime = 0.0f;
-    m_gameState.deltaTime = 0.0f;
-    m_gameState.mode = GameStateMode::STOPPED;
-
-    OnGameStateChange(this, previousGameStateMode, GameStateMode::STOPPED);
-}
-
-void World::PauseSimulation()
-{
-    HYP_SCOPE;
-
-    if (m_gameState.mode != GameStateMode::SIMULATING)
-    {
-        return;
-    }
-
-    const GameStateMode previousGameStateMode = m_gameState.mode;
-
-    m_gameState.mode = GameStateMode::PAUSED;
-
-    OnGameStateChange(this, previousGameStateMode, GameStateMode::PAUSED);
 }
 
 void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
@@ -1053,7 +993,7 @@ void World::UpdateDirtyMeshEntities()
         EntityManager* entityManager = scene->GetEntityManager();
         AssertDebug(entityManager != nullptr);
 
-        for (auto [entity, meshComponent, transformComponent, boundingBoxComponent, _] : entityManager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, TagComponent<EntityTag::UPDATE_RENDER_PROXY>>())
+        for (auto [entity, meshComponent, _] : entityManager->GetEntitySet<MeshComponent, TagComponent<EntityTag::UPDATE_RENDER_PROXY>>())
         {
             HYP_NAMED_SCOPE_FMT("Update draw data for Entity: {}", entity->GetName());
 

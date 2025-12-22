@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <engine/GameState.hpp>
+
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
@@ -35,11 +37,31 @@ public:
         return m_world;
     }
 
+    HYP_METHOD(Property = "GameState")
+    const GameState& GetGameState() const
+    {
+        return m_gameState;
+    }
+
     HYP_METHOD(Scriptable)
     virtual void OnLaunch() final;
 
     HYP_METHOD(Scriptable)
     virtual void OnUpdate(float delta) final;
+
+    HYP_METHOD()
+    void StartSimulating();
+
+    HYP_METHOD()
+    void StopSimulating();
+
+    HYP_METHOD()
+    void PauseSimulation();
+
+#ifdef HYP_EDITOR
+    HYP_METHOD(EditorOnly)
+    void SetToEditMode();
+#endif
 
     void HandleEvent(Event&& event);
 
@@ -51,6 +73,9 @@ public:
 
     HYP_FIELD()
     ScriptableDelegate<void> OnLaunched;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> OnGameStateChange;
 
 protected:
     void Init() override final;
@@ -79,6 +104,9 @@ protected:
 
     HYP_FIELD(Property = "World", Serialize)
     Handle<World> m_world;
+
+    HYP_FIELD(Property = "GameState", Transient)
+    GameState m_gameState;
 
     Handle<UISubsystem> m_uiSubsystem;
 

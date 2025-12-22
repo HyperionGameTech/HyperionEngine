@@ -46,9 +46,6 @@ public:
     UIEventHandlerResult UpdateRedoMenuItem();
 
     HYP_METHOD()
-    UIEventHandlerResult SimulateClicked(const MouseEvent& event);
-
-    HYP_METHOD()
     UIEventHandlerResult RebuildLightmaps(const MouseEvent& event);
 
     HYP_METHOD()

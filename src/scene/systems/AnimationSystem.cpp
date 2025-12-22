@@ -13,6 +13,8 @@
 
 #include <core/reflection/Handle.hpp>
 
+#include <engine/GameState.hpp>
+
 #include <AnimationSystem.generated.inl>
 
 namespace hyperion {

@@ -42,7 +42,7 @@ public:
         uint32 blocksPerSlab = 256,
         EnumFlags<AllocatorFlags> flags = AF_NONE,
         const ThreadId& ownerThreadId = ThreadId::Invalid())
-        : TSlabAllocator(GetDefaultAllocatorInstance<AllocatorType>(), blockSize, blocksPerSlab, alignment, flags, ownerThreadId)
+        : TSlabAllocator(GetDefaultAllocatorInstance<AllocatorType>(), blockSize, alignment, blocksPerSlab, flags, ownerThreadId)
     {
     }
 

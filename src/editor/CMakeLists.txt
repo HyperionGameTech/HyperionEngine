@@ -167,6 +167,17 @@ if(DOTNET_EXECUTABLE)
             COMMENT "Building Hyperion.Editor"
             DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
         )
+
+        # for Xcode, we want to allow running the editor from within Xcode
+        if(CMAKE_GENERATOR MATCHES "Xcode")
+            set_target_properties(Hyperion.Editor PROPERTIES XCODE_GENERATE_SCHEME ON)
+            set_target_properties(Hyperion.Editor PROPERTIES XCODE_SCHEME_ENABLE_GPU_API_VALIDATION OFF)
+            set_target_properties(Hyperion.Editor PROPERTIES XCODE_SCHEME_ENABLE_GPU_FRAME_CAPTURE_MODE "Metal")
+            set_target_properties(Hyperion.Editor PROPERTIES XCODE_SCHEME_EXECUTABLE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Hyperion.Editor")
+            set_target_properties(Hyperion.Editor PROPERTIES XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+            set_target_properties(Hyperion.Editor PROPERTIES XCODE_SCHEME_LAUNCH_CONFIGURATION_NAME "${HYP_BUILD_TYPE}")
+            set_target_properties(Hyperion.Editor PROPERTIES XCODE_SCHEME_HIDE_BUILDABLE_NAME OFF)
+        endif()
     endif()
 
     add_dependencies(Hyperion.Editor hyperion Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop)

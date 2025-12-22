@@ -23,7 +23,26 @@ namespace Hyperion
 
         public static Assembly LoadGlobalAssembly(string path)
         {
-            return LoadGlobalAssembly(AssemblyName.GetAssemblyName(path));
+            Logger.Log(LogType.Debug, "Loading global assembly from path: " + path);
+
+            AssemblyName assemblyName = AssemblyName.GetAssemblyName(path);
+            Assembly? assembly = FindGlobalAssembly(assemblyName);
+
+            if (assembly != null)
+            {
+                return assembly;
+            }
+
+            assembly = Assembly.LoadFrom(path);
+
+            if (assembly == null)
+            {
+                throw new Exception($"Failed to load assembly {assemblyName.Name} into default context");
+            }
+
+            Logger.Log(LogType.Debug, "Loaded assembly {0} (version: {1}) into default context", assemblyName.Name, assemblyName.Version);
+
+            return assembly;
         }
 
         public static Assembly LoadGlobalAssembly(AssemblyName name)
@@ -36,6 +55,7 @@ namespace Hyperion
             }
 
             // Load into the default context
+            Logger.Log(LogType.Debug, "Loading global assembly from name: {0} (version: {1})", name.Name, name.Version);
 
             assembly = Assembly.Load(name);
 
@@ -44,7 +64,7 @@ namespace Hyperion
                 throw new Exception($"Failed to load assembly {name.Name} into default context");
             }
 
-            Logger.Log(LogType.Info, "Loaded assembly {0} (version: {1}) into default context", name.Name, name.Version);
+            Logger.Log(LogType.Debug, "Loaded assembly {0} (version: {1}) into default context", name.Name, name.Version);
 
             return assembly;
         }
@@ -70,12 +90,12 @@ namespace Hyperion
 
             if (globalAssembly != null)
             {
-                Logger.Log(LogType.Info, "Loaded assembly {0} (version: {1}) from global cached assemblies", name.Name, name.Version);
+                Logger.Log(LogType.Debug, "Loaded assembly {0} (version: {1}) from global cached assemblies", name.Name, name.Version);
 
                 return globalAssembly;
             }
 
-            Logger.Log(LogType.Info, "Loading assembly: {0} (version: {1})", name.Name, name.Version);
+            Logger.Log(LogType.Debug, "Loading assembly: {0} (version: {1})", name.Name, name.Version);
 
             string assemblyPath = resolver.ResolveAssemblyToPath(name);
 
@@ -272,7 +292,7 @@ namespace Hyperion
                 }
 
                 // Load all referenced assemblies to ensure nothing will crash later
-                Logger.Log(LogType.Info, "Loaded assembly: {0}, with {1} referenced assemblies.", assembly.FullName, assembly.GetReferencedAssemblies().Length);
+                Logger.Log(LogType.Debug, "Loaded assembly: {0}, with {1} referenced assemblies.", assembly.FullName, assembly.GetReferencedAssemblies().Length);
             }
 
             // Load referenced assemblies
@@ -284,7 +304,7 @@ namespace Hyperion
                 {
                     Guid assemblyGuid = Guid.NewGuid();
 
-                    Logger.Log(LogType.Info, "Loading referenced assembly: {0} (version: {1})", referencedAssemblyName.Name, referencedAssemblyName.Version);
+                    Logger.Log(LogType.Debug, "Loading referenced assembly: {0} (version: {1})", referencedAssemblyName.Name, referencedAssemblyName.Version);
 
                     IntPtr assemblyPtr = IntPtr.Zero;
                     int res = NativeInterop_NewAssembly(assemblyGuid, out assemblyPtr);
@@ -319,7 +339,7 @@ namespace Hyperion
 
         public void Unload()
         {
-            Logger.Log(LogType.Info, $"Attempting to unload assembly {assembly?.FullName}");
+            Logger.Log(LogType.Debug, $"Attempting to unload assembly {assembly?.FullName}");
 
             if (assembly == null)
             {
@@ -338,7 +358,7 @@ namespace Hyperion
                     continue;
                 }
 
-                Logger.Log(LogType.Info, $"Referenced assembly unloading: {referencedAssembly.AssemblyName?.FullName}");
+                Logger.Log(LogType.Debug, $"Referenced assembly unloading: {referencedAssembly.AssemblyName?.FullName}");
 
                 referencedAssembly.Unload();
             }
@@ -357,18 +377,18 @@ namespace Hyperion
                 numCachedObjectsRemoved.Add(kvp.Key, numRemoved);
             }
 
-            Logger.Log(LogType.Info, $"Unloaded assembly {guid}, removed:\n\t{numMethodsRemoved} method(s)\n\t{numDelegatesRemoved} delegate(s)");
+            Logger.Log(LogType.Debug, $"Unloaded assembly {guid}, removed:\n\t{numMethodsRemoved} method(s)\n\t{numDelegatesRemoved} delegate(s)");
 
             foreach (KeyValuePair<Type, int> kvp in numCachedObjectsRemoved)
             {
-                Logger.Log(LogType.Info, $"\t{kvp.Value} {kvp.Key.Name} object(s)");
+                Logger.Log(LogType.Debug, $"\t{kvp.Value} {kvp.Key.Name} object(s)");
             }
 
             if (ownsContext)
             {
-                Logger.Log(LogType.Info, "Unloading context");
+                Logger.Log(LogType.Debug, "Unloading context");
                 context.Unload();
-                Logger.Log(LogType.Info, "Context unloaded");
+                Logger.Log(LogType.Debug, "Context unloaded");
             }
 
             assembly = null;
@@ -526,8 +546,6 @@ namespace Hyperion
 
                 assemblies.Add(guid, assemblyInstance);
 
-                Logger.Log(LogType.Info, $"Added assembly {guid} from {path}");
-
                 return assemblyInstance;
             }
         }
@@ -554,7 +572,7 @@ namespace Hyperion
                     assemblies[guid].Unload();
                     assemblies.Remove(guid);
 
-                    Logger.Log(LogType.Info, $"Removed assembly {guid}");
+                    Logger.Log(LogType.Debug, $"Removed assembly {guid}");
                 }
             }
         }

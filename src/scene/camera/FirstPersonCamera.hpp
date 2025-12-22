@@ -67,7 +67,7 @@ public:
         return true;
     }
 
-    virtual void UpdateLogic(double dt) override;
+    virtual void UpdateLogic(double delta) override;
 
 protected:
     virtual void Init() override;

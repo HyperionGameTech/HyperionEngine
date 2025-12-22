@@ -160,8 +160,10 @@ namespace Hyperion.Editor
         }
 
         [UnmanagedCallersOnly]
-        private static void InitFromManagedCallback()
+        private static unsafe void InitFromManagedCallback(ManagedDelegates* pManagedDelegates)
         {
+            Debug.Assert(pManagedDelegates != null, "pManagedDelegates is null in InitFromManagedCallback");
+
             // Initialize Hyperion.NET runtime
             int res = NativeInterop.InitializeRuntimeManaged();
             if (res != (int)LoadAssemblyResult.Ok)
@@ -169,29 +171,36 @@ namespace Hyperion.Editor
                 throw new Exception("Failed to initialize Hyperion .NET runtime from managed code. Error code: " + (LoadAssemblyResult)res);
             }
 
+            pManagedDelegates->initializeAssembly = (delegate* unmanaged<IntPtr, IntPtr, IntPtr, int, int>)&NativeInterop.InitializeAssembly;
+            pManagedDelegates->unloadAssembly = (delegate* unmanaged<IntPtr, IntPtr, void>)&NativeInterop.UnloadAssembly;
+
             IntPtr assemblyGuidPtr = Marshal.AllocHGlobal(Marshal.SizeOf<Guid>());
-            IntPtr assemblyPathStringPtr = IntPtr.Zero;
+            IntPtr assemblyPathPtr = IntPtr.Zero;
 
             try
             {
                 string[] coreAssemblyNames = [
                     "Hyperion.NET.Shared.dll",
                     "Hyperion.NET.Runtime.dll",
+                    "Hyperion.NET.Scripting.dll",
+
+                    // Loading our own dll is necessary to load HyperionEditorGame into class registry.
                     "Hyperion.Editor.dll"
                 ];
 
                 foreach (string assemblyName in coreAssemblyNames)
                 {
-                    assemblyPathStringPtr = Marshal.StringToHGlobalAnsi(System.IO.Path.Combine(AppContext.BaseDirectory, assemblyName));
+                    string assemblyPath = Path.Combine(AppContext.BaseDirectory, assemblyName);
+                    assemblyPathPtr = Marshal.StringToHGlobalAnsi(assemblyPath);
 
-                    res = NativeInterop.InitializeAssemblyManaged(assemblyGuidPtr, IntPtr.Zero, assemblyPathStringPtr, /* isCoreAssembly */ 1);
+                    res = NativeInterop.InitializeAssemblyManaged(assemblyGuidPtr, IntPtr.Zero, assemblyPathPtr, /* isCoreAssembly */ 1);
 
-                    Marshal.FreeHGlobal(assemblyPathStringPtr);
-                    assemblyPathStringPtr = IntPtr.Zero;
+                    Marshal.FreeHGlobal(assemblyPathPtr);
+                    assemblyPathPtr = IntPtr.Zero;
 
                     if (res != (int)LoadAssemblyResult.Ok)
                     {
-                        throw new Exception("Failed to initialize Hyperion.NET.Shared assembly. Error code: " + (LoadAssemblyResult)res);
+                        throw new Exception("Failed to initialize assembly at: " + assemblyPath + ". Error code: " + (LoadAssemblyResult)res);
                     }
                 }
             }
@@ -201,9 +210,9 @@ namespace Hyperion.Editor
             }
             finally
             {
-                if (assemblyPathStringPtr != IntPtr.Zero)
+                if (assemblyPathPtr != IntPtr.Zero)
                 {
-                    Marshal.FreeHGlobal(assemblyPathStringPtr);
+                    Marshal.FreeHGlobal(assemblyPathPtr);
                 }
 
                 if (assemblyGuidPtr != IntPtr.Zero)

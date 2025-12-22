@@ -34,7 +34,6 @@ enum class EntityTag : uint64
 
     EDITOR_FOCUSED,
 
-    UPDATE_AABB,
     UPDATE_RENDER_PROXY,
     UPDATE_VISIBILITY_STATE,
 

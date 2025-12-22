@@ -1638,7 +1638,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 entity->SetLocalBounds(fbxMesh->bounds);
 
                 entity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
-                entity->AddComponent<BoundingBoxComponent>(BoundingBoxComponent {});
 
                 //// offset node to center of bounds
                 // node->SetWorldTranslation(node->GetWorldTranslation() + fbxMesh->bounds.GetCenter());

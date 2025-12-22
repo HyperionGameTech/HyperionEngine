@@ -122,7 +122,7 @@ void NullCameraController::Init()
     SetReady(true);
 }
 
-void NullCameraController::UpdateLogic(double dt)
+void NullCameraController::UpdateLogic(double delta)
 {
 }
 
@@ -225,11 +225,11 @@ void Camera::Init()
 {
     HYP_SCOPE;
 
+    Entity::Init();
+
     m_streamingVolume = CreateObject<CameraStreamingVolume>();
     m_streamingVolume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
     InitObject(m_streamingVolume);
-
-    Entity::Init();
 
     if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
     {

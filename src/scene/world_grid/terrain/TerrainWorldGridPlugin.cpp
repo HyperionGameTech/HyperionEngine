@@ -377,7 +377,6 @@ void TerrainStreamingCell::OnLoaded_Impl()
     };
 
     entityManager->GetComponent<VisibilityStateComponent>(entity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
-    entityManager->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
 
     MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(entity);
 

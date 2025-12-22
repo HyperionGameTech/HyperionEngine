@@ -362,7 +362,7 @@ void EnvProbe::Update(float delta)
 
     bool needsUpdate = false;
 
-    Array<ObjId<Scene>, SceneTempAllocator> cacheKeysToRemove;
+    Array<ObjId<Scene>, SceneAllocator> cacheKeysToRemove;
     cacheKeysToRemove.Reserve(m_cachedOctantHashCodes.Size());
 
     for (const KeyValuePair<ObjId<Scene>, HashCode>& kvp : m_cachedOctantHashCodes)

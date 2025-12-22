@@ -17,7 +17,6 @@
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/AnimationComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
-#include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 
 #include <rendering/Mesh.hpp>
@@ -343,7 +342,6 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         entity->SetLocalBounds(mesh->GetAABB());
 
         scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
-        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
 
         Handle<Node> node = CreateObject<Node>();
         node->SetName(CreateNameFromDynamicString(subMesh.name));

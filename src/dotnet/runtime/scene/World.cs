@@ -28,6 +28,12 @@ namespace Hyperion
         {
         }
 
+        public Name Name
+        {
+            get => this.GetName();
+            set => this.SetName(value);
+        }
+
         public WorldFlags WorldFlags
         {
             get => this.GetWorldFlags();

@@ -15,6 +15,8 @@ namespace hyperion {
 namespace dotnet {
 struct ObjectReference;
 class ManagedClass;
+class Assembly;
+struct ManagedGuid;
 } // namespace dotnet
 
 class DotNetImplBase;
@@ -25,7 +27,18 @@ using SetKeepAliveFunction = void (*)(dotnet::ObjectReference* objectReference, 
 using TriggerGCFunction = void (*)();
 using GetAssemblyPointerFunction = void (*)(dotnet::ObjectReference* assemblyObjectReference, dotnet::Assembly** outPAssembly);
 
-using InitFromManagedCallback = void (*)();
+using InitFromManagedCallback = void (*)(struct ManagedDelegates*);
+
+using InitializeRuntimeDelegate = int (*)();
+using InitializeAssemblyDelegate = int (*)(dotnet::ManagedGuid*, dotnet::Assembly*, const char*, int32);
+using UnloadAssemblyDelegate = void (*)(dotnet::ManagedGuid*, int32*);
+
+struct ManagedDelegates
+{
+    InitializeRuntimeDelegate initializeRuntime;
+    InitializeAssemblyDelegate initializeAssembly;
+    UnloadAssemblyDelegate unloadAssembly;
+};
 
 enum class LoadAssemblyResult : int32
 {
@@ -79,7 +92,7 @@ public:
         \param initFromManaged Whether this initialization is being initiated from managed code. If true, some initialization steps may be skipped.
         \param callback An optional callback function, used to initialize from managed code (only when \p initFromManaged is true).
     */
-    void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback callback = nullptr);
+    void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr);
 
     void Shutdown();
 

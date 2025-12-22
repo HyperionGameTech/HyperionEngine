@@ -187,6 +187,7 @@ set(HYP_VERSION_PATCH 0)
 link_directories(${THIRD_PARTY_LIBRARY_DIR})
 
 if(CMAKE_GENERATOR STREQUAL "Xcode")
+    set(CMAKE_XCODE_SCHEME_GENERATE ON)
     set(CMAKE_XCODE_SCHEME_ENABLE_GPU_API_VALIDATION FALSE)
 
     # disable xcode code signing
@@ -280,106 +281,15 @@ else()
     set(HYP_GENERATE_CSHARP_LIBRARIES false)
 endif()
 
-# Build C# libraries
-if(HYP_GENERATE_CSHARP_LIBRARIES)
-    if(CMAKE_GENERATOR STREQUAL "Xcode")
-        message(WARNING "C# scripts will not be built in Xcode generator mode. \
-        To manually build C# libraries, run the `BuildCSharpLibraries` script:\n./tools/scripts/BuildCSharpLibraries.sh")
-
-        set(HYP_BUILD_CSHARP_SOURCES false)
-    else()
-        set(HYP_BUILD_CSHARP_SOURCES true)
-    endif()
-
-    # temp disable
-    # file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "src/dotnet/scripting/**.cs")
-
-    # build C# constant properties shared across all C# projects
-    if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-        set(CSHARP_CONSTANTS "HYP_WINDOWS")
-    elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-        set(CSHARP_CONSTANTS "HYP_MACOS;HYP_UNIX")
-    elseif(${HYP_PLATFORM_NAME} STREQUAL "iOS")
-        set(CSHARP_CONSTANTS "HYP_IOS;HYP_UNIX")
-    elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-        set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
-    endif()
-
-    if(CSHARP_SCRIPTING_SOURCES)
-        # make a directory for the .csproj file
-        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting)
-
-        # generate .csproj file
-        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  <PropertyGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <OutputType>Library</OutputType>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <TargetFramework>net9.0</TargetFramework>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <LangVersion>13.0</LangVersion>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <Nullable>enable</Nullable>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <AssemblyName>Hyperion.NET.Scripting</AssemblyName>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
-        if(CSHARP_CONSTANTS)
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
-        endif()
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </PropertyGroup>\n")
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
-        foreach(CSHARP_SCRIPTING_SOURCE ${CSHARP_SCRIPTING_SOURCES})
-            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <Compile Include=\"${CSHARP_SCRIPTING_SOURCE}\" />\n")
-        endforeach()
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "      <Private>true</Private>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    </ProjectReference>\n")
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis\" Version=\"4.9.2\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp\" Version=\"4.9.2\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp.Scripting\" Version=\"4.9.2\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.Scripting\" Version=\"4.9.2\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.Workspaces.MSBuild\" Version=\"4.9.2\" />\n")
-
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </ItemGroup>\n")
-        # copy .dll to output directory
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </Target>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "</Project>\n")
-
-        # run dotnet restore now
-        execute_process(
-            COMMAND dotnet restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
-        )
-
-        if(NOT DEFINED MSVC)
-            add_custom_target(Hyperion.NET.Scripting ALL
-                COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                DEPENDS Hyperion.NET.Shared
-                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/bin/${HYP_BUILD_TYPE}/net9.0/Hyperion.NET.Scripting.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Scripting.dll
-                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
-            )
-        endif()
-    endif()
-
-    if(HYP_BUILD_CSHARP_SOURCES)
-        # Add C# projects to Visual Studio solution if building with MSVC
-        if(MSVC)
-            # Enable C# language support for proper project inclusion
-            enable_language(CSharp)
-
-            # Check if Scripting project exists and include it
-            if(EXISTS ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
-                include_external_msproject(Hyperion.NET.Scripting ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
-            endif()
-        endif()
-    endif()
-
-else()
-    message(STATUS "Not building C# libraries, HYP_GENERATE_CSHARP_LIBRARIES is false")
+# C# constant properties shared across all C# projects
+if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
+    set(CSHARP_CONSTANTS "HYP_WINDOWS")
+elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
+    set(CSHARP_CONSTANTS "HYP_MACOS;HYP_UNIX")
+elseif(${HYP_PLATFORM_NAME} STREQUAL "iOS")
+    set(CSHARP_CONSTANTS "HYP_IOS;HYP_UNIX")
+elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
+    set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
 endif()
 
 # Find rendering backend so rendering module can use it
@@ -587,6 +497,8 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
             set(sub_library_name "hyperion-dotnet-shared")
         elseif(dir MATCHES "dotnet/interop")
             set(sub_library_name "hyperion-dotnet-interop")
+        elseif(dir MATCHES "dotnet/scripting")
+            set(sub_library_name "hyperion-dotnet-scripting")
         else()
             # the subfolder must contain a library with the name hyperion-<subfolder>
             set(sub_library_name "hyperion-${subdir_basename}")

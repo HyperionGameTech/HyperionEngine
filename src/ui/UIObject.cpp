@@ -205,9 +205,7 @@ void UIObject::Init()
     meshComponent.userData = MeshComponentUserData {};
 
     Entity* entity = GetEntity();
-
     scene->GetEntityManager()->AddComponent<MeshComponent>(entity, std::move(meshComponent));
-    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
 
     SetReady(true);
 

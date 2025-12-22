@@ -256,8 +256,6 @@ public:
         lightmapVolume->SetName(Name::Unique("LightmapVolume"));
         InitObject(lightmapVolume);
 
-        lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent {});
-
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
         Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(

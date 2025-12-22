@@ -5,7 +5,7 @@
 #include <core/threading/Thread.hpp>
 #include <core/threading/Scheduler.hpp>
 
-#include <game/Game.hpp>
+#include <engine/Game.hpp>
 
 #include <engine/threads/SimThread.hpp>
 #include <engine/EngineGlobals.hpp>

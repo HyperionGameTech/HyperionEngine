@@ -1,7 +1,7 @@
 #pragma once
 #include <core/Defines.hpp>
 
-#include <game/Game.hpp>
+#include <engine/Game.hpp>
 
 namespace hyperion {
 class EditorSubsystem;

@@ -9,7 +9,6 @@
 #include <scene/EntityManager.hpp>
 
 #include <scene/systems/VisibilityStateUpdaterSystem.hpp>
-#include <scene/systems/WorldAABBUpdaterSystem.hpp>
 #include <scene/systems/AnimationSystem.hpp>
 #include <scene/systems/LightmapSystem.hpp>
 #include <scene/systems/AudioSystem.hpp>

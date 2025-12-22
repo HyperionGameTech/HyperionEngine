@@ -37,11 +37,11 @@ void FollowCameraController::OnDeactivated()
     PerspectiveCameraController::OnDeactivated();
 }
 
-void FollowCameraController::UpdateLogic(double dt)
+void FollowCameraController::UpdateLogic(double delta)
 {
     HYP_SCOPE;
 
-    m_realOffset.Lerp(m_offset, MathUtil::Clamp(float(dt) * 25.0f, 0.0f, 1.0f));
+    m_realOffset.Lerp(m_offset, MathUtil::Clamp(float(delta) * 25.0f, 0.0f, 1.0f));
 
     const Vector3 origin = m_camera->GetTarget();
     const Vector3 normalizedOffsetDirection = (origin - (origin + m_realOffset)).Normalized();
