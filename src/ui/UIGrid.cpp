@@ -326,7 +326,7 @@ Handle<UIGridRow> UIGrid::AddRow()
 
 void UIGrid::Init()
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     UIPanel::Init();
 }

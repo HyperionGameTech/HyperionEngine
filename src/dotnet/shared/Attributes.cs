@@ -26,10 +26,10 @@ namespace Hyperion
     }
 
     /// <summary>
-    /// Indicates that a method or property should only be called from the game thread.
+    /// Indicates that a method or property should only be called from the simulation thread.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = true)]
-    public class GameThreadOnly : Attribute
+    public class SimThreadOnly : Attribute
     {
     }
 }

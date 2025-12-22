@@ -44,7 +44,7 @@ extern Handle<EditorState> g_editorState;
 
 void Node_OnPostLoad(Node& node)
 {
-    node.SetScene(GetDetachedSceneForThread(g_gameThread));
+    node.SetScene(GetDetachedSceneForThread(g_simThread));
 }
 
 #pragma region NodeTag

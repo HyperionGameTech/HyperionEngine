@@ -560,7 +560,7 @@ void DebugDrawer::Init()
 void DebugDrawer::Update(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     const uint32 idx = RenderApi::GetRingIndex();
 
@@ -892,7 +892,7 @@ void DebugDrawer::ClearCommands(uint32 idx)
 DebugDrawCommandList& DebugDrawer::CreateCommandList()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_simThread | g_renderThread);
 
     const uint32 idx = RenderApi::GetRingIndex();
 

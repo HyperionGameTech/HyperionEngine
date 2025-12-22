@@ -10,6 +10,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <engine/threads/SimThread.hpp>
+
 #include <EditorTask.generated.inl>
 
 namespace hyperion {
@@ -41,10 +43,7 @@ TickableEditorTask::TickableEditorTask()
 
 bool TickableEditorTask::Commit()
 {
-    ThreadBase* gameThread = GetThreadById(g_gameThread);
-    Assert(gameThread != nullptr);
-
-    m_task = gameThread->GetScheduler().Enqueue([this, weakThis = WeakHandleFromThis()]()
+    m_task = g_simThreadInstance->GetScheduler().Enqueue([this, weakThis = WeakHandleFromThis()]()
         {
             Handle<TickableEditorTask> task = weakThis.Lock();
 
@@ -65,7 +64,7 @@ void TickableEditorTask::Cancel_Impl()
 {
     if (m_task.IsValid() && !m_task.IsCompleted())
     {
-        if (!IsOnThread(g_gameThread))
+        if (!IsOnThread(g_simThread))
         {
             HYP_LOG(Editor, Info, "Awaiting TickableEditorTask completion");
 

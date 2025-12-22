@@ -42,7 +42,7 @@ namespace hyperion {
 
 extern void HandleSignal(int signum);
 
-extern EngineStatTimer g_renderThreadUpdateTimer;
+extern EngineStatTimer g_renderTimer;
 
 RenderThread::RenderThread()
     : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
@@ -75,9 +75,9 @@ bool RenderThread::Start()
 
 void RenderThread::Update()
 {
-    ENGINE_STAT_SCOPE(&g_renderThreadUpdateTimer);
+    ENGINE_STAT_SCOPE(&g_renderTimer);
 
-    RenderApi::BeginFrame_RenderThread();
+    RenderApi::BeginFrameRender();
 
     Queue<Scheduler::ScheduledTask> tasks;
     if (uint32 numEnqueued = m_scheduler.NumEnqueued())
@@ -174,7 +174,7 @@ void RenderThread::Update()
         g_renderBackend->PresentToSwapchain(swapchain);
     }
 
-    RenderApi::EndFrame_RenderThread();
+    RenderApi::EndFrameRender();
 }
 
 void RenderThread::operator()()

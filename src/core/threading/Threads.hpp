@@ -71,7 +71,7 @@ using threading::UnregisterThread;
 
 HYP_API extern const StaticThreadId g_mainThread;
 
-HYP_API extern StaticThreadId g_gameThread;
+HYP_API extern StaticThreadId g_simThread;
 HYP_API extern StaticThreadId g_renderThread;
 
 } // namespace hyperion

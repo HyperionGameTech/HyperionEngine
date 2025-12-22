@@ -203,7 +203,7 @@ void UIListView::Init()
 {
     HYP_SCOPE;
 
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     UIPanel::Init();
 }

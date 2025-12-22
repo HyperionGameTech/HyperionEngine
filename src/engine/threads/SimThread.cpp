@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/threads/GameThread.hpp>
+#include <engine/threads/SimThread.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
@@ -35,16 +35,16 @@
 
 namespace hyperion {
 
-HYP_DEFINE_LOG_CHANNEL(GameThread);
+HYP_DEFINE_LOG_CHANNEL(SimThread);
 
-EngineStatTimer g_gameThreadUpdateTimer("GameThread/Update");
+EngineStatTimer g_gameThreadUpdateTimer("SimThread/Update");
 
-GameThread::GameThread()
-    : Thread(g_gameThread, ThreadPriorityValue::HIGHEST)
+SimThread::SimThread()
+    : Thread(g_simThread, ThreadPriorityValue::HIGHEST)
 {
 }
 
-bool GameThread::Start()
+bool SimThread::Start()
 {
     // -SimulateOnMainThread option
     if (m_id == g_mainThread)
@@ -61,7 +61,7 @@ bool GameThread::Start()
     return Thread::Start();
 }
 
-void GameThread::SetGame(const Handle<Game>& game)
+void SimThread::SetGame(const Handle<Game>& game)
 {
     if (IsRunning())
     {
@@ -97,7 +97,7 @@ void GameThread::SetGame(const Handle<Game>& game)
         }
         else
         {
-            HYP_LOG(GameThread, Info, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
+            HYP_LOG(SimThread, Info, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
 
             GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
         }
@@ -108,7 +108,7 @@ void GameThread::SetGame(const Handle<Game>& game)
     m_game = game;
 }
 
-void GameThread::Update()
+void SimThread::Update()
 {
     ENGINE_STAT_SCOPE(&g_gameThreadUpdateTimer);
 
@@ -121,7 +121,7 @@ void GameThread::Update()
 
     HYP_PROFILE_BEGIN;
 
-    RenderApi::BeginFrame_GameThread();
+    RenderApi::BeginFrameSim();
 
     m_counter.NextTick();
 
@@ -155,7 +155,7 @@ void GameThread::Update()
     g_editorState->Update(m_counter.delta);
 #endif
 
-    g_engineDriver->GameThreadUpdate(m_counter.delta);
+    g_engineDriver->UpdateSim(m_counter.delta);
 
     if (m_game != nullptr)
     {
@@ -164,10 +164,10 @@ void GameThread::Update()
 
     g_engineDriver->GetDebugDrawer()->Update(m_counter.delta);
 
-    RenderApi::EndFrame_GameThread();
+    RenderApi::EndFrameSim();
 }
 
-void GameThread::operator()()
+void SimThread::operator()()
 {
     // create fallback world
     Handle<World> defaultWorld = CreateObject<World>(NAME("DefaultWorld"), WorldFlags::NONE);
@@ -179,7 +179,7 @@ void GameThread::operator()()
         ThreadSleep(10); // wait for rendering subsystem to initialize before launching game
     }
 
-    HYP_LOG(GameThread, Info, "Render api initialized, starting game loop...");
+    HYP_LOG(SimThread, Info, "Render api initialized, starting game loop...");
 
     if (m_game != nullptr)
     {

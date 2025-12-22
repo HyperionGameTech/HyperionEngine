@@ -30,7 +30,7 @@ class TaskBatch;
 using threading::TaskBatch;
 
 class Game;
-class GameThread;
+class SimThread;
 class RenderGlobalState;
 class ScriptingService;
 class DebugDrawer;
@@ -38,7 +38,7 @@ class DeferredRenderer;
 class FinalPass;
 class PlaceholderData;
 class RenderThread;
-class GameThread;
+class SimThread;
 class SafeDeleter;
 class RenderState;
 class World;
@@ -57,7 +57,7 @@ class HYP_API EngineDriver final : public ObjectBase
     HYP_OBJECT_BODY(EngineDriver);
 
     friend struct RecreateSwapchain;
-    friend class GameThread;
+    friend class SimThread;
     friend class RenderThread;
 
 public:
@@ -132,7 +132,7 @@ private:
 
     void PreFrameUpdate(Frame* frame);
 
-    void GameThreadUpdate(float delta);
+    void UpdateSim(float delta);
 
     /*! \brief Enqueue the given World for rendering on the render thread. */
     void EnqueueWorldRender(World* world);

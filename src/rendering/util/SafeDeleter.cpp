@@ -389,7 +389,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetCurrentEntryList(Mutex::Guard** ppGu
     AssertDebug(ppGuard != nullptr);
     *ppGuard = nullptr;
 
-    if (IsOnThread(g_gameThread | g_renderThread))
+    if (IsOnThread(g_simThread | g_renderThread))
     {
         uint32 bufferIndex = RenderApi::GetRingIndex();
         AssertDebug(bufferIndex < m_entryLists.Size());

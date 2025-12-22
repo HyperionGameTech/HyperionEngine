@@ -112,7 +112,7 @@ ScriptSystem::ScriptSystem()
             NAME("OnScriptStateChanged"),
             g_engineDriver->GetScriptingService()->OnScriptStateChanged.Bind([this](const ScriptData& script)
                 {
-                    AssertOnThread(g_gameThread);
+                    AssertOnThread(g_simThread);
 
                     if (!(script.compileStatus & uint32(SCS_COMPILED)))
                     {
@@ -174,7 +174,7 @@ ScriptSystem::ScriptSystem()
             NAME("OnGameStateChange"),
             world->OnGameStateChange.Bind([this](World* world, GameStateMode previousGameStateMode, GameStateMode currentGameStateMode)
                 {
-                    AssertOnThread(g_gameThread);
+                    AssertOnThread(g_simThread);
 
                     HandleGameStateChanged(currentGameStateMode, previousGameStateMode);
                 }));
@@ -184,7 +184,7 @@ ScriptSystem::ScriptSystem()
     //     NAME("OnWorldChange"),
     //     OnWorldChanged.Bind([this](World* newWorld, World* previousWorld)
     //         {
-    //             AssertOnThread(g_gameThread);
+    //             AssertOnThread(g_simThread);
 
     //             // Remove previous OnGameStateChange handler
     //             m_delegateHandlers.Remove(NAME("OnGameStateChange"));
@@ -208,7 +208,7 @@ ScriptSystem::ScriptSystem()
     //                     NAME("OnGameStateChange"),
     //                     newWorld->OnGameStateChange.Bind([this](World* world, GameStateMode gameStateMode)
     //                         {
-    //                             AssertOnThread(g_gameThread);
+    //                             AssertOnThread(g_simThread);
 
     //                             const GameStateMode previousGameStateMode = world->GetGameState().mode;
 

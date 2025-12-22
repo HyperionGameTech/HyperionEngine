@@ -13,15 +13,15 @@
 
 namespace hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(GameThread);
+HYP_DECLARE_LOG_CHANNEL(SimThread);
 
 class AppContextBase;
 class Game;
 
-class GameThread final : public Thread<Scheduler>
+class SimThread final : public Thread<Scheduler>
 {
 public:
-    GameThread();
+    SimThread();
 
     bool Start();
 

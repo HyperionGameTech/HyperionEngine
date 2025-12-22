@@ -199,7 +199,7 @@ public:
 
     HYP_FORCE_INLINE const Handle<Texture>& GetReadbackTexture() const
     {
-        AssertOnThread(g_gameThread);
+        AssertOnThread(g_simThread);
 
         return m_readbackTexture;
     }

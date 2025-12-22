@@ -58,7 +58,7 @@
 #include <engine/EngineStats.hpp>
 
 #include <engine/threads/MainThread.hpp>
-#include <engine/threads/GameThread.hpp>
+#include <engine/threads/SimThread.hpp>
 #include <engine/threads/RenderThread.hpp>
 
 #include <game/Game.hpp>
@@ -133,7 +133,7 @@ RenderInterface* g_renderInterface;
 ShaderCompiler* g_shaderCompiler;
 
 MainThread* g_mainThreadInstance;
-GameThread* g_gameThreadInstance;
+SimThread* g_simThreadInstance;
 RenderThread* g_renderThreadInstance;
 
 Handle<Game> g_gameInstance; // active game instance, read/write only from the main thread
@@ -242,20 +242,20 @@ extern "C"
 
         if (CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool())
         {
-            g_renderThread = StaticThreadId(mainThreadIndex, NAME("Render"));
-            g_gameThread = StaticThreadId(NAME("Game"));
+            g_renderThread = StaticThreadId(mainThreadIndex, NAME("RenderThread"));
+            g_simThread = StaticThreadId(NAME("SimThread"));
         }
         else
         {
-            g_renderThread = StaticThreadId(NAME("Render"));
+            g_renderThread = StaticThreadId(NAME("RenderThread"));
 
             if (CoreApi_GetCommandLineArguments()["SimulateOnMainThread"].ToBool())
             {
-                g_gameThread = StaticThreadId(mainThreadIndex, NAME("Game"));
+                g_simThread = StaticThreadId(mainThreadIndex, NAME("SimThread"));
             }
             else
             {
-                g_gameThread = StaticThreadId(NAME("Game"));
+                g_simThread = StaticThreadId(NAME("SimThread"));
             }
         }
 
@@ -272,7 +272,7 @@ extern "C"
         g_resourcePool = new Pool(ResourcePoolBlockSize, PF_THREAD_SAFE);
         g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE);
         g_streamingPool = new Pool(StreamingPoolBlockSize, PF_THREAD_SAFE);
-        g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_gameThread);
+        g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_simThread);
 
         g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
         g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
@@ -391,7 +391,7 @@ extern "C"
 
         g_mainThreadInstance = new MainThread();
         g_renderThreadInstance = new RenderThread();
-        g_gameThreadInstance = new GameThread();
+        g_simThreadInstance = new SimThread();
 
         InitObject(g_engineDriver);
 
@@ -410,8 +410,8 @@ extern "C"
 
         g_mainThreadInstance->Stop();
 
-        g_gameThreadInstance->Join();
-        g_gameThread = g_mainThread;
+        g_simThreadInstance->Join();
+        g_simThread = g_mainThread;
 
         g_renderThreadInstance->Join();
         g_renderThread = g_mainThread;
@@ -504,8 +504,8 @@ extern "C"
         delete g_mainThreadInstance;
         g_mainThreadInstance = nullptr;
 
-        delete g_gameThreadInstance;
-        g_gameThreadInstance = nullptr;
+        delete g_simThreadInstance;
+        g_simThreadInstance = nullptr;
 
         delete g_renderThreadInstance;
         g_renderThreadInstance = nullptr;
@@ -519,9 +519,9 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
-        Assert(g_gameThreadInstance != nullptr);
+        Assert(g_simThreadInstance != nullptr);
 
-        g_gameThreadInstance->SetGame(pGame ? MakeStrongRef(pGame) : Handle<Game>::Null());
+        g_simThreadInstance->SetGame(pGame ? MakeStrongRef(pGame) : Handle<Game>::Null());
     }
 
     HYP_EXPORT void Hyp_LaunchThreads()
@@ -530,7 +530,7 @@ extern "C"
 
         Assert(g_engineDriver != nullptr && g_engineDriver->IsReady());
 
-        if (!g_gameThreadInstance || !g_gameThreadInstance->IsRunning())
+        if (!g_simThreadInstance || !g_simThreadInstance->IsRunning())
         {
             g_engineDriver->StartThreads();
         }

@@ -351,7 +351,7 @@ void EnvProbe::SetOrigin(const Vec3f& origin)
 void EnvProbe::Update(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (IsBaked())
     {

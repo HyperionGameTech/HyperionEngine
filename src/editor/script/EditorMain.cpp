@@ -903,7 +903,7 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
                                         editorSubsystem->AddTask(generateLightmapsTask);
                                     };
 
-                                    GetThreadById(g_gameThread)->GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
+                                    GetThreadById(g_simThread)->GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
                                 })
         .Detach();
 

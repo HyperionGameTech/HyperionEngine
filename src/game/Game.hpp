@@ -19,7 +19,7 @@ class Event;
 HYP_CLASS()
 class HYP_API Game : public ObjectBase
 {
-    friend class GameThread;
+    friend class SimThread;
     friend class EngineDriver;
 
     HYP_OBJECT_BODY(Game);

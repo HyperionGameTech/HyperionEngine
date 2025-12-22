@@ -33,19 +33,19 @@ LightmapperSubsystem::LightmapperSubsystem()
 
 void LightmapperSubsystem::OnAddedToWorld()
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 }
 
 void LightmapperSubsystem::OnRemovedFromWorld()
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     m_lightmappers.Clear();
 }
 
 void LightmapperSubsystem::Update(float delta)
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     HashSet<Task<void>*> erasedTasks; // to ensure we remove pointers after we remove tasks!
 
@@ -130,7 +130,7 @@ template <class T, class... Args>
 Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&... args)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (!source)
     {

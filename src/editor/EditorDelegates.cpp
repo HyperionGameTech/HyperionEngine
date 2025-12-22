@@ -14,20 +14,20 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorDelegates::EditorDelegates()
-    : m_scheduler(g_gameThread)
+    : m_scheduler(g_simThread)
 {
 }
 
 void EditorDelegates::AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const Property> propertiesToWatch, Proc<void(Node*, const Property*)>&& proc)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     Assert(rootNode != nullptr);
 
     NodeWatcher& nodeWatcher = m_nodeWatchers.EmplaceBack(watcherKey, NodeWatcher {}).second;
     nodeWatcher.rootNode = MakeWeakRef(rootNode);
-    nodeWatcher.OnChange.BindThreaded(std::move(proc), g_gameThread).Detach();
+    nodeWatcher.OnChange.BindThreaded(std::move(proc), g_simThread).Detach();
 
     for (const Property& property : propertiesToWatch)
     {
@@ -38,7 +38,7 @@ void EditorDelegates::AddNodeWatcher(Name watcherKey, Node* rootNode, Span<const
 int EditorDelegates::RemoveNodeWatcher(StringHash watcherKey, Node* rootNode)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     Assert(rootNode != nullptr);
 
@@ -59,7 +59,7 @@ int EditorDelegates::RemoveNodeWatcher(StringHash watcherKey, Node* rootNode)
 int EditorDelegates::RemoveNodeWatchers(StringHash watcherKey)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     int numRemoved = 0;
 
@@ -126,7 +126,7 @@ void EditorDelegates::OnNodeUpdate(Node* node, const Property* property)
         }
     };
 
-    if (IsOnThread(g_gameThread))
+    if (IsOnThread(g_simThread))
     {
         impl();
     }
@@ -143,7 +143,7 @@ void EditorDelegates::Update()
 {
     HYP_SCOPE;
 
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     Queue<Scheduler::ScheduledTask> tasks;
 

@@ -246,7 +246,7 @@ void Camera::Init()
         {
             matchWindowSize(window->GetDimensions());
 
-            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_gameThread);
+            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_simThread);
         }
     }
 
@@ -442,7 +442,7 @@ void Camera::SetWindow(ApplicationWindow* window)
 
             matchWindowSize(window->GetDimensions());
 
-            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_gameThread);
+            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_simThread);
         }
     }
 }
@@ -625,7 +625,7 @@ Vec2f Camera::GetPixelSize() const
 void Camera::Update(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
     if (HasActiveCameraController())

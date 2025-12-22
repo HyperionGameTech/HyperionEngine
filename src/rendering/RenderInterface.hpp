@@ -74,11 +74,11 @@ HYP_API uint32 GetRingIndex();
  *  \note This is thread-safe and can be called from any thread as the frame counter is atomic. */
 HYP_API uint32 GetFrameCounter();
 
-void BeginFrame_GameThread();
-void EndFrame_GameThread();
+void BeginFrameSim();
+void EndFrameSim();
 
-void BeginFrame_RenderThread();
-void EndFrame_RenderThread();
+void BeginFrameRender();
+void EndFrameRender();
 
 /*! \brief Get the RenderProxyList for the Game thread to write to for the current frame, for the given view.
  *  The game thread adds proxies of entities, lights, envprobes, etc. to this list, which the render thread will

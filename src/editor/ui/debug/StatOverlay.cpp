@@ -31,8 +31,8 @@ extern EngineStatCounter<uint32> g_statEnvProbes;
 extern EngineStatCounter<uint32> g_statEnvGrids;
 extern EngineStatCounter<uint32> g_statDebugDraws;
 
-extern EngineStatTimer g_gameThreadUpdateTimer;
-extern EngineStatTimer g_renderThreadUpdateTimer;
+extern EngineStatTimer g_simTimer;
+extern EngineStatTimer g_renderTimer;
 extern EngineStatTimer g_renderCpuSyncTimer;
 extern EngineStatTimer g_scriptUpdateTimer;
 
@@ -113,7 +113,7 @@ Handle<UIObject> StatOverlay::CreateUIObject_Impl(UIObject* spawnParent)
 void StatOverlay::Update_Impl(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     m_deltaAccumGame += delta;
     m_numTicksGame++;
@@ -143,8 +143,8 @@ void StatOverlay::Update_Impl(float delta)
             snapshot[StatIdMsPerFrame].avg,
             snapshot[StatIdMsPerFrame].min,
             snapshot[StatIdMsPerFrame].max,
-            g_gameThreadUpdateTimer.GetValue(),
-            g_renderThreadUpdateTimer.GetValue(),
+            g_simTimer.GetValue(),
+            g_renderTimer.GetValue(),
             g_renderCpuSyncTimer.GetValue(),
             g_scriptUpdateTimer.GetValue()));
 

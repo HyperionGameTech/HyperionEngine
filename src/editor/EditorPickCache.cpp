@@ -110,7 +110,7 @@ bool EditorPickCache::HasEntry(const Mesh* mesh) const
 void EditorPickCache::PutEntry(const Mesh* mesh)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (!mesh)
     {
@@ -200,7 +200,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
 void EditorPickCache::RemoveEntry(const Mesh* mesh)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (!mesh)
     {
@@ -225,7 +225,7 @@ void EditorPickCache::RemoveEntry(const Mesh* mesh)
 EditorPickCacheEntry* EditorPickCache::GetEntry(const Mesh* mesh)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (!mesh)
     {
@@ -245,7 +245,7 @@ EditorPickCacheEntry* EditorPickCache::GetEntry(const Mesh* mesh)
 void EditorPickCache::Clear()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     m_impl->cache.Clear();
 
@@ -318,7 +318,7 @@ bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
 void EditorPickCache::Update(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (m_impl->updateCounter.Waiting())
     {

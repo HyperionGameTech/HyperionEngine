@@ -162,7 +162,7 @@ UITextbox::UITextbox()
 
 void UITextbox::Init()
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     UIPanel::Init();
 

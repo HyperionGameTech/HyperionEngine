@@ -291,13 +291,13 @@ double EngineStats::QueryStatValue(UTF8StringView path, double valueIfNotFound) 
 
 EngineStatsSnapshot& EngineStats::GetCurrentSnapshot()
 {
-    AssertOnThread(g_renderThread | g_gameThread);
+    AssertOnThread(g_renderThread | g_simThread);
     return m_impl->snapshots[RenderApi::GetRingIndex()];
 }
 
 const EngineStatsSnapshot& EngineStats::GetCurrentSnapshot() const
 {
-    AssertOnThread(g_renderThread | g_gameThread);
+    AssertOnThread(g_renderThread | g_simThread);
     return m_impl->snapshots[RenderApi::GetRingIndex()];
 }
 

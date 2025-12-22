@@ -144,7 +144,7 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<Obje
 void GenerateLightmapsEditorTask::Process()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (m_sources.Empty())
     {
@@ -215,7 +215,7 @@ bool GenerateLightmapsEditorTask::IsCompleted() const
 void GenerateLightmapsEditorTask::Tick(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     for (auto it = m_tasks.Begin(); it != m_tasks.End();)
     {
@@ -1134,14 +1134,14 @@ bool RotateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const KeyboardE
 
 EditorManipulationMode EditorSubsystem::GetSelectedManipulationMode() const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     return m_selectedManipulationMode;
 }
 
 void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (mode == m_selectedManipulationMode)
     {
@@ -1164,14 +1164,14 @@ void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
 
 EditorGizmoBase* EditorSubsystem::GetSelectedGizmo() const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     return m_gizmos.At(m_selectedManipulationMode);
 }
 
 EditorGizmoBase* EditorSubsystem::GetGizmo(EditorManipulationMode mode) const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (!m_gizmos.Contains(mode))
     {
@@ -1183,14 +1183,14 @@ EditorGizmoBase* EditorSubsystem::GetGizmo(EditorManipulationMode mode) const
 
 const EditorSubsystem::EditorGizmoSet& EditorSubsystem::GetGizmos() const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     return m_gizmos;
 }
 
 void EditorSubsystem::InitializeGizmos()
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     for (const Handle<EditorGizmoBase>& widget : m_gizmos)
     {
@@ -1203,7 +1203,7 @@ void EditorSubsystem::InitializeGizmos()
 
 void EditorSubsystem::ShutdownGizmos()
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (m_selectedManipulationMode != EditorManipulationMode::NONE)
     {
@@ -1616,7 +1616,7 @@ void EditorSubsystem::OnRemovedFromWorld()
 void EditorSubsystem::Update(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     m_editorDelegates->Update();
 
@@ -3073,13 +3073,13 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
         return false;
     }
 
-    if (IsOnThread(g_gameThread))
+    if (IsOnThread(g_simThread))
     {
         command->Execute(this);
     }
     else
     {
-        GetThreadById(g_gameThread)->GetScheduler().Enqueue([this, weakThis = MakeWeakRef(this), command = command]()
+        GetThreadById(g_simThread)->GetScheduler().Enqueue([this, weakThis = MakeWeakRef(this), command = command]()
             {
                 Handle<EditorSubsystem> strongThis = weakThis.Lock();
                 if (!strongThis)
@@ -3150,7 +3150,7 @@ void EditorSubsystem::NewProject()
 void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (project == m_currentProject)
     {
@@ -3245,7 +3245,7 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
         return;
     }
 
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     m_taskManager.AddTask(task);
 }
@@ -3318,7 +3318,7 @@ void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debu
         return;
     }
 
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
@@ -3368,7 +3368,7 @@ bool EditorSubsystem::RemoveDebugOverlay(EditorDebugOverlayBase* debugOverlay)
         return false;
     }
 
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     auto it = m_debugOverlays.FindAs(debugOverlay);
 
@@ -3389,13 +3389,13 @@ bool EditorSubsystem::RemoveDebugOverlay(EditorDebugOverlayBase* debugOverlay)
 
 Handle<Scene> EditorSubsystem::GetActiveScene() const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
     return m_activeScene.Lock();
 }
 
 Handle<Node> EditorSubsystem::GetFocusedNode() const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
     return m_focusedNode.Lock();
 }
 
@@ -3525,7 +3525,7 @@ void EditorSubsystem::SetActiveScene(const WeakHandle<Scene>& scene)
 
 EditorViewport* EditorSubsystem::GetActiveViewport() const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     return m_editorViewports.Empty() ? nullptr : m_editorViewports[0];
 }
@@ -3534,7 +3534,7 @@ void EditorSubsystem::SetActiveViewport(EditorViewport* viewport)
 {
     HYP_SCOPE;
 
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (!viewport)
     {
@@ -3597,13 +3597,13 @@ void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
         }
     };
 
-    if (IsOnThread(g_gameThread))
+    if (IsOnThread(g_simThread))
     {
         impl(viewport);
     }
     else
     {
-        GetThreadById(g_gameThread)->GetScheduler().Enqueue([impl, viewport]()
+        GetThreadById(g_simThread)->GetScheduler().Enqueue([impl, viewport]()
             {
                 impl(viewport);
             },
@@ -3654,13 +3654,13 @@ void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
         }
     };
 
-    if (IsOnThread(g_gameThread))
+    if (IsOnThread(g_simThread))
     {
         impl(viewport);
     }
     else
     {
-        GetThreadById(g_gameThread)->GetScheduler().Enqueue([impl, viewportWeak = MakeWeakRef(viewport)]()
+        GetThreadById(g_simThread)->GetScheduler().Enqueue([impl, viewportWeak = MakeWeakRef(viewport)]()
             {
                 impl(viewportWeak.GetUnsafe());
             },

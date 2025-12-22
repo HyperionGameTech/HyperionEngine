@@ -305,7 +305,7 @@ void LegacyEnvGrid::Update(float delta)
 {
     HYP_SCOPE;
 
-    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
 #ifdef HYP_DEBUG_MODE
@@ -458,7 +458,7 @@ void LegacyEnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
     HYP_SCOPE;
     AssertReady();
 
-    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     m_aabb = aabb;
 

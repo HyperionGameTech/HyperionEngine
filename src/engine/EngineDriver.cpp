@@ -8,7 +8,7 @@
 #include <engine/EngineMemory.hpp>
 #include <engine/DebugDrawer.hpp>
 
-#include <engine/threads/GameThread.hpp>
+#include <engine/threads/SimThread.hpp>
 #include <engine/threads/MainThread.hpp>
 #include <engine/threads/RenderThread.hpp>
 
@@ -85,7 +85,7 @@ extern const GlobalConfig& CoreApi_GetGlobalConfig();
 extern FilePath CoreApi_GetExecutablePath();
 extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
-EngineStatTimer g_renderThreadUpdateTimer("Frame/RenderThreadUpdate");
+EngineStatTimer g_renderTimer("Frame/Render");
 
 #pragma region MainThread
 #pragma endregion MainThread
@@ -158,7 +158,7 @@ HYP_API void EngineDriver::Init()
 World* EngineDriver::GetCurrentWorld() const
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     return m_currentWorld;
 }
@@ -166,7 +166,7 @@ World* EngineDriver::GetCurrentWorld() const
 void EngineDriver::SetCurrentWorld(World* world)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (world == m_currentWorld)
     {
@@ -187,7 +187,7 @@ void EngineDriver::SetCurrentWorld(World* world)
 void EngineDriver::SetDefaultWorld(const Handle<World>& defaultWorld)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     m_defaultWorld = defaultWorld;
 
@@ -200,7 +200,7 @@ void EngineDriver::SetDefaultWorld(const Handle<World>& defaultWorld)
 void EngineDriver::EnqueueWorldRender(World* world)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     AssertDebug(world != nullptr && world->IsReady());
 
@@ -224,7 +224,7 @@ void EngineDriver::EnqueueWorldRender(World* world)
 void EngineDriver::AddWorld(const Handle<World>& world)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (!world)
     {
@@ -242,7 +242,7 @@ void EngineDriver::AddWorld(const Handle<World>& world)
 void EngineDriver::RemoveWorld(const World* world)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (!world)
     {
@@ -277,12 +277,12 @@ void EngineDriver::SetGameInstance(Game* gameInstance)
     AssertOnThread(g_mainThread);
 
     Assert(gameInstance != nullptr);
-    Assert(g_gameThreadInstance->IsRunning());
+    Assert(g_simThreadInstance->IsRunning());
 
     Handle<Game> gameInstanceStrong = MakeStrongRef(gameInstance);
 
     g_gameInstance = gameInstanceStrong;
-    g_gameThreadInstance->SetGame(gameInstanceStrong);
+    g_simThreadInstance->SetGame(gameInstanceStrong);
 }
 
 Game* EngineDriver::GetGameInstance() const
@@ -299,14 +299,14 @@ void EngineDriver::StartThreads()
     AssertReady();
 
     Assert(g_renderThreadInstance != nullptr
-        && g_gameThreadInstance != nullptr
+        && g_simThreadInstance != nullptr
         && g_mainThreadInstance != nullptr);
 
     Assert(!g_renderThreadInstance->IsRunning(), "Render thread is already running!");
-    Assert(!g_gameThreadInstance->IsRunning(), "Game thread is already running!");
+    Assert(!g_simThreadInstance->IsRunning(), "Game thread is already running!");
 
     Assert(g_renderThreadInstance->Start());
-    Assert(g_gameThreadInstance->Start());
+    Assert(g_simThreadInstance->Start());
 
     Assert(g_mainThreadInstance->Start());
 }
@@ -320,9 +320,9 @@ void EngineDriver::RequestStop()
             g_renderThreadInstance->Stop();
         }
 
-        if (g_gameThreadInstance != nullptr && g_gameThreadInstance->IsRunning())
+        if (g_simThreadInstance != nullptr && g_simThreadInstance->IsRunning())
         {
-            g_gameThreadInstance->Stop();
+            g_simThreadInstance->Stop();
         }
     }
 }
@@ -401,7 +401,7 @@ void EngineDriver::PreFrameUpdate(Frame* frame)
     AssertOnThread(g_renderThread);
 }
 
-void EngineDriver::GameThreadUpdate(float delta)
+void EngineDriver::UpdateSim(float delta)
 {
     if (m_scriptingService)
     {
