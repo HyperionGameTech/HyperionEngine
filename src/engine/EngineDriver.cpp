@@ -305,9 +305,10 @@ void EngineDriver::StartThreads()
     Assert(!g_renderThreadInstance->IsRunning(), "Render thread is already running!");
     Assert(!g_gameThreadInstance->IsRunning(), "Game thread is already running!");
 
-    Assert(g_renderThreadInstance->Start(), "Failed to start render thread!");
-    Assert(g_gameThreadInstance->Start(), "Failed to start game thread!");
-    Assert(g_mainThreadInstance->Start(), "Failed to start main thread!");
+    Assert(g_renderThreadInstance->Start());
+    Assert(g_gameThreadInstance->Start());
+
+    Assert(g_mainThreadInstance->Start());
 }
 
 void EngineDriver::RequestStop()

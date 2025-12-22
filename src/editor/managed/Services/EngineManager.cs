@@ -37,8 +37,11 @@ namespace Hyperion.Editor
                 Environment.ProcessPath ?? "",
                 "-Headless",
                 "-Detached",
-                "-RenderOnMainThread=false",
-                "-Editor"
+                "-Editor",
+
+                // keep both sim and render threads independent because main thread will be locked at 30hz
+                "-SimulateOnMainThread=false",
+                "-RenderOnMainThread=false"
             ];
 
             int argc = args.Count;

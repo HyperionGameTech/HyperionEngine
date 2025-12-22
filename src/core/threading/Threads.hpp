@@ -70,9 +70,8 @@ using threading::ThreadSleep;
 using threading::UnregisterThread;
 
 HYP_API extern const StaticThreadId g_mainThread;
-HYP_API extern const StaticThreadId g_gameThread;
 
-// non-const, since it can be set to g_mainThread if no separate render thread is used
+HYP_API extern StaticThreadId g_gameThread;
 HYP_API extern StaticThreadId g_renderThread;
 
 } // namespace hyperion
