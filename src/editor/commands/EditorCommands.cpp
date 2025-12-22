@@ -136,7 +136,7 @@ public:
                     return;
                 }
 
-                GetThreadById(g_gameThread)->GetScheduler().Enqueue([weakSubsystem = std::move(weakSubsystem), projectFilepath = std::move(result.GetValue()[0])]() mutable
+                GetThreadById(g_simThread)->GetScheduler().Enqueue([weakSubsystem = std::move(weakSubsystem), projectFilepath = std::move(result.GetValue()[0])]() mutable
                     {
                         Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
                         if (!subsystem)

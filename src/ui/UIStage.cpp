@@ -331,12 +331,12 @@ void UIStage::Init()
             {
                 SetSurfaceSize(newSize);
             },
-            g_gameThread);
+            g_simThread);
     };
 
     updateSurfaceSize(g_appContext->GetMainWindow());
     m_onCurrentWindowChangedHandler = g_appContext->OnCurrentWindowChanged
-                                          .BindThreaded(updateSurfaceSize, g_gameThread);
+                                          .BindThreaded(updateSurfaceSize, g_simThread);
 
     if (!m_defaultFontAtlas)
     {

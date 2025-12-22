@@ -13,7 +13,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-#include <engine/threads/GameThread.hpp>
+#include <engine/threads/SimThread.hpp>
 
 #include <HyperionEngine.hpp>
 

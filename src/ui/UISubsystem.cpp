@@ -182,7 +182,7 @@ void UISubsystem::Init()
     {
         windowSize = Vec2u(g_appContext->GetMainWindow()->GetSize());
 
-        m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_gameThread);
+        m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_simThread);
     }
 
     m_onCurrentWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(
@@ -202,12 +202,12 @@ void UISubsystem::Init()
 
             if (window != nullptr)
             {
-                subsystem->m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_gameThread);
+                subsystem->m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_simThread);
 
                 handleWindowResize(Vec2i(window->GetSize()));
             }
         },
-        g_gameThread);
+        g_simThread);
 
     const Vec2u windowSize2 = windowSize * 2;
 
@@ -254,7 +254,7 @@ void UISubsystem::OnRemovedFromWorld()
 void UISubsystem::PreUpdate(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 }
 
 void UISubsystem::Update(float delta)

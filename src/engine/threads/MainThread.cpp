@@ -7,7 +7,7 @@
 
 #include <engine/threads/MainThread.hpp>
 #include <engine/threads/RenderThread.hpp>
-#include <engine/threads/GameThread.hpp>
+#include <engine/threads/SimThread.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -96,10 +96,10 @@ void MainThread::Update()
     }
 
     if (s_simulateOnMainThread
-        && g_gameThreadInstance
-        && g_gameThreadInstance->IsRunning())
+        && g_simThreadInstance
+        && g_simThreadInstance->IsRunning())
     {
-        g_gameThreadInstance->Update();
+        g_simThreadInstance->Update();
 
         return;
     }

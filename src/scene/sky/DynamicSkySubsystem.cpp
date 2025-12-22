@@ -55,7 +55,7 @@ void DynamicSkySubsystem::Init()
     { // atmospheric scattering capture setup
         m_renderScene = CreateObject<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
         m_renderScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
-        m_renderScene->SetOwnerThreadId(g_gameThread);
+        m_renderScene->SetOwnerThreadId(g_simThread);
         InitObject(m_renderScene);
 
         Handle<Node> cameraNode = m_renderScene->GetRoot()->AddChild();
@@ -140,7 +140,7 @@ void DynamicSkySubsystem::Init()
 void DynamicSkySubsystem::OnAddedToWorld()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     GetWorld()->AddScene(m_renderScene);
     GetWorld()->AddScene(m_visScene);

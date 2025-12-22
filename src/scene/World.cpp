@@ -1030,7 +1030,7 @@ void World::RemoveView(View* view)
 Span<View* const> World::GetViews() const
 {
     HYP_SCOPE;
-    AssertOnThread(g_renderThread | g_gameThread);
+    AssertOnThread(g_renderThread | g_simThread);
 
     return m_viewsPerFrame[RenderApi::GetRingIndex()].ToSpan();
 }
@@ -1194,7 +1194,7 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
 
     set.Add(layer->OnStreamingObjectsLoaded.Bind([world](StreamingCell* cell, Array<const AssetObject*> objs)
         {
-            AssertOnThread(g_gameThread);
+            AssertOnThread(g_simThread);
             for (const AssetObject* obj : objs)
             {
                 if (obj->IsA(Scene::StaticClass()))
@@ -1210,7 +1210,7 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
 
     set.Add(layer->OnStreamingObjectsUnloaded.Bind([world](StreamingCell* cell, Array<const AssetObject*> objs)
         {
-            AssertOnThread(g_gameThread);
+            AssertOnThread(g_simThread);
             for (const AssetObject* obj : objs)
             {
                 if (obj->IsA(Scene::StaticClass()))

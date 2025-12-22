@@ -38,7 +38,7 @@ static const Name s_nameSceneRoot = NAME("<ROOT>");
 
 void Scene_OnPostLoad(Scene& scene)
 {
-    scene.SetOwnerThreadId(g_gameThread);
+    scene.SetOwnerThreadId(g_simThread);
 }
 
 #pragma region SceneValidation
@@ -217,7 +217,7 @@ void Scene::SetOwnerThreadId(ThreadId ownerThreadId)
 Camera* Scene::GetPrimaryCamera() const
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     if (!m_entityManager)
     {
@@ -325,7 +325,7 @@ bool Scene::AddToWorld(World* world)
 {
     HYP_SCOPE;
 
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (world == m_world)
     {
@@ -347,7 +347,7 @@ bool Scene::AddToWorld(World* world)
 bool Scene::RemoveFromWorld()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (m_world == nullptr)
     {

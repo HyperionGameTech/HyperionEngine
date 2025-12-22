@@ -7,7 +7,7 @@
 
 #include <game/Game.hpp>
 
-#include <engine/threads/GameThread.hpp>
+#include <engine/threads/SimThread.hpp>
 #include <engine/EngineGlobals.hpp>
 
 using namespace hyperion;
@@ -19,13 +19,13 @@ extern "C"
         Assert(pGame != nullptr);
         Assert(pTaskFunc != nullptr);
 
-        if (IsOnThread(g_gameThread))
+        if (IsOnThread(g_simThread))
         {
             // Execute immediately if already on the game thread
             pTaskFunc();
             return;
         }
 
-        g_gameThreadInstance->GetScheduler().Enqueue(pTaskFunc, TaskEnqueueFlags::FIRE_AND_FORGET);
+        g_simThreadInstance->GetScheduler().Enqueue(pTaskFunc, TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 } // extern "C"

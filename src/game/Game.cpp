@@ -54,7 +54,7 @@ Game::~Game()
 void Game::Init()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (!m_world)
     {
@@ -67,7 +67,7 @@ void Game::Init()
     InitObject(m_world);
     g_engineDriver->AddWorld(m_world);
 
-    // Handle<UIStage> uiStage = CreateObject<UIStage>(g_gameThread);
+    // Handle<UIStage> uiStage = CreateObject<UIStage>(g_simThread);
 
     // m_uiSubsystem = m_world->AddSubsystem(CreateObject<UISubsystem>(uiStage));
 }
@@ -75,7 +75,7 @@ void Game::Init()
 void Game::HandleEvent(Event&& event)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     OnInputEvent(event);
 }
@@ -84,7 +84,7 @@ void Game::OnInputEvent(const Event& event)
 {
     HYP_SCOPE;
 
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (UISubsystem* uiSubsystem = m_world->GetSubsystem<UISubsystem>())
     {

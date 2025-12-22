@@ -19,7 +19,7 @@ class IRenderBackend;
 class ShaderCompiler;
 class EditorState;
 class StreamingManager;
-class GameThread;
+class SimThread;
 class RenderThread;
 class MainThread;
 class EngineStats;
@@ -47,7 +47,7 @@ extern RenderInterface* g_renderInterface;
 extern ShaderCompiler* g_shaderCompiler;
 
 extern MainThread* g_mainThreadInstance;
-extern GameThread* g_gameThreadInstance;
+extern SimThread* g_simThreadInstance;
 extern RenderThread* g_renderThreadInstance;
 
 extern Handle<Game> g_gameInstance;

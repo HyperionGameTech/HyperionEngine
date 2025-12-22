@@ -283,7 +283,7 @@ public:
 
     void SinkGameThreadUpdates(Array<Pair<Handle<StreamingCell>, StreamingCellState>>& out)
     {
-        AssertOnThread(g_gameThread);
+        AssertOnThread(g_simThread);
 
         out.Concat(m_cellUpdatesGameThread);
         m_cellUpdatesGameThread.Clear();
@@ -351,27 +351,27 @@ private:
 
     void PostCellUpdateToGameThread(Handle<StreamingCell> cell, StreamingCellState state)
     {
-        Mutex::Guard guard(m_gameThreadFuturesMutex);
+        Mutex::Guard guard(m_futuresMutex);
 
-        Task<void>& future = m_gameThreadFutures.EmplaceBack();
+        Task<void>& future = m_futures.EmplaceBack();
         TaskPromise<void>* promise = future.Promise();
 
-        GetThreadById(g_gameThread)->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
+        GetThreadById(g_simThread)->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
             {
                 m_cellUpdatesGameThread.EmplaceBack(std::move(cell), state);
 
                 promise->Fulfill();
 
-                Mutex::Guard guard(m_gameThreadFuturesMutex);
+                Mutex::Guard guard(m_futuresMutex);
 
-                auto it = m_gameThreadFutures.FindIf([promise](const Task<void>& task)
+                auto it = m_futures.FindIf([promise](const Task<void>& task)
                     {
                         return task.GetTaskExecutor() == promise;
                     });
 
-                Assert(it != m_gameThreadFutures.End(), "Task not found in game thread tasks!");
+                Assert(it != m_futures.End(), "Task not found in game thread tasks!");
 
-                m_gameThreadFutures.Erase(it);
+                m_futures.Erase(it);
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
@@ -382,8 +382,8 @@ private:
     LinkedList<LayerData, StreamingAllocator> m_layers;
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cellUpdatesGameThread;
-    LinkedList<Task<void>> m_gameThreadFutures;
-    Mutex m_gameThreadFuturesMutex;
+    LinkedList<Task<void>> m_futures;
+    Mutex m_futuresMutex;
 
     StreamingNotifier m_notifier;
 };
@@ -819,7 +819,7 @@ void StreamingManager::Init()
 void StreamingManager::Update(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> updates;
     m_thread->SinkGameThreadUpdates(updates);

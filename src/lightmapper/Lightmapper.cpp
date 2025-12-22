@@ -639,7 +639,7 @@ void LightmapperBase::Update(float delta)
 void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     HYP_DEFER({
         --m_numJobs;

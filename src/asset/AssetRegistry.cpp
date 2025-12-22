@@ -32,7 +32,7 @@
 
 namespace hyperion {
 
-static const ThreadId& s_assetRegistryThread = g_gameThread;
+static const ThreadId& s_assetRegistryThread = g_simThread;
 
 // If true, all mutation operations will be forced to run on the game thread,
 // otherwise a mutex will be used to allow multi-threaded access.

@@ -932,7 +932,7 @@ static inline int CurrentThreadType()
         return CONSUMER;
     }
 
-    if (threadId == g_gameThread)
+    if (threadId == g_simThread)
     {
         return PRODUCER;
     }
@@ -962,7 +962,7 @@ uint32 GetFrameCounter()
 RenderProxyList& GetProducerProxyList(View* view)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     ViewFrameData* vd = GetViewFrameData(view, s_frameIndex[PRODUCER]);
 
@@ -1084,7 +1084,7 @@ uint32 RetrieveResourceBinding(const ObjectBase* resource)
 WorldShaderData* GetWorldBufferData()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_simThread | g_renderThread);
 
     return &s_frameData[*s_threadFrameIndex].worldBufferData;
 }
@@ -1092,12 +1092,12 @@ WorldShaderData* GetWorldBufferData()
 Viewport& GetViewport(View* view)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread | g_renderThread);
+    AssertOnThread(g_simThread | g_renderThread);
 
     return GetViewFrameData(view, *s_threadFrameIndex)->viewport;
 }
 
-void BeginFrame_GameThread()
+void BeginFrameSim()
 {
     HYP_SCOPE;
 
@@ -1106,10 +1106,10 @@ void BeginFrame_GameThread()
     s_freeSemaphore.acquire();
 }
 
-void EndFrame_GameThread()
+void EndFrameSim()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     const uint32 slot = s_frameIndex[PRODUCER];
     FrameData& frameData = s_frameData[slot];
@@ -1121,7 +1121,7 @@ void EndFrame_GameThread()
     s_fullSemaphore.release();
 }
 
-void BeginFrame_RenderThread()
+void BeginFrameRender()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1292,7 +1292,7 @@ void BeginFrame_RenderThread()
     }
 }
 
-void EndFrame_RenderThread()
+void EndFrameRender()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

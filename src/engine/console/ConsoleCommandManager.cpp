@@ -207,13 +207,13 @@ Result ConsoleCommandManager::ExecuteCommand(const String& commandLine)
         if (auto parseResult = commandLineParser.Parse(commandLine); parseResult.HasValue())
         {
             // execute all commands on the game thread
-            if (IsOnThread(g_gameThread))
+            if (IsOnThread(g_simThread))
             {
                 return (*it)->Execute(parseResult.GetValue());
             }
             else
             {
-                task = GetThreadById(g_gameThread)->GetScheduler().Enqueue([command = *it, parseResult = std::move(parseResult)]() mutable
+                task = GetThreadById(g_simThread)->GetScheduler().Enqueue([command = *it, parseResult = std::move(parseResult)]() mutable
                     {
                         return command->Execute(parseResult.GetValue());
                     });

@@ -171,7 +171,7 @@ struct LightmapVolumeAtlasBlit : RenderCommand
                         atlasTexture->EnqueueReadback([atlasTextureWeak = atlasTexture.ToWeak()](ByteBuffer&& byteBuffer)
                             {
                                 // update texture data on game thread
-                                GetThreadById(g_gameThread)->GetScheduler().Enqueue([atlasTextureWeak, byteBuffer = std::move(byteBuffer)]()
+                                GetThreadById(g_simThread)->GetScheduler().Enqueue([atlasTextureWeak, byteBuffer = std::move(byteBuffer)]()
                                     {
                                         Handle<Texture> atlasTexture = atlasTextureWeak.Lock();
                                         if (!atlasTexture)
@@ -270,7 +270,7 @@ LightmapVolume::~LightmapVolume()
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     outElement.id = InvalidLightmapElementId;
 
@@ -323,7 +323,7 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, b
 
 const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     uint16 atlasIndex;
     uint16 elementIndex;
@@ -345,7 +345,7 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) c
 bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& lightmapData, LightmapElementId elementId)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     AssertReady();
 

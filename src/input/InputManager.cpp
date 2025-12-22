@@ -563,13 +563,13 @@ void InputManager::ProcessEvent(Event&& event)
 void InputManager::BufferSwap()
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 }
 
 bool InputManager::PollEvent(Event& outEvent)
 {
     HYP_SCOPE;
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     return m_eventQueue->Pop(outEvent);
 }

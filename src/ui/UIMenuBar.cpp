@@ -381,7 +381,7 @@ UIMenuBar::UIMenuBar()
 
 void UIMenuBar::Init()
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     UIPanel::Init();
 
@@ -481,7 +481,7 @@ void UIMenuBar::SetDropDirection(UIMenuBarDropDirection dropDirection)
 
 void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     if (index == m_selectedMenuItemIndex)
     {
@@ -686,7 +686,7 @@ Handle<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String& text)
 
 UIMenuItem* UIMenuBar::GetMenuItem(Name name) const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     for (UIMenuItem* menuItem : m_menuItems)
     {
@@ -701,7 +701,7 @@ UIMenuItem* UIMenuBar::GetMenuItem(Name name) const
 
 uint32 UIMenuBar::GetMenuItemIndex(Name name) const
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     for (SizeType i = 0; i < m_menuItems.Size(); i++)
     {
@@ -716,7 +716,7 @@ uint32 UIMenuBar::GetMenuItemIndex(Name name) const
 
 bool UIMenuBar::RemoveMenuItem(Name name)
 {
-    AssertOnThread(g_gameThread);
+    AssertOnThread(g_simThread);
 
     const auto it = m_menuItems.FindIf([name](UIMenuItem* menuItem)
         {

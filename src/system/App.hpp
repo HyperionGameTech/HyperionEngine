@@ -8,7 +8,7 @@
 namespace hyperion {
 
 class Game;
-class GameThread;
+class SimThread;
 
 class AppContextBase;
 
