@@ -148,14 +148,14 @@ protected:
 
 ScriptingService::ScriptingService(const FilePath& watchDirectory, const FilePath& intermediateDirectory, const FilePath& binaryOutputDirectory)
     : m_thread(MakeUnique<ScriptingServiceThread>(
-          watchDirectory,
-          intermediateDirectory,
-          binaryOutputDirectory,
-          [](void* selfPtr, ScriptEvent event)
-          {
-              static_cast<ScriptingService*>(selfPtr)->PushScriptEvent(event);
-          },
-          this))
+        watchDirectory,
+        intermediateDirectory,
+        binaryOutputDirectory,
+        [](void* selfPtr, ScriptEvent event)
+        {
+            static_cast<ScriptingService*>(selfPtr)->PushScriptEvent(event);
+        },
+        this))
 {
     HYP_NAMED_SCOPE("ScriptingService: Initialize directories");
 
@@ -238,7 +238,7 @@ void ScriptingService::Update()
 }
 
 // Called from any thread - most likely from C# thread pool
-/// \todo : Use scheduler to push task to game thread instead
+/// \todo : Use scheduler to push task to sim thread instead
 void ScriptingService::PushScriptEvent(const ScriptEvent& event)
 {
     Mutex::Guard guard(m_scriptEventQueueMutex);

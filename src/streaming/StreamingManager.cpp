@@ -281,12 +281,12 @@ public:
         }
     }
 
-    void SinkGameThreadUpdates(Array<Pair<Handle<StreamingCell>, StreamingCellState>>& out)
+    void SinkUpdates(Array<Pair<Handle<StreamingCell>, StreamingCellState>>& out)
     {
         AssertOnThread(g_simThread);
 
-        out.Concat(m_cellUpdatesGameThread);
-        m_cellUpdatesGameThread.Clear();
+        out.Concat(m_cellUpdatesSim);
+        m_cellUpdatesSim.Clear();
     }
 
     HYP_FORCE_INLINE StreamingNotifier& GetNotifier()
@@ -349,7 +349,7 @@ private:
     void ProcessCellUpdatesForLayer(LayerData& layerData);
     void GetDesiredCellsForLayer(const LayerData& layerData, const Handle<StreamingVolumeBase>& volume, HashSet<Vec2i>& outCellCoords) const;
 
-    void PostCellUpdateToGameThread(Handle<StreamingCell> cell, StreamingCellState state)
+    void PostCellUpdate(Handle<StreamingCell> cell, StreamingCellState state)
     {
         Mutex::Guard guard(m_futuresMutex);
 
@@ -358,7 +358,7 @@ private:
 
         GetThreadById(g_simThread)->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
             {
-                m_cellUpdatesGameThread.EmplaceBack(std::move(cell), state);
+                m_cellUpdatesSim.EmplaceBack(std::move(cell), state);
 
                 promise->Fulfill();
 
@@ -369,7 +369,7 @@ private:
                         return task.GetTaskExecutor() == promise;
                     });
 
-                Assert(it != m_futures.End(), "Task not found in game thread tasks!");
+                Assert(it != m_futures.End(), "Task not found in sim thread tasks!");
 
                 m_futures.Erase(it);
             },
@@ -381,7 +381,7 @@ private:
     Array<Handle<StreamingVolumeBase>, StreamingAllocator> m_volumes;
     LinkedList<LayerData, StreamingAllocator> m_layers;
 
-    Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cellUpdatesGameThread;
+    Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cellUpdatesSim;
     LinkedList<Task<void>> m_futures;
     Mutex m_futuresMutex;
 
@@ -572,7 +572,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
             const bool wasCellAdded = cells.AddCell(cell, StreamingCellState::WAITING, /* lock */ true);
             AssertDebug(wasCellAdded, "Failed to add StreamingCell with coord: {}", update.coord);
 
-            PostCellUpdateToGameThread(cell, StreamingCellState::WAITING);
+            PostCellUpdate(cell, StreamingCellState::WAITING);
 
             layerData.Lock();
 
@@ -588,7 +588,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
                         cell->GetPatchInfo().coord,
                         layerData.layer->InstanceClass()->GetName());
 
-                    PostCellUpdateToGameThread(cell, StreamingCellState::LOADING);
+                    PostCellUpdate(cell, StreamingCellState::LOADING);
 
                     cell->OnStreamStart();
 
@@ -602,7 +602,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
                     AssertDebug(isOk, "Failed to unlock StreamingCell with coord: {} for layer: {}",
                         cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName());
 
-                    PostCellUpdateToGameThread(cell, StreamingCellState::LOADED);
+                    PostCellUpdate(cell, StreamingCellState::LOADED);
 
                     layerData.Unlock();
                 });
@@ -631,7 +631,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
                 cell->GetPatchInfo().coord,
                 layerData.layer->InstanceClass()->GetName());
 
-            PostCellUpdateToGameThread(cell, StreamingCellState::UNLOADING);
+            PostCellUpdate(cell, StreamingCellState::UNLOADING);
 
             isOk &= cells.RemoveCell(cell->GetPatchInfo().coord);
             AssertDebug(isOk, "Failed to remove StreamingCell with coord: {} for layer: {}",
@@ -647,7 +647,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
                     //     cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName().LookupString(),
                     //     CurrentThreadId().GetName());
 
-                    PostCellUpdateToGameThread(cell, StreamingCellState::UNLOADED);
+                    PostCellUpdate(cell, StreamingCellState::UNLOADED);
 
                     layerData.Unlock();
                 });
@@ -822,7 +822,7 @@ void StreamingManager::Update(float delta)
     AssertOnThread(g_simThread);
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> updates;
-    m_thread->SinkGameThreadUpdates(updates);
+    m_thread->SinkUpdates(updates);
 
     if (updates.Empty())
     {

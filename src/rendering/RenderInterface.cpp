@@ -1263,7 +1263,7 @@ void BeginFrameRender()
                 continue;
             }
 
-            // Handle proxies that were updated on game thread
+            // Handle proxies that were updated on sim thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
                  i != Bitset::NotFound;
                  i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))

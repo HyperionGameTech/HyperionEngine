@@ -55,8 +55,7 @@ static RenderableAttributeSet GetRenderableAttributes()
             .bucket = RB_DEBUG,
             .fillMode = FM_FILL,
             .blendFunction = BlendFunction::None(),
-            .flags = MAF_DEPTH_TEST
-        });
+            .flags = MAF_DEPTH_TEST });
 }
 
 struct DebugDrawCommand
@@ -645,7 +644,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    // wait for initialization on the game thread
+    // wait for initialization on the sim thread
     if (!m_isInitialized.Get(MemoryOrder::RELAXED))
     {
         return;

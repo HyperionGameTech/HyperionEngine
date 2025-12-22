@@ -34,7 +34,7 @@ namespace hyperion {
 
 static const ThreadId& s_assetRegistryThread = g_simThread;
 
-// If true, all mutation operations will be forced to run on the game thread,
+// If true, all mutation operations will be forced to run on the sim thread,
 // otherwise a mutex will be used to allow multi-threaded access.
 static constexpr bool UseSingleThread = false;
 
@@ -1562,7 +1562,7 @@ void AssetRegistry::PostTask(Func&& fn, Task<FutureType>* pOutFuture)
 }
 
 /// \todo Revisit, this will have more overhead now that we execute a lot of functions
-// on the game thread (would probably be faster to just do it synchronously)
+// on the sim thread (would probably be faster to just do it synchronously)
 void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 {
     HYP_SCOPE;
@@ -2351,7 +2351,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                         continue;
                     }
 
-                    // ensure we call PostLoad on the original thread we called this from (or the game thread if UseSingleThread is true)
+                    // ensure we call PostLoad on the original thread we called this from (or the sim thread if UseSingleThread is true)
                     assetObject->InstanceClass()->PostLoad(assetObject.Get());
 
                     if (Result addAssetResult = outPackage->AddAssetObject(assetObject).Await(); addAssetResult.HasError())

@@ -550,7 +550,7 @@ void LegacyEnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
         Assert(updateIndex < m_envProbeCollection.numProbes);
         Assert(updates[updateIndex] < m_envProbeCollection.numProbes);
 
-        m_envProbeCollection.SetIndexOnGameThread(updateIndex, updates[updateIndex]);
+        m_envProbeCollection.SetIndexOnSimThread(updateIndex, updates[updateIndex]);
     }
 
     SetNeedsRenderProxyUpdate();
@@ -579,7 +579,7 @@ void LegacyEnvGrid::UpdateRenderProxy(RenderProxyEnvGrid* proxy)
 
     for (uint32 index = 0; index < m_envProbeCollection.numProbes; index++)
     {
-        EnvProbe* probe = m_envProbeCollection.GetEnvProbeOnGameThread(index);
+        EnvProbe* probe = m_envProbeCollection.GetEnvProbeOnSimThread(index);
         Assert(probe != nullptr);
 
         proxy->envProbes[index] = probe;

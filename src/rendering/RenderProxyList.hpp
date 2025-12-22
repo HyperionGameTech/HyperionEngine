@@ -121,11 +121,11 @@ public:
         return static_cast<const typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*>(resourceTrackers[Index]);
     }
 
-    // State for tracking transitions from writing (game thread) to reading (render thread).
+    // State for tracking transitions from writing (sim thread) to reading (render thread).
     enum CollectionState : uint8
     {
-        CS_WRITING, //!< Currently being written to. set when the frame starts on the game thread.
-        CS_WRITTEN, //!< Written to, but not yet read from. set when the frame finishes on the game thread.
+        CS_WRITING, //!< Currently being written to. set when the frame starts on the sim thread.
+        CS_WRITTEN, //!< Written to, but not yet read from. set when the frame finishes on the sim thread.
         CS_READING, //!< Currently ready to be read. set when the frame starts on the render thread.
         CS_DONE     //!< Finished reading. set when the frame finishes on the render thread.
     };
@@ -176,7 +176,7 @@ public:
 
     Array<Pair<ObjId<Entity>, int>, DynamicAllocator> meshEntityOrdering;
 
-    // marker to set to locked when game thread is writing to this list.
+    // marker to set to locked when sim thread is writing to this list.
     // this only really comes into play with non-buffered Views that do not double/triple buffer their RenderProxyLists
     volatile int64 rwMarker = 0;
     uint32 readDepth = 0;

@@ -193,10 +193,10 @@ namespace Hyperion.Editor.ViewModels
             return value.ToString("F3", CultureInfo.InvariantCulture);
         }
 
-        // Blocking wait on game thread to read the struct value.
+        // Blocking wait on sim thread to read the struct value.
         private TStruct ReadStructFromProperty()
         {
-            Task<TStruct> task = EngineManager.PostToGameThread<TStruct>(() =>
+            Task<TStruct> task = EngineManager.PostToSimThread<TStruct>(() =>
             {
                 using BoxedValue boxed = _property.Get(_target);
                 object? raw = boxed.GetValue();
@@ -221,7 +221,7 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            _ = EngineManager.PostToGameThread(() =>
+            _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {

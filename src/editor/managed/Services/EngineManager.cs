@@ -213,7 +213,7 @@ namespace Hyperion.Editor
             }
         }
 
-        public static async Task PostToGameThread(Action action)
+        public static async Task PostToSimThread(Action action)
         {
             Game? gameInstance = GameInstance;
 
@@ -225,7 +225,7 @@ namespace Hyperion.Editor
             await gameInstance.PostTask(action).ConfigureAwait(false);
         }
 
-        public static async Task<T> PostToGameThread<T>(Func<T> func)
+        public static async Task<T> PostToSimThread<T>(Func<T> func)
         {
             Game? gameInstance = GameInstance;
 
@@ -258,7 +258,7 @@ namespace Hyperion.Editor
 
             if (EditorGame.IsLaunched())
             {
-                _ = EngineManager.PostToGameThread(() =>
+                _ = EngineManager.PostToSimThread(() =>
                 {
                     _lockViewports.Enter();
 
@@ -294,7 +294,7 @@ namespace Hyperion.Editor
             // not launched; add handler for after launch
             _gameLaunchedHandler = EditorGame.GetOnLaunchedDelegate().Bind(() =>
             {
-                _ = EngineManager.PostToGameThread(() =>
+                _ = EngineManager.PostToSimThread(() =>
                 {
                     // if set to disabled in the time between
                     if (!_editorViewportsEnabled)
@@ -354,7 +354,7 @@ namespace Hyperion.Editor
             
             if (EditorGame.IsLaunched())
             {
-                _ = EngineManager.PostToGameThread(() =>
+                _ = EngineManager.PostToSimThread(() =>
                 {
                     _lockViewports.Enter();
 
@@ -386,7 +386,7 @@ namespace Hyperion.Editor
 
         /// <summary>
         /// Disables/enables all registered editor viewports by removing or adding them to the EditorSubsystem. Calls on
-        /// the game thread.
+        /// the sim thread.
         /// </summary>
         public static void SetEditorViewportsEnabled(bool enabled)
         {
@@ -403,7 +403,7 @@ namespace Hyperion.Editor
                 return;
             }
 
-            _ = EngineManager.PostToGameThread(() =>
+            _ = EngineManager.PostToSimThread(() =>
             {
                 if (_editorViewportsEnabled != enabled)
                 {

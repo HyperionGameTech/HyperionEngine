@@ -50,7 +50,7 @@ public:
 };
 
 /*! \brief A system is attached to a World and batch processes entities with specific components each tick.
- *  Systems are grouped into SystemExecutionGroups which define how and when they are executed (e.g., on the game thread, in parallel, etc.). */
+ *  Systems are grouped into SystemExecutionGroups which define how and when they are executed (e.g., on the sim thread, in parallel, etc.). */
 HYP_CLASS(Abstract)
 class HYP_API SystemBase : public ObjectBase
 {
@@ -71,7 +71,7 @@ public:
     }
 
     /*! \brief Returns true if this System can be executed in parallel, false otherwise.
-     *  If false, the System will be executed on the game thread.
+     *  If false, the System will be executed on the sim thread.
      *
      *  \return True if this System can be executed in parallel, false otherwise.
      */
@@ -80,14 +80,14 @@ public:
         return true;
     }
 
-    /*! \brief Returns true if this System requires the game thread to execute, false otherwise.
-     *  \details Use this to ensure that the System can access game thread-only resources or perform operations
-     *  that must be done on the game thread, such as modifying the Scene or World state.
-     *  If true, the System will be executed on the game thread.
+    /*! \brief Returns true if this System requires the sim thread to execute, false otherwise.
+     *  \details Use this to ensure that the System can access sim thread-only resources or perform operations
+     *  that must be done on the sim thread, such as modifying the Scene or World state.
+     *  If true, the System will be executed on the sim thread.
      *
-     *  \return True if this System requires the game thread to execute, false otherwise.
+     *  \return True if this System requires the sim thread to execute, false otherwise.
      */
-    virtual bool RequiresGameThread() const
+    virtual bool RequiresSimThread() const
     {
         return false;
     }
@@ -218,7 +218,7 @@ protected:
     }
 
     /*! \brief Set a callback to be called once after the System has processed.
-     *  The callback will be called on the game thread after the System has finished processing, so it is safe to add/remove components within the callback.
+     *  The callback will be called on the sim thread after the System has finished processing, so it is safe to add/remove components within the callback.
      *
      *  \param fn The callback to call after the System has processed. */
     template <class Func>

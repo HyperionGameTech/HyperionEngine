@@ -224,7 +224,7 @@ public:
     HYP_API AssetMap ForceLoad();
 
     /*! \brief Functions bound to this delegates are called in
-     *  the game thread. */
+     *  the sim thread. */
     Delegate<void, AssetMap&> OnComplete;
 
 private:

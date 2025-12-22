@@ -12,8 +12,8 @@ namespace hyperion {
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 //#define HYP_SYSTEM_LOG_PERFORMANCE
 
-SystemExecutionGroup::SystemExecutionGroup(bool requiresGameThread, bool allowUpdate)
-    : m_requiresGameThread(requiresGameThread),
+SystemExecutionGroup::SystemExecutionGroup(bool requiresSimThread, bool allowUpdate)
+    : m_requiresSimThread(requiresSimThread),
       m_allowUpdate(allowUpdate),
       m_taskBatch(MakeUnique<TaskBatch>())
 {
@@ -33,9 +33,9 @@ bool SystemExecutionGroup::IsValidForSystem(const SystemBase* systemPtr) const
         return !systemPtr->AllowUpdate();
     }
 
-    // If the system requires to execute on game thread and the SystemExecutionGroup does not, it is not valid
-    // and if the system does not require to execute on game thread and the SystemExecutionGroup does, it is not valid (it could be better parallelized)
-    if (systemPtr->RequiresGameThread() != RequiresGameThread())
+    // If the system requires to execute on sim thread and the SystemExecutionGroup does not, it is not valid
+    // and if the system does not require to execute on sim thread and the SystemExecutionGroup does, it is not valid (it could be better parallelized)
+    if (systemPtr->RequiresSimThread() != RequiresSimThread())
     {
         return false;
     }

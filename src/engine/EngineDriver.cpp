@@ -303,7 +303,7 @@ void EngineDriver::StartThreads()
         && g_mainThreadInstance != nullptr);
 
     Assert(!g_renderThreadInstance->IsRunning(), "Render thread is already running!");
-    Assert(!g_simThreadInstance->IsRunning(), "Game thread is already running!");
+    Assert(!g_simThreadInstance->IsRunning(), "Sim thread is already running!");
 
     Assert(g_renderThreadInstance->Start());
     Assert(g_simThreadInstance->Start());
@@ -484,7 +484,7 @@ void EngineDriver::UpdateSim(float delta)
 
     for (Subsystem* subsystem : subsystemsToProcess)
     {
-        if (subsystem->RequiresUpdateOnGameThread())
+        if (subsystem->RequiresUpdateOnSimThread())
         {
             continue;
         }
@@ -501,7 +501,7 @@ void EngineDriver::UpdateSim(float delta)
 
     for (Subsystem* subsystem : subsystemsToProcess)
     {
-        if (!subsystem->RequiresUpdateOnGameThread())
+        if (!subsystem->RequiresUpdateOnSimThread())
         {
             continue;
         }
@@ -532,7 +532,7 @@ void EngineDriver::UpdateSim(float delta)
         Assert(view != nullptr);
 
         view->UpdateViewport();
-        // View must be updated on the game thread as it mutates the scene's octree state
+        // View must be updated on the sim thread as it mutates the scene's octree state
         view->UpdateVisibility();
 
 #if HYP_PROCESS_VIEWS_ASYNC

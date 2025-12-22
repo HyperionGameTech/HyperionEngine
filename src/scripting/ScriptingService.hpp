@@ -45,7 +45,7 @@ public:
     void Start();
     void Stop();
 
-    /*! \brief Called from game thread */
+    /*! \brief Called from sim thread */
     void Update();
 
     /*! \brief To be called from ScriptingService thread only */

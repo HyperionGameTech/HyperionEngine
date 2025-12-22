@@ -34,10 +34,10 @@ namespace Hyperion
         }
 
         /// <summary>
-        /// Determines whether this system requires execution on the game thread. By default, managed systems require the game thread.
+        /// Determines whether this system requires execution on the sim thread. By default, managed systems require the sim thread.
         /// Override this method in derived classes to change this behavior.
         /// </summary>
-        public virtual bool RequiresGameThread()
+        public virtual bool RequiresSimThread()
         {
             return true;
         }

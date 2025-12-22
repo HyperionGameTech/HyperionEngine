@@ -53,8 +53,8 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
             
-            // always execute on the game thread
-            _ = EngineManager.PostToGameThread(() =>
+            // always execute on the sim thread
+            _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {

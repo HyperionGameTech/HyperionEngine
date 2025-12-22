@@ -444,7 +444,7 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
         // Add tasks to batches before kickoff
         systemExecutionGroup.StartProcessing(delta, m_scenes.ToSpan());
 
-        if (systemExecutionGroup.RequiresGameThread())
+        if (systemExecutionGroup.RequiresSimThread())
         {
             if (m_rootSynchronousExecutionGroup != nullptr)
             {
@@ -499,7 +499,7 @@ void World::EndUpdate()
 
     for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
     {
-        if (!systemExecutionGroup.AllowUpdate() || systemExecutionGroup.RequiresGameThread())
+        if (!systemExecutionGroup.AllowUpdate() || systemExecutionGroup.RequiresSimThread())
         {
             continue;
         }
@@ -1339,7 +1339,7 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
 
     if (!wasAdded)
     {
-        SystemExecutionGroup& systemExecutionGroup = m_systemExecutionGroups.EmplaceBack(system->RequiresGameThread(), system->AllowUpdate());
+        SystemExecutionGroup& systemExecutionGroup = m_systemExecutionGroups.EmplaceBack(system->RequiresSimThread(), system->AllowUpdate());
 
         if (systemExecutionGroup.AddSystem(system))
         {

@@ -31,13 +31,11 @@
 #include <editor/EditorState.hpp>
 #endif
 
-// #define HYP_GAME_THREAD_LOCKED 1
-
 namespace hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(SimThread);
 
-EngineStatTimer g_gameThreadUpdateTimer("SimThread/Update");
+EngineStatTimer g_simTimer("SimThread/Update");
 
 SimThread::SimThread()
     : Thread(g_simThread, ThreadPriorityValue::HIGHEST)
@@ -110,14 +108,7 @@ void SimThread::SetGame(const Handle<Game>& game)
 
 void SimThread::Update()
 {
-    ENGINE_STAT_SCOPE(&g_gameThreadUpdateTimer);
-
-#if HYP_GAME_THREAD_LOCKED
-    if (counter.Waiting())
-    {
-        continue;
-    }
-#endif
+    ENGINE_STAT_SCOPE(&g_simTimer);
 
     HYP_PROFILE_BEGIN;
 

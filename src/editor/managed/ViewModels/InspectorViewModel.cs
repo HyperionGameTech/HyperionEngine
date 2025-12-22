@@ -203,7 +203,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 IsEntity = true;
 
-                _ = EngineManager.PostToGameThread(() =>
+                _ = EngineManager.PostToSimThread(() =>
                 {
                     EntityManager? mgr = entity.EntityManager;
                     if (mgr == null)
@@ -306,7 +306,7 @@ namespace Hyperion.Editor.ViewModels
 
             try
             {
-                await EngineManager.PostToGameThread(() =>
+                await EngineManager.PostToSimThread(() =>
                 {
                     EntityManager? mgr = entity.EntityManager;
 

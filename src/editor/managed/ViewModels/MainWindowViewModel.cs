@@ -33,14 +33,14 @@ namespace Hyperion.Editor.ViewModels
                 _mode = mode;
             }
 
-            public bool CanExecute(object? parameter) => true; // dont check as it needs to be called on the game thread
+            public bool CanExecute(object? parameter) => true; // dont check as it needs to be called on the sim thread
 
             public void Execute(object? parameter)
             {
                 EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
                 Debug.Assert(editorSubsystem != null);
 
-                _ = EngineManager.PostToGameThread(() => editorSubsystem.SetSelectedManipulationMode(_mode));
+                _ = EngineManager.PostToSimThread(() => editorSubsystem.SetSelectedManipulationMode(_mode));
             }
 
             public event EventHandler? CanExecuteChanged;
@@ -91,7 +91,7 @@ namespace Hyperion.Editor.ViewModels
 
                         EngineManager.InitializeGame(gameInstance);
 
-                        _ = EngineManager.PostToGameThread(() =>
+                        _ = EngineManager.PostToSimThread(() =>
                         {
                             try
                             {
@@ -106,7 +106,7 @@ namespace Hyperion.Editor.ViewModels
                         break;
                     }
                     case GameStateMode.Paused:
-                        _ = EngineManager.PostToGameThread(() =>
+                        _ = EngineManager.PostToSimThread(() =>
                         {
                             try
                             {
@@ -120,7 +120,7 @@ namespace Hyperion.Editor.ViewModels
 
                         break;
                     case GameStateMode.Stopped:
-                        _ = EngineManager.PostToGameThread(() =>
+                        _ = EngineManager.PostToSimThread(() =>
                         {
                             gameInstance.World.StopSimulating();
 
@@ -368,7 +368,7 @@ namespace Hyperion.Editor.ViewModels
 
             BindFocusedNodeChanged();
 
-            _ = EngineManager.PostToGameThread(() =>
+            _ = EngineManager.PostToSimThread(() =>
             {
                 Scene? activeScene = _editorSubsystem.GetActiveScene();
                 Node? focusedNode = _editorSubsystem.GetFocusedNode();
@@ -415,7 +415,7 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            _ = EngineManager.PostToGameThread(() =>
+            _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {

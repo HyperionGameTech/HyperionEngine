@@ -28,16 +28,16 @@ using threading::TaskBatch;
 class HYP_API SystemExecutionGroup
 {
 public:
-    SystemExecutionGroup(bool requiresGameThread = false, bool allowUpdate = true);
+    SystemExecutionGroup(bool requiresSimThread = false, bool allowUpdate = true);
     SystemExecutionGroup(const SystemExecutionGroup&) = delete;
     SystemExecutionGroup& operator=(const SystemExecutionGroup&) = delete;
     SystemExecutionGroup(SystemExecutionGroup&&) noexcept = default;
     SystemExecutionGroup& operator=(SystemExecutionGroup&&) noexcept = default;
     ~SystemExecutionGroup();
 
-    HYP_FORCE_INLINE bool RequiresGameThread() const
+    HYP_FORCE_INLINE bool RequiresSimThread() const
     {
-        return m_requiresGameThread;
+        return m_requiresSimThread;
     }
 
     HYP_FORCE_INLINE bool AllowUpdate() const
@@ -139,7 +139,7 @@ public:
     void FinishProcessing(bool executeBlocking = false);
 
 private:
-    bool m_requiresGameThread;
+    bool m_requiresSimThread;
     bool m_allowUpdate;
 
     TypeMap<Handle<SystemBase>> m_systems;

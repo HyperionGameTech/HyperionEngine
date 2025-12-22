@@ -141,8 +141,8 @@ private:
 
     UniquePtr<ScriptingService> m_scriptingService;
 
-    Array<Handle<World>> m_worlds; // Game thread only
-    World* m_currentWorld;         // Game thread only
+    Array<Handle<World>> m_worlds; // Sim thread only
+    World* m_currentWorld;         // Sim thread only
     Handle<World> m_defaultWorld;
 
     Array<World*> m_worldsToRenderPerFrame[RingBufferDepth];

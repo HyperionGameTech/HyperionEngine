@@ -170,7 +170,7 @@ struct LightmapVolumeAtlasBlit : RenderCommand
 
                         atlasTexture->EnqueueReadback([atlasTextureWeak = atlasTexture.ToWeak()](ByteBuffer&& byteBuffer)
                             {
-                                // update texture data on game thread
+                                // update texture data on sim thread
                                 GetThreadById(g_simThread)->GetScheduler().Enqueue([atlasTextureWeak, byteBuffer = std::move(byteBuffer)]()
                                     {
                                         Handle<Texture> atlasTexture = atlasTextureWeak.Lock();

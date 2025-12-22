@@ -180,12 +180,12 @@ public:
     HYP_METHOD()
     bool RemoveScene(Scene* scene, bool removeFromStreamingLayer = true);
 
-    /*! \brief Get the number of Scenes in the World. Must be called on the game thread.
+    /*! \brief Get the number of Scenes in the World. Must be called on the sim thread.
      *  \return The number of Scenes in the World. */
     HYP_METHOD()
     bool HasScene(ObjId<Scene> sceneId) const;
 
-    /*! \brief Find a Scene by its Name property. If no Scene with the given name exists, an empty handle is returned. Must be called on the game thread.
+    /*! \brief Find a Scene by its Name property. If no Scene with the given name exists, an empty handle is returned. Must be called on the sim thread.
      *  \param name The name of the Scene to find.
      *  \return The Scene with the given name, or an empty handle if no Scene with the given name exists. */
     HYP_METHOD()
@@ -233,7 +233,7 @@ public:
         return m_systemExecutionGroups;
     }
 
-    /*! \brief Get Views attached to this World. Buffered so it is safe to access from either the render thread or game thread. */
+    /*! \brief Get Views attached to this World. Buffered so it is safe to access from either the render thread or sim thread. */
     Span<View* const> GetViews() const;
 
     /*! \brief Gets the View responsible for collecting objects used in ray tracing. Will return nullptr if ray tracing is not enabled. */
