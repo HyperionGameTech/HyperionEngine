@@ -152,7 +152,7 @@ public:
     {
     }
 
-    virtual void UpdateLogic(double dt) = 0;
+    virtual void UpdateLogic(double delta) = 0;
     virtual void UpdateViewMatrix() = 0;
     virtual void UpdateProjectionMatrix() = 0;
 
@@ -189,7 +189,7 @@ public:
     NullCameraController();
     virtual ~NullCameraController() override = default;
 
-    virtual void UpdateLogic(double dt) override;
+    virtual void UpdateLogic(double delta) override;
     virtual void UpdateViewMatrix() override;
     virtual void UpdateProjectionMatrix() override;
 

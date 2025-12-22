@@ -18,7 +18,7 @@
 #include <scene/EntityManager.hpp>
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
-#include <scene/GameState.hpp>
+#include <engine/GameState.hpp>
 
 #include <scene/components/BoundingBoxComponent.hpp>
 
@@ -344,48 +344,6 @@ UIEventHandlerResult EditorMain::UpdateRedoMenuItem()
     }
 
     redoMenuItem->SetText(redoText);
-
-    return UIEventHandlerResult::OK;
-}
-
-UIEventHandlerResult EditorMain::SimulateClicked(const MouseEvent& event)
-{
-    HYP_SCOPE;
-
-    EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
-    if (editorSubsystem == nullptr)
-    {
-        HYP_LOG(Editor, Error, "EditorSubsystem not found");
-
-        return UIEventHandlerResult::ERR;
-    }
-
-    const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
-
-    if (!currentProject)
-    {
-        HYP_LOG(Editor, Error, "No project active; cannot start/stop simulation");
-
-        return UIEventHandlerResult::ERR;
-    }
-
-    const Handle<World>& gameWorld = currentProject->GetWorld();
-    AssertDebug(gameWorld != nullptr);
-
-    if (gameWorld->GetGameState().mode == GameStateMode::SIMULATING)
-    {
-        HYP_LOG(Editor, Info, "Stop simulation");
-
-        gameWorld->StopSimulating();
-        g_engineDriver->SetCurrentWorld(nullptr);
-
-        return UIEventHandlerResult::OK;
-    }
-
-    HYP_LOG(Editor, Info, "Start simulation");
-
-    g_engineDriver->SetCurrentWorld(gameWorld);
-    gameWorld->StartSimulating();
 
     return UIEventHandlerResult::OK;
 }
@@ -847,10 +805,6 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
                                         reflectionProbe->SetIsBaked(result.bakeLighting);
                                         reflectionProbe->SetLocalBounds(aabb);
 
-                                        BoundingBoxComponent boundingBoxComponent;
-                                        boundingBoxComponent.worldAabb = aabb;
-
-                                        reflectionProbe->AddComponent<BoundingBoxComponent>(boundingBoxComponent);
                                         reflectionProbe->SetName(activeScene->GetUniqueNodeName("ReflectionProbe"));
 
                                         // Calculate appropriate insertion point in front of camera
@@ -946,8 +900,6 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
     Handle<LightmapVolume> lightmapVolume = CreateObject<LightmapVolume>(lightmapVolumeAabb);
     lightmapVolume->SetName(Name::Unique("LightmapVolume"));
     InitObject(lightmapVolume);
-
-    lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent {});
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 

@@ -4,11 +4,13 @@
 
 #include <scene/camera/FirstPersonCamera.hpp>
 
+#include <engine/Game.hpp>
+
 #include <FirstPersonCamera.generated.inl>
 
 namespace hyperion {
 
-static const float mouseSensitivity = 25.0f;
+static const float mouseSensitivity = 75.0f;
 static const float mouseBlending = 0.35f;
 static const float movementSpeed = 5.0f;
 static const float movementSpeed2 = movementSpeed * 2.0f;
@@ -70,16 +72,19 @@ bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
         return false;
     }
 
-    Vec2f delta = (evt.relativePos - evt.relativePrevPos) * mouseSensitivity;
+    const float deltaTime = g_gameInstance->GetGameState().deltaTime;
+
+    Vec2f mouseDelta = (evt.relativePos - evt.relativePrevPos) * mouseSensitivity;
+    mouseDelta *= deltaTime;
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 
-    camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(delta.x));
-    camera->Rotate(dirCrossY, MathUtil::DegToRad(delta.y));
+    camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDelta.x));
+    camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDelta.y));
 
     if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
     {
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(-delta.y));
+        camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDelta.y));
     }
 
     return true;

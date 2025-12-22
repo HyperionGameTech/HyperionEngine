@@ -28,7 +28,10 @@ namespace Hyperion.Editor
         {
             Logger.Log(LogType.Debug, "HyperionEditorGame Launched");
 
+            World.Name = new Name("EditorWorld");
             World.WorldFlags |= WorldFlags.EditorWorld;
+
+            this.SetToEditMode();
 
             var uiSubsystem = new UISubsystem();
             World.AddSubsystem(uiSubsystem);

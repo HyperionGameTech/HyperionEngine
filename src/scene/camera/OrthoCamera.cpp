@@ -9,9 +9,9 @@
 namespace hyperion {
 OrthoCameraController::OrthoCameraController()
     : OrthoCameraController(
-        -100.0f, 100.0f,
-        -100.0f, 100.0f,
-        -100.0f, 100.0f)
+          -100.0f, 100.0f,
+          -100.0f, 100.0f,
+          -100.0f, 100.0f)
 {
 }
 
@@ -45,7 +45,7 @@ void OrthoCameraController::OnDeactivated()
     CameraController::OnDeactivated();
 }
 
-void OrthoCameraController::UpdateLogic(double dt)
+void OrthoCameraController::UpdateLogic(double delta)
 {
     HYP_SCOPE;
 }

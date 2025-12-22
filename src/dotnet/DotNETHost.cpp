@@ -44,7 +44,7 @@ class DotNetImplBase
 public:
     virtual ~DotNetImplBase() = default;
 
-    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback callback = nullptr) = 0;
+    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) = 0;
     virtual RC<Assembly> LoadAssembly(const char* path) const = 0;
     virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
     virtual bool IsCoreAssembly(ManagedGuid guid) const = 0;
@@ -56,10 +56,6 @@ public:
         const TChar* methodName,
         const TChar* delegateTypeName) const = 0;
 };
-
-using InitializeRuntimeDelegate = int (*)();
-using InitializeAssemblyDelegate = int (*)(ManagedGuid*, Assembly*, const char*, int32);
-using UnloadAssemblyDelegate = void (*)(ManagedGuid*, int32*);
 
 static Optional<FilePath> FindAssemblyFilePath(const FilePath& basePath, const char* path)
 {
@@ -80,8 +76,7 @@ class DotNetImpl : public DotNetImplBase
 {
 public:
     DotNetImpl()
-        : m_initializeAssemblyFptr(nullptr),
-          m_unloadAssemblyFptr(nullptr),
+        : m_managedDelegates {},
           m_cxt(nullptr),
           m_initFptr(nullptr),
           m_getDelegateFptr(nullptr),
@@ -113,13 +108,20 @@ public:
         return GetDotNetPath() / "runtimeconfig.json";
     }
 
-    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback callback = nullptr) override
+    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) override
     {
         m_basePath = basePath;
 
         if (initFromManaged)
         {
-            callback();
+            Assert(initFromManagedCb != nullptr);
+            initFromManagedCb(&m_managedDelegates);
+
+            // @NOTE initializeRuntime will be null when initializing from managed code
+
+            Assert(m_managedDelegates.initializeAssembly != nullptr);
+            Assert(m_managedDelegates.unloadAssembly != nullptr);
+
             return;
         }
 
@@ -154,34 +156,34 @@ public:
         interopAssemblyPathPlatform = *interopAssemblyPath;
 #endif
 
-        m_initializeRuntimeFptr = (InitializeRuntimeDelegate)GetDelegate(
+        m_managedDelegates.initializeRuntime = (InitializeRuntimeDelegate)GetDelegate(
             interopAssemblyPathPlatform.Data(),
             HYP_TEXT("Hyperion.NativeInterop, Hyperion.NET.Interop"),
             HYP_TEXT("InitializeRuntime"),
             UNMANAGEDCALLERSONLY_METHOD);
 
         Assert(
-            m_initializeRuntimeFptr != nullptr,
+            m_managedDelegates.initializeRuntime != nullptr,
             "InitializeRuntime could not be found in Hyperion.NET.Interop.dll! Ensure .NET libraries are properly compiled.");
 
-        m_initializeAssemblyFptr = (InitializeAssemblyDelegate)GetDelegate(
+        m_managedDelegates.initializeAssembly = (InitializeAssemblyDelegate)GetDelegate(
             interopAssemblyPathPlatform.Data(),
             HYP_TEXT("Hyperion.NativeInterop, Hyperion.NET.Interop"),
             HYP_TEXT("InitializeAssembly"),
             UNMANAGEDCALLERSONLY_METHOD);
 
         Assert(
-            m_initializeAssemblyFptr != nullptr,
+            m_managedDelegates.initializeAssembly != nullptr,
             "InitializeAssembly could not be found in Hyperion.NET.Interop.dll! Ensure .NET libraries are properly compiled.");
 
-        m_unloadAssemblyFptr = (UnloadAssemblyDelegate)GetDelegate(
+        m_managedDelegates.unloadAssembly = (UnloadAssemblyDelegate)GetDelegate(
             interopAssemblyPathPlatform.Data(),
             HYP_TEXT("Hyperion.NativeInterop, Hyperion.NET.Interop"),
             HYP_TEXT("UnloadAssembly"),
             UNMANAGEDCALLERSONLY_METHOD);
 
         Assert(
-            m_unloadAssemblyFptr != nullptr,
+            m_managedDelegates.unloadAssembly != nullptr,
             "UnloadAssembly could not be found in Hyperion.NET.Interop.dll! Ensure .NET libraries are properly compiled.");
 
         static const Array<Pair<String, FilePath>> s_coreAssemblies = {
@@ -200,7 +202,8 @@ public:
 
         int result = int(LoadAssemblyResult::OK);
 
-        result = m_initializeRuntimeFptr();
+        Assert(m_managedDelegates.initializeRuntime != nullptr);
+        result = m_managedDelegates.initializeRuntime();
 
         if (result != int(LoadAssemblyResult::OK))
         {
@@ -220,7 +223,7 @@ public:
             auto it = m_coreAssemblies.Insert(entry.first, assembly).first;
 
             // Initialize all core assemblies
-            result = m_initializeAssemblyFptr(
+            result = m_managedDelegates.initializeAssembly(
                 &assembly->GetGuid(),
                 assembly.Get(),
                 entry.second.Data(),
@@ -248,9 +251,9 @@ public:
             return nullptr;
         }
 
-        Assert(m_initializeAssemblyFptr != nullptr);
+        Assert(m_managedDelegates.initializeAssembly != nullptr);
 
-        int result = m_initializeAssemblyFptr(
+        int result = m_managedDelegates.initializeAssembly(
             &assembly->GetGuid(),
             assembly.Get(),
             filepath->Data(),
@@ -276,7 +279,9 @@ public:
         HYP_LOG(DotNET, Info, "Unloading assembly...");
 
         int32 result;
-        m_unloadAssemblyFptr(&assemblyGuid, &result);
+
+        Assert(m_managedDelegates.unloadAssembly != nullptr);
+        m_managedDelegates.unloadAssembly(&assemblyGuid, &result);
 
         return bool(result);
     }
@@ -501,11 +506,9 @@ private:
 
     DynamicLibrary m_dll;
 
-    HashMap<String, RC<Assembly>> m_coreAssemblies;
+    ManagedDelegates m_managedDelegates;
 
-    InitializeRuntimeDelegate m_initializeRuntimeFptr;
-    InitializeAssemblyDelegate m_initializeAssemblyFptr;
-    UnloadAssemblyDelegate m_unloadAssemblyFptr;
+    HashMap<String, RC<Assembly>> m_coreAssemblies;
 
     hostfxr_handle m_cxt;
     hostfxr_initialize_for_runtime_config_fn m_initFptr;
@@ -523,7 +526,7 @@ public:
     DotNetImpl() = default;
     virtual ~DotNetImpl() override = default;
 
-    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback callback = nullptr) override
+    virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) override
     {
     }
 
@@ -651,7 +654,7 @@ bool DotNETHost::IsInitialized() const
     return m_isInitialized;
 }
 
-void DotNETHost::Initialize(const FilePath& basePath, bool initFromManaged, InitFromManagedCallback callback)
+void DotNETHost::Initialize(const FilePath& basePath, bool initFromManaged, InitFromManagedCallback initFromManagedCb)
 {
     if (!IsEnabled())
     {
@@ -670,7 +673,7 @@ void DotNETHost::Initialize(const FilePath& basePath, bool initFromManaged, Init
     HYP_LOG(DotNET, Info, "Initializing .NET Host with base path: {}", basePath);
 
     m_impl = new DotNetImpl();
-    m_impl->Initialize(basePath, initFromManaged, callback);
+    m_impl->Initialize(basePath, initFromManaged, initFromManagedCb);
 
     m_isInitialized = true;
 }

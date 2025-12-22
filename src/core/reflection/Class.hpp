@@ -987,6 +987,7 @@ HYP_API extern const Name g_attrFollowAssetPath;
 
 /// ===== Editor-specific attributes =====
 HYP_API extern const Name g_attrEditor;        //!< legacy (deprecated) indicates that a property is editable in the editor
+HYP_API extern const Name g_attrEditorOnly;    //!< this field/method/property is only available in editor builds (future proof - right now it has no effect)
 HYP_API extern const Name g_attrEditOrder;     //!< order in which properties are displayed in the editor
 HYP_API extern const Name g_attrEditEnabled;   //!< is editable in editor
 HYP_API extern const Name g_attrEditHide;      //!< hide in editor

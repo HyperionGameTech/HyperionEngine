@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0091 NEW)
 
-set(BUILD_NAME hyperion-dotnet-runtime)
+set(BUILD_NAME hyperion-dotnet-scripting)
 
 project(${BUILD_NAME} CXX C)
 
@@ -40,12 +40,12 @@ endif()
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
 
 if(HYP_GENERATE_CSHARP_LIBRARIES)
-    file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/**.cs" "${HYP_GENERATED_DIR}/csharp/**.cs")
+    file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/**.cs")
 
-    if(CSHARP_RUNTIME_SOURCES)
-        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime)
+    if(CSHARP_SCRIPTING_SOURCES)
+        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting)
 
-        set(CSPROJ_PATH "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj")
+        set(CSPROJ_PATH "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj")
 
         file(WRITE ${CSPROJ_PATH} "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
         file(APPEND ${CSPROJ_PATH} "  <PropertyGroup>\n")
@@ -56,7 +56,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         file(APPEND ${CSPROJ_PATH} "    <ImplicitUsings>enable</ImplicitUsings>\n")
         file(APPEND ${CSPROJ_PATH} "    <Nullable>enable</Nullable>\n")
         file(APPEND ${CSPROJ_PATH} "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-        file(APPEND ${CSPROJ_PATH} "    <AssemblyName>Hyperion.NET.Runtime</AssemblyName>\n")
+        file(APPEND ${CSPROJ_PATH} "    <AssemblyName>Hyperion.NET.Scripting</AssemblyName>\n")
         file(APPEND ${CSPROJ_PATH} "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
         if(CSHARP_CONSTANTS)
             file(APPEND ${CSPROJ_PATH} "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
@@ -65,10 +65,20 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
 
         file(APPEND ${CSPROJ_PATH} "  <ItemGroup>\n")
         file(APPEND ${CSPROJ_PATH} "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
-        foreach(CSHARP_RUNTIME_SOURCE ${CSHARP_RUNTIME_SOURCES})
-            file(APPEND ${CSPROJ_PATH} "    <Compile Include=\"${CSHARP_RUNTIME_SOURCE}\" />\n")
+
+        file(APPEND ${CSPROJ_PATH} "    <PackageReference Include=\"Microsoft.CodeAnalysis\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSPROJ_PATH} "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSPROJ_PATH} "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp.Scripting\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSPROJ_PATH} "    <PackageReference Include=\"Microsoft.CodeAnalysis.Scripting\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSPROJ_PATH} "    <PackageReference Include=\"Microsoft.CodeAnalysis.Workspaces.MSBuild\" Version=\"4.9.2\" />\n")
+
+        foreach(CSHARP_SCRIPTING_SOURCE ${CSHARP_SCRIPTING_SOURCES})
+            file(APPEND ${CSPROJ_PATH} "    <Compile Include=\"${CSHARP_SCRIPTING_SOURCE}\" />\n")
         endforeach()
 
+        file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Runtime\" >\n")
+        file(APPEND ${CSPROJ_PATH} "        <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll</HintPath>\n")
+        file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
         file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Shared\" >\n")
         file(APPEND ${CSPROJ_PATH} "        <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
         file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
@@ -88,25 +98,25 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
 
         execute_process(
             COMMAND ${DOTNET_EXE} restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
+            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
         )
 
         if(NOT DEFINED MSVC)
-            add_custom_target(Hyperion.NET.Runtime ALL
+            add_custom_target(Hyperion.NET.Scripting ALL
                 COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                DEPENDS Hyperion.NET.Shared hyperion-core
-                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
+                DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime hyperion-core
+                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
             )
         else()
             enable_language(CSharp)
             include_external_msproject(
-                Hyperion.NET.Runtime
+                Hyperion.NET.Scripting
                 ${CSPROJ_PATH}
                 TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
             )
         endif()
 
-        add_dependencies(Hyperion.NET.Runtime Hyperion.NET.Shared)
-        add_dependencies(${BUILD_NAME} Hyperion.NET.Runtime Hyperion.NET.Shared hyperion-core hyperion-rendering)
+        add_dependencies(Hyperion.NET.Scripting Hyperion.NET.Shared Hyperion.NET.Runtime)
+        add_dependencies(${BUILD_NAME} Hyperion.NET.Scripting Hyperion.NET.Runtime hyperion-core)
     endif()
 endif()

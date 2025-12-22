@@ -95,7 +95,7 @@ namespace Hyperion.Editor.ViewModels
                         {
                             try
                             {
-                                gameInstance.World.StartSimulating();
+                                gameInstance.StartSimulating();
                             }
                             finally
                             {
@@ -110,7 +110,7 @@ namespace Hyperion.Editor.ViewModels
                         {
                             try
                             {
-                                gameInstance.World.PauseSimulation();
+                                gameInstance.PauseSimulation();
                             }
                             finally
                             {
@@ -122,7 +122,7 @@ namespace Hyperion.Editor.ViewModels
                     case GameStateMode.Stopped:
                         _ = EngineManager.PostToSimThread(() =>
                         {
-                            gameInstance.World.StopSimulating();
+                            gameInstance.StopSimulating();
 
                             Dispatcher.UIThread.Post(() =>
                             {
@@ -188,7 +188,7 @@ namespace Hyperion.Editor.ViewModels
             get
             {
                 return _editorSubsystem != null
-                    && EngineManager.GameInstance?.World?.GetGameState().Mode == GameStateMode.Editor;
+                    && EngineManager.GameInstance?.World?.GetGameState().Mode == GameStateMode.EditMode;
             }
         }
 
@@ -236,7 +236,7 @@ namespace Hyperion.Editor.ViewModels
                     return false;
                 }
 
-                return project.World.GetGameState().Mode != GameStateMode.Editor;
+                return !project.World.GetGameState().Stopped;
             }
         }
 
@@ -312,8 +312,8 @@ namespace Hyperion.Editor.ViewModels
 
                 if (project != null)
                 {
-                    _gameModeChangedHandler = project.World.GetOnGameStateChangeDelegate()
-                        .Bind((World world, GameStateMode newMode, GameStateMode prevMode) =>
+                    _gameModeChangedHandler = project.GameInstance.GetOnGameStateChangeDelegate()
+                        .Bind((Game game, GameStateMode newMode, GameStateMode prevMode) =>
                         {
                             Dispatcher.UIThread.Post(() =>
                             {

@@ -22,9 +22,11 @@ class StreamingManager;
 class SimThread;
 class RenderThread;
 class MainThread;
+class VisThread;
 class EngineStats;
 class InputManager;
 class Game;
+struct GameState;
 
 #ifdef HYP_VULKAN
 class VulkanRenderBackend;
@@ -49,6 +51,7 @@ extern ShaderCompiler* g_shaderCompiler;
 extern MainThread* g_mainThreadInstance;
 extern SimThread* g_simThreadInstance;
 extern RenderThread* g_renderThreadInstance;
+extern VisThread* g_visThreadInstance;
 
 extern Handle<Game> g_gameInstance;
 

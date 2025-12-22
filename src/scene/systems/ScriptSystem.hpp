@@ -5,7 +5,7 @@
 #include <scene/System.hpp>
 #include <scene/components/ScriptComponent.hpp>
 
-#include <scene/GameState.hpp>
+#include <engine/GameState.hpp>
 
 #include <core/functional/Delegate.hpp>
 

@@ -117,8 +117,6 @@ namespace Hyperion
                 // Create a managed string from the pointer
                 string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr) ?? string.Empty;
 
-                Logger.Log(LogType.Debug, "Initializing assembly {0}, is core assembly? {1}", assemblyPath, isCoreAssembly);
-
                 if (isCoreAssembly != 0)
                 {
                     // Check for assemblies having already been loaded

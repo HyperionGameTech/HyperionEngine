@@ -20,7 +20,6 @@
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
-#include <scene/components/BoundingBoxComponent.hpp>
 
 #include <core/utilities/StringUtil.hpp>
 
@@ -859,7 +858,6 @@ Handle<Node> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
                 entity->SetLocalBounds(primitive.mesh->GetAABB());
 
                 ctx.scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { primitive.mesh, primitive.material });
-                ctx.scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
 
                 nodeHandle->AddChild(entity);
             }

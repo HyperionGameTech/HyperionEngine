@@ -21,7 +21,12 @@ int main(int argc, char** argv)
     Handle<game::DefaultGame> defaultGame = CreateObject<game::DefaultGame>();
     
     Hyp_SetGame(defaultGame);
-    Hyp_LaunchThreads();
+    
+    if (!Hyp_LaunchThreads())
+    {
+        HYP_FAIL("Failed to launch threads!");
+    }
+    
     Hyp_Shutdown();
     
     return 0;

@@ -16,7 +16,7 @@ public:
     OrthoCameraController(float left, float right, float bottom, float top, float _near, float _far);
     virtual ~OrthoCameraController() override = default;
 
-    virtual void UpdateLogic(double dt) override;
+    virtual void UpdateLogic(double delta) override;
     virtual void UpdateViewMatrix() override;
     virtual void UpdateProjectionMatrix() override;
 
@@ -33,4 +33,3 @@ protected:
 };
 
 } // namespace hyperion
-

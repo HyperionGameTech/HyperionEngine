@@ -294,7 +294,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     writer.WriteString("\n#pragma endregion Forward declarations\n\n");
 
     // now we need to add a method to be called that initializes all g_clsXXX variables (TClassStaticInit specializations)
-    writer.WriteString("\nHYP_API void InitializeClassDeclarations()\n{\n");
+    writer.WriteString("\nHYP_API void InitClassDecls()\n{\n");
 
     for (const ClassInfo& classInfo : allClasses)
     {

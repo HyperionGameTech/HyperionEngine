@@ -12,6 +12,8 @@
 
 #include <physics/PhysicsWorld.hpp>
 
+#include <engine/Game.hpp>
+
 #include <PhysicsSystem.generated.inl>
 
 namespace hyperion {

@@ -8,34 +8,30 @@ namespace Hyperion
         Stopped = 0,
         Simulating = 1,
         Paused = 2,
-        Editor = 3
+        EditMode = 3
     }
 
     [ClassBinding(Name="GameState")]
     [StructLayout(LayoutKind.Sequential)]
     public struct GameState
     {
-        public GameStateMode mode;
-        public float deltaTime;
-        public float gameTime;
+        private GameStateMode _mode;
+        private float _deltaTime;
+        private float _gameTime;
 
         public GameState()
         {
         }
 
-        public GameStateMode Mode
-        {
-            get { return mode; }
-        }
+        public GameStateMode Mode => _mode;
 
-        public float DeltaTime
-        {
-            get { return deltaTime; }
-        }
+        public bool Stopped => _mode == GameStateMode.Stopped;
+        public bool Simulating => _mode == GameStateMode.Simulating;
+        public bool Paused => _mode == GameStateMode.Paused;
+        public bool EditMode => _mode == GameStateMode.EditMode;
 
-        public float GameTime
-        {
-            get { return gameTime; }
-        }
+        public float DeltaTime => _deltaTime;
+
+        public float GameTime => _gameTime;
     }
 }

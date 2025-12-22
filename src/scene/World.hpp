@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <scene/GameState.hpp>
 #include <scene/SystemExecutionGroup.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
@@ -25,6 +24,8 @@ class Subsystem;
 class WorldGrid;
 class WorldGridLayer;
 class PhysicsWorldBase;
+
+struct GameState;
 
 enum GlobalRendererType : uint32;
 
@@ -60,6 +61,7 @@ class HYP_API World final : public ObjectBase
     HYP_OBJECT_BODY(World);
 
     friend class Game;
+    friend class EngineDriver;
 
 public:
     using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, DynamicNodeAllocator>;
@@ -160,19 +162,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const GameState& GetGameState() const
-    {
-        return m_gameState;
-    }
-
-    HYP_METHOD()
-    void StartSimulating();
-
-    HYP_METHOD()
-    void StopSimulating();
-
-    HYP_METHOD()
-    void PauseSimulation();
+    const GameState& GetGameState() const;
 
     HYP_METHOD()
     void AddScene(const Handle<Scene>& scene, bool addToStreamingLayer = true);
@@ -252,9 +242,6 @@ public:
     void EndUpdate();
 
     HYP_FIELD()
-    ScriptableDelegate<void, World*, GameStateMode, GameStateMode> OnGameStateChange;
-
-    HYP_FIELD()
     ScriptableDelegate<void, World*, const Handle<Scene>& /* scene */> OnSceneAdded;
 
     HYP_FIELD()
@@ -310,12 +297,10 @@ private:
 
     Handle<WorldGrid> m_worldGrid;
 
-    GameState m_gameState;
-
     Handle<PhysicsWorldBase> m_physicsWorld;
 
     // additional views to process for the current frame
-    Array<View*, SceneTempAllocator> m_processViews;
+    Array<View*, SceneAllocator> m_processViews;
 
     DelegateHandlerSet m_delegateHandlers;
 };

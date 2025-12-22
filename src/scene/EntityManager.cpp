@@ -265,6 +265,13 @@ void EntityManager::Shutdown()
             // call OnComponentRemoved() for all components of the entity
             HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
 
+            if (m_world)
+            {
+                entity->OnRemovedFromWorld(m_world);
+            }
+
+            entity->OnRemovedFromScene(m_scene);
+
             NotifySystemsOfEntityRemoved(entity, entityData.components);
 
             for (auto componentInfoPairIt = entityData.components.Begin(); componentInfoPairIt != entityData.components.End();)
@@ -302,13 +309,6 @@ void EntityManager::Shutdown()
                 // Update iterator, erase the component from the entity's component map
                 componentInfoPairIt = entityData.components.Erase(componentInfoPairIt);
             }
-
-            if (m_world)
-            {
-                entity->OnRemovedFromWorld(m_world);
-            }
-
-            entity->OnRemovedFromScene(m_scene);
         }
 
         if (m_world != nullptr)
@@ -712,6 +712,13 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         EntityData* entityData = m_entities.TryGetEntityData(entity.Id());
         Assert(entityData != nullptr, "Entity does not exist");
 
+        if (m_world)
+        {
+            entity->OnRemovedFromWorld(m_world);
+        }
+
+        entity->OnRemovedFromScene(m_scene);
+
         NotifySystemsOfEntityRemoved(entity, entityData->components);
 
         for (auto componentInfoPairIt = entityData->components.Begin(); componentInfoPairIt != entityData->components.End();)
@@ -750,13 +757,6 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             // Update iterator, erase the component from the entity's component map
             componentInfoPairIt = entityData->components.Erase(componentInfoPairIt);
         }
-
-        if (m_world)
-        {
-            entity->OnRemovedFromWorld(m_world);
-        }
-
-        entity->OnRemovedFromScene(m_scene);
 
         {
             Mutex::Guard entitySetsGuard(m_entitySetsMutex);

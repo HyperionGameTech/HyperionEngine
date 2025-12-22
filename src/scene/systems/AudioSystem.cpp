@@ -13,6 +13,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <engine/GameState.hpp>
+
 #include <AudioSystem.generated.inl>
 
 namespace hyperion {

@@ -15,7 +15,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <game/Game.hpp>
+#include <engine/Game.hpp>
 
 #include <core/serialization/fbom/FBOMWriter.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>

@@ -13,7 +13,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <game/Game.hpp>
+#include <engine/Game.hpp>
 
 #include <system/AppContext.hpp>
 #include <input/Event.hpp>
@@ -137,6 +137,8 @@ void SimThread::Update()
     {
         // game instance should be null if not launched yet
         AssertDebug(m_game->m_isLaunched.Get(MemoryOrder::RELAXED));
+
+        m_game->m_gameState.deltaTime = m_counter.delta;
     }
 
     if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
@@ -160,6 +162,8 @@ void SimThread::Update()
     if (m_game != nullptr)
     {
         m_game->OnUpdate(m_counter.delta);
+
+        m_game->m_gameState.gameTime += m_counter.delta;
     }
 
     g_engineDriver->GetDebugDrawer()->Update(m_counter.delta);

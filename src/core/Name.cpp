@@ -211,7 +211,7 @@ bool ShouldLockNameRegistry()
     return s_isNameRegistryInitialized;
 }
 
-void NameRegistry_Initialize()
+void InitNameRegistry()
 {
     HYP_CORE_ASSERT(!s_isNameRegistryInitialized, "NameRegistry is already initialized");
 
@@ -219,7 +219,7 @@ void NameRegistry_Initialize()
     (void)GetNamePool(); // ensure name pool is initialized
 }
 
-void NameRegistry_Shutdown()
+void DestroyNameRegistry()
 {
     HYP_CORE_ASSERT(s_isNameRegistryInitialized, "NameRegistry is not initialized");
 

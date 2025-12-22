@@ -107,6 +107,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         endif()
 
         add_dependencies(Hyperion.NET.Interop Hyperion.NET.Shared)
-        add_dependencies(${BUILD_NAME} Hyperion.NET.Interop hyperion-core)
+        add_dependencies(${BUILD_NAME} Hyperion.NET.Interop Hyperion.NET.Shared hyperion-core)
     endif()
 endif()

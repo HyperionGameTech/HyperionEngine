@@ -25,8 +25,6 @@ public:
             return;
         }
 
-        const bool isEditor = CoreApi_GetCommandLineArguments()["Editor"].ToBool();
-
         RC<dotnet::Assembly> managedAssembly = DotNETHost::GetInstance().LoadAssembly("Hyperion.NET.Scripting.dll");
         Assert(managedAssembly != nullptr, "Failed to load Hyperion.NET.Scripting assembly");
 
@@ -148,14 +146,14 @@ protected:
 
 ScriptingService::ScriptingService(const FilePath& watchDirectory, const FilePath& intermediateDirectory, const FilePath& binaryOutputDirectory)
     : m_thread(MakeUnique<ScriptingServiceThread>(
-        watchDirectory,
-        intermediateDirectory,
-        binaryOutputDirectory,
-        [](void* selfPtr, ScriptEvent event)
-        {
-            static_cast<ScriptingService*>(selfPtr)->PushScriptEvent(event);
-        },
-        this))
+          watchDirectory,
+          intermediateDirectory,
+          binaryOutputDirectory,
+          [](void* selfPtr, ScriptEvent event)
+          {
+              static_cast<ScriptingService*>(selfPtr)->PushScriptEvent(event);
+          },
+          this))
 {
     HYP_NAMED_SCOPE("ScriptingService: Initialize directories");
 

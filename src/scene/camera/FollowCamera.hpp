@@ -25,7 +25,7 @@ public:
         m_offset = offset;
     }
 
-    virtual void UpdateLogic(double dt) override;
+    virtual void UpdateLogic(double delta) override;
 
 protected:
     virtual void OnActivated() override;
@@ -48,4 +48,3 @@ private:
 };
 
 } // namespace hyperion
-

@@ -6,8 +6,6 @@
 
 #include <asset/Assets.hpp>
 
-#include <dotnet/DotNETHost.hpp>
-
 #include <core/Core.hpp>
 
 #include <core/reflection/ClassRegistry.hpp>
@@ -36,16 +34,7 @@
 #include <rendering/ShaderManager.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
-
 #include <rendering/util/ShaderCompiler.hpp>
-
-#ifdef HYP_VULKAN
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
-#endif
-
-#ifdef HYP_EDITOR
-#include <editor/EditorState.hpp>
-#endif
 
 #include <scene/ComponentInterface.hpp>
 
@@ -56,12 +45,24 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineMemory.hpp>
 #include <engine/EngineStats.hpp>
+#include <engine/Game.hpp>
 
 #include <engine/threads/MainThread.hpp>
 #include <engine/threads/SimThread.hpp>
 #include <engine/threads/RenderThread.hpp>
+#include <engine/threads/VisThread.hpp>
 
-#include <game/Game.hpp>
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#endif
+
+#ifdef HYP_EDITOR
+#include <editor/EditorState.hpp>
+#endif
+
+#ifdef HYP_DOTNET
+#include <dotnet/DotNETHost.hpp>
+#endif
 
 /// ========== If this include is missing, you need to run HypBuildTool (instructions in doc/CompilingTheEngine.md) ==========
 #include <BuildToolOutput.inc>
@@ -111,7 +112,7 @@ HYP_EXPORT Pool* GetCurrentFramePool()
 }
 
 // defined in ClassDecls.cpp
-HYP_EXPORT extern void InitializeClassDeclarations();
+extern void InitClassDecls();
 
 #pragma endregion Memory Pools
 
@@ -131,6 +132,7 @@ ShaderCompiler* g_shaderCompiler;
 MainThread* g_mainThreadInstance;
 SimThread* g_simThreadInstance;
 RenderThread* g_renderThreadInstance;
+VisThread* g_visThreadInstance;
 
 Handle<Game> g_gameInstance; // active game instance, read/write only from the main thread
 
@@ -211,7 +213,80 @@ HYP_EXPORT const FilePath& GetTempDirectory()
     return s_resourceDirectory.path;
 }
 
-static void (*s_initFromManagedCallback)() = nullptr;
+#ifdef HYP_DOTNET
+static InitFromManagedCallback s_initFromManagedCallback = nullptr;
+#endif
+
+static void InitThreads()
+{
+    // Handle -RenderOnMainThread, -SimulateOnMainThread cli args
+    const uint32 mainThreadIndex = g_mainThread.GetStaticThreadIndex();
+
+    if (CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool())
+    {
+        g_renderThread = StaticThreadId(mainThreadIndex, NAME("RenderThread"));
+        g_simThread = StaticThreadId(NAME("SimThread"));
+    }
+    else
+    {
+        g_renderThread = StaticThreadId(NAME("RenderThread"));
+
+        if (CoreApi_GetCommandLineArguments()["SimulateOnMainThread"].ToBool())
+        {
+            g_simThread = StaticThreadId(mainThreadIndex, NAME("SimThread"));
+        }
+        else
+        {
+            g_simThread = StaticThreadId(NAME("SimThread"));
+        }
+    }
+
+    if (CoreApi_GetCommandLineArguments()["DedicatedVisThread"].ToBool())
+    {
+        g_visThread = StaticThreadId(NAME("VisThread"));
+    }
+    else
+    {
+        // use sim thread for visibility state updates
+        g_visThread = g_simThread;
+    }
+
+    g_mainThreadInstance = new MainThread();
+    g_renderThreadInstance = new RenderThread();
+    g_simThreadInstance = new SimThread();
+    g_visThreadInstance = new VisThread();
+}
+
+static void InitMemoryPools()
+{
+    g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
+    g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
+
+    for (uint32 i = 0; i < RingBufferDepth; i++)
+    {
+        g_framePools[i] = new Pool(FramePoolBlockSize, PF_NONE);
+    }
+
+    g_scenePool = new Pool(ScenePoolBlockSize, PF_THREAD_SAFE);
+    g_taskPool = new Pool(TaskPoolBlockSize, PF_THREAD_SAFE);
+    g_resourcePool = new Pool(ResourcePoolBlockSize, PF_THREAD_SAFE);
+    g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE);
+    g_streamingPool = new Pool(StreamingPoolBlockSize, PF_THREAD_SAFE);
+    g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_simThread);
+
+    g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
+    g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
+}
+
+static void InitLogger()
+{
+    g_logger = CreateObject<Logger>();
+    g_logger->fatalErrorHook = &HandleFatalError;
+
+    InitObject(g_logger);
+
+    LogChannelRegistrar::GetInstance().RegisterAll();
+}
 
 extern "C"
 {
@@ -225,76 +300,17 @@ extern "C"
 
         SetCurrentThreadId(g_mainThread);
 
-        // load generated class declarations
-        InitializeClassDeclarations();
+        InitClassDecls();
 
         if (!CoreApi_Initialize(argc, argv))
         {
             return 0;
         }
 
-        // Handle -RenderOnMainThread, -SimulateOnMainThread cli args
-        const uint32 mainThreadIndex = g_mainThread.GetStaticThreadIndex();
-
-        if (CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool())
-        {
-            g_renderThread = StaticThreadId(mainThreadIndex, NAME("RenderThread"));
-            g_simThread = StaticThreadId(NAME("SimThread"));
-        }
-        else
-        {
-            g_renderThread = StaticThreadId(NAME("RenderThread"));
-
-            if (CoreApi_GetCommandLineArguments()["SimulateOnMainThread"].ToBool())
-            {
-                g_simThread = StaticThreadId(mainThreadIndex, NAME("SimThread"));
-            }
-            else
-            {
-                g_simThread = StaticThreadId(NAME("SimThread"));
-            }
-        }
-
-        g_mainThreadInstance = new MainThread();
-        g_renderThreadInstance = new RenderThread();
-        g_simThreadInstance = new SimThread();
-
-        /// =====================================
-        /// ===== Initialize memory pools =======
-        /// =====================================
-
-        g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
-        g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
-
-        for (uint32 i = 0; i < RingBufferDepth; i++)
-        {
-            g_framePools[i] = new Pool(FramePoolBlockSize, PF_NONE);
-        }
-
-        g_scenePool = new Pool(ScenePoolBlockSize, PF_THREAD_SAFE);
-        g_taskPool = new Pool(TaskPoolBlockSize, PF_THREAD_SAFE);
-        g_resourcePool = new Pool(ResourcePoolBlockSize, PF_THREAD_SAFE);
-        g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE);
-        g_streamingPool = new Pool(StreamingPoolBlockSize, PF_THREAD_SAFE);
-        g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_simThread);
-
-        g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
-        g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
-
-        /// =====================================
-        /// ========= Initialize logger =========
-        /// =====================================
-
-        g_logger = CreateObject<Logger>();
-        g_logger->fatalErrorHook = &HandleFatalError;
-
-        InitObject(g_logger);
-
-        LogChannelRegistrar::GetInstance().RegisterAll();
-
-        /// =====================================
-
-        NameRegistry_Initialize();
+        InitThreads();
+        InitMemoryPools();
+        InitLogger();
+        InitNameRegistry();
 
         ClassRegistry::GetInstance().Initialize();
         HypScript::GetInstance().Initialize();
@@ -304,16 +320,16 @@ extern "C"
 
         const bool isEditor = CoreApi_GetCommandLineArguments()["Editor"].ToBool();
 
+#ifdef HYP_DOTNET
         // dont initialize hostfxr if running from editor,
         // leads to type identity issues with managed types
         // due to multiple runtimes being loaded.
         DotNETHost::GetInstance().Initialize(basePath, /* initFromManaged */ isEditor, s_initFromManagedCallback);
+#endif
 
         ConsoleCommandManager::GetInstance().Initialize();
         AudioManager::GetInstance().Initialize();
         TaskSystem::GetInstance().Start();
-
-        ConfigurationTable renderGlobalConfigOverrides;
 
         g_engineDriver = CreateObject<EngineDriver>();
 
@@ -413,7 +429,10 @@ extern "C"
 
         RenderApi::Shutdown();
 
+#ifdef HYP_DOTNET
         DotNETHost::GetInstance().Shutdown();
+#endif
+
         ComponentInterfaceRegistry::GetInstance().Shutdown();
         ConsoleCommandManager::GetInstance().Shutdown();
         AudioManager::GetInstance().Shutdown();
@@ -423,7 +442,7 @@ extern "C"
             TaskSystem::GetInstance().Stop();
         }
 
-        NameRegistry_Shutdown();
+        DestroyNameRegistry();
 
         CoreApi_Shutdown();
 
@@ -499,6 +518,9 @@ extern "C"
         delete g_renderThreadInstance;
         g_renderThreadInstance = nullptr;
 
+        delete g_visThreadInstance;
+        g_visThreadInstance = nullptr;
+
 #ifdef HYP_WINDOWS
         Win32_CleanupWindowClasses();
 #endif
@@ -513,16 +535,18 @@ extern "C"
         g_simThreadInstance->SetGame(pGame ? MakeStrongRef(pGame) : Handle<Game>::Null());
     }
 
-    HYP_EXPORT void Hyp_LaunchThreads()
+    HYP_EXPORT int Hyp_LaunchThreads()
     {
         AssertOnThread(g_mainThread);
 
         Assert(g_engineDriver != nullptr && g_engineDriver->IsReady());
 
-        if (!g_simThreadInstance || !g_simThreadInstance->IsRunning())
+        if (!g_mainThreadInstance || !g_mainThreadInstance->IsRunning())
         {
-            g_engineDriver->StartThreads();
+            return int(g_engineDriver->StartThreads());
         }
+        
+        return 0;
     }
 
     HYP_EXPORT AppContextBase* Hyp_GetAppContext()
@@ -626,7 +650,7 @@ extern "C"
         g_mainThreadInstance->Update();
     }
 
-    HYP_EXPORT void Hyp_SetInitFromManagedCallback(void (*callback)())
+    HYP_EXPORT void Hyp_SetInitFromManagedCallback(InitFromManagedCallback callback)
     {
         s_initFromManagedCallback = callback;
     }

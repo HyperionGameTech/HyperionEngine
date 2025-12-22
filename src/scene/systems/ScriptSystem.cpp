@@ -25,6 +25,7 @@
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
+#include <engine/Game.hpp>
 
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
@@ -170,9 +171,12 @@ ScriptSystem::ScriptSystem()
 
     if (World* world = GetWorld())
     {
+        Game* gameInstance = world->GetGame();
+        Assert(gameInstance != nullptr);
+
         m_delegateHandlers.Add(
             NAME("OnGameStateChange"),
-            world->OnGameStateChange.Bind([this](World* world, GameStateMode previousGameStateMode, GameStateMode currentGameStateMode)
+            gameInstance->OnGameStateChange.Bind([this](Game* gameInstance, GameStateMode previousGameStateMode, GameStateMode currentGameStateMode)
                 {
                     AssertOnThread(g_simThread);
 

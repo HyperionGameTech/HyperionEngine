@@ -24,6 +24,8 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <engine/threads/SimThread.hpp>
+
 #include <StreamingManager.generated.inl>
 
 namespace hyperion {
@@ -356,7 +358,7 @@ private:
         Task<void>& future = m_futures.EmplaceBack();
         TaskPromise<void>* promise = future.Promise();
 
-        GetThreadById(g_simThread)->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
+        g_simThreadInstance->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
             {
                 m_cellUpdatesSim.EmplaceBack(std::move(cell), state);
 

@@ -11,15 +11,16 @@
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>
 #include <scene/EntityManager.hpp>
+#include <scene/ComponentInterface.hpp>
+
+#include <scene/sky/DynamicSkySubsystem.hpp>
 
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/AudioComponent.hpp>
-#include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/RigidBodyComponent.hpp>
 #include <scene/components/ScriptComponent.hpp>
-#include <scene/ComponentInterface.hpp>
 
 #include <scene/camera/FirstPersonCamera.hpp>
 
@@ -37,6 +38,8 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/serialization/fbom/FBOMWriter.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>
 
@@ -45,8 +48,6 @@
 #include <input/InputManager.hpp>
 #include <input/Mouse.hpp>
 #include <input/Event.hpp>
-
-#include <core/config/Config.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -105,7 +106,6 @@ void DefaultGame::OnLaunch_Impl()
     m_defaultScene = scene;
 
     GetWorld()->AddScene(scene);
-    // m_editorSubsystem->GetCurrentProject()->AddScene(scene);
 
     // add sun
     Handle<Node> sunNode = scene->GetRoot()->AddChild();
@@ -118,11 +118,15 @@ void DefaultGame::OnLaunch_Impl()
 
     sunNode->AddChild(sunEntity);
 
+    // sky
+    GetWorld()->AddSubsystem<DynamicSkySubsystem>();
+
+    // Fps controller
+
     Handle<FirstPersonCameraController> cameraController = CreateObject<FirstPersonCameraController>();
     m_camera->AddCameraController(cameraController);
 
     // temp: add test script component
-
     Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
 
     // register the package
@@ -141,7 +145,7 @@ void DefaultGame::OnLaunch_Impl()
     ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
         TAssetReference<ScriptAsset>(scriptAsset) });
 
-    GetWorld()->StartSimulating();
+    StartSimulating();
 }
 
 void DefaultGame::OnUpdate_Impl(float delta)

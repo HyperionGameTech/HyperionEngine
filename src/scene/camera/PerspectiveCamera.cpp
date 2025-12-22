@@ -27,7 +27,7 @@ void PerspectiveCameraController::OnDeactivated()
     CameraController::OnDeactivated();
 }
 
-void PerspectiveCameraController::UpdateLogic(double dt)
+void PerspectiveCameraController::UpdateLogic(double delta)
 {
     HYP_SCOPE;
 }

@@ -18,7 +18,6 @@
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
-#include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
@@ -463,7 +462,6 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         entity->SetLocalBounds(mesh->GetAABB());
 
         scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
-        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
 
         entity->SetName(CreateNameFromDynamicString(objMesh.name));
         entity->SetLocalTranslation(meshAabbCenter);

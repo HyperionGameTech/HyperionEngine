@@ -40,7 +40,6 @@
 
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
-#include <scene/components/BoundingBoxComponent.hpp>
 
 #include <scene/util/VoxelOctree.hpp>
 

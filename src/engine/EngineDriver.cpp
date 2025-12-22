@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "Game.hpp"
 #include <HyperionPch.hpp>
 
 #include <engine/EngineDriver.hpp>
@@ -7,10 +8,12 @@
 #include <engine/EngineStats.hpp>
 #include <engine/EngineMemory.hpp>
 #include <engine/DebugDrawer.hpp>
+#include <engine/Game.hpp>
 
 #include <engine/threads/SimThread.hpp>
 #include <engine/threads/MainThread.hpp>
 #include <engine/threads/RenderThread.hpp>
+#include <engine/threads/VisThread.hpp>
 
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderEnvironment.hpp>
@@ -40,6 +43,9 @@
 #include <scene/EntityManager.hpp>
 #include <scene/Subsystem.hpp>
 
+#include <scene/components/VisibilityStateComponent.hpp>
+#include <scene/components/BoundingBoxComponent.hpp>
+
 #include <core/filesystem/FsUtil.hpp>
 
 #include <core/debug/StackDump.hpp>
@@ -67,8 +73,6 @@
 #include <system/App.hpp>
 
 #include <scripting/ScriptingService.hpp>
-
-#include <game/Game.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -125,15 +129,15 @@ HYP_API void EngineDriver::Init()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    // #ifdef HYP_EDITOR
-    //     // Create script compilation service
-    //     m_scriptingService = MakeUnique<ScriptingService>(
-    //         GetResourceDirectory() / "scripts" / "src",
-    //         GetResourceDirectory() / "scripts" / "projects",
-    //         CoreApi_GetExecutablePath()); // copy script binaries into executable path
+#ifdef HYP_EDITOR
+    // Create script compilation service
+    m_scriptingService = MakeUnique<ScriptingService>(
+        GetResourceDirectory() / "scripts" / "src",
+        GetResourceDirectory() / "scripts" / "projects",
+        CoreApi_GetExecutablePath()); // copy script binaries into executable path
 
-    //     m_scriptingService->Start();
-    // #endif
+    m_scriptingService->Start();
+#endif
 
     RC<NetRequestThread> netRequestThread = MakeRefCountedPtr<NetRequestThread>();
     SetGlobalNetRequestThread(netRequestThread);
@@ -292,7 +296,7 @@ Game* EngineDriver::GetGameInstance() const
     return g_gameInstance;
 }
 
-void EngineDriver::StartThreads()
+bool EngineDriver::StartThreads()
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
@@ -300,15 +304,28 @@ void EngineDriver::StartThreads()
 
     Assert(g_renderThreadInstance != nullptr
         && g_simThreadInstance != nullptr
+        && g_visThreadInstance != nullptr
         && g_mainThreadInstance != nullptr);
 
     Assert(!g_renderThreadInstance->IsRunning(), "Render thread is already running!");
     Assert(!g_simThreadInstance->IsRunning(), "Sim thread is already running!");
+    Assert(!g_visThreadInstance->IsRunning(), "Vis thread is already running!");
 
-    Assert(g_renderThreadInstance->Start());
-    Assert(g_simThreadInstance->Start());
+    bool success = true;
 
-    Assert(g_mainThreadInstance->Start());
+    success &= g_renderThreadInstance->Start();
+    if (!success)
+        return false;
+
+    success &= g_simThreadInstance->Start();
+    if (!success)
+        return false;
+
+    success &= g_visThreadInstance->Start();
+    if (!success)
+        return false;
+
+    return g_mainThreadInstance->Start();
 }
 
 void EngineDriver::RequestStop()
@@ -401,8 +418,11 @@ void EngineDriver::PreFrameUpdate(Frame* frame)
     AssertOnThread(g_renderThread);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void EngineDriver::UpdateSim(float delta)
 {
+    static const bool s_dedicatedVisThread = CoreApi_GetCommandLineArguments()["DedicatedVisThread"].ToBool();
+
     if (m_scriptingService)
     {
         m_scriptingService->Update();
@@ -411,11 +431,14 @@ void EngineDriver::UpdateSim(float delta)
     g_streamingManager->Update(delta);
 
     const uint32 slot = RenderApi::GetRingIndex();
+    const uint32 frameCounter = RenderApi::GetFrameCounter();
 
     m_worldsToRenderPerFrame[slot].Clear();
 
     Array<View*, SceneAllocator> viewsToProcess;
     Array<Subsystem*, SceneAllocator> subsystemsToProcess;
+    Array<World*, SceneAllocator> simulatingWorlds;
+    Array<Scene*, SceneAllocator> visScenes;
 
     TaskBatch worldUpdateTaskBatch;
     TaskBatch* currBatch = &worldUpdateTaskBatch;
@@ -424,22 +447,36 @@ void EngineDriver::UpdateSim(float delta)
     {
         World* world = m_worlds[i];
 
-        world->CollectViews(viewsToProcess);
-        world->CollectSubsystems(subsystemsToProcess);
+        const GameState& gameState = world->GetGameState();
 
-        world->BeginUpdate(*currBatch, delta);
+        //if (!gameState.IsStopped())
+        //{
+            world->CollectViews(viewsToProcess);
+            world->CollectSubsystems(subsystemsToProcess);
 
-        if (i != uint32(m_worlds.Size() - 1))
-        {
-            // get the tail to pass to the next world's BeginUpdate()
-            while (currBatch->nextBatch != nullptr)
-            {
-                currBatch = currBatch->nextBatch;
-            }
-        }
+            //if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+            //{
+                simulatingWorlds.PushBack(world);
 
-        EnqueueWorldRender(world);
+                world->BeginUpdate(*currBatch, delta);
+
+                if (i != uint32(m_worlds.Size() - 1))
+                {
+                    // get the tail to pass to the next world's BeginUpdate()
+                    while (currBatch->nextBatch != nullptr)
+                    {
+                        currBatch = currBatch->nextBatch;
+                    }
+                }
+            //}
+
+            EnqueueWorldRender(world);
+        //}
     }
+
+    // Update Worlds and Systems - execution order/batching defined by component descriptors on systems.
+    TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);
+    worldUpdateTaskBatch.AwaitCompletion();
 
     // Remove non-unqiue views
     for (auto it = viewsToProcess.Begin(); it != viewsToProcess.End();)
@@ -451,6 +488,8 @@ void EngineDriver::UpdateSim(float delta)
         }
         else
         {
+            g_visThreadInstance->AddViewToProcess(*it);
+
             ++it;
         }
     }
@@ -469,14 +508,21 @@ void EngineDriver::UpdateSim(float delta)
         }
     }
 
-    // Update worlds and their systems asynchronously - execution defined by
-    // component descriptors on systems.
-    TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);
-    worldUpdateTaskBatch.AwaitCompletion();
+    g_visThreadInstance->OnFrameStart(frameCounter);
+
+    if (!s_dedicatedVisThread)
+    {
+        g_visThreadInstance->Process();
+    }
+
+    for (World* world : simulatingWorlds)
+    {
+        world->EndUpdate();
+    }
 
     for (World* world : m_worlds)
     {
-        world->EndUpdate();
+        world->UpdateDirtyMeshEntities();
     }
 
 #if HYP_PROCESS_SUBSYSTEMS_ASYNC
@@ -524,6 +570,14 @@ void EngineDriver::UpdateSim(float delta)
     }
 #endif
 
+    Array<Entity*, SceneAllocator> processedEntities;
+    g_visThreadInstance->OnFrameEnd(processedEntities);
+
+    for (Entity* entity : processedEntities)
+    {
+        entity->RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>();
+    }
+
     for (uint32 index = 0; index < viewsToProcess.Size(); index++)
     {
         HYP_NAMED_SCOPE("Per-view entity collection");
@@ -568,6 +622,7 @@ void EngineDriver::UpdateSim(float delta)
         bufferData->gameTime = m_currentWorld->GetGameState().gameTime;
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion EngineDriver
 

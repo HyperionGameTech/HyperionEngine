@@ -532,8 +532,6 @@ void View::RemoveScene(Scene* scene)
     m_scenes.Erase(it);
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 void View::CollectMeshEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
@@ -895,7 +893,6 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
     }
 }
 
-HYP_ENABLE_OPTIMIZATION;
 void View::CollectCameras(RenderProxyList& rpl)
 {
     HYP_SCOPE;
