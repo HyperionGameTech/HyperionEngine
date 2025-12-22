@@ -237,14 +237,26 @@ extern "C"
             return 0;
         }
 
-        if (CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool(true))
+        // Handle -RenderOnMainThread, -SimulateOnMainThread cli args
+        const uint32 mainThreadIndex = g_mainThread.GetStaticThreadIndex();
+
+        if (CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool())
         {
-            g_renderThread = StaticThreadId(g_mainThread.GetStaticThreadIndex(), NAME("Render"));
+            g_renderThread = StaticThreadId(mainThreadIndex, NAME("Render"));
+            g_gameThread = StaticThreadId(NAME("Game"));
         }
         else
         {
-            // create a separate thread for rendering to
             g_renderThread = StaticThreadId(NAME("Render"));
+
+            if (CoreApi_GetCommandLineArguments()["SimulateOnMainThread"].ToBool())
+            {
+                g_gameThread = StaticThreadId(mainThreadIndex, NAME("Game"));
+            }
+            else
+            {
+                g_gameThread = StaticThreadId(NAME("Game"));
+            }
         }
 
         g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
@@ -397,7 +409,9 @@ extern "C"
         g_engineDriver->RequestStop();
 
         g_mainThreadInstance->Stop();
+
         g_gameThreadInstance->Join();
+        g_gameThread = g_mainThread;
 
         g_renderThreadInstance->Join();
         g_renderThread = g_mainThread;

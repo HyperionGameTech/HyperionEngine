@@ -58,7 +58,7 @@ bool RenderThread::Start()
     signal(SIGINT, HandleSignal);
     signal(SIGSEGV, HandleSignal);
 
-    // RenderOnMainThread option
+    // -RenderOnMainThread option
     if (m_id == g_mainThread)
     {
         Assert(m_isRunning.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
