@@ -283,6 +283,8 @@ void InputManager::SetIsMouseLocked(bool locked)
         return; // already set
     }
 
+    m_ownerWindow->SetIsMouseLocked(locked);
+
     if (!locked)
     {
         if (m_syncToVirtualPosition)
@@ -299,8 +301,6 @@ void InputManager::SetIsMouseLocked(bool locked)
 
     m_previousVirtualMousePosition = m_previousMousePosition;
     m_virtualMousePosition = m_mousePosition;
-
-    m_ownerWindow->SetIsMouseLocked(locked);
 
     m_isMouseLocked = locked;
 }

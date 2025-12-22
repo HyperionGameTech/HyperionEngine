@@ -8,7 +8,6 @@
 #include <SystemPch.hpp>
 
 #include <system/AppContext.hpp>
-#include <system/SystemEvent.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/Scheduler.hpp>
@@ -16,6 +15,7 @@
 #include <core/debug/Debug.hpp>
 
 #include <input/InputManager.hpp>
+#include <input/Event.hpp>
 
 #include <rendering/RenderBackend.hpp>
 #include <rendering/Device.hpp>
@@ -157,17 +157,17 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
     }
 }
 
-#define HANDLE_COCOA_EVENT(method)                                                          \
-    - (void)method:(NSEvent *)event                                                         \
-    {                                                                                       \
-        if (_hyperionWindow && _hyperionWindow->UseCocoaEvents())                           \
-        {                                                                                   \
-            SystemEvent systemEvent;                                                        \
-            if (_hyperionWindow->HandleNSEvent(event, systemEvent))                         \
-            {                                                                               \
-                _hyperionWindow->GetInputManager()->ProcessEvent(std::move(systemEvent));   \
-            }                                                                               \
-        }                                                                                   \
+#define HANDLE_COCOA_EVENT(method)                                                  \
+    - (void)method:(NSEvent *)nsEvent                                               \
+    {                                                                               \
+        if (_hyperionWindow && _hyperionWindow->UseCocoaEvents())                   \
+        {                                                                           \
+            Event event;                                                            \
+            if (_hyperionWindow->HandleNSEvent(nsEvent, event))                     \
+            {                                                                       \
+                _hyperionWindow->GetInputManager()->ProcessEvent(std::move(event)); \
+            }                                                                       \
+        }                                                                           \
     }
 
 HANDLE_COCOA_EVENT(mouseMoved)
@@ -449,12 +449,12 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
     }
 }
 
-bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
+bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    event = SystemEvent();
+    event = Event();
     
     @autoreleasepool
     {
@@ -464,12 +464,12 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
         switch ([nsEvent type])
         {
         case NSEventTypeKeyDown:
-            event = SystemEvent(SystemEvent::KEYDOWN, this, platformEvent);
+            event = Event(EventType::KEYDOWN, this, platformEvent);
             event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
             return true;
             
         case NSEventTypeKeyUp:
-            event = SystemEvent(SystemEvent::KEYUP, this, platformEvent);
+            event = Event(EventType::KEYUP, this, platformEvent);
             event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
             return true;
             
@@ -478,13 +478,9 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
         case NSEventTypeRightMouseDragged:
         case NSEventTypeOtherMouseDragged:
         {
-            event = SystemEvent(SystemEvent::MOUSEMOTION, this, platformEvent);
-            
-            bool isMouseLocked = IsMouseLocked();
+            event = Event(EventType::MOUSEMOTION, this, platformEvent);
 
-            HYP_LOG_TEMP("Mouse moved event received, position: ({}, {}), isMouseLocked: {}", [nsEvent locationInWindow].x, [nsEvent locationInWindow].y, isMouseLocked);
-            
-            if (isMouseLocked)
+            if (m_mouseLocked)
             {
                 CGFloat deltaX = [nsEvent deltaX];
                 CGFloat deltaY = [nsEvent deltaY];
@@ -522,38 +518,38 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, SystemEvent& event)
         }
             
         case NSEventTypeLeftMouseDown:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
             return true;
             
         case NSEventTypeLeftMouseUp:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
             return true;
             
         case NSEventTypeRightMouseDown:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
             return true;
             
         case NSEventTypeRightMouseUp:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
             return true;
             
         case NSEventTypeOtherMouseDown:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_DOWN, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
             return true;
             
         case NSEventTypeOtherMouseUp:
-            event = SystemEvent(SystemEvent::MOUSEBUTTON_UP, this, platformEvent);
+            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
             return true;
             
         case NSEventTypeScrollWheel:
         {
-            event = SystemEvent(SystemEvent::MOUSESCROLL, this, platformEvent);
+            event = Event(EventType::MOUSESCROLL, this, platformEvent);
             CGFloat deltaX = [nsEvent scrollingDeltaX];
             CGFloat deltaY = [nsEvent scrollingDeltaY];
             

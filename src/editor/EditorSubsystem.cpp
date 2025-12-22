@@ -323,7 +323,7 @@ void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent
     *m_mouseLockScope = g_appContext->GetMainWindow()->GetInputManager()->AcquireMouseLock(/* syncToVirtualPosition */ true);
 }
 
-void EditorGizmoBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+void EditorGizmoBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
 {
     m_isDragging = false;
 
@@ -424,9 +424,9 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
     m_dragData = dragData;
 }
 
-void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
 {
-    EditorGizmoBase::OnDragEnd(camera, mouseEvent, node);
+    EditorGizmoBase::OnDragEnd(camera, mouseEvent);
 
     // Commit editor transaction
     if (Handle<EditorProject> project = GetCurrentProject())
@@ -957,9 +957,9 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
     m_dragData = dragData;
 }
 
-void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
+void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
 {
-    EditorGizmoBase::OnDragEnd(camera, mouseEvent, node);
+    EditorGizmoBase::OnDragEnd(camera, mouseEvent);
 
     if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
     {
@@ -970,7 +970,7 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 
             project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
                 NAME("Rotate"),
-                [manipulationMode = GetManipulationMode(), focusedNode, node = m_node, finalRotation, originRotation]() -> EditorActionFunctions
+                [manipulationMode = GetManipulationMode(), focusedNode, finalRotation, originRotation]() -> EditorActionFunctions
                 {
                     return {
                         [&](EditorSubsystem* editorSubsystem, EditorProject*)
@@ -1825,8 +1825,6 @@ void EditorSubsystem::InitViewport()
                 const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
-                HYP_LOG_TEMP("Mouse World: {}, Ray Direction: {}", mouseWorld, rayDirection);
-
                 const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
 
                 RayTestResults results;
@@ -2050,15 +2048,9 @@ void EditorSubsystem::InitViewport()
 
             activeViewport->GetCamera()->GetCameraController()->GetInputHandler()->OnMouseUp(event);
 
-            if (IsHoveringGizmo())
+            if (EditorGizmoBase* gizmo = GetSelectedGizmo(); gizmo && gizmo->IsDragging())
             {
-                Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
-                Handle<Node> node = m_hoveredGizmoNode.Lock();
-
-                if (gizmo && node && gizmo->IsDragging())
-                {
-                    gizmo->OnDragEnd(activeViewport->GetCamera(), event, node);
-                }
+                gizmo->OnDragEnd(activeViewport->GetCamera(), event);
             }
 
             return UIEventHandlerResult::OK;

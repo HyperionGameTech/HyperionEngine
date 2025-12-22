@@ -7,6 +7,7 @@
 
 #include <core/threading/Task.hpp>
 
+#include <engine/EngineGlobals.hpp>
 #include <engine/threads/MainThread.hpp>
 
 #include <Event.generated.inl>
@@ -124,7 +125,7 @@ Event::~Event()
 #endif
 
 #ifdef HYP_MACOS
-    if (m_eventType == INVALID)
+    if (m_eventType == EventType::INVALID)
     {
         return;
     }

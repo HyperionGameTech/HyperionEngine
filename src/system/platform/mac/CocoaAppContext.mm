@@ -8,10 +8,10 @@
 #include <SystemPch.hpp>
 
 #include <system/AppContext.hpp>
-#include <system/SystemEvent.hpp>
 
 #include <input/Keyboard.hpp>
 #include <input/InputManager.hpp>
+#include <input/Event.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/Scheduler.hpp>
@@ -206,12 +206,12 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode)
     }
 }
 
-int CocoaAppContext::PollEvents(SystemEvent& event)
+int CocoaAppContext::PollEvents(Event& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    event = SystemEvent();
+    event = Event();
     
     @autoreleasepool
     {
