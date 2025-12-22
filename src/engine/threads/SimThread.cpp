@@ -37,6 +37,48 @@ HYP_DEFINE_LOG_CHANNEL(SimThread);
 
 EngineStatTimer g_simTimer("SimThread/Update");
 
+struct LaunchGameAsync
+{
+    Handle<Game> gameInstance;
+    bool success;
+
+    explicit LaunchGameAsync(const Handle<Game>& gameInstance)
+        : gameInstance(gameInstance),
+          success(false)
+    {
+        Assert(gameInstance != nullptr);
+    }
+
+    void operator()()
+    {
+        // ensure instance is still the one we are launching, otherwise, cancel the task
+        if (!RenderApi::IsInit())
+        {
+            HYP_LOG(SimThread, Info, "Delaying game launch until Render API is initialized...");
+
+            g_simThreadInstance->GetScheduler().Enqueue(*this, TaskEnqueueFlags::FIRE_AND_FORGET);
+
+            return;
+        }
+
+        InitObject(gameInstance);
+
+        if (!gameInstance->m_isLaunched.Get(MemoryOrder::RELAXED))
+        {
+            gameInstance->OnLaunch();
+            gameInstance->m_isLaunched.Set(true, MemoryOrder::RELEASE);
+
+            gameInstance->OnLaunched();
+        }
+
+        g_simThreadInstance->m_game = gameInstance;
+
+        success = true;
+    }
+};
+
+#pragma region SimThread
+
 SimThread::SimThread()
     : Thread(g_simThread, ThreadPriorityValue::HIGHEST)
 {
@@ -61,60 +103,43 @@ bool SimThread::Start()
 
 void SimThread::SetGame(const Handle<Game>& game)
 {
-    if (IsRunning())
+    auto impl = [this, game = game]()
     {
-        auto impl = [this, game = game]()
+        if (m_game == game)
         {
-            if (m_game == game)
-            {
-                // same instance, nothing to do
-                return;
-            }
-
-            m_game = game;
-
-            if (m_game != nullptr)
-            {
-                InitObject(m_game);
-
-                // m_isLaunched is only ever modified from this thread
-                // so we use RELAXED for the load here
-                if (!m_game->m_isLaunched.Get(MemoryOrder::RELAXED))
-                {
-                    m_game->OnLaunch();
-                    m_game->m_isLaunched.Set(true, MemoryOrder::RELEASE);
-
-                    m_game->OnLaunched();
-                }
-            }
-        };
-
-        if (IsOnThread(m_id))
-        {
-            impl();
-        }
-        else
-        {
-            HYP_LOG(SimThread, Info, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
-
-            GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
+            // same instance, nothing to do
+            return;
         }
 
-        return;
+        LaunchGameAsync launchTask { game };
+        launchTask();
+
+        if (!launchTask.success)
+        {
+            GetScheduler().Enqueue(std::move(launchTask), TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+    };
+
+    if (IsOnThread(m_id) && IsRunning())
+    {
+        impl();
     }
+    else
+    {
+        HYP_LOG(SimThread, Info, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
 
-    m_game = game;
+        GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
 }
 
 void SimThread::Update()
 {
     ENGINE_STAT_SCOPE(&g_simTimer);
-
     HYP_PROFILE_BEGIN;
 
-    RenderApi::BeginFrameSim();
-
     m_counter.NextTick();
+
+    RenderApi::BeginFrameSim();
 
     // execute posted tasks
     Queue<Scheduler::ScheduledTask> tasks;
@@ -129,6 +154,12 @@ void SimThread::Update()
     }
 
     g_assetManager->Update(m_counter.delta);
+
+    if (m_game != nullptr)
+    {
+        // game instance should be null if not launched yet
+        AssertDebug(m_game->m_isLaunched.Get(MemoryOrder::RELAXED));
+    }
 
     if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
     {
@@ -165,26 +196,6 @@ void SimThread::operator()()
     InitObject(defaultWorld);
     g_engineDriver->SetDefaultWorld(defaultWorld);
 
-    while (!RenderApi::IsInit())
-    {
-        ThreadSleep(10); // wait for rendering subsystem to initialize before launching game
-    }
-
-    HYP_LOG(SimThread, Info, "Render api initialized, starting game loop...");
-
-    if (m_game != nullptr)
-    {
-        InitObject(m_game);
-
-        if (!m_game->m_isLaunched.Get(MemoryOrder::RELAXED))
-        {
-            m_game->OnLaunch();
-            m_game->m_isLaunched.Set(true, MemoryOrder::RELEASE);
-
-            m_game->OnLaunched();
-        }
-    }
-
     // Handle -SimulateOnMainThread
     if (m_id != g_mainThread)
     {
@@ -194,5 +205,7 @@ void SimThread::operator()()
         }
     }
 }
+
+#pragma endregion SimThread
 
 } // namespace hyperion

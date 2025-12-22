@@ -65,7 +65,7 @@ public:
     void PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue);
 
     virtual RendererResult Create() override;
-    virtual void Resize(Vec2u newExtent) override;
+    virtual void SetExtent(Vec2u newExtent) override;
     virtual void Recreate() override;
 
 private:

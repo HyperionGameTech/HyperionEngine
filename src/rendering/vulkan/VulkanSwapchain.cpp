@@ -267,7 +267,7 @@ RendererResult VulkanSwapchain::Create()
     return {};
 }
 
-void VulkanSwapchain::Resize(Vec2u newExtent)
+void VulkanSwapchain::SetExtent(Vec2u newExtent)
 {
     if (m_extent == newExtent)
     {
@@ -282,24 +282,6 @@ void VulkanSwapchain::Resize(Vec2u newExtent)
     }
 
     m_needsRecreate = true;
-
-    // Mutex::Guard* pGuard = nullptr;
-    // HYP_DEFER({ if (pGuard) delete pGuard; });
-
-    //// safely destroy the old swapchain after it's no longer in use
-    // VkSwapchainKHR* pSwapchain = GetSafeDeleterInstance()->AllocCustom<VkSwapchainKHR>([](void* ptr)
-    //     {
-    //         VkSwapchainKHR* pSwapchain = reinterpret_cast<VkSwapchainKHR*>(ptr);
-
-    //        vkDestroySwapchainKHR(
-    //            GetRenderBackend()->GetDevice()->GetDevice(),
-    //            *pSwapchain,
-    //            nullptr);
-    //    },
-    //    &pGuard);
-
-    //*pSwapchain = m_oldHandle;
-    // m_oldHandle = VK_NULL_HANDLE;
 }
 
 void VulkanSwapchain::Recreate()

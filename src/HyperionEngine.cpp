@@ -63,10 +63,6 @@
 
 #include <game/Game.hpp>
 
-#ifdef HYP_LIBUI
-#include <ui.h>
-#endif
-
 /// ========== If this include is missing, you need to run HypBuildTool (instructions in doc/CompilingTheEngine.md) ==========
 #include <BuildToolOutput.inc>
 
@@ -259,6 +255,14 @@ extern "C"
             }
         }
 
+        g_mainThreadInstance = new MainThread();
+        g_renderThreadInstance = new RenderThread();
+        g_simThreadInstance = new SimThread();
+
+        /// =====================================
+        /// ===== Initialize memory pools =======
+        /// =====================================
+
         g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
         g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
 
@@ -277,12 +281,18 @@ extern "C"
         g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
         g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
 
+        /// =====================================
+        /// ========= Initialize logger =========
+        /// =====================================
+
         g_logger = CreateObject<Logger>();
         g_logger->fatalErrorHook = &HandleFatalError;
 
         InitObject(g_logger);
 
         LogChannelRegistrar::GetInstance().RegisterAll();
+
+        /// =====================================
 
         NameRegistry_Initialize();
 
@@ -334,19 +344,6 @@ extern "C"
 
         ComponentInterfaceRegistry::GetInstance().Initialize();
 
-#ifdef HYP_LIBUI
-        uiInitOptions options = {};
-        const char* err = uiInit(&options);
-        if (err != nullptr)
-        {
-            uiFreeInitError(err);
-
-            HYP_FAIL("Failed to initialize libui! Message: {}", err);
-
-            return;
-        }
-#endif
-
         const CommandLineArguments& cliArgs = CoreApi_GetCommandLineArguments();
 
 #ifdef HYP_WINDOWS
@@ -389,10 +386,6 @@ extern "C"
             HYP_LOG(Engine, Info, "Running in headless mode");
         }
 
-        g_mainThreadInstance = new MainThread();
-        g_renderThreadInstance = new RenderThread();
-        g_simThreadInstance = new SimThread();
-
         InitObject(g_engineDriver);
 
         return 1;
@@ -417,10 +410,6 @@ extern "C"
         g_renderThread = g_mainThread;
 
         g_engineDriver->FinalizeStop();
-
-#ifdef HYP_LIBUI
-        uiUninit();
-#endif
 
         RenderApi::Shutdown();
 

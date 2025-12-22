@@ -1191,6 +1191,9 @@ void VulkanRenderBackend::ReleaseTransientMemory()
 
 VkSurfaceKHR VulkanRenderBackend::CreateSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** ppOutDummySurfaceContext)
 {
+    // may be created on main thread, which may not be the render thread if -RenderOnMainThread is not set.
+    AssertOnThread(g_mainThread | g_renderThread);
+
 #ifdef HYP_WINDOWS
     Win32ApplicationWindow* win32Window = nullptr;
     if (window != nullptr)
@@ -1224,9 +1227,10 @@ VkSurfaceKHR VulkanRenderBackend::CreateSurface(ApplicationWindow* window, IDumm
 #endif
 }
 
-HYP_DISABLE_OPTIMIZATION;
 VulkanSwapchainRef VulkanRenderBackend::CreateSwapchain(ApplicationWindow* window, VulkanInstance* instance, VkSurfaceKHR surface)
 {
+    AssertOnThread(g_renderThread);
+
     Assert(surface != VK_NULL_HANDLE);
 
     VulkanSwapchainRef swapchain = CreateObject<VulkanSwapchain>(surface, Vec2u(window->GetSize()));
@@ -1239,7 +1243,6 @@ VulkanSwapchainRef VulkanRenderBackend::CreateSwapchain(ApplicationWindow* windo
 
     return swapchain;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExtensions)
 {

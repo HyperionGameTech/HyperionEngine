@@ -181,12 +181,6 @@ void RenderThread::operator()()
 {
     RenderApi::Init();
 
-    // init window swapchain after rendering api is initialized
-    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
-    {
-        mainWindow->CreateSwapchain();
-    }
-
     /// HAX !!! We should only upload gpu resources on first use for debug draer
     InitObject(g_engineDriver->GetDebugDrawer());
 

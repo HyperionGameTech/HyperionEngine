@@ -20,12 +20,19 @@ class Game;
 
 class SimThread final : public Thread<Scheduler>
 {
+    friend struct LaunchGameAsync;
+
 public:
     SimThread();
 
     bool Start();
 
     void SetGame(const Handle<Game>& game);
+
+    HYP_FORCE_INLINE const Handle<Game>& GetGame() const
+    {
+        return m_game;
+    }
 
     void Update();
 

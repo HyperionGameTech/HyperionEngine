@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "threading/Threads.hpp"
 #include <SystemPch.hpp>
 
 #include <system/AppContext.hpp>
@@ -34,6 +35,9 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <engine/threads/MainThread.hpp>
+#include <engine/threads/RenderThread.hpp>
+
 #include <input/InputManager.hpp>
 
 #ifdef HYP_SDL
@@ -48,6 +52,40 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Core);
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
+
+/*! \brief Async task object to create a window swapchain once the render API is initialized.
+ *  Since some platforms require us to create the surface on the main thread (ahem, macOS), we need to defer swapchain
+ *  creation until the render API is ready.
+ */
+struct SetupWindowSwapchainAsync
+{
+    WeakHandle<ApplicationWindow> windowWeak;
+    bool success;
+
+    explicit SetupWindowSwapchainAsync(const WeakHandle<ApplicationWindow>& windowWeak)
+        : windowWeak(windowWeak),
+          success(false)
+    {
+        Assert(windowWeak.IsValid());
+    }
+
+    void operator()()
+    {
+        // ensure window is still valid, otherwise, cancel the task
+        if (Handle<ApplicationWindow> window = windowWeak.Lock(); window.IsValid())
+        {
+            if (RenderApi::IsInit())
+            {
+                window->CreateSwapchain();
+                success = true;
+            }
+            else
+            {
+                g_mainThreadInstance->GetScheduler().Enqueue(*this, TaskEnqueueFlags::FIRE_AND_FORGET);
+            }
+        }
+    }
+};
 
 #pragma region ApplicationWindow
 
@@ -90,7 +128,7 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
     {
         if (IsOnThread(g_renderThread))
         {
-            swapchain->Resize(Vec2u(newSize));
+            swapchain->SetExtent(Vec2u(newSize));
         }
         else
         {
@@ -104,7 +142,7 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
                         return;
                     }
 
-                    swapchain->Resize(Vec2u(newSize));
+                    swapchain->SetExtent(Vec2u(newSize));
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
         }
@@ -115,26 +153,45 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
 
 void ApplicationWindow::CreateSwapchain()
 {
-    if (m_swapchain.IsValid())
-    {
-        return; // already created
-    }
+    HYP_SCOPE;
+    AssertOnThread(g_mainThread);
 
 #ifdef HYP_VULKAN
     AssertDebug(GetDimensions() != Vec2i::Zero());
 
-    if (!m_vkSurface)
+    if (m_vkSurface)
     {
-        VkSurfaceKHR surface = g_renderBackend->CreateSurface(this, nullptr);
-        Assert(surface != VK_NULL_HANDLE);
-
-        m_vkSurface = surface;
+        return; // already created. swapchain is set on render thread
     }
 
-    VulkanSwapchainRef swapchain = g_renderBackend->CreateSwapchain(this, g_renderBackend->GetInstance(), m_vkSurface);
-    Assert(swapchain.IsValid());
+    m_vkSurface = g_renderBackend->CreateSurface(this, nullptr);
+    Assert(m_vkSurface != VK_NULL_HANDLE);
 
-    m_swapchain = swapchain;
+    if (IsOnThread(g_renderThread)) // if -RenderOnMainThread is set this will be the case
+    {
+        VulkanSwapchainRef swapchain = g_renderBackend->CreateSwapchain(this, g_renderBackend->GetInstance(), m_vkSurface);
+        Assert(swapchain.IsValid());
+
+        m_swapchain = swapchain;
+    }
+    else
+    {
+        g_renderThreadInstance->GetScheduler().Enqueue([this, weakThis = MakeWeakRef(this)]()
+            {
+                Handle<ApplicationWindow> strongThis = weakThis.Lock();
+                if (!strongThis.IsValid())
+                {
+                    HYP_LOG(Core, Warning, "Attempted to create swapchain for invalid window on render thread!");
+                    return;
+                }
+
+                VulkanSwapchainRef swapchain = g_renderBackend->CreateSwapchain(this, g_renderBackend->GetInstance(), m_vkSurface);
+                Assert(swapchain.IsValid());
+
+                m_swapchain = swapchain;
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
 #else
     HYP_NOT_IMPLEMENTED();
 #endif
@@ -176,25 +233,8 @@ void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
 
     m_mainWindow = window;
 
-    if (RenderApi::IsInit())
-    {
-        if (IsOnThread(g_renderThread))
-        {
-            m_mainWindow->CreateSwapchain();
-        }
-        else
-        {
-            GetThreadById(g_renderThread)->GetScheduler().Enqueue([mainWindowWeak = MakeWeakRef(m_mainWindow)]()
-                {
-                    Handle<ApplicationWindow> mainWindow = mainWindowWeak.Lock();
-                    if (mainWindow.IsValid())
-                    {
-                        mainWindow->CreateSwapchain();
-                    }
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-        }
-    }
+    SetupWindowSwapchainAsync setupSwapchainTask(MakeWeakRef(window));
+    setupSwapchainTask(); // will re-enqueue itself if render API is not ready
 
     OnCurrentWindowChanged(m_mainWindow);
 }

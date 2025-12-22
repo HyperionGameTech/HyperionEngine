@@ -65,7 +65,7 @@ public:
     }
 
     virtual RendererResult Create() = 0;
-    virtual void Resize(Vec2u newExtent) = 0;
+    virtual void SetExtent(Vec2u newExtent) = 0;
     virtual void Recreate() = 0;
 
     Delegate<void> OnRecreated;

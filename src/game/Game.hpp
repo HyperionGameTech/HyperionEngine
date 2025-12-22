@@ -21,6 +21,7 @@ class HYP_API Game : public ObjectBase
 {
     friend class SimThread;
     friend class EngineDriver;
+    friend struct LaunchGameAsync;
 
     HYP_OBJECT_BODY(Game);
 
