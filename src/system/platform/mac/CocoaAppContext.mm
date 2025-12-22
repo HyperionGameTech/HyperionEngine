@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #import <AppKit/AppKit.h>
+#include <dispatch/dispatch.h>
 #import <Cocoa/Cocoa.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -274,25 +275,11 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
 
     if (window)
     {
-        // Acquire the CAMetalLayer from the CocoaApplicationWindow on the main thread
-        if ([NSThread isMainThread])
-        {
-            CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
-            Assert(cocoaWindow != nullptr);
-            createInfo.pLayer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
-        }
-        else
-        {
-            AssertOnThread(g_renderThread);
+        CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
+        Assert(cocoaWindow != nullptr);
+        __block CAMetalLayer* layer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
 
-            __block CAMetalLayer* layer = nullptr;
-            dispatch_sync(dispatch_get_main_queue(), ^{
-                CocoaApplicationWindow* cocoaWindow = ObjCast<CocoaApplicationWindow>(window);
-                Assert(cocoaWindow != nullptr);
-                layer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
-            });
-            createInfo.pLayer = layer;
-        }
+        createInfo.pLayer = layer;
     }
     else
     {
@@ -345,11 +332,6 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
             {
                 if (m_window)
                 {
-                    // Close the window on the main thread. Avoid explicitly
-                    // calling `release` here to prevent potential double-release
-                    // if the window was already released elsewhere. This keeps
-                    // us safe from crashes; if necessary we can revisit ownership
-                    // to avoid leaks.
                     if ([NSThread isMainThread])
                     {
                         [m_window close];
@@ -357,12 +339,11 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
                     else
                     {
                         // will only occur if RenderOnMainThread is false
-
                         AssertOnThread(g_renderThread);
 
-                        NSWindow *w = m_window;
-                        dispatch_sync(dispatch_get_main_queue(), ^{
-                            [w close];
+                        __block NSWindow* windowToClose = m_window;
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            [windowToClose close];
                         });
                     }
 
