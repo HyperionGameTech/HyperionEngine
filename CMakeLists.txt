@@ -291,7 +291,8 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         set(HYP_BUILD_CSHARP_SOURCES true)
     endif()
 
-    file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "src/dotnet/scripting/**.cs")
+    # temp disable
+    # file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "src/dotnet/scripting/**.cs")
 
     # build C# constant properties shared across all C# projects
     if(${HYP_PLATFORM_NAME} STREQUAL "Win32")

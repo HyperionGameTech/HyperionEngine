@@ -97,15 +97,15 @@ if(DOTNET_EXECUTABLE)
 
     file(APPEND ${EDITOR_CSPROJ_PATH} "  <ItemGroup>\n")
     
-    file(APPEND ${EDITOR_CSPROJ_PATH} "     <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj\" >\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "         <ReferenceOutputAssembly>true</ReferenceOutputAssembly>\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "     </ProjectReference>\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "     <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "         <ReferenceOutputAssembly>true</ReferenceOutputAssembly>\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "     </ProjectReference>\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "     <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj\" >\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "         <ReferenceOutputAssembly>true</ReferenceOutputAssembly>\n")
-    file(APPEND ${EDITOR_CSPROJ_PATH} "     </ProjectReference>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     <Reference Include=\"Hyperion.NET.Interop\" >\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "         <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll</HintPath>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     </Reference>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     <Reference Include=\"Hyperion.NET.Shared\" >\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "         <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     </Reference>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     <Reference Include=\"Hyperion.NET.Runtime\" >\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "         <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll</HintPath>\n")
+    file(APPEND ${EDITOR_CSPROJ_PATH} "     </Reference>\n")
 
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia\" Version=\"11.*\" />\n")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <PackageReference Include=\"Avalonia.Desktop\" Version=\"11.*\" />\n")
@@ -161,7 +161,6 @@ if(DOTNET_EXECUTABLE)
             "${EDITOR_CSPROJ_PATH}"
             TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
         )
-        add_dependencies(Hyperion.Editor Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop)
     else()
         add_custom_target(Hyperion.Editor ALL
             COMMAND ${DOTNET_EXECUTABLE} build "${EDITOR_CSPROJ_PATH}"  --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
@@ -170,5 +169,5 @@ if(DOTNET_EXECUTABLE)
         )
     endif()
 
-    add_dependencies(Hyperion.Editor hyperion)
+    add_dependencies(Hyperion.Editor hyperion Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop)
 endif()

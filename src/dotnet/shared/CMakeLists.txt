@@ -88,14 +88,11 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         )
 
         if(NOT DEFINED MSVC)
-             # Xcode has some trouble with this - will come back to it
-            if(NOT CMAKE_GENERATOR MATCHES "Xcode")
-                add_custom_target(Hyperion.NET.Shared ALL
-                    COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                    DEPENDS hyperion-core
-                    WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
-                )
-            endif()
+            add_custom_target(Hyperion.NET.Shared ALL
+                COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
+                DEPENDS hyperion-core
+                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
+            )
         else()
             enable_language(CSharp)
             include_external_msproject(
@@ -105,6 +102,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             )
         endif()
 
-        add_dependencies(${BUILD_NAME} Hyperion.NET.Shared)
+        add_dependencies(${BUILD_NAME} Hyperion.NET.Shared hyperion-core)
     endif()
 endif()

@@ -69,9 +69,9 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             file(APPEND ${CSPROJ_PATH} "    <Compile Include=\"${CSHARP_RUNTIME_SOURCE}\" />\n")
         endforeach()
 
-        file(APPEND ${CSPROJ_PATH} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
-        file(APPEND ${CSPROJ_PATH} "      <Private>true</Private>\n")
-        file(APPEND ${CSPROJ_PATH} "    </ProjectReference>\n")
+        file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Shared\" >\n")
+        file(APPEND ${CSPROJ_PATH} "        <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
+        file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
 
         file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
 
@@ -92,14 +92,11 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         )
 
         if(NOT DEFINED MSVC)
-             # Xcode has some trouble with this - will come back to it
-            if(NOT CMAKE_GENERATOR MATCHES "Xcode")
-                add_custom_target(Hyperion.NET.Runtime ALL
-                    COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                    DEPENDS Hyperion.NET.Shared hyperion-core
-                    WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
-                )
-            endif()
+            add_custom_target(Hyperion.NET.Runtime ALL
+                COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
+                DEPENDS Hyperion.NET.Shared hyperion-core
+                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
+            )
         else()
             enable_language(CSharp)
             include_external_msproject(
@@ -109,6 +106,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             )
         endif()
 
-        add_dependencies(${BUILD_NAME} Hyperion.NET.Runtime hyperion-rendering)
+        add_dependencies(Hyperion.NET.Runtime Hyperion.NET.Shared)
+        add_dependencies(${BUILD_NAME} Hyperion.NET.Runtime hyperion-core hyperion-rendering)
     endif()
 endif()
