@@ -330,7 +330,7 @@ public:
      *
      *  \return The new managed object.
      */
-    HYP_NODISCARD ManagedObject* NewObject(const Class* cls, void* pOwner);
+    HYP_NODISCARD ManagedObject* NewObject(const Class* cls, void* owner);
 
     /*! \brief Create a new managed object of this class, but do not allow its lifetime to be managed from the C++ side.
      *  A struct containing the object's GUID and .NET object address will be returned.
@@ -412,7 +412,7 @@ public:
     }
 
 private:
-    void InvokeStaticMethod_Internal(const ManagedMethod* methodPtr, const BoxedValue** argsHypData, BoxedValue* outReturnHypData);
+    void InvokeStaticMethod_Internal(const ManagedMethod* method, const BoxedValue** args, BoxedValue* outReturn);
 
     ANSIString m_name;
     uint32 m_size;

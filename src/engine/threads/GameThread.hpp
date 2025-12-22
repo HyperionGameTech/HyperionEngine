@@ -9,6 +9,8 @@
 
 #include <core/logging/LoggerFwd.hpp>
 
+#include <util/GameCounter.hpp>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(GameThread);
@@ -21,12 +23,17 @@ class GameThread final : public Thread<Scheduler>
 public:
     GameThread();
 
+    bool Start();
+
     void SetGame(const Handle<Game>& game);
+
+    void Update();
 
 private:
     virtual void operator()() override;
 
     Handle<Game> m_game;
+    GameCounter m_counter;
 };
 
 } // namespace hyperion

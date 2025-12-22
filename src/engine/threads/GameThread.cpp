@@ -15,8 +15,6 @@
 
 #include <game/Game.hpp>
 
-#include <util/GameCounter.hpp>
-
 #include <system/AppContext.hpp>
 #include <input/Event.hpp>
 
@@ -44,6 +42,23 @@ EngineStatTimer g_gameThreadUpdateTimer("GameThread/Update");
 GameThread::GameThread()
     : Thread(g_gameThread, ThreadPriorityValue::HIGHEST)
 {
+}
+
+bool GameThread::Start()
+{
+    // -SimulateOnMainThread option
+    if (m_id == g_mainThread)
+    {
+        Assert(m_isRunning.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
+
+        // DO NOT call SetCurrentThreadObject() if using -SimulateOnMainThread
+
+        (*this)();
+
+        return true;
+    }
+
+    return Thread::Start();
 }
 
 void GameThread::SetGame(const Handle<Game>& game)
@@ -93,6 +108,65 @@ void GameThread::SetGame(const Handle<Game>& game)
     m_game = game;
 }
 
+void GameThread::Update()
+{
+    ENGINE_STAT_SCOPE(&g_gameThreadUpdateTimer);
+
+#if HYP_GAME_THREAD_LOCKED
+    if (counter.Waiting())
+    {
+        continue;
+    }
+#endif
+
+    HYP_PROFILE_BEGIN;
+
+    RenderApi::BeginFrame_GameThread();
+
+    m_counter.NextTick();
+
+    // execute posted tasks
+    Queue<Scheduler::ScheduledTask> tasks;
+    if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+    {
+        m_scheduler.AcceptAll(tasks);
+
+        while (tasks.Any())
+        {
+            tasks.Pop().Execute();
+        }
+    }
+
+    g_assetManager->Update(m_counter.delta);
+
+    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+    {
+        Event event;
+        while (mainWindow->GetInputManager()->PollEvent(event))
+        {
+            if (m_game != nullptr)
+            {
+                m_game->HandleEvent(std::move(event));
+            }
+        }
+    }
+
+#ifdef HYP_EDITOR
+    g_editorState->Update(m_counter.delta);
+#endif
+
+    g_engineDriver->GameThreadUpdate(m_counter.delta);
+
+    if (m_game != nullptr)
+    {
+        m_game->OnUpdate(m_counter.delta);
+    }
+
+    g_engineDriver->GetDebugDrawer()->Update(m_counter.delta);
+
+    RenderApi::EndFrame_GameThread();
+}
+
 void GameThread::operator()()
 {
     // create fallback world
@@ -107,8 +181,6 @@ void GameThread::operator()()
 
     HYP_LOG(GameThread, Info, "Render api initialized, starting game loop...");
 
-    GameCounter counter;
-
     if (m_game != nullptr)
     {
         InitObject(m_game);
@@ -122,71 +194,14 @@ void GameThread::operator()()
         }
     }
 
-    Queue<Scheduler::ScheduledTask> tasks;
-
-    while (!m_stopRequested.Get(MemoryOrder::RELAXED))
+    // Handle -SimulateOnMainThread
+    if (m_id != g_mainThread)
     {
-        ENGINE_STAT_SCOPE(&g_gameThreadUpdateTimer);
-
-#if HYP_GAME_THREAD_LOCKED
-        if (counter.Waiting())
+        while (!m_stopRequested.Get(MemoryOrder::RELAXED))
         {
-            continue;
+            Update();
         }
-#endif
-
-        HYP_PROFILE_BEGIN;
-
-        RenderApi::BeginFrame_GameThread();
-
-        counter.NextTick();
-
-        // execute posted tasks
-        if (uint32 numEnqueued = m_scheduler.NumEnqueued())
-        {
-            m_scheduler.AcceptAll(tasks);
-
-            while (tasks.Any())
-            {
-                tasks.Pop().Execute();
-            }
-        }
-
-        g_assetManager->Update(counter.delta);
-
-        if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
-        {
-            Event event;
-            while (mainWindow->GetInputManager()->PollEvent(event))
-            {
-                if (m_game != nullptr)
-                {
-                    m_game->HandleEvent(std::move(event));
-                }
-            }
-        }
-
-#ifdef HYP_EDITOR
-        g_editorState->Update(counter.delta);
-#endif
-
-        g_engineDriver->GameThreadUpdate(counter.delta);
-
-        if (m_game != nullptr)
-        {
-            m_game->OnUpdate(counter.delta);
-        }
-
-        g_engineDriver->GetDebugDrawer()->Update(counter.delta);
-
-        RenderApi::EndFrame_GameThread();
     }
-
-    // flush scheduler
-    m_scheduler.Flush([](auto& operation)
-        {
-            operation.Execute();
-        });
 }
 
 } // namespace hyperion

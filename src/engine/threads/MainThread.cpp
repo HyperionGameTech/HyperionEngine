@@ -7,14 +7,15 @@
 
 #include <engine/threads/MainThread.hpp>
 #include <engine/threads/RenderThread.hpp>
+#include <engine/threads/GameThread.hpp>
 
 #include <core/threading/Threads.hpp>
 
 #include <core/cli/CommandLine.hpp>
 
 #include <input/InputManager.hpp>
-
 #include <input/Event.hpp>
+
 #include <system/AppContext.hpp>
 
 namespace hyperion {
@@ -58,6 +59,7 @@ void MainThread::Update()
     AssertOnThread(g_mainThread);
 
     static const bool s_renderOnMainThread = CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool();
+    static const bool s_simulateOnMainThread = CoreApi_GetCommandLineArguments()["SimulateOnMainThread"].ToBool();
 
     Queue<Scheduler::ScheduledTask> tasks;
     if (uint32 numEnqueued = m_scheduler.NumEnqueued())
@@ -89,6 +91,15 @@ void MainThread::Update()
         && g_renderThreadInstance->IsRunning())
     {
         g_renderThreadInstance->Update();
+
+        return;
+    }
+
+    if (s_simulateOnMainThread
+        && g_gameThreadInstance
+        && g_gameThreadInstance->IsRunning())
+    {
+        g_gameThreadInstance->Update();
 
         return;
     }

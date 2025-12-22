@@ -34,14 +34,14 @@ ManagedObject* ManagedClass::NewObject()
     return new ManagedObject(RefCountedPtrFromThis(), objectReference);
 }
 
-ManagedObject* ManagedClass::NewObject(const Class* pClass, void* pOwner)
+ManagedObject* ManagedClass::NewObject(const Class* cls, void* owner)
 {
-    Assert(pClass != nullptr);
-    Assert(pOwner != nullptr);
+    Assert(cls != nullptr);
+    Assert(owner != nullptr);
 
     Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class {}", m_name);
 
-    ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, pClass, pOwner, nullptr, nullptr);
+    ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, cls, owner, nullptr, nullptr);
 
     return new ManagedObject(RefCountedPtrFromThis(), objectReference);
 }
@@ -70,24 +70,24 @@ bool ManagedClass::HasParentClass(ANSIStringView parentClassName) const
     return false;
 }
 
-bool ManagedClass::HasParentClass(const ManagedClass* pParentClass) const
+bool ManagedClass::HasParentClass(const ManagedClass* parentClass) const
 {
-    const ManagedClass* pCurrent = m_parentClass;
+    const ManagedClass* current = parentClass;
 
-    while (pCurrent)
+    while (current)
     {
-        if (pCurrent == pParentClass)
+        if (current == parentClass)
         {
             return true;
         }
 
-        pCurrent = pCurrent->GetParentClass();
+        current = current->GetParentClass();
     }
 
     return false;
 }
 
-void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** ppArgs, BoxedValue* pOutReturn)
+void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* method, const BoxedValue** args, BoxedValue* outReturn)
 {
     RC<Assembly> assembly = m_assembly.Lock();
 
@@ -96,7 +96,7 @@ void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* pMethod, con
         HYP_THROW("Cannot use managed class: assembly has been unloaded");
     }
 
-    pMethod->Invoke({}, ppArgs, pOutReturn);
+    method->Invoke({}, args, outReturn);
 }
 
 } // namespace hyperion::dotnet
