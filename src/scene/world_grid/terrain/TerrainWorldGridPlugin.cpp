@@ -398,7 +398,6 @@ void TerrainStreamingCell::OnLoaded_Impl()
     m_node->SetName(NAME_FMT("TerrainPatch_{}", m_cellInfo.coord));
     m_node->AddChild(entity);
     m_node->SetLocalTransform(transform);
-    HYP_LOG(WorldGrid, Debug, "Created terrain patch node: {}, aabb: {} world pos: {}", m_node->GetName(), m_node->GetLocalBounds(), m_node->GetWorldTranslation());
 
     // auto result = AssetManager::GetInstance()->Load<Node>("models/sphere16.obj");
     // Assert(result.HasValue());

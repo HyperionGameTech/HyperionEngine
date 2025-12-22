@@ -40,18 +40,15 @@ EngineStatTimer g_simTimer("SimThread/Update");
 struct LaunchGameAsync
 {
     Handle<Game> gameInstance;
-    bool success;
 
     explicit LaunchGameAsync(const Handle<Game>& gameInstance)
-        : gameInstance(gameInstance),
-          success(false)
+        : gameInstance(gameInstance)
     {
         Assert(gameInstance != nullptr);
     }
 
     void operator()()
     {
-        // ensure instance is still the one we are launching, otherwise, cancel the task
         if (!RenderApi::IsInit())
         {
             HYP_LOG(SimThread, Info, "Delaying game launch until Render API is initialized...");
@@ -72,8 +69,6 @@ struct LaunchGameAsync
         }
 
         g_simThreadInstance->m_game = gameInstance;
-
-        success = true;
     }
 };
 
@@ -103,32 +98,15 @@ bool SimThread::Start()
 
 void SimThread::SetGame(const Handle<Game>& game)
 {
-    auto impl = [this, game = game]()
-    {
-        if (m_game == game)
-        {
-            // same instance, nothing to do
-            return;
-        }
-
-        LaunchGameAsync launchTask { game };
-        launchTask();
-
-        if (!launchTask.success)
-        {
-            GetScheduler().Enqueue(std::move(launchTask), TaskEnqueueFlags::FIRE_AND_FORGET);
-        }
-    };
-
     if (IsOnThread(m_id) && IsRunning())
     {
-        impl();
+        LaunchGameAsync { game }();
     }
     else
     {
         HYP_LOG(SimThread, Info, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
 
-        GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
+        GetScheduler().Enqueue(LaunchGameAsync(game), TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 }
 

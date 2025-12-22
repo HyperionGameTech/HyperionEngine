@@ -15,6 +15,8 @@ buildDir="$(pwd)"
 pushd CSharpProjects
 
 for project in "${projects[@]}"; do
+    mkdir -p "$buildDir/bin"
+    
     echo "Building $project..."
 
     pushd "$project"
@@ -23,11 +25,10 @@ for project in "${projects[@]}"; do
             echo "Failed to build $project"
             exit 1
         fi
-        mkdir -p "$buildDir/bin"
-        dstPath="$buildDir/bin/$project.dll"
-        srcPath="bin/$CONFIG/net9.0/$project.dll"
-        echo "copy $srcPath to $dstPath"
-        cp "$srcPath" "$dstPath"
+        #dstPath="$buildDir/bin/$project.dll"
+        #srcPath="bin/$CONFIG/net9.0/$project.dll"
+        #echo "copy $srcPath to $dstPath"
+        #cp "$srcPath" "$dstPath"
     popd # $project
 done
 

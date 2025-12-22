@@ -76,17 +76,26 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         file(APPEND ${CSPROJ_PATH} "  </Target>\n")
         file(APPEND ${CSPROJ_PATH} "</Project>\n")
 
+        # find dotnet executable
+        find_program(DOTNET_EXE dotnet)
+        if(NOT DOTNET_EXE)
+            message(FATAL_ERROR "dotnet executable not found. Please install the .NET SDK to build C# projects.")
+        endif()
+
         execute_process(
-            COMMAND dotnet restore
+            COMMAND ${DOTNET_EXE} restore
             WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
         )
 
         if(NOT DEFINED MSVC)
-            add_custom_target(Hyperion.NET.Shared ALL
-                COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                DEPENDS hyperion-core
-                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
-            )
+             # Xcode has some trouble with this - will come back to it
+            if(NOT CMAKE_GENERATOR MATCHES "Xcode")
+                add_custom_target(Hyperion.NET.Shared ALL
+                    COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
+                    DEPENDS hyperion-core
+                    WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
+                )
+            endif()
         else()
             enable_language(CSharp)
             include_external_msproject(

@@ -150,7 +150,7 @@ if(DOTNET_EXECUTABLE)
 
     # run dotnet restore now
     execute_process(
-        COMMAND dotnet restore
+        COMMAND ${DOTNET_EXECUTABLE} restore
         WORKING_DIRECTORY ${EDITOR_PROJECT_DIR}
     )
 

@@ -21,13 +21,13 @@ const ivec2 depth_pyramid_offsets[HYP_NUM_DEPTH_PYRAMID_OFFSETS] = {
 
 uint GetCullBits(vec4 pos)
 {
-    return uint(pos.x < -pos.w * 0x01)
-        | (uint(pos.x > pos.w) * 0x02)
-        | (uint(pos.y < -pos.w) * 0x04)
-        | (uint(pos.y > pos.w) * 0x08)
-        | (uint(pos.z < -pos.w) * 0x10)
-        | (uint(pos.z > pos.w) * 0x20)
-        | (uint(pos.w <= 0) * 0x40);
+    return uint(pos.x < -pos.w)
+        | (uint(pos.x > pos.w) << 1)
+        | (uint(pos.y < -pos.w) << 2)
+        | (uint(pos.y > pos.w) << 3)
+        | (uint(pos.z < -pos.w) << 4)
+        | (uint(pos.z > pos.w) << 5)
+        | (uint(pos.w <= 0) << 6);
 }
 
 #endif
