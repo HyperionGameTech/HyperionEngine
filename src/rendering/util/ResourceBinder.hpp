@@ -97,6 +97,12 @@ public:
      */
     virtual void Deconsider(ObjectBase* pResource) = 0;
 
+    /*! \brief Set whether the given resource should be forced to rebind on the next ApplyUpdates() call
+     *  \param pResource The resource to set force rebind for
+     *  \param forceRebind Whether to force rebind or not
+     */
+    virtual void SetForceRebind(ObjectBase* pResource, bool forceRebind = true) = 0;
+
     virtual uint32 GetBindingForObject(ObjectBase* pResource) const = 0;
 
     // Assign / remove bindings for resources (call after all Consider()/Deconsider() calls)
@@ -191,6 +197,15 @@ class ResourceBinder : public ResourceBinderBase
             currentFrameIds.Set(id.ToIndex(), false);
         }
 
+        void SetForceRebind(ObjectBase* pResource, bool forceRebind = true)
+        {
+            ObjIdBase id = pResource->Id();
+            AssertDebug(id.IsValid());
+            AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
+
+            forceRebindBits.Set(id.ToIndex(), forceRebind);
+        }
+
         void ApplyUpdates(ResourceBindingAllocatorBase* allocator)
         {
             const Bitset removed = GetRemoved();
@@ -277,6 +292,8 @@ class ResourceBinder : public ResourceBinderBase
                     }
 
                     const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
+
+                    HYP_LOG_TEMP("Forcing rebind of resource: {}", id);
 
                     auto it = bindings.FindAs(id);
                     AssertDebug(it != bindings.End());
@@ -420,6 +437,31 @@ public:
 
             Impl& impl = m_subclassImpls[subclassIndex].Get();
             impl.Deconsider(m_bindingAllocator, pResource);
+        }
+    }
+
+    virtual void SetForceRebind(ObjectBase* pResource, bool forceRebind = true) override
+    {
+        AssertDebug(pResource != nullptr);
+
+        const TypeId typeId = TypeId::ForType<T>();
+        const TypeId objectTypeId = GetTypeIdForClass(pResource->InstanceClass());
+
+        if (objectTypeId == typeId)
+        {
+            m_impl.SetForceRebind(pResource, forceRebind);
+        }
+        else
+        {
+            const int subclassIndex = GetSubclassIndex(typeId, objectTypeId);
+            AssertDebug(subclassIndex >= 0 && subclassIndex < int(m_subclassImpls.Size()),
+                "ResourceBinder<{}>: Attempted to set force rebind for object with TypeId {} which is not a subclass of the expected TypeId ({}) or has no static index",
+                TypeName<T>().Data(), objectTypeId.Value(), typeId.Value());
+
+            AssertDebug(m_subclassImplsInitialized.Test(subclassIndex));
+
+            Impl& impl = m_subclassImpls[subclassIndex].Get();
+            impl.SetForceRebind(pResource, forceRebind);
         }
     }
 

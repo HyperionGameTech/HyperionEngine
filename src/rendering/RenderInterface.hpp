@@ -105,6 +105,8 @@ void UpdateGpuData(const ObjectBase* resource);
 void AssignResourceBinding(ObjectBase* resource, uint32 binding);
 // used on render thread only - retrieves the binding set for the given resource (~0u if unset)
 uint32 RetrieveResourceBinding(const ObjectBase* resource);
+// used on render thread only - set whether the given resource should be forced to rebind on next ApplyUpdates() call
+void SetForceRebind(ObjectBase* resource, bool forceRebind = true);
 
 WorldShaderData* GetWorldBufferData();
 

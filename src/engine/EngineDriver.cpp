@@ -45,6 +45,7 @@
 
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
+#include <scene/components/MeshComponent.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 
@@ -91,12 +92,6 @@ extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
 EngineStatTimer g_renderTimer("Frame/Render");
 
-#pragma region MainThread
-#pragma endregion MainThread
-
-#pragma region RenderThread
-#pragma endregion RenderThread
-
 void HandleSignal(int signum)
 {
 #ifdef HYP_WINDOWS
@@ -104,6 +99,28 @@ void HandleSignal(int signum)
 #endif
 
     exit(signum);
+}
+
+using UpdatedEntities = HashSet<Entity*, &KeyBy_Identity<Entity*>, NodeAllocator<SceneAllocator>>;
+
+static void UpdateDirtyMeshEntities(Scene* scene, UpdatedEntities& outUpdatedEntities)
+{
+    EntityManager* entityManager = scene->GetEntityManager();
+    AssertDebug(entityManager != nullptr);
+
+    for (auto [entity, meshComponent, _] : entityManager->GetEntitySet<MeshComponent, TagComponent<EntityTag::UPDATE_RENDER_PROXY>>())
+    {
+        entity->SetNeedsRenderProxyUpdate();
+
+        if (meshComponent.previousModelMatrix == entity->GetWorldMatrix())
+        {
+            outUpdatedEntities.Insert(entity);
+        }
+        else
+        {
+            meshComponent.previousModelMatrix = entity->GetWorldMatrix();
+        }
+    }
 }
 
 #pragma region EngineDriver
@@ -449,29 +466,29 @@ void EngineDriver::UpdateSim(float delta)
 
         const GameState& gameState = world->GetGameState();
 
-        //if (!gameState.IsStopped())
-        //{
-            world->CollectViews(viewsToProcess);
-            world->CollectSubsystems(subsystemsToProcess);
+        // if (!gameState.IsStopped())
+        // {
+        world->CollectViews(viewsToProcess);
+        world->CollectSubsystems(subsystemsToProcess);
 
-            //if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
-            //{
-                simulatingWorlds.PushBack(world);
+        // if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+        // {
+        simulatingWorlds.PushBack(world);
 
-                world->BeginUpdate(*currBatch, delta);
+        world->BeginUpdate(*currBatch, delta);
 
-                if (i != uint32(m_worlds.Size() - 1))
-                {
-                    // get the tail to pass to the next world's BeginUpdate()
-                    while (currBatch->nextBatch != nullptr)
-                    {
-                        currBatch = currBatch->nextBatch;
-                    }
-                }
-            //}
+        if (i != uint32(m_worlds.Size() - 1))
+        {
+            // get the tail to pass to the next world's BeginUpdate()
+            while (currBatch->nextBatch != nullptr)
+            {
+                currBatch = currBatch->nextBatch;
+            }
+        }
+        // }
 
-            EnqueueWorldRender(world);
-        //}
+        EnqueueWorldRender(world);
+        // }
     }
 
     // Update Worlds and Systems - execution order/batching defined by component descriptors on systems.
@@ -481,6 +498,8 @@ void EngineDriver::UpdateSim(float delta)
     // Remove non-unqiue views
     for (auto it = viewsToProcess.Begin(); it != viewsToProcess.End();)
     {
+        View* view = *it;
+
         const SizeType idx = viewsToProcess.IndexOf(it);
         if (idx != std::distance(viewsToProcess.Begin(), it))
         {
@@ -488,7 +507,9 @@ void EngineDriver::UpdateSim(float delta)
         }
         else
         {
-            g_visThreadInstance->AddViewToProcess(*it);
+            view->UpdateViewport();
+
+            g_visThreadInstance->AddViewToProcess(view);
 
             ++it;
         }
@@ -520,9 +541,31 @@ void EngineDriver::UpdateSim(float delta)
         world->EndUpdate();
     }
 
-    for (World* world : m_worlds)
-    {
-        world->UpdateDirtyMeshEntities();
+    { // update mark render proxies as needing update for all entities that could be visible,
+        // if they have the `UPDATE_RENDER_PROXY` tag
+
+        UpdatedEntities updatedEntities;
+        Array<Scene*, SceneAllocator> visitedScenes;
+
+        for (View* view : viewsToProcess)
+        {
+            for (Scene* scene : view->GetScenes())
+            {
+                if (visitedScenes.Contains(scene))
+                {
+                    continue;
+                }
+
+                UpdateDirtyMeshEntities(scene, updatedEntities);
+
+                visitedScenes.PushBack(scene);
+            }
+        }
+
+        for (Entity* entity : updatedEntities)
+        {
+            entity->RemoveTag<EntityTag::UPDATE_RENDER_PROXY>();
+        }
     }
 
 #if HYP_PROCESS_SUBSYSTEMS_ASYNC
@@ -585,8 +628,6 @@ void EngineDriver::UpdateSim(float delta)
         View* view = viewsToProcess[index];
         Assert(view != nullptr);
 
-        view->UpdateViewport();
-        // View must be updated on the sim thread as it mutates the scene's octree state
         view->UpdateVisibility();
 
 #if HYP_PROCESS_VIEWS_ASYNC

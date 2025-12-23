@@ -129,7 +129,7 @@ void Entity::Init()
         m_entityManager->AddComponent<VisibilityStateComponent>(this, {});
     }
 
-    m_entityManager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(this);
+    m_entityManager->AddTags<EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_RENDER_PROXY>(this);
 
     if (IsStatic())
     {
@@ -143,8 +143,6 @@ void Entity::Init()
     }
 
     m_transformChanged = false;
-
-    SetNeedsRenderProxyUpdate();
 
     SetReady(true);
 }
@@ -308,7 +306,7 @@ void Entity::OnComponentAdded(AnyRef component)
             }
         }
 
-        SetNeedsRenderProxyUpdate();
+        AddTag<EntityTag::UPDATE_RENDER_PROXY>();
 
         return;
     }
@@ -385,9 +383,7 @@ void Entity::OnTransformUpdated()
     BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
     boundingBoxComponent.worldAabb = GetWorldBounds();
 
-    entityManager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(this);
-
-    SetNeedsRenderProxyUpdate();
+    entityManager->AddTags<EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_RENDER_PROXY>(this);
 }
 
 void Entity::OnMobilityChanged(bool isStatic)
@@ -416,7 +412,7 @@ void Entity::OnMobilityChanged(bool isStatic)
         entityManager->AddTag<EntityTag::DYNAMIC>(this);
     }
 
-    SetNeedsRenderProxyUpdate();
+    AddTag<EntityTag::UPDATE_RENDER_PROXY>();
 }
 
 void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)

@@ -208,9 +208,14 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
         properties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
     }
 
-    if (s_globalConfig.Get("Rendering.Irradiance.Enabled").ToBool(false))
+    if (s_globalConfig.Get("Rendering.Debug.Irradiance").ToBool(false))
     {
         properties.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
+    }
+
+    if (s_globalConfig.Get("Rendering.Debug.Velocity").ToBool(false))
+    {
+        properties.Set(ShaderProperty(NAME("DEBUG_VELOCITY")));
     }
 
     // props.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS"));
@@ -925,7 +930,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
                 if (type->isStruct())
                 {
                     for (auto it = type->getStruct()->begin();
-                         it != type->getStruct()->end(); ++it)
+                        it != type->getStruct()->end(); ++it)
                     {
                         String fieldTypeName;
 

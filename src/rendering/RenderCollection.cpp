@@ -1392,8 +1392,6 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
                     // Reset it
                     *batch = EntityInstanceBatch { batchIndex };
-
-                    // drawCallCollection.batchAllocator->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
                 }
             }
 

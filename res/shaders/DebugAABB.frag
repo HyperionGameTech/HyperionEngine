@@ -108,6 +108,8 @@ void main()
 {
     vec3 normal = normalize(v_normal);
 
+    // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/
+    // see: "Motion Vectors" section
     vec2 velocity = vec2(((v_position_ndc.xy / v_position_ndc.w) * 0.5 + 0.5) - ((v_previous_position_ndc.xy / v_previous_position_ndc.w) * 0.5 + 0.5));
 
     GBufferMaterialParams materialParams;

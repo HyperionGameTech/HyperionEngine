@@ -975,61 +975,6 @@ Span<View* const> World::GetViews() const
     return m_viewsPerFrame[RenderApi::GetRingIndex()].ToSpan();
 }
 
-void World::UpdateDirtyMeshEntities()
-{
-    HYP_SCOPE;
-
-    using UpdatedEntitySet = HashSet<Entity*, &KeyBy_Identity<Entity*>, NodeAllocator<SceneAllocator>>;
-
-    UpdatedEntitySet updatedEntities;
-
-    for (const Handle<Scene>& scene : m_scenes)
-    {
-        if (!scene)
-        {
-            continue;
-        }
-
-        EntityManager* entityManager = scene->GetEntityManager();
-        AssertDebug(entityManager != nullptr);
-
-        for (auto [entity, meshComponent, _] : entityManager->GetEntitySet<MeshComponent, TagComponent<EntityTag::UPDATE_RENDER_PROXY>>())
-        {
-            HYP_NAMED_SCOPE_FMT("Update draw data for Entity: {}", entity->GetName());
-
-            if (!meshComponent.mesh || !meshComponent.material)
-            {
-                HYP_LOG_ONCE(Entity, Warning, "Mesh or material not valid for Entity: {}", entity->GetName());
-
-                updatedEntities.Insert(entity);
-
-                continue;
-            }
-
-            entity->SetNeedsRenderProxyUpdate();
-
-            if (meshComponent.previousModelMatrix == entity->GetWorldMatrix())
-            {
-                updatedEntities.Insert(entity);
-            }
-            else
-            {
-                meshComponent.previousModelMatrix = entity->GetWorldMatrix();
-            }
-        }
-
-        if (updatedEntities.Any())
-        {
-            for (Entity* entity : updatedEntities)
-            {
-                entityManager->RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
-            }
-
-            updatedEntities.Clear();
-        }
-    }
-}
-
 void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 {
     HYP_SCOPE;

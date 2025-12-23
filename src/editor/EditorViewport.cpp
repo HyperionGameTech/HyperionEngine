@@ -108,7 +108,7 @@ void EditorViewport::OnAdded(EditorSubsystem* editorSubsystem)
         m_view->AddScene(scene);
     }
 
-    editorSubsystem->GetWorld()->AddView(m_view);
+    currentProject->GetWorld()->AddView(m_view);
 }
 
 void EditorViewport::OnRemoved(EditorSubsystem* editorSubsystem)
@@ -135,7 +135,7 @@ void EditorViewport::OnRemoved(EditorSubsystem* editorSubsystem)
         m_view->RemoveScene(scene);
     }
 
-    editorSubsystem->GetWorld()->RemoveView(m_view);
+    currentProject->GetWorld()->RemoveView(m_view);
 }
 
 void EditorViewport::OnSceneAdded(Scene* scene)

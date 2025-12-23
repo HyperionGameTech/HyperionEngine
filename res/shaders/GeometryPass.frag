@@ -312,6 +312,8 @@ void main()
     ao = SAMPLE_TEXTURE(CURRENT_MATERIAL, AoMap, texcoord).r;
 #endif
 
+    // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/
+    // see: "Motion Vectors" section
     vec2 velocity = vec2(((v_position_ndc.xy / v_position_ndc.w) * 0.5 + 0.5) - ((v_previous_position_ndc.xy / v_previous_position_ndc.w) * 0.5 + 0.5));
 
     uint mask = v_object_mask;
