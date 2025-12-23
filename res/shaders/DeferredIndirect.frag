@@ -188,6 +188,9 @@ void main()
     result = E * reflections.rgb;
 #elif defined(DEBUG_IRRADIANCE)
     result = irradiance.rgb;
+#elif defined(DEBUG_VELOCITY)
+    vec4 velocity = Texture2D(sampler_nearest, gbuffer_velocity_texture, texcoord);
+    result = velocity.rgb;
 #endif
 
     output_color = vec4(result, 1.0);

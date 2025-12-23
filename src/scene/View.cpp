@@ -313,7 +313,7 @@ void View::UpdateViewport()
 void View::UpdateVisibility()
 {
     HYP_SCOPE;
-    AssertOnThread(g_simThread);
+    AssertOnThread(g_simThread | g_visThread);
     AssertReady();
 
     if (!m_camera.IsValid())
@@ -322,7 +322,7 @@ void View::UpdateVisibility()
         return;
     }
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
         AssertDebug(scene != nullptr);
 
@@ -873,8 +873,10 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             AssertDebug(meshComponent->material && meshComponent->material->IsReady());
 
             RenderProxyMesh& meshProxy = *rpl.GetMeshEntities().SetProxy(entity->Id(), RenderProxyMesh());
+
             meshProxy.version = *entity->GetRenderProxyVersionPtr();
             meshProxy.forceRebind = false;
+
             meshProxy.entity = MakeWeakRef(entity);
             meshProxy.mesh = meshComponent->mesh;
             meshProxy.material = meshComponent->material;
@@ -884,10 +886,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.lightmapElementId = lightmapElementComponent ? lightmapElementComponent->lightmapElementId : InvalidLightmapElementId;
             meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
             meshProxy.instanceData = meshComponent->instanceData;
+
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
             meshProxy.bufferData.userData = reinterpret_cast<EntityShaderData::EntityUserData&>(meshComponent->userData);
-            meshProxy.bufferData.modelMatrix = entity->GetWorldMatrix();
+            meshProxy.bufferData.modelMatrix = transformComponent->GetMatrix();
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
         }
     }

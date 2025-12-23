@@ -650,7 +650,7 @@ static HYP_FORCE_INLINE void CopyRenderProxy(ResourceSubtypeData& subtypeData, c
         LookupTypeName(id.GetTypeId()),
         subtypeData.typeInfo->name);
 
-    subtypeData.proxies.Set(idx, static_cast<IRenderProxy*>(newProxy));
+    subtypeData.proxies.Set(idx, newProxy);
     subtypeData.indicesPendingUpdate.Set(idx, true);
 }
 
@@ -1081,6 +1081,22 @@ uint32 RetrieveResourceBinding(const ObjectBase* resource)
     return ResourceBinding_Retrieve(resource);
 }
 
+void SetForceRebind(ObjectBase* resource, bool forceRebind)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    AssertDebug(resource != nullptr);
+
+    ResourceSubtypeData& subtypeData = s_resources->GetSubtypeData(resource->InstanceClass());
+
+    for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
+    {
+        ResourceBinderBase* resourceBinder = *it;
+        resourceBinder->SetForceRebind(resource, forceRebind);
+    }
+}
+
 WorldShaderData* GetWorldBufferData()
 {
     HYP_SCOPE;
@@ -1212,30 +1228,6 @@ void BeginFrameRender()
         resourceBinder->ApplyUpdates();
     }
 
-    // Build draw call lists
-    for (auto it = fd.viewFrameData.Begin(); it != fd.viewFrameData.End(); ++it)
-    {
-        ViewFrameData& vfd = *it->second;
-        AssertDebug(vfd.rplShared != nullptr);
-        AssertDebug(vfd.viewData != nullptr);
-
-        ViewData& vd = *vfd.viewData;
-
-        if (vfd.rplShared->disableBuildRenderCollection || (vfd.view->GetFlags() & ViewFlags::NO_DRAW_CALLS))
-        {
-            continue;
-        }
-
-        vd.rplRender.BeginRead();
-
-        vd.renderCollector.BuildRenderGroups(vd.view, vd.rplRender);
-
-        /// TODO: Use View's bucket mask property to pass to BuildDrawCalls().
-        vd.renderCollector.BuildDrawCalls(0);
-
-        vd.rplRender.EndRead();
-    }
-
     for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
     {
         if (subtypeData.indicesPendingUpdate.Count() != 0)
@@ -1265,8 +1257,8 @@ void BeginFrameRender()
 
             // Handle proxies that were updated on sim thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                 i != Bitset::NotFound;
-                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                i != Bitset::NotFound;
+                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1289,6 +1281,30 @@ void BeginFrameRender()
                 subtypeData.indicesPendingUpdate.Set(i, false);
             }
         }
+    }
+
+    // Build draw call lists
+    for (auto it = fd.viewFrameData.Begin(); it != fd.viewFrameData.End(); ++it)
+    {
+        ViewFrameData& vfd = *it->second;
+        AssertDebug(vfd.rplShared != nullptr);
+        AssertDebug(vfd.viewData != nullptr);
+
+        ViewData& vd = *vfd.viewData;
+
+        if (vfd.rplShared->disableBuildRenderCollection || (vfd.view->GetFlags() & ViewFlags::NO_DRAW_CALLS))
+        {
+            continue;
+        }
+
+        vd.rplRender.BeginRead();
+
+        vd.renderCollector.BuildRenderGroups(vd.view, vd.rplRender);
+
+        /// TODO: Use View's bucket mask property to pass to BuildDrawCalls().
+        vd.renderCollector.BuildDrawCalls(0);
+
+        vd.rplRender.EndRead();
     }
 }
 

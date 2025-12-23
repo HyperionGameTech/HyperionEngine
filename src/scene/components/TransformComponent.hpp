@@ -24,6 +24,11 @@ struct TransformComponent
     HYP_FIELD(Property = "Scale")
     Vec3f scale;
 
+    HYP_FORCE_INLINE Mat4f GetMatrix() const
+    {
+        return Transform(translation, scale, rotation).GetMatrix();
+    }
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hashCode;

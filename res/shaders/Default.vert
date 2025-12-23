@@ -134,8 +134,8 @@ void main()
     jitter_matrix[3][0] += camera.jitter.x;
     jitter_matrix[3][1] += camera.jitter.y;
 
-    v_position_ndc = (jitter_matrix * camera.projection) * camera.view * position;
-    v_previous_position_ndc = (jitter_matrix * camera.projection) * camera.previous_view * previous_position;
+    v_position_ndc = camera.projection * camera.view * position;
+    v_previous_position_ndc = camera.projection * camera.previous_view * previous_position;
 
 #ifdef INSTANCING
     v_object_index = OBJECT_INDEX;
@@ -146,5 +146,5 @@ void main()
         | (uint(bucket == HYP_OBJECT_BUCKET_TRANSLUCENT) * OBJECT_MASK_TRANSLUCENT)
         | (uint(bucket == HYP_OBJECT_BUCKET_SKYBOX) * OBJECT_MASK_SKY);
 
-    gl_Position = v_position_ndc;
+    gl_Position = jitter_matrix * v_position_ndc;
 }

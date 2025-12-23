@@ -250,8 +250,6 @@ public:
 private:
     void Init() override;
 
-    void UpdateDirtyMeshEntities();
-
     Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);
 
     /// Serialization ///
