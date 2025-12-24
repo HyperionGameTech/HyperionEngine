@@ -114,6 +114,8 @@ public:
 
     virtual SizeType Size() const = 0;
 
+    virtual Array<TypeId> GetComponentTypeIds() const = 0;
+
     /*! \brief Checks if an Entity's components are valid for this EntitySet.
      *
      *  \param entityId The ID of the Entity to check.
@@ -181,6 +183,11 @@ public:
     virtual SizeType Size() const override
     {
         return m_elements.Size();
+    }
+
+    virtual Array<TypeId> GetComponentTypeIds() const override
+    {
+        return Array<TypeId> { TypeId::ForType<Components>()... };
     }
 
     /*! \brief Gets the elements array of this set.

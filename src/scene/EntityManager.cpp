@@ -419,9 +419,6 @@ void EntityManager::SetWorld(World* world)
                 Entity* entity = entityData.entityWeak.GetUnsafe();
                 Assert(entity != nullptr);
 
-                HYP_LOG(Entity, Debug, "Calling OnAddedToWorld() for Entity {} (subclass idx: {})",
-                    entity->Id(), m_entities.GetSubtypeData().IndexOf(&subtypeData));
-
                 entity->OnAddedToWorld(m_world);
             }
         }
@@ -1342,6 +1339,39 @@ void EntityManager::UpdateEntities(float delta)
 
         entity->Update(delta);
     }
+}
+
+void EntityManager::AddPendingEntitySets()
+{
+    Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
+
+    Mutex::Guard guard(m_pendingEntitySetsMtx);
+
+    for (auto& kvp : m_pendingEntitySets)
+    {
+        const EntitySetId entitySetId = kvp.first;
+        UniquePtr<EntitySetBase>& entitySetPtr = kvp.second;
+
+        AssertDebug(!m_entitySets.Contains(entitySetId));
+
+        for (TypeId componentTypeId : entitySetPtr->GetComponentTypeIds())
+        {
+            auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
+
+            if (componentEntitySetsIt == m_componentEntitySets.End())
+            {
+                auto componentEntitySetsInsertResult = m_componentEntitySets.Set(componentTypeId, {});
+
+                componentEntitySetsIt = componentEntitySetsInsertResult.first;
+            }
+
+            componentEntitySetsIt->second.Insert(entitySetId);
+        }
+
+        m_entitySets.Insert(entitySetId, std::move(entitySetPtr));
+    }
+
+    m_pendingEntitySets.Clear();
 }
 
 bool EntityManager::IsEntityInitializedForSystem(SystemBase* system, const Entity* entity) const

@@ -682,7 +682,6 @@ public:
         {
             if (IsLocked())
             {
-                Mutex::Guard guard(m_pendingEntitySetsMtx);
                 return GetOrCreatePendingEntitySet<Components...>();
             }
 
@@ -727,6 +726,11 @@ public:
 
         if (entitySetsIt == m_entitySets.End())
         {
+            if (IsLocked())
+            {
+                return static_cast<EntitySet<Components...>*>(TryGetPendingEntitySet(entitySetId));
+            }
+            
             return nullptr;
         }
 
@@ -741,6 +745,11 @@ public:
 
         if (entitySetsIt == m_entitySets.End())
         {
+            if (IsLocked())
+            {
+                return TryGetPendingEntitySet(entitySetId);
+            }
+
             return nullptr;
         }
 
@@ -748,9 +757,9 @@ public:
     }
 
     template <class Callback>
-    HYP_FORCE_INLINE void ForEachEntity(Callback&& callback) const
+    void ForEachEntity(Callback&& callback) const
     {
-        AssertOnThread(m_ownerThreadId);
+        Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
         for (auto& subtypeData : m_entities.GetSubtypeData())
         {
@@ -770,12 +779,14 @@ public:
 
     void UpdateEntities(float delta);
 
+    void AddPendingEntitySets();
+
     template <class Component>
-    HYP_FORCE_INLINE ComponentContainer<Component>& GetContainer()
+    ComponentContainer<Component>& GetContainer()
     {
         EnsureValidComponentType<Component>();
 
-        HYP_MT_CHECK_READ(m_containersDataRaceDetector);
+        Mutex::Guard guard(m_componentContainersMtx);
 
         auto it = m_containers.Find<Component>();
 
@@ -787,11 +798,11 @@ public:
         return static_cast<ComponentContainer<Component>&>(*it->second);
     }
 
-    HYP_FORCE_INLINE ComponentContainerBase* TryGetContainer(TypeId componentTypeId)
+    ComponentContainerBase* TryGetContainer(TypeId componentTypeId)
     {
         EnsureValidComponentType(componentTypeId);
 
-        HYP_MT_CHECK_READ(m_containersDataRaceDetector);
+        Mutex::Guard guard(m_componentContainersMtx);
 
         auto it = m_containers.Find(componentTypeId);
 
@@ -847,6 +858,45 @@ private:
 
     bool IsEntityInitializedForSystem(SystemBase* system, const Entity* entity) const;
 
+    // Thread safe way to create new entity set if one doesn't exist
+    // will look for an existing pending one to prevent dupes
+    template <class... Components>
+    EntitySet<Components...>& GetOrCreatePendingEntitySet()
+    {
+        Mutex::Guard guard(m_pendingEntitySetsMtx);
+
+        const EntitySetId entitySetId = GetEntitySetId<Components...>();
+
+        auto it = m_pendingEntitySets.Find(entitySetId);
+
+        if (it == m_pendingEntitySets.End())
+        {
+            auto insertResult = m_pendingEntitySets.Insert(
+                entitySetId,
+                MakeUnique<EntitySet<Components...>>(m_entities, GetContainer<Components>()...));
+
+            Assert(insertResult.second);
+
+            it = insertResult.first;
+        }
+
+        return static_cast<EntitySet<Components...>&>(*it->second);
+    }
+
+    EntitySetBase* TryGetPendingEntitySet(EntitySetId entitySetId)
+    {
+        Mutex::Guard guard(m_pendingEntitySetsMtx);
+
+        auto it = m_pendingEntitySets.Find(entitySetId);
+
+        if (it != m_pendingEntitySets.End())
+        {
+            return it->second.Get();
+        }
+
+        return nullptr;
+    }
+
     ThreadId m_ownerThreadId;
     World* m_world;
     Scene* m_scene;
@@ -854,11 +904,18 @@ private:
 
     TypeMap<UniquePtr<ComponentContainerBase>> m_containers;
     DataRaceDetector m_containersDataRaceDetector;
+    mutable Mutex m_componentContainersMtx;
+
     EntityContainer m_entities;
     DataRaceDetector m_entitiesDataRaceDetector;
+
     HashMap<EntitySetId, UniquePtr<EntitySetBase>> m_entitySets;
+
     TypeMap<HashSet<EntitySetId>> m_componentEntitySets;
 
+    // thread safe map of entity sets not yet added to m_entitySets
+    // that will be added upon synchronization
+    HashMap<EntitySetId, UniquePtr<EntitySetBase>> m_pendingEntitySets;
     mutable Mutex m_pendingEntitySetsMtx;
 
     Array<SystemExecutionGroup*> m_systemExecutionGroups;
