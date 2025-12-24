@@ -126,6 +126,8 @@ class EntityContainer
     };
 
 public:
+    HYP_API static EntityContainer& GetDefaultInstance();
+
     EntityContainer()
     {
         // +1 for Entity itself
@@ -142,7 +144,7 @@ public:
         return m_subtypeData;
     }
 
-    HYP_FORCE_INLINE void Add(const Handle<Entity>& entity)
+    void Add(const Handle<Entity>& entity)
     {
         AssertDebug(entity != nullptr);
 
@@ -154,7 +156,7 @@ public:
         subtypeData.data.Emplace(id.ToIndex(), EntityData { entity.ToWeak() });
     }
 
-    HYP_FORCE_INLINE bool Remove(ObjId<Entity> id)
+    bool Remove(ObjId<Entity> id)
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
@@ -176,7 +178,7 @@ public:
         return true;
     }
 
-    HYP_FORCE_INLINE bool HasEntity(ObjId<Entity> id) const
+    bool HasEntity(ObjId<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
@@ -191,7 +193,7 @@ public:
         return subtypeData.data.HasIndex(id.ToIndex());
     }
 
-    HYP_FORCE_INLINE EntityData* TryGetEntityData(ObjId<Entity> id)
+    EntityData* TryGetEntityData(ObjId<Entity> id)
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
@@ -206,7 +208,7 @@ public:
         return subtypeData.data.TryGet(id.ToIndex());
     }
 
-    HYP_FORCE_INLINE const EntityData* TryGetEntityData(ObjId<Entity> id) const
+    const EntityData* TryGetEntityData(ObjId<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 

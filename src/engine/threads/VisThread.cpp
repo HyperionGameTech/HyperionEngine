@@ -391,7 +391,7 @@ void VisThread::Process()
 
             scenesVisited.PushBack(scene);
 
-            for (auto [entity, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<VisibilityStateComponent, TagComponent<EntityTag::UPDATE_VISIBILITY_STATE>>().GetScopedView(DataAccessFlags::ACCESS_RW))
+            for (auto [entity, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<VisibilityStateComponent, TagComponent<EntityTag::UpdateVisibility>>().GetScopedView(DataAccessFlags::ACCESS_RW))
             {
                 if (ProcessEntity(entity, visibilityStateComponent))
                     m_processedEntities.PushBack(entity);

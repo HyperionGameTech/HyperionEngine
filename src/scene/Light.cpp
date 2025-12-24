@@ -87,7 +87,7 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = true;
     m_entityInitInfo.bvhDepth = 0; // No BVH for lights
-    m_entityInitInfo.initialTags = { EntityTag::LIGHT };
+    m_entityInitInfo.initialTags = { EntityTag::Light };
 }
 
 Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const Vec2f& areaSize, const Color& color, float intensity, float radius)
@@ -106,7 +106,7 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = true;
     m_entityInitInfo.bvhDepth = 0; // No BVH for lights
-    m_entityInitInfo.initialTags = { EntityTag::LIGHT };
+    m_entityInitInfo.initialTags = { EntityTag::Light };
 }
 
 Light::~Light()

@@ -40,7 +40,7 @@ struct UIEntityInstanceBatch : EntityInstanceBatch
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API UISubsystem : public Subsystem
+class HYP_API UISubsystem final : public Subsystem
 {
     HYP_OBJECT_BODY(UISubsystem);
 
@@ -60,6 +60,12 @@ public:
 
     virtual void PreUpdate(float delta) override;
     virtual void Update(float delta) override;
+
+protected:
+    virtual SubsystemUpdatePhase GetUpdatePhase_Internal() const
+    {
+        return SubsystemUpdatePhase::AfterVis;
+    }
 
 private:
     virtual void Init() override;

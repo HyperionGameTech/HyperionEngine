@@ -101,20 +101,18 @@ void HandleSignal(int signum)
     exit(signum);
 }
 
-using UpdatedEntities = HashSet<Entity*, &KeyBy_Identity<Entity*>, NodeAllocator<SceneAllocator>>;
-
-static void UpdateDirtyMeshEntities(Scene* scene, UpdatedEntities& outUpdatedEntities)
+static void UpdateDirtyMeshEntities(Scene* scene, Array<Entity*, SceneAllocator>& outUpdatedEntities)
 {
     EntityManager* entityManager = scene->GetEntityManager();
     AssertDebug(entityManager != nullptr);
 
-    for (auto [entity, meshComponent, _] : entityManager->GetEntitySet<MeshComponent, TagComponent<EntityTag::UPDATE_RENDER_PROXY>>())
+    for (auto [entity, meshComponent, _] : entityManager->GetEntitySet<MeshComponent, TagComponent<EntityTag::UpdateRenderProxy>>())
     {
         entity->SetNeedsRenderProxyUpdate();
 
         if (meshComponent.previousModelMatrix == entity->GetWorldMatrix())
         {
-            outUpdatedEntities.Insert(entity);
+            outUpdatedEntities.PushBack(entity);
         }
         else
         {
@@ -452,10 +450,11 @@ void EngineDriver::UpdateSim(float delta)
 
     m_worldsToRenderPerFrame[slot].Clear();
 
-    Array<View*, SceneAllocator> viewsToProcess;
-    Array<Subsystem*, SceneAllocator> subsystemsToProcess;
+    Array<Scene*, SceneAllocator> scenes;
+    Array<View*, SceneAllocator> views;
+    Array<Subsystem*, SceneAllocator> subsystems;
+
     Array<World*, SceneAllocator> simulatingWorlds;
-    Array<Scene*, SceneAllocator> visScenes;
 
     TaskBatch worldUpdateTaskBatch;
     TaskBatch* currBatch = &worldUpdateTaskBatch;
@@ -468,11 +467,13 @@ void EngineDriver::UpdateSim(float delta)
 
         // if (!gameState.IsStopped())
         // {
-        world->CollectViews(viewsToProcess);
-        world->CollectSubsystems(subsystemsToProcess);
+        world->CollectScenes(scenes);
+        world->CollectViews(views);
+        world->CollectSubsystems(subsystems);
 
         // if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
         // {
+
         simulatingWorlds.PushBack(world);
 
         world->BeginUpdate(*currBatch, delta);
@@ -495,38 +496,31 @@ void EngineDriver::UpdateSim(float delta)
     TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);
     worldUpdateTaskBatch.AwaitCompletion();
 
-    // Remove non-unqiue views
-    for (auto it = viewsToProcess.Begin(); it != viewsToProcess.End();)
+    static const auto s_removeNonUnique = []<class T>(Array<T, SceneAllocator>& elems)
     {
-        View* view = *it;
-
-        const SizeType idx = viewsToProcess.IndexOf(it);
-        if (idx != std::distance(viewsToProcess.Begin(), it))
+        for (auto it = elems.Begin(); it != elems.End();)
         {
-            it = viewsToProcess.Erase(it);
+            const SizeType idx = elems.IndexOf(it);
+            if (idx != std::distance(elems.Begin(), it))
+            {
+                it = elems.Erase(it);
+            }
+            else
+            {
+                ++it;
+            }
         }
-        else
-        {
-            view->UpdateViewport();
+    };
 
-            g_visThreadInstance->AddViewToProcess(view);
+    s_removeNonUnique(views);
+    s_removeNonUnique(subsystems);
+    s_removeNonUnique(scenes);
 
-            ++it;
-        }
-    }
-
-    // Remove non-unique subsystems
-    for (auto it = subsystemsToProcess.Begin(); it != subsystemsToProcess.End();)
+    for (View* view : views)
     {
-        const SizeType idx = subsystemsToProcess.IndexOf(it);
-        if (idx != std::distance(subsystemsToProcess.Begin(), it))
-        {
-            it = subsystemsToProcess.Erase(it);
-        }
-        else
-        {
-            ++it;
-        }
+        view->UpdateViewport();
+
+        g_visThreadInstance->AddViewToProcess(view);
     }
 
     g_visThreadInstance->OnFrameStart(frameCounter);
@@ -541,39 +535,38 @@ void EngineDriver::UpdateSim(float delta)
         world->EndUpdate();
     }
 
-    { // update mark render proxies as needing update for all entities that could be visible,
-        // if they have the `UPDATE_RENDER_PROXY` tag
+    enum UpdatedEntitiesBucket { Bucket_RenderProxy, Bucket_Visibility, Bucket_Max };
 
-        UpdatedEntities updatedEntities;
+    Array<Entity*, SceneAllocator> updatedEntities[Bucket_Max];
+
+    {
+        // update mark render proxies as needing update for all entities that could be visible,
+        // if they have the UpdateRenderProxy tag
         Array<Scene*, SceneAllocator> visitedScenes;
 
-        for (View* view : viewsToProcess)
+        //for (View* view : views)
+        for (World* world : m_worlds)
         {
-            for (Scene* scene : view->GetScenes())
+            for (Scene* scene : world->GetScenes())
             {
                 if (visitedScenes.Contains(scene))
                 {
                     continue;
                 }
 
-                UpdateDirtyMeshEntities(scene, updatedEntities);
+                UpdateDirtyMeshEntities(scene, updatedEntities[Bucket_RenderProxy]);
 
                 visitedScenes.PushBack(scene);
             }
-        }
-
-        for (Entity* entity : updatedEntities)
-        {
-            entity->RemoveTag<EntityTag::UPDATE_RENDER_PROXY>();
         }
     }
 
 #if HYP_PROCESS_SUBSYSTEMS_ASYNC
     Array<Task<void>, SceneAllocator> updateSubsystemTasks;
 
-    for (Subsystem* subsystem : subsystemsToProcess)
+    for (Subsystem* subsystem : subsystems)
     {
-        if (subsystem->RequiresUpdateOnSimThread())
+        if (subsystem->GetUpdatePhase() != SubsystemUpdatePhase::BeforeVis || subsystem->RequiresUpdateOnSimThread())
         {
             continue;
         }
@@ -588,9 +581,9 @@ void EngineDriver::UpdateSim(float delta)
             }));
     }
 
-    for (Subsystem* subsystem : subsystemsToProcess)
+    for (Subsystem* subsystem : subsystems)
     {
-        if (!subsystem->RequiresUpdateOnSimThread())
+        if (subsystem->GetUpdatePhase() != SubsystemUpdatePhase::BeforeVis || !subsystem->RequiresUpdateOnSimThread())
         {
             continue;
         }
@@ -613,19 +606,37 @@ void EngineDriver::UpdateSim(float delta)
     }
 #endif
 
-    Array<Entity*, SceneAllocator> processedEntities;
-    g_visThreadInstance->OnFrameEnd(processedEntities);
+    g_visThreadInstance->OnFrameEnd(updatedEntities[Bucket_Visibility]);
 
-    for (Entity* entity : processedEntities)
-    {
-        entity->RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>();
+    if (updatedEntities[Bucket_RenderProxy].Any() || updatedEntities[Bucket_Visibility].Any())
+    { // remove tags for updates that were applied
+
+        for (Scene* scene : scenes)
+        {
+            scene->GetEntityManager()->Unlock();
+
+            // add pending before we mutate entity sets via removing tags.
+            // if we don't, then the states of the pending entity sets may become stale
+            // (they may still assume the tag components exist)
+            scene->GetEntityManager()->AddPendingEntitySets();
+        }
+
+        for (Entity* entity : updatedEntities[Bucket_RenderProxy])
+            entity->RemoveTag<EntityTag::UpdateRenderProxy>();
+
+        for (Entity* entity : updatedEntities[Bucket_Visibility])
+            entity->RemoveTag<EntityTag::UpdateVisibility>();
+
+        // relock
+        for (Scene* scene : scenes)
+            scene->GetEntityManager()->Lock();
     }
 
-    for (uint32 index = 0; index < viewsToProcess.Size(); index++)
+    for (uint32 index = 0; index < views.Size(); index++)
     {
         HYP_NAMED_SCOPE("Per-view entity collection");
 
-        View* view = viewsToProcess[index];
+        View* view = views[index];
         Assert(view != nullptr);
 
         view->UpdateVisibility();
@@ -641,9 +652,9 @@ void EngineDriver::UpdateSim(float delta)
     TaskSystem::GetInstance().EnqueueBatch(m_viewCollectionBatch);
     m_viewCollectionBatch->AwaitCompletion();
 
-    for (uint32 index = 0; index < viewsToProcess.Size(); index++)
+    for (uint32 index = 0; index < views.Size(); index++)
     {
-        viewsToProcess[index]->EndAsyncCollection();
+        views[index]->EndAsyncCollection();
     }
 #endif
 
@@ -653,6 +664,20 @@ void EngineDriver::UpdateSim(float delta)
 
     m_viewCollectionBatch->ResetState();
 #endif
+
+    for (Scene* scene : scenes)
+    {
+        scene->GetEntityManager()->Unlock();
+    }
+
+    for (Subsystem* subsystem : subsystems)
+    {
+        if (subsystem->GetUpdatePhase() == SubsystemUpdatePhase::AfterVis)
+        {
+            subsystem->PreUpdate(delta);
+            subsystem->Update(delta);
+        }
+    }
 
     // write buffered render data
     WorldShaderData* bufferData = RenderApi::GetWorldBufferData();

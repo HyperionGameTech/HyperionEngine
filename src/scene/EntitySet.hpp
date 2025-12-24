@@ -95,7 +95,7 @@ private:
     Tuple<Components&...> GetComponents(const FixedArray<ComponentId, sizeof...(Components)>& componentIds, std::index_sequence<Indices...>)
     {
         return Tuple<Components&...>(
-            set.m_componentContainers.template GetElement<ComponentContainer<Components>&>().GetComponent(componentIds[Indices])...);
+            set.m_componentContainers.template GetElement<ComponentContainer<Components>*>()->GetComponent(componentIds[Indices])...);
     }
 };
 
@@ -146,10 +146,17 @@ public:
 
     using Iterator = EntitySetIterator<Components...>;
     using ConstIterator = EntitySetIterator<const Components...>;
+    
+    /*! \internal Default impl - used internally */
+    EntitySet()
+        : m_entities(EntityContainer::GetDefaultInstance()),
+          m_componentContainers {}
+    {
+    }
 
     EntitySet(EntityContainer& entities, ComponentContainer<Components>&... componentContainers)
         : m_entities(entities),
-          m_componentContainers(componentContainers...)
+          m_componentContainers(std::addressof(componentContainers)...)
     {
         for (auto& subtypeData : m_entities.GetSubtypeData())
         {
@@ -313,7 +320,7 @@ private:
     Array<Element> m_elements;
 
     EntityContainer& m_entities;
-    Tuple<ComponentContainer<Components>&...> m_componentContainers;
+    Tuple<ComponentContainer<Components>*...> m_componentContainers;
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
@@ -334,7 +341,7 @@ struct EntitySetView
 #ifdef HYP_ENABLE_MT_CHECK
     EntitySetView(EntitySet<Components...>& entitySet, EnumFlags<DataAccessFlags> dataAccessFlags, ANSIStringView currentFunction = "", ANSIStringView message = "")
         : entitySet(entitySet),
-          m_componentDataRaceDetectors { &entitySet.m_componentContainers.template GetElement<ComponentContainer<Components>&>().GetDataRaceDetector()... }
+          m_componentDataRaceDetectors { &entitySet.m_componentContainers.template GetElement<ComponentContainer<Components>*>()->GetDataRaceDetector()... }
     {
         if constexpr (sizeof...(Components) != 0)
         {
@@ -349,7 +356,7 @@ struct EntitySetView
 
     EntitySetView(EntitySet<Components...>& entitySet, const Array<ComponentInfo>& componentInfos, ANSIStringView currentFunction = "", ANSIStringView message = "")
         : entitySet(entitySet),
-          m_componentDataRaceDetectors { &entitySet.m_componentContainers.template GetElement<ComponentContainer<Components>&>().GetDataRaceDetector()... }
+          m_componentDataRaceDetectors { &entitySet.m_componentContainers.template GetElement<ComponentContainer<Components>*>()->GetDataRaceDetector()... }
     {
 
         if constexpr (sizeof...(Components) != 0)

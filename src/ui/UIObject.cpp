@@ -1020,7 +1020,7 @@ void UIObject::Blur(bool blurChildren)
         return;
     }
 
-    if (Handle<UIObject> focusedObject = m_stage->GetFocusedObject().Lock())
+    if (Handle<UIObject> focusedObject = m_stage->GetFocusedObject().Lock(); focusedObject.IsValid())
     {
         if (!focusedObject->IsOrHasParent(this))
         {
@@ -1301,11 +1301,11 @@ void UIObject::UpdateComputedVisibility(bool updateChildren)
         {
             if (m_computedVisibility)
             {
-                scene->GetEntityManager()->AddTag<EntityTag::UI_OBJECT_VISIBLE>(GetEntity());
+                scene->GetEntityManager()->AddTag<EntityTag::UIVisible>(GetEntity());
             }
             else
             {
-                scene->GetEntityManager()->RemoveTag<EntityTag::UI_OBJECT_VISIBLE>(GetEntity());
+                scene->GetEntityManager()->RemoveTag<EntityTag::UIVisible>(GetEntity());
             }
         }
 
@@ -1490,7 +1490,7 @@ void UIObject::AddChildUIObject(const Handle<UIObject>& uiObject)
         return;
     }
 
-    if (Handle<Node> childNode = uiObject->GetNode())
+    if (Handle<Node> childNode = uiObject->GetNode(); childNode.IsValid())
     {
         node->AddChild(childNode);
     }
@@ -2023,7 +2023,7 @@ Handle<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIOb
         {
             if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
             {
-                if (Handle<UIObject> uiObject = uiComponent->uiObject.Lock())
+                if (Handle<UIObject> uiObject = uiComponent->uiObject.Lock(); uiObject.IsValid())
                 {
                     if (proc(uiObject))
                     {
@@ -2725,7 +2725,7 @@ void UIObject::CollectObjects(ProcRef<void(UIObject*)> proc, bool onlyVisible) c
 
     if (onlyVisible)
     {
-        for (auto [entity, uiComponent, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, TagComponent<EntityTag::UI_OBJECT_VISIBLE>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, uiComponent, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, TagComponent<EntityTag::UIVisible>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!uiComponent.uiObject.IsValid())
             {

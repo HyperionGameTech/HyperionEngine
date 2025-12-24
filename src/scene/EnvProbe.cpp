@@ -412,15 +412,15 @@ void EnvProbe::Update(float delta)
             {
                 // clang-format off
                 octantHashCode.Add(octant->GetOctantID().GetHashCode()
-                    .Add(octant->GetEntryListHash<EntityTag::STATIC>())
-                    .Add(octant->GetEntryListHash<EntityTag::LIGHT>()));
+                    .Add(octant->GetEntryListHash<EntityTag::MobStatic>())
+                    .Add(octant->GetEntryListHash<EntityTag::Light>()));
                 // clang-format on
             }
             else
             {
                 // clang-format off
                 octantHashCode.Add(octree.GetOctantID().GetHashCode()
-                    .Add(octree.GetEntryListHash<EntityTag::NONE>()));
+                    .Add(octree.GetEntryListHash<EntityTag::None>()));
                 // clang-format on
             }
 

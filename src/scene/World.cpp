@@ -407,10 +407,11 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 {
     HYP_SCOPE;
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene != nullptr);
         scene->Update(delta);
+
+        scene->GetEntityManager()->Lock();
     }
 
     if (m_physicsWorld != nullptr)
@@ -532,6 +533,16 @@ void World::EndUpdate()
 #endif
     }
 #endif
+}
+
+void World::CollectScenes(Array<Scene*, SceneAllocator>& outScenes)
+{
+    outScenes.Reserve(outScenes.Size() + m_scenes.Size());
+
+    for (Scene* scene : m_scenes)
+    {
+        outScenes.PushBack(scene);
+    }
 }
 
 void World::CollectViews(Array<View*, SceneAllocator>& outViews)

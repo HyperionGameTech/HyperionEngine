@@ -174,7 +174,7 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
             updatedEntities.PushBack(MakeWeakRef(entity));
         };
 
-        for (auto [entity, visibilityStateComponent, boundingBoxComponent, _] : scene->GetEntityManager()->GetEntitySet<VisibilityStateComponent, BoundingBoxComponent, TagComponent<EntityTag::UPDATE_VISIBILITY_STATE>>().GetScopedView(GetComponentInfos()))
+        for (auto [entity, visibilityStateComponent, boundingBoxComponent, _] : scene->GetEntityManager()->GetEntitySet<VisibilityStateComponent, BoundingBoxComponent, TagComponent<EntityTag::UpdateVisibility>>().GetScopedView(GetComponentInfos()))
         {
             updateVisbilityState(entity, visibilityStateComponent, boundingBoxComponent);
         }
@@ -195,7 +195,7 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
                 {
                     for (const WeakHandle<Entity>& entityWeak : updatedEntities)
                     {
-                        scene->GetEntityManager()->RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entityWeak.GetUnsafe());
+                        scene->GetEntityManager()->RemoveTag<EntityTag::UpdateVisibility>(entityWeak.GetUnsafe());
                     }
                 });
         }

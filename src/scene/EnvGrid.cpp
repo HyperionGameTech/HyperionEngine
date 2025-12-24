@@ -346,9 +346,9 @@ void LegacyEnvGrid::Update(float delta)
 
         // clang-format off
         const HashCode octantHashCode = octree->GetOctantID().GetHashCode()
-            .Add(octree->GetEntryListHash<EntityTag::STATIC>())
-            .Add(octree->GetEntryListHash<EntityTag::DYNAMIC>())
-            .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
+            .Add(octree->GetEntryListHash<EntityTag::MobStatic>())
+            .Add(octree->GetEntryListHash<EntityTag::MobDynamic>())
+            .Add(octree->GetEntryListHash<EntityTag::Light>());
         // clang-format on
 
         if (octantHashCode != m_cachedOctantHashCode)

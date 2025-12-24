@@ -3242,7 +3242,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         {
             if (Entity* entity = ObjCast<Entity>(focusedNode))
             {
-                entity->AddTag<EntityTag::EDITOR_FOCUSED>();
+                entity->AddTag<EntityTag::FocusedInEditor>();
             }
         }
 
@@ -3275,7 +3275,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
     {
         if (Entity* entity = ObjCast<Entity>(previousFocusedNode))
         {
-            entity->RemoveTag<EntityTag::EDITOR_FOCUSED>();
+            entity->RemoveTag<EntityTag::FocusedInEditor>();
         }
     }
 

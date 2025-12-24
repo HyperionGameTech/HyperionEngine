@@ -161,6 +161,26 @@ public:
         return m_entities;
     }
 
+    /*! \brief The EntityManager so that other threads cannot mutate the entity sets or create new ones */
+    HYP_FORCE_INLINE bool IsLocked() const
+    {
+        return m_isLocked;
+    }
+
+    HYP_FORCE_INLINE void Lock()
+    {
+        AssertOnThread(m_ownerThreadId);
+
+        m_isLocked = true;
+    }
+
+    HYP_FORCE_INLINE void Unlock()
+    {
+        AssertOnThread(m_ownerThreadId);
+
+        m_isLocked = false;
+    }
+
     /*! \brief Adds a new entity to the EntityManager.
      *  \note Must be called from the owner thread.
      *
@@ -212,7 +232,7 @@ public:
 
     HYP_FORCE_INLINE bool HasEntity(ObjId<Entity> id) const
     {
-        AssertOnThread(m_ownerThreadId);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         return id.IsValid() && m_entities.HasEntity(id);
     }
@@ -248,7 +268,7 @@ public:
     {
         for (EntityTag tag : tags)
         {
-            if (tag == EntityTag::NONE || uint32(tag) >= uint32(EntityTag::TYPE_ID))
+            if (tag == EntityTag::None || uint32(tag) >= uint32(EntityTag::EntityType))
             {
                 continue;
             }
@@ -271,7 +291,7 @@ public:
     HYP_FORCE_INLINE Array<EntityTag> GetSavableTags(const Entity* entity) const
     {
         Array<EntityTag> tags;
-        GetTagsHelper(entity, std::make_integer_sequence<uint32, uint32(EntityTag::SAVABLE_MAX) - 2>(), tags);
+        GetTagsHelper(entity, std::make_integer_sequence<uint32, uint32(EntityTag::MaxPersistent) - 2>(), tags);
 
         return tags;
     }
@@ -279,7 +299,7 @@ public:
     HYP_FORCE_INLINE uint32 GetSavableTagsMask(const Entity* entity) const
     {
         uint32 mask = 0;
-        GetTagsHelper(entity, std::make_integer_sequence<uint32, uint32(EntityTag::SAVABLE_MAX) - 2>(), mask);
+        GetTagsHelper(entity, std::make_integer_sequence<uint32, uint32(EntityTag::MaxPersistent) - 2>(), mask);
 
         return mask;
     }
@@ -289,7 +309,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        // AssertOnThread(m_ownerThreadId);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
 
@@ -300,7 +320,7 @@ public:
     {
         EnsureValidComponentType(componentTypeId);
 
-        // AssertOnThread(m_ownerThreadId);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
 
@@ -314,7 +334,7 @@ public:
 
         Assert(entity, "Invalid entity");
 
-        // AssertOnThread(m_ownerThreadId);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
         HYP_MT_CHECK_READ(m_containersDataRaceDetector);
@@ -325,9 +345,9 @@ public:
         const Optional<ComponentId> componentIdOpt = entityData->TryGetComponentId<Component>();
         Assert(componentIdOpt.HasValue(), "Entity does not have component of type {}", TypeNameWithoutNamespace<Component>().Data());
 
-        static const TypeId componentTypeId = TypeId::ForType<Component>();
+        static const TypeId s_componentTypeId = TypeId::ForType<Component>();
 
-        auto componentContainerIt = m_containers.Find(componentTypeId);
+        auto componentContainerIt = m_containers.Find(s_componentTypeId);
         Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
 
         HYP_MT_CHECK_READ(componentContainerIt->second->GetDataRaceDetector());
@@ -351,7 +371,7 @@ public:
             return nullptr;
         }
 
-        // AssertOnThread(m_ownerThreadId);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
         HYP_MT_CHECK_READ(m_containersDataRaceDetector);
@@ -368,7 +388,7 @@ public:
             return nullptr;
         }
 
-        static const TypeId componentTypeId = TypeId::ForType<Component>();
+        static const TypeId s_componentTypeId = TypeId::ForType<Component>();
 
         const Optional<ComponentId> componentIdOpt = entityData->TryGetComponentId<Component>();
 
@@ -377,7 +397,7 @@ public:
             return nullptr;
         }
 
-        auto componentContainerIt = m_containers.Find(componentTypeId);
+        auto componentContainerIt = m_containers.Find(s_componentTypeId);
         if (componentContainerIt == m_containers.End())
         {
             return nullptr;
@@ -410,7 +430,7 @@ public:
             return AnyRef::Empty();
         }
 
-        // AssertOnThread(m_ownerThreadId);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
         HYP_MT_CHECK_READ(m_containersDataRaceDetector);
@@ -481,7 +501,7 @@ public:
             return {};
         }
 
-        AssertOnThread(m_ownerThreadId);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         const EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
 
@@ -504,8 +524,7 @@ public:
         EnsureValidComponentType<Component>();
 
         Assert(entity, "Invalid entity");
-
-        AssertOnThread(m_ownerThreadId);
+        Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
         Handle<Entity> entityHandle = MakeStrongRef(entity);
         Assert(entityHandle.IsValid());
@@ -527,8 +546,6 @@ public:
         entityData->components.Set<Component>(componentInsertResult.first);
 
         { // Lock the entity sets mutex
-            Mutex::Guard entitySetsGuard(m_entitySetsMutex);
-
             auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
 
             if (componentEntitySetsIt != m_componentEntitySets.End())
@@ -577,7 +594,7 @@ public:
         Handle<Entity> entityHandle = MakeStrongRef(entity);
         Assert(entityHandle.IsValid());
 
-        AssertOnThread(m_ownerThreadId);
+        Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
         ComponentMap removedComponents;
 
@@ -610,9 +627,6 @@ public:
         entityData->components.Erase(componentIt);
 
         {
-            // Lock the entity sets mutex
-            Mutex::Guard entitySetsGuard(m_entitySetsMutex);
-
             auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
 
             if (componentEntitySetsIt != m_componentEntitySets.End())
@@ -658,7 +672,7 @@ public:
     template <class... Components>
     EntitySet<Components...>& GetEntitySet()
     {
-        Mutex::Guard guard(m_entitySetsMutex);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         const EntitySetId entitySetId = GetEntitySetId<Components...>();
 
@@ -666,6 +680,12 @@ public:
 
         if (entitySetsIt == m_entitySets.End())
         {
+            if (IsLocked())
+            {
+                Mutex::Guard guard(m_pendingEntitySetsMtx);
+                return GetOrCreatePendingEntitySet<Components...>();
+            }
+
             auto entitySetsInsertResult = m_entitySets.Set(
                 entitySetId,
                 MakeUnique<EntitySet<Components...>>(m_entities, GetContainer<Components>()...));
@@ -699,7 +719,7 @@ public:
     template <class... Components>
     EntitySet<Components...>* TryGetEntitySet()
     {
-        Mutex::Guard guard(m_entitySetsMutex);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         const EntitySetId entitySetId = GetEntitySetId<Components...>();
 
@@ -715,7 +735,7 @@ public:
 
     EntitySetBase* TryGetEntitySet(EntitySetId entitySetId)
     {
-        Mutex::Guard guard(m_entitySetsMutex);
+        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
         auto entitySetsIt = m_entitySets.Find(entitySetId);
 
@@ -837,13 +857,16 @@ private:
     EntityContainer m_entities;
     DataRaceDetector m_entitiesDataRaceDetector;
     HashMap<EntitySetId, UniquePtr<EntitySetBase>> m_entitySets;
-    mutable Mutex m_entitySetsMutex; /// \todo : try to remove?
     TypeMap<HashSet<EntitySetId>> m_componentEntitySets;
+
+    mutable Mutex m_pendingEntitySetsMtx;
 
     Array<SystemExecutionGroup*> m_systemExecutionGroups;
 
     HashMap<SystemBase*, HashSet<Entity*>> m_systemEntityMap;
     mutable Mutex m_systemEntityMapMutex;
+
+    bool m_isLocked;
 };
 
 } // namespace hyperion
