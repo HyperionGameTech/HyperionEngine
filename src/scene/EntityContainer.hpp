@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/containers/FlatMap.hpp>
 #include <core/containers/TypeMap.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/SparsePagedArray.hpp>
 
 #include <core/threading/DataRaceDetector.hpp>
-#include <core/threading/Spinlock.hpp>
 
 #include <core/reflection/ObjId.hpp>
 #include <core/reflection/Handle.hpp>
+
+#include <engine/EngineMemory.hpp>
 
 #include <scene/ComponentContainer.hpp>
 
@@ -122,7 +122,7 @@ class EntityContainer
 {
     struct SubtypeData
     {
-        SparsePagedArray<EntityData, 256> data;
+        SparsePagedArray<EntityData, 256, SceneAllocator> data;
     };
 
 public:
@@ -134,14 +134,14 @@ public:
         m_subtypeData.Resize(GetNumDescendants(TypeId::ForType<Entity>()) + 1);
     }
 
-    HYP_FORCE_INLINE Array<SubtypeData>& GetSubtypeData()
+    HYP_FORCE_INLINE Span<SubtypeData> GetSubtypeData()
     {
-        return m_subtypeData;
+        return m_subtypeData.ToSpan();
     }
 
-    HYP_FORCE_INLINE const Array<SubtypeData>& GetSubtypeData() const
+    HYP_FORCE_INLINE Span<const SubtypeData> GetSubtypeData() const
     {
-        return m_subtypeData;
+        return m_subtypeData.ToSpan();
     }
 
     void Add(const Handle<Entity>& entity)
@@ -254,7 +254,7 @@ private:
         return const_cast<EntityContainer*>(this)->GetSubtypeData(typeId);
     }
 
-    Array<SubtypeData> m_subtypeData;
+    Array<SubtypeData, SceneAllocator> m_subtypeData;
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };

@@ -668,6 +668,7 @@ void EngineDriver::UpdateSim(float delta)
     for (Scene* scene : scenes)
     {
         scene->GetEntityManager()->Unlock();
+        scene->GetEntityManager()->AddPendingEntitySets();
     }
 
     for (Subsystem* subsystem : subsystems)
