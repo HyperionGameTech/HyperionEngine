@@ -391,7 +391,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
         entityManager->AddComponent<MeshComponent>(entity, MeshComponent { m_mesh, m_material });
     }
 
-    entityManager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+    entityManager->AddTag<EntityTag::UpdateRenderProxy>(entity);
 
     m_node = m_scene->GetRoot()->AddChild();
     m_node->SetName(NAME_FMT("TerrainPatch_{}", m_cellInfo.coord));

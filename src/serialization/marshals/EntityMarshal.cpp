@@ -245,11 +245,11 @@ public:
                 // Hack: if the entity tag is static, remove the dynamic tag if it exists and vice versa for dynamic
                 switch (entityTag)
                 {
-                case EntityTag::STATIC:
-                    entityManager->RemoveTag<EntityTag::DYNAMIC>(entity);
+                case EntityTag::MobStatic:
+                    entityManager->RemoveTag<EntityTag::MobDynamic>(entity);
                     break;
-                case EntityTag::DYNAMIC:
-                    entityManager->RemoveTag<EntityTag::STATIC>(entity);
+                case EntityTag::MobDynamic:
+                    entityManager->RemoveTag<EntityTag::MobStatic>(entity);
                     break;
                 default:
                     break;

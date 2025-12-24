@@ -153,7 +153,7 @@ UISubsystem::~UISubsystem()
 
 void UISubsystem::Init()
 {
-    HYP_SCOPE;
+    Subsystem::Init();
 
     Assert(m_uiStage != nullptr);
     InitObject(m_uiStage);
@@ -235,8 +235,6 @@ void UISubsystem::Init()
 
 void UISubsystem::OnAddedToWorld()
 {
-    HYP_SCOPE;
-
     if (m_uiStage && m_uiStage->GetScene())
     {
         GetWorld()->AddScene(MakeStrongRef(m_uiStage->GetScene()));
@@ -253,12 +251,12 @@ void UISubsystem::OnRemovedFromWorld()
 
 void UISubsystem::PreUpdate(float delta)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
 }
 
 void UISubsystem::Update(float delta)
 {
+    HYP_SCOPE;
+
     m_uiStage->Update(delta);
 
     m_view->UpdateViewport();
@@ -347,8 +345,6 @@ void UISubsystem::Update(float delta)
 
 void UISubsystem::CreateFramebuffer()
 {
-    HYP_SCOPE;
-
     const ThreadId ownerThreadId = m_uiStage->GetScene()->GetEntityManager()->GetOwnerThreadId();
 
     auto impl = [weakThis = WeakHandleFromThis()]()

@@ -172,7 +172,7 @@ void SceneOctree::Clear()
                     visibilityStateComponent->visibilityState = nullptr;
                 }
 
-                m_entityManager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
+                m_entityManager->AddTag<EntityTag::UpdateVisibility>(entity);
 
                 if (UseEntityMap())
                 {
@@ -291,7 +291,7 @@ SceneOctree::Result SceneOctree::Rebuild(const BoundingBox& newAabb, bool allowG
                 m_entityManager->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { .octantId = insertResult.GetValue(), .visibilityState = nullptr });
             }
 
-            m_entityManager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
+            m_entityManager->AddTag<EntityTag::UpdateVisibility>(entity);
         }
     }
 

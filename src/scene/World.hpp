@@ -235,6 +235,7 @@ public:
     /*! \brief Adds a View for processing asynchronously for this frame. */
     void ProcessViewAsync(View* view);
 
+    void CollectScenes(Array<Scene*, SceneAllocator>& outScenes);
     void CollectViews(Array<View*, SceneAllocator>& outViews);
     void CollectSubsystems(Array<Subsystem*, SceneAllocator>& outSubsystems);
 

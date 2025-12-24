@@ -52,6 +52,8 @@ DynamicSkySubsystem::~DynamicSkySubsystem()
 
 void DynamicSkySubsystem::Init()
 {
+    Subsystem::Init();
+
     { // atmospheric scattering capture setup
         m_renderScene = CreateObject<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
         m_renderScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
@@ -65,7 +67,7 @@ void DynamicSkySubsystem::Init()
             int(m_dimensions.x), int(m_dimensions.y),
             0.1f, 10000.0f);
 
-        m_renderScene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(m_camera);
+        m_renderScene->GetEntityManager()->AddTag<EntityTag::PrimaryCamera>(m_camera);
 
         m_camera->SetName(NAME("DynamicSkyCaptureCamera"));
         m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f::UnitZ(), Vec3f::Zero(), Vec3f::UnitY()));

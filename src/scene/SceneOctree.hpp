@@ -142,7 +142,7 @@ public:
     template <EntityTag Tag>
     HYP_FORCE_INLINE HashCode GetEntryListHash() const
     {
-        static_assert((uint32(Tag) < uint32(EntityTag::SAVABLE_MAX)), "All tags must have a value < EntityTag::SAVABLE_MAX");
+        static_assert((uint32(Tag) < uint32(EntityTag::MaxPersistent)), "All tags must have a value < EntityTag::SAVABLE_MAX");
 
         return HashCode(m_entryHashes[uint32(Tag)])
             .Add(m_invalidationMarker);
@@ -196,7 +196,7 @@ public:
     Result Update(Entity* entity, const BoundingBox& aabb, bool forceInvalidation = false, bool allowRebuild = false);
 
 private:
-    static constexpr uint32 numEntryHashes = uint32(EntityTag::SAVABLE_MAX);
+    static constexpr uint32 numEntryHashes = uint32(EntityTag::MaxPersistent);
 
     HYP_FORCE_INLINE bool UseEntityMap() const
     {

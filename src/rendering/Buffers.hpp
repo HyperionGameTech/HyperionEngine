@@ -325,7 +325,7 @@ public:
         }
 
         // dirty copy + flush for cpu accessbile
-        if (dstBuffer->IsCpuAccessible())
+        if (false) // TEMP debugging. dstBuffer->IsCpuAccessible())
         {
             for (DirtyBlockInfo& dirtyBlock : dirtyBlocks)
             {

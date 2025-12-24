@@ -2445,7 +2445,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             const uint32 frameCounter = RenderApi::GetWorldBufferData()->frameCounter + 1;
 
             Vec4f jitter = Vec4f::Zero();
-            Mat4f::Jitter(frameCounter, cameraBufferData.dimensions.x, cameraBufferData.dimensions.y, jitter);
+            Mat4f::Jitter(frameCounter, viewport.extent.x, viewport.extent.y, jitter);
 
             cameraBufferData.jitter = jitter * CameraJitterScale;
 

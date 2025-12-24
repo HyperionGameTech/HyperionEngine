@@ -13,6 +13,13 @@ namespace hyperion {
 class Scene;
 class World;
 
+HYP_ENUM()
+enum class SubsystemUpdatePhase : uint8
+{
+    BeforeVis,
+    AfterVis
+};
+
 HYP_CLASS(Abstract)
 class HYP_API Subsystem : public ObjectBase
 {
@@ -38,6 +45,11 @@ public:
         return m_world;
     }
 
+    HYP_FORCE_INLINE SubsystemUpdatePhase GetUpdatePhase() const
+    {
+        return m_updatePhase;
+    }
+
     virtual void OnAddedToWorld() = 0;
     virtual void OnRemovedFromWorld() = 0;
     virtual void PreUpdate(float delta)
@@ -50,7 +62,14 @@ public:
 protected:
     virtual void Init() override
     {
+        m_updatePhase = GetUpdatePhase_Internal();
+
         SetReady(true);
+    }
+
+    virtual SubsystemUpdatePhase GetUpdatePhase_Internal() const
+    {
+        return SubsystemUpdatePhase::BeforeVis;
     }
 
 private:
@@ -60,6 +79,7 @@ private:
     }
 
     World* m_world;
+    SubsystemUpdatePhase m_updatePhase;
 };
 
 } // namespace hyperion

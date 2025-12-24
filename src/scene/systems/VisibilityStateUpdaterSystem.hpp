@@ -33,7 +33,7 @@ private:
             ComponentDescriptor<VisibilityStateComponent, ComponentAccess::READ_WRITE> {},
             ComponentDescriptor<BoundingBoxComponent, ComponentAccess::READ> {},
 
-            ComponentDescriptor<TagComponent<EntityTag::UPDATE_VISIBILITY_STATE>, ComponentAccess::READ, false> {}
+            ComponentDescriptor<TagComponent<EntityTag::UpdateVisibility>, ComponentAccess::READ, false> {}
         };
     }
 };

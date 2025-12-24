@@ -34,7 +34,7 @@ class VisCompletedQueue;
 class VisThread final : public TaskThread
 {
 public:
-    using EntitySetType = EntitySet<VisibilityStateComponent, TagComponent<EntityTag::UPDATE_VISIBILITY_STATE>>;
+    using EntitySetType = EntitySet<VisibilityStateComponent, TagComponent<EntityTag::UpdateVisibility>>;
 
     VisThread();
     ~VisThread();

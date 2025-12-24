@@ -9,6 +9,7 @@
 namespace hyperion {
 
 Subsystem::Subsystem()
+    : m_updatePhase(SubsystemUpdatePhase::BeforeVis)
 {
 }
 

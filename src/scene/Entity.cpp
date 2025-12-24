@@ -129,17 +129,17 @@ void Entity::Init()
         m_entityManager->AddComponent<VisibilityStateComponent>(this, {});
     }
 
-    m_entityManager->AddTags<EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_RENDER_PROXY>(this);
+    m_entityManager->AddTags<EntityTag::UpdateVisibility, EntityTag::UpdateRenderProxy>(this);
 
     if (IsStatic())
     {
-        m_entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
-        m_entityManager->AddTag<EntityTag::STATIC>(this);
+        m_entityManager->RemoveTag<EntityTag::MobDynamic>(this);
+        m_entityManager->AddTag<EntityTag::MobStatic>(this);
     }
     else
     {
-        m_entityManager->RemoveTag<EntityTag::STATIC>(this);
-        m_entityManager->AddTag<EntityTag::DYNAMIC>(this);
+        m_entityManager->RemoveTag<EntityTag::MobStatic>(this);
+        m_entityManager->AddTag<EntityTag::MobDynamic>(this);
     }
 
     m_transformChanged = false;
@@ -159,7 +159,7 @@ bool Entity::ReceivesUpdate() const
 
     AssertOnThread(entityManager->GetOwnerThreadId());
 
-    return entityManager->HasTag<EntityTag::RECEIVES_UPDATE>(this);
+    return entityManager->HasTag<EntityTag::ReceivesUpdate>(this);
 }
 
 void Entity::SetReceivesUpdate(bool receivesUpdate)
@@ -184,11 +184,11 @@ void Entity::SetReceivesUpdate(bool receivesUpdate)
 
     if (receivesUpdate)
     {
-        entityManager->AddTag<EntityTag::RECEIVES_UPDATE>(this);
+        entityManager->AddTag<EntityTag::ReceivesUpdate>(this);
     }
     else
     {
-        entityManager->RemoveTag<EntityTag::RECEIVES_UPDATE>(this);
+        entityManager->RemoveTag<EntityTag::ReceivesUpdate>(this);
     }
 }
 
@@ -306,7 +306,7 @@ void Entity::OnComponentAdded(AnyRef component)
             }
         }
 
-        AddTag<EntityTag::UPDATE_RENDER_PROXY>();
+        AddTag<EntityTag::UpdateRenderProxy>();
 
         return;
     }
@@ -383,7 +383,7 @@ void Entity::OnTransformUpdated()
     BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
     boundingBoxComponent.worldAabb = GetWorldBounds();
 
-    entityManager->AddTags<EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_RENDER_PROXY>(this);
+    entityManager->AddTags<EntityTag::UpdateVisibility, EntityTag::UpdateRenderProxy>(this);
 }
 
 void Entity::OnMobilityChanged(bool isStatic)
@@ -403,16 +403,16 @@ void Entity::OnMobilityChanged(bool isStatic)
 
     if (isStatic)
     {
-        entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
-        entityManager->AddTag<EntityTag::STATIC>(this);
+        entityManager->RemoveTag<EntityTag::MobDynamic>(this);
+        entityManager->AddTag<EntityTag::MobStatic>(this);
     }
     else
     {
-        entityManager->RemoveTag<EntityTag::STATIC>(this);
-        entityManager->AddTag<EntityTag::DYNAMIC>(this);
+        entityManager->RemoveTag<EntityTag::MobStatic>(this);
+        entityManager->AddTag<EntityTag::MobDynamic>(this);
     }
 
-    AddTag<EntityTag::UPDATE_RENDER_PROXY>();
+    AddTag<EntityTag::UpdateRenderProxy>();
 }
 
 void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
@@ -594,8 +594,8 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
                 continue;
             }
 
-            if (entityTagTypeId == TypeId::ForType<TagComponent<EntityTag::STATIC>>()
-                || entityTagTypeId == TypeId::ForType<TagComponent<EntityTag::DYNAMIC>>())
+            if (entityTagTypeId == TypeId::ForType<TagComponent<EntityTag::MobStatic>>()
+                || entityTagTypeId == TypeId::ForType<TagComponent<EntityTag::MobDynamic>>())
             {
                 // we now handle these tags based on the Entity's mobility, skip
                 continue;
