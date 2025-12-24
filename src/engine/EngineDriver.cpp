@@ -544,10 +544,9 @@ void EngineDriver::UpdateSim(float delta)
         // if they have the UpdateRenderProxy tag
         Array<Scene*, SceneAllocator> visitedScenes;
 
-        //for (View* view : views)
-        for (World* world : m_worlds)
+        for (View* view : views)
         {
-            for (Scene* scene : world->GetScenes())
+            for (Scene* scene : view->GetScenes())
             {
                 if (visitedScenes.Contains(scene))
                 {

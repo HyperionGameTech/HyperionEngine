@@ -955,61 +955,64 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
 
         const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
 
-        typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::*ClickDelegateMember;
-        const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ClickDelegateMember delegateMember = nullptr)
+        // Check LMB/RMB clicking if only one bit (mouse button) was pressed.
+        if (ByteUtil::BitCount(inputManager->GetButtonStates() | buttons) == 1)
         {
-            if (buttons != mouseButtonToCheck)
+            typedef ScriptableDelegate<UIEventHandlerResult, const MouseEvent&> UIObject::* ClickDelegateMember;
+            const auto checkClickEvent = [&](MouseButtonState mouseButtonToCheck, ClickDelegateMember delegateMember = nullptr)
             {
-                return;
-            }
-
-            for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
-            {
-                const Handle<UIObject>& uiObject = *it;
-
-                auto stateIt = m_objectMouseStates.Find(uiObject);
-
-                if (stateIt == m_objectMouseStates.End() || !(stateIt->second.mouseButtons & mouseButtonToCheck))
+                if (buttons != mouseButtonToCheck)
                 {
-                    continue;
+                    return;
                 }
 
-                const EnumFlags<MouseButtonState> currentState = stateIt->second.mouseButtons;
-
-                // check if we should trigger a click event
-                if (uiObject->IsEnabled())
+                for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
                 {
-                    if (delegateMember != nullptr)
+                    const Handle<UIObject>& uiObject = *it;
+
+                    auto stateIt = m_objectMouseStates.Find(uiObject);
+
+                    if (stateIt == m_objectMouseStates.End() || !(stateIt->second.mouseButtons & mouseButtonToCheck))
                     {
-                        const UIEventHandlerResult result = (uiObject->*delegateMember)(MouseEvent {
-                            .baseEvent = &event,
-                            .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                            .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                            .absolutePos = Vec2f(mousePosition),
-                            .absolutePrevPos = Vec2f(previousMousePosition),
-                            .mouseButtons = buttons
-                        });
+                        continue;
+                    }
 
-                        eventHandlerResult |= result;
+                    const EnumFlags<MouseButtonState> currentState = stateIt->second.mouseButtons;
 
-                        if (result & UIEventHandlerResult::ERR)
+                    // check if we should trigger a click event
+                    if (uiObject->IsEnabled())
+                    {
+                        if (delegateMember != nullptr)
                         {
-                            HYP_LOG(UI, Error, "OnClick returned error: {}", result.GetMessage().GetOr("<No message>"));
+                            const UIEventHandlerResult result = (uiObject->*delegateMember)(MouseEvent {
+                                .baseEvent = &event,
+                                .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                                .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                                .absolutePos = Vec2f(mousePosition),
+                                .absolutePrevPos = Vec2f(previousMousePosition),
+                                .mouseButtons = buttons });
 
-                            break;
-                        }
+                            eventHandlerResult |= result;
 
-                        if (result & UIEventHandlerResult::STOP_BUBBLING)
-                        {
-                            break;
+                            if (result & UIEventHandlerResult::ERR)
+                            {
+                                HYP_LOG(UI, Error, "OnClick returned error: {}", result.GetMessage().GetOr("<No message>"));
+
+                                break;
+                            }
+
+                            if (result & UIEventHandlerResult::STOP_BUBBLING)
+                            {
+                                break;
+                            }
                         }
                     }
                 }
-            }
-        };
+            };
 
-        checkClickEvent(MouseButtonState::LEFT, &UIObject::OnClick);
-        checkClickEvent(MouseButtonState::RIGHT, &UIObject::OnRightClick);
+            checkClickEvent(MouseButtonState::LEFT, &UIObject::OnClick);
+            checkClickEvent(MouseButtonState::RIGHT, &UIObject::OnRightClick);
+        }
 
         for (auto it = m_objectMouseStates.Begin(); it != m_objectMouseStates.End();)
         {

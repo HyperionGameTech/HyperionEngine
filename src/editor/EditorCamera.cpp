@@ -121,7 +121,7 @@ bool EditorCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
         return false;
     }
 
-    if (!IsKeyDown(KeyCode::KEY_LEFT) && !IsKeyDown(KeyCode::KEY_RIGHT))
+    if (!((GetMouseButtonStates() & (MouseButtonState::LEFT | MouseButtonState::RIGHT))))
     {
         m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
     }
