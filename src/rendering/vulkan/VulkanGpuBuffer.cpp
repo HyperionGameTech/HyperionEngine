@@ -20,7 +20,7 @@
 
 #include <VulkanGpuBuffer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -849,4 +849,4 @@ void VulkanGpuBuffer::SetDebugName(Name name)
 
 #pragma endregion VulkanGpuBuffer
 
-} // namespace hyperion
+} // namespace Hyperion

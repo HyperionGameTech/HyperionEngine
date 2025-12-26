@@ -15,7 +15,7 @@
 
 #include <VulkanRenderPass.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -375,4 +375,4 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
     m_isRecording = false;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

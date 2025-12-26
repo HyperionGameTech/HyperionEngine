@@ -13,7 +13,7 @@
 #include <iostream>
 #include <limits>
 
-namespace hyperion {
+namespace Hyperion {
 
 UniquePtr<Buildable> Compiler::BuildArgumentsStart(
     AstVisitor* visitor,
@@ -543,4 +543,4 @@ UniquePtr<BytecodeChunk> Compiler::Compile()
     return chunk;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

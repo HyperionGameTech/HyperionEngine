@@ -15,7 +15,7 @@
 
 #include <EditName.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -92,4 +92,4 @@ void EditName::Build_Impl(const BoxedValue& boxed, const Property* property)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

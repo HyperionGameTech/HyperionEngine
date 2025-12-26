@@ -7,7 +7,7 @@
 #include <dotnet/Assembly.hpp>
 #include <dotnet/ManagedObject.hpp>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 ManagedAttributeSet::ManagedAttributeSet(Array<UniquePtr<ManagedObject>>&& values)
     : m_values(std::move(values))
@@ -21,4 +21,4 @@ ManagedAttributeSet::ManagedAttributeSet(Array<UniquePtr<ManagedObject>>&& value
     }
 }
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

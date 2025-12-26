@@ -12,7 +12,7 @@
 #include <core/memory/pool/Pool.hpp>
 #include <core/memory/allocator/SlabAllocator.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 #pragma region Cache
@@ -382,4 +382,4 @@ TypeInfo* TypeInfo::ForDynamicClass(const Class* cls)
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

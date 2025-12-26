@@ -14,7 +14,7 @@
 
 #include <VulkanAttachment.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region Helpers
 
@@ -135,4 +135,4 @@ RendererResult VulkanAttachment::Create()
 
 #pragma endregion VulkanAttachment
 
-} // namespace hyperion
+} // namespace Hyperion

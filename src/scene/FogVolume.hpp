@@ -4,7 +4,7 @@
 
 #include <scene/Volume.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 
@@ -48,4 +48,4 @@ private:
     Handle<Texture> m_noiseTexture;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

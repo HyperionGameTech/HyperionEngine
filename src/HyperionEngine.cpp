@@ -67,7 +67,7 @@
 /// ========== If this include is missing, you need to run HypBuildTool (instructions in doc/CompilingTheEngine.md) ==========
 #include <BuildToolOutput.inc>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Engine);
 
@@ -118,7 +118,6 @@ extern void InitClassDecls();
 
 Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
-Handle<EditorState> g_editorState;
 Handle<AppContextBase> g_appContext;
 Handle<StreamingManager> g_streamingManager;
 Handle<EngineStats> g_engineStats;
@@ -128,6 +127,10 @@ MaterialCache* g_materialCache;
 SafeDeleter* g_safeDeleter;
 RenderInterface* g_renderInterface;
 ShaderCompiler* g_shaderCompiler;
+
+#ifdef HYP_EDITOR
+Handle<EditorState> g_editorState;
+#endif
 
 MainThread* g_mainThreadInstance;
 SimThread* g_simThreadInstance;
@@ -450,8 +453,11 @@ extern "C"
         g_streamingManager.Reset();
 
         g_assetManager.Reset();
-        g_editorState.Reset();
         g_engineStats.Reset();
+
+#ifdef HYP_EDITOR
+        g_editorState.Reset();
+#endif
 
         delete g_shaderCompiler;
         g_shaderCompiler = nullptr;
@@ -706,4 +712,4 @@ extern "C"
 #endif
 }
 
-} // namespace hyperion
+} // namespace Hyperion

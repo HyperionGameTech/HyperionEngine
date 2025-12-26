@@ -4,7 +4,7 @@
 
 #include <audio/AudioManager.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AudioManager& AudioManager::GetInstance()
 {
@@ -99,4 +99,4 @@ void AudioManager::SetListenerOrientation(
     const float values[] = { forward.x, forward.y, forward.z, up.x, up.y, up.z };
     alListenerfv(AL_ORIENTATION, values);
 }
-} // namespace hyperion
+} // namespace Hyperion

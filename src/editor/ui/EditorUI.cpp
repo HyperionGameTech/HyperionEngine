@@ -8,7 +8,7 @@
 
 #include <core/reflection/TypeInfo.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -34,4 +34,4 @@ HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(const TypeInfo& t
     return factory;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <core/containers/Array.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 #pragma region MemoryPoolManager
@@ -117,4 +117,4 @@ MemoryPoolBase::~MemoryPoolBase()
 #pragma endregion MemoryPoolBase
 
 } // namespace memory
-} // namespace hyperion
+} // namespace Hyperion

@@ -1,9 +1,9 @@
 #include <script/compiler/Configuration.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 const SizeType Config::maxDataMembers = 255;
 const char* Config::globalModuleName = "global";
 bool Config::cullUnusedObjects = false;
 
-} // namespace hyperion
+} // namespace Hyperion

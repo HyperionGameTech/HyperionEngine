@@ -14,7 +14,7 @@
 
 #include <FBOMModelLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -33,4 +33,4 @@ AssetLoadResult FBOMModelLoader::LoadAsset(LoaderState& state) const
     return LoadedAsset { std::move(result) };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

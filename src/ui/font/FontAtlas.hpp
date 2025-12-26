@@ -20,7 +20,7 @@
 
 #include <util/img/Bitmap.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 using FontAtlasBitmap = Bitmap_RGBA8;
@@ -114,4 +114,4 @@ private:
     SymbolList m_symbolList;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

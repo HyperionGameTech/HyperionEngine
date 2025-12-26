@@ -16,7 +16,7 @@
 
 #define HYP_SIGN(value) (int(0 < int(value)) - int((value) < 0))
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 HYP_API extern void ThreadSleep(uint32 milliseconds);
@@ -535,4 +535,4 @@ using threading::ConditionVarSemaphore;
 using threading::Semaphore;
 using threading::SemaphoreDirection;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 
 #include <util/MeshBuilder.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region RenderQueue
 
@@ -444,4 +444,4 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 #pragma endregion DrawQuad
 
-} // namespace hyperion
+} // namespace Hyperion

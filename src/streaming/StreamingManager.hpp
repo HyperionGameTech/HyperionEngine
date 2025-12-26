@@ -21,7 +21,7 @@
 
 #include <streaming/Streamable.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Streaming);
 
@@ -69,4 +69,4 @@ private:
     UniquePtr<StreamingManagerThread> m_thread;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

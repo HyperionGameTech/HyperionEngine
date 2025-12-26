@@ -8,7 +8,6 @@
 #include <lightmapper/LightmapPathTraceGpu.hpp>
 #include <lightmapper/LightmapVolume.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -39,7 +38,7 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/DebugDrawer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region Render command
 
@@ -519,4 +518,4 @@ uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32
 
 #pragma endregion LightmapJob < FogVolume>
 
-} // namespace hyperion
+} // namespace Hyperion

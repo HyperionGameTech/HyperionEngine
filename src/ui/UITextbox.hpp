@@ -9,7 +9,7 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class HYP_API UITextbox : public UIPanel
@@ -90,4 +90,4 @@ protected:
     String m_placeholder;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -2,7 +2,7 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstTypeSpecifier;
 
@@ -59,4 +59,4 @@ protected:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

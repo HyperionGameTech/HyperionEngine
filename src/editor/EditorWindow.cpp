@@ -11,7 +11,7 @@
 
 #include <EditorWindow.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -114,4 +114,4 @@ void EditorWindow::Close()
 #endif
 }
 
-} // namespace hyperion
+} // namespace Hyperion

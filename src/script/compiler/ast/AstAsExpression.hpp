@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/Tribool.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstAsExpression : public AstExpression
 {
@@ -57,4 +57,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

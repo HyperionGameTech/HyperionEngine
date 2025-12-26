@@ -20,7 +20,7 @@
 
 #include <core/threading/Threads.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace RenderApi {
 extern uint32 GetFrameCounter();
@@ -421,4 +421,4 @@ void VisThread::operator()()
 
 #pragma endregion VisThread
 
-} // namespace hyperion
+} // namespace Hyperion

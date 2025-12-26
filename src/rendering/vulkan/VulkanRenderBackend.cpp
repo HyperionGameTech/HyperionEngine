@@ -47,7 +47,7 @@
     }                                               \
     while (0)
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr SizeType VulkanArenaSize = 4 * 1024 * 1024; // 4 MB for general transient allocations
 TArena<RenderAllocator>* g_vulkanArena;
@@ -1356,6 +1356,6 @@ RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExten
 
 #pragma endregion VulkanRenderBackend
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #undef CHECK_FRAME_RESULT

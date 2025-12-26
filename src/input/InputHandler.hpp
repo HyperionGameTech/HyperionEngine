@@ -12,7 +12,7 @@
 
 #include <core/memory/Pimpl.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct InputState;
 
@@ -185,4 +185,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

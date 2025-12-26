@@ -12,7 +12,7 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 RenderCommands::Buffer RenderCommands::s_buffers[2] = {};
 AtomicVar<uint32> RenderCommands::s_bufferIndex = 0;
 RenderCommands::RenderCommandSemaphore RenderCommands::s_semaphore = {};
@@ -164,4 +164,4 @@ void RenderCommands::Rewind(uint32 bufferIndex)
 
 #pragma endregion RenderCommands
 
-} // namespace hyperion
+} // namespace Hyperion

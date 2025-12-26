@@ -13,7 +13,7 @@
 
 #include <VulkanCommandBuffer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
@@ -290,4 +290,4 @@ void VulkanCommandBuffer::DebugMarkerEnd() const
 #endif
 }
 
-} // namespace hyperion
+} // namespace Hyperion

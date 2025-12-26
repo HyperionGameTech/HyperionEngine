@@ -12,7 +12,7 @@
 
 #include <util/AtlasPacker.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 class LightmapJobBase;
@@ -205,4 +205,4 @@ private:
 
 constexpr uint8 LightmapStencilMask = (1u << LightmapVolume::MaxAtlases) - 1;
 
-} // namespace hyperion
+} // namespace Hyperion

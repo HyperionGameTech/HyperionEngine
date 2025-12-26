@@ -25,7 +25,7 @@
 
 #include <cstdint>
 
-namespace hyperion {
+namespace Hyperion {
 
 class BVHNode;
 class RenderMesh;
@@ -203,4 +203,4 @@ private:
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

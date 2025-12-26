@@ -14,7 +14,6 @@
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/Texture.hpp>
@@ -30,7 +29,7 @@
 
 #include <DynamicSkySubsystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr Vec2u DefaultSkyCubemapDimensions = Vec2u { 128, 128 };
 static constexpr LockstepGameCounter::TickUnit DynamicSkyUpdateTimer = LockstepGameCounter::TickUnit(1.0f); // update every second
@@ -193,4 +192,4 @@ void DynamicSkySubsystem::Update(float delta)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

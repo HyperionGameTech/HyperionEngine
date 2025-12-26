@@ -17,7 +17,7 @@
 #include <scripting/ScriptObjectResource.hpp>
 #endif
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

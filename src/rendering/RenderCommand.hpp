@@ -20,26 +20,26 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace hyperion {
+namespace Hyperion {
 
 /*! \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push.
  *  If called from the render thread, the command is executed immediately. */
 #define PUSH_RENDER_COMMAND(name, ...)                                                                                                           \
-    if (::hyperion::IsOnThread(::hyperion::g_renderThread))                                                                                      \
+    if (::Hyperion::IsOnThread(::Hyperion::g_renderThread))                                                                                      \
     {                                                                                                                                            \
-        const ::hyperion::RendererResult commandResult = name(__VA_ARGS__).Call();                                                               \
+        const ::Hyperion::RendererResult commandResult = name(__VA_ARGS__).Call();                                                               \
         Assert(commandResult, "Render command error! [{}]: {}", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage()); \
     }                                                                                                                                            \
     else                                                                                                                                         \
     {                                                                                                                                            \
-        ::hyperion::RenderCommands::Push<name>(__VA_ARGS__);                                                                                     \
+        ::Hyperion::RenderCommands::Push<name>(__VA_ARGS__);                                                                                     \
     }
 
 /*! \brief If not on the render thread, waits for the render thread to finish executing all render commands. */
 #define HYP_SYNC_RENDER(...)                                 \
-    if (!::hyperion::IsOnThread(::hyperion::g_renderThread)) \
+    if (!::Hyperion::IsOnThread(::Hyperion::g_renderThread)) \
     {                                                        \
-        ::hyperion::RenderCommands::Wait();                  \
+        ::Hyperion::RenderCommands::Wait();                  \
     }
 
 constexpr uint32 maxRenderCommandTypes = 128;
@@ -250,8 +250,8 @@ public:
             // ... implementation here
         };
 
-        static_cast<MyCustomRenderCommand *> command = hyperion::Memory::AllocateAndConstruct<MyCustomRenderCommand>(...);
-        hyperion::RenderCommands::PushCustomRenderCommand(command);
+        static_cast<MyCustomRenderCommand *> command = Hyperion::Memory::AllocateAndConstruct<MyCustomRenderCommand>(...);
+        Hyperion::RenderCommands::PushCustomRenderCommand(command);
 
         // ... elsewhere, after the command has been executed
         HYP_FREE_ALIGNED(command);
@@ -330,4 +330,4 @@ private:
     static void Rewind(uint32 bufferIndex);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

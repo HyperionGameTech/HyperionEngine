@@ -5,7 +5,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 void SchedulerBase::RequestStop()
@@ -44,4 +44,4 @@ void SchedulerBase::WaitForTasks(Mutex& mtx, bool* outStopRequested)
 }
 
 } // namespace threading
-} // namespace hyperion
+} // namespace Hyperion

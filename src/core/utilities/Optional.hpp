@@ -8,7 +8,7 @@
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <class T, typename IsReferenceType = void>
@@ -669,4 +669,4 @@ private:
 
 using utilities::Optional;
 
-} // namespace hyperion
+} // namespace Hyperion

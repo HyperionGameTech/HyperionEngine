@@ -26,7 +26,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 static inline bool ResizeBuffer(
     Frame* frame,
@@ -503,4 +503,4 @@ void IndirectRenderer::RebuildDescriptors(Frame* frame)
 
 #pragma endregion IndirectRenderer
 
-} // namespace hyperion
+} // namespace Hyperion

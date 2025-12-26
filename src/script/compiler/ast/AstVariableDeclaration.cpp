@@ -20,7 +20,7 @@
 
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstVariableDeclaration::AstVariableDeclaration(
     const String& name,
@@ -402,4 +402,4 @@ RC<AstStatement> AstVariableDeclaration::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

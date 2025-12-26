@@ -22,7 +22,7 @@
 #include <cwchar>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace utf {
 
 #ifdef _WIN32
@@ -445,7 +445,7 @@ static inline Char32 Char8to32(const char* str)
 
     ret = 0;
 
-    hyperion::uint32 i = 0;
+    Hyperion::uint32 i = 0;
 
     const unsigned char ch = (unsigned char)str[0];
 
@@ -1029,4 +1029,4 @@ inline char* ToUtf8Chars(Char32& ch)
 }
 
 } // namespace utf
-} // namespace hyperion
+} // namespace Hyperion

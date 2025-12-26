@@ -14,7 +14,7 @@
 #include <core/Types.hpp>
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 struct DynamicAllocator;
@@ -135,4 +135,4 @@ using Arena = TArena<DynamicAllocator>;
 using memory::Arena;
 using memory::TArena;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -36,7 +36,7 @@
 
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 // #define HYP_PRINT_AST
 
@@ -443,4 +443,4 @@ Script_SymbolTable& HypScript::GetExportedSymbols(Script_Instance* instance) con
     return instance->exportedSymbols;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

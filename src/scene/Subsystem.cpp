@@ -6,7 +6,7 @@
 
 #include <Subsystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 Subsystem::Subsystem()
     : m_updatePhase(SubsystemUpdatePhase::BeforeVis)
@@ -17,4 +17,4 @@ Subsystem::~Subsystem()
 {
 }
 
-} // namespace hyperion
+} // namespace Hyperion

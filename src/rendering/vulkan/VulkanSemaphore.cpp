@@ -11,7 +11,7 @@
 
 #include <VulkanSemaphore.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
@@ -54,4 +54,4 @@ RendererResult VulkanSemaphore::Create()
     return {};
 }
 
-} // namespace hyperion
+} // namespace Hyperion

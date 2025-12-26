@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 using ubyte = uint8_t;
 
@@ -37,27 +37,31 @@ using TChar = char;
 template <SizeType Size, bool Signed>
 struct PointerSizedTypeHelper;
 
-template <> struct PointerSizedTypeHelper<4, true>
+template <>
+struct PointerSizedTypeHelper<4, true>
 {
-	using Type = int32;
+    using Type = int32;
 };
 
-template <> struct PointerSizedTypeHelper<4, false>
+template <>
+struct PointerSizedTypeHelper<4, false>
 {
-	using Type = uint32;
+    using Type = uint32;
 };
 
-template <> struct PointerSizedTypeHelper<8, true>
+template <>
+struct PointerSizedTypeHelper<8, true>
 {
-	using Type = int64;
+    using Type = int64;
 };
 
-template <> struct PointerSizedTypeHelper<8, false>
+template <>
+struct PointerSizedTypeHelper<8, false>
 {
-	using Type = uint64;
+    using Type = uint64;
 };
 
 using UIntPtr = typename PointerSizedTypeHelper<sizeof(void*), false>::Type;
 using IntPtr = typename PointerSizedTypeHelper<sizeof(void*), true>::Type;
 
-} // namespace hyperion
+} // namespace Hyperion

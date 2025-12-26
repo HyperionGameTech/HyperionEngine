@@ -7,7 +7,7 @@
 
 #include <core/utilities/Format.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum ErrorLevel
 {
@@ -252,4 +252,4 @@ private:
     String m_text;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

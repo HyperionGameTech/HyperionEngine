@@ -12,7 +12,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIObject;
 class UIStage;
@@ -75,4 +75,4 @@ private:
     Array<RunningEditorTask> m_tasks;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

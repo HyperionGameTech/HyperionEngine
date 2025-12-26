@@ -21,7 +21,7 @@
 #include <type_traits>
 #include <cstring>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace compression {
 class Archive;
@@ -195,4 +195,4 @@ private:
 
 using namespace serialization;
 
-} // namespace hyperion
+} // namespace Hyperion

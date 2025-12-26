@@ -12,7 +12,7 @@
 
 #include <rendering/vulkan/VulkanMemoryAllocator.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class VulkanGpuBuffer final : public GpuBufferBase
@@ -96,4 +96,4 @@ private:
     mutable void* m_mapping = nullptr;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

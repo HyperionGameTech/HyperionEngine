@@ -32,7 +32,7 @@
 
 #include <SSGI.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = true;
 static constexpr TextureFormat SsgiFormat = TF_RGBA8;
@@ -318,4 +318,4 @@ void SSGI::FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const
 
 #pragma endregion SSGI
 
-} // namespace hyperion
+} // namespace Hyperion

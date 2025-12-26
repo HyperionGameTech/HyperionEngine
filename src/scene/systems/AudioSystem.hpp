@@ -6,7 +6,7 @@
 #include <scene/components/AudioComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class AudioSystem : public SystemBase
@@ -32,4 +32,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

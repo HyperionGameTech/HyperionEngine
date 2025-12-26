@@ -7,7 +7,7 @@
 // based on:
 // https://eheitzresearch.wordpress.com/762-2/
 
-namespace hyperion {
+namespace Hyperion {
 
 struct BlueNoise
 {
@@ -20,4 +20,4 @@ struct BlueNoise
     static float Sample(int pixelI, int pixelJ, int sampleIndex, int sampleDimension);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

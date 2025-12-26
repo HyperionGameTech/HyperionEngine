@@ -24,7 +24,7 @@ class WebSocket
 
 #endif // HYP_LIBDATACHANNEL
 
-namespace hyperion {
+namespace Hyperion {
 
 RTCServer::RTCServer(RTCServerParams params)
     : m_params(std::move(params)),
@@ -255,4 +255,4 @@ void LibDataChannelRTCServer::SendToClient(String clientId, const ByteBuffer& by
 
 #endif // HYP_LIBDATACHANNEL
 
-} // namespace hyperion
+} // namespace Hyperion

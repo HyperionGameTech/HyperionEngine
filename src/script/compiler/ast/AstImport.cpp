@@ -17,7 +17,7 @@
 #include <iostream>
 #include <functional>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstImport::AstImport(const SourceLocation& location)
     : AstStatement(location)
@@ -215,4 +215,4 @@ void AstImport::Optimize(AstVisitor* visitor, Module* mod)
     optimizer.Optimize();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

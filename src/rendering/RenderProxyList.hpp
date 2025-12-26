@@ -16,7 +16,7 @@
 
 #include <rendering/util/ResourceTracker.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 class Camera;
@@ -182,4 +182,4 @@ public:
     uint32 readDepth = 0;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

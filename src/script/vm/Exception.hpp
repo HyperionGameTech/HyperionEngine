@@ -4,7 +4,7 @@
 
 #include <util/UTF8.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct BoxedValue;
 
@@ -52,4 +52,4 @@ private:
     char* m_str;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

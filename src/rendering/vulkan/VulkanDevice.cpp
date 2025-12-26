@@ -15,7 +15,7 @@
 
 #include <VulkanDevice.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 VulkanDevice::VulkanDevice(VkPhysicalDevice physical)
     : m_device(VK_NULL_HANDLE),
@@ -590,4 +590,4 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

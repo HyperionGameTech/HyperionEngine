@@ -4,7 +4,7 @@
 
 #include <scene/System.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 /*! \brief A base type for Systems in C# to derive to implement system behavior. */
 HYP_CLASS(Abstract)
@@ -116,4 +116,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

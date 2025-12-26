@@ -11,7 +11,7 @@
 #include <core/utilities/Traits.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace containers {
 
@@ -353,4 +353,4 @@ struct IsHashMap<containers::HashMap<Key, Value, NodeAllocatorType>> : std::true
 {
 };
 
-} // namespace hyperion
+} // namespace Hyperion

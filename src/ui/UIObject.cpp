@@ -30,7 +30,7 @@
 
 #include <UIObject.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class UIObjectFlags : uint32
 {
@@ -3113,4 +3113,4 @@ void UIObject::AssertOnOwnerThread() const
 
 #pragma endregion UIObject
 
-} // namespace hyperion
+} // namespace Hyperion

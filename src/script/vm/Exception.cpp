@@ -1,7 +1,7 @@
 #include <script/vm/Exception.hpp>
 #include <script/vm/Value.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class FormatStringType, class... Args>
 static inline Script_Exception FormattedException(FormatStringType formatString, Args&&... args)
@@ -241,4 +241,4 @@ Script_Exception Script_Exception::ClassNotFoundException(const char* className)
         className ? className : "<null>");
 }
 
-} // namespace hyperion
+} // namespace Hyperion

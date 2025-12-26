@@ -18,7 +18,7 @@
 #include <core/reflection/ObjId.hpp>
 #include <core/Util.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Entity;
 
@@ -425,4 +425,4 @@ typename ComponentContainer<Component>::FactoryInstance ComponentContainer<Compo
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

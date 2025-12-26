@@ -9,7 +9,7 @@
 #include <Windows.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace profiling {
 
 uint64 PerformanceClock::Now()
@@ -56,4 +56,4 @@ void PerformanceClock::Stop()
 }
 
 } // namespace profiling
-} // namespace hyperion
+} // namespace Hyperion

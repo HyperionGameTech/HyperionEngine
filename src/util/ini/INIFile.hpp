@@ -7,7 +7,7 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class HYP_API INIFile
 {
@@ -95,4 +95,4 @@ private:
     HashMap<String, Section> m_sections;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

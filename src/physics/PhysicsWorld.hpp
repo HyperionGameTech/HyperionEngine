@@ -7,7 +7,7 @@
 
 #include <core/math/Vector3.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract)
 class HYP_API PhysicsWorldBase : public ObjectBase
@@ -125,22 +125,22 @@ private:
     Adapter m_adapter;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifdef HYP_BULLET_PHYSICS
 
 #include <physics/bullet/Adapter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 using PhysicsWorld = TPhysicsWorld<BulletPhysicsAdapter>;
-} // namespace hyperion
+} // namespace Hyperion
 
 #else
 
 #include <physics/null/Adapter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 using PhysicsWorld = TPhysicsWorld<NullPhysicsAdapter>;
-} // namespace hyperion
+} // namespace Hyperion
 
 #endif

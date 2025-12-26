@@ -11,7 +11,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UISubsystem;
 class World;
@@ -113,4 +113,4 @@ protected:
     AtomicVar<bool> m_isLaunched;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

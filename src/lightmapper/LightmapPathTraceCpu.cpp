@@ -4,7 +4,6 @@
 #include <lightmapper/LightmapAccelerationStructure.hpp>
 #include <lightmapper/LightmapVolume.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -55,7 +54,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
@@ -455,4 +454,4 @@ float LightmapRenderer_CpuPathTracing::TraceShadowRay(LightmapJobBase* job, cons
 
 #pragma endregion LightmapRenderer_CpuPathTracing
 
-} // namespace hyperion
+} // namespace Hyperion

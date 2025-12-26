@@ -5,7 +5,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace dotnet {
 class ManagedClass;
@@ -47,4 +47,4 @@ enum ScriptLanguage : uint32
     SL_CSHARP = 2
 };
 
-} // namespace hyperion
+} // namespace Hyperion

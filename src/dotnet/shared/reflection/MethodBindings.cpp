@@ -13,7 +13,7 @@
 
 #include <dotnet/ManagedObject.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

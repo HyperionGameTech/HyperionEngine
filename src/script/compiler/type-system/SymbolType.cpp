@@ -17,7 +17,7 @@
 
 #include <core/logging/Logger.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 SlabAllocator& GetSymbolTypeAllocator()
 {
@@ -1833,4 +1833,4 @@ HashCode SymbolType::GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateN
     return hc;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

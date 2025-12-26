@@ -9,7 +9,7 @@
 
 #include <fstream>
 
-namespace hyperion {
+namespace Hyperion {
 
 ErrorList::ErrorList()
     : m_errorSuppressionDepth(0)
@@ -133,4 +133,4 @@ std::ostream& ErrorList::WriteOutput(std::ostream& os) const
     return os;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

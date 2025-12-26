@@ -6,7 +6,7 @@
 
 #include <core/containers/Array.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class UIDockableContainerFlow : uint32
 {
@@ -76,5 +76,4 @@ private:
 
 #pragma endregion UIDockableContainer
 
-} // namespace hyperion
-
+} // namespace Hyperion

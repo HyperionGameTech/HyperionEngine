@@ -9,7 +9,7 @@
 #include <Mat4f.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 const Mat4f Mat4f::identity = Mat4f::Identity();
 const Mat4f Mat4f::zeros = Mat4f::Zeros();
@@ -505,4 +505,4 @@ Mat4f Mat4f::Identity()
 {
     return Mat4f(); // constructor fills out identity matrix
 }
-} // namespace hyperion
+} // namespace Hyperion

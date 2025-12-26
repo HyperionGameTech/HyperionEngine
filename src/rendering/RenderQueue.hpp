@@ -17,7 +17,7 @@
 #include <core/debug/StackDump.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 class CmdBase;
 
@@ -878,4 +878,4 @@ TRenderQueue<AllocatorType>::~TRenderQueue()
 
 using RenderQueue = TRenderQueue<RenderAllocator>;
 
-} // namespace hyperion
+} // namespace Hyperion

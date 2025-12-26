@@ -30,7 +30,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum ProbeSystemUpdates : uint32
 {
@@ -524,4 +524,4 @@ HYP_DESCRIPTOR_CBUFF(Global, DDGIUniforms, 1, sizeof(DDGIUniforms), false);
 HYP_DESCRIPTOR_SRV(Global, DDGIIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, DDGIDepthTexture, 1);
 
-} // namespace hyperion
+} // namespace Hyperion

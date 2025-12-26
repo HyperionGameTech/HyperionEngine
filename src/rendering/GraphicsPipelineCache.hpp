@@ -16,7 +16,7 @@
 
 #include <core/Constants.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class RenderableAttributeSet;
 class CachedPipelinesMap;
@@ -108,4 +108,4 @@ private:
     Mutex m_mutex;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -10,7 +10,7 @@
 
 #include <core/utilities/Format.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 enum ErrorLevel
 {
@@ -120,6 +120,6 @@ private:
     String m_text;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

@@ -9,7 +9,7 @@
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOM.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace dotnet {
 class ManagedClass;
@@ -345,4 +345,4 @@ protected:
     DynamicStructInstance_DestructFunction m_destructFunction;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -16,7 +16,7 @@
 
 #include <PhysicsSystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 bool PhysicsSystem::ShouldProcessScene(Scene* scene) const
 {
@@ -96,4 +96,4 @@ void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -11,7 +11,7 @@
 
 #include <core/Util.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class T>
 struct Handle;
@@ -1047,4 +1047,4 @@ static inline WeakHandle<T> MakeWeakRef(const T* ptr)
     return WeakHandle<T>::FromPointer(const_cast<T*>(ptr));
 }
 
-} // namespace hyperion
+} // namespace Hyperion

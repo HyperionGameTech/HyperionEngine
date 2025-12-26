@@ -11,7 +11,7 @@
 
 #include <scene/Volume.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 
@@ -78,4 +78,4 @@ private:
     ParticleVolumeParams m_params {};
 };
 
-} // namespace hyperion
+} // namespace Hyperion

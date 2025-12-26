@@ -15,7 +15,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 class VulkanAsyncCompute final : public AsyncComputeBase
 {
@@ -41,4 +41,4 @@ private:
     bool m_isFallback;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

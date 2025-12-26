@@ -8,7 +8,7 @@
 
 #include <System.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 Name SystemBase::GetName() const
 {
@@ -31,4 +31,4 @@ void SystemBase::InitComponentInfos_Internal()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

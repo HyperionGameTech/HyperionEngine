@@ -11,7 +11,7 @@
 #include <scene/Scene.hpp>
 #include <scene/Subsystem.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIStage;
 class UIObject;
@@ -55,4 +55,4 @@ protected:
     Handle<View> m_view;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <rendering/RenderResult.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class HYP_API CrashHandler
 {
@@ -21,4 +21,4 @@ private:
     bool m_isInitialized;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

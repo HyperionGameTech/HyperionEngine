@@ -6,7 +6,7 @@
 
 #include <core/containers/Array.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIGrid;
 
@@ -179,5 +179,4 @@ private:
 
 #pragma endregion UIGrid
 
-} // namespace hyperion
-
+} // namespace Hyperion

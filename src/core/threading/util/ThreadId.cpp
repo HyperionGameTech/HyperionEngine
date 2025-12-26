@@ -11,7 +11,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 const ThreadId ThreadId::s_invalid = ThreadId();
@@ -201,4 +201,4 @@ StaticThreadId::StaticThreadId(uint32 staticThreadIndex, Name name)
 #pragma endregion StaticThreadId
 
 } // namespace threading
-} // namespace hyperion
+} // namespace Hyperion

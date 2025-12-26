@@ -24,7 +24,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Tasks);
 
@@ -1208,4 +1208,4 @@ using threading::TaskExecutorInstance;
 using threading::TaskID;
 using threading::TaskPromise;
 
-} // namespace hyperion
+} // namespace Hyperion

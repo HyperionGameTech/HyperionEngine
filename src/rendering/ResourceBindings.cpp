@@ -23,7 +23,7 @@
 
 #include <lightmapper/LightmapVolume.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace RenderApi {
 extern ResourceBinderBase* g_reflectionProbeTextureBinder;
@@ -319,4 +319,4 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
     RenderApi::AssignResourceBinding(texture, next);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

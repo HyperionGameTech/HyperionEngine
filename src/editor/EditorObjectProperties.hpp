@@ -9,7 +9,7 @@
 #include <core/math/Vector4.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -51,4 +51,4 @@ public:
     Handle<UIObject> CreateUIObject(UIObject* parent) const override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

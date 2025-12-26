@@ -16,7 +16,7 @@
 #include <script/compiler/CompilationUnit.hpp>
 #include <script/compiler/IdentifierTable.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 const SymbolType* BuiltinTypes::s_primitiveType = new SymbolType(
     "<primitive>",
@@ -509,4 +509,4 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

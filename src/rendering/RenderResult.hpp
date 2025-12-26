@@ -8,7 +8,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class RendererError final : public Error
 {
@@ -49,14 +49,14 @@ using RendererResult = TResult<void, RendererError>;
 #define HYPERION_RETURN_OK                    \
     do                                        \
     {                                         \
-        return ::hyperion::RendererResult {}; \
+        return ::Hyperion::RendererResult {}; \
     }                                         \
     while (0)
 
 #define HYPERION_PASS_ERRORS(result, outResult)        \
     do                                                 \
     {                                                  \
-        ::hyperion::RendererResult _result = (result); \
+        ::Hyperion::RendererResult _result = (result); \
         if ((outResult) && !_result)                   \
             (outResult) = _result;                     \
     }                                                  \
@@ -66,7 +66,7 @@ using RendererResult = TResult<void, RendererError>;
 #define HYP_GFX_CHECK(result)                          \
     do                                                 \
     {                                                  \
-        ::hyperion::RendererResult _result = (result); \
+        ::Hyperion::RendererResult _result = (result); \
         if (!_result)                                  \
             return _result;                            \
     }                                                  \
@@ -88,9 +88,9 @@ using RendererResult = TResult<void, RendererError>;
 #define HYPERION_IGNORE_ERRORS(result)                 \
     do                                                 \
     {                                                  \
-        ::hyperion::RendererResult _result = (result); \
+        ::Hyperion::RendererResult _result = (result); \
         (void)_result;                                 \
     }                                                  \
     while (0)
 
-} // namespace hyperion
+} // namespace Hyperion

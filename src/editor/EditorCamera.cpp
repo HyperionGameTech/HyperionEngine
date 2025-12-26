@@ -20,7 +20,7 @@
 
 #include <EditorCamera.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
@@ -305,4 +305,4 @@ void EditorCameraController::UpdateLogic(double delta)
 
 #pragma endregion EditorCameraController
 
-} // namespace hyperion
+} // namespace Hyperion

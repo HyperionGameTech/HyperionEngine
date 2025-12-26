@@ -3,7 +3,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 /*! \brief Forest is a tree-like data structure that allows for multiple root nodes and supports parent-child relationships between nodes.
@@ -463,4 +463,4 @@ private:
 
 using containers::Forest;
 
-} // namespace hyperion
+} // namespace Hyperion

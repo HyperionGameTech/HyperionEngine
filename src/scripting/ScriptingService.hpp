@@ -11,7 +11,7 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ScriptTracker;
 
@@ -63,4 +63,4 @@ private:
     AtomicVar<uint32> m_scriptEventQueueCount;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

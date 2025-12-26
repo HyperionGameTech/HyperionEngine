@@ -7,13 +7,15 @@
 #include <editor/EditorProject.hpp>
 #include <editor/EditorState.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/Mesh.hpp>
 
 #include <rendering/shadows/ShadowMap.hpp>
 
 #include <engine/DebugDrawer.hpp>
+#include <engine/EngineGlobals.hpp>
+#include <engine/EngineDriver.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Light.hpp>
@@ -63,6 +65,8 @@
 #include <ui/UIDataSource.hpp>
 #include <ui/UIWindow.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <core/net/HTTPRequest.hpp>
@@ -73,25 +77,20 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <rendering/Mesh.hpp>
-
 #include <lightmapper/LightmapperSubsystem.hpp>
 #include <lightmapper/LightmapData.hpp>
 
 #include <input/Event.hpp>
-#include <system/AppContext.hpp>
 
-#include <core/config/Config.hpp>
+#include <system/AppContext.hpp>
 
 #include <asset/ScriptAsset.hpp>
 
 #include <HyperionEngine.hpp>
-#include <engine/EngineGlobals.hpp>
-#include <engine/EngineDriver.hpp>
 
 #include <HyperionEditor.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -239,4 +238,4 @@ void HyperionEditor::OnInputEvent(const Event& event)
 
 #pragma endregion HyperionEditor
 
-} // namespace hyperion
+} // namespace Hyperion

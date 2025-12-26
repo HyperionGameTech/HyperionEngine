@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstdio>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace math {
 template <class T>
@@ -768,6 +768,6 @@ struct Formatter<StringType, math::Vec2<T>>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion
 
-HYP_DEF_STL_HASH(hyperion::Vector2);
+HYP_DEF_STL_HASH(Hyperion::Vector2);

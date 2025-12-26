@@ -9,7 +9,7 @@
 
 #define HYP_SCRIPT_TYPEOF_RETURN_OBJECT 1
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstTypeRef;
 
@@ -49,4 +49,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

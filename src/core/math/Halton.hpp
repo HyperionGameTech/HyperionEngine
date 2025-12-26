@@ -7,7 +7,7 @@
 #include <core/debug/Debug.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct HaltonSequence
 {
@@ -44,4 +44,4 @@ struct HaltonSequence
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

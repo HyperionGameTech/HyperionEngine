@@ -75,7 +75,7 @@
 
 #include <RenderInterface.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static_assert(RingBufferDepth <= MinSafeDeleteCycles,
     "RingBufferDepth must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
@@ -1808,4 +1808,4 @@ DECLARE_RENDER_DATA_CONTAINER(Skeleton, RenderProxySkeleton, GRB_SKELETONS, null
 
 } // namespace RenderApi
 
-} // namespace hyperion
+} // namespace Hyperion

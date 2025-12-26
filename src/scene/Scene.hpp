@@ -24,7 +24,7 @@
 
 #include <asset/AssetObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Scene);
 
@@ -264,4 +264,4 @@ private:
     Vec2i m_streamingCentroid;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

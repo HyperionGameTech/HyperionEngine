@@ -2,10 +2,10 @@
 
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 BytecodeChunk::BytecodeChunk()
 {
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 FontEngine& FontEngine::GetInstance()
 {
@@ -52,7 +52,7 @@ FontEngine::Backend FontEngine::GetFontBackend()
     return m_backend;
 }
 
-hyperion::FontFace FontEngine::LoadFont(const FilePath& path)
+Hyperion::FontFace FontEngine::LoadFont(const FilePath& path)
 {
     if (m_backend == nullptr)
     {
@@ -62,4 +62,4 @@ hyperion::FontFace FontEngine::LoadFont(const FilePath& path)
     return { GetFontBackend(), path };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

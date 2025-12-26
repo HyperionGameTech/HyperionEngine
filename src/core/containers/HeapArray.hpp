@@ -9,7 +9,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 template <class T, SizeType Sz>
@@ -18,7 +18,7 @@ class HeapArray : public ContainerBase<HeapArray<T, Sz>, SizeType>
     T* m_values;
 
 public:
-    static constexpr bool IsContiguous = true;
+    static constexpr bool isContiguous = true;
 
     using Base = ContainerBase<HeapArray<T, Sz>, SizeType>;
 
@@ -158,4 +158,4 @@ HeapArray<T, Sz>::~HeapArray()
 
 using containers::HeapArray;
 
-} // namespace hyperion
+} // namespace Hyperion

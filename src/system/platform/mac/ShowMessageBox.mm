@@ -5,7 +5,7 @@
 
 #include <core/threading/Task.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C" {
 
@@ -16,7 +16,7 @@ int ShowMessageBox(
     int buttons,
     const char* buttonTexts[3],
     const void* buttonFuncs[3],
-    hyperion::TaskPromise<void>* promise)
+    Hyperion::TaskPromise<void>* promise)
 {
     __block int returnValue = -1;
     __block bool doAsyncCall = ![NSThread isMainThread];

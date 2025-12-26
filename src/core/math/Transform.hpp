@@ -10,7 +10,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(Size = 48, Serialize = "bitwise")
 struct alignas(16) HYP_API Transform
@@ -89,7 +89,7 @@ struct alignas(16) HYP_API Transform
 
         return t * r * s;
     }
-    
+
     HYP_FORCE_INLINE explicit operator Mat4f() const
     {
         return GetMatrix();
@@ -106,7 +106,7 @@ struct alignas(16) HYP_API Transform
             && scale == other.scale
             && rotation == other.rotation;
     }
-    
+
     HYP_FORCE_INLINE bool operator!=(const Transform& other) const
     {
         return translation != other.translation
@@ -122,4 +122,4 @@ struct alignas(16) HYP_API Transform
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

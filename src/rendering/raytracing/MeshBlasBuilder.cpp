@@ -21,7 +21,7 @@
 
 #include <core/memory/resource/Resource.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct BuildMeshBlas : public RenderCommand
 {
@@ -142,4 +142,4 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
     return blas;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

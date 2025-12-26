@@ -18,7 +18,7 @@
 
 #include <system/AppContext.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
@@ -118,4 +118,4 @@ void MainThread::operator()()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

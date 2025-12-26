@@ -13,7 +13,7 @@
 #include <cmath>
 #include <cstdio>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct Quaternion;
 class Mat3f;
@@ -766,6 +766,6 @@ struct Formatter<StringType, math::Vec3<T>>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion
 
-HYP_DEF_STL_HASH(hyperion::Vector3);
+HYP_DEF_STL_HASH(Hyperion::Vector3);

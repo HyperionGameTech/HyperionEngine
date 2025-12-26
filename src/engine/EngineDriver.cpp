@@ -16,7 +16,6 @@
 #include <engine/threads/VisThread.hpp>
 
 #include <rendering/PostFX.hpp>
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
@@ -82,7 +81,7 @@
 
 #include <EngineDriver.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 void HandleSignal(int signum);
 
@@ -534,7 +533,12 @@ void EngineDriver::UpdateSim(float delta)
         world->EndUpdate();
     }
 
-    enum UpdatedEntitiesBucket { Bucket_RenderProxy, Bucket_Visibility, Bucket_Max };
+    enum UpdatedEntitiesBucket
+    {
+        Bucket_RenderProxy,
+        Bucket_Visibility,
+        Bucket_Max
+    };
 
     Array<Entity*, SceneAllocator> updatedEntities[Bucket_Max];
 
@@ -699,4 +703,4 @@ static struct GlobalDescriptorSetsDeclarations
     }
 } s_globalDescriptorSetsDeclarations;
 
-} // namespace hyperion
+} // namespace Hyperion

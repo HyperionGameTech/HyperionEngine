@@ -19,7 +19,7 @@
 #include <engine/DebugDrawer.hpp>
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 RenderEnvironment::RenderEnvironment()
 {
@@ -36,4 +36,4 @@ void RenderEnvironment::Initialize()
     InitObject(m_gaussianSplatting);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -16,7 +16,7 @@
 
 #include <streaming/Streamable.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class WorldGrid;
 class Scene;
@@ -130,4 +130,4 @@ protected:
     Array<AssetReference, DynamicAllocator> m_assetReferences;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 class ManagedObject;
 
@@ -78,4 +78,4 @@ private:
     ManagedAttributeSet m_attributes;
 };
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

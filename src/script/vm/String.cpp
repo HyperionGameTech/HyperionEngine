@@ -1,5 +1,5 @@
 #include <script/vm/String.hpp>
 #include <iostream>
-namespace hyperion {
+namespace Hyperion {
 
-} // namespace hyperion
+} // namespace Hyperion

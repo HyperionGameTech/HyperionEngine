@@ -19,7 +19,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct BoundingBox;
 struct Triangle;
@@ -203,4 +203,4 @@ public:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

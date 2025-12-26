@@ -6,7 +6,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIStage;
 
@@ -82,5 +82,4 @@ private:
 
 #pragma endregion UIPanel
 
-} // namespace hyperion
-
+} // namespace Hyperion

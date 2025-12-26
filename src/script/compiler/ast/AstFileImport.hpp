@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstFileImport : public AstImport
 {
@@ -36,4 +36,4 @@ protected:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

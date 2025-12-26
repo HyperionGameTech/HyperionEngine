@@ -7,7 +7,7 @@
 #include <csignal>
 #include <cstdio>
 
-namespace hyperion {
+namespace Hyperion {
 namespace debug {
 
 HYP_API extern char* GetErrorStringBuffer();
@@ -54,7 +54,7 @@ HYP_API extern void LogAssert(const char* str);
 } // namespace debug
 
 using debug::LogType;
-} // namespace hyperion
+} // namespace Hyperion
 
 #if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
 #define HYP_THROW(msg) throw ::std::runtime_error(msg)

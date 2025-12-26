@@ -19,8 +19,8 @@
 
 #include <util/Util.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
@@ -165,7 +165,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     writer.WriteString("#include <core/reflection/Class.hpp>\n");
     writer.WriteString("#include <core/reflection/ObjectMacros.hpp>\n\n");
 
-    writer.WriteString("namespace hyperion {\n\n");
+    writer.WriteString("namespace Hyperion {\n\n");
 
     // Collect all Class definitions from builtins and modules
     struct ClassInfo
@@ -225,7 +225,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     {
         const ClassDefinition& cls = *classInfo.definition;
 
-        if (cls.namespaceParts.Empty() || cls.namespaceParts[0] != "hyperion")
+        if (cls.namespaceParts.Empty() || cls.namespaceParts[0] != BaseNamespace)
         {
             return HYP_MAKE_ERROR(Error, "Class '{}' is not in the 'hyperion' namespace", cls.name);
         }
@@ -300,12 +300,9 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     {
         const ClassDefinition& cls = *classInfo.definition;
 
-        // Build a namespace-qualified name for the template parameter. The file is inside
-        // `namespace hyperion { ... }`, so drop the leading 'hyperion' component when present
-        // to produce e.g. `gfx::Mesh` instead of `hyperion::gfx::Mesh`.
         String qualifiedName;
 
-        if (cls.namespaceParts.Any() && cls.namespaceParts[0] == "hyperion")
+        if (cls.namespaceParts.Any() && cls.namespaceParts[0] == BaseNamespace)
         {
             Array<String> ns = cls.namespaceParts;
             ns.PopFront();
@@ -333,7 +330,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
     writer.WriteString("}\n\n");
 
-    writer.WriteString("} // namespace hyperion\n");
+    writer.WriteString("} // namespace Hyperion\n");
 
     return {};
 }
@@ -375,7 +372,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             writer.WriteString("#include <dotnet/ManagedMethod.hpp>\n");
         }
 
-        writer.WriteString("\nnamespace hyperion {\n\n");
+        writer.WriteString("\nnamespace Hyperion {\n\n");
 
         writer.WriteString(HYP_FORMAT("#pragma region {} Reflection Data\n\n", cls.name));
 
@@ -636,7 +633,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             writer.WriteString(HYP_FORMAT("static const ClassCallbackRegistration<ClassCallbackType::ON_POST_LOAD> g_post_load_{}(TypeId::ForType<{}>(), ValueWrapper<{}>());\n", cls.name, cls.name, postLoadAttributeValue.GetString()));
         }
 
-        writer.WriteString("} // namespace hyperion\n\n");
+        writer.WriteString("} // namespace Hyperion\n\n");
     }
 
     return {};
@@ -718,7 +715,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
             addInclude("dotnet/ManagedMethod.hpp");
         }
 
-        writer.WriteString("\nnamespace hyperion {\n\n");
+        writer.WriteString("\nnamespace Hyperion {\n\n");
 
         writer.WriteString(HYP_FORMAT("#pragma region {} Reflection Data\n\n", cls.name));
 
@@ -983,11 +980,11 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
             writer.WriteString(HYP_FORMAT("static const ClassCallbackRegistration<ClassCallbackType::ON_POST_LOAD> g_post_load_{}(TypeId::ForType<{}>(), ValueWrapper<{}>());\n", cls.name, cls.name, postLoadAttributeValue.GetString()));
         }
 
-        writer.WriteString("} // namespace hyperion\n\n");
+        writer.WriteString("} // namespace Hyperion\n\n");
     }
 
     return {};
 }
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion

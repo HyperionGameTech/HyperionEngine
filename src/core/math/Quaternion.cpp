@@ -9,7 +9,7 @@
 #include <Quaternion.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 Quaternion::Quaternion()
     : x(0.0),
@@ -337,4 +337,4 @@ Quaternion Quaternion::AxisAngles(const Vec3f& axis, float radians)
     return Quaternion(axis, radians);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

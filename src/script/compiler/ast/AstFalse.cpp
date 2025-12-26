@@ -10,7 +10,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstFalse::AstFalse(const SourceLocation& location)
     : AstConstant(ConstantValue(false, CBS_8), location)
@@ -45,4 +45,4 @@ const SymbolType* AstFalse::GetExprType() const
     return BuiltinTypes::s_boolType;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

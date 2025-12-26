@@ -10,7 +10,7 @@ class btCollisionDispatcher;
 class btSequentialImpulseConstraintSolver;
 class btDiscreteDynamicsWorld;
 
-namespace hyperion {
+namespace Hyperion {
 
 class HYP_API BulletPhysicsAdapter : public PhysicsAdapter<BulletPhysicsAdapter>
 {
@@ -38,4 +38,4 @@ private:
     btDiscreteDynamicsWorld* m_dynamicsWorld;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

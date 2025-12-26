@@ -18,7 +18,7 @@
 #include <core/utilities/Traits.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace containers {
 
@@ -39,7 +39,7 @@ class LinkedList : public ContainerBase<LinkedList<T, AllocatorType>, SizeType>
     using Node = containers::LinkedListNode<T, AllocatorType>;
 
 public:
-    static constexpr bool IsContiguous = false;
+    static constexpr bool isContiguous = false;
 
     struct ConstIterator;
 
@@ -727,4 +727,4 @@ struct IsLinkedList<containers::LinkedList<T, AllocatorType>> : std::true_type
 {
 };
 
-} // namespace hyperion
+} // namespace Hyperion

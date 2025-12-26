@@ -10,7 +10,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 class ThreadId;
@@ -70,4 +70,4 @@ protected:
 
 using threading::TaskThread;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -22,7 +22,7 @@
 #include <vulkan/vulkan_xlib.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 class ApplicationWindow;
 
@@ -213,4 +213,4 @@ private:
     FixedArray<VulkanCommandBufferRef, NumFramesInFlight> m_commandBuffers;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 #include <parser/SourceFile.hpp>
 #include <util/UTF8.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 class SourceStream
 {
@@ -40,6 +40,6 @@ private:
     SizeType m_position;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

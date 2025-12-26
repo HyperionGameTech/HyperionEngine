@@ -17,7 +17,7 @@
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class World;
 class Light;
@@ -308,4 +308,4 @@ private:
     typename PassDataMap::Iterator m_viewPassDataCleanupIterator;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -31,7 +31,7 @@
 #include <editor/EditorState.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(SimThread);
 
@@ -190,4 +190,4 @@ void SimThread::operator()()
 
 #pragma endregion SimThread
 
-} // namespace hyperion
+} // namespace Hyperion

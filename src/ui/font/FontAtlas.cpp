@@ -22,7 +22,7 @@
 
 #include <FontAtlas.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Font);
 
@@ -353,4 +353,4 @@ json::JSONValue FontAtlas::GenerateMetadataJSON(const String& outputDirectory) c
 
 #pragma endregion FontAtlas
 
-}; // namespace hyperion
+}; // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <core/containers/FlatSet.hpp>
 
-namespace hyperion::json {
+namespace Hyperion::json {
 
 ErrorList::ErrorList()
     : m_errorSuppressionDepth(0)
@@ -53,4 +53,4 @@ bool ErrorList::HasFatalErrors() const
         != m_errors.End();
 }
 
-} // namespace hyperion::json
+} // namespace Hyperion::json

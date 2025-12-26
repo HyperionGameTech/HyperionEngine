@@ -6,7 +6,7 @@
 
 #include <BVH.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 void BVHNode::QuantizeTriangleData(
     Span<const Vertex> vertexData,
@@ -36,4 +36,4 @@ void BVHNode::QuantizeTriangleData(
     outQuantizedIndexData.Write(indexBufferSize, 0, indexData.Data());
 }
 
-} // namespace hyperion
+} // namespace Hyperion

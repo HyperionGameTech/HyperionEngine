@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -328,4 +328,4 @@ private:
     Array<AssetBatch*> m_completedBatches;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

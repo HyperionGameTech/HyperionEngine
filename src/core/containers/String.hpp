@@ -25,7 +25,7 @@
 #include <type_traits>
 #include <cctype>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_MAKE_HAS_METHOD(ToString);
 
@@ -55,7 +55,7 @@ public:
     using Iterator = typename utilities::StringView<TStringType>::Iterator;
     using ConstIterator = typename utilities::StringView<TStringType>::ConstIterator;
 
-    static constexpr bool IsContiguous = true;
+    static constexpr bool isContiguous = true;
 
     static const String empty;
 
@@ -486,7 +486,7 @@ public:
     template <class... SeparatorType>
     HYP_NODISCARD auto Split(SeparatorType... separators) const
     {
-        hyperion::FixedArray<WidestCharType, sizeof...(separators)> separatorValues { WidestCharType(separators)... };
+        Hyperion::FixedArray<WidestCharType, sizeof...(separators)> separatorValues { WidestCharType(separators)... };
 
         const CharType* data = Base::Data();
         const SizeType size = Size();
@@ -938,7 +938,7 @@ public:
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return HashCode(::hyperion::FNV1::DoHashString(Data()));
+        return HashCode(::Hyperion::FNV1::DoHashString(Data()));
     }
 
     HYP_DEF_STL_BEGIN_END(Base::Data(), Base::Data() + Size())
@@ -1792,10 +1792,10 @@ inline containers::String<TStringType> operator+(const typename containers::Stri
     return containers::String<TStringType>(lhs) + rhs;
 }
 
-} // namespace hyperion
+} // namespace Hyperion
 
-HYP_DEF_STL_HASH(hyperion::String);
-HYP_DEF_STL_HASH(hyperion::ANSIString);
-HYP_DEF_STL_HASH(hyperion::WideString);
-HYP_DEF_STL_HASH(hyperion::UTF16String);
-HYP_DEF_STL_HASH(hyperion::UTF32String);
+HYP_DEF_STL_HASH(Hyperion::String);
+HYP_DEF_STL_HASH(Hyperion::ANSIString);
+HYP_DEF_STL_HASH(Hyperion::WideString);
+HYP_DEF_STL_HASH(Hyperion::UTF16String);
+HYP_DEF_STL_HASH(Hyperion::UTF32String);

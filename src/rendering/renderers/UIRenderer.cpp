@@ -2,7 +2,6 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Buffers.hpp>
@@ -34,7 +33,7 @@
 
 #include <UIRenderer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -293,4 +292,4 @@ Handle<PassData> UIRenderer::CreateViewPassData(View* view, PassDataExt&)
 
 #pragma endregion UIRenderer
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -20,7 +20,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Event;
 class InputManager;
@@ -131,4 +131,4 @@ private:
     Array<Vec2f> m_characterOffsets;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -19,7 +19,7 @@
 
 #define HYP_CLASS_REGISTRY_USE_TLS 1
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API const Class* g_hypObjectBaseClass = nullptr;
 
@@ -346,4 +346,4 @@ void ClassRegistry::Initialize()
 
 #pragma endregion ClassRegistry
 
-} // namespace hyperion
+} // namespace Hyperion

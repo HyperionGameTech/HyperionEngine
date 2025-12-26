@@ -17,8 +17,8 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 struct ASTType;
 struct ASTMemberDecl;
@@ -152,7 +152,7 @@ struct ClassDefinition
     }
 };
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion
 
 #endif

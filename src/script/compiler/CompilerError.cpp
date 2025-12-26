@@ -1,6 +1,6 @@
 #include <script/compiler/CompilerError.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     /* Fatal errors */
@@ -181,4 +181,4 @@ bool CompilerError::operator<(const CompilerError& other) const
     return m_text < other.m_text;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

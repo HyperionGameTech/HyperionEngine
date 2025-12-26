@@ -14,7 +14,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class BufferedReader;
 
@@ -208,8 +208,8 @@ public:
         return FilePath(String::Join(argsArray, HYP_FILESYSTEM_SEPARATOR));
     }
 
-    HYP_API hyperion::containers::Array<FilePath, DynamicAllocator> GetAllFilesInDirectory() const;
-    HYP_API hyperion::containers::Array<FilePath, DynamicAllocator> GetSubdirectories() const;
+    HYP_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetAllFilesInDirectory() const;
+    HYP_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetSubdirectories() const;
 
     HYP_API SizeType DirectorySize() const;
     HYP_API SizeType FileSize() const;
@@ -238,4 +238,4 @@ struct Formatter<StringType, FilePath>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

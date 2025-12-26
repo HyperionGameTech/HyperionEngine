@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstIterator
 {
@@ -83,4 +83,4 @@ private:
     Array<RC<AstStatement>> m_list;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -36,7 +36,7 @@
 #endif
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 #ifdef HYP_DEBUG_MODE
 constexpr bool EnableVulkanSynchronizationValidation = true;
@@ -477,4 +477,4 @@ RendererResult VulkanInstance::CreateDevice(VkPhysicalDevice physicalDevice, VkS
     return {};
 }
 
-} // namespace hyperion
+} // namespace Hyperion

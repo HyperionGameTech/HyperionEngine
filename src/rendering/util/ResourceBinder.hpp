@@ -7,7 +7,7 @@
 
 #include <core/logging/LoggerFwd.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern SizeType GetNumDescendants(TypeId typeId);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
@@ -572,4 +572,4 @@ protected:
     Bitset m_subclassImplsInitialized;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -35,7 +35,7 @@
 
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 using namespace dotnet;
 
@@ -712,4 +712,4 @@ void DotNETHost::Shutdown()
     m_isInitialized = false;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -4,7 +4,7 @@
 
 #include <util/BlueNoise.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 const SizeType BlueNoise::totalBufferSize = sizeof(sobol256spp256d) + sizeof(scramblingTile) + sizeof(rankingTile);
 
@@ -44,4 +44,4 @@ float BlueNoise::Sample(int pixelI, int pixelJ, int sampleIndex, int sampleDimen
     return v;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -13,7 +13,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Script_HashMap
 {
@@ -77,4 +77,4 @@ private:
     InternalMapType m_map;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

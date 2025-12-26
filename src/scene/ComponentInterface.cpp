@@ -8,7 +8,7 @@
 
 #include <core/reflection/TypeInfo.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outHypData)
 {
@@ -74,4 +74,4 @@ void ComponentInterfaceRegistry::Register(TypeId typeId, UniquePtr<IComponentInt
 
 #pragma endregion ComponentInterfaceRegistry
 
-} // namespace hyperion
+} // namespace Hyperion

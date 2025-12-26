@@ -9,7 +9,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum InstructionStreamContextType : uint32
 {
@@ -183,4 +183,4 @@ private:
     Tree<InstructionStreamContext> m_contextTree;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

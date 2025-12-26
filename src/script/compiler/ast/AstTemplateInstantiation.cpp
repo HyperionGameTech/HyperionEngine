@@ -21,7 +21,7 @@
 
 #include <util/UTF8.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstTemplateInstantiation::AstTemplateInstantiation(
     const RC<AstExpression>& expr,
@@ -134,4 +134,4 @@ RC<AstStatement> AstTemplateInstantiation::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -17,7 +17,7 @@
 #include <cstddef>
 #include <memory>
 
-namespace hyperion {
+namespace Hyperion {
 namespace functional {
 
 template <class FunctionSignature, class MemoryType>
@@ -524,4 +524,4 @@ private:
 using functional::Proc;
 using functional::ProcRef;
 
-} // namespace hyperion
+} // namespace Hyperion

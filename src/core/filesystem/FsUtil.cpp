@@ -22,7 +22,7 @@
 #include <unistd.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace filesystem {
 
 bool FileSystem::DirExists(const std::string& path)
@@ -92,4 +92,4 @@ std::string FileSystem::RelativePath(const std::string& path, const std::string&
 }
 
 } // namespace filesystem
-} // namespace hyperion
+} // namespace Hyperion

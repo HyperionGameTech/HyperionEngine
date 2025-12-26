@@ -18,7 +18,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AsyncComputeBase
 {
@@ -32,7 +32,7 @@ public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

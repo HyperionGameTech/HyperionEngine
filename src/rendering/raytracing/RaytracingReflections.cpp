@@ -32,7 +32,7 @@
 
 #include <RaytracingReflections.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region Render commands
 
@@ -298,4 +298,4 @@ void RaytracingReflections::CreateTemporalBlending()
     m_temporalBlending->Create();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

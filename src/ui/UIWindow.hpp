@@ -9,7 +9,7 @@
 
 #include <core/math/Vector2.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region UIWindow
 
@@ -65,5 +65,4 @@ private:
 
 #pragma endregion UIWindow
 
-} // namespace hyperion
-
+} // namespace Hyperion

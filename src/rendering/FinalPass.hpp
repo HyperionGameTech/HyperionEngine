@@ -11,7 +11,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ShaderManager;
 class FullScreenPass;
@@ -48,4 +48,4 @@ private:
     Handle<Mesh> m_quadMesh;
     GpuImageViewRef m_uiLayerImageView;
 };
-} // namespace hyperion
+} // namespace Hyperion

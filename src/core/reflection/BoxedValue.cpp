@@ -7,7 +7,7 @@
 
 #include <core/utilities/Format.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 static HashMap<TypeId, HypDataSerializeFunction>& GetHypDataSerializeFunctionMap()
 {
@@ -54,4 +54,4 @@ HYP_API void SetHypDataFromReference(BoxedValue& boxed, AnyRef ref)
     HypDataHelper<AnyRef> {}.Set(boxed, ref);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

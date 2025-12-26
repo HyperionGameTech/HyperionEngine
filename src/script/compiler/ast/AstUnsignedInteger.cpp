@@ -15,7 +15,7 @@
 #include <limits>
 #include <cmath>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstUnsignedInteger::AstUnsignedInteger(uint64 value, ConstantBitSize bitSize, const SourceLocation& location)
     : AstConstant(ConstantValue(value, bitSize), location)
@@ -74,4 +74,4 @@ const SymbolType* AstUnsignedInteger::GetExprType() const
         HYP_UNREACHABLE();
     }
 }
-} // namespace hyperion
+} // namespace Hyperion

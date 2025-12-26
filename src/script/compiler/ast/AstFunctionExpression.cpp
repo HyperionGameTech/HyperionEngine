@@ -34,7 +34,7 @@
 
 #include <util/UTF8.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstFunctionExpression::AstFunctionExpression(
     const Array<RC<AstParameter>>& parameters,
@@ -483,7 +483,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(member.GetType(), m_location)),
                     m_location)),
-                nullptr,                  // placeholder; set later
+                nullptr,                                             // placeholder; set later
                 IdentifierFlags::PLACEHOLDER | IdentifierFlags::LAX, // don't emit errors for null assignment
                 m_location)));
         }
@@ -749,4 +749,4 @@ const SymbolType* AstFunctionExpression::GetExprType() const
     return m_symbolType;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

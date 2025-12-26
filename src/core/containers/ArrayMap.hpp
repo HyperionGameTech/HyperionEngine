@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 /*! \brief Super basic map type - linear array of key-value pairs, not sorted or hashed in any way.
@@ -321,4 +321,4 @@ struct IsArrayMap<containers::ArrayMap<Key, Value>> : std::true_type
 {
 };
 
-} // namespace hyperion
+} // namespace Hyperion

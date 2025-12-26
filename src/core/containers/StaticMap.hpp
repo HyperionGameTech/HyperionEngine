@@ -6,7 +6,7 @@
 
 #include <array>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 template <class Key, class Value, SizeType Size>
@@ -131,4 +131,4 @@ using StaticMap = containers::StaticMap<Key, Value, Size>;
 
 using containers::ConcatStaticMaps;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -9,7 +9,7 @@
 #include <zlib.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace compression {
 
 #pragma region ArchiveBuilder
@@ -155,4 +155,4 @@ Result Archive::Decompress(ByteBuffer& outBuffer) const
 #pragma endregion Archive
 
 } // namespace compression
-} // namespace hyperion
+} // namespace Hyperion

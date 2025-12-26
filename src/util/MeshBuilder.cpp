@@ -10,7 +10,7 @@
 
 #include <scene/util/VoxelOctree.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 const Array<Vertex> MeshBuilder::quadVertices = {
     Vertex { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
@@ -464,4 +464,4 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
     return mesh;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -13,7 +13,7 @@
 
 #include <FontAtlasLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 using namespace json;
 
@@ -191,4 +191,4 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
     return AssetLoadResult { fontAtlas };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

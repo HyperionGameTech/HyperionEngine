@@ -27,7 +27,7 @@
 
 #include <VulkanGpuImage.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr SizeType MaxImageBytes = 1024 * 1024 * 1024; // 1 GiB
 
@@ -435,7 +435,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
 
             VulkanFrame* frame = GetRenderBackend()->GetCurrentFrame();
             RenderQueue& renderQueue = frame->renderQueue;
-            renderQueue << ::hyperion::InsertBarrier(this, previousResourceState);
+            renderQueue << ::Hyperion::InsertBarrier(this, previousResourceState);
         }
     }
 
@@ -945,4 +945,4 @@ void VulkanGpuImage::SetDebugName(Name name)
 
 #pragma endregion VulkanGpuImage
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -15,7 +15,7 @@
 
 #include <scene/System.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace threading {
 class TaskBatch;
@@ -151,4 +151,4 @@ private:
 #endif
 };
 
-} // namespace hyperion
+} // namespace Hyperion

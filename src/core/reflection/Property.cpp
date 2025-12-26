@@ -7,7 +7,7 @@
 
 #include <core/reflection/TypeInfo.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 const Class* Property::GetClass() const
 {
@@ -19,4 +19,4 @@ const Class* Property::GetClass() const
     return m_typeInfo->GetClass();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

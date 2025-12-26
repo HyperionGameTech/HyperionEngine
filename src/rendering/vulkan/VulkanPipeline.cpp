@@ -10,7 +10,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -77,4 +77,4 @@ void VulkanPipelineBase::SetDebugName(Name name)
 
 #pragma endregion VulkanPipelineBase
 
-} // namespace hyperion
+} // namespace Hyperion

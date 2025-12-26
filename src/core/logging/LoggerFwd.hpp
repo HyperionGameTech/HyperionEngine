@@ -9,9 +9,9 @@
 #include <core/Types.hpp>
 
 #define HYP_DECLARE_LOG_CHANNEL(name) \
-    extern hyperion::logging::LogChannel g_logChannel_##name
+    extern Hyperion::logging::LogChannel g_logChannel_##name
 
-namespace hyperion {
+namespace Hyperion {
 namespace logging {
 
 class Logger;
@@ -50,21 +50,21 @@ using logging::LogLevel;
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifdef HYP_LOG
 #error "HYP_LOG already defined!"
 #endif
 
 #define HYP_LOG(channel, category, fmt, ...) \
-    hyperion::logging::LogStatic<HYP_MAKE_CONST_ARG(&hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(hyperion::logging::GetLogger(), ##__VA_ARGS__)
+    Hyperion::logging::LogStatic<HYP_MAKE_CONST_ARG(&Hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(Hyperion::logging::GetLogger(), ##__VA_ARGS__)
 
 #define HYP_LOG_DYNAMIC(channel, category, str) \
-    hyperion::logging::LogDynamic<HYP_MAKE_CONST_ARG(&hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel)>(hyperion::logging::GetLogger(), str)
+    Hyperion::logging::LogDynamic<HYP_MAKE_CONST_ARG(&Hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel)>(Hyperion::logging::GetLogger(), str)
 
 #ifdef HYP_DEBUG_MODE
 #define HYP_LOG_TEMP(fmt, ...) \
-    hyperion::logging::LogTemp(hyperion::logging::GetLogger(), &(HYP_FORMAT(fmt, ##__VA_ARGS__))[0])
+    Hyperion::logging::LogTemp(Hyperion::logging::GetLogger(), &(HYP_FORMAT(fmt, ##__VA_ARGS__))[0])
 #else
 #define HYP_LOG_TEMP(fmt, ...)
 #endif

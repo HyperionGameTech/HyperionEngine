@@ -2,7 +2,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum TriboolValue : int8
 {
@@ -81,5 +81,4 @@ private:
     TriboolValue m_value;
 };
 
-} // namespace hyperion
-
+} // namespace Hyperion

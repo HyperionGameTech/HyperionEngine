@@ -97,7 +97,7 @@
 
 #include <EditorSubsystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Editor);
 
@@ -3647,4 +3647,4 @@ void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
 
 #pragma endregion EditorSubsystem
 
-} // namespace hyperion
+} // namespace Hyperion

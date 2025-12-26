@@ -33,7 +33,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstArrayExpression::AstArrayExpression(
     const Array<RC<AstExpression>>& members,
@@ -309,4 +309,4 @@ bool AstArrayExpression::IsMutable() const
     return true;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

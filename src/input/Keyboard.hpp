@@ -5,7 +5,7 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class InputManager;
 class Event;
@@ -107,4 +107,4 @@ struct KeyboardEvent
     KeyCode keyCode = KeyCode::KEY_UNKNOWN;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -7,6 +7,6 @@
 
 #include <Mouse.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
-} // namespace hyperion
+} // namespace Hyperion

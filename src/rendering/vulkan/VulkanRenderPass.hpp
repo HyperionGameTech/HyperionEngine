@@ -15,7 +15,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 constexpr ResourceState PreRenderResourceStates[2] = {
     // CLEAR=0, LOAD=1
@@ -117,4 +117,4 @@ private:
 using VulkanRenderPassRef = Handle<VulkanRenderPass>;
 using VulkanRenderPassWeakRef = WeakHandle<VulkanRenderPass>;
 
-} // namespace hyperion
+} // namespace Hyperion

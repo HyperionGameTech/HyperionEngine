@@ -7,7 +7,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Camera;
 class View;
@@ -68,4 +68,4 @@ protected:
     ApplicationWindow* m_window;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

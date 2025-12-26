@@ -13,7 +13,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(Size = 224, Serialize = "bitwise")
 struct HYP_API Frustum
@@ -71,4 +71,4 @@ struct HYP_API Frustum
     Vec3f GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint32 planeIndex2) const;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

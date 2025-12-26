@@ -8,7 +8,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Entity;
 
@@ -37,8 +37,8 @@ enum class EntityTag : uint64
     UpdateRenderProxy,
     UpdateVisibility,
 
-    EntityType = 2147483648,                // Flag to indicate that this EntityTag is an EntityType tag
-    EntityTypeMask = 0xFFFFFFFF00000000     // Mask to get TypeId from the vaue
+    EntityType = 2147483648,            // Flag to indicate that this EntityTag is an EntityType tag
+    EntityTypeMask = 0xFFFFFFFF00000000 // Mask to get TypeId from the vaue
 };
 
 static constexpr inline bool IsEntityTypeTag(EntityTag tag)
@@ -107,4 +107,4 @@ struct TagComponent : TagComponentBase
 template <class T>
 using EntityType = TagComponent<EntityType_Impl<T>::value>;
 
-} // namespace hyperion
+} // namespace Hyperion

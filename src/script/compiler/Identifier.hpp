@@ -8,7 +8,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scope;
 class AstExpression;
@@ -158,4 +158,4 @@ private:
     Scope* m_declScope;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

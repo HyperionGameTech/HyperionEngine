@@ -29,7 +29,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 struct BoxedValue;
@@ -437,4 +437,4 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

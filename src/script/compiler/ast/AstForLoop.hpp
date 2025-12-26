@@ -6,7 +6,7 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstForLoop : public AstStatement
 {
@@ -62,4 +62,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstTernaryExpression : public AstExpression
 {
@@ -58,4 +58,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -12,7 +12,7 @@
 
 #include <Event.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #ifdef HYP_MACOS
 extern void DestroyCocoaEvent(CocoaEvent& cocoaEvent);
@@ -151,4 +151,4 @@ Event::~Event()
 
 #pragma endregion Event
 
-} // namespace hyperion
+} // namespace Hyperion

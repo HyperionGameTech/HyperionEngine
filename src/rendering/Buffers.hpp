@@ -25,7 +25,7 @@
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct alignas(16) ParticleShaderData
 {
@@ -310,12 +310,10 @@ public:
             const uint32 bufferOffset = offset * uint32(sizeof(StructType));
             const uint32 bufferSize = Base::numElementsPerBlock * uint32(sizeof(StructType));
 
-            dirtyBlocks.PushBack({
-                blockIndex,
+            dirtyBlocks.PushBack({ blockIndex,
                 bufferOffset,
                 bufferSize,
-                blockIt->buffer.GetPointer()
-            });
+                blockIt->buffer.GetPointer() });
         }
 
         if (dirtyBlocks.Empty())
@@ -488,4 +486,4 @@ private:
     GpuBufferHolderMemoryPool<StructType> m_pool;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

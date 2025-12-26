@@ -7,7 +7,7 @@
 #include <core/reflection/Handle.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Node;
 
@@ -53,4 +53,4 @@ struct SerializationWrapperReverseMapping<Handle<Node>>
     using Type = Node;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

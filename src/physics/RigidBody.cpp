@@ -13,17 +13,17 @@
 
 #include <RigidBody.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static inline PhysicsWorld* GetPhysicsWorld()
 {
     World* currentWorld = g_engineDriver->GetCurrentWorld();
-    
+
     if (!currentWorld)
     {
         return nullptr;
     }
-    
+
     return static_cast<PhysicsWorld*>(currentWorld->GetPhysicsWorld().Get());
 }
 
@@ -73,4 +73,4 @@ void RigidBody::ApplyForce(const Vector3& force)
     GetPhysicsWorld()->GetAdapter().ApplyForceToBody(this, force);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

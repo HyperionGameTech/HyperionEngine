@@ -25,7 +25,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 /*! \brief Represents a vertex attribute used in mesh input.
  *  \details This struct defines the properties of a vertex attribute, including its name, location, binding, and size.
@@ -546,6 +546,6 @@ struct alignas(16) Vertex
 
 static_assert(alignof(Vertex) == 16, "Vertex alignment is not 16 bytes, ensure size matches C# Vertex struct alignment");
 
-} // namespace hyperion
+} // namespace Hyperion
 
-HYP_DEF_STL_HASH(hyperion::Vertex);
+HYP_DEF_STL_HASH(Hyperion::Vertex);

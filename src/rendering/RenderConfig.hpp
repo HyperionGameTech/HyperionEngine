@@ -4,7 +4,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class IRenderConfig
 {
@@ -34,4 +34,4 @@ public:
     bool dynamicDescriptorIndexing : 1 = false;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

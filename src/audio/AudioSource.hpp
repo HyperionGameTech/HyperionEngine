@@ -9,7 +9,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class AudioSourceFormat : uint32
@@ -133,4 +133,4 @@ private:
     uint32 m_sampleLength;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

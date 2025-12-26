@@ -15,7 +15,7 @@
 
 #include <engine/EngineMemory.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Game;
 class View;
@@ -304,4 +304,4 @@ private:
     DelegateHandlerSet m_delegateHandlers;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

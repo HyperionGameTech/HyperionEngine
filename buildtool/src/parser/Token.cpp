@@ -4,7 +4,7 @@
 
 #include <cstring>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 const Token Token::EMPTY = Token(TK_EMPTY, "", SourceLocation::eof);
 
@@ -107,4 +107,4 @@ bool Token::IsContinuationToken() const
         || m_tokenClass == TK_OPEN_BRACE;
 }
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

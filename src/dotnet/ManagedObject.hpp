@@ -16,7 +16,7 @@
 
 #define HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class ObjectFlags : uint32
 {
@@ -26,9 +26,9 @@ enum class ObjectFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ObjectFlags)
 
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 class ManagedClass;
 class ManagedObject;
@@ -192,4 +192,4 @@ private:
     AtomicVar<bool> m_keepAlive;
 };
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

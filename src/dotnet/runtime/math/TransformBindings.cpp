@@ -4,7 +4,7 @@
 
 #include <core/math/Transform.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

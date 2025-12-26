@@ -12,7 +12,7 @@
 
 #include <VulkanSampler.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -131,4 +131,4 @@ void VulkanSampler::SetDebugName(Name name)
 
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

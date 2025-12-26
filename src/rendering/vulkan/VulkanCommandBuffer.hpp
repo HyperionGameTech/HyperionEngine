@@ -21,7 +21,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class VulkanRenderPass;
 struct VulkanDeviceQueue;
@@ -143,4 +143,4 @@ private:
     bool m_isInRenderPass : 1;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -7,7 +7,7 @@
 
 #include <core/reflection/ObjectMacros.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class GameStateMode : uint32
@@ -57,4 +57,4 @@ struct GameState
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

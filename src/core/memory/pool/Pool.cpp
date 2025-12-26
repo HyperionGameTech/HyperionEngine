@@ -3,7 +3,7 @@
 #include <core/threading/Spinlock.hpp>
 #include <core/threading/Threads.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 #pragma region Block
@@ -172,4 +172,4 @@ MemoryMetrics Pool::GetMemoryMetrics() const
 }
 
 } // namespace memory
-} // namespace hyperion
+} // namespace Hyperion

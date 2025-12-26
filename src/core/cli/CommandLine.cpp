@@ -12,7 +12,7 @@
 #include <CommandLine.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 HYP_DEFINE_LOG_SUBCHANNEL(CommandLine, Core);
@@ -580,4 +580,4 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& command, co
 #pragma endregion CommandLineParser
 
 } // namespace cli
-} // namespace hyperion
+} // namespace Hyperion

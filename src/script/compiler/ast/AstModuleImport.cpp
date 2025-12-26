@@ -10,7 +10,7 @@
 
 #include <core/io/BufferedByteReader.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr const char* WildcardImport = "*";
 
@@ -310,4 +310,4 @@ RC<AstStatement> AstModuleImport::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

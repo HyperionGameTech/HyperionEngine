@@ -19,7 +19,7 @@
 
 #include <OgreXMLSkeletonLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -350,4 +350,4 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
     return LoadedAsset { skeleton };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

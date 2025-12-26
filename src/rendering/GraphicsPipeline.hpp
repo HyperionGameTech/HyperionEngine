@@ -14,7 +14,7 @@
 
 #include <core/math/Vertex.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class RenderableAttributeSet;
 struct DescriptorTableDeclaration;
@@ -182,7 +182,7 @@ protected:
 #endif
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

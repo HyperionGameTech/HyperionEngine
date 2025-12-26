@@ -15,7 +15,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern const Class* GetClass(const TypeId& typeId);
 HYP_API extern SizeType GetNumDescendants(TypeId typeId);
@@ -1397,4 +1397,4 @@ static inline void GetRemovedElements(ResourceTracker<IdType, ElementType, Proxy
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

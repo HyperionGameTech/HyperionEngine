@@ -13,7 +13,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -117,4 +117,4 @@ RendererResult VulkanAsyncCompute::WaitForFence(VulkanFrame* frame)
     return result;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

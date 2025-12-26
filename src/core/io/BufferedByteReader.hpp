@@ -18,7 +18,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 class BufferedReaderSource
 {
@@ -626,4 +626,4 @@ private:
 
 using BufferedByteReader = BufferedReader;
 
-} // namespace hyperion
+} // namespace Hyperion

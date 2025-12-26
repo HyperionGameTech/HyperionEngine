@@ -11,7 +11,7 @@
 
 #include <util/GameCounter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(SimThread);
 
@@ -43,4 +43,4 @@ private:
     GameCounter m_counter;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

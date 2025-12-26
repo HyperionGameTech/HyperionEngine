@@ -13,7 +13,7 @@
 #define HYP_SCRIPT_ENABLE_VARIABLE_INLINING 0
 #define HYP_SCRIPT_AUTO_SELF_INSERTION 1
 
-namespace hyperion {
+namespace Hyperion {
 
 struct Config
 {
@@ -23,4 +23,4 @@ struct Config
     static bool cullUnusedObjects;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -9,7 +9,7 @@
 
 #include <ui/UIObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class World;
 class Scene;
@@ -87,4 +87,4 @@ private:
     DelegateHandler m_onActionStackStateChangeDelegate;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

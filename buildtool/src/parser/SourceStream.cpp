@@ -3,7 +3,7 @@
 #include <parser/SourceStream.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 SourceStream::SourceStream(const SourceFile* file)
     : m_file(file),
@@ -149,4 +149,4 @@ void SourceStream::Read(char* ptr, SizeType numBytes)
     }
 }
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

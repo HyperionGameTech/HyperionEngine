@@ -4,7 +4,7 @@
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstPrintVisitor : public AstVisitor
 {
@@ -63,4 +63,4 @@ private:
     bool m_showDetails : 1;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

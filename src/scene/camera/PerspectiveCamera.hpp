@@ -4,7 +4,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class HYP_API PerspectiveCameraController : public CameraController
@@ -24,4 +24,4 @@ protected:
     virtual void OnDeactivated() override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

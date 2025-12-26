@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <cctype>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace StringUtil {
 
@@ -295,4 +295,4 @@ static inline bool IsNumber(const String& str)
 
 } // namespace StringUtil
 
-} // namespace hyperion
+} // namespace Hyperion

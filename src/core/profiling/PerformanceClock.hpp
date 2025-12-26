@@ -6,7 +6,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace profiling {
 
 class HYP_API PerformanceClock
@@ -41,4 +41,4 @@ private:
 
 using profiling::PerformanceClock;
 
-} // namespace hyperion
+} // namespace Hyperion

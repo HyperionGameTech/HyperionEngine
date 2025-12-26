@@ -30,7 +30,7 @@
 #include <core/utilities/GlobalContext.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 struct SaveAssetsAsReferencesContext
 {
@@ -1625,4 +1625,4 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, B
     return false;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

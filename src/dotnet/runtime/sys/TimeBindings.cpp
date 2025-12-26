@@ -4,7 +4,7 @@
 
 #include <core/utilities/Time.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

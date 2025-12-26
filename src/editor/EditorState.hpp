@@ -13,7 +13,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class EditorProject;
 
@@ -63,4 +63,4 @@ private:
     DelegateHandler m_onProjectPackageChangedHandle;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

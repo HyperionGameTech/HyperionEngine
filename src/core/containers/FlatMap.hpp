@@ -11,7 +11,7 @@
 #include <core/utilities/Traits.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 /*! \brief FlatMap is a sorted associative container that stores key-value pairs in a flat contiguous array, based on the Array implementation.
@@ -28,7 +28,7 @@ private:
     Array<KeyValuePairType> m_vector;
 
 public:
-    static constexpr bool IsContiguous = true;
+    static constexpr bool isContiguous = true;
 
     using Base = ContainerBase<FlatMap<Key, Value>, Key>;
 
@@ -457,4 +457,4 @@ struct IsFlatMap<FlatMap<Key, Value>> : std::true_type
 {
 };
 
-} // namespace hyperion
+} // namespace Hyperion

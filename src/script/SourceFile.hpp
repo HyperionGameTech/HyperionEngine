@@ -4,7 +4,7 @@
 #include <core/filesystem/FilePath.hpp>
 #include <core/memory/ByteBuffer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class SourceFile
 {
@@ -49,4 +49,4 @@ private:
     SizeType m_position;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

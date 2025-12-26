@@ -8,7 +8,7 @@
 
 #include <UIPanel.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -409,4 +409,4 @@ void UIPanel::UpdateScrollbarThumbPosition(ScrollAxis axis)
     thumb->SetPosition(position);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

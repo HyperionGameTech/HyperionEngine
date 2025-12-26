@@ -9,7 +9,7 @@
 
 #include <rendering/RenderObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 
@@ -34,4 +34,4 @@ private:
     HashMap<ObjId<Texture>, GpuImageViewWeakRef> m_resources;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

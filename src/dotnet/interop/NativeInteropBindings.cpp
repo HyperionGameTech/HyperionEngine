@@ -23,12 +23,12 @@
 
 #include <dotnet/DotNETHost.hpp>
 
-using namespace hyperion;
-using namespace hyperion::dotnet;
+using namespace Hyperion;
+using namespace Hyperion::dotnet;
 
-namespace hyperion {
+namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(DotNET);
-} // namespace hyperion
+} // namespace Hyperion
 
 static ManagedAttributeSet InternManagedAttributeHolder(ManagedAttributeHolder* managedAttributeHolderPtr)
 {

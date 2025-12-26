@@ -4,7 +4,7 @@
 
 #include <chrono>
 
-namespace hyperion {
+namespace Hyperion {
 namespace profiling {
 
 Array<double> Profile::RunInterleved(Array<Profile*>&& profiles, SizeType runsPer, SizeType numIterations, SizeType runsPerIteration)
@@ -75,4 +75,4 @@ Profile& Profile::Run(SizeType numIterations, SizeType runsPerIteration)
 }
 
 } // namespace profiling
-} // namespace hyperion
+} // namespace Hyperion

@@ -7,7 +7,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 // lghtweight compile-time type tuple for FunctionTraits to avoid dependency on Tuple
 template <class... Ts>
@@ -222,4 +222,4 @@ struct FunctionTraits<T const volatile> : public FunctionTraits<T>
 
 #pragma endregion FunctionTraits
 
-} // namespace hyperion
+} // namespace Hyperion

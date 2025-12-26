@@ -7,7 +7,7 @@
 #include <core/containers/HashMap.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Script_SymbolTable
 {
@@ -32,4 +32,4 @@ private:
     SymbolMap m_symbols;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -17,7 +17,7 @@ class RtpPacketizationConfig;
 #include <memory>
 #endif // HYP_LIBDATACHANNEL
 
-namespace hyperion {
+namespace Hyperion {
 
 class RTCClient;
 class RTCStream;
@@ -113,4 +113,4 @@ using LibDataChannelRTCTrack = NullRTCTrack;
 
 #endif // HYP_LIBDATACHANNEL
 
-} // namespace hyperion
+} // namespace Hyperion

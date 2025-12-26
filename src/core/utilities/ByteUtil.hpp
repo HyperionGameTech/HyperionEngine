@@ -10,7 +10,7 @@
 
 #include <climits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 class HYP_API ByteUtil
@@ -272,4 +272,4 @@ using utilities::BitCast;
 using utilities::ByteUtil;
 using utilities::SwapEndian;
 
-} // namespace hyperion
+} // namespace Hyperion

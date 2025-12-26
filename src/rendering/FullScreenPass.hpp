@@ -15,7 +15,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mesh;
 class Texture;
@@ -229,4 +229,4 @@ private:
     Handle<FullScreenPass> m_mergeHalfResTexturesPass;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

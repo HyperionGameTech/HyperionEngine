@@ -12,7 +12,7 @@
 
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class VulkanGpuImage final : public GpuImageBase
@@ -120,4 +120,4 @@ private:
     SizeType m_size;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -4,7 +4,7 @@
 
 #include <core/math/Mat4f.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

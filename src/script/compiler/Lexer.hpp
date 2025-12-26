@@ -7,7 +7,7 @@
 
 #include <util/UTF8.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum ConstantBitSize : uint8;
 
@@ -68,4 +68,4 @@ private:
     bool SkipWhitespace();
 };
 
-} // namespace hyperion
+} // namespace Hyperion

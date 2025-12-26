@@ -28,7 +28,7 @@
 
 #include <EnvGrid.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
@@ -588,4 +588,4 @@ void LegacyEnvGrid::UpdateRenderProxy(RenderProxyEnvGrid* proxy)
 
 #pragma endregion LegacyEnvGrid
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -16,7 +16,7 @@
 #include <thread>
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace functional {
 
@@ -140,7 +140,7 @@ protected:
 
     AtomicVar<bool> m_stopRequested;
     AtomicVar<bool> m_isRunning;
-    
+
     std::thread* m_thread;
 };
 
@@ -243,4 +243,4 @@ using threading::Thread;
 using threading::ThreadBase;
 using threading::ThreadPriorityValue;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -13,7 +13,7 @@
 
 #include <ParticleVolume.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 ParticleVolume::ParticleVolume()
     : ParticleVolume(BoundingBox::Empty())
@@ -75,4 +75,4 @@ void ParticleVolume::UpdateRenderProxy(RenderProxyParticleVolume* proxy)
     proxy->bufferData.maxParticlesSqrt = MathUtil::Sqrt(float(m_params.maxParticles));
 }
 
-} // namespace hyperion
+} // namespace Hyperion

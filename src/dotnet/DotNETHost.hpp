@@ -10,7 +10,7 @@
 
 #include <dotnet/Assembly.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace dotnet {
 struct ObjectReference;
@@ -104,4 +104,4 @@ private:
 
     GlobalFunctions m_globalFunctions;
 };
-} // namespace hyperion
+} // namespace Hyperion

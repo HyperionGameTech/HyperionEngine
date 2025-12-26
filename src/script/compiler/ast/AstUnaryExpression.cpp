@@ -19,7 +19,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstUnaryExpression::AstUnaryExpression(
     const RC<AstExpression>& expr,
@@ -313,4 +313,4 @@ const SymbolType* AstUnaryExpression::GetExprType() const
     return m_expr->GetExprType();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

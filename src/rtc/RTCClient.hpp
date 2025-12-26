@@ -24,7 +24,7 @@ class DataChannel;
 
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 class RTCServer;
 class RTCStream;
@@ -174,4 +174,4 @@ using LibDataChannelRTCClient = NullRTCClient;
 
 #endif // HYP_LIBDATACHANNEL
 
-} // namespace hyperion
+} // namespace Hyperion

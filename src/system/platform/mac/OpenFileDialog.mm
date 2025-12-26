@@ -7,7 +7,7 @@
 
 #import "Util/BlockInvoker.h"
 
-namespace hyperion {
+namespace Hyperion {
 
 void ShowOpenFileDialog(
     UTF8StringView title, const FilePath& baseDir, Span<const ANSIStringView> extensions,
@@ -82,4 +82,4 @@ void ShowOpenFileDialog(
     dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

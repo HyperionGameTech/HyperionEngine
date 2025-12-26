@@ -13,7 +13,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Console);
 
@@ -77,4 +77,4 @@ HYP_END_CLASS
 
 HYP_REGISTER_STATIC_CLASS(DumpRenderCollectors);
 
-} // namespace hyperion
+} // namespace Hyperion

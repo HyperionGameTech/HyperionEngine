@@ -4,7 +4,7 @@
 
 #include <rendering/FullScreenPass.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class GBuffer;
 
@@ -46,4 +46,4 @@ private:
     Handle<FullScreenPass> m_blurMixPass;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

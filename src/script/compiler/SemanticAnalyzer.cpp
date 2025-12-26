@@ -15,7 +15,7 @@
 
 #include <core/logging/Logger.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(HypScript);
 
@@ -1073,4 +1073,4 @@ void SemanticAnalyzer::Analyze(bool expectModuleDecl)
         node->Visit(this, mod);
     }
 }
-} // namespace hyperion
+} // namespace Hyperion

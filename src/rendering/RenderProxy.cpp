@@ -7,7 +7,7 @@
 
 #include <RenderProxy.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 MeshRaytracingData::~MeshRaytracingData()
 {
@@ -17,4 +17,4 @@ MeshRaytracingData::~MeshRaytracingData()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

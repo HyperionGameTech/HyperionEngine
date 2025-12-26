@@ -32,7 +32,7 @@
 
 #include <system/MessageBox.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern FilePath CoreApi_GetExecutablePath();
 
@@ -442,4 +442,4 @@ void EntityScripting::DeinitEntityScriptComponent(Entity* entity, ScriptComponen
     scriptComponent.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::BEFORE_ADDED_CALLED | ScriptComponentFlags::ON_ADDED_CALLED);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

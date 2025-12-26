@@ -6,7 +6,7 @@
 
 #include <OrthoCamera.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 OrthoCameraController::OrthoCameraController()
     : OrthoCameraController(
           -100.0f, 100.0f,
@@ -69,4 +69,4 @@ void OrthoCameraController::UpdateProjectionMatrix()
         m_camera->m_bottom, m_camera->m_top,
         m_camera->m_near, m_camera->m_far);
 }
-} // namespace hyperion
+} // namespace Hyperion

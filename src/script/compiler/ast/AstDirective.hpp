@@ -7,7 +7,7 @@
 #include <memory>
 #include <string>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstDirective : public AstStatement
 {
@@ -51,4 +51,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

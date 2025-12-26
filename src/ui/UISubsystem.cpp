@@ -15,25 +15,24 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
 
-#include <lightmapper/LightmapVolume.hpp>
-
 #include <scene/animation/Skeleton.hpp>
 
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 
-#include <rendering/renderers/UIRenderer.hpp>
+#include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
+
+#include <rendering/renderers/UIRenderer.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -41,7 +40,7 @@
 
 #include <UISubsystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -387,4 +386,4 @@ void UISubsystem::CreateFramebuffer()
     PUSH_RENDER_COMMAND(SetFinalPassImageView, attachment->GetImageView());
 }
 
-} // namespace hyperion
+} // namespace Hyperion

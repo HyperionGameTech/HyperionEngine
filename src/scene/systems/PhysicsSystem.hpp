@@ -6,7 +6,7 @@
 #include <scene/components/RigidBodyComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 /*! \brief System for updating transforms of objects with RigidBodyComponent to sync with physics simulation.
  *
@@ -37,4 +37,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

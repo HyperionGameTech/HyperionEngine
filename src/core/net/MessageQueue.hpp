@@ -9,7 +9,7 @@
 
 #include <core/json/JSON.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace net {
 
 class MessageQueue
@@ -62,4 +62,4 @@ private:
 
 using net::MessageQueue;
 
-} // namespace hyperion
+} // namespace Hyperion

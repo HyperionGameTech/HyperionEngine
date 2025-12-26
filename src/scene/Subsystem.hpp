@@ -8,7 +8,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 class World;
@@ -56,8 +56,8 @@ public:
     {
     }
     virtual void Update(float delta) = 0;
-    virtual void OnSceneAttached(const Handle<Scene>& scene) {};
-    virtual void OnSceneDetached(Scene* scene) {};
+    virtual void OnSceneAttached(const Handle<Scene>& scene) { };
+    virtual void OnSceneDetached(Scene* scene) { };
 
 protected:
     virtual void Init() override
@@ -82,4 +82,4 @@ private:
     SubsystemUpdatePhase m_updatePhase;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

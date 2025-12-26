@@ -6,7 +6,7 @@
 #include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/StaticField.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class T>
 struct EnumRegistration;
@@ -268,4 +268,4 @@ EnumType EnumValue(StringHash memberName, EnumType errorValue = EnumType())
 
 #pragma endregion Utility functions
 
-} // namespace hyperion
+} // namespace Hyperion

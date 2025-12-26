@@ -34,7 +34,7 @@
 #include <algorithm>
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -474,4 +474,4 @@ private:
     Scheduler* m_scheduler;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

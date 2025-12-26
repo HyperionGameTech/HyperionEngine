@@ -8,7 +8,7 @@
 
 #include <core/containers/Array.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIText;
 class UIImage;
@@ -217,4 +217,4 @@ private:
 
 #pragma endregion UIMenuBar
 
-} // namespace hyperion
+} // namespace Hyperion

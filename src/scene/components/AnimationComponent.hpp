@@ -7,7 +7,7 @@
 
 #include <core/reflection/ObjectMacros.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class AnimationPlaybackStatus : uint32
@@ -76,4 +76,4 @@ struct AnimationComponent
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

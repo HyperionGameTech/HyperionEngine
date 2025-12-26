@@ -10,7 +10,7 @@
 
 #include <StreamingCell.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Streaming);
 
@@ -120,4 +120,4 @@ void StreamingCell::OnRemoved_Impl()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

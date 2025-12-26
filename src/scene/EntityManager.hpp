@@ -38,7 +38,7 @@
 #include <scene/EntityTag.hpp>
 #include <scene/SystemExecutionGroup.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace threading {
 class TaskBatch;
@@ -730,7 +730,7 @@ public:
             {
                 return static_cast<EntitySet<Components...>*>(TryGetPendingEntitySet(entitySetId));
             }
-            
+
             return nullptr;
         }
 
@@ -926,4 +926,4 @@ private:
     bool m_isLocked;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

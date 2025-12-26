@@ -6,7 +6,7 @@
 
 #include <core/Name.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

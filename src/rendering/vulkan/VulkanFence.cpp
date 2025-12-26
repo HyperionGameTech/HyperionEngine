@@ -14,7 +14,7 @@
 
 #include <VulkanFence.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -77,4 +77,4 @@ RendererResult VulkanFence::Reset()
     HYPERION_RETURN_OK;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

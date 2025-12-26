@@ -2,8 +2,8 @@
 #include <core/utilities/ByteUtil.hpp>
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 } // namespace utilities
-} // namespace hyperion
+} // namespace Hyperion

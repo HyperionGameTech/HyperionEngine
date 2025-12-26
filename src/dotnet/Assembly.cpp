@@ -12,7 +12,7 @@
 #include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/Class.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace dotnet {
 
@@ -127,4 +127,4 @@ RC<ManagedClass> Assembly::FindClassByTypeHash(int32 typeHash)
 }
 
 } // namespace dotnet
-} // namespace hyperion
+} // namespace Hyperion

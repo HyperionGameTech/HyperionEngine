@@ -8,7 +8,7 @@
 
 #include <bit>
 
-namespace hyperion {
+namespace Hyperion {
 
 /*! \brief A 16-bit floating point number. */
 struct alignas(2) Float16
@@ -232,4 +232,4 @@ static_assert(sizeof(Float16) == 2, "float16 must be 2 bytes in size");
 #define FLT16_MIN Float16::FromRaw(1)
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

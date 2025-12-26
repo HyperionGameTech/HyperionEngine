@@ -14,7 +14,7 @@
 #include <lightmapper/LightmapData.hpp>
 #include <lightmapper/LightmapTexel.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace threading {
 class TaskBatch;
@@ -298,4 +298,4 @@ protected:
     LightmapData<FogVolume>* m_pLightmapData;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

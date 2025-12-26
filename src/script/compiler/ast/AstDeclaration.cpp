@@ -2,7 +2,7 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstDeclaration::AstDeclaration(
     const String& name,
@@ -86,4 +86,4 @@ const String& AstDeclaration::GetName() const
     return m_name;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

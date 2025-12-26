@@ -5,7 +5,7 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/RenderBackend.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 VulkanFeatures::VulkanFeatures()
     : m_physicalDevice(nullptr),
@@ -156,4 +156,4 @@ void VulkanFeatures::SetDeviceFeatures(VulkanDevice* device)
 #endif
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 class Memory
@@ -330,6 +330,6 @@ public:
 
 using memory::Memory;
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #define StackAlloc(size) alloca(size)

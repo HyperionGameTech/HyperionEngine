@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class VulkanSemaphore final : public ObjectBase
@@ -33,4 +33,4 @@ private:
     VkSemaphore m_handle;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

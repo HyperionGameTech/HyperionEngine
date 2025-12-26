@@ -6,7 +6,7 @@
 #include <scene/components/LightmapElementComponent.hpp>
 #include <scene/EntityTag.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class LightmapVolume;
 
@@ -38,4 +38,4 @@ private:
     bool AssignLightmapVolume(Scene* scene, LightmapElementComponent& lightmapElementComponent);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

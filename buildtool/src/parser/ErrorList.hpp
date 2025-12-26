@@ -11,7 +11,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 class ErrorList
 {
@@ -87,6 +87,6 @@ private:
     uint32 m_errorSuppressionDepth;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

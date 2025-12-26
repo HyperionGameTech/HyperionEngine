@@ -21,7 +21,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
@@ -285,4 +285,4 @@ void DepthPyramidRenderer::Render(Frame* frame)
     m_isRendered = true;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

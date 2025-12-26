@@ -31,7 +31,7 @@
 
 #include <stb_image_resize.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 class TextureMipmapRenderer;
@@ -286,12 +286,12 @@ struct CreateTextureGpuImage : RenderCommand
 
 Texture::Texture()
     : Texture(TextureDesc {
-        TT_TEX2D,
-        TF_RGBA8,
-        Vec3u { 1, 1, 1 },
-        TFM_NEAREST,
-        TFM_NEAREST,
-        TWM_CLAMP_TO_EDGE })
+          TT_TEX2D,
+          TF_RGBA8,
+          Vec3u { 1, 1, 1 },
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE })
 {
 }
 
@@ -964,4 +964,4 @@ Vec4f Texture::SampleCube(Vec3f direction)
 
 #pragma endregion Texture
 
-} // namespace hyperion
+} // namespace Hyperion

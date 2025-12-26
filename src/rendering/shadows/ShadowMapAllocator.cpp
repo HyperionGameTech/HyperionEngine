@@ -22,7 +22,7 @@
 
 #include <ShadowMapAllocator.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
@@ -226,4 +226,4 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
 
 #pragma endregion ShadowMapAllocator
 
-} // namespace hyperion
+} // namespace Hyperion

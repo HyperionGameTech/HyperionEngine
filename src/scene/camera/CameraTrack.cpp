@@ -5,7 +5,7 @@
 #include <scene/camera/CameraTrack.hpp>
 #include <core/math/MathUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 CameraTrack::CameraTrack(double duration)
     : m_duration(duration)
@@ -56,4 +56,4 @@ void CameraTrack::AddPivot(const CameraTrackPivot& pivot)
     m_pivots.Insert(pivot);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

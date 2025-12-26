@@ -17,7 +17,7 @@
 #include <unistd.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 const StaticThreadId g_mainThread = StaticThreadId(NAME("MainThread"));
 
@@ -426,4 +426,4 @@ void ThreadSleep(uint32 milliseconds)
 }
 
 } // namespace threading
-} // namespace hyperion
+} // namespace Hyperion

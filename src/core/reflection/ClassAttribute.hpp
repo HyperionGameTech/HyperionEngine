@@ -12,7 +12,7 @@
 #include <core/Defines.hpp>
 #include <core/Util.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class ClassAttributeType : uint8
 {
@@ -491,4 +491,4 @@ private:
     SetType m_attributes;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

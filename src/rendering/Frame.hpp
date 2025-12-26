@@ -17,7 +17,7 @@
 
 // #define HYP_DEBUG_USED_DESCRIPTOR_SETS
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class FrameBase : public ObjectBase
@@ -57,7 +57,7 @@ protected:
     HashSet<DescriptorSet*> m_usedDescriptorSets;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

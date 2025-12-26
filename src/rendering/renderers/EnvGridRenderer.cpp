@@ -40,7 +40,7 @@
 
 #include <EnvGridRenderer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
@@ -1232,4 +1232,4 @@ void EnvGridRenderer::VoxelizeProbe(Frame* frame, const RenderSetup& renderSetup
 
 #pragma endregion EnvGridRenderer
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -10,7 +10,6 @@
 #include <engine/DebugDrawer.hpp>
 
 #include <rendering/PostFX.hpp>
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
@@ -38,7 +37,7 @@
 
 #include <core/threading/Threads.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern void HandleSignal(int signum);
 
@@ -193,4 +192,4 @@ void RenderThread::operator()()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

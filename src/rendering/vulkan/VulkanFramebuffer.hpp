@@ -21,7 +21,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 class VulkanCommandBuffer;
 
 struct VulkanAttachmentDef
@@ -194,4 +194,4 @@ private:
     VulkanAttachmentMap m_attachmentMap;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -20,7 +20,7 @@
 
 #include <core/json/JSON.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class CommandLineArgumentFlags : uint32
 {
@@ -230,4 +230,4 @@ using cli::CommandLineArguments;
 using cli::CommandLineArgumentValue;
 using cli::CommandLineParser;
 
-} // namespace hyperion
+} // namespace Hyperion

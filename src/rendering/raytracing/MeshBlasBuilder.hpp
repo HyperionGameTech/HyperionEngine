@@ -6,7 +6,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mesh;
 class Material;
@@ -17,4 +17,4 @@ public:
     static GpuBlasRef Build(Mesh* mesh, Material* material = nullptr);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

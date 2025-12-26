@@ -6,7 +6,7 @@
 
 #include <core/utilities/Variant.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Identifier;
 class SymbolType;
@@ -113,4 +113,4 @@ protected:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

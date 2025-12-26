@@ -8,7 +8,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIDataSourceElement;
 
@@ -155,5 +155,4 @@ private:
 
 #pragma endregion UIListView
 
-} // namespace hyperion
-
+} // namespace Hyperion

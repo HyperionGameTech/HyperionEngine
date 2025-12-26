@@ -13,7 +13,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 /*! \brief SparsePagedArray defines a container that stores elements in pages of a fixed size, allowing for sparse storage.
@@ -54,7 +54,7 @@ protected:
     };
 
 public:
-    static constexpr bool IsContiguous = false;
+    static constexpr bool isContiguous = false;
 
     using KeyType = SizeType;
     using ValueType = T;
@@ -900,4 +900,4 @@ protected:
 template <class T, uint32 PageSize = 16, class AllocatorType = DynamicAllocator>
 using SparsePagedArray = containers::SparsePagedArray<T, PageSize, AllocatorType>;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -11,7 +11,7 @@
 
 #include <rendering/MeshInstanceData.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mesh;
 class Material;
@@ -114,4 +114,4 @@ struct MeshComponent
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -4,7 +4,7 @@
 // just a quick BMP writer for testing
 // https://stackoverflow.com/a/47785639/8320593
 
-namespace hyperion {
+namespace Hyperion {
 
 class ByteWriter;
 
@@ -18,4 +18,4 @@ public:
         unsigned char* bytes);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -2,7 +2,7 @@
 #include <core/debug/Debug.hpp>
 #include <core/utilities/Format.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 Script_Tracemap::Script_Tracemap()
     : m_stringmap(nullptr),
@@ -32,4 +32,4 @@ void Script_Tracemap::Set(StringmapEntry* stringmap, LinemapEntry* linemap)
     m_linemap = linemap;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

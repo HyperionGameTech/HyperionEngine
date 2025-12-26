@@ -23,7 +23,7 @@
 #include <atomic>
 #include <cstdlib>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -473,7 +473,7 @@ public:
         const void* ptr = Base::GetVoid();
         const TypeId currentTypeId = Base::GetTypeId();
 
-        return currentTypeId == typeId || IsA(hyperion::GetClass(typeId), ptr, currentTypeId);
+        return currentTypeId == typeId || IsA(Hyperion::GetClass(typeId), ptr, currentTypeId);
     }
 
     template <class U>
@@ -645,7 +645,7 @@ public:
         const void* ptr = Base::GetVoid();
         const TypeId currentTypeId = Base::GetTypeId();
 
-        return std::is_same_v<U, void> || currentTypeId == typeId || IsA(hyperion::GetClass(typeId), ptr, currentTypeId);
+        return std::is_same_v<U, void> || currentTypeId == typeId || IsA(Hyperion::GetClass(typeId), ptr, currentTypeId);
     }
 
     template <class U>
@@ -1017,16 +1017,16 @@ using RefCountedPtrAlias = RefCountedPtr<T, CountType>;
 } // namespace memory
 
 template <class T, class CountType = AtomicVar<uint32>>
-using RC = hyperion::memory::RefCountedPtr<T, CountType>;
+using RC = Hyperion::memory::RefCountedPtr<T, CountType>;
 
 template <class T, class CountType = AtomicVar<uint32>>
-using Weak = hyperion::memory::WeakRefCountedPtr<T, CountType>;
+using Weak = Hyperion::memory::WeakRefCountedPtr<T, CountType>;
 
 template <class CountType = AtomicVar<uint32>>
-using EnableRefCountedPtrFromThisBase = hyperion::memory::EnableRefCountedPtrFromThisBase<CountType>;
+using EnableRefCountedPtrFromThisBase = Hyperion::memory::EnableRefCountedPtrFromThisBase<CountType>;
 
 template <class T, class CountType = AtomicVar<uint32>>
-using EnableRefCountedPtrFromThis = hyperion::memory::EnableRefCountedPtrFromThis<T, CountType>;
+using EnableRefCountedPtrFromThis = Hyperion::memory::EnableRefCountedPtrFromThis<T, CountType>;
 
 template <class T, class... Args>
 HYP_FORCE_INLINE RC<T> MakeRefCountedPtr(Args&&... args)
@@ -1034,4 +1034,4 @@ HYP_FORCE_INLINE RC<T> MakeRefCountedPtr(Args&&... args)
     return memory::MakeRefCountedPtrHelper<T, AtomicVar<uint32>>::MakeRefCountedPtr(std::forward<Args>(args)...);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

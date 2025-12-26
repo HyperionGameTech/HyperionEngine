@@ -25,7 +25,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Entity;
 class Material;
@@ -308,4 +308,4 @@ private:
     VulkanGpuBufferRef m_instancesBuffer;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

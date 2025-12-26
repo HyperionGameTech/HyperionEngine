@@ -16,7 +16,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class GpuBufferBase : public ObjectBase
@@ -123,7 +123,7 @@ protected:
     bool m_requireCpuAccessible : 1;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

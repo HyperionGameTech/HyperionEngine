@@ -13,7 +13,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class EventFlags : uint8
@@ -315,4 +315,4 @@ private:
     Time m_timestamp;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

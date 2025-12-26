@@ -9,7 +9,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 class ManagedClass;
 
@@ -32,4 +32,4 @@ extern "C"
     static_assert(sizeof(ManagedAttributeHolder) == 16, "sizeof(ManagedAttributeHolder) must match C# struct size");
 } // extern "C"
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

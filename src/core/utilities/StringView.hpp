@@ -16,7 +16,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <int TStringType>
@@ -34,7 +34,7 @@ public:
     template <int FirstStringType, int SecondStringType>
     friend constexpr bool operator==(const StringView<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
 
-    static constexpr bool IsContiguous = true;
+    static constexpr bool isContiguous = true;
     static constexpr SizeType NotFound = SizeType(-1);
     static constexpr int stringType = TStringType;
 
@@ -579,7 +579,7 @@ public:
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return HashCode(::hyperion::FNV1::DoHashString(m_begin, m_end));
+        return HashCode(::Hyperion::FNV1::DoHashString(m_begin, m_end));
     }
 
     HYP_NODISCARD constexpr Iterator Begin() const
@@ -680,4 +680,4 @@ constexpr bool operator==(const StringView<TStringType>& lhs, const StringView<T
 }
 
 } // namespace utilities
-} // namespace hyperion
+} // namespace Hyperion

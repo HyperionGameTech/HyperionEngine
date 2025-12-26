@@ -32,7 +32,7 @@
 
 #include <EditorProject.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct EditorProjectSaveContext
 {
@@ -389,4 +389,4 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     return project;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

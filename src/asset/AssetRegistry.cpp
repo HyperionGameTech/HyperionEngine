@@ -30,7 +30,7 @@
 
 #include <AssetRegistry.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const ThreadId& s_assetRegistryThread = g_simThread;
 
@@ -2843,4 +2843,4 @@ Handle<AssetObject> AssetRegistry::GetAssetFromPath(const UTF8StringView& path) 
 
 #pragma endregion AssetRegistry
 
-} // namespace hyperion
+} // namespace Hyperion

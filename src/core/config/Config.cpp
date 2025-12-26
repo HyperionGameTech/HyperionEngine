@@ -19,7 +19,7 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern FilePath CoreApi_GetExecutablePath();
 
@@ -335,4 +335,4 @@ bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
 #pragma endregion ConfigurationTable
 
 } // namespace config
-} // namespace hyperion
+} // namespace Hyperion

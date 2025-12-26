@@ -17,7 +17,7 @@
 
 #include <EditorViewport.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 EditorViewport::EditorViewport(const Handle<Camera>& camera)
     : m_camera(camera),
@@ -159,4 +159,4 @@ void EditorViewport::OnSceneRemoved(Scene* scene)
     m_view->RemoveScene(scene);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -17,7 +17,7 @@
 #include <scene/ComponentContainer.hpp>
 #include <scene/EntitySetHelpers.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class EntityManager;
 class Scene;
@@ -248,4 +248,4 @@ private:
     Array<Proc<void()>> m_afterProcessProcs;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

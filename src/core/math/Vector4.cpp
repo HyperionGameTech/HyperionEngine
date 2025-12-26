@@ -9,7 +9,7 @@
 #include <core/reflection/ClassUtils.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API const Class* g_clsVec4f = nullptr;
 HYP_API const Class* g_clsVec4i = nullptr;
@@ -211,4 +211,4 @@ Vec4<float> math::Vec4<float>::operator*(const Mat4f& mat) const
     };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

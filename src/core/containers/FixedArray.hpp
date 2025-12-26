@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace containers {
 template <class T, SizeType Sz>
@@ -30,7 +30,7 @@ template <class T, SizeType Sz>
 class FixedArray
 {
 public:
-    static constexpr bool IsContiguous = true;
+    static constexpr bool isContiguous = true;
 
     T m_values[Sz > 1 ? Sz : 1];
 
@@ -307,7 +307,7 @@ class FixedArrayImpl : public ContainerBase<FixedArrayImpl<T, Sz>, uint32>
 public:
     T* ptr;
 
-    static constexpr bool IsContiguous = true;
+    static constexpr bool isContiguous = true;
 
     using Iterator = T*;
     using ConstIterator = const T*;
@@ -360,8 +360,8 @@ constexpr inline auto MakeFixedArray(Ts&&... values)
 }
 
 template <class T, SizeType Sz>
-struct IsFixedArray<hyperion::containers::FixedArray<T, Sz>> : std::true_type
+struct IsFixedArray<Hyperion::containers::FixedArray<T, Sz>> : std::true_type
 {
 };
 
-} // namespace hyperion
+} // namespace Hyperion

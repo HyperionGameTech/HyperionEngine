@@ -13,7 +13,7 @@
 
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstThrowExpression::AstThrowExpression(
     const RC<AstExpression>& expr,
@@ -82,4 +82,4 @@ bool AstThrowExpression::MayHaveSideEffects() const
     return true;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

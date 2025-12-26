@@ -6,7 +6,7 @@
 
 #include <core/reflection/TypeInfo.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 namespace detail {
@@ -352,4 +352,4 @@ template class HYP_API WeakRefCountedPtrBase<uint32>;
 template class HYP_API WeakRefCountedPtrBase<AtomicVar<uint32>>;
 
 } // namespace memory
-} // namespace hyperion
+} // namespace Hyperion

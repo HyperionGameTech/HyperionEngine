@@ -12,7 +12,7 @@
 
 #include <core/Name.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct BytecodeChunk final : public Buildable
 {
@@ -37,4 +37,4 @@ struct BytecodeChunk final : public Buildable
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

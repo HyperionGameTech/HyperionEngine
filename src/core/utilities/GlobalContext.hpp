@@ -15,7 +15,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 class GlobalContextRegistry;
@@ -236,4 +236,4 @@ using utilities::IsGlobalContextActive;
 using utilities::PopGlobalContext;
 using utilities::PushGlobalContext;
 
-} // namespace hyperion
+} // namespace Hyperion

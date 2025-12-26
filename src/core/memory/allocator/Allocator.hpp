@@ -12,7 +12,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 class Pool;
@@ -725,4 +725,4 @@ using memory::GetDefaultAllocatorInstance;
 template <class T, class AllocatorType>
 using Allocation = typename AllocatorType::template Allocation<T>;
 
-} // namespace hyperion
+} // namespace Hyperion

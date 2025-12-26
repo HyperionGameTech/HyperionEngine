@@ -14,7 +14,7 @@
 #include <cmath>
 #include <cstdio>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mat4f;
 
@@ -812,6 +812,6 @@ struct Formatter<StringType, math::Vec4<T>>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion
 
-HYP_DEF_STL_HASH(hyperion::Vector4);
+HYP_DEF_STL_HASH(Hyperion::Vector4);

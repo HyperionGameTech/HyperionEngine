@@ -15,7 +15,7 @@
 
 #include <VulkanGpuImageView.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -127,4 +127,4 @@ void VulkanGpuImageView::SetDebugName(Name name)
 
 #pragma endregion VulkanGpuImageView
 
-} // namespace hyperion
+} // namespace Hyperion

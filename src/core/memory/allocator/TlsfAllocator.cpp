@@ -9,7 +9,7 @@
 #include <tlsf/tlsf.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 #if HYP_USE_THIRD_PARTY_TLSF
@@ -633,4 +633,4 @@ MemoryMetrics TlsfAllocator::GetMemoryMetrics() const
 #endif
 
 } // namespace memory
-} // namespace hyperion
+} // namespace Hyperion

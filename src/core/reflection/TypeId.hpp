@@ -8,7 +8,7 @@
 
 #include <core/reflection/ObjectMacros.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 using TypeIdValue = uint32;
@@ -166,4 +166,4 @@ const TypeId& TypeIdOf()
 using utilities::TypeId;
 using utilities::TypeIdOf;
 
-} // namespace hyperion
+} // namespace Hyperion

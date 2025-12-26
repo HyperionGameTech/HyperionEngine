@@ -15,8 +15,8 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 struct AnalyzerState
 {
@@ -201,7 +201,7 @@ private:
     HashMap<String, ClassDefinition> m_builtinClasses;
 };
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion
 
 #endif

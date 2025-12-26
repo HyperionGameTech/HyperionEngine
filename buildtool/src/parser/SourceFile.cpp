@@ -6,7 +6,7 @@
 
 #include <cstring>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 SourceFile::SourceFile()
     : m_filepath("??"),
@@ -70,4 +70,4 @@ void SourceFile::ReadIntoBuffer(const ubyte* data, SizeType size)
     }
 }
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

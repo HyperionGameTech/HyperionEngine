@@ -14,7 +14,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AssetManager;
 
@@ -238,4 +238,4 @@ private:
     Array<Array<TResult<void, AssetLoadError>>, DynamicAllocator> m_results;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

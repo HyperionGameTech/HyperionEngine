@@ -8,7 +8,7 @@
 
 #include <fstream>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 ErrorList::ErrorList()
     : m_errorSuppressionDepth(0)
@@ -55,4 +55,4 @@ bool ErrorList::HasFatalErrors() const
         != m_errors.End();
 }
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

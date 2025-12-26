@@ -12,7 +12,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class VulkanSampler final : public SamplerBase
@@ -44,4 +44,4 @@ private:
     VkSampler m_handle;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

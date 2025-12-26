@@ -11,7 +11,7 @@
 
 #include <core/Name.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AssetObject;
 
@@ -174,4 +174,4 @@ public:
 
 extern const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference);
 
-} // namespace hyperion
+} // namespace Hyperion

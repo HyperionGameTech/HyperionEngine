@@ -16,7 +16,7 @@
 
 #include <rendering/RenderCommand.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 class View;
@@ -365,4 +365,4 @@ private:
     void Init() override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

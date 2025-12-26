@@ -7,7 +7,7 @@
 
 #include <EntityTag.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_REGISTER_ENTITY_TAG(None, false);
 
@@ -28,4 +28,4 @@ HYP_REGISTER_ENTITY_TAG(UpdateVisibility, false);
 
 HYP_REGISTER_ENTITY_TAG(EntityType, false);
 
-} // namespace hyperion
+} // namespace Hyperion

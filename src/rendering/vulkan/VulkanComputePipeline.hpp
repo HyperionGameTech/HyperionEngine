@@ -12,7 +12,7 @@
 
 #include <rendering/vulkan/VulkanPipeline.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class VulkanComputePipeline final : public ComputePipelineBase, public VulkanPipelineBase
@@ -46,4 +46,4 @@ public:
 #endif
 };
 
-} // namespace hyperion
+} // namespace Hyperion

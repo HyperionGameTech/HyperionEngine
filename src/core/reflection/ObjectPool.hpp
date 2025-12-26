@@ -25,7 +25,7 @@
 #include <type_traits>
 
 // #define HYP_OBJECT_POOL_DEBUG
-namespace hyperion {
+namespace Hyperion {
 
 template <class T>
 class ObjectContainer;
@@ -384,4 +384,4 @@ public:
     HYP_API static ContainerMap& GetObjectContainerMap();
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Script_Stream
 {
@@ -76,4 +76,4 @@ private:
     SizeType m_position;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -4,7 +4,7 @@
 
 #include <ui/UIObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIStage;
 class Texture;
@@ -48,5 +48,4 @@ protected:
 
 #pragma endregion UIImage
 
-} // namespace hyperion
-
+} // namespace Hyperion

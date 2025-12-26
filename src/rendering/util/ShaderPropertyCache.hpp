@@ -2,7 +2,7 @@
 
 #pragma once
 
-namespace hyperion {
+namespace Hyperion {
 
 /*! \brief The purpose of ShaderPropertyCache is to assign all ShaderProperty hashes to an
  *  index in a contiguous array upon first seeing it and then reusing that index for
@@ -36,4 +36,4 @@ private:
     struct ShaderPropertyCacheImpl* m_pImpl;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

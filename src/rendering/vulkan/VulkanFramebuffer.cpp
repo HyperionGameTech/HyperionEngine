@@ -18,7 +18,7 @@
 
 #include <VulkanFramebuffer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -524,4 +524,4 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
 
 #pragma endregion VulkanFramebuffer
 
-} // namespace hyperion
+} // namespace Hyperion

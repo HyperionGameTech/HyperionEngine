@@ -33,7 +33,7 @@
 
 // #define HYP_TASK_BATCH_DATA_RACE_DETECTION
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Tasks);
 
@@ -438,4 +438,4 @@ using TaskRef = threading::TaskRef;
 using TaskThreadPool = threading::TaskThreadPool;
 using TaskThreadPoolName = threading::TaskThreadPoolName;
 
-} // namespace hyperion
+} // namespace Hyperion

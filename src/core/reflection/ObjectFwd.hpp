@@ -12,7 +12,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace dotnet {
 class ManagedObject;
@@ -409,7 +409,7 @@ static inline bool IsA()
         return true;
     }
 
-    static const bool cachedCheck = ::hyperion::IsA(s_expectedClass, s_instanceClass);
+    static const bool cachedCheck = ::Hyperion::IsA(s_expectedClass, s_instanceClass);
 
     return cachedCheck || IsA(s_expectedClass, s_instanceClass);
 }
@@ -442,7 +442,7 @@ static inline bool IsA(const InstanceType* instance)
 
     // first check caches w/ static
     // second uses the actual instance type (can be more derived)
-    return ::hyperion::IsA<ExpectedType, InstanceType>() || instance->template IsA<ExpectedType>();
+    return ::Hyperion::IsA<ExpectedType, InstanceType>() || instance->template IsA<ExpectedType>();
 }
 
 template <class ExpectedType, class InstanceType, typename = std::enable_if_t<!std::is_pointer_v<InstanceType>>>
@@ -450,7 +450,7 @@ static inline bool IsA(const InstanceType& instance)
 {
     // first check caches w/ static
     // second uses the actual instance type (can be more derived)
-    return ::hyperion::IsA<ExpectedType, InstanceType>() || instance.template IsA<ExpectedType>();
+    return ::Hyperion::IsA<ExpectedType, InstanceType>() || instance.template IsA<ExpectedType>();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

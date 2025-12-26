@@ -28,7 +28,7 @@
 
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 #ifdef HYP_BUILDTOOL
 const Class* g_clsObjectBase = nullptr;
@@ -305,4 +305,4 @@ HYP_API void TypedObjPtr::DecRef(bool weak)
 
 #pragma endregion TypedObjPtr
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -17,7 +17,7 @@
 
 #include <scene/Light.hpp> // For LightType
 
-namespace hyperion {
+namespace Hyperion {
 
 class IndirectDrawState;
 class RenderEnvironment;
@@ -518,4 +518,4 @@ private:
     RendererConfig m_rendererConfig;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

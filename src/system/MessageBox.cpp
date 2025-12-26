@@ -17,7 +17,7 @@ extern "C"
         int buttons,
         const char* buttonTexts[3],
         const void* buttonFuncs[3],
-        hyperion::TaskPromise<void>* promise);
+        Hyperion::TaskPromise<void>* promise);
 #else
     extern int ShowMessageBox(
         int type,
@@ -28,7 +28,7 @@ extern "C"
 #endif
 }
 
-namespace hyperion {
+namespace Hyperion {
 
 SystemMessageBox::SystemMessageBox(MessageBoxType type)
     : m_type(type)
@@ -186,4 +186,4 @@ void SystemMessageBox::Show(bool showBlocking) const
 #endif
 }
 
-} // namespace hyperion
+} // namespace Hyperion

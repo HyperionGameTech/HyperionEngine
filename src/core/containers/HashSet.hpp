@@ -14,7 +14,7 @@
 #include <core/utilities/Traits.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace containers {
 template <class Value>
@@ -529,7 +529,7 @@ template <class Value, auto KeyBy = &KeyBy_Identity<Value>, class NodeAllocatorT
 class HashSet : public ContainerBase<HashSet<Value, KeyBy, NodeAllocatorType>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
 {
 public:
-    static constexpr bool IsContiguous = false;
+    static constexpr bool isContiguous = false;
 
     static constexpr SizeType InitialBucketSize = 16;
     static constexpr double DesiredLoadFactor = 0.75;
@@ -1548,4 +1548,4 @@ struct IsHashSet<HashSet<Value, KeyBy, NodeAllocatorType>> : std::true_type
 {
 };
 
-} // namespace hyperion
+} // namespace Hyperion

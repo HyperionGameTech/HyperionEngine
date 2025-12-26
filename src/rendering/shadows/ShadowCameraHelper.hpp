@@ -7,7 +7,7 @@
 #include <core/math/Vector3.hpp>
 #include <core/math/BoundingBox.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Camera;
 
@@ -22,4 +22,4 @@ public:
         BoundingBox& outAabb);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

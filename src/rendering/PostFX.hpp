@@ -14,7 +14,7 @@
 
 #include <climits>
 
-namespace hyperion {
+namespace Hyperion {
 
 class GBuffer;
 
@@ -253,4 +253,4 @@ private:
     GpuBufferRef m_uniformBuffer;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

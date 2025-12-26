@@ -7,8 +7,8 @@
 #include <core/reflection/ClassUtils.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #endif

@@ -10,7 +10,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(Size = 32)
 
@@ -94,4 +94,4 @@ struct HYP_API BoundingSphere
     float radius;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

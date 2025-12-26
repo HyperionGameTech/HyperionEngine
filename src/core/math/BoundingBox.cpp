@@ -8,7 +8,7 @@
 #include <BoundingBox.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)
 {
@@ -375,4 +375,4 @@ float BoundingBox::Area() const
     return dimensions.x * dimensions.y * dimensions.z;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

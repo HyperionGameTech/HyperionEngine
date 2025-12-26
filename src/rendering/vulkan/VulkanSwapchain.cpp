@@ -20,7 +20,7 @@
 
 #include <VulkanSwapchain.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -469,4 +469,4 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
 #pragma endregion Swapchain
 
-} // namespace hyperion
+} // namespace Hyperion

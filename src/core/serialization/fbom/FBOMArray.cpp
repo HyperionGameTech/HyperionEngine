@@ -5,7 +5,7 @@
 
 #include <sstream>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 FBOMArray::FBOMArray() = default;
 
@@ -141,4 +141,4 @@ HashCode FBOMArray::GetHashCode() const
     return hc;
 }
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

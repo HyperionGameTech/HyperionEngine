@@ -23,7 +23,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace threading {
 
@@ -1025,4 +1025,4 @@ using functional::IDelegate;
 using functional::IsDelegate;
 using functional::IsDelegateV;
 
-} // namespace hyperion
+} // namespace Hyperion

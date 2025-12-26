@@ -15,7 +15,7 @@
 
 #include <sstream>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstWhileLoop::AstWhileLoop(const RC<AstExpression>& conditional,
     const RC<AstBlock>& block,
@@ -185,4 +185,4 @@ RC<AstStatement> AstWhileLoop::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

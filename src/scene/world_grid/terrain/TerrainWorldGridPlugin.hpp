@@ -8,7 +8,7 @@
 
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Material;
 class Mesh;
@@ -74,4 +74,4 @@ protected:
     Handle<Material> m_material;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

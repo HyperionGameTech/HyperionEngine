@@ -9,7 +9,7 @@
 
 #include <Frame.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 void FrameBase::MarkDescriptorSetUsed(DescriptorSet* descriptorSet)
 {
     HYP_GFX_ASSERT(descriptorSet != nullptr);
@@ -64,4 +64,4 @@ void FrameBase::UpdateUsedDescriptorSets()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

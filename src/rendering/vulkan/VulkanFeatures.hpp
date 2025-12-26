@@ -20,7 +20,7 @@
 #include <MoltenVK/vk_mvk_moltenvk.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 class VulkanFeatures
 {
@@ -414,4 +414,4 @@ private:
     bool m_isRaytracingDisabled { false };
 };
 
-} // namespace hyperion
+} // namespace Hyperion

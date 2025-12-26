@@ -21,7 +21,7 @@
 #include <editor/EditorPickCache.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 #ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
@@ -1105,4 +1105,4 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
     return hasHit;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

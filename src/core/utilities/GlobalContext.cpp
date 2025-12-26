@@ -1,6 +1,6 @@
 #include <core/utilities/GlobalContext.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 #pragma region GlobalContextRegistry
@@ -57,4 +57,4 @@ GlobalContextRegistry::~GlobalContextRegistry()
 #pragma endregion GlobalContextRegistry
 
 } // namespace utilities
-} // namespace hyperion
+} // namespace Hyperion

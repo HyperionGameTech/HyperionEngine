@@ -24,7 +24,7 @@
 
 #include <rendering/RenderResult.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr uint32 MinSafeDeleteCycles = 10; // minimum number of cycles to wait before deleting an object
 
@@ -420,4 +420,4 @@ static inline void SafeDelete(HashSet<T, KeyBy>&& value)
     value.Clear();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

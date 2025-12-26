@@ -16,7 +16,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct ScriptDesc
 {
@@ -73,4 +73,4 @@ struct ScriptData
 static_assert(std::is_standard_layout_v<ScriptData>, "ScriptData struct must be standard layout");
 static_assert(std::is_trivially_copyable_v<ScriptData>, "ScriptData struct must be a trivial type");
 
-} // namespace hyperion
+} // namespace Hyperion

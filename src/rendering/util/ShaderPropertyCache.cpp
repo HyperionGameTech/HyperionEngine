@@ -9,7 +9,7 @@
 
 #include <core/utilities/IdGenerator.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct ShaderPropertyCacheImpl
 {
@@ -66,4 +66,4 @@ const ShaderProperty* ShaderPropertyCache::GetPropertyById(ShaderPropertyId id) 
     return nullptr;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

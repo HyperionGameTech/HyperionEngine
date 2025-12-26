@@ -6,7 +6,7 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PostFX.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 FXAAEffect::FXAAEffect(GBuffer* gbuffer)
     : PostProcessingEffect(stage, index, TF_RGBA8, gbuffer)
@@ -28,4 +28,4 @@ ShaderRef FXAAEffect::CreateShader()
     return ShaderManager::GetInstance()->GetOrCreate(NAME("FXAA"));
 }
 
-} // namespace hyperion
+} // namespace Hyperion

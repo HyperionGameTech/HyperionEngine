@@ -3,7 +3,6 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/TemporalAA.hpp>
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
@@ -26,7 +25,7 @@
 
 #include <core/threading/Threads.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct alignas(16) TaaUniforms
 {
@@ -205,4 +204,4 @@ void TemporalAA::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << InsertBarrier(activeImage, RS_SHADER_RESOURCE);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

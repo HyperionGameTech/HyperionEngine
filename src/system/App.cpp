@@ -17,7 +17,7 @@
 
 #include <HyperionEngine.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 
@@ -37,4 +37,4 @@ App::~App()
 {
 }
 
-} // namespace hyperion
+} // namespace Hyperion

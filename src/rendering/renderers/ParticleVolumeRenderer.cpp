@@ -37,7 +37,7 @@
 #include <rendering/vulkan/VulkanStructs.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 // How many frames until we release resources for unused volumes?
 static constexpr uint32 DiscardFrames = 60;
@@ -399,4 +399,4 @@ int ParticleVolumeRenderer::RunCleanupCycle(int maxIter)
     return numCycles;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -9,7 +9,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <class T>
@@ -194,4 +194,4 @@ struct alignas(Alignment) ValueStorage<T, Count, Alignment, std::enable_if_t<!st
 
 using utilities::ValueStorage;
 
-} // namespace hyperion
+} // namespace Hyperion

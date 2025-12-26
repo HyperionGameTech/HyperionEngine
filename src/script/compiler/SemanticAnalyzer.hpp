@@ -10,7 +10,7 @@
 #include <memory>
 #include <utility>
 
-namespace hyperion {
+namespace Hyperion {
 
 // forward declaration
 class Module;
@@ -114,4 +114,4 @@ public:
     void Analyze(bool expectModuleDecl = true);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

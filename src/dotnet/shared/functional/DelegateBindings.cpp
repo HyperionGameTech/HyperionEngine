@@ -7,10 +7,10 @@
 
 #include <core/functional/ScriptableDelegate.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 #ifdef HYP_DOTNET
-using namespace hyperion::dotnet;
+using namespace Hyperion::dotnet;
 #endif
 
 extern "C"

@@ -4,7 +4,7 @@
 
 #include <scene/camera/OrthoCamera.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class UICameraController : public OrthoCameraController
@@ -21,4 +21,4 @@ public:
     virtual ~UICameraController() override = default;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

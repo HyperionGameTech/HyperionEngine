@@ -7,7 +7,7 @@
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct MouseEvent;
 struct KeyboardEvent;
@@ -76,4 +76,4 @@ private:
     KeyboardEvent m_keyboardEvent;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

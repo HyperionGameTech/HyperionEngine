@@ -20,7 +20,7 @@
 
 #include <util/GameCounter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIObject;
 class EditorTaskThread;
@@ -157,4 +157,4 @@ protected:
     Pimpl<EditorTaskThread> m_thread;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

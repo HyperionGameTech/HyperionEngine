@@ -10,7 +10,7 @@
 
 #include <rendering/RenderObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class GBuffer;
 class Texture;
@@ -120,4 +120,4 @@ private:
     bool m_isInitialized;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

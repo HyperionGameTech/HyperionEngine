@@ -4,7 +4,7 @@
 
 #include <ui/UIPanel.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Property;
 
@@ -41,4 +41,4 @@ protected:
     DelegateHandlerSet m_delegateHandlers;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 #include <core/Types.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum AllocatorFlags : uint32
 {
@@ -16,4 +16,4 @@ enum AllocatorFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(AllocatorFlags);
 
-} // namespace hyperion
+} // namespace Hyperion

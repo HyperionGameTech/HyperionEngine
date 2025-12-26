@@ -28,7 +28,7 @@
 
 #include <TerrainWorldGridPlugin.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
@@ -533,4 +533,4 @@ Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell_Impl(const Stre
 
 #pragma endregion TerrainWorldGridLayer
 
-} // namespace hyperion
+} // namespace Hyperion

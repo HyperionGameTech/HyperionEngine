@@ -14,7 +14,7 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mesh;
 class Material;
@@ -105,4 +105,4 @@ private:
     RenderableAttributeSet m_renderableAttributes;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

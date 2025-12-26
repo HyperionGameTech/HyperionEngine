@@ -6,7 +6,7 @@
 #include <core/Types.hpp>
 #include <core/math/MathUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 /*! \brief Standardized memory metrics structure that can be used across different memory allocators. */
@@ -96,4 +96,4 @@ struct MemoryMetrics
 
 using memory::MemoryMetrics;
 
-} // namespace hyperion
+} // namespace Hyperion

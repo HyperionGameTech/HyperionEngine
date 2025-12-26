@@ -8,7 +8,7 @@
 
 #include <core/config/Config.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.HBAO")
 struct HBAOConfig : public ConfigBase<HBAOConfig>
@@ -73,4 +73,4 @@ private:
     GpuBufferRef m_uniformBuffer;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

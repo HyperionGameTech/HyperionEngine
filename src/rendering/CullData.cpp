@@ -8,7 +8,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 CullData::CullData(const CullData& other)
     : depthPyramidImageView(other.depthPyramidImageView),
@@ -67,4 +67,4 @@ CullData::~CullData()
     SafeDelete(std::move(depthPyramidImageView));
 }
 
-} // namespace hyperion
+} // namespace Hyperion

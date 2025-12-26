@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class VulkanFence final : public ObjectBase
@@ -36,4 +36,4 @@ private:
     VkResult m_lastFrameResult = VK_SUCCESS;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

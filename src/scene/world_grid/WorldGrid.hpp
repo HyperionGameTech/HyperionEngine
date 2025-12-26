@@ -23,7 +23,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 class EntityManager;
@@ -67,7 +67,7 @@ struct WGLayerDesc
 
     HYP_FIELD()
     Name className = NAME("WorldGridLayer");
-    
+
     HYP_FIELD()
     Name layerName;
 
@@ -129,4 +129,4 @@ private:
     Array<Handle<WorldGridLayer>> m_layers;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

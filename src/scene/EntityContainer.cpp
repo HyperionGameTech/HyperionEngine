@@ -4,7 +4,7 @@
 
 #include <scene/EntityContainer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 EntityContainer& EntityContainer::GetDefaultInstance()
 {
@@ -12,4 +12,4 @@ EntityContainer& EntityContainer::GetDefaultInstance()
     return s_defaultInstance;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

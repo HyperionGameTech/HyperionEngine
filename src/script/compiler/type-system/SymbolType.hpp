@@ -9,7 +9,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #define HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG 1
 
@@ -731,4 +731,4 @@ private:
     mutable int m_cacheCounter;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

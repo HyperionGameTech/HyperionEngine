@@ -5,7 +5,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 int IdentifierTable::CountUsedVariables() const
 {
@@ -160,4 +160,4 @@ void IdentifierTable::AddSymbolType(SymbolType* symbolType)
     symbolTypes.PushBack(symbolType);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

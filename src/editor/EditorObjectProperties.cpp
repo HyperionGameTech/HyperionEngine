@@ -12,7 +12,7 @@
 
 #include <core/reflection/ClassRegistry.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region EditorObjectPropertiesBase
 
@@ -67,4 +67,4 @@ Handle<UIObject> EditorObjectProperties<Vec2f>::CreateUIObject(UIObject* parent)
 
 #pragma endregion EditorObjectProperties < Vec2f>
 
-} // namespace hyperion
+} // namespace Hyperion

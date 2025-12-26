@@ -15,7 +15,7 @@
 
 #include <core/utilities/IdGenerator.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class SymbolType;
 
@@ -103,4 +103,4 @@ private:
     Module* m_globalModule;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -5,7 +5,7 @@
 #include <editor/HyperionEditor.hpp>
 #include <editor/EditorDelegates.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

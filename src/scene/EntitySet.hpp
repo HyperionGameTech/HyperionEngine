@@ -20,7 +20,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class... Components>
 class EntitySet;
@@ -148,7 +148,7 @@ public:
 
     using Iterator = EntitySetIterator<Components...>;
     using ConstIterator = EntitySetIterator<const Components...>;
-    
+
     /*! \internal Default impl - used internally */
     EntitySet()
         : m_entities(EntityContainer::GetDefaultInstance()),
@@ -434,4 +434,4 @@ struct EntitySetView
     HYP_DEF_STL_BEGIN_END(entitySet.Begin(), entitySet.End())
 };
 
-} // namespace hyperion
+} // namespace Hyperion

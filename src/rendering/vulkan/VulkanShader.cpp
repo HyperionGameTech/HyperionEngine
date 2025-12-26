@@ -20,7 +20,7 @@
 
 #include <VulkanShader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -285,4 +285,4 @@ void VulkanShader::SetDebugName(Name name)
 
 #pragma endregion VulkanShader
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -12,7 +12,7 @@
 
 #include <ui/UIObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIStage;
 class Texture;
@@ -101,4 +101,4 @@ protected:
     float m_textSize;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

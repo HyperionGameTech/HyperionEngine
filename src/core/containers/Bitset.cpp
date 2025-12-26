@@ -11,7 +11,7 @@
 #include <windows.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 static Array<Bitset::BlockType, InlineAllocator<2>> CreateBlocks_Internal(uint64 value)
@@ -230,4 +230,4 @@ Bitset& Bitset::SetNumBits(SizeType numBits)
 }
 
 } // namespace containers
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Variant.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct HypMember
 {
@@ -77,4 +77,4 @@ struct HypMember
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

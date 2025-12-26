@@ -24,7 +24,7 @@
 
 #include <engine/EngineStats.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 class Camera;
@@ -177,4 +177,4 @@ public:
     void BuildDrawCalls(uint32 bucketBits);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

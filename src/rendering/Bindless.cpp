@@ -10,7 +10,7 @@
 
 #include <rendering/Texture.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 BindlessStorage::BindlessStorage() = default;
 BindlessStorage::~BindlessStorage()
@@ -90,4 +90,4 @@ void BindlessStorage::RemoveResource(ObjId<Texture> id)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

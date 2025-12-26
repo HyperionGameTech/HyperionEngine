@@ -4,7 +4,7 @@
 
 #include <core/threading/Mutex.hpp>
 
-namespace hyperion::net {
+namespace Hyperion::net {
 
 static RC<NetRequestThread> g_globalNetRequestThread;
 static Mutex g_globalNetRequestThreadMutex;
@@ -30,4 +30,4 @@ NetRequestThread::NetRequestThread()
 
 NetRequestThread::~NetRequestThread() = default;
 
-} // namespace hyperion::net
+} // namespace Hyperion::net

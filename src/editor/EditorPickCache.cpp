@@ -14,7 +14,7 @@
 
 #include <util/GameCounter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -370,4 +370,4 @@ void EditorPickCache::Update(float delta)
         g_editorPickCachePool->GetMemoryMetrics()[MemoryMetrics::MM_BYTES_USED]);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

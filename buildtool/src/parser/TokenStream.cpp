@@ -2,7 +2,7 @@
 
 #include <parser/TokenStream.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 TokenStream::TokenStream(const TokenStreamInfo& info)
     : m_position(0),
@@ -55,4 +55,4 @@ TokenStream& TokenStream::operator=(TokenStream&& other) noexcept
     return *this;
 }
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

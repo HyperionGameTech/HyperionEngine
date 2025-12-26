@@ -4,7 +4,7 @@
 
 #include <scene/camera/PerspectiveCamera.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class HYP_API FollowCameraController : public PerspectiveCameraController
@@ -47,4 +47,4 @@ private:
         m_prevMag;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

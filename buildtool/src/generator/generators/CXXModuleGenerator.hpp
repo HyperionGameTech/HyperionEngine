@@ -5,8 +5,8 @@
 
 #include <generator/Generator.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 class CXXModuleGenerator : public GeneratorBase
 {
@@ -30,7 +30,7 @@ public:
 protected:
 };
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion
 
 #endif

@@ -20,7 +20,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -559,4 +559,4 @@ private:
 
 #undef HYP_METHOD_MEMBER_FN_WRAPPER
 
-} // namespace hyperion
+} // namespace Hyperion

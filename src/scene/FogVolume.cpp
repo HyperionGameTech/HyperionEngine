@@ -21,7 +21,7 @@
 
 #include <FogVolume.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 FogVolume::FogVolume()
 {
@@ -135,4 +135,4 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

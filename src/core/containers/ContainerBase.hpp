@@ -16,7 +16,7 @@
 
 #include <algorithm> // for std::lower_bound, std::upper_bound
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class ValueType>
 constexpr decltype(auto) KeyBy_Identity(const ValueType& value)
@@ -164,7 +164,7 @@ public:
     template <class T>
     auto LowerBound(const T& key)
     {
-        static_assert(Container::IsContiguous, "Container must be contiguous to perform IndexOf()");
+        static_assert(Container::isContiguous, "Container must be contiguous to perform IndexOf()");
 
         const auto _begin = static_cast<Container*>(this)->Begin();
         const auto _end = static_cast<Container*>(this)->End();
@@ -178,7 +178,7 @@ public:
     template <class T>
     auto LowerBound(const T& key) const
     {
-        static_assert(Container::IsContiguous, "Container must be contiguous to perform IndexOf()");
+        static_assert(Container::isContiguous, "Container must be contiguous to perform IndexOf()");
 
         const auto _begin = static_cast<const Container*>(this)->Begin();
         const auto _end = static_cast<const Container*>(this)->End();
@@ -192,7 +192,7 @@ public:
     template <class T>
     auto UpperBound(const T& key)
     {
-        static_assert(Container::IsContiguous, "Container must be contiguous to perform IndexOf()");
+        static_assert(Container::isContiguous, "Container must be contiguous to perform IndexOf()");
 
         const auto _begin = static_cast<Container*>(this)->Begin();
         const auto _end = static_cast<Container*>(this)->End();
@@ -206,7 +206,7 @@ public:
     template <class T>
     auto UpperBound(const T& key) const
     {
-        static_assert(Container::IsContiguous, "Container must be contiguous to perform IndexOf()");
+        static_assert(Container::isContiguous, "Container must be contiguous to perform IndexOf()");
 
         const auto _begin = static_cast<const Container*>(this)->Begin();
         const auto _end = static_cast<const Container*>(this)->End();
@@ -317,7 +317,7 @@ public:
     template <class ConstIterator>
     SizeType IndexOf(ConstIterator iter) const
     {
-        static_assert(Container::IsContiguous, "Container must be contiguous to perform IndexOf()");
+        static_assert(Container::isContiguous, "Container must be contiguous to perform IndexOf()");
 
         static_assert(std::is_convertible_v<decltype(iter),
                           typename Container::ConstIterator>,
@@ -331,7 +331,7 @@ public:
     template <class OtherContainer>
     bool CompareBitwise(const OtherContainer& otherContainer) const
     {
-        static_assert(Container::IsContiguous && OtherContainer::IsContiguous, "Containers must be contiguous to perform bitwise comparison");
+        static_assert(Container::isContiguous && OtherContainer::isContiguous, "Containers must be contiguous to perform bitwise comparison");
 
         const SizeType thisSizeBytes = static_cast<const Container*>(this)->ByteSize();
         const SizeType otherSizeBytes = otherContainer.ByteSize();
@@ -509,4 +509,4 @@ using containers::FindIf;
 using containers::IContainer;
 using containers::Sum;
 
-} // namespace hyperion
+} // namespace Hyperion

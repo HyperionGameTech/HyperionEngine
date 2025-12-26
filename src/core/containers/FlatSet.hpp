@@ -10,7 +10,7 @@
 #include <core/utilities/Traits.hpp>
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 /*! \brief FlatSet is a sorted set container that stores unique elements in a flat contiguous array, based on the SortedArray implementation.
@@ -345,4 +345,4 @@ struct IsFlatSet<FlatSet<T>> : std::true_type
 {
 };
 
-} // namespace hyperion
+} // namespace Hyperion

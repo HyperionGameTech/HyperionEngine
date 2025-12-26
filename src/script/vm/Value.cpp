@@ -15,7 +15,7 @@
 #include <cinttypes>
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
@@ -529,4 +529,4 @@ HYP_API String ToString(const BoxedValue& data)
     return ScriptApi_ValueToString(data);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

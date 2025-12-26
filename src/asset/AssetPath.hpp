@@ -13,7 +13,7 @@
 
 #include <core/utilities/FormatFwd.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(Size = 8)
 struct HYP_API AssetPath
@@ -236,4 +236,4 @@ struct Formatter<StringType, AssetPath>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

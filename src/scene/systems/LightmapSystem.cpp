@@ -12,7 +12,7 @@
 
 #include <LightmapSystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Lightmap);
 
@@ -73,4 +73,4 @@ bool LightmapSystem::AssignLightmapVolume(Scene* scene, LightmapElementComponent
     return false;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

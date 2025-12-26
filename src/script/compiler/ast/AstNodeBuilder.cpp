@@ -4,7 +4,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 ModuleBuilder AstNodeBuilder::Module(const String& name)
 {
@@ -89,4 +89,4 @@ RC<AstExpression> FunctionBuilder::Call(const Array<RC<AstArgument>>& args)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

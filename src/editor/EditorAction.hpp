@@ -12,7 +12,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class EditorSubsystem;
 class EditorProject;
@@ -148,9 +148,9 @@ struct EditorActionFactoryRegistration : public EditorActionFactoryRegistrationB
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #define HYP_DEFINE_EDITOR_ACTION(actionName)                                                                           \
     class EditorAction_##actionName;                                                                                   \
-    static ::hyperion::EditorActionFactoryRegistration<EditorAction_##actionName> EditorActionFactory_##actionName {}; \
-    class EditorAction_##actionName : public ::hyperion::EditorAction
+    static ::Hyperion::EditorActionFactoryRegistration<EditorAction_##actionName> EditorActionFactory_##actionName {}; \
+    class EditorAction_##actionName : public ::Hyperion::EditorAction

@@ -12,7 +12,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 struct TokenStreamInfo
 {
@@ -129,6 +129,6 @@ private:
     TokenStreamInfo m_info;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

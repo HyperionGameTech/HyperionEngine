@@ -15,7 +15,7 @@
 
 #include <core/math/Vector3.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mesh;
 class RenderProxyList;
@@ -59,4 +59,4 @@ private:
     Pimpl<struct EditorPickCacheImpl> m_impl;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace hyperion {
+namespace Hyperion {
 class WorleyNoise
 {
     static constexpr uint32 offsetBasis = 2166136261u;
@@ -41,4 +41,4 @@ private:
         return ((((((offsetBasis ^ i) * fnvPrime) ^ j) * fnvPrime) ^ k) * fnvPrime);
     }
 };
-} // namespace hyperion
+} // namespace Hyperion

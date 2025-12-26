@@ -6,7 +6,7 @@
 
 #include <core/io/ByteWriter.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 #pragma region FBOMType
 
@@ -258,4 +258,4 @@ String FBOMType::ToString(bool deep) const
 
 #pragma endregion FBOMType
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

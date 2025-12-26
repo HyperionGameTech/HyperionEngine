@@ -19,7 +19,7 @@
 
 #include <semaphore>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AppContextBase;
 class Game;
@@ -71,4 +71,4 @@ private:
     uint32 m_frameCounter;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

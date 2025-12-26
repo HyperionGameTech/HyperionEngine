@@ -12,7 +12,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 class VulkanGpuImage;
 
 HYP_CLASS(NoScriptBindings)
@@ -50,4 +50,4 @@ private:
     VkImageView m_handle;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

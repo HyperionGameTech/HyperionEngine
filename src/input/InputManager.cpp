@@ -16,7 +16,7 @@
 
 #include <InputManager.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static Pool& GetInputPool()
 {
@@ -610,4 +610,4 @@ void InputManager::MainThreadUpdate()
 
 #pragma endregion InputManager
 
-} // namespace hyperion
+} // namespace Hyperion

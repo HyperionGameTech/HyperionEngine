@@ -5,11 +5,11 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
-namespace hyperion {
+namespace Hyperion {
 HYP_API extern Handle<Logger> g_logger;
-} // namespace hyperion
+} // namespace Hyperion
 
 extern "C"
 {

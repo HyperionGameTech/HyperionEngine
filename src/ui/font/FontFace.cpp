@@ -12,7 +12,7 @@
 
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Font);
 
@@ -93,4 +93,4 @@ FontEngine::Font FontFace::GetFace()
     return m_face;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

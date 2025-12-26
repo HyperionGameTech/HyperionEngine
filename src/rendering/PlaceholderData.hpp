@@ -23,7 +23,7 @@
 
 // #include <core/threading/Threads.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 class AssetObject;
@@ -150,4 +150,4 @@ private:
     FlatMap<GpuBufferType, FlatMap<SizeType, GpuBufferRef>> m_buffers;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -10,7 +10,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class CommandBufferBase : public ObjectBase
@@ -48,7 +48,7 @@ public:
     uint8 stencilWriteMask = 0xFF;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

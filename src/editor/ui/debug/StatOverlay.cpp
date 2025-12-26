@@ -13,7 +13,7 @@
 
 #include <StatOverlay.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -211,4 +211,4 @@ Color StatOverlay::GetFpsColor(int fps)
 
 #pragma endregion StatOverlay
 
-} // namespace hyperion
+} // namespace Hyperion

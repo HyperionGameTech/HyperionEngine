@@ -12,7 +12,7 @@
 #include <rendering/Shader.hpp>
 #include <rendering/GpuBuffer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Entity;
 class ShadowMapAllocator;
@@ -200,4 +200,4 @@ private:
     void SetDefaultDescriptorSetElements(uint32 frameIndex);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

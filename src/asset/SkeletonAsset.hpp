@@ -13,7 +13,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Animation;
 
@@ -139,4 +139,4 @@ private:
     SkeletonDesc m_skeletonDesc;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

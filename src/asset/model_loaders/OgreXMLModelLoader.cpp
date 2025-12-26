@@ -28,7 +28,7 @@
 
 #include <OgreXMLModelLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -369,4 +369,4 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
     return LoadedAsset { top };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

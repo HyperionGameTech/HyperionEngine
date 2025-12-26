@@ -12,7 +12,7 @@
 
 #include <asset/AssetReference.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Skeleton;
 class SkeletonAsset;
@@ -44,4 +44,4 @@ private:
     HashMap<Skeleton*, ResourceHandle> m_resourceHandles;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

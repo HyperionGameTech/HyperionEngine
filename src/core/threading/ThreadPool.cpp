@@ -16,7 +16,7 @@
 #include <chrono>
 #include <thread>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 constexpr bool EnableCleanupIdleBackgroundThreads = false; // tmp debugging
@@ -461,4 +461,4 @@ void BackgroundTaskThreadPool::WakeOverseer()
 #pragma endregion BackgroundTaskThreadPool
 
 } // namespace threading
-} // namespace hyperion
+} // namespace Hyperion

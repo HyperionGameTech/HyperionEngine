@@ -15,8 +15,8 @@
 
 #include <util/Util.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 static const HashMap<String, String> s_getValueOverloads = {
     { "bool", "ReadBool" },
@@ -291,5 +291,5 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
     return {};
 }
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion

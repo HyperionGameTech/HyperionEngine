@@ -8,7 +8,7 @@
 
 #include <core/memory/ByteBuffer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 // int types
@@ -37,9 +37,9 @@ struct Formatter<StringType, bool>
 {
     static const inline StringType trueString = "true";
     static const inline StringType falseString = "false";
-    
+
     static const inline StringType* const boolStrings[2] = { &falseString, &trueString };
-    
+
     const auto& operator()(bool value) const
     {
         return *boolStrings[value];
@@ -434,7 +434,7 @@ constexpr auto Format(Args&&... args)
 
 using utilities::Format;
 
-} // namespace hyperion
+} // namespace Hyperion
 
 // Helper macro for utilities::Format< FormatString >(...)
 

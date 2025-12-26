@@ -7,7 +7,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 /*! \brief FILO queue based on Array<T> class. */
@@ -181,4 +181,4 @@ void Queue<T>::Clear()
 template <class T>
 using Queue = containers::Queue<T>;
 
-} // namespace hyperion
+} // namespace Hyperion

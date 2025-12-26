@@ -2,7 +2,7 @@
 
 #pragma once
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace memory {
 
@@ -60,4 +60,4 @@ using RenderTempAllocator = AllocatorInstance<TArena<RenderAllocator>, &g_render
 using SceneTempAllocator = AllocatorInstance<TArena<SceneAllocator>, &g_sceneArena>;
 using StreamingTempAllocator = AllocatorInstance<TArena<StreamingAllocator>, &g_streamingArena>;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -16,8 +16,8 @@
 
 #include <core/io/ByteWriter.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
@@ -350,5 +350,5 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
     return {};
 }
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion

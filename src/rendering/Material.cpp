@@ -17,7 +17,7 @@
 
 #include <Material.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const ShaderDefinition s_defaultShaderDefinition {
     NAME("GeometryPass"),
@@ -680,4 +680,4 @@ Handle<Material> MaterialCache::GetOrCreate(
 
 #pragma region MaterialCache
 
-} // namespace hyperion
+} // namespace Hyperion

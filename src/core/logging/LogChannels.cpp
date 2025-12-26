@@ -1,7 +1,7 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region Core
 
@@ -97,4 +97,4 @@ HYP_DEFINE_LOG_SUBCHANNEL(Serialization, Assets);
 
 #pragma endregion Assets
 
-} // namespace hyperion
+} // namespace Hyperion

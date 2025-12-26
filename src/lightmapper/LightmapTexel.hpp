@@ -18,7 +18,7 @@
 
 #include <util/img/Bitmap.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mesh;
 class Material;
@@ -76,4 +76,4 @@ struct LightmapTexel
     LightmapRay* pRay = nullptr;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

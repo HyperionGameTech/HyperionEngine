@@ -10,7 +10,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class OBJModelLoader : public AssetLoaderBase
@@ -81,15 +81,15 @@ public:
 
 using OBJIndex = OBJModelLoader::OBJModel::OBJIndex;
 
-} // namespace hyperion
+} // namespace Hyperion
 
 namespace std {
 template <>
-struct hash<hyperion::OBJIndex>
+struct hash<Hyperion::OBJIndex>
 {
-    size_t operator()(const hyperion::OBJIndex& obj) const
+    size_t operator()(const Hyperion::OBJIndex& obj) const
     {
-        hyperion::HashCode hc;
+        Hyperion::HashCode hc;
         hc.Add(obj.vertex);
         hc.Add(obj.normal);
         hc.Add(obj.texcoord);

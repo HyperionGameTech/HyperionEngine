@@ -15,7 +15,6 @@
 #include <scene/systems/PhysicsSystem.hpp>
 #include <scene/systems/ScriptSystem.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderInterface.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
@@ -30,7 +29,7 @@
 
 #include <Scene.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const Name s_nameUnnamedScene = NAME("<unnamed scene>");
 static const Name s_nameSceneRoot = NAME("<ROOT>");
@@ -381,4 +380,4 @@ Name Scene::GetUniqueNodeName(UTF8StringView baseName) const
 
 #pragma endregion Scene
 
-} // namespace hyperion
+} // namespace Hyperion

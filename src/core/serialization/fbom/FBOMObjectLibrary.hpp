@@ -13,7 +13,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace compression {
 class Archive;
@@ -107,4 +107,4 @@ struct FBOMObjectLibrary
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

@@ -25,7 +25,7 @@
 #include <core/utilities/GlobalContext.hpp>
 #endif
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 static const TypeId s_typeIdAssetReference = TypeId::ForType<AssetReference>();
 static const Name s_nameResolveAsset = NAME("resolveasset");
@@ -418,4 +418,4 @@ FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const F
 }
 HYP_ENABLE_OPTIMIZATION;
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

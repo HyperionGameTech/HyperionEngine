@@ -1,6 +1,6 @@
 #include <script/compiler/AstVisitor.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstVisitor::AstVisitor(AstIterator* astIterator,
     CompilationUnit* compilationUnit)
@@ -27,4 +27,4 @@ void AstVisitor::ReportInternalError(const SourceLocation& location)
         location));
 }
 
-} // namespace hyperion
+} // namespace Hyperion

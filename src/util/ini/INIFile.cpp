@@ -11,7 +11,7 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 const INIFile::Element INIFile::Element::empty = {};
 
@@ -211,4 +211,4 @@ void INIFile::Parse()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <scripting/Script.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class ScriptAsset : public AssetObject
@@ -50,4 +50,4 @@ public:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

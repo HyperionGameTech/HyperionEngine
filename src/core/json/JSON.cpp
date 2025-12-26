@@ -14,7 +14,7 @@
 // needed for TypeInfo
 #include <core/reflection/BoxedValue.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace json {
 
 static const JSONValue s_undefined = json::JSONUndefined();
@@ -1294,4 +1294,4 @@ ParseResult JSON::Parse(const SourceFile& sourceFile)
 #pragma endregion JSON
 
 } // namespace json
-} // namespace hyperion
+} // namespace Hyperion

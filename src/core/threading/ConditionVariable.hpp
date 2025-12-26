@@ -14,7 +14,7 @@
 #include <Windows.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 class ConditionVariable
@@ -134,4 +134,4 @@ private:
 
 using threading::ConditionVariable;
 
-} // namespace hyperion
+} // namespace Hyperion

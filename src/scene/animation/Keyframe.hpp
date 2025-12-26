@@ -5,7 +5,7 @@
 #include <core/math/Transform.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT()
 struct HYP_API Keyframe
@@ -37,4 +37,4 @@ struct HYP_API Keyframe
     Keyframe Blend(const Keyframe& to, float blend) const;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

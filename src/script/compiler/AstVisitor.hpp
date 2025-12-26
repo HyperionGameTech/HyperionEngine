@@ -4,7 +4,7 @@
 #include <script/compiler/ErrorList.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class CompilerError;
 
@@ -34,4 +34,4 @@ protected:
     CompilationUnit* m_compilationUnit;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

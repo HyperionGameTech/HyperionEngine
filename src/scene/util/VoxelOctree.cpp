@@ -23,7 +23,7 @@
 
 #include <limits>
 
-namespace hyperion {
+namespace Hyperion {
 
 static BoundingBox SnapAabbToVoxel(const BoundingBox& aabb, float voxelSize)
 {
@@ -367,4 +367,4 @@ double VoxelOctree::GetSignedDistanceAtPoint(const Vec3f& point) const
     return INFINITY;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstDeclaration : public AstStatement
 {
@@ -82,4 +82,4 @@ protected:
     EnumFlags<IdentifierFlags> m_flags;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -17,7 +17,7 @@
 #include <scene/ComponentFactory.hpp>
 #include <scene/ComponentContainer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ComponentInterfaceRegistry;
 class ComponentContainerFactoryBase;
@@ -327,4 +327,4 @@ struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize>
     {                                                                                                                                                  \
     }
 
-} // namespace hyperion
+} // namespace Hyperion

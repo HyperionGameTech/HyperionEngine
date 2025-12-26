@@ -8,7 +8,7 @@
 #include <Mat3f.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 Mat3f::Mat3f()
     : rows {
@@ -178,4 +178,4 @@ Mat3f Mat3f::Identity()
 {
     return Mat3f(); // constructor fills out identity matrix
 }
-} // namespace hyperion
+} // namespace Hyperion

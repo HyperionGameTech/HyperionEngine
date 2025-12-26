@@ -8,7 +8,7 @@
 
 #include <core/logging/Logger.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Object);
 
@@ -54,4 +54,4 @@ extern "C"
 
 } // extern "C"
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -17,7 +17,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class RenderableAttributeSet;
 struct CompiledShader;
@@ -138,7 +138,7 @@ public:
     virtual void NextFrame() = 0;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanRenderBackend.inl>

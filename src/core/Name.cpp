@@ -10,7 +10,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 // false while in static initialization to disable mutex locking; set to true on engine startup
 static bool s_isNameRegistryInitialized = false;
@@ -316,4 +316,4 @@ NameRegistration NameRegistration::FromDynamicString(const ANSIString& str)
 
 #pragma endregion NameRegistration
 
-} // namespace hyperion
+} // namespace Hyperion

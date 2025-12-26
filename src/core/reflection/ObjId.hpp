@@ -12,7 +12,7 @@
 #include <core/Constants.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 using utilities::TypeId; // fwd declared in TypeInfoFwd.hpp
 
@@ -192,4 +192,4 @@ struct Formatter<StringType, ObjIdBase>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

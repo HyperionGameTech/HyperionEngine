@@ -55,7 +55,7 @@
 
 #include <DefaultGame.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 namespace game {
@@ -181,4 +181,4 @@ void DefaultGame::OnInputEvent(const Event& event)
 }
 
 } // namespace game
-} // namespace hyperion
+} // namespace Hyperion

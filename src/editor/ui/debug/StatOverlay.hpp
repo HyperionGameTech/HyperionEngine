@@ -10,7 +10,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class World;
 class UIText;
@@ -57,4 +57,4 @@ private:
     int m_numTicksGame;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

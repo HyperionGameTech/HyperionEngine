@@ -9,7 +9,7 @@
 
 #include <UIDataSource.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern const Class* GetClass(const TypeId& typeId);
 HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
@@ -30,7 +30,7 @@ Handle<UIElementFactoryBase> UIDataSource::GetElementFactoryForType(TypeId typeI
 
     if (it == m_elementFactories.End())
     {
-        const Class* cls = hyperion::GetClass(typeId);
+        const Class* cls = Hyperion::GetClass(typeId);
 
         if (cls != nullptr)
         {
@@ -38,7 +38,7 @@ Handle<UIElementFactoryBase> UIDataSource::GetElementFactoryForType(TypeId typeI
             int subclassIndex = -1;
             for (auto jt = m_elementFactories.Begin(); jt != m_elementFactories.End(); ++jt)
             {
-                if (::hyperion::IsA(GetClass(jt->first), cls))
+                if (::Hyperion::IsA(GetClass(jt->first), cls))
                 {
                     const int currSubclassIndex = GetSubclassIndex(jt->first, typeId);
 
@@ -144,4 +144,4 @@ UIElementFactoryRegistrationBase::~UIElementFactoryRegistrationBase()
 
 #pragma endregion UIElementFactoryRegistrationBase
 
-} // namespace hyperion
+} // namespace Hyperion

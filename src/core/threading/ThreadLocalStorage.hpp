@@ -8,7 +8,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 static constexpr SizeType TlsPoolBlockSize = 4 * 1024 * 1024; // 4 MiB
@@ -34,4 +34,4 @@ public:
 
 using threading::ThreadLocalStorage;
 
-} // namespace hyperion
+} // namespace Hyperion

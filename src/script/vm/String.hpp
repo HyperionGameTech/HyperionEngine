@@ -2,8 +2,8 @@
 
 #include <core/containers/String.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 using Script_String = String;
 
-} // namespace hyperion
+} // namespace Hyperion

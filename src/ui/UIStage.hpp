@@ -27,7 +27,7 @@
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Event;
 class InputManager;
@@ -211,4 +211,4 @@ private:
     DelegateHandler m_onWindowResizedHandler;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

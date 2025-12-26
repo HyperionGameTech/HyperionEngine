@@ -12,7 +12,7 @@
 
 #include <core/config/Config.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class GBuffer;
 class PassData;
@@ -79,4 +79,4 @@ private:
     Mat4f m_previousViewMatrix;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

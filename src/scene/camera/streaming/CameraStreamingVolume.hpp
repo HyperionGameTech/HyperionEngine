@@ -9,7 +9,7 @@
 
 #include <core/math/Frustum.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class HYP_API CameraStreamingVolume : public StreamingVolumeBase
@@ -62,4 +62,4 @@ protected:
     BoundingBox m_aabb;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

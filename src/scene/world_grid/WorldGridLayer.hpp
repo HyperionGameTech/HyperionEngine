@@ -14,7 +14,7 @@
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class WorldGrid;
 class WGObject;
@@ -147,4 +147,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

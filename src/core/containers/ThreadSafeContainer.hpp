@@ -14,7 +14,7 @@
 #include <mutex>
 #include <atomic>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class T>
 class ThreadSafeContainer
@@ -188,4 +188,4 @@ private:
     std::mutex m_updateMutex;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -12,11 +12,11 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/Result.hpp>
 
-namespace hyperion::json {
+namespace Hyperion::json {
 class JSONValue;
-} // namespace hyperion::json
+} // namespace Hyperion::json
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 class Analyzer;
 
@@ -331,6 +331,6 @@ private:
     CompilationUnit* m_compilationUnit;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

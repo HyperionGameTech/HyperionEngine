@@ -39,7 +39,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const String s_reservedClassMemberNames[] = {
     "$construct"
@@ -75,13 +75,13 @@ AstClass::AstClass(
     EnumFlags<AstClassFlags> flags,
     const SourceLocation& location)
     : AstClass(
-        name,
-        RC<AstTypeSpecifier>(),
-        dataMembers,
-        functionMembers,
-        staticMembers,
-        flags,
-        location)
+          name,
+          RC<AstTypeSpecifier>(),
+          dataMembers,
+          functionMembers,
+          staticMembers,
+          flags,
+          location)
 {
     m_baseType = baseType;
 }
@@ -940,4 +940,4 @@ const String& AstClass::GetName() const
     return m_name;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

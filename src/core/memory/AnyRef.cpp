@@ -5,7 +5,7 @@
 #include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/TypeInfo.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 TypeId AnyRefBase::GetTypeId() const
@@ -19,4 +19,4 @@ const Class* AnyRefBase::GetClass() const
 }
 
 } // namespace memory
-} // namespace hyperion
+} // namespace Hyperion

@@ -11,9 +11,11 @@
 
 #include <EditorState.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
+
+#ifdef HYP_EDITOR
 
 Pool s_editorPickCachePool { EditorPickCache::MaxMemoryUsageBytes };
 HYP_API Pool* g_editorPickCachePool = &s_editorPickCachePool;
@@ -208,4 +210,6 @@ void EditorState::Update(float delta)
     m_pickCache.Update(delta);
 }
 
-} // namespace hyperion
+#endif
+
+} // namespace Hyperion

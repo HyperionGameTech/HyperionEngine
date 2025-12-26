@@ -7,7 +7,7 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstVariableDeclaration;
 
@@ -41,4 +41,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

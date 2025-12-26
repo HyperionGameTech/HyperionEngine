@@ -17,7 +17,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern FilePath CoreApi_GetExecutablePath();
 
@@ -236,4 +236,4 @@ FilePath DataStoreBase::GetDirectory() const
 }
 
 } // namespace filesystem
-} // namespace hyperion
+} // namespace Hyperion

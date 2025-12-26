@@ -10,7 +10,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 ManagedObject::ManagedObject()
     : m_managedClass(nullptr),
@@ -142,4 +142,4 @@ bool ManagedObject::SetKeepAlive(bool keepAlive)
     return false;
 }
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

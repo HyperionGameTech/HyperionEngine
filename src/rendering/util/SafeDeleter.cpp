@@ -13,7 +13,7 @@
 
 #include <scripting/ScriptObjectResource.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API SafeDeleter* GetSafeDeleterInstance()
 {
@@ -429,4 +429,4 @@ SafeDeleter::EntryListBase& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, ui
 
 #pragma endregion SafeDeleter::EntryList
 
-} // namespace hyperion
+} // namespace Hyperion

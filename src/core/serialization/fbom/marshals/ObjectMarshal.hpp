@@ -17,7 +17,7 @@
 #include <asset/AssetReference.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 class ObjectBase;
 struct BoxedValue;
@@ -52,9 +52,9 @@ extern const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetRe
 
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 class HYP_API ObjectMarshal : public FBOMMarshalerBase
 {
@@ -78,4 +78,4 @@ protected:
     virtual FBOMResult Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const Class* cls, BoxedValue& target) const;
 };
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

@@ -18,7 +18,7 @@
 
 #include <rendering/Shared.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 
@@ -80,4 +80,4 @@ private:
     Metrics m_metrics {};
 };
 
-}; // namespace hyperion
+}; // namespace Hyperion

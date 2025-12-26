@@ -17,7 +17,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class DataAccessFlags : uint32
 {
@@ -139,4 +139,4 @@ using threading::DataRaceDetector;
 #define HYP_MT_CHECK_RW(_data_race_detector, ...)
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

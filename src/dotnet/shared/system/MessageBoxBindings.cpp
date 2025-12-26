@@ -4,7 +4,7 @@
 
 #include <system/MessageBox.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

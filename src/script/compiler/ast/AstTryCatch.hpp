@@ -6,7 +6,7 @@
 
 #include <memory>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstTryCatch : public AstStatement
 {
@@ -46,4 +46,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

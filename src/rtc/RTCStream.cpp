@@ -9,11 +9,11 @@
 #include <core/threading/TaskThread.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
-    #include <rtc/rtcpsrreporter.hpp>
-    #include <rtc/rtppacketizationconfig.hpp>
+#include <rtc/rtcpsrreporter.hpp>
+#include <rtc/rtppacketizationconfig.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 void RTCStream::Start()
 {
@@ -71,4 +71,4 @@ LibDataChannelRTCStream::LibDataChannelRTCStream(RTCStreamType streamType, Uniqu
 
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

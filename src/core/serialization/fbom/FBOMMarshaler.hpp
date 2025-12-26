@@ -14,12 +14,12 @@
 
 #include <core/Constants.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 struct BoxedValue;
 class Class;
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 class FBOM;
 class FBOMObject;
@@ -93,8 +93,8 @@ public:
 };
 
 #define HYP_DEFINE_MARSHAL(T, MarshalType)                                                                              \
-    HYP_EXPORT ::hyperion::FBOMMarshalerRegistration<typename T::ClassInfo::Type, MarshalType> g_marshalRegistration##T \
+    HYP_EXPORT ::Hyperion::FBOMMarshalerRegistration<typename T::ClassInfo::Type, MarshalType> g_marshalRegistration##T \
     {                                                                                                                   \
     }
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

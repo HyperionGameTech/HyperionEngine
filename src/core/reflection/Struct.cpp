@@ -10,7 +10,7 @@
 #include <dotnet/ManagedObject.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region Struct
 
@@ -111,4 +111,4 @@ bool DynamicStructInstance::ToHypData(ByteView memory, BoxedValue& out) const
 
 #pragma endregion DynamicStructInstance
 
-} // namespace hyperion
+} // namespace Hyperion

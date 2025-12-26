@@ -6,7 +6,7 @@
 
 #include <core/serialization/fbom/FBOMObjectLibrary.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace json {
 class JSONValue;
@@ -40,4 +40,4 @@ struct FBOMReaderConfig : public FBOMConfig<FBOMReaderConfig>
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

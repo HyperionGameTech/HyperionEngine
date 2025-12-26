@@ -9,7 +9,6 @@
 #include <lightmapper/LightmapAccelerationStructure.hpp>
 #include <lightmapper/LightmapVolume.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -67,7 +66,7 @@
 
 #include <Lightmapper.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr uint32 TileSize = 32;
 static constexpr uint32 IdealTexelsPerFrame = 1000000;
@@ -1050,4 +1049,4 @@ void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
     m_fogVolume->SetTextures(volumeTexture, noiseTexture);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

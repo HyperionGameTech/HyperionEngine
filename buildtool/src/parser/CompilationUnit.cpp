@@ -2,7 +2,7 @@
 
 #include <parser/CompilationUnit.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 CompilationUnit::CompilationUnit()
 {
@@ -10,4 +10,4 @@ CompilationUnit::CompilationUnit()
 
 CompilationUnit::~CompilationUnit() = default;
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

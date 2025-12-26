@@ -2,7 +2,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 Script_Stream Script_Stream::FromSourceFile(SourceFile& file)
 {
@@ -56,4 +56,4 @@ void Script_Stream::ReadZeroTerminatedString(char* ptr)
     while (ch);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

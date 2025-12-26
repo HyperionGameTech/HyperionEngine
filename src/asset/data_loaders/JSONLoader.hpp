@@ -7,7 +7,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 using namespace json;
 
@@ -22,5 +22,4 @@ public:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 };
 
-} // namespace hyperion
-
+} // namespace Hyperion

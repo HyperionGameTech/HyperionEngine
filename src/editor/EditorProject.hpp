@@ -18,7 +18,7 @@
 
 #include <core/Name.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 class World;
@@ -166,4 +166,4 @@ private:
     WeakHandle<EditorSubsystem> m_editorSubsystem;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

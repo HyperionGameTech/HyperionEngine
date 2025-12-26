@@ -12,7 +12,7 @@
 #include <ctti/nameof.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 // tuple forward declaration
 namespace utilities {
@@ -142,14 +142,14 @@ constexpr auto TypeName()
 
 #ifdef HYP_CLANG_OR_GCC
 #ifdef HYP_CLANG
-    // auto hyperion::TypeName() [T = hyperion::Task<int, int>]
+    // auto Hyperion::TypeName() [T = Hyperion::Task<int, int>]
     constexpr auto substr = containers::helpers::Substr<name, 31, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
 #elif defined(HYP_GCC)
-    // constexpr auto hyperion::TypeName() [with T = hyperion::Task<int, int>]
+    // constexpr auto Hyperion::TypeName() [with T = Hyperion::Task<int, int>]
     constexpr auto substr = containers::helpers::Substr<name, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
 #endif
 #elif defined(HYP_MSVC)
-    //  auto __cdecl hyperion::TypeName<class hyperion::Task<int,int>>(void)
+    //  auto __cdecl Hyperion::TypeName<class Hyperion::Task<int,int>>(void)
     constexpr auto substr = containers::helpers::Substr<name, 32, sizeof(HYP_FUNCTION_NAME_LIT) - 8>::value;
 
 #else
@@ -160,7 +160,7 @@ constexpr auto TypeName()
 #endif
 }
 
-/*! \brief Returns the name of the type T as a StaticString. Removes the namespace from the name (e.g. hyperion::Task<int, int> -> Task<int, int>).
+/*! \brief Returns the name of the type T as a StaticString. Removes the namespace from the name (e.g. Hyperion::Task<int, int> -> Task<int, int>).
  *
  *  \tparam T The type to get the name of.
  *
@@ -173,14 +173,14 @@ constexpr auto TypeNameWithoutNamespace()
 #ifdef HYP_CLANG_OR_GCC
 #ifdef HYP_CLANG
 
-    // auto hyperion::TypeNameWithoutNamespace() [T = hyperion::Task<int, int>]
+    // auto Hyperion::TypeNameWithoutNamespace() [T = Hyperion::Task<int, int>]
     constexpr auto substr = containers::helpers::Substr<name, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
 #elif defined(HYP_GCC)
-    // constexpr auto hyperion::TypeNameWithoutNamespace() [with T = hyperion::Task<int, int>]
+    // constexpr auto Hyperion::TypeNameWithoutNamespace() [with T = Hyperion::Task<int, int>]
     constexpr auto substr = containers::helpers::Substr<name, 63, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
 #endif
 #elif defined(HYP_MSVC)
-    //  auto __cdecl hyperion::TypeNameWithoutNamespace<class hyperion::Task<int,int>>(void)
+    //  auto __cdecl Hyperion::TypeNameWithoutNamespace<class Hyperion::Task<int,int>>(void)
     constexpr auto substr = containers::helpers::Substr<name, 48, sizeof(HYP_FUNCTION_NAME_LIT) - 8>::value;
 #else
     static_assert(false, "Unsupported compiler");
@@ -308,7 +308,7 @@ constexpr auto PrettyFunctionName()
     }
 }
 
-#define HYP_PRETTY_FUNCTION_NAME hyperion::PrettyFunctionName<HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT)>()
+#define HYP_PRETTY_FUNCTION_NAME Hyperion::PrettyFunctionName<HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT)>()
 
 #pragma endregion PrettyFunctionName
 
@@ -491,20 +491,20 @@ struct FirstOf
 
 // Helper for static foreach over tuple types - no instance version
 template <class FunctionType, class... Types, SizeType... Indices>
-constexpr void StaticForEach_TypesOnly_Impl(FunctionType&& function, hyperion::utilities::TupleIndices<Indices...>)
+constexpr void StaticForEach_TypesOnly_Impl(FunctionType&& function, Hyperion::utilities::TupleIndices<Indices...>)
 {
     (function(TypeWrapper<Types> {}), ...);
 }
 
 // Helper for static foreach over tuple types - with instance version
 template <class FunctionType, class... Types, SizeType... Indices>
-constexpr void StaticForEach_WithInstance_Impl(FunctionType&& function, Tuple<Types...>& tuple, hyperion::utilities::TupleIndices<Indices...>)
+constexpr void StaticForEach_WithInstance_Impl(FunctionType&& function, Tuple<Types...>& tuple, Hyperion::utilities::TupleIndices<Indices...>)
 {
     (function(TypeWrapper<Types> {}, tuple.template GetElement<Indices>()), ...);
 }
 
 template <class FunctionType, class... Types, SizeType... Indices>
-constexpr void StaticForEach_WithInstance_Impl(FunctionType&& function, const Tuple<Types...>& tuple, hyperion::utilities::TupleIndices<Indices...>)
+constexpr void StaticForEach_WithInstance_Impl(FunctionType&& function, const Tuple<Types...>& tuple, Hyperion::utilities::TupleIndices<Indices...>)
 {
     (function(TypeWrapper<Types> {}, tuple.template GetElement<Indices>()), ...);
 }
@@ -531,7 +531,7 @@ struct StaticForEach_Helper<Tuple<Types...>>
     {
         StaticForEach_TypesOnly_Impl<FunctionType, Types...>(
             std::forward<FunctionType>(function),
-            typename hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type {});
+            typename Hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type {});
     }
 };
 
@@ -552,7 +552,7 @@ constexpr void StaticForEach(FunctionType&& function, Tuple<Types...>& tuple)
     return StaticForEach_WithInstance_Impl(
         std::forward<FunctionType>(function),
         tuple,
-        typename hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type {});
+        typename Hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type {});
 }
 
 template <class FunctionType, class... Types>
@@ -561,9 +561,9 @@ constexpr void StaticForEach(FunctionType&& function, const Tuple<Types...>& tup
     return StaticForEach_WithInstance_Impl(
         std::forward<FunctionType>(function),
         tuple,
-        typename hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type {});
+        typename Hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type {});
 }
 
 #pragma endregion StaticForEach
 
-} // namespace hyperion
+} // namespace Hyperion

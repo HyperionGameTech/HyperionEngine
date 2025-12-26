@@ -14,7 +14,7 @@
 #include <Uuid.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 static uint64 RandomNumber()
@@ -97,4 +97,4 @@ String Uuid::ToString() const
 }
 
 } // namespace utilities
-} // namespace hyperion
+} // namespace Hyperion

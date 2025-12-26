@@ -6,8 +6,8 @@
 
 #include <rendering/ShaderManager.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 // To be removed
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

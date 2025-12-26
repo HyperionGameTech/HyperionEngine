@@ -16,7 +16,7 @@
 #include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class LightmapperBase;
 class LightmapVolume;
@@ -73,4 +73,4 @@ private:
     LinkedList<Task<void>> m_tasks;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

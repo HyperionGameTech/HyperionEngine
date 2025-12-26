@@ -41,7 +41,7 @@
 
 #include <Assets.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Skeleton;
 class AudioSource;
@@ -450,4 +450,4 @@ HYP_NODISCARD AssetLoadResult AssetManager::Load(const TypeId& typeId, const Str
 
 #pragma endregion AssetManager
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -9,11 +9,11 @@
 
 #include <rendering/util/ShaderCompiler.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 class CompiledShaderMarshal : public ObjectMarshal
 {
@@ -51,4 +51,4 @@ public:
 
 HYP_DEFINE_MARSHAL(CompiledShader, CompiledShaderMarshal);
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

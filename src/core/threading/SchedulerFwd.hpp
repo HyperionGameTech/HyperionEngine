@@ -6,7 +6,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 class Scheduler;
@@ -17,4 +17,4 @@ class SchedulerBase;
 using threading::Scheduler;
 using threading::SchedulerBase;
 
-} // namespace hyperion
+} // namespace Hyperion
