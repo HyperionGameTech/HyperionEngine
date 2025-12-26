@@ -1,7 +1,7 @@
 #pragma once
 #include <core/logging/LoggerFwd.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region Core
 
@@ -98,4 +98,4 @@ HYP_DECLARE_LOG_CHANNEL(Serialization);
 
 #pragma endregion Assets
 
-} // namespace hyperion
+} // namespace Hyperion

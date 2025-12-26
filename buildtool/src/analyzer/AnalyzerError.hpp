@@ -9,8 +9,8 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 class AnalyzerError : public Error
 {
@@ -59,7 +59,7 @@ private:
     int m_errorCode;
 };
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion
 
 #endif

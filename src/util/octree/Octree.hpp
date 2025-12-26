@@ -21,7 +21,7 @@
 
 // #define HYP_OCTREE_DEBUG
 
-namespace hyperion {
+namespace Hyperion {
 
 /*! \brief Represents an octant in an octree
  *  \details The bits are ordered as follows:
@@ -328,4 +328,4 @@ protected:
 
 #include <util/octree/Octree.inl>
 
-} // namespace hyperion
+} // namespace Hyperion

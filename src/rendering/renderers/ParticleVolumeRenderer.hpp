@@ -7,7 +7,7 @@
 #include <rendering/RendererBase.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 class Mesh;
@@ -70,4 +70,4 @@ private:
     uint32 m_counter = 0u;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

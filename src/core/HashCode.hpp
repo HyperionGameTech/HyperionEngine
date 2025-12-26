@@ -13,7 +13,7 @@
 
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3876.pdf
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_MAKE_HAS_METHOD(GetHashCode);
 
@@ -286,15 +286,15 @@ private:
         value ^= other.value + 0x9e3779b9 + (value << 6) + (value >> 2);
     }
 };
-} // namespace hyperion
+} // namespace Hyperion
 
 namespace std {
 
 // Specialize std::hash for HashCode
 template <>
-struct hash<hyperion::HashCode>
+struct hash<Hyperion::HashCode>
 {
-    size_t operator()(const hyperion::HashCode& hc) const
+    size_t operator()(const Hyperion::HashCode& hc) const
     {
         return static_cast<size_t>(hc.Value());
     }

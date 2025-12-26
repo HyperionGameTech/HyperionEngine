@@ -2,7 +2,7 @@
 
 #include <core/Types.hpp>
 
-enum FunctionFlags : hyperion::uint8
+enum FunctionFlags : Hyperion::uint8
 {
     NONE = 0x00,
     VARIADIC = 0x01,
@@ -33,7 +33,7 @@ enum FunctionFlags : hyperion::uint8
 // NOTE: instructions that load data from stack index load from the main/global thread.
 // instructions that load from stack offset load from their own thread.
 
-enum Instructions : hyperion::uint8
+enum Instructions : Hyperion::uint8
 {
     /* No operation */
     NOP = 0x00, // nop
@@ -159,7 +159,7 @@ enum Instructions : hyperion::uint8
 // Bits 4-6: Source type (3 bits = 8 source types)
 // Bit 7: Extended flag (reserved)
 
-enum LoadDataType : hyperion::uint8
+enum LoadDataType : Hyperion::uint8
 {
     DTYPE_I32 = 0x00,
     DTYPE_I64 = 0x01,
@@ -171,7 +171,7 @@ enum LoadDataType : hyperion::uint8
     DTYPE_OBJECT = 0x07
 };
 
-enum LoadSourceType : hyperion::uint8
+enum LoadSourceType : Hyperion::uint8
 {
     LSRC_IMMEDIATE = 0x00, // Constant value follows
     LSRC_OFFSET = 0x01,    // Stack offset (uint16)
@@ -189,7 +189,7 @@ enum LoadSourceType : hyperion::uint8
 // Bit 5: Array store flag (1 bit)
 // Bits 6-7: Reserved
 
-enum MoveDstType : hyperion::uint8
+enum MoveDstType : Hyperion::uint8
 {
     MDST_OFFSET = 0x00,  // Stack offset
     MDST_INDEX = 0x01,   // Stack index
@@ -197,7 +197,7 @@ enum MoveDstType : hyperion::uint8
     MDST_REGISTER = 0x03 // Register
 };
 
-enum MoveSrcType : hyperion::uint8
+enum MoveSrcType : Hyperion::uint8
 {
     MSRC_REGISTER = 0x00,     // Register
     MSRC_ARRAYIDX = 0x01,     // Array index (immediate)
@@ -209,7 +209,7 @@ enum MoveSrcType : hyperion::uint8
 // Bits 0-3: Target type (4 bits = 16 types)
 // Bits 4-7: Reserved
 
-enum CastType : hyperion::uint8
+enum CastType : Hyperion::uint8
 {
     CAST_TYPE_U8 = 0x00,
     CAST_TYPE_U16 = 0x01,
@@ -229,16 +229,16 @@ enum CastType : hyperion::uint8
 
 // Helper macros for creating sub-commands
 #define MAKE_LOAD_SUBCMD(dataType, isRef, srcType) \
-    ((hyperion::uint8)((dataType) | ((isRef) << 3) | ((srcType) << 4)))
+    ((Hyperion::uint8)((dataType) | ((isRef) << 3) | ((srcType) << 4)))
 
 #define MAKE_MOV_SUBCMD(dstType, srcType) \
-    ((hyperion::uint8)((dstType) | ((srcType) << 2)))
+    ((Hyperion::uint8)((dstType) | ((srcType) << 2)))
 
 #define MAKE_MOV_ARRAYSTORE_SUBCMD(dstType, srcType) \
-    ((hyperion::uint8)((dstType) | ((srcType) << 2) | (1 << 5)))
+    ((Hyperion::uint8)((dstType) | ((srcType) << 2) | (1 << 5)))
 
 #define MAKE_CAST_SUBCMD(castType) \
-    ((hyperion::uint8)(castType))
+    ((Hyperion::uint8)(castType))
 
 // Extract fields from sub-commands
 #define GET_LOAD_DTYPE(subcmd) ((subcmd) & 0x07)

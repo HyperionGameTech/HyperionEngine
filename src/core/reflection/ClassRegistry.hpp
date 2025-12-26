@@ -22,7 +22,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace dotnet {
 class ManagedClass;
@@ -142,4 +142,4 @@ private:
     bool m_isInitialized : 1;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

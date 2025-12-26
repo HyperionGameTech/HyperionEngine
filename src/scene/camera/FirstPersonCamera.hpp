@@ -6,7 +6,7 @@
 
 #include <core/math/Vector2.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class FirstPersonCameraController;
 
@@ -90,4 +90,4 @@ protected:
     Vec2f m_prevMag;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

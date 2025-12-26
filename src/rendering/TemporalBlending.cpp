@@ -22,7 +22,7 @@
 
 #include <core/threading/Threads.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct TemporalBlendingUniforms
 {
@@ -63,12 +63,12 @@ TemporalBlending::TemporalBlending(
     const GpuImageViewRef& inputImageView,
     GBuffer* gbuffer)
     : TemporalBlending(
-        extent,
-        TF_RGBA8,
-        technique,
-        feedback,
-        inputImageView,
-        gbuffer)
+          extent,
+          TF_RGBA8,
+          technique,
+          feedback,
+          inputImageView,
+          gbuffer)
 {
 }
 
@@ -354,4 +354,4 @@ void TemporalBlending::ResetProgressiveBlending()
     m_blendingFrameCounter = MathUtil::MaxSafeValue(m_blendingFrameCounter);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

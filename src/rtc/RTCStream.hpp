@@ -8,7 +8,7 @@
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 class TaskThread;
 } // namespace threading
@@ -118,4 +118,4 @@ using LibDataChannelRTCStream = NullRTCStream;
 
 #endif // HYP_LIBDATACHANNEL
 
-} // namespace hyperion
+} // namespace Hyperion

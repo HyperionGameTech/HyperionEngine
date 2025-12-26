@@ -14,7 +14,7 @@
 
 #include <core/serialization/fbom/FBOMResult.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class FBOMDataFlags : uint32;
 
@@ -324,4 +324,4 @@ struct GenericArrayWrapper
 
 #pragma endregion GenericArrayWrapper
 
-} // namespace hyperion
+} // namespace Hyperion

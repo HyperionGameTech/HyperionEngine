@@ -9,7 +9,7 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class VisibilityStateUpdaterSystem : public SystemBase
@@ -38,4 +38,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

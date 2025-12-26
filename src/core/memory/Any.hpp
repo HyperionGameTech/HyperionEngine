@@ -17,7 +17,7 @@
 #include <type_traits>
 #include <new>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -282,7 +282,7 @@ public:
         const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
         const void* ptr = GetPointer();
         const TypeId held = GetTypeId();
-        return held == typeId || IsA(hyperion::GetClass(typeId), ptr, held);
+        return held == typeId || IsA(Hyperion::GetClass(typeId), ptr, held);
     }
 
     /*! \brief Returns true if the held object is of type \p typeId.
@@ -291,7 +291,7 @@ public:
     {
         const void* ptr = GetPointer();
         const TypeId held = GetTypeId();
-        return held == typeId || IsA(hyperion::GetClass(typeId), ptr, held);
+        return held == typeId || IsA(Hyperion::GetClass(typeId), ptr, held);
     }
 
     /*! \brief Returns the held object as a reference to type T. If the held object is not of type T, an assertion will fail. */
@@ -453,4 +453,4 @@ protected:
 using memory::Any;
 using memory::AnyBase;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -21,7 +21,7 @@
 #include <utility>
 #include <random>
 
-namespace hyperion {
+namespace Hyperion {
 
 using Seed = uint32;
 
@@ -290,4 +290,4 @@ private:
         m_noiseGenerators;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

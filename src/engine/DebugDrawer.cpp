@@ -10,7 +10,6 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderBackend.hpp>
@@ -41,7 +40,7 @@
 
 #include <DebugDrawer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern EngineStatCounter<uint32> g_statDebugDraws;
 
@@ -1002,4 +1001,4 @@ void DebugDrawCommandList::Push(const DebugDrawCommandHeader& header)
 
 #pragma endregion DebugDrawCommandList
 
-} // namespace hyperion
+} // namespace Hyperion

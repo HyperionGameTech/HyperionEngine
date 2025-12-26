@@ -22,7 +22,7 @@
 #include <unistd.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace filesystem {
 
 bool FilePath::MkDir() const
@@ -151,9 +151,9 @@ FilePath FilePath::BasePath() const
     return FilePath(StringUtil::BasePath(*this));
 }
 
-hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInDirectory() const
+Hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInDirectory() const
 {
-    hyperion::containers::Array<FilePath, DynamicAllocator> files;
+    Hyperion::containers::Array<FilePath, DynamicAllocator> files;
 
     for (const auto& entry : std::filesystem::directory_iterator(Data()))
     {
@@ -170,9 +170,9 @@ hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInD
     return files;
 }
 
-hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetSubdirectories() const
+Hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetSubdirectories() const
 {
-    hyperion::containers::Array<FilePath, DynamicAllocator> files;
+    Hyperion::containers::Array<FilePath, DynamicAllocator> files;
 
     for (const auto& entry : std::filesystem::directory_iterator(Data()))
     {
@@ -217,4 +217,4 @@ SizeType FilePath::FileSize() const
 }
 
 } // namespace filesystem
-} // namespace hyperion
+} // namespace Hyperion

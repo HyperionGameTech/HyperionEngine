@@ -6,7 +6,7 @@
 
 #include <core/reflection/ObjectMacros.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class HYP_API EditBoundingBox : public EditorPropertyPanelBase
@@ -20,4 +20,4 @@ public:
     virtual void Build_Impl(const BoxedValue& boxed, const Property* property) override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -4,10 +4,10 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern "C"
 {
 } // extern "C"
 
-} // namespace hyperion
+} // namespace Hyperion

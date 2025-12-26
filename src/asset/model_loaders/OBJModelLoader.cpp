@@ -26,7 +26,7 @@
 
 #include <OBJModelLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -312,7 +312,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         String materialLibraryPath = String(FileSystem::RelativePath(
             (StringUtil::BasePath(model.filepath) + "/" + model.materialLibrary).Data(),
             FileSystem::CurrentPath())
-                                                .c_str());
+                .c_str());
 
         if (!materialLibraryPath.EndsWith(".mtl"))
         {
@@ -472,4 +472,4 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
     return LoadedAsset { top };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

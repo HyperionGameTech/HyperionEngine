@@ -28,7 +28,7 @@
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct ScriptComponent;
 
@@ -1526,4 +1526,4 @@ struct UILockedUpdatesScope
 
 #pragma endregion UILockedUpdatesScope
 
-} // namespace hyperion
+} // namespace Hyperion

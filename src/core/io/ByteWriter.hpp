@@ -17,7 +17,7 @@
 #include <unistd.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 using ByteWriterFlags = ubyte;
 
@@ -287,4 +287,4 @@ private:
         fwrite(ptr, 1, size, m_file);
     }
 };
-} // namespace hyperion
+} // namespace Hyperion

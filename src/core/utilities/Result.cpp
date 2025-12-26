@@ -4,7 +4,7 @@
 #include <Result.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 class NullError final : public Error
@@ -21,4 +21,4 @@ HYP_API const Error& GetNullError()
 }
 
 } // namespace utilities
-} // namespace hyperion
+} // namespace Hyperion

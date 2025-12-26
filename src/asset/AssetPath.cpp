@@ -6,7 +6,7 @@
 
 #include <AssetPath.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -337,4 +337,4 @@ String AssetPath::ToString() const
     return result;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

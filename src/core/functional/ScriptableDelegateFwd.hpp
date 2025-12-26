@@ -2,7 +2,7 @@
 
 #pragma once
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace functional {
 
@@ -20,4 +20,4 @@ class ScriptableDelegate;
 using functional::IScriptableDelegate;
 using functional::ScriptableDelegate;
 
-} // namespace hyperion
+} // namespace Hyperion

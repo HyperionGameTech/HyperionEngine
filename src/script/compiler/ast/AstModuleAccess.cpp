@@ -8,7 +8,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstModuleAccess::AstModuleAccess(
     const String& target,
@@ -131,4 +131,4 @@ bool AstModuleAccess::IsLiteral() const
     return m_expr->IsLiteral();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

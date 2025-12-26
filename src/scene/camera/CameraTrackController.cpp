@@ -6,7 +6,7 @@
 
 #include <CameraTrackController.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 CameraTrackController::CameraTrackController()
     : PerspectiveCameraController(),
       m_trackTime(0.0)
@@ -39,4 +39,4 @@ void CameraTrackController::UpdateLogic(double delta)
     m_camera->SetDirection(viewVector);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

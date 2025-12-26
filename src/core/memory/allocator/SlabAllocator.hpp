@@ -22,7 +22,7 @@
 #include <limits>
 #include <cstring>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 enum AllocationType : uint32;
@@ -466,4 +466,4 @@ using SlabAllocator = TSlabAllocator<DynamicAllocator>;
 using memory::SlabAllocator;
 using memory::TSlabAllocator;
 
-} // namespace hyperion
+} // namespace Hyperion

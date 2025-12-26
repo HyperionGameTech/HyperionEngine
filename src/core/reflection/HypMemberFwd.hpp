@@ -16,7 +16,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Result.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ClassAttributeSet;
 struct ClassAttributeValue;
@@ -116,4 +116,4 @@ protected:
     EnumFlags<HypMemberFlags> m_flags;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

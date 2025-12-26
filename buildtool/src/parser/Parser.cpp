@@ -11,7 +11,7 @@
 
 #include <core/logging/Logger.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 HYP_DEFINE_LOG_SUBCHANNEL(Parser, BuildTool);
@@ -2193,4 +2193,4 @@ RC<ASTFunctionType> Parser::ParseFunctionType(const RC<ASTType>& returnType)
     return funcType;
 }
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

@@ -15,7 +15,7 @@
 typedef struct uiWindow uiWindow;
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class EditorWindow : public ObjectBase
@@ -45,4 +45,4 @@ private:
     Vec2i m_windowSize;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

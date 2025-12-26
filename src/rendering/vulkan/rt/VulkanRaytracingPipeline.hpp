@@ -17,7 +17,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class VulkanShader;
 enum ShaderModuleType : uint32;
@@ -75,4 +75,4 @@ private:
     ShaderBindingTableMap m_shaderBindingTableBuffers;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

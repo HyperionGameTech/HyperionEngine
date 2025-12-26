@@ -7,7 +7,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class DeviceBase : public ObjectBase
@@ -18,7 +18,7 @@ public:
     virtual ~DeviceBase() override = default;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

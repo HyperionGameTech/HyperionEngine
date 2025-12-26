@@ -15,7 +15,7 @@
 
 #include <core/reflection/ClassRegistry.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 HYP_DEFINE_LOG_SUBCHANNEL(Console, Core);
@@ -237,4 +237,4 @@ Result ConsoleCommandManager::ExecuteCommand(const String& commandLine)
 
 #pragma endregion ConsoleCommandManager
 
-} // namespace hyperion
+} // namespace Hyperion

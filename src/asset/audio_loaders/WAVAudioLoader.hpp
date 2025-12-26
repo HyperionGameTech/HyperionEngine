@@ -6,7 +6,7 @@
 
 #include <core/memory/ByteBuffer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class AudioSourceFormat : uint32;
 
@@ -55,5 +55,4 @@ public:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 };
 
-} // namespace hyperion
-
+} // namespace Hyperion

@@ -19,7 +19,7 @@
 #include <sstream>
 #include <cstdio>
 
-namespace hyperion {
+namespace Hyperion {
 
 DecompilationUnit::DecompilationUnit()
 {
@@ -27,7 +27,7 @@ DecompilationUnit::DecompilationUnit()
 
 void DecompilationUnit::DecodeNext(
     uint8 code,
-    hyperion::Script_Stream& bs,
+    Hyperion::Script_Stream& bs,
     InstructionStream& is,
     std::ostream* os)
 {
@@ -1678,7 +1678,7 @@ void DecompilationUnit::DecodeNext(
     }
 }
 
-InstructionStream* DecompilationUnit::Decompile(hyperion::Script_Stream& bs, std::ostream* os)
+InstructionStream* DecompilationUnit::Decompile(Hyperion::Script_Stream& bs, std::ostream* os)
 {
     const SizeType prevPosition = bs.Position();
 
@@ -1705,4 +1705,4 @@ InstructionStream* DecompilationUnit::Decompile(hyperion::Script_Stream& bs, std
     return is;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

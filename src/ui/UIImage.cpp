@@ -10,7 +10,7 @@
 
 #include <UIImage.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 UIImage::UIImage()
 {
@@ -48,4 +48,4 @@ MaterialTextures UIImage::GetMaterialTextures() const
     };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

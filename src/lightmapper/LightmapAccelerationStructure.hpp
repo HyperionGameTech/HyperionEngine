@@ -18,7 +18,7 @@
 
 #include <scene/BVH.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Entity;
 
@@ -269,4 +269,4 @@ private:
     Array<LightmapBottomLevelAccelerationStructure> m_accelerationStructures;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

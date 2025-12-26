@@ -28,7 +28,7 @@
 
 #include <ShadowMap.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
@@ -59,4 +59,4 @@ ShadowMap::~ShadowMap()
 
 #pragma endregion ShadowMap
 
-} // namespace hyperion
+} // namespace Hyperion

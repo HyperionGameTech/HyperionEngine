@@ -25,7 +25,7 @@
 
 #include <core/Constants.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -183,4 +183,4 @@ protected:
 template <class T>
 struct AssetLoadResultWrapper;
 
-} // namespace hyperion
+} // namespace Hyperion

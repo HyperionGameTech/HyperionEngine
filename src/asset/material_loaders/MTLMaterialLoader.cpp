@@ -21,7 +21,7 @@
 
 #include <MTLMaterialLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 using Tokens = Array<String>;
 using MaterialLibrary = MTLMaterialLoader::MaterialLibrary;
@@ -381,4 +381,4 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
     return LoadedAsset { materialGroupHandle };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

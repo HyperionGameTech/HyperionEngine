@@ -6,7 +6,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 using EntitySetId = uint64;
 
@@ -39,4 +39,4 @@ constexpr EntitySetId GetEntitySetId()
     return EntitySetId(hashCode.Value());
 }
 
-} // namespace hyperion
+} // namespace Hyperion

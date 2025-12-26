@@ -10,7 +10,7 @@
 
 #define HYP_USE_THIRD_PARTY_TLSF 1
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 #if HYP_USE_THIRD_PARTY_TLSF
@@ -238,4 +238,4 @@ private:
 
 using memory::TlsfAllocator;
 
-} // namespace hyperion
+} // namespace Hyperion

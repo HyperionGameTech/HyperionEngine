@@ -15,7 +15,7 @@
 
 #include <sstream>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct BoxedValue;
 struct Method;
@@ -220,4 +220,4 @@ extern HYP_API int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedVa
 extern HYP_API const char* GetTypeString(const BoxedValue& data);
 extern HYP_API String ToString(const BoxedValue& data);
 
-} // namespace hyperion
+} // namespace Hyperion

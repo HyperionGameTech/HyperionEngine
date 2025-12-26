@@ -6,7 +6,7 @@
 
 #include <rendering/Shared.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class TextureAsset : public AssetObject
@@ -65,4 +65,4 @@ private:
     TextureDesc m_textureDesc;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

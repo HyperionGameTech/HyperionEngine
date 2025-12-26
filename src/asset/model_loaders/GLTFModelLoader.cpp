@@ -50,7 +50,7 @@
 
 #include <GLTFModelLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -1016,4 +1016,4 @@ AssetLoadResult GLTFModelLoader::LoadAsset(LoaderState& state) const
     return BuildModel(state, *data);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

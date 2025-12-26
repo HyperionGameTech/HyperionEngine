@@ -6,7 +6,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <SizeType Size, SizeType Alignment>
@@ -124,4 +124,4 @@ struct UserData
 template <SizeType Size, SizeType Alignment = alignof(ubyte)>
 using UserData = utilities::UserData<Size, Alignment>;
 
-} // namespace hyperion
+} // namespace Hyperion

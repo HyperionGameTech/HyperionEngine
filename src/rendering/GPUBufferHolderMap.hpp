@@ -10,7 +10,7 @@
 
 #include <rendering/GpuBuffer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class GpuBufferHolderBase;
 
@@ -48,4 +48,4 @@ private:
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

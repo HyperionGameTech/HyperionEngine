@@ -23,7 +23,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct DescriptorTableDeclaration;
 
@@ -1454,4 +1454,4 @@ private:
     Array<ShaderBundleDecl> m_shaderBundleDecls;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -3,7 +3,7 @@
 #pragma once
 #include <engine/console/ConsoleCommand.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Command = "log_entities")
 class HYP_API LogEntitiesCommand : public ConsoleCommandBase
@@ -19,5 +19,4 @@ protected:
     virtual CommandLineArgumentDefinitions GetDefinitions_Internal() const override;
 };
 
-} // namespace hyperion
-
+} // namespace Hyperion

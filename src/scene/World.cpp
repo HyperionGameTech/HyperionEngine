@@ -32,7 +32,6 @@
 
 #include <system/AppContext.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderProxy.hpp>
 
@@ -50,7 +49,7 @@
 
 #include <World.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
 #define HYP_WORLD_ASYNC_VIEW_COLLECTION
@@ -1262,4 +1261,4 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
     return system;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

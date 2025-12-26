@@ -12,7 +12,7 @@
 #include <Ray.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API Ray operator*(const Mat4f& transform, const Ray& ray)
 {
@@ -411,4 +411,4 @@ bool Ray::TestTriangleList(
     return false;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

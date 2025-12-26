@@ -18,7 +18,7 @@
 
 #include <util/UTF8.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstTypeSpecifier::AstTypeSpecifier(
     const RC<AstExpression>& expr,
@@ -124,4 +124,4 @@ const AstExpression* AstTypeSpecifier::GetDeepValueOf() const
     return AstExpression::GetDeepValueOf();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -8,7 +8,7 @@
 
 #include <Keyframe.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 Keyframe Keyframe::Blend(const Keyframe& to, float blend) const
 {
@@ -22,4 +22,4 @@ Keyframe Keyframe::Blend(const Keyframe& to, float blend) const
     return { newTime, newTransform };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

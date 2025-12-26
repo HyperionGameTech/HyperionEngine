@@ -12,7 +12,7 @@
 
 #include <MeshComponent.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 MeshComponent& MeshComponent::operator=(const MeshComponent& other)
 {
@@ -92,4 +92,4 @@ MeshComponent::~MeshComponent()
     SafeDelete(std::move(skeleton));
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -18,7 +18,7 @@
 
 #include <sstream>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 FBOMData::FBOMData(EnumFlags<FBOMDataFlags> flags)
     : m_type(FBOMUnset()),
@@ -599,4 +599,4 @@ HashCode FBOMData::GetHashCode() const
     return hc;
 }
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

@@ -45,7 +45,7 @@
 
 #include <RenderGroup.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 // #define HYP_MATERIAL_DEBUG 1
 // #define HYP_GRAPHICS_PIPELINE_TIMING_DEBUG 1
@@ -845,4 +845,4 @@ void RenderGroup::PerformRendering(
 
 #pragma endregion RenderGroup
 
-} // namespace hyperion
+} // namespace Hyperion

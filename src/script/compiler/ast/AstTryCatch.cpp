@@ -10,7 +10,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstTryCatch::AstTryCatch(const RC<AstBlock>& tryBlock,
     const RC<AstBlock>& catchBlock,
@@ -96,4 +96,4 @@ RC<AstStatement> AstTryCatch::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

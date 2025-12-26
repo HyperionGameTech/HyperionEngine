@@ -5,7 +5,7 @@
 #include <core/containers/String.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion::json {
+namespace Hyperion::json {
 
 class SourceLocation
 {
@@ -65,4 +65,4 @@ private:
     String m_filename;
 };
 
-} // namespace hyperion::json
+} // namespace Hyperion::json

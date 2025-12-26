@@ -1,6 +1,6 @@
 #include <script/compiler/ast/AstStatement.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 const String AstStatement::s_unnamed = "<unnamed>";
 
@@ -10,4 +10,4 @@ AstStatement::AstStatement(const SourceLocation& location)
 {
 }
 
-} // namespace hyperion
+} // namespace Hyperion

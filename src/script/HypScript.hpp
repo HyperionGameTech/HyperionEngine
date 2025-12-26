@@ -15,7 +15,7 @@
 
 #include <core/memory/Pimpl.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class HypScript;
 class Script_Interpreter;
@@ -91,4 +91,4 @@ private:
     Pimpl<struct HypScriptImpl> m_impl;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

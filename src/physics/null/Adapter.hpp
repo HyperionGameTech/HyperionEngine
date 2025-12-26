@@ -4,7 +4,7 @@
 
 #include <physics/Adapter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class HYP_API NullPhysicsAdapter : public PhysicsAdapter<NullPhysicsAdapter>
 {
@@ -25,4 +25,4 @@ public:
     void ApplyForceToBody(const RigidBody* rigidBody, const Vector3& force);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

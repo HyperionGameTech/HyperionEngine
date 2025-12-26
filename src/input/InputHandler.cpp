@@ -9,7 +9,7 @@
 
 #include <InputHandler.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr double InitialDeltaTime = 1.0 / 60.0;
 
@@ -91,4 +91,4 @@ bool InputHandlerBase::OnMouseLeave_Impl(const MouseEvent& evt)
 
 #pragma endregion InputHandlerBase
 
-} // namespace hyperion
+} // namespace Hyperion

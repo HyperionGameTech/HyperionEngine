@@ -4,7 +4,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API void ShadowCameraHelper::UpdateShadowCameraDirectional(
     const Handle<Camera>& camera,
@@ -38,4 +38,4 @@ HYP_API void ShadowCameraHelper::UpdateShadowCameraDirectional(
     outAabb = aabb;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -7,7 +7,7 @@
 
 #include <UIDockableContainer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const HashMap<String, UIDockableItemPosition> g_dockableItemPositionMap = {
     { "left", UIDockableItemPosition::LEFT },
@@ -156,4 +156,4 @@ void UIDockableContainer::UpdateLayout()
 
 #pragma region UIDockableContainer
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -18,7 +18,7 @@
 
 #include <scene/Entity.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class CameraStreamingVolume;
 class RenderProxyCamera;
@@ -586,4 +586,4 @@ private:
     DelegateHandler m_onWindowResizedHandle;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

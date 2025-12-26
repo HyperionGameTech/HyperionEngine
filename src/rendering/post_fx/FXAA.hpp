@@ -5,7 +5,7 @@
 #include <rendering/PostFX.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class HYP_API FXAAEffect : public PostProcessingEffect
 {
@@ -23,4 +23,4 @@ protected:
     virtual ShaderRef CreateShader() override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

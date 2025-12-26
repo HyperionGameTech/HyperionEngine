@@ -10,7 +10,7 @@
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 template <class Allocator, SizeType BufferAlignment = 16>
@@ -600,4 +600,4 @@ using memory::ByteBuffer;
 using memory::FixedByteBuffer;
 using memory::TByteBuffer;
 
-} // namespace hyperion
+} // namespace Hyperion

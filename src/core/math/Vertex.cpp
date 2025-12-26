@@ -6,7 +6,7 @@
 #include <Vertex.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region VertexAttributeSet
 
@@ -119,4 +119,4 @@ bool Vertex::operator!=(const Vertex& other) const
 
 #pragma endregion Vertex
 
-} // namespace hyperion
+} // namespace Hyperion

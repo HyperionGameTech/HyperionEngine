@@ -2,7 +2,7 @@
 
 #pragma once
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -62,7 +62,7 @@ protected:
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
                                                                                                                                                 \
-        m_registration = new ::hyperion::StructRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+        m_registration = new ::Hyperion::StructRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_STRUCT } } }; }
 
@@ -77,7 +77,7 @@ protected:
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
                                                                                                                                                 \
-        m_registration = new ::hyperion::ClassRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+        m_registration = new ::Hyperion::ClassRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_CLASS } } }; }
 
@@ -92,7 +92,7 @@ protected:
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
                                                                                                                                                 \
-        m_registration = new ::hyperion::EnumRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+        m_registration = new ::Hyperion::EnumRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_ENUM } } }; }
 
@@ -118,7 +118,7 @@ public:                                                                         
                                                                                  \
     HYP_FORCE_INLINE static const Class* StaticClass()                           \
     {                                                                            \
-        return hyperion::GetClass<T>();                                          \
+        return Hyperion::GetClass<T>();                                          \
     }                                                                            \
                                                                                  \
     template <class TOther>                                                      \
@@ -135,7 +135,7 @@ public:                                                                         
             {                                                                    \
                 return false;                                                    \
             }                                                                    \
-            return hyperion::IsA(otherClass, InstanceClass());                   \
+            return Hyperion::IsA(otherClass, InstanceClass());                   \
         }                                                                        \
     }                                                                            \
                                                                                  \
@@ -145,7 +145,7 @@ public:                                                                         
         {                                                                        \
             return false;                                                        \
         }                                                                        \
-        return hyperion::IsA(otherClass, InstanceClass());                       \
+        return Hyperion::IsA(otherClass, InstanceClass());                       \
     }                                                                            \
                                                                                  \
     HYP_FORCE_INLINE Handle<T> HandleFromThis() const                            \
@@ -178,9 +178,9 @@ private:
                                                        \
     HYP_FORCE_INLINE static const Class* StaticClass() \
     {                                                  \
-        return hyperion::GetClass<T>();                \
+        return Hyperion::GetClass<T>();                \
     }
 
 #define HYP_REGISTER_STATIC_CLASS(T) static TClassStaticInit<T> s_classInit##T;
 
-} // namespace hyperion
+} // namespace Hyperion

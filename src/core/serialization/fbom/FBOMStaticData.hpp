@@ -20,7 +20,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class FBOMStaticDataFlags : uint32
 {
@@ -225,4 +225,4 @@ private:
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

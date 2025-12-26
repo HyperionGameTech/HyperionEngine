@@ -11,7 +11,7 @@
 #include <vector>
 #include <sstream>
 
-namespace hyperion {
+namespace Hyperion {
 
 // Forward declarations
 class AstVisitor;
@@ -117,4 +117,4 @@ CloneAllAstNodes(const Array<T*>& stmts)
     return res;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

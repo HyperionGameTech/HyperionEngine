@@ -17,7 +17,7 @@ class LibDataChannelRTCClient;
 
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 class HYP_API RTCDataChannel
 {
@@ -76,4 +76,4 @@ using LibDataChannelRTCDataChannel = NullRTCDataChannel;
 
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

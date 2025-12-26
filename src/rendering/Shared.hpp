@@ -6,7 +6,7 @@
 
 #include <core/math/Vector2.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum ImageUsage : uint32
@@ -1016,13 +1016,13 @@ struct PushConstantData
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
 #include <core/math/Mat4f.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 struct alignas(16) MeshDescription
 {
     uint64 vertexBufferAddress;
@@ -1247,4 +1247,4 @@ struct DescriptorTableOffsetMap
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

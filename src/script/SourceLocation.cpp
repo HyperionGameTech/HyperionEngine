@@ -1,6 +1,6 @@
 #include <script/SourceLocation.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 const SourceLocation& SourceLocation::Eof()
 {
@@ -45,4 +45,4 @@ bool SourceLocation::operator==(const SourceLocation& other) const
     return m_line == other.m_line && m_column == other.m_column && m_filename == other.m_filename && m_line == other.m_line;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

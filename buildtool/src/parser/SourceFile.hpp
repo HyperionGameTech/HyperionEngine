@@ -7,7 +7,7 @@
 #include <core/containers/String.hpp>
 #include <core/memory/ByteBuffer.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 class SourceFile
 {
@@ -52,6 +52,6 @@ private:
     SizeType m_position;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

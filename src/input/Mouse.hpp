@@ -6,7 +6,7 @@
 
 #include <core/reflection/ObjectFwd.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class InputManager;
 class Event;
@@ -88,7 +88,7 @@ struct InputMouseLockScope
     InputMouseLockScope& operator=(const InputMouseLockScope& other) = delete;
 
     InputMouseLockScope(InputMouseLockScope&& other) noexcept
-        : inputMgr(other.inputMgr), 
+        : inputMgr(other.inputMgr),
           mouseLockState(other.mouseLockState)
     {
         other.inputMgr = nullptr;
@@ -112,4 +112,4 @@ struct InputMouseLockScope
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

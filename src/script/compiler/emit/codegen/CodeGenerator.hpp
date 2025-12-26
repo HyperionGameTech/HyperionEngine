@@ -11,7 +11,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace hyperion {
+namespace Hyperion {
 
 class CodeGenerator : public BuildableVisitor
 {
@@ -64,4 +64,4 @@ private:
     InternalByteStream m_ibs;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

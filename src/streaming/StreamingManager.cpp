@@ -28,7 +28,7 @@
 
 #include <StreamingManager.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region Helpers
 
@@ -854,4 +854,4 @@ void StreamingManager::Update(float delta)
 
 #pragma endregion StreamingManager
 
-} // namespace hyperion
+} // namespace Hyperion

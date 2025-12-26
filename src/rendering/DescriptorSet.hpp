@@ -27,7 +27,7 @@
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 // #define HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
 
@@ -870,7 +870,7 @@ protected:
     Name m_debugName;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

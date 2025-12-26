@@ -13,7 +13,7 @@
 #include <sys/fcntl.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 SharedMemory::SharedMemory(const String& id, SizeType size, Mode mode)
     : m_id(id),
@@ -126,4 +126,4 @@ void SharedMemory::Write(const void* data, SizeType count)
     Memory::MemCpy(m_address, data, count);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

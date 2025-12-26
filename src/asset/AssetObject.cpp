@@ -29,7 +29,7 @@
 
 #include <AssetObject.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 //! for debugging
 static constexpr bool DebugDisableUnload = false;
@@ -635,4 +635,4 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
 
 #pragma endregion AssetObject
 
-} // namespace hyperion
+} // namespace Hyperion

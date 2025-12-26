@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <cstring>
 
-namespace hyperion {
+namespace Hyperion {
 
 SourceFile::SourceFile()
     : m_filepath(),
@@ -75,4 +75,4 @@ void SourceFile::ReadIntoBuffer(const ubyte* data, SizeType size)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

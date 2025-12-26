@@ -3,7 +3,7 @@
 #include <script/compiler/CompilerError.hpp>
 #include <script/compiler/Keywords.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 using namespace utf;
 
@@ -219,7 +219,7 @@ Token Lexer::NextToken()
             return Token(TK_COLON, ":", location);
         }
     }
-    
+
     else if (ch[0] == '?')
     {
         int posChange = 0;
@@ -1014,4 +1014,4 @@ bool Lexer::SkipWhitespace()
     return hadNewline;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

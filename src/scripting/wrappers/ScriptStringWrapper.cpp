@@ -10,7 +10,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API const Class* g_clsString = nullptr;
 
@@ -49,6 +49,6 @@ HYP_END_STRUCT
 
 HYP_REGISTER_STATIC_CLASS(String);
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #endif

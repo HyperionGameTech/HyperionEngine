@@ -9,7 +9,7 @@
 
 #include <rendering/RenderObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Material;
 class Texture;
@@ -49,4 +49,4 @@ private:
     HashMap<uint32, FixedArray<DescriptorSetRef, NumFramesInFlight>> m_materialDescriptorSets;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

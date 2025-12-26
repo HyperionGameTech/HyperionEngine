@@ -17,7 +17,7 @@
 
 #include <AnimationSystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 bool AnimationSystem::ShouldProcessScene(Scene* scene) const
 {
@@ -134,4 +134,4 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

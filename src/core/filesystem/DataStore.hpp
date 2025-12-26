@@ -14,7 +14,7 @@
 
 #include <core/functional/Proc.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 using DataStoreFlags = uint32;
 
@@ -168,4 +168,4 @@ using filesystem::DataStoreBase;
 using filesystem::DataStoreOptions;
 using filesystem::GetDataStore;
 
-} // namespace hyperion
+} // namespace Hyperion

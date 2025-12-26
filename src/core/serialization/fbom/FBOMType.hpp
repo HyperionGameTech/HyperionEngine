@@ -16,7 +16,7 @@
 
 #include <cstddef>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -131,7 +131,7 @@ public:
             return nullptr;
         }
 
-        return hyperion::GetClass(typeId);
+        return Hyperion::GetClass(typeId);
     }
 
     FBOMResult Visit(FBOMWriter* writer, ByteWriter* out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
@@ -166,4 +166,4 @@ public:
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

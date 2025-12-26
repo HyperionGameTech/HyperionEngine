@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstUnsignedInteger final : public AstConstant
 {
@@ -35,4 +35,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

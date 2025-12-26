@@ -9,8 +9,8 @@
 #include <core/containers/HashMap.hpp>
 #include <core/containers/String.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 struct ClassDefinition;
 
@@ -31,7 +31,7 @@ protected:
     Array<const ClassDefinition*> SortClassesTopologically(const Analyzer& analyzer, const Array<const ClassDefinition*>& classes, const HashMap<String, SizeType>& classNameToIndex) const;
 };
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion
 
 #endif

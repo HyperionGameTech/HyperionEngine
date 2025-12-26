@@ -11,7 +11,7 @@
 
 #include <core/reflection/ObjectFwd.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct MeshInstanceData;
 
@@ -93,4 +93,4 @@ struct MeshInstanceData
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

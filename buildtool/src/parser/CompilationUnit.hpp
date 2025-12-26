@@ -7,7 +7,7 @@
 
 #include <core/containers/HashMap.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 class CompilationUnit
 {
@@ -41,6 +41,6 @@ private:
     HashMap<String, String> m_preprocessorDefinitions;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

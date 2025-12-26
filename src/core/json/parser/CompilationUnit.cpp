@@ -2,7 +2,7 @@
 
 #include <core/json/parser/CompilationUnit.hpp>
 
-namespace hyperion::json {
+namespace Hyperion::json {
 
 CompilationUnit::CompilationUnit()
 {
@@ -10,4 +10,4 @@ CompilationUnit::CompilationUnit()
 
 CompilationUnit::~CompilationUnit() = default;
 
-} // namespace hyperion::json
+} // namespace Hyperion::json

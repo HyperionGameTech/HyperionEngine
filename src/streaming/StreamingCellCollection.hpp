@@ -16,7 +16,7 @@
 
 #include <core/math/Vector2.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct StreamingCellRuntimeInfo
 {
@@ -202,4 +202,4 @@ public:
     HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End());
 };
 
-} // namespace hyperion
+} // namespace Hyperion

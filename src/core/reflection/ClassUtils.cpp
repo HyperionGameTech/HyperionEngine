@@ -3,7 +3,7 @@
 #include <core/reflection/ClassUtils.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 ClassRegistrationBase::ClassRegistrationBase(TypeId typeId, Class* cls)
     : m_class(cls)
@@ -11,4 +11,4 @@ ClassRegistrationBase::ClassRegistrationBase(TypeId typeId, Class* cls)
     ClassRegistry::GetInstance().RegisterClass(typeId, cls);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -4,7 +4,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <bool DefaultConstructible, bool Copyable, bool Moveable, class Type>
 struct ConstructAssignmentTraits
@@ -193,4 +193,4 @@ struct IsString : std::false_type
 {
 };
 
-} // namespace hyperion
+} // namespace Hyperion

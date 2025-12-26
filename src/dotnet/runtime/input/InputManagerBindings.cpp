@@ -4,7 +4,7 @@
 
 #include <input/InputManager.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

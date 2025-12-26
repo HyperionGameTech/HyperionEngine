@@ -20,7 +20,7 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 class Camera;
@@ -290,4 +290,4 @@ protected:
     TaskBatch* m_collectionTaskBatch;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

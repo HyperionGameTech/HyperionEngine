@@ -11,7 +11,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class OgreXMLModelLoader : public AssetLoaderBase
@@ -52,4 +52,4 @@ public:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -10,7 +10,7 @@
 
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ConsoleCommandBase;
 class ConsoleCommandManagerImpl;
@@ -40,4 +40,4 @@ private:
     Pimpl<ConsoleCommandManagerImpl> m_impl;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

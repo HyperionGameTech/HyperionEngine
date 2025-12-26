@@ -13,7 +13,7 @@
 
 #include <UIMenuBar.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -826,4 +826,4 @@ Vec2i UIMenuBar::GetDropDownMenuPosition(UIMenuItem* menuItem) const
 
 #pragma region UIMenuBar
 
-} // namespace hyperion
+} // namespace Hyperion

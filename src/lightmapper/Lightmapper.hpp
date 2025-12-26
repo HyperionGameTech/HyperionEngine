@@ -28,7 +28,7 @@
 
 #include <util/GameCounter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace threading {
 class TaskBatch;
@@ -318,7 +318,6 @@ public:
     Delegate<void> OnComplete;
 
 protected:
-
     virtual void Initialize_Internal()
     {
     }
@@ -542,4 +541,4 @@ protected:
     LightmapData<FogVolume> m_lightmapData;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

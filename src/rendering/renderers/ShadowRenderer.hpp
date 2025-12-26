@@ -9,7 +9,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class FullScreenPass;
 class ShadowMap;
@@ -98,4 +98,4 @@ protected:
     virtual ShadowMap* AllocateShadowMap(Light* light) override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

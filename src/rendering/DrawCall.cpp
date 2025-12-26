@@ -16,7 +16,7 @@
 
 #include <DrawCall.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
@@ -469,4 +469,4 @@ void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllo
 
 #pragma endregion TEntityBatchAllocator
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 #include <core/containers/String.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 class SourceLocation
 {
@@ -66,6 +66,6 @@ private:
     String m_filename;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

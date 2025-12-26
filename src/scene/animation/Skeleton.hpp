@@ -16,7 +16,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Bone;
 class Animation;
@@ -110,4 +110,4 @@ private:
     int m_renderProxyVersion;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

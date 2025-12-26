@@ -4,7 +4,7 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class BuildableVisitor
 {
@@ -43,4 +43,4 @@ public:
     virtual void Visit(RawOperation<>*) = 0;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

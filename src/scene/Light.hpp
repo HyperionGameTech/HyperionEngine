@@ -14,7 +14,7 @@
 
 #include <scene/Entity.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Camera;
 class Material;
@@ -409,4 +409,4 @@ public:
     virtual ~AreaRectLight() override = default;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

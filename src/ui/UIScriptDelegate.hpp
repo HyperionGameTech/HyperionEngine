@@ -18,7 +18,7 @@
 #include <dotnet/ManagedClass.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -150,4 +150,4 @@ private:
 
 #pragma endregion UIScriptDelegate
 
-} // namespace hyperion
+} // namespace Hyperion

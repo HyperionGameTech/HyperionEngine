@@ -21,7 +21,7 @@
 #include <core/Constants.hpp>
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -401,4 +401,4 @@ protected:
     ResourceHandle m_persistentResource;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

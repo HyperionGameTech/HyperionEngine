@@ -23,7 +23,7 @@
 
 #include <VulkanRaytracingPipeline.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -348,4 +348,4 @@ void VulkanRaytracingPipeline::SetPushConstants(const void* data, SizeType size)
 
 #pragma endregion VulkanRaytracingPipeline
 
-} // namespace hyperion
+} // namespace Hyperion

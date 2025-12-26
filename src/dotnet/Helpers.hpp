@@ -13,7 +13,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace filesystem {
 
 class FilePath;
@@ -22,9 +22,9 @@ class FilePath;
 
 using filesystem::FilePath;
 
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 class ManagedObject;
 
@@ -55,4 +55,4 @@ static inline void SetArgs_HypData(std::index_sequence<Indices...>, BoxedValue* 
 
 // NOLINTEND
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

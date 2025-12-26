@@ -2,7 +2,7 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 Identifier::Identifier(
     const String& name,
@@ -20,4 +20,4 @@ Identifier::Identifier(
 {
 }
 
-} // namespace hyperion
+} // namespace Hyperion

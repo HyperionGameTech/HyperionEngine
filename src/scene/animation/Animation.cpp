@@ -10,7 +10,7 @@
 
 #include <Animation.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region AnimationTrack
 
@@ -185,4 +185,4 @@ void Animation::ApplyBlended(Skeleton* skeleton, float time, float blend)
 
 #pragma endregion Animation
 
-} // namespace hyperion
+} // namespace Hyperion

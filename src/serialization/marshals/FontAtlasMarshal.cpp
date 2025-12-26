@@ -12,7 +12,7 @@
 
 #include <rendering/Texture.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 class FontAtlasTextureSetMarshal : public FBOMObjectMarshalerBase<FontAtlasTextureSet>
 {
@@ -225,4 +225,4 @@ public:
 
 HYP_DEFINE_MARSHAL(FontAtlas, FontAtlasMarshal);
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

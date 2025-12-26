@@ -10,7 +10,7 @@
 
 #include <cstdio>
 
-namespace hyperion {
+namespace Hyperion {
 class ByteReader
 {
 public:
@@ -335,4 +335,4 @@ protected:
         return ByteBuffer(readBytes, byteBuffer.Data());
     }
 };
-} // namespace hyperion
+} // namespace Hyperion

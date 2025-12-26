@@ -9,7 +9,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 ManagedClass::~ManagedClass() = default;
 
@@ -99,4 +99,4 @@ void ManagedClass::InvokeStaticMethod_Internal(const ManagedMethod* method, cons
     method->Invoke({}, args, outReturn);
 }
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

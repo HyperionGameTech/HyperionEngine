@@ -4,7 +4,7 @@
 #include <rtc/RTCInstance.hpp>
 #include <rtc/RTCTrack.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 RTCInstance::RTCInstance(RTCServerParams serverParams)
 {
@@ -33,4 +33,4 @@ RC<RTCStream> RTCInstance::CreateStream(RTCStreamType streamType, UniquePtr<RTCS
 #endif // HYP_LIBDATACHANNEL
 }
 
-} // namespace hyperion
+} // namespace Hyperion

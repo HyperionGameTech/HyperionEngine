@@ -7,7 +7,7 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace xml {
 
 using AttributeMap = HashMap<String, String>;
@@ -68,4 +68,4 @@ private:
 };
 
 } // namespace xml
-} // namespace hyperion
+} // namespace Hyperion

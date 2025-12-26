@@ -11,10 +11,10 @@
 #include <core/profiling/ProfileScope.hpp>
 
 #if defined(HYP_CURL) && HYP_CURL
-    #include <curl/curl.h>
+#include <curl/curl.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace net {
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
@@ -263,4 +263,4 @@ Task<HTTPResponse> HTTPRequest::Send()
 #pragma endregion HTTPRequest
 
 } // namespace net
-} // namespace hyperion
+} // namespace Hyperion

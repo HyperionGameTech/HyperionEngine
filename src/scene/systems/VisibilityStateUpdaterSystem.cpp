@@ -11,7 +11,7 @@
 
 #include <VisibilityStateUpdaterSystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 bool VisibilityStateUpdaterSystem::ShouldProcessScene(Scene* scene) const
 {
@@ -24,31 +24,31 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    //EntityManager& entityManager = *entity->GetEntityManager();
+    // EntityManager& entityManager = *entity->GetEntityManager();
 
-    //VisibilityStateComponent& visibilityStateComponent = entityManager.GetComponent<VisibilityStateComponent>(entity);
+    // VisibilityStateComponent& visibilityStateComponent = entityManager.GetComponent<VisibilityStateComponent>(entity);
 
-    //if (visibilityStateComponent.octantId != OctantId::Invalid())
+    // if (visibilityStateComponent.octantId != OctantId::Invalid())
     //{
-    //    return;
-    //}
+    //     return;
+    // }
 
-    //entityManager.AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
+    // entityManager.AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
 
-    //visibilityStateComponent.visibilityState = nullptr;
+    // visibilityStateComponent.visibilityState = nullptr;
 
     //// This system must be ran before WorldAABBUpdaterSystem so that the bounding box is up to date
 
-    //BoundingBoxComponent& boundingBoxComponent = entityManager.GetComponent<BoundingBoxComponent>(entity);
+    // BoundingBoxComponent& boundingBoxComponent = entityManager.GetComponent<BoundingBoxComponent>(entity);
 
-    //SceneOctree& octree = entityManager.GetScene()->GetOctree();
+    // SceneOctree& octree = entityManager.GetScene()->GetOctree();
 
-    //const SceneOctree::Result insertResult = octree.Insert(entity, boundingBoxComponent.worldAabb);
+    // const SceneOctree::Result insertResult = octree.Insert(entity, boundingBoxComponent.worldAabb);
 
-    //if (insertResult.HasValue())
+    // if (insertResult.HasValue())
     //{
-    //    OctantId octantId = insertResult.GetValue();
-    //    Assert(octantId != OctantId::Invalid(), "Invalid octant Id returned from Insert()");
+    //     OctantId octantId = insertResult.GetValue();
+    //     Assert(octantId != OctantId::Invalid(), "Invalid octant Id returned from Insert()");
 
     //    visibilityStateComponent.octantId = octantId;
     //    visibilityStateComponent.visibilityState = nullptr;
@@ -62,7 +62,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
 
     //    entityManager.RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
     //}
-    //else
+    // else
     //{
     //    HYP_LOG(Scene, Warning, "Failed to insert entity #{} into octree: {}", entity->Id(), insertResult.GetError().GetMessage());
     //}
@@ -202,4 +202,4 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 #include <DynamicLibrary.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 struct DynamicLibraryImpl
 {
@@ -130,4 +130,4 @@ UIntPtr DynamicLibrary::GetFunction(const char* name) const
 #endif
 }
 
-} // namespace hyperion
+} // namespace Hyperion

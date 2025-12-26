@@ -5,7 +5,7 @@
 #include <core/math/MathUtil.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ImageUtil
 {
@@ -43,4 +43,4 @@ public:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

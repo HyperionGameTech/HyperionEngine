@@ -7,7 +7,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct BoxedValue;
 class Class;
@@ -92,4 +92,4 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, B
  */
 bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, BoxedValue& target);
 
-} // namespace hyperion
+} // namespace Hyperion

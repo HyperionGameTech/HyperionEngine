@@ -8,7 +8,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct Fixup
 {
@@ -56,4 +56,4 @@ private:
     Array<Fixup> m_fixups;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

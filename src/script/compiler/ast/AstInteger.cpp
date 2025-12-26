@@ -11,7 +11,7 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstInteger::AstInteger(int64 value, ConstantBitSize bitSize, const SourceLocation& location)
     : AstConstant(ConstantValue(value, bitSize), location)
@@ -71,4 +71,4 @@ const SymbolType* AstInteger::GetExprType() const
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

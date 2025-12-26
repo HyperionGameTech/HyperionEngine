@@ -6,7 +6,7 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace net {
 
 class HYP_API NetRequestThread final : public TaskThread
@@ -25,4 +25,4 @@ using net::GetGlobalNetRequestThread;
 using net::NetRequestThread;
 using net::SetGlobalNetRequestThread;
 
-} // namespace hyperion
+} // namespace Hyperion

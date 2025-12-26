@@ -23,7 +23,7 @@
 
 #include <util/EnumOptions.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 class RenderProxyMaterial;
@@ -916,4 +916,4 @@ private:
     Mutex m_mutex;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

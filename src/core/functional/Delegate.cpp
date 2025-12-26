@@ -2,9 +2,9 @@
 
 #include <core/functional/Delegate.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace functional {
 } // namespace functional
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -11,7 +11,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstExportStatement::AstExportStatement(
     const RC<AstStatement>& stmt,
@@ -80,4 +80,4 @@ RC<AstStatement> AstExportStatement::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

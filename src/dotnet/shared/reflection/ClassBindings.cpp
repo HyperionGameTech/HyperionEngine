@@ -23,7 +23,7 @@
 #include <scripting/ScriptObjectResource.hpp>
 #endif
 
-using namespace hyperion;
+using namespace Hyperion;
 
 template <class MemberType, auto GetMemberFunc>
 uint32 Class_GetMembersGeneric(const Class* cls, const MemberType** outMembers)

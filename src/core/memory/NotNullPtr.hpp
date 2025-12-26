@@ -9,7 +9,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 /*! \brief A pointer to T that is never allowed to be null. If a null pointer is passed to it during construction or assignment, an assertion will be triggered. */
@@ -224,4 +224,4 @@ HYP_FORCE_INLINE void Swap(NotNullPtr<T>& a, NotNullPtr<T>& b)
     b = temp;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <FontFaceLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 AssetLoadResult FontFaceLoader::LoadAsset(LoaderState& state) const
 {
@@ -19,4 +19,4 @@ AssetLoadResult FontFaceLoader::LoadAsset(LoaderState& state) const
     return LoadedAsset { fontFace };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

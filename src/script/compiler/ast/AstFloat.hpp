@@ -2,7 +2,7 @@
 
 #include <script/compiler/ast/AstConstant.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstFloat final : public AstConstant
 {
@@ -36,4 +36,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

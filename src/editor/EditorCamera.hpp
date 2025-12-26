@@ -4,7 +4,7 @@
 
 #include <scene/camera/FirstPersonCamera.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class EditorCameraController;
 
@@ -65,5 +65,4 @@ protected:
 
     EditorCameraControllerMode m_mode;
 };
-} // namespace hyperion
-
+} // namespace Hyperion

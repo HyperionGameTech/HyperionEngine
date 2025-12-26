@@ -6,7 +6,7 @@
 
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Camera;
 class EditorSubsystem;
@@ -42,4 +42,4 @@ protected:
 
 using game::DefaultGame;
 
-} // namespace hyperion
+} // namespace Hyperion

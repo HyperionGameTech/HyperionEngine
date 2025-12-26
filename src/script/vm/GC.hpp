@@ -8,7 +8,7 @@
 
 #include <core/utilities/IdGenerator.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Script_GC
 {
@@ -30,4 +30,4 @@ private:
     IdGenerator m_idGenerator;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

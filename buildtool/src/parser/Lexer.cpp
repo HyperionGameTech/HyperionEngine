@@ -10,7 +10,7 @@
 #include <sstream>
 #include <cstdlib>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 using namespace utf;
 
@@ -872,4 +872,4 @@ bool Lexer::SkipWhitespace()
     return hadNewline;
 }
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

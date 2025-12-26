@@ -10,7 +10,7 @@
 
 #include <engine/EngineMemory.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace filesystem {
 class FilePath;
@@ -56,4 +56,4 @@ extern "C"
     HYP_API void Hyp_MainThreadUpdate();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

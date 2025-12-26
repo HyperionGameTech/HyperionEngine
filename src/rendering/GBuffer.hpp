@@ -18,7 +18,7 @@
 #include <rendering/GpuImage.hpp>
 #include <rendering/Shared.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 using GBufferFormat = Variant<DefaultImageFormat, TextureFormat, Array<TextureFormat>>;
 
@@ -145,4 +145,4 @@ private:
     bool m_isCreated;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

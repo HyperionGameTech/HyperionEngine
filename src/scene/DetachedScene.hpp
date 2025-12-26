@@ -4,7 +4,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 
@@ -17,4 +17,4 @@ using threading::ThreadId;
 HYP_API extern Scene* GetDetachedSceneForCurrentThread();
 HYP_API extern Scene* GetDetachedSceneForThread(const ThreadId& threadId);
 
-} // namespace hyperion
+} // namespace Hyperion

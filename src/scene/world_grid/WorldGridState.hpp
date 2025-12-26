@@ -20,7 +20,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 
@@ -56,4 +56,4 @@ struct WorldGridState
     void PushUpdate(StreamingCellUpdate&& update);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

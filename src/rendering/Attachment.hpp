@@ -14,7 +14,7 @@
 #include <rendering/Shared.hpp>
 #include <rendering/GpuImage.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class AttachmentBase : public ObjectBase
@@ -134,7 +134,7 @@ protected:
     uint32 m_binding = MathUtil::MaxSafeValue<uint32>();
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

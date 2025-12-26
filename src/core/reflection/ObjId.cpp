@@ -3,6 +3,6 @@
 #include <core/reflection/ObjId.hpp>
 #include <core/reflection/Class.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
-} // namespace hyperion
+} // namespace Hyperion

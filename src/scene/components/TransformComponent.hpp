@@ -8,7 +8,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(Component, Label = "Transform Component", Description = "Holds the translation, rotation, and scale of a node in a scene.", Editor = false, Serialize = false)
 struct TransformComponent
@@ -41,4 +41,4 @@ struct TransformComponent
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

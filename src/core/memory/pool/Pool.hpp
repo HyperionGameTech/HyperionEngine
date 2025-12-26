@@ -18,7 +18,7 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum PoolFlags : uint32
 {
@@ -179,7 +179,7 @@ using memory::PoolDelete;
 using memory::PoolFree;
 using memory::PoolNew;
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #define HYP_DEF_POOL_NEW_DELETE(poolName)                                  \
     void* operator new(size_t size)                                        \

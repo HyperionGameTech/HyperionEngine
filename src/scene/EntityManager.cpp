@@ -21,7 +21,7 @@
 
 #include <EntityManager.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
 // static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
@@ -1397,4 +1397,4 @@ bool EntityManager::IsEntityInitializedForSystem(SystemBase* system, const Entit
 
 #pragma endregion EntityManager
 
-} // namespace hyperion
+} // namespace Hyperion

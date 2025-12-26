@@ -15,7 +15,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace profiling {
 
 class ProfilerConnection;
@@ -88,4 +88,4 @@ using profiling::ProfileScope;
 using profiling::StartProfilerConnectionThread;
 using profiling::StopProfilerConnectionThread;
 
-} // namespace hyperion
+} // namespace Hyperion

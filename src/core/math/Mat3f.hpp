@@ -10,7 +10,7 @@
 
 #include <cstring>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(Size = 48)
 class HYP_API Mat3f
@@ -92,4 +92,4 @@ public:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

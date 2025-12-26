@@ -9,7 +9,7 @@
 
 #include <AssetReference.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -92,4 +92,4 @@ void AssetReference::Reload()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

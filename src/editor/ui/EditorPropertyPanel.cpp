@@ -8,7 +8,7 @@
 
 #include <EditorPropertyPanel.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 HYP_DECLARE_LOG_CHANNEL(Editor);
@@ -42,4 +42,4 @@ MaterialParameters EditorPropertyPanelBase::GetMaterialParameters() const
 
 #pragma endregion EditorPropertyPanelBase
 
-} // namespace hyperion
+} // namespace Hyperion

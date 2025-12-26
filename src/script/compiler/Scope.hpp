@@ -12,7 +12,7 @@
 
 #include <utility>
 
-namespace hyperion {
+namespace Hyperion {
 
 /*! \brief A cache for generic instances.
     \details
@@ -173,4 +173,4 @@ public:
     TypeInstanceCache typeInstanceCache;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

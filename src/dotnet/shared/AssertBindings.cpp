@@ -6,7 +6,7 @@
 
 #include <core/utilities/Format.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

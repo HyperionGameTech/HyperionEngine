@@ -2,7 +2,7 @@
 
 #pragma once
 
-namespace hyperion {
+namespace Hyperion {
 
 class Entity;
 struct ScriptComponent;
@@ -14,4 +14,4 @@ public:
     static void DeinitEntityScriptComponent(Entity* entity, ScriptComponent& scriptComponent);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

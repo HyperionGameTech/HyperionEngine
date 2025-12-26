@@ -29,7 +29,7 @@
 
 #include <UIText.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -554,4 +554,4 @@ Vec2i UIText::GetParentBounds() const
 
 #pragma endregion UIText
 
-} // namespace hyperion
+} // namespace Hyperion

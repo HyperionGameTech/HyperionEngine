@@ -8,7 +8,7 @@
 #include <core/memory/Pimpl.hpp>
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace debug {
 
 /*! \brief Lightweight stack trace that stores only raw frame pointers.
@@ -70,4 +70,4 @@ private:
 using debug::RawStackTrace;
 using debug::StackDump;
 
-} // namespace hyperion
+} // namespace Hyperion

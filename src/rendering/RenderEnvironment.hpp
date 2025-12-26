@@ -13,7 +13,7 @@
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class GaussianSplatting;
 
@@ -36,4 +36,4 @@ private:
     Handle<GaussianSplatting> m_gaussianSplatting;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

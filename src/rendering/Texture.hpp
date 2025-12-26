@@ -16,7 +16,7 @@
 
 #include <core/math/Vector3.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class TextureAsset;
 
@@ -149,4 +149,4 @@ protected:
     GpuImageRef m_gpuImage;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

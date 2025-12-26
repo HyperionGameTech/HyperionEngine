@@ -4,7 +4,7 @@
 
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class PhysicsWorldBase;
 class RigidBody;
@@ -64,4 +64,4 @@ public:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -8,7 +8,7 @@
 
 #include <memory>
 
-namespace hyperion {
+namespace Hyperion {
 
 class InstructionStream;
 
@@ -22,4 +22,4 @@ public:
     InstructionStream* Decompile(Script_Stream& bs, std::ostream* os = nullptr);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <core/containers/String.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstVisitor;
 class Module;
@@ -66,4 +66,4 @@ private:
     ModuleBuilder* m_parent;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <core/io/BufferedByteReader.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace xml {
 
 SAXParser::SAXParser(SAXHandler* handler)
@@ -192,4 +192,4 @@ SAXParser::Result SAXParser::Parse(BufferedReader* reader)
 }
 
 } // namespace xml
-} // namespace hyperion
+} // namespace Hyperion

@@ -8,11 +8,11 @@
 
 struct osnContext;
 
-namespace hyperion {
+namespace Hyperion {
 struct SimplexNoiseData
 {
     osn_context* octaves[OSN_OCTAVE_COUNT];
     double frequencies[OSN_OCTAVE_COUNT];
     double amplitudes[OSN_OCTAVE_COUNT];
 };
-} // namespace hyperion
+} // namespace Hyperion

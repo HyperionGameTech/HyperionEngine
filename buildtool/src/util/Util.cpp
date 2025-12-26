@@ -15,8 +15,8 @@
 #include <string>
 #include <sstream>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
@@ -463,5 +463,5 @@ Result ReplaceFileIfDifferent(FilePath& tempFilePath, const FilePath& targetFile
     return {};
 }
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion

@@ -51,7 +51,7 @@
 
 #include <ShaderCompiler.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
@@ -2953,4 +2953,4 @@ bool ShaderCompiler::GetCompiledShader(
 
 #pragma endregion ShaderCompiler
 
-} // namespace hyperion
+} // namespace Hyperion

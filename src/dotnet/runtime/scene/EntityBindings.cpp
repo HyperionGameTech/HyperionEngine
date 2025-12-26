@@ -4,7 +4,7 @@
 
 #include <scene/Entity.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

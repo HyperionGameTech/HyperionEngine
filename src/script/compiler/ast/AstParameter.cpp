@@ -13,7 +13,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstParameter::AstParameter(
     const String& name,
@@ -161,4 +161,4 @@ RC<AstStatement> AstParameter::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

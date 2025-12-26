@@ -2,7 +2,7 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstUndefined::AstUndefined(const SourceLocation& location)
     : AstConstant(ConstantValue(INVALID_CONSTANT_NUMBER), location)
@@ -34,4 +34,4 @@ const SymbolType* AstUndefined::GetExprType() const
     return BuiltinTypes::s_errorType;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

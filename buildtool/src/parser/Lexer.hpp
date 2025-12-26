@@ -11,8 +11,8 @@
 
 #include <util/UTF8.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 class Lexer
 {
@@ -75,7 +75,7 @@ private:
     bool SkipWhitespace();
 };
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion
 
 #endif

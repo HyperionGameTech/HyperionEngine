@@ -5,7 +5,7 @@
 #include <core/reflection/TypeId.hpp>
 #include <core/reflection/Class.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 FBOMUInt8::FBOMUInt8()
     : FBOMType("u8", 1, TypeId::ForType<uint8>(), FBOMTypeFlags::NUMERIC)
@@ -204,4 +204,4 @@ FBOMObjectType::FBOMObjectType(const Class* cls)
 {
 }
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

@@ -10,7 +10,7 @@
 
 #include <core/serialization/fbom/FBOMObjectLibrary.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace serialization {
 
 /// \todo : Use GlobalContext interface so we can use ArenaAllocator while loading
@@ -21,4 +21,4 @@ public:
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

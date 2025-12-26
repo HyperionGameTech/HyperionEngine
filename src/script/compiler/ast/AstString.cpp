@@ -8,7 +8,7 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstString::AstString(const String& value, const SourceLocation& location)
     : AstConstant(ConstantValue(INVALID_CONSTANT_NUMBER), location),
@@ -49,4 +49,4 @@ const SymbolType* AstString::GetExprType() const
     return BuiltinTypes::s_stringType;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

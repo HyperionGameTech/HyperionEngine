@@ -31,7 +31,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct DescriptorTableDeclaration;
 
@@ -88,4 +88,4 @@ private:
     Viewport m_viewport;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -47,7 +47,7 @@
 
 #include <AppContext.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 
@@ -1558,4 +1558,4 @@ int CocoaAppContext::PollEvents(Event& event)
 
 #pragma endregion CocoaAppContext
 
-} // namespace hyperion
+} // namespace Hyperion

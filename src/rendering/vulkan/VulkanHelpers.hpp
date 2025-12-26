@@ -14,7 +14,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class DescriptorSetElementType : uint32;
 
@@ -62,4 +62,4 @@ static inline void ChainNext(TBaseType& inStruct, TNextType* pNext)
 
 } // namespace VulkanHelpers
 
-} // namespace hyperion
+} // namespace Hyperion

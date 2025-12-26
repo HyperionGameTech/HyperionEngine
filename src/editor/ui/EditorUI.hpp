@@ -11,7 +11,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Node;
 class Property;
@@ -34,4 +34,4 @@ static Handle<UIElementFactoryBase> GetEditorUIElementFactory()
     return GetEditorUIElementFactory(TypeOf<T>());
 }
 
-} // namespace hyperion
+} // namespace Hyperion

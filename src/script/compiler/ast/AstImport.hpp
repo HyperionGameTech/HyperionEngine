@@ -6,11 +6,11 @@
 #include <script/compiler/CompilationUnit.hpp>
 #include <core/containers/String.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 class BufferedReader;
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstImport : public AstStatement
 {
@@ -52,4 +52,4 @@ protected:
         const String& filepath);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

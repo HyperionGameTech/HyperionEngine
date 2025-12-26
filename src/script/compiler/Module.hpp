@@ -13,7 +13,7 @@
 #include <core/functional/Proc.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Module
 {
@@ -188,4 +188,4 @@ struct ScopeGuard : TreeNodeGuard<Scope>
     ~ScopeGuard() = default;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

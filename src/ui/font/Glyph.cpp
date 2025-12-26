@@ -16,7 +16,7 @@
 
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Font);
 
@@ -166,4 +166,4 @@ Vec2i Glyph::GetMin()
 
 #pragma endregion Glyph
 
-} // namespace hyperion
+} // namespace Hyperion

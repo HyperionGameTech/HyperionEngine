@@ -7,7 +7,7 @@
 
 #include <core/threading/util/ThreadId.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace threading {
 
@@ -75,4 +75,4 @@ HYP_API extern StaticThreadId g_simThread;
 HYP_API extern StaticThreadId g_renderThread;
 HYP_API extern StaticThreadId g_visThread;
 
-} // namespace hyperion
+} // namespace Hyperion

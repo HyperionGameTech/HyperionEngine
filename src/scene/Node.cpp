@@ -36,7 +36,7 @@
 
 #include <Node.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #ifdef HYP_EDITOR
 extern Handle<EditorState> g_editorState;
@@ -660,7 +660,7 @@ Array<Node*> Node::GetDescendantsArray() const
     // add all children to the list
     Array<Node*> descendants;
 
-    typedef void (*CollectFunc)(Array<Node*> & descendants, const Node& target, void* collectFunc);
+    typedef void (*CollectFunc)(Array<Node*>& descendants, const Node& target, void* collectFunc);
 
     CollectFunc collectFunc = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
     {
@@ -1205,4 +1205,4 @@ bool Node::HasTag(StringHash key) const
 
 #pragma endregion Node
 
-} // namespace hyperion
+} // namespace Hyperion

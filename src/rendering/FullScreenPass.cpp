@@ -32,7 +32,7 @@
 
 #include <FullScreenPass.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct MergeHalfResTexturesUniforms
 {
@@ -887,4 +887,4 @@ void FullScreenPass::End(Frame* frame, const RenderSetup& renderSetup)
     m_isFirstFrame = false;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

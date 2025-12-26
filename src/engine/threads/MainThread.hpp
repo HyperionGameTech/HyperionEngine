@@ -5,7 +5,7 @@
 #include <core/threading/Thread.hpp>
 #include <core/threading/Scheduler.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class MainThread final : public Thread<Scheduler>
 {
@@ -22,4 +22,4 @@ private:
     virtual void operator()() override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

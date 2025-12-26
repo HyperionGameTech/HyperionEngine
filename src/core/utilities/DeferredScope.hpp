@@ -5,7 +5,7 @@
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <class FunctionType>
@@ -35,6 +35,6 @@ private:
 
 using utilities::DeferredScope;
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #define HYP_DEFER(...) DeferredScope HYP_UNIQUE_NAME(scope)([&] __VA_ARGS__)

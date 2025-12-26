@@ -37,7 +37,7 @@
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace Attributes {
 
 const Name g_attrSerialize = NAME("serialize");
@@ -1901,4 +1901,4 @@ ClassRef::~ClassRef()
 
 #pragma endregion ClassRef
 
-} // namespace hyperion
+} // namespace Hyperion

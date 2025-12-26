@@ -21,7 +21,7 @@
 
 #include <script/Instructions.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstBinaryExpression::AstBinaryExpression(
     const RC<AstExpression>& left,
@@ -922,4 +922,4 @@ String AstBinaryExpression::ToString() const
     return "(" + leftStr + " " + opStr + " " + rightStr + ")";
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <PerspectiveCamera.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 PerspectiveCameraController::PerspectiveCameraController()
     : CameraController(CameraProjectionMode::PERSPECTIVE)
@@ -52,4 +52,4 @@ void PerspectiveCameraController::UpdateProjectionMatrix()
         m_camera->m_far);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

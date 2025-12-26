@@ -14,7 +14,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct Triangle;
 
@@ -190,4 +190,4 @@ struct Formatter<StringType, BoundingBox>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <core/reflection/TypeInfo.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 TypeId Any::GetTypeId() const
@@ -15,4 +15,4 @@ TypeId Any::GetTypeId() const
 }
 
 } // namespace memory
-} // namespace hyperion
+} // namespace Hyperion

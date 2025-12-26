@@ -27,7 +27,7 @@
 
 #include <VulkanDescriptorSet.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -814,4 +814,4 @@ VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* d
 
 #pragma endregion VulkanDescriptorTable
 
-} // namespace hyperion
+} // namespace Hyperion

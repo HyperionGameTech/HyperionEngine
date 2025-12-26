@@ -56,7 +56,7 @@ static const wchar_t* CommDlgErrorToString(DWORD err)
     }
 }
 
-namespace hyperion {
+namespace Hyperion {
 
 void ShowOpenFileDialog(
     UTF8StringView title,
@@ -186,4 +186,4 @@ void ShowOpenFileDialog(
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

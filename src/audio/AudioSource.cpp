@@ -7,7 +7,7 @@
 
 #include <AudioSource.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 AudioSource::AudioSource()
     : ObjectBase(),
@@ -229,4 +229,4 @@ void AudioSource::FindSampleLength()
     m_sampleLength = byteSize * 8 / (numChannels * bits);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -15,7 +15,7 @@
 
 #include <cstring>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mat3f;
 
@@ -133,4 +133,4 @@ struct Formatter<StringType, Mat4f>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

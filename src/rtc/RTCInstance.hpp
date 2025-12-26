@@ -11,7 +11,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/UniquePtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class HYP_API RTCInstance
 {
@@ -35,4 +35,4 @@ private:
     RC<RTCServer> m_server;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

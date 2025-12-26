@@ -14,7 +14,7 @@
 #include <rendering/MeshInstanceData.hpp>
 #include <rendering/RenderObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Entity;
 class Mesh;
@@ -393,4 +393,4 @@ public:
     Frustum viewFrustum;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

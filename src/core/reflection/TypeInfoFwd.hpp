@@ -3,7 +3,7 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 struct Name;
@@ -34,4 +34,4 @@ using utilities::TypeInfo_GetSize;
 using utilities::TypeInfo_Void;
 using utilities::TypeOf;
 
-} // namespace hyperion
+} // namespace Hyperion

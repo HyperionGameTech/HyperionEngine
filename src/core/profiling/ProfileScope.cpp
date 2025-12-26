@@ -24,7 +24,7 @@
 
 #include <core/json/JSON.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace profiling {
 
 #pragma region ProfilerConnectionThread
@@ -478,4 +478,4 @@ ProfileScope::~ProfileScope()
 #pragma endregion ProfileScope
 
 } // namespace profiling
-} // namespace hyperion
+} // namespace Hyperion

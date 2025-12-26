@@ -25,7 +25,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace net {
 
 struct SocketID
@@ -147,4 +147,4 @@ using net::SocketResultType;
 using net::SocketServer;
 using net::SocketServerThread;
 
-} // namespace hyperion
+} // namespace Hyperion

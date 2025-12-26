@@ -13,7 +13,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Bone;
 class Skeleton;
@@ -148,4 +148,4 @@ private:
     Array<Handle<AnimationTrack>> m_tracks;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

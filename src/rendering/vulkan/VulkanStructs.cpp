@@ -6,6 +6,6 @@
 
 #include <utility>
 
-namespace hyperion {
+namespace Hyperion {
 
-} // namespace hyperion
+} // namespace Hyperion

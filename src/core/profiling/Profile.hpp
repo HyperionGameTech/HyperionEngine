@@ -8,7 +8,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace profiling {
 
 class Profile
@@ -57,4 +57,4 @@ private:
 
 using profiling::Profile;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -24,7 +24,7 @@
 
 #include <WorldGrid.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(WorldGrid, Scene);
 
@@ -260,4 +260,4 @@ Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
 
 #pragma endregion WorldGrid
 
-} // namespace hyperion
+} // namespace Hyperion

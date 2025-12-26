@@ -12,7 +12,7 @@
 
 #include <scene/components/UIComponent.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 Handle<UIObject> RunningEditorTask::CreateUIObject(UIStage* uiStage) const
 {
@@ -87,4 +87,4 @@ void EditorTaskManager::Tick(float delta)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

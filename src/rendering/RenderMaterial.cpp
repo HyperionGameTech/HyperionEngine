@@ -16,7 +16,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region MaterialDescriptorSetManager
 
@@ -252,4 +252,4 @@ void MaterialDescriptorSetManager::Remove(uint32 boundIndex)
 
 #pragma endregion MaterialDescriptorSetManager
 
-} // namespace hyperion
+} // namespace Hyperion

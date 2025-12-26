@@ -3,7 +3,7 @@
 #include <core/debug/Debug.hpp>
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 void InternalByteStream::MarkLabel(LabelId labelId)
 {
@@ -72,4 +72,4 @@ void InternalByteStream::Bake(const BuildParams& buildParams)
     m_fixups.Clear();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

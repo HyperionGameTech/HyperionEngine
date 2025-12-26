@@ -3,7 +3,7 @@
 
 #include <engine/Game.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 class EditorSubsystem;
 
 class HyperionEditorImpl;
@@ -34,4 +34,4 @@ protected:
     Handle<EditorSubsystem> m_editorSubsystem;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

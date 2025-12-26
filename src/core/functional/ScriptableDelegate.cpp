@@ -10,7 +10,7 @@
 
 #include <dotnet/ManagedClass.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace functional {
 
@@ -42,4 +42,4 @@ void ScriptableDelegateHelper::InvokeMethod_Internal(BoxedValue* pOutBoxed, cons
 
 } // namespace functional
 
-} // namespace hyperion
+} // namespace Hyperion

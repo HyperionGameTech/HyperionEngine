@@ -15,7 +15,7 @@
 
 #include <PLYModelLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 constexpr bool ShouldCreateIndices = true;
 constexpr bool ShouldCreateNewMeshPerMaterial = true; // set true to create a new mesh on each instance of 'use <mtllib>'
@@ -244,4 +244,4 @@ LoadedAsset PLYModelLoader::BuildModel(LoaderState& state, PLYModel& model)
     return LoadedAsset { plyModelPtr };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

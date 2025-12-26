@@ -12,7 +12,7 @@
 #include <utility>
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class IterationResult : uint8
 {
@@ -95,4 +95,4 @@ static inline void ForEachInBatches(Container&& container, uint32 numBatches, Ca
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

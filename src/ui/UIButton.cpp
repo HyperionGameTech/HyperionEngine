@@ -7,7 +7,7 @@
 
 #include <UIButton.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 UIButton::UIButton()
 {
@@ -79,4 +79,4 @@ MaterialParameters UIButton::GetMaterialParameters() const
     };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

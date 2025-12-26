@@ -7,7 +7,7 @@
 
 #include <chrono>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct GameCounter
 {
@@ -68,4 +68,4 @@ struct LockstepGameCounter : GameCounter
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

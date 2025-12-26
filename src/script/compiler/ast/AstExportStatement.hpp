@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstExportStatement : public AstStatement
 {
@@ -49,4 +49,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

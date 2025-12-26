@@ -16,7 +16,7 @@
 
 #include <core/Constants.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Texture;
 class Mesh;
@@ -149,4 +149,4 @@ private:
     Handle<GaussianSplattingInstance> m_gaussianSplattingInstance;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

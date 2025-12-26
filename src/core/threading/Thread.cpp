@@ -28,7 +28,7 @@
 #include <pthread.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 #pragma region ThreadBase
@@ -102,4 +102,4 @@ void ThreadBase::AtExit(Proc<void()>&& proc)
 #pragma endregion ThreadBase
 
 } // namespace threading
-} // namespace hyperion
+} // namespace Hyperion

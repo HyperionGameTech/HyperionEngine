@@ -10,7 +10,7 @@
 
 #include <core/utilities/Format.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace threading {
 
@@ -197,11 +197,11 @@ TaskBatch* TaskSystem::EnqueueBatch(TaskBatch* batch)
             &batch->notifier,
             nextBatch != nullptr
                 ? OnTaskCompletedCallback([this, &onComplete = batch->OnComplete, nextBatch]()
-                    {
-                        onComplete();
+                      {
+                          onComplete();
 
-                        EnqueueBatch(nextBatch);
-                    })
+                          EnqueueBatch(nextBatch);
+                      })
                 : OnTaskCompletedCallback(batch->OnComplete ? &batch->OnComplete : nullptr));
 
         batch->taskRefs.EmplaceBack(taskId, &taskThread->GetScheduler());
@@ -258,4 +258,4 @@ const FlatMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> g_threadP
 };
 
 } // namespace threading
-} // namespace hyperion
+} // namespace Hyperion

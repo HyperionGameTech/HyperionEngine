@@ -4,7 +4,7 @@
 
 #include <core/json/JSON.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 #pragma region FBOMWriterConfig
 
@@ -64,4 +64,4 @@ bool FBOMReaderConfig::LoadFromJSON(const json::JSONValue& json)
 
 #pragma endregion FBOMReaderConfig
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

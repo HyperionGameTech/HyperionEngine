@@ -9,7 +9,7 @@
 #include <util/UTF8.hpp>
 #include <core/utilities/StringUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 Parser::Parser(AstIterator* astIterator,
     TokenStream* tokenStream,
@@ -3108,4 +3108,4 @@ RC<AstReturnStatement> Parser::ParseReturnStatement()
     return nullptr;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

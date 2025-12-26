@@ -45,7 +45,7 @@
 
 #include <GaussianSplatting.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum BitonicSortStage : uint32
 {
@@ -701,4 +701,4 @@ void GaussianSplatting::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << DrawIndexedIndirect(m_gaussianSplattingInstance->GetIndirectBuffer(), 0);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

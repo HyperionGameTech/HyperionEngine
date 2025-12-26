@@ -12,7 +12,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct VulkanShaderModule
 {
@@ -127,4 +127,4 @@ private:
     Array<VkPipelineShaderStageCreateInfo> m_vkShaderStages;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

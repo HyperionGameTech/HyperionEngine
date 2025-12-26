@@ -11,7 +11,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region StaticMessage
 
@@ -56,4 +56,4 @@ inline const StaticMessage& MakeStaticMessage()
 
 #pragma endregion StaticMessage
 
-} // namespace hyperion
+} // namespace Hyperion

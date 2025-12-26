@@ -9,7 +9,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class ComputePipelineBase : public ObjectBase
@@ -79,7 +79,7 @@ protected:
     Name m_debugName;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

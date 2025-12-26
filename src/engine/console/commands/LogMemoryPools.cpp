@@ -6,7 +6,7 @@
 
 #include <core/memory/MemoryPool.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Console);
 
@@ -44,4 +44,4 @@ HYP_END_CLASS
 
 HYP_REGISTER_STATIC_CLASS(LogMemoryPools);
 
-} // namespace hyperion
+} // namespace Hyperion

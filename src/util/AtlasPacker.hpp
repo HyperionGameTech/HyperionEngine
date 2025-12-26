@@ -11,7 +11,7 @@
 
 #include <algorithm>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class AtlasElement>
 struct AtlasPacker
@@ -284,4 +284,4 @@ void AtlasPacker<AtlasElement>::MergeSkyline()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

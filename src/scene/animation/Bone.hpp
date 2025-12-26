@@ -9,7 +9,7 @@
 
 #include <core/math/Transform.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Skeleton;
 
@@ -100,4 +100,4 @@ private:
     Quaternion m_invBindingRotation;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

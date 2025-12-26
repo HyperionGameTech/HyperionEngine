@@ -17,7 +17,7 @@
 
 #include <core/containers/HashSet.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct VulkanDeviceQueue;
 
@@ -82,4 +82,4 @@ private:
     HashMap<const VulkanSwapchain*, VulkanSwapchainData> m_swapchainData;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

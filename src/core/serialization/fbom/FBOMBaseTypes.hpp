@@ -16,11 +16,11 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 class Class;
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 struct FBOMUnset : FBOMType
 {
@@ -294,4 +294,4 @@ struct FBOMArrayType : FBOMType
     }
 };
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

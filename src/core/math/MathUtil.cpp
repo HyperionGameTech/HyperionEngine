@@ -4,7 +4,7 @@
 
 #include <core/containers/Array.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace MathUtil {
 
@@ -182,7 +182,7 @@ Vec3f DecodeOctahedralCoord(const Vec2f& in)
 #define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
 
     Vec3f vec = Vec3f(in.x, in.y, 1.0 - Abs(in.x) - Abs(in.y));
-    
+
     if (vec.z < 0.0f)
     {
         const Vec2f xy = (Vec2f::One() - Abs(vec.GetXY())) * Vec2f(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
@@ -191,7 +191,7 @@ Vec3f DecodeOctahedralCoord(const Vec2f& in)
     }
 
 #undef NON_ZERO_SIGN
-    
+
     return vec.Normalize();
 }
 
@@ -202,4 +202,4 @@ Vec2f NormalizeOctahedralCoord(const Vec2i& coord, const Vec2i& extent)
 
 } // namespace MathUtil
 
-} // namespace hyperion
+} // namespace Hyperion

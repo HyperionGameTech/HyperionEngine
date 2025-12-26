@@ -9,7 +9,7 @@
 
 #define HYP_LOADER_BUFFER_SIZE 2048
 
-namespace hyperion {
+namespace Hyperion {
 
 class AssetManager;
 class AssetRegistry;
@@ -66,4 +66,4 @@ private:
     ErrorCode m_errorCode;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

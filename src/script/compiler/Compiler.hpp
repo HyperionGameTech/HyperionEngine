@@ -11,7 +11,7 @@
 
 #include <memory>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Compiler : public AstVisitor
 {
@@ -96,4 +96,4 @@ public:
     UniquePtr<BytecodeChunk> Compile();
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -7,7 +7,7 @@
 #include <string>
 #include <cstring>
 
-namespace hyperion {
+namespace Hyperion {
 
 class BufferedReader;
 
@@ -29,4 +29,4 @@ public:
 
 using filesystem::FileSystem;
 
-} // namespace hyperion
+} // namespace Hyperion

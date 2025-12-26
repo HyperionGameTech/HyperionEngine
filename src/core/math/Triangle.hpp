@@ -11,7 +11,7 @@
 
 #include <core/reflection/ObjectMacros.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(Serialize = "bitwise")
 struct HYP_API Triangle
@@ -94,4 +94,4 @@ struct HYP_API Triangle
 
 Triangle operator*(const Mat4f& transform, const Triangle& triangle);
 
-} // namespace hyperion
+} // namespace Hyperion

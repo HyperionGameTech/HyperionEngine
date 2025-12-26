@@ -6,7 +6,7 @@
 #include <core/cli/CommandLine.hpp>
 #include <core/config/Config.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 FilePath CoreApi_GetExecutablePath();
 void CoreApi_SetExecutablePath(const FilePath& path);
@@ -23,4 +23,4 @@ void CoreApi_OnShutdown(void (*func)());
 
 void CoreApi_Shutdown();
 
-} // namespace hyperion
+} // namespace Hyperion

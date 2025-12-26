@@ -4,7 +4,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class IComponentFactory
 {
@@ -19,4 +19,4 @@ public:
     virtual ~ComponentFactory() override = default;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

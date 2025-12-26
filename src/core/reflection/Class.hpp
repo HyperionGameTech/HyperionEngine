@@ -17,7 +17,7 @@
 #include <core/memory/Any.hpp>
 #include <core/memory/AnyRef.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace dotnet {
 class ManagedClass;
@@ -999,4 +999,4 @@ HYP_API extern const Name g_attrEditCondition; //!< condition for editability or
 
 } // namespace Attributes
 
-} // namespace hyperion
+} // namespace Hyperion

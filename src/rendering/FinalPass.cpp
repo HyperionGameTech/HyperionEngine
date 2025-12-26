@@ -29,7 +29,7 @@
 
 #define HYP_RENDER_UI_IN_FINAL_PASS
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
@@ -286,4 +286,4 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
 #pragma endregion FinalPass
 
-} // namespace hyperion
+} // namespace Hyperion

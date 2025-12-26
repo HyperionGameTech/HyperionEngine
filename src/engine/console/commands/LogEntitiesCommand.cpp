@@ -28,7 +28,7 @@
 
 #include <LogEntitiesCommand.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Console);
 HYP_DEFINE_LOG_SUBCHANNEL(LogEntities, Console);
@@ -188,4 +188,4 @@ CommandLineArgumentDefinitions LogEntitiesCommand::GetDefinitions_Internal() con
     return definitions;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

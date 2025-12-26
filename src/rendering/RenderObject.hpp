@@ -14,7 +14,7 @@
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderResult.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #define DECLARE_GFX_TYPE_BASE(T)        \
     class T##Base;                      \
@@ -133,4 +133,4 @@ static inline void DeferCreate(RefType ref, Args&&... args)
 #undef DEF_RENDER_PLATFORM_OBJECT
 #undef DEF_CURRENT_PLATFORM_RENDER_OBJECT
 
-} // namespace hyperion
+} // namespace Hyperion

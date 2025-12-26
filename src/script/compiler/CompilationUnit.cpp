@@ -14,7 +14,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region SymbolTypeCache
 
@@ -64,7 +64,7 @@ public:
 #pragma endregion SymbolTypeCache
 
 CompilationUnit::CompilationUnit()
-    : m_globalModule(new Module(hyperion::Config::globalModuleName, SourceLocation::Eof())),
+    : m_globalModule(new Module(Hyperion::Config::globalModuleName, SourceLocation::Eof())),
       m_symbolTypeCache(MakePimpl<SymbolTypeCache>())
 {
     m_globalModule->SetImportTreeLink(moduleTree.TopNode());
@@ -182,4 +182,4 @@ void CompilationUnit::RegisterType(SymbolType* symbolType)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

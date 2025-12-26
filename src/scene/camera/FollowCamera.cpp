@@ -6,7 +6,7 @@
 
 #include <FollowCamera.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 FollowCameraController::FollowCameraController(const Vector3& target, const Vector3& offset)
     : PerspectiveCameraController(),
@@ -49,4 +49,4 @@ void FollowCameraController::UpdateLogic(double delta)
     m_camera->SetTranslation(origin + normalizedOffsetDirection * m_desiredDistance);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 #include <cstring>
 #include <sstream>
 
-namespace hyperion {
+namespace Hyperion {
 
 Script_HashMap::Script_HashMap()
 {
@@ -62,4 +62,4 @@ const BoxedValue* Script_HashMap::GetElement(const VMMapKey& key) const
     return &it->second;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

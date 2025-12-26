@@ -3,7 +3,7 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstIterator::AstIterator()
     : m_position(0)
@@ -45,4 +45,4 @@ void AstIterator::Append(AstIterator&& other)
     other.m_position = 0;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

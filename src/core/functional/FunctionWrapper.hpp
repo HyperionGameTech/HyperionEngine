@@ -4,7 +4,7 @@
 
 #include <core/utilities/FunctionTraits.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace functional {
 
 template <class T, class T2 = void>
@@ -252,4 +252,4 @@ struct FunctionWrapper
 
 using functional::FunctionWrapper;
 
-} // namespace hyperion
+} // namespace Hyperion

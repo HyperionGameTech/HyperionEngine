@@ -27,7 +27,7 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/Shared.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class VulkanInstance;
 class VulkanFeatures;
@@ -144,4 +144,4 @@ private:
     ExtensionMap m_wantedExtensions;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

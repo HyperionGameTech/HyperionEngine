@@ -2,7 +2,7 @@
 
 #include <script/compiler/type-system/SymbolType.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class SymbolType;
 class CompilationUnit;
@@ -47,4 +47,4 @@ struct BuiltinTypes
     static void RegisterTypes(CompilationUnit* compilationUnit);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

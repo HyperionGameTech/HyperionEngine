@@ -6,11 +6,11 @@
 
 #include <core/threading/TaskSystem.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #define HYP_SYSTEMS_PARALLEL_EXECUTION
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
-//#define HYP_SYSTEM_LOG_PERFORMANCE
+// #define HYP_SYSTEM_LOG_PERFORMANCE
 
 SystemExecutionGroup::SystemExecutionGroup(bool requiresSimThread, bool allowUpdate)
     : m_requiresSimThread(requiresSimThread),
@@ -170,4 +170,4 @@ void SystemExecutionGroup::FinishProcessing(bool executeBlocking)
 #endif
 }
 
-} // namespace hyperion
+} // namespace Hyperion

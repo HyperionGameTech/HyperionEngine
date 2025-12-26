@@ -6,7 +6,7 @@
 
 #include <scene/Entity.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract)
 class HYP_API VolumeBase : public Entity
@@ -35,4 +35,4 @@ public:
     virtual ~VolumeBase() override = default;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

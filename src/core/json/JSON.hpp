@@ -13,7 +13,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class BufferedReader;
 
@@ -845,4 +845,4 @@ public:
 };
 
 } // namespace json
-} // namespace hyperion
+} // namespace Hyperion

@@ -12,7 +12,7 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 class EditorProjectMarshal : public ObjectMarshal
 {
@@ -45,4 +45,4 @@ public:
 
 HYP_DEFINE_MARSHAL(EditorProject, EditorProjectMarshal);
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

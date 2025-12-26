@@ -15,7 +15,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -277,4 +277,4 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
 #pragma endregion VulkanSingleTimeCommands
 
-} // namespace hyperion
+} // namespace Hyperion

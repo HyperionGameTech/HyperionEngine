@@ -13,7 +13,7 @@ namespace rtc {
 class WebSocket;
 } // namespace rtc
 
-namespace hyperion {
+namespace Hyperion {
 
 class RTCClient;
 class RTCServerThread;
@@ -150,4 +150,4 @@ using LibDataChannelRTCServer = NullRTCServer;
 
 #endif // HYP_LIBDATACHANNEL
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -28,7 +28,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ByteWriter;
 class BufferedReader;
@@ -296,4 +296,4 @@ using config::ConfigurationValue;
 using config::ConfigurationValueKey;
 using config::GlobalConfig;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -7,7 +7,7 @@
 #include <scene/camera/PerspectiveCamera.hpp>
 #include <scene/camera/CameraTrack.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class CameraTrackController : public PerspectiveCameraController
@@ -36,4 +36,4 @@ protected:
     double m_trackTime;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

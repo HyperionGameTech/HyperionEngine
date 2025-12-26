@@ -16,7 +16,7 @@
 
 #include <util/img/Bitmap.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <TextureFormat Format>
 HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer)
@@ -87,14 +87,14 @@ template HYP_API void FillPlaceholderBuffer_Cubemap<TF_RGBA8>(Vec2u dimensions, 
 
 PlaceholderData::PlaceholderData()
     : m_image2d1x1R8(g_renderBackend->MakeImage(TextureDesc {
-        TT_TEX2D,
-        TF_R8,
-        Vec3u::One(),
-        TFM_NEAREST,
-        TFM_NEAREST,
-        TWM_CLAMP_TO_EDGE,
-        1,
-        IU_SAMPLED })),
+          TT_TEX2D,
+          TF_R8,
+          Vec3u::One(),
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE,
+          1,
+          IU_SAMPLED })),
       m_imageView2d1x1R8(g_renderBackend->MakeImageView(m_image2d1x1R8)),
       m_image2d1x1R8Storage(g_renderBackend->MakeImage(TextureDesc {
           TT_TEX2D,
@@ -403,4 +403,4 @@ GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, SizeType
 
 #pragma endregion PlaceholderData
 
-} // namespace hyperion
+} // namespace Hyperion

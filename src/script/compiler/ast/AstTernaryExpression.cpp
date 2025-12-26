@@ -10,7 +10,7 @@
 
 #include <cstdio>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstTernaryExpression::AstTernaryExpression(
     const RC<AstExpression>& conditional,
@@ -278,4 +278,4 @@ const AstExpression* AstTernaryExpression::GetDeepValueOf() const
     return m_right->GetDeepValueOf();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

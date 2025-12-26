@@ -14,7 +14,7 @@
 
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstTypeRef::AstTypeRef(
     const SymbolType* symbolType,
@@ -69,4 +69,4 @@ const SymbolType* AstTypeRef::GetHeldType() const
     return m_symbolType;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

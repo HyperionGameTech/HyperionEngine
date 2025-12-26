@@ -16,7 +16,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 class ByteWriter;
 
 namespace serialization {
@@ -46,4 +46,4 @@ public:
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

@@ -31,7 +31,7 @@
 
 #include <Game.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const Name s_nameMainWorld = NAME("MainWorld");
 
@@ -174,4 +174,4 @@ void Game::SetToEditMode()
 
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

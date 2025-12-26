@@ -21,7 +21,7 @@
 
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstAsExpression::AstAsExpression(
     const RC<AstExpression>& target,
@@ -371,4 +371,4 @@ RC<AstStatement> AstAsExpression::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

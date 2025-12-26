@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-  <Type Name="hyperion::utilities::ValueStorage&lt;*,*,*,*&gt;">
+  <Type Name="Hyperion::utilities::ValueStorage&lt;*,*,*,*&gt;">
     <DisplayString>{($T1 *)dataBuffer}</DisplayString>
     <Expand>
       <Item Name="[Count]">($T2)</Item>
@@ -16,7 +16,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::containers::FixedArray&lt;*,*&gt;">
+  <Type Name="Hyperion::containers::FixedArray&lt;*,*&gt;">
     <DisplayString>{($T1 *)m_values}</DisplayString>
     <Expand>
       <Item Name="[Count]">($T2)</Item>
@@ -28,7 +28,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::containers::Array&lt;*,*&gt;">
+  <Type Name="Hyperion::containers::Array&lt;*,*&gt;">
     <DisplayString>{{ Size={m_size - m_startOffset} Dynamic={m_allocation.isDynamic} }}</DisplayString>
 
     <Expand>
@@ -64,7 +64,7 @@
     </Expand>
   </Type>
   
-  <Type Name="hyperion::containers::LinkedList&lt;*,*&gt;">
+  <Type Name="Hyperion::containers::LinkedList&lt;*,*&gt;">
     <DisplayString>{{ Count={m_size} }}</DisplayString>
     <Expand>
       <Item Name="[Count]">m_size</Item>
@@ -77,7 +77,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::containers::SparsePagedArray&lt;*,*,*&gt;">
+  <Type Name="Hyperion::containers::SparsePagedArray&lt;*,*,*&gt;">
     <Expand>
       <CustomListItems>
         <!-- TODO: Loop through items and accumulate 1s in bitsets to get number of pages and nubmer of elements initialized -->
@@ -85,7 +85,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::containers::Bitset">
+  <Type Name="Hyperion::containers::Bitset">
     <Expand>
       <CustomListItems>
         <Variable Name="idx" InitialValue="0" />
@@ -111,7 +111,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::containers::String&lt;*&gt;">
+  <Type Name="Hyperion::containers::String&lt;*&gt;">
     <DisplayString Condition="m_allocation.allocationType == 1 || m_allocation.isDynamic == true &amp;&amp; $T1 == 2">{{ {((CharType *)m_allocation.buffer + m_startOffset), s8} }}</DisplayString>
     <DisplayString Condition="m_allocation.allocationType == 2 &amp;&amp; m_allocation.isDynamic == false &amp;&amp; $T1 == 2">{{ {(((CharType *)&amp;m_allocation.storage.dataBuffer[0]) + m_startOffset), s8} }}</DisplayString>
     <DisplayString Condition="m_allocation.allocationType == 1 || m_allocation.isDynamic == true &amp;&amp; $T1 == 1 &amp;&amp; isAnsi">{{ {((CharType *)m_allocation.buffer + m_startOffset), s} }}</DisplayString>
@@ -145,7 +145,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::containers::HashMap&lt;*,*,*&gt;">
+  <Type Name="Hyperion::containers::HashMap&lt;*,*,*&gt;">
     <DisplayString>{{ Size={m_size} }}</DisplayString>
 
     <Expand>
@@ -183,7 +183,7 @@
   </Type>
   
   
-  <Type Name="hyperion::containers::HashSet&lt;*,*,*&gt;">
+  <Type Name="Hyperion::containers::HashSet&lt;*,*,*&gt;">
     <DisplayString>{{ Size={m_size} }}</DisplayString>
 
     <Expand>
@@ -220,7 +220,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::utilities::Span&lt;*&gt;">
+  <Type Name="Hyperion::utilities::Span&lt;*&gt;">
     <DisplayString>{{ Address={((void*)first)} Size={(last - first)} }}</DisplayString>
     <Expand>
       <Item Name="[Size]">(last - first)</Item>
@@ -232,39 +232,39 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::memory::UniquePtr&lt;*&gt;">
+  <Type Name="Hyperion::memory::UniquePtr&lt;*&gt;">
     <DisplayString>{{ {($T1 *)m_holder.value} }}</DisplayString>
     <Expand>
       <ExpandedItem>($T1 *)m_holder.value</ExpandedItem>
     </Expand>
   </Type>
 
-  <Type Name="hyperion::memory::RefCountedPtr&lt;*,*&gt;">
-    <DisplayString>{{ {($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
+  <Type Name="Hyperion::memory::RefCountedPtr&lt;*,*&gt;">
+    <DisplayString>{{ {($T1 *)((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
-      <Item Name="[Weak Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;weak</Item>
-      <ExpandedItem>($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj</ExpandedItem>
+      <Item Name="[Strong Refs]">((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
+      <Item Name="[Weak Refs]">((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;weak</Item>
+      <ExpandedItem>($T1 *)((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj</ExpandedItem>
     </Expand>
   </Type>
 
-  <Type Name="hyperion::memory::WeakRefCountedPtr&lt;*,*&gt;">
-    <DisplayString>{{ {($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
+  <Type Name="Hyperion::memory::WeakRefCountedPtr&lt;*,*&gt;">
+    <DisplayString>{{ {($T1 *)((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
-      <Item Name="[Weak Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;weak</Item>
-      <ExpandedItem>($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj</ExpandedItem>
+      <Item Name="[Strong Refs]">((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
+      <Item Name="[Weak Refs]">((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;weak</Item>
+      <ExpandedItem>($T1 *)((Hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj</ExpandedItem>
     </Expand>
   </Type>
 
-  <Type Name="hyperion::memory::Pimpl&lt;*&gt;">
+  <Type Name="Hyperion::memory::Pimpl&lt;*&gt;">
     <DisplayString>{{ {($T1 *)(&amp;((Allocation *)m_allocation)-&gt;storage)} }}</DisplayString>
     <Expand>
       <ExpandedItem>($T1 *)(&amp;((Allocation *)m_allocation)-&gt;storage)</ExpandedItem>
     </Expand>
   </Type>
 	
-	<Type Name="hyperion::memory::Any">
+	<Type Name="Hyperion::memory::Any">
 		<DisplayString Condition="m_block == nullptr">EMPTY</DisplayString>
 		<DisplayString Condition="m_block != nullptr">{{ TypeInfo={*((Block*)m_block)-&gt;typeInfo} Value={((Block*)m_block)-&gt;objectPtr} }}</DisplayString>
 		
@@ -276,7 +276,7 @@
 		</Expand>
 	</Type>
 
-  <Type Name="hyperion::utilities::Optional&lt;*&gt;">
+  <Type Name="Hyperion::utilities::Optional&lt;*&gt;">
 
     <DisplayString Condition="m_hasValue == true">{{ {($T1 *)&amp;m_storage} }}</DisplayString>
     <DisplayString Condition="m_hasValue == false">EMPTY</DisplayString>
@@ -287,7 +287,7 @@
      </Expand>
   </Type>
 
-  <Type Name="hyperion::utilities::Variant&lt;*&gt;">
+  <Type Name="Hyperion::utilities::Variant&lt;*&gt;">
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 0">{{ {*($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 1">{{ {*($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 2">{{ {*($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
@@ -335,7 +335,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::BoxedValue">
+  <Type Name="Hyperion::BoxedValue">
     <Expand>
       <Item Name="[Metadata]">extData</Item>
       <ExpandedItem>value</ExpandedItem>
@@ -343,31 +343,31 @@
   </Type>
   
   <!-- Just display inner data of a JSONValue -->
-  <Type Name="hyperion::json::JSONValue">
+  <Type Name="Hyperion::json::JSONValue">
     <DisplayString>{{ Value={m_inner} }}</DisplayString>
     <Expand>
       <ExpandedItem>m_inner</ExpandedItem>
     </Expand>
   </Type>
 
-  <Type Name="hyperion::threading::ThreadId">
+  <Type Name="Hyperion::threading::ThreadId">
     <DisplayString>{m_name}</DisplayString>
     <Expand>
       <Item Name="[Name]">m_name</Item>
       <Item Name="[ID]">m_value &amp; g_threadIdMask</Item>
-      <Item Name="[Category]">(hyperion::threading::ThreadCategory)(m_value &amp; g_threadCategoryMask)</Item>
+      <Item Name="[Category]">(Hyperion::threading::ThreadCategory)(m_value &amp; g_threadCategoryMask)</Item>
       <Item Name="[IsDynamic]">(bool)(m_value &amp; g_threadDynamicMask)</Item>
     </Expand>
   </Type>
 
-  <Type Name="hyperion::threading::AtomicVar&lt;*&gt;">
+  <Type Name="Hyperion::threading::AtomicVar&lt;*&gt;">
     <DisplayString>{{ Value={m_value} }}</DisplayString>
     <Expand>
       <ExpandedItem>m_value</ExpandedItem>
     </Expand>
   </Type>
 
-  <Type Name="hyperion::threading::Semaphore&lt;*,hyperion::threading::detail::ConditionVarSemaphoreImpl&lt;*&gt;&gt;">
+  <Type Name="Hyperion::threading::Semaphore&lt;*,Hyperion::threading::detail::ConditionVarSemaphoreImpl&lt;*&gt;&gt;">
     <DisplayString Condition="m_impl.value&lt;=0">Signaled</DisplayString>
     <DisplayString Condition="m_impl.value&gt;0">Not Signaled</DisplayString>
     <Expand>
@@ -375,12 +375,12 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::ObjId&lt;*&gt;">
+  <Type Name="Hyperion::ObjId&lt;*&gt;">
     <DisplayString>{{ Value={value} }}</DisplayString>
     <DisplayString>{{ TypeId={typeIdValue} }}</DisplayString>
   </Type>
 
-  <Type Name="hyperion::Handle&lt;*&gt;">
+  <Type Name="Hyperion::Handle&lt;*&gt;">
     <Expand>
       <Item Name="[Strong Refs]">(ptr-&gt;m_header-&gt;refCountStrong)</Item>
       <Item Name="[Weak Refs]">(ptr-&gt;m_header-&gt;refCountWeak)</Item>
@@ -388,7 +388,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::WeakHandle&lt;*&gt;">
+  <Type Name="Hyperion::WeakHandle&lt;*&gt;">
     <Expand>
       <Item Name="[Alive]">(ptr-&gt;m_header-&gt;refCountStrong != 0)</Item>
       <Item Name="[Strong Refs]">(ptr-&gt;m_header-&gt;refCountStrong)</Item>
@@ -398,7 +398,7 @@
   </Type>
 
   <!-- Walks the whole hash map to display the name as a string! -->
-  <Type Name="hyperion::Name">
+  <Type Name="Hyperion::Name">
     <Expand>
       <CustomListItems>
         <Variable Name="bucketIndex" InitialValue="0" />
@@ -411,13 +411,13 @@
         <Variable Name="bucketPtr" InitialValue="registry-&gt;g_nullBucket" />
         <Variable Name="currentHead" InitialValue="registry-&gt;g_nullNode" />
 
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 1">bucketPtr = (hyperion::NameRegistry::Bucket* )(&amp;(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer))</Exec>
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == true">bucketPtr = (hyperion::NameRegistry::Bucket* )(&amp;(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer))</Exec>
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == false">bucketPtr = (hyperion::NameRegistry::Bucket* )(&amp;(registry-&gt;m_nameMap.m_buckets.m_allocation.storage.dataBuffer[0]))</Exec>
+        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 1">bucketPtr = (Hyperion::NameRegistry::Bucket* )(&amp;(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer))</Exec>
+        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == true">bucketPtr = (Hyperion::NameRegistry::Bucket* )(&amp;(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer))</Exec>
+        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == false">bucketPtr = (Hyperion::NameRegistry::Bucket* )(&amp;(registry-&gt;m_nameMap.m_buckets.m_allocation.storage.dataBuffer[0]))</Exec>
 
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 1">bucketPtr = (hyperion::NameRegistry::Bucket* )(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer + registry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == true">bucketPtr = (hyperion::NameRegistry::Bucket* )(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer + registry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
-        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == false">bucketPtr = (hyperion::NameRegistry::Bucket* )(&amp;registry-&gt;m_nameMap.m_buckets.m_allocation.storage.dataBuffer[0] + registry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
+        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 1">bucketPtr = (Hyperion::NameRegistry::Bucket* )(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer + registry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
+        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == true">bucketPtr = (Hyperion::NameRegistry::Bucket* )(registry-&gt;m_nameMap.m_buckets.m_allocation.buffer + registry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
+        <Exec Condition="registry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; registry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == false">bucketPtr = (Hyperion::NameRegistry::Bucket* )(&amp;registry-&gt;m_nameMap.m_buckets.m_allocation.storage.dataBuffer[0] + registry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
 
         <Loop>
           <Break Condition="found == true || bucketIndex == (registry-&gt;m_nameMap.m_buckets.m_size - registry-&gt;m_nameMap.m_buckets.m_startOffset)" />
@@ -451,7 +451,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::utilities::TypeId">
+  <Type Name="Hyperion::utilities::TypeId">
     <DisplayString Condition="value == 0">Void</DisplayString>
     <DisplayString Condition="value != 0">{{ Value={m_value} }}</DisplayString>
 
@@ -461,7 +461,7 @@
     </Expand>
   </Type>
   
-  <Type Name="hyperion::AssetPath">
+  <Type Name="Hyperion::AssetPath">
     <Expand>
       <CustomListItems>
         <Variable Name="current" InitialValue="chain" />

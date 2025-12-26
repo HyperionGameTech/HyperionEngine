@@ -12,7 +12,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/DrawCall.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 class View;
@@ -87,4 +87,4 @@ private:
     DelegateHandler m_onCurrentWindowChangedHandle;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

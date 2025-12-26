@@ -16,7 +16,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ClassRegistrationBase
 {
@@ -75,4 +75,4 @@ public:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

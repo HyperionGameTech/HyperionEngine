@@ -17,7 +17,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class EditorActionStackState : uint32
@@ -90,4 +90,4 @@ private:
     EnumFlags<EditorActionStackState> m_currentState;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

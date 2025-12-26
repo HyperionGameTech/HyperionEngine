@@ -39,7 +39,7 @@
 
 #include <EditorMain.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -1179,4 +1179,4 @@ UIEventHandlerResult EditorMain::AddEntity(const MouseEvent& event)
     return UIEventHandlerResult::OK;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

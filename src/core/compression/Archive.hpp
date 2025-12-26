@@ -10,7 +10,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace compression {
 
 class HYP_API Archive
@@ -71,4 +71,4 @@ private:
 using compression::Archive;
 using compression::ArchiveBuilder;
 
-} // namespace hyperion
+} // namespace Hyperion

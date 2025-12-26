@@ -15,7 +15,7 @@
 
 #include <DescriptorSet.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 #pragma region DescriptorSetDeclaration
 
 DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(StringHash name) const
@@ -446,4 +446,4 @@ void DescriptorTableBase::Update(uint32 frameIndex, bool force)
 
 #pragma endregion DescriptorTableBase
 
-} // namespace hyperion
+} // namespace Hyperion

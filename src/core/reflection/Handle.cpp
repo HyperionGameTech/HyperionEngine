@@ -3,7 +3,7 @@
 #include <core/reflection/Handle.hpp>
 #include <core/reflection/Class.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API TypeId GetTypeIdForClass(const Class* cls)
 {
@@ -188,4 +188,4 @@ void* AnyHandle::Release()
 
 #pragma endregion Handle < ObjectBase>
 
-} // namespace hyperion
+} // namespace Hyperion

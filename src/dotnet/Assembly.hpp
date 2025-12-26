@@ -11,7 +11,7 @@
 
 #include <dotnet/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 struct BoxedValue;
@@ -103,4 +103,4 @@ private:
 };
 
 } // namespace dotnet
-} // namespace hyperion
+} // namespace Hyperion

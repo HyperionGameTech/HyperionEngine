@@ -16,7 +16,7 @@
 
 #include <cstdlib>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -467,4 +467,4 @@ HYP_FORCE_INLINE UniquePtr<T> MakeUnique(Args&&... args)
     return memory::MakeUniqueHelper<T>::MakeUnique(std::forward<Args>(args)...);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

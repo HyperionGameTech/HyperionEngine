@@ -10,7 +10,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 HYP_STRUCT(Serialize = "bitwise")
@@ -105,4 +105,4 @@ constexpr Uuid SwapEndian(Uuid value)
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

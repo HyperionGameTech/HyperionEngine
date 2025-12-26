@@ -16,7 +16,7 @@
 
 #include <asset/AssetReference.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract)
 class HYP_API StreamableBase : public ObjectBase
@@ -65,4 +65,4 @@ protected:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

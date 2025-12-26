@@ -10,7 +10,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstBreakStatement::AstBreakStatement(const SourceLocation& location)
     : AstStatement(location),
@@ -79,4 +79,4 @@ RC<AstStatement> AstBreakStatement::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

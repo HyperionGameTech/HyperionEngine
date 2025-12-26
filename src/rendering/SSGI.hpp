@@ -12,7 +12,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class GBuffer;
 class View;
@@ -92,4 +92,4 @@ private:
     bool m_isRendered;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

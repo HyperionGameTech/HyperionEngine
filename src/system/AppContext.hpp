@@ -33,7 +33,7 @@
 #include <system/platform/mac/CocoaFwd.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 #ifndef HYP_WINDOWS
 using HWND = void*;
@@ -461,4 +461,4 @@ HYP_API void Win32_CleanupWindowClasses();
 
 #include <system/helpers/AppContextHelpers.inl>
 
-} // namespace hyperion
+} // namespace Hyperion

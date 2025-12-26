@@ -5,7 +5,7 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(Component, Editor = false)
 struct BoundingBoxComponent
@@ -25,4 +25,4 @@ struct BoundingBoxComponent
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -10,7 +10,7 @@
 
 #include <core/reflection/TypeInfo.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace threading {
 HYP_API extern void Task_DeleteAllDeferredTasks();
@@ -185,4 +185,4 @@ void CoreApi_Shutdown()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

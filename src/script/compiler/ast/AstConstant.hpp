@@ -5,7 +5,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstConstant : public AstExpression
 {
@@ -54,4 +54,4 @@ protected:
     ConstantValue m_constantValue;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -16,7 +16,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstNil::AstNil(const SourceLocation& location)
     : AstConstant(ConstantValue(int64(0), CBS_32), location)
@@ -51,4 +51,4 @@ const SymbolType* AstNil::GetExprType() const
     return BuiltinTypes::s_nullType;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

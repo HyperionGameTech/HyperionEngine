@@ -17,7 +17,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT()
 class alignas(uint32) HYP_API Color
@@ -235,6 +235,6 @@ struct Formatter<StringType, Color>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion
 
-HYP_DEF_STL_HASH(hyperion::Color);
+HYP_DEF_STL_HASH(Hyperion::Color);

@@ -6,7 +6,7 @@
 
 #include <core/containers/String.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scope;
 
@@ -54,4 +54,4 @@ public:
     Array<const SymbolType*> symbolTypes;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

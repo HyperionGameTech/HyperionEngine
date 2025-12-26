@@ -2,7 +2,6 @@
 
 #pragma once
 
-namespace hyperion {
+namespace Hyperion {
 
-
-} // namespace hyperion
+} // namespace Hyperion

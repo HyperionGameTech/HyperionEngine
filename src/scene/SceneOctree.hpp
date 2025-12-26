@@ -26,7 +26,7 @@
 
 // #define HYP_OCTREE_DEBUG
 
-namespace hyperion {
+namespace Hyperion {
 
 class Entity;
 class EntityManager;
@@ -233,4 +233,4 @@ private:
     VisibilityState m_visibilityState;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

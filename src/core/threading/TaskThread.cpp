@@ -8,7 +8,7 @@
 #include <core/profiling/ProfileScope.hpp>
 #include <core/profiling/PerformanceClock.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Tasks);
 
@@ -103,4 +103,4 @@ void TaskThread::operator()()
     }
 }
 } // namespace threading
-} // namespace hyperion
+} // namespace Hyperion

@@ -12,7 +12,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region AssetBatch
 
@@ -169,4 +169,4 @@ UniquePtr<ProcessAssetFunctorBase> AssetManager::CreateProcessAssetFunctor(TypeI
 
 #pragma endregion AssetManager
 
-} // namespace hyperion
+} // namespace Hyperion

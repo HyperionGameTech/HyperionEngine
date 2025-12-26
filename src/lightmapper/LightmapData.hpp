@@ -4,7 +4,7 @@
 
 #include <lightmapper/LightmapTexel.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class LightmapVolume;
 class ReflectionProbe;
@@ -219,4 +219,4 @@ protected:
     NoiseBitmap m_noiseBitmap;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

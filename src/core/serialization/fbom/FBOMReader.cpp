@@ -17,7 +17,7 @@
 
 #include <core/compression/Archive.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <class StringType>
@@ -1318,4 +1318,4 @@ FBOMResult FBOMReader::Handle(FBOMLoadContext& context, BufferedReader* reader, 
 #pragma endregion FBOMReader
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

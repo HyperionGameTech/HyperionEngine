@@ -18,7 +18,7 @@
 #include <xatlas.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region LightmapData < LightmapVolume>
 
@@ -602,4 +602,4 @@ Result LightmapData<FogVolume>::Build()
 
 #pragma endregion LightmapData < FogVolume>
 
-} // namespace hyperion
+} // namespace Hyperion

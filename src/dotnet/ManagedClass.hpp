@@ -21,7 +21,7 @@
 
 #include <dotnet/interop/ManagedGuid.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -37,9 +37,9 @@ enum class ManagedClassFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ManagedClassFlags)
 
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 class ManagedObject;
 class ManagedClass;
 class Assembly;
@@ -431,4 +431,4 @@ private:
     ManagedAttributeSet m_attributes;
 };
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

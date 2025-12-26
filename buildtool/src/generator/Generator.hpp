@@ -9,11 +9,11 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ByteWriter;
 
-namespace buildtool {
+namespace CodeGen {
 
 class Analyzer;
 class Module;
@@ -31,7 +31,7 @@ public:
 protected:
 };
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion
 
 #endif

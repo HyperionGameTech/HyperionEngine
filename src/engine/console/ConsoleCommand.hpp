@@ -11,7 +11,7 @@
 
 #include <core/cli/CommandLine.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract)
 class HYP_API ConsoleCommandBase : public ObjectBase
@@ -43,4 +43,4 @@ private:
     CommandLineArgumentDefinitions m_definitions;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

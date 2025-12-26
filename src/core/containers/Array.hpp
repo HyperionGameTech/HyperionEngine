@@ -27,7 +27,7 @@
 #include <utility>
 #include <cmath>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace containers {
 
@@ -58,7 +58,7 @@ public:
     using KeyType = typename Base::KeyType;
     using ValueType = T;
 
-    static constexpr bool IsContiguous = true;
+    static constexpr bool isContiguous = true;
 
     // Allow other Array types to access private members
     template <class OtherT, class OtherAllocatorType>
@@ -1615,4 +1615,4 @@ struct IsArray<containers::Array<T, AllocatorType>> : std::true_type
 {
 };
 
-} // namespace hyperion
+} // namespace Hyperion

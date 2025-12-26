@@ -2,7 +2,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Script_Tracemap
 {
@@ -41,4 +41,4 @@ private:
     LinemapEntry* m_linemap;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

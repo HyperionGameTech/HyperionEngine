@@ -18,7 +18,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace utilities {
 template <class VariantType>
@@ -969,19 +969,19 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
     template <class FunctionType>
     HYP_FORCE_INLINE constexpr void Visit(FunctionType&& fn) &
     {
-        ::hyperion::utilities::Visit(*this, std::forward<FunctionType>(fn));
+        ::Hyperion::utilities::Visit(*this, std::forward<FunctionType>(fn));
     }
 
     template <class FunctionType>
     HYP_FORCE_INLINE constexpr void Visit(FunctionType&& fn) const&
     {
-        ::hyperion::utilities::Visit(*this, std::forward<FunctionType>(fn));
+        ::Hyperion::utilities::Visit(*this, std::forward<FunctionType>(fn));
     }
 
     template <class FunctionType>
     HYP_FORCE_INLINE constexpr void Visit(FunctionType&& fn) &&
     {
-        ::hyperion::utilities::Visit(std::move(*this), std::forward<FunctionType>(fn));
+        ::Hyperion::utilities::Visit(std::move(*this), std::forward<FunctionType>(fn));
     }
 
 private:
@@ -1164,4 +1164,4 @@ struct IsVariant<utilities::Variant<Types...>> : std::true_type
     static constexpr SizeType size = sizeof...(Types);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

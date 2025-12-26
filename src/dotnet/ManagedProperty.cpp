@@ -7,7 +7,7 @@
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 void ManagedProperty::InvokeGetter_Internal(const ManagedObject* pManagedObject, BoxedValue* pOutBoxed)
 {
@@ -29,4 +29,4 @@ void ManagedProperty::InvokeSetter_Internal(const ManagedObject* pManagedObject,
     assembly->GetInvokeSetterFunction()(m_guid, const_cast<ObjectReference*>(&pManagedObject->GetObjectReference()), ppBoxed, nullptr);
 }
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

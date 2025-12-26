@@ -5,7 +5,7 @@
 #include <core/threading/Thread.hpp>
 #include <core/threading/Scheduler.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class RTCServer;
 
@@ -19,4 +19,4 @@ private:
     virtual void operator()(RTCServer*) override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

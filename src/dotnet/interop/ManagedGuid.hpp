@@ -11,7 +11,7 @@
 
 #include <type_traits>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 extern "C"
 {
@@ -45,9 +45,9 @@ extern "C"
 
 } // extern "C"
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet
 
-namespace hyperion {
+namespace Hyperion {
 
 // formatter
 namespace utilities {
@@ -63,4 +63,4 @@ struct Formatter<StringType, dotnet::ManagedGuid>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

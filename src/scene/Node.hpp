@@ -29,7 +29,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Scene;
 class Node;
@@ -922,4 +922,4 @@ struct NodeUnlockTransformScope
     bool locked;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

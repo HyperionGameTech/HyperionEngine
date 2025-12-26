@@ -29,7 +29,7 @@
 #include <script/compiler/ast/AstContinueStatement.hpp>
 #include <script/compiler/ast/AstTernaryExpression.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const WideString s_colorReset = L"\033[0m";
 static const WideString s_colorNodeName = L"\033[1;96m";
@@ -514,4 +514,4 @@ Array<AstStatement*> AstPrintVisitor::GetChildNodes(AstStatement* node) const
     return children;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

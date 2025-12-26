@@ -19,7 +19,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class VulkanAttachment final : public AttachmentBase
@@ -62,4 +62,4 @@ private:
     VkAttachmentDescription m_vkAttachmentDescription;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

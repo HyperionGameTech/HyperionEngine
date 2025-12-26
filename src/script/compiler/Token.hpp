@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum TokenClass
 {
@@ -106,4 +106,4 @@ private:
     SourceLocation m_location;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

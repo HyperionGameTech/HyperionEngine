@@ -9,7 +9,7 @@
 
 #include <WAVAudioLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 using WAVAudio = WAVAudioLoader::WAVAudio;
 
@@ -86,4 +86,4 @@ AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState& state) const
     return LoadedAsset { audioSource };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

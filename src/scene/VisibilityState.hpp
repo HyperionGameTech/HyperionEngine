@@ -9,7 +9,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Camera;
 
@@ -73,4 +73,4 @@ struct VisibilityState
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

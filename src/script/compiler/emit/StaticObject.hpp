@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct StaticFunction
 {
@@ -58,4 +58,4 @@ struct StaticObject
     bool operator==(const StaticObject& other) const;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

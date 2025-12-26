@@ -13,7 +13,7 @@
 
 #include <scene/Node.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class World;
 class Scene;
@@ -163,4 +163,4 @@ private:
 
 #include <scene/Entity.inl>
 
-} // namespace hyperion
+} // namespace Hyperion

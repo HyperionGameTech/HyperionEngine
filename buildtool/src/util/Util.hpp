@@ -10,8 +10,10 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Result.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+
+static constexpr const char* BaseNamespace = "Hyperion";
+namespace CodeGen {
 
 Optional<String> ExtractCXXClassName(const String& line);
 Array<String> ExtractCXXBaseClasses(const String& line);
@@ -31,5 +33,5 @@ String GetGeneratedFilePreamble(const String& srcPath);
 
 Result ReplaceFileIfDifferent(FilePath& tempFilePath, const FilePath& targetFilePath);
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion

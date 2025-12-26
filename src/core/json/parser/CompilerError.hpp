@@ -9,7 +9,7 @@
 
 #include <core/utilities/Format.hpp>
 
-namespace hyperion::json {
+namespace Hyperion::json {
 
 enum ErrorLevel
 {
@@ -137,4 +137,4 @@ private:
     String m_text;
 };
 
-} // namespace hyperion::json
+} // namespace Hyperion::json

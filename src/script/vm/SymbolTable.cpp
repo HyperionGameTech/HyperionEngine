@@ -2,7 +2,7 @@
 
 #include <core/reflection/BoxedValue.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 Script_SymbolTable::Script_SymbolTable() = default;
 Script_SymbolTable::~Script_SymbolTable()
@@ -50,4 +50,4 @@ auto Script_SymbolTable::Store(HashCode::ValueType hash, BoxedValue&& value) -> 
     return m_symbols.Insert(hash, new BoxedValue(std::move(value)));
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 #include <scene/VisibilityState.hpp>
 #include <scene/SceneOctree.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class VisibilityStateFlags : uint32
@@ -46,4 +46,4 @@ struct VisibilityStateComponent
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

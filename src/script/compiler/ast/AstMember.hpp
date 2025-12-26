@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <core/containers/String.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstTypeSpecifier;
 
@@ -75,4 +75,4 @@ protected:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

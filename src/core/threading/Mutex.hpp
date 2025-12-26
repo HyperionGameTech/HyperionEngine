@@ -11,7 +11,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 class ConditionVariable;
@@ -121,4 +121,4 @@ private:
 
 using threading::Mutex;
 
-} // namespace hyperion
+} // namespace Hyperion

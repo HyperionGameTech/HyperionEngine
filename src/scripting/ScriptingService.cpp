@@ -11,7 +11,7 @@
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/DotNETHost.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region ScriptTracker
 
@@ -254,4 +254,4 @@ bool ScriptingService::HasEvents() const
 
 #pragma endregion ScriptingService
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,6 @@
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -63,7 +62,7 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct GpuLightmapperReadyNotification : Semaphore<int>
 {
@@ -480,4 +479,4 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
 #pragma endregion LightmapRenderer_GpuPathTracing
 
-} // namespace hyperion
+} // namespace Hyperion

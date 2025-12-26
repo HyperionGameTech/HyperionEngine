@@ -13,7 +13,7 @@
 #include <initializer_list>
 #include <limits>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace containers {
 // convert from attachment (2^x) into ordinal (0-5) for use as an array index
@@ -288,4 +288,4 @@ public:
     HYP_DEF_STL_BEGIN_END(Iterator(static_cast<Base&>(*this), 0), Iterator(static_cast<Base&>(*this), Size()));
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -25,8 +25,8 @@
 
 #include <util/Util.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
@@ -788,7 +788,7 @@ Analyzer::Analyzer()
     classDefinition.name = "ObjectBase";
     classDefinition.staticIndex = 0;
     classDefinition.isCXXClass = true;
-    classDefinition.namespaceParts = Array<String> { "hyperion" };
+    classDefinition.namespaceParts = Array<String> { BaseNamespace };
 
     // clang-format on
 }
@@ -964,5 +964,5 @@ bool Analyzer::HasBaseClass(const ClassDefinition& classDefinition, UTF8StringVi
 
 #pragma endregion Analyzer
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion

@@ -20,7 +20,7 @@
 #include <core/reflection/BoxedValue.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 struct ScriptObjectData_Dummy final
 {
@@ -157,4 +157,4 @@ protected:
     };
 };
 
-} // namespace hyperion
+} // namespace Hyperion

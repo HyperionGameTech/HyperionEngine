@@ -9,7 +9,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::json {
+namespace Hyperion::json {
 
 class ErrorList
 {
@@ -85,4 +85,4 @@ private:
     uint32 m_errorSuppressionDepth;
 };
 
-} // namespace hyperion::json
+} // namespace Hyperion::json

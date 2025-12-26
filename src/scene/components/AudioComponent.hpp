@@ -11,7 +11,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class AudioComponentFlags : uint8
@@ -96,4 +96,4 @@ struct AudioComponent
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

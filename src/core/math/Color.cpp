@@ -9,7 +9,7 @@
 #include <Color.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 Color::Color()
     : bytes { 0 }
@@ -142,4 +142,4 @@ Color& Color::Lerp(const Color& to, float amt)
     return *this;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

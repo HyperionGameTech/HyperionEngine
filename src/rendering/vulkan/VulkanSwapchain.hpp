@@ -24,7 +24,7 @@
 #include <core/Types.hpp>
 #include <core/Constants.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct VulkanDeviceQueue;
 
@@ -81,4 +81,4 @@ private:
     Array<VulkanSemaphoreRef> m_presentSemaphores;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -7,7 +7,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class VulkanDeviceQueueType : uint8
@@ -30,4 +30,4 @@ struct VulkanDeviceQueue
     FixedArray<VkCommandPool, 8> commandPools {};
 };
 
-} // namespace hyperion
+} // namespace Hyperion

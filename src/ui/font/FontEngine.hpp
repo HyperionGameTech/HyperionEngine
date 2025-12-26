@@ -10,7 +10,7 @@ struct FT_LibraryRec_;
 struct FT_FaceRec_;
 struct FT_GlyphSlotRec_;
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Font);
 
@@ -36,4 +36,4 @@ private:
     Backend m_backend;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

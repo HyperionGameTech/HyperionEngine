@@ -28,7 +28,7 @@
 
 #include <Entity.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 Entity::Entity()
     : Entity(Name::Invalid())
@@ -624,4 +624,4 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

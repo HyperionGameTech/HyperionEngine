@@ -12,7 +12,7 @@
 
 #include <climits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 /*! \brief A dynamic bitset implementation that allows for efficient storage and manipulation of bits.
@@ -99,10 +99,10 @@ public:
 
     Bitset(const Bitset& other) = default;
     Bitset& operator=(const Bitset& other) = default;
-    
+
     Bitset(Bitset&& other) noexcept;
     Bitset& operator=(Bitset&& other) noexcept;
-    
+
     ~Bitset() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -543,4 +543,4 @@ struct Formatter<StringType, Bitset>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

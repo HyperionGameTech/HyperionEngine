@@ -9,7 +9,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class FramebufferBase : public ObjectBase
@@ -100,7 +100,7 @@ protected:
     RenderTargetType m_renderTargetType;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

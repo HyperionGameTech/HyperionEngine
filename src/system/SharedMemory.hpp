@@ -7,7 +7,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class HYP_API SharedMemory
 {
@@ -75,4 +75,4 @@ private:
     Address m_address;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

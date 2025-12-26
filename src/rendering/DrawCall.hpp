@@ -17,7 +17,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mesh;
 class Material;
@@ -362,19 +362,19 @@ static inline EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
 // used internally
 extern void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn);
 
-#define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                                         \
-    namespace {                                                                                                                         \
-    struct BatchType##AllocatorRegistrationHelper                                                                                       \
-    {                                                                                                                                   \
-        BatchType##AllocatorRegistrationHelper()                                                                                        \
-        {                                                                                                                               \
-            RegisterEntityBatchAllocator(TypeId::ForType<BatchType>(), []() -> EntityBatchAllocatorBase*                                \
-                {                                                                                                                       \
-                    return PoolNew<TEntityBatchAllocator<BatchType>>(*g_renderPool, /* initialCount */ 0, /* cpuAccessible */ true);    \
-                });                                                                                                                     \
-        }                                                                                                                               \
-    };                                                                                                                                  \
-    static BatchType##AllocatorRegistrationHelper s_##BatchType##AllocatorRegistrationHelper;                                           \
+#define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                                      \
+    namespace {                                                                                                                      \
+    struct BatchType##AllocatorRegistrationHelper                                                                                    \
+    {                                                                                                                                \
+        BatchType##AllocatorRegistrationHelper()                                                                                     \
+        {                                                                                                                            \
+            RegisterEntityBatchAllocator(TypeId::ForType<BatchType>(), []() -> EntityBatchAllocatorBase*                             \
+                {                                                                                                                    \
+                    return PoolNew<TEntityBatchAllocator<BatchType>>(*g_renderPool, /* initialCount */ 0, /* cpuAccessible */ true); \
+                });                                                                                                                  \
+        }                                                                                                                            \
+    };                                                                                                                               \
+    static BatchType##AllocatorRegistrationHelper s_##BatchType##AllocatorRegistrationHelper;                                        \
     }
 
-} // namespace hyperion
+} // namespace Hyperion

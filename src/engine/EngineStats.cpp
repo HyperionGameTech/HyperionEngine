@@ -13,7 +13,7 @@
 
 #include <EngineStats.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Engine);
 
@@ -522,4 +522,4 @@ EngineStatGroup::~EngineStatGroup()
 
 #pragma endregion EngineStatBase
 
-} // namespace hyperion
+} // namespace Hyperion

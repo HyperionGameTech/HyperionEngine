@@ -22,7 +22,7 @@
 
 #include <VulkanComputePipeline.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -226,4 +226,4 @@ void VulkanComputePipeline::SetDebugName(Name name)
 
 #pragma endregion VulkanComputePipeline
 
-} // namespace hyperion
+} // namespace Hyperion

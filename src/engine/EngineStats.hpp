@@ -13,7 +13,7 @@
 
 #include <cfloat>
 
-namespace hyperion {
+namespace Hyperion {
 
 class EngineStatsRecorder;
 struct EngineStatsSnapshot;
@@ -369,4 +369,4 @@ private:
 
 #define ENGINE_STAT_SCOPE(timer) EngineStatScope HYP_CONCAT(engineStatScope, __LINE__)(timer)
 
-} // namespace hyperion
+} // namespace Hyperion

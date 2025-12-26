@@ -11,7 +11,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class NameRegistry;
 
@@ -374,4 +374,4 @@ struct HashedName
     static constexpr const char* data = Sequence::Data();
 };
 
-} // namespace hyperion
+} // namespace Hyperion

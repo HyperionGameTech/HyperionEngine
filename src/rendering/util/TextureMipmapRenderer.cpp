@@ -16,7 +16,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region Render commands
 
@@ -182,4 +182,4 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
 
 #pragma endregion TextureMipmapRenderer
 
-} // namespace hyperion
+} // namespace Hyperion

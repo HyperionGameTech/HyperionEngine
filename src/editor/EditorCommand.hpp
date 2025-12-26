@@ -7,7 +7,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class EditorSubsystem;
 
@@ -22,4 +22,4 @@ public:
     virtual void Execute(EditorSubsystem* subsystem) = 0;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

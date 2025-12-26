@@ -15,7 +15,7 @@
 #include <script/HypScript.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region ScriptObjectResource
 
@@ -340,4 +340,4 @@ HYP_API void Object_DecScriptObjectRef(ObjectBase* ptr)
 
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

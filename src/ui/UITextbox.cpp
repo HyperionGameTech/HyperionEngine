@@ -9,7 +9,7 @@
 
 #include <UITextbox.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -384,4 +384,4 @@ MaterialParameters UITextbox::GetMaterialParameters() const
 
 #pragma region UITextbox
 
-} // namespace hyperion
+} // namespace Hyperion

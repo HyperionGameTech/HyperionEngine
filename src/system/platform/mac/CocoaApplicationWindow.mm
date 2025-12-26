@@ -27,11 +27,11 @@
 #include <rendering/vulkan/VulkanSwapchain.hpp>
 #endif
 
-using namespace hyperion;
+using namespace Hyperion;
 
-namespace hyperion {
+namespace Hyperion {
 KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
-} // namespace hyperion
+} // namespace Hyperion
 
 #pragma mark - HyperionMetalView
 
@@ -235,7 +235,7 @@ HANDLE_COCOA_EVENT(keyUp)
 
 @end
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 
@@ -714,4 +714,4 @@ bool CocoaApplicationWindow::IsHighDPI() const
     return [window backingScaleFactor] > 1.0;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

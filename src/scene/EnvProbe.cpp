@@ -23,7 +23,7 @@
 
 #include <EnvProbe.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -583,4 +583,4 @@ void SkyProbe::Init()
 
 #pragma endregion SkyProbe
 
-} // namespace hyperion
+} // namespace Hyperion

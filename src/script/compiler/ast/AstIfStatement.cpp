@@ -10,7 +10,7 @@
 
 #include <cstdio>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstIfStatement::AstIfStatement(
     const RC<AstExpression>& conditional,
@@ -131,4 +131,4 @@ String AstIfStatement::ToString() const
     return result;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

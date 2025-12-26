@@ -4,7 +4,7 @@
 
 #include <ui/UIObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIStage;
 class UIText;
@@ -52,5 +52,4 @@ protected:
     Handle<UIText> m_textElement;
 };
 
-} // namespace hyperion
-
+} // namespace Hyperion

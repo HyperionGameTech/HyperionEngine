@@ -15,7 +15,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace net {
 
 class WebSocket;
@@ -63,6 +63,6 @@ private:
 using net::WebSocket;
 using net::WebSocketThread;
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #endif

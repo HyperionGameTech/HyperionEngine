@@ -8,7 +8,7 @@
 
 #include <core/json/JSON.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region ClassAttributeValue
 
@@ -116,4 +116,4 @@ String ClassAttributeValue::ToString() const
 
 #pragma endregion ClassAttributeValue
 
-} // namespace hyperion
+} // namespace Hyperion

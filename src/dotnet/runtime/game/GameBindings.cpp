@@ -10,7 +10,7 @@
 #include <engine/threads/SimThread.hpp>
 #include <engine/EngineGlobals.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

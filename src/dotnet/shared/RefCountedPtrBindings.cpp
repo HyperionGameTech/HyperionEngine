@@ -7,7 +7,7 @@
 #include <core/reflection/Class.hpp>
 #include <core/debug/Debug.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

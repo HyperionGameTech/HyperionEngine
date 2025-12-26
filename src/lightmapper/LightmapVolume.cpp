@@ -39,7 +39,7 @@
 
 #include <LightmapVolume.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #ifdef HYP_EDITOR
 HYP_DECLARE_LOG_CHANNEL(Editor);
@@ -611,4 +611,4 @@ void LightmapVolume::BakeLightmaps()
 
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

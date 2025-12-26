@@ -16,7 +16,7 @@
 
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace net {
 
@@ -468,4 +468,4 @@ void SocketClient::Close()
 #pragma endregion SocketClient
 
 } // namespace net
-} // namespace hyperion
+} // namespace Hyperion

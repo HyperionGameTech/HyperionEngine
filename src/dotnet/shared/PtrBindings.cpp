@@ -5,7 +5,7 @@
 #include <core/reflection/Class.hpp>
 #include <core/reflection/TypeInfoFwd.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

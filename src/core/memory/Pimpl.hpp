@@ -13,7 +13,7 @@
 
 #include <cstdlib>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 /*! Hides implementation from outside observers using the PIMPL pattern (pointer to implementation
@@ -205,4 +205,4 @@ HYP_FORCE_INLINE Pimpl<T> MakePimpl(Args&&... args)
     return memory::MakePimplHelper<T>::MakePimpl(std::forward<Args>(args)...);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -8,7 +8,7 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class RenderProxyList;
 struct GpuLightmapperReadyNotification;
@@ -77,4 +77,4 @@ private:
     RaytracingPipelineRef m_raytracingPipeline;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

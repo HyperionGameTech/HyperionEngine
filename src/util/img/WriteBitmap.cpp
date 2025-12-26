@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr int BytesPerPixel = 3;
 static constexpr int FileHeaderSize = 14;
@@ -96,4 +96,4 @@ bool WriteBitmap::Write(
 
     return true;
 }
-} // namespace hyperion
+} // namespace Hyperion

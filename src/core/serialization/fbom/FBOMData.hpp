@@ -49,7 +49,7 @@
         FBOMResult::FBOM_OK \
     }
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace json {
 class JSONValue;
@@ -608,7 +608,7 @@ private:
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion
 
 #undef FBOM_RETURN_OK
 #undef FBOM_ASSERT

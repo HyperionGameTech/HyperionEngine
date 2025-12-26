@@ -10,7 +10,7 @@
 
 #include <limits>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstBlock::AstBlock(
     const Array<RC<AstStatement>>& children,
@@ -118,4 +118,4 @@ RC<AstStatement> AstBlock::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

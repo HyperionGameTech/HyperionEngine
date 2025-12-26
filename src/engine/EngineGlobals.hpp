@@ -6,7 +6,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AppContextBase;
 class EngineDriver;
@@ -38,7 +38,6 @@ class VulkanRenderBackend;
 
 extern Handle<EngineDriver> g_engineDriver;
 extern Handle<AssetManager> g_assetManager;
-extern Handle<EditorState> g_editorState;
 extern Handle<AppContextBase> g_appContext;
 extern Handle<StreamingManager> g_streamingManager;
 extern Handle<EngineStats> g_engineStats;
@@ -47,6 +46,10 @@ extern MaterialCache* g_materialCache;
 extern SafeDeleter* g_safeDeleter;
 extern RenderInterface* g_renderInterface;
 extern ShaderCompiler* g_shaderCompiler;
+
+#ifdef HYP_EDITOR
+extern Handle<EditorState> g_editorState;
+#endif
 
 extern MainThread* g_mainThreadInstance;
 extern SimThread* g_simThreadInstance;
@@ -61,4 +64,4 @@ extern VulkanRenderBackend* g_renderBackend;
 
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

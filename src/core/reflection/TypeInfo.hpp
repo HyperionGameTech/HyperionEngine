@@ -21,7 +21,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class TypeInfoFlags : uint32
 {
@@ -752,7 +752,7 @@ struct TypeInfo
 
     HYP_FORCE_INLINE const Class* GetClass() const
     {
-        return hyperion::GetClass(id);
+        return Hyperion::GetClass(id);
     }
 
     HYP_FORCE_INLINE bool IsArrayType() const
@@ -2211,4 +2211,4 @@ using utilities::TypeInfo;
 using utilities::TypeInfo_Initialize;
 using utilities::TypeInfo_Shutdown;
 
-} // namespace hyperion
+} // namespace Hyperion

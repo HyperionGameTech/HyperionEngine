@@ -16,7 +16,7 @@
 
 #include <scene/ComponentContainer.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern SizeType GetNumDescendants(TypeId typeId);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
@@ -259,4 +259,4 @@ private:
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

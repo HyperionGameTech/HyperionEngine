@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace hyperion {
+namespace Hyperion {
 WorleyNoise::WorleyNoise(int seed)
     : m_seed(seed)
 {
@@ -131,4 +131,4 @@ void WorleyNoise::Insert(std::vector<double>& data, double value)
         }
     }
 }
-} // namespace hyperion
+} // namespace Hyperion

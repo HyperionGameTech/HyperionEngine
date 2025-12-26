@@ -9,7 +9,7 @@
 
 #include <core/functional/Delegate.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class ScriptSystem final : public SystemBase
@@ -51,4 +51,4 @@ private:
     void CallScriptMethod(UTF8StringView methodName, ScriptComponent& target);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

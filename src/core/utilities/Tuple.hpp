@@ -3,7 +3,7 @@
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <class... Types>
@@ -354,9 +354,9 @@ namespace helpers {
 template <class... FirstTypes, SizeType... FirstIndices, class... SecondTypes, SizeType... SecondIndices>
 constexpr auto ConcatTuples_Impl(
     const Tuple<FirstTypes...>& firstTuple,
-    hyperion::utilities::TupleIndices<FirstIndices...>,
+    Hyperion::utilities::TupleIndices<FirstIndices...>,
     const Tuple<SecondTypes...>& secondTuple,
-    hyperion::utilities::TupleIndices<SecondIndices...>)
+    Hyperion::utilities::TupleIndices<SecondIndices...>)
 {
     return Tuple<FirstTypes..., SecondTypes...> {
         firstTuple.template GetElement<FirstIndices>()...,
@@ -369,9 +369,9 @@ constexpr auto ConcatTuples(const Tuple<FirstTupleTypes...>& first, const Tuple<
 {
     return ConcatTuples_Impl(
         first,
-        typename hyperion::utilities::MakeTupleIndices<sizeof...(FirstTupleTypes)>::Type(),
+        typename Hyperion::utilities::MakeTupleIndices<sizeof...(FirstTupleTypes)>::Type(),
         second,
-        typename hyperion::utilities::MakeTupleIndices<sizeof...(SecondTupleTypes)>::Type());
+        typename Hyperion::utilities::MakeTupleIndices<sizeof...(SecondTupleTypes)>::Type());
 }
 
 #pragma endregion ConcatTuples
@@ -409,19 +409,19 @@ constexpr Tuple<Types&&...> ForwardAsTuple(Types&&... values)
 #pragma region Apply
 
 template <class FunctionType, class... Types, SizeType... Indices>
-constexpr auto Apply_Impl(FunctionType&& function, Tuple<Types...>& args, hyperion::utilities::TupleIndices<Indices...>)
+constexpr auto Apply_Impl(FunctionType&& function, Tuple<Types...>& args, Hyperion::utilities::TupleIndices<Indices...>)
 {
     return function(args.template GetElement<Indices>()...);
 }
 
 template <class FunctionType, class... Types, SizeType... Indices>
-constexpr auto Apply_Impl(FunctionType&& function, const Tuple<Types...>& args, hyperion::utilities::TupleIndices<Indices...>)
+constexpr auto Apply_Impl(FunctionType&& function, const Tuple<Types...>& args, Hyperion::utilities::TupleIndices<Indices...>)
 {
     return function(args.template GetElement<Indices>()...);
 }
 
 template <class FunctionType, class... Types, SizeType... Indices>
-constexpr auto Apply_Impl(FunctionType&& function, Tuple<Types...>&& args, hyperion::utilities::TupleIndices<Indices...>)
+constexpr auto Apply_Impl(FunctionType&& function, Tuple<Types...>&& args, Hyperion::utilities::TupleIndices<Indices...>)
 {
     return function(args.template GetElement<Indices>()...);
 }
@@ -541,7 +541,7 @@ class Tuple
 public:
     static constexpr SizeType size = sizeof...(Types);
 
-    using Indices = typename hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type;
+    using Indices = typename Hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type;
 
     constexpr Tuple() = default;
 
@@ -679,21 +679,21 @@ using utilities::helpers::ForwardAsTuple;
 using utilities::helpers::MakeTuple;
 using utilities::helpers::Tie;
 
-} // namespace hyperion
+} // namespace Hyperion
 
 // std::tuple-like behavior
 namespace std {
 
 template <class... Types>
-struct tuple_size<hyperion::utilities::Tuple<Types...>>
+struct tuple_size<Hyperion::utilities::Tuple<Types...>>
 {
     static constexpr size_t value = sizeof...(Types);
 };
 
 template <size_t Index, class... Types>
-struct tuple_element<Index, hyperion::utilities::Tuple<Types...>>
+struct tuple_element<Index, Hyperion::utilities::Tuple<Types...>>
 {
-    using type = typename hyperion::utilities::TupleElement<Index, Types...>::Type;
+    using type = typename Hyperion::utilities::TupleElement<Index, Types...>::Type;
 };
 
 } // namespace std

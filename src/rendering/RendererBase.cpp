@@ -17,7 +17,7 @@
 
 #include <RendererBase.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 const RenderSetup& NullRenderSetup()
 {
@@ -247,4 +247,4 @@ const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt*
 
 #pragma region RendererBase
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -11,7 +11,7 @@
 
 #include <sstream>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 FBOMObject::FBOMObject()
     : m_objectType(FBOMBaseObjectType())
@@ -259,4 +259,4 @@ FBOMMarshalerBase* FBOMObject::GetMarshal(TypeId typeId)
     return FBOM::GetInstance().GetMarshal(typeId);
 }
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

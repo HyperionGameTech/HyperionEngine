@@ -46,7 +46,7 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
@@ -1406,4 +1406,4 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
 #pragma endregion RenderCollector
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -9,7 +9,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 using ScriptArray = Array<BoxedValue, DynamicAllocator>;
 
@@ -46,6 +46,6 @@ HYP_END_STRUCT
 
 HYP_REGISTER_STATIC_CLASS(ScriptArray);
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #endif

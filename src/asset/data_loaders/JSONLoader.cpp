@@ -10,7 +10,7 @@
 
 #include <JSONLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 AssetLoadResult JSONLoader::LoadAsset(LoaderState& state) const
 {
@@ -36,4 +36,4 @@ AssetLoadResult JSONLoader::LoadAsset(LoaderState& state) const
     return LoadedAsset { jsonParseResult.value };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

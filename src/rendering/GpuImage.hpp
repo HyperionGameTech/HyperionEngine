@@ -14,7 +14,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum ShaderModuleType : uint32;
 
@@ -223,7 +223,7 @@ protected:
     Name m_debugName;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

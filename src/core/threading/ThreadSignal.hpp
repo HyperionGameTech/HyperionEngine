@@ -2,7 +2,7 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Thread.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 struct ThreadSignal
@@ -46,4 +46,4 @@ struct ThreadSignal
 
 using threading::ThreadSignal;
 
-} // namespace hyperion
+} // namespace Hyperion

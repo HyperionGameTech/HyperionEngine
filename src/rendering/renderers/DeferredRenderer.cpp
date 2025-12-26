@@ -6,7 +6,6 @@
 #include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
@@ -70,7 +69,7 @@
 
 #include <DeferredRenderer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr float CameraJitterScale = 0.25f;
 
@@ -2916,4 +2915,4 @@ void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, Ren
 
 #pragma endregion DeferredRenderer
 
-} // namespace hyperion
+} // namespace Hyperion

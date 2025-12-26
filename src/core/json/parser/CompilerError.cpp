@@ -2,7 +2,7 @@
 
 #include <core/json/parser/CompilerError.hpp>
 
-namespace hyperion::json {
+namespace Hyperion::json {
 
 const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     /* Fatal errors */
@@ -74,4 +74,4 @@ bool CompilerError::operator<(const CompilerError& other) const
     return m_text < other.m_text;
 }
 
-} // namespace hyperion::json
+} // namespace Hyperion::json

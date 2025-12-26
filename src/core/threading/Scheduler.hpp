@@ -25,7 +25,7 @@
 #include <utility>
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 class HYP_API SchedulerBase
@@ -509,4 +509,4 @@ private:
 using threading::Scheduler;
 using threading::SchedulerBase;
 
-} // namespace hyperion
+} // namespace Hyperion

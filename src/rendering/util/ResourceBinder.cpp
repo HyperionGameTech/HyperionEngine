@@ -2,6 +2,6 @@
 
 #include <rendering/util/ResourceBinder.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
-} // namespace hyperion
+} // namespace Hyperion

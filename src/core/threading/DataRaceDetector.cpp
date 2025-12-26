@@ -12,7 +12,7 @@
 
 #include <core/utilities/ByteUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 #ifdef HYP_ENABLE_MT_CHECK
@@ -334,4 +334,4 @@ void DataRaceDetector::GetThreadIds(uint64 readersMask, uint64 writersMask, Arra
 #endif // HYP_ENABLE_MT_CHECK
 
 } // namespace threading
-} // namespace hyperion
+} // namespace Hyperion

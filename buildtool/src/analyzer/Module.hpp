@@ -16,8 +16,8 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 class Module
 {
@@ -78,7 +78,7 @@ private:
     mutable Mutex m_mutex;
 };
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion
 
 #endif

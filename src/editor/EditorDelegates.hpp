@@ -22,7 +22,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Node;
 class IHypMember;
@@ -118,4 +118,4 @@ private:
     Scheduler m_scheduler;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

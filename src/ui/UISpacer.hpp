@@ -4,7 +4,7 @@
 
 #include <ui/UIObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region UISpacer
 
@@ -20,4 +20,4 @@ public:
 
 #pragma endregion UISpacer
 
-} // namespace hyperion
+} // namespace Hyperion

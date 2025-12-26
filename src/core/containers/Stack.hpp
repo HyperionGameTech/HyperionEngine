@@ -7,7 +7,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 /*! \brief FIFO stack based on Array<T> class. */
@@ -164,4 +164,4 @@ void Stack<T>::Clear()
 template <class T>
 using Stack = containers::Stack<T>;
 
-} // namespace hyperion
+} // namespace Hyperion

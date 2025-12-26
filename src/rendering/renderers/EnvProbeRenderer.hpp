@@ -11,7 +11,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class EnvProbe;
 class Texture;
@@ -83,4 +83,4 @@ protected:
     void ComputeSH(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

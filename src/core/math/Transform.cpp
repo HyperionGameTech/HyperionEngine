@@ -6,7 +6,7 @@
 #include <Transform.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 const Transform Transform::identity {};
 
@@ -59,4 +59,4 @@ Transform& Transform::operator*=(const Transform& other)
     return *this = *this * other;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

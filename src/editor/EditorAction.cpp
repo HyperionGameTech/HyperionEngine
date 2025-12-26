@@ -8,7 +8,7 @@
 
 #include <EditorAction.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -75,4 +75,4 @@ EditorActionFactoryRegistrationBase::~EditorActionFactoryRegistrationBase()
 
 #pragma endregion Default Editor Actions
 
-} // namespace hyperion
+} // namespace Hyperion

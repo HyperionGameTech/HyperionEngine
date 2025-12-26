@@ -14,7 +14,7 @@
 #include <limits>
 #include <cmath>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstFloat::AstFloat(double value, ConstantBitSize bitSize, const SourceLocation& location)
     : AstConstant(ConstantValue(value, bitSize), location)
@@ -65,4 +65,4 @@ const SymbolType* AstFloat::GetExprType() const
         HYP_UNREACHABLE();
     }
 }
-} // namespace hyperion
+} // namespace Hyperion

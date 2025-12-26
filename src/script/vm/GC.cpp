@@ -2,7 +2,7 @@
 
 #include <core/reflection/BoxedValue.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern BoxedValue ScriptApi_MakeValue(const Script_VMData& data);
 
@@ -36,4 +36,4 @@ void Script_GC::MoveToTrackedMemory(BoxedValue& inOutRefValue)
     inOutRefValue = ScriptApi_MakeValue(newRefVmData);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

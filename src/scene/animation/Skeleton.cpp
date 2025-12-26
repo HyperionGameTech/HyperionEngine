@@ -15,7 +15,7 @@
 
 #include <Skeleton.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const Name s_nameSkeletonDefault = NAME("<unnamed skeleton>");
 
@@ -251,4 +251,4 @@ void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

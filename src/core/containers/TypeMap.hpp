@@ -11,7 +11,7 @@
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 template <class Value>
@@ -21,7 +21,7 @@ protected:
     using Map = FlatMap<TypeId, Value>;
 
 public:
-    static constexpr bool IsContiguous = Map::IsContiguous;
+    static constexpr bool isContiguous = Map::isContiguous;
 
     using KeyValuePairType = typename Map::KeyValuePairType;
 
@@ -279,4 +279,4 @@ protected:
 template <class Value>
 using TypeMap = containers::TypeMap<Value>;
 
-} // namespace hyperion
+} // namespace Hyperion

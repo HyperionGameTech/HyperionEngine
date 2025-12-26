@@ -8,7 +8,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <class T>
@@ -169,4 +169,4 @@ private:
 
 using utilities::Range;
 
-} // namespace hyperion
+} // namespace Hyperion

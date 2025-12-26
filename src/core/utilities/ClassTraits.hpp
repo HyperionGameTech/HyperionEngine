@@ -1,7 +1,7 @@
 #pragma once
 #include <core/utilities/EnumFlags.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 enum class ClassTraitFlags : uint8
@@ -42,4 +42,4 @@ struct ClassTraits
 
 using utilities::ClassTraits;
 
-} // namespace hyperion
+} // namespace Hyperion

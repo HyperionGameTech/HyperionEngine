@@ -7,7 +7,7 @@
 #include <core/memory/UniquePtr.hpp>
 #include <core/utilities/Optional.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 class TaskThread;
 } // namespace threading
@@ -97,4 +97,4 @@ using GStreamerRTCStreamVideoEncoder = NullRTCStreamVideoEncoder;
 
 #endif
 
-} // namespace hyperion
+} // namespace Hyperion

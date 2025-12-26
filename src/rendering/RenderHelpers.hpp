@@ -11,7 +11,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class AllocatorType>
 class TRenderQueue;
@@ -40,4 +40,4 @@ protected:
     Array<Proc<void(RenderQueue& renderQueue)>> m_functions;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

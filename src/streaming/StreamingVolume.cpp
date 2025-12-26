@@ -7,7 +7,7 @@
 
 #include <StreamingVolume.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 void StreamingVolumeBase::NotifyUpdate()
 {
@@ -21,4 +21,4 @@ void StreamingVolumeBase::NotifyUpdate()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -3,11 +3,11 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 FBOMMarshalerRegistrationBase::FBOMMarshalerRegistrationBase(TypeId typeId, ANSIStringView name, UniquePtr<FBOMMarshalerBase>&& marshal)
 {
     FBOM::GetInstance().RegisterLoader(typeId, name, std::move(marshal));
 }
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

@@ -7,7 +7,7 @@
 #include <core/utilities/Traits.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 enum StringType : int
@@ -113,4 +113,4 @@ struct IsString<filesystem::FilePath> : std::true_type
 template <class T>
 static constexpr bool IsStringV = IsString<T>::value;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -1,6 +1,6 @@
 #include <parser/Operator.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 const Operator::OperatorMap Operator::s_binaryOperators = {
     { "+", Operator(OP_add, 13, ARITHMETIC, false, true) },
@@ -233,4 +233,4 @@ const Operator* Operator::FindUnaryOperator(Operators op)
     return nullptr;
 }
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

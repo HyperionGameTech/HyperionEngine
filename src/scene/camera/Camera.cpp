@@ -32,7 +32,7 @@
 
 #include <Camera.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Camera;
 
@@ -762,4 +762,4 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
 
 #pragma endregion Camera
 
-} // namespace hyperion
+} // namespace Hyperion

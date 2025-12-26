@@ -18,7 +18,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 class Error;
@@ -596,4 +596,4 @@ using utilities::GetNullError;
 using utilities::Result;
 using utilities::TResult;
 
-} // namespace hyperion
+} // namespace Hyperion

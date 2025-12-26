@@ -17,7 +17,7 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

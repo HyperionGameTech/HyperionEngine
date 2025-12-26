@@ -4,7 +4,7 @@
 
 #include <engine/EngineMemory.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace RenderApi {
 HYP_API extern uint32 GetRingIndex();
@@ -12,4 +12,4 @@ HYP_API extern uint32 GetRingIndex();
 
 HYP_API extern Pool* GetCurrentFramePool();
 
-} // namespace hyperion
+} // namespace Hyperion

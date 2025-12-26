@@ -10,7 +10,7 @@
 
 #include <Keyboard.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, char& outChar)
 {
@@ -79,4 +79,4 @@ HYP_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, cha
     return false;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

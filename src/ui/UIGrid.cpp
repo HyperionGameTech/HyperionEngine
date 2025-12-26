@@ -12,7 +12,7 @@
 
 #include <UIGrid.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -509,4 +509,4 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase* dataSource)
 
 #pragma region UIGrid
 
-} // namespace hyperion
+} // namespace Hyperion

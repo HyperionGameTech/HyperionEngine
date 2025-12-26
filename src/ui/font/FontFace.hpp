@@ -10,7 +10,7 @@
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class FontFace
 {
@@ -40,4 +40,4 @@ private:
     FontEngine::Font m_face;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

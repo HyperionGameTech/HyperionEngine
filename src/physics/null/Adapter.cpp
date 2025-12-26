@@ -10,7 +10,7 @@
 #include <core/math/Vector3.hpp>
 #include <core/math/Quaternion.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 NullPhysicsAdapter::NullPhysicsAdapter() = default;
 
@@ -48,4 +48,4 @@ void NullPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Vect
 {
 }
 
-} // namespace hyperion
+} // namespace Hyperion

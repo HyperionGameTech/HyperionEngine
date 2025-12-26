@@ -12,7 +12,7 @@
 #include <thread>
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 constexpr uint32 ThreadDynamicMask = ~(~0u >> 1); // last bit
@@ -206,4 +206,4 @@ using threading::StaticThreadId;
 using threading::ThreadId;
 using threading::ThreadMask;
 
-} // namespace hyperion
+} // namespace Hyperion

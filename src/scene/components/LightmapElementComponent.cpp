@@ -6,7 +6,7 @@
 
 #include <LightmapElementComponent.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 LightmapElementComponent::LightmapElementComponent()
     : lightmapVolumeUuid(Uuid::Invalid()),
@@ -14,4 +14,4 @@ LightmapElementComponent::LightmapElementComponent()
 {
 }
 
-} // namespace hyperion
+} // namespace Hyperion

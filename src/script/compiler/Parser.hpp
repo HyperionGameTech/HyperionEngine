@@ -58,7 +58,7 @@
 
 #include <string>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Parser
 {
@@ -186,4 +186,4 @@ private:
     int OperatorPrecedence(const Operator*& out);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

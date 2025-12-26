@@ -21,7 +21,7 @@
 
 #define HYP_DEBUG_OUTPUT_STREAM stdout
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern Handle<Logger> g_logger;
 
@@ -133,7 +133,7 @@ void LogAssert(const char* str)
     {
         std::fprintf(HYP_DEBUG_OUTPUT_STREAM, "%s\n", str);
         std::fflush(HYP_DEBUG_OUTPUT_STREAM);
-        
+
         if (IsDebuggerAttached())
         {
             HYP_BREAKPOINT;
@@ -167,4 +167,4 @@ void TerminateProgram()
 }
 
 } // namespace debug
-} // namespace hyperion
+} // namespace Hyperion

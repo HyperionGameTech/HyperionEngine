@@ -12,7 +12,7 @@
 
 #include <random>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct RenderSetup;
 
@@ -169,4 +169,4 @@ private:
     uint32 m_time;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

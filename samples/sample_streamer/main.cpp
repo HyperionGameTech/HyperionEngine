@@ -9,7 +9,7 @@
 
 #include <game/DefaultGame.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 int main(int argc, char** argv)
 {
@@ -17,17 +17,17 @@ int main(int argc, char** argv)
     {
         return 1;
     }
-    
+
     Handle<game::DefaultGame> defaultGame = CreateObject<game::DefaultGame>();
-    
+
     Hyp_SetGame(defaultGame);
-    
+
     if (!Hyp_LaunchThreads())
     {
         HYP_FAIL("Failed to launch threads!");
     }
-    
+
     Hyp_Shutdown();
-    
+
     return 0;
 }

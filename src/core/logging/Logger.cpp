@@ -27,7 +27,7 @@
 #include <Logger.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 HYP_DECLARE_LOG_CHANNEL(Misc);
@@ -509,7 +509,7 @@ void LogChannelRegistrar::RegisterAll()
             channel->maskBitset |= channel->parentChannel->maskBitset;
         }
 
-        if (channel->id < hyperion::logging::Logger::MaxChannels)
+        if (channel->id < Hyperion::logging::Logger::MaxChannels)
         {
             continue;
         }
@@ -824,11 +824,9 @@ HYP_API void LogTemp(Logger& logger, const char* str)
             Category.GetLevel(),
             Time::Now().ToMilliseconds(),
             Span<StringView<StringType::UTF8>> {
-                { s_prefix, str, "\n" }
-            }
-        });
+                { s_prefix, str, "\n" } } });
 }
 
 } // namespace logging
 
-} // namespace hyperion
+} // namespace Hyperion

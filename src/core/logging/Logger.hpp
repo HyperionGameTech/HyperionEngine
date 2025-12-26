@@ -22,7 +22,7 @@
 
 #include <climits>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern ANSIStringView GetCurrentThreadName();
 
@@ -528,18 +528,18 @@ using logging::LogMessage;
 
 HYP_API extern Handle<Logger> g_logger;
 
-} // namespace hyperion
+} // namespace Hyperion
 
 // Helper macros
 
 // Must be used outside of function (in global scope)
 #define HYP_DEFINE_LOG_CHANNEL(name)                                           \
-    hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
-    static hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name)
+    Hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
+    static Hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name)
 
 #define HYP_DEFINE_LOG_SUBCHANNEL(name, parentName)                            \
-    hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
-    static hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name, &g_logChannel_##parentName)
+    Hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
+    static Hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name, &g_logChannel_##parentName)
 
 // Undefine HYP_LOG if already defined (LoggerFwd could have defined it as an empty macro)
 #ifdef HYP_LOG_ONCE
@@ -549,6 +549,6 @@ HYP_API extern Handle<Logger> g_logger;
 #define HYP_LOG_ONCE(channel, category, fmt, ...)                                                                                                                                                                                                                                                                         \
     do                                                                                                                                                                                                                                                                                                                    \
     {                                                                                                                                                                                                                                                                                                                     \
-        ::hyperion::logging::LogOnceHelper::ExecuteLogOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT), HYP_MAKE_CONST_ARG(&hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(hyperion::logging::GetLogger(), ##__VA_ARGS__); \
+        ::Hyperion::logging::LogOnceHelper::ExecuteLogOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT), HYP_MAKE_CONST_ARG(&Hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(Hyperion::logging::GetLogger(), ##__VA_ARGS__); \
     }                                                                                                                                                                                                                                                                                                                     \
     while (0)

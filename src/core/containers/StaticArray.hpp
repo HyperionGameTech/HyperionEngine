@@ -8,7 +8,7 @@
 
 #include <array>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 template <class T, SizeType Size>
@@ -125,4 +125,4 @@ using StaticArray = containers::StaticArray<T, Size>;
 
 using containers::ConcatStaticArrays;
 
-} // namespace hyperion
+} // namespace Hyperion

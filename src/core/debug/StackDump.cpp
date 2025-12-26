@@ -15,7 +15,7 @@
 #include <execinfo.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(StackTrace, Core);
 
@@ -269,4 +269,4 @@ void LogStackTrace(int depth)
 }
 
 } // namespace debug
-} // namespace hyperion
+} // namespace Hyperion

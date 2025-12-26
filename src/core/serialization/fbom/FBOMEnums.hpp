@@ -6,7 +6,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class FBOMDataAttributes : uint8
 {
@@ -45,4 +45,4 @@ enum FBOMCommand : uint8
     FBOM_OBJECT_LIBRARY_END
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -10,7 +10,7 @@
 
 #include <core/math/Vector3.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 class AudioManager
 {
 public:
@@ -50,4 +50,4 @@ private:
     ALCdevice* m_device;
     ALCcontext* m_context;
 };
-} // namespace hyperion
+} // namespace Hyperion

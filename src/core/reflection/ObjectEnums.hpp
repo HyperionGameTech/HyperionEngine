@@ -1,7 +1,7 @@
 #pragma once
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class ClassAllocationMethod : uint8
 {
@@ -11,4 +11,4 @@ enum class ClassAllocationMethod : uint8
     HANDLE = 1
 };
 
-} // namespace hyperion
+} // namespace Hyperion

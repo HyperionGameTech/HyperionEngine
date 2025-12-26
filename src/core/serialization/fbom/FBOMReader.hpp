@@ -30,7 +30,7 @@
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct BoxedValue;
 
@@ -190,4 +190,4 @@ public:
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

@@ -5,7 +5,7 @@
 #include <core/math/Transform.hpp>
 #include <core/containers/SortedArray.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct CameraTrackPivot
 {
@@ -48,4 +48,4 @@ private:
     SortedArray<CameraTrackPivot> m_pivots;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

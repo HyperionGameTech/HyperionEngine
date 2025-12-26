@@ -25,7 +25,7 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/Shared.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class RenderGroup;
 class Mesh;
@@ -289,4 +289,4 @@ private:
     CachedPartitionedShaderData m_cachedPartitionedShaderData;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

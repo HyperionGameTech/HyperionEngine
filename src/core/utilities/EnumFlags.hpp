@@ -8,7 +8,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class T>
 struct EnumFlagsDecl
@@ -344,7 +344,7 @@ struct MergeEnumFlags
     static constexpr EnumFlags<Enum> value = (Values | ...);
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #define HYP_MAKE_ENUM_FLAGS(_enum)                \
     template <>                                   \

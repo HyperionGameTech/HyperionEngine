@@ -36,7 +36,7 @@
 
 #include <EnvProbeRenderer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr Vec2u ShNumSamples = { 16, 16 };
 static constexpr Vec2u ShNumTiles = { 16, 16 };
@@ -705,4 +705,4 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
 #pragma endregion ReflectionProbeRenderer
 
-} // namespace hyperion
+} // namespace Hyperion

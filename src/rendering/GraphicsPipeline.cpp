@@ -13,7 +13,7 @@
 
 #include <GraphicsPipeline.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 GraphicsPipelineBase::~GraphicsPipelineBase()
 {
@@ -107,4 +107,4 @@ bool GraphicsPipelineBase::MatchesSignature(
     return true;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

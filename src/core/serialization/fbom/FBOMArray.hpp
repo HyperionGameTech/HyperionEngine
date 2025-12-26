@@ -15,7 +15,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 namespace serialization {
 
 class HYP_API FBOMArray final : public FBOMSerializableBase
@@ -62,4 +62,4 @@ private:
 };
 
 } // namespace serialization
-} // namespace hyperion
+} // namespace Hyperion

@@ -15,7 +15,7 @@
 #include <dotnet/ManagedObject.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 class Method;
 class ObjectBase;
@@ -343,4 +343,4 @@ using functional::IScriptableDelegate;
 using functional::ScriptableDelegate;
 using functional::ScriptableDelegateHelper;
 
-} // namespace hyperion
+} // namespace Hyperion

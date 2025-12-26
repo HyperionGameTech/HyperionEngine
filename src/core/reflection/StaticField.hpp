@@ -25,7 +25,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -199,4 +199,4 @@ private:
     Proc<Result(FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -7,7 +7,7 @@
 
 #include <core/threading/AtomicVar.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 HYP_API extern void ThreadSleep(uint32 milliseconds);
@@ -256,4 +256,4 @@ using threading::Spinlock;
 using threading::SPMC;
 using threading::WriteLock;
 
-} // namespace hyperion
+} // namespace Hyperion

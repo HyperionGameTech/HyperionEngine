@@ -9,7 +9,7 @@
 
 #include <TestNativeUI.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 void TestNativeUI::Show_Internal()
 {
@@ -234,4 +234,4 @@ void TestNativeUI::Show_Internal()
 #endif
 }
 
-} // namespace hyperion
+} // namespace Hyperion

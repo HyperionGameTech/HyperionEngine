@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace hyperion {
+namespace Hyperion {
 
 #if !defined(HYP_VERSION_MAJOR) || !defined(HYP_VERSION_MINOR) || !defined(HYP_VERSION_PATCH)
 
@@ -76,4 +76,4 @@ constexpr bool IsConstPointerV = std::is_pointer_v<T> && std::is_const_v<std::re
 template <class T>
 using RemoveConstPointerT = std::add_pointer_t<std::remove_const_t<std::remove_pointer_t<T>>>;
 
-} // namespace hyperion
+} // namespace Hyperion

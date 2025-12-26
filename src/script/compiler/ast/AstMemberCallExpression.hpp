@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstArgumentList.hpp>
 #include <core/containers/String.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstMemberCallExpression : public AstMember
 {
@@ -54,4 +54,4 @@ protected:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

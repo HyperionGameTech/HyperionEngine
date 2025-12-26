@@ -13,7 +13,7 @@
 
 #include <EditorDebugOverlay.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -96,4 +96,4 @@ Handle<UIObject> TextOverlay::CreateUIObject_Impl(UIObject* spawnParent)
 
 #pragma endregion TextOverlay
 
-} // namespace hyperion
+} // namespace Hyperion

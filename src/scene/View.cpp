@@ -44,7 +44,7 @@
 
 #include <View.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern Pool* g_scenePool;
 HYP_API extern Pool* g_framePools[RingBufferDepth];
@@ -1214,4 +1214,4 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 
 #pragma endregion View
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,6 +6,6 @@
 
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
-} // namespace hyperion
+} // namespace Hyperion

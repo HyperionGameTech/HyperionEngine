@@ -11,12 +11,12 @@
 #include <core/containers/String.hpp>
 #include <core/reflection/ClassAttribute.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 enum class MethodFlags : uint8;
 enum class ClassFlags : uint8;
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion {
+namespace Hyperion {
 
 struct Instruction : public Buildable
 {
@@ -439,4 +439,4 @@ struct RawOperation<T, Ts...> : RawOperation<Ts...>
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -8,7 +8,7 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstTrue::AstTrue(const SourceLocation& location)
     : AstConstant(ConstantValue(true, CBS_8), location)
@@ -43,4 +43,4 @@ const SymbolType* AstTrue::GetExprType() const
     return BuiltinTypes::s_boolType;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

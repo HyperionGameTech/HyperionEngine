@@ -4,7 +4,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 class Time;
@@ -208,4 +208,4 @@ private:
 using utilities::Time;
 using utilities::TimeDiff;
 
-} // namespace hyperion
+} // namespace Hyperion

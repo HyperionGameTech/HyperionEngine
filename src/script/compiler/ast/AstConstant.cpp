@@ -2,7 +2,7 @@
 #include <script/compiler/Module.hpp>
 #include <script/compiler/AstVisitor.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstConstant::AstConstant(const ConstantValue& constantValue, const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -44,4 +44,4 @@ String AstConstant::ToString() const
     return str;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

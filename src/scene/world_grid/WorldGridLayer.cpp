@@ -14,7 +14,7 @@
 
 #include <WorldGridLayer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Streaming);
 
@@ -147,4 +147,4 @@ void WorldGridLayer::RemoveStreamingObject(const AssetObject* assetObject)
 
 #pragma endregion WorldGridLayer
 
-} // namespace hyperion
+} // namespace Hyperion

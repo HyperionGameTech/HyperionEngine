@@ -8,11 +8,11 @@
 
 #include <core/memory/pool/Pool.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API const TypeInfo& Class_GetTypeInfo(const Class& cls)
 {
     return *cls.GetTypeInfo();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

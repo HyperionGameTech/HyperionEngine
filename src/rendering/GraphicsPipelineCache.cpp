@@ -26,7 +26,7 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 // #define HYP_GRAPHICS_PIPELINE_TIMING_DEBUG 1
 
@@ -521,4 +521,4 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
 
 #pragma endregion GraphicsPipelineCache
 
-} // namespace hyperion
+} // namespace Hyperion

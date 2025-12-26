@@ -12,7 +12,7 @@
 
 #include <engine/EngineGlobals.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 class MaterialMarshal : public ObjectMarshal
 {
@@ -227,4 +227,4 @@ public:
 
 HYP_DEFINE_MARSHAL(Material, MaterialMarshal);
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

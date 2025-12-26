@@ -11,7 +11,7 @@
 
 #include <type_traits>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 struct ObjectReference;
 
@@ -70,4 +70,4 @@ private:
     ManagedAttributeSet m_attributes;
 };
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

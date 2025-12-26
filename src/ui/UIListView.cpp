@@ -12,7 +12,7 @@
 
 #include <UIListView.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -608,4 +608,4 @@ void UIListView::SetSelectedItem(UIListViewItem* listViewItem)
 
 #pragma region UIListView
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 
 #include <util/octree/Octree.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Entity;
 class Mesh;
@@ -133,4 +133,4 @@ protected:
     VoxelOctreeParams m_params;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

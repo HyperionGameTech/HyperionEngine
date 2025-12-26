@@ -6,7 +6,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <class T, class T2 = void>
@@ -408,4 +408,4 @@ using Span = utilities::Span<T>;
 using ByteView = utilities::ByteView;
 using ConstByteView = utilities::ConstByteView;
 
-} // namespace hyperion
+} // namespace Hyperion

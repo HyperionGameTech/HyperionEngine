@@ -12,7 +12,7 @@
 
 #include <core/functional/Delegate.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Game;
 class World;
@@ -534,4 +534,4 @@ private:
     DelegateHandlerSet m_delegateHandlers;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

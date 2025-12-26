@@ -4,5 +4,5 @@
 
 #include <ScriptComponent.generated.inl>
 
-namespace hyperion {
-} // namespace hyperion
+namespace Hyperion {
+} // namespace Hyperion

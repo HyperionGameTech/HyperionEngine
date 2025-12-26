@@ -17,7 +17,7 @@
 
 #include <AudioSystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 bool AudioSystem::ShouldProcessScene(Scene* scene) const
 {
@@ -156,4 +156,4 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

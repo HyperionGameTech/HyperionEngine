@@ -36,11 +36,11 @@
 #error "HYP_BUILD_TOOL_VERSION_MAJOR, HYP_BUILD_TOOL_VERSION_MINOR, and HYP_BUILD_TOOL_VERSION_PATCH must be defined"
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API Handle<Logger> g_logger;
 
-namespace buildtool {
+namespace CodeGen {
 
 HYP_DEFINE_LOG_CHANNEL(BuildTool);
 
@@ -1819,11 +1819,11 @@ private:
     CXXGenerationMode m_cxxMode = CXXGenerationMode::INL;
 };
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion
 
-using namespace hyperion;
-using namespace buildtool;
+using namespace Hyperion;
+using namespace CodeGen;
 
 int main(int argc, char** argv)
 {
@@ -1899,13 +1899,13 @@ int main(int argc, char** argv)
         }
 
         const String cxxModeStr = parseResult.GetValue()["CXXMode"].AsString();
-        buildtool::HypBuildTool::CXXGenerationMode cxxMode = buildtool::HypBuildTool::CXXGenerationMode::CPP;
+        CodeGen::HypBuildTool::CXXGenerationMode cxxMode = CodeGen::HypBuildTool::CXXGenerationMode::CPP;
         if (cxxModeStr.ToLower() == "inl")
         {
-            cxxMode = buildtool::HypBuildTool::CXXGenerationMode::INL;
+            cxxMode = CodeGen::HypBuildTool::CXXGenerationMode::INL;
         }
 
-        buildtool::HypBuildTool buildTool {
+        CodeGen::HypBuildTool buildTool {
             workingDirectory,
             sourceDirectory,
             cxxOutputDirectory,

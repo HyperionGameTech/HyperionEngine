@@ -10,7 +10,7 @@
 
 #include <rendering/util/ShaderCompiler.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct ShaderDefinition;
 class ShaderProperties;
@@ -31,4 +31,4 @@ private:
     Pimpl<class ShaderManagerImpl> m_impl;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

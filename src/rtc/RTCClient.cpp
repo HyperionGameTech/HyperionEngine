@@ -16,7 +16,7 @@
 #include <variant>
 #endif // HYP_LIBDATACHANNEL
 
-namespace hyperion {
+namespace Hyperion {
 
 Optional<RC<RTCDataChannel>> RTCClient::GetDataChannel(Name name) const
 {
@@ -245,4 +245,4 @@ void LibDataChannelRTCClient::SetRemoteDescription(const String& type, const Str
 
 #endif // HYP_LIBDATACHANNEL
 
-} // namespace hyperion
+} // namespace Hyperion

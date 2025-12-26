@@ -12,7 +12,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class NameRegistry;
 
@@ -113,20 +113,20 @@ consteval StringHash operator""_sh(const char* str, SizeType)
 
 #if defined(HYP_COMPILE_TIME_NAME_HASHING) && HYP_COMPILE_TIME_NAME_HASHING
 
-#define HYP_HASHED_NAME2(name) ::hyperion::HashedName<::hyperion::StaticString<sizeof(name)>(name)>()
-#define HYP_NAME_UNSAFE2(name) ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME2(name))
-#define HYP_WEAK_NAME2(name) ::hyperion::Name(HYP_HASHED_NAME2(name).hashCode.Value())
-#define HYP_NAME2(name) ::hyperion::CreateNameFromStaticString(HYP_HASHED_NAME2(name))
+#define HYP_HASHED_NAME2(name) ::Hyperion::HashedName<::Hyperion::StaticString<sizeof(name)>(name)>()
+#define HYP_NAME_UNSAFE2(name) ::Hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME2(name))
+#define HYP_WEAK_NAME2(name) ::Hyperion::Name(HYP_HASHED_NAME2(name).hashCode.Value())
+#define HYP_NAME2(name) ::Hyperion::CreateNameFromStaticString(HYP_HASHED_NAME2(name))
 
-#define HYP_HASHED_NAME(name) ::hyperion::HashedName<::hyperion::StaticString<sizeof(HYP_STR(name))>(HYP_STR(name))>()
-#define HYP_NAME_UNSAFE(name) ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME(name))
-#define HYP_WEAK_NAME(name) ::hyperion::Name(HYP_HASHED_NAME(name).hashCode.Value())
-#define HYP_NAME(name) ::hyperion::CreateNameFromStaticString(HYP_HASHED_NAME(name))
+#define HYP_HASHED_NAME(name) ::Hyperion::HashedName<::Hyperion::StaticString<sizeof(HYP_STR(name))>(HYP_STR(name))>()
+#define HYP_NAME_UNSAFE(name) ::Hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME(name))
+#define HYP_WEAK_NAME(name) ::Hyperion::Name(HYP_HASHED_NAME(name).hashCode.Value())
+#define HYP_NAME(name) ::Hyperion::CreateNameFromStaticString(HYP_HASHED_NAME(name))
 
 #define NAME(str) HYP_NAME2(str)
 
 #else
-#define HYP_NAME(name) ::hyperion::Name(HashCode::GetHashCode(HYP_STR(name)).Value())
+#define HYP_NAME(name) ::Hyperion::Name(HashCode::GetHashCode(HYP_STR(name)).Value())
 #define HYP_NAME_UNSAFE(name) HYP_NAME(name)
 #define HYP_WEAK_NAME(name) HYP_NAME(name)
 
@@ -135,4 +135,4 @@ consteval StringHash operator""_sh(const char* str, SizeType)
 
 #define NAME_FMT(fmt, ...) CreateNameFromDynamicString(HYP_FORMAT(fmt, ##__VA_ARGS__).Data())
 
-} // namespace hyperion
+} // namespace Hyperion

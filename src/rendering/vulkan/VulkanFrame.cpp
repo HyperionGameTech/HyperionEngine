@@ -16,7 +16,7 @@
 
 #include <VulkanFrame.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -235,4 +235,4 @@ void VulkanFrame::ResetTransientStates()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

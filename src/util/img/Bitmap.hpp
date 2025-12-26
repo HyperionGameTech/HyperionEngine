@@ -22,7 +22,7 @@
 
 #include <rendering/Shared.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ByteWriter;
 
@@ -1493,4 +1493,4 @@ using Bitmap3D_RGB32F = Bitmap3D<TF_RGB32F>;
 using Bitmap3D_RG32F = Bitmap3D<TF_RG32F>;
 using Bitmap3D_R32F = Bitmap3D<TF_R32F>;
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 #include <core/functional/Delegate.hpp>
 #include <core/math/Vector3.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct AddReflectionProbeResult
 {
@@ -29,4 +29,4 @@ protected:
     virtual void Show_Internal() override;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

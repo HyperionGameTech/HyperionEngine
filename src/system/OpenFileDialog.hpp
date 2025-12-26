@@ -14,11 +14,11 @@
 
 #include <core/functional/Proc.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 void ShowOpenFileDialog(
     UTF8StringView title, const FilePath& baseDir, Span<const ANSIStringView> extensions,
     bool allowMultiple, bool allowDirectories,
     Proc<void(TResult<Array<FilePath>>&& result)>&& callback);
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -28,7 +28,7 @@
 #include <rendering/vulkan/VulkanInstance.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 
@@ -371,4 +371,4 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
     return surface;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

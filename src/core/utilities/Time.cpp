@@ -11,7 +11,7 @@
 #include <Time.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 #pragma region TimeDiff
@@ -72,4 +72,4 @@ Time Time::Now()
 #pragma endregion Time
 
 } // namespace utilities
-} // namespace hyperion
+} // namespace Hyperion

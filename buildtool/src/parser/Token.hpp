@@ -6,7 +6,7 @@
 #include <parser/SourceLocation.hpp>
 #include <core/containers/String.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 enum TokenClass
 {
@@ -97,6 +97,6 @@ private:
     SourceLocation m_location;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

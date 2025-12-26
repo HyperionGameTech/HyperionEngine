@@ -18,7 +18,7 @@
 
 #include <GBuffer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region GBuffer
 
@@ -278,4 +278,4 @@ AttachmentBase* GBuffer::GBufferTarget::GetGBufferAttachment(GBufferTargetName r
 
 #pragma endregion GBufferTarget
 
-} // namespace hyperion
+} // namespace Hyperion

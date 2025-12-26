@@ -9,7 +9,7 @@
 
 #include <mutex>
 
-namespace hyperion {
+namespace Hyperion {
 
 class RTCClient;
 
@@ -39,4 +39,4 @@ private:
     FlatMap<String, RC<RTCClient>> m_clients;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

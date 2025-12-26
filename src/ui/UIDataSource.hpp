@@ -21,7 +21,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class World;
 class UIObject;
@@ -610,10 +610,10 @@ struct UIElementFactoryRegistration : public UIElementFactoryRegistrationBase
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #define HYP_DEFINE_UI_ELEMENT_FACTORY(T, Factory)                                        \
-    static ::hyperion::UIElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) \
+    static ::Hyperion::UIElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) \
     {                                                                                    \
         []() -> Handle<UIElementFactoryBase> {                                           \
             return CreateObject<Factory>();                                              \

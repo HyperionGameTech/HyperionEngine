@@ -21,7 +21,7 @@
 #include <immintrin.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class T>
 constexpr bool isMathVectorV = isVec2<T> || isVec3<T> || isVec4<T>;
@@ -759,4 +759,4 @@ Vec2f NormalizeOctahedralCoord(const Vec2i& coord, const Vec2i& extent);
 
 }; // namespace MathUtil
 
-} // namespace hyperion
+} // namespace Hyperion

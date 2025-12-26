@@ -13,7 +13,7 @@
 
 #include <EditBoundingBox.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -130,4 +130,4 @@ void EditBoundingBox::Build_Impl(const BoxedValue& boxed, const Property* proper
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

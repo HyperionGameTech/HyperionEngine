@@ -8,7 +8,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct Extent2D
 {
@@ -380,4 +380,4 @@ struct Extent3D
 
 static_assert(sizeof(Extent3D) == 16);
 
-} //  namespace hyperion
+} //  namespace Hyperion

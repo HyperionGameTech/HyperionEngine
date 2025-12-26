@@ -4,7 +4,7 @@
 
 #include <core/math/Vector4.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class T>
 struct alignas(8) Rect
@@ -26,4 +26,4 @@ struct alignas(8) Rect
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

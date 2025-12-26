@@ -2,7 +2,7 @@
 
 #include <parser/CompilerError.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_unexpected_eof, "Unexpected end of file." },
@@ -53,4 +53,4 @@ bool CompilerError::operator<(const CompilerError& other) const
     return m_text < other.m_text;
 }
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen

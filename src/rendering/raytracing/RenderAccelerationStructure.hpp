@@ -11,7 +11,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/util/SafeDeleter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Material;
 
@@ -153,7 +153,7 @@ protected:
     Name m_debugName;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

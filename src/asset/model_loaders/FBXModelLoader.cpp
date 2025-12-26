@@ -47,7 +47,7 @@
 
 #include <FBXModelLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -1869,4 +1869,4 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     return LoadedAsset { top };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

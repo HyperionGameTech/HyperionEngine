@@ -13,7 +13,7 @@
 
 #include <core/logging/Logger.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Memory);
 HYP_DEFINE_LOG_SUBCHANNEL(Resource, Memory);
@@ -186,4 +186,4 @@ HYP_API IResource& GetNullResource()
 
 #pragma endregion NullResource
 
-} // namespace hyperion
+} // namespace Hyperion

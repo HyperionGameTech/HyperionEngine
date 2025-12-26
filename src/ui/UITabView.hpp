@@ -6,7 +6,7 @@
 
 #include <core/containers/Array.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIText;
 
@@ -133,5 +133,4 @@ private:
 
 #pragma endregion UITabView
 
-} // namespace hyperion
-
+} // namespace Hyperion

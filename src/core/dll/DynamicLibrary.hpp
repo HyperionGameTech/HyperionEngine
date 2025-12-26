@@ -8,7 +8,7 @@
 
 #include <core/reflection/ObjectFwd.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT(Size = 8)
 class HYP_API DynamicLibrary
@@ -42,4 +42,4 @@ private:
     RC<struct DynamicLibraryImpl> m_impl;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

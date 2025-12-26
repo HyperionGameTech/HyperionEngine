@@ -4,7 +4,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class OrthoCameraController : public CameraController
@@ -32,4 +32,4 @@ protected:
         m_far;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

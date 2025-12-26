@@ -14,7 +14,7 @@
 
 #include <rendering/RenderCommand.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class View;
 class Scene;
@@ -248,4 +248,4 @@ private:
     HashCode m_cachedOctantHashCode;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

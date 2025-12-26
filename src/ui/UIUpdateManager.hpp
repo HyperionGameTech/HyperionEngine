@@ -10,7 +10,7 @@
 #include <core/utilities/IdGenerator.hpp>
 #include <ui/UIObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIObject;
 class UIStage;
@@ -72,4 +72,4 @@ private:
     void SortByDepth(Array<UpdateEntry*>& entries);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -11,7 +11,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -161,7 +161,7 @@ public:
         const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        return m_ptr && (thisTypeId == typeId || IsA(hyperion::GetClass(typeId), m_ptr, thisTypeId));
+        return m_ptr && (thisTypeId == typeId || IsA(Hyperion::GetClass(typeId), m_ptr, thisTypeId));
     }
 
     /*! \brief Returns true if the held object is of type \p typeId.
@@ -170,7 +170,7 @@ public:
     {
         const TypeId thisTypeId = GetTypeId();
 
-        return m_ptr && (thisTypeId == typeId || IsA(hyperion::GetClass(typeId), m_ptr, thisTypeId));
+        return m_ptr && (thisTypeId == typeId || IsA(Hyperion::GetClass(typeId), m_ptr, thisTypeId));
     }
 
     /*! \brief Resets the current value held in the AnyRef. */
@@ -275,7 +275,7 @@ public:
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
+        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(Hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
 
         return *static_cast<NormalizedType<T>*>(m_ptr);
     }
@@ -294,7 +294,7 @@ public:
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        if (m_ptr && (thisTypeId == requestedTypeId || IsA(hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)))
+        if (m_ptr && (thisTypeId == requestedTypeId || IsA(Hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)))
         {
             return static_cast<NormalizedType<T>*>(m_ptr);
         }
@@ -437,7 +437,7 @@ public:
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
+        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(Hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
 
         return *static_cast<const NormalizedType<T>*>(m_ptr);
     }
@@ -456,7 +456,7 @@ public:
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
-        if (m_ptr && (thisTypeId == requestedTypeId || IsA(hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)))
+        if (m_ptr && (thisTypeId == requestedTypeId || IsA(Hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)))
         {
             return static_cast<const NormalizedType<T>*>(m_ptr);
         }
@@ -488,4 +488,4 @@ public:
 using memory::AnyRef;
 using memory::ConstAnyRef;
 
-} // namespace hyperion
+} // namespace Hyperion

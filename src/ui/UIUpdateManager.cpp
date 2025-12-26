@@ -8,7 +8,7 @@
 // for EnumToString
 #include <core/reflection/Enum.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -236,4 +236,4 @@ void UIUpdateManager::Clear()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

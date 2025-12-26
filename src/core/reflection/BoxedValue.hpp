@@ -38,7 +38,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace filesystem {
 class FilePath;
@@ -3916,4 +3916,4 @@ struct HypData_Get<ReturnType, T, Tuple<ConvertibleFrom...>>
 
 static_assert(sizeof(BoxedValue) == 32, "sizeof(BoxedValue) != 32 bytes");
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <memory>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstIfStatement : public AstStatement
 {
@@ -67,4 +67,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

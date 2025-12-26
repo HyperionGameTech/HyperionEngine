@@ -29,7 +29,7 @@
 
 #include <core/reflection/Property.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -1221,4 +1221,4 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(AssetObject, AssetObjectUIElementFactory);
 
-} // namespace hyperion
+} // namespace Hyperion

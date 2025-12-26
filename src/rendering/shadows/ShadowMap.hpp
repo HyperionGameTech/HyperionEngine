@@ -13,7 +13,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct ShadowMapAtlasElement;
 class FullScreenPass;
@@ -74,4 +74,4 @@ private:
     Handle<FullScreenPass> m_combineShadowMapsPass;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

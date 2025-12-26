@@ -7,7 +7,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class PipelineType>
 Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts(const PipelineType& pipeline);
@@ -45,4 +45,4 @@ protected:
     PushConstantData m_pushConstants;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

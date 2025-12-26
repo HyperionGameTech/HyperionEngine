@@ -16,7 +16,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 /// reference: https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/bvh.html
 
@@ -278,4 +278,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

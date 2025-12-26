@@ -8,7 +8,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion::buildtool {
+namespace Hyperion::CodeGen {
 
 using OperatorTypeBits = uint32;
 
@@ -146,6 +146,6 @@ private:
     bool m_supportsOverloading;
 };
 
-} // namespace hyperion::buildtool
+} // namespace Hyperion::CodeGen
 
 #endif

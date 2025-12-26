@@ -26,7 +26,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 
@@ -59,9 +59,9 @@ struct PropertyGetter
     template <class ReturnType, class TargetType>
     PropertyGetter(ReturnType (TargetType::*memFn)())
         : getProc([memFn](const BoxedValue& target) -> BoxedValue
-            {
-                return BoxedValue((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)());
-            }),
+              {
+                  return BoxedValue((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)());
+              }),
           serializeProc([memFn](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
                   if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)(), out, flags))
@@ -79,9 +79,9 @@ struct PropertyGetter
     template <class ReturnType, class TargetType>
     PropertyGetter(ReturnType (TargetType::*memFn)() const)
         : getProc([memFn](const BoxedValue& target) -> BoxedValue
-            {
-                return BoxedValue((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)());
-            }),
+              {
+                  return BoxedValue((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)());
+              }),
           serializeProc([memFn](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
                   if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)(), out, flags))
@@ -98,9 +98,9 @@ struct PropertyGetter
     template <class ReturnType, class TargetType>
     PropertyGetter(ReturnType (*fnptr)(const TargetType*))
         : getProc([fnptr](const BoxedValue& target) -> BoxedValue
-            {
-                return BoxedValue(fnptr(static_cast<const TargetType*>(target.ToRef().GetPointer())));
-            }),
+              {
+                  return BoxedValue(fnptr(static_cast<const TargetType*>(target.ToRef().GetPointer())));
+              }),
           serializeProc([fnptr](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
                   if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(fnptr(static_cast<const TargetType*>(target.ToRef().GetPointer())), out, flags))
@@ -118,9 +118,9 @@ struct PropertyGetter
     template <class ReturnType>
     PropertyGetter(ReturnType (*fnptr)(void))
         : getProc([fnptr](const BoxedValue& target) -> BoxedValue
-            {
-                return BoxedValue(fnptr());
-            }),
+              {
+                  return BoxedValue(fnptr());
+              }),
           serializeProc([fnptr](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
                   if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(fnptr(), out, flags))
@@ -135,11 +135,11 @@ struct PropertyGetter
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
-    explicit PropertyGetter(ValueType TargetType::*member)
+    explicit PropertyGetter(ValueType TargetType::* member)
         : getProc([member](const BoxedValue& target) -> BoxedValue
-            {
-                return BoxedValue(static_cast<const TargetType*>(target.ToRef().GetPointer())->*member);
-            }),
+              {
+                  return BoxedValue(static_cast<const TargetType*>(target.ToRef().GetPointer())->*member);
+              }),
           serializeProc([member](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
                   if (FBOMResult err = HypDataHelper<NormalizedType<ValueType>>::Serialize(static_cast<const TargetType*>(target.ToRef().GetPointer())->*member, out, flags))
@@ -203,16 +203,16 @@ struct PropertySetter
     template <class ReturnType, class TargetType, class ValueType>
     PropertySetter(ReturnType (TargetType::*memFn)(ValueType))
         : setProc([memFn](BoxedValue& target, const BoxedValue& value) -> void
-            {
-                if (value.IsNull())
-                {
-                    (static_cast<TargetType*>(target.ToRef().GetPointer())->*memFn)(NormalizedType<ValueType> {});
-                }
-                else
-                {
-                    (static_cast<TargetType*>(target.ToRef().GetPointer())->*memFn)(value.Get<NormalizedType<ValueType>>());
-                }
-            }),
+              {
+                  if (value.IsNull())
+                  {
+                      (static_cast<TargetType*>(target.ToRef().GetPointer())->*memFn)(NormalizedType<ValueType> {});
+                  }
+                  else
+                  {
+                      (static_cast<TargetType*>(target.ToRef().GetPointer())->*memFn)(value.Get<NormalizedType<ValueType>>());
+                  }
+              }),
           deserializeProc([memFn](FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) -> Result
               {
                   BoxedValue value;
@@ -240,16 +240,16 @@ struct PropertySetter
     template <class ReturnType, class TargetType, class ValueType>
     PropertySetter(ReturnType (*fnptr)(TargetType*, const ValueType&))
         : setProc([fnptr](BoxedValue& target, const BoxedValue& value) -> void
-            {
-                if (value.IsNull())
-                {
-                    fnptr(static_cast<TargetType*>(target.ToRef().GetPointer()), NormalizedType<ValueType> {});
-                }
-                else
-                {
-                    fnptr(static_cast<TargetType*>(target.ToRef().GetPointer()), value.Get<NormalizedType<ValueType>>());
-                }
-            }),
+              {
+                  if (value.IsNull())
+                  {
+                      fnptr(static_cast<TargetType*>(target.ToRef().GetPointer()), NormalizedType<ValueType> {});
+                  }
+                  else
+                  {
+                      fnptr(static_cast<TargetType*>(target.ToRef().GetPointer()), value.Get<NormalizedType<ValueType>>());
+                  }
+              }),
           deserializeProc([fnptr](FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) -> Result
               {
                   BoxedValue value;
@@ -275,18 +275,18 @@ struct PropertySetter
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
-    PropertySetter(ValueType TargetType::*member)
+    PropertySetter(ValueType TargetType::* member)
         : setProc([member](BoxedValue& target, const BoxedValue& value) -> void
-            {
-                if (value.IsNull())
-                {
-                    static_cast<TargetType*>(target.ToRef().GetPointer())->*member = NormalizedType<ValueType> {};
-                }
-                else
-                {
-                    static_cast<TargetType*>(target.ToRef().GetPointer())->*member = value.Get<NormalizedType<ValueType>>();
-                }
-            }),
+              {
+                  if (value.IsNull())
+                  {
+                      static_cast<TargetType*>(target.ToRef().GetPointer())->*member = NormalizedType<ValueType> {};
+                  }
+                  else
+                  {
+                      static_cast<TargetType*>(target.ToRef().GetPointer())->*member = value.Get<NormalizedType<ValueType>>();
+                  }
+              }),
           deserializeProc([member](FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) -> Result
               {
                   BoxedValue value;
@@ -402,7 +402,7 @@ public:
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
-    Property(Name name, ValueType TargetType::*member, const Span<const ClassAttribute>& attributes = {})
+    Property(Name name, ValueType TargetType::* member, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_attributes(attributes),
           m_getter(PropertyGetter(member)),
@@ -441,8 +441,8 @@ public:
         return m_getter.IsValid()
             ? *m_getter.typeInfo.targetTypeInfo
             : (m_setter.IsValid()
-                    ? *m_setter.typeInfo.targetTypeInfo
-                    : TypeInfo_Void());
+                      ? *m_setter.typeInfo.targetTypeInfo
+                      : TypeInfo_Void());
     }
 
     virtual bool CanSerialize() const override
@@ -546,4 +546,4 @@ private:
     const IHypMember* m_originalMember;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

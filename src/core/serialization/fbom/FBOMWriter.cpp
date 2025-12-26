@@ -21,7 +21,7 @@
 
 #include <algorithm>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 #pragma region FBOMWriteStream
 
@@ -1085,4 +1085,4 @@ UniqueId FBOMWriter::AddStaticData(FBOMLoadContext& context, const FBOMData& dat
 
 #pragma endregion FBOMWriter
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

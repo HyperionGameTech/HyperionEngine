@@ -1,6 +1,6 @@
 #pragma once
 
-namespace hyperion {
+namespace Hyperion {
 
 class CodeGenerator
 {
@@ -8,4 +8,4 @@ public:
     virtual ~CodeGenerator() = default;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

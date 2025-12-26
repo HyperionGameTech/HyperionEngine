@@ -12,7 +12,7 @@
 
 #include <util/GameCounter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <class T = double>
 class BlendVar
@@ -138,4 +138,4 @@ private:
     LockstepGameCounter m_counter;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

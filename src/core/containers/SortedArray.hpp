@@ -7,7 +7,7 @@
 #include <core/utilities/Pair.hpp>
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 template <class T>
@@ -221,4 +221,4 @@ auto SortedArray<T>::Erase(const T& value) -> Iterator
 template <class T>
 using SortedArray = containers::SortedArray<T>;
 
-} // namespace hyperion
+} // namespace Hyperion

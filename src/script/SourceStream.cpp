@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace hyperion {
+namespace Hyperion {
 
 SourceStream::SourceStream(SourceFile* file)
     : m_file(file),
@@ -163,4 +163,4 @@ void SourceStream::Read(char* ptr, SizeType numBytes)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

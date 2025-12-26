@@ -8,7 +8,7 @@
 
 #include <rendering/RenderObject.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct CullData
 {
@@ -41,4 +41,4 @@ struct CullData
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -10,7 +10,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace utilities {
 namespace detail {
@@ -896,4 +896,4 @@ using KeyValuePair = utilities::KeyValuePair<K, V>;
 template <class K, class V>
 using Pair = utilities::Pair<K, V>;
 
-} // namespace hyperion
+} // namespace Hyperion

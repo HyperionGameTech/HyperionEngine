@@ -6,7 +6,7 @@
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class Operations
 {
@@ -137,4 +137,4 @@ struct StorageOperation : public Buildable
     };
 };
 
-} // namespace hyperion
+} // namespace Hyperion

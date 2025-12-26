@@ -50,7 +50,7 @@
 
 #include <script/vm/inl/Interpreter.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 using ScriptArray = Array<BoxedValue, DynamicAllocator>;
 
@@ -3849,7 +3849,7 @@ void Script_Interpreter::Execute(Script_Instance* instance)
 
 #pragma endregion Script_Interpreter
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifdef SCRIPT_INLINE
 #undef SCRIPT_INLINE

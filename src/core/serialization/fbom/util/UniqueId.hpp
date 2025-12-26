@@ -7,7 +7,7 @@
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 struct Uuid;
@@ -86,6 +86,6 @@ private:
 
 using utilities::UniqueId;
 
-} // namespace hyperion
+} // namespace Hyperion
 
-HYP_DEF_STL_HASH(hyperion::UniqueId);
+HYP_DEF_STL_HASH(Hyperion::UniqueId);

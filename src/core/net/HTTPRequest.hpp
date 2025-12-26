@@ -21,7 +21,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace net {
 
 enum class HTTPMethod
@@ -115,4 +115,4 @@ using net::HTTPMethod;
 using net::HTTPRequest;
 using net::HTTPResponse;
 
-} // namespace hyperion
+} // namespace Hyperion

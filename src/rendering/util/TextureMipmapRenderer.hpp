@@ -12,7 +12,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class FullScreenPass;
 class Texture;
@@ -27,4 +27,4 @@ public:
 
 #pragma endregion TextureMipmapRenderer
 
-} // namespace hyperion
+} // namespace Hyperion

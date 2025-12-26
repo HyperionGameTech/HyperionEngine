@@ -31,7 +31,7 @@
 
 #include <HbaoPass.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
@@ -201,4 +201,4 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     End(frame, renderSetup);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

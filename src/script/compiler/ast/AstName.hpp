@@ -4,7 +4,7 @@
 #include <core/containers/String.hpp>
 #include <core/Name.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstCallExpression;
 
@@ -64,4 +64,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

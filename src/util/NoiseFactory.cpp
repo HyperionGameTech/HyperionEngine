@@ -8,7 +8,7 @@
 #include <cmath>
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 NoiseGenerator::NoiseGenerator(NoiseGenerationType type, Seed seed)
     : m_type(type),
@@ -168,4 +168,4 @@ void NoiseFactory::Release(NoiseGenerationType type, Seed seed)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -5,7 +5,7 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum RenderBucket : uint32
@@ -19,4 +19,4 @@ enum RenderBucket : uint32
     RB_MAX
 };
 
-} // namespace hyperion
+} // namespace Hyperion

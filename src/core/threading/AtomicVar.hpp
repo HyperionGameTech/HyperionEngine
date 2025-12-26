@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum class MemoryOrder
 {
@@ -427,4 +427,4 @@ using threading::AtomicIncrement;
 using threading::AtomicSub;
 using threading::AtomicVar;
 
-} // namespace hyperion
+} // namespace Hyperion

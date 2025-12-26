@@ -8,7 +8,7 @@
 
 #include <core/threading/TaskSystem.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct LightmapHitsBuffer;
 class LightmapThreadPool;
@@ -101,4 +101,4 @@ private:
     HashMap<LightmapJobBase*, JobData, DynamicNodeAllocator> m_jobData;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

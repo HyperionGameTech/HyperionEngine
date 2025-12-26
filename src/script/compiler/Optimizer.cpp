@@ -15,7 +15,7 @@
 
 #include <cmath>
 
-namespace hyperion {
+namespace Hyperion {
 
 RC<AstConstant> Optimizer::ConstantFold(
     AstExpression* left,
@@ -726,4 +726,4 @@ void Optimizer::OptimizeInner()
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

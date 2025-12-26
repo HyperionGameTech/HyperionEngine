@@ -6,7 +6,7 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Frame.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 DOFBlur::DOFBlur(const Vec2u& extent, GBuffer* gbuffer)
     : m_gbuffer(gbuffer),
@@ -70,4 +70,4 @@ void DOFBlur::Render(Frame* frame, const RenderSetup& renderSetup)
     m_blurMixPass->Render(frame, renderSetup);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

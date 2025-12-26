@@ -24,7 +24,7 @@
 
 #include <thread>
 
-namespace hyperion {
+namespace Hyperion {
 namespace threading {
 
 class ThreadId;
@@ -247,4 +247,4 @@ using threading::BackgroundTaskThreadPool;
 using threading::TaskThreadPool;
 using threading::ThreadPoolBase;
 
-} // namespace hyperion
+} // namespace Hyperion

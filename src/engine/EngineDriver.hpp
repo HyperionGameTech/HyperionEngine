@@ -14,7 +14,7 @@
 
 #include <rendering/util/ShaderCompiler.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace net {
 
 class NetRequestThread;
@@ -154,4 +154,4 @@ private:
     mutable volatile int32 m_isShuttingDown;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

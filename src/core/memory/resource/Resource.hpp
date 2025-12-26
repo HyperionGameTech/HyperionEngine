@@ -17,7 +17,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern Pool* g_resourcePool;
 
@@ -385,4 +385,4 @@ public:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

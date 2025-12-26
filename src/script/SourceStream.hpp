@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-namespace hyperion {
+namespace Hyperion {
 
 class SourceStream
 {
@@ -36,4 +36,4 @@ private:
     SizeType m_position;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

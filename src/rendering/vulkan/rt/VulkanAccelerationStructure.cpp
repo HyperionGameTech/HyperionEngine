@@ -22,7 +22,7 @@
 
 #include <VulkanAccelerationStructure.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
@@ -945,4 +945,4 @@ RendererResult VulkanGpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
 #pragma endregion GpuBlas
 
-} // namespace hyperion
+} // namespace Hyperion

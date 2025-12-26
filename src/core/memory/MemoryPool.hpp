@@ -24,7 +24,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 class MemoryPoolBase;
@@ -438,4 +438,4 @@ using memory::MemoryPool;
 using memory::MemoryPoolBase;
 using memory::MemoryPoolInitInfo;
 
-} // namespace hyperion
+} // namespace Hyperion

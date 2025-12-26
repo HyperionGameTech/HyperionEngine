@@ -33,7 +33,7 @@
 
 #include <ScriptSystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 EngineStatTimer g_scriptUpdateTimer("Script/Update");
 
@@ -325,4 +325,4 @@ void ScriptSystem::CallScriptMethod(UTF8StringView methodName, ScriptComponent& 
     InvokeScriptMethodT<void>(nullptr, target.scriptObjectResource, *methodName);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

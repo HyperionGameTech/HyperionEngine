@@ -6,7 +6,7 @@
 
 #include <MeshInstanceData.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 void MeshInstanceData_OnPostLoad(MeshInstanceData& meshInstanceData)
 {
@@ -32,4 +32,4 @@ void MeshInstanceData_OnPostLoad(MeshInstanceData& meshInstanceData)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

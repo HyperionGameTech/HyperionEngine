@@ -4,7 +4,7 @@
 
 #include <asset/AssetRegistry.hpp>
 
-using namespace hyperion;
+using namespace Hyperion;
 
 extern "C"
 {

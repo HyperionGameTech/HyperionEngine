@@ -19,7 +19,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class PhysicsShapeType : uint32
@@ -265,4 +265,4 @@ private:
     UniquePtr<void> m_handle;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -11,7 +11,7 @@
 
 #include <core/threading/Mutex.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ShaderManagerImpl
 {
@@ -233,4 +233,4 @@ SizeType ShaderManager::CalculateMemoryUsage() const
     return m_impl->CalculateMemoryUsage();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

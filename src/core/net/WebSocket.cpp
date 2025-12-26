@@ -16,7 +16,7 @@
 #include <curl/curl.h>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace net {
 
@@ -210,6 +210,6 @@ void WebSocket::WebSocketThreadProc()
 #pragma endregion WebSocket
 
 } // namespace net
-} // namespace hyperion
+} // namespace Hyperion
 
 #endif

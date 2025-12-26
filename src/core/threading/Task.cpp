@@ -3,7 +3,7 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/Scheduler.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 extern Pool* g_taskPool;
@@ -193,4 +193,4 @@ void TaskBase::Await_Internal() const
 #pragma endregion TaskBase
 
 } // namespace threading
-} // namespace hyperion
+} // namespace Hyperion

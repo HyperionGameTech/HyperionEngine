@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <ostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ErrorList
 {
@@ -82,4 +82,4 @@ private:
     uint32 m_errorSuppressionDepth;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

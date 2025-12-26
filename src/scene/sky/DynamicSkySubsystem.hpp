@@ -12,7 +12,7 @@
 
 #include <util/GameCounter.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS()
 class HYP_API DynamicSkySubsystem : public Subsystem
@@ -58,4 +58,4 @@ private:
     LockstepGameCounter m_updateTimer;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

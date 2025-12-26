@@ -17,7 +17,7 @@
 #include <mutex>
 #include <atomic>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct IdGenerator
 {
@@ -95,4 +95,4 @@ struct IdGenerator
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

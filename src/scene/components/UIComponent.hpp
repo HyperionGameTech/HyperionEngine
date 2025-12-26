@@ -16,7 +16,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class UIObject;
 class InputManager;
@@ -30,4 +30,4 @@ struct UIComponent
     WeakHandle<UIObject> uiObject;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

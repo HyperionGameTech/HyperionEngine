@@ -10,7 +10,7 @@
 
 #include <cmath>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API const Class* g_clsVec3f = nullptr;
 HYP_API const Class* g_clsVec3i = nullptr;
@@ -208,4 +208,4 @@ Vec3<float> math::Vec3<float>::Max(const Vec3<float>& a, const Vec3<float>& b)
     };
 }
 
-} // namespace hyperion
+} // namespace Hyperion

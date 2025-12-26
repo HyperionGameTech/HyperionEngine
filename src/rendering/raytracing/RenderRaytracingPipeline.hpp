@@ -5,7 +5,7 @@
 #include <rendering/RenderObject.hpp>
 #include <core/Defines.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class RaytracingPipelineBase : public ObjectBase
@@ -73,7 +73,7 @@ protected:
     Name m_debugName;
 };
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE

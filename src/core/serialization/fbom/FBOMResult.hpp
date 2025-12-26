@@ -6,7 +6,7 @@
 
 #include <core/utilities/StringView.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 struct FBOMResult
 {
@@ -50,4 +50,4 @@ struct FBOMResult
     }
 };
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

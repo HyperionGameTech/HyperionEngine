@@ -2,7 +2,7 @@
 
 #pragma once
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_STRUCT()
 struct PhysicsMaterial
@@ -32,4 +32,4 @@ struct PhysicsMaterial
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

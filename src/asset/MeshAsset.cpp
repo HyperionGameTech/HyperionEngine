@@ -12,7 +12,7 @@
 
 #include <MeshAsset.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 BoundingBox MeshData::CalculateAABB() const
 {
@@ -464,4 +464,4 @@ bool MeshData::BuildBVH(BVHNode& bvhNode, int maxDepth) const
     return true;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

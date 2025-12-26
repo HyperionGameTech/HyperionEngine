@@ -12,7 +12,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 class VulkanInstance
 {
@@ -62,4 +62,4 @@ private:
 #endif
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -10,7 +10,7 @@
 #include <scene/Node.hpp>
 #include <scene/animation/Bone.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 class NodeMarshal : public ObjectMarshal
 {
@@ -113,4 +113,4 @@ public:
 
 HYP_DEFINE_MARSHAL(Node, NodeMarshal);
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

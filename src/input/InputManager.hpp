@@ -17,7 +17,7 @@
 #include <input/Keyboard.hpp>
 #include <input/Mouse.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class ApplicationWindow;
 class Event;
@@ -64,8 +64,8 @@ public:
     void PopMouseLockState();
 
     /*! \brief Acquire a new mouse lock scope. The input device will be locked until the object goes out of scope or another state takes precedence over this one.
-    *   \param [syncToVirtualPosition] If true, when the state is removed, the mouse state will be synchronized with the virtual mouse position (that is, the internal position that
-    *   continues to be updated regardless of whether or not the actual mouse is locked) */
+     *   \param [syncToVirtualPosition] If true, when the state is removed, the mouse state will be synchronized with the virtual mouse position (that is, the internal position that
+     *   continues to be updated regardless of whether or not the actual mouse is locked) */
     InputMouseLockScope AcquireMouseLock(bool syncToVirtualPosition = false);
 
     HYP_METHOD()
@@ -228,4 +228,4 @@ private:
     bool m_syncToVirtualPosition;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

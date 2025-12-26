@@ -15,11 +15,11 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 struct BoxedValue;
-} // namespace hyperion
+} // namespace Hyperion
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 struct FBOMDeserializedObject
 {
@@ -76,4 +76,4 @@ struct FBOMDeserializedObject
     }
 };
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

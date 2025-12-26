@@ -24,7 +24,7 @@
 
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr const char* StringClassName = "String";
 static constexpr const char* NameClassName = "Name";
@@ -373,4 +373,4 @@ bool AstMember::IsMutable() const
     return true;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

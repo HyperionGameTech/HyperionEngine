@@ -11,7 +11,7 @@
 
 #include <asset/AssetReference.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 namespace dotnet {
 class ManagedObject;
@@ -66,4 +66,4 @@ struct ScriptComponent
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -22,7 +22,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr const char* g_tempArrayStoreVarName = "$__arrayStoreValue";
 
@@ -516,4 +516,4 @@ const AstExpression* AstArrayAccess::GetDeepValueOf() const
     return AstExpression::GetDeepValueOf();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

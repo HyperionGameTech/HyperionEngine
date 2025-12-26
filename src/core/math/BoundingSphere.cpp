@@ -7,7 +7,7 @@
 #include <BoundingSphere.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 const BoundingSphere BoundingSphere::empty = BoundingSphere();
 const BoundingSphere BoundingSphere::infinity = BoundingSphere(Vec3f::Zero(), MathUtil::Infinity<float>());
@@ -117,4 +117,4 @@ Vec4f BoundingSphere::ToVector4() const
     return Vec4f(center, radius);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

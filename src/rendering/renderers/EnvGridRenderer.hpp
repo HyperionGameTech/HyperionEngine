@@ -11,7 +11,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class EnvGrid;
 class LegacyEnvGrid;
@@ -98,4 +98,4 @@ protected:
     void CreateLightFieldData(LegacyEnvGrid* envGrid, EnvGridRendererPassData& pd);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

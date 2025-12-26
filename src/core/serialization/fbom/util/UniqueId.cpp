@@ -1,7 +1,7 @@
 #include <core/serialization/fbom/util/UniqueId.hpp>
 #include <core/utilities/Uuid.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 UniqueId::UniqueId()
@@ -20,4 +20,4 @@ UniqueId UniqueId::FromUUID(const Uuid& uuid)
 }
 
 } // namespace utilities
-} // namespace hyperion
+} // namespace Hyperion

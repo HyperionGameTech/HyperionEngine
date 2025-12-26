@@ -11,7 +11,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class DetachedScenes
 {
@@ -79,4 +79,4 @@ Scene* GetDetachedSceneForThread(const ThreadId& threadId)
     return GetDetachedScenes().GetDetachedScene(threadId);
 }
 
-} // namespace hyperion
+} // namespace Hyperion

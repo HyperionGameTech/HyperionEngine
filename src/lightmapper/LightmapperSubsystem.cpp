@@ -23,7 +23,7 @@
 
 #include <LightmapperSubsystem.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region LightmapperSubsystem
 
@@ -170,4 +170,4 @@ Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, 
 
 #pragma endregion LightmapperSubsystem
 
-} // namespace hyperion
+} // namespace Hyperion

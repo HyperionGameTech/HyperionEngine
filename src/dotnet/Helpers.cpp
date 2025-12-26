@@ -7,6 +7,6 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

@@ -11,7 +11,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mat4f;
 
@@ -166,4 +166,4 @@ struct Formatter<StringType, Quaternion>
 
 } // namespace utilities
 
-} // namespace hyperion
+} // namespace Hyperion

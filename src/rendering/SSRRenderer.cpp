@@ -26,7 +26,7 @@
 
 #include <SSRRenderer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = true;
 static constexpr TextureFormat SsrFormat = TF_R10G10B10A2;
@@ -365,4 +365,4 @@ void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
 
 #pragma endregion SSRRenderer
 
-} // namespace hyperion
+} // namespace Hyperion

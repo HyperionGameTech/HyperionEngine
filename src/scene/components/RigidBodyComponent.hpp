@@ -12,7 +12,7 @@
 #include <physics/RigidBody.hpp>
 #include <physics/PhysicsMaterial.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum class RigidBodyComponentFlags : uint32
@@ -52,4 +52,4 @@ struct RigidBodyComponent
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

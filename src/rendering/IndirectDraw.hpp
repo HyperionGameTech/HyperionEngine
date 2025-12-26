@@ -14,7 +14,7 @@
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mesh;
 class Material;
@@ -130,4 +130,4 @@ private:
     EntityBatchAllocatorBase* m_batchAllocator;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

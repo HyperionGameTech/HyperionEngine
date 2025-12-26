@@ -7,7 +7,7 @@
 
 #include <Bone.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 Bone::Bone()
     : Bone(Name::Invalid())
@@ -201,4 +201,4 @@ void Bone::SetSkeleton(Skeleton* skeleton)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -27,7 +27,7 @@
 
 #include <ShadowRenderer.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
@@ -454,4 +454,4 @@ ShadowMap* DirectionalShadowRenderer::AllocateShadowMap(Light* light)
 HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray, 1);
 HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray, 1);
 
-} // namespace hyperion
+} // namespace Hyperion

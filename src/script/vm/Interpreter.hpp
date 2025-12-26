@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <cstdio>
 
-namespace hyperion {
+namespace Hyperion {
 
 /*! \brief Table for type promotion for binops. */
 static constexpr int g_typePromoLut[10][10] = {
@@ -276,4 +276,4 @@ private:
     void CreateTrace(Script_Instance* instance, Script_Trace* outTrace);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

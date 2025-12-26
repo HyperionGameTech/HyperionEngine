@@ -37,7 +37,7 @@
 
 #include <Light.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static constexpr TextureFormat PointLightShadowFormat = TF_RG16F;
 static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
@@ -705,4 +705,4 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 
 #pragma endregion Light
 
-} // namespace hyperion
+} // namespace Hyperion

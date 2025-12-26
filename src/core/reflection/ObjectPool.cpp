@@ -10,7 +10,7 @@
 #include <engine/EngineMemory.hpp>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API void ReleaseObject(ObjectHeader* header)
 {
@@ -192,4 +192,4 @@ void ObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard
 
 #pragma endregion ObjectContainerBase
 
-} // namespace hyperion
+} // namespace Hyperion

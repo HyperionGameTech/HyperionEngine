@@ -7,7 +7,7 @@
 
 #include <AssetLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
@@ -154,4 +154,4 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
 
 #pragma endregion AssetLoaderBase
 
-} // namespace hyperion
+} // namespace Hyperion

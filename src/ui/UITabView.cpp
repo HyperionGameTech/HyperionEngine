@@ -9,7 +9,7 @@
 
 #include <UITabView.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 #pragma region UITab
 
@@ -388,4 +388,4 @@ void UITabView::UpdateTabSizes()
 
 #pragma region UITabView
 
-} // namespace hyperion
+} // namespace Hyperion

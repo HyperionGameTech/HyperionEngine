@@ -4,7 +4,7 @@
 
 #include <core/logging/Logger.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(HypScript);
 
@@ -343,4 +343,4 @@ void Module::CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, SymbolTyp
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

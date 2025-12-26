@@ -6,8 +6,8 @@
 
 #include <core/logging/Logger.hpp>
 
-namespace hyperion {
-namespace buildtool {
+namespace Hyperion {
+namespace CodeGen {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
@@ -47,5 +47,5 @@ const ClassDefinition* Module::FindClassDefinition(UTF8StringView className) con
     return &it->second;
 }
 
-} // namespace buildtool
-} // namespace hyperion
+} // namespace CodeGen
+} // namespace Hyperion

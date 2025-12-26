@@ -8,7 +8,7 @@
 
 #include <UIWindow.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
@@ -240,4 +240,4 @@ void UIWindow::SetWindowFlags(EnumFlags<UIWindowFlags> windowFlags)
 
 #pragma region UIWindow
 
-} // namespace hyperion
+} // namespace Hyperion

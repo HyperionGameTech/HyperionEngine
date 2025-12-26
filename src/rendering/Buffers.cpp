@@ -18,7 +18,7 @@
 
 #include <engine/EngineGlobals.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
@@ -240,4 +240,4 @@ void GpuBufferHolderBase::CopyStagingToGpu(
 
 #pragma endregion GpuBufferHolderBase
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class PLYModelLoader : public AssetLoaderBase
@@ -67,4 +67,4 @@ public:
     static LoadedAsset BuildModel(LoaderState& state, PLYModel& model);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

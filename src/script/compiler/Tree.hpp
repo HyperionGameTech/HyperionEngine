@@ -13,7 +13,7 @@
 #include <stack>
 #include <string>
 
-namespace hyperion {
+namespace Hyperion {
 
 template <typename T>
 struct TreeNode;
@@ -297,4 +297,4 @@ struct TreeNodeGuard
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

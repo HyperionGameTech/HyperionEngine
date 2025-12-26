@@ -15,7 +15,7 @@
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/Mutex.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class StreamingNotifier;
 
@@ -115,4 +115,4 @@ private:
     Array<StreamingNotifier*> m_notifiers;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

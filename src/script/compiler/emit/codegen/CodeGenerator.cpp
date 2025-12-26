@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-namespace hyperion {
+namespace Hyperion {
 
 CodeGenerator::CodeGenerator(BuildParams& buildParams)
     : buildParams(buildParams)
@@ -704,4 +704,4 @@ void CodeGenerator::Visit(RawOperation<>* node)
     }
 }
 
-} // namespace hyperion
+} // namespace Hyperion

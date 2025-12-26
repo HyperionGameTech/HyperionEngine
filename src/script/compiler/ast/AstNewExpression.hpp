@@ -9,7 +9,7 @@
 
 #include <string>
 
-namespace hyperion {
+namespace Hyperion {
 
 class AstNewExpression : public AstExpression
 {
@@ -62,4 +62,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -14,7 +14,7 @@
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_ENUM()
 enum MaterialAttributeFlags : uint32
@@ -275,4 +275,4 @@ private:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

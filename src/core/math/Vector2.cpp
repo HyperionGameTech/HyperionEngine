@@ -7,7 +7,7 @@
 #include <core/reflection/ClassUtils.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API const Class* g_clsVec2f = nullptr;
 HYP_API const Class* g_clsVec2i = nullptr;
@@ -100,4 +100,4 @@ Vec2<float> Vec2<float>::Max(const Vec2<float>& a, const Vec2<float>& b)
 }
 
 } // namespace math
-} // namespace hyperion
+} // namespace Hyperion

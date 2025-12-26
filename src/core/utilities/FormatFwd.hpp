@@ -2,14 +2,14 @@
 
 #pragma once
 
-namespace hyperion {
+namespace Hyperion {
 namespace utilities {
 
 template <class StringType, class T, class T2 = void>
 struct Formatter;
 
 } // namespace utilities
-} // namespace hyperion
+} // namespace Hyperion
 
 // placeholder define until Format.hpp is included and overrides this macro
 #ifndef HYP_FORMAT

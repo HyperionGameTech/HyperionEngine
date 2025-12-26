@@ -15,7 +15,7 @@
 #include <script/compiler/ast/AstArgument.hpp>
 #include <script/compiler/ast/AstArgumentList.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 AstName::AstName(const String& value, const SourceLocation& location)
     : AstConstant(ConstantValue(INVALID_CONSTANT_NUMBER), location),
@@ -72,4 +72,4 @@ const SymbolType* AstName::GetExprType() const
     return BuiltinTypes::s_nameType;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

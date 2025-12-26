@@ -6,7 +6,7 @@
 #include <Frustum.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 static const FixedArray<Vec4f, 8> s_corners {
     Vec4f { -1.0f, -1.0f, 0.0f, 1.0f },
@@ -149,4 +149,4 @@ Vec3f Frustum::GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint
     return r * (1.0f / planes[0].GetXYZ().Dot(bxc));
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -13,7 +13,7 @@
 #include <string_view>
 #include <array>
 
-namespace hyperion {
+namespace Hyperion {
 namespace containers {
 
 template <class Pair, Pair... Pairs>
@@ -1004,7 +1004,7 @@ constexpr auto MakeStaticString(StringType strArg)
 
 using containers::StaticString;
 
-} // namespace hyperion
+} // namespace Hyperion
 
 #define HYP_STATIC_STRING(text) \
-    ::hyperion::StaticString<sizeof(text)>(text)
+    ::Hyperion::StaticString<sizeof(text)>(text)

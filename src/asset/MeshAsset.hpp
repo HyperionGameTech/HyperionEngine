@@ -17,7 +17,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class BVHNode;
 
@@ -112,4 +112,4 @@ private:
     MeshDesc m_meshDesc;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

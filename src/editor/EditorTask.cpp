@@ -14,7 +14,7 @@
 
 #include <EditorTask.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -166,4 +166,4 @@ bool LongRunningEditorTask::IsCompleted_Impl() const
 
 #pragma endregion LongRunningEditorTask
 
-} // namespace hyperion
+} // namespace Hyperion

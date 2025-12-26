@@ -10,7 +10,7 @@
 
 #include <HyperionEngine.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 class AssetRegistryMarshal : public ObjectMarshal
 {
@@ -75,4 +75,4 @@ public:
 
 HYP_DEFINE_MARSHAL(AssetRegistry, AssetRegistryMarshal);
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

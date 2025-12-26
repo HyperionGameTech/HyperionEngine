@@ -17,7 +17,7 @@
 
 #include <TextureLoader.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct LoadedTextureData
 {
@@ -160,4 +160,4 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     return result;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

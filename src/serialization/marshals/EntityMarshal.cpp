@@ -24,7 +24,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion::serialization {
+namespace Hyperion::serialization {
 
 class EntityMarshal : public ObjectMarshal
 {
@@ -292,4 +292,4 @@ public:
 
 HYP_DEFINE_MARSHAL(Entity, EntityMarshal);
 
-} // namespace hyperion::serialization
+} // namespace Hyperion::serialization

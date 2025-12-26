@@ -14,7 +14,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Mesh;
 class VoxelOctree;
@@ -62,4 +62,4 @@ public:
     static Handle<Mesh> BuildVoxelMesh(const VoxelOctree& voxelOctree);
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -7,7 +7,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 enum AstClassFlags : uint8
 {
@@ -205,4 +205,4 @@ protected:
     }
 };
 
-} // namespace hyperion
+} // namespace Hyperion

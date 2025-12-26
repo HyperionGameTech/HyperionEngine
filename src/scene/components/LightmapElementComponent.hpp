@@ -8,7 +8,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class LightmapVolume;
 
@@ -31,4 +31,4 @@ struct HYP_API LightmapElementComponent
     LightmapElementComponent();
 };
 
-} // namespace hyperion
+} // namespace Hyperion

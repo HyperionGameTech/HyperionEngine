@@ -8,7 +8,7 @@
 
 #include <FirstPersonCamera.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const float mouseSensitivity = 75.0f;
 static const float mouseBlending = 0.35f;
@@ -220,4 +220,4 @@ void FirstPersonCameraController::UpdateLogic(double delta)
 
 #pragma endregion FirstPersonCameraController
 
-} // namespace hyperion
+} // namespace Hyperion

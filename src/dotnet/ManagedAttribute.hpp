@@ -7,7 +7,7 @@
 
 #include <core/Defines.hpp>
 
-namespace hyperion::dotnet {
+namespace Hyperion::dotnet {
 
 class ManagedObject;
 class ManagedClass;
@@ -80,4 +80,4 @@ private:
     HashMap<String, ManagedObject*> m_valuesByName;
 };
 
-} // namespace hyperion::dotnet
+} // namespace Hyperion::dotnet

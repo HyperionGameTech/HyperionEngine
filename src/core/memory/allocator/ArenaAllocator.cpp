@@ -10,8 +10,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 namespace memory {
 
 } // namespace memory
-} // namespace hyperion
+} // namespace Hyperion

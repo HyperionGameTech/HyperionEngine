@@ -15,7 +15,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class FullScreenPass;
 class ShadowMap;
@@ -180,4 +180,4 @@ private:
     IdGenerator m_pointLightShadowMapIdGenerator;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

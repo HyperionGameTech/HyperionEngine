@@ -7,7 +7,7 @@
 #include <Triangle.generated.inl>
 #endif
 
-namespace hyperion {
+namespace Hyperion {
 
 Triangle::Triangle()
     : points {}
@@ -95,4 +95,4 @@ Triangle operator*(const Mat4f& transform, const Triangle& triangle)
     return result;
 }
 
-} // namespace hyperion
+} // namespace Hyperion

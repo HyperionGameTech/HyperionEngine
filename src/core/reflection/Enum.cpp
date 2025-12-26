@@ -1,7 +1,7 @@
 #include <core/reflection/Enum.hpp>
 #include <core/reflection/StaticField.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 HYP_API BoxedValue GetEnumMemberValue(const IHypMember& enumMember)
 {
@@ -10,4 +10,4 @@ HYP_API BoxedValue GetEnumMemberValue(const IHypMember& enumMember)
     return static_cast<const StaticField&>(enumMember).Get();
 }
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -6,7 +6,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 struct BoxedValue;
 
@@ -22,4 +22,4 @@ using InvokeGetterFunction = void (*)(ManagedGuid, ObjectReference*, const Boxed
 using InvokeSetterFunction = void (*)(ManagedGuid, ObjectReference*, const BoxedValue**, BoxedValue*);
 
 } // namespace dotnet
-} // namespace hyperion
+} // namespace Hyperion

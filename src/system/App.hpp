@@ -5,7 +5,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Game;
 class SimThread;
@@ -27,4 +27,4 @@ protected:
     App();
 };
 
-} // namespace hyperion
+} // namespace Hyperion

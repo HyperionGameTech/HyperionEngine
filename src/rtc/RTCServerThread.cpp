@@ -3,7 +3,7 @@
 #include <HyperionPch.hpp>
 #include <rtc/RTCServerThread.hpp>
 
-namespace hyperion {
+namespace Hyperion {
 
 RTCServerThread::RTCServerThread()
     : Thread(NAME("RTCServerThread"))
@@ -34,4 +34,4 @@ void RTCServerThread::operator()(RTCServer* server)
         });
 }
 
-} // namespace hyperion
+} // namespace Hyperion

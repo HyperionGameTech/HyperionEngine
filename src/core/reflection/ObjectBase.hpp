@@ -13,7 +13,7 @@
 
 #include <type_traits>
 
-namespace hyperion {
+namespace Hyperion {
 
 class Class;
 class ScriptObjectResource;
@@ -89,13 +89,13 @@ public:
                 return false;
             }
 
-            return hyperion::IsA(otherClass, InstanceClass());
+            return Hyperion::IsA(otherClass, InstanceClass());
         }
     }
 
     HYP_FORCE_INLINE bool IsA(const Class* cls) const
     {
-        return hyperion::IsA(cls, InstanceClass());
+        return Hyperion::IsA(cls, InstanceClass());
     }
 
     HYP_FORCE_INLINE ObjectHeader* GetObjectHeader_Internal() const
@@ -204,4 +204,4 @@ private:
     AtomicVar<uint16> m_initState;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

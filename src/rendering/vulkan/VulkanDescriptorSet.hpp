@@ -23,7 +23,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace hyperion {
+namespace Hyperion {
 
 class VulkanDescriptorSetLayoutWrapper;
 
@@ -100,4 +100,4 @@ public:
     virtual ~VulkanDescriptorTable() override = default;
 };
 
-} // namespace hyperion
+} // namespace Hyperion

@@ -22,7 +22,7 @@
 
 #include <Mesh.generated.inl>
 
-namespace hyperion {
+namespace Hyperion {
 
 static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
 
@@ -92,10 +92,10 @@ Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology)
 
 Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology)
     : Mesh(
-        vertexData,
-        indexData,
-        topology,
-        staticMeshVertexAttributes | skeletonVertexAttributes)
+          vertexData,
+          indexData,
+          topology,
+          staticMeshVertexAttributes | skeletonVertexAttributes)
 {
 }
 
@@ -482,4 +482,4 @@ bool Mesh::BuildBVH(int maxDepth)
 
 #pragma endregion Mesh
 
-} // namespace hyperion
+} // namespace Hyperion
