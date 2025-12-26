@@ -252,9 +252,6 @@ namespace Hyperion.Editor.ViewModels
 
         private EditorSubsystem _editorSubsystem;
 
-        private const int GameLaunchWaitIntervalMs = 500;
-        private const int MaxGameLaunchWaitTimeMs = 60000; // max before giving up
-
         public MainWindowViewModel()
         {
             SceneHierarchy = new SceneHierarchyViewModel();
@@ -292,6 +289,8 @@ namespace Hyperion.Editor.ViewModels
 
         private void Init(HyperionEditorGame editorGame)
         {
+            Dispatcher.UIThread.CheckAccess();
+
             World? world = editorGame.World;
             if (world == null)
                 throw new InvalidOperationException("Editor world is not initialized.");
@@ -304,6 +303,7 @@ namespace Hyperion.Editor.ViewModels
 
             ContentBrowser = new ContentBrowserViewModel(_editorSubsystem);
             ContentBrowser.LoadPackages();
+            OnPropertyChanged(nameof(ContentBrowser));
 
             Action<EditorProject?> setGameModeChangedHandler = (EditorProject? project) =>
             {
