@@ -296,7 +296,6 @@ void EngineDriver::SetGameInstance(Game* gameInstance)
     AssertOnThread(g_mainThread);
 
     Assert(gameInstance != nullptr);
-    Assert(g_simThreadInstance->IsRunning());
 
     Handle<Game> gameInstanceStrong = MakeStrongRef(gameInstance);
 

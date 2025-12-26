@@ -162,7 +162,6 @@ static constexpr inline uint8 GetLightmapStencilValue(LightmapElementId lightmap
     return value;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 /// Set attributes, used to decide what shader variant + pipeline to use for rendering the given proxy.
 static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
 {
@@ -317,7 +316,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         attributes.SetShaderDefinition(shaderDefinition);
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace GeometryPass
 
@@ -328,7 +326,7 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
     // Disable occlusion culling for translucent objects
     const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-    if (rb == RB_TRANSLUCENT || rb == RB_DEBUG)
+    if (rb == RB_TRANSLUCENT || rb == RB_SKYBOX || rb == RB_DEBUG)
     {
         renderGroupFlags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
     }

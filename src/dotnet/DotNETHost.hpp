@@ -25,7 +25,7 @@ class DotNetImpl;
 using AddObjectToCacheFunction = void (*)(void* ptr, dotnet::ManagedClass** outClass, dotnet::ObjectReference* outObjectReference, int8 isWeak);
 using SetKeepAliveFunction = void (*)(dotnet::ObjectReference* objectReference, int32* keepAlive);
 using TriggerGCFunction = void (*)();
-using GetAssemblyPointerFunction = void (*)(dotnet::ObjectReference* assemblyObjectReference, dotnet::Assembly** outPAssembly);
+using GetAssemblyPointerFunction = void (*)(dotnet::ObjectReference* assemblyObjectReference, dotnet::Assembly** pOutAssembly);
 
 using InitFromManagedCallback = void (*)(struct ManagedDelegates*);
 

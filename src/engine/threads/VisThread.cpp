@@ -372,6 +372,7 @@ void VisThread::Push(
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void VisThread::Process()
 {
     ENGINE_STAT_SCOPE(&g_visUpdateTimer);
@@ -401,6 +402,7 @@ void VisThread::Process()
 
     m_visSemaphore.release();
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void VisThread::operator()()
 {

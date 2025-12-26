@@ -117,14 +117,14 @@ extern "C"
         DotNETHost::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction = getAssemblyPointerFunction;
     }
 
-    HYP_EXPORT void NativeInterop_GetAssemblyPointer(ObjectReference* assemblyObjectReference, Assembly** outPAssembly)
+    HYP_EXPORT void NativeInterop_GetAssemblyPointer(ObjectReference* assemblyObjectReference, Assembly** pOutAssembly)
     {
         Assert(assemblyObjectReference != nullptr);
-        Assert(outPAssembly != nullptr);
+        Assert(pOutAssembly != nullptr);
 
-        *outPAssembly = nullptr;
+        *pOutAssembly = nullptr;
 
-        DotNETHost::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction(assemblyObjectReference, outPAssembly);
+        DotNETHost::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction(assemblyObjectReference, pOutAssembly);
     }
 
     HYP_EXPORT void NativeInterop_AddObjectToCache(void* ptr, ManagedClass** outClass, ObjectReference* outObjectReference, int8 weak)
@@ -136,14 +136,14 @@ extern "C"
         DotNETHost::GetInstance().GetGlobalFunctions().addObjectToCacheFunction(ptr, outClass, outObjectReference, weak);
     }
 
-    HYP_EXPORT int NativeInterop_NewAssembly(ManagedGuid guid, Assembly** outPAssembly)
+    HYP_EXPORT int NativeInterop_NewAssembly(ManagedGuid guid, Assembly** pOutAssembly)
     {
-        Assert(outPAssembly != nullptr);
+        Assert(pOutAssembly != nullptr);
 
-        *outPAssembly = nullptr;
+        *pOutAssembly = nullptr;
 
         RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(guid);
-        *outPAssembly = assembly.Get();
+        *pOutAssembly = assembly.Get();
         memory::detail::IncStrong(assembly.GetBlock_Internal()); // keep alive after this function returns
 
         return int(LoadAssemblyResult::OK);
@@ -163,7 +163,7 @@ extern "C"
         Assert(assemblyGuid != nullptr);
         Assert(pAssembly != nullptr);
 
-        HYP_LOG(DotNET, Info, "Registering .NET managed class {}", typeName);
+        HYP_LOG(DotNET, Debug, "Registering .NET managed class {} for Assembly {}", typeName, pAssembly->GetGuid());
 
         RC<ManagedClass> classObject = pAssembly->NewClass(cls, typeHash, typeName, typeSize, typeId, parentClass, flags);
 

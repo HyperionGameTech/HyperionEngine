@@ -601,19 +601,19 @@ Handle<Material> MaterialCache::CreateMaterial(
     const MaterialTextures& textures)
 {
     MaterialAttributes tmpAttributes;
-    const MaterialAttributes* pAttributes = &attributes;
+    const MaterialAttributes* attributesPtr = &attributes;
 
     if (!attributes.shaderDefinition)
     {
         tmpAttributes = attributes;
         tmpAttributes.shaderDefinition = s_defaultShaderDefinition;
 
-        pAttributes = &tmpAttributes;
+        attributesPtr = &tmpAttributes;
     }
 
     Handle<Material> handle = CreateObject<Material>(
         name,
-        *pAttributes,
+        *attributesPtr,
         parameters,
         textures);
 
@@ -628,7 +628,7 @@ Handle<Material> MaterialCache::GetOrCreate(
     const MaterialParameters& parameters,
     const MaterialTextures& textures)
 {
-    const MaterialAttributes* pAttributes = &attributes;
+    const MaterialAttributes* attributesPtr = &attributes;
     MaterialAttributes tmpAttributes;
 
     if (!attributes.shaderDefinition)
@@ -636,10 +636,10 @@ Handle<Material> MaterialCache::GetOrCreate(
         tmpAttributes = attributes;
         tmpAttributes.shaderDefinition = s_defaultShaderDefinition;
 
-        pAttributes = &tmpAttributes;
+        attributesPtr = &tmpAttributes;
     }
 
-    const HashCode hc = GetMaterialHashCode(*pAttributes, parameters, textures);
+    const HashCode hc = GetMaterialHashCode(*attributesPtr, parameters, textures);
 
     Handle<Material> strongRef;
 
@@ -665,7 +665,7 @@ Handle<Material> MaterialCache::GetOrCreate(
 
         strongRef = CreateObject<Material>(
             name,
-            *pAttributes,
+            *attributesPtr,
             parameters,
             textures);
 

@@ -51,6 +51,8 @@ namespace Hyperion
 
         private static void InitializeHyperionAssembly(Assembly assembly, bool isCoreAssembly)
         {
+            Logger.Log(LogType.Debug, "Initializing Hyperion assembly: {0}", assembly.FullName);
+
             if (!IsHyperionAssembly(assembly))
             {
                 throw new InvalidOperationException("Assembly is not a Hyperion.* assembly: " + assembly.FullName);
@@ -361,11 +363,11 @@ namespace Hyperion
                 return IntPtr.Zero;
             }
 
-            AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly);
+            AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly.GetName());
 
             if (assemblyInstance == null)
             {
-                throw new Exception("Failed to get assembly instance for type: " + type.Name + " from assembly: " + type.Assembly.FullName
+                throw new Exception("InitManagerClass: Failed to get assembly instance for type: " + type.Name + " from assembly: " + type.Assembly.FullName
                     + " located at: " + type.Assembly.Location
                     + ", has the assembly been registered?");
             }

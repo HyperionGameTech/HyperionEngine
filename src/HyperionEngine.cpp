@@ -530,9 +530,12 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
-        Assert(g_simThreadInstance != nullptr);
+        Handle<Game> gameStrong = pGame ? MakeStrongRef(pGame) : Handle<Game>::Null();
 
-        g_simThreadInstance->SetGame(pGame ? MakeStrongRef(pGame) : Handle<Game>::Null());
+        g_engineDriver->SetGameInstance(gameStrong);
+
+        Assert(g_simThreadInstance != nullptr);
+        g_simThreadInstance->SetGame(gameStrong);
     }
 
     HYP_EXPORT int Hyp_LaunchThreads()
@@ -545,7 +548,7 @@ extern "C"
         {
             return int(g_engineDriver->StartThreads());
         }
-        
+
         return 0;
     }
 

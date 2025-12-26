@@ -45,8 +45,8 @@ public:
     virtual ~DotNetImplBase() = default;
 
     virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) = 0;
-    virtual RC<Assembly> LoadAssembly(const char* path) const = 0;
-    virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
+    virtual RC<Assembly> LoadAssembly(const char* path) = 0;
+    virtual bool UnloadAssembly(ManagedGuid guid) = 0;
     virtual bool IsCoreAssembly(ManagedGuid guid) const = 0;
     virtual bool IsCoreAssembly(const Assembly* assembly) const = 0;
 
@@ -220,8 +220,6 @@ public:
 
             HYP_LOG(DotNET, Info, "Loading core assembly: {}", entry.first);
 
-            auto it = m_coreAssemblies.Insert(entry.first, assembly).first;
-
             // Initialize all core assemblies
             result = m_managedDelegates.initializeAssembly(
                 &assembly->GetGuid(),
@@ -233,16 +231,24 @@ public:
             {
                 HYP_FAIL("Failed to load assembly `{}`: Got error code {}", entry.first.Data(), result);
             }
+
+            m_coreAssemblies.Insert(entry.first, assembly->GetGuid());
+            m_assembliesByPath.Insert(entry.second, assembly);
         }
     }
 
-    virtual RC<Assembly> LoadAssembly(const char* path) const override
+    virtual RC<Assembly> LoadAssembly(const char* path) override
     {
         constexpr ManagedGuid EmptyGuid { 0, 0 };
 
-        RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(EmptyGuid);
-
         Optional<FilePath> filepath = FindAssemblyFilePath(m_basePath, path);
+
+        auto it = m_assembliesByPath.Find(*filepath);
+
+        if (it != m_assembliesByPath.End())
+        {
+            return it->second;
+        }
 
         if (!filepath.HasValue())
         {
@@ -250,6 +256,8 @@ public:
 
             return nullptr;
         }
+
+        RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(EmptyGuid);
 
         Assert(m_managedDelegates.initializeAssembly != nullptr);
 
@@ -266,10 +274,12 @@ public:
             return nullptr;
         }
 
+        m_assembliesByPath[*filepath] = assembly;
+
         return assembly;
     }
 
-    virtual bool UnloadAssembly(ManagedGuid assemblyGuid) const override
+    virtual bool UnloadAssembly(ManagedGuid assemblyGuid) override
     {
         if (IsCoreAssembly(assemblyGuid))
         {
@@ -293,12 +303,15 @@ public:
             return false;
         }
 
-        auto it = m_coreAssemblies.FindIf([assemblyGuid](const auto& it)
+        for (const auto& pair : m_coreAssemblies)
+        {
+            if (pair.second == assemblyGuid)
             {
-                return Memory::MemCmp(&it.second->GetGuid(), &assemblyGuid, sizeof(ManagedGuid)) == 0;
-            });
+                return true;
+            }
+        }
 
-        return it != m_coreAssemblies.End();
+        return false;
     }
 
     virtual bool IsCoreAssembly(const Assembly* assembly) const override
@@ -508,7 +521,8 @@ private:
 
     ManagedDelegates m_managedDelegates;
 
-    HashMap<String, RC<Assembly>> m_coreAssemblies;
+    HashMap<FilePath, RC<Assembly>> m_assembliesByPath;
+    HashMap<String, ManagedGuid> m_coreAssemblies;
 
     hostfxr_handle m_cxt;
     hostfxr_initialize_for_runtime_config_fn m_initFptr;
@@ -530,12 +544,12 @@ public:
     {
     }
 
-    virtual RC<Assembly> LoadAssembly(const char* path) const override
+    virtual RC<Assembly> LoadAssembly(const char* path) override
     {
         return nullptr;
     }
 
-    virtual bool UnloadAssembly(ManagedGuid guid) const override
+    virtual bool UnloadAssembly(ManagedGuid guid) override
     {
         return false;
     }

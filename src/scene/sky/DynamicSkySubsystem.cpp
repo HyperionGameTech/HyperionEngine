@@ -64,13 +64,13 @@ void DynamicSkySubsystem::Init()
 
         m_camera = m_renderScene->GetEntityManager()->AddEntity<Camera>(
             90.0f,
-            int(m_dimensions.x), int(m_dimensions.y),
+            -int(m_dimensions.x), int(m_dimensions.y),
             0.1f, 10000.0f);
 
         m_renderScene->GetEntityManager()->AddTag<EntityTag::PrimaryCamera>(m_camera);
 
         m_camera->SetName(NAME("DynamicSkyCaptureCamera"));
-        m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f::UnitZ(), Vec3f::Zero(), Vec3f::UnitY()));
+        m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f::Zero(), Vec3f::UnitZ(), Vec3f::UnitY()));
         InitObject(m_camera);
         m_renderScene->GetRoot()->AddChild(m_camera);
 
