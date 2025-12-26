@@ -74,7 +74,7 @@ const CommandLineArgumentDefinitions& CoreApi_DefaultCommandLineArgumentDefiniti
                 "Use a dedicated thread for setting visibility states. If set to false, visibility will be computed on the simulation thread during normal frame processing.",
                 CommandLineArgumentFlags::NONE,
                 CommandLineArgumentType::BOOLEAN,
-                true);
+                false);
 
             definitions.Add("Mode", "m", {}, CommandLineArgumentFlags::NONE, Array<String> { "precompile_shaders", "editor" }, String("editor"));
         }

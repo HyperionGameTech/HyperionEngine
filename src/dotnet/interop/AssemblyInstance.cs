@@ -527,7 +527,7 @@ namespace Hyperion
                     throw new Exception("Assembly already exists in cache");
                 }
 
-                string? basePath = System.IO.Path.GetDirectoryName(path);
+                string? basePath = Path.GetDirectoryName(path);
 
                 if (basePath == null)
                 {
@@ -542,9 +542,12 @@ namespace Hyperion
                     ownsAssemblyPtr: ownsAssemblyPtr,
                     isCoreAssembly: isCoreAssembly);
 
-                assemblyInstance.Load();
+                if (!assemblies.TryAdd(guid, assemblyInstance))
+                {
+                    throw new Exception($"Failed to add assembly {guid} to cache");
+                }
 
-                assemblies.Add(guid, assemblyInstance);
+                assemblyInstance.Load();
 
                 return assemblyInstance;
             }
@@ -554,12 +557,10 @@ namespace Hyperion
         {
             lock (lockObject)
             {
-                if (assemblies.ContainsKey(assemblyInstance.Guid))
+                if (!assemblies.TryAdd(assemblyInstance.Guid, assemblyInstance))
                 {
-                    throw new Exception("Assembly already exists in cache");
+                    throw new Exception($"Failed to add assembly {assemblyInstance.Guid} to cache");
                 }
-
-                assemblies.Add(assemblyInstance.Guid, assemblyInstance);
             }
         }
 

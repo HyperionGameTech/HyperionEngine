@@ -29,7 +29,8 @@ public:
         Assert(managedAssembly != nullptr, "Failed to load Hyperion.NET.Scripting assembly");
 
         RC<dotnet::ManagedClass> managedClass = managedAssembly->FindClassByName("ScriptTracker");
-        Assert(managedClass != nullptr, "Failed to load ScriptTracker class from Hyperion.NET.Scripting assembly");
+        Assert(managedClass != nullptr, "Failed to load ScriptTracker class from Hyperion.NET.Scripting assembly (Guid: {})",
+            managedAssembly->GetGuid());
 
         object = UniquePtr<dotnet::ManagedObject>(managedClass->NewObject());
         assembly = std::move(managedAssembly);

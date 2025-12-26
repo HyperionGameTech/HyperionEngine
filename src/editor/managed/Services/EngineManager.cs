@@ -182,7 +182,6 @@ namespace Hyperion.Editor
                 string[] coreAssemblyNames = [
                     "Hyperion.NET.Shared.dll",
                     "Hyperion.NET.Runtime.dll",
-                    "Hyperion.NET.Scripting.dll",
 
                     // Loading our own dll is necessary to load HyperionEditorGame into class registry.
                     "Hyperion.Editor.dll"

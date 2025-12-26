@@ -143,7 +143,7 @@ void EnvProbe::Init()
             m_cameraNear, m_cameraFar);
 
         camera->SetName(NAME("EnvProbeCamera"));
-        camera->SetViewMatrix(Mat4f::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
+        camera->SetViewMatrix(Mat4f::LookAt(m_aabb.GetCenter(), m_aabb.GetCenter() + Vec3f::UnitZ(), Vec3f::UnitY()));
 
         InitObject(camera);
         AddChild(camera);
