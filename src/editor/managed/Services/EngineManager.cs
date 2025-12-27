@@ -15,10 +15,14 @@ namespace Hyperion.Editor
         public static Game? GameInstance { get; private set; } // Local copy of EngineDriver.Instance.GameInstance
 
         public static EditorProject? CurrentProject { get; private set; }
-        private static DelegateHandler? _onCurrentProjectChanged;
-        private static DelegateHandler? _gameLaunchedHandler;
+
+
         private static List<EditorViewport> _registeredViewports = new List<EditorViewport>();
         private static Lock _lockViewports = new Lock();
+
+        private static DelegateHandler? _onCurrentProjectChanged;
+        private static DelegateHandler? _gameLaunchedHandler;
+
         private static bool _editorViewportsEnabled = true;
 
         public static void Initialize()
@@ -98,9 +102,11 @@ namespace Hyperion.Editor
             if (EditorGame.IsLaunched())
             {
                 _lockViewports.Enter();
+
                 try
                 {
                     EditorSubsystem? editorSubsystem = EditorGame.EditorSubsystem;
+
                     if (editorSubsystem == null)
                     {
                         throw new InvalidOperationException("EditorSubsystem is not initialized!");

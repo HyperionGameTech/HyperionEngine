@@ -27,6 +27,7 @@ namespace Hyperion.Editor.ViewModels
         public event Action<Node?>? SelectedNodeChanged;
 
         private Scene? _scene;
+        private DelegateHandler? _onSelectedNodeChanged;
 
         public void AttachToScene(Scene? scene)
         {
@@ -55,8 +56,9 @@ namespace Hyperion.Editor.ViewModels
             {
                 RootNodes.Add(new NodeViewModel(root));
             }
-
-            scene.GetOnRootNodeChangedDelegate().Bind((Node newRoot, Node oldRoot) =>
+            
+            _onSelectedNodeChanged?.Remove();
+            _onSelectedNodeChanged = scene.GetOnRootNodeChangedDelegate().Bind((Node newRoot, Node oldRoot) =>
             {
                 Dispatcher.UIThread.Invoke(() =>
                 {
@@ -67,7 +69,18 @@ namespace Hyperion.Editor.ViewModels
                         RootNodes.Add(new NodeViewModel(newRoot));
                     }
                 });
-            }).Detach();
+            });
+        }
+
+        void DetachFromScene()
+        {
+            Dispatcher.UIThread.CheckAccess();
+
+            _scene = null;
+            RootNodes.Clear();
+
+            _onSelectedNodeChanged?.Remove();
+            _onSelectedNodeChanged = null;
         }
 
         public void SelectNodeFromEngine(Node? node)

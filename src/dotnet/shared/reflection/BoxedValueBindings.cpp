@@ -207,6 +207,9 @@ extern "C"
         if (pBoxed->IsArray())
         {
             GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
+            
+            // construct it
+            new (pOutArrayElem) BoxedValue;
 
             return arrayWrapper.GetElementAt(SizeType(index), *pOutArrayElem);
         }

@@ -9,6 +9,23 @@ namespace Hyperion.Editor.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase, IDisposable
     {
+        private class RelayCommand<T> : ICommand
+        {
+            private readonly Action<T?> _execute;
+            private readonly Func<T?, bool>? _canExecute;
+
+            public RelayCommand(Action<T?> execute, Func<T?, bool>? canExecute = null)
+            {
+                _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+                _canExecute = canExecute;
+            }
+
+            public bool CanExecute(object? parameter) => _canExecute == null || _canExecute((T?)parameter);
+            public void Execute(object? parameter) => _execute((T?)parameter);
+            public event EventHandler? CanExecuteChanged;
+            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         public class EditorCommand : ICommand
         {
             private string _name;
@@ -251,6 +268,39 @@ namespace Hyperion.Editor.ViewModels
         private bool _isReady = false;
 
         private EditorSubsystem _editorSubsystem;
+    
+        private List<SceneViewModel> _scenes = new List<SceneViewModel>();
+        public List<SceneViewModel> Scenes => _scenes;
+        
+        private SceneViewModel? _activeScene;
+        public SceneViewModel? ActiveScene
+        {
+            get => _activeScene;
+            set
+            {
+                Logger.Log(LogType.Info, $"Setting ActiveScene to {(value != null ? value.Scene.Name.ToString() : "null")}");
+                if (_activeScene == value)
+                    return;
+
+                _activeScene = value;
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    try
+                    {
+                        _editorSubsystem.SetActiveScene(_activeScene?.Scene);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogType.Warn, $"Failed to set active scene: {ex.Message}");
+                    }
+                });
+
+                OnPropertyChanged(nameof(ActiveScene));
+            }
+        }
+
+        public ICommand SetActiveSceneCommand { get; private set; }
 
         public MainWindowViewModel()
         {
@@ -285,6 +335,14 @@ namespace Hyperion.Editor.ViewModels
             SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
             SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
             SetGameModeStopped = new SetGameModeCommand(GameStateMode.Stopped);
+
+            SetActiveSceneCommand = new RelayCommand<SceneViewModel>(scene =>
+            {
+                if (scene != null)
+                {
+                    ActiveScene = scene;
+                }
+            });
         }
 
         private void Init(HyperionEditorGame editorGame)
@@ -304,61 +362,13 @@ namespace Hyperion.Editor.ViewModels
             ContentBrowser = new ContentBrowserViewModel(_editorSubsystem);
             ContentBrowser.LoadPackages();
             OnPropertyChanged(nameof(ContentBrowser));
-
-            Action<EditorProject?> setGameModeChangedHandler = (EditorProject? project) =>
-            {
-                _selectedGizmoChangedHandler?.Remove();
-                _gameModeChangedHandler?.Remove();
-
-                if (project != null)
-                {
-                    _gameModeChangedHandler = project.GameInstance.GetOnGameStateChangeDelegate()
-                        .Bind((Game game, GameStateMode newMode, GameStateMode prevMode) =>
-                        {
-                            Dispatcher.UIThread.Post(() =>
-                            {
-                                (SetGameModePlaying as SetGameModeCommand)?.RaiseCanExecuteChanged();
-                                (SetGameModeStopped as SetGameModeCommand)?.RaiseCanExecuteChanged();
-                                (SetGameModePaused as SetGameModeCommand)?.RaiseCanExecuteChanged();
-                                OnPropertyChanged(nameof(CanSetGameModePlaying));
-                                OnPropertyChanged(nameof(CanSetGameModePaused));
-                                OnPropertyChanged(nameof(CanSetGameModeStopped));
-
-                                (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                                (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                                (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                                OnPropertyChanged(nameof(CanSelectGizmo));
-                            });
-                        });
-                }
-
-                _selectedGizmoChangedHandler = _editorSubsystem.GetOnSelectedGizmoChangedDelegate()
-                    .Bind((EditorGizmoBase? newGizmo, EditorGizmoBase? prevGizmo) =>
-                    {
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                            (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                            (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-
-                            OnPropertyChanged(nameof(CanSelectGizmo));
-                        });
-                    });
-
-                OnPropertyChanged(nameof(CanSetGameModePlaying));
-                OnPropertyChanged(nameof(CanSetGameModePaused));
-                OnPropertyChanged(nameof(CanSetGameModeStopped));
-
-                OnPropertyChanged(nameof(CanSelectGizmo));
-            };
-
-            setGameModeChangedHandler(EngineManager.CurrentProject);
+            
+            HandleCurrentProjectChanged(_editorSubsystem.CurrentProject);
 
             EditorState editorState = EditorState.Instance;
 
-            // when project changes we also want to update the play/pause/stop buttons
             _currentProjectChangedHandler = editorState.GetOnCurrentProjectChangedDelegate()
-                .Bind(setGameModeChangedHandler);
+                .Bind(HandleCurrentProjectChanged);
 
             // handle active scene changes
             _activeSceneChangedHandler = _editorSubsystem.GetOnActiveSceneChangedDelegate()
@@ -373,11 +383,7 @@ namespace Hyperion.Editor.ViewModels
                 Scene? activeScene = _editorSubsystem.GetActiveScene();
                 Node? focusedNode = _editorSubsystem.GetFocusedNode();
 
-                Dispatcher.UIThread.Post(() =>
-                {
-                    SceneHierarchy.AttachToScene(activeScene);
-                });
-
+                HandleActiveSceneChanged(activeScene);
                 HandleFocusedNodeUpdate(focusedNode);
             });
 
@@ -404,8 +410,87 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
+                if (scene == null)
+                {
+                    ActiveScene = null;
+                    return;
+                }
+
+                _activeScene = _scenes.Find(s => s.Scene == scene);
+                
+                if (_activeScene == null)
+                {
+                    _activeScene = new SceneViewModel(scene, isActive: true);
+                    _scenes.Add(_activeScene);
+
+                    OnPropertyChanged(nameof(Scenes));
+                }
+
                 SceneHierarchy.AttachToScene(scene);
+
+                OnPropertyChanged(nameof(ActiveScene));
             });
+        }
+
+        private void HandleCurrentProjectChanged(EditorProject? project)
+        {
+            // Game mode:  when project changes we also want to update the play/pause/stop buttons
+            _gameModeChangedHandler?.Remove();
+
+            if (project != null)
+            {
+                _gameModeChangedHandler = project.GameInstance.GetOnGameStateChangeDelegate()
+                    .Bind((Game game, GameStateMode newMode, GameStateMode prevMode) =>
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            (SetGameModePlaying as SetGameModeCommand)?.RaiseCanExecuteChanged();
+                            (SetGameModeStopped as SetGameModeCommand)?.RaiseCanExecuteChanged();
+                            (SetGameModePaused as SetGameModeCommand)?.RaiseCanExecuteChanged();
+                            OnPropertyChanged(nameof(CanSetGameModePlaying));
+                            OnPropertyChanged(nameof(CanSetGameModePaused));
+                            OnPropertyChanged(nameof(CanSetGameModeStopped));
+
+                            (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                            (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                            (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                            OnPropertyChanged(nameof(CanSelectGizmo));
+                        });
+                    });
+            }
+
+            _selectedGizmoChangedHandler?.Remove();
+            _selectedGizmoChangedHandler = _editorSubsystem.GetOnSelectedGizmoChangedDelegate()
+                .Bind((EditorGizmoBase? newGizmo, EditorGizmoBase? prevGizmo) =>
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                        (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                        (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+
+                        OnPropertyChanged(nameof(CanSelectGizmo));
+                    });
+                });
+
+            OnPropertyChanged(nameof(CanSetGameModePlaying));
+            OnPropertyChanged(nameof(CanSetGameModePaused));
+            OnPropertyChanged(nameof(CanSetGameModeStopped));
+
+            OnPropertyChanged(nameof(CanSelectGizmo));
+
+            // Update scenes list
+            _scenes.Clear();
+
+            if (project != null)
+            {
+                foreach (Scene scene in project.World.GetScenes())
+                {
+                    _scenes.Add(new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id));
+                }
+            }
+
+            OnPropertyChanged(nameof(Scenes));
         }
 
         private void OnSceneHierarchyNodeSelected(Node? node)

@@ -3,6 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hyp="clr-namespace:Hyperion;assembly=Hyperion.Runtime"
     xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
     xmlns:local="clr-namespace:Hyperion.Editor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -14,10 +15,6 @@
     d:DesignWidth="1280"
     x:DataType="vm:MainWindowViewModel"
     mc:Ignorable="d">
-
-    <Window.DataContext>
-        <vm:MainWindowViewModel />
-    </Window.DataContext>
 
     <Window.Styles>
         <Style Selector="TabControl">
@@ -103,6 +100,10 @@
                 <MenuItem Command="{Binding SaveProject}" Header="_Save Project" />
                 <MenuItem Header="Save Project _As..." />
                 <Separator />
+                <MenuItem Header="_Scene">
+                    <MenuItem Header="_New Scene" />
+                </MenuItem>
+                <Separator />
                 <MenuItem Command="{Binding Exit}" Header="_Exit" />
             </MenuItem>
             <MenuItem Header="_Edit">
@@ -185,12 +186,33 @@
                 <Grid Grid.Column="0" RowDefinitions="*, Auto, *">
                     <!--  Scene Hierarchy  -->
                     <Grid Grid.Row="0" RowDefinitions="Auto, *">
-                        <Border Classes="panel-header">
+                        <Border Grid.Row="0" Classes="panel-header">
                             <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
-                                <TextBlock
+                                <DropDownButton
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Left"
                                     VerticalAlignment="Center"
-                                    Classes="header"
-                                    Text="Scene Tree" />
+                                    Background="Transparent"
+                                    BorderThickness="0">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            Classes="header"
+                                            Text="{Binding ActiveScene.Name, FallbackValue='No Active Scene'}" />
+                                    </StackPanel>
+                                    <DropDownButton.Flyout>
+                                        <MenuFlyout ItemsSource="{Binding Scenes}">
+                                            <MenuFlyout.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:SceneViewModel">
+                                                    <MenuItem
+                                                        Command="{Binding DataContext.SetActiveSceneCommand, ElementName=Root}"
+                                                        CommandParameter="{Binding}"
+                                                        Header="{Binding Name}" />
+                                                </DataTemplate>
+                                            </MenuFlyout.ItemTemplate>
+                                        </MenuFlyout>
+                                    </DropDownButton.Flyout>
+                                </DropDownButton>
                                 <Button
                                     Grid.Column="1"
                                     Margin="0,0,4,0"

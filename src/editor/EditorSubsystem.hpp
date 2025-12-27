@@ -399,7 +399,8 @@ public:
     HYP_METHOD()
     Handle<Scene> GetActiveScene() const;
 
-    void SetActiveScene(const WeakHandle<Scene>& scene);
+    HYP_METHOD()
+    void SetActiveScene(const Handle<Scene>& scene);
 
     HYP_METHOD()
     EditorManipulationMode GetSelectedManipulationMode() const;
