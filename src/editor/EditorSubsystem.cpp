@@ -1357,7 +1357,7 @@ EditorSubsystem::EditorSubsystem()
 
                 g_engineDriver->AddWorld(project->GetWorld());
 
-                WeakHandle<Scene> activeScene;
+                Handle<Scene> activeScene;
 
                 for (const Handle<Scene>& scene : project->GetWorld()->GetScenes())
                 {
@@ -1460,7 +1460,7 @@ EditorSubsystem::EditorSubsystem()
                     m_highlightNode->Remove();
                 }
 
-                SetActiveScene(WeakHandle<Scene>::Null());
+                SetActiveScene(Handle<Scene>::Null());
 
                 for (const Handle<Scene>& scene : project->GetWorld()->GetScenes())
                 {
@@ -3483,7 +3483,7 @@ void EditorSubsystem::SetHoveredGizmo(
     m_hoveredGizmoNode = gizmoNode;
 }
 
-void EditorSubsystem::SetActiveScene(const WeakHandle<Scene>& scene)
+void EditorSubsystem::SetActiveScene(const Handle<Scene>& scene)
 {
     HYP_SCOPE;
 
@@ -3493,9 +3493,8 @@ void EditorSubsystem::SetActiveScene(const WeakHandle<Scene>& scene)
     }
 
     m_activeScene = scene;
-    HYP_LOG(Editor, Debug, "Set active scene: {}", m_activeScene.IsValid() ? m_activeScene.Lock()->GetName() : Name::Invalid());
 
-    OnActiveSceneChanged(m_activeScene.Lock());
+    OnActiveSceneChanged(scene);
 }
 
 EditorViewport* EditorSubsystem::GetActiveViewport() const

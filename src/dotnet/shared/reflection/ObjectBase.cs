@@ -267,6 +267,37 @@ namespace Hyperion
             return $"[ObjectBase: {Class.Name}, Address: 0x{(long)NativeAddress:X}]";
         }
 
+        public override bool Equals(object? obj)
+        {
+            if (obj is ObjectBase other)
+            {
+                return _nativeAddress == other._nativeAddress && _nativeAddress != IntPtr.Zero;
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _nativeAddress.GetHashCode();
+        }
+
+        public static bool operator ==(ObjectBase? left, ObjectBase? right)
+        {
+            if (ReferenceEquals(left, right))
+                return true;
+
+            if (left is null || right is null)
+                return false;
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(ObjectBase? left, ObjectBase? right)
+        {
+            return !(left == right);
+        }
+
         [DllImport("hyperion", EntryPoint = "Object_Initialize")]
         private static extern void Object_Initialize([In] IntPtr classPtr, [In] IntPtr pClass, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
 

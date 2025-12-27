@@ -181,6 +181,7 @@ public:
     HYP_METHOD()
     const Handle<Scene>& GetSceneByName(Name name) const;
 
+    HYP_METHOD()
     const Array<Handle<Scene>>& GetScenes() const
     {
         return m_scenes;
