@@ -806,7 +806,7 @@ void Logger::LogScript(const LogChannel& channel, const LogCategory& category, c
 
 namespace logging {
 
-HYP_API void LogTemp(Logger& logger, const char* str)
+void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumber)
 {
     static constexpr const LogCategory& Category = LogCategory::Debug;
 
@@ -818,13 +818,15 @@ HYP_API void LogTemp(Logger& logger, const char* str)
     static const LogChannel& s_channel = g_logChannel_Temp;
     static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Category.GetLevel()>());
 
-    logger.Log(
-        s_channel,
-        LogMessage {
-            Category.GetLevel(),
-            Time::Now().ToMilliseconds(),
-            Span<StringView<StringType::UTF8>> {
-                { s_prefix, str, "\n" } } });
+    const LogMessage logMessage {
+        Category.GetLevel(),
+        Time::Now().ToMilliseconds(),
+        Span<StringView<StringType::UTF8>> {
+            { s_prefix, str, "\n" } },
+        fileName, lineNumber
+    };
+
+    logger.Log(s_channel, logMessage);
 }
 
 } // namespace logging

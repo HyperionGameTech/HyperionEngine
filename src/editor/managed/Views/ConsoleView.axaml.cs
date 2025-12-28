@@ -129,10 +129,6 @@ namespace Hyperion.Editor
             {
                 _scrollViewer.ScrollToEnd();
             }
-            else if (_listBox.ItemCount > 0)
-            {
-                _listBox.ScrollIntoView(_listBox.ItemCount - 1);
-            }
         }
     }
 }

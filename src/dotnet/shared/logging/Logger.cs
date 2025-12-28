@@ -49,28 +49,15 @@ namespace Hyperion
 
             if (frame == null)
             {
-                Logger_Log(defaultChannel.ptr, (uint)logLevel, "", 0, formattedMessage);
+                Logger_Log(defaultChannel.ptr, (uint)logLevel, string.Empty, 0, formattedMessage);
 
                 return;
             }
 
-            string? funcName = frame.GetMethod()?.Name;
-
-            if (funcName == null)
-            {
-                funcName = "<Unknown>";
-            }
-
             string? fileName = frame.GetFileName();
-
-            if (fileName != null)
-            {
-                fileName = fileName.Replace("\\", "/").Substring(fileName.LastIndexOf('/') + 1);
-            }
-
             uint line = (uint)frame.GetFileLineNumber();
 
-            Logger_Log(defaultChannel.ptr, (uint)logLevel, funcName, line, formattedMessage);
+            Logger_Log(defaultChannel.ptr, (uint)logLevel, fileName, line, formattedMessage);
         }
 
         public static void Log(LogChannel channel, LogType logLevel, string message, params object?[] args)
@@ -95,26 +82,13 @@ namespace Hyperion
                 return;
             }
 
-            string? funcName = frame.GetMethod()?.Name;
-
-            if (funcName == null)
-            {
-                funcName = "<Unknown>";
-            }
-
             string? fileName = frame.GetFileName();
-
-            if (fileName != null)
-            {
-                fileName = fileName.Replace("\\", "/").Substring(fileName.LastIndexOf('/') + 1);
-            }
-
             uint line = (uint)frame.GetFileLineNumber();
 
-            Logger_Log(channel.ptr, (uint)logLevel, funcName, line, formattedMessage);
+            Logger_Log(channel.ptr, (uint)logLevel, fileName, line, formattedMessage);
         }
 
         [DllImport("hyperion", EntryPoint = "Logger_Log")]
-        private static extern void Logger_Log(IntPtr logChannelPtr, uint logLevel, [MarshalAs(UnmanagedType.LPStr)] string funcName, uint line, [MarshalAs(UnmanagedType.LPStr)] string message);
+        private static extern void Logger_Log(IntPtr logChannelPtr, uint logLevel, [MarshalAs(UnmanagedType.LPStr)] string fileName, uint line, [MarshalAs(UnmanagedType.LPStr)] string message);
     }
 }

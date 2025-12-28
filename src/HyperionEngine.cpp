@@ -665,7 +665,13 @@ extern "C"
     }
 
 #ifdef HYP_EDITOR
-    using LogCallback = void (*)(const char* channel, int level, double timestamp, const char* message);
+    using LogCallback = void (*)(
+        const char* channel,
+        int level,
+        double timestamp,
+        const char* fileName,
+        int lineNumber,
+        const char* text);
 
     LogCallback g_logCallback = nullptr;
     int g_logRedirectId = -1;
@@ -680,7 +686,13 @@ extern "C"
                 text.Append(chunk);
             }
 
-            g_logCallback(channel.name.LookupString(), (int)message.level, (double)message.timestamp, text.Data());
+            g_logCallback(
+                channel.name.LookupString(),
+                (int)message.level,
+                (double)message.timestamp,
+                message.fileName,
+                message.lineNumber,
+                text.Data());
         }
 
         // allow default logging to continue
