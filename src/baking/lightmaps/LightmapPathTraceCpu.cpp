@@ -1,8 +1,7 @@
 #include <HyperionPch.hpp>
 
-#include <lightmapper/LightmapPathTraceCpu.hpp>
+#include <baking/lightmaps/LightmapPathTraceCpu.hpp>
 #include <lightmapper/LightmapAccelerationStructure.hpp>
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
@@ -27,6 +26,7 @@
 #include <scene/Light.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/View.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>

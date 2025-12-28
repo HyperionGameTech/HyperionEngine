@@ -4,9 +4,8 @@
 
 #include <lightmapper/LightmapJob.hpp>
 #include <lightmapper/Lightmapper.hpp>
-#include <lightmapper/LightmapPathTraceCpu.hpp>
-#include <lightmapper/LightmapPathTraceGpu.hpp>
-#include <lightmapper/LightmapVolume.hpp>
+#include <baking/lightmaps/LightmapPathTraceCpu.hpp>
+#include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
@@ -26,6 +25,7 @@
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/FogVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <scene/util/VoxelOctree.hpp>
 
@@ -391,14 +391,14 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
 
 #pragma region LightmapJob < LightmapVolume>
 
-LightmapJob<LightmapVolume>::LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* pLightmapData)
+LightmapJob<LightmapVolume>::LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* lightmapData)
     : LightmapJobBase(std::move(params)),
       m_volume(volume),
-      m_pLightmapData(pLightmapData),
+      m_lightmapData(lightmapData),
       m_lightmapElement(nullptr)
 {
     Assert(m_volume != nullptr);
-    Assert(m_pLightmapData != nullptr);
+    Assert(m_lightmapData != nullptr);
 }
 
 LightmapJob<LightmapVolume>::~LightmapJob()
@@ -448,7 +448,7 @@ LightmapJob<FogVolume>::~LightmapJob()
 
 void LightmapJob<FogVolume>::Start_Internal()
 {
-    const typename LightmapData<FogVolume>::VolumeBitmap& volumeBitmap = m_pLightmapData->GetVolumeBitmap();
+    const typename LightmapData<FogVolume>::VolumeBitmap& volumeBitmap = m_lightmapData->GetVolumeBitmap();
 
     const Vec3u volumeExtent = Vec3u {
         volumeBitmap.GetWidth(),
@@ -487,9 +487,9 @@ uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32
     const Vec3f extentWS = worldAabb.GetExtent();
 
     const Vec3u bitmapExtent = Vec3u {
-        m_pLightmapData->GetVolumeBitmap().GetWidth(),
-        m_pLightmapData->GetVolumeBitmap().GetHeight(),
-        m_pLightmapData->GetVolumeBitmap().GetDepth()
+        m_lightmapData->GetVolumeBitmap().GetWidth(),
+        m_lightmapData->GetVolumeBitmap().GetHeight(),
+        m_lightmapData->GetVolumeBitmap().GetDepth()
     };
 
     const Vec3f texelHalfSizeWS = extentWS * (Vec3f(0.5f) / Vec3f(bitmapExtent));
@@ -507,7 +507,7 @@ uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32
 
         const Vec3f posWS = worldAabb.GetMin() + (extentWS * (Vec3f(texelCoord) / Vec3f(bitmapExtent))) + texelHalfSizeWS;
 
-        const double dist = m_pLightmapData->GetVoxelOctree()->GetSignedDistanceAtPoint(posWS);
+        const double dist = m_lightmapData->GetVoxelOctree()->GetSignedDistanceAtPoint(posWS);
 
         texel->color0.x = float(dist);
         texel->color0.w = 1.0f;

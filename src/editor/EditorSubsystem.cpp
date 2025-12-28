@@ -33,7 +33,7 @@
 
 #include <scene/sky/DynamicSkySubsystem.hpp>
 
-#include <lightmapper/LightmapVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

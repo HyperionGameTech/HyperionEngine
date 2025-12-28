@@ -32,12 +32,11 @@
 #include <scene/EnvGrid.hpp>
 #include <scene/FogVolume.hpp>
 #include <scene/ParticleVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <scene/camera/Camera.hpp>
 
 #include <scene/animation/Skeleton.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <core/threading/Threads.hpp>
 

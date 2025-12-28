@@ -205,7 +205,7 @@ template <>
 class LightmapJob<LightmapVolume> : public LightmapJobBase
 {
 public:
-    LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* pLightmapData);
+    LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* lightmapData);
     virtual ~LightmapJob() override;
 
     HYP_FORCE_INLINE const Handle<LightmapVolume>& GetVolume() const
@@ -215,7 +215,7 @@ public:
 
     virtual LightmapData<LightmapVolume>& GetLightmapData() override
     {
-        return *m_pLightmapData;
+        return *m_lightmapData;
     }
 
     HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
@@ -229,7 +229,7 @@ protected:
 
     Handle<LightmapVolume> m_volume;
 
-    LightmapData<LightmapVolume>* m_pLightmapData;
+    LightmapData<LightmapVolume>* m_lightmapData;
 
     LightmapElement* m_lightmapElement;
 };
@@ -238,10 +238,10 @@ template <>
 class LightmapJob<ReflectionProbe> : public LightmapJobBase
 {
 public:
-    explicit LightmapJob(LightmapJobParams&& params, const Handle<ReflectionProbe>& envProbe, LightmapData<ReflectionProbe>* pLightmapData)
+    explicit LightmapJob(LightmapJobParams&& params, const Handle<ReflectionProbe>& envProbe, LightmapData<ReflectionProbe>* lightmapData)
         : LightmapJobBase(std::move(params)),
           m_envProbe(envProbe),
-          m_pLightmapData(pLightmapData)
+          m_lightmapData(lightmapData)
     {
     }
 
@@ -254,7 +254,7 @@ public:
 
     virtual LightmapData<ReflectionProbe>& GetLightmapData() override
     {
-        return *m_pLightmapData;
+        return *m_lightmapData;
     }
 
 protected:
@@ -262,17 +262,17 @@ protected:
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
     Handle<ReflectionProbe> m_envProbe;
-    LightmapData<ReflectionProbe>* m_pLightmapData;
+    LightmapData<ReflectionProbe>* m_lightmapData;
 };
 
 template <>
 class LightmapJob<FogVolume> : public LightmapJobBase
 {
 public:
-    explicit LightmapJob(LightmapJobParams&& params, const Handle<FogVolume>& fogVolume, LightmapData<FogVolume>* pLightmapData)
+    explicit LightmapJob(LightmapJobParams&& params, const Handle<FogVolume>& fogVolume, LightmapData<FogVolume>* lightmapData)
         : LightmapJobBase(std::move(params)),
           m_fogVolume(fogVolume),
-          m_pLightmapData(pLightmapData)
+          m_lightmapData(lightmapData)
     {
     }
 
@@ -285,7 +285,7 @@ public:
 
     virtual LightmapData<FogVolume>& GetLightmapData() override
     {
-        return *m_pLightmapData;
+        return *m_lightmapData;
     }
 
     virtual uint32 ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0) override;
@@ -295,7 +295,7 @@ protected:
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
     Handle<FogVolume> m_fogVolume;
-    LightmapData<FogVolume>* m_pLightmapData;
+    LightmapData<FogVolume>* m_lightmapData;
 };
 
 } // namespace Hyperion

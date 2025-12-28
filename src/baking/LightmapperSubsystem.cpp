@@ -4,14 +4,14 @@
 
 #include <lightmapper/LightmapperSubsystem.hpp>
 #include <lightmapper/Lightmapper.hpp>
-#include <lightmapper/LightmapPathTraceCpu.hpp>
-#include <lightmapper/LightmapPathTraceGpu.hpp>
-#include <lightmapper/LightmapVolume.hpp>
+#include <baking/lightmaps/LightmapPathTraceCpu.hpp>
+#include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
 #include <rendering/RenderConfig.hpp>
 
 #include <scene/EnvProbe.hpp>
 #include <scene/FogVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 

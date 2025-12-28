@@ -2,7 +2,13 @@
 
 #include <HyperionPch.hpp>
 
-#include <lightmapper/LightmapVolume.hpp>
+#include <scene/LightmapVolume.hpp>
+#include <scene/World.hpp>
+#include <scene/Scene.hpp>
+#include <scene/EntityManager.hpp>
+
+#include <scene/components/LightmapElementComponent.hpp>
+
 #include <lightmapper/LightmapData.hpp>
 
 #ifdef HYP_EDITOR
@@ -22,11 +28,6 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 #include <asset/TextureAsset.hpp>
-
-#include <scene/World.hpp>
-#include <scene/Scene.hpp>
-#include <scene/EntityManager.hpp>
-#include <scene/components/LightmapElementComponent.hpp>
 
 #include <core/io/ByteWriter.hpp>
 

@@ -18,13 +18,13 @@
 #include <scene/EntityManager.hpp>
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/LightmapVolume.hpp>
+
 #include <engine/GameState.hpp>
 
 #include <scene/components/BoundingBoxComponent.hpp>
 
 #include <rendering/shadows/ShadowMap.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <scene/ParticleVolume.hpp>
 
