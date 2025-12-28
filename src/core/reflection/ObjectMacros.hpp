@@ -52,7 +52,6 @@ protected:
 // clang-format off
 
 #define HYP_BEGIN_STRUCT(cls, _static_index, _num_descendants, parentClass, ...)                                                                \
-    HYP_API extern const Class* g_cls##cls;                                                                                                     \
                                                                                                                                                 \
     template <>                                                                                                                                 \
     HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
@@ -67,7 +66,6 @@ protected:
 #define HYP_END_STRUCT } } }; }
 
 #define HYP_BEGIN_CLASS(cls, _static_index, _num_descendants, parentClass, ...)                                                                 \
-    HYP_API extern const Class* g_cls##cls;                                                                                                     \
                                                                                                                                                 \
     template <>                                                                                                                                 \
     HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
@@ -82,7 +80,6 @@ protected:
 #define HYP_END_CLASS } } }; }
 
 #define HYP_BEGIN_ENUM(cls, _static_index, _num_descendants, ...)                                                                               \
-    HYP_API extern const Class* g_cls##cls;                                                                                                     \
                                                                                                                                                 \
     template <>                                                                                                                                 \
     HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
@@ -181,6 +178,7 @@ private:
         return Hyperion::GetClass<T>();                \
     }
 
-#define HYP_REGISTER_STATIC_CLASS(T) static TClassStaticInit<T> s_classInit##T;
+#define HYP_REGISTER_STATIC_CLASS(T) \
+    static TClassStaticInit<T> s_classInit##T;
 
 } // namespace Hyperion

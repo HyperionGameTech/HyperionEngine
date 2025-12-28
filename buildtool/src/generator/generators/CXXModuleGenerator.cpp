@@ -147,13 +147,24 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     {
         const ClassDefinition& cls = *classInfo.definition;
 
-        writer.WriteString(HYP_FORMAT("HYP_API extern const Class* g_cls{};\n", cls.name));
-        // writer.WriteString(HYP_FORMAT("template <>\n"));
-        // writer.WriteString(HYP_FORMAT("struct ClassDecl<{}>\n", cls.name));
-        // writer.WriteString("{\n");
-        // writer.WriteString(HYP_FORMAT("    using Type = {};\n\n", cls.name));
-        // writer.WriteString("    static const Class** s_pClass;\n");
-        // writer.WriteString("};\n\n");
+        Array<String> namespaceParts = cls.namespaceParts;
+        namespaceParts.PopFront(); // remove 'Hyperion'
+
+        if (namespaceParts.Any())
+        {
+            writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(namespaceParts)) + " { ");
+        }
+
+        writer.WriteString(HYP_FORMAT("HYP_API extern const Class* g_cls{};", cls.name));
+
+        if (namespaceParts.Any())
+        {
+            writer.WriteString(" }\n");
+        }
+        else
+        {
+            writer.WriteString("\n");
+        }
     }
 
     return {};
@@ -165,7 +176,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     writer.WriteString("#include <core/reflection/Class.hpp>\n");
     writer.WriteString("#include <core/reflection/ObjectMacros.hpp>\n\n");
 
-    writer.WriteString("namespace Hyperion {\n\n");
+    writer.WriteString(String("namespace ") + BaseNamespace + " {\n\n");
 
     // Collect all Class definitions from builtins and modules
     struct ClassInfo
@@ -213,7 +224,27 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     {
         const ClassDefinition& cls = *classInfo.definition;
 
-        writer.WriteString(HYP_FORMAT("const Class* g_cls{} = nullptr;\n", cls.name));
+        Array<String> namespaceParts = cls.namespaceParts;
+
+        if (cls.namespaceParts.Any())
+        {
+            if (namespaceParts[0] == BaseNamespace)
+            {
+                namespaceParts.PopFront();
+            }
+        }
+
+        if (namespaceParts.Any())
+        {
+            const String namespaceString = BuildNamespaceString(namespaceParts);
+            writer.WriteString(HYP_FORMAT("namespace {}", namespaceString) + " { ");
+            writer.WriteString(HYP_FORMAT("const Class* g_cls{} = nullptr;", cls.name));
+            writer.WriteString(" }\n");
+        }
+        else
+        {
+            writer.WriteString(HYP_FORMAT("const Class* g_cls{} = nullptr;\n", cls.name));
+        }
     }
 
     writer.WriteString("\n#pragma endregion Defining g_clsXXX globals\n\n");
@@ -227,27 +258,15 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
         if (cls.namespaceParts.Empty() || cls.namespaceParts[0] != BaseNamespace)
         {
-            return HYP_MAKE_ERROR(Error, "Class '{}' is not in the 'hyperion' namespace", cls.name);
+            return HYP_MAKE_ERROR(Error, "Class '{}' is not in the '{}' namespace", cls.name, BaseNamespace);
         }
 
         Array<String> namespaceParts = cls.namespaceParts;
-        namespaceParts.PopFront(); // remove 'hyperion'
+        namespaceParts.PopFront(); // remove 'Hyperion'
 
         if (namespaceParts.Any())
         {
-            writer.WriteString("namespace ");
-
-            for (size_t i = 0; i < namespaceParts.Size(); i++)
-            {
-                writer.WriteString(namespaceParts[i]);
-
-                if (i + 1 < namespaceParts.Size())
-                {
-                    writer.WriteString("::");
-                }
-            }
-
-            writer.WriteString(" { ");
+            writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(namespaceParts)) + " { ");
         }
 
         if (classInfo.definition->isCXXClass)
@@ -293,6 +312,40 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
     writer.WriteString("\n#pragma endregion Forward declarations\n\n");
 
+    // // GetClassHelper<T>::Get() implementations
+    // writer.WriteString("#pragma region GetClassHelper Get implementations\n\n");
+
+    // for (const ClassInfo& classInfo : allClasses)
+    // {
+    //     const ClassDefinition& cls = *classInfo.definition;
+
+    //     Array<String> namespaceParts = cls.namespaceParts;
+
+    //     if (cls.namespaceParts.Any())
+    //     {
+    //         if (namespaceParts[0] == BaseNamespace)
+    //         {
+    //             namespaceParts.PopFront();
+    //         }
+    //     }
+
+    //     if (namespaceParts.Any())
+    //     {
+    //         const String namespaceString = BuildNamespaceString(namespaceParts);
+    //         writer.WriteString(HYP_FORMAT("template <> const Class* GetClassHelper<{}::{}>::Get()", namespaceString, cls.name) + " { ");
+    //         writer.WriteString(HYP_FORMAT("return {}::g_cls{};", namespaceString, cls.name));
+    //         writer.WriteString(" }\n");
+    //     }
+    //     else
+    //     {
+    //         writer.WriteString(HYP_FORMAT("template <> const Class* GetClassHelper<{}>::Get()", cls.name) + " { ");
+    //         writer.WriteString(HYP_FORMAT("return g_cls{};", cls.name));
+    //         writer.WriteString(" }\n");
+    //     }
+    // }
+
+    // writer.WriteString("\n#pragma endregion GetClassHelper Get implementations\n\n");
+
     // now we need to add a method to be called that initializes all g_clsXXX variables (TClassStaticInit specializations)
     writer.WriteString("\nHYP_API void InitClassDecls()\n{\n");
 
@@ -330,7 +383,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
     writer.WriteString("}\n\n");
 
-    writer.WriteString("} // namespace Hyperion\n");
+    writer.WriteString("} // namespace " + String(BaseNamespace) + "\n");
 
     return {};
 }
@@ -372,7 +425,19 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             writer.WriteString("#include <dotnet/ManagedMethod.hpp>\n");
         }
 
-        writer.WriteString("\nnamespace Hyperion {\n\n");
+        writer.WriteString(HYP_FORMAT("using namespace {};\n", BaseNamespace));
+
+        if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))
+        {
+            writer.WriteString(HYP_FORMAT("using namespace {};\n", BuildNamespaceString(cls.namespaceParts)));
+        }
+
+        writer.WriteString("\n");
+
+        // forward declare g_clsXXX
+        writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
+        writer.WriteString(HYP_FORMAT("extern const Class* g_cls{};\n", cls.name));
+        writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
 
         writer.WriteString(HYP_FORMAT("#pragma region {} Reflection Data\n\n", cls.name));
 
@@ -632,8 +697,6 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         {
             writer.WriteString(HYP_FORMAT("static const ClassCallbackRegistration<ClassCallbackType::ON_POST_LOAD> g_post_load_{}(TypeId::ForType<{}>(), ValueWrapper<{}>());\n", cls.name, cls.name, postLoadAttributeValue.GetString()));
         }
-
-        writer.WriteString("} // namespace Hyperion\n\n");
     }
 
     return {};
@@ -715,7 +778,19 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
             addInclude("dotnet/ManagedMethod.hpp");
         }
 
-        writer.WriteString("\nnamespace Hyperion {\n\n");
+        writer.WriteString(HYP_FORMAT("using namespace {};\n", BaseNamespace));
+
+        if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))
+        {
+            writer.WriteString(HYP_FORMAT("using namespace {};\n", BuildNamespaceString(cls.namespaceParts)));
+        }
+
+        writer.WriteString("\n");
+
+        // forward declare g_clsXXX
+        writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
+        writer.WriteString(HYP_FORMAT("extern const Class* g_cls{};\n", cls.name));
+        writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
 
         writer.WriteString(HYP_FORMAT("#pragma region {} Reflection Data\n\n", cls.name));
 
@@ -979,8 +1054,6 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         {
             writer.WriteString(HYP_FORMAT("static const ClassCallbackRegistration<ClassCallbackType::ON_POST_LOAD> g_post_load_{}(TypeId::ForType<{}>(), ValueWrapper<{}>());\n", cls.name, cls.name, postLoadAttributeValue.GetString()));
         }
-
-        writer.WriteString("} // namespace Hyperion\n\n");
     }
 
     return {};

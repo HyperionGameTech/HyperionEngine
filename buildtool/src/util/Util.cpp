@@ -293,6 +293,22 @@ Array<String> ExtractCXXNamespacePath(const String& source)
     return namespacePath;
 }
 
+String BuildNamespaceString(Span<const String> namespaceParts)
+{
+    String str;
+    for (SizeType i = 0; i < namespaceParts.Size(); i++)
+    {
+        str += namespaceParts[i];
+
+        if (i + 1 < namespaceParts.Size())
+        {
+            str += "::";
+        }
+    }
+
+    return str;
+}
+
 bool IsCXXClassDecl(const String& line)
 {
     static const std::regex s_pattern(

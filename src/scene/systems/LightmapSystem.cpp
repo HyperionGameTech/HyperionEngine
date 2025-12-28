@@ -7,8 +7,7 @@
 #include <scene/EntityManager.hpp>
 #include <scene/Scene.hpp>
 #include <scene/Entity.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <LightmapSystem.generated.inl>
 

@@ -2,11 +2,16 @@
 
 #include <HyperionPch.hpp>
 
-#include <lightmapper/LightmapVolume.hpp>
-#include <lightmapper/LightmapData.hpp>
+#include <scene/LightmapVolume.hpp>
+#include <scene/World.hpp>
+#include <scene/Scene.hpp>
+#include <scene/EntityManager.hpp>
+
+#include <scene/components/LightmapElementComponent.hpp>
 
 #ifdef HYP_EDITOR
-#include <lightmapper/LightmapperSubsystem.hpp>
+#include <baking/BakerSubsystem.hpp>
+#include <baking/lightmap_volume/LightmapVolumeBakeData.hpp>
 #endif
 
 #include <rendering/Texture.hpp>
@@ -22,11 +27,6 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 #include <asset/TextureAsset.hpp>
-
-#include <scene/World.hpp>
-#include <scene/Scene.hpp>
-#include <scene/EntityManager.hpp>
-#include <scene/components/LightmapElementComponent.hpp>
 
 #include <core/io/ByteWriter.hpp>
 
@@ -342,7 +342,8 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) c
     return &m_atlases[atlasIndex].elements[elementIndex];
 }
 
-bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& lightmapData, LightmapElementId elementId)
+#ifdef HYP_EDITOR
+bool LightmapVolume::BuildElementTextures(const Baking::BakeData<LightmapVolume>& bakeData, LightmapElementId elementId)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -367,9 +368,9 @@ bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& li
 
     const Vec2u elementDimensions = element.dimensions;
 
-    FixedArray<typename LightmapData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
-        lightmapData.ToBitmapRadiance(),  /* RADIANCE */
-        lightmapData.ToBitmapIrradiance() /* IRRADIANCE */
+    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
+        bakeData.ToBitmapRadiance(),  /* RADIANCE */
+        bakeData.ToBitmapIrradiance() /* IRRADIANCE */
     };
 
     FixedArray<Handle<Texture>, LTT_MAX> elementTextures;
@@ -378,13 +379,13 @@ bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& li
 
     for (uint32 i = 0; i < uint32(LTT_MAX); i++)
     {
-        Optional<typename LightmapData<LightmapVolume>::BitmapType> tempBitmap;
+        Optional<typename Baking::BakeData<LightmapVolume>::BitmapType> tempBitmap;
 
-        typename LightmapData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
+        typename Baking::BakeData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
 
         if (elementDimensions.x != bitmaps[i].GetWidth() || elementDimensions.y != bitmaps[i].GetHeight())
         {
-            typename LightmapData<LightmapVolume>::BitmapType& rescaledBitmap = tempBitmap.Emplace(elementDimensions.x, elementDimensions.y);
+            typename Baking::BakeData<LightmapVolume>::BitmapType& rescaledBitmap = tempBitmap.Emplace(elementDimensions.x, elementDimensions.y);
 
             Rect<uint32> srcRect {
                 0, 0,
@@ -428,6 +429,7 @@ bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& li
 
     return true;
 }
+#endif
 
 void LightmapVolume::Init()
 {
@@ -599,11 +601,11 @@ void LightmapVolume::BakeLightmaps()
         return;
     }
 
-    LightmapperSubsystem* lightmapperSubsystem = world->GetSubsystem<LightmapperSubsystem>();
+    BakerSubsystem* lightmapperSubsystem = world->GetSubsystem<BakerSubsystem>();
 
     if (!lightmapperSubsystem)
     {
-        lightmapperSubsystem = world->AddSubsystem<LightmapperSubsystem>();
+        lightmapperSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
     lightmapperSubsystem->EnqueueBake(MakeStrongRef(this));

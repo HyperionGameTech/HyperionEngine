@@ -2,7 +2,7 @@
 
 #include <scene/components/LightmapElementComponent.hpp>
 
-#include <lightmapper/LightmapVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <LightmapElementComponent.generated.inl>
 

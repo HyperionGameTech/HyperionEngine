@@ -44,10 +44,9 @@
 #include <scene/Light.hpp>
 #include <scene/ParticleVolume.hpp>
 #include <scene/FogVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <scene/animation/Skeleton.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 

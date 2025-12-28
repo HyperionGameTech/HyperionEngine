@@ -17,7 +17,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderProxy.hpp>
 
-#include <lightmapper/LightmapperSubsystem.hpp>
+#include <baking/BakerSubsystem.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -548,11 +548,11 @@ void ReflectionProbe::BakeCubemap()
         return;
     }
 
-    LightmapperSubsystem* lightmapperSubsystem = world->GetSubsystem<LightmapperSubsystem>();
+    BakerSubsystem* lightmapperSubsystem = world->GetSubsystem<BakerSubsystem>();
 
     if (!lightmapperSubsystem)
     {
-        lightmapperSubsystem = world->AddSubsystem<LightmapperSubsystem>();
+        lightmapperSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
     lightmapperSubsystem->EnqueueBake(MakeStrongRef(this));

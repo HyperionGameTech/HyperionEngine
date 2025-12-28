@@ -50,8 +50,7 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/FogVolume.hpp>
 #include <scene/ParticleVolume.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <core/config/Config.hpp>
 

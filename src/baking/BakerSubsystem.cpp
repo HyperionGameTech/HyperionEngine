@@ -2,16 +2,18 @@
 
 #include <HyperionPch.hpp>
 
-#include <lightmapper/LightmapperSubsystem.hpp>
-#include <lightmapper/Lightmapper.hpp>
-#include <lightmapper/LightmapPathTraceCpu.hpp>
-#include <lightmapper/LightmapPathTraceGpu.hpp>
-#include <lightmapper/LightmapVolume.hpp>
+#include <baking/BakerSubsystem.hpp>
+#include <baking/Baker.hpp>
+
+#include <baking/lightmap_volume/LightmapVolumeBaker.hpp>
+#include <baking/reflection_probe/ReflectionProbeBaker.hpp>
+#include <baking/fog_volume/FogVolumeBaker.hpp>
 
 #include <rendering/RenderConfig.hpp>
 
 #include <scene/EnvProbe.hpp>
 #include <scene/FogVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 
@@ -21,29 +23,31 @@
 
 #include <engine/EngineDriver.hpp>
 
-#include <LightmapperSubsystem.generated.inl>
+#include <BakerSubsystem.generated.inl>
 
 namespace Hyperion {
 
-#pragma region LightmapperSubsystem
+using namespace Baking;
 
-LightmapperSubsystem::LightmapperSubsystem()
+#pragma region BakerSubsystem
+
+BakerSubsystem::BakerSubsystem()
 {
 }
 
-void LightmapperSubsystem::OnAddedToWorld()
-{
-    AssertOnThread(g_simThread);
-}
-
-void LightmapperSubsystem::OnRemovedFromWorld()
+void BakerSubsystem::OnAddedToWorld()
 {
     AssertOnThread(g_simThread);
-
-    m_lightmappers.Clear();
 }
 
-void LightmapperSubsystem::Update(float delta)
+void BakerSubsystem::OnRemovedFromWorld()
+{
+    AssertOnThread(g_simThread);
+
+    m_bakers.Clear();
+}
+
+void BakerSubsystem::Update(float delta)
 {
     AssertOnThread(g_simThread);
 
@@ -64,7 +68,7 @@ void LightmapperSubsystem::Update(float delta)
 
     Array<ObjectBase*> keysToRemove;
 
-    for (auto& it : m_lightmappers)
+    for (auto& it : m_bakers)
     {
         it.second->Update(delta);
 
@@ -76,7 +80,7 @@ void LightmapperSubsystem::Update(float delta)
 
     for (ObjectBase* obj : keysToRemove)
     {
-        m_lightmappers.Erase(obj);
+        m_bakers.Erase(obj);
 
         auto activeTasksIt = m_activeTasks.Find(obj);
         AssertDebug(activeTasksIt != m_activeTasks.End());
@@ -109,25 +113,25 @@ void LightmapperSubsystem::Update(float delta)
 }
 
 template <>
-Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<LightmapVolume>& source)
+Task<void>* BakerSubsystem::EnqueueBake(const Handle<LightmapVolume>& source)
 {
     return EnqueueBake_Internal(source);
 }
 
 template <>
-Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<ReflectionProbe>& source)
+Task<void>* BakerSubsystem::EnqueueBake(const Handle<ReflectionProbe>& source)
 {
     return EnqueueBake_Internal(source);
 }
 
 template <>
-Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<FogVolume>& source)
+Task<void>* BakerSubsystem::EnqueueBake(const Handle<FogVolume>& source)
 {
     return EnqueueBake_Internal(source);
 }
 
 template <class T, class... Args>
-Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&... args)
+Task<void>* BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&... args)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -137,9 +141,9 @@ Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, 
         return nullptr;
     }
 
-    auto it = m_lightmappers.Find(source.Get());
+    auto it = m_bakers.Find(source.Get());
 
-    if (it != m_lightmappers.End())
+    if (it != m_bakers.End())
     {
         // already running
         auto taskIt = m_activeTasks.Find(source.Get());
@@ -148,7 +152,7 @@ Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, 
         return taskIt->second;
     }
 
-    Handle<LightmapperBase> lightmapper = CreateObject<Lightmapper<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
+    Handle<BakerBase> lightmapper = CreateObject<Baker<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
     InitObject(lightmapper);
 
     Task<void>& task = m_tasks.EmplaceBack();
@@ -162,12 +166,12 @@ Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, 
 
     lightmapper->Initialize();
 
-    m_lightmappers.Insert(source.Get(), std::move(lightmapper));
+    m_bakers.Insert(source.Get(), std::move(lightmapper));
     m_activeTasks.Insert(source.Get(), &task);
 
     return &task;
 }
 
-#pragma endregion LightmapperSubsystem
+#pragma endregion BakerSubsystem
 
 } // namespace Hyperion

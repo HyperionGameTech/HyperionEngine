@@ -2,11 +2,10 @@
 
 #include <HyperionPch.hpp>
 
-#include <lightmapper/LightmapJob.hpp>
-#include <lightmapper/Lightmapper.hpp>
-#include <lightmapper/LightmapPathTraceCpu.hpp>
-#include <lightmapper/LightmapPathTraceGpu.hpp>
-#include <lightmapper/LightmapVolume.hpp>
+#include <baking/BakeJob.hpp>
+#include <baking/Baker.hpp>
+
+#include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
@@ -26,6 +25,7 @@
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/FogVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <scene/util/VoxelOctree.hpp>
 
@@ -40,17 +40,19 @@
 
 namespace Hyperion {
 
+namespace Baking {
+
 #pragma region Render command
 
 struct LightmapRender : RenderCommand
 {
-    LightmapJobBase* job;
+    BakeJobBase* job;
     Handle<World> world;
     Handle<View> view;
     Array<LightmapRay> rays;
     uint32 rayOffset;
 
-    LightmapRender(LightmapJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
+    LightmapRender(BakeJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
         : job(job),
           world(world),
           view(view),
@@ -135,9 +137,9 @@ struct LightmapRender : RenderCommand
 
 static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
 
-#pragma region LightmapJobBase
+#pragma region BakeJobBase
 
-LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
+BakeJobBase::BakeJobBase(BakeJobParams&& params)
     : NumConcurrentRenderingTasks(0),
       m_lightmapper(nullptr),
       m_params(std::move(params)),
@@ -147,7 +149,7 @@ LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
 {
 }
 
-LightmapJobBase::~LightmapJobBase()
+BakeJobBase::~BakeJobBase()
 {
     for (TaskBatch* taskBatch : m_currentTasks)
     {
@@ -157,7 +159,7 @@ LightmapJobBase::~LightmapJobBase()
     }
 }
 
-void LightmapJobBase::Start()
+void BakeJobBase::Start()
 {
     m_wasStarted = true;
     m_runningSemaphore.Produce(1, [this](bool)
@@ -166,12 +168,12 @@ void LightmapJobBase::Start()
         });
 }
 
-void LightmapJobBase::Stop()
+void BakeJobBase::Stop()
 {
     m_runningSemaphore.Release(1);
 }
 
-void LightmapJobBase::Stop(const Error& error)
+void BakeJobBase::Stop(const Error& error)
 {
     HYP_LOG(Lightmap, Error, "Lightmap job {} stopped with error: {}", m_uuid, error.GetMessage());
 
@@ -180,34 +182,34 @@ void LightmapJobBase::Stop(const Error& error)
     Stop();
 }
 
-bool LightmapJobBase::IsCompleted() const
+bool BakeJobBase::IsCompleted() const
 {
     return !m_runningSemaphore.IsInSignalState() && m_wasStarted;
 }
 
-void LightmapJobBase::AddTask(TaskBatch* taskBatch)
+void BakeJobBase::AddTask(TaskBatch* taskBatch)
 {
     Mutex::Guard guard(m_currentTasksMutex);
 
     m_currentTasks.PushBack(taskBatch);
 }
 
-bool LightmapJobBase::HasRemainingTexels() const
+bool BakeJobBase::HasRemainingTexels() const
 {
     return m_texelIndex < m_texelIndices.Size() * m_lightmapper->NumTexelSamples();
 }
 
-void LightmapJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexels)
+void BakeJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexels)
 {
     const bool hasRays = m_lightmapper->PerformsRayTracing();
 
-    LightmapDataBase& lightmapData = GetLightmapData();
+    BakeDataBase& bakeData = GetBakeData();
 
     for (uint32 txlIdx = 0; txlIdx < maxTexels && HasRemainingTexels(); ++txlIdx)
     {
         const uint32 texelIndex = NextTexel();
 
-        LightmapTexel& texel = lightmapData.texels[texelIndex];
+        LightmapTexel& texel = bakeData.texels[texelIndex];
 
         if (texel.pRay != nullptr)
         {
@@ -218,7 +220,7 @@ void LightmapJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outT
     }
 }
 
-uint32 LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
+uint32 BakeJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
     if (!m_lightmapper->PerformsRayTracing())
     {
@@ -248,18 +250,18 @@ uint32 LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelO
     return numTexels;
 }
 
-void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
+void BakeJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
 {
     Assert(rays.Size() == hits.Size());
 
-    LightmapDataBase& lightmapData = GetLightmapData();
+    BakeDataBase& bakeData = GetBakeData();
 
     for (SizeType i = 0; i < hits.Size(); i++)
     {
         const LightmapRay& ray = rays[i];
         const LightmapHit& hit = hits[i];
 
-        LightmapTexel& texel = lightmapData.texels[ray.texelIndex];
+        LightmapTexel& texel = bakeData.texels[ray.texelIndex];
 
         switch (shadingType)
         {
@@ -276,7 +278,7 @@ void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const 
     }
 }
 
-uint32 LightmapJobBase::Process(uint32 maxTexels)
+uint32 BakeJobBase::Process(uint32 maxTexels)
 {
     Assert(IsRunning());
     Assert(!m_result.HasError(), "Unhandled error in lightmap job: {}", *m_result.GetError().GetMessage());
@@ -349,7 +351,7 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
     }
 
     /// \todo : Radiance map won't need as many samples as irradiance due to having less variance in directions,
-    // we should separate LightmapJob to be per- shading type, so the radiance one can finish earlier.
+    // we should separate BakeJob to be per- shading type, so the radiance one can finish earlier.
 
     for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *m_params.renderers)
     {
@@ -387,135 +389,8 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
     return ProcessTexels(Span<LightmapTexel*>(texels.Data(), texels.Size()), texelOffset);
 }
 
-#pragma endregion LightmapJobBase
+#pragma endregion BakeJobBase
 
-#pragma region LightmapJob < LightmapVolume>
-
-LightmapJob<LightmapVolume>::LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* pLightmapData)
-    : LightmapJobBase(std::move(params)),
-      m_volume(volume),
-      m_pLightmapData(pLightmapData),
-      m_lightmapElement(nullptr)
-{
-    Assert(m_volume != nullptr);
-    Assert(m_pLightmapData != nullptr);
-}
-
-LightmapJob<LightmapVolume>::~LightmapJob()
-{
-    // m_lightmapElement is now managed externally or not used in the same way
-}
-
-void LightmapJob<LightmapVolume>::Start_Internal()
-{
-}
-
-void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
-{
-    if (outIsReadyToProcess)
-    {
-        *outIsReadyToProcess = true;
-    }
-}
-
-#pragma endregion LightmapJob < LightmapVolume>
-
-#pragma region LightmapJob < ReflectionProbe>
-
-LightmapJob<ReflectionProbe>::~LightmapJob()
-{
-}
-
-void LightmapJob<ReflectionProbe>::Start_Internal()
-{
-}
-
-void LightmapJob<ReflectionProbe>::Process_Internal(bool* outIsReadyToProcess)
-{
-    if (outIsReadyToProcess)
-    {
-        *outIsReadyToProcess = true;
-    }
-}
-
-#pragma endregion LightmapJob < ReflectionProbe>
-
-#pragma region LightmapJob < FogVolume>
-
-LightmapJob<FogVolume>::~LightmapJob()
-{
-}
-
-void LightmapJob<FogVolume>::Start_Internal()
-{
-    const typename LightmapData<FogVolume>::VolumeBitmap& volumeBitmap = m_pLightmapData->GetVolumeBitmap();
-
-    const Vec3u volumeExtent = Vec3u {
-        volumeBitmap.GetWidth(),
-        volumeBitmap.GetHeight(),
-        volumeBitmap.GetDepth()
-    };
-
-    // Flatten texel indices for processing
-    m_texelIndices.Resize(volumeExtent.x * volumeExtent.y * volumeExtent.z);
-
-    for (uint32 z = 0; z < volumeExtent.z; ++z)
-    {
-        for (uint32 y = 0; y < volumeExtent.y; ++y)
-        {
-            for (uint32 x = 0; x < volumeExtent.x; ++x)
-            {
-                const uint32 texelIndex = z * (volumeExtent.x * volumeExtent.y) + y * volumeExtent.x + x;
-
-                m_texelIndices[texelIndex] = texelIndex;
-            }
-        }
-    }
-}
-
-void LightmapJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
-{
-    if (outIsReadyToProcess)
-    {
-        *outIsReadyToProcess = true;
-    }
-}
-
-uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
-{
-    const BoundingBox worldAabb = m_fogVolume->GetWorldBounds();
-    const Vec3f extentWS = worldAabb.GetExtent();
-
-    const Vec3u bitmapExtent = Vec3u {
-        m_pLightmapData->GetVolumeBitmap().GetWidth(),
-        m_pLightmapData->GetVolumeBitmap().GetHeight(),
-        m_pLightmapData->GetVolumeBitmap().GetDepth()
-    };
-
-    const Vec3f texelHalfSizeWS = extentWS * (Vec3f(0.5f) / Vec3f(bitmapExtent));
-
-    for (uint32 txlIdx = 0; txlIdx < uint32(texels.Size()); ++txlIdx)
-    {
-        LightmapTexel* texel = texels[txlIdx];
-        const uint32 realTexelIndex = texelOffset + txlIdx;
-
-        const Vec3u texelCoord = Vec3u {
-            realTexelIndex % bitmapExtent.x,
-            (realTexelIndex / bitmapExtent.x) % bitmapExtent.y,
-            realTexelIndex / (bitmapExtent.x * bitmapExtent.y)
-        };
-
-        const Vec3f posWS = worldAabb.GetMin() + (extentWS * (Vec3f(texelCoord) / Vec3f(bitmapExtent))) + texelHalfSizeWS;
-
-        const double dist = m_pLightmapData->GetVoxelOctree()->GetSignedDistanceAtPoint(posWS);
-
-        texel->color0.x = float(dist);
-        texel->color0.w = 1.0f;
-    }
-
-    return uint32(texels.Size());
-}
-
-#pragma endregion LightmapJob < FogVolume>
+} // namespace Baking
 
 } // namespace Hyperion

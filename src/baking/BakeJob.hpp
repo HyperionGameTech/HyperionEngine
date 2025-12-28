@@ -11,8 +11,8 @@
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <lightmapper/LightmapData.hpp>
-#include <lightmapper/LightmapTexel.hpp>
+#include <baking/BakeData.hpp>
+#include <baking/LightmapTexel.hpp>
 
 namespace Hyperion {
 
@@ -27,45 +27,48 @@ class FogVolume;
 class View;
 class LightmapVolume;
 struct LightmapElement;
-class ILightmapRenderer;
-class LightmapperBase;
 
 struct RenderSetup; // forward decl for renderer interface usage
+
+namespace Baking {
+
+class BakerBase;
 
 enum class LightmapShadingType : int; // forward decl from Lightmapper
 struct LightmapHit;                   // forward decl from Lightmapper
 
 struct LightmapperConfig; // forward decl from Lightmapper
+class ILightmapRenderer;
 
-struct LightmapJobParams
+struct BakeJobParams
 {
     LightmapperConfig* config;
 
     Handle<Scene> scene;
     Handle<View> view;
 
-    Span<LightmapSubElement> subElementsView;
-    HashMap<Handle<Entity>, LightmapSubElement*>* subElementsByEntity;
+    Span<BakeEntity> bakeEntitiesView;
+    HashMap<Handle<Entity>, BakeEntity*>* bakeEntitiesByEntity;
 
     Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
 };
 
-class HYP_API LightmapJobBase
+class HYP_API BakeJobBase
 {
-    friend class LightmapperBase;
+    friend class BakerBase;
 
 public:
-    explicit LightmapJobBase(LightmapJobParams&& params);
+    explicit BakeJobBase(BakeJobParams&& params);
 
-    LightmapJobBase(const LightmapJobBase& other) = delete;
-    LightmapJobBase& operator=(const LightmapJobBase& other) = delete;
+    BakeJobBase(const BakeJobBase& other) = delete;
+    BakeJobBase& operator=(const BakeJobBase& other) = delete;
 
-    LightmapJobBase(LightmapJobBase&& other) noexcept = delete;
-    LightmapJobBase& operator=(LightmapJobBase&& other) noexcept = delete;
+    BakeJobBase(BakeJobBase&& other) noexcept = delete;
+    BakeJobBase& operator=(BakeJobBase&& other) noexcept = delete;
 
-    virtual ~LightmapJobBase();
+    virtual ~BakeJobBase();
 
-    HYP_FORCE_INLINE const LightmapJobParams& GetParams() const
+    HYP_FORCE_INLINE const BakeJobParams& GetParams() const
     {
         return m_params;
     }
@@ -80,9 +83,9 @@ public:
         return m_params.scene.Get();
     }
 
-    HYP_FORCE_INLINE Span<LightmapSubElement> GetSubElements() const
+    HYP_FORCE_INLINE Span<BakeEntity> GetBakeEntities() const
     {
-        return m_params.subElementsView;
+        return m_params.bakeEntitiesView;
     }
 
     HYP_FORCE_INLINE uint32 GetTexelIndex() const
@@ -151,11 +154,11 @@ protected:
     virtual void Start_Internal() = 0;
     virtual void Process_Internal(bool* outIsReady = nullptr) = 0;
 
-    virtual LightmapDataBase& GetLightmapData() = 0;
+    virtual BakeDataBase& GetBakeData() = 0;
 
-    HYP_FORCE_INLINE const LightmapDataBase& GetLightmapData() const
+    HYP_FORCE_INLINE const BakeDataBase& GetBakeData() const
     {
-        return const_cast<LightmapJobBase*>(this)->GetLightmapData();
+        return const_cast<BakeJobBase*>(this)->GetBakeData();
     }
 
     bool HasRemainingTexels() const;
@@ -174,9 +177,9 @@ protected:
     void Stop();
     void Stop(const Error& error);
 
-    LightmapperBase* m_lightmapper;
+    BakerBase* m_lightmapper;
 
-    LightmapJobParams m_params;
+    BakeJobParams m_params;
 
     Uuid m_uuid;
 
@@ -199,103 +202,8 @@ protected:
 };
 
 template <class T>
-class LightmapJob;
+class BakeJob;
 
-template <>
-class LightmapJob<LightmapVolume> : public LightmapJobBase
-{
-public:
-    LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* pLightmapData);
-    virtual ~LightmapJob() override;
-
-    HYP_FORCE_INLINE const Handle<LightmapVolume>& GetVolume() const
-    {
-        return m_volume;
-    }
-
-    virtual LightmapData<LightmapVolume>& GetLightmapData() override
-    {
-        return *m_pLightmapData;
-    }
-
-    HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
-    {
-        return m_lightmapElement;
-    }
-
-protected:
-    virtual void Start_Internal() override;
-    virtual void Process_Internal(bool* outIsReadyToProcess) override;
-
-    Handle<LightmapVolume> m_volume;
-
-    LightmapData<LightmapVolume>* m_pLightmapData;
-
-    LightmapElement* m_lightmapElement;
-};
-
-template <>
-class LightmapJob<ReflectionProbe> : public LightmapJobBase
-{
-public:
-    explicit LightmapJob(LightmapJobParams&& params, const Handle<ReflectionProbe>& envProbe, LightmapData<ReflectionProbe>* pLightmapData)
-        : LightmapJobBase(std::move(params)),
-          m_envProbe(envProbe),
-          m_pLightmapData(pLightmapData)
-    {
-    }
-
-    virtual ~LightmapJob() override;
-
-    HYP_FORCE_INLINE const Handle<ReflectionProbe>& GetEnvProbe() const
-    {
-        return m_envProbe;
-    }
-
-    virtual LightmapData<ReflectionProbe>& GetLightmapData() override
-    {
-        return *m_pLightmapData;
-    }
-
-protected:
-    virtual void Start_Internal() override;
-    virtual void Process_Internal(bool* outIsReadyToProcess) override;
-
-    Handle<ReflectionProbe> m_envProbe;
-    LightmapData<ReflectionProbe>* m_pLightmapData;
-};
-
-template <>
-class LightmapJob<FogVolume> : public LightmapJobBase
-{
-public:
-    explicit LightmapJob(LightmapJobParams&& params, const Handle<FogVolume>& fogVolume, LightmapData<FogVolume>* pLightmapData)
-        : LightmapJobBase(std::move(params)),
-          m_fogVolume(fogVolume),
-          m_pLightmapData(pLightmapData)
-    {
-    }
-
-    virtual ~LightmapJob() override;
-
-    HYP_FORCE_INLINE const Handle<FogVolume>& GetFogVolume() const
-    {
-        return m_fogVolume;
-    }
-
-    virtual LightmapData<FogVolume>& GetLightmapData() override
-    {
-        return *m_pLightmapData;
-    }
-
-    virtual uint32 ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0) override;
-
-protected:
-    virtual void Start_Internal() override;
-    virtual void Process_Internal(bool* outIsReadyToProcess) override;
-
-    Handle<FogVolume> m_fogVolume;
-    LightmapData<FogVolume>* m_pLightmapData;
-};
+} // namespace Baking
 
 } // namespace Hyperion

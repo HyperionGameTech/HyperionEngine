@@ -2,13 +2,12 @@
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
 
-#include <lightmapper/LightmapVolume.hpp>
-
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 #include <scene/EntityManager.hpp>
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <scene/ParticleVolume.hpp>
 #include <scene/FogVolume.hpp>

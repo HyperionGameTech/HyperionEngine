@@ -11,6 +11,7 @@
 #include <scene/EntityTag.hpp>
 #include <scene/ParticleVolume.hpp>
 #include <scene/FogVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <scene/camera/Camera.hpp>
 #include <scene/animation/Skeleton.hpp>
@@ -20,8 +21,6 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/LightmapElementComponent.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderCollection.hpp>
