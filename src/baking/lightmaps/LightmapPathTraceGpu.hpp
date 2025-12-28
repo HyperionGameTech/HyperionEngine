@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <lightmapper/Lightmapper.hpp>
+#include <baking/Baker.hpp>
 
 #include <rendering/RenderObject.hpp>
 
@@ -13,11 +13,13 @@ namespace Hyperion {
 class RenderProxyList;
 struct GpuLightmapperReadyNotification;
 
+namespace Baking {
+
 class HYP_API LightmapRenderer_GpuPathTracing : public ILightmapRenderer
 {
 public:
     LightmapRenderer_GpuPathTracing(
-        LightmapperBase* lightmapper,
+        BakerBase* lightmapper,
         const Handle<Scene>& scene,
         LightmapShadingType shadingType,
         uint32 maxTexelsPerFrame);
@@ -45,9 +47,9 @@ public:
     virtual bool CanRender() const override;
 
     virtual void Create() override;
-    virtual void CleanJobData(LightmapJobBase* job) override;
-    virtual void ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits) override;
-    virtual void Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
+    virtual void CleanJobData(BakeJobBase* job) override;
+    virtual void ReadHitsBuffer(Frame* frame, BakeJobBase* job, Span<LightmapHit> outHits) override;
+    virtual void Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
 
 private:
     struct JobData
@@ -59,16 +61,16 @@ private:
         bool IsCreated = false;
     };
 
-    void UpdatePipelineState(Frame* frame, LightmapJobBase* job);
-    void CreateBuffers(LightmapJobBase* job);
+    void UpdatePipelineState(Frame* frame, BakeJobBase* job);
+    void CreateBuffers(BakeJobBase* job);
     void CreateAccelerationStructures();
-    void UpdateUniforms(Frame* frame, LightmapJobBase* job, uint32 rayOffset);
+    void UpdateUniforms(Frame* frame, BakeJobBase* job, uint32 rayOffset);
 
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;
     uint32 m_maxTexelsPerFrame;
 
-    HashMap<LightmapJobBase*, JobData, DynamicNodeAllocator> m_jobData;
+    HashMap<BakeJobBase*, JobData, DynamicNodeAllocator> m_jobData;
 
     RC<GpuLightmapperReadyNotification> m_readyNotification;
 
@@ -76,5 +78,7 @@ private:
 
     RaytracingPipelineRef m_raytracingPipeline;
 };
+
+} // namespace Baking
 
 } // namespace Hyperion

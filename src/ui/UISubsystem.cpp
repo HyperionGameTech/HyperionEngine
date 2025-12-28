@@ -14,14 +14,13 @@
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
 
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderCommand.hpp>
