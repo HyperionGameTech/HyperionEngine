@@ -38,7 +38,7 @@
 #include <scene/components/ScriptComponent.hpp>
 #include <scene/ComponentInterface.hpp>
 
-#include <scene/world_grid/terrain/TerrainWorldGridPlugin.hpp>
+#include <scene/world_grid/terrain/TerrainWorldGridLayer.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 
 #include <script/HypScript.hpp>

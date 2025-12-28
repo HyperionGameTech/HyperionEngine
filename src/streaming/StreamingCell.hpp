@@ -87,7 +87,7 @@ class HYP_API StreamingCell : public StreamableBase
 
 public:
     StreamingCell() = default;
-    StreamingCell(const StreamingCellInfo& cellInfo);
+    explicit StreamingCell(const StreamingCellInfo& cellInfo);
     virtual ~StreamingCell() override;
 
     HYP_METHOD()

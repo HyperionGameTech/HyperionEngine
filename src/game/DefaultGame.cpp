@@ -24,7 +24,7 @@
 
 #include <scene/camera/FirstPersonCamera.hpp>
 
-#include <scene/world_grid/terrain/TerrainWorldGridPlugin.hpp>
+#include <scene/world_grid/terrain/TerrainWorldGridLayer.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 
 #include <script/HypScript.hpp>
@@ -79,6 +79,7 @@ void DefaultGame::OnLaunch_Impl()
 
     m_camera = CreateObject<Camera>();
     m_camera->SetFOV(85.0f);
+    m_camera->SetFar(10000.0f);
     m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
     m_camera->SetWindow(g_appContext->GetMainWindow());
 

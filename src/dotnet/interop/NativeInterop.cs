@@ -7,9 +7,9 @@ using System.Diagnostics;
 
 namespace Hyperion
 {
-    public delegate void InvokeMethodDelegate(IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
-    public delegate void InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
-    public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
+    public delegate void InvokeMethodDelegate(IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr);
+    public delegate void InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr);
+    public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
     public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak);
     public delegate bool SetKeepAliveDelegate(IntPtr objectReferencePtr, bool keepAlive);
@@ -684,7 +684,7 @@ namespace Hyperion
             return managedClassDesc.ClassObjectPtr;
         }
 
-        private static unsafe void HandleParameters(IntPtr argsHypDataPtr, MethodInfo methodInfo, out object?[] parameters)
+        private static unsafe void HandleParameters(IntPtr argsBoxedPtr, MethodInfo methodInfo, out object?[] parameters)
         {
             int numParams = methodInfo.GetParameters().Length;
 
@@ -697,7 +697,7 @@ namespace Hyperion
 
             parameters = new object?[numParams];
 
-            BoxedValueInternal* paramPtr = *(BoxedValueInternal**)argsHypDataPtr;
+            BoxedValueInternal* paramPtr = *(BoxedValueInternal**)argsBoxedPtr;
             int paramsOffset = 0;
 
             for (int paramIndex = 0; paramIndex < numParams; paramIndex++)
@@ -713,7 +713,7 @@ namespace Hyperion
                     // Calculate array size by iterating until we hit a null pointer.
                     int paramArraySize = 0;
 
-                    for (IntPtr currentParamPtr = argsHypDataPtr + paramsOffset; (IntPtr)(*((BoxedValueInternal**)currentParamPtr)) != IntPtr.Zero; currentParamPtr += sizeof(IntPtr))
+                    for (IntPtr currentParamPtr = argsBoxedPtr + paramsOffset; (IntPtr)(*((BoxedValueInternal**)currentParamPtr)) != IntPtr.Zero; currentParamPtr += sizeof(IntPtr))
                     {
                         paramArraySize++;
                     }
@@ -726,7 +726,7 @@ namespace Hyperion
                         break;
                     }
 
-                    // We need to read the params array from the argsHypDataPtr
+                    // We need to read the params array from the argsBoxedPtr
 
                     Array paramArray = Array.CreateInstance(parameterType.GetElementType()!, paramArraySize);
 
@@ -749,7 +749,7 @@ namespace Hyperion
                         paramArray.SetValue(paramValue, paramElementIndex);
 
                         paramsOffset += sizeof(IntPtr);
-                        paramPtr = *(BoxedValueInternal**)(argsHypDataPtr + paramsOffset);
+                        paramPtr = *(BoxedValueInternal**)(argsBoxedPtr + paramsOffset);
 
                         paramElementIndex++;
                     }
@@ -769,11 +769,11 @@ namespace Hyperion
                 }
 
                 paramsOffset += sizeof(IntPtr);
-                paramPtr = *(BoxedValueInternal**)(argsHypDataPtr + paramsOffset);
+                paramPtr = *(BoxedValueInternal**)(argsBoxedPtr + paramsOffset);
             }
         }
 
-        public static unsafe void InvokeGetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
+        public static unsafe void InvokeGetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr)
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
@@ -785,14 +785,14 @@ namespace Hyperion
             ((BoxedValueInternal*)outReturnHypDataPtr)->SetValue(returnValue);
         }
 
-        public static unsafe void InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
+        public static unsafe void InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr)
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
             ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
             object? thisObject = objectReferenceRef.LoadObject();
-            object? value = (*(BoxedValueInternal**)argsHypDataPtr)->GetValue();
+            object? value = (*(BoxedValueInternal**)argsBoxedPtr)->GetValue();
 
             propertyInfo.SetValue((object?)thisObject, value);
         }

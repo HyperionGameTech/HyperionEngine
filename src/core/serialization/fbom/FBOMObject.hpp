@@ -353,7 +353,7 @@ public:
 template <class T>
 struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
 {
-    template <class HypDataType>
+    template <class TBoxed>
     FBOMResult Serialize(const T& in, FBOMObject& outObject, EnumFlags<FBOMObjectSerializeFlags> flags = FBOMObjectSerializeFlags::NONE)
     {
         HYP_SCOPE;

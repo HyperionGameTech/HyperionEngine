@@ -187,17 +187,7 @@ public:
             "UnloadAssembly could not be found in Hyperion.NET.Interop.dll! Ensure .NET libraries are properly compiled.");
 
         static const Array<Pair<String, FilePath>> s_coreAssemblies = {
-            Pair<String, FilePath> { "interop", *interopAssemblyPath },
-            Pair<String, FilePath> { "shared", FindAssemblyFilePath(m_basePath, "Hyperion.NET.Shared.dll").GetOr([]() -> FilePath
-                                                   {
-                                                       HYP_FAIL("Failed to get Hyperion.NET.Shared.dll");
-                                                       return {};
-                                                   }) },
-            Pair<String, FilePath> { "runtime", FindAssemblyFilePath(m_basePath, "Hyperion.NET.Runtime.dll").GetOr([]() -> FilePath
-                                                    {
-                                                        HYP_FAIL("Failed to get Hyperion.NET.Runtime.dll");
-                                                        return {};
-                                                    }) }
+            Pair<String, FilePath> { "interop", *interopAssemblyPath }
         };
 
         int result = int(LoadAssemblyResult::OK);
@@ -210,12 +200,10 @@ public:
             HYP_FAIL("Failed to initialize Hyperion .NET interop: Got error code %d", result);
         }
 
-        constexpr ManagedGuid EmptyGuid { 0, 0 };
-
         for (const Pair<String, FilePath>& entry : s_coreAssemblies)
         {
             RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(
-                EmptyGuid,
+                ManagedGuid { 0, 0 },
                 AssemblyFlags::CORE_ASSEMBLY);
 
             HYP_LOG(DotNET, Info, "Loading core assembly: {}", entry.first);

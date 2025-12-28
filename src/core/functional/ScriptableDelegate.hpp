@@ -43,9 +43,9 @@ public:
 class ScriptableDelegateHelper
 {
 public:
-    static void InvokeMethod_Internal(BoxedValue* pOutBoxed, const Method* method, const Handle<ObjectBase>& target, Span<BoxedValue> argsHypData);
+    static void InvokeMethod_Internal(BoxedValue* pOutBoxed, const Method* method, const Handle<ObjectBase>& target, Span<BoxedValue> argsBoxed);
 
-    template <class HypDataType, class ReturnType, class... Args>
+    template <class TBoxed, class ReturnType, class... Args>
     static bool InvokeScriptObjectMethod(ScriptObjectResource* scriptObjectResource, ANSIStringView methodName, ReturnType* outReturn, Args&&... args)
     {
         HYP_CORE_ASSERT(scriptObjectResource != nullptr, "Script object resource is null!");
@@ -114,7 +114,7 @@ public:
         return InvokeMethod<BoxedValue, ReturnType>(method, nativeObject, outReturn, std::forward<Args>(args)...);
     }
 
-    template <class HypDataType, class ReturnType, class... Args>
+    template <class TBoxed, class ReturnType, class... Args>
     static bool InvokeMethod(const Method* method, const Handle<ObjectBase>& target, ReturnType* outReturn, Args&&... args)
     {
         if (!target || !method)
@@ -122,18 +122,18 @@ public:
             return false;
         }
 
-        Array<HypDataType> argsHypData = { HypDataType(target), HypDataType(args)... };
+        Array<TBoxed> argsBoxed = { TBoxed(target), TBoxed(args)... };
 
         if constexpr (std::is_void_v<ReturnType>)
         {
-            InvokeMethod_Internal(nullptr, method, target, argsHypData);
+            InvokeMethod_Internal(nullptr, method, target, argsBoxed);
         }
         else
         {
             HYP_CORE_ASSERT(outReturn != nullptr);
 
-            HypDataType result;
-            InvokeMethod_Internal(&result, method, target, argsHypData);
+            TBoxed result;
+            InvokeMethod_Internal(&result, method, target, argsBoxed);
 
             new (outReturn) ReturnType(result.template Get<ReturnType>());
         }

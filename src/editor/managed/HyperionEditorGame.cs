@@ -58,6 +58,8 @@ namespace Hyperion.Editor
             StatOverlay statOverlay = new StatOverlay();
             _editorSubsystem.AddDebugOverlay(statOverlay);
 
+            project.World.WorldGrid.AddLayer(new TerrainWorldGridLayer());
+
             // tmp debug
             AssetBatch ab = new AssetBatch();
             ab.Add("test_model", "models/sponza/sponza.obj");

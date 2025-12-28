@@ -336,7 +336,7 @@ static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty);
 static Result ReadFBXPropertyValue(ByteReader& reader, uint8 type, FBXPropertyValue& outValue);
 static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version);
 static Result ReadFBXNode(ByteReader& reader, FBXVersion version, FBXObject*& out);
-static SizeType PrimitiveSize(uint8 primitiveType);
+static uint8 PrimitiveSize(uint8 primitiveType);
 static bool ReadMagic(ByteReader& reader);
 
 static bool ReadMagic(ByteReader& reader)
@@ -455,7 +455,7 @@ static Result ReadFBXPropertyValue(ByteReader& reader, uint8 type, FBXPropertyVa
     }
 }
 
-static SizeType PrimitiveSize(uint8 primitiveType)
+static uint8 PrimitiveSize(uint8 primitiveType)
 {
     switch (primitiveType)
     {
@@ -1311,7 +1311,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                             attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL;
 
                             const FBXProperty& normalsProperty = normalsNode.GetProperty(0);
-                            const SizeType numNormals = normalsProperty.arrayElements.Size() / 3;
+                            const uint32 numNormals = uint32(normalsProperty.arrayElements.Size()) / 3;
 
                             if (numNormals % 3 != 0)
                             {
@@ -1320,13 +1320,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                                 continue; // continue on, but skip normals
                             }
 
-                            for (SizeType triangleIndex = 0; triangleIndex < numNormals / 3; ++triangleIndex)
+                            for (uint32 triangleIndex = 0; triangleIndex < numNormals / 3; ++triangleIndex)
                             {
-                                for (SizeType normalIndex = 0; normalIndex < 3; ++normalIndex)
+                                for (uint32 normalIndex = 0; normalIndex < 3; ++normalIndex)
                                 {
                                     Vec3f normal;
 
-                                    for (SizeType elementIndex = 0; elementIndex < 3; ++elementIndex)
+                                    for (uint32 elementIndex = 0; elementIndex < 3; elementIndex++)
                                     {
                                         const FBXPropertyValue& elem = normalsProperty.arrayElements[triangleIndex * 9 + normalIndex * 3 + elementIndex];
 

@@ -68,9 +68,9 @@ public:
     explicit ScriptObjectResource(const Handle<ObjectBase>& nativeObject);
 
     ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
-    ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::ManagedClass>& managedClass);
-    ScriptObjectResource(TypedObjPtr ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
-    ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
+    ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
     ScriptObjectResource(Script_Instance* hypScriptInstance, BoxedValue&& hypScriptValue);
@@ -142,7 +142,7 @@ protected:
     virtual void Initialize() override final;
     virtual void Destroy() override final;
 
-    TypedObjPtr m_ptr;
+    ObjectBase* m_ptr;
 
     struct
     {

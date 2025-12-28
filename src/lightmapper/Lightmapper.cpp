@@ -407,7 +407,7 @@ void LightmapperBase::BuildResourceCache()
 
     TaskSystem::GetInstance().ParallelForEach_Batch(
         taskBatch,
-        (m_subElements.Size() + 255) / 256,
+        uint32(m_subElements.Size() + 255) / 256,
         m_subElements, callback);
 
     TaskSystem::GetInstance().EnqueueBatch(&taskBatch);
@@ -591,7 +591,7 @@ void LightmapperBase::Update(float delta)
 
         if (job->IsRunning())
         {
-            numTexelsProcessed += job->Process(MathUtil::Max(0, int64(IdealTexelsPerFrame) - int64(numTexelsProcessed)));
+            numTexelsProcessed += job->Process(uint32(MathUtil::Max(0, int64(IdealTexelsPerFrame) - int64(numTexelsProcessed))));
 
             ++numProcessedJobs;
         }
@@ -1007,7 +1007,7 @@ void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
     const typename LightmapData<FogVolume>::NoiseBitmap& noiseBitmap = lightmapData.GetNoiseBitmap();
 
     // update bitmap with texel data
-    for (SizeType i = 0; i < lightmapData.texels.Size(); i++)
+    for (uint32 i = 0; i < uint32(lightmapData.texels.Size()); i++)
     {
         const LightmapTexel& texel = lightmapData.texels[i];
 

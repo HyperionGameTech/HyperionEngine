@@ -566,4 +566,45 @@ constexpr void StaticForEach(FunctionType&& function, const Tuple<Types...>& tup
 
 #pragma endregion StaticForEach
 
+#pragma region OffsetOf
+
+template <typename T>
+struct MemberClass;
+
+template <typename M, typename C>
+struct MemberClass<M C::*>
+{
+    using Type = C;
+};
+
+template <typename Base, typename Derived, typename = void>
+struct IsVirtualBaseOf : std::true_type
+{
+};
+
+template <typename Base, typename Derived>
+struct IsVirtualBaseOf<
+    Base, Derived,
+    std::void_t<decltype(static_cast<Derived*>((Base*)nullptr))>> : std::false_type
+{
+};
+
+template <typename T1, typename T2>
+HYP_FORCE_INLINE uint32 OffsetOf(T1 T2::* member)
+{
+    using MemberDeclaringClass = typename MemberClass<decltype(member)>::Type;
+
+    static_assert(
+        !IsVirtualBaseOf<MemberDeclaringClass, T2>::value,
+        "Cannot calculate offset of a member in a Virtual Base.");
+
+    const T2* obj = nullptr;
+    return uint32(IntPtr(&(obj->*member)));
+}
+
+// helper macro for same usage as offsetof
+#define HYP_OFFSET_OF(type, memberName) ::Hyperion::OffsetOf(&type::memberName)
+
+#pragma endregion OffsetOf
+
 } // namespace Hyperion

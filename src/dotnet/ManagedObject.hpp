@@ -126,7 +126,7 @@ private:
      * */
     void Reset();
 
-    void InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** argsHypData, BoxedValue* outReturnHypData);
+    void InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** argsBoxed, BoxedValue* outReturnHypData);
 
     template <class ReturnType, class... Args>
     ReturnType InvokeMethod_CheckArgs(const ManagedMethod* pMethod, Args&&... args)

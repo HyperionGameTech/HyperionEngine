@@ -1,8 +1,8 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2026 No Tomorrow Games. All rights reserved. */
 
 #include <ScenePch.hpp>
 
-#include <scene/world_grid/terrain/TerrainWorldGridPlugin.hpp>
+#include <scene/world_grid/terrain/TerrainStreamingCell.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 
 #include <scene/EntityManager.hpp>
@@ -11,7 +11,6 @@
 #include <scene/Node.hpp>
 #include <scene/World.hpp>
 
-#include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
@@ -22,17 +21,19 @@
 
 #include <core/math/Vertex.hpp>
 
+#include <core/io/ByteWriter.hpp>
+
 #include <asset/Assets.hpp>
 
 #include <util/NoiseFactory.hpp>
 
-#include <TerrainWorldGridPlugin.generated.inl>
+#include <TerrainStreamingCell.generated.inl>
 
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-static constexpr float BaseHeight = 2.0f;
+static constexpr float BaseHeight = 5.0f;
 static constexpr float MountainHeight = 35.0f;
 static constexpr float NoiseScale = 1.0f;
 
@@ -202,6 +203,22 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator& noiseCombinator)
         }
     }
 
+    auto bm = noiseCombinator.CreateBitmap(
+        Vec2f(
+            float(m_heightData.cellInfo.coord.x * int(m_heightData.cellInfo.extent.x - 1)),
+            float(m_heightData.cellInfo.coord.y * int(m_heightData.cellInfo.extent.z - 1))),
+        Vec2u(m_heightData.cellInfo.extent.x, m_heightData.cellInfo.extent.z),
+        NoiseScale);
+
+    FileByteWriter fileWriter { HYP_FORMAT("Temp/terrain_noise_{}_{}.bmp",
+        m_heightData.cellInfo.coord.x,
+        m_heightData.cellInfo.coord.y) };
+
+    if (!bm.Write(&fileWriter))
+    {
+        HYP_LOG(WorldGrid, Error, "Failed to write terrain noise bitmap!");
+    }
+
     // TerrainErosion::Erode(m_heightData);
 }
 
@@ -303,15 +320,15 @@ static NoiseCombinator& GetTerrainNoiseCombinator()
         NoiseCombinator noiseCombinator;
         TerrainNoiseCombinatorInitializer()
         {
-            noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, MountainHeight, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * NoiseScale)
-                // .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::MULTIPLICATIVE, 0.5f, 0.5f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
-                .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, BaseHeight, 0.0f, Vector3(100.0f, 100.0f, 0.0f) * NoiseScale)
-                .Use<SimplexNoiseGenerator>(3, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.5f, 0.0f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
-                .Use<SimplexNoiseGenerator>(4, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.25f, 0.0f, Vector3(25.0f, 25.0f, 0.0f) * NoiseScale)
-                .Use<SimplexNoiseGenerator>(5, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.125f, 0.0f, Vector3(12.5f, 12.5f, 0.0f) * NoiseScale)
-                .Use<SimplexNoiseGenerator>(6, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.06f, 0.0f, Vector3(6.25f, 6.25f, 0.0f) * NoiseScale)
-                .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.03f, 0.0f, Vector3(3.125f, 3.125f, 0.0f) * NoiseScale)
-                .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.015f, 0.0f, Vector3(1.56f, 1.56f, 0.0f) * NoiseScale);
+            noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, MountainHeight, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * NoiseScale);
+            // .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::MULTIPLICATIVE, 0.5f, 0.5f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
+            //.Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, BaseHeight, 0.0f, Vector3(100.0f, 100.0f, 0.0f) * NoiseScale);
+            // .Use<SimplexNoiseGenerator>(3, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.5f, 0.0f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
+            // .Use<SimplexNoiseGenerator>(4, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.25f, 0.0f, Vector3(25.0f, 25.0f, 0.0f) * NoiseScale)
+            // .Use<SimplexNoiseGenerator>(5, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.125f, 0.0f, Vector3(12.5f, 12.5f, 0.0f) * NoiseScale)
+            // .Use<SimplexNoiseGenerator>(6, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.06f, 0.0f, Vector3(6.25f, 6.25f, 0.0f) * NoiseScale)
+            // .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.03f, 0.0f, Vector3(3.125f, 3.125f, 0.0f) * NoiseScale)
+            // .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.015f, 0.0f, Vector3(1.56f, 1.56f, 0.0f) * NoiseScale);
         }
     } s_initializer;
 
@@ -420,117 +437,5 @@ void TerrainStreamingCell::OnRemoved_Impl()
 }
 
 #pragma endregion TerrainStreamingCell
-
-#pragma region TerrainWorldGridLayer
-
-TerrainWorldGridLayer::TerrainWorldGridLayer()
-    : m_scene(CreateObject<Scene>(NAME("TerrainScene"), SceneFlags::FOREGROUND))
-{
-}
-
-TerrainWorldGridLayer::~TerrainWorldGridLayer()
-{
-}
-
-void TerrainWorldGridLayer::Init()
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    WorldGridLayer::Init();
-
-    HYP_LOG(WorldGrid, Debug, "Initializing TerrainWorldGridPlugin");
-
-    AssertDebug(m_scene.IsValid());
-    InitObject(m_scene);
-
-    m_material = CreateObject<Material>(NAME("terrain_material"));
-    m_material->SetBucket(RB_OPAQUE);
-    m_material->SetIsDepthTestEnabled(true);
-    m_material->SetIsDepthWriteEnabled(true);
-    m_material->SetParameter(MATERIAL_KEY_ALBEDO, Vec4f(0.2f, 0.5f, 0.1f, 1.0f));
-    m_material->SetParameter(MATERIAL_KEY_ROUGHNESS, 0.85f);
-    m_material->SetParameter(MATERIAL_KEY_METALNESS, 0.0f);
-    m_material->SetParameter(MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
-
-    // if (auto albedoTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))
-    // {
-    //     Handle<Texture> albedoTexture = albedoTextureAsset->Result();
-
-    //     TextureDesc textureDesc = albedoTexture->GetTextureDesc();
-    //     textureDesc.format = TF_RGBA8_SRGB;
-    //     albedoTexture->SetTextureDesc(textureDesc);
-
-    //     m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedoTexture);
-    // }
-
-    // if (auto groundTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png"))
-    // {
-    //     m_material->SetTexture(MaterialTextureKey::NORMAL_MAP, groundTextureAsset->Result());
-    // }
-
-    InitObject(m_material);
-}
-
-void TerrainWorldGridLayer::OnAdded_Impl(WorldGrid* worldGrid)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    AssertDebug(worldGrid != nullptr);
-    AssertDebug(m_scene.IsValid());
-
-    worldGrid->GetWorld()->AddScene(m_scene);
-
-    HYP_LOG(WorldGrid, Info, "Adding TerrainWorldGridPlugin scene to world");
-}
-
-void TerrainWorldGridLayer::OnRemoved_Impl(WorldGrid* worldGrid)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    AssertDebug(worldGrid != nullptr);
-    AssertDebug(m_scene.IsValid());
-
-    HYP_LOG(WorldGrid, Info, "Removing TerrainWorldGridPlugin");
-
-    worldGrid->GetWorld()->RemoveScene(m_scene);
-
-    // m_scene.Reset();
-    // m_material.Reset();
-}
-
-// void TerrainWorldGridLayer::Shutdown_Impl(WorldGrid* worldGrid)
-// {
-//     HYP_SCOPE;
-//     AssertOnThread(g_simThread);
-
-//     AssertDebug(worldGrid != nullptr);
-
-//     HYP_LOG(WorldGrid, Info, "Shutting down TerrainWorldGridPlugin");
-
-//     worldGrid->GetWorld()->RemoveScene(m_scene);
-// }
-
-// void TerrainWorldGridPlugin::Update_Impl(float delta)
-// {
-//     HYP_SCOPE;
-//     AssertOnThread(g_simThread);
-// }
-
-Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo)
-{
-    if (!m_scene.IsValid())
-    {
-        HYP_LOG(WorldGrid, Error, "Scene is not valid for TerrainWorldGridPlugin");
-
-        return Handle<StreamingCell>::empty;
-    }
-
-    return CreateObject<TerrainStreamingCell>(cellInfo, m_scene, m_material);
-}
-
-#pragma endregion TerrainWorldGridLayer
 
 } // namespace Hyperion

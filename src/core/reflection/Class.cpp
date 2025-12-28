@@ -1589,6 +1589,9 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
         ObjectBase* target = reinterpret_cast<ObjectBase*>(out.ToRef().GetPointer());
         Assert(target != nullptr);
+        
+        // override instance class
+        target->GetObjectHeader_Internal()->cls = this;
 
         ObjectInitializerContext* context = GetGlobalContext<ObjectInitializerContext>();
 
@@ -1598,7 +1601,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
             if (!scriptObjectResource)
             {
-                scriptObjectResource = AllocateResource<ScriptObjectResource>(TypedObjPtr(this, target), managedClass);
+                scriptObjectResource = AllocateResource<ScriptObjectResource>(target, managedClass);
                 AssertDebug(scriptObjectResource != nullptr);
 
                 target->SetScriptObjectResource(scriptObjectResource);

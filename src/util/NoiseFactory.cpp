@@ -92,7 +92,7 @@ WorleyNoiseGenerator::~WorleyNoiseGenerator()
 
 double WorleyNoiseGenerator::GetNoise(double x, double z) const
 {
-    return m_worleyNoise->Noise(x, z, 0);
+    return m_worleyNoise->Noise(x, 0.0, z);
 }
 
 double WorleyNoiseGenerator::GetNoise(double x, double y, double z) const

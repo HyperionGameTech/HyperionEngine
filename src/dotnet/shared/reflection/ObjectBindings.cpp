@@ -40,7 +40,7 @@ extern "C"
         Assert(cls->UseHandles());
 
 #ifdef HYP_DOTNET
-        TypedObjPtr ptr;
+        ObjectBase* ptr = nullptr;
 
         *outInstancePtr = nullptr;
 
@@ -55,15 +55,15 @@ extern "C"
             bool success = cls->CreateInstance(value, /* allowAbstract */ true);
             Assert(success, "Failed to create instance of Class '%s'", cls->GetName().LookupString());
 
-            ptr = TypedObjPtr(cls, value.ToRef().GetPointer());
+            ptr = value.Get<ObjectBase*>();
 
             // Ref counts are kept as 1 for Handle<T>, managed side is responsible for decrementing the ref count
-            ptr.IncRef();
+            ptr->GetObjectHeader_Internal()->IncRefStrong();
 
             value.Reset();
         }
 
-        *outInstancePtr = ptr.GetPointer();
+        *outInstancePtr = ptr;
 
         ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(
             ptr,
@@ -71,9 +71,7 @@ extern "C"
             *objectReference,
             ObjectFlags::CREATED_FROM_MANAGED);
 
-        ObjectBase* target = reinterpret_cast<ObjectBase*>(ptr.GetPointer());
-
-        target->SetScriptObjectResource(scriptObjectResource);
+        ptr->SetScriptObjectResource(scriptObjectResource);
 #endif
 
         /// NOTE: CREATED_FROM_MANAGED is set to true here, so we don't set keep alive to true

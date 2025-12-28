@@ -3545,13 +3545,13 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
     {
         if (IsNativeFunction(deref))
         {
-            BoxedValue** argsHypData = (BoxedValue**)StackAlloc((nargs > 0 ? nargs : 1) * sizeof(BoxedValue*));
+            BoxedValue** argsBoxed = (BoxedValue**)StackAlloc((nargs > 0 ? nargs : 1) * sizeof(BoxedValue*));
 
             for (int argIndex = 0; argIndex < nargs; argIndex++)
             {
                 BoxedValue& srcValue = *Deref(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex]);
 
-                argsHypData[argIndex] = &srcValue;
+                argsBoxed[argIndex] = &srcValue;
             }
 
             /// \todo : Implement
@@ -3566,7 +3566,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
             {
                 AssertDebug(nargs >= 1);
 
-                if (argsHypData[0]->IsNull())
+                if (argsBoxed[0]->IsNull())
                 {
                     // throw exception if target is null
                     ThrowException(instance, Script_Exception::NullReferenceException());
@@ -3574,7 +3574,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
                 }
             }
 
-            BoxedValue resultHypData = vmData->nativeFunc->Invoke(Span<BoxedValue*>(argsHypData, nargs));
+            BoxedValue resultHypData = vmData->nativeFunc->Invoke(Span<BoxedValue*>(argsBoxed, nargs));
 
             // set register 0 to the result
             instance->thread.GetRegisters()[0] = ScriptApi_MakeValue(std::move(resultHypData));
