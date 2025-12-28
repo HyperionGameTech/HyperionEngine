@@ -33,7 +33,7 @@ Result Baker<ReflectionProbe>::Build_Internal()
 {
     Assert(m_envProbe != nullptr);
 
-    m_bakeData = BakeData<ReflectionProbe>(m_subElements, m_envProbe.Get());
+    m_bakeData = BakeData<ReflectionProbe>(m_bakeEntities, m_envProbe.Get());
 
     return m_bakeData.Build();
 }

@@ -33,7 +33,7 @@ Result Baker<FogVolume>::Build_Internal()
 {
     Assert(m_fogVolume != nullptr);
 
-    m_bakeData = BakeData<FogVolume>(m_subElements, m_fogVolume.Get());
+    m_bakeData = BakeData<FogVolume>(m_bakeEntities, m_fogVolume.Get());
 
     return m_bakeData.Build();
 }

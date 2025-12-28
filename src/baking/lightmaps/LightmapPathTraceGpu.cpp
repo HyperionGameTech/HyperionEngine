@@ -2,6 +2,8 @@
 
 #include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
+#include <baking/LightmapTexel.hpp>
+
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 

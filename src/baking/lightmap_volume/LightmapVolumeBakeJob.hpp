@@ -4,6 +4,8 @@
 
 #include <baking/BakeJob.hpp>
 
+#include <baking/lightmap_volume/LightmapVolumeBakeData.hpp>
+
 namespace Hyperion {
 
 class LightmapVolume;

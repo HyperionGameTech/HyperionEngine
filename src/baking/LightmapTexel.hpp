@@ -26,7 +26,7 @@ class Entity;
 
 namespace Baking {
 
-struct LightmapSubElement
+struct BakeEntity
 {
     Handle<Entity> entity;
     Handle<Mesh> mesh;
@@ -35,7 +35,7 @@ struct LightmapSubElement
     BoundingBox aabb;
 };
 
-struct LightmapMeshData
+struct BakeMesh
 {
     Handle<Mesh> mesh;
     Handle<Material> material;

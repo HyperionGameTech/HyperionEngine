@@ -4,6 +4,7 @@
 
 #include <baking/Baker.hpp>
 #include <baking/BakeJob.hpp>
+#include <baking/BakeData.hpp>
 
 #include <baking/lightmaps/LightmapAccelerationStructure.hpp>
 #include <baking/lightmaps/LightmapPathTraceCpu.hpp>
@@ -235,8 +236,8 @@ BakeJobParams BakerBase::CreateLightmapJobParams(SizeType startIndex, SizeType e
         &m_config,
         m_scene,
         m_view,
-        m_subElements.ToSpan().Slice(startIndex, endIndex - startIndex),
-        &m_subElementsByEntity,
+        m_bakeEntities.ToSpan().Slice(startIndex, endIndex - startIndex),
+        &m_bakeEntitiesByEntity,
         &m_lightmapRenderers
     };
 
@@ -320,18 +321,18 @@ void BakerBase::BuildAccelerationStructures()
     Assert(m_accelerationStructure == nullptr);
     m_accelerationStructure = MakeUnique<LightmapTopLevelAccelerationStructure>();
 
-    if (m_subElements.Empty())
+    if (m_bakeEntities.Empty())
     {
         return;
     }
 
-    for (LightmapSubElement& subElement : m_subElements)
+    for (BakeEntity& bakeEntity : m_bakeEntities)
     {
-        const Handle<MeshAsset>& meshAsset = subElement.mesh->GetAsset();
+        const Handle<MeshAsset>& meshAsset = bakeEntity.mesh->GetAsset();
 
         if (!meshAsset)
         {
-            HYP_LOG(Lightmap, Error, "Mesh asset is invalid for entity {} in lightmapper", subElement.entity.Id());
+            HYP_LOG(Lightmap, Error, "Mesh asset is invalid for entity {} in lightmapper", bakeEntity.entity.Id());
             continue;
         }
 
@@ -343,7 +344,7 @@ void BakerBase::BuildAccelerationStructures()
 
         if (!meshData.BuildBVH(bvhNode, /* maxDepth */ 3))
         {
-            HYP_LOG(Lightmap, Error, "Failed to build BVH for mesh on entity {} in lightmapper", subElement.entity.Id());
+            HYP_LOG(Lightmap, Error, "Failed to build BVH for mesh on entity {} in lightmapper", bakeEntity.entity.Id());
 
             continue;
         }
@@ -355,7 +356,7 @@ void BakerBase::BuildAccelerationStructures()
         Memory::MemCpy(indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
 
         m_accelerationStructure->Add(
-            &subElement,
+            &bakeEntity,
             std::move(bvhNode),
             std::move(vertices),
             std::move(indices));
@@ -373,20 +374,20 @@ void BakerBase::BuildResourceCache()
 
     TaskBatch taskBatch;
 
-    auto callback = [&](LightmapSubElement& subElement, uint32, uint32) -> void
+    auto callback = [&](BakeEntity& bakeEntity, uint32, uint32) -> void
     {
         Array<CachedResource> localResources;
 
-        if (subElement.mesh.IsValid())
+        if (bakeEntity.mesh.IsValid())
         {
-            Assert(subElement.mesh->GetAsset().IsValid());
+            Assert(bakeEntity.mesh->GetAsset().IsValid());
 
-            localResources.EmplaceBack(subElement.mesh->GetAsset(), *subElement.mesh->GetAsset()->GetResource());
+            localResources.EmplaceBack(bakeEntity.mesh->GetAsset(), *bakeEntity.mesh->GetAsset()->GetResource());
         }
 
-        if (subElement.material.IsValid())
+        if (bakeEntity.material.IsValid())
         {
-            for (const Handle<Texture>& texture : subElement.material->GetTextures())
+            for (const Handle<Texture>& texture : bakeEntity.material->GetTextures())
             {
                 if (texture.IsValid())
                 {
@@ -410,8 +411,8 @@ void BakerBase::BuildResourceCache()
 
     TaskSystem::GetInstance().ParallelForEach_Batch(
         taskBatch,
-        uint32(m_subElements.Size() + 255) / 256,
-        m_subElements, callback);
+        uint32(m_bakeEntities.Size() + 255) / 256,
+        m_bakeEntities, callback);
 
     TaskSystem::GetInstance().EnqueueBatch(&taskBatch);
 
@@ -437,8 +438,8 @@ void BakerBase::Build()
 
     EntityManager& mgr = *m_scene->GetEntityManager();
 
-    m_subElements.Clear();
-    m_subElementsByEntity.Clear();
+    m_bakeEntities.Clear();
+    m_bakeEntitiesByEntity.Clear();
 
     const bool onlyOverlappingElements = OnlyOverlappingElements();
 
@@ -468,7 +469,7 @@ void BakerBase::Build()
             continue; // must be inside volume to be considered
         }
 
-        m_subElements.PushBack(LightmapSubElement {
+        m_bakeEntities.PushBack(BakeEntity {
             MakeStrongRef(entity),
             meshComponent.mesh,
             meshComponent.material,
@@ -477,11 +478,11 @@ void BakerBase::Build()
     }
 
     // set pointers in map after pushing, so that the addresses are stable
-    for (SizeType index = 0; index < m_subElements.Size(); index++)
+    for (SizeType index = 0; index < m_bakeEntities.Size(); index++)
     {
-        LightmapSubElement& subElement = m_subElements[index];
+        BakeEntity& bakeEntity = m_bakeEntities[index];
 
-        m_subElementsByEntity.Set(subElement.entity, &subElement);
+        m_bakeEntitiesByEntity.Set(bakeEntity.entity, &bakeEntity);
     }
 
     if (Result buildInternalResult = Build_Internal(); buildInternalResult.HasError())
@@ -529,7 +530,7 @@ void BakerBase::DispatchJobs()
 
         for (auto& it : tileBuckets)
         {
-            UniquePtr<BakeJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
+            UniquePtr<BakeJobBase> job = CreateJob(CreateLightmapJobParams(0, m_bakeEntities.Size()));
             Assert(job != nullptr);
 
             job->SetTexelIndices(std::move(it.second));
@@ -538,7 +539,7 @@ void BakerBase::DispatchJobs()
     }
     else
     {
-        UniquePtr<BakeJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
+        UniquePtr<BakeJobBase> job = CreateJob(CreateLightmapJobParams(0, m_bakeEntities.Size()));
         Assert(job != nullptr);
 
         // all texels
@@ -665,6 +666,21 @@ void BakerBase::HandleCompletedJob(BakeJobBase* job)
 
     HYP_LOG(Lightmap, Info, "Baking {} ... ({}%)",
         m_source ? m_source->Id() : ObjIdBase(), percentage);
+}
+
+void BakerBase::AddJob(UniquePtr<BakeJobBase>&& job)
+{
+    if (!job)
+    {
+        return;
+    }
+
+    job->m_lightmapper = this;
+
+    Mutex::Guard guard(m_queueMutex);
+    m_queue.PushBack(std::move(job));
+
+    ++m_numJobs;
 }
 
 #pragma endregion BakerBase

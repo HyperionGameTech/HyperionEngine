@@ -37,14 +37,14 @@ public:
     // Texel indices per mesh
     MeshToTexelRangesMap meshToTexelRanges;
 
-    Span<const LightmapSubElement> subElements;
+    Span<const BakeEntity> bakeEntities;
 
     Vec3u dimensions; // only useful for some lightmap data types that use 2D/3D textures.
 
     BakeDataBase() = default;
 
-    explicit BakeDataBase(Span<const LightmapSubElement> subElements)
-        : subElements(subElements)
+    explicit BakeDataBase(Span<const BakeEntity> bakeEntities)
+        : bakeEntities(bakeEntities)
     {
     }
 
@@ -75,150 +75,6 @@ public:
 
 template <class T>
 class BakeData;
-
-template <>
-class BakeData<LightmapVolume> : public BakeDataBase
-{
-public:
-    using BitmapType = Bitmap_RGBA32F;
-
-    using MeshFloatDataArray = Array<float, DynamicAllocator>;
-    using MeshIndexArray = Array<uint32, DynamicAllocator>;
-
-    BakeData()
-        : m_volume(nullptr)
-    {
-    }
-
-    BakeData(Span<const LightmapSubElement> subElements, LightmapVolume* volume);
-
-    BakeData(const BakeData& other) = default;
-    BakeData(BakeData&& other) noexcept = default;
-
-    BakeData& operator=(const BakeData& other) = default;
-    BakeData& operator=(BakeData&& other) noexcept = default;
-
-    ~BakeData() override = default;
-
-    HYP_FORCE_INLINE const Array<LightmapMeshData>& GetMeshData() const
-    {
-        return m_meshData;
-    }
-
-    virtual Result Build() override;
-
-    BitmapType ToBitmapIrradiance() const;
-    BitmapType ToBitmapRadiance() const;
-
-private:
-    LightmapVolume* m_volume;
-
-    Array<LightmapMeshData> m_meshData;
-
-    Array<LightmapRay> m_rays;
-
-    // Per element mesh data used for building the UV map
-    Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexPositions;
-    Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexNormals;
-    Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexUvs;
-    Array<Array<uint32>, DynamicAllocator> m_meshIndices;
-};
-
-template <>
-class BakeData<ReflectionProbe> : public BakeDataBase
-{
-public:
-    using BitmapType = Bitmap_RGBA32F;
-
-    BakeData()
-        : m_envProbe(nullptr)
-    {
-    }
-
-    BakeData(Span<const LightmapSubElement> subElements, ReflectionProbe* envProbe)
-        : BakeDataBase(subElements),
-          m_envProbe(envProbe)
-    {
-    }
-
-    BakeData(const BakeData& other) = default;
-    BakeData(BakeData&& other) noexcept = default;
-
-    BakeData& operator=(const BakeData& other) = default;
-    BakeData& operator=(BakeData&& other) noexcept = default;
-
-    ~BakeData() override = default;
-
-    virtual Result Build() override;
-
-    BitmapType ToBitmap() const;
-
-protected:
-    ReflectionProbe* m_envProbe;
-    Array<LightmapRay> m_rays;
-};
-
-template <>
-class BakeData<FogVolume> : public BakeDataBase
-{
-public:
-    static constexpr uint32 MaxNoiseBitmapExtent = 32;
-
-    using VolumeBitmap = Bitmap3D_RG16F;
-    using NoiseBitmap = Bitmap3D_R8;
-
-    BakeData()
-        : m_fogVolume(nullptr)
-    {
-    }
-
-    BakeData(Span<const LightmapSubElement> subElements, FogVolume* fogVolume)
-        : BakeDataBase(subElements),
-          m_fogVolume(fogVolume)
-    {
-    }
-
-    BakeData(const BakeData& other) = delete;
-    BakeData(BakeData&& other) noexcept = default;
-
-    BakeData& operator=(const BakeData& other) = delete;
-    BakeData& operator=(BakeData&& other) noexcept = default;
-
-    ~BakeData() override = default;
-
-    HYP_FORCE_INLINE VoxelOctree* GetVoxelOctree() const
-    {
-        return m_voxelOctree.Get();
-    }
-
-    HYP_FORCE_INLINE VolumeBitmap& GetVolumeBitmap()
-    {
-        return m_volumeBitmap;
-    }
-
-    HYP_FORCE_INLINE const VolumeBitmap& GetVolumeBitmap() const
-    {
-        return m_volumeBitmap;
-    }
-
-    HYP_FORCE_INLINE NoiseBitmap& GetNoiseBitmap()
-    {
-        return m_noiseBitmap;
-    }
-
-    HYP_FORCE_INLINE const NoiseBitmap& GetNoiseBitmap() const
-    {
-        return m_noiseBitmap;
-    }
-
-    virtual Result Build() override;
-
-protected:
-    FogVolume* m_fogVolume;
-    UniquePtr<VoxelOctree> m_voxelOctree;
-    VolumeBitmap m_volumeBitmap;
-    NoiseBitmap m_noiseBitmap;
-};
 
 } // namespace Baking
 

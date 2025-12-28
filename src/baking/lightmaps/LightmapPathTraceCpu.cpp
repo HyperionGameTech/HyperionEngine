@@ -3,6 +3,8 @@
 #include <baking/lightmaps/LightmapPathTraceCpu.hpp>
 #include <baking/lightmaps/LightmapAccelerationStructure.hpp>
 
+#include <baking/BakeJob.hpp>
+
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -400,14 +402,14 @@ void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(BakeJobBase* job, cons
 
         Assert(hit.entity.IsValid());
 
-        auto it = job->GetParams().subElementsByEntity->Find(hit.entity);
+        auto it = job->GetParams().bakeEntitiesByEntity->Find(hit.entity);
 
-        Assert(it != job->GetParams().subElementsByEntity->End());
+        Assert(it != job->GetParams().bakeEntitiesByEntity->End());
         Assert(it->second != nullptr);
 
-        const LightmapSubElement& subElement = *it->second;
+        const BakeEntity& bakeEntity = *it->second;
 
-        const ObjId<Mesh> meshId = subElement.mesh->Id();
+        const ObjId<Mesh> meshId = bakeEntity.mesh->Id();
 
         const Vec3f barycentricCoords = hit.barycentricCoords;
 
@@ -417,10 +419,10 @@ void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(BakeJobBase* job, cons
             + triangle.GetPoint(1).GetTexCoord0() * barycentricCoords.y
             + triangle.GetPoint(2).GetTexCoord0() * barycentricCoords.z;
 
-        Vec4f albedo = Vec4f(subElement.material->GetParameter(MATERIAL_KEY_ALBEDO));
+        Vec4f albedo = Vec4f(bakeEntity.material->GetParameter(MATERIAL_KEY_ALBEDO));
 
         // sample albedo texture, if present
-        if (const Handle<Texture>& albedoTexture = subElement.material->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+        if (const Handle<Texture>& albedoTexture = bakeEntity.material->GetTexture(MaterialTextureKey::ALBEDO_MAP))
         {
             Vec4f albedoTextureColor = albedoTexture->Sample2D(uv);
 

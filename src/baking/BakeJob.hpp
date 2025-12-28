@@ -47,8 +47,8 @@ struct BakeJobParams
     Handle<Scene> scene;
     Handle<View> view;
 
-    Span<LightmapSubElement> subElementsView;
-    HashMap<Handle<Entity>, LightmapSubElement*>* subElementsByEntity;
+    Span<BakeEntity> bakeEntitiesView;
+    HashMap<Handle<Entity>, BakeEntity*>* bakeEntitiesByEntity;
 
     Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
 };
@@ -83,9 +83,9 @@ public:
         return m_params.scene.Get();
     }
 
-    HYP_FORCE_INLINE Span<LightmapSubElement> GetSubElements() const
+    HYP_FORCE_INLINE Span<BakeEntity> GetBakeEntities() const
     {
-        return m_params.subElementsView;
+        return m_params.bakeEntitiesView;
     }
 
     HYP_FORCE_INLINE uint32 GetTexelIndex() const

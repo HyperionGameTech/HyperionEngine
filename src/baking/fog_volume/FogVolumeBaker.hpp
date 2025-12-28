@@ -4,6 +4,8 @@
 
 #include <baking/Baker.hpp>
 
+#include <baking/fog_volume/FogVolumeBakeData.hpp>
+
 namespace Hyperion {
 
 class FogVolume;

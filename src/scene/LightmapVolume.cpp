@@ -11,7 +11,7 @@
 
 #ifdef HYP_EDITOR
 #include <baking/BakerSubsystem.hpp>
-#include <baking/BakeData.hpp>
+#include <baking/lightmap_volume/LightmapVolumeBakeData.hpp>
 #endif
 
 #include <rendering/Texture.hpp>

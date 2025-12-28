@@ -4,6 +4,8 @@
 
 #include <baking/BakeJob.hpp>
 
+#include <baking/reflection_probe/ReflectionProbeBakeData.hpp>
+
 namespace Hyperion {
 
 class ReflectionProbe;

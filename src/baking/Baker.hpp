@@ -23,9 +23,6 @@
 
 #include <scene/Scene.hpp>
 
-#include <baking/BakeData.hpp>
-#include <baking/BakeJob.hpp>
-
 #include <util/GameCounter.hpp>
 
 namespace Hyperion {
@@ -45,12 +42,16 @@ class AssetObject;
 class View;
 class ReflectionProbe;
 class FogVolume;
+class Mesh;
 struct RenderSetup;
 
 namespace Baking {
 
 class BakerBase;
+class BakeDataBase;
 class BakeJobBase;
+struct BakeJobParams;
+struct BakeEntity;
 
 class LightmapTopLevelAccelerationStructure;
 
@@ -148,6 +149,8 @@ struct LightmapHit
 };
 
 static_assert(sizeof(LightmapHit) == 16);
+
+struct LightmapRay;
 
 class LightmapTopLevelAccelerationStructure;
 
@@ -360,8 +363,8 @@ protected:
 
     Handle<View> m_view;
 
-    Array<LightmapSubElement> m_subElements;
-    HashMap<Handle<Entity>, LightmapSubElement*> m_subElementsByEntity;
+    Array<BakeEntity> m_bakeEntities;
+    HashMap<Handle<Entity>, BakeEntity*> m_bakeEntitiesByEntity;
 
     /// ===== CPU tracing only =====
     UniquePtr<LightmapTopLevelAccelerationStructure> m_accelerationStructure;
@@ -379,20 +382,7 @@ protected:
 
     BakeJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
 
-    void AddJob(UniquePtr<BakeJobBase>&& job)
-    {
-        if (!job)
-        {
-            return;
-        }
-
-        job->m_lightmapper = this;
-
-        Mutex::Guard guard(m_queueMutex);
-        m_queue.PushBack(std::move(job));
-
-        ++m_numJobs;
-    }
+    void AddJob(UniquePtr<BakeJobBase>&& job);
 
     Array<UniquePtr<BakeJobBase>> m_queue;
     Mutex m_queueMutex;

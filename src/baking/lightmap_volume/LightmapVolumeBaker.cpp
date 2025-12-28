@@ -48,10 +48,10 @@ void Baker<LightmapVolume>::Build()
 
     EntityManager& mgr = *m_scene->GetEntityManager();
 
-    m_subElements.Clear();
-    m_subElementsByEntity.Clear();
+    m_bakeEntities.Clear();
+    m_bakeEntitiesByEntity.Clear();
 
-    const bool onlyOverlappingElements = OnlyOverlappingElements();
+    const bool onlyOverlappingElements = BakerBase::OnlyOverlappingElements();
 
     for (auto [entity, meshComponent, transformComponent, boundingBoxComponent, _] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
@@ -77,7 +77,7 @@ void Baker<LightmapVolume>::Build()
             continue;
         }
 
-        m_subElements.PushBack(LightmapSubElement {
+        m_bakeEntities.PushBack(BakeEntity {
             MakeStrongRef(entity),
             meshComponent.mesh,
             meshComponent.material,
@@ -86,7 +86,7 @@ void Baker<LightmapVolume>::Build()
     }
 
     // Build global data
-    m_bakeData = BakeData<LightmapVolume>(m_subElements.ToSpan(), m_volume);
+    m_bakeData = BakeData<LightmapVolume>(m_bakeEntities.ToSpan(), m_volume);
 
     if (Result result = m_bakeData.Build(); result.HasError())
     {
@@ -128,28 +128,28 @@ void Baker<LightmapVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
             lightmapElement->offsetUv, lightmapElement->scale);
 
         // Update meshes
-        for (SizeType subElementIndex = 0; subElementIndex < m_subElements.Size(); subElementIndex++)
+        for (SizeType bakeEntityIndex = 0; bakeEntityIndex < m_bakeEntities.Size(); bakeEntityIndex++)
         {
-            LightmapSubElement& subElement = m_subElements[subElementIndex];
+            BakeEntity& bakeEntity = m_bakeEntities[bakeEntityIndex];
 
             auto updateMeshData = [&]()
             {
-                const Handle<Mesh>& mesh = subElement.mesh;
+                const Handle<Mesh>& mesh = bakeEntity.mesh;
                 Assert(mesh.IsValid());
 
-                Assert(subElementIndex < m_bakeData.GetMeshData().Size());
+                Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
 
-                const LightmapMeshData& lightmapMeshData = m_bakeData.GetMeshData()[subElementIndex];
-                Assert(lightmapMeshData.mesh == mesh);
+                const BakeMesh& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
+                Assert(bakeMesh.mesh == mesh);
 
                 MeshDesc newMeshDesc;
                 newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
-                newMeshDesc.numVertices = uint32(lightmapMeshData.vertices.Size());
-                newMeshDesc.numIndices = uint32(lightmapMeshData.indices.Size());
+                newMeshDesc.numVertices = uint32(bakeMesh.vertices.Size());
+                newMeshDesc.numIndices = uint32(bakeMesh.indices.Size());
 
                 MeshData newMeshData;
-                newMeshData.vertexData = lightmapMeshData.vertices;
-                newMeshData.indexData = ByteBuffer(lightmapMeshData.indices.ToByteView());
+                newMeshData.vertexData = bakeMesh.vertices;
+                newMeshData.indexData = ByteBuffer(bakeMesh.indices.ToByteView());
 
                 for (SizeType i = 0; i < newMeshData.vertexData.Size(); i++)
                 {
@@ -166,30 +166,30 @@ void Baker<LightmapVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
 
             bool isNewMaterial = false;
 
-            if (subElement.material)
+            if (bakeEntity.material)
             {
-                Handle<Material> clonedMaterial = subElement.material->Clone();
-                SafeDelete(std::move(subElement.material));
+                Handle<Material> clonedMaterial = bakeEntity.material->Clone();
+                SafeDelete(std::move(bakeEntity.material));
 
-                subElement.material = clonedMaterial;
+                bakeEntity.material = clonedMaterial;
             }
             else
             {
-                subElement.material = CreateObject<Material>();
+                bakeEntity.material = CreateObject<Material>();
             }
 
             isNewMaterial = true;
 
-            subElement.material->SetBucket(RB_LIGHTMAP);
+            bakeEntity.material->SetBucket(RB_LIGHTMAP);
 
-            subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
-            subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
+            bakeEntity.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
+            bakeEntity.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
 
             auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
                                            lightmapElementId = m_lightmapElementId,
                                            volume = m_volume,
-                                           subElement = subElement,
-                                           newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
+                                           bakeEntity = bakeEntity,
+                                           newMaterial = (isNewMaterial ? bakeEntity.material : Handle<Material>::empty)]()
             {
                 Handle<EntityManager> entityManager = entityManagerWeak.Lock();
 
@@ -198,7 +198,7 @@ void Baker<LightmapVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
                     return;
                 }
 
-                const Handle<Entity>& entity = subElement.entity;
+                const Handle<Entity>& entity = bakeEntity.entity;
 
                 if (entityManager->HasComponent<MeshComponent>(entity))
                 {
@@ -219,7 +219,7 @@ void Baker<LightmapVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
                     InitObject(newMaterial);
 
                     MeshComponent meshComponent {};
-                    meshComponent.mesh = subElement.mesh;
+                    meshComponent.mesh = bakeEntity.mesh;
                     meshComponent.material = newMaterial;
 
                     entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
