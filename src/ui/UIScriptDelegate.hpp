@@ -90,7 +90,7 @@ public:
         HYP_DEFER({ scriptComponent->scriptObjectResource->DecRef(); });
 
 #ifdef HYP_DOTNET
-        if (scriptComponent->scriptObjectResource->GetScriptLanguageMask() & (1u << SL_CSHARP))
+        if (scriptComponent->scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
         {
             dotnet::ManagedObject* managedObject = scriptComponent->scriptObjectResource->GetManagedObject();
             Assert(managedObject != nullptr);

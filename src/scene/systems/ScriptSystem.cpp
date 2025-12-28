@@ -37,7 +37,7 @@ namespace Hyperion {
 
 EngineStatTimer g_scriptUpdateTimer("Script/Update");
 
-constexpr bool g_enableScriptReloading = false;
+constexpr bool enableScriptReloading = true;
 
 template <class ReturnType, class... ArgTypes>
 static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, ArgTypes&&... args)
@@ -47,7 +47,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     const uint32 mask = sor->GetScriptLanguageMask();
 
 #ifdef HYP_DOTNET
-    if (mask & (1u << SL_CSHARP))
+    if (mask & (1u << uint32(ScriptLanguage::CSharp)))
     {
         AssertDebug(sor->GetManagedObject() != nullptr);
 
@@ -73,7 +73,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     }
 #endif
 #ifdef HYP_SCRIPT
-    if (mask & (1u << SL_HYPSCRIPT))
+    if (mask & (1u << uint32(ScriptLanguage::HypScript)))
     {
         auto* data = sor->GetScriptObjectData_HypScript();
         Assert(data != nullptr);
@@ -107,7 +107,7 @@ ScriptSystem::ScriptSystem()
 {
     // @FIXME: Issue with reloaded assemblies that spawn native objects having their classes change.
 
-    if (g_enableScriptReloading)
+    if (enableScriptReloading)
     {
         m_delegateHandlers.Add(
             NAME("OnScriptStateChanged"),
@@ -115,7 +115,7 @@ ScriptSystem::ScriptSystem()
                 {
                     AssertOnThread(g_simThread);
 
-                    if (!(script.compileStatus & uint32(SCS_COMPILED)))
+                    if (!(script.compileStatus & uint32(ScriptCompileStatus::Compiled)))
                     {
                         return;
                     }

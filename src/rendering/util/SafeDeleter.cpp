@@ -29,7 +29,7 @@ SafeDeleterEntry<ObjectBase*>::SafeDeleterEntry(ObjectBase* ptr, ConstructFromHa
     {
 #ifdef HYP_DOTNET
         ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
-        const bool hasExtraRef = scriptObjectResource && (scriptObjectResource->GetScriptLanguageMask() == (1u << SL_CSHARP));
+        const bool hasExtraRef = scriptObjectResource && (scriptObjectResource->GetScriptLanguageMask() == (1u << uint32(ScriptLanguage::CSharp)));
 #else
         const bool hasExtraRef = false;
 #endif

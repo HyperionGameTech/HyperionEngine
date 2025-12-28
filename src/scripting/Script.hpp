@@ -35,7 +35,7 @@ struct ScriptData
     Uuid uuid;
 
     HYP_FIELD(Serialize)
-    ScriptLanguage language = SL_HYPSCRIPT;
+    ScriptLanguage language = ScriptLanguage::HypScript;
 
     HYP_FIELD(Serialize)
     FixedArray<char, scriptMaxPathLength> path;
