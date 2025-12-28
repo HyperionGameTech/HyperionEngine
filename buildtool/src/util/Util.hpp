@@ -22,6 +22,8 @@ Array<String> ExtractCXXBaseClasses(const String& line);
 /// Parses 'namespace foo::bar' as well as nested 'namespace foo { namespace bar { ... } }' constructs.
 Array<String> ExtractCXXNamespacePath(const String& source);
 
+String BuildNamespaceString(Span<const String> namespaceParts);
+
 bool IsCXXClassDecl(const String& line);
 bool IsCXXStructDecl(const String& line);
 bool IsCXXEnumDecl(const String& line);

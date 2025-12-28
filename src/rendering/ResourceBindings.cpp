@@ -18,10 +18,9 @@
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <scene/animation/Skeleton.hpp>
-
-#include <lightmapper/LightmapVolume.hpp>
 
 namespace Hyperion {
 

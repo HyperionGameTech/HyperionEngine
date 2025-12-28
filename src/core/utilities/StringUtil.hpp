@@ -211,7 +211,7 @@ static inline String ToSnakeCase(const String& str)
 
 static inline bool Parse(const String& str, int* outValue)
 {
-    *outValue = std::strtol(str.Data(), nullptr, 0);
+    *outValue = int(std::strtol(str.Data(), nullptr, 0));
 
     return true;
 }
@@ -232,15 +232,7 @@ static inline bool Parse(const String& str, long long* outValue)
 
 static inline bool Parse(const String& str, unsigned int* outValue)
 {
-    unsigned int val = 0;
-    const char* p = str.Data();
-
-    while (*p)
-    {
-        val = (val << 1) + (val << 3) + *(p++) - 48;
-    }
-
-    *outValue = val;
+    *outValue = unsigned(std::strtoul(str.Data(), nullptr, 0));
 
     return true;
 }

@@ -33,7 +33,7 @@
 
 #include <scene/sky/DynamicSkySubsystem.hpp>
 
-#include <lightmapper/LightmapVolume.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -75,8 +75,8 @@
 #include <ui/font/FontAtlas.hpp>
 
 // temp
-#include <lightmapper/LightmapperSubsystem.hpp>
-#include <lightmapper/LightmapData.hpp>
+#include <baking/BakerSubsystem.hpp>
+#include <baking/BakeData.hpp>
 
 // for EnumToString
 #include <core/reflection/Enum.hpp>
@@ -164,11 +164,11 @@ void GenerateLightmapsEditorTask::Process()
         return;
     }
 
-    LightmapperSubsystem* lightmapperSubsystem = m_world->GetSubsystem<LightmapperSubsystem>();
+    BakerSubsystem* lightmapperSubsystem = m_world->GetSubsystem<BakerSubsystem>();
 
     if (!lightmapperSubsystem)
     {
-        lightmapperSubsystem = m_world->AddSubsystem<LightmapperSubsystem>();
+        lightmapperSubsystem = m_world->AddSubsystem<BakerSubsystem>();
     }
 
     for (const Handle<ObjectBase>& source : m_sources)

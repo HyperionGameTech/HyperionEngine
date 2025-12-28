@@ -1,18 +1,12 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #include <HyperionPch.hpp>
 
-#include <lightmapper/LightmapData.hpp>
+#include <baking/lightmap_volume/LightmapVolumeBakeData.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/Texture.hpp>
 
-#include <scene/EnvProbe.hpp>
-#include <scene/FogVolume.hpp>
-
-#include <scene/util/VoxelOctree.hpp>
-
-#include <util/NoiseFactory.hpp>
+#include <scene/LightmapVolume.hpp>
 
 #ifdef HYP_XATLAS
 #include <xatlas.h>
@@ -20,33 +14,33 @@
 
 namespace Hyperion {
 
-#pragma region LightmapData < LightmapVolume>
+namespace Baking {
 
-LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subElements, LightmapVolume* volume)
-    : LightmapDataBase(subElements),
+BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, LightmapVolume* volume)
+    : BakeDataBase(bakeEntities),
       m_volume(volume),
-      m_meshVertexPositions(subElements.Size()),
-      m_meshVertexNormals(subElements.Size()),
-      m_meshVertexUvs(subElements.Size()),
-      m_meshIndices(subElements.Size())
+      m_meshVertexPositions(bakeEntities.Size()),
+      m_meshVertexNormals(bakeEntities.Size()),
+      m_meshVertexUvs(bakeEntities.Size()),
+      m_meshIndices(bakeEntities.Size())
 {
     // Output mesh data - this will be where we output the computed UVs to be used for tracing
-    m_meshData.Resize(subElements.Size());
+    m_meshData.Resize(bakeEntities.Size());
 
-    for (SizeType i = 0; i < subElements.Size(); i++)
+    for (SizeType i = 0; i < bakeEntities.Size(); i++)
     {
-        const LightmapSubElement& subElement = subElements[i];
+        const BakeEntity& bakeEntity = bakeEntities[i];
 
-        LightmapMeshData& lightmapMeshData = m_meshData[i];
+        BakeMesh& bakeMesh = m_meshData[i];
 
-        if (!subElement.mesh)
+        if (!bakeEntity.mesh)
         {
             HYP_LOG(Lightmap, Warning, "Sub-element {} has no mesh, skipping", i);
 
             continue;
         }
 
-        const Handle<Mesh>& mesh = subElement.mesh;
+        const Handle<Mesh>& mesh = bakeEntity.mesh;
 
         if (!mesh->GetAsset())
         {
@@ -66,9 +60,9 @@ LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subEle
 
         MeshData meshData = *mesh->GetAsset()->GetMeshData();
 
-        lightmapMeshData.mesh = subElement.mesh;
-        lightmapMeshData.material = subElement.material;
-        lightmapMeshData.transformMatrix = subElement.transformMatrix;
+        bakeMesh.mesh = bakeEntity.mesh;
+        bakeMesh.material = bakeEntity.material;
+        bakeMesh.transformMatrix = bakeEntity.transformMatrix;
 
         m_meshVertexPositions[i].Resize(meshData.vertexData.Size() * 3);
         m_meshVertexNormals[i].Resize(meshData.vertexData.Size() * 3);
@@ -90,7 +84,7 @@ LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subEle
             }
         }
 
-        const Mat4f modelMatrix = subElement.transformMatrix;
+        const Mat4f modelMatrix = bakeEntity.transformMatrix;
         const Mat4f normalMatrix = modelMatrix.Inverted().Transpose();
 
         for (SizeType vertexIndex = 0; vertexIndex < meshData.vertexData.Size(); vertexIndex++)
@@ -113,7 +107,7 @@ LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subEle
     }
 }
 
-Result LightmapData<LightmapVolume>::Build()
+Result BakeData<LightmapVolume>::Build()
 {
     if (m_meshData.Empty())
     {
@@ -169,14 +163,14 @@ Result LightmapData<LightmapVolume>::Build()
 
     for (uint32 meshIndex = 0; meshIndex < atlas->meshCount; meshIndex++)
     {
-        LightmapMeshData& lightmapMeshData = m_meshData[meshIndex];
+        BakeMesh& bakeMesh = m_meshData[meshIndex];
 
-        const Mat4f& transform = lightmapMeshData.transformMatrix;
+        const Mat4f& transform = bakeMesh.transformMatrix;
         const Mat4f inverseTransform = transform.Inverted();
         const Mat4f normalMatrix = transform.Inverted().Transpose();
         const Mat4f inverseNormalMatrix = normalMatrix.Inverted();
 
-        MeshIndexArray& currentUvIndices = meshToUvIndices[lightmapMeshData.mesh->Id()];
+        MeshIndexArray& currentUvIndices = meshToUvIndices[bakeMesh.mesh->Id()];
 
         const xatlas::Mesh& atlasMesh = atlas->meshes[meshIndex];
 
@@ -275,7 +269,7 @@ Result LightmapData<LightmapVolume>::Build()
                     LightmapRay& ray = m_rays[texelIdx];
                     ray = LightmapRay {
                         Ray { position, normal },
-                        lightmapMeshData.mesh->Id(),
+                        bakeMesh.mesh->Id(),
                         triangleIndex,
                         texelIdx
                     };
@@ -291,17 +285,17 @@ Result LightmapData<LightmapVolume>::Build()
 
     for (SizeType meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
     {
-        LightmapMeshData& lightmapMeshData = m_meshData[meshIndex];
-        lightmapMeshData.vertices.Resize(atlas->meshes[meshIndex].vertexCount);
-        lightmapMeshData.indices.Resize(atlas->meshes[meshIndex].indexCount);
+        BakeMesh& bakeMesh = m_meshData[meshIndex];
+        bakeMesh.vertices.Resize(atlas->meshes[meshIndex].vertexCount);
+        bakeMesh.indices.Resize(atlas->meshes[meshIndex].indexCount);
 
-        const Mat4f inverseTransform = lightmapMeshData.transformMatrix.Inverted();
-        const Mat4f normalMatrix = lightmapMeshData.transformMatrix.Inverted().Transpose();
+        const Mat4f inverseTransform = bakeMesh.transformMatrix.Inverted();
+        const Mat4f normalMatrix = bakeMesh.transformMatrix.Inverted().Transpose();
         const Mat4f inverseNormalMatrix = normalMatrix.Inverted();
 
         for (uint32 j = 0; j < atlas->meshes[meshIndex].indexCount; j++)
         {
-            lightmapMeshData.indices[j] = atlas->meshes[meshIndex].indexArray[j];
+            bakeMesh.indices[j] = atlas->meshes[meshIndex].indexArray[j];
 
             const uint32 vertexIndex = atlas->meshes[meshIndex].vertexArray[atlas->meshes[meshIndex].indexArray[j]].xref;
             const Vec2f uv = {
@@ -309,7 +303,7 @@ Result LightmapData<LightmapVolume>::Build()
                 atlas->meshes[meshIndex].vertexArray[atlas->meshes[meshIndex].indexArray[j]].uv[1]
             };
 
-            Vertex& vertex = lightmapMeshData.vertices[lightmapMeshData.indices[j]];
+            Vertex& vertex = bakeMesh.vertices[bakeMesh.indices[j]];
 
             vertex.SetPosition(inverseTransform * Vec3f(m_meshVertexPositions[meshIndex][vertexIndex * 3], m_meshVertexPositions[meshIndex][vertexIndex * 3 + 1], m_meshVertexPositions[meshIndex][vertexIndex * 3 + 2]));
             vertex.SetNormal((inverseNormalMatrix * Vec4f(m_meshVertexNormals[meshIndex][vertexIndex * 3], m_meshVertexNormals[meshIndex][vertexIndex * 3 + 1], m_meshVertexNormals[meshIndex][vertexIndex * 3 + 2], 0.0f)).GetXYZ());
@@ -339,7 +333,7 @@ Result LightmapData<LightmapVolume>::Build()
 #endif
 }
 
-auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
+auto BakeData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
 {
     Assert(texels.Size() == dimensions.x * dimensions.y, "Invalid UV map size");
 
@@ -369,7 +363,7 @@ auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
     return bitmap;
 }
 
-auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
+auto BakeData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
 {
     Assert(texels.Size() == dimensions.x * dimensions.y, "Invalid UV map size");
 
@@ -399,207 +393,6 @@ auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
     return bitmap;
 }
 
-#pragma endregion LightmapData < LightmapVolume>
-
-#pragma region LightmapData<ReflectionProbe>
-
-Result LightmapData<ReflectionProbe>::Build()
-{
-    Assert(m_envProbe != nullptr);
-
-    // texels need to be 6*resolution^2 in size
-    dimensions = Vec3u(m_envProbe->GetDimensions(), 1);
-
-    AssertDebug(dimensions.Volume() > 0 && dimensions.x == dimensions.y,
-        "EnvProbe lightmap dimensions must be square and non-zero! Dimensions: {}", dimensions);
-
-    const uint32 numTexelsPerFace = dimensions.x * dimensions.y;
-    const uint32 numTexelsTotal = 6 * numTexelsPerFace;
-
-    texels.Resize(numTexelsTotal);
-    m_rays.Resize(numTexelsTotal);
-
-    const Vec3f origin = m_envProbe->GetWorldTranslation();
-
-    // Use the same face orientation as render code (Texture::s_cubemapDirections)
-    for (uint32 face = 0; face < 6; face++)
-    {
-        const Vec3f forward = Texture::s_cubemapDirections[face].first;
-        const Vec3f up = Texture::s_cubemapDirections[face].second * Vec3f(-1.0f);
-        const Vec3f right = forward.Cross(up).Normalize();
-
-        for (uint32 y = 0; y < dimensions.y; y++)
-        {
-            for (uint32 x = 0; x < dimensions.x; x++)
-            {
-                const uint32 texelIdx = face * uint32(numTexelsPerFace) + y * dimensions.x + x;
-
-                const float u = (float(x) + 0.5f) / float(dimensions.x) * 2.0f - 1.0f;
-                const float v = (float(y) + 0.5f) / float(dimensions.y) * 2.0f - 1.0f;
-
-                const Vec3f dir = (forward + right * u + up * v).Normalize();
-
-                LightmapRay& ray = m_rays[texelIdx];
-                ray = LightmapRay {
-                    Ray { origin, dir },
-                    /* meshId */ ObjId<Mesh>::invalid,
-                    /* triangleIndex */ ~0u,
-                    /* texelIndex */ texelIdx
-                };
-
-                LightmapTexel& texel = texels[texelIdx];
-                texel.pRay = &ray;
-            }
-        }
-    }
-
-    return {};
-}
-
-auto LightmapData<ReflectionProbe>::ToBitmap() const -> BitmapType
-{
-    Assert(m_envProbe != nullptr);
-
-    const SizeType numTexelsPerFace = dimensions.x * dimensions.y;
-
-    Assert(texels.Size() == 6 * numTexelsPerFace, "Invalid cubemap size");
-
-    BitmapType bitmap(dimensions.x, dimensions.y * 6);
-
-    for (uint32 face = 0; face < 6; face++)
-    {
-        for (uint32 y = 0; y < dimensions.y; y++)
-        {
-            for (uint32 x = 0; x < dimensions.x; x++)
-            {
-                const uint32 texelIdx = face * numTexelsPerFace + y * dimensions.x + x;
-                const uint32 bitmapY = face * dimensions.y + y;
-
-                Vec4f color = texels[texelIdx].color0;
-
-                if (color.w <= 0.0f)
-                {
-                    continue;
-                }
-
-                color /= color.w;
-
-                AssertDebug(!MathUtil::IsNaN(color));
-
-                bitmap.GetPixelReference(x, bitmapY).SetRGBA(color);
-            }
-        }
-    }
-
-    return bitmap;
-}
-
-#pragma endregion LightmapData < ReflectionProbe>
-
-#pragma region LightmapData < FogVolume>
-
-static struct FogVolumeNoiseCombinator
-{
-    NoiseCombinator noiseCombinator;
-
-    FogVolumeNoiseCombinator()
-    {
-        noiseCombinator
-            // Base Density
-            .Use<SimplexNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 0.4f, 0.0f, Vec3f(15.0f))
-            // Structure (Mid-Frequency)
-            .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.3f, 0.0f, Vec3f(60.0f))
-            // Grain (High-Frequency)
-            .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.2f, 0.0f, Vec3f(250.0f))
-            // Eraser (Subtractive Worley)
-            .Use<WorleyNoiseGenerator>(3, NoiseCombinator::Mode::SUBTRACTIVE, 0.2f, 0.0f, Vec3f(300.0f));
-    }
-} s_initializer;
-
-static void GenerateNoiseBitmap(typename LightmapData<FogVolume>::NoiseBitmap& noiseBitmap)
-{
-    for (uint32 z = 0; z < noiseBitmap.GetDepth(); z++)
-    {
-        for (uint32 y = 0; y < noiseBitmap.GetHeight(); y++)
-        {
-            for (uint32 x = 0; x < noiseBitmap.GetWidth(); x++)
-            {
-                const float noiseValue = s_initializer.noiseCombinator.GetNoise(
-                    Vec3f(
-                        float(x) / float(noiseBitmap.GetWidth()),
-                        float(y) / float(noiseBitmap.GetHeight()),
-                        float(z) / float(noiseBitmap.GetDepth())));
-
-                noiseBitmap.GetPixelReference(x, y, z).SetComponentFloat(0, noiseValue);
-            }
-        }
-    }
-}
-
-Result LightmapData<FogVolume>::Build()
-{
-    Assert(m_fogVolume != nullptr);
-
-    const BoundingBox localBounds = m_fogVolume->GetLocalBounds();
-    const Vec3f localBoundsExtent = localBounds.GetExtent();
-    const float maxExtent = localBoundsExtent.Max();
-
-    if (maxExtent < MathUtil::epsilonF)
-    {
-        dimensions = Vec3u::One();
-    }
-    else
-    {
-        const float scale = float(FogVolume::MaxVolumeTextureExtent) / maxExtent;
-        dimensions = Vec3u(MathUtil::Max(Vec3f(1.0f), MathUtil::Ceil(localBoundsExtent * scale)));
-    }
-
-    if (dimensions.Volume() == 0)
-    {
-        dimensions = Vec3u::One();
-    }
-
-    m_volumeBitmap = VolumeBitmap(
-        dimensions.x,
-        dimensions.y,
-        dimensions.z);
-
-    const Vec3f extentWS = m_fogVolume->GetWorldBounds().GetExtent();
-    const Vec3f texelSizeWS = extentWS / Vec3f(dimensions);
-
-    texels.Resize(dimensions.Volume());
-
-    BoundingBox voxelOctreeAabb = m_fogVolume->GetWorldBounds();
-
-    if (!voxelOctreeAabb.IsValid() || !voxelOctreeAabb.IsFinite() || voxelOctreeAabb.IsZero())
-    {
-        return HYP_MAKE_ERROR(Error, "Invalid fog volume AABB for voxel octree build");
-    }
-
-    VoxelOctreeParams octreeParams;
-    octreeParams.aabb = voxelOctreeAabb;
-    octreeParams.allowResize = false;
-    octreeParams.maxDepth = 5;
-
-    m_voxelOctree = MakeUnique<VoxelOctree>();
-
-    auto buildResult = m_voxelOctree->Build(octreeParams, m_fogVolume->GetEntityManager());
-
-    if (buildResult.HasError())
-    {
-        return buildResult.GetError();
-    }
-
-    m_noiseBitmap = NoiseBitmap(
-        MaxNoiseBitmapExtent,
-        MaxNoiseBitmapExtent,
-        MaxNoiseBitmapExtent);
-
-    GenerateNoiseBitmap(m_noiseBitmap);
-
-    return {};
-}
-
-#pragma endregion LightmapData < FogVolume>
+} // namespace Baking
 
 } // namespace Hyperion

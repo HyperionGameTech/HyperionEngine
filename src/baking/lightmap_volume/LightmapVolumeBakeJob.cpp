@@ -1,0 +1,41 @@
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
+
+#include <HyperionPch.hpp>
+
+#include <baking/lightmap_volume/LightmapVolumeBakeJob.hpp>
+
+#include <scene/LightmapVolume.hpp>
+#include <scene/Scene.hpp>
+
+namespace Hyperion {
+namespace Baking {
+
+BakeJob<LightmapVolume>::BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* bakeData)
+    : BakeJobBase(std::move(params)),
+      m_volume(volume),
+      m_bakeData(bakeData),
+      m_lightmapElement(nullptr)
+{
+    Assert(m_volume != nullptr);
+    Assert(m_bakeData != nullptr);
+}
+
+BakeJob<LightmapVolume>::~BakeJob()
+{
+    // m_lightmapElement is now managed externally or not used in the same way
+}
+
+void BakeJob<LightmapVolume>::Start_Internal()
+{
+}
+
+void BakeJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
+{
+    if (outIsReadyToProcess)
+    {
+        *outIsReadyToProcess = true;
+    }
+}
+
+} // namespace Baking
+} // namespace Hyperion

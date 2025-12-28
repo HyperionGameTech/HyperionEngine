@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <baking/LightmapTexel.hpp>
+
 #include <core/Types.hpp>
 
 #include <core/math/Ray.hpp>
@@ -22,7 +24,9 @@ namespace Hyperion {
 
 class Entity;
 
-struct LightmapSubElement;
+namespace Baking {
+
+struct BakeEntity;
 
 struct LightmapRayHit : RayHit
 {
@@ -105,28 +109,28 @@ class LightmapBottomLevelAccelerationStructure
 {
 public:
     LightmapBottomLevelAccelerationStructure(
-        const LightmapSubElement* subElement,
+        const BakeEntity* bakeEntity,
         BVHNode&& bvh,
         Array<Vertex>&& vertices,
         Array<uint32>&& indices)
-        : m_subElement(subElement),
+        : m_bakeEntity(bakeEntity),
           m_root(std::move(bvh)),
           m_cachedVertices(std::move(vertices)),
           m_cachedIndices(std::move(indices))
     {
-        Assert(m_subElement != nullptr);
+        Assert(m_bakeEntity != nullptr);
     }
 
     LightmapBottomLevelAccelerationStructure(const LightmapBottomLevelAccelerationStructure& other) = delete;
     LightmapBottomLevelAccelerationStructure& operator=(const LightmapBottomLevelAccelerationStructure& other) = delete;
 
     LightmapBottomLevelAccelerationStructure(LightmapBottomLevelAccelerationStructure&& other) noexcept
-        : m_subElement(other.m_subElement),
+        : m_bakeEntity(other.m_bakeEntity),
           m_root(std::move(other.m_root)),
           m_cachedVertices(std::move(other.m_cachedVertices)),
           m_cachedIndices(std::move(other.m_cachedIndices))
     {
-        other.m_subElement = nullptr;
+        other.m_bakeEntity = nullptr;
     }
 
     LightmapBottomLevelAccelerationStructure& operator=(LightmapBottomLevelAccelerationStructure&& other) noexcept
@@ -136,12 +140,12 @@ public:
             return *this;
         }
 
-        m_subElement = other.m_subElement;
+        m_bakeEntity = other.m_bakeEntity;
         m_root = std::move(other.m_root);
         m_cachedVertices = std::move(other.m_cachedVertices);
         m_cachedIndices = std::move(other.m_cachedIndices);
 
-        other.m_subElement = nullptr;
+        other.m_bakeEntity = nullptr;
 
         return *this;
     }
@@ -150,19 +154,19 @@ public:
 
     HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
     {
-        return m_subElement->entity;
+        return m_bakeEntity->entity;
     }
 
     HYP_FORCE_INLINE const Mat4f& GetTransformMatrix() const
     {
-        return m_subElement->transformMatrix;
+        return m_bakeEntity->transformMatrix;
     }
 
     LightmapRayTestResults TestRay(const Ray& ray) const
     {
         LightmapRayTestResults results;
 
-        const Mat4f modelMatrix = m_subElement->transformMatrix;
+        const Mat4f modelMatrix = m_bakeEntity->transformMatrix;
 
         const Ray localSpaceRay = modelMatrix.Inverted() * ray;
 
@@ -209,7 +213,7 @@ public:
                     m_cachedVertices[i2].position
                 };
 
-                results.Emplace(rayHit, m_subElement->entity, triangle);
+                results.Emplace(rayHit, m_bakeEntity->entity, triangle);
             }
         }
 
@@ -222,7 +226,7 @@ public:
     }
 
 private:
-    const LightmapSubElement* m_subElement;
+    const BakeEntity* m_bakeEntity;
 
     BVHNode m_root;
     Array<Vertex> m_cachedVertices;
@@ -252,12 +256,12 @@ public:
     }
 
     void Add(
-        const LightmapSubElement* subElement,
+        const BakeEntity* bakeEntity,
         BVHNode&& bvh,
         Array<Vertex>&& vertices,
         Array<uint32>&& indices)
     {
-        m_accelerationStructures.EmplaceBack(subElement, std::move(bvh), std::move(vertices), std::move(indices));
+        m_accelerationStructures.EmplaceBack(bakeEntity, std::move(bvh), std::move(vertices), std::move(indices));
     }
 
     void RemoveAll()
@@ -268,5 +272,7 @@ public:
 private:
     Array<LightmapBottomLevelAccelerationStructure> m_accelerationStructures;
 };
+
+} // namespace Baking
 
 } // namespace Hyperion
