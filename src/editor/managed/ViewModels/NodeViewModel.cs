@@ -13,6 +13,8 @@ namespace Hyperion.Editor.ViewModels
         public Node Node => _node;
         public NodeViewModel? Parent => _parent;
 
+        public bool IsRootNode => _parent == null;
+
         private string _name;
         public string Name
         {
@@ -59,6 +61,9 @@ namespace Hyperion.Editor.ViewModels
             _node = node;
             _parent = parent;
             _name = node.Name.ToString();
+            
+            // Root nodes are expanded by default
+            _isExpanded = parent == null;
 
             // Initialize existing children
             for (int i = 0; i < node.NumChildren(); i++)

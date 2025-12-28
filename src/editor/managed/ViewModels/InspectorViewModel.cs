@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Threading;
 using Hyperion;
+using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -46,6 +47,22 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _isEntity, value);
         }
 
+        private bool _isRootNode;
+        public bool IsRootNode
+        {
+            get => _isRootNode;
+            private set => SetProperty(ref _isRootNode, value);
+        }
+
+        private bool _hasSceneProperties;
+        public bool HasSceneProperties
+        {
+            get => _hasSceneProperties;
+            private set => SetProperty(ref _hasSceneProperties, value);
+        }
+
+        public ObservableCollection<InspectorPropertyViewModelBase> SceneProperties { get; } = new ObservableCollection<InspectorPropertyViewModelBase>();
+
         private Node? _selectedNode;
         public Node? SelectedNode
         {
@@ -53,16 +70,25 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _selectedNode, value);
         }
 
-        public InspectorViewModel()
+        private Scene? _currentScene;
+        public Scene? CurrentScene
         {
-            AddComponentCommand = new RelayCommand(AddComponentAsync, CanAddComponent);
+            get => _currentScene;
+            private set => SetProperty(ref _currentScene, value);
         }
 
-        public void SetSelectedNode(Node? node)
+        public InspectorViewModel()
+        {
+            AddComponentCommand = new AsyncRelayCommand(AddComponentAsync, CanAddComponent);
+        }
+
+        public void SetSelectedNode(Node? node, Scene? scene = null, bool isRootNode = false)
         {
             Dispatcher.UIThread.CheckAccess();
             
             SelectedNode = node;
+            CurrentScene = scene;
+            IsRootNode = isRootNode;
             RefreshProperties();
         }
 
@@ -74,14 +100,22 @@ namespace Hyperion.Editor.ViewModels
             Actions.Clear();
             Components.Clear();
             AddableComponents.Clear();
+            SceneProperties.Clear();
 
             HasActions = false;
             HasComponents = false;
             HasAddableComponents = false;
+            HasSceneProperties = false;
 
             if (SelectedNode == null || !SelectedNode.IsValid)
             {
                 return;
+            }
+
+            // If this is the root node, show scene properties
+            if (IsRootNode && CurrentScene != null && CurrentScene.IsValid)
+            {
+                RefreshSceneProperties();
             }
 
             Class nodeClass = SelectedNode.Class;
@@ -258,6 +292,66 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private void RefreshSceneProperties()
+        {
+            if (CurrentScene == null || !CurrentScene.IsValid)
+            {
+                return;
+            }
+
+            Class sceneClass = CurrentScene.Class;
+
+            List<Property> sceneProps = sceneClass.Properties
+                .Where(p =>
+                {
+                    if (p.Name.ToString() == "Root")
+                    {
+                        return false;
+                    }
+
+                    ClassAttribute? attrEditHide = p.GetAttribute("edithide");
+                    if (attrEditHide != null && attrEditHide.Value.GetBool() == true)
+                    {
+                        return false;
+                    }
+
+                    return true;
+                })
+                .OrderBy(p =>
+                {
+                    ClassAttribute? attrEditOrder = p.GetAttribute("editorder");
+                    if (attrEditOrder != null)
+                    {
+                        return attrEditOrder.Value.GetInt();
+                    }
+                    return int.MaxValue;
+                })
+                .ThenBy(p => p.Name.ToString())
+                .ToList();
+
+            foreach (Property property in sceneProps)
+            {
+                try
+                {
+                    bool isReadOnly = false;
+                    ClassAttribute? attrEditEnabled = property.GetAttribute("editenabled");
+
+                    if (attrEditEnabled != null && attrEditEnabled.Value.GetBool() == false)
+                    {
+                        isReadOnly = true;
+                    }
+
+                    SceneProperties.Add(InspectorViewModelFactory.Create(CurrentScene, property, isReadOnly));
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Warn, $"Inspector failed to create view model for scene property '{property.Name}': {ex.Message}");
+                }
+            }
+
+            HasSceneProperties = SceneProperties.Count > 0;
+        }
+
         private void UpdateAddableComponents(IEnumerable<TypeId> existingComponentTypes)
         {
             HashSet<TypeId> existingTypes = new HashSet<TypeId>(existingComponentTypes);
@@ -272,7 +366,7 @@ namespace Hyperion.Editor.ViewModels
 
             HasAddableComponents = AddableComponents.Any(option => option.IsEnabled);
 
-            if (AddComponentCommand is RelayCommand relayCommand)
+            if (AddComponentCommand is AsyncRelayCommand relayCommand)
             {
                 relayCommand.RaiseCanExecuteChanged();
             }
@@ -366,29 +460,6 @@ namespace Hyperion.Editor.ViewModels
             {
                 Dispatcher.UIThread.Post(RefreshProperties);
             }
-        }
-
-        private sealed class RelayCommand : ICommand
-        {
-            private readonly Func<object?, Task> _executeAsync;
-            private readonly Func<object?, bool>? _canExecute;
-
-            public RelayCommand(Func<object?, Task> executeAsync, Func<object?, bool>? canExecute = null)
-            {
-                _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
-                _canExecute = canExecute;
-            }
-
-            public bool CanExecute(object? parameter) => _canExecute?.Invoke(parameter) ?? true;
-
-            public async void Execute(object? parameter)
-            {
-                await _executeAsync(parameter);
-            }
-
-            public event EventHandler? CanExecuteChanged;
-
-            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private bool EvaluateEditCondition(Class nodeClass, ClassAttribute? attrEditCondition, string memberName)

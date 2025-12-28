@@ -219,7 +219,7 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator& noiseCombinator)
         HYP_LOG(WorldGrid, Error, "Failed to write terrain noise bitmap!");
     }
 
-    // TerrainErosion::Erode(m_heightData);
+    TerrainErosion::Erode(m_heightData);
 }
 
 Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
@@ -320,15 +320,15 @@ static NoiseCombinator& GetTerrainNoiseCombinator()
         NoiseCombinator noiseCombinator;
         TerrainNoiseCombinatorInitializer()
         {
-            noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, MountainHeight, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * NoiseScale);
-            // .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::MULTIPLICATIVE, 0.5f, 0.5f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
-            //.Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, BaseHeight, 0.0f, Vector3(100.0f, 100.0f, 0.0f) * NoiseScale);
-            // .Use<SimplexNoiseGenerator>(3, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.5f, 0.0f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
-            // .Use<SimplexNoiseGenerator>(4, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.25f, 0.0f, Vector3(25.0f, 25.0f, 0.0f) * NoiseScale)
-            // .Use<SimplexNoiseGenerator>(5, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.125f, 0.0f, Vector3(12.5f, 12.5f, 0.0f) * NoiseScale)
-            // .Use<SimplexNoiseGenerator>(6, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.06f, 0.0f, Vector3(6.25f, 6.25f, 0.0f) * NoiseScale)
-            // .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.03f, 0.0f, Vector3(3.125f, 3.125f, 0.0f) * NoiseScale)
-            // .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.015f, 0.0f, Vector3(1.56f, 1.56f, 0.0f) * NoiseScale);
+            noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, MountainHeight, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::MULTIPLICATIVE, 0.5f, 0.5f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, BaseHeight, 0.0f, Vector3(100.0f, 100.0f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(3, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.5f, 0.0f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(4, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.25f, 0.0f, Vector3(25.0f, 25.0f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(5, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.125f, 0.0f, Vector3(12.5f, 12.5f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(6, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.06f, 0.0f, Vector3(6.25f, 6.25f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.03f, 0.0f, Vector3(3.125f, 3.125f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.015f, 0.0f, Vector3(1.56f, 1.56f, 0.0f) * NoiseScale);
         }
     } s_initializer;
 

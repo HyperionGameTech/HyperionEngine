@@ -693,12 +693,12 @@ extern "C"
 
         if (g_logRedirectId == -1)
         {
-            // g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
-            //     Bitset(~0u), // All channels
-            //     nullptr,
-            //     HandleLogMessage,
-            //     HandleLogMessage // Use same handler for errors for now
-            //);
+            g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
+                Bitset(~0u), // All channels
+                nullptr,
+                HandleLogMessage,
+                HandleLogMessage // Use same handler for errors for now
+            );
         }
     }
 

@@ -32,7 +32,6 @@ namespace Hyperion.Editor.Services
         private ConcurrentQueue<LogEntry> _logQueue = new ConcurrentQueue<LogEntry>();
         private List<LogEntry> _pendingEntries = new List<LogEntry>();
         private int _isSubmittingPendingEntries = 0; // atomic
-        private object _lock = new object();
         private static readonly ImmutableDictionary<int, string> LogLevelColors = new Dictionary<int, string>
         {
             { 0, "#00FF00" }, // Debug - Green
@@ -70,12 +69,6 @@ namespace Hyperion.Editor.Services
                 Message = message.TrimEnd(),
                 Color = LogLevelColors[level]
             });
-
-            // Limit history size in queue
-            while (_logQueue.Count > 1000)
-            {
-                _logQueue.TryDequeue(out _);
-            }
         }
 
         public void ExecuteCommand(string command)
@@ -95,27 +88,24 @@ namespace Hyperion.Editor.Services
         {
             LogEntry[]? entriesArray = null;
 
-            lock (_lock)
+            while (_logQueue.TryDequeue(out LogEntry logEntry))
             {
-                while (_logQueue.TryDequeue(out LogEntry logEntry))
-                {
-                    _pendingEntries.Add(logEntry);
-                }
-
-                if (_pendingEntries.Count > 0)
-                {
-                    if (Interlocked.CompareExchange(ref _isSubmittingPendingEntries, 1, 0) == 1)
-                    {
-                        // Another submission is in progress
-                        return;
-                    }
-
-                    entriesArray = _pendingEntries.ToArray();
-                    _pendingEntries.Clear();
-                }
-                else
-                    return;
+                _pendingEntries.Add(logEntry);
             }
+
+            if (_pendingEntries.Count == 0)
+            {
+                return;
+            }
+
+            if (Interlocked.CompareExchange(ref _isSubmittingPendingEntries, 1, 0) == 1)
+            {
+                // Another submission is in progress
+                return;
+            }
+
+            entriesArray = _pendingEntries.ToArray();
+            _pendingEntries.Clear();
 
             Dispatcher.UIThread.Post(() =>
                 {
