@@ -24,7 +24,7 @@ namespace Baking {
 #pragma region BakeData < LightmapVolume>
 
 BakeData<LightmapVolume>::BakeData(Span<const LightmapSubElement> subElements, LightmapVolume* volume)
-    : LightmapDataBase(subElements),
+    : BakeDataBase(subElements),
       m_volume(volume),
       m_meshVertexPositions(subElements.Size()),
       m_meshVertexNormals(subElements.Size()),

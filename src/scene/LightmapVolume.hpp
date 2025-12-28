@@ -176,7 +176,7 @@ public:
     const LightmapElement* GetElement(LightmapElementId elementId) const;
 
 #ifdef HYP_EDITOR
-    bool BuildElementTextures(const Baking::BakeData<LightmapVolume>& lightmapData, LightmapElementId elementId);
+    bool BuildElementTextures(const Baking::BakeData<LightmapVolume>& bakeData, LightmapElementId elementId);
 #endif
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);

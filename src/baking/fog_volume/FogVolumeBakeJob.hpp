@@ -14,10 +14,10 @@ template <>
 class BakeJob<FogVolume> : public BakeJobBase
 {
 public:
-    explicit BakeJob(BakeJobParams&& params, const Handle<FogVolume>& fogVolume, BakeData<FogVolume>* lightmapData)
+    explicit BakeJob(BakeJobParams&& params, const Handle<FogVolume>& fogVolume, BakeData<FogVolume>* bakeData)
         : BakeJobBase(std::move(params)),
           m_fogVolume(fogVolume),
-          m_lightmapData(lightmapData)
+          m_bakeData(bakeData)
     {
     }
 
@@ -28,9 +28,9 @@ public:
         return m_fogVolume;
     }
 
-    virtual BakeData<FogVolume>& GetLightmapData() override
+    virtual BakeData<FogVolume>& GetBakeData() override
     {
-        return *m_lightmapData;
+        return *m_bakeData;
     }
 
     virtual uint32 ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0) override;
@@ -40,7 +40,7 @@ protected:
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
     Handle<FogVolume> m_fogVolume;
-    BakeData<FogVolume>* m_lightmapData;
+    BakeData<FogVolume>* m_bakeData;
 };
 
 } // namespace Baking

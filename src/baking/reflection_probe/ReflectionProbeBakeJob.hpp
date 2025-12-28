@@ -14,10 +14,10 @@ template <>
 class BakeJob<ReflectionProbe> : public BakeJobBase
 {
 public:
-    explicit BakeJob(BakeJobParams&& params, const Handle<ReflectionProbe>& envProbe, BakeData<ReflectionProbe>* lightmapData)
+    explicit BakeJob(BakeJobParams&& params, const Handle<ReflectionProbe>& envProbe, BakeData<ReflectionProbe>* bakeData)
         : BakeJobBase(std::move(params)),
           m_envProbe(envProbe),
-          m_lightmapData(lightmapData)
+          m_bakeData(bakeData)
     {
     }
 
@@ -28,9 +28,9 @@ public:
         return m_envProbe;
     }
 
-    virtual BakeData<ReflectionProbe>& GetLightmapData() override
+    virtual BakeData<ReflectionProbe>& GetBakeData() override
     {
-        return *m_lightmapData;
+        return *m_bakeData;
     }
 
 protected:
@@ -38,7 +38,7 @@ protected:
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
     Handle<ReflectionProbe> m_envProbe;
-    BakeData<ReflectionProbe>* m_lightmapData;
+    BakeData<ReflectionProbe>* m_bakeData;
 };
 
 } // namespace Baking

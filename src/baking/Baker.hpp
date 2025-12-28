@@ -334,11 +334,11 @@ protected:
     {
     }
 
-    virtual LightmapDataBase& GetLightmapData() = 0;
+    virtual BakeDataBase& GetBakeData() = 0;
 
-    HYP_FORCE_INLINE const LightmapDataBase& GetLightmapData() const
+    HYP_FORCE_INLINE const BakeDataBase& GetBakeData() const
     {
-        return const_cast<BakerBase*>(this)->GetLightmapData();
+        return const_cast<BakerBase*>(this)->GetBakeData();
     }
 
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) = 0;

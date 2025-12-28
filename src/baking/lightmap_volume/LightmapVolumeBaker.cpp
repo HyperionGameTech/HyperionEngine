@@ -34,7 +34,7 @@ Baker<LightmapVolume>::Baker(LightmapperConfig&& config, const Handle<LightmapVo
 
 UniquePtr<BakeJobBase> Baker<LightmapVolume>::CreateJob(BakeJobParams&& params)
 {
-    return MakeUnique<BakeJob<LightmapVolume>>(std::move(params), m_volume, &m_lightmapData);
+    return MakeUnique<BakeJob<LightmapVolume>>(std::move(params), m_volume, &m_bakeData);
 }
 
 void Baker<LightmapVolume>::Initialize_Internal()
@@ -86,16 +86,16 @@ void Baker<LightmapVolume>::Build()
     }
 
     // Build global data
-    m_lightmapData = BakeData<LightmapVolume>(m_subElements.ToSpan(), m_volume);
+    m_bakeData = BakeData<LightmapVolume>(m_subElements.ToSpan(), m_volume);
 
-    if (Result result = m_lightmapData.Build(); result.HasError())
+    if (Result result = m_bakeData.Build(); result.HasError())
     {
         HYP_LOG(Lightmap, Error, "Failed to build lightmap data: {}", result.GetError().GetMessage());
         return;
     }
 
     LightmapElement lightmapElement;
-    if (!m_volume->AddElement({ m_lightmapData.GetWidth(), m_lightmapData.GetHeight() }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+    if (!m_volume->AddElement({ m_bakeData.GetWidth(), m_bakeData.GetHeight() }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
     {
         HYP_LOG(Lightmap, Error, "Failed to add element to volume!");
         return;
@@ -115,7 +115,7 @@ void Baker<LightmapVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
     {
         AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
-        if (!m_volume->BuildElementTextures(m_lightmapData, m_lightmapElementId))
+        if (!m_volume->BuildElementTextures(m_bakeData, m_lightmapElementId))
         {
             HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", m_lightmapElementId);
             return;
@@ -137,9 +137,9 @@ void Baker<LightmapVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
                 const Handle<Mesh>& mesh = subElement.mesh;
                 Assert(mesh.IsValid());
 
-                Assert(subElementIndex < m_lightmapData.GetMeshData().Size());
+                Assert(subElementIndex < m_bakeData.GetMeshData().Size());
 
-                const LightmapMeshData& lightmapMeshData = m_lightmapData.GetMeshData()[subElementIndex];
+                const LightmapMeshData& lightmapMeshData = m_bakeData.GetMeshData()[subElementIndex];
                 Assert(lightmapMeshData.mesh == mesh);
 
                 MeshDesc newMeshDesc;

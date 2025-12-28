@@ -203,13 +203,13 @@ void BakeJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexel
 {
     const bool hasRays = m_lightmapper->PerformsRayTracing();
 
-    LightmapDataBase& lightmapData = GetLightmapData();
+    BakeDataBase& bakeData = GetBakeData();
 
     for (uint32 txlIdx = 0; txlIdx < maxTexels && HasRemainingTexels(); ++txlIdx)
     {
         const uint32 texelIndex = NextTexel();
 
-        LightmapTexel& texel = lightmapData.texels[texelIndex];
+        LightmapTexel& texel = bakeData.texels[texelIndex];
 
         if (texel.pRay != nullptr)
         {
@@ -254,14 +254,14 @@ void BakeJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const Ligh
 {
     Assert(rays.Size() == hits.Size());
 
-    LightmapDataBase& lightmapData = GetLightmapData();
+    BakeDataBase& bakeData = GetBakeData();
 
     for (SizeType i = 0; i < hits.Size(); i++)
     {
         const LightmapRay& ray = rays[i];
         const LightmapHit& hit = hits[i];
 
-        LightmapTexel& texel = lightmapData.texels[ray.texelIndex];
+        LightmapTexel& texel = bakeData.texels[ray.texelIndex];
 
         switch (shadingType)
         {

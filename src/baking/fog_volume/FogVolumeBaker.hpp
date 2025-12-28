@@ -45,9 +45,9 @@ public:
     }
 
 protected:
-    virtual LightmapDataBase& GetLightmapData() override
+    virtual BakeDataBase& GetBakeData() override
     {
-        return m_lightmapData;
+        return m_bakeData;
     }
 
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override;
@@ -56,7 +56,7 @@ protected:
     virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
 
     Handle<FogVolume> m_fogVolume;
-    BakeData<FogVolume> m_lightmapData;
+    BakeData<FogVolume> m_bakeData;
 };
 
 } // namespace Baking

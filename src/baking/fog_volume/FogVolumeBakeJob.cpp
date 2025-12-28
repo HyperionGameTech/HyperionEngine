@@ -4,7 +4,9 @@
 
 #include <baking/fog_volume/FogVolumeBakeJob.hpp>
 
+#include <scene/Scene.hpp>
 #include <scene/FogVolume.hpp>
+
 #include <scene/util/VoxelOctree.hpp>
 
 namespace Hyperion {
@@ -16,7 +18,7 @@ BakeJob<FogVolume>::~BakeJob()
 
 void BakeJob<FogVolume>::Start_Internal()
 {
-    const typename BakeData<FogVolume>::VolumeBitmap& volumeBitmap = m_lightmapData->GetVolumeBitmap();
+    const typename BakeData<FogVolume>::VolumeBitmap& volumeBitmap = m_bakeData->GetVolumeBitmap();
 
     const Vec3u volumeExtent = Vec3u {
         volumeBitmap.GetWidth(),
@@ -55,9 +57,9 @@ uint32 BakeJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 tex
     const Vec3f extentWS = worldAabb.GetExtent();
 
     const Vec3u bitmapExtent = Vec3u {
-        m_lightmapData->GetVolumeBitmap().GetWidth(),
-        m_lightmapData->GetVolumeBitmap().GetHeight(),
-        m_lightmapData->GetVolumeBitmap().GetDepth()
+        m_bakeData->GetVolumeBitmap().GetWidth(),
+        m_bakeData->GetVolumeBitmap().GetHeight(),
+        m_bakeData->GetVolumeBitmap().GetDepth()
     };
 
     const Vec3f texelHalfSizeWS = extentWS * (Vec3f(0.5f) / Vec3f(bitmapExtent));
@@ -75,7 +77,7 @@ uint32 BakeJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 tex
 
         const Vec3f posWS = worldAabb.GetMin() + (extentWS * (Vec3f(texelCoord) / Vec3f(bitmapExtent))) + texelHalfSizeWS;
 
-        const double dist = m_lightmapData->GetVoxelOctree()->GetSignedDistanceAtPoint(posWS);
+        const double dist = m_bakeData->GetVoxelOctree()->GetSignedDistanceAtPoint(posWS);
 
         texel->color0.x = float(dist);
         texel->color0.w = 1.0f;

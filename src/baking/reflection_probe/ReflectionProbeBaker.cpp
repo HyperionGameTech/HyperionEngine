@@ -26,16 +26,16 @@ Baker<ReflectionProbe>::Baker(LightmapperConfig&& config, const Handle<Reflectio
 
 UniquePtr<BakeJobBase> Baker<ReflectionProbe>::CreateJob(BakeJobParams&& params)
 {
-    return MakeUnique<BakeJob<ReflectionProbe>>(std::move(params), m_envProbe, &m_lightmapData);
+    return MakeUnique<BakeJob<ReflectionProbe>>(std::move(params), m_envProbe, &m_bakeData);
 }
 
 Result Baker<ReflectionProbe>::Build_Internal()
 {
     Assert(m_envProbe != nullptr);
 
-    m_lightmapData = BakeData<ReflectionProbe>(m_subElements, m_envProbe.Get());
+    m_bakeData = BakeData<ReflectionProbe>(m_subElements, m_envProbe.Get());
 
-    return m_lightmapData.Build();
+    return m_bakeData.Build();
 }
 
 void Baker<ReflectionProbe>::HandleCompletedJob_Internal(BakeJobBase* job)
@@ -44,9 +44,9 @@ void Baker<ReflectionProbe>::HandleCompletedJob_Internal(BakeJobBase* job)
 
     BakeJob<ReflectionProbe>* jobCasted = static_cast<BakeJob<ReflectionProbe>*>(job);
 
-    const BakeData<ReflectionProbe>& lightmapData = jobCasted->GetLightmapData();
+    const BakeData<ReflectionProbe>& bakeData = jobCasted->GetBakeData();
 
-    if (!lightmapData.IsBuilt())
+    if (!bakeData.IsBuilt())
     {
         HYP_LOG(Lightmap, Warning, "Lightmap data for EnvProbe {} is not built, skipping texture creation", m_envProbe->Id());
         return;
@@ -55,7 +55,7 @@ void Baker<ReflectionProbe>::HandleCompletedJob_Internal(BakeJobBase* job)
     const Vec2u dimensions = m_envProbe->GetDimensions();
 
     // Convert lightmap data to bitmaps (6 faces stacked vertically)
-    BakeData<ReflectionProbe>::BitmapType bitmap = lightmapData.ToBitmap();
+    BakeData<ReflectionProbe>::BitmapType bitmap = bakeData.ToBitmap();
 
     TextureDesc textureDesc {
         TT_CUBEMAP,

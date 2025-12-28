@@ -10,14 +10,14 @@
 namespace Hyperion {
 namespace Baking {
 
-BakeJob<LightmapVolume>::BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* lightmapData)
+BakeJob<LightmapVolume>::BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* bakeData)
     : BakeJobBase(std::move(params)),
       m_volume(volume),
-      m_lightmapData(lightmapData),
+      m_bakeData(bakeData),
       m_lightmapElement(nullptr)
 {
     Assert(m_volume != nullptr);
-    Assert(m_lightmapData != nullptr);
+    Assert(m_bakeData != nullptr);
 }
 
 BakeJob<LightmapVolume>::~BakeJob()

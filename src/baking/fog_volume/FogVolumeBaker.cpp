@@ -26,16 +26,16 @@ Baker<FogVolume>::Baker(LightmapperConfig&& config, const Handle<FogVolume>& fog
 
 UniquePtr<BakeJobBase> Baker<FogVolume>::CreateJob(BakeJobParams&& params)
 {
-    return MakeUnique<BakeJob<FogVolume>>(std::move(params), m_fogVolume, &m_lightmapData);
+    return MakeUnique<BakeJob<FogVolume>>(std::move(params), m_fogVolume, &m_bakeData);
 }
 
 Result Baker<FogVolume>::Build_Internal()
 {
     Assert(m_fogVolume != nullptr);
 
-    m_lightmapData = BakeData<FogVolume>(m_subElements, m_fogVolume.Get());
+    m_bakeData = BakeData<FogVolume>(m_subElements, m_fogVolume.Get());
 
-    return m_lightmapData.Build();
+    return m_bakeData.Build();
 }
 
 void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
@@ -44,21 +44,21 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
 
     BakeJob<FogVolume>* jobCasted = static_cast<BakeJob<FogVolume>*>(job);
 
-    BakeData<FogVolume>& lightmapData = jobCasted->GetLightmapData();
+    BakeData<FogVolume>& bakeData = jobCasted->GetBakeData();
 
-    if (!lightmapData.IsBuilt())
+    if (!bakeData.IsBuilt())
     {
         HYP_LOG(Lightmap, Warning, "Lightmap data for FogVolume {} is not built, skipping texture creation", m_fogVolume->Id());
         return;
     }
 
-    typename BakeData<FogVolume>::VolumeBitmap& volumeBitmap = lightmapData.GetVolumeBitmap();
-    const typename BakeData<FogVolume>::NoiseBitmap& noiseBitmap = lightmapData.GetNoiseBitmap();
+    typename BakeData<FogVolume>::VolumeBitmap& volumeBitmap = bakeData.GetVolumeBitmap();
+    const typename BakeData<FogVolume>::NoiseBitmap& noiseBitmap = bakeData.GetNoiseBitmap();
 
     // update bitmap with texel data
-    for (uint32 i = 0; i < uint32(lightmapData.texels.Size()); i++)
+    for (uint32 i = 0; i < uint32(bakeData.texels.Size()); i++)
     {
-        const LightmapTexel& texel = lightmapData.texels[i];
+        const LightmapTexel& texel = bakeData.texels[i];
 
         volumeBitmap.SetPixel(
             i % volumeBitmap.GetWidth(),

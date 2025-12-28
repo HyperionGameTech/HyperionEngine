@@ -154,11 +154,11 @@ protected:
     virtual void Start_Internal() = 0;
     virtual void Process_Internal(bool* outIsReady = nullptr) = 0;
 
-    virtual LightmapDataBase& GetLightmapData() = 0;
+    virtual BakeDataBase& GetBakeData() = 0;
 
-    HYP_FORCE_INLINE const LightmapDataBase& GetLightmapData() const
+    HYP_FORCE_INLINE const BakeDataBase& GetBakeData() const
     {
-        return const_cast<BakeJobBase*>(this)->GetLightmapData();
+        return const_cast<BakeJobBase*>(this)->GetBakeData();
     }
 
     bool HasRemainingTexels() const;

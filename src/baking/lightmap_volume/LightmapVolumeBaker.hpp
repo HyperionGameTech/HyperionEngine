@@ -37,9 +37,9 @@ public:
     }
 
 protected:
-    virtual LightmapDataBase& GetLightmapData() override
+    virtual BakeDataBase& GetBakeData() override
     {
-        return m_lightmapData;
+        return m_bakeData;
     }
 
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override;
@@ -49,7 +49,7 @@ protected:
     virtual void Build() override;
 
     Handle<LightmapVolume> m_volume;
-    BakeData<LightmapVolume> m_lightmapData;
+    BakeData<LightmapVolume> m_bakeData;
     LightmapElementId m_lightmapElementId;
 };
 

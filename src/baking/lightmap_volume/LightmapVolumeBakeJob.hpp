@@ -15,7 +15,7 @@ template <>
 class BakeJob<LightmapVolume> : public BakeJobBase
 {
 public:
-    BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* lightmapData);
+    BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* bakeData);
     virtual ~BakeJob() override;
 
     HYP_FORCE_INLINE const Handle<LightmapVolume>& GetVolume() const
@@ -23,9 +23,9 @@ public:
         return m_volume;
     }
 
-    virtual BakeData<LightmapVolume>& GetLightmapData() override
+    virtual BakeData<LightmapVolume>& GetBakeData() override
     {
-        return *m_lightmapData;
+        return *m_bakeData;
     }
 
     HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
@@ -39,7 +39,7 @@ protected:
 
     Handle<LightmapVolume> m_volume;
 
-    BakeData<LightmapVolume>* m_lightmapData;
+    BakeData<LightmapVolume>* m_bakeData;
 
     LightmapElement* m_lightmapElement;
 };

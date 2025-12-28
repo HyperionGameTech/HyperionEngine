@@ -14,8 +14,7 @@ class VoxelOctree;
 
 namespace Baking {
 
-/*! \brief Base class for lightmap texel source, used to trace rays from and store texel data to. */
-class LightmapDataBase
+class BakeDataBase
 {
 public:
     // HashMap from mesh id to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
@@ -32,7 +31,7 @@ public:
     /// Texels in UV space
     Array<LightmapTexel> texels;
 
-    // Mapping from mesh Id to the indices of the UVs that correspond to that mesh.
+    // Mapping from mesh id to the indices of the UVs that correspond to that mesh.
     MeshToUVIndicesMap meshToUvIndices;
 
     // Texel indices per mesh
@@ -42,14 +41,14 @@ public:
 
     Vec3u dimensions; // only useful for some lightmap data types that use 2D/3D textures.
 
-    LightmapDataBase() = default;
+    BakeDataBase() = default;
 
-    explicit LightmapDataBase(Span<const LightmapSubElement> subElements)
+    explicit BakeDataBase(Span<const LightmapSubElement> subElements)
         : subElements(subElements)
     {
     }
 
-    virtual ~LightmapDataBase() = default;
+    virtual ~BakeDataBase() = default;
 
     virtual Result Build() = 0;
 
@@ -78,7 +77,7 @@ template <class T>
 class BakeData;
 
 template <>
-class BakeData<LightmapVolume> : public LightmapDataBase
+class BakeData<LightmapVolume> : public BakeDataBase
 {
 public:
     using BitmapType = Bitmap_RGBA32F;
@@ -126,7 +125,7 @@ private:
 };
 
 template <>
-class BakeData<ReflectionProbe> : public LightmapDataBase
+class BakeData<ReflectionProbe> : public BakeDataBase
 {
 public:
     using BitmapType = Bitmap_RGBA32F;
@@ -137,7 +136,7 @@ public:
     }
 
     BakeData(Span<const LightmapSubElement> subElements, ReflectionProbe* envProbe)
-        : LightmapDataBase(subElements),
+        : BakeDataBase(subElements),
           m_envProbe(envProbe)
     {
     }
@@ -160,7 +159,7 @@ protected:
 };
 
 template <>
-class BakeData<FogVolume> : public LightmapDataBase
+class BakeData<FogVolume> : public BakeDataBase
 {
 public:
     static constexpr uint32 MaxNoiseBitmapExtent = 32;
@@ -174,7 +173,7 @@ public:
     }
 
     BakeData(Span<const LightmapSubElement> subElements, FogVolume* fogVolume)
-        : LightmapDataBase(subElements),
+        : BakeDataBase(subElements),
           m_fogVolume(fogVolume)
     {
     }

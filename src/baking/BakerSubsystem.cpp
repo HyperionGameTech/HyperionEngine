@@ -44,7 +44,7 @@ void BakerSubsystem::OnRemovedFromWorld()
 {
     AssertOnThread(g_simThread);
 
-    m_lightmappers.Clear();
+    m_bakers.Clear();
 }
 
 void BakerSubsystem::Update(float delta)
@@ -68,7 +68,7 @@ void BakerSubsystem::Update(float delta)
 
     Array<ObjectBase*> keysToRemove;
 
-    for (auto& it : m_lightmappers)
+    for (auto& it : m_bakers)
     {
         it.second->Update(delta);
 
@@ -80,7 +80,7 @@ void BakerSubsystem::Update(float delta)
 
     for (ObjectBase* obj : keysToRemove)
     {
-        m_lightmappers.Erase(obj);
+        m_bakers.Erase(obj);
 
         auto activeTasksIt = m_activeTasks.Find(obj);
         AssertDebug(activeTasksIt != m_activeTasks.End());
@@ -141,9 +141,9 @@ Task<void>* BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&
         return nullptr;
     }
 
-    auto it = m_lightmappers.Find(source.Get());
+    auto it = m_bakers.Find(source.Get());
 
-    if (it != m_lightmappers.End())
+    if (it != m_bakers.End())
     {
         // already running
         auto taskIt = m_activeTasks.Find(source.Get());
@@ -166,7 +166,7 @@ Task<void>* BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&
 
     lightmapper->Initialize();
 
-    m_lightmappers.Insert(source.Get(), std::move(lightmapper));
+    m_bakers.Insert(source.Get(), std::move(lightmapper));
     m_activeTasks.Insert(source.Get(), &task);
 
     return &task;

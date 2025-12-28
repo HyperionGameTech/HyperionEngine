@@ -343,7 +343,7 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) c
 }
 
 #ifdef HYP_EDITOR
-bool LightmapVolume::BuildElementTextures(const Baking::BakeData<LightmapVolume>& lightmapData, LightmapElementId elementId)
+bool LightmapVolume::BuildElementTextures(const Baking::BakeData<LightmapVolume>& bakeData, LightmapElementId elementId)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -369,8 +369,8 @@ bool LightmapVolume::BuildElementTextures(const Baking::BakeData<LightmapVolume>
     const Vec2u elementDimensions = element.dimensions;
 
     FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
-        lightmapData.ToBitmapRadiance(),  /* RADIANCE */
-        lightmapData.ToBitmapIrradiance() /* IRRADIANCE */
+        bakeData.ToBitmapRadiance(),  /* RADIANCE */
+        bakeData.ToBitmapIrradiance() /* IRRADIANCE */
     };
 
     FixedArray<Handle<Texture>, LTT_MAX> elementTextures;

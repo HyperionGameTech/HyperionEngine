@@ -158,7 +158,7 @@ uint32 BakerBase::MaxTexelsPerFrame() const
     }
     else
     {
-        const Vec2u dimensions = GetLightmapData().dimensions.GetXY();
+        const Vec2u dimensions = GetBakeData().dimensions.GetXY();
         AssertDebug(dimensions.Volume() > 0);
 
         return dimensions.Volume() * NumTexelSamples();
@@ -497,20 +497,20 @@ void BakerBase::DispatchJobs()
 {
     if (ShouldSplitIntoJobs())
     {
-        const LightmapDataBase& lightmapData = GetLightmapData();
+        const BakeDataBase& bakeData = GetBakeData();
 
-        const Vec3u dimensions = lightmapData.dimensions;
+        const Vec3u dimensions = bakeData.dimensions;
         Assert(dimensions.Volume() > 0);
 
         const bool performsRayTracing = PerformsRayTracing();
 
         HashMap<Vec2i, Array<uint32>> tileBuckets;
 
-        AssertDebug(lightmapData.texels.Any());
+        AssertDebug(bakeData.texels.Any());
 
-        for (uint32 i = 0; i < lightmapData.texels.Size(); i++)
+        for (uint32 i = 0; i < bakeData.texels.Size(); i++)
         {
-            const LightmapTexel& texel = lightmapData.texels[i];
+            const LightmapTexel& texel = bakeData.texels[i];
 
             if (performsRayTracing && !texel.pRay)
             {
@@ -525,7 +525,7 @@ void BakerBase::DispatchJobs()
             tileBuckets[tileCoord].PushBack(i);
         }
 
-        HYP_LOG(Lightmap, Info, "Dispatching {} tile jobs for {} valid texels", tileBuckets.Size(), lightmapData.texels.Size());
+        HYP_LOG(Lightmap, Info, "Dispatching {} tile jobs for {} valid texels", tileBuckets.Size(), bakeData.texels.Size());
 
         for (auto& it : tileBuckets)
         {
@@ -543,7 +543,7 @@ void BakerBase::DispatchJobs()
 
         // all texels
         Array<uint32> allTexelIndices;
-        allTexelIndices.Resize(GetLightmapData().texels.Size());
+        allTexelIndices.Resize(GetBakeData().texels.Size());
 
         for (uint32 i = 0; i < allTexelIndices.Size(); i++)
         {
