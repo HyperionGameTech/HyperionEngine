@@ -148,7 +148,7 @@ Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, 
         return taskIt->second;
     }
 
-    Handle<LightmapperBase> lightmapper = CreateObject<Lightmapper<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
+    Handle<BakerBase> lightmapper = CreateObject<Lightmapper<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
     InitObject(lightmapper);
 
     Task<void>& task = m_tasks.EmplaceBack();

@@ -42,7 +42,7 @@ class ILightmapAccelerationStructure;
 class LightmapTopLevelAccelerationStructure;
 class LightmapJobBase;
 class LightmapVolume;
-class LightmapperBase;
+class BakerBase;
 struct LightmapElement;
 
 class AssetObject;
@@ -163,14 +163,14 @@ struct LightmapRayHitPayload
 class ILightmapRenderer
 {
 protected:
-    ILightmapRenderer(LightmapperBase* lightmapper)
+    ILightmapRenderer(BakerBase* lightmapper)
         : m_lightmapper(lightmapper)
     {
         AssertDebug(lightmapper != nullptr);
     }
 
 public:
-    friend class LightmapperBase;
+    friend class BakerBase;
 
     virtual ~ILightmapRenderer() = default;
 
@@ -194,13 +194,13 @@ public:
     virtual void Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
 
 protected:
-    LightmapperBase* m_lightmapper;
+    BakerBase* m_lightmapper;
 };
 
 HYP_CLASS(Abstract)
-class HYP_API LightmapperBase : public ObjectBase
+class HYP_API BakerBase : public ObjectBase
 {
-    HYP_OBJECT_BODY(LightmapperBase);
+    HYP_OBJECT_BODY(BakerBase);
 
 protected:
     struct CachedResource
@@ -252,15 +252,15 @@ protected:
     using ResourceCache = HashSet<CachedResource, &CachedResource::assetObject, DynamicNodeAllocator>;
 
 public:
-    LightmapperBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb);
+    BakerBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb);
 
-    LightmapperBase(const LightmapperBase& other) = delete;
-    LightmapperBase& operator=(const LightmapperBase& other) = delete;
+    BakerBase(const BakerBase& other) = delete;
+    BakerBase& operator=(const BakerBase& other) = delete;
 
-    LightmapperBase(LightmapperBase&& other) noexcept = delete;
-    LightmapperBase& operator=(LightmapperBase&& other) noexcept = delete;
+    BakerBase(BakerBase&& other) noexcept = delete;
+    BakerBase& operator=(BakerBase&& other) noexcept = delete;
 
-    virtual ~LightmapperBase() override;
+    virtual ~BakerBase() override;
 
     HYP_FORCE_INLINE const LightmapperConfig& GetConfig() const
     {
@@ -335,7 +335,7 @@ protected:
 
     HYP_FORCE_INLINE const LightmapDataBase& GetLightmapData() const
     {
-        return const_cast<LightmapperBase*>(this)->GetLightmapData();
+        return const_cast<BakerBase*>(this)->GetLightmapData();
     }
 
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
@@ -398,23 +398,23 @@ protected:
 };
 
 template <class T>
-class Lightmapper;
+class Baker;
 
 enum class LightmapElementId : uint32;
 
 template <>
-class Lightmapper<LightmapVolume> final : public LightmapperBase
+class Baker<LightmapVolume> final : public BakerBase
 {
 public:
-    Lightmapper(LightmapperConfig&& config, const Handle<LightmapVolume>& volume);
+    Baker(LightmapperConfig&& config, const Handle<LightmapVolume>& volume);
 
-    Lightmapper(const Lightmapper& other) = delete;
-    Lightmapper& operator=(const Lightmapper& other) = delete;
+    Baker(const Baker& other) = delete;
+    Baker& operator=(const Baker& other) = delete;
 
-    Lightmapper(Lightmapper&& other) noexcept = delete;
-    Lightmapper& operator=(Lightmapper&& other) noexcept = delete;
+    Baker(Baker&& other) noexcept = delete;
+    Baker& operator=(Baker&& other) noexcept = delete;
 
-    virtual ~Lightmapper() override = default;
+    virtual ~Baker() override = default;
 
     virtual bool ShouldSplitIntoJobs() const override
     {
@@ -448,18 +448,18 @@ protected:
 };
 
 template <>
-class Lightmapper<ReflectionProbe> final : public LightmapperBase
+class Baker<ReflectionProbe> final : public BakerBase
 {
 public:
-    Lightmapper(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe);
+    Baker(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe);
 
-    Lightmapper(const Lightmapper& other) = delete;
-    Lightmapper& operator=(const Lightmapper& other) = delete;
+    Baker(const Baker& other) = delete;
+    Baker& operator=(const Baker& other) = delete;
 
-    Lightmapper(Lightmapper&& other) noexcept = delete;
-    Lightmapper& operator=(Lightmapper&& other) noexcept = delete;
+    Baker(Baker&& other) noexcept = delete;
+    Baker& operator=(Baker&& other) noexcept = delete;
 
-    virtual ~Lightmapper() override = default;
+    virtual ~Baker() override = default;
 
     virtual bool ShouldSplitIntoJobs() const override
     {
@@ -490,18 +490,18 @@ protected:
 };
 
 template <>
-class Lightmapper<FogVolume> final : public LightmapperBase
+class Baker<FogVolume> final : public BakerBase
 {
 public:
-    Lightmapper(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume);
+    Baker(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume);
 
-    Lightmapper(const Lightmapper& other) = delete;
-    Lightmapper& operator=(const Lightmapper& other) = delete;
+    Baker(const Baker& other) = delete;
+    Baker& operator=(const Baker& other) = delete;
 
-    Lightmapper(Lightmapper&& other) noexcept = delete;
-    Lightmapper& operator=(Lightmapper&& other) noexcept = delete;
+    Baker(Baker&& other) noexcept = delete;
+    Baker& operator=(Baker&& other) noexcept = delete;
 
-    virtual ~Lightmapper() override = default;
+    virtual ~Baker() override = default;
 
     virtual bool PerformsRayTracing() const override
     {

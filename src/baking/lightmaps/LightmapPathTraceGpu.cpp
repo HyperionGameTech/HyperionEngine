@@ -111,7 +111,7 @@ struct SetGpuLightmapperReady : RenderCommand
 #pragma region LightmapRenderer_GpuPathTracing
 
 LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
-    LightmapperBase* lightmapper,
+    BakerBase* lightmapper,
     const Handle<Scene>& scene,
     LightmapShadingType shadingType,
     uint32 maxTexelsPerFrame)

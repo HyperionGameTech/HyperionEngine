@@ -75,7 +75,7 @@ uint32 LightmapThreadPool::NumThreadsToCreate()
 #pragma region LightmapRenderer_CpuPathTracing
 
 LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(
-    LightmapperBase* lightmapper,
+    BakerBase* lightmapper,
     LightmapTopLevelAccelerationStructure* accelerationStructure,
     LightmapThreadPool* threadPool,
     const Handle<Scene>& scene,

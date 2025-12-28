@@ -28,7 +28,7 @@ class View;
 class LightmapVolume;
 struct LightmapElement;
 class ILightmapRenderer;
-class LightmapperBase;
+class BakerBase;
 
 struct RenderSetup; // forward decl for renderer interface usage
 
@@ -52,7 +52,7 @@ struct LightmapJobParams
 
 class HYP_API LightmapJobBase
 {
-    friend class LightmapperBase;
+    friend class BakerBase;
 
 public:
     explicit LightmapJobBase(LightmapJobParams&& params);
@@ -174,7 +174,7 @@ protected:
     void Stop();
     void Stop(const Error& error);
 
-    LightmapperBase* m_lightmapper;
+    BakerBase* m_lightmapper;
 
     LightmapJobParams m_params;
 

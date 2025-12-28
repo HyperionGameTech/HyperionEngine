@@ -2,11 +2,12 @@
 
 #include <HyperionPch.hpp>
 
-#include <lightmapper/Lightmapper.hpp>
-#include <lightmapper/LightmapJob.hpp>
+#include <baking/Lightmapper.hpp>
+#include <baking/LightmapJob.hpp>
+#include <baking/LightmapAccelerationStructure.hpp>
+
 #include <baking/lightmaps/LightmapPathTraceCpu.hpp>
 #include <baking/lightmaps/LightmapPathTraceGpu.hpp>
-#include <lightmapper/LightmapAccelerationStructure.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
@@ -104,9 +105,9 @@ void LightmapperConfig::PostLoadCallback()
 
 #pragma endregion LightmapperConfig
 
-#pragma region LightmapperBase
+#pragma region BakerBase
 
-LightmapperBase::LightmapperBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb)
+BakerBase::BakerBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb)
     : m_config(std::move(config)),
       m_source(source),
       m_scene(scene),
@@ -119,7 +120,7 @@ LightmapperBase::LightmapperBase(LightmapperConfig&& config, ObjectBase* source,
     AssertDebug(m_source != nullptr);
 }
 
-LightmapperBase::~LightmapperBase()
+BakerBase::~BakerBase()
 {
     m_queue.Clear();
 
@@ -142,12 +143,12 @@ LightmapperBase::~LightmapperBase()
     }
 }
 
-uint32 LightmapperBase::NumTexelSamples() const
+uint32 BakerBase::NumTexelSamples() const
 {
     return m_config.numSamples;
 }
 
-uint32 LightmapperBase::MaxTexelsPerFrame() const
+uint32 BakerBase::MaxTexelsPerFrame() const
 {
     if (ShouldSplitIntoJobs())
     {
@@ -162,12 +163,12 @@ uint32 LightmapperBase::MaxTexelsPerFrame() const
     }
 }
 
-bool LightmapperBase::IsComplete() const
+bool BakerBase::IsComplete() const
 {
     return m_numJobs == 0;
 }
 
-void LightmapperBase::Initialize()
+void BakerBase::Initialize()
 {
     HYP_LOG(Lightmap, Info, "Initializing lightmapper: {}", m_config.ToString());
 
@@ -226,7 +227,7 @@ void LightmapperBase::Initialize()
     }
 }
 
-LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
+LightmapJobParams BakerBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
 {
     LightmapJobParams jobParams {
         &m_config,
@@ -240,7 +241,7 @@ LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, 
     return jobParams;
 }
 
-UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame)
+UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame)
 {
     if (!PerformsRayTracing())
     {
@@ -258,7 +259,7 @@ UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType
     }
 }
 
-void LightmapperBase::CreateLightmapRenderers()
+void BakerBase::CreateLightmapRenderers()
 {
     m_lightmapRenderers.Clear();
 
@@ -312,7 +313,7 @@ void LightmapperBase::CreateLightmapRenderers()
     }
 }
 
-void LightmapperBase::BuildAccelerationStructures()
+void BakerBase::BuildAccelerationStructures()
 {
     Assert(m_accelerationStructure == nullptr);
     m_accelerationStructure = MakeUnique<LightmapTopLevelAccelerationStructure>();
@@ -360,7 +361,7 @@ void LightmapperBase::BuildAccelerationStructures()
 }
 
 /// Build cache to keep scene meshes, textures etc. in memory while we perform CPU path tracing
-void LightmapperBase::BuildResourceCache()
+void BakerBase::BuildResourceCache()
 {
     HYP_NAMED_SCOPE("Building lightmapper resource cache");
 
@@ -422,7 +423,7 @@ void LightmapperBase::BuildResourceCache()
     }
 }
 
-void LightmapperBase::Build()
+void BakerBase::Build()
 {
     HYP_SCOPE;
     const uint32 idealTrianglesPerJob = m_config.idealTrianglesPerJob;
@@ -483,14 +484,14 @@ void LightmapperBase::Build()
 
     if (Result buildInternalResult = Build_Internal(); buildInternalResult.HasError())
     {
-        HYP_LOG(Lightmap, Error, "Lightmapper build failed: {}", buildInternalResult.GetError().GetMessage());
+        HYP_LOG(Lightmap, Error, "Baker build failed: {}", buildInternalResult.GetError().GetMessage());
         return;
     }
 
     DispatchJobs();
 }
 
-void LightmapperBase::DispatchJobs()
+void BakerBase::DispatchJobs()
 {
     if (ShouldSplitIntoJobs())
     {
@@ -555,7 +556,7 @@ void LightmapperBase::DispatchJobs()
     m_initialNumJobs = m_numJobs;
 }
 
-void LightmapperBase::Update(float delta)
+void BakerBase::Update(float delta)
 {
     HYP_SCOPE;
 
@@ -635,7 +636,7 @@ void LightmapperBase::Update(float delta)
     }
 }
 
-void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
+void BakerBase::HandleCompletedJob(LightmapJobBase* job)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -664,23 +665,23 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
         m_source ? m_source->Id() : ObjIdBase(), percentage);
 }
 
-#pragma endregion LightmapperBase
+#pragma endregion BakerBase
 
-#pragma region Lightmapper < LightmapVolume>
+#pragma region Baker < LightmapVolume>
 
-Lightmapper<LightmapVolume>::Lightmapper(LightmapperConfig&& config, const Handle<LightmapVolume>& volume)
-    : LightmapperBase(std::move(config), volume, MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
+Baker<LightmapVolume>::Baker(LightmapperConfig&& config, const Handle<LightmapVolume>& volume)
+    : BakerBase(std::move(config), volume, MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
       m_volume(volume),
       m_lightmapElementId(InvalidLightmapElementId)
 {
 }
 
-void Lightmapper<LightmapVolume>::Initialize_Internal()
+void Baker<LightmapVolume>::Initialize_Internal()
 {
     // no-op
 }
 
-void Lightmapper<LightmapVolume>::Build()
+void Baker<LightmapVolume>::Build()
 {
     HYP_SCOPE;
 
@@ -742,10 +743,10 @@ void Lightmapper<LightmapVolume>::Build()
     m_lightmapElementId = lightmapElement.id;
     AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
-    LightmapperBase::DispatchJobs();
+    BakerBase::DispatchJobs();
 }
 
-void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
+void Baker<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
 {
     HYP_SCOPE;
 
@@ -900,17 +901,17 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
     }
 }
 
-#pragma endregion Lightmapper < LightmapVolume>
+#pragma endregion Baker < LightmapVolume>
 
-#pragma region Lightmapper < ReflectionProbe>
+#pragma region Baker < ReflectionProbe>
 
-Lightmapper<ReflectionProbe>::Lightmapper(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe)
-    : LightmapperBase(std::move(config), envProbe, MakeStrongRef(envProbe->GetScene()), envProbe->GetAABB()),
+Baker<ReflectionProbe>::Baker(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe)
+    : BakerBase(std::move(config), envProbe, MakeStrongRef(envProbe->GetScene()), envProbe->GetAABB()),
       m_envProbe(envProbe)
 {
 }
 
-Result Lightmapper<ReflectionProbe>::Build_Internal()
+Result Baker<ReflectionProbe>::Build_Internal()
 {
     Assert(m_envProbe != nullptr);
 
@@ -919,7 +920,7 @@ Result Lightmapper<ReflectionProbe>::Build_Internal()
     return m_lightmapData.Build();
 }
 
-void Lightmapper<ReflectionProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
+void Baker<ReflectionProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
 {
     HYP_SCOPE;
 
@@ -970,17 +971,17 @@ void Lightmapper<ReflectionProbe>::HandleCompletedJob_Internal(LightmapJobBase* 
     HYP_LOG(Lightmap, Info, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", m_envProbe->Id());
 }
 
-#pragma endregion Lightmapper < ReflectionProbe>
+#pragma endregion Baker < ReflectionProbe>
 
-#pragma region Lightmapper < FogVolume>
+#pragma region Baker < FogVolume>
 
-Lightmapper<FogVolume>::Lightmapper(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume)
-    : LightmapperBase(std::move(config), fogVolume, MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldBounds()),
+Baker<FogVolume>::Baker(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume)
+    : BakerBase(std::move(config), fogVolume, MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldBounds()),
       m_fogVolume(fogVolume)
 {
 }
 
-Result Lightmapper<FogVolume>::Build_Internal()
+Result Baker<FogVolume>::Build_Internal()
 {
     Assert(m_fogVolume != nullptr);
 
@@ -989,7 +990,7 @@ Result Lightmapper<FogVolume>::Build_Internal()
     return m_lightmapData.Build();
 }
 
-void Lightmapper<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
+void Baker<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
 {
     HYP_SCOPE;
 

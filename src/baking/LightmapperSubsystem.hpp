@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-class LightmapperBase;
+class BakerBase;
 class LightmapVolume;
 class ReflectionProbe;
 class FogVolume;
@@ -68,7 +68,7 @@ private:
     Task<void>* EnqueueBake_Internal(const Handle<T>& source, Args&&... args);
 
     // Map source to lightmapper instance
-    HashMap<ObjectBase*, Handle<LightmapperBase>> m_lightmappers;
+    HashMap<ObjectBase*, Handle<BakerBase>> m_lightmappers;
     HashMap<ObjectBase*, Task<void>*> m_activeTasks;
     LinkedList<Task<void>> m_tasks;
 };

@@ -50,7 +50,7 @@ private:
 class HYP_API LightmapRenderer_CpuPathTracing : public ILightmapRenderer
 {
 public:
-    LightmapRenderer_CpuPathTracing(LightmapperBase* lightmapper, LightmapTopLevelAccelerationStructure* accelerationStructure, LightmapThreadPool* threadPool, const Handle<Scene>& scene, LightmapShadingType shadingType);
+    LightmapRenderer_CpuPathTracing(BakerBase* lightmapper, LightmapTopLevelAccelerationStructure* accelerationStructure, LightmapThreadPool* threadPool, const Handle<Scene>& scene, LightmapShadingType shadingType);
     LightmapRenderer_CpuPathTracing(const LightmapRenderer_CpuPathTracing& other) = delete;
     LightmapRenderer_CpuPathTracing& operator=(const LightmapRenderer_CpuPathTracing& other) = delete;
     LightmapRenderer_CpuPathTracing(LightmapRenderer_CpuPathTracing&& other) noexcept = delete;

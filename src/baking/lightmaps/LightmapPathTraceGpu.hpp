@@ -17,7 +17,7 @@ class HYP_API LightmapRenderer_GpuPathTracing : public ILightmapRenderer
 {
 public:
     LightmapRenderer_GpuPathTracing(
-        LightmapperBase* lightmapper,
+        BakerBase* lightmapper,
         const Handle<Scene>& scene,
         LightmapShadingType shadingType,
         uint32 maxTexelsPerFrame);
