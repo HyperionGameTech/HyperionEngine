@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <baking/Lightmapper.hpp>
+#include <baking/Baker.hpp>
 
 #include <rendering/RenderProxy.hpp>
 
@@ -12,7 +12,6 @@ namespace Hyperion {
 
 struct LightmapHitsBuffer;
 class LightmapThreadPool;
-class LightmapTopLevelAccelerationStructure;
 class BakeJobBase;
 class LightmapVolume;
 class AssetObject;
@@ -48,6 +47,8 @@ private:
 };
 
 namespace Baking {
+
+class LightmapTopLevelAccelerationStructure;
 
 class HYP_API LightmapRenderer_CpuPathTracing : public ILightmapRenderer
 {

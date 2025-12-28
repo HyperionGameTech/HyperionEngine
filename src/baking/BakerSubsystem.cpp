@@ -3,9 +3,11 @@
 #include <HyperionPch.hpp>
 
 #include <baking/BakerSubsystem.hpp>
-#include <baking/Lightmapper.hpp>
-#include <baking/lightmaps/LightmapPathTraceCpu.hpp>
-#include <baking/lightmaps/LightmapPathTraceGpu.hpp>
+#include <baking/Baker.hpp>
+
+#include <baking/lightmap_volume/LightmapVolumeBaker.hpp>
+#include <baking/reflection_probe/ReflectionProbeBaker.hpp>
+#include <baking/fog_volume/FogVolumeBaker.hpp>
 
 #include <rendering/RenderConfig.hpp>
 
@@ -150,7 +152,7 @@ Task<void>* BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&
         return taskIt->second;
     }
 
-    Handle<BakerBase> lightmapper = CreateObject<Lightmapper<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
+    Handle<BakerBase> lightmapper = CreateObject<Baker<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
     InitObject(lightmapper);
 
     Task<void>& task = m_tasks.EmplaceBack();

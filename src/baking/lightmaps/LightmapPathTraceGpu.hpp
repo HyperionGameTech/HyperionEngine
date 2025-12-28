@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <baking/Lightmapper.hpp>
+#include <baking/Baker.hpp>
 
 #include <rendering/RenderObject.hpp>
 

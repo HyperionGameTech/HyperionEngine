@@ -1,0 +1,54 @@
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
+
+#pragma once
+
+#include <baking/Baker.hpp>
+
+namespace Hyperion {
+
+class ReflectionProbe;
+
+namespace Baking {
+
+template <>
+class Baker<ReflectionProbe> final : public BakerBase
+{
+public:
+    Baker(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe);
+
+    Baker(const Baker& other) = delete;
+    Baker& operator=(const Baker& other) = delete;
+
+    Baker(Baker&& other) noexcept = delete;
+    Baker& operator=(Baker&& other) noexcept = delete;
+
+    virtual ~Baker() override = default;
+
+    virtual bool ShouldSplitIntoJobs() const override
+    {
+        return true;
+    }
+
+    virtual uint32 GetShadingTypesMask() const override
+    {
+        return 1u << int(LightmapShadingType::FULL);
+    }
+
+protected:
+    virtual LightmapDataBase& GetLightmapData() override
+    {
+        return m_lightmapData;
+    }
+
+    virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override;
+
+    virtual Result Build_Internal() override;
+    virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
+
+    Handle<ReflectionProbe> m_envProbe;
+    BakeData<ReflectionProbe> m_lightmapData;
+};
+
+} // namespace Baking
+
+} // namespace Hyperion

@@ -15,13 +15,15 @@
 namespace Hyperion {
 
 class Texture;
-class BakeJobBase;
+class LightmapVolume;
 class RenderProxyLightmapVolume;
+
+namespace Baking {
 
 template <class T>
 class BakeData;
 
-class LightmapVolume;
+} // namespace Baking
 
 HYP_ENUM()
 enum LightmapTextureType : uint32
@@ -173,7 +175,9 @@ public:
 
     const LightmapElement* GetElement(LightmapElementId elementId) const;
 
-    bool BuildElementTextures(const BakeData<LightmapVolume>& lightmapData, LightmapElementId elementId);
+#ifdef HYP_EDITOR
+    bool BuildElementTextures(const Baking::BakeData<LightmapVolume>& lightmapData, LightmapElementId elementId);
+#endif
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 

@@ -9,10 +9,9 @@
 
 #include <scene/components/LightmapElementComponent.hpp>
 
-#include <baking/BakeData.hpp>
-
 #ifdef HYP_EDITOR
 #include <baking/BakerSubsystem.hpp>
+#include <baking/BakeData.hpp>
 #endif
 
 #include <rendering/Texture.hpp>
@@ -343,7 +342,8 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) c
     return &m_atlases[atlasIndex].elements[elementIndex];
 }
 
-bool LightmapVolume::BuildElementTextures(const BakeData<LightmapVolume>& lightmapData, LightmapElementId elementId)
+#ifdef HYP_EDITOR
+bool LightmapVolume::BuildElementTextures(const Baking::BakeData<LightmapVolume>& lightmapData, LightmapElementId elementId)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -368,7 +368,7 @@ bool LightmapVolume::BuildElementTextures(const BakeData<LightmapVolume>& lightm
 
     const Vec2u elementDimensions = element.dimensions;
 
-    FixedArray<typename BakeData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
+    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
         lightmapData.ToBitmapRadiance(),  /* RADIANCE */
         lightmapData.ToBitmapIrradiance() /* IRRADIANCE */
     };
@@ -379,13 +379,13 @@ bool LightmapVolume::BuildElementTextures(const BakeData<LightmapVolume>& lightm
 
     for (uint32 i = 0; i < uint32(LTT_MAX); i++)
     {
-        Optional<typename BakeData<LightmapVolume>::BitmapType> tempBitmap;
+        Optional<typename Baking::BakeData<LightmapVolume>::BitmapType> tempBitmap;
 
-        typename BakeData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
+        typename Baking::BakeData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
 
         if (elementDimensions.x != bitmaps[i].GetWidth() || elementDimensions.y != bitmaps[i].GetHeight())
         {
-            typename BakeData<LightmapVolume>::BitmapType& rescaledBitmap = tempBitmap.Emplace(elementDimensions.x, elementDimensions.y);
+            typename Baking::BakeData<LightmapVolume>::BitmapType& rescaledBitmap = tempBitmap.Emplace(elementDimensions.x, elementDimensions.y);
 
             Rect<uint32> srcRect {
                 0, 0,
@@ -429,6 +429,7 @@ bool LightmapVolume::BuildElementTextures(const BakeData<LightmapVolume>& lightm
 
     return true;
 }
+#endif
 
 void LightmapVolume::Init()
 {

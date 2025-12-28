@@ -1,0 +1,49 @@
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
+
+#pragma once
+
+#include <baking/BakeJob.hpp>
+
+namespace Hyperion {
+
+class LightmapVolume;
+struct LightmapElement;
+
+namespace Baking {
+
+template <>
+class BakeJob<LightmapVolume> : public BakeJobBase
+{
+public:
+    BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* lightmapData);
+    virtual ~BakeJob() override;
+
+    HYP_FORCE_INLINE const Handle<LightmapVolume>& GetVolume() const
+    {
+        return m_volume;
+    }
+
+    virtual BakeData<LightmapVolume>& GetLightmapData() override
+    {
+        return *m_lightmapData;
+    }
+
+    HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
+    {
+        return m_lightmapElement;
+    }
+
+protected:
+    virtual void Start_Internal() override;
+    virtual void Process_Internal(bool* outIsReadyToProcess) override;
+
+    Handle<LightmapVolume> m_volume;
+
+    BakeData<LightmapVolume>* m_lightmapData;
+
+    LightmapElement* m_lightmapElement;
+};
+
+} // namespace Baking
+
+} // namespace Hyperion

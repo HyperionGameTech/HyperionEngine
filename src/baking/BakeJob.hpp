@@ -27,17 +27,18 @@ class FogVolume;
 class View;
 class LightmapVolume;
 struct LightmapElement;
-class ILightmapRenderer;
-class BakerBase;
 
 struct RenderSetup; // forward decl for renderer interface usage
 
 namespace Baking {
 
+class BakerBase;
+
 enum class LightmapShadingType : int; // forward decl from Lightmapper
 struct LightmapHit;                   // forward decl from Lightmapper
 
 struct LightmapperConfig; // forward decl from Lightmapper
+class ILightmapRenderer;
 
 struct BakeJobParams
 {
@@ -202,103 +203,6 @@ protected:
 
 template <class T>
 class BakeJob;
-
-template <>
-class BakeJob<LightmapVolume> : public BakeJobBase
-{
-public:
-    BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* lightmapData);
-    virtual ~BakeJob() override;
-
-    HYP_FORCE_INLINE const Handle<LightmapVolume>& GetVolume() const
-    {
-        return m_volume;
-    }
-
-    virtual BakeData<LightmapVolume>& GetLightmapData() override
-    {
-        return *m_lightmapData;
-    }
-
-    HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
-    {
-        return m_lightmapElement;
-    }
-
-protected:
-    virtual void Start_Internal() override;
-    virtual void Process_Internal(bool* outIsReadyToProcess) override;
-
-    Handle<LightmapVolume> m_volume;
-
-    BakeData<LightmapVolume>* m_lightmapData;
-
-    LightmapElement* m_lightmapElement;
-};
-
-template <>
-class BakeJob<ReflectionProbe> : public BakeJobBase
-{
-public:
-    explicit BakeJob(BakeJobParams&& params, const Handle<ReflectionProbe>& envProbe, BakeData<ReflectionProbe>* lightmapData)
-        : BakeJobBase(std::move(params)),
-          m_envProbe(envProbe),
-          m_lightmapData(lightmapData)
-    {
-    }
-
-    virtual ~BakeJob() override;
-
-    HYP_FORCE_INLINE const Handle<ReflectionProbe>& GetEnvProbe() const
-    {
-        return m_envProbe;
-    }
-
-    virtual BakeData<ReflectionProbe>& GetLightmapData() override
-    {
-        return *m_lightmapData;
-    }
-
-protected:
-    virtual void Start_Internal() override;
-    virtual void Process_Internal(bool* outIsReadyToProcess) override;
-
-    Handle<ReflectionProbe> m_envProbe;
-    BakeData<ReflectionProbe>* m_lightmapData;
-};
-
-template <>
-class BakeJob<FogVolume> : public BakeJobBase
-{
-public:
-    explicit BakeJob(BakeJobParams&& params, const Handle<FogVolume>& fogVolume, BakeData<FogVolume>* lightmapData)
-        : BakeJobBase(std::move(params)),
-          m_fogVolume(fogVolume),
-          m_lightmapData(lightmapData)
-    {
-    }
-
-    virtual ~BakeJob() override;
-
-    HYP_FORCE_INLINE const Handle<FogVolume>& GetFogVolume() const
-    {
-        return m_fogVolume;
-    }
-
-    virtual BakeData<FogVolume>& GetLightmapData() override
-    {
-        return *m_lightmapData;
-    }
-
-    virtual uint32 ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset = 0) override;
-
-protected:
-    virtual void Start_Internal() override;
-    virtual void Process_Internal(bool* outIsReadyToProcess) override;
-
-    Handle<FogVolume> m_fogVolume;
-    BakeData<FogVolume>* m_lightmapData;
-};
 
 } // namespace Baking
 

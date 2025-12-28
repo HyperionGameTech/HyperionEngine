@@ -38,11 +38,7 @@ using threading::TaskBatch;
 
 struct LightmapHitsBuffer;
 class LightmapThreadPool;
-class ILightmapAccelerationStructure;
-class LightmapTopLevelAccelerationStructure;
-class BakeJobBase;
 class LightmapVolume;
-class BakerBase;
 struct LightmapElement;
 
 class AssetObject;
@@ -52,6 +48,11 @@ class FogVolume;
 struct RenderSetup;
 
 namespace Baking {
+
+class BakerBase;
+class BakeJobBase;
+
+class LightmapTopLevelAccelerationStructure;
 
 HYP_ENUM()
 enum class LightmapTraceMode : int
@@ -401,147 +402,6 @@ protected:
 
 template <class T>
 class Baker;
-
-enum class LightmapElementId : uint32;
-
-template <>
-class Baker<LightmapVolume> final : public BakerBase
-{
-public:
-    Baker(LightmapperConfig&& config, const Handle<LightmapVolume>& volume);
-
-    Baker(const Baker& other) = delete;
-    Baker& operator=(const Baker& other) = delete;
-
-    Baker(Baker&& other) noexcept = delete;
-    Baker& operator=(Baker&& other) noexcept = delete;
-
-    virtual ~Baker() override = default;
-
-    virtual bool ShouldSplitIntoJobs() const override
-    {
-        return true;
-    }
-
-    virtual uint32 GetShadingTypesMask() const override
-    {
-        return (1u << int(LightmapShadingType::IRRADIANCE))
-            | (1u << int(LightmapShadingType::RADIANCE));
-    }
-
-protected:
-    virtual LightmapDataBase& GetLightmapData() override
-    {
-        return m_lightmapData;
-    }
-
-    virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override
-    {
-        return MakeUnique<BakeJob<LightmapVolume>>(std::move(params), m_volume, &m_lightmapData);
-    }
-
-    virtual void Initialize_Internal() override;
-    virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
-    virtual void Build() override;
-
-    Handle<LightmapVolume> m_volume;
-    BakeData<LightmapVolume> m_lightmapData;
-    LightmapElementId m_lightmapElementId;
-};
-
-template <>
-class Baker<ReflectionProbe> final : public BakerBase
-{
-public:
-    Baker(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe);
-
-    Baker(const Baker& other) = delete;
-    Baker& operator=(const Baker& other) = delete;
-
-    Baker(Baker&& other) noexcept = delete;
-    Baker& operator=(Baker&& other) noexcept = delete;
-
-    virtual ~Baker() override = default;
-
-    virtual bool ShouldSplitIntoJobs() const override
-    {
-        return true;
-    }
-
-    virtual uint32 GetShadingTypesMask() const override
-    {
-        return 1u << int(LightmapShadingType::FULL);
-    }
-
-protected:
-    virtual LightmapDataBase& GetLightmapData() override
-    {
-        return m_lightmapData;
-    }
-
-    virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override
-    {
-        return MakeUnique<BakeJob<ReflectionProbe>>(std::move(params), m_envProbe, &m_lightmapData);
-    }
-
-    virtual Result Build_Internal() override;
-    virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
-
-    Handle<ReflectionProbe> m_envProbe;
-    BakeData<ReflectionProbe> m_lightmapData;
-};
-
-template <>
-class Baker<FogVolume> final : public BakerBase
-{
-public:
-    Baker(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume);
-
-    Baker(const Baker& other) = delete;
-    Baker& operator=(const Baker& other) = delete;
-
-    Baker(Baker&& other) noexcept = delete;
-    Baker& operator=(Baker&& other) noexcept = delete;
-
-    virtual ~Baker() override = default;
-
-    virtual bool PerformsRayTracing() const override
-    {
-        return false;
-    }
-
-    virtual uint32 NumTexelSamples() const override
-    {
-        return 1;
-    }
-
-    virtual uint32 GetShadingTypesMask() const override
-    {
-        return 1u << int(LightmapShadingType::FULL);
-    }
-
-    virtual bool ShouldSplitIntoJobs() const override
-    {
-        return false;
-    }
-
-protected:
-    virtual LightmapDataBase& GetLightmapData() override
-    {
-        return m_lightmapData;
-    }
-
-    virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override
-    {
-        return MakeUnique<BakeJob<FogVolume>>(std::move(params), m_fogVolume, &m_lightmapData);
-    }
-
-    virtual Result Build_Internal() override;
-    virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
-
-    Handle<FogVolume> m_fogVolume;
-    BakeData<FogVolume> m_lightmapData;
-};
 
 } // namespace Baking
 

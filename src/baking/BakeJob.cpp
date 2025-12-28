@@ -3,7 +3,7 @@
 #include <HyperionPch.hpp>
 
 #include <baking/BakeJob.hpp>
-#include <baking/Lightmapper.hpp>
+#include <baking/Baker.hpp>
 #include <baking/lightmaps/LightmapPathTraceCpu.hpp>
 #include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
@@ -39,6 +39,8 @@
 #include <engine/DebugDrawer.hpp>
 
 namespace Hyperion {
+
+namespace Baking {
 
 #pragma region Render command
 
@@ -134,8 +136,6 @@ struct LightmapRender : RenderCommand
 #pragma endregion Render command
 
 static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
-
-namespace Baking {
 
 #pragma region BakeJobBase
 
@@ -390,135 +390,6 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
 }
 
 #pragma endregion BakeJobBase
-
-#pragma region BakeJob < LightmapVolume>
-
-BakeJob<LightmapVolume>::BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* lightmapData)
-    : BakeJobBase(std::move(params)),
-      m_volume(volume),
-      m_lightmapData(lightmapData),
-      m_lightmapElement(nullptr)
-{
-    Assert(m_volume != nullptr);
-    Assert(m_lightmapData != nullptr);
-}
-
-BakeJob<LightmapVolume>::~BakeJob()
-{
-    // m_lightmapElement is now managed externally or not used in the same way
-}
-
-void BakeJob<LightmapVolume>::Start_Internal()
-{
-}
-
-void BakeJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
-{
-    if (outIsReadyToProcess)
-    {
-        *outIsReadyToProcess = true;
-    }
-}
-
-#pragma endregion BakeJob < LightmapVolume>
-
-#pragma region BakeJob < ReflectionProbe>
-
-BakeJob<ReflectionProbe>::~BakeJob()
-{
-}
-
-void BakeJob<ReflectionProbe>::Start_Internal()
-{
-}
-
-void BakeJob<ReflectionProbe>::Process_Internal(bool* outIsReadyToProcess)
-{
-    if (outIsReadyToProcess)
-    {
-        *outIsReadyToProcess = true;
-    }
-}
-
-#pragma endregion BakeJob < ReflectionProbe>
-
-#pragma region BakeJob < FogVolume>
-
-BakeJob<FogVolume>::~BakeJob()
-{
-}
-
-void BakeJob<FogVolume>::Start_Internal()
-{
-    const typename BakeData<FogVolume>::VolumeBitmap& volumeBitmap = m_lightmapData->GetVolumeBitmap();
-
-    const Vec3u volumeExtent = Vec3u {
-        volumeBitmap.GetWidth(),
-        volumeBitmap.GetHeight(),
-        volumeBitmap.GetDepth()
-    };
-
-    // Flatten texel indices for processing
-    m_texelIndices.Resize(volumeExtent.x * volumeExtent.y * volumeExtent.z);
-
-    for (uint32 z = 0; z < volumeExtent.z; ++z)
-    {
-        for (uint32 y = 0; y < volumeExtent.y; ++y)
-        {
-            for (uint32 x = 0; x < volumeExtent.x; ++x)
-            {
-                const uint32 texelIndex = z * (volumeExtent.x * volumeExtent.y) + y * volumeExtent.x + x;
-
-                m_texelIndices[texelIndex] = texelIndex;
-            }
-        }
-    }
-}
-
-void BakeJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
-{
-    if (outIsReadyToProcess)
-    {
-        *outIsReadyToProcess = true;
-    }
-}
-
-uint32 BakeJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
-{
-    const BoundingBox worldAabb = m_fogVolume->GetWorldBounds();
-    const Vec3f extentWS = worldAabb.GetExtent();
-
-    const Vec3u bitmapExtent = Vec3u {
-        m_lightmapData->GetVolumeBitmap().GetWidth(),
-        m_lightmapData->GetVolumeBitmap().GetHeight(),
-        m_lightmapData->GetVolumeBitmap().GetDepth()
-    };
-
-    const Vec3f texelHalfSizeWS = extentWS * (Vec3f(0.5f) / Vec3f(bitmapExtent));
-
-    for (uint32 txlIdx = 0; txlIdx < uint32(texels.Size()); ++txlIdx)
-    {
-        LightmapTexel* texel = texels[txlIdx];
-        const uint32 realTexelIndex = texelOffset + txlIdx;
-
-        const Vec3u texelCoord = Vec3u {
-            realTexelIndex % bitmapExtent.x,
-            (realTexelIndex / bitmapExtent.x) % bitmapExtent.y,
-            realTexelIndex / (bitmapExtent.x * bitmapExtent.y)
-        };
-
-        const Vec3f posWS = worldAabb.GetMin() + (extentWS * (Vec3f(texelCoord) / Vec3f(bitmapExtent))) + texelHalfSizeWS;
-
-        const double dist = m_lightmapData->GetVoxelOctree()->GetSignedDistanceAtPoint(posWS);
-
-        texel->color0.x = float(dist);
-        texel->color0.w = 1.0f;
-    }
-
-    return uint32(texels.Size());
-}
-
-#pragma endregion BakeJob < FogVolume>
 
 } // namespace Baking
 
