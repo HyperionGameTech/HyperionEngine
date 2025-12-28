@@ -30,16 +30,16 @@ DECLARE_LOG_CATEGORY_GLOBAL(Fatal);
 
 #undef DECLARE_LOG_CATEGORY_GLOBAL
 
-template <auto CategoryArg, auto ChannelArg, auto FormatString, class... Args>
+template <auto CategoryArg, auto ChannelArg, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic(Logger& logger, Args&&... args);
 
-template <auto Category, auto FormatString, class... Args>
+template <auto Category, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&... args);
 
-template <auto CategoryArg, auto ChannelArg>
-inline void LogDynamic(Logger& logger, const char* str);
+template <auto CategoryArg>
+inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fileName, int lineNumber, const char* str);
 
-HYP_API extern void LogTemp(Logger& logger, const char* str);
+HYP_API extern void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumber);
 
 HYP_API extern Logger& GetLogger();
 
@@ -57,14 +57,14 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 #endif
 
 #define HYP_LOG(channel, category, fmt, ...) \
-    Hyperion::logging::LogStatic<HYP_MAKE_CONST_ARG(&Hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(Hyperion::logging::GetLogger(), ##__VA_ARGS__)
+    Hyperion::logging::LogStatic<HYP_MAKE_CONST_ARG(&Hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n"), HYP_STATIC_STRING(__FILE__), (__LINE__)>(Hyperion::logging::GetLogger(), ##__VA_ARGS__)
 
 #define HYP_LOG_DYNAMIC(channel, category, str) \
-    Hyperion::logging::LogDynamic<HYP_MAKE_CONST_ARG(&Hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel)>(Hyperion::logging::GetLogger(), str)
+    Hyperion::logging::LogDynamic<HYP_MAKE_CONST_ARG(&Hyperion::logging::category())>(Hyperion::logging::GetLogger(), g_logChannel_##channel, HYP_STATIC_STRING(__FILE__).Data(), (__LINE__), str)
 
 #ifdef HYP_DEBUG_MODE
 #define HYP_LOG_TEMP(fmt, ...) \
-    Hyperion::logging::LogTemp(Hyperion::logging::GetLogger(), &(HYP_FORMAT(fmt, ##__VA_ARGS__))[0])
+    Hyperion::logging::LogTemp(Hyperion::logging::GetLogger(), &(HYP_FORMAT(fmt, ##__VA_ARGS__))[0], HYP_STATIC_STRING(__FILE__).Data(), (__LINE__))
 #else
 #define HYP_LOG_TEMP(fmt, ...)
 #endif

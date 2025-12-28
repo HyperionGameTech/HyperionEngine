@@ -9,6 +9,17 @@ namespace Hyperion.Editor
     public unsafe delegate int InitializeAssemblyDelegate(IntPtr* pAssemblyGuid, IntPtr pAssembly, IntPtr pFilePath, int isCoreAssembly);
     public unsafe delegate void UnloadAssemblyDelegate(IntPtr pAssemblyGuid, IntPtr pResult);
 
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void LogCallbackDelegate(
+        [MarshalAs(UnmanagedType.LPStr)] string channel,
+        int level,
+        double timestamp,
+        [MarshalAs(UnmanagedType.LPStr)] string fileName,
+        int lineNumber,
+        [MarshalAs(UnmanagedType.LPStr)] string text);
+
+
     public unsafe struct ManagedDelegates
     {
         public delegate* unmanaged<int> initializeRuntime;
@@ -41,9 +52,6 @@ namespace Hyperion.Editor
 
         [DllImport("hyperion")]
         public static unsafe extern void Hyp_SetInitFromManagedCallback(delegate* unmanaged<ManagedDelegates*, void> callback);
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void LogCallbackDelegate([MarshalAs(UnmanagedType.LPStr)] string channel, int level, double timestamp, [MarshalAs(UnmanagedType.LPStr)] string message);
 
         [DllImport("hyperion")]
         public static extern void Editor_RegisterLogCallback(LogCallbackDelegate callback);

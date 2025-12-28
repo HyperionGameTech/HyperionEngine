@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:svc="clr-namespace:Hyperion.Editor.Services;assembly=Hyperion.Editor"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     d:DesignHeight="450"
     d:DesignWidth="800"
@@ -24,14 +25,32 @@
             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
             ScrollViewer.VerticalScrollBarVisibility="Auto">
             <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock
-                        Padding="4,0"
-                        FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
-                        FontSize="10"
-                        Foreground="{Binding Color}"
-                        Text="{Binding Message}"
-                        TextWrapping="Wrap" />
+                <DataTemplate x:DataType="svc:LogEntry">
+                    <StackPanel Orientation="Horizontal">
+                        <Button
+                            Margin="0,0,4,0"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Command="{Binding NavigateToFileCommand}"
+                            CommandParameter="{Binding .}"
+                            Cursor="Hand"
+                            IsVisible="{Binding HasFileLocation}">
+                            <TextBlock
+                                FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
+                                FontSize="10"
+                                Foreground="#6699CC"
+                                Text="{Binding FileLocationText}"
+                                TextDecorations="Underline" />
+                        </Button>
+                        <TextBlock
+                            Padding="4,0"
+                            FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
+                            FontSize="10"
+                            Foreground="{Binding Color}"
+                            Text="{Binding Message}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>

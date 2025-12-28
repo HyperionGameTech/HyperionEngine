@@ -21,6 +21,7 @@
 #include <core/threading/AtomicVar.hpp>
 
 #include <climits>
+#include <source_location>
 
 namespace Hyperion {
 
@@ -33,6 +34,8 @@ struct LogMessage
     LogLevel level;
     uint64 timestamp;
     Span<StringView<StringType::UTF8>> chunks;
+    const char* fileName;
+    int lineNumber;
 };
 
 HYP_ENUM()
@@ -363,16 +366,16 @@ struct LogOnceHelper
 
         if (count == 0)
         {
-            LogStatic<CategoryArg, ChannelArg, LogOnceFormatString>(logger, std::forward<LogOnceArgTypes>(args)...);
+            LogStatic<CategoryArg, ChannelArg, LogOnceFormatString, HYP_STATIC_STRING(""), 0>(logger, std::forward<LogOnceArgTypes>(args)...);
         }
         else if ((uint32(count) & (uint32(count) - 1)) == 0)
         {
-            LogStatic<CategoryArg, ChannelArg, LogOnceFormatString.template Concat<HYP_STATIC_STRING("\t... and {} more like this\n")>()>(logger, std::forward<LogOnceArgTypes>(args)..., uint32(count));
+            LogStatic<CategoryArg, ChannelArg, LogOnceFormatString.template Concat<HYP_STATIC_STRING("\t... and {} more like this\n")>(), HYP_STATIC_STRING(""), 0>(logger, std::forward<LogOnceArgTypes>(args)..., uint32(count));
         }
     }
 };
 
-template <auto CategoryArg, auto ChannelArg, auto FormatString, class... Args>
+template <auto CategoryArg, auto ChannelArg, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic(Logger& logger, Args&&... args)
 {
     static constexpr const LogCategory& Category = *HYP_GET_CONST_ARG(CategoryArg);
@@ -389,18 +392,18 @@ inline void LogStatic(Logger& logger, Args&&... args)
     {
         if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
         {
-            logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
+            logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
 
             HYP_UNREACHABLE();
         }
         else
         {
-            logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
+            logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
         }
     }
 }
 
-template <auto CategoryArg, auto FormatString, class... Args>
+template <auto CategoryArg, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&... args)
 {
     static constexpr const LogCategory& Category = *HYP_GET_CONST_ARG(CategoryArg);
@@ -416,19 +419,19 @@ inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&.
     {
         if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
         {
-            logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
+            logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
 
             HYP_UNREACHABLE();
         }
         else
         {
-            logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
+            logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
         }
     }
 }
 
-template <auto CategoryArg, auto ChannelArg>
-inline void LogDynamic(Logger& logger, const char* str)
+template <auto CategoryArg>
+inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fileName, int lineNumber, const char* str)
 {
     static constexpr const LogCategory& Category = *HYP_GET_CONST_ARG(CategoryArg);
 
@@ -437,20 +440,19 @@ inline void LogDynamic(Logger& logger, const char* str)
         return;
     }
 
-    static const LogChannel& s_channel = *HYP_GET_CONST_ARG(ChannelArg);
-    static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Category.GetLevel()>());
+    const String s_prefix = HYP_FORMAT("{} [{}]: ", channel.name, LogLevelToString<Category.GetLevel()>());
 
-    if (logger.IsChannelEnabled(s_channel))
+    if (logger.IsChannelEnabled(channel))
     {
         if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
         {
-            logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } } });
+            logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } }, fileName, lineNumber });
 
             HYP_UNREACHABLE();
         }
         else
         {
-            logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } } });
+            logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } }, fileName, lineNumber });
         }
     }
 }

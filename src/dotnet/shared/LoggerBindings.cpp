@@ -14,7 +14,7 @@ HYP_API extern Handle<Logger> g_logger;
 extern "C"
 {
 
-    HYP_EXPORT void Logger_Log(LogChannel* pChannel, uint32 logLevel, const char* pFuncName, uint32 line, const char* pMessage)
+    HYP_EXPORT void Logger_Log(LogChannel* pChannel, uint32 logLevel, const char* pFileName, uint32 line, const char* pMessage)
     {
         if (!pChannel)
         {
@@ -29,23 +29,23 @@ extern "C"
         switch (LogLevel(logLevel))
         {
         case LogLevel::DEBUG:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Debug()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
+            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Debug())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
         case LogLevel::INFO:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Info()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
+            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Info())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
         case LogLevel::WARNING:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Warning()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
+            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Warning())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
         case LogLevel::ERR:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Error()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
+            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Error())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
         case LogLevel::FATAL:
-            logging::LogStatic_Channel<HYP_MAKE_CONST_ARG(&logging::Fatal()), StaticString("{}\n")>(logging::GetLogger(), *pChannel, pMessage);
+            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Fatal())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
         }
