@@ -6,6 +6,23 @@
 #include <cmath>
 
 namespace Hyperion {
+
+static float GetRandom(int seed, Vec3i pt)
+{
+    int n = pt.x + pt.y * 57 + pt.z * 131 + seed * 1337;
+    n = (n << 13) ^ n;
+    return (1.0f - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0f);
+}
+
+static Vec3f GetFeaturePoint(int seed, Vec3i pt)
+{
+    float r1 = GetRandom(seed, pt);
+    float r2 = GetRandom(seed, { pt.x + 23, pt.y - 105, pt.z + 401 });
+    float r3 = GetRandom(seed, { pt.x - 11, pt.y + 333, pt.z - 99 });
+
+    return { (float)pt.x + r1, (float)pt.y + r2, (float)pt.z + r3 };
+}
+
 WorleyNoise::WorleyNoise(int seed)
     : m_seed(seed)
 {
@@ -13,53 +30,35 @@ WorleyNoise::WorleyNoise(int seed)
 
 double WorleyNoise::Noise(double x, double y, double z)
 {
-    Vector3 inputPoint(x, y, z);
-    Vector3 randomDiff;
-    Vector3 featurePoint;
+    int ix = std::floor(x);
+    int iy = std::floor(y);
+    int iz = std::floor(z);
 
-    size_t lastRandom = 0;
-    size_t numFeaturePoints = 0;
+    float minDistSqr = 1000.0f;
 
-    long long int cubex = 0, cubey = 0, cubez = 0;
-    long long int evalCubex = std::floor((int)x);
-    long long int evalCubey = std::floor((int)y);
-    long long int evalCubez = std::floor((int)z);
-
-    std::vector<double> distanceArray { 6666, 6666, 6666 };
-
-    for (int i = -1; i < 2; i++)
+    for (int dz = -1; dz <= 1; ++dz)
     {
-        for (int j = -1; j < 2; j++)
+        for (int dy = -1; dy <= 1; ++dy)
         {
-            for (int k = -1; k < 2; k++)
+            for (int dx = -1; dx <= 1; ++dx)
             {
-                cubex = evalCubex + i;
-                cubey = evalCubey + j;
-                cubez = evalCubez + k;
+                const int nx = ix + dx;
+                const int ny = iy + dy;
+                const int nz = iz + dz;
 
-                lastRandom = LCGRandom(WorleyHash(cubex + m_seed, cubey, cubez));
-                numFeaturePoints = ProbLookup(lastRandom);
+                const Vec3 point = GetFeaturePoint(m_seed, { nx, ny, nz });
 
-                for (unsigned int l = 0; l < numFeaturePoints; l++)
+                const float distSqr = Vec3f(float(x), float(y), float(z)).DistanceSquared(point);
+
+                if (distSqr < minDistSqr)
                 {
-                    lastRandom = LCGRandom(lastRandom);
-                    randomDiff.x = double(lastRandom) / 0x100000000;
-
-                    lastRandom = LCGRandom(lastRandom);
-                    randomDiff.y = double(lastRandom) / 0x100000000;
-
-                    lastRandom = LCGRandom(lastRandom);
-                    randomDiff.z = double(lastRandom) / 0x100000000;
-
-                    featurePoint = Vector3(randomDiff.x + cubex, randomDiff.y + cubey, randomDiff.z + cubez);
-
-                    Insert(distanceArray, EuclidianDistance(inputPoint, featurePoint));
+                    minDistSqr = distSqr;
                 }
             }
         }
     }
 
-    return std::min(std::max(CombinerFunc1(distanceArray.data()), 0.0), 1.0);
+    return std::sqrt(minDistSqr);
 }
 
 double WorleyNoise::CombinerFunc1(double* data)

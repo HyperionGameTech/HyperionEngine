@@ -41,7 +41,7 @@ struct WorldGridLayerInfo
     Vec3f scale { 1.0f, 1.0f, 1.0f };
 
     HYP_FIELD()
-    float maxDistance = 2.5f;
+    float maxDistance = 5.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

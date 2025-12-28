@@ -391,7 +391,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, LightmapJobBa
             renderQueue << InsertBarrier(hitsBuffer, RS_COPY_SRC);
             renderQueue << InsertBarrier(stagingBuffer, RS_COPY_DST);
 
-            renderQueue << CopyBuffer(hitsBuffer, stagingBuffer, outHits.Size() * sizeof(LightmapHit));
+            renderQueue << CopyBuffer(hitsBuffer, stagingBuffer, uint32(outHits.Size() * sizeof(LightmapHit)));
 
             renderQueue << InsertBarrier(stagingBuffer, RS_COPY_SRC);
             renderQueue << InsertBarrier(hitsBuffer, previousResourceState);

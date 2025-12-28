@@ -26,17 +26,17 @@ HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObje
     }
 }
 
-void ScriptableDelegateHelper::InvokeMethod_Internal(BoxedValue* pOutBoxed, const Method* method, const Handle<ObjectBase>& target, Span<BoxedValue> argsHypData)
+void ScriptableDelegateHelper::InvokeMethod_Internal(BoxedValue* pOutBoxed, const Method* method, const Handle<ObjectBase>& target, Span<BoxedValue> argsBoxed)
 {
     HYP_CORE_ASSERT(method != nullptr, "Method cannot be null");
 
     if (pOutBoxed)
     {
-        *pOutBoxed = method->Invoke(argsHypData);
+        *pOutBoxed = method->Invoke(argsBoxed);
     }
     else
     {
-        (void)method->Invoke(argsHypData);
+        (void)method->Invoke(argsBoxed);
     }
 }
 

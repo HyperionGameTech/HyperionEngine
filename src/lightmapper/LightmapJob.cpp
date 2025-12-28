@@ -363,7 +363,7 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
         }
     }
 
-    const uint32 totalNumTexels = m_texelIndices.Size() * m_lightmapper->NumTexelSamples();
+    const uint32 totalNumTexels = uint32(m_texelIndices.Size()) * m_lightmapper->NumTexelSamples();
     AssertDebug(totalNumTexels > 0);
 
     maxTexels = MathUtil::Min(maxTexels, totalNumTexels);

@@ -58,10 +58,5 @@ namespace Hyperion
         {
             return InvokeNativeMethod<StreamingCell>(new Name("CreateStreamingCell_Impl", weak: true), new object[] { cellInfo });
         }
-
-        public virtual WorldGridLayerInfo CreateLayerInfo()
-        {
-            return InvokeNativeMethod<WorldGridLayerInfo>(new Name("CreateLayerInfo_Impl", weak: true));
-        }
     }
 }

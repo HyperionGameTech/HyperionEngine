@@ -296,6 +296,11 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
             HYP_LOG(Assets, Warning, "Unable to parse obj model line: {}", trimmed);
         });
 
+    if (model.name.Empty())
+    {
+        model.name = StringUtil::StripExtension(state.filepath.Basename());
+    }
+
     return model;
 }
 

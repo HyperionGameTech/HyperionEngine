@@ -22,6 +22,7 @@ namespace Hyperion {
 ScriptObjectResource::ScriptObjectResource() = default;
 
 ScriptObjectResource::ScriptObjectResource(const Handle<ObjectBase>& nativeObject)
+    : m_ptr(nullptr)
 {
     if (!nativeData)
     {
@@ -33,6 +34,7 @@ ScriptObjectResource::ScriptObjectResource(const Handle<ObjectBase>& nativeObjec
 }
 
 ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
+    : m_ptr(nullptr)
 {
 #ifdef HYP_DOTNET
     if (!dotNetData)
@@ -48,12 +50,12 @@ ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, con
 #endif
 }
 
-ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::ManagedClass>& managedClass)
+ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass)
     : ScriptObjectResource(ptr, managedClass, {}, ObjectFlags::NONE)
 {
 }
 
-ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
+ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
     : m_ptr(ptr)
 {
 #ifdef HYP_DOTNET
@@ -70,7 +72,7 @@ ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, dotnet::ManagedObjec
 #endif
 }
 
-ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
+ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
     : m_ptr(ptr)
 {
 #ifdef HYP_DOTNET
@@ -87,15 +89,13 @@ ScriptObjectResource::ScriptObjectResource(TypedObjPtr ptr, const RC<dotnet::Man
 
     if (m_ptr && managedClass)
     {
-        void* address = m_ptr.GetPointer();
-
         if (objectFlags & ObjectFlags::CREATED_FROM_MANAGED)
         {
             data.objectPtr = new dotnet::ManagedObject(managedClass->RefCountedPtrFromThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
         }
         else
         {
-            data.objectPtr = managedClass->NewObject(m_ptr.GetClass(), address);
+            data.objectPtr = managedClass->NewObject(m_ptr->InstanceClass(), m_ptr);
         }
 
         Assert(data.objectPtr != nullptr);
@@ -226,7 +226,7 @@ void ScriptObjectResource::Initialize()
             return;
         }
 
-        if (!m_ptr.IsValid())
+        if (!m_ptr)
         {
             HYP_LOG(Object, Error, "Thread: {}\tManaged object could not be kept alive, it may have been garbage collected\n\tObject address: {}",
                 CurrentThreadId().GetName(),
@@ -237,16 +237,16 @@ void ScriptObjectResource::Initialize()
 
         // Need to recreate the managed object; could be queued for finalization.
         // In this case, the ref count will be decremented once the queued object is finalized
-        const Class* cls = m_ptr.GetClass();
+        const Class* cls = m_ptr->InstanceClass();
 
         HYP_LOG(Object, Debug, "Thread: {}\tManaged object for object with Class {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
             CurrentThreadId().GetName(),
-            cls->GetName(), m_ptr.GetPointer(),
+            cls->GetName(), (void*)m_ptr,
             (void*)dotNetData->objectPtr);
 
         if (dotNetData->managedClass)
         {
-            dotnet::ManagedObject* newManagedObject = dotNetData->managedClass->NewObject(cls, m_ptr.GetPointer());
+            dotnet::ManagedObject* newManagedObject = dotNetData->managedClass->NewObject(cls, m_ptr);
 
             if (!newManagedObject)
             {

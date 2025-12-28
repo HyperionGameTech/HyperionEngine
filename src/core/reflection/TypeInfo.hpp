@@ -438,107 +438,107 @@ struct HYP_API TypeInfoEx
     HashCode GetHashCode() const;
 };
 
-template <class T, class HypDataType = BoxedValue, class EnableIf = void>
+template <class T, class TBoxed = BoxedValue, class EnableIf = void>
 struct TypeInfoImpl;
 
-template <class T, class HypDataType>
-struct TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArrayWrapper>>>
+template <class T, class TBoxed>
+struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, GenericArrayWrapper>>>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class ArrayType, class HypDataType>
-struct TypeInfoImpl<ArrayType, HypDataType, std::enable_if_t<IsArray<ArrayType>::value>>
+template <class ArrayType, class TBoxed>
+struct TypeInfoImpl<ArrayType, TBoxed, std::enable_if_t<IsArray<ArrayType>::value>>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, SizeType Size, class HypDataType>
-struct TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>
+template <class T, SizeType Size, class TBoxed>
+struct TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class AllocatorType, class HypDataType>
-struct TypeInfoImpl<containers::LinkedList<T, AllocatorType>, HypDataType>
+template <class T, class AllocatorType, class TBoxed>
+struct TypeInfoImpl<containers::LinkedList<T, AllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <int TStringType, class HypDataType>
-struct TypeInfoImpl<containers::String<TStringType>, HypDataType>
+template <int TStringType, class TBoxed>
+struct TypeInfoImpl<containers::String<TStringType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class HypDataType>
-struct TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, filesystem::FilePath>>>
+template <class T, class TBoxed>
+struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, filesystem::FilePath>>>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class Key, class Value, class NodeAllocatorType, class HypDataType>
-struct TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, HypDataType>
+template <class Key, class Value, class NodeAllocatorType, class TBoxed>
+struct TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class Value, auto KeyBy, class NodeAllocatorType, class HypDataType>
-struct TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, HypDataType>
+template <class Value, auto KeyBy, class NodeAllocatorType, class TBoxed>
+struct TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class Key, class Value, class HypDataType>
-struct TypeInfoImpl<containers::FlatMap<Key, Value>, HypDataType>
+template <class Key, class Value, class TBoxed>
+struct TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class HypDataType>
-struct TypeInfoImpl<containers::FlatSet<T>, HypDataType>
+template <class T, class TBoxed>
+struct TypeInfoImpl<containers::FlatSet<T>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class Key, class Value, class HypDataType>
-struct TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>
+template <class Key, class Value, class TBoxed>
+struct TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class... Types, class HypDataType>
-struct TypeInfoImpl<utilities::Variant<Types...>, HypDataType>
+template <class... Types, class TBoxed>
+struct TypeInfoImpl<utilities::Variant<Types...>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class HypDataType>
-struct TypeInfoImpl<math::Vec2<T>, HypDataType>
+template <class T, class TBoxed>
+struct TypeInfoImpl<math::Vec2<T>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class HypDataType>
-struct TypeInfoImpl<math::Vec3<T>, HypDataType>
+template <class T, class TBoxed>
+struct TypeInfoImpl<math::Vec3<T>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class HypDataType>
-struct TypeInfoImpl<math::Vec4<T>, HypDataType>
+template <class T, class TBoxed>
+struct TypeInfoImpl<math::Vec4<T>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class HypDataType>
-struct TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat3f>>>
+template <class T, class TBoxed>
+struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat3f>>>
 {
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class HypDataType>
-struct TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat4f>>>
+template <class T, class TBoxed>
+struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat4f>>>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -898,8 +898,8 @@ struct TypeInfo
 
 /// Impls for specific types
 
-template <class T, class HypDataType>
-void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArrayWrapper>>>::operator()(TypeInfo& result) const
+template <class T, class TBoxed>
+void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, GenericArrayWrapper>>>::operator()(TypeInfo& result) const
 {
     // GenericArrayWrapper is a special case since it can hold any array type
     class GenericArrayHandler final : public ITypeInfoArrayHandler
@@ -910,14 +910,14 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArra
             return new GenericArrayHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
-            outInstance = HypDataType(T {});
+            outInstance = TBoxed(T {});
 
             return true;
         }
 
-        virtual bool GetElementAt(const HypDataType& instance, SizeType index, HypDataType& outValue) const override
+        virtual bool GetElementAt(const TBoxed& instance, SizeType index, TBoxed& outValue) const override
         {
             T& array = instance.template Get<T>();
 
@@ -929,7 +929,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArra
             return array.GetElementAt(index, outValue);
         }
 
-        virtual bool SetElementAt(const HypDataType& instance, SizeType index, HypDataType&& value) const override
+        virtual bool SetElementAt(const TBoxed& instance, SizeType index, TBoxed&& value) const override
         {
             T& array = instance.template Get<T>();
             if (index >= array.Size())
@@ -940,13 +940,13 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArra
             return array.SetElementAt(index, std::move(value));
         }
 
-        virtual SizeType GetSize(const HypDataType& instance) const override
+        virtual SizeType GetSize(const TBoxed& instance) const override
         {
             T& array = instance.template Get<T>();
             return array.Size();
         }
 
-        virtual void Resize(const HypDataType& instance, SizeType newSize) const override
+        virtual void Resize(const TBoxed& instance, SizeType newSize) const override
         {
             T& array = instance.template Get<T>();
 
@@ -965,8 +965,8 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArra
     result.extendedInfo.handler = new GenericArrayHandler();
 }
 
-template <class ArrayType, class HypDataType>
-void TypeInfoImpl<ArrayType, HypDataType, std::enable_if_t<IsArray<ArrayType>::value>>::operator()(TypeInfo& result) const
+template <class ArrayType, class TBoxed>
+void TypeInfoImpl<ArrayType, TBoxed, std::enable_if_t<IsArray<ArrayType>::value>>::operator()(TypeInfo& result) const
 {
     class ArrayHandler final : public ITypeInfoArrayHandler
     {
@@ -976,13 +976,13 @@ void TypeInfoImpl<ArrayType, HypDataType, std::enable_if_t<IsArray<ArrayType>::v
             return new ArrayHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
-            outInstance = HypDataType(ArrayType {});
+            outInstance = TBoxed(ArrayType {});
             return true;
         }
 
-        virtual bool GetElementAt(const HypDataType& instance, SizeType index, HypDataType& outValue) const override
+        virtual bool GetElementAt(const TBoxed& instance, SizeType index, TBoxed& outValue) const override
         {
             ArrayType& array = instance.template Get<ArrayType>();
 
@@ -991,12 +991,12 @@ void TypeInfoImpl<ArrayType, HypDataType, std::enable_if_t<IsArray<ArrayType>::v
                 return false;
             }
 
-            outValue = HypDataType(AnyRef(&array[index]));
+            outValue = TBoxed(AnyRef(&array[index]));
 
             return true;
         }
 
-        virtual bool SetElementAt(const HypDataType& instance, SizeType index, HypDataType&& value) const override
+        virtual bool SetElementAt(const TBoxed& instance, SizeType index, TBoxed&& value) const override
         {
             ArrayType& array = instance.template Get<ArrayType>();
 
@@ -1005,7 +1005,7 @@ void TypeInfoImpl<ArrayType, HypDataType, std::enable_if_t<IsArray<ArrayType>::v
                 return false;
             }
 
-            if constexpr (std::is_same_v<typename ArrayType::ValueType, HypDataType>)
+            if constexpr (std::is_same_v<typename ArrayType::ValueType, TBoxed>)
             {
                 array[index] = std::move(value);
             }
@@ -1017,13 +1017,13 @@ void TypeInfoImpl<ArrayType, HypDataType, std::enable_if_t<IsArray<ArrayType>::v
             return true;
         }
 
-        virtual SizeType GetSize(const HypDataType& instance) const override
+        virtual SizeType GetSize(const TBoxed& instance) const override
         {
             ArrayType& array = instance.template Get<ArrayType>();
             return array.Size();
         }
 
-        virtual void Resize(const HypDataType& instance, SizeType newSize) const override
+        virtual void Resize(const TBoxed& instance, SizeType newSize) const override
         {
             ArrayType& array = instance.template Get<ArrayType>();
             array.Resize(newSize);
@@ -1037,8 +1037,8 @@ void TypeInfoImpl<ArrayType, HypDataType, std::enable_if_t<IsArray<ArrayType>::v
     result.extendedInfo.handler = new ArrayHandler();
 }
 
-template <class T, SizeType Size, class HypDataType>
-void TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>::operator()(TypeInfo& result) const
+template <class T, SizeType Size, class TBoxed>
+void TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>::operator()(TypeInfo& result) const
 {
     using FixedArrayType = FixedArray<T, Size>;
 
@@ -1050,13 +1050,13 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>::operator()(Type
             return new FixedArrayHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
-            outInstance = HypDataType(FixedArrayType {});
+            outInstance = TBoxed(FixedArrayType {});
             return true;
         }
 
-        virtual bool GetElementAt(const HypDataType& instance, SizeType index, HypDataType& outValue) const override
+        virtual bool GetElementAt(const TBoxed& instance, SizeType index, TBoxed& outValue) const override
         {
             FixedArrayType& array = instance.template Get<FixedArrayType>();
 
@@ -1070,7 +1070,7 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>::operator()(Type
             return true;
         }
 
-        virtual bool SetElementAt(const HypDataType& instance, SizeType index, HypDataType&& value) const override
+        virtual bool SetElementAt(const TBoxed& instance, SizeType index, TBoxed&& value) const override
         {
             FixedArrayType& array = instance.template Get<FixedArrayType>();
 
@@ -1079,7 +1079,7 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>::operator()(Type
                 return false;
             }
 
-            if constexpr (std::is_same_v<T, HypDataType>)
+            if constexpr (std::is_same_v<T, TBoxed>)
             {
                 array[index] = std::move(value);
             }
@@ -1091,13 +1091,13 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>::operator()(Type
             return true;
         }
 
-        virtual SizeType GetSize(const HypDataType& instance) const override
+        virtual SizeType GetSize(const TBoxed& instance) const override
         {
             FixedArrayType& array = instance.template Get<FixedArrayType>();
             return array.Size();
         }
 
-        virtual void Resize(const HypDataType& instance, SizeType newSize) const override
+        virtual void Resize(const TBoxed& instance, SizeType newSize) const override
         {
             // FixedArray has a fixed size, so resizing is not supported
             // This operation is a no-op
@@ -1111,8 +1111,8 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>::operator()(Type
     result.extendedInfo.handler = new FixedArrayHandler();
 }
 
-template <class T, class AllocatorType, class HypDataType>
-void TypeInfoImpl<containers::LinkedList<T, AllocatorType>, HypDataType>::operator()(TypeInfo& result) const
+template <class T, class AllocatorType, class TBoxed>
+void TypeInfoImpl<containers::LinkedList<T, AllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
     using ListType = containers::LinkedList<T, AllocatorType>;
 
@@ -1124,33 +1124,33 @@ void TypeInfoImpl<containers::LinkedList<T, AllocatorType>, HypDataType>::operat
             return new LinkedListHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
-            outInstance = HypDataType(ListType {});
+            outInstance = TBoxed(ListType {});
             return true;
         }
 
-        virtual AnyRef GetElementAt(const HypDataType& instance, SizeType index) const override
+        virtual AnyRef GetElementAt(const TBoxed& instance, SizeType index) const override
         {
             ListType& list = instance.template Get<ListType>();
             auto it = list.Begin() + index;
             return AnyRef(&(*it));
         }
 
-        virtual void SetElementAt(const HypDataType& instance, SizeType index, const HypDataType& value) const override
+        virtual void SetElementAt(const TBoxed& instance, SizeType index, const TBoxed& value) const override
         {
             ListType& list = instance.template Get<ListType>();
             auto it = list.Begin() + index;
             *it = value.template Get<T>();
         }
 
-        virtual SizeType GetSize(const HypDataType& instance) const override
+        virtual SizeType GetSize(const TBoxed& instance) const override
         {
             ListType& list = instance.template Get<ListType>();
             return list.Size();
         }
 
-        virtual void Resize(const HypDataType& instance, SizeType newSize) const override
+        virtual void Resize(const TBoxed& instance, SizeType newSize) const override
         {
             ListType& list = instance.template Get<ListType>();
 
@@ -1174,8 +1174,8 @@ void TypeInfoImpl<containers::LinkedList<T, AllocatorType>, HypDataType>::operat
     result.extendedInfo.handler = new LinkedListHandler();
 }
 
-template <int TStringType, class HypDataType>
-void TypeInfoImpl<containers::String<TStringType>, HypDataType>::operator()(TypeInfo& result) const
+template <int TStringType, class TBoxed>
+void TypeInfoImpl<containers::String<TStringType>, TBoxed>::operator()(TypeInfo& result) const
 {
     using StringType = containers::String<TStringType>;
 
@@ -1187,19 +1187,19 @@ void TypeInfoImpl<containers::String<TStringType>, HypDataType>::operator()(Type
             return new StringHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
-            outInstance = HypDataType(StringType {});
+            outInstance = TBoxed(StringType {});
             return true;
         }
 
-        virtual String GetValue(const HypDataType& instance) const override
+        virtual String GetValue(const TBoxed& instance) const override
         {
             StringType& string = instance.template Get<StringType>();
             return string.ToUTF8();
         }
 
-        virtual void SetValue(const HypDataType& instance, const UTF8StringView& str) const override
+        virtual void SetValue(const TBoxed& instance, const UTF8StringView& str) const override
         {
 
             StringType& string = instance.template Get<StringType>();
@@ -1214,15 +1214,15 @@ void TypeInfoImpl<containers::String<TStringType>, HypDataType>::operator()(Type
     result.extendedInfo.handler = new StringHandler();
 }
 
-template <class T, class HypDataType>
-void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, filesystem::FilePath>>>::operator()(TypeInfo& result) const
+template <class T, class TBoxed>
+void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, filesystem::FilePath>>>::operator()(TypeInfo& result) const
 {
     // delegate to String impl since FilePath is just a wrapper around String
-    TypeInfoImpl<typename T::Base, HypDataType>()(result);
+    TypeInfoImpl<typename T::Base, TBoxed>()(result);
 }
 
-template <class Key, class Value, class NodeAllocatorType, class HypDataType>
-void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, HypDataType>::operator()(TypeInfo& result) const
+template <class Key, class Value, class NodeAllocatorType, class TBoxed>
+void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
     using MapType = containers::HashMap<Key, Value, NodeAllocatorType>;
 
@@ -1234,13 +1234,13 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, HypDataTyp
             return new HashMapHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MapType {});
             return true;
         }
 
-        virtual AnyRef GetValueAt(const HypDataType& instance, const HypDataType& key) const override
+        virtual AnyRef GetValueAt(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1254,7 +1254,7 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, HypDataTyp
             return AnyRef();
         }
 
-        virtual void SetValueAt(const HypDataType& instance, const HypDataType& key, const HypDataType& value) const override
+        virtual void SetValueAt(const TBoxed& instance, const TBoxed& key, const TBoxed& value) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1263,7 +1263,7 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, HypDataTyp
             map[k] = v;
         }
 
-        virtual bool ContainsKey(const HypDataType& instance, const HypDataType& key) const override
+        virtual bool ContainsKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1271,7 +1271,7 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, HypDataTyp
             return map.Find(k) != map.End();
         }
 
-        virtual bool RemoveKey(const HypDataType& instance, const HypDataType& key) const override
+        virtual bool RemoveKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1286,7 +1286,7 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, HypDataTyp
             return false;
         }
 
-        virtual SizeType GetSize(const HypDataType& instance) const override
+        virtual SizeType GetSize(const TBoxed& instance) const override
         {
             MapType& map = instance.template Get<MapType>();
 
@@ -1306,8 +1306,8 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, HypDataTyp
     result.extendedInfo.handler = new HashMapHandler();
 }
 
-template <class Key, class Value, class HypDataType>
-void TypeInfoImpl<containers::FlatMap<Key, Value>, HypDataType>::operator()(TypeInfo& result) const
+template <class Key, class Value, class TBoxed>
+void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo& result) const
 {
     using MapType = containers::FlatMap<Key, Value>;
 
@@ -1319,13 +1319,13 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, HypDataType>::operator()(Type
             return new FlatMapHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MapType {});
             return true;
         }
 
-        virtual AnyRef GetValueAt(const HypDataType& instance, const HypDataType& key) const override
+        virtual AnyRef GetValueAt(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1339,7 +1339,7 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, HypDataType>::operator()(Type
             return AnyRef();
         }
 
-        virtual void SetValueAt(const HypDataType& instance, const HypDataType& key, const HypDataType& value) const override
+        virtual void SetValueAt(const TBoxed& instance, const TBoxed& key, const TBoxed& value) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1348,7 +1348,7 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, HypDataType>::operator()(Type
             map[k] = v;
         }
 
-        virtual bool ContainsKey(const HypDataType& instance, const HypDataType& key) const override
+        virtual bool ContainsKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1356,7 +1356,7 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, HypDataType>::operator()(Type
             return map.Find(k) != map.End();
         }
 
-        virtual bool RemoveKey(const HypDataType& instance, const HypDataType& key) const override
+        virtual bool RemoveKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1371,7 +1371,7 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, HypDataType>::operator()(Type
             return false;
         }
 
-        virtual SizeType GetSize(const HypDataType& instance) const override
+        virtual SizeType GetSize(const TBoxed& instance) const override
         {
 
             MapType& map = instance.template Get<MapType>();
@@ -1392,8 +1392,8 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, HypDataType>::operator()(Type
     result.extendedInfo.handler = new FlatMapHandler();
 }
 
-template <class Key, class Value, class HypDataType>
-void TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>::operator()(TypeInfo& result) const
+template <class Key, class Value, class TBoxed>
+void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo& result) const
 {
     using MapType = containers::ArrayMap<Key, Value>;
 
@@ -1405,13 +1405,13 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>::operator()(Typ
             return new ArrayMapHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MapType {});
             return true;
         }
 
-        virtual AnyRef GetValueAt(const HypDataType& instance, const HypDataType& key) const override
+        virtual AnyRef GetValueAt(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1425,7 +1425,7 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>::operator()(Typ
             return AnyRef();
         }
 
-        virtual void SetValueAt(const HypDataType& instance, const HypDataType& key, const HypDataType& value) const override
+        virtual void SetValueAt(const TBoxed& instance, const TBoxed& key, const TBoxed& value) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1434,7 +1434,7 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>::operator()(Typ
             map[k] = v;
         }
 
-        virtual bool ContainsKey(const HypDataType& instance, const HypDataType& key) const override
+        virtual bool ContainsKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1442,7 +1442,7 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>::operator()(Typ
             return map.Find(k) != map.End();
         }
 
-        virtual bool RemoveKey(const HypDataType& instance, const HypDataType& key) const override
+        virtual bool RemoveKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
             Key& k = key.template Get<Key>();
@@ -1457,7 +1457,7 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>::operator()(Typ
             return false;
         }
 
-        virtual SizeType GetSize(const HypDataType& instance) const override
+        virtual SizeType GetSize(const TBoxed& instance) const override
         {
             MapType& map = instance.template Get<MapType>();
 
@@ -1477,8 +1477,8 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>::operator()(Typ
     result.extendedInfo.handler = new ArrayMapHandler();
 }
 
-template <class Value, class HypDataType>
-void TypeInfoImpl<containers::FlatSet<Value>, HypDataType>::operator()(TypeInfo& result) const
+template <class Value, class TBoxed>
+void TypeInfoImpl<containers::FlatSet<Value>, TBoxed>::operator()(TypeInfo& result) const
 {
     using SetType = containers::FlatSet<Value>;
 
@@ -1490,37 +1490,37 @@ void TypeInfoImpl<containers::FlatSet<Value>, HypDataType>::operator()(TypeInfo&
             return new FlatSetHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
-            outInstance = HypDataType(SetType {});
+            outInstance = TBoxed(SetType {});
             return true;
         }
 
-        virtual bool Contains(const HypDataType& instance, const HypDataType& value) const override
+        virtual bool Contains(const TBoxed& instance, const TBoxed& value) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Contains(value.template Get<Value>());
         }
 
-        virtual bool Insert(const HypDataType& instance, const HypDataType& value) const override
+        virtual bool Insert(const TBoxed& instance, const TBoxed& value) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Insert(value.template Get<Value>()).second;
         }
 
-        virtual bool Remove(const HypDataType& instance, const HypDataType& value) const override
+        virtual bool Remove(const TBoxed& instance, const TBoxed& value) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Erase(value.template Get<Value>());
         }
 
-        virtual SizeType GetSize(const HypDataType& instance) const override
+        virtual SizeType GetSize(const TBoxed& instance) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Size();
         }
 
-        virtual ITypeInfoIterator* CreateIterator(const HypDataType& instance) const override
+        virtual ITypeInfoIterator* CreateIterator(const TBoxed& instance) const override
         {
             class FlatSetIterator final : public ITypeInfoIterator
             {
@@ -1590,8 +1590,8 @@ void TypeInfoImpl<containers::FlatSet<Value>, HypDataType>::operator()(TypeInfo&
     result.extendedInfo.handler = new FlatSetHandler();
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType, class HypDataType>
-void TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, HypDataType>::operator()(TypeInfo& result) const
+template <class Value, auto KeyBy, class NodeAllocatorType, class TBoxed>
+void TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
     using SetType = containers::HashSet<Value, KeyBy, NodeAllocatorType>;
 
@@ -1603,37 +1603,37 @@ void TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, HypDataT
             return new HashSetHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
-            outInstance = HypDataType(SetType {});
+            outInstance = TBoxed(SetType {});
             return true;
         }
 
-        virtual bool Contains(const HypDataType& instance, const HypDataType& value) const override
+        virtual bool Contains(const TBoxed& instance, const TBoxed& value) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Contains(value.template Get<Value>());
         }
 
-        virtual bool Insert(const HypDataType& instance, const HypDataType& value) const override
+        virtual bool Insert(const TBoxed& instance, const TBoxed& value) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Insert(value.template Get<Value>()).second;
         }
 
-        virtual bool Remove(const HypDataType& instance, const HypDataType& value) const override
+        virtual bool Remove(const TBoxed& instance, const TBoxed& value) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Erase(value.template Get<Value>());
         }
 
-        virtual SizeType GetSize(const HypDataType& instance) const override
+        virtual SizeType GetSize(const TBoxed& instance) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Size();
         }
 
-        virtual ITypeInfoIterator* CreateIterator(const HypDataType& instance) const override
+        virtual ITypeInfoIterator* CreateIterator(const TBoxed& instance) const override
         {
             class HashSetIterator final : public ITypeInfoIterator
             {
@@ -1703,8 +1703,8 @@ void TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, HypDataT
     result.extendedInfo.handler = new HashSetHandler();
 }
 
-template <class... Types, class HypDataType>
-void TypeInfoImpl<utilities::Variant<Types...>, HypDataType>::operator()(TypeInfo& result) const
+template <class... Types, class TBoxed>
+void TypeInfoImpl<utilities::Variant<Types...>, TBoxed>::operator()(TypeInfo& result) const
 {
     using VariantType = utilities::Variant<Types...>;
 
@@ -1749,7 +1749,7 @@ void TypeInfoImpl<utilities::Variant<Types...>, HypDataType>::operator()(TypeInf
             return new VariantHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(VariantType {});
             return true;
@@ -1766,19 +1766,19 @@ void TypeInfoImpl<utilities::Variant<Types...>, HypDataType>::operator()(TypeInf
             return VariantType::typeInfos[typeIndex + 1];
         }
 
-        virtual int GetCurrentTypeIndex(const HypDataType& instance) const override
+        virtual int GetCurrentTypeIndex(const TBoxed& instance) const override
         {
             VariantType& variant = instance.template Get<VariantType>();
             return variant.GetTypeIndex();
         }
 
-        virtual AnyRef GetValue(const HypDataType& instance) const override
+        virtual AnyRef GetValue(const TBoxed& instance) const override
         {
             VariantType& variant = instance.template Get<VariantType>();
             return variant.ToRef();
         }
 
-        virtual bool SetValue(const HypDataType& instance, const HypDataType& value) const override
+        virtual bool SetValue(const TBoxed& instance, const TBoxed& value) const override
         {
             VariantType& variant = instance.template Get<VariantType>();
             bool isSet = false;
@@ -1812,8 +1812,8 @@ void TypeInfoImpl<utilities::Variant<Types...>, HypDataType>::operator()(TypeInf
     result.extendedInfo.handler = new VariantHandler();
 }
 
-template <class T, class HypDataType>
-void TypeInfoImpl<math::Vec2<T>, HypDataType>::operator()(TypeInfo& result) const
+template <class T, class TBoxed>
+void TypeInfoImpl<math::Vec2<T>, TBoxed>::operator()(TypeInfo& result) const
 {
     using Vec2Type = math::Vec2<T>;
 
@@ -1830,7 +1830,7 @@ void TypeInfoImpl<math::Vec2<T>, HypDataType>::operator()(TypeInfo& result) cons
             return new Vec2Handler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(Vec2Type {});
             return true;
@@ -1841,7 +1841,7 @@ void TypeInfoImpl<math::Vec2<T>, HypDataType>::operator()(TypeInfo& result) cons
             return 2;
         }
 
-        virtual AnyRef GetComponent(const HypDataType& instance, int index) const override
+        virtual AnyRef GetComponent(const TBoxed& instance, int index) const override
         {
             Vec2Type& vec = instance.template Get<Vec2Type>();
             switch (index)
@@ -1855,7 +1855,7 @@ void TypeInfoImpl<math::Vec2<T>, HypDataType>::operator()(TypeInfo& result) cons
             }
         }
 
-        virtual void SetComponent(const HypDataType& instance, int index, const HypDataType& value) const override
+        virtual void SetComponent(const TBoxed& instance, int index, const TBoxed& value) const override
         {
             Vec2Type& vec = instance.template Get<Vec2Type>();
             T v = value.template Get<T>();
@@ -1877,8 +1877,8 @@ void TypeInfoImpl<math::Vec2<T>, HypDataType>::operator()(TypeInfo& result) cons
     result.extendedInfo.handler = new Vec2Handler();
 }
 
-template <class T, class HypDataType>
-void TypeInfoImpl<math::Vec3<T>, HypDataType>::operator()(TypeInfo& result) const
+template <class T, class TBoxed>
+void TypeInfoImpl<math::Vec3<T>, TBoxed>::operator()(TypeInfo& result) const
 {
     using Vec3Type = math::Vec3<T>;
 
@@ -1895,7 +1895,7 @@ void TypeInfoImpl<math::Vec3<T>, HypDataType>::operator()(TypeInfo& result) cons
             return new Vec3Handler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(Vec3Type {});
             return true;
@@ -1906,7 +1906,7 @@ void TypeInfoImpl<math::Vec3<T>, HypDataType>::operator()(TypeInfo& result) cons
             return 3;
         }
 
-        virtual AnyRef GetComponent(const HypDataType& instance, int index) const override
+        virtual AnyRef GetComponent(const TBoxed& instance, int index) const override
         {
             Vec3Type& vec = instance.template Get<Vec3Type>();
             switch (index)
@@ -1922,7 +1922,7 @@ void TypeInfoImpl<math::Vec3<T>, HypDataType>::operator()(TypeInfo& result) cons
             }
         }
 
-        virtual void SetComponent(const HypDataType& instance, int index, const HypDataType& value) const override
+        virtual void SetComponent(const TBoxed& instance, int index, const TBoxed& value) const override
         {
             Vec3Type& vec = instance.template Get<Vec3Type>();
             T v = value.template Get<T>();
@@ -1947,8 +1947,8 @@ void TypeInfoImpl<math::Vec3<T>, HypDataType>::operator()(TypeInfo& result) cons
     result.extendedInfo.handler = new Vec3Handler();
 }
 
-template <class T, class HypDataType>
-void TypeInfoImpl<math::Vec4<T>, HypDataType>::operator()(TypeInfo& result) const
+template <class T, class TBoxed>
+void TypeInfoImpl<math::Vec4<T>, TBoxed>::operator()(TypeInfo& result) const
 {
     using Vec4Type = math::Vec4<T>;
 
@@ -1965,7 +1965,7 @@ void TypeInfoImpl<math::Vec4<T>, HypDataType>::operator()(TypeInfo& result) cons
             return new Vec4Handler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(Vec4Type {});
             return true;
@@ -1976,7 +1976,7 @@ void TypeInfoImpl<math::Vec4<T>, HypDataType>::operator()(TypeInfo& result) cons
             return 4;
         }
 
-        virtual AnyRef GetComponent(const HypDataType& instance, int index) const override
+        virtual AnyRef GetComponent(const TBoxed& instance, int index) const override
         {
             Vec4Type& vec = instance.template Get<Vec4Type>();
             switch (index)
@@ -1994,7 +1994,7 @@ void TypeInfoImpl<math::Vec4<T>, HypDataType>::operator()(TypeInfo& result) cons
             }
         }
 
-        virtual void SetComponent(const HypDataType& instance, int index, const HypDataType& value) const override
+        virtual void SetComponent(const TBoxed& instance, int index, const TBoxed& value) const override
         {
             Vec4Type& vec = instance.template Get<Vec4Type>();
             T v = value.template Get<T>();
@@ -2022,8 +2022,8 @@ void TypeInfoImpl<math::Vec4<T>, HypDataType>::operator()(TypeInfo& result) cons
     result.extendedInfo.handler = new Vec4Handler();
 }
 
-template <class T, class HypDataType>
-void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat3f>>>::operator()(TypeInfo& result) const
+template <class T, class TBoxed>
+void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat3f>>>::operator()(TypeInfo& result) const
 {
     using MatrixType = T;
 
@@ -2040,7 +2040,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat3f>>>::o
             return new Mat3fHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MatrixType {});
             return true;
@@ -2056,7 +2056,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat3f>>>::o
             return 3;
         }
 
-        virtual AnyRef GetElement(const HypDataType& instance, int row, int column) const override
+        virtual AnyRef GetElement(const TBoxed& instance, int row, int column) const override
         {
             MatrixType& mat = instance.template Get<MatrixType>();
             if (row < 0 || row >= 3 || column < 0 || column >= 3)
@@ -2067,7 +2067,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat3f>>>::o
             return AnyRef(&mat[row][column]);
         }
 
-        virtual void SetElement(const HypDataType& instance, int row, int column, const HypDataType& value) const override
+        virtual void SetElement(const TBoxed& instance, int row, int column, const TBoxed& value) const override
         {
             MatrixType& mat = instance.template Get<MatrixType>();
             if (row < 0 || row >= 3 || column < 0 || column >= 3)
@@ -2082,8 +2082,8 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat3f>>>::o
     result.extendedInfo.handler = new Mat3fHandler();
 }
 
-template <class T, class HypDataType>
-void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat4f>>>::operator()(TypeInfo& result) const
+template <class T, class TBoxed>
+void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat4f>>>::operator()(TypeInfo& result) const
 {
     using MatrixType = T;
 
@@ -2100,7 +2100,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat4f>>>::o
             return new Mat4fHandler();
         }
 
-        virtual bool CreateInstance(HypDataType& outInstance) const override
+        virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MatrixType {});
             return true;
@@ -2116,7 +2116,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat4f>>>::o
             return 4;
         }
 
-        virtual AnyRef GetElement(const HypDataType& instance, int row, int column) const override
+        virtual AnyRef GetElement(const TBoxed& instance, int row, int column) const override
         {
             MatrixType& mat = instance.template Get<MatrixType>();
             if (row < 0 || row >= 4 || column < 0 || column >= 4)
@@ -2127,7 +2127,7 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat4f>>>::o
             return AnyRef(&mat[row][column]);
         }
 
-        virtual void SetElement(const HypDataType& instance, int row, int column, const HypDataType& value) const override
+        virtual void SetElement(const TBoxed& instance, int row, int column, const TBoxed& value) const override
         {
             MatrixType& mat = instance.template Get<MatrixType>();
             if (row < 0 || row >= 4 || column < 0 || column >= 4)

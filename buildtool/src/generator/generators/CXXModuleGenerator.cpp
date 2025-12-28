@@ -465,7 +465,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                 }
                 else
                 {
-                    writer.WriteString(HYP_FORMAT("    Field(NAME(HYP_STR({})), &{}::{}, offsetof({}, {})", member.friendlyName, cls.name, member.name, cls.name, member.name));
+                    writer.WriteString(HYP_FORMAT("    Field(NAME(HYP_STR({})), &{}::{}, OffsetOf(&{}::{})", member.friendlyName, cls.name, member.name, cls.name, member.name));
                 }
 
                 if (attributesString.Any())
@@ -812,7 +812,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                 }
                 else
                 {
-                    writer.WriteString(HYP_FORMAT("    Field(NAME(HYP_STR({})), &{}::{}, offsetof({}, {})", member.friendlyName, cls.name, member.name, cls.name, member.name));
+                    writer.WriteString(HYP_FORMAT("    Field(NAME(HYP_STR({})), &{}::{}, OffsetOf(&{}::{})", member.friendlyName, cls.name, member.name, cls.name, member.name));
                 }
 
                 if (attributesString.Any())

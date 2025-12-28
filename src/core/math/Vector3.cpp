@@ -18,25 +18,25 @@ HYP_API const Class* g_clsVec3u = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Vec3f, -1, 0, {})
-    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
-    Field(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
+    Field(NAME(HYP_STR(x)), &Type::x, HYP_OFFSET_OF(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, HYP_OFFSET_OF(Type, y)),
+    Field(NAME(HYP_STR(z)), &Type::z, HYP_OFFSET_OF(Type, z))
 HYP_END_STRUCT
 
 HYP_REGISTER_STATIC_CLASS(Vec3f);
 
 HYP_BEGIN_STRUCT(Vec3i, -1, 0, {})
-    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
-    Field(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
+    Field(NAME(HYP_STR(x)), &Type::x, HYP_OFFSET_OF(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, HYP_OFFSET_OF(Type, y)),
+    Field(NAME(HYP_STR(z)), &Type::z, HYP_OFFSET_OF(Type, z))
 HYP_END_STRUCT
 
 HYP_REGISTER_STATIC_CLASS(Vec3i);
 
 HYP_BEGIN_STRUCT(Vec3u, -1, 0, {})
-    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
-    Field(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
+    Field(NAME(HYP_STR(x)), &Type::x, HYP_OFFSET_OF(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, HYP_OFFSET_OF(Type, y)),
+    Field(NAME(HYP_STR(z)), &Type::z, HYP_OFFSET_OF(Type, z))
 HYP_END_STRUCT
 
 HYP_REGISTER_STATIC_CLASS(Vec3u);

@@ -15,22 +15,22 @@ HYP_API const Class* g_clsVec2u = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Vec2f, -1, 0, {})
-    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
+    Field(NAME(HYP_STR(x)), &Type::x, HYP_OFFSET_OF(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, HYP_OFFSET_OF(Type, y))
 HYP_END_STRUCT
 
 HYP_REGISTER_STATIC_CLASS(Vec2f);
 
 HYP_BEGIN_STRUCT(Vec2i, -1, 0, {})
-    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
+    Field(NAME(HYP_STR(x)), &Type::x, HYP_OFFSET_OF(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, HYP_OFFSET_OF(Type, y))
 HYP_END_STRUCT
 
 HYP_REGISTER_STATIC_CLASS(Vec2i);
 
 HYP_BEGIN_STRUCT(Vec2u, -1, 0, {})
-    Field(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
-    Field(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
+    Field(NAME(HYP_STR(x)), &Type::x, HYP_OFFSET_OF(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, HYP_OFFSET_OF(Type, y))
 HYP_END_STRUCT
 
 HYP_REGISTER_STATIC_CLASS(Vec2u);

@@ -413,8 +413,8 @@ Result LightmapData<ReflectionProbe>::Build()
     AssertDebug(dimensions.Volume() > 0 && dimensions.x == dimensions.y,
         "EnvProbe lightmap dimensions must be square and non-zero! Dimensions: {}", dimensions);
 
-    const SizeType numTexelsPerFace = SizeType(dimensions.x) * SizeType(dimensions.y);
-    const SizeType numTexelsTotal = 6 * numTexelsPerFace;
+    const uint32 numTexelsPerFace = dimensions.x * dimensions.y;
+    const uint32 numTexelsTotal = 6 * numTexelsPerFace;
 
     texels.Resize(numTexelsTotal);
     m_rays.Resize(numTexelsTotal);

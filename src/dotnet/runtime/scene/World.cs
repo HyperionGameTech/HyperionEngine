@@ -34,6 +34,8 @@ namespace Hyperion
             set => this.SetName(value);
         }
 
+        public WorldGrid WorldGrid => this.GetWorldGrid(); // extension method
+
         public WorldFlags WorldFlags
         {
             get => this.GetWorldFlags();

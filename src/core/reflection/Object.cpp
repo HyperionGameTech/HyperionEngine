@@ -87,7 +87,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
             {
                 if (!scriptObjectResource)
                 {
-                    scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, managedClass);
+                    scriptObjectResource = AllocateResource<ScriptObjectResource>(target, managedClass);
 
                     target->SetScriptObjectResource(scriptObjectResource);
                 }

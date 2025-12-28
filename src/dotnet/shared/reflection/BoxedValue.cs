@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 namespace Hyperion
 {
@@ -372,7 +373,33 @@ namespace Hyperion
                 return;
             }
 
-            throw new NotImplementedException("Unsupported type to construct BoxedValue: " + type.FullName);
+#if DEBUG
+            string? hierarchyStr = null;
+
+            try
+            {
+                List<string> classHierarchy = new List<string>();
+                Type? currentType = type;
+
+                while (currentType != null)
+                {
+                    classHierarchy.Add(currentType.Name);
+                    currentType = currentType.BaseType;
+                }
+
+                hierarchyStr = string.Join(" -> ", classHierarchy.ToArray());
+            }
+            catch
+            {
+            }
+
+            if (hierarchyStr != null)
+            {
+                throw new NotImplementedException($"Unsupported type to set BoxedValue: {type.FullName}, hierarchy: {hierarchyStr}");
+            }
+#endif
+
+            throw new NotImplementedException($"Unsupported type to set BoxedValue: {type.FullName}");
         }
 
         public unsafe object? GetValue()
