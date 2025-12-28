@@ -21,7 +21,9 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 
-extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
+namespace CoreApi {
+extern const CommandLineArguments& GetCommandLineArguments();
+} // namespace CoreApi
 
 App& App::GetInstance()
 {

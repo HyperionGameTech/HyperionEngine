@@ -42,7 +42,9 @@
 
 namespace Hyperion {
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
 
 #pragma region EnvProbeGridIndex
 
@@ -524,7 +526,7 @@ void EnvGridRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    static const ConfigurationValue& globalIlluminationEnabled = CoreApi_GetGlobalConfig().Get("Rendering.EnvGrid.GI.Enabled");
+    static const ConfigurationValue& globalIlluminationEnabled = CoreApi::GetGlobalConfig().Get("Rendering.EnvGrid.GI.Enabled");
 
     if (!globalIlluminationEnabled.ToBool())
     {

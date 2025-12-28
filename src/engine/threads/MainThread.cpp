@@ -20,7 +20,9 @@
 
 namespace Hyperion {
 
-extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
+namespace CoreApi {
+extern const CommandLineArguments& GetCommandLineArguments();
+} // namespace CoreApi
 
 MainThread::MainThread()
     : Thread(g_mainThread, ThreadPriorityValue::HIGHEST)
@@ -58,8 +60,8 @@ void MainThread::Update()
     HYP_PROFILE_BEGIN;
     AssertOnThread(g_mainThread);
 
-    static const bool s_renderOnMainThread = CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool();
-    static const bool s_simulateOnMainThread = CoreApi_GetCommandLineArguments()["SimulateOnMainThread"].ToBool();
+    static const bool s_renderOnMainThread = CoreApi::GetCommandLineArguments()["RenderOnMainThread"].ToBool();
+    static const bool s_simulateOnMainThread = CoreApi::GetCommandLineArguments()["SimulateOnMainThread"].ToBool();
 
     Queue<Scheduler::ScheduledTask> tasks;
     if (uint32 numEnqueued = m_scheduler.NumEnqueued())
@@ -107,7 +109,7 @@ void MainThread::Update()
 
 void MainThread::operator()()
 {
-    static const bool s_isDetached = CoreApi_GetCommandLineArguments()["Detached"].ToBool();
+    static const bool s_isDetached = CoreApi::GetCommandLineArguments()["Detached"].ToBool();
 
     if (!s_isDetached)
     {

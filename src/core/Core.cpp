@@ -18,17 +18,19 @@ HYP_API extern void Task_DeleteAllDeferredTasks();
 
 using threading::Task_DeleteAllDeferredTasks;
 
+namespace CoreApi {
+
 static Mutex s_globalsMutex;
 static FilePath s_executablePath;
 static Array<void (*)()> s_onShutdownFuncs;
 
-FilePath CoreApi_GetExecutablePath()
+FilePath GetExecutablePath()
 {
     Mutex::Guard guard(s_globalsMutex);
     return s_executablePath;
 }
 
-void CoreApi_SetExecutablePath(const FilePath& path)
+void SetExecutablePath(const FilePath& path)
 {
     Mutex::Guard guard(s_globalsMutex);
     s_executablePath = path;
@@ -39,7 +41,7 @@ static Mutex s_globalConfigMutex;
 
 static CommandLineArguments s_commandLineArguments;
 
-const CommandLineArgumentDefinitions& CoreApi_DefaultCommandLineArgumentDefinitions()
+const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions()
 {
     static const struct DefaultCommandLineArgumentDefinitionsInitializer
     {
@@ -83,7 +85,7 @@ const CommandLineArgumentDefinitions& CoreApi_DefaultCommandLineArgumentDefiniti
     return initializer.definitions;
 }
 
-bool CoreApi_Initialize(int argc, char** argv)
+bool Initialize(int argc, char** argv)
 {
     Assert(argv != nullptr);
 
@@ -91,7 +93,7 @@ bool CoreApi_Initialize(int argc, char** argv)
 
     s_commandLineArguments = CommandLineArguments(argv[0]);
 
-    CommandLineParser argParse { &CoreApi_DefaultCommandLineArgumentDefinitions() };
+    CommandLineParser argParse { &DefaultCommandLineArgumentDefinitions() };
 
     TResult<CommandLineArguments> parseResult = argParse.Parse(argc, argv);
 
@@ -123,12 +125,12 @@ bool CoreApi_Initialize(int argc, char** argv)
     return true;
 }
 
-const CommandLineArguments& CoreApi_GetCommandLineArguments()
+const CommandLineArguments& GetCommandLineArguments()
 {
     return s_commandLineArguments;
 }
 
-void CoreApi_UpdateGlobalConfig(const ConfigurationTable& mergeValues)
+void UpdateGlobalConfig(const ConfigurationTable& mergeValues)
 {
     Mutex::Guard guard(s_globalConfigMutex);
 
@@ -150,7 +152,7 @@ void CoreApi_UpdateGlobalConfig(const ConfigurationTable& mergeValues)
     newGlobalConfig.Save();
 }
 
-const GlobalConfig& CoreApi_GetGlobalConfig()
+const GlobalConfig& GetGlobalConfig()
 {
     Mutex::Guard guard(s_globalConfigMutex);
 
@@ -162,13 +164,13 @@ const GlobalConfig& CoreApi_GetGlobalConfig()
     return s_globalConfigChain.Back();
 }
 
-void CoreApi_OnShutdown(void (*func)())
+void OnShutdown(void (*func)())
 {
     Mutex::Guard guard(s_globalsMutex);
     s_onShutdownFuncs.PushBack(func);
 }
 
-void CoreApi_Shutdown()
+void Shutdown()
 {
     TypeInfo_Shutdown();
     Task_DeleteAllDeferredTasks();
@@ -185,4 +187,5 @@ void CoreApi_Shutdown()
     }
 }
 
+} // namespace CoreApi
 } // namespace Hyperion

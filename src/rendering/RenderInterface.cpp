@@ -113,7 +113,9 @@ enum
     CONSUMER
 };
 
-extern void CoreApi_UpdateGlobalConfig(const ConfigurationTable& mergeValues);
+namespace CoreApi {
+extern void UpdateGlobalConfig(const ConfigurationTable& mergeValues);
+} // namespace CoreApi
 
 #pragma region ResourceBindings
 
@@ -855,7 +857,7 @@ void Init()
             renderGlobalConfigOverrides.Set("Rendering.RayTracing.GI.Enabled", false);
             renderGlobalConfigOverrides.Set("Rendering.RayTracing.PathTracing.Enabled", false);
 
-            CoreApi_UpdateGlobalConfig(renderGlobalConfigOverrides);
+            CoreApi::UpdateGlobalConfig(renderGlobalConfigOverrides);
         }
     }
 

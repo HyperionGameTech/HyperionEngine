@@ -101,7 +101,9 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Editor);
 
-extern FilePath CoreApi_GetExecutablePath();
+namespace CoreApi {
+extern FilePath GetExecutablePath();
+} // namespace CoreApi
 
 #pragma region RunningEditorTask
 
@@ -3193,7 +3195,7 @@ void EditorSubsystem::ShowImportContentDialog()
 
             for (const FilePath& file : result.GetValue())
             {
-                batch->Add(file.Basename(), FilePath::Relative(file, CoreApi_GetExecutablePath()));
+                batch->Add(file.Basename(), FilePath::Relative(file, CoreApi::GetExecutablePath()));
             }
 
             batch->OnComplete

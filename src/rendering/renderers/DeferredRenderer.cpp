@@ -127,7 +127,9 @@ EngineStatCounter<uint32> g_statEnvProbes("Rendering/EnvProbes");
 EngineStatCounter<uint32> g_statEnvGrids("Rendering/EnvGrids");
 EngineStatCounter<uint32> g_statDebugDraws("Rendering/DebugDraws");
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
 
 static void GetDeferredShaderProperties(
     DeferredPassMode mode,
@@ -135,7 +137,7 @@ static void GetDeferredShaderProperties(
     const RenderProxyList* rpl = nullptr,
     LightType lightType = LT_INVALID)
 {
-    static const GlobalConfig& s_globalConfig = CoreApi_GetGlobalConfig();
+    static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
     static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
 
     outShaderProperties.SetRequiredVertexAttributes(
@@ -1316,8 +1318,8 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
 
 bool ReflectionsPass::ShouldRenderSSR() const
 {
-    static const ConfigurationValue& s_ssrEnabled = CoreApi_GetGlobalConfig().Get("Rendering.SSR.Enabled");
-    static const ConfigurationValue& s_raytracingReflectionsEnabled = CoreApi_GetGlobalConfig().Get("Rendering.RayTracing.Reflections.Enabled");
+    static const ConfigurationValue& s_ssrEnabled = CoreApi::GetGlobalConfig().Get("Rendering.SSR.Enabled");
+    static const ConfigurationValue& s_raytracingReflectionsEnabled = CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Reflections.Enabled");
 
     return s_ssrEnabled.ToBool(true) && !s_raytracingReflectionsEnabled.ToBool(false);
 }
@@ -1940,7 +1942,7 @@ void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredRendererPa
     }
 
     const bool shouldEnableRaytracingForView = view->GetRaytracingView().IsValid()
-        && CoreApi_GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool();
+        && CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool();
 
     if (!shouldEnableRaytracingForView)
     {

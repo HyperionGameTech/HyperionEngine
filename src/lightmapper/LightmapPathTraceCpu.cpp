@@ -56,7 +56,9 @@
 
 namespace Hyperion {
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
 
 static constexpr uint32 MaxBouncesCpu = 4;
 
@@ -64,7 +66,7 @@ static constexpr uint32 MaxBouncesCpu = 4;
 
 uint32 LightmapThreadPool::NumThreadsToCreate()
 {
-    uint32 numThreads = CoreApi_GetGlobalConfig().Get("Lightmapper.NumThreadsPerJob").ToUInt32(4);
+    uint32 numThreads = CoreApi::GetGlobalConfig().Get("Lightmapper.NumThreadsPerJob").ToUInt32(4);
     return MathUtil::Clamp(numThreads, 1u, NumCores());
 }
 

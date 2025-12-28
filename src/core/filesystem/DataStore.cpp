@@ -19,7 +19,9 @@
 
 namespace Hyperion {
 
-extern FilePath CoreApi_GetExecutablePath();
+namespace CoreApi {
+extern FilePath GetExecutablePath();
+} // namespace CoreApi
 
 namespace filesystem {
 
@@ -232,7 +234,7 @@ bool DataStoreBase::Exists(const String& key) const
 
 FilePath DataStoreBase::GetDirectory() const
 {
-    return CoreApi_GetExecutablePath() / "data" / m_prefix;
+    return CoreApi::GetExecutablePath() / "data" / m_prefix;
 }
 
 } // namespace filesystem

@@ -34,7 +34,9 @@
 
 namespace Hyperion {
 
-extern FilePath CoreApi_GetExecutablePath();
+namespace CoreApi {
+extern FilePath GetExecutablePath();
+} // namespace CoreApi
 
 template <class ReturnType, class... ArgTypes>
 static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, ArgTypes&&... args)
@@ -322,7 +324,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 ResourceHandle resourceHandle(*scriptAsset->GetResource());
 
                 // @FIXME: Use proper path resolution. Should use asset system instead of filesystem directly.
-                FilePath path = FilePath::Join(CoreApi_GetExecutablePath(), scriptData->path.Data());
+                FilePath path = FilePath::Join(CoreApi::GetExecutablePath(), scriptData->path.Data());
 
                 if (!path.Exists() || !path.CanRead())
                 {

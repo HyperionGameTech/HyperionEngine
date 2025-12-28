@@ -169,7 +169,7 @@ struct DirectoryInitializer
         else
 #endif
         {
-            path = CoreApi_GetExecutablePath() / DirectoryStaticString.Data();
+            path = CoreApi::GetExecutablePath() / DirectoryStaticString.Data();
         }
 
         if (!path.Exists())
@@ -196,7 +196,7 @@ HYP_EXPORT const FilePath& GetResourceDirectory()
     // shouldn't be used in non-editor builds, so just return executable path to avoid issues with appending paths
     HYP_LOG(Engine, Warning, "GetResourceDirectory() called in non-editor build; returning executable path instead");
 
-    static const FilePath s_emptyPath = CoreApi_GetExecutablePath();
+    static const FilePath s_emptyPath = CoreApi::GetExecutablePath();
     Assert(s_emptyPath.Length() != 0); // don't want to return empty path which will cause appending to give root-level paths.
     return s_emptyPath;
 #endif
@@ -225,7 +225,7 @@ static void InitThreads()
     // Handle -RenderOnMainThread, -SimulateOnMainThread cli args
     const uint32 mainThreadIndex = g_mainThread.GetStaticThreadIndex();
 
-    if (CoreApi_GetCommandLineArguments()["RenderOnMainThread"].ToBool())
+    if (CoreApi::GetCommandLineArguments()["RenderOnMainThread"].ToBool())
     {
         g_renderThread = StaticThreadId(mainThreadIndex, NAME("RenderThread"));
         g_simThread = StaticThreadId(NAME("SimThread"));
@@ -234,7 +234,7 @@ static void InitThreads()
     {
         g_renderThread = StaticThreadId(NAME("RenderThread"));
 
-        if (CoreApi_GetCommandLineArguments()["SimulateOnMainThread"].ToBool())
+        if (CoreApi::GetCommandLineArguments()["SimulateOnMainThread"].ToBool())
         {
             g_simThread = StaticThreadId(mainThreadIndex, NAME("SimThread"));
         }
@@ -244,7 +244,7 @@ static void InitThreads()
         }
     }
 
-    if (CoreApi_GetCommandLineArguments()["DedicatedVisThread"].ToBool())
+    if (CoreApi::GetCommandLineArguments()["DedicatedVisThread"].ToBool())
     {
         g_visThread = StaticThreadId(NAME("VisThread"));
     }
@@ -305,7 +305,7 @@ extern "C"
 
         InitClassDecls();
 
-        if (!CoreApi_Initialize(argc, argv))
+        if (!CoreApi::Initialize(argc, argv))
         {
             return 0;
         }
@@ -318,10 +318,10 @@ extern "C"
         ClassRegistry::GetInstance().Initialize();
         HypScript::GetInstance().Initialize();
 
-        const FilePath basePath = FilePath(CoreApi_GetCommandLineArguments().GetCommand()).BasePath();
-        CoreApi_SetExecutablePath(basePath);
+        const FilePath basePath = FilePath(CoreApi::GetCommandLineArguments().GetCommand()).BasePath();
+        CoreApi::SetExecutablePath(basePath);
 
-        const bool isEditor = CoreApi_GetCommandLineArguments()["Editor"].ToBool();
+        const bool isEditor = CoreApi::GetCommandLineArguments()["Editor"].ToBool();
 
 #ifdef HYP_DOTNET
         // dont initialize hostfxr if running from editor,
@@ -363,7 +363,7 @@ extern "C"
 
         ComponentInterfaceRegistry::GetInstance().Initialize();
 
-        const CommandLineArguments& cliArgs = CoreApi_GetCommandLineArguments();
+        const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
 
 #ifdef HYP_WINDOWS
         g_appContext = CreateObject<Win32AppContext>("Hyperion", cliArgs);
@@ -447,7 +447,7 @@ extern "C"
 
         DestroyNameRegistry();
 
-        CoreApi_Shutdown();
+        CoreApi::Shutdown();
 
         g_streamingManager->Stop();
         g_streamingManager.Reset();

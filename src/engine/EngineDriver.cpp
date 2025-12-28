@@ -85,9 +85,11 @@ namespace Hyperion {
 
 void HandleSignal(int signum);
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
-extern FilePath CoreApi_GetExecutablePath();
-extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+extern FilePath GetExecutablePath();
+extern const CommandLineArguments& GetCommandLineArguments();
+} // namespace CoreApi
 
 EngineStatTimer g_renderTimer("Frame/Render");
 
@@ -148,7 +150,7 @@ HYP_API void EngineDriver::Init()
     m_scriptingService = MakeUnique<ScriptingService>(
         GetResourceDirectory() / "scripts" / "src",
         GetResourceDirectory() / "scripts" / "projects",
-        CoreApi_GetExecutablePath()); // copy script binaries into executable path
+        CoreApi::GetExecutablePath()); // copy script binaries into executable path
 
     m_scriptingService->Start();
 #endif
@@ -158,10 +160,10 @@ HYP_API void EngineDriver::Init()
     netRequestThread->Start();
 
     // must start after net request thread
-    if (CoreApi_GetCommandLineArguments()["Profile"])
+    if (CoreApi::GetCommandLineArguments()["Profile"])
     {
         StartProfilerConnectionThread(ProfilerConnectionParams {
-            /* endpointUrl */ CoreApi_GetCommandLineArguments()["TraceURL"].ToString(),
+            /* endpointUrl */ CoreApi::GetCommandLineArguments()["TraceURL"].ToString(),
             /* enabled */ true });
     }
 
@@ -434,7 +436,7 @@ void EngineDriver::PreFrameUpdate(Frame* frame)
 HYP_DISABLE_OPTIMIZATION;
 void EngineDriver::UpdateSim(float delta)
 {
-    static const bool s_dedicatedVisThread = CoreApi_GetCommandLineArguments()["DedicatedVisThread"].ToBool();
+    static const bool s_dedicatedVisThread = CoreApi::GetCommandLineArguments()["DedicatedVisThread"].ToBool();
 
     if (m_scriptingService)
     {

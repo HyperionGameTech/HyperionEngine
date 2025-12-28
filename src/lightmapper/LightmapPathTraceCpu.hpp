@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "core/containers/HashSet.hpp"
 #include <lightmapper/Lightmapper.hpp>
+
 #include <rendering/RenderProxy.hpp>
 
 #include <core/threading/TaskSystem.hpp>

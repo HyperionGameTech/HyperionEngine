@@ -51,7 +51,9 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
 
 /*! \brief Async task object to create a window swapchain once the render API is initialized.
  *  Since some platforms require us to create the surface on the main thread (ahem, macOS), we need to defer swapchain
@@ -213,9 +215,9 @@ AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& argu
 
     if (m_name.Empty())
     {
-        if (json::JSONValue configAppName = CoreApi_GetGlobalConfig().Get("App.Name"))
+        if (json::JSONValue configAppName = CoreApi::GetGlobalConfig().Get("App.Name"))
         {
-            m_name = CoreApi_GetGlobalConfig().Get("App.Name").ToString();
+            m_name = CoreApi::GetGlobalConfig().Get("App.Name").ToString();
         }
     }
 }
