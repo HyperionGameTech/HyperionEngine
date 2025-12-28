@@ -46,7 +46,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     const uint32 mask = sor->GetScriptLanguageMask();
 
 #ifdef HYP_DOTNET
-    if (mask & (1u << SL_CSHARP))
+    if (mask & (1u << uint32(ScriptLanguage::CSharp)))
     {
         AssertDebug(sor->GetManagedObject() != nullptr);
 
@@ -74,7 +74,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 #endif
 
 #ifdef HYP_SCRIPT
-    if (mask & (1u << SL_HYPSCRIPT))
+    if (mask & (1u << uint32(ScriptLanguage::HypScript)))
     {
         auto* data = sor->GetScriptObjectData_HypScript();
         Assert(data != nullptr);
@@ -99,7 +99,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     }
 #endif
 
-    if (mask & (1u << SL_NATIVE))
+    if (mask & (1u << uint32(ScriptLanguage::Native)))
     {
         auto* data = sor->GetScriptObjectData_Native();
         Assert(data != nullptr);
@@ -196,7 +196,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         switch (scriptData->language)
         {
 #ifdef HYP_DOTNET
-        case SL_CSHARP:
+        case ScriptLanguage::CSharp:
         {
             if (!sor || !sor->GetManagedObject() || !sor->GetManagedObject()->IsValid())
             {
@@ -312,7 +312,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         }
 #endif
 #ifdef HYP_SCRIPT
-        case SL_HYPSCRIPT:
+        case ScriptLanguage::HypScript:
         {
             HypScript& hs = HypScript::GetInstance();
 

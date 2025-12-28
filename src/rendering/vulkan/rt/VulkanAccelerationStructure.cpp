@@ -584,7 +584,7 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
         return RendererResult();
     }
 
-    last = MathUtil::Min(m_blas.Size(), last);
+    last = MathUtil::Min(uint32(m_blas.Size()), last);
 
     /// Temporarily commented out
     // if (m_blas.Empty() || last <= first)

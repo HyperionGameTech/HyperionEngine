@@ -54,7 +54,7 @@ public:
         HYP_DEFER({ scriptObjectResource->DecRef(); });
 
 #ifdef HYP_DOTNET
-        if (scriptObjectResource->GetScriptLanguageMask() & (1u << SL_CSHARP))
+        if (scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
         {
             dotnet::ManagedObject* object = scriptObjectResource->GetManagedObject();
             HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
@@ -79,7 +79,7 @@ public:
 #endif
 
 #ifdef HYP_SCRIPT
-        if (scriptObjectResource->GetScriptLanguageMask() & (1u << SL_HYPSCRIPT))
+        if (scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::HypScript)))
         {
             ScriptObjectData_HypScript* hypScriptData = scriptObjectResource->GetScriptObjectData_HypScript();
             HYP_CORE_ASSERT(hypScriptData != nullptr, "HypScript script object data is null!");

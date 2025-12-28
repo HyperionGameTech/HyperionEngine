@@ -15,7 +15,7 @@ struct ObjectReference;
 } // namespace dotnet
 
 enum class ObjectFlags : uint32;
-enum ScriptLanguage : uint32;
+enum class ScriptLanguage : uint32;
 
 struct ScriptObjectData_DotNet;
 struct ScriptObjectData_HypScript;
@@ -25,26 +25,26 @@ struct Script_Instance;
 #endif
 
 HYP_ENUM()
-enum ScriptCompileStatus : uint32
+enum class ScriptCompileStatus : uint32
 {
-    SCS_UNINITIALIZED = 0x0,
-    SCS_COMPILED = 0x1,
-    SCS_DIRTY = 0x2,
-    SCS_PROCESSING = 0x4,
-    SCS_ERRORED = 0x8
+    Uninitialized = 0x0,
+    Compiled = 0x1,
+    Dirty = 0x2,
+    Processing = 0x4,
+    Errored = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(ScriptCompileStatus)
 
 HYP_ENUM()
-enum ScriptLanguage : uint32
+enum class ScriptLanguage : uint32
 {
-    SL_INVALID = ~0u,
+    Invalid = ~0u,
 
-    SL_NATIVE = 0,
+    Native = 0,
 
-    SL_HYPSCRIPT = 1,
-    SL_CSHARP = 2
+    HypScript = 1,
+    CSharp = 2
 };
 
 } // namespace Hyperion

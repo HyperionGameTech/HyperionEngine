@@ -166,20 +166,20 @@ uint32 ScriptObjectResource::GetScriptLanguageMask() const
 
     if (nativeData != nullptr)
     {
-        mask |= (1 << uint32(SL_NATIVE));
+        mask |= (1 << uint32(ScriptLanguage::Native));
     }
 
 #ifdef HYP_DOTNET
     if (dotNetData != nullptr)
     {
-        mask |= (1 << uint32(SL_CSHARP));
+        mask |= (1 << uint32(ScriptLanguage::CSharp));
     }
 #endif
 
 #ifdef HYP_SCRIPT
     if (hypScriptData != nullptr)
     {
-        mask |= (1 << uint32(SL_HYPSCRIPT));
+        mask |= (1 << uint32(ScriptLanguage::HypScript));
     }
 #endif
 
@@ -321,7 +321,7 @@ HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr)
     AssertDebug(ptr->GetObjectHeader_Internal()->GetRefCountStrong() > 1);
 
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
-        scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << SL_CSHARP))
+        scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
     {
         scriptObjectResource->IncRef();
     }
@@ -330,7 +330,7 @@ HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr)
 HYP_API void Object_DecScriptObjectRef(ObjectBase* ptr)
 {
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
-        scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << SL_CSHARP))
+        scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
     {
         scriptObjectResource->DecRef();
     }

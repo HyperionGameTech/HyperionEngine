@@ -28,14 +28,14 @@ private:
     ScriptObjectData_Dummy() = default;
 
 public:
-    static constexpr ScriptLanguage Language = SL_INVALID;
+    static constexpr ScriptLanguage Language = ScriptLanguage::Invalid;
 };
 
 #ifdef HYP_DOTNET
 
 struct ScriptObjectData_DotNet final
 {
-    static constexpr ScriptLanguage Language = SL_CSHARP;
+    static constexpr ScriptLanguage Language = ScriptLanguage::CSharp;
 
     dotnet::ManagedObject* objectPtr = nullptr;
     RC<dotnet::ManagedClass> managedClass = nullptr;
@@ -46,7 +46,7 @@ struct ScriptObjectData_DotNet final
 #ifdef HYP_SCRIPT
 struct ScriptObjectData_HypScript final
 {
-    static constexpr ScriptLanguage Language = SL_HYPSCRIPT;
+    static constexpr ScriptLanguage Language = ScriptLanguage::HypScript;
 
     Script_Instance* instance = nullptr;
     BoxedValue obj;
@@ -55,7 +55,7 @@ struct ScriptObjectData_HypScript final
 
 struct ScriptObjectData_Native final
 {
-    static constexpr ScriptLanguage Language = SL_NATIVE;
+    static constexpr ScriptLanguage Language = ScriptLanguage::Native;
 
     WeakHandle<ObjectBase> nativeObject;
 };

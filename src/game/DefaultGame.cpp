@@ -139,7 +139,7 @@ void DefaultGame::OnLaunch_Impl()
     ScriptData* scriptData = scriptAsset->GetScriptData();
     Assert(scriptData != nullptr);
 
-    scriptAsset->GetScriptData()->language = SL_HYPSCRIPT;
+    scriptAsset->GetScriptData()->language = ScriptLanguage::HypScript;
     Memory::StrCpy(scriptData->path.Data(), "tmp.hyp", ArraySize(scriptData->path));
     Memory::StrCpy(scriptData->className.Data(), "MyClass", ArraySize(scriptData->className));
 

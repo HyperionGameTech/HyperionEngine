@@ -178,7 +178,7 @@ ObjectBase::~ObjectBase()
     {
 #ifdef HYP_SCRIPT
         // destruct all dynamic fields
-        if ((m_scriptObjectResource->GetScriptLanguageMask() & (1u << SL_HYPSCRIPT)) && m_header->cls->IsDynamic())
+        if ((m_scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::HypScript))) && m_header->cls->IsDynamic())
         {
             const Class* cls = m_header->cls;
 
