@@ -23,8 +23,8 @@
 
 #include <scene/Scene.hpp>
 
-#include <lightmapper/LightmapData.hpp>
-#include <lightmapper/LightmapJob.hpp>
+#include <baking/BakeData.hpp>
+#include <baking/BakeJob.hpp>
 
 #include <util/GameCounter.hpp>
 
@@ -40,7 +40,7 @@ struct LightmapHitsBuffer;
 class LightmapThreadPool;
 class ILightmapAccelerationStructure;
 class LightmapTopLevelAccelerationStructure;
-class LightmapJobBase;
+class BakeJobBase;
 class LightmapVolume;
 class BakerBase;
 struct LightmapElement;
@@ -50,6 +50,8 @@ class View;
 class ReflectionProbe;
 class FogVolume;
 struct RenderSetup;
+
+namespace Baking {
 
 HYP_ENUM()
 enum class LightmapTraceMode : int
@@ -184,14 +186,14 @@ public:
     }
 
     virtual void Create() = 0;
-    virtual void PrepareJob(LightmapJobBase* job)
+    virtual void PrepareJob(BakeJobBase* job)
     {
     }
-    virtual void CleanJobData(LightmapJobBase* job)
+    virtual void CleanJobData(BakeJobBase* job)
     {
     }
-    virtual void ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits) = 0;
-    virtual void Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
+    virtual void ReadHitsBuffer(Frame* frame, BakeJobBase* job, Span<LightmapHit> outHits) = 0;
+    virtual void Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
 
 protected:
     BakerBase* m_lightmapper;
@@ -313,7 +315,7 @@ public:
     void Initialize();
     void Update(float delta);
 
-    void HandleCompletedJob(LightmapJobBase* job);
+    void HandleCompletedJob(BakeJobBase* job);
 
     Delegate<void> OnComplete;
 
@@ -327,7 +329,7 @@ protected:
         return {};
     }
 
-    virtual void HandleCompletedJob_Internal(LightmapJobBase* job)
+    virtual void HandleCompletedJob_Internal(BakeJobBase* job)
     {
     }
 
@@ -338,7 +340,7 @@ protected:
         return const_cast<BakerBase*>(this)->GetLightmapData();
     }
 
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
+    virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) = 0;
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame);
 
     void CreateLightmapRenderers();
@@ -374,9 +376,9 @@ protected:
     virtual void Build();
     void DispatchJobs();
 
-    LightmapJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
+    BakeJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
 
-    void AddJob(UniquePtr<LightmapJobBase>&& job)
+    void AddJob(UniquePtr<BakeJobBase>&& job)
     {
         if (!job)
         {
@@ -391,7 +393,7 @@ protected:
         ++m_numJobs;
     }
 
-    Array<UniquePtr<LightmapJobBase>> m_queue;
+    Array<UniquePtr<BakeJobBase>> m_queue;
     Mutex m_queueMutex;
     uint32 m_numJobs;
     uint32 m_initialNumJobs;
@@ -433,17 +435,17 @@ protected:
         return m_lightmapData;
     }
 
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override
     {
-        return MakeUnique<LightmapJob<LightmapVolume>>(std::move(params), m_volume, &m_lightmapData);
+        return MakeUnique<BakeJob<LightmapVolume>>(std::move(params), m_volume, &m_lightmapData);
     }
 
     virtual void Initialize_Internal() override;
-    virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
+    virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
     virtual void Build() override;
 
     Handle<LightmapVolume> m_volume;
-    LightmapData<LightmapVolume> m_lightmapData;
+    BakeData<LightmapVolume> m_lightmapData;
     LightmapElementId m_lightmapElementId;
 };
 
@@ -477,16 +479,16 @@ protected:
         return m_lightmapData;
     }
 
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override
     {
-        return MakeUnique<LightmapJob<ReflectionProbe>>(std::move(params), m_envProbe, &m_lightmapData);
+        return MakeUnique<BakeJob<ReflectionProbe>>(std::move(params), m_envProbe, &m_lightmapData);
     }
 
     virtual Result Build_Internal() override;
-    virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
+    virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
 
     Handle<ReflectionProbe> m_envProbe;
-    LightmapData<ReflectionProbe> m_lightmapData;
+    BakeData<ReflectionProbe> m_lightmapData;
 };
 
 template <>
@@ -529,16 +531,18 @@ protected:
         return m_lightmapData;
     }
 
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override
     {
-        return MakeUnique<LightmapJob<FogVolume>>(std::move(params), m_fogVolume, &m_lightmapData);
+        return MakeUnique<BakeJob<FogVolume>>(std::move(params), m_fogVolume, &m_lightmapData);
     }
 
     virtual Result Build_Internal() override;
-    virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
+    virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
 
     Handle<FogVolume> m_fogVolume;
-    LightmapData<FogVolume> m_lightmapData;
+    BakeData<FogVolume> m_lightmapData;
 };
+
+} // namespace Baking
 
 } // namespace Hyperion

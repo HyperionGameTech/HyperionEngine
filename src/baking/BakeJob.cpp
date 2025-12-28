@@ -2,8 +2,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <lightmapper/LightmapJob.hpp>
-#include <lightmapper/Lightmapper.hpp>
+#include <baking/BakeJob.hpp>
+#include <baking/Lightmapper.hpp>
 #include <baking/lightmaps/LightmapPathTraceCpu.hpp>
 #include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
@@ -44,13 +44,13 @@ namespace Hyperion {
 
 struct LightmapRender : RenderCommand
 {
-    LightmapJobBase* job;
+    BakeJobBase* job;
     Handle<World> world;
     Handle<View> view;
     Array<LightmapRay> rays;
     uint32 rayOffset;
 
-    LightmapRender(LightmapJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
+    LightmapRender(BakeJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
         : job(job),
           world(world),
           view(view),
@@ -135,9 +135,11 @@ struct LightmapRender : RenderCommand
 
 static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
 
-#pragma region LightmapJobBase
+namespace Baking {
 
-LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
+#pragma region BakeJobBase
+
+BakeJobBase::BakeJobBase(BakeJobParams&& params)
     : NumConcurrentRenderingTasks(0),
       m_lightmapper(nullptr),
       m_params(std::move(params)),
@@ -147,7 +149,7 @@ LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
 {
 }
 
-LightmapJobBase::~LightmapJobBase()
+BakeJobBase::~BakeJobBase()
 {
     for (TaskBatch* taskBatch : m_currentTasks)
     {
@@ -157,7 +159,7 @@ LightmapJobBase::~LightmapJobBase()
     }
 }
 
-void LightmapJobBase::Start()
+void BakeJobBase::Start()
 {
     m_wasStarted = true;
     m_runningSemaphore.Produce(1, [this](bool)
@@ -166,12 +168,12 @@ void LightmapJobBase::Start()
         });
 }
 
-void LightmapJobBase::Stop()
+void BakeJobBase::Stop()
 {
     m_runningSemaphore.Release(1);
 }
 
-void LightmapJobBase::Stop(const Error& error)
+void BakeJobBase::Stop(const Error& error)
 {
     HYP_LOG(Lightmap, Error, "Lightmap job {} stopped with error: {}", m_uuid, error.GetMessage());
 
@@ -180,24 +182,24 @@ void LightmapJobBase::Stop(const Error& error)
     Stop();
 }
 
-bool LightmapJobBase::IsCompleted() const
+bool BakeJobBase::IsCompleted() const
 {
     return !m_runningSemaphore.IsInSignalState() && m_wasStarted;
 }
 
-void LightmapJobBase::AddTask(TaskBatch* taskBatch)
+void BakeJobBase::AddTask(TaskBatch* taskBatch)
 {
     Mutex::Guard guard(m_currentTasksMutex);
 
     m_currentTasks.PushBack(taskBatch);
 }
 
-bool LightmapJobBase::HasRemainingTexels() const
+bool BakeJobBase::HasRemainingTexels() const
 {
     return m_texelIndex < m_texelIndices.Size() * m_lightmapper->NumTexelSamples();
 }
 
-void LightmapJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexels)
+void BakeJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outTexels)
 {
     const bool hasRays = m_lightmapper->PerformsRayTracing();
 
@@ -218,7 +220,7 @@ void LightmapJobBase::GatherTexels(uint32 maxTexels, Array<LightmapTexel*>& outT
     }
 }
 
-uint32 LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
+uint32 BakeJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
     if (!m_lightmapper->PerformsRayTracing())
     {
@@ -248,7 +250,7 @@ uint32 LightmapJobBase::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelO
     return numTexels;
 }
 
-void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
+void BakeJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
 {
     Assert(rays.Size() == hits.Size());
 
@@ -276,7 +278,7 @@ void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const 
     }
 }
 
-uint32 LightmapJobBase::Process(uint32 maxTexels)
+uint32 BakeJobBase::Process(uint32 maxTexels)
 {
     Assert(IsRunning());
     Assert(!m_result.HasError(), "Unhandled error in lightmap job: {}", *m_result.GetError().GetMessage());
@@ -349,7 +351,7 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
     }
 
     /// \todo : Radiance map won't need as many samples as irradiance due to having less variance in directions,
-    // we should separate LightmapJob to be per- shading type, so the radiance one can finish earlier.
+    // we should separate BakeJob to be per- shading type, so the radiance one can finish earlier.
 
     for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *m_params.renderers)
     {
@@ -387,12 +389,12 @@ uint32 LightmapJobBase::Process(uint32 maxTexels)
     return ProcessTexels(Span<LightmapTexel*>(texels.Data(), texels.Size()), texelOffset);
 }
 
-#pragma endregion LightmapJobBase
+#pragma endregion BakeJobBase
 
-#pragma region LightmapJob < LightmapVolume>
+#pragma region BakeJob < LightmapVolume>
 
-LightmapJob<LightmapVolume>::LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* lightmapData)
-    : LightmapJobBase(std::move(params)),
+BakeJob<LightmapVolume>::BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* lightmapData)
+    : BakeJobBase(std::move(params)),
       m_volume(volume),
       m_lightmapData(lightmapData),
       m_lightmapElement(nullptr)
@@ -401,16 +403,16 @@ LightmapJob<LightmapVolume>::LightmapJob(LightmapJobParams&& params, const Handl
     Assert(m_lightmapData != nullptr);
 }
 
-LightmapJob<LightmapVolume>::~LightmapJob()
+BakeJob<LightmapVolume>::~BakeJob()
 {
     // m_lightmapElement is now managed externally or not used in the same way
 }
 
-void LightmapJob<LightmapVolume>::Start_Internal()
+void BakeJob<LightmapVolume>::Start_Internal()
 {
 }
 
-void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
+void BakeJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
 {
     if (outIsReadyToProcess)
     {
@@ -418,19 +420,19 @@ void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
     }
 }
 
-#pragma endregion LightmapJob < LightmapVolume>
+#pragma endregion BakeJob < LightmapVolume>
 
-#pragma region LightmapJob < ReflectionProbe>
+#pragma region BakeJob < ReflectionProbe>
 
-LightmapJob<ReflectionProbe>::~LightmapJob()
+BakeJob<ReflectionProbe>::~BakeJob()
 {
 }
 
-void LightmapJob<ReflectionProbe>::Start_Internal()
+void BakeJob<ReflectionProbe>::Start_Internal()
 {
 }
 
-void LightmapJob<ReflectionProbe>::Process_Internal(bool* outIsReadyToProcess)
+void BakeJob<ReflectionProbe>::Process_Internal(bool* outIsReadyToProcess)
 {
     if (outIsReadyToProcess)
     {
@@ -438,17 +440,17 @@ void LightmapJob<ReflectionProbe>::Process_Internal(bool* outIsReadyToProcess)
     }
 }
 
-#pragma endregion LightmapJob < ReflectionProbe>
+#pragma endregion BakeJob < ReflectionProbe>
 
-#pragma region LightmapJob < FogVolume>
+#pragma region BakeJob < FogVolume>
 
-LightmapJob<FogVolume>::~LightmapJob()
+BakeJob<FogVolume>::~BakeJob()
 {
 }
 
-void LightmapJob<FogVolume>::Start_Internal()
+void BakeJob<FogVolume>::Start_Internal()
 {
-    const typename LightmapData<FogVolume>::VolumeBitmap& volumeBitmap = m_lightmapData->GetVolumeBitmap();
+    const typename BakeData<FogVolume>::VolumeBitmap& volumeBitmap = m_lightmapData->GetVolumeBitmap();
 
     const Vec3u volumeExtent = Vec3u {
         volumeBitmap.GetWidth(),
@@ -473,7 +475,7 @@ void LightmapJob<FogVolume>::Start_Internal()
     }
 }
 
-void LightmapJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
+void BakeJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
 {
     if (outIsReadyToProcess)
     {
@@ -481,7 +483,7 @@ void LightmapJob<FogVolume>::Process_Internal(bool* outIsReadyToProcess)
     }
 }
 
-uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
+uint32 BakeJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32 texelOffset)
 {
     const BoundingBox worldAabb = m_fogVolume->GetWorldBounds();
     const Vec3f extentWS = worldAabb.GetExtent();
@@ -516,6 +518,8 @@ uint32 LightmapJob<FogVolume>::ProcessTexels(Span<LightmapTexel*> texels, uint32
     return uint32(texels.Size());
 }
 
-#pragma endregion LightmapJob < FogVolume>
+#pragma endregion BakeJob < FogVolume>
+
+} // namespace Baking
 
 } // namespace Hyperion

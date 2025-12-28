@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <lightmapper/LightmapTexel.hpp>
+#include <baking/LightmapTexel.hpp>
 
 namespace Hyperion {
 
@@ -11,6 +11,8 @@ class ReflectionProbe;
 class FogVolume;
 class Mesh;
 class VoxelOctree;
+
+namespace Baking {
 
 /*! \brief Base class for lightmap texel source, used to trace rays from and store texel data to. */
 class LightmapDataBase
@@ -73,10 +75,10 @@ public:
 };
 
 template <class T>
-class LightmapData;
+class BakeData;
 
 template <>
-class LightmapData<LightmapVolume> : public LightmapDataBase
+class BakeData<LightmapVolume> : public LightmapDataBase
 {
 public:
     using BitmapType = Bitmap_RGBA32F;
@@ -84,20 +86,20 @@ public:
     using MeshFloatDataArray = Array<float, DynamicAllocator>;
     using MeshIndexArray = Array<uint32, DynamicAllocator>;
 
-    LightmapData()
+    BakeData()
         : m_volume(nullptr)
     {
     }
 
-    LightmapData(Span<const LightmapSubElement> subElements, LightmapVolume* volume);
+    BakeData(Span<const LightmapSubElement> subElements, LightmapVolume* volume);
 
-    LightmapData(const LightmapData& other) = default;
-    LightmapData(LightmapData&& other) noexcept = default;
+    BakeData(const BakeData& other) = default;
+    BakeData(BakeData&& other) noexcept = default;
 
-    LightmapData& operator=(const LightmapData& other) = default;
-    LightmapData& operator=(LightmapData&& other) noexcept = default;
+    BakeData& operator=(const BakeData& other) = default;
+    BakeData& operator=(BakeData&& other) noexcept = default;
 
-    ~LightmapData() override = default;
+    ~BakeData() override = default;
 
     HYP_FORCE_INLINE const Array<LightmapMeshData>& GetMeshData() const
     {
@@ -124,29 +126,29 @@ private:
 };
 
 template <>
-class LightmapData<ReflectionProbe> : public LightmapDataBase
+class BakeData<ReflectionProbe> : public LightmapDataBase
 {
 public:
     using BitmapType = Bitmap_RGBA32F;
 
-    LightmapData()
+    BakeData()
         : m_envProbe(nullptr)
     {
     }
 
-    LightmapData(Span<const LightmapSubElement> subElements, ReflectionProbe* envProbe)
+    BakeData(Span<const LightmapSubElement> subElements, ReflectionProbe* envProbe)
         : LightmapDataBase(subElements),
           m_envProbe(envProbe)
     {
     }
 
-    LightmapData(const LightmapData& other) = default;
-    LightmapData(LightmapData&& other) noexcept = default;
+    BakeData(const BakeData& other) = default;
+    BakeData(BakeData&& other) noexcept = default;
 
-    LightmapData& operator=(const LightmapData& other) = default;
-    LightmapData& operator=(LightmapData&& other) noexcept = default;
+    BakeData& operator=(const BakeData& other) = default;
+    BakeData& operator=(BakeData&& other) noexcept = default;
 
-    ~LightmapData() override = default;
+    ~BakeData() override = default;
 
     virtual Result Build() override;
 
@@ -158,7 +160,7 @@ protected:
 };
 
 template <>
-class LightmapData<FogVolume> : public LightmapDataBase
+class BakeData<FogVolume> : public LightmapDataBase
 {
 public:
     static constexpr uint32 MaxNoiseBitmapExtent = 32;
@@ -166,24 +168,24 @@ public:
     using VolumeBitmap = Bitmap3D_RG16F;
     using NoiseBitmap = Bitmap3D_R8;
 
-    LightmapData()
+    BakeData()
         : m_fogVolume(nullptr)
     {
     }
 
-    LightmapData(Span<const LightmapSubElement> subElements, FogVolume* fogVolume)
+    BakeData(Span<const LightmapSubElement> subElements, FogVolume* fogVolume)
         : LightmapDataBase(subElements),
           m_fogVolume(fogVolume)
     {
     }
 
-    LightmapData(const LightmapData& other) = delete;
-    LightmapData(LightmapData&& other) noexcept = default;
+    BakeData(const BakeData& other) = delete;
+    BakeData(BakeData&& other) noexcept = default;
 
-    LightmapData& operator=(const LightmapData& other) = delete;
-    LightmapData& operator=(LightmapData&& other) noexcept = default;
+    BakeData& operator=(const BakeData& other) = delete;
+    BakeData& operator=(BakeData&& other) noexcept = default;
 
-    ~LightmapData() override = default;
+    ~BakeData() override = default;
 
     HYP_FORCE_INLINE VoxelOctree* GetVoxelOctree() const
     {
@@ -218,5 +220,7 @@ protected:
     VolumeBitmap m_volumeBitmap;
     NoiseBitmap m_noiseBitmap;
 };
+
+} // namespace Baking
 
 } // namespace Hyperion

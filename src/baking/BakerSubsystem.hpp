@@ -18,11 +18,14 @@
 
 namespace Hyperion {
 
-class BakerBase;
 class LightmapVolume;
 class ReflectionProbe;
 class FogVolume;
 class Scene;
+
+namespace Baking {
+class BakerBase;
+} // namespace Baking
 
 template <class T>
 struct IsBakeable : std::false_type
@@ -45,13 +48,13 @@ struct IsBakeable<FogVolume> : std::true_type
 };
 
 HYP_CLASS()
-class HYP_API LightmapperSubsystem : public Subsystem
+class HYP_API BakerSubsystem : public Subsystem
 {
-    HYP_OBJECT_BODY(LightmapperSubsystem);
+    HYP_OBJECT_BODY(BakerSubsystem);
 
 public:
-    LightmapperSubsystem();
-    virtual ~LightmapperSubsystem() override = default;
+    BakerSubsystem();
+    virtual ~BakerSubsystem() override = default;
 
     virtual void OnAddedToWorld() override;
     virtual void OnRemovedFromWorld() override;
@@ -68,7 +71,7 @@ private:
     Task<void>* EnqueueBake_Internal(const Handle<T>& source, Args&&... args);
 
     // Map source to lightmapper instance
-    HashMap<ObjectBase*, Handle<BakerBase>> m_lightmappers;
+    HashMap<ObjectBase*, Handle<Baking::BakerBase>> m_lightmappers;
     HashMap<ObjectBase*, Task<void>*> m_activeTasks;
     LinkedList<Task<void>> m_tasks;
 };

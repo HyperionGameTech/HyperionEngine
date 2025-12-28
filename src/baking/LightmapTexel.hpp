@@ -24,6 +24,8 @@ class Mesh;
 class Material;
 class Entity;
 
+namespace Baking {
+
 struct LightmapSubElement
 {
     Handle<Entity> entity;
@@ -75,5 +77,7 @@ struct LightmapTexel
 
     LightmapRay* pRay = nullptr;
 };
+
+} // namespace Baking
 
 } // namespace Hyperion

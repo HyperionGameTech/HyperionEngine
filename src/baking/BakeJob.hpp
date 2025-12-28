@@ -11,8 +11,8 @@
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <lightmapper/LightmapData.hpp>
-#include <lightmapper/LightmapTexel.hpp>
+#include <baking/BakeData.hpp>
+#include <baking/LightmapTexel.hpp>
 
 namespace Hyperion {
 
@@ -32,12 +32,14 @@ class BakerBase;
 
 struct RenderSetup; // forward decl for renderer interface usage
 
+namespace Baking {
+
 enum class LightmapShadingType : int; // forward decl from Lightmapper
 struct LightmapHit;                   // forward decl from Lightmapper
 
 struct LightmapperConfig; // forward decl from Lightmapper
 
-struct LightmapJobParams
+struct BakeJobParams
 {
     LightmapperConfig* config;
 
@@ -50,22 +52,22 @@ struct LightmapJobParams
     Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
 };
 
-class HYP_API LightmapJobBase
+class HYP_API BakeJobBase
 {
     friend class BakerBase;
 
 public:
-    explicit LightmapJobBase(LightmapJobParams&& params);
+    explicit BakeJobBase(BakeJobParams&& params);
 
-    LightmapJobBase(const LightmapJobBase& other) = delete;
-    LightmapJobBase& operator=(const LightmapJobBase& other) = delete;
+    BakeJobBase(const BakeJobBase& other) = delete;
+    BakeJobBase& operator=(const BakeJobBase& other) = delete;
 
-    LightmapJobBase(LightmapJobBase&& other) noexcept = delete;
-    LightmapJobBase& operator=(LightmapJobBase&& other) noexcept = delete;
+    BakeJobBase(BakeJobBase&& other) noexcept = delete;
+    BakeJobBase& operator=(BakeJobBase&& other) noexcept = delete;
 
-    virtual ~LightmapJobBase();
+    virtual ~BakeJobBase();
 
-    HYP_FORCE_INLINE const LightmapJobParams& GetParams() const
+    HYP_FORCE_INLINE const BakeJobParams& GetParams() const
     {
         return m_params;
     }
@@ -155,7 +157,7 @@ protected:
 
     HYP_FORCE_INLINE const LightmapDataBase& GetLightmapData() const
     {
-        return const_cast<LightmapJobBase*>(this)->GetLightmapData();
+        return const_cast<BakeJobBase*>(this)->GetLightmapData();
     }
 
     bool HasRemainingTexels() const;
@@ -176,7 +178,7 @@ protected:
 
     BakerBase* m_lightmapper;
 
-    LightmapJobParams m_params;
+    BakeJobParams m_params;
 
     Uuid m_uuid;
 
@@ -199,21 +201,21 @@ protected:
 };
 
 template <class T>
-class LightmapJob;
+class BakeJob;
 
 template <>
-class LightmapJob<LightmapVolume> : public LightmapJobBase
+class BakeJob<LightmapVolume> : public BakeJobBase
 {
 public:
-    LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume, LightmapData<LightmapVolume>* lightmapData);
-    virtual ~LightmapJob() override;
+    BakeJob(BakeJobParams&& params, const Handle<LightmapVolume>& volume, BakeData<LightmapVolume>* lightmapData);
+    virtual ~BakeJob() override;
 
     HYP_FORCE_INLINE const Handle<LightmapVolume>& GetVolume() const
     {
         return m_volume;
     }
 
-    virtual LightmapData<LightmapVolume>& GetLightmapData() override
+    virtual BakeData<LightmapVolume>& GetLightmapData() override
     {
         return *m_lightmapData;
     }
@@ -229,30 +231,30 @@ protected:
 
     Handle<LightmapVolume> m_volume;
 
-    LightmapData<LightmapVolume>* m_lightmapData;
+    BakeData<LightmapVolume>* m_lightmapData;
 
     LightmapElement* m_lightmapElement;
 };
 
 template <>
-class LightmapJob<ReflectionProbe> : public LightmapJobBase
+class BakeJob<ReflectionProbe> : public BakeJobBase
 {
 public:
-    explicit LightmapJob(LightmapJobParams&& params, const Handle<ReflectionProbe>& envProbe, LightmapData<ReflectionProbe>* lightmapData)
-        : LightmapJobBase(std::move(params)),
+    explicit BakeJob(BakeJobParams&& params, const Handle<ReflectionProbe>& envProbe, BakeData<ReflectionProbe>* lightmapData)
+        : BakeJobBase(std::move(params)),
           m_envProbe(envProbe),
           m_lightmapData(lightmapData)
     {
     }
 
-    virtual ~LightmapJob() override;
+    virtual ~BakeJob() override;
 
     HYP_FORCE_INLINE const Handle<ReflectionProbe>& GetEnvProbe() const
     {
         return m_envProbe;
     }
 
-    virtual LightmapData<ReflectionProbe>& GetLightmapData() override
+    virtual BakeData<ReflectionProbe>& GetLightmapData() override
     {
         return *m_lightmapData;
     }
@@ -262,28 +264,28 @@ protected:
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
     Handle<ReflectionProbe> m_envProbe;
-    LightmapData<ReflectionProbe>* m_lightmapData;
+    BakeData<ReflectionProbe>* m_lightmapData;
 };
 
 template <>
-class LightmapJob<FogVolume> : public LightmapJobBase
+class BakeJob<FogVolume> : public BakeJobBase
 {
 public:
-    explicit LightmapJob(LightmapJobParams&& params, const Handle<FogVolume>& fogVolume, LightmapData<FogVolume>* lightmapData)
-        : LightmapJobBase(std::move(params)),
+    explicit BakeJob(BakeJobParams&& params, const Handle<FogVolume>& fogVolume, BakeData<FogVolume>* lightmapData)
+        : BakeJobBase(std::move(params)),
           m_fogVolume(fogVolume),
           m_lightmapData(lightmapData)
     {
     }
 
-    virtual ~LightmapJob() override;
+    virtual ~BakeJob() override;
 
     HYP_FORCE_INLINE const Handle<FogVolume>& GetFogVolume() const
     {
         return m_fogVolume;
     }
 
-    virtual LightmapData<FogVolume>& GetLightmapData() override
+    virtual BakeData<FogVolume>& GetLightmapData() override
     {
         return *m_lightmapData;
     }
@@ -295,7 +297,9 @@ protected:
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
     Handle<FogVolume> m_fogVolume;
-    LightmapData<FogVolume>* m_lightmapData;
+    BakeData<FogVolume>* m_lightmapData;
 };
+
+} // namespace Baking
 
 } // namespace Hyperion

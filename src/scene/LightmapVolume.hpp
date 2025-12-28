@@ -15,11 +15,11 @@
 namespace Hyperion {
 
 class Texture;
-class LightmapJobBase;
+class BakeJobBase;
 class RenderProxyLightmapVolume;
 
 template <class T>
-class LightmapData;
+class BakeData;
 
 class LightmapVolume;
 
@@ -173,7 +173,7 @@ public:
 
     const LightmapElement* GetElement(LightmapElementId elementId) const;
 
-    bool BuildElementTextures(const LightmapData<LightmapVolume>& lightmapData, LightmapElementId elementId);
+    bool BuildElementTextures(const BakeData<LightmapVolume>& lightmapData, LightmapElementId elementId);
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 

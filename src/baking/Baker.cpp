@@ -3,9 +3,9 @@
 #include <HyperionPch.hpp>
 
 #include <baking/Lightmapper.hpp>
-#include <baking/LightmapJob.hpp>
-#include <baking/LightmapAccelerationStructure.hpp>
+#include <baking/BakeJob.hpp>
 
+#include <baking/lightmaps/LightmapAccelerationStructure.hpp>
 #include <baking/lightmaps/LightmapPathTraceCpu.hpp>
 #include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
@@ -68,6 +68,8 @@
 #include <Lightmapper.generated.inl>
 
 namespace Hyperion {
+
+namespace Baking {
 
 static constexpr uint32 TileSize = 32;
 static constexpr uint32 IdealTexelsPerFrame = 1000000;
@@ -227,9 +229,9 @@ void BakerBase::Initialize()
     }
 }
 
-LightmapJobParams BakerBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
+BakeJobParams BakerBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
 {
-    LightmapJobParams jobParams {
+    BakeJobParams jobParams {
         &m_config,
         m_scene,
         m_view,
@@ -527,7 +529,7 @@ void BakerBase::DispatchJobs()
 
         for (auto& it : tileBuckets)
         {
-            UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
+            UniquePtr<BakeJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
             Assert(job != nullptr);
 
             job->SetTexelIndices(std::move(it.second));
@@ -536,7 +538,7 @@ void BakerBase::DispatchJobs()
     }
     else
     {
-        UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
+        UniquePtr<BakeJobBase> job = CreateJob(CreateLightmapJobParams(0, m_subElements.Size()));
         Assert(job != nullptr);
 
         // all texels
@@ -576,7 +578,7 @@ void BakerBase::Update(float delta)
         // tally up estimated gpu mem usage
         for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
         {
-            LightmapJobBase* job = it->Get();
+            BakeJobBase* job = it->Get();
 
             if (job->IsRunning() || job->IsCompleted())
             {
@@ -588,7 +590,7 @@ void BakerBase::Update(float delta)
 
     for (auto it = m_queue.Begin(); it != m_queue.End();)
     {
-        LightmapJobBase* job = it->Get();
+        BakeJobBase* job = it->Get();
 
         if (job->IsRunning())
         {
@@ -614,7 +616,7 @@ void BakerBase::Update(float delta)
     // spin up new jobs
     for (auto it = m_queue.Begin(); it != m_queue.End();)
     {
-        LightmapJobBase* job = it->Get();
+        BakeJobBase* job = it->Get();
 
         if (!job->IsRunning() && !job->IsCompleted())
         {
@@ -636,7 +638,7 @@ void BakerBase::Update(float delta)
     }
 }
 
-void BakerBase::HandleCompletedJob(LightmapJobBase* job)
+void BakerBase::HandleCompletedJob(BakeJobBase* job)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -725,7 +727,7 @@ void Baker<LightmapVolume>::Build()
     }
 
     // Build global data
-    m_lightmapData = LightmapData<LightmapVolume>(m_subElements.ToSpan(), m_volume);
+    m_lightmapData = BakeData<LightmapVolume>(m_subElements.ToSpan(), m_volume);
 
     if (Result result = m_lightmapData.Build(); result.HasError())
     {
@@ -746,7 +748,7 @@ void Baker<LightmapVolume>::Build()
     BakerBase::DispatchJobs();
 }
 
-void Baker<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
+void Baker<LightmapVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
 {
     HYP_SCOPE;
 
@@ -915,18 +917,18 @@ Result Baker<ReflectionProbe>::Build_Internal()
 {
     Assert(m_envProbe != nullptr);
 
-    m_lightmapData = LightmapData<ReflectionProbe>(m_subElements, m_envProbe.Get());
+    m_lightmapData = BakeData<ReflectionProbe>(m_subElements, m_envProbe.Get());
 
     return m_lightmapData.Build();
 }
 
-void Baker<ReflectionProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
+void Baker<ReflectionProbe>::HandleCompletedJob_Internal(BakeJobBase* job)
 {
     HYP_SCOPE;
 
-    LightmapJob<ReflectionProbe>* jobCasted = static_cast<LightmapJob<ReflectionProbe>*>(job);
+    BakeJob<ReflectionProbe>* jobCasted = static_cast<BakeJob<ReflectionProbe>*>(job);
 
-    const LightmapData<ReflectionProbe>& lightmapData = jobCasted->GetLightmapData();
+    const BakeData<ReflectionProbe>& lightmapData = jobCasted->GetLightmapData();
 
     if (!lightmapData.IsBuilt())
     {
@@ -937,7 +939,7 @@ void Baker<ReflectionProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
     const Vec2u dimensions = m_envProbe->GetDimensions();
 
     // Convert lightmap data to bitmaps (6 faces stacked vertically)
-    LightmapData<ReflectionProbe>::BitmapType bitmap = lightmapData.ToBitmap();
+    BakeData<ReflectionProbe>::BitmapType bitmap = lightmapData.ToBitmap();
 
     TextureDesc textureDesc {
         TT_CUBEMAP,
@@ -985,18 +987,18 @@ Result Baker<FogVolume>::Build_Internal()
 {
     Assert(m_fogVolume != nullptr);
 
-    m_lightmapData = LightmapData<FogVolume>(m_subElements, m_fogVolume.Get());
+    m_lightmapData = BakeData<FogVolume>(m_subElements, m_fogVolume.Get());
 
     return m_lightmapData.Build();
 }
 
-void Baker<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
+void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
 {
     HYP_SCOPE;
 
-    LightmapJob<FogVolume>* jobCasted = static_cast<LightmapJob<FogVolume>*>(job);
+    BakeJob<FogVolume>* jobCasted = static_cast<BakeJob<FogVolume>*>(job);
 
-    LightmapData<FogVolume>& lightmapData = jobCasted->GetLightmapData();
+    BakeData<FogVolume>& lightmapData = jobCasted->GetLightmapData();
 
     if (!lightmapData.IsBuilt())
     {
@@ -1004,8 +1006,8 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
         return;
     }
 
-    typename LightmapData<FogVolume>::VolumeBitmap& volumeBitmap = lightmapData.GetVolumeBitmap();
-    const typename LightmapData<FogVolume>::NoiseBitmap& noiseBitmap = lightmapData.GetNoiseBitmap();
+    typename BakeData<FogVolume>::VolumeBitmap& volumeBitmap = lightmapData.GetVolumeBitmap();
+    const typename BakeData<FogVolume>::NoiseBitmap& noiseBitmap = lightmapData.GetNoiseBitmap();
 
     // update bitmap with texel data
     for (uint32 i = 0; i < uint32(lightmapData.texels.Size()); i++)
@@ -1049,5 +1051,7 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
 
     m_fogVolume->SetTextures(volumeTexture, noiseTexture);
 }
+
+} // namespace Baking
 
 } // namespace Hyperion

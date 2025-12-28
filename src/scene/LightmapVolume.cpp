@@ -9,10 +9,10 @@
 
 #include <scene/components/LightmapElementComponent.hpp>
 
-#include <lightmapper/LightmapData.hpp>
+#include <baking/BakeData.hpp>
 
 #ifdef HYP_EDITOR
-#include <lightmapper/LightmapperSubsystem.hpp>
+#include <baking/BakerSubsystem.hpp>
 #endif
 
 #include <rendering/Texture.hpp>
@@ -343,7 +343,7 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) c
     return &m_atlases[atlasIndex].elements[elementIndex];
 }
 
-bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& lightmapData, LightmapElementId elementId)
+bool LightmapVolume::BuildElementTextures(const BakeData<LightmapVolume>& lightmapData, LightmapElementId elementId)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -368,7 +368,7 @@ bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& li
 
     const Vec2u elementDimensions = element.dimensions;
 
-    FixedArray<typename LightmapData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
+    FixedArray<typename BakeData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
         lightmapData.ToBitmapRadiance(),  /* RADIANCE */
         lightmapData.ToBitmapIrradiance() /* IRRADIANCE */
     };
@@ -379,13 +379,13 @@ bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& li
 
     for (uint32 i = 0; i < uint32(LTT_MAX); i++)
     {
-        Optional<typename LightmapData<LightmapVolume>::BitmapType> tempBitmap;
+        Optional<typename BakeData<LightmapVolume>::BitmapType> tempBitmap;
 
-        typename LightmapData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
+        typename BakeData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
 
         if (elementDimensions.x != bitmaps[i].GetWidth() || elementDimensions.y != bitmaps[i].GetHeight())
         {
-            typename LightmapData<LightmapVolume>::BitmapType& rescaledBitmap = tempBitmap.Emplace(elementDimensions.x, elementDimensions.y);
+            typename BakeData<LightmapVolume>::BitmapType& rescaledBitmap = tempBitmap.Emplace(elementDimensions.x, elementDimensions.y);
 
             Rect<uint32> srcRect {
                 0, 0,
@@ -600,11 +600,11 @@ void LightmapVolume::BakeLightmaps()
         return;
     }
 
-    LightmapperSubsystem* lightmapperSubsystem = world->GetSubsystem<LightmapperSubsystem>();
+    BakerSubsystem* lightmapperSubsystem = world->GetSubsystem<BakerSubsystem>();
 
     if (!lightmapperSubsystem)
     {
-        lightmapperSubsystem = world->AddSubsystem<LightmapperSubsystem>();
+        lightmapperSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
     lightmapperSubsystem->EnqueueBake(MakeStrongRef(this));

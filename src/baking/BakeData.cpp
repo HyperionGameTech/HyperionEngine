@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <lightmapper/LightmapData.hpp>
+#include <baking/BakeData.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
@@ -19,10 +19,11 @@
 #endif
 
 namespace Hyperion {
+namespace Baking {
 
-#pragma region LightmapData < LightmapVolume>
+#pragma region BakeData < LightmapVolume>
 
-LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subElements, LightmapVolume* volume)
+BakeData<LightmapVolume>::BakeData(Span<const LightmapSubElement> subElements, LightmapVolume* volume)
     : LightmapDataBase(subElements),
       m_volume(volume),
       m_meshVertexPositions(subElements.Size()),
@@ -113,7 +114,7 @@ LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subEle
     }
 }
 
-Result LightmapData<LightmapVolume>::Build()
+Result BakeData<LightmapVolume>::Build()
 {
     if (m_meshData.Empty())
     {
@@ -339,7 +340,7 @@ Result LightmapData<LightmapVolume>::Build()
 #endif
 }
 
-auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
+auto BakeData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
 {
     Assert(texels.Size() == dimensions.x * dimensions.y, "Invalid UV map size");
 
@@ -369,7 +370,7 @@ auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
     return bitmap;
 }
 
-auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
+auto BakeData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
 {
     Assert(texels.Size() == dimensions.x * dimensions.y, "Invalid UV map size");
 
@@ -399,11 +400,11 @@ auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
     return bitmap;
 }
 
-#pragma endregion LightmapData < LightmapVolume>
+#pragma endregion BakeData < LightmapVolume>
 
-#pragma region LightmapData<ReflectionProbe>
+#pragma region BakeData<ReflectionProbe>
 
-Result LightmapData<ReflectionProbe>::Build()
+Result BakeData<ReflectionProbe>::Build()
 {
     Assert(m_envProbe != nullptr);
 
@@ -456,7 +457,7 @@ Result LightmapData<ReflectionProbe>::Build()
     return {};
 }
 
-auto LightmapData<ReflectionProbe>::ToBitmap() const -> BitmapType
+auto BakeData<ReflectionProbe>::ToBitmap() const -> BitmapType
 {
     Assert(m_envProbe != nullptr);
 
@@ -494,9 +495,9 @@ auto LightmapData<ReflectionProbe>::ToBitmap() const -> BitmapType
     return bitmap;
 }
 
-#pragma endregion LightmapData < ReflectionProbe>
+#pragma endregion BakeData < ReflectionProbe>
 
-#pragma region LightmapData < FogVolume>
+#pragma region BakeData < FogVolume>
 
 static struct FogVolumeNoiseCombinator
 {
@@ -516,7 +517,7 @@ static struct FogVolumeNoiseCombinator
     }
 } s_initializer;
 
-static void GenerateNoiseBitmap(typename LightmapData<FogVolume>::NoiseBitmap& noiseBitmap)
+static void GenerateNoiseBitmap(typename BakeData<FogVolume>::NoiseBitmap& noiseBitmap)
 {
     for (uint32 z = 0; z < noiseBitmap.GetDepth(); z++)
     {
@@ -536,7 +537,7 @@ static void GenerateNoiseBitmap(typename LightmapData<FogVolume>::NoiseBitmap& n
     }
 }
 
-Result LightmapData<FogVolume>::Build()
+Result BakeData<FogVolume>::Build()
 {
     Assert(m_fogVolume != nullptr);
 
@@ -600,6 +601,7 @@ Result LightmapData<FogVolume>::Build()
     return {};
 }
 
-#pragma endregion LightmapData < FogVolume>
+#pragma endregion BakeData < FogVolume>
 
+} // namespace Baking
 } // namespace Hyperion

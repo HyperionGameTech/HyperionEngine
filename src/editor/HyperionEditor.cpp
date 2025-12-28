@@ -77,8 +77,8 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <lightmapper/LightmapperSubsystem.hpp>
-#include <lightmapper/LightmapData.hpp>
+#include <baking/BakerSubsystem.hpp>
+#include <baking/BakeData.hpp>
 
 #include <input/Event.hpp>
 

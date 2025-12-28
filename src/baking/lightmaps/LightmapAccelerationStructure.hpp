@@ -22,6 +22,8 @@ namespace Hyperion {
 
 class Entity;
 
+namespace Baking {
+
 struct LightmapSubElement;
 
 struct LightmapRayHit : RayHit
@@ -268,5 +270,7 @@ public:
 private:
     Array<LightmapBottomLevelAccelerationStructure> m_accelerationStructures;
 };
+
+} // namespace Baking
 
 } // namespace Hyperion

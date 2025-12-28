@@ -108,6 +108,8 @@ struct SetGpuLightmapperReady : RenderCommand
 
 #pragma endregion Render commands
 
+namespace Baking {
+
 #pragma region LightmapRenderer_GpuPathTracing
 
 LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
@@ -128,7 +130,7 @@ LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
     SafeDelete(std::move(m_tlas));
     SafeDelete(std::move(m_raytracingPipeline));
 
-    for (KeyValuePair<LightmapJobBase*, JobData>& it : m_jobData)
+    for (KeyValuePair<BakeJobBase*, JobData>& it : m_jobData)
     {
         SafeDelete(std::move(it.second.UniformBuffers));
         SafeDelete(std::move(it.second.RayBuffers));
@@ -136,7 +138,7 @@ LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
     }
 }
 
-void LightmapRenderer_GpuPathTracing::CreateBuffers(LightmapJobBase* job)
+void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
 {
     JobData& jd = m_jobData[job];
 
@@ -174,7 +176,7 @@ void LightmapRenderer_GpuPathTracing::Create()
     PUSH_RENDER_COMMAND(SetGpuLightmapperReady, m_readyNotification);
 }
 
-void LightmapRenderer_GpuPathTracing::CleanJobData(LightmapJobBase* job)
+void LightmapRenderer_GpuPathTracing::CleanJobData(BakeJobBase* job)
 {
     auto jobDataIt = m_jobData.Find(job);
 
@@ -258,7 +260,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
     HYP_GFX_ASSERT(m_tlas->Create());
 }
 
-void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, LightmapJobBase* job)
+void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobBase* job)
 {
     HYP_SCOPE;
 
@@ -326,7 +328,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, Lightmap
     jd.IsCreated = true;
 }
 
-void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, LightmapJobBase* job, uint32 rayOffset)
+void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, BakeJobBase* job, uint32 rayOffset)
 {
     RTRadianceUniforms uniforms {};
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
@@ -363,7 +365,7 @@ void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, LightmapJobBa
     jd.UniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 }
 
-void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits)
+void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* job, Span<LightmapHit> outHits)
 {
     Assert(m_tlas != nullptr);
 
@@ -403,7 +405,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, LightmapJobBa
     stagingBuffer.Reset();
 }
 
-void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
+void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -478,5 +480,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 }
 
 #pragma endregion LightmapRenderer_GpuPathTracing
+
+} // namespace Baking
 
 } // namespace Hyperion

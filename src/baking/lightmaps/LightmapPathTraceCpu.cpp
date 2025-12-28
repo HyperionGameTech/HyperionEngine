@@ -1,7 +1,7 @@
 #include <HyperionPch.hpp>
 
 #include <baking/lightmaps/LightmapPathTraceCpu.hpp>
-#include <lightmapper/LightmapAccelerationStructure.hpp>
+#include <baking/lightmaps/LightmapAccelerationStructure.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
@@ -72,6 +72,8 @@ uint32 LightmapThreadPool::NumThreadsToCreate()
 
 #pragma endregion LightmapThreadPool
 
+namespace Baking {
+
 #pragma region LightmapRenderer_CpuPathTracing
 
 LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(
@@ -98,7 +100,7 @@ void LightmapRenderer_CpuPathTracing::Create()
 {
 }
 
-void LightmapRenderer_CpuPathTracing::CleanJobData(LightmapJobBase* job)
+void LightmapRenderer_CpuPathTracing::CleanJobData(BakeJobBase* job)
 {
     auto it = m_jobData.Find(job);
 
@@ -113,7 +115,7 @@ void LightmapRenderer_CpuPathTracing::CleanJobData(LightmapJobBase* job)
     m_jobData.Erase(it);
 }
 
-void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits)
+void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* job, Span<LightmapHit> outHits)
 {
     AssertOnThread(g_renderThread);
 
@@ -134,7 +136,7 @@ void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(Frame* frame, LightmapJobBa
     Memory::MemCpy(outHits.Data(), jobData.hitsBuffer.Data(), jobData.hitsBuffer.ByteSize());
 }
 
-Vec3f LightmapRenderer_CpuPathTracing::EvaluateDiffuseLighting(LightmapJobBase* job, Light* light, const LightShaderData& bufferData, const Vec3f& albedo, const Vec3f& position, const Vec3f& normal)
+Vec3f LightmapRenderer_CpuPathTracing::EvaluateDiffuseLighting(BakeJobBase* job, Light* light, const LightShaderData& bufferData, const Vec3f& albedo, const Vec3f& position, const Vec3f& normal)
 {
     Assert(light != nullptr);
 
@@ -214,7 +216,7 @@ LightmapRenderer_CpuPathTracing::SharedCpuData* LightmapRenderer_CpuPathTracing:
     return sharedCpuData;
 }
 
-void LightmapRenderer_CpuPathTracing::Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
+void LightmapRenderer_CpuPathTracing::Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
     AssertOnThread(g_renderThread);
 
@@ -364,7 +366,7 @@ void LightmapRenderer_CpuPathTracing::Render(Frame* frame, const RenderSetup& re
     job->AddTask(taskBatch);
 }
 
-void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(LightmapJobBase* job, const LightmapRay& ray, LightmapRayHitPayload& outPayload)
+void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(BakeJobBase* job, const LightmapRay& ray, LightmapRayHitPayload& outPayload)
 {
     outPayload.albedo = Vec3f(0.0f);
     outPayload.emissive = Vec3f(0.0f);
@@ -437,7 +439,7 @@ void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(LightmapJobBase* job, 
     }
 }
 
-float LightmapRenderer_CpuPathTracing::TraceShadowRay(LightmapJobBase* job, const Vec3f& pos, const Vec3f& dir, const Vec3f& wi)
+float LightmapRenderer_CpuPathTracing::TraceShadowRay(BakeJobBase* job, const Vec3f& pos, const Vec3f& dir, const Vec3f& wi)
 {
     const float eps = 1e-3f;
     const float sign = dir.Dot(wi) > 0.0f ? 1.0f : -1.0f;
@@ -455,5 +457,7 @@ float LightmapRenderer_CpuPathTracing::TraceShadowRay(LightmapJobBase* job, cons
 }
 
 #pragma endregion LightmapRenderer_CpuPathTracing
+
+} // namespace Baking
 
 } // namespace Hyperion

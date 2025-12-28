@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <lightmapper/Lightmapper.hpp>
+#include <baking/Lightmapper.hpp>
 
 #include <rendering/RenderProxy.hpp>
 
@@ -13,7 +13,7 @@ namespace Hyperion {
 struct LightmapHitsBuffer;
 class LightmapThreadPool;
 class LightmapTopLevelAccelerationStructure;
-class LightmapJobBase;
+class BakeJobBase;
 class LightmapVolume;
 class AssetObject;
 class Light;
@@ -47,6 +47,8 @@ private:
     static uint32 NumThreadsToCreate();
 };
 
+namespace Baking {
+
 class HYP_API LightmapRenderer_CpuPathTracing : public ILightmapRenderer
 {
 public:
@@ -68,9 +70,9 @@ public:
     }
 
     virtual void Create() override;
-    virtual void CleanJobData(LightmapJobBase* job) override;
-    virtual void ReadHitsBuffer(Frame* frame, LightmapJobBase* job, Span<LightmapHit> outHits) override;
-    virtual void Render(Frame* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
+    virtual void CleanJobData(BakeJobBase* job) override;
+    virtual void ReadHitsBuffer(Frame* frame, BakeJobBase* job, Span<LightmapHit> outHits) override;
+    virtual void Render(Frame* frame, const RenderSetup& renderSetup, BakeJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
 
 private:
     struct SharedCpuData
@@ -86,9 +88,9 @@ private:
         volatile int32 numTracingTasks = 0;
     };
 
-    void TraceSingleRayOnCPU(LightmapJobBase* job, const LightmapRay& ray, LightmapRayHitPayload& outPayload);
-    float TraceShadowRay(LightmapJobBase* job, const Vec3f& pos, const Vec3f& dir, const Vec3f& wi);
-    Vec3f EvaluateDiffuseLighting(LightmapJobBase* job, Light* light, const LightShaderData& bufferData, const Vec3f& albedo, const Vec3f& position, const Vec3f& normal);
+    void TraceSingleRayOnCPU(BakeJobBase* job, const LightmapRay& ray, LightmapRayHitPayload& outPayload);
+    float TraceShadowRay(BakeJobBase* job, const Vec3f& pos, const Vec3f& dir, const Vec3f& wi);
+    Vec3f EvaluateDiffuseLighting(BakeJobBase* job, Light* light, const LightShaderData& bufferData, const Vec3f& albedo, const Vec3f& position, const Vec3f& normal);
 
     static SharedCpuData* CreateSharedCpuData(RenderProxyList& rpl);
 
@@ -98,7 +100,9 @@ private:
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;
 
-    HashMap<LightmapJobBase*, JobData, DynamicNodeAllocator> m_jobData;
+    HashMap<BakeJobBase*, JobData, DynamicNodeAllocator> m_jobData;
 };
+
+} // namespace Baking
 
 } // namespace Hyperion

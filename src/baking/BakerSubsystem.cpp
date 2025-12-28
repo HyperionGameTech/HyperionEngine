@@ -2,8 +2,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <lightmapper/LightmapperSubsystem.hpp>
-#include <lightmapper/Lightmapper.hpp>
+#include <baking/BakerSubsystem.hpp>
+#include <baking/Lightmapper.hpp>
 #include <baking/lightmaps/LightmapPathTraceCpu.hpp>
 #include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
@@ -21,29 +21,31 @@
 
 #include <engine/EngineDriver.hpp>
 
-#include <LightmapperSubsystem.generated.inl>
+#include <BakerSubsystem.generated.inl>
 
 namespace Hyperion {
 
-#pragma region LightmapperSubsystem
+using namespace Baking;
 
-LightmapperSubsystem::LightmapperSubsystem()
+#pragma region BakerSubsystem
+
+BakerSubsystem::BakerSubsystem()
 {
 }
 
-void LightmapperSubsystem::OnAddedToWorld()
+void BakerSubsystem::OnAddedToWorld()
 {
     AssertOnThread(g_simThread);
 }
 
-void LightmapperSubsystem::OnRemovedFromWorld()
+void BakerSubsystem::OnRemovedFromWorld()
 {
     AssertOnThread(g_simThread);
 
     m_lightmappers.Clear();
 }
 
-void LightmapperSubsystem::Update(float delta)
+void BakerSubsystem::Update(float delta)
 {
     AssertOnThread(g_simThread);
 
@@ -109,25 +111,25 @@ void LightmapperSubsystem::Update(float delta)
 }
 
 template <>
-Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<LightmapVolume>& source)
+Task<void>* BakerSubsystem::EnqueueBake(const Handle<LightmapVolume>& source)
 {
     return EnqueueBake_Internal(source);
 }
 
 template <>
-Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<ReflectionProbe>& source)
+Task<void>* BakerSubsystem::EnqueueBake(const Handle<ReflectionProbe>& source)
 {
     return EnqueueBake_Internal(source);
 }
 
 template <>
-Task<void>* LightmapperSubsystem::EnqueueBake(const Handle<FogVolume>& source)
+Task<void>* BakerSubsystem::EnqueueBake(const Handle<FogVolume>& source)
 {
     return EnqueueBake_Internal(source);
 }
 
 template <class T, class... Args>
-Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&... args)
+Task<void>* BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&... args)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -168,6 +170,6 @@ Task<void>* LightmapperSubsystem::EnqueueBake_Internal(const Handle<T>& source, 
     return &task;
 }
 
-#pragma endregion LightmapperSubsystem
+#pragma endregion BakerSubsystem
 
 } // namespace Hyperion
