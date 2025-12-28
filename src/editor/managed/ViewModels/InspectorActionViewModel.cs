@@ -2,6 +2,7 @@ using System;
 using System.Windows.Input;
 using System.Threading;
 using Hyperion;
+using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {

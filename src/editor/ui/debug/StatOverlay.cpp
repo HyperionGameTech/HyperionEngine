@@ -166,7 +166,7 @@ void StatOverlay::Update_Impl(float delta)
             countersText += HYP_FORMAT(", DebugDraw: {}", snapshot[g_statDebugDraws].value);
         }
 
-        countersText += HYP_FORMAT(", Tris: {}", snapshot[g_statTriangles].value);
+        countersText += HYP_FORMAT(", Tris: {}", uint64(snapshot[g_statTriangles].value));
         countersText += HYP_FORMAT(", RenderGroups: {}", snapshot[g_statRenderGroups].value);
         countersText += HYP_FORMAT(", Views: {}", snapshot[g_statViews].value);
         countersText += HYP_FORMAT(", Textures: {}", snapshot[g_statTextures].value);

@@ -61,7 +61,6 @@ namespace Hyperion.Editor
             
             if (_viewModel != null)
             {
-                // why is it protected?
                 ((INotifyCollectionChanged)_viewModel.Logs).CollectionChanged -= OnLogsCollectionChanged;
                 _viewModel = null;
             }

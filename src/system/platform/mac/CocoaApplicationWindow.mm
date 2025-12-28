@@ -482,8 +482,8 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
 
             if (m_mouseLocked)
             {
-                CGFloat deltaX = [nsEvent deltaX] * 100.0f;
-                CGFloat deltaY = [nsEvent deltaY] * 100.0f;
+                CGFloat deltaX = [nsEvent deltaX];
+                CGFloat deltaY = [nsEvent deltaY];
                 
                 Vec2i newPos = GetMousePosition() + Vec2i((int)deltaX, (int)deltaY);
                 

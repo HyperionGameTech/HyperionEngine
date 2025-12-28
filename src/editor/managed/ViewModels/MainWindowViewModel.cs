@@ -4,166 +4,12 @@ using System.Threading;
 using System.Windows.Input;
 using Avalonia.Threading;
 using Hyperion;
+using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase, IDisposable
     {
-        private class RelayCommand<T> : ICommand
-        {
-            private readonly Action<T?> _execute;
-            private readonly Func<T?, bool>? _canExecute;
-
-            public RelayCommand(Action<T?> execute, Func<T?, bool>? canExecute = null)
-            {
-                _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-                _canExecute = canExecute;
-            }
-
-            public bool CanExecute(object? parameter) => _canExecute == null || _canExecute((T?)parameter);
-            public void Execute(object? parameter) => _execute((T?)parameter);
-            public event EventHandler? CanExecuteChanged;
-            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        public class EditorCommand : ICommand
-        {
-            private string _name;
-            
-            public EditorCommand(string name)
-            {
-                _name = name;
-            }
-
-            public bool CanExecute(object? parameter) => !string.IsNullOrEmpty(_name);
-            public void Execute(object? parameter) => EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommand" + _name));
-            public event EventHandler? CanExecuteChanged;
-            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private class SetGizmoCommand : ICommand
-        {
-            private EditorManipulationMode _mode;
-
-            public SetGizmoCommand(EditorManipulationMode mode)
-            {
-                _mode = mode;
-            }
-
-            public bool CanExecute(object? parameter) => true; // dont check as it needs to be called on the sim thread
-
-            public void Execute(object? parameter)
-            {
-                EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
-                Debug.Assert(editorSubsystem != null);
-
-                _ = EngineManager.PostToSimThread(() => editorSubsystem.SetSelectedManipulationMode(_mode));
-            }
-
-            public event EventHandler? CanExecuteChanged;
-
-            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private class SetGameModeCommand : ICommand
-        {
-            private static int _isChangingGameMode = 0;
-            private GameStateMode _mode;
-
-            public SetGameModeCommand(GameStateMode mode)
-            {
-                _mode = mode;
-            }
-
-            public bool CanExecute(object? parameter) => true; // TEMP : debug
-                // EngineManager.GameInstance?.World?.GetGameState().Mode != _mode
-                //     && Interlocked.CompareExchange(ref _isChangingGameMode, 0, 0) == 0;
-
-            public void Execute(object? parameter)
-            {
-                if (Interlocked.CompareExchange(ref _isChangingGameMode, 1, 0) != 0)
-                {
-                    Logger.Log(LogType.Warn, "Cannot set game mode; already setting");
-                    return;
-                }
-
-                Game? currentGameInstance = EngineManager.GameInstance;
-                Debug.Assert(currentGameInstance != null);
-
-                Game? gameInstance = currentGameInstance;
-
-                switch (_mode)
-                {
-                    case GameStateMode.Simulating:
-                    {
-                        if (currentGameInstance is HyperionEditorGame hyperionEditorGame)
-                        {
-                            gameInstance = hyperionEditorGame.EditorSubsystem?.CurrentProject?.GameInstance;
-                            Debug.Assert(gameInstance != null, "Failed to get game instance from current project");
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException("Cannot enter Simulating mode when game instance is not HyperionEditorGame");
-                        }
-
-                        EngineManager.InitializeGame(gameInstance);
-
-                        _ = EngineManager.PostToSimThread(() =>
-                        {
-                            try
-                            {
-                                gameInstance.StartSimulating();
-                            }
-                            finally
-                            {
-                                Interlocked.Exchange(ref _isChangingGameMode, 0);
-                            }
-                        });
-
-                        break;
-                    }
-                    case GameStateMode.Paused:
-                        _ = EngineManager.PostToSimThread(() =>
-                        {
-                            try
-                            {
-                                gameInstance.PauseSimulation();
-                            }
-                            finally
-                            {
-                                Interlocked.Exchange(ref _isChangingGameMode, 0);
-                            }
-                        });
-
-                        break;
-                    case GameStateMode.Stopped:
-                        _ = EngineManager.PostToSimThread(() =>
-                        {
-                            gameInstance.StopSimulating();
-
-                            Dispatcher.UIThread.Post(() =>
-                            {
-                                try
-                                {
-                                    EngineManager.InitializeEditor();
-                                }
-                                finally
-                                {
-                                    Interlocked.Exchange(ref _isChangingGameMode, 0);
-                                }
-                            });
-                        });
-                        break;
-                    default:
-                        throw new NotImplementedException();
-                }
-            }
-
-            public event EventHandler? CanExecuteChanged;
-
-            public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-        }
-
         private string _title = "Hyperion Editor";
         public string Title
         {
@@ -512,7 +358,8 @@ namespace Hyperion.Editor.ViewModels
                 }
             });
 
-            Inspector.SetSelectedNode(node);
+            bool isRootNode = SceneHierarchy.IsRootNode(node);
+            Inspector.SetSelectedNode(node, SceneHierarchy.Scene, isRootNode);
         }
 
         private void BindFocusedNodeChanged()
@@ -552,7 +399,8 @@ namespace Hyperion.Editor.ViewModels
                 {
                     Node? validNode = node != null && node.IsValid ? node : null;
 
-                    Inspector.SetSelectedNode(validNode);
+                    bool isRootNode = SceneHierarchy.IsRootNode(validNode);
+                    Inspector.SetSelectedNode(validNode, SceneHierarchy.Scene, isRootNode);
                     SceneHierarchy.SelectNodeFromEngine(validNode);
                 }
                 finally

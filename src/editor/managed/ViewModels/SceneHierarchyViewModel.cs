@@ -27,6 +27,8 @@ namespace Hyperion.Editor.ViewModels
         public event Action<Node?>? SelectedNodeChanged;
 
         private Scene? _scene;
+        public Scene? Scene => _scene;
+
         private DelegateHandler? _onSelectedNodeChanged;
 
         public void AttachToScene(Scene? scene)
@@ -110,6 +112,17 @@ namespace Hyperion.Editor.ViewModels
             {
                 _suppressSelectionNotifications = false;
             }
+        }
+
+        public bool IsRootNode(Node? node)
+        {
+            if (node == null || _scene == null)
+            {
+                return false;
+            }
+
+            Node? root = _scene.RootNode;
+            return root != null && root.NativeAddress == node.NativeAddress;
         }
 
         private static void ExpandAncestors(NodeViewModel node)
