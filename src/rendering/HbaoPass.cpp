@@ -35,7 +35,9 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
 
 struct HBAOUniforms
 {
@@ -92,7 +94,7 @@ void HBAO::Create()
     HYP_SCOPE;
 
     ShaderProperties shaderProperties;
-    shaderProperties.Set(NAME("HBIL_ENABLED"), CoreApi_GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
+    shaderProperties.Set(NAME("HBIL_ENABLED"), CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
 
     if (ShouldRenderHalfRes())
     {

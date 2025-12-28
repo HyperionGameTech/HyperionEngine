@@ -58,7 +58,9 @@ HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 static constexpr bool ShouldCompileMissingVariants = false;
 static constexpr bool ShouldCompileEntireBundle = false; // aggressively compile all permutations defined
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
 
 // #define HYP_SHADER_COMPILER_LOGGING
 
@@ -169,7 +171,7 @@ static String BuildPreamble(
 
 void MergeGlobalShaderProperties(ShaderProperties& properties)
 {
-    static const GlobalConfig& s_globalConfig = CoreApi_GetGlobalConfig();
+    static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
 
 #if defined(HYP_VULKAN) && HYP_VULKAN
     constexpr int VulkanVersion = HYP_VULKAN_API_VERSION;

@@ -7,20 +7,22 @@
 #include <core/config/Config.hpp>
 
 namespace Hyperion {
+namespace CoreApi {
 
-FilePath CoreApi_GetExecutablePath();
-void CoreApi_SetExecutablePath(const FilePath& path);
+FilePath GetExecutablePath();
+void SetExecutablePath(const FilePath& path);
 
-bool CoreApi_Initialize(int argc, char** argv);
+bool Initialize(int argc, char** argv);
 
-const CommandLineArguments& CoreApi_GetCommandLineArguments();
-const CommandLineArgumentDefinitions& CoreApi_DefaultCommandLineArgumentDefinitions();
+const CommandLineArguments& GetCommandLineArguments();
+const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions();
 
-const GlobalConfig& CoreApi_GetGlobalConfig();
-void CoreApi_UpdateGlobalConfig(const ConfigurationTable& mergeValues);
+const GlobalConfig& GetGlobalConfig();
+void UpdateGlobalConfig(const ConfigurationTable& mergeValues);
 
-void CoreApi_OnShutdown(void (*func)());
+void OnShutdown(void (*func)());
 
-void CoreApi_Shutdown();
+void Shutdown();
 
+} // namespace CoreApi
 } // namespace Hyperion

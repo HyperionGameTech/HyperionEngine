@@ -52,7 +52,9 @@ namespace Hyperion {
 static constexpr SizeType VulkanArenaSize = 4 * 1024 * 1024; // 4 MB for general transient allocations
 TArena<RenderAllocator>* g_vulkanArena;
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
@@ -76,8 +78,8 @@ public:
         uniqueDrawCallPerMaterial = true;
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         raytracing = renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported();
-        indirectRendering = CoreApi_GetGlobalConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
-        parallelRendering = CoreApi_GetGlobalConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+        indirectRendering = CoreApi::GetGlobalConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
+        parallelRendering = CoreApi::GetGlobalConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
         dynamicDescriptorIndexing = false; // renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
     }
 };
@@ -651,7 +653,7 @@ AsyncComputeBase* VulkanRenderBackend::GetAsyncCompute() const
 RendererResult VulkanRenderBackend::Initialize()
 {
 #ifdef HYP_DEBUG_MODE
-    static const ConfigurationValue& s_cfgDebugLayers = CoreApi_GetGlobalConfig().Get("Rendering.Vulkan.DebugLayers");
+    static const ConfigurationValue& s_cfgDebugLayers = CoreApi::GetGlobalConfig().Get("Rendering.Vulkan.DebugLayers");
 
     if (s_cfgDebugLayers.ToBool(false))
     {

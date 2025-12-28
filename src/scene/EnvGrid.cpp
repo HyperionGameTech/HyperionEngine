@@ -30,7 +30,9 @@
 
 namespace Hyperion {
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
 
 static constexpr Vec2u ShProbeDimensions { 256, 256 };
 
@@ -309,7 +311,7 @@ void LegacyEnvGrid::Update(float delta)
     AssertReady();
 
 #ifdef HYP_DEBUG_MODE
-    static const ConfigurationValue& s_cfgDebugDrawProbes = CoreApi_GetGlobalConfig().Get("Rendering.Debug.DebugDrawer.EnvGridProbes");
+    static const ConfigurationValue& s_cfgDebugDrawProbes = CoreApi::GetGlobalConfig().Get("Rendering.Debug.DebugDrawer.EnvGridProbes");
 
     // Debug draw
     if (s_cfgDebugDrawProbes.ToBool(false))

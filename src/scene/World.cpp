@@ -61,7 +61,9 @@ namespace Hyperion {
 // if the number of systems in a group is less than this value, they will be executed sequentially
 static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
 
-extern const GlobalConfig& CoreApi_GetGlobalConfig();
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
 
 static const Name s_nameStreamingLayerScenes = NAME("Scenes_Layer");
 static const Name s_nameUnnamedWorld = NAME("<unnamed world>");
@@ -184,7 +186,7 @@ void World::Init()
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
     // (for example there could be some stuff behind the player we want to see reflections of)
-    if (CoreApi_GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool(false))
+    if (CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool(false))
     {
         // dummy output target
         ViewOutputTargetDesc outputTargetDesc {

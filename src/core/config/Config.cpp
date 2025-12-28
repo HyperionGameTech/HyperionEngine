@@ -21,7 +21,9 @@
 
 namespace Hyperion {
 
-extern FilePath CoreApi_GetExecutablePath();
+namespace CoreApi {
+extern FilePath GetExecutablePath();
+} // namespace CoreApi
 
 namespace config {
 
@@ -112,7 +114,7 @@ bool ConfigurationTable::IsChanged() const
 
 FilePath ConfigurationTable::GetFilePath() const
 {
-    FilePath configPath = CoreApi_GetExecutablePath() / m_name;
+    FilePath configPath = CoreApi::GetExecutablePath() / m_name;
 
     if (!configPath.EndsWith(".json"))
     {
