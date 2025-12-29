@@ -1,6 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/dll/DynamicLibrary.hpp>
+
+#include <core/containers/HashMap.hpp>
+
+#include <core/memory/UniquePtr.hpp>
+
+#include <core/threading/Mutex.hpp>
+
 #include <core/Defines.hpp>
 
 #ifdef HYP_WINDOWS
@@ -10,15 +17,13 @@
 #include <dlfcn.h>
 #endif
 
-#ifndef HYP_BUILDTOOL
-#include <DynamicLibrary.generated.inl>
-#endif
-
 namespace Hyperion {
+
+#pragma region DynamicLibraryImpl
 
 struct DynamicLibraryImpl
 {
-    String path;
+    PlatformString path;
     UIntPtr handle;
 
     DynamicLibraryImpl()
@@ -32,8 +37,12 @@ struct DynamicLibraryImpl
     }
 };
 
-DynamicLibrary::DynamicLibrary(const String& path)
-    : m_impl(MakeRefCountedPtr<DynamicLibraryImpl>())
+#pragma endregion DynamicLibraryImpl
+
+#pragma region DynamicLibrary
+
+DynamicLibrary::DynamicLibrary(const PlatformString& path)
+    : m_impl(MakePimpl<DynamicLibraryImpl>())
 {
     m_impl->path = path;
 }
@@ -52,21 +61,21 @@ DynamicLibrary::~DynamicLibrary()
 #endif
 }
 
-const String& DynamicLibrary::GetPath() const
+const PlatformString& DynamicLibrary::GetPath() const
 {
     if (!m_impl)
     {
-        return String::empty;
+        return PlatformString::empty;
     }
 
     return m_impl->path;
 }
 
-void DynamicLibrary::SetPath(const String& path)
+void DynamicLibrary::SetPath(const PlatformString& path)
 {
     if (!m_impl)
     {
-        m_impl = MakeRefCountedPtr<DynamicLibraryImpl>();
+        m_impl = MakePimpl<DynamicLibraryImpl>();
         m_impl->path = path;
 
         return;
@@ -88,9 +97,7 @@ bool DynamicLibrary::Load()
     }
 
 #ifdef HYP_WINDOWS
-    WideString wpath = m_impl->path.ToWide();
-
-    HMODULE handle = reinterpret_cast<HMODULE>(LoadLibraryW(wpath.Data()));
+    HMODULE handle = reinterpret_cast<HMODULE>(LoadLibraryW(m_impl->path.Data()));
 
     if (!handle)
     {
@@ -128,6 +135,50 @@ UIntPtr DynamicLibrary::GetFunction(const char* name) const
 #else
     return 0;
 #endif
+}
+
+#pragma endregion DynamicLibrary
+
+#pragma region DynamicLibraryCacheImpl
+
+struct DynamicLibraryCacheImpl
+{
+    Mutex mutex;
+    HashMap<PlatformString, UniquePtr<DynamicLibrary>> libraries;
+};
+
+#pragma endregion DynamicLibraryCacheImpl
+
+#pragma region DynamicLibraryCache
+
+DynamicLibraryCache& DynamicLibraryCache::GetInstance()
+{
+    static DynamicLibraryCache s_instance;
+
+    return s_instance;
+}
+
+DynamicLibrary* DynamicLibraryCache::LoadLibrary(PlatformStringView path)
+{
+    Mutex::Guard guard(m_impl->mutex);
+
+    auto it = m_impl->libraries.FindAs(path);
+
+    if (it != m_impl->libraries.End())
+    {
+        return &(*it);
+    }
+
+    UniquePtr<DynamicLibrary> library = MakeUnique<DynamicLibrary>(PlatformString(path));
+
+    if (!library->Load())
+    {
+        return nullptr;
+    }
+
+    auto insertResult = m_impl->libraries.Insert(path, std::move(library));
+
+    return insertResult.first->second.Get();
 }
 
 } // namespace Hyperion

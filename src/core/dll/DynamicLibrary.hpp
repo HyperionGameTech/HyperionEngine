@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <core/memory/Pimpl.hpp>
 
 #include <core/containers/String.hpp>
 
@@ -10,36 +10,41 @@
 
 namespace Hyperion {
 
-HYP_STRUCT(Size = 8)
 class HYP_API DynamicLibrary
 {
 public:
-    HYP_STRUCT_BODY(DynamicLibrary);
-
     DynamicLibrary() = default;
 
-    explicit DynamicLibrary(const String& path);
+    explicit DynamicLibrary(const PlatformString& path);
 
-    DynamicLibrary(const DynamicLibrary&) = default;
-    DynamicLibrary& operator=(const DynamicLibrary&) = default;
+    DynamicLibrary(const DynamicLibrary&) = delete;
+    DynamicLibrary& operator=(const DynamicLibrary&) = delete;
+
     DynamicLibrary(DynamicLibrary&&) noexcept = default;
     DynamicLibrary& operator=(DynamicLibrary&&) noexcept = default;
+
     ~DynamicLibrary();
 
-    HYP_METHOD()
-    const String& GetPath() const;
+    const PlatformString& GetPath() const;
+    void SetPath(const PlatformString& path);
 
-    HYP_METHOD()
-    void SetPath(const String& path);
-
-    HYP_METHOD()
     bool Load();
 
-    HYP_METHOD()
     UIntPtr GetFunction(const char* name) const;
 
 private:
-    RC<struct DynamicLibraryImpl> m_impl;
+    Pimpl<struct DynamicLibraryImpl> m_impl;
+};
+
+class DynamicLibraryCache
+{
+public:
+    static DynamicLibraryCache& GetInstance();
+
+    DynamicLibrary* LoadLibrary(PlatformStringView path);
+
+private:
+    Pimpl<struct DynamicLibraryCacheImpl> m_impl;
 };
 
 } // namespace Hyperion

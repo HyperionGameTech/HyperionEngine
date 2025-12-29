@@ -97,6 +97,7 @@ using UTF8StringView = StringView<StringType::UTF8>;
 using UTF16StringView = StringView<StringType::UTF16>;
 using UTF32StringView = StringView<StringType::UTF32>;
 using WideStringView = StringView<StringType::WIDE_CHAR>;
+using PlatformStringView = StringView<std::is_same_v<TChar, wchar_t> ? StringType::WIDE_CHAR : StringType::UTF8>;
 
 // traits
 
