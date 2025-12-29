@@ -1154,7 +1154,7 @@ void BeginFrameRender()
 
     g_engineStats->Prepare();
 
-    HYP_GFX_ASSERT(RenderCommands::Flush());
+    RenderCommands::Flush();
 
     for (auto it = fd.viewFrameData.Begin(); it != fd.viewFrameData.End(); ++it)
     {
