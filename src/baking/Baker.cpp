@@ -24,7 +24,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <asset/TextureAsset.hpp>
+#include <rendering/asset/TextureAsset.hpp>
 
 #include <scene/BVH.hpp>
 #include <scene/World.hpp>

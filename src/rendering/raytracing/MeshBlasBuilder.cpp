@@ -14,7 +14,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <asset/MeshAsset.hpp>
+#include <rendering/asset/MeshAsset.hpp>
 #include <asset/AssetRegistry.hpp>
 
 #include <core/reflection/Handle.hpp>

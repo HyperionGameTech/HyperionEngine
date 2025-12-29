@@ -21,7 +21,7 @@
 
 #include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
-#include <asset/MeshAsset.hpp>
+#include <rendering/asset/MeshAsset.hpp>
 
 #include <cstdint>
 

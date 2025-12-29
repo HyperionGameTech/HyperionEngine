@@ -1,8 +1,8 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <AssetPch.hpp>
+#include <ScenePch.hpp>
 
-#include <asset/SkeletonAsset.hpp>
+#include <scene/asset/SkeletonAsset.hpp>
 
 #include <scene/animation/Animation.hpp>
 

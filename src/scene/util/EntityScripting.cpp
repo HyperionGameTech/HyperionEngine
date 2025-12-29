@@ -12,7 +12,7 @@
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <asset/ScriptAsset.hpp>
+#include <scripting/asset/ScriptAsset.hpp>
 
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>

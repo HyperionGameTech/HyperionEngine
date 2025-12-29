@@ -4,37 +4,39 @@
 
 #include <audio/AudioManager.hpp>
 
+#include <engine/EngineGlobals.hpp>
+
+#include <AudioManager.generated.inl>
+
 namespace Hyperion {
 
-AudioManager& AudioManager::GetInstance()
+const Handle<AudioManager>& AudioManager::GetInstance()
 {
-    static AudioManager s_instance;
-
-    return s_instance;
+    return g_audioManager;
 }
 
 AudioManager::AudioManager()
-    : m_isInitialized(false)
 {
 }
 
 AudioManager::~AudioManager()
 {
-    if (m_isInitialized)
+    if (IsReady())
     {
-        Shutdown();
+        alcMakeContextCurrent(NULL);
+        alcDestroyContext(m_context);
+        alcCloseDevice(m_device);
     }
 }
 
-bool AudioManager::Initialize()
+void AudioManager::Init()
 {
     m_device = alcOpenDevice(NULL);
     if (!m_device)
     {
         HYP_LOG(Audio, Error, "Failed to open OpenAL device!");
 
-        m_isInitialized = false;
-        return false;
+        return;
     }
 
     m_context = alcCreateContext(m_device, NULL);
@@ -43,8 +45,7 @@ bool AudioManager::Initialize()
     {
         HYP_LOG(Audio, Error, "Failed to open OpenAL context!");
 
-        m_isInitialized = false;
-        return false;
+        return;
     }
 
     ALfloat orientation[] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
@@ -52,20 +53,7 @@ bool AudioManager::Initialize()
     alListener3f(AL_VELOCITY, 0, 0, 0);
     alListenerfv(AL_ORIENTATION, orientation);
 
-    m_isInitialized = true;
-    return true;
-}
-
-void AudioManager::Shutdown()
-{
-    if (m_isInitialized)
-    {
-        alcMakeContextCurrent(NULL);
-        alcDestroyContext(m_context);
-        alcCloseDevice(m_device);
-    }
-
-    m_isInitialized = false;
+    SetReady(true);
 }
 
 Array<String> AudioManager::ListDevices() const

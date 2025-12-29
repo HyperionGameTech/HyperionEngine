@@ -33,7 +33,7 @@ foreach(filepath ${hyperion-baking_HEADERS})
     list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
-add_library(${BUILD_NAME} SHARED ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
@@ -41,4 +41,5 @@ if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
 endif()
 
 add_dependencies(${BUILD_NAME} hyperion-core hyperion-scene hyperion-rendering)
-target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core hyperion-scene hyperion-rendering)
+target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)
+target_link_libraries(${BUILD_NAME} PUBLIC hyperion-scene hyperion-rendering)

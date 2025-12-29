@@ -6,7 +6,7 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetBatch.hpp>
 #include <asset/AssetRegistry.hpp>
-#include <asset/TextureAsset.hpp>
+#include <rendering/asset/TextureAsset.hpp>
 
 #include <rendering/Texture.hpp>
 
