@@ -290,53 +290,83 @@ public:
     {
     }
 
-    Value(String string)
-        : m_inner(JSString(std::move(string)))
+    /// UTF-8
+
+    Value(String str)
+        : m_inner(JSString(std::move(str)))
     {
     }
 
-    Value(ANSIString string)
-        : m_inner(JSString(std::move(string)))
+    Value(const UTF8StringView& str)
+        : Value(JSString(str))
     {
     }
 
-    Value(UTF16String string)
-        : m_inner(JSString(std::move(string)))
+    Value(const utf::Char8* str)
+        : Value(UTF8StringView(str))
     {
     }
 
-    Value(UTF32String string)
-        : m_inner(JSString(std::move(string)))
+    /// ANSI
+
+    Value(const ANSIString& str)
+        : m_inner(JSString(str))
     {
     }
 
-    Value(WideString string)
-        : m_inner(JSString(std::move(string)))
+    Value(const ANSIStringView& str)
+        : Value(JSString(str))
     {
     }
 
-    Value(ANSIStringView string)
-        : Value(JSString(string))
+    /// UTF-16
+
+    Value(const UTF16String& str)
+        : m_inner(JSString(str))
     {
     }
 
-    Value(UTF8StringView string)
-        : Value(JSString(string))
+    Value(const UTF16StringView& str)
+        : Value(JSString(str))
     {
     }
 
-    Value(UTF16StringView string)
-        : Value(JSString(string))
+    Value(const utf::Char16* str)
+        : Value(UTF16StringView(str))
     {
     }
 
-    Value(UTF32StringView string)
-        : Value(JSString(string))
+    /// UTF-32
+
+    Value(const UTF32String& str)
+        : m_inner(JSString(str))
     {
     }
 
-    Value(WideStringView string)
-        : Value(JSString(string))
+    Value(const UTF32StringView& str)
+        : Value(JSString(str))
+    {
+    }
+
+    Value(const utf::Char32* str)
+        : Value(UTF32StringView(str))
+    {
+    }
+
+    /// Wide
+
+    Value(const WideString& str)
+        : m_inner(JSString(str))
+    {
+    }
+
+    Value(const WideStringView& str)
+        : Value(JSString(str))
+    {
+    }
+
+    Value(const wchar_t* str)
+        : Value(WideStringView(str))
     {
     }
 

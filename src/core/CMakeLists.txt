@@ -90,7 +90,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/generated
 )
 
-set(SOURCES ${SOURCES} ${CMAKE_SOURCE_DIR}/thirdparty/tlsf/tlsf.c)
+set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/tlsf/tlsf.c)
 
 add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})

@@ -5,6 +5,9 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstConstant.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
+#include <script/compiler/ast/AstAsExpression.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/Operator.hpp>
 #include <script/compiler/Optimizer.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -36,8 +39,6 @@ AstUnaryExpression::AstUnaryExpression(
 
 void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 {
-    // TODO: Operator overloading
-
     // use a bin op for operators that modify their argument
     if (m_op->ModifiesValue())
     {
@@ -90,43 +91,6 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
         m_overrideBlock->Visit(visitor, mod);
 
-        return;
-    }
-
-    m_expr->Visit(visitor, mod);
-
-    const SymbolType* type = m_expr->GetExprType();
-    Assert(type != nullptr);
-
-    if (!type->IsAnyType() && !type->IsGenericParameter())
-    {
-        if (m_op->GetType() & BITWISE)
-        {
-            // no bitwise operators on floats allowed.
-            // do not allow right-hand side to be 'any', because it might change the data type.
-            visitor->AddErrorIfFalse(
-                type->IsIntegral(),
-                CompilerError(
-                    LEVEL_ERROR,
-                    Msg_bitwise_operand_must_be_int,
-                    m_expr->GetLocation(),
-                    type->ToString()));
-        }
-        else if (m_op->GetType() & ARITHMETIC)
-        {
-            visitor->AddErrorIfFalse(
-                type->IsNumber(),
-                CompilerError(
-                    LEVEL_ERROR,
-                    Msg_invalid_operator_for_type,
-                    m_expr->GetLocation(),
-                    m_op->GetOperatorType(),
-                    type->ToString()));
-        }
-    }
-
-    if (m_op->ModifiesValue())
-    {
         if (!m_expr->IsMutable())
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -143,6 +107,63 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
                 Msg_cannot_modify_rvalue,
                 m_expr->GetLocation()));
         }
+
+        return;
+    }
+
+    m_expr->Visit(visitor, mod);
+
+    const SymbolType* type = m_expr->GetExprType();
+    Assert(type != nullptr);
+
+    if (m_op->GetType() & BITWISE)
+    {
+        // no bitwise operators on floats allowed.
+        visitor->AddErrorIfFalse(
+            type->IsAnyType() || type->IsIntegral() || type->IsEnumType(),
+            CompilerError(
+                LEVEL_ERROR,
+                Msg_bitwise_operand_must_be_int,
+                m_location,
+                type->ToString()));
+    }
+    else if (m_op->GetType() & ARITHMETIC)
+    {
+        visitor->AddErrorIfFalse(
+            type->IsAnyType() || type->IsNumber(),
+            CompilerError(
+                LEVEL_ERROR,
+                Msg_invalid_operator_for_type,
+                m_expr->GetLocation(),
+                m_op->GetOperatorType(),
+                type->ToString()));
+    }
+    else if (m_op->GetType() & LOGICAL)
+    {
+        // @TODO
+        // If it is not boolean, we need to cast it to boolean via an AS expr
+
+        // if (!type->IsBoolean())
+        // {
+        //     m_expr = RC<AstAsExpression>(new AstAsExpression(
+        //         CloneAstNode(m_expr),
+        //         RC<AstTypeSpecifier>(new AstTypeSpecifier(
+        //             RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_boolType, m_location)),
+        //             m_location)),
+        //         m_location));
+
+        //     m_expr->Visit(visitor, mod);
+        // }
+
+        // For now just ensure it's a boolean or any
+        visitor->AddErrorIfFalse(
+            type->IsAnyType() || type->IsBoolean(),
+            CompilerError(
+                LEVEL_ERROR,
+                Msg_invalid_operator_for_type,
+                m_expr->GetLocation(),
+                m_op->GetOperatorType(),
+                type->ToString()));
     }
 }
 
@@ -166,23 +187,11 @@ UniquePtr<Buildable> AstUnaryExpression::Build(AstVisitor* visitor, Module* mod)
     {
         uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        if (m_op->GetType() & ARITHMETIC)
+        if (m_op->GetType() & LOGICAL)
         {
-            uint8 opcode = 0;
-
-            if (m_op->GetOperatorType() == Operators::OP_negative)
+            switch (m_op->GetOperatorType())
             {
-                opcode = NEG;
-            }
-
-            auto oper = BytecodeUtil::Make<RawOperation<>>();
-            oper->opcode = opcode;
-            oper->Accept<uint8>(rp);
-            chunk->Append(std::move(oper));
-        }
-        else if (m_op->GetType() & LOGICAL)
-        {
-            if (m_op->GetOperatorType() == Operators::OP_logical_not)
+            case Operators::OP_logical_not:
             {
                 // the label to jump to the very end, and set the result to false
                 LabelId falseLabel = contextGuard->NewLabel();
@@ -214,15 +223,33 @@ UniquePtr<Buildable> AstUnaryExpression::Build(AstVisitor* visitor, Module* mod)
 
                 // skip to here to avoid loading 'true' into the register
                 chunk->Append(BytecodeUtil::Make<LabelMarker>(falseLabel));
+
+                break;
             }
-            else
-            {
-                Assert(false, "Operator not implemented: %s", Operator::FindUnaryOperator(m_op->GetOperatorType())->LookupStringValue().Data());
+            default:
+                HYP_NOT_IMPLEMENTED();
             }
         }
         else
         {
-            Assert(false, "Operator not implemented %s", Operator::FindUnaryOperator(m_op->GetOperatorType())->LookupStringValue().Data());
+            uint8 opcode = 0;
+
+            switch (m_op->GetOperatorType())
+            {
+            case Operators::OP_negative:
+                opcode = NEG;
+                break;
+            case Operators::OP_bitwise_complement:
+                opcode = NOT;
+                break;
+            default:
+                HYP_NOT_IMPLEMENTED();
+            }
+
+            auto oper = BytecodeUtil::Make<RawOperation<>>();
+            oper->opcode = opcode;
+            oper->Accept<uint8>(rp);
+            chunk->Append(std::move(oper));
         }
     }
 
@@ -243,18 +270,20 @@ void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
     if (!m_folded)
     {
         // only try ConstantFold if we aren't already folded
-        // otherwise, we may double fold and mess up the value (e.g. --5 becomes 5)
+        // otherwise, we may double fold and apply the op twice (e.g. -5 with the `-` applied again, becomes 5)
 
         if (m_op->GetOperatorType() == Operators::OP_positive)
         {
-            // nothing to do for unary plus
+            // nothing to do for unary plus; just consider it folded
+
+            m_folded = true;
         }
         else if (RC<AstConstant> constantValue = Optimizer::ConstantFold(m_expr, nullptr, m_op->GetOperatorType(), visitor))
         {
             m_expr = constantValue;
-        }
 
-        m_folded = true;
+            m_folded = true;
+        }
     }
 }
 

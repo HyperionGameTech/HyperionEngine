@@ -48,8 +48,8 @@ add_definitions(-DHYP_BUILD_TOOL_VERSION_PATCH=${HYP_BUILD_TOOL_VERSION_PATCH})
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
 
-file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
-file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
+file(GLOB_RECURSE BUILD_TOOL_SOURCES "*.cpp" "*.cc" "*.c")
+file(GLOB_RECURSE BUILD_TOOL_HEADERS "*.h" "*.hpp")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
@@ -59,10 +59,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/../src/core
 )
 
-# need tlsf for memory management
-set(SOURCES ${SOURCES} ${CMAKE_SOURCE_DIR}/../thirdparty/tlsf/tlsf.c)
 
-add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
+add_executable(${BUILD_NAME} ${BUILD_TOOL_SOURCES} ${BUILD_TOOL_HEADERS})
 
 if(MSVC)
     set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
