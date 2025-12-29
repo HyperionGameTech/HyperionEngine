@@ -52,7 +52,7 @@
 namespace Hyperion {
 
 namespace Json {
-class JSONValue;
+class Value;
 } // namespace Json
 
 struct BoxedValue;
@@ -355,11 +355,11 @@ public:
 #pragma endregion String
 
 #pragma region JSON
-    FBOMResult ToJSON(FBOMLoadContext& context, json::JSONValue& outJson) const;
+    FBOMResult ToJSON(FBOMLoadContext& context, Json::Value& outJson) const;
 
-    static FBOMData FromJSON(const json::JSONValue& jsonValue);
+    static FBOMData FromJSON(const Json::Value& jsonValue);
 
-    explicit FBOMData(const json::JSONValue& jsonValue);
+    explicit FBOMData(const Json::Value& jsonValue);
 #pragma endregion JSON
 
 #pragma region ByteBuffer

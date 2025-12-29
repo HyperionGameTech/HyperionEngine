@@ -25,38 +25,6 @@
 namespace Hyperion {
 namespace utf {
 
-#ifdef _WIN32
-
-inline Array<wchar_t> ToWide(const char* str)
-{
-    Array<wchar_t> buffer;
-    buffer.Resize(MultiByteToWideChar(CP_UTF8, 0, str, -1, 0, 0));
-    MultiByteToWideChar(CP_UTF8, 0, str, -1, &buffer[0], int(buffer.Size()));
-
-    return buffer;
-}
-
-inline Array<char> ToMultiByte(const wchar_t* wstr)
-{
-    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
-
-    Array<char> buffer;
-    buffer.Resize(sizeNeeded);
-
-    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, &buffer[0], sizeNeeded, NULL, NULL);
-
-    return buffer;
-}
-
-#define HYP_UTF8_WIDE
-#define HYP_UTF8_TOWIDE(str) utf::ToWide(str).Data()
-#define HYP_UTF8_TOMULTIBYTE(str) utf::ToMultiByte(str).Data()
-
-#else
-#define HYP_UTF8_TOWIDE(str) (str)
-#define HYP_UTF8_TOMULTIBYTE(str) (str)
-#endif
-
 // #define HYP_UTF8_CHECKED
 
 #define HYP_UTF8_ASSERT(cond)      \
@@ -118,7 +86,7 @@ constexpr inline bool IsAlphabetical(Char32 ch)
     return (ch >= 0xC0) || ((ch >= Char32('A') && ch <= Char32('Z')) || (ch >= Char32('a') && ch <= Char32('z')));
 }
 
-constexpr inline SizeType StringLength(const char* first, const char* last)
+constexpr inline SizeType StringLength(const Char8* first, const Char8* last)
 {
     if (first == last)
     {
@@ -130,7 +98,7 @@ constexpr inline SizeType StringLength(const char* first, const char* last)
 
     for (; first[codepoints] != '\0' && (first + codepoints) != last; count++)
     {
-        const char c = first[codepoints];
+        const Char8 c = first[codepoints];
 
         if (c >= 0 && c <= 127)
             codepoints += 1;
@@ -147,7 +115,7 @@ constexpr inline SizeType StringLength(const char* first, const char* last)
     return count;
 }
 
-constexpr inline SizeType StringLength(const char* first, const char* last, SizeType& outCodepoints)
+constexpr inline SizeType StringLength(const Char8* first, const Char8* last, SizeType& outCodepoints)
 {
     if (first == last)
     {
@@ -161,7 +129,7 @@ constexpr inline SizeType StringLength(const char* first, const char* last, Size
 
     for (; first[codepoints] != '\0' && (first + codepoints) != last; count++)
     {
-        const char c = first[codepoints];
+        const Char8 c = first[codepoints];
 
         if (c >= 0 && c <= 127)
             codepoints += 1;
@@ -180,14 +148,14 @@ constexpr inline SizeType StringLength(const char* first, const char* last, Size
     return count;
 }
 
-constexpr inline SizeType StringLength(const char* str, SizeType& outCodepoints)
+constexpr inline SizeType StringLength(const Char8* str, SizeType& outCodepoints)
 {
     SizeType count = 0;
     SizeType codepoints = 0;
 
     for (; str[codepoints] != '\0'; count++)
     {
-        const char c = str[codepoints];
+        const Char8 c = str[codepoints];
 
         if (c >= 0 && c <= 127)
             codepoints += 1;
@@ -251,20 +219,20 @@ static inline constexpr SizeType StringLength(const T* str, SizeType& outCodepoi
     }
 }
 
-static inline int StringCompare(const char* s1, const char* s2, SizeType count)
+static inline int StringCompare(const Char8* s1, const Char8* s2, SizeType count)
 {
     for (SizeType i = 0; (*s1 || *s2) && (i < count || count == 0); i++)
     {
         unsigned char c;
 
         Char32 c1 = 0;
-        char* c1Bytes = reinterpret_cast<char*>(&c1);
+        ubyte* c1Bytes = reinterpret_cast<ubyte*>(&c1);
 
         Char32 c2 = 0;
-        char* c2Bytes = reinterpret_cast<char*>(&c2);
+        ubyte* c2Bytes = reinterpret_cast<ubyte*>(&c2);
 
         // get the character for s1
-        c = (unsigned char)*s1;
+        c = (ubyte)*s1;
 
         if (c >= 0 && c <= 127)
         {
@@ -290,7 +258,7 @@ static inline int StringCompare(const char* s1, const char* s2, SizeType count)
         }
 
         // get the character for s2
-        c = (unsigned char)*s2;
+        c = (ubyte)*s2;
 
         if (c >= 0 && c <= 127)
         {
@@ -360,94 +328,22 @@ static inline int StringCompare(const T* lhs, const T* rhs)
     return StringCompare<T, IsUtf8>(lhs, rhs, 0);
 }
 
-#if 0
-inline char *utf8Strncpy(char *dst, const char *src, size_t n)
-{
-    size_t i = 0;
-    size_t count = 0;
-
-    for (; src[i] != '\0' && count < n; i++, count++) {
-        unsigned char c = (unsigned char)src[i];
-
-        if (c >= 0 && c <= 127) {
-            dst[i] = src[i];
-        } else if ((c & 0xE0) == 0xC0) {
-            dst[i] = src[i];
-            dst[i + 1] = src[i + 1];
-            i += 1;
-        } else if ((c & 0xF0) == 0xE0) {
-            dst[i] = src[i];
-            dst[i + 1] = src[i + 1];
-            dst[i + 2] = src[i + 2];
-            i += 2;
-        } else if ((c & 0xF8) == 0xF0) {
-            dst[i] = src[i];
-            dst[i + 1] = src[i + 1];
-            dst[i + 2] = src[i + 2];
-            dst[i + 3] = src[i + 3];
-            i += 3;
-        } else {
-            break; // invalid utf-8
-        }
-    }
-
-    // fill rest with NUL bytes
-    for (; i < max; i++) {
-        dst[i] = '\0';
-    }
-
-    return dst;
-}
-
-inline Char32 *utf32Strncpy(Char32 *s1, const Char32 *s2, size_t n)
-{
-    Char32 *s = s1;
-    while (n > 0 && *s2 != '\0') {
-        *s++ = *s2++;
-        --n;
-    }
-    while (n > 0) {
-        *s++ = '\0';
-        --n;
-    }
-    return s1;
-}
-
-inline char *utf8Strcat(char *dst, const char *src)
-{
-    while (*dst) {
-        dst++;
-    }
-    while ((*dst++ = *src++));
-    return --dst;
-}
-
-inline Char32 *utf32Strcat(Char32 *dst, const Char32 *src)
-{
-    while (*dst) {
-        dst++;
-    }
-    while ((*dst++ = *src++));
-    return --dst;
-}
-#endif
-
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
  *   \p str _must_ be at least sizeof(Char32)
  */
-static inline Char32 Char8to32(const char* str)
+static inline Char32 Char8to32(const Char8* str)
 {
     union
     {
         Char32 ret;
-        char retBytes[sizeof(Char32)];
+        Char8 retBytes[sizeof(Char32)];
     };
 
     ret = 0;
 
     Hyperion::uint32 i = 0;
 
-    const unsigned char ch = (unsigned char)str[0];
+    const uint8 ch = (uint8)str[0];
 
     if (ch <= 0x7F)
     {
@@ -489,19 +385,19 @@ static inline Char32 Char8to32(const char* str)
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
  *   \p str _must_ be at least the the size of `max` (defaults to sizeof(Char32))
  */
-static inline Char32 Char8to32(const char* str, SizeType max, SizeType& outCodepoints)
+static inline Char32 Char8to32(const Char8* str, SizeType max, SizeType& outCodepoints)
 {
     union
     {
         Char32 ret;
-        char retBytes[sizeof(Char32)];
+        Char8 retBytes[sizeof(Char32)];
     };
 
     ret = 0;
 
     outCodepoints = 0;
 
-    const unsigned char ch = (unsigned char)str[0];
+    const uint8 ch = (uint8)str[0];
 
     if (ch <= 0x7F)
     {
@@ -550,7 +446,7 @@ static inline void Char32to8(Char32 src, Char8* dst, SizeType& outCodepoints)
 
     outCodepoints = 0;
 
-    const char* srcBytes = reinterpret_cast<char*>(&src);
+    const ubyte* srcBytes = reinterpret_cast<ubyte*>(&src);
 
     if (HYP_UNLIKELY(!*srcBytes))
         return;
@@ -570,6 +466,361 @@ static inline void Char32to8(Char32 src, Char8* dst)
 {
     SizeType codepoints = 0;
     Char32to8(src, dst, codepoints);
+}
+
+#define HYP_UTF_MASK16(ch) ((uint16_t)(0xffff & (ch)))
+#define HYP_UTF_IS_LEAD_SURROGATE(ch) ((ch) >= 0xd800u && (ch) <= 0xdbffu)
+#define HYP_UTF_IS_TRAIL_SURROGATE(ch) ((ch) >= 0xdc00u && (ch) <= 0xdfffu)
+#define HYP_UTF_SURROGATE_OFFSET (0x10000u - (0xd800u << 10) - 0xdc00u)
+
+/*! \brief Convert a single UTF-16 character (possibly a surrogate pair) into a single UTF-32 char.
+ *   \p str must point to at least one valid Char16, and two if it starts with a lead surrogate.
+ */
+static inline Char32 Char16to32(const Char16* str)
+{
+    const uint32 cp = HYP_UTF_MASK16(*str);
+
+    if (HYP_UTF_IS_LEAD_SURROGATE(cp))
+    {
+        const uint32 trailSurrogate = HYP_UTF_MASK16(*(str + 1));
+
+        if (!HYP_UTF_IS_TRAIL_SURROGATE(trailSurrogate))
+        {
+            // Invalid surrogate pair
+            return Char32(-1);
+        }
+
+        return Char32((cp << 10) + trailSurrogate + HYP_UTF_SURROGATE_OFFSET);
+    }
+    else if (HYP_UTF_IS_TRAIL_SURROGATE(cp))
+    {
+        // Lone trail surrogate is invalid
+        return Char32(-1);
+    }
+
+    return Char32(cp);
+}
+
+/*! \brief Convert a single UTF-16 character (possibly a surrogate pair) into a single UTF-32 char.
+ *   \p str must be at least the size of \p max.
+ *   \p outCodeUnits will be set to the number of UTF-16 code units consumed (1 or 2).
+ */
+static inline Char32 Char16to32(const Char16* str, SizeType max, SizeType& outCodeUnits)
+{
+    outCodeUnits = 0;
+
+    if (max == 0)
+    {
+        return Char32(-1);
+    }
+
+    const uint32 cp = HYP_UTF_MASK16(*str);
+
+    if (HYP_UTF_IS_LEAD_SURROGATE(cp))
+    {
+        if (max < 2)
+        {
+            // Not enough space for surrogate pair
+            return Char32(-1);
+        }
+
+        const uint32 trailSurrogate = HYP_UTF_MASK16(*(str + 1));
+
+        if (!HYP_UTF_IS_TRAIL_SURROGATE(trailSurrogate))
+        {
+            // Invalid surrogate pair
+            return Char32(-1);
+        }
+
+        outCodeUnits = 2;
+        return Char32((cp << 10) + trailSurrogate + HYP_UTF_SURROGATE_OFFSET);
+    }
+    else if (HYP_UTF_IS_TRAIL_SURROGATE(cp))
+    {
+        // Lone trail surrogate is invalid
+        return Char32(-1);
+    }
+
+    outCodeUnits = 1;
+    return Char32(cp);
+}
+
+/*! \brief Convert a single UTF-32 char to UTF-16 code unit(s).
+ *  \p dst MUST have space for at least 2 Char16 values (for surrogate pairs).
+ *  \p outCodeUnits will be set to the number of UTF-16 code units written (1 or 2).
+ */
+static inline void Char32to16(Char32 src, Char16* dst, SizeType& outCodeUnits)
+{
+    outCodeUnits = 0;
+
+    if (src <= 0xFFFF)
+    {
+        // BMP character, single UTF-16 code unit
+        dst[outCodeUnits++] = static_cast<Char16>(src);
+    }
+    else if (src <= 0x10FFFF)
+    {
+        // Supplementary character, needs surrogate pair
+        const Char32 adjusted = src - 0x10000;
+        dst[outCodeUnits++] = static_cast<Char16>((adjusted >> 10) + 0xD800);   // High surrogate
+        dst[outCodeUnits++] = static_cast<Char16>((adjusted & 0x3FF) + 0xDC00); // Low surrogate
+    }
+    // else: invalid codepoint, outCodeUnits remains 0
+}
+
+static inline void Char32to16(Char32 src, Char16* dst)
+{
+    SizeType codeUnits = 0;
+    Char32to16(src, dst, codeUnits);
+}
+
+/*! \brief Convert a single wide character (possibly a surrogate pair on Windows) into a single UTF-32 char.
+ *  \p str must point to at least one valid wchar_t, and two if it starts with a lead surrogate (Windows).
+ */
+static inline Char32 WideTo32(const wchar_t* str)
+{
+    if constexpr (sizeof(wchar_t) == 4)
+    {
+        // direct conversion
+        return static_cast<Char32>(*str);
+    }
+    else
+    {
+        const uint32 cp = HYP_UTF_MASK16(*str);
+
+        if (HYP_UTF_IS_LEAD_SURROGATE(cp))
+        {
+            const uint32 trailSurrogate = HYP_UTF_MASK16(*(str + 1));
+
+            if (!HYP_UTF_IS_TRAIL_SURROGATE(trailSurrogate))
+            {
+                // Invalid surrogate pair
+                return Char32(-1);
+            }
+
+            return Char32((cp << 10) + trailSurrogate + HYP_UTF_SURROGATE_OFFSET);
+        }
+        else if (HYP_UTF_IS_TRAIL_SURROGATE(cp))
+        {
+            // Lone trail surrogate is invalid
+            return Char32(-1);
+        }
+
+        return Char32(cp);
+    }
+}
+
+/*! \brief Convert a single wide character (possibly a surrogate pair on Windows) into a single UTF-32 char.
+ *  \p str must be at least the size of \p max.
+ *  \p outCodeUnits will be set to the number of wchar_t code units consumed (1, or 2 on Windows for surrogate pairs).
+ */
+static inline Char32 WideTo32(const wchar_t* str, SizeType max, SizeType& outCodeUnits)
+{
+    outCodeUnits = 0;
+
+    if (max == 0)
+    {
+        return Char32(-1);
+    }
+
+    if constexpr (sizeof(wchar_t) == 4)
+    {
+        outCodeUnits = 1;
+        return static_cast<Char32>(*str);
+    }
+    else
+    {
+        const uint32 cp = HYP_UTF_MASK16(*str);
+
+        if (HYP_UTF_IS_LEAD_SURROGATE(cp))
+        {
+            if (max < 2)
+            {
+                // Not enough space
+                return Char32(-1);
+            }
+
+            const uint32 trailSurrogate = HYP_UTF_MASK16(*(str + 1));
+
+            if (!HYP_UTF_IS_TRAIL_SURROGATE(trailSurrogate))
+            {
+                // Invalid surrogate pair
+                return Char32(-1);
+            }
+
+            outCodeUnits = 2;
+            return Char32((cp << 10) + trailSurrogate + HYP_UTF_SURROGATE_OFFSET);
+        }
+        else if (HYP_UTF_IS_TRAIL_SURROGATE(cp))
+        {
+            // Lone trail surrogate
+            return Char32(-1);
+        }
+
+        outCodeUnits = 1;
+        return Char32(cp);
+    }
+}
+
+/*! \brief Convert a single UTF-32 char to wide character(s).
+ *  \p dst MUST have space for at least 2 wchar_t values (for surrogate pairs on Windows).
+ *  \p outCodeUnits will be set to the number of wchar_t code units written (1, or up to 2 on Windows).
+ */
+static inline void Char32ToWide(Char32 src, wchar_t* dst, SizeType& outCodeUnits)
+{
+    outCodeUnits = 0;
+
+    if constexpr (sizeof(wchar_t) == 4)
+    {
+        dst[outCodeUnits++] = static_cast<wchar_t>(src);
+    }
+    else
+    {
+        if (src <= 0xFFFF)
+        {
+            dst[outCodeUnits++] = static_cast<wchar_t>(src);
+        }
+        else if (src <= 0x10FFFF)
+        {
+            const Char32 adjusted = src - 0x10000;
+            dst[outCodeUnits++] = static_cast<wchar_t>((adjusted >> 10) + 0xD800);   // High surrogate
+            dst[outCodeUnits++] = static_cast<wchar_t>((adjusted & 0x3FF) + 0xDC00); // Low surrogate
+        }
+        // else: invalid codepoint, outCodeUnits remains 0
+    }
+}
+
+static inline void Char32ToWide(Char32 src, wchar_t* dst)
+{
+    SizeType codeUnits = 0;
+    Char32ToWide(src, dst, codeUnits);
+}
+
+/*! \brief Pass nullptr to \p result on the first call to get the size needed for the buffer.
+ *  Then call the function again with the memory allocated for \p result. */
+inline SizeType ToUtf16(const Char32* start, const Char32* end, Char16* result)
+{
+    SizeType len = 0;
+
+    while (start != end)
+    {
+        const Char32 cp = *start++;
+
+        if (cp <= 0xFFFF)
+        {
+            // BMP character
+            if (result)
+            {
+                result[len] = static_cast<Char16>(cp);
+            }
+            len++;
+        }
+        else if (cp <= 0x10FFFF)
+        {
+            // Supplementary character, needs surrogate pair
+            if (result)
+            {
+                const Char32 adjusted = cp - 0x10000;
+                result[len] = static_cast<Char16>((adjusted >> 10) + 0xD800);       // High surrogate
+                result[len + 1] = static_cast<Char16>((adjusted & 0x3FF) + 0xDC00); // Low surrogate
+            }
+            len += 2;
+        }
+        // else: invalid codepoint, skip
+    }
+
+    return len;
+}
+
+/*! \brief Pass nullptr to \p result on the first call to get the size needed for the buffer.
+ *  Then call the function again with the memory allocated for \p result. */
+inline SizeType ToUtf16(const Char8* start, const Char8* end, Char16* result)
+{
+    SizeType len = 0;
+
+    while (start != end)
+    {
+        SizeType codepoints = 0;
+        const Char32 cp = Char8to32(start, SizeType(end - start), codepoints);
+
+        if (cp == Char32(-1) || codepoints == 0)
+        {
+            break;
+        }
+
+        start += codepoints;
+
+        if (cp <= 0xFFFF)
+        {
+            // BMP character
+            if (result)
+            {
+                result[len] = static_cast<Char16>(cp);
+            }
+            len++;
+        }
+        else if (cp <= 0x10FFFF)
+        {
+            // Supplementary character, needs surrogate pair
+            if (result)
+            {
+                const Char32 adjusted = cp - 0x10000;
+                result[len] = static_cast<Char16>((adjusted >> 10) + 0xD800);       // High surrogate
+                result[len + 1] = static_cast<Char16>((adjusted & 0x3FF) + 0xDC00); // Low surrogate
+            }
+            len += 2;
+        }
+    }
+
+    return len;
+}
+
+/*! \brief Pass nullptr to \p result on the first call to get the size needed for the buffer.
+ *  Then call the function again with the memory allocated for \p result. */
+inline SizeType ToUtf16(const wchar_t* start, const wchar_t* end, Char16* result)
+{
+    SizeType len = 0;
+
+    while (start != end)
+    {
+        const wchar_t ch = *start++;
+
+        if constexpr (sizeof(wchar_t) == 2)
+        {
+            // wchar_t is already UTF-16 (Windows)
+            if (result)
+            {
+                result[len] = static_cast<Char16>(ch);
+            }
+            len++;
+        }
+        else
+        {
+            // wchar_t is UTF-32 (Unix/macOS)
+            const Char32 cp = static_cast<Char32>(ch);
+
+            if (cp <= 0xFFFF)
+            {
+                if (result)
+                {
+                    result[len] = static_cast<Char16>(cp);
+                }
+                len++;
+            }
+            else if (cp <= 0x10FFFF)
+            {
+                if (result)
+                {
+                    const Char32 adjusted = cp - 0x10000;
+                    result[len] = static_cast<Char16>((adjusted >> 10) + 0xD800);
+                    result[len + 1] = static_cast<Char16>((adjusted & 0x3FF) + 0xDC00);
+                }
+                len += 2;
+            }
+        }
+    }
+
+    return len;
 }
 
 inline Char32 CharAt(const utf::Char8* str, SizeType max, SizeType index)
@@ -647,12 +898,7 @@ inline void CharAt(const Char8* str, Char8* dst, SizeType max, SizeType index)
     Char32to8(CharAt(str, max, index), dst);
 }
 
-#define HYP_UTF_MASK16(ch) ((uint16_t)(0xffff & (ch)))
-#define HYP_UTF_IS_LEAD_SURROGATE(ch) ((ch) >= 0xd800u && (ch) <= 0xdbffu)
-#define HYP_UTF_IS_TRAIL_SURROGATE(ch) ((ch) >= 0xdc00u && (ch) <= 0xdfffu)
-#define HYP_UTF_SURROGATE_OFFSET (0x10000u - (0xd800u << 10) - 0xdc00u)
-
-inline SizeType AppendString8(uint32_t cp, Char8* result)
+inline SizeType NextCodePoint(uint32 cp, Char8*& result)
 {
     if (result)
     {
@@ -680,6 +926,8 @@ inline SizeType AppendString8(uint32_t cp, Char8* result)
             result[len++] = Char8(((cp >> 6) & 0x3f) | 0x80);
             result[len++] = Char8((cp & 0x3f) | 0x80);
         }
+
+        result += len;
 
         return len;
     }
@@ -724,7 +972,7 @@ inline SizeType ToUtf8(const Char16* start, const Char16* end, Char8* result)
             HYP_UTF8_ASSERT(!HYP_UTF_IS_TRAIL_SURROGATE(cp));
         }
 
-        len += AppendString8(cp, result);
+        len += NextCodePoint(cp, result);
     }
 
     return len;
@@ -740,7 +988,7 @@ inline SizeType ToUtf8(const Char32* start, const Char32* end, Char8* result)
     {
         uint32 cp = *start++;
 
-        len += AppendString8(cp, result);
+        len += NextCodePoint(cp, result);
     }
 
     return len;
@@ -839,18 +1087,18 @@ inline SizeType ToWide(const Char8* start, const Char8* end, wchar_t* result)
 #ifdef _WIN32
     if (result)
     {
-        len = SizeType(MultiByteToWideChar(CP_UTF8, 0, (const char*)start, (int)(end - start), NULL, 0));
+        len = SizeType(MultiByteToWideChar(CP_UTF8, 0, start, (int)(end - start), NULL, 0));
 
         if (len == 0)
         {
             return 0;
         }
 
-        MultiByteToWideChar(CP_UTF8, 0, (const char*)start, (int)(end - start), result, int(len));
+        MultiByteToWideChar(CP_UTF8, 0, start, (int)(end - start), result, int(len));
     }
     else
     {
-        len = SizeType(MultiByteToWideChar(CP_UTF8, 0, (const char*)start, (int)(end - start), NULL, 0));
+        len = SizeType(MultiByteToWideChar(CP_UTF8, 0, start, (int)(end - start), NULL, 0));
     }
 #else
     if (result)
@@ -860,7 +1108,7 @@ inline SizeType ToWide(const Char8* start, const Char8* end, wchar_t* result)
             Char32 ch = 0;
             SizeType codepoints = 0;
 
-            ch = utf::Char8to32(reinterpret_cast<const char*>(start), end - start, codepoints);
+            ch = utf::Char8to32(start, end - start, codepoints);
 
             if (ch == -1)
             {
@@ -890,7 +1138,7 @@ inline SizeType ToWide(const Char8* start, const Char8* end, wchar_t* result)
             Char32 ch = 0;
             SizeType codepoints = 0;
 
-            ch = utf::Char8to32(reinterpret_cast<const char*>(start), end - start, codepoints);
+            ch = utf::Char8to32(start, end - start, codepoints);
             if (ch == -1)
             {
                 break;
@@ -930,17 +1178,174 @@ inline SizeType ToWide(const Char16* start, const Char16* end, wchar_t* result)
 
 inline SizeType ToWide(const Char32* start, const Char32* end, wchar_t* result)
 {
-    const SizeType len = SizeType(end - start);
+    SizeType len = 0;
 
-    if (result)
+    if constexpr (sizeof(wchar_t) == 4)
     {
-        for (SizeType i = 0; i < len; i++)
+        // wchar_t is UTF-32 (Unix/macOS), direct copy
+        len = SizeType(end - start);
+
+        if (result)
         {
-            result[i] = (wchar_t)start[i];
+            for (SizeType i = 0; i < len; i++)
+            {
+                result[i] = static_cast<wchar_t>(start[i]);
+            }
+        }
+    }
+    else // Win32 needs to handle surrogate pairs
+    {
+        while (start != end)
+        {
+            const Char32 cp = *start++;
+
+            if (cp <= 0xFFFF)
+            {
+                if (result)
+                {
+                    result[len] = static_cast<wchar_t>(cp);
+                }
+                len++;
+            }
+            else if (cp <= 0x10FFFF)
+            {
+                if (result)
+                {
+                    const Char32 adjusted = cp - 0x10000;
+                    result[len] = static_cast<wchar_t>((adjusted >> 10) + 0xD800);
+                    result[len + 1] = static_cast<wchar_t>((adjusted & 0x3FF) + 0xDC00);
+                }
+                len += 2;
+            }
         }
     }
 
-    return SizeType(len);
+    return len;
+}
+
+/*! \brief Pass nullptr to \p result on the first call to get the size needed for the buffer.
+ *  Then call the function again with the memory allocated for \p result. */
+inline SizeType ToUtf32(const Char8* start, const Char8* end, Char32* result)
+{
+    SizeType len = 0;
+
+    while (start != end)
+    {
+        SizeType codepoints = 0;
+        const Char32 cp = Char8to32(start, SizeType(end - start), codepoints);
+
+        if (cp == Char32(-1) || codepoints == 0)
+        {
+            break;
+        }
+
+        start += codepoints;
+
+        if (result)
+        {
+            result[len] = cp;
+        }
+        len++;
+    }
+
+    return len;
+}
+
+/*! \brief Pass nullptr to \p result on the first call to get the size needed for the buffer.
+ *  Then call the function again with the memory allocated for \p result. */
+inline SizeType ToUtf32(const Char16* start, const Char16* end, Char32* result)
+{
+    SizeType len = 0;
+
+    while (start != end)
+    {
+        SizeType codeUnits = 0;
+        const Char32 cp = Char16to32(start, SizeType(end - start), codeUnits);
+
+        if (cp == Char32(-1) || codeUnits == 0)
+        {
+            break;
+        }
+
+        start += codeUnits;
+
+        if (result)
+        {
+            result[len] = cp;
+        }
+        len++;
+    }
+
+    return len;
+}
+
+/*! \brief Pass nullptr to \p result on the first call to get the size needed for the buffer.
+ *  Then call the function again with the memory allocated for \p result. */
+inline SizeType ToUtf32(const wchar_t* start, const wchar_t* end, Char32* result)
+{
+    SizeType len = 0;
+
+    if constexpr (sizeof(wchar_t) == 4)
+    {
+        // wchar_t is UTF-32 (Unix/macOS), direct copy
+        len = SizeType(end - start);
+
+        if (result)
+        {
+            for (SizeType i = 0; i < len; i++)
+            {
+                result[i] = static_cast<Char32>(start[i]);
+            }
+        }
+    }
+    else
+    {
+        // wchar_t is UTF-16 (Windows), need to handle surrogate pairs
+        while (start != end)
+        {
+            const uint32 cp = HYP_UTF_MASK16(*start);
+
+            if (HYP_UTF_IS_LEAD_SURROGATE(cp))
+            {
+                if ((start + 1) >= end)
+                {
+                    // Incomplete surrogate pair
+                    break;
+                }
+
+                const uint32 trailSurrogate = HYP_UTF_MASK16(*(start + 1));
+
+                if (!HYP_UTF_IS_TRAIL_SURROGATE(trailSurrogate))
+                {
+                    // Invalid surrogate pair
+                    break;
+                }
+
+                if (result)
+                {
+                    result[len] = Char32((cp << 10) + trailSurrogate + HYP_UTF_SURROGATE_OFFSET);
+                }
+                len++;
+                start += 2;
+            }
+            else if (HYP_UTF_IS_TRAIL_SURROGATE(cp))
+            {
+                // Lone trail surrogate is invalid
+                break;
+            }
+            else
+            {
+                if (result)
+                {
+                    result[len] = static_cast<Char32>(cp);
+                }
+                len++;
+                start++;
+            }
+        }
+    }
+
+    return len;
 }
 
 /*! \brief How to use:

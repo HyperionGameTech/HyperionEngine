@@ -35,7 +35,7 @@ class BufferedReader;
 
 namespace config {
 
-using ConfigurationValue = json::JSONValue;
+using ConfigurationValue = Json::Value;
 
 class ConfigurationTable;
 
@@ -134,8 +134,8 @@ protected:
 
     FilePath GetFilePath() const;
 
-    Result Read(json::JSONValue& outValue) const;
-    Result Write(const json::JSONValue& value) const;
+    Result Read(Json::Value& outValue) const;
+    Result Write(const Json::Value& value) const;
 
     void LogErrors() const;
     void LogErrors(UTF8StringView message) const;
@@ -152,11 +152,11 @@ protected:
     }
 
     Optional<String> m_subobjectPath;
-    json::JSONValue m_rootObject;
+    Json::Value m_rootObject;
 
 private:
-    json::JSONValue& GetSubobject();
-    const json::JSONValue& GetSubobject() const;
+    Json::Value& GetSubobject();
+    const Json::Value& GetSubobject() const;
 
     String m_name;
     Array<Error> m_errors;

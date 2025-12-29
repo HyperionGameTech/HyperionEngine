@@ -342,8 +342,8 @@
     </Expand>
   </Type>
   
-  <!-- Just display inner data of a JSONValue -->
-  <Type Name="Hyperion::Json::JSONValue">
+  <!-- Just display inner data of a Value -->
+  <Type Name="Hyperion::Json::Value">
     <DisplayString>{{ Value={m_inner} }}</DisplayString>
     <Expand>
       <ExpandedItem>m_inner</ExpandedItem>

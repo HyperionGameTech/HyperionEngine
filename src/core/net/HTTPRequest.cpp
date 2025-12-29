@@ -70,7 +70,7 @@ void HTTPResponse::OnComplete(int statusCode)
     OnCompleteDelegate(m_statusCode);
 }
 
-Optional<json::JSONValue> HTTPResponse::ToJSON() const
+Optional<Json::Value> HTTPResponse::ToJSON() const
 {
     HYP_SCOPE;
 
@@ -81,7 +81,7 @@ Optional<json::JSONValue> HTTPResponse::ToJSON() const
         return {};
     }
 
-    const json::ParseResult parseResult = Json::Parse(String(m_body.ToByteView()));
+    const Json::ParseResult parseResult = Json::Parse(String(m_body.ToByteView()));
 
     if (!parseResult.ok)
     {
@@ -101,7 +101,7 @@ HTTPRequest::HTTPRequest(const String& url, HTTPMethod method)
 {
 }
 
-HTTPRequest::HTTPRequest(const String& url, const json::JSONValue& body, HTTPMethod method)
+HTTPRequest::HTTPRequest(const String& url, const Json::Value& body, HTTPMethod method)
     : m_url(url),
       m_method(method),
       m_contentType("application/json")

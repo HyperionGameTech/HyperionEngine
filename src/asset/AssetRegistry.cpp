@@ -1055,13 +1055,13 @@ Result AssetPackage::SaveManifest(ByteWriter& stream) const
 {
     HYP_SCOPE;
 
-    json::JSONObject manifestJson;
+    Json::JSObject manifestJson;
     ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson);
 
     // need to set virtual path property for loading
     manifestJson["Path"] = *BuildPackagePath();
 
-    stream.WriteString(json::JSONValue(std::move(manifestJson)).ToString(true));
+    stream.WriteString(Json::Value(std::move(manifestJson)).ToString(true).ToUtf8());
 
     return {};
 }
@@ -2121,6 +2121,7 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
         });
 }
 
+HYP_DISABLE_OPTIMIZATION;
 Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
     const FilePath& manifestPath,
     bool loadSubpackages)
@@ -2150,7 +2151,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}'", manifestPath);
             }
 
-            json::ParseResult parseResult = Json::Parse(manifestStream);
+            Json::ParseResult parseResult = Json::Parse(manifestStream);
 
             manifestStream.Close();
 
@@ -2163,14 +2164,31 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
             {
                 return HYP_MAKE_ERROR(Error, "Package manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
             }
+        
+        Json::JSString tmpString;
+        tmpString += u"{";
+        tmpString += u"Foo";
+        tmpString += u"}";
+        
+        UTF16StringView tmpSv = tmpString;
+        
+        String tmpString2;
+        tmpString2.Append(tmpString.Data(), tmpString.Data() + tmpString.Size());
+        
+        HYP_LOG(Assets, Debug, "tmp result:\n{}\n", tmpSv);
+        HYP_LOG(Assets, Debug, "Parse result:\n{}\n", parseResult.value.ToString());
 
-            const String packagePath = parseResult.value.Get("Path").ToString();
-            const String packageName = parseResult.value.Get("Name").ToString();
+            const String packagePath = parseResult.value.Get("Path").ToString().ToUtf8();
+            const String packageName = parseResult.value.Get("Name").ToString().ToUtf8();
 
             if (packagePath.Empty() || packageName.Empty())
             {
                 return HYP_MAKE_ERROR(Error, "Package manifest JSON does not contain a valid 'Path' or 'Name' field");
             }
+        
+        static constexpr auto hash1 = UTF8StringView("Path").GetHashCode();
+        static constexpr auto hash2 = UTF16StringView(u"Path").GetHashCode();
+        static_assert(hash1 == hash2);
 
             Handle<AssetPackage> parentPackage;
 

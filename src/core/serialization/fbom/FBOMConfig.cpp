@@ -8,9 +8,9 @@ namespace Hyperion::serialization {
 
 #pragma region FBOMWriterConfig
 
-void FBOMWriterConfig::SaveToJSON(json::JSONValue& outJson) const
+void FBOMWriterConfig::SaveToJSON(Json::Value& outJson) const
 {
-    json::JSONObject object = {
+    Json::JSObject object = {
         { "enableStaticData", enableStaticData },
         { "compressStaticData", compressStaticData }
     };
@@ -18,14 +18,14 @@ void FBOMWriterConfig::SaveToJSON(json::JSONValue& outJson) const
     outJson = object;
 }
 
-bool FBOMWriterConfig::LoadFromJSON(const json::JSONValue& json)
+bool FBOMWriterConfig::LoadFromJSON(const Json::Value& json)
 {
     if (!json.IsObject())
     {
         return false;
     }
 
-    json::JSONObject object = json.AsObject();
+    Json::JSObject object = json.AsObject();
 
     enableStaticData = object["enableStaticData"].ToBool();
     compressStaticData = object["compressStaticData"].ToBool();
@@ -37,9 +37,9 @@ bool FBOMWriterConfig::LoadFromJSON(const json::JSONValue& json)
 
 #pragma region FBOMReaderConfig
 
-void FBOMReaderConfig::SaveToJSON(json::JSONValue& outJson) const
+void FBOMReaderConfig::SaveToJSON(Json::Value& outJson) const
 {
-    json::JSONObject object = {
+    Json::JSObject object = {
         { "continueOnExternalLoadError", continueOnExternalLoadError },
         { "basePath", basePath }
     };
@@ -47,17 +47,17 @@ void FBOMReaderConfig::SaveToJSON(json::JSONValue& outJson) const
     outJson = object;
 }
 
-bool FBOMReaderConfig::LoadFromJSON(const json::JSONValue& json)
+bool FBOMReaderConfig::LoadFromJSON(const Json::Value& json)
 {
     if (!json.IsObject())
     {
         return false;
     }
 
-    json::JSONObject object = json.AsObject();
+    Json::JSObject object = json.AsObject();
 
-    continueOnExternalLoadError = object["continueOnExternalLoadError"].ToBool();
-    basePath = object["basePath"].ToString();
+    continueOnExternalLoadError = object[u"continueOnExternalLoadError"].ToBool();
+    basePath = object[u"basePath"].ToString();
 
     return true;
 }

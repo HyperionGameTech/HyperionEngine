@@ -81,7 +81,7 @@ struct AssetLoaderDefinition
 
     HYP_FORCE_INLINE bool IsWildcardExtensionLoader() const
     {
-        return extensions.Empty() || extensions.Contains("*");
+        return extensions.Empty() || extensions.Find("*") != extensions.End();
     }
 };
 

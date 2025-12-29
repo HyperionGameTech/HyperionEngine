@@ -152,7 +152,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer* server)
             {
                 auto description = peerConnection->localDescription();
 
-                const json::JSONValue messageJson(json::JSONObject({ { "id", id },
+                const Json::Value messageJson(Json::JSObject({ { "id", id },
                     { "type", description->typeString().c_str() },
                     { "sdp", String(std::string(description.value()).c_str()) } }));
 

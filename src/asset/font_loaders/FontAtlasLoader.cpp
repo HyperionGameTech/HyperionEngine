@@ -20,7 +20,7 @@ using namespace Json;
 AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
 {
     Assert(state.assetManager != nullptr);
-    JSONValue json;
+    Value json;
 
     const ByteBuffer byteBuffer = state.stream.ReadBytes();
 
@@ -38,7 +38,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse json: {}", jsonParseResult.message);
     }
 
-    const json::JSONValue jsonValue = jsonParseResult.value;
+    const Json::Value jsonValue = jsonParseResult.value;
 
     FontAtlasTextureSet textureSet;
 
@@ -136,7 +136,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
             return HYP_MAKE_ERROR(AssetLoadError, "Glyph metrics expected to be an array");
         }
 
-        for (const JSONValue& glyphMetricValue : glyphMetricsValue.AsArray())
+        for (const Value& glyphMetricValue : glyphMetricsValue.AsArray())
         {
             Glyph::Metrics metrics {};
 
@@ -166,7 +166,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
             return HYP_MAKE_ERROR(AssetLoadError, "Symbol list expected to be an array");
         }
 
-        for (const JSONValue& symbolValue : symbolListValue.AsArray())
+        for (const Value& symbolValue : symbolListValue.AsArray())
         {
             if (!symbolValue.IsNumber())
             {
