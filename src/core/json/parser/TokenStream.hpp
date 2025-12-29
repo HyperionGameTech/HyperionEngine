@@ -11,7 +11,7 @@
 
 #include <core/Types.hpp>
 
-namespace Hyperion::json {
+namespace Hyperion::Json {
 
 struct TokenStreamInfo
 {
@@ -108,4 +108,4 @@ private:
     TokenStreamInfo m_info;
 };
 
-} // namespace Hyperion::json
+} // namespace Hyperion::Json

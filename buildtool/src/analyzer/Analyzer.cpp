@@ -32,7 +32,7 @@ HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
 #define HYP_BUILD_TOOL_FRIENDLY_NAMES 1
 
-using namespace json;
+using namespace Json;
 
 static const HashMap<String, ClassDefinitionType> g_classDefinitionTypes = {
     { "HYP_CLASS", ClassDefinitionType::CLASS },
