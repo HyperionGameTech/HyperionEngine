@@ -600,10 +600,13 @@ void InputManager::MainThreadUpdate()
     if (m_ownerWindow->IsMouseLocked())
     {
         m_ownerWindow->SetMousePosition(m_previousMousePosition);
+        m_mousePosition = m_previousMousePosition;
     }
-
-    m_mousePosition = m_ownerWindow->GetMousePosition();
-    m_previousMousePosition = m_mousePosition;
+    else
+    {
+        m_previousMousePosition = m_mousePosition;
+        m_mousePosition = m_ownerWindow->GetMousePosition();
+    }
 
     m_previousVirtualMousePosition = m_virtualMousePosition;
 }

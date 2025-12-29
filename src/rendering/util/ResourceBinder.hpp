@@ -293,8 +293,6 @@ class ResourceBinder : public ResourceBinderBase
 
                     const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
-                    HYP_LOG_TEMP("Forcing rebind of resource: {}", id);
-
                     auto it = bindings.FindAs(id);
                     AssertDebug(it != bindings.End());
 
