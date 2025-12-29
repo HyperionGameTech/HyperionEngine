@@ -240,14 +240,14 @@ public:
     Handle<UIObject> Create(UIObject* parent, const containers::String<StringType>& value) const
     {
         Handle<UITextbox> textbox = parent->CreateUIObject<UITextbox>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
-        textbox->SetText(value.ToUTF8());
+        textbox->SetText(value.ToUtf8());
 
         return textbox;
     }
 
     void Update(UIObject* uiObject, const containers::String<StringType>& value) const
     {
-        uiObject->SetText(value.ToUTF8());
+        uiObject->SetText(value.ToUtf8());
     }
 };
 

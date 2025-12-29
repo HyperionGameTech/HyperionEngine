@@ -215,9 +215,9 @@ AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& argu
 
     if (m_name.Empty())
     {
-        if (json::JSONValue configAppName = CoreApi::GetGlobalConfig().Get("App.Name"))
+        if (Json::Value configAppName = CoreApi::GetGlobalConfig().Get("App.Name"))
         {
-            m_name = CoreApi::GetGlobalConfig().Get("App.Name").ToString();
+            m_name = CoreApi::GetGlobalConfig().Get("App.Name").ToString().ToAnsi();
         }
     }
 }

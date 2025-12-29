@@ -108,10 +108,15 @@ bool Initialize(int argc, char** argv)
 
     GlobalConfig config { "GlobalConfig" };
 
-    if (json::JSONValue configArgs = config.Get("App.Args"))
+    if (Json::Value configArgs = config.Get("App.Args"))
     {
-        json::JSONString configArgsString = configArgs.ToString();
-        Array<String> configArgsStringSplit = configArgsString.Split(' ');
+        Json::JSString configArgsString = configArgs.ToString();
+        Array<String> configArgsStringSplit = Map(
+            configArgsString.Split(' '),
+            [](auto&& str)
+            {
+                return str.ToUtf8();
+            });
 
         parseResult = argParse.Parse(s_commandLineArguments.GetCommand(), configArgsStringSplit);
 

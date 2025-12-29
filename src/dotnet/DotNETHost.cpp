@@ -357,21 +357,21 @@ private:
 
         const FilePath currentPath = FilePath::Current();
 
-        Array<json::JSONValue> probingPaths;
+        Array<Json::Value> probingPaths;
 
         probingPaths.PushBack(FilePath::Relative(GetLibraryPath(), currentPath));
         probingPaths.PushBack(FilePath::Relative(m_basePath, currentPath));
 
         // clang-format off
-        const json::JSONValue runtimeConfigJson(json::JSONObject {
+        const Json::Value runtimeConfigJson(Json::JSObject {
             {
-                "runtimeOptions", json::JSONObject({
+                "runtimeOptions", Json::JSObject({
                     { "tfm", "net9.0" },
-                    { "framework", json::JSONObject({
+                    { "framework", Json::JSObject({
                         { "name", "Microsoft.NETCore.App" },
                         { "version", "9.0.3" } })
                     },
-                    { "additionalProbingPaths", json::JSONArray(probingPaths) }
+                    { "additionalProbingPaths", Json::JSArray(probingPaths) }
                 })
             }
         });
@@ -430,7 +430,7 @@ private:
         }
 
         // Load hostfxr and get desired exports
-        m_dll = DynamicLibrary(wpath.ToUTF8());
+        m_dll = DynamicLibrary(wpath);
 
         if (!m_dll.Load())
         {

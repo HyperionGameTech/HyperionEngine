@@ -17,13 +17,13 @@
 namespace Hyperion {
 namespace Json {
 
-static const JSONValue s_undefined = Json::JSONUndefined();
-static const JSONValue s_null = Json::JSONNull();
-static const JSONValue s_emptyObject = Json::JSONObject();
-static const JSONValue s_emptyArray = Json::JSONArray();
-static const JSONValue s_emptyString = Json::JSONString();
-static const JSONValue s_true = Json::JSONBool(true);
-static const JSONValue s_false = Json::JSONBool(false);
+static const Value s_undefined = Json::JSUndefined();
+static const Value s_null = Json::JSNull();
+static const Value s_emptyObject = Json::JSObject();
+static const Value s_emptyArray = Json::JSArray();
+static const Value s_emptyString = Json::JSString();
+static const Value s_true = Json::JSBoolean(true);
+static const Value s_false = Json::JSBoolean(false);
 
 #pragma region Helpers
 
@@ -58,10 +58,10 @@ static Array<UTF8StringView> SplitStringView(UTF8StringView view, UTF8StringView
     return tokens;
 }
 
-static String GetIndentationString(uint32 depth)
+static JSString GetIndentationString(uint32 depth)
 {
     // Preallocate indentation strings
-    static const FixedArray<String, 10> PreallocatedIndentationStrings {
+    static const FixedArray<JSString, 10> PreallocatedIndentationStrings {
         "",
         "  ",
         "    ",
@@ -79,7 +79,7 @@ static String GetIndentationString(uint32 depth)
         return PreallocatedIndentationStrings[depth];
     }
 
-    String indentation = PreallocatedIndentationStrings[PreallocatedIndentationStrings.Size() - 1];
+    JSString indentation = PreallocatedIndentationStrings[PreallocatedIndentationStrings.Size() - 1];
 
     for (uint32 i = PreallocatedIndentationStrings.Size(); i <= depth; i++)
     {
@@ -132,14 +132,14 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
                 return { nullptr };
             }
 
-            it = asObject.Insert(curr, JSONUndefined()).first;
+            it = asObject.Insert(curr, JSUndefined()).first;
         }
 
         auto& value = it->second;
 
         if (createIntermediateObjects && (value.IsUndefined() || value.IsNull()))
         {
-            value = JSONObject();
+            value = JSObject();
         }
 
         elementSubscriptWrapper = JSONSubscriptWrapper<T> { &value };
@@ -180,14 +180,14 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
                 return { nullptr };
             }
 
-            it = asObject.Insert(*parts.Begin(), JSONUndefined()).first;
+            it = asObject.Insert(*parts.Begin(), JSUndefined()).first;
         }
 
         auto& value = it->second;
 
         if (createIntermediateObjects && (value.IsUndefined() || value.IsNull()))
         {
-            value = JSONObject();
+            value = JSObject();
         }
 
         JSONSubscriptWrapper<T> elementSubscriptWrapper { &value };
@@ -209,109 +209,109 @@ JSONSubscriptWrapper<const T> SelectHelper(const JSONSubscriptWrapper<const T>& 
 
 #pragma endregion Helpers
 
-#pragma region JSONSubscriptWrapper < JSONValue>
+#pragma region JSONSubscriptWrapper < Value>
 
-JSONValue& JSONSubscriptWrapper<JSONValue>::Get() const
+Value& JSONSubscriptWrapper<Value>::Get() const
 {
     HYP_CORE_ASSERT(value != nullptr);
 
     return *value;
 }
 
-bool JSONSubscriptWrapper<JSONValue>::IsString() const
+bool JSONSubscriptWrapper<Value>::IsString() const
 {
     return value && value->IsString();
 }
 
-bool JSONSubscriptWrapper<JSONValue>::IsNumber() const
+bool JSONSubscriptWrapper<Value>::IsNumber() const
 {
     return value && value->IsNumber();
 }
 
-bool JSONSubscriptWrapper<JSONValue>::IsBool() const
+bool JSONSubscriptWrapper<Value>::IsBool() const
 {
     return value && value->IsBool();
 }
 
-bool JSONSubscriptWrapper<JSONValue>::IsArray() const
+bool JSONSubscriptWrapper<Value>::IsArray() const
 {
     return value && value->IsArray();
 }
 
-bool JSONSubscriptWrapper<JSONValue>::IsObject() const
+bool JSONSubscriptWrapper<Value>::IsObject() const
 {
     return value && value->IsObject();
 }
 
-bool JSONSubscriptWrapper<JSONValue>::IsNull() const
+bool JSONSubscriptWrapper<Value>::IsNull() const
 {
     return value && value->IsNull();
 }
 
-bool JSONSubscriptWrapper<JSONValue>::IsUndefined() const
+bool JSONSubscriptWrapper<Value>::IsUndefined() const
 {
     return !value || value->IsUndefined();
 }
 
-JSONString& JSONSubscriptWrapper<JSONValue>::AsString() const
+JSString& JSONSubscriptWrapper<Value>::AsString() const
 {
     HYP_CORE_ASSERT(IsString());
 
     return value->AsString();
 }
 
-JSONString JSONSubscriptWrapper<JSONValue>::ToString() const
+JSString JSONSubscriptWrapper<Value>::ToString() const
 {
     if (!value)
     {
-        return JSONString();
+        return JSString::empty;
     }
 
     return value->ToString();
 }
 
-JSONNumber JSONSubscriptWrapper<JSONValue>::AsNumber() const
+JSNumber JSONSubscriptWrapper<Value>::AsNumber() const
 {
     HYP_CORE_ASSERT(IsNumber());
 
     return value->AsNumber();
 }
 
-JSONNumber JSONSubscriptWrapper<JSONValue>::ToNumber() const
+JSNumber JSONSubscriptWrapper<Value>::ToNumber() const
 {
     if (!value)
     {
-        return JSONNumber(0.0);
+        return JSNumber(0.0);
     }
 
     return value->ToNumber();
 }
 
-JSONBool JSONSubscriptWrapper<JSONValue>::AsBool() const
+JSBoolean JSONSubscriptWrapper<Value>::AsBool() const
 {
     HYP_CORE_ASSERT(IsBool());
 
     return value->AsBool();
 }
 
-JSONBool JSONSubscriptWrapper<JSONValue>::ToBool() const
+JSBoolean JSONSubscriptWrapper<Value>::ToBool() const
 {
     if (!value)
     {
-        return JSONBool(false);
+        return JSBoolean(false);
     }
 
     return value->ToBool();
 }
 
-JSONArray& JSONSubscriptWrapper<JSONValue>::AsArray() const
+JSArray& JSONSubscriptWrapper<Value>::AsArray() const
 {
     HYP_CORE_ASSERT(IsArray());
 
     return value->AsArray();
 }
 
-const JSONArray& JSONSubscriptWrapper<JSONValue>::ToArray() const
+const JSArray& JSONSubscriptWrapper<Value>::ToArray() const
 {
     if (!value || !value->IsArray())
     {
@@ -321,14 +321,14 @@ const JSONArray& JSONSubscriptWrapper<JSONValue>::ToArray() const
     return value->AsArray();
 }
 
-JSONObject& JSONSubscriptWrapper<JSONValue>::AsObject() const
+JSObject& JSONSubscriptWrapper<Value>::AsObject() const
 {
     HYP_CORE_ASSERT(IsObject());
 
     return value->AsObject();
 }
 
-const JSONObject& JSONSubscriptWrapper<JSONValue>::ToObject() const
+const JSObject& JSONSubscriptWrapper<Value>::ToObject() const
 {
     if (!value || !value->IsObject())
     {
@@ -338,7 +338,7 @@ const JSONObject& JSONSubscriptWrapper<JSONValue>::ToObject() const
     return value->AsObject();
 }
 
-JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](uint32 index)
+JSONSubscriptWrapper<Value> JSONSubscriptWrapper<Value>::operator[](uint32 index)
 {
     if (!value)
     {
@@ -360,12 +360,12 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](uint
     return { nullptr };
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](uint32 index) const
+JSONSubscriptWrapper<const Value> JSONSubscriptWrapper<Value>::operator[](uint32 index) const
 {
-    return JSONSubscriptWrapper<const JSONValue> { const_cast<RemoveConstPointerT<decltype(this)>>(this)->operator[](index).value };
+    return JSONSubscriptWrapper<const Value> { const_cast<RemoveConstPointerT<decltype(this)>>(this)->operator[](index).value };
 }
 
-JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UTF8StringView key)
+JSONSubscriptWrapper<Value> JSONSubscriptWrapper<Value>::operator[](UTF8StringView key)
 {
     if (!value)
     {
@@ -374,7 +374,7 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UTF8
 
     if (value->IsObject())
     {
-        JSONObject& asObject = value->AsObject();
+        JSObject& asObject = value->AsObject();
 
         auto it = asObject.FindAs(key);
 
@@ -389,12 +389,12 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UTF8
     return { nullptr };
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UTF8StringView key) const
+JSONSubscriptWrapper<const Value> JSONSubscriptWrapper<Value>::operator[](UTF8StringView key) const
 {
-    return JSONSubscriptWrapper<const JSONValue> { const_cast<RemoveConstPointerT<decltype(this)>>(this)->operator[](key).value };
+    return JSONSubscriptWrapper<const Value> { const_cast<RemoveConstPointerT<decltype(this)>>(this)->operator[](key).value };
 }
 
-JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path, bool createIntermediateObjects)
+JSONSubscriptWrapper<Value> JSONSubscriptWrapper<Value>::Get(UTF8StringView path, bool createIntermediateObjects)
 {
     if (!value)
     {
@@ -404,19 +404,19 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringV
     return SelectHelper(*this, path, createIntermediateObjects);
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path) const
+JSONSubscriptWrapper<const Value> JSONSubscriptWrapper<Value>::Get(UTF8StringView path) const
 {
     if (!value)
     {
-        return JSONSubscriptWrapper<const JSONValue> { value };
+        return JSONSubscriptWrapper<const Value> { value };
     }
 
-    return SelectHelper(JSONSubscriptWrapper<const JSONValue> { value }, path);
+    return SelectHelper(JSONSubscriptWrapper<const Value> { value }, path);
 }
 
-void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue& value)
+void JSONSubscriptWrapper<Value>::Set(UTF8StringView path, const Value& value)
 {
-    JSONValue* target = this->value;
+    Value* target = this->value;
 
     if (!target)
     {
@@ -450,7 +450,7 @@ void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue& 
     }
 }
 
-HashCode JSONSubscriptWrapper<JSONValue>::GetHashCode() const
+HashCode JSONSubscriptWrapper<Value>::GetHashCode() const
 {
     if (!value)
     {
@@ -460,111 +460,111 @@ HashCode JSONSubscriptWrapper<JSONValue>::GetHashCode() const
     return value->GetHashCode();
 }
 
-#pragma endregion JSONSubscriptWrapper < JSONValue>
+#pragma endregion JSONSubscriptWrapper < Value>
 
-#pragma region JSONSubscriptWrapper < const JSONValue>
+#pragma region JSONSubscriptWrapper < const Value>
 
-const JSONValue& JSONSubscriptWrapper<const JSONValue>::Get() const
+const Value& JSONSubscriptWrapper<const Value>::Get() const
 {
     HYP_CORE_ASSERT(value != nullptr);
 
     return *value;
 }
 
-bool JSONSubscriptWrapper<const JSONValue>::IsString() const
+bool JSONSubscriptWrapper<const Value>::IsString() const
 {
     return value && value->IsString();
 }
 
-bool JSONSubscriptWrapper<const JSONValue>::IsNumber() const
+bool JSONSubscriptWrapper<const Value>::IsNumber() const
 {
     return value && value->IsNumber();
 }
 
-bool JSONSubscriptWrapper<const JSONValue>::IsBool() const
+bool JSONSubscriptWrapper<const Value>::IsBool() const
 {
     return value && value->IsBool();
 }
 
-bool JSONSubscriptWrapper<const JSONValue>::IsArray() const
+bool JSONSubscriptWrapper<const Value>::IsArray() const
 {
     return value && value->IsArray();
 }
 
-bool JSONSubscriptWrapper<const JSONValue>::IsObject() const
+bool JSONSubscriptWrapper<const Value>::IsObject() const
 {
     return value && value->IsObject();
 }
 
-bool JSONSubscriptWrapper<const JSONValue>::IsNull() const
+bool JSONSubscriptWrapper<const Value>::IsNull() const
 {
     return value && value->IsNull();
 }
 
-bool JSONSubscriptWrapper<const JSONValue>::IsUndefined() const
+bool JSONSubscriptWrapper<const Value>::IsUndefined() const
 {
     return !value || value->IsUndefined();
 }
 
-const JSONString& JSONSubscriptWrapper<const JSONValue>::AsString() const
+const JSString& JSONSubscriptWrapper<const Value>::AsString() const
 {
     HYP_CORE_ASSERT(IsString());
 
     return value->AsString();
 }
 
-JSONString JSONSubscriptWrapper<const JSONValue>::ToString() const
+JSString JSONSubscriptWrapper<const Value>::ToString() const
 {
     if (!value)
     {
-        return JSONString();
+        return JSString::empty;
     }
 
     return value->ToString();
 }
 
-JSONNumber JSONSubscriptWrapper<const JSONValue>::AsNumber() const
+JSNumber JSONSubscriptWrapper<const Value>::AsNumber() const
 {
     HYP_CORE_ASSERT(IsNumber());
 
     return value->AsNumber();
 }
 
-JSONNumber JSONSubscriptWrapper<const JSONValue>::ToNumber() const
+JSNumber JSONSubscriptWrapper<const Value>::ToNumber() const
 {
     if (!value)
     {
-        return JSONNumber(0.0);
+        return JSNumber(0.0);
     }
 
     return value->ToNumber();
 }
 
-JSONBool JSONSubscriptWrapper<const JSONValue>::AsBool() const
+JSBoolean JSONSubscriptWrapper<const Value>::AsBool() const
 {
     HYP_CORE_ASSERT(IsBool());
 
     return value->AsBool();
 }
 
-JSONBool JSONSubscriptWrapper<const JSONValue>::ToBool() const
+JSBoolean JSONSubscriptWrapper<const Value>::ToBool() const
 {
     if (!value)
     {
-        return JSONBool(false);
+        return JSBoolean(false);
     }
 
     return value->ToBool();
 }
 
-const JSONArray& JSONSubscriptWrapper<const JSONValue>::AsArray() const
+const JSArray& JSONSubscriptWrapper<const Value>::AsArray() const
 {
     HYP_CORE_ASSERT(IsArray());
 
     return value->AsArray();
 }
 
-const JSONArray& JSONSubscriptWrapper<const JSONValue>::ToArray() const
+const JSArray& JSONSubscriptWrapper<const Value>::ToArray() const
 {
     if (!value || !value->IsArray())
     {
@@ -574,14 +574,14 @@ const JSONArray& JSONSubscriptWrapper<const JSONValue>::ToArray() const
     return value->AsArray();
 }
 
-const JSONObject& JSONSubscriptWrapper<const JSONValue>::AsObject() const
+const JSObject& JSONSubscriptWrapper<const Value>::AsObject() const
 {
     HYP_CORE_ASSERT(IsObject());
 
     return value->AsObject();
 }
 
-const JSONObject& JSONSubscriptWrapper<const JSONValue>::ToObject() const
+const JSObject& JSONSubscriptWrapper<const Value>::ToObject() const
 {
     if (!value || !value->IsObject())
     {
@@ -591,7 +591,7 @@ const JSONObject& JSONSubscriptWrapper<const JSONValue>::ToObject() const
     return value->AsObject();
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::operator[](uint32 index) const
+JSONSubscriptWrapper<const Value> JSONSubscriptWrapper<const Value>::operator[](uint32 index) const
 {
     if (!value)
     {
@@ -600,7 +600,7 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::ope
 
     if (value->IsArray())
     {
-        const JSONArray& asArray = value->AsArray();
+        const JSArray& asArray = value->AsArray();
 
         if (index >= asArray.Size())
         {
@@ -613,7 +613,7 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::ope
     return { nullptr };
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::operator[](UTF8StringView key) const
+JSONSubscriptWrapper<const Value> JSONSubscriptWrapper<const Value>::operator[](UTF8StringView key) const
 {
     if (!value)
     {
@@ -622,7 +622,7 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::ope
 
     if (value->IsObject())
     {
-        const JSONObject& asObject = value->AsObject();
+        const JSObject& asObject = value->AsObject();
 
         auto it = asObject.FindAs(key);
 
@@ -637,7 +637,7 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::ope
     return { nullptr };
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::Get(UTF8StringView path) const
+JSONSubscriptWrapper<const Value> JSONSubscriptWrapper<const Value>::Get(UTF8StringView path) const
 {
     if (!value)
     {
@@ -647,7 +647,7 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::Get
     return SelectHelper(*this, path);
 }
 
-HashCode JSONSubscriptWrapper<const JSONValue>::GetHashCode() const
+HashCode JSONSubscriptWrapper<const Value>::GetHashCode() const
 {
     if (!value)
     {
@@ -657,7 +657,7 @@ HashCode JSONSubscriptWrapper<const JSONValue>::GetHashCode() const
     return value->GetHashCode();
 }
 
-#pragma endregion JSONSubscriptWrapper < const JSONValue>
+#pragma endregion JSONSubscriptWrapper < const Value>
 
 #pragma region JSONParser
 
@@ -680,9 +680,9 @@ public:
 
     ~JSONParser() = default;
 
-    JSONValue Parse()
+    Value Parse()
     {
-        Json::JSONValue value = ParseValue();
+        Json::Value value = ParseValue();
 
         // Should not have any tokens left
         if (m_tokenStream->HasNext())
@@ -697,26 +697,26 @@ public:
     }
 
 private:
-    JSONValue ParseValue()
+    Value ParseValue()
     {
         if (Match(TokenClass::TK_OPEN_BRACE, false))
         {
-            return JSONValue(ParseObject());
+            return Value(ParseObject());
         }
 
         if (Match(TokenClass::TK_OPEN_BRACKET, false))
         {
-            return JSONValue(ParseArray());
+            return Value(ParseArray());
         }
 
         if (Match(TokenClass::TK_STRING, false))
         {
-            return JSONValue(ParseString());
+            return Value(ParseString());
         }
 
         if (Match(TokenClass::TK_INTEGER, false) || Match(TokenClass::TK_FLOAT, false))
         {
-            return JSONValue(ParseNumber());
+            return Value(ParseNumber());
         }
 
         const SourceLocation location = CurrentLocation();
@@ -725,17 +725,17 @@ private:
         {
             if (identifier.GetValue() == "true")
             {
-                return JSONValue(true);
+                return Value(true);
             }
 
             if (identifier.GetValue() == "false")
             {
-                return JSONValue(false);
+                return Value(false);
             }
 
             if (identifier.GetValue() == "null")
             {
-                return JSONValue(JSONNull());
+                return Value(JSNull());
             }
 
             m_compilationUnit->GetErrorList().AddError(CompilerError(
@@ -744,10 +744,10 @@ private:
                 location));
         }
 
-        return JSONValue(JSONUndefined());
+        return Value(JSUndefined());
     }
 
-    JSONString ParseString()
+    String ParseString()
     {
         if (Token token = Expect(TokenClass::TK_STRING, true))
         {
@@ -757,7 +757,7 @@ private:
         return "";
     }
 
-    JSONNumber ParseNumber()
+    JSNumber ParseNumber()
     {
         Token token = Match(TokenClass::TK_INTEGER, true);
 
@@ -768,20 +768,20 @@ private:
 
         if (!token)
         {
-            return JSONNumber(0);
+            return JSNumber(0);
         }
 
         std::istringstream ss(token.GetValue().Data());
 
-        JSONNumber value;
+        JSNumber value;
         ss >> value;
 
         return value;
     }
 
-    JSONArray ParseArray()
+    JSArray ParseArray()
     {
-        JSONArray array;
+        JSArray array;
 
         if (Token token = Expect(TokenClass::TK_OPEN_BRACKET, true))
         {
@@ -802,9 +802,9 @@ private:
         return array;
     }
 
-    JSONObject ParseObject()
+    JSObject ParseObject()
     {
-        JSONObject object;
+        JSObject object;
 
         if (Token token = Expect(TokenClass::TK_OPEN_BRACE, true))
         {
@@ -817,7 +817,7 @@ private:
 
                 if (Match(TokenClass::TK_STRING, false))
                 {
-                    const JSONString key = ParseString();
+                    const String key = ParseString();
 
                     if (Expect(TokenClass::TK_COLON, true))
                     {
@@ -955,29 +955,29 @@ private:
 
 #pragma endregion JSONParser
 
-#pragma region JSONValue
+#pragma region Value
 
-JSONValue::JSONValue(const JSONArray& array)
-    : m_inner(JSONArrayRef::Construct(array))
+Value::Value(const JSArray& array)
+    : m_inner(JSArrayRef::Construct(array))
 {
 }
 
-JSONValue::JSONValue(JSONArray&& array)
-    : m_inner(JSONArrayRef::Construct(std::move(array)))
+Value::Value(JSArray&& array)
+    : m_inner(JSArrayRef::Construct(std::move(array)))
 {
 }
 
-JSONValue::JSONValue(const JSONObject& object)
-    : m_inner(JSONObjectRef::Construct(object))
+Value::Value(const JSObject& object)
+    : m_inner(JSObjectRef::Construct(object))
 {
 }
 
-JSONValue::JSONValue(JSONObject&& object)
-    : m_inner(JSONObjectRef::Construct(std::move(object)))
+Value::Value(JSObject&& object)
+    : m_inner(JSObjectRef::Construct(std::move(object)))
 {
 }
 
-const JSONObject& JSONValue::ToObject() const
+const JSObject& Value::ToObject() const
 {
     if (IsObject())
     {
@@ -987,19 +987,17 @@ const JSONObject& JSONValue::ToObject() const
     return s_emptyObject.AsObject();
 }
 
-JSONString JSONValue::ToString(bool representation, uint32 depth) const
+JSString Value::ToString(bool representation, uint32 depth) const
 {
     return ToString_Internal(representation, depth);
 }
 
-JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
+JSString Value::ToString_Internal(bool representation, uint32 depth) const
 {
-    static thread_local HashSet<const JSONValue*> s_serializedObjects;
+    static thread_local HashSet<const Value*> s_serializedObjects;
 
     if (!s_serializedObjects.Insert(this).second)
     {
-        HYP_BREAKPOINT_DEBUG_MODE;
-
         // already serializing this object, circular reference detected
         return "<circular reference>";
     }
@@ -1012,7 +1010,7 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
     {
         if (representation)
         {
-            return "\"" + AsString().Escape() + "\"";
+            return u"\"" + AsString().Escape() + u"\"";
         }
         else
         {
@@ -1038,7 +1036,7 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
     if (IsNumber())
     {
         // Format string
-        const JSONNumber number = AsNumber();
+        const JSNumber number = AsNumber();
 
         const bool isInteger = MathUtil::Fract(number) < MathUtil::epsilonD;
 
@@ -1082,9 +1080,9 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 
     if (IsArray())
     {
-        const JSONArray& asArray = AsArray();
+        const JSArray& asArray = AsArray();
 
-        String result = "[";
+        JSString result = "[";
 
         for (SizeType index = 0; index < asArray.Size(); index++)
         {
@@ -1103,9 +1101,9 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 
     if (IsObject())
     {
-        const JSONObject& asObject = AsObject();
+        const JSObject& asObject = AsObject();
 
-        Array<const KeyValuePair<JSONString, JSONValue>*> members;
+        Array<const KeyValuePair<JSString, Value>*> members;
         members.Reserve(asObject.Size());
 
         for (const auto& member : asObject)
@@ -1113,14 +1111,14 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
             members.PushBack(&member);
         }
 
-        const String indentation = GetIndentationString(depth);
-        const String propertyIndentation = GetIndentationString(depth + 1);
+        const JSString indentation = GetIndentationString(depth);
+        const JSString propertyIndentation = GetIndentationString(depth + 1);
 
-        String result = "{";
+        JSString result = "{";
 
         for (SizeType index = 0; index < members.Size(); index++)
         {
-            result += "\n" + propertyIndentation + "\"" + members[index]->first.Escape() + "\": ";
+            result += u"\n" + propertyIndentation + "\"" + members[index]->first.Escape() + "\": ";
 
             result += members[index]->second.ToString(true, depth + 1);
 
@@ -1130,7 +1128,7 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
             }
             else
             {
-                result += "\n" + indentation;
+                result += u"\n" + indentation;
             }
         }
 
@@ -1149,7 +1147,7 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
     }
 }
 
-HashCode JSONValue::GetHashCode() const
+HashCode Value::GetHashCode() const
 {
     if (IsString())
     {
@@ -1189,41 +1187,41 @@ HashCode JSONValue::GetHashCode() const
     return HashCode();
 }
 
-#pragma endregion JSONValue
+#pragma endregion Value
 
 #pragma region JSON
 
-const JSONValue& Undefined()
+const Value& Undefined()
 {
     return s_undefined;
 }
 
-const JSONValue& Null()
+const Value& Null()
 {
     return s_null;
 }
 
-const JSONValue& EmptyObject()
+const Value& EmptyObject()
 {
     return s_emptyObject;
 }
 
-const JSONValue& EmptyArray()
+const Value& EmptyArray()
 {
     return s_emptyArray;
 }
 
-const JSONValue& EmptyString()
+const Value& EmptyString()
 {
     return s_emptyString;
 }
 
-const JSONValue& True()
+const Value& True()
 {
     return s_true;
 }
 
-const JSONValue& False()
+const Value& False()
 {
     return s_false;
 }
@@ -1266,7 +1264,7 @@ ParseResult Parse(const SourceFile& sourceFile)
                 + ": " + unit.GetErrorList()[index].GetText() + "\n";
         }
 
-        return { false, errorMessage, JSONValue() };
+        return { false, errorMessage, Value() };
     };
 
     Lexer lexer(SourceStream(&sourceFile), &tokenStream, &unit);
@@ -1281,7 +1279,7 @@ ParseResult Parse(const SourceFile& sourceFile)
         &tokenStream,
         &unit);
 
-    JSONValue value = parser.Parse();
+    Value value = parser.Parse();
 
     if (unit.GetErrorList().HasFatalErrors())
     {

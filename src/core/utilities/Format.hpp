@@ -113,7 +113,7 @@ struct Formatter<StringType, containers::String<OtherStringType>>
 {
     auto operator()(const containers::String<OtherStringType>& value) const
     {
-        return value.ToUTF8();
+        return value.ToUtf8();
     }
 };
 
@@ -131,8 +131,8 @@ struct PrintfFormatter
 {
     auto operator()(T value) const
     {
-        Array<ubyte, InlineAllocator<64>> buf;
-        buf.Resize(64);
+        Array<ubyte, InlineAllocator<256>> buf;
+        buf.Resize(256);
 
         int resultSize = std::snprintf(reinterpret_cast<char*>(buf.Data()), buf.Size(), FormatString.data, value) + 1;
 
@@ -147,10 +147,13 @@ struct PrintfFormatter
     }
 };
 
+/// Pointer specialization
 template <class StringType>
-struct Formatter<StringType, void*> : PrintfFormatter<StringType, const void*, StaticString("%p")>
+struct Formatter<StringType, void*> : PrintfFormatter<StringType, const void*, HYP_STATIC_STRING("%p")>
 {
 };
+
+#pragma region String literal formatting
 
 template <class StringType>
 struct Formatter<StringType, char*>
@@ -166,7 +169,7 @@ struct Formatter<StringType, char[Size]>
 {
     auto operator()(const char (&value)[Size]) const
     {
-        return StringType(static_cast<const char*>(value));
+        return StringType(static_cast<const char*>(value), static_cast<const char*>(value) + Size - 1);
     }
 };
 
@@ -178,6 +181,53 @@ struct Formatter<StringType, wchar_t*>
         return StringType(WideStringView(value));
     }
 };
+
+template <class StringType, SizeType Size>
+struct Formatter<StringType, wchar_t[Size]>
+{
+    auto operator()(const wchar_t (&value)[Size]) const
+    {
+        return StringType(WideStringView(static_cast<const wchar_t*>(value), static_cast<const wchar_t*>(value) + Size - 1));
+    }
+};
+
+template <class StringType>
+struct Formatter<StringType, char16_t*>
+{
+    auto operator()(const char16_t* value) const
+    {
+        return StringType(UTF16StringView(value));
+    }
+};
+
+template <class StringType, SizeType Size>
+struct Formatter<StringType, char16_t[Size]>
+{
+    auto operator()(const char16_t (&value)[Size]) const
+    {
+        return StringType(UTF16StringView(static_cast<const char16_t*>(value), static_cast<const char16_t*>(value) + Size - 1));
+    }
+};
+
+template <class StringType>
+struct Formatter<StringType, char32_t*>
+{
+    auto operator()(const char32_t* value) const
+    {
+        return StringType(UTF32StringView(value));
+    }
+};
+
+template <class StringType, SizeType Size>
+struct Formatter<StringType, char32_t[Size]>
+{
+    auto operator()(const char32_t (&value)[Size]) const
+    {
+        return StringType(UTF32StringView(static_cast<const char32_t*>(value), static_cast<const char32_t*>(value) + Size - 1));
+    }
+};
+
+#pragma endregion String literal formatting
 
 #pragma region ConcatRuntimeStrings
 

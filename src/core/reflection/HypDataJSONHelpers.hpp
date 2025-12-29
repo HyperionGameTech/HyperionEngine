@@ -22,10 +22,8 @@ using utilities::TypeInfo;
 
 namespace Json {
 
-class JSONValue;
-
-using JSONString = String;
-class JSONObject;
+class Value;
+class JSObject;
 
 } // namespace Json
 
@@ -45,51 +43,51 @@ struct ToJSONOptions
     FollowAssetPathsMode followAssetPaths = WITH_ATTRIBUTE;
 };
 
-/*! \brief Converts a BoxedValue to a JSONValue.
+/*! \brief Converts a BoxedValue to a Value.
  *
  *  \param value The BoxedValue to convert.
- *  \param outJson The output JSONValue.
+ *  \param outJson The output Value.
  *  \return True if conversion was successful, false otherwise.
  */
 bool HypDataToJSON(
     const BoxedValue& value,
-    json::JSONValue& outJson,
+    Json::Value& outJson,
     ToJSONOptions opts = ToJSONOptions {});
 
-/*! \brief Serializes a Object instance to a JSONObject.
+/*! \brief Serializes a Object instance to a Object.
  *  Only fields and properties of the Class are serialized.
  *  Members marked with the "jsonignore" attribute are skipped.
  *  Members marked with the "transient" attribute are skipped if skipTransientProperties is true.
  *  Members with the "jsonpath" attribute are serialized using the specified JSON path.
  *  \param cls The Class of the object.
  *  \param target The BoxedValue object to serialize.
- *  \param outJson The output JSONObject.
+ *  \param outJson The output Object.
  *  \return True if serialization was successful, false otherwise.
  */
 bool ObjectToJSON(
     const Class* cls,
     const BoxedValue& target,
-    json::JSONObject& outJson,
+    Json::JSObject& outJson,
     ToJSONOptions opts = ToJSONOptions {});
 
-/*! \brief Converts a JSONValue to BoxedValue
+/*! \brief Converts a Value to BoxedValue
  *
- *  \param jsonValue The JSONValue to convert.
+ *  \param jsonValue The Value to convert.
  *  \param typeInfo The TypeInfo for the target type.
  *  \param outHypData The output BoxedValue.
  *  \return True if conversion was successful, false otherwise.
  */
-bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, BoxedValue& outHypData);
+bool JSONToHypData(const Json::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outHypData);
 
-/*! \brief Deserializes a JSONObject to a BoxedValue object.
+/*! \brief Deserializes a Object to a BoxedValue object.
  *  Only fields and properties of the Class are deserialized.
  *  Members marked with the "jsonignore" attribute are skipped.
  *  Members with the "jsonpath" attribute are deserialized using the specified JSON path.
- *  \param jsonObject The JSONObject to deserialize.
+ *  \param jsonObject The Object to deserialize.
  *  \param targetClass The desired Class of the target object. (can be null if target already has a type)
  *  \param target The output BoxedValue object.
  *  \return True if deserialization was successful, false otherwise.
  */
-bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, BoxedValue& target);
+bool JSONToObject(const Json::JSObject& jsonObject, const Class* targetClass, BoxedValue& target);
 
 } // namespace Hyperion

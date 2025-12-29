@@ -23,7 +23,14 @@ struct DynamicAllocator;
 template <class AllocatorType>
 class TArena
 {
+    /*! Using 64 bytes to align to common cpu cache line size
+      to prevent arenas from overlapping in memory causing false sharing
+      \note if the overarching allocator's maxAlign is less than 64, we have to go by that instead */
+    static constexpr uint32 chunkAllocationAlignment = AllocatorType::maxAlign < 64 ? AllocatorType::maxAlign : 64;
+
 public:
+    static constexpr uint32 maxAlign = 16;
+
     template <class T>
     struct Allocation : DynamicAllocationBase<T>
     {
@@ -41,7 +48,10 @@ public:
     TArena(TArena&& other) noexcept = delete;
     TArena& operator=(TArena&& other) noexcept = delete;
 
-    ~TArena() = default;
+    ~TArena()
+    {
+        m_allocation.Free(m_pAllocator);
+    }
 
     /*! \brief Returns the total capacity of the arena in bytes. */
     HYP_FORCE_INLINE SizeType GetCapacity() const
@@ -99,7 +109,7 @@ TArena<AllocatorType>::TArena(SizeType size)
 
     if (m_size != 0)
     {
-        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ alignof(ubyte));
+        m_allocation.Allocate(m_pAllocator, m_size, chunkAllocationAlignment);
     }
 }
 
@@ -116,20 +126,20 @@ TArena<AllocatorType>::TArena(AllocatorType* pAllocator, SizeType size)
 
     if (m_size != 0)
     {
-        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ alignof(ubyte));
+        m_allocation.Allocate(m_pAllocator, m_size, chunkAllocationAlignment);
     }
 }
 
 template <class AllocatorType>
 void* TArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
 {
-    HYP_CORE_ASSERT(alignment != 0 && ((alignment & (alignment - 1)) == 0),
-        "Arena requires power-of-two, non-zero alignment");
+    HYP_CORE_ASSERT(alignment != 0 && alignment <= maxAlign && ((alignment & (alignment - 1)) == 0),
+        "Arena requires power-of-two, non-zero alignment and must have alignment requirement <= 16 bytes");
 
     ubyte* base = m_allocation.GetBuffer();
 
     UIntPtr currentAddress = reinterpret_cast<UIntPtr>(base + m_offset);
-    UIntPtr alignedAddress = ByteUtil::AlignAs(currentAddress, alignment);
+    UIntPtr alignedAddress = ByteUtil::AlignAs(currentAddress, uint32(alignment));
     SizeType padding = alignedAddress - currentAddress;
     SizeType totalSize = size + padding;
 

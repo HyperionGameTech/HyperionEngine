@@ -1777,7 +1777,7 @@ private:
                         continue;
                     }
 
-                    json::JSONValue json;
+                    Json::Value json;
                     hypMember.cxxType->ToJSON(json);
 
                     HYP_LOG(BuildTool, Info, "\tMember: {}\t{}", hypMember.name, json.ToString(true));
@@ -1880,9 +1880,9 @@ int main(int argc, char** argv)
 
         if (parseResult.GetValue().Contains("ExcludeDirectories"))
         {
-            const json::JSONArray excludeDirectoriesJson = parseResult.GetValue()["ExcludeDirectories"].ToArray();
+            const Json::JSArray excludeDirectoriesJson = parseResult.GetValue()["ExcludeDirectories"].ToArray();
 
-            for (const json::JSONValue& value : excludeDirectoriesJson)
+            for (const Json::Value& value : excludeDirectoriesJson)
             {
                 excludeDirectories.Insert(FilePath(FileSystem::RelativePath(value.ToString().Data(), sourceDirectory.Data()).c_str()));
             }
@@ -1890,9 +1890,9 @@ int main(int argc, char** argv)
 
         if (parseResult.GetValue().Contains("ExcludeFiles"))
         {
-            const json::JSONArray excludeFilesJson = parseResult.GetValue()["ExcludeFiles"].ToArray();
+            const Json::JSArray excludeFilesJson = parseResult.GetValue()["ExcludeFiles"].ToArray();
 
-            for (const json::JSONValue& value : excludeFilesJson)
+            for (const Json::Value& value : excludeFilesJson)
             {
                 excludeFiles.Insert(FilePath(FileSystem::RelativePath(value.ToString().Data(), sourceDirectory.Data()).c_str()));
             }

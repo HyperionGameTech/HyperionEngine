@@ -4,6 +4,9 @@
 
 #include <core/logging/Logger.hpp>
 
+// temp
+#include <core/json/JSON.hpp>
+
 #include <HyperionEngine.hpp>
 #include <engine/EngineDriver.hpp>
 

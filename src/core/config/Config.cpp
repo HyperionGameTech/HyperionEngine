@@ -32,13 +32,13 @@ static const ConfigurationValue s_invalidConfigValue {};
 #pragma region ConfigurationTable
 
 ConfigurationTable::ConfigurationTable()
-    : m_rootObject(json::JSONObject())
+    : m_rootObject(Json::JSObject())
 {
 }
 
 ConfigurationTable::ConfigurationTable(const String& configName, const String& subobjectPath)
     : m_subobjectPath(subobjectPath.Any() ? subobjectPath : Optional<String> {}),
-      m_rootObject(json::JSONObject()),
+      m_rootObject(Json::JSObject()),
       m_name(configName)
 {
     // try to read from config file
@@ -124,7 +124,7 @@ FilePath ConfigurationTable::GetFilePath() const
     return configPath;
 }
 
-Result ConfigurationTable::Read(json::JSONValue& outValue) const
+Result ConfigurationTable::Read(Json::Value& outValue) const
 {
     const FilePath configPath = GetFilePath();
 
@@ -141,7 +141,7 @@ Result ConfigurationTable::Read(json::JSONValue& outValue) const
         return HYP_MAKE_ERROR(Error, "Failed to open configuration file at {}", configPath);
     }
 
-    json::ParseResult parseResult = Json::Parse(String(reader.ReadBytes().ToByteView()));
+    Json::ParseResult parseResult = Json::Parse(String(reader.ReadBytes().ToByteView()));
 
     if (!parseResult.ok)
     {
@@ -153,7 +153,7 @@ Result ConfigurationTable::Read(json::JSONValue& outValue) const
     return {};
 }
 
-Result ConfigurationTable::Write(const json::JSONValue& value) const
+Result ConfigurationTable::Write(const Json::Value& value) const
 {
     const String valueString = value.ToString(true);
 
@@ -171,20 +171,20 @@ ConfigurationTable& ConfigurationTable::Merge(const ConfigurationTable& other)
         return *this;
     }
 
-    const json::JSONValue& otherSubobject = other.GetSubobject();
+    const Json::Value& otherSubobject = other.GetSubobject();
 
     if (!otherSubobject.IsObject())
     {
         return *this;
     }
 
-    json::JSONValue& targetObject = other.m_subobjectPath.HasValue()
+    Json::Value& targetObject = other.m_subobjectPath.HasValue()
         ? *m_rootObject.Get(*other.m_subobjectPath, /* createIntermediateObjects */ true)
         : m_rootObject;
 
     if (!targetObject.IsObject())
     {
-        targetObject = json::JSONObject();
+        targetObject = Json::JSObject();
     }
 
     targetObject.AsObject().MergeDeep(otherSubobject.AsObject());
@@ -223,9 +223,9 @@ bool ConfigurationTable::Save()
     return true;
 }
 
-json::JSONValue& ConfigurationTable::GetSubobject()
+Json::Value& ConfigurationTable::GetSubobject()
 {
-    json::JSONValue* subobject = &m_rootObject;
+    Json::Value* subobject = &m_rootObject;
 
     if (m_subobjectPath.HasValue())
     {
@@ -233,16 +233,16 @@ json::JSONValue& ConfigurationTable::GetSubobject()
 
         if (!subobject->IsObject())
         {
-            *subobject = json::JSONObject();
+            *subobject = Json::JSObject();
         }
     }
 
     return *subobject;
 }
 
-const json::JSONValue& ConfigurationTable::GetSubobject() const
+const Json::Value& ConfigurationTable::GetSubobject() const
 {
-    const json::JSONValue* subobject = &m_rootObject;
+    const Json::Value* subobject = &m_rootObject;
 
     if (m_subobjectPath.HasValue())
     {
@@ -316,7 +316,7 @@ bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
         return false;
     }
 
-    json::JSONObject jsonObject;
+    Json::JSObject jsonObject;
 
     if (ObjectToJSON(cls, targetHypData, jsonObject))
     {

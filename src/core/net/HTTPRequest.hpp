@@ -65,7 +65,7 @@ public:
         return m_body;
     }
 
-    Optional<json::JSONValue> ToJSON() const;
+    Optional<Json::Value> ToJSON() const;
 
     void OnDataReceived(Span<char> data);
     void OnComplete(int statusCode);
@@ -83,7 +83,7 @@ class HYP_API HTTPRequest
 {
 public:
     HTTPRequest(const String& url, HTTPMethod method = HTTPMethod::GET);
-    HTTPRequest(const String& url, const json::JSONValue& body, HTTPMethod method = HTTPMethod::GET);
+    HTTPRequest(const String& url, const Json::Value& body, HTTPMethod method = HTTPMethod::GET);
     HTTPRequest(const HTTPRequest& other);
     HTTPRequest& operator=(const HTTPRequest& other);
     HTTPRequest(HTTPRequest&& other) noexcept;

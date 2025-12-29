@@ -42,6 +42,8 @@ class HYP_API Pool
     }
 
 public:
+    static constexpr uint32 maxAlign = 16;
+
     template <class T>
     struct Allocation : DynamicAllocationBase<T>
     {

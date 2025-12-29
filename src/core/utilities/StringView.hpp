@@ -676,7 +676,7 @@ constexpr bool operator==(const StringView<TStringType>& lhs, const StringView<T
         return true;
     }
 
-    return Memory::AreStaticStringsEqual(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Size(), rhs.Size()));
+    return Memory::StrEqual(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Size(), rhs.Size()));
 }
 
 } // namespace utilities

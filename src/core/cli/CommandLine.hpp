@@ -51,7 +51,7 @@ enum class CommandLineArgumentType : uint8
 
 namespace cli {
 
-using CommandLineArgumentValue = json::JSONValue;
+using CommandLineArgumentValue = Json::Value;
 
 class CommandLineParser;
 struct CommandLineArgumentDefinition;

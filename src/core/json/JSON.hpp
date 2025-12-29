@@ -24,21 +24,21 @@ class SourceFile;
 template <class JSONValueType>
 struct JSONSubscriptWrapper;
 
-class JSONValue;
-class JSONObject;
+class Value;
+class JSObject;
 
-using JSONString = String;
-using JSONNumber = double;
-using JSONBool = bool;
-using JSONArray = Array<JSONValue, DynamicAllocator>;
-using JSONArrayRef = RC<JSONArray>;
-using JSONObjectRef = RC<JSONObject>;
+using JSString = UTF16String;
+using JSNumber = double;
+using JSBoolean = bool;
+using JSArray = Array<Value, DynamicAllocator>;
+using JSArrayRef = RC<JSArray>;
+using JSObjectRef = RC<JSObject>;
 
-struct JSONNull
+struct JSNull
 {
 };
 
-struct JSONUndefined
+struct JSUndefined
 {
 };
 
@@ -48,11 +48,11 @@ struct JSONSubscriptWrapper
 };
 
 template <>
-struct HYP_API JSONSubscriptWrapper<const JSONValue>
+struct HYP_API JSONSubscriptWrapper<const Value>
 {
-    const JSONValue* value = nullptr;
+    const Value* value = nullptr;
 
-    JSONSubscriptWrapper(const JSONValue* value)
+    JSONSubscriptWrapper(const Value* value)
         : value(value)
     {
     }
@@ -101,12 +101,12 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
         return ToBool();
     }
 
-    HYP_FORCE_INLINE const JSONValue& operator*() const
+    HYP_FORCE_INLINE const Value& operator*() const
     {
         return Get();
     }
 
-    const JSONValue& Get() const;
+    const Value& Get() const;
 
     bool IsString() const;
     bool IsNumber() const;
@@ -121,23 +121,23 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
         return IsNull() || IsUndefined();
     }
 
-    const JSONString& AsString() const;
-    JSONString ToString() const;
+    const JSString& AsString() const;
+    JSString ToString() const;
 
-    JSONNumber AsNumber() const;
-    JSONNumber ToNumber() const;
+    JSNumber AsNumber() const;
+    JSNumber ToNumber() const;
 
-    JSONBool AsBool() const;
-    JSONBool ToBool() const;
+    JSBoolean AsBool() const;
+    JSBoolean ToBool() const;
 
-    const JSONArray& AsArray() const;
-    const JSONArray& ToArray() const;
+    const JSArray& AsArray() const;
+    const JSArray& ToArray() const;
 
-    const JSONObject& AsObject() const;
-    const JSONObject& ToObject() const;
+    const JSObject& AsObject() const;
+    const JSObject& ToObject() const;
 
-    JSONSubscriptWrapper<const JSONValue> operator[](uint32 index) const;
-    JSONSubscriptWrapper<const JSONValue> operator[](UTF8StringView key) const;
+    JSONSubscriptWrapper<const Value> operator[](uint32 index) const;
+    JSONSubscriptWrapper<const Value> operator[](UTF8StringView key) const;
 
     /*! \brief Get a value within the JSON object using a path (e.g. "key1.key2.key3").
      *  If the path does not exist, or the value is not an object, an undefined value is returned.
@@ -145,17 +145,17 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
      *  \param path The path to the value.
      *  \return A JSONSubscriptWrapper object.
      */
-    JSONSubscriptWrapper<const JSONValue> Get(UTF8StringView path) const;
+    JSONSubscriptWrapper<const Value> Get(UTF8StringView path) const;
 
     HashCode GetHashCode() const;
 };
 
 template <>
-struct HYP_API JSONSubscriptWrapper<JSONValue>
+struct HYP_API JSONSubscriptWrapper<Value>
 {
-    JSONValue* value = nullptr;
+    Value* value = nullptr;
 
-    JSONSubscriptWrapper(JSONValue* value)
+    JSONSubscriptWrapper(Value* value)
         : value(value)
     {
     }
@@ -199,9 +199,9 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
 
     ~JSONSubscriptWrapper() = default;
 
-    HYP_FORCE_INLINE operator JSONSubscriptWrapper<const JSONValue>() const
+    HYP_FORCE_INLINE operator JSONSubscriptWrapper<const Value>() const
     {
-        return JSONSubscriptWrapper<const JSONValue>(const_cast<JSONValue* const>(value));
+        return JSONSubscriptWrapper<const Value>(const_cast<Value* const>(value));
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -209,12 +209,12 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
         return ToBool();
     }
 
-    HYP_FORCE_INLINE JSONValue& operator*() const
+    HYP_FORCE_INLINE Value& operator*() const
     {
         return Get();
     }
 
-    JSONValue& Get() const;
+    Value& Get() const;
 
     bool IsString() const;
     bool IsNumber() const;
@@ -224,25 +224,25 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
     bool IsNull() const;
     bool IsUndefined() const;
 
-    JSONString& AsString() const;
-    JSONString ToString() const;
+    JSString& AsString() const;
+    JSString ToString() const;
 
-    JSONNumber AsNumber() const;
-    JSONNumber ToNumber() const;
+    JSNumber AsNumber() const;
+    JSNumber ToNumber() const;
 
-    JSONBool AsBool() const;
-    JSONBool ToBool() const;
+    JSBoolean AsBool() const;
+    JSBoolean ToBool() const;
 
-    JSONArray& AsArray() const;
-    const JSONArray& ToArray() const;
+    JSArray& AsArray() const;
+    const JSArray& ToArray() const;
 
-    JSONObject& AsObject() const;
-    const JSONObject& ToObject() const;
+    JSObject& AsObject() const;
+    const JSObject& ToObject() const;
 
-    JSONSubscriptWrapper<JSONValue> operator[](uint32 index);
-    JSONSubscriptWrapper<const JSONValue> operator[](uint32 index) const;
-    JSONSubscriptWrapper<JSONValue> operator[](UTF8StringView key);
-    JSONSubscriptWrapper<const JSONValue> operator[](UTF8StringView key) const;
+    JSONSubscriptWrapper<Value> operator[](uint32 index);
+    JSONSubscriptWrapper<const Value> operator[](uint32 index) const;
+    JSONSubscriptWrapper<Value> operator[](UTF8StringView key);
+    JSONSubscriptWrapper<const Value> operator[](UTF8StringView key) const;
 
     /*! \brief Get a value within the JSON object using a path (e.g. "key1.key2.key3").
      *  If the path does not exist, or the value is not an object, an undefined value is returned.
@@ -251,7 +251,7 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
      *  \param createIntermediateObjects If true, intermediate objects are created between the path elements if they do not exist.
      *  \return A JSONSubscriptWrapper object.
      */
-    JSONSubscriptWrapper<JSONValue> Get(UTF8StringView path, bool createIntermediateObjects = false);
+    JSONSubscriptWrapper<Value> Get(UTF8StringView path, bool createIntermediateObjects = false);
 
     /*! \brief Get a value within the JSON object using a path (e.g. "key1.key2.key3").
      *  If the path does not exist, or the value is not an object, an undefined value is returned.
@@ -259,7 +259,7 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
      *  \param path The path to the value.
      *  \return A JSONSubscriptWrapper object.
      */
-    JSONSubscriptWrapper<const JSONValue> Get(UTF8StringView path) const;
+    JSONSubscriptWrapper<const Value> Get(UTF8StringView path) const;
 
     /*! \brief Set a value within the JSON object using a path.
      *  (e.g. "key1.key2.key3"). If the value is not an object, the value is not set. If the path does not exist, it is created.
@@ -267,180 +267,175 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
      *  \param path The path to the value.
      *  \param value The value to set.
      */
-    void Set(UTF8StringView path, const JSONValue& value);
+    void Set(UTF8StringView path, const Value& value);
 
     HashCode GetHashCode() const;
 };
 
-class HYP_API JSONValue
+class HYP_API Value
 {
 private:
     using InnerType = Variant<
-        JSONString,
-        JSONNumber,
-        JSONBool,
-        JSONArrayRef,
-        JSONObjectRef,
-        JSONNull,
-        JSONUndefined>;
+        JSString,
+        JSNumber,
+        JSBoolean,
+        JSArrayRef,
+        JSObjectRef,
+        JSNull,
+        JSUndefined>;
 
 public:
-    JSONValue()
-        : m_inner(JSONUndefined {})
+    Value()
+        : m_inner(JSUndefined {})
     {
     }
 
-    JSONValue(const char* string)
-        : JSONValue(JSONString(string))
+    Value(String string)
+        : m_inner(JSString(std::move(string)))
     {
     }
 
-    JSONValue(JSONString string)
-        : m_inner(std::move(string))
+    Value(ANSIString string)
+        : m_inner(JSString(std::move(string)))
     {
     }
 
-    JSONValue(ANSIString string)
-        : m_inner(JSONString(std::move(string)))
+    Value(UTF16String string)
+        : m_inner(JSString(std::move(string)))
     {
     }
 
-    JSONValue(UTF16String string)
-        : m_inner(JSONString(std::move(string)))
+    Value(UTF32String string)
+        : m_inner(JSString(std::move(string)))
     {
     }
 
-    JSONValue(UTF32String string)
-        : m_inner(JSONString(std::move(string)))
+    Value(WideString string)
+        : m_inner(JSString(std::move(string)))
     {
     }
 
-    JSONValue(WideString string)
-        : m_inner(JSONString(std::move(string)))
+    Value(ANSIStringView string)
+        : Value(JSString(string))
     {
     }
 
-    JSONValue(ANSIStringView string)
-        : JSONValue(JSONString(string))
+    Value(UTF8StringView string)
+        : Value(JSString(string))
     {
     }
 
-    JSONValue(UTF8StringView string)
-        : JSONValue(JSONString(string))
+    Value(UTF16StringView string)
+        : Value(JSString(string))
     {
     }
 
-    JSONValue(UTF16StringView string)
-        : JSONValue(JSONString(string))
+    Value(UTF32StringView string)
+        : Value(JSString(string))
     {
     }
 
-    JSONValue(UTF32StringView string)
-        : JSONValue(JSONString(string))
+    Value(WideStringView string)
+        : Value(JSString(string))
     {
     }
 
-    JSONValue(WideStringView string)
-        : JSONValue(JSONString(string))
-    {
-    }
-
-    JSONValue(JSONNumber number)
+    Value(JSNumber number)
         : m_inner(number)
     {
     }
 
-    JSONValue(uint8 number)
-        : m_inner(JSONNumber(number))
+    Value(uint8 number)
+        : m_inner(JSNumber(number))
     {
     }
 
-    JSONValue(uint16 number)
-        : m_inner(JSONNumber(number))
+    Value(uint16 number)
+        : m_inner(JSNumber(number))
     {
     }
 
-    JSONValue(uint32 number)
-        : m_inner(JSONNumber(number))
+    Value(uint32 number)
+        : m_inner(JSNumber(number))
     {
     }
 
-    JSONValue(uint64 number)
-        : m_inner(JSONNumber(number))
+    Value(uint64 number)
+        : m_inner(JSNumber(number))
     {
     }
 
-    JSONValue(int8 number)
-        : m_inner(JSONNumber(number))
+    Value(int8 number)
+        : m_inner(JSNumber(number))
     {
     }
 
-    JSONValue(int16 number)
-        : m_inner(JSONNumber(number))
+    Value(int16 number)
+        : m_inner(JSNumber(number))
     {
     }
 
-    JSONValue(int32 number)
-        : m_inner(JSONNumber(number))
+    Value(int32 number)
+        : m_inner(JSNumber(number))
     {
     }
 
-    JSONValue(int64 number)
-        : m_inner(JSONNumber(number))
+    Value(int64 number)
+        : m_inner(JSNumber(number))
     {
     }
 
-    JSONValue(float number)
-        : m_inner(JSONNumber(number))
+    Value(float number)
+        : m_inner(JSNumber(number))
     {
     }
 
-    JSONValue(JSONBool boolean)
+    Value(JSBoolean boolean)
         : m_inner(boolean)
     {
     }
 
-    JSONValue(const JSONArray& array);
-    JSONValue(JSONArray&& array);
+    Value(const JSArray& array);
+    Value(JSArray&& array);
 
-    JSONValue(const JSONObject& object);
-    JSONValue(JSONObject&& object);
+    Value(const JSObject& object);
+    Value(JSObject&& object);
 
-    JSONValue(JSONNull)
-        : m_inner(JSONNull())
+    Value(JSNull)
+        : m_inner(JSNull())
     {
     }
 
-    JSONValue(JSONUndefined)
-        : m_inner(JSONUndefined())
+    Value(JSUndefined)
+        : m_inner(JSUndefined())
     {
     }
 
-    JSONValue(const JSONValue& other)
+    Value(const Value& other)
         : m_inner(other.m_inner)
     {
     }
 
-    JSONValue& operator=(const JSONValue& other)
+    Value& operator=(const Value& other)
     {
         m_inner = other.m_inner;
 
         return *this;
     }
 
-    JSONValue(JSONValue&& other) noexcept
+    Value(Value&& other) noexcept
         : m_inner(std::move(other.m_inner))
     {
     }
 
-    JSONValue& operator=(JSONValue&& other) noexcept
+    Value& operator=(Value&& other) noexcept
     {
         m_inner = std::move(other.m_inner);
 
         return *this;
     }
 
-    ~JSONValue() = default;
+    ~Value() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -449,37 +444,37 @@ public:
 
     HYP_FORCE_INLINE bool IsString() const
     {
-        return m_inner.Is<JSONString>();
+        return m_inner.Is<JSString>();
     }
 
     HYP_FORCE_INLINE bool IsNumber() const
     {
-        return m_inner.Is<JSONNumber>();
+        return m_inner.Is<JSNumber>();
     }
 
     HYP_FORCE_INLINE bool IsBool() const
     {
-        return m_inner.Is<JSONBool>();
+        return m_inner.Is<JSBoolean>();
     }
 
     HYP_FORCE_INLINE bool IsArray() const
     {
-        return m_inner.Is<JSONArrayRef>();
+        return m_inner.Is<JSArrayRef>();
     }
 
     HYP_FORCE_INLINE bool IsObject() const
     {
-        return m_inner.Is<JSONObjectRef>();
+        return m_inner.Is<JSObjectRef>();
     }
 
     HYP_FORCE_INLINE bool IsNull() const
     {
-        return m_inner.Is<JSONNull>();
+        return m_inner.Is<JSNull>();
     }
 
     HYP_FORCE_INLINE bool IsUndefined() const
     {
-        return m_inner.Is<JSONUndefined>();
+        return m_inner.Is<JSUndefined>();
     }
 
     HYP_FORCE_INLINE bool IsNullOrUndefined() const
@@ -487,30 +482,30 @@ public:
         return IsNull() || IsUndefined();
     }
 
-    HYP_FORCE_INLINE JSONString& AsString()
+    HYP_FORCE_INLINE JSString& AsString()
     {
         HYP_CORE_ASSERT(IsString());
 
-        return m_inner.GetUnchecked<JSONString>();
+        return m_inner.GetUnchecked<JSString>();
     }
 
-    HYP_FORCE_INLINE const JSONString& AsString() const
+    HYP_FORCE_INLINE const JSString& AsString() const
     {
         HYP_CORE_ASSERT(IsString());
 
-        return m_inner.GetUnchecked<JSONString>();
+        return m_inner.GetUnchecked<JSString>();
     }
 
-    HYP_FORCE_INLINE JSONString ToString(bool representation = false) const
+    HYP_FORCE_INLINE JSString ToString(bool representation = false) const
     {
         return ToString(representation, 0);
     }
 
-    HYP_FORCE_INLINE JSONNumber AsNumber() const
+    HYP_FORCE_INLINE JSNumber AsNumber() const
     {
         HYP_CORE_ASSERT(IsNumber());
 
-        return m_inner.GetUnchecked<JSONNumber>();
+        return m_inner.GetUnchecked<JSNumber>();
     }
 
     /*! \brief Convert the JSON value to a number. If the value is undefined, the default value is returned.
@@ -518,7 +513,7 @@ public:
      *  \param defaultValue The default value to return if the value is not a number. (Default: 0.0)
      *  \return The number value.
      */
-    HYP_FORCE_INLINE JSONNumber ToNumber(JSONNumber defaultValue = 0.0) const
+    HYP_FORCE_INLINE JSNumber ToNumber(JSNumber defaultValue = 0.0) const
     {
         if (IsNumber())
         {
@@ -542,7 +537,7 @@ public:
 
         if (IsString())
         {
-            return StringUtil::Parse<JSONNumber>(AsString().Data(), defaultValue);
+            return StringUtil::Parse<JSNumber>(String(AsString()).Data(), defaultValue);
         }
 
         return defaultValue;
@@ -550,59 +545,59 @@ public:
 
     HYP_FORCE_INLINE int8 ToInt8(int8 defaultValue = 0) const
     {
-        return static_cast<int8>(ToNumber(JSONNumber(defaultValue)));
+        return static_cast<int8>(ToNumber(JSNumber(defaultValue)));
     }
 
     HYP_FORCE_INLINE int16 ToInt16(int16 defaultValue = 0) const
     {
-        return static_cast<int16>(ToNumber(JSONNumber(defaultValue)));
+        return static_cast<int16>(ToNumber(JSNumber(defaultValue)));
     }
 
     HYP_FORCE_INLINE int32 ToInt32(int32 defaultValue = 0) const
     {
-        return static_cast<int32>(ToNumber(JSONNumber(defaultValue)));
+        return static_cast<int32>(ToNumber(JSNumber(defaultValue)));
     }
 
     HYP_FORCE_INLINE int64 ToInt64(int64 defaultValue = 0) const
     {
-        return static_cast<int64>(ToNumber(JSONNumber(defaultValue)));
+        return static_cast<int64>(ToNumber(JSNumber(defaultValue)));
     }
 
     HYP_FORCE_INLINE uint8 ToUInt8(uint8 defaultValue = 0) const
     {
-        return static_cast<uint8>(ToNumber(JSONNumber(defaultValue)));
+        return static_cast<uint8>(ToNumber(JSNumber(defaultValue)));
     }
 
     HYP_FORCE_INLINE uint16 ToUInt16(uint16 defaultValue = 0) const
     {
-        return static_cast<uint16>(ToNumber(JSONNumber(defaultValue)));
+        return static_cast<uint16>(ToNumber(JSNumber(defaultValue)));
     }
 
     HYP_FORCE_INLINE uint32 ToUInt32(uint32 defaultValue = 0) const
     {
-        return static_cast<uint32>(ToNumber(JSONNumber(defaultValue)));
+        return static_cast<uint32>(ToNumber(JSNumber(defaultValue)));
     }
 
     HYP_FORCE_INLINE uint64 ToUInt64(uint64 defaultValue = 0) const
     {
-        return static_cast<uint64>(ToNumber(JSONNumber(defaultValue)));
+        return static_cast<uint64>(ToNumber(JSNumber(defaultValue)));
     }
 
     HYP_FORCE_INLINE float ToFloat(float defaultValue = 0.0f) const
     {
-        return static_cast<float>(ToNumber(JSONNumber(defaultValue)));
+        return static_cast<float>(ToNumber(JSNumber(defaultValue)));
     }
 
     HYP_FORCE_INLINE double ToDouble(double defaultValue = 0.0) const
     {
-        return ToNumber(JSONNumber(defaultValue));
+        return ToNumber(JSNumber(defaultValue));
     }
 
-    HYP_FORCE_INLINE JSONBool AsBool() const
+    HYP_FORCE_INLINE JSBoolean AsBool() const
     {
         HYP_CORE_ASSERT(IsBool());
 
-        return m_inner.GetUnchecked<JSONBool>();
+        return m_inner.GetUnchecked<JSBoolean>();
     }
 
     /*! \brief Convert the JSON value to a boolean. If the value is undefined, the default value is returned.
@@ -610,7 +605,7 @@ public:
      *  \param defaultValue The default value to return if the value is not a boolean. (Default: false)
      *  \return The boolean value.
      */
-    HYP_FORCE_INLINE JSONBool ToBool(JSONBool defaultValue = false) const
+    HYP_FORCE_INLINE JSBoolean ToBool(JSBoolean defaultValue = false) const
     {
         if (IsBool())
         {
@@ -624,7 +619,7 @@ public:
 
         if (IsNull())
         {
-            return JSONBool(false);
+            return JSBoolean(false);
         }
 
         if (IsNumber())
@@ -639,32 +634,32 @@ public:
 
         if (IsObject())
         {
-            return JSONBool(true);
+            return JSBoolean(true);
         }
 
         if (IsArray())
         {
-            return JSONBool(true);
+            return JSBoolean(true);
         }
 
         return defaultValue;
     }
 
-    HYP_FORCE_INLINE JSONArray& AsArray()
+    HYP_FORCE_INLINE JSArray& AsArray()
     {
         HYP_CORE_ASSERT(IsArray());
 
-        return *m_inner.GetUnchecked<JSONArrayRef>();
+        return *m_inner.GetUnchecked<JSArrayRef>();
     }
 
-    HYP_FORCE_INLINE const JSONArray& AsArray() const
+    HYP_FORCE_INLINE const JSArray& AsArray() const
     {
         HYP_CORE_ASSERT(IsArray());
 
-        return *m_inner.GetUnchecked<JSONArrayRef>();
+        return *m_inner.GetUnchecked<JSArrayRef>();
     }
 
-    HYP_FORCE_INLINE JSONArray ToArray() const
+    HYP_FORCE_INLINE JSArray ToArray() const
     {
         if (IsArray())
         {
@@ -673,117 +668,117 @@ public:
 
         if (IsUndefined())
         {
-            return JSONArray();
+            return JSArray();
         }
 
-        JSONArray arrayValue;
+        JSArray arrayValue;
         arrayValue.PushBack(*this);
         return arrayValue;
     }
 
-    HYP_FORCE_INLINE JSONObject& AsObject()
+    HYP_FORCE_INLINE JSObject& AsObject()
     {
         HYP_CORE_ASSERT(IsObject());
 
-        return *m_inner.GetUnchecked<JSONObjectRef>();
+        return *m_inner.GetUnchecked<JSObjectRef>();
     }
 
-    HYP_FORCE_INLINE const JSONObject& AsObject() const
+    HYP_FORCE_INLINE const JSObject& AsObject() const
     {
         HYP_CORE_ASSERT(IsObject());
 
-        return *m_inner.GetUnchecked<JSONObjectRef>();
+        return *m_inner.GetUnchecked<JSObjectRef>();
     }
 
-    const JSONObject& ToObject() const;
+    const JSObject& ToObject() const;
 
-    HYP_FORCE_INLINE JSONSubscriptWrapper<JSONValue> operator[](uint32 index)
+    HYP_FORCE_INLINE JSONSubscriptWrapper<Value> operator[](uint32 index)
     {
-        return JSONSubscriptWrapper<JSONValue>(this)[index];
+        return JSONSubscriptWrapper<Value>(this)[index];
     }
 
-    HYP_FORCE_INLINE JSONSubscriptWrapper<const JSONValue> operator[](uint32 index) const
+    HYP_FORCE_INLINE JSONSubscriptWrapper<const Value> operator[](uint32 index) const
     {
-        return JSONSubscriptWrapper<const JSONValue>(this)[index];
+        return JSONSubscriptWrapper<const Value>(this)[index];
     }
 
-    HYP_FORCE_INLINE JSONSubscriptWrapper<JSONValue> operator[](UTF8StringView key)
+    HYP_FORCE_INLINE JSONSubscriptWrapper<Value> operator[](UTF8StringView key)
     {
-        return JSONSubscriptWrapper<JSONValue>(this)[key];
+        return JSONSubscriptWrapper<Value>(this)[key];
     }
 
-    HYP_FORCE_INLINE JSONSubscriptWrapper<const JSONValue> operator[](UTF8StringView key) const
+    HYP_FORCE_INLINE JSONSubscriptWrapper<const Value> operator[](UTF8StringView key) const
     {
-        return JSONSubscriptWrapper<const JSONValue>(this)[key];
+        return JSONSubscriptWrapper<const Value>(this)[key];
     }
 
-    HYP_FORCE_INLINE JSONSubscriptWrapper<JSONValue> Get(UTF8StringView path, bool createIntermediateObjects = false)
+    HYP_FORCE_INLINE JSONSubscriptWrapper<Value> Get(UTF8StringView path, bool createIntermediateObjects = false)
     {
-        return JSONSubscriptWrapper<JSONValue>(this).Get(path, createIntermediateObjects);
+        return JSONSubscriptWrapper<Value>(this).Get(path, createIntermediateObjects);
     }
 
-    HYP_FORCE_INLINE JSONSubscriptWrapper<const JSONValue> Get(UTF8StringView path) const
+    HYP_FORCE_INLINE JSONSubscriptWrapper<const Value> Get(UTF8StringView path) const
     {
-        return JSONSubscriptWrapper<const JSONValue>(this).Get(path);
+        return JSONSubscriptWrapper<const Value>(this).Get(path);
     }
 
-    HYP_FORCE_INLINE void Set(UTF8StringView path, const JSONValue& value)
+    HYP_FORCE_INLINE void Set(UTF8StringView path, const Value& value)
     {
-        JSONSubscriptWrapper<JSONValue>(this).Set(path, value);
+        JSONSubscriptWrapper<Value>(this).Set(path, value);
     }
 
     HashCode GetHashCode() const;
 
 private:
-    JSONString ToString(bool representation, uint32 depth) const;
-    JSONString ToString_Internal(bool representation, uint32 depth) const;
+    JSString ToString(bool representation, uint32 depth) const;
+    JSString ToString_Internal(bool representation, uint32 depth) const;
 
     InnerType m_inner;
 };
 
-class JSONObject final : public ArrayMap<JSONString, JSONValue>
+class JSObject final : public ArrayMap<JSString, Value>
 {
 public:
-    using Base = ArrayMap<JSONString, JSONValue>;
+    using Base = ArrayMap<JSString, Value>;
 
-    JSONObject() = default;
+    JSObject() = default;
 
-    JSONObject(std::initializer_list<KeyValuePair<JSONString, JSONValue>> initializerList)
+    JSObject(std::initializer_list<KeyValuePair<JSString, Value>> initializerList)
         : Base(initializerList)
     {
     }
 
-    JSONObject(const JSONObject& other) = default;
-    JSONObject& operator=(const JSONObject& other) = default;
+    JSObject(const JSObject& other) = default;
+    JSObject& operator=(const JSObject& other) = default;
 
-    JSONObject(JSONObject&& other) noexcept = default;
-    JSONObject& operator=(JSONObject&& other) noexcept = default;
+    JSObject(JSObject&& other) noexcept = default;
+    JSObject& operator=(JSObject&& other) noexcept = default;
 
-    ~JSONObject() = default;
+    ~JSObject() = default;
 
-    /*! \brief Merge another JSONObject into this one.
+    /*! \brief Merge another JSObject into this one.
      *  If a key exists in both objects, the value from the other object is used.
      *  If the value is an object, it is replaced with the other object's value.
      *
-     *  \param other The other JSONObject to merge.
-     *  \return A reference to this JSONObject.
+     *  \param other The other JSObject to merge.
+     *  \return A reference to this JSObject.
      */
     template <class OtherContainerType>
-    JSONObject& Merge(OtherContainerType&& other)
+    JSObject& Merge(OtherContainerType&& other)
     {
         Base::Merge(std::forward<OtherContainerType>(other));
 
         return *this;
     }
 
-    /*! \brief Merge another JSONObject into this one, recursively merging objects.
+    /*! \brief Merge another JSObject into this one, recursively merging objects.
      *  If a key exists in both objects and the value is an object, the values are merged.
      *  Otherwise, the value from the other object is used.
      *
-     *  \param other The other JSONObject to merge.
-     *  \return A reference to this JSONObject.
+     *  \param other The other JSObject to merge.
+     *  \return A reference to this JSObject.
      */
-    JSONObject& MergeDeep(const JSONObject& other)
+    JSObject& MergeDeep(const JSObject& other)
     {
         if (this == &other)
         {
@@ -792,8 +787,8 @@ public:
 
         for (const auto& kv : other)
         {
-            const JSONString& key = kv.first;
-            const JSONValue& value = kv.second;
+            const JSString& key = kv.first;
+            const Value& value = kv.second;
 
             if (value.IsObject())
             {
@@ -825,16 +820,16 @@ struct ParseResult
 {
     bool ok = true;
     String message;
-    JSONValue value;
+    Value value;
 };
 
-HYP_API const JSONValue& Undefined();
-HYP_API const JSONValue& Null();
-HYP_API const JSONValue& EmptyObject();
-HYP_API const JSONValue& EmptyArray();
-HYP_API const JSONValue& EmptyString();
-HYP_API const JSONValue& True();
-HYP_API const JSONValue& False();
+HYP_API const Value& Undefined();
+HYP_API const Value& Null();
+HYP_API const Value& EmptyObject();
+HYP_API const Value& EmptyArray();
+HYP_API const Value& EmptyString();
+HYP_API const Value& True();
+HYP_API const Value& False();
 
 HYP_API ParseResult Parse(const String& jsonString);
 HYP_API ParseResult Parse(BufferedReader& reader);
