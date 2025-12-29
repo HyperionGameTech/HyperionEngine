@@ -122,6 +122,7 @@ enum ErrorMessage
     Msg_static_member_not_found,
     Msg_cannot_instantiate_non_object,
     Msg_invalid_base_class,
+    Msg_struct_cannot_have_base,
     Msg_classes_may_only_be_defined_in_global_scope,
 
     Msg_bitwise_operands_must_be_int,

@@ -1093,6 +1093,11 @@ bool SymbolType::IsEnumType() const
     return m_typeClass == TYPE_ENUM;
 }
 
+bool SymbolType::IsStructType() const
+{
+    return m_typeClass == TYPE_STRUCT;
+}
+
 SymbolType* SymbolType::Alias(const String& name, const AliasTypeInfo& info)
 {
     Assert(info.m_aliasee != nullptr);
@@ -1151,6 +1156,22 @@ SymbolType* SymbolType::Enum(
     return symbolType;
 }
 
+SymbolType* SymbolType::Struct(
+    const String& name,
+    Array<SymbolTypeMember>&& members,
+    Array<SymbolTypeMember>&& staticMembers)
+{
+    SymbolType* symbolType = new SymbolType(
+        name,
+        TYPE_STRUCT,
+        nullptr,
+        nullptr,
+        std::move(members),
+        std::move(staticMembers));
+
+    return symbolType;
+}
+
 SymbolType* SymbolType::Object(
     const String& name,
     const SymbolType* baseType,
@@ -1159,7 +1180,7 @@ SymbolType* SymbolType::Object(
 {
     SymbolType* symbolType = new SymbolType(
         name,
-        TYPE_USER_DEFINED,
+        TYPE_CLASS,
         baseType,
         nullptr,
         std::move(members),
@@ -1186,11 +1207,6 @@ String SymbolType::ToString(bool includeParameterNames) const
 
     switch (m_typeClass)
     {
-    case TYPE_ALIAS:
-    case TYPE_BUILTIN: // fallthrough
-    case TYPE_USER_DEFINED:
-    case TYPE_GENERIC_PARAMETER:
-        break;
     case TYPE_GENERIC_INSTANCE:
     {
         res = m_name;
@@ -1797,9 +1813,6 @@ HashCode SymbolType::GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateN
         }
 
         break;
-    case TYPE_BUILTIN: // fallthrough
-    case TYPE_GENERIC_PARAMETER:
-    case TYPE_USER_DEFINED:
     default:
         break;
     }

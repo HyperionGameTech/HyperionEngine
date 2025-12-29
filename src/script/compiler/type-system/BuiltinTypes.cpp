@@ -383,32 +383,32 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
     SymbolType* intptrType = SymbolType::Alias("IntPtr", { sizeof(void*) == 4 ? BuiltinTypes::s_int32Type : BuiltinTypes::s_int64Type });
     intptrType->Register(compilationUnit);
 
-    SymbolType* vec2iType = SymbolType::Object(
-        "Vec2i", nullptr,
+    SymbolType* vec2iType = SymbolType::Struct(
+        "Vec2i",
         { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) } },
         {});
 
     vec2iType->Register(compilationUnit);
 
-    SymbolType* vec2uType = SymbolType::Object(
-        "Vec2u", nullptr,
+    SymbolType* vec2uType = SymbolType::Struct(
+        "Vec2u",
         { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) } },
         {});
 
     vec2uType->Register(compilationUnit);
 
-    SymbolType* vec2fType = SymbolType::Object(
-        "Vec2f", nullptr,
+    SymbolType* vec2fType = SymbolType::Struct(
+        "Vec2f",
         { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) } },
         {});
 
     vec2fType->Register(compilationUnit);
 
-    SymbolType* vec3iType = SymbolType::Object(
-        "Vec3i", nullptr,
+    SymbolType* vec3iType = SymbolType::Struct(
+        "Vec3i",
         { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
             SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) } },
@@ -416,8 +416,8 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     vec3iType->Register(compilationUnit);
 
-    SymbolType* vec3uType = SymbolType::Object(
-        "Vec3u", nullptr,
+    SymbolType* vec3uType = SymbolType::Struct(
+        "Vec3u",
         { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
             SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) } },
@@ -425,8 +425,8 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     vec3uType->Register(compilationUnit);
 
-    SymbolType* vec3fType = SymbolType::Object(
-        "Vec3f", nullptr,
+    SymbolType* vec3fType = SymbolType::Struct(
+        "Vec3f",
         { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
             SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_floatType) } },
@@ -434,8 +434,8 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     vec3fType->Register(compilationUnit);
 
-    SymbolType* vec4iType = SymbolType::Object(
-        "Vec4i", nullptr,
+    SymbolType* vec4iType = SymbolType::Struct(
+        "Vec4i",
         { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
             SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
@@ -444,8 +444,8 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     vec4iType->Register(compilationUnit);
 
-    SymbolType* vec4uType = SymbolType::Object(
-        "Vec4u", nullptr,
+    SymbolType* vec4uType = SymbolType::Struct(
+        "Vec4u",
         { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
             SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
@@ -454,8 +454,8 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     vec4uType->Register(compilationUnit);
 
-    SymbolType* vec4fType = SymbolType::Object(
-        "Vec4f", nullptr,
+    SymbolType* vec4fType = SymbolType::Struct(
+        "Vec4f",
         { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
             SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
@@ -464,7 +464,7 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     vec4fType->Register(compilationUnit);
 
-    SymbolType* byteBufferType = SymbolType::Object("ByteBuffer", nullptr, {}, {});
+    SymbolType* byteBufferType = SymbolType::Struct("ByteBuffer", {}, {});
     byteBufferType->Register(compilationUnit);
 
     const SymbolType* const s_globalVisibleTypes[] {
