@@ -363,7 +363,7 @@ protected:
 
     Handle<View> m_view;
 
-    Array<BakeEntity> m_bakeEntities;
+    Array<BakeEntity, DynamicAllocator> m_bakeEntities;
     HashMap<Handle<Entity>, BakeEntity*> m_bakeEntitiesByEntity;
 
     /// ===== CPU tracing only =====
