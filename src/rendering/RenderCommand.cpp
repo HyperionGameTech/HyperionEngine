@@ -27,7 +27,7 @@ void RenderScheduler::Commit(RenderCommand* command)
     m_commands.PushBack(command);
 }
 
-void RenderScheduler::AcceptAll(Array<RenderCommand*>& outContainer)
+void RenderScheduler::AcceptAll(Array<RenderCommand*, RenderAllocator>& outContainer)
 {
     outContainer = std::move(m_commands);
 }
@@ -42,24 +42,23 @@ void RenderCommands::PushCustomRenderCommand(CustomRenderCommand* command)
 
     buffer.scheduler.m_numEnqueued.Increment(1, MemoryOrder::RELEASE);
 
-    std::unique_lock lock(buffer.mtx);
-
+    Mutex::Guard guard(buffer.mtx);
     buffer.scheduler.Commit(command);
 }
 
-RendererResult RenderCommands::Flush()
+void RenderCommands::Flush()
 {
     HYP_NAMED_SCOPE("Flush render commands");
 
     AssertOnThread(g_renderThread);
 
-    Array<RenderCommand*> commands;
+    Array<RenderCommand*, RenderAllocator> commands;
 
 #ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
     const uint32 bufferIndex = RenderCommands::s_bufferIndex.Increment(1, MemoryOrder::ACQUIRE_RELEASE) % 2;
     Buffer& buffer = s_buffers[bufferIndex];
 
-    std::unique_lock lock(buffer.mtx);
+    buffer.mtx.Lock();
 
     buffer.scheduler.AcceptAll(commands);
 
@@ -85,12 +84,12 @@ RendererResult RenderCommands::Flush()
         Rewind(bufferIndex);
     }
 
-    lock.unlock();
+    buffer.mtx.Unlock();
 #else
     const uint32 bufferIndex = 0;
     Buffer& buffer = s_buffers[bufferIndex];
 
-    std::unique_lock lock(buffer.mtx);
+    buffer.mtx.Lock();
 
     buffer.scheduler.AcceptAll(commands);
 
@@ -123,12 +122,10 @@ RendererResult RenderCommands::Flush()
 
     buffer.scheduler.m_numEnqueued.Decrement(numCommands, MemoryOrder::RELEASE);
 
-    lock.unlock();
+    buffer.mtx.Unlock();
 #endif
 
     s_semaphore.Produce(1);
-
-    return {};
 }
 
 void RenderCommands::Wait()

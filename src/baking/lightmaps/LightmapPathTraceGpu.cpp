@@ -180,17 +180,18 @@ void LightmapRenderer_GpuPathTracing::Create()
 
 void LightmapRenderer_GpuPathTracing::CleanJobData(BakeJobBase* job)
 {
+    if (!job)
+    {
+        return;
+    }
+
     auto jobDataIt = m_jobData.Find(job);
+    AssertDebug(jobDataIt != m_jobData.End());
 
     if (jobDataIt == m_jobData.End())
     {
         return;
     }
-
-    SafeDelete(std::move(jobDataIt->second.UniformBuffers));
-    SafeDelete(std::move(jobDataIt->second.RayBuffers));
-    SafeDelete(std::move(jobDataIt->second.HitsBufferGpu));
-    SafeDelete(std::move(jobDataIt->second.Sets));
 
     m_jobData.Erase(jobDataIt);
 }

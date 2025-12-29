@@ -52,6 +52,11 @@ public:
     Task<void>* EnqueueBake(const Handle<T>& source);
 
 private:
+    SubsystemUpdatePhase GetUpdatePhase_Internal() const override
+    {
+        return SubsystemUpdatePhase::AfterVis;
+    }
+
     template <class T, class... Args>
     Task<void>* EnqueueBake_Internal(const Handle<T>& source, Args&&... args);
 
