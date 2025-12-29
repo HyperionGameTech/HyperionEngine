@@ -120,14 +120,14 @@ void SimThread::Update()
     RenderApi::BeginFrameSim();
 
     // execute posted tasks
-    Queue<Scheduler::ScheduledTask> tasks;
+    Array<Scheduler::ScheduledTask, SceneTempAllocator> tasks;
     if (uint32 numEnqueued = m_scheduler.NumEnqueued())
     {
         m_scheduler.AcceptAll(tasks);
 
         while (tasks.Any())
         {
-            tasks.Pop().Execute();
+            tasks.PopBack().Execute();
         }
     }
 

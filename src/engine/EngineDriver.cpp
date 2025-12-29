@@ -102,7 +102,8 @@ void HandleSignal(int signum)
     exit(signum);
 }
 
-static void UpdateDirtyMeshEntities(Scene* scene, Array<Entity*, SceneAllocator>& outUpdatedEntities)
+template <class AllocatorType>
+static void UpdateDirtyMeshEntities(Scene* scene, Array<Entity*, AllocatorType>& outUpdatedEntities)
 {
     EntityManager* entityManager = scene->GetEntityManager();
     AssertDebug(entityManager != nullptr);
@@ -433,7 +434,6 @@ void EngineDriver::PreFrameUpdate(Frame* frame)
     AssertOnThread(g_renderThread);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void EngineDriver::UpdateSim(float delta)
 {
     static const bool s_dedicatedVisThread = CoreApi::GetCommandLineArguments()["DedicatedVisThread"].ToBool();
@@ -454,7 +454,7 @@ void EngineDriver::UpdateSim(float delta)
     Array<View*, SceneAllocator> views;
     Array<Subsystem*, SceneAllocator> subsystems;
 
-    Array<World*, SceneAllocator> simulatingWorlds;
+    Array<World*, SceneTempAllocator> simulatingWorlds;
 
     TaskBatch worldUpdateTaskBatch;
     TaskBatch* currBatch = &worldUpdateTaskBatch;
@@ -542,12 +542,12 @@ void EngineDriver::UpdateSim(float delta)
         Bucket_Max
     };
 
-    Array<Entity*, SceneAllocator> updatedEntities[Bucket_Max];
+    Array<Entity*, SceneTempAllocator> updatedEntities[Bucket_Max];
 
     {
         // update mark render proxies as needing update for all entities that could be visible,
         // if they have the UpdateRenderProxy tag
-        Array<Scene*, SceneAllocator> visitedScenes;
+        Array<Scene*, SceneTempAllocator> visitedScenes;
 
         for (View* view : views)
         {
@@ -566,7 +566,7 @@ void EngineDriver::UpdateSim(float delta)
     }
 
 #if HYP_PROCESS_SUBSYSTEMS_ASYNC
-    Array<Task<void>, SceneAllocator> updateSubsystemTasks;
+    Array<Task<void>, SceneTempAllocator> updateSubsystemTasks;
 
     for (Subsystem* subsystem : subsystems)
     {
@@ -693,7 +693,6 @@ void EngineDriver::UpdateSim(float delta)
         bufferData->gameTime = m_currentWorld->GetGameState().gameTime;
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion EngineDriver
 
