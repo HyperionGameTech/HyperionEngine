@@ -108,6 +108,8 @@ public:
         return GetDotNetPath() / "runtimeconfig.json";
     }
 
+    HYP_DISABLE_OPTIMIZATION;
+
     virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) override
     {
         m_basePath = basePath;
@@ -434,12 +436,15 @@ private:
 
         if (!m_dll.Load())
         {
+            AssertDebug(false, "Failed to load hostfxr library at {}", wpath);
             return false;
         }
 
         m_initFptr = (hostfxr_initialize_for_runtime_config_fn)m_dll.GetFunction("hostfxr_initialize_for_runtime_config");
         m_getDelegateFptr = (hostfxr_get_runtime_delegate_fn)m_dll.GetFunction("hostfxr_get_runtime_delegate");
         m_closeFptr = (hostfxr_close_fn)m_dll.GetFunction("hostfxr_close");
+
+        AssertDebug(m_initFptr && m_getDelegateFptr && m_closeFptr);
 
         HYP_LOG(DotNET, Debug, "Loaded hostfxr functions");
 
@@ -462,7 +467,9 @@ private:
         runtimeConfigPath = GetRuntimeConfigPath();
 #endif
 
-        int res = m_initFptr(runtimeConfigPath.Data(), nullptr, &m_cxt);
+        const TChar* runtimeConfigPathCStr = runtimeConfigPath.Data();
+
+        int res = m_initFptr(runtimeConfigPathCStr, nullptr, &m_cxt);
 
         // https://github.com/dotnet/runtime/blob/main/docs/design/features/host-error-codes.md
         switch (res)

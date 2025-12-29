@@ -119,10 +119,9 @@ ParallelRenderingState::~ParallelRenderingState()
 
 #pragma endregion ParallelRenderingState
 
-#pragma region RenderProxyList
+#pragma region GeometryPass
 
 namespace GeometryPass {
-
 namespace PropNames {
 
 static const Name s_nameInstancing = NAME("INSTANCING");
@@ -318,6 +317,8 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
 } // namespace GeometryPass
 
+#pragma endregion GeometryPass
+
 static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, DrawCallCollectionMapping& mapping, const RenderableAttributeSet& attributes)
 {
     EnumFlags<RenderGroupFlags> renderGroupFlags = RenderGroupFlags::DEFAULT;
@@ -467,6 +468,8 @@ static inline void UpdateRefs(T& renderProxyList)
             UpdateRefs_Impl(std::forward<Args>(args)...);
         });
 }
+
+#pragma region RenderProxyList
 
 RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool useRefCounting)
     : isShared(isShared),

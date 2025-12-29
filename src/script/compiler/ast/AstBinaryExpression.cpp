@@ -202,8 +202,8 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
                 LEVEL_ERROR,
                 Msg_bitwise_operands_must_be_int,
                 m_location,
-                leftType->GetName(),
-                rightType->GetName()));
+                leftType->ToString(),
+                rightType->ToString()));
     }
     else if (m_op->GetType() & ARITHMETIC)
     {
