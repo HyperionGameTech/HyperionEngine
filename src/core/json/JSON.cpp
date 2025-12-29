@@ -1010,7 +1010,7 @@ JSString Value::ToString_Internal(bool representation, uint32 depth) const
     {
         if (representation)
         {
-            return u"\"" + AsString().Escape() + u"\"";
+            return "\"" + AsString().Escape() + "\"";
         }
         else
         {
@@ -1118,7 +1118,7 @@ JSString Value::ToString_Internal(bool representation, uint32 depth) const
 
         for (SizeType index = 0; index < members.Size(); index++)
         {
-            result += u"\n" + propertyIndentation + "\"" + members[index]->first.Escape() + "\": ";
+            result += "\n" + propertyIndentation + "\"" + members[index]->first.Escape() + "\": ";
 
             result += members[index]->second.ToString(true, depth + 1);
 
@@ -1128,7 +1128,7 @@ JSString Value::ToString_Internal(bool representation, uint32 depth) const
             }
             else
             {
-                result += u"\n" + indentation;
+                result += "\n" + indentation;
             }
         }
 

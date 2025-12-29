@@ -2164,19 +2164,6 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
             {
                 return HYP_MAKE_ERROR(Error, "Package manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
             }
-        
-        Json::JSString tmpString;
-        tmpString += u"{";
-        tmpString += u"Foo";
-        tmpString += u"}";
-        
-        UTF16StringView tmpSv = tmpString;
-        
-        String tmpString2;
-        tmpString2.Append(tmpString.Data(), tmpString.Data() + tmpString.Size());
-        
-        HYP_LOG(Assets, Debug, "tmp result:\n{}\n", tmpSv);
-        HYP_LOG(Assets, Debug, "Parse result:\n{}\n", parseResult.value.ToString());
 
             const String packagePath = parseResult.value.Get("Path").ToString().ToUtf8();
             const String packageName = parseResult.value.Get("Name").ToString().ToUtf8();
@@ -2185,10 +2172,6 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
             {
                 return HYP_MAKE_ERROR(Error, "Package manifest JSON does not contain a valid 'Path' or 'Name' field");
             }
-        
-        static constexpr auto hash1 = UTF8StringView("Path").GetHashCode();
-        static constexpr auto hash2 = UTF16StringView(u"Path").GetHashCode();
-        static_assert(hash1 == hash2);
 
             Handle<AssetPackage> parentPackage;
 
