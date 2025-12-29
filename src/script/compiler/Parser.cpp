@@ -1535,6 +1535,8 @@ RC<AstBlock> Parser::ParseBlock(bool requireBraces, bool skipEnd)
 {
     SourceLocation location = CurrentLocation();
 
+    SkipStatementTerminators();
+
     if (requireBraces)
     {
         if (!Expect(TK_OPEN_BRACE, true))
@@ -1788,6 +1790,8 @@ RC<AstTryCatch> Parser::ParseTryCatchStatement()
     {
         RC<AstBlock> tryBlock = ParseBlock(true, true);
         RC<AstBlock> catchBlock;
+
+        SkipStatementTerminators();
 
         if (ExpectKeyword(Keyword_catch, true))
         {

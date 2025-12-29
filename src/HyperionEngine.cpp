@@ -40,8 +40,6 @@
 
 #include <audio/AudioManager.hpp>
 
-#include <script/HypScript.hpp>
-
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineMemory.hpp>
 #include <engine/EngineStats.hpp>
@@ -319,7 +317,6 @@ extern "C"
         InitNameRegistry();
 
         ClassRegistry::GetInstance().Initialize();
-        HypScript::GetInstance().Initialize();
 
         const FilePath basePath = FilePath(CoreApi::GetCommandLineArguments().GetCommand()).BasePath();
         CoreApi::SetExecutablePath(basePath);
