@@ -28,9 +28,6 @@ class View;
 
 struct VisibilityStateComponent;
 
-class VisPendingQueue;
-class VisCompletedQueue;
-
 class VisThread final : public TaskThread
 {
 public:
@@ -42,12 +39,10 @@ public:
     bool Start();
     void Stop() override;
 
-    void Push(EntitySetType& entitySet, uint32& outNumRemaining);
-
     void AddViewToProcess(View* view);
 
     void OnFrameStart(uint32 frameCounter);
-    void OnFrameEnd(Array<Entity*, SceneAllocator>& outProcessedEntities);
+    void OnFrameEnd(Array<Entity*, SceneTempAllocator>& outProcessedEntities);
 
     void Process();
 
@@ -55,9 +50,6 @@ private:
     virtual void operator()() override;
 
     Arena m_tempAllocator;
-
-    VisPendingQueue* m_pendingQueue;
-    VisCompletedQueue* m_completedQueue;
 
     Mutex m_mtx;
     ConditionVariable m_cv;
