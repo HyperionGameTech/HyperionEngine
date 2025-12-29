@@ -2008,19 +2008,19 @@ public:
         Number num;
 
         // we only allow bitwise NOT on integers
-        if (GetNumber(value, &num) && (num.flags & (Number::FLAG_SIGNED | Number::FLAG_UNSIGNED)))
-        {
-            // signedness and bitwidth don't change result
-            num.u = ~num.u;
-        }
-        else
+        if (!GetNumber(value, &num) || !(num.flags & (Number::FLAG_SIGNED | Number::FLAG_UNSIGNED)))
         {
             vm->ThrowException(instance, Script_Exception::InvalidBitwiseArgument());
 
             return;
         }
 
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(num);
+        const NumericType numericType = GetNumericType(value);
+
+        Number result { numericType };
+        result.u = ~num.u; // flip the bits, signedness doesn't matter for bitwise NOT
+
+        instance->thread.m_regs[reg] = ScriptApi_MakeValue(result);
     }
 
     SCRIPT_INLINE void OpThrow(RegisterIndex reg)
