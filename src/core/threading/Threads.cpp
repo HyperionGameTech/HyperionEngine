@@ -123,7 +123,7 @@ void SetCurrentThreadId(const ThreadId& id)
 #ifdef HYP_WINDOWS
     HRESULT setThreadResult = SetThreadDescription(
         GetCurrentThread(),
-        &HYP_UTF8_TOWIDE(id.GetName().LookupString())[0]);
+        WideString(id.GetName().LookupString()).Data());
 
     if (FAILED(setThreadResult))
     {

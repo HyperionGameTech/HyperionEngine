@@ -37,6 +37,28 @@ class StringView;
 
 namespace containers {
 
+namespace detail {
+
+template <Char CharType, SizeType Size>
+static inline constexpr CharType* ConvertChars(const char* src, CharType (&dst)[Size])
+{
+    if (Size == 0)
+    {
+        return dst;
+    }
+
+    for (SizeType i = 0; i < Size - 1; ++i)
+    {
+        dst[i] = static_cast<CharType>(src[i]);
+    }
+
+    dst[Size - 1] = CharType('\0');
+
+    return dst;
+}
+
+} // namespace detail
+
 /*! \brief Dynamic string class that natively supports UTF-8, as well as UTF-16, UTF-32, wide chars and ANSI. */
 template <int TStringType>
 class String : Array<typename StringTypeImpl<TStringType>::CharType, InlineAllocator<16>>
@@ -75,15 +97,6 @@ public:
 
     static constexpr SizeType NotFound = SizeType(-1);
 
-    template <int FirstStringType, int SecondStringType>
-    friend constexpr bool operator<(const containers::String<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
-
-    template <int FirstStringType, int SecondStringType>
-    friend constexpr bool operator<(const StringView<FirstStringType>& lhs, const containers::String<SecondStringType>& rhs);
-
-    template <int FirstStringType, int SecondStringType>
-    friend constexpr bool operator==(const StringView<FirstStringType>& lhs, const containers::String<SecondStringType>& rhs);
-
     String();
     String(const String& other);
 
@@ -112,6 +125,14 @@ public:
 
     String(const CharType* str);
     String(const CharType* _begin, const CharType* _end);
+
+    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    String(const OtherCharType* str)
+        : String()
+    {
+        Clear();
+        Append(str);
+    }
 
     explicit String(ConstByteView byteView);
 
@@ -148,7 +169,7 @@ public:
 
     String& operator=(const CharType* str);
 
-    HYP_FORCE_INLINE String operator+(const CharType* str) const
+    HYP_NODISCARD HYP_FORCE_INLINE String operator+(const CharType* str) const
     {
         return String(*this) += str;
     }
@@ -159,8 +180,21 @@ public:
         return *this;
     }
 
+    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    HYP_NODISCARD HYP_FORCE_INLINE String operator+(const OtherCharType* str) const
+    {
+        return String(*this) += str;
+    }
+
+    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    HYP_FORCE_INLINE String& operator+=(const OtherCharType* str)
+    {
+        Append(str);
+        return *this;
+    }
+
     template <int TOtherStringType, typename = std::enable_if_t<TOtherStringType != TStringType>>
-    HYP_FORCE_INLINE String operator+(const String<TOtherStringType>& other) const
+    HYP_NODISCARD HYP_FORCE_INLINE String operator+(const String<TOtherStringType>& other) const
     {
         String result(*this);
         result.Append(other.Data(), other.Data() + other.Size());
@@ -176,20 +210,20 @@ public:
         return *this;
     }
 
-    String operator+(const utilities::StringView<TStringType>& stringView) const;
+    HYP_NODISCARD String operator+(const utilities::StringView<TStringType>& stringView) const;
     String& operator+=(const utilities::StringView<TStringType>& stringView);
 
-    String operator+(CharType ch) const;
+    HYP_NODISCARD String operator+(CharType ch) const;
     String& operator+=(CharType ch);
 
-    template <class TWidestCharType, typename = std::enable_if_t<isUtf8 && std::is_same_v<TWidestCharType, WidestCharType>>>
-    HYP_FORCE_INLINE String operator+(TWidestCharType ch) const
+    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    HYP_NODISCARD HYP_FORCE_INLINE String operator+(OtherCharType ch) const
     {
         return String(*this) += ch;
     }
 
-    template <class TWidestCharType, typename = std::enable_if_t<isUtf8 && std::is_same_v<TWidestCharType, WidestCharType>>>
-    HYP_FORCE_INLINE String& operator+=(TWidestCharType ch)
+    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    HYP_FORCE_INLINE String& operator+=(CharType ch)
     {
         Append(ch);
         return *this;
@@ -365,7 +399,7 @@ public:
     void Append(const CharType* str);
     void Append(const CharType* _begin, const CharType* _end);
 
-    template <class OtherCharType, typename = std::enable_if_t<isUtf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, Char32> || std::is_same_v<OtherCharType, Char16> || std::is_same_v<OtherCharType, wchar_t>)>>
+    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
     void Append(const OtherCharType* str)
     {
         const SizeType size = utf::StringLength<OtherCharType, false>(str);
@@ -373,74 +407,253 @@ public:
         Append(str, str + size);
     }
 
-    template <class OtherCharType, typename = std::enable_if_t<isUtf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, Char32> || std::is_same_v<OtherCharType, Char16> || std::is_same_v<OtherCharType, wchar_t>)>>
+    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
     void Append(const OtherCharType* _begin, const OtherCharType* _end)
     {
-        // const int size = utf::StringLength<OtherCharType, false>(str);
-
-        // const SizeType size = SizeType(_end - _begin);
-
-        if constexpr (std::is_same_v<OtherCharType, Char32>)
+        if constexpr (isUtf8)
         {
-            const SizeType len = utf::ToUtf8(_begin, _end, nullptr);
-
-            if (len == 0)
+            if constexpr (std::is_same_v<OtherCharType, Char32>)
             {
-                return;
+                const SizeType len = utf::ToUtf8(_begin, _end, nullptr);
+
+                if (len == 0)
+                {
+                    return;
+                }
+
+                Array<utf::Char8> buffer;
+                buffer.Resize(len + 1);
+                utf::ToUtf8(_begin, _end, buffer.Data());
+
+                for (SizeType i = 0; i < buffer.Size(); i++)
+                {
+                    Append(CharType(buffer[i]));
+                }
             }
-
-            Array<utf::Char8> buffer;
-            buffer.Resize(len + 1);
-            utf::ToUtf8(_begin, _end, buffer.Data());
-
-            for (SizeType i = 0; i < buffer.Size(); i++)
+            else if constexpr (std::is_same_v<OtherCharType, Char16>)
             {
-                Append(CharType(buffer[i]));
+                const SizeType len = utf::ToUtf8(_begin, _end, nullptr);
+
+                if (len == 0)
+                {
+                    return;
+                }
+
+                Array<utf::Char8> buffer;
+                buffer.Resize(len + 1);
+                utf::ToUtf8(_begin, _end, buffer.Data());
+
+                for (SizeType i = 0; i < buffer.Size(); i++)
+                {
+                    Append(CharType(buffer[i]));
+                }
+            }
+            else if constexpr (std::is_same_v<OtherCharType, wchar_t>)
+            {
+                const SizeType len = utf::ToUtf8(_begin, _end, nullptr);
+
+                if (len == 0)
+                {
+                    return;
+                }
+
+                Array<utf::Char8> buffer;
+                buffer.Resize(len + 1);
+                utf::ToUtf8(_begin, _end, buffer.Data());
+
+                for (SizeType i = 0; i < buffer.Size(); i++)
+                {
+                    Append(CharType(buffer[i]));
+                }
+            }
+            else
+            {
+                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to UTF-8 encoded string");
             }
         }
-        else if constexpr (std::is_same_v<OtherCharType, Char16>)
+        else if constexpr (isWide)
         {
-            const SizeType len = utf::ToUtf8(_begin, _end, nullptr);
-
-            if (len == 0)
+            if constexpr (std::is_same_v<OtherCharType, utf::Char8>)
             {
-                return;
+                const SizeType len = utf::ToWide(reinterpret_cast<const utf::Char8*>(_begin), reinterpret_cast<const utf::Char8*>(_end), nullptr);
+
+                if (len == 0)
+                {
+                    return;
+                }
+
+                Array<wchar_t> buffer;
+                buffer.Resize(len + 1);
+                utf::ToWide(reinterpret_cast<const utf::Char8*>(_begin), reinterpret_cast<const utf::Char8*>(_end), buffer.Data());
+
+                for (SizeType i = 0; i < len; i++)
+                {
+                    Append(static_cast<CharType>(buffer[i]));
+                }
             }
-
-            Array<utf::Char8> buffer;
-            buffer.Resize(len + 1);
-            utf::ToUtf8(_begin, _end, buffer.Data());
-
-            for (SizeType i = 0; i < buffer.Size(); i++)
+            else if constexpr (std::is_same_v<OtherCharType, utf::Char16>)
             {
-                Append(CharType(buffer[i]));
+                // Convert UTF-16 to Wide using Char16to32
+                const utf::Char16* ptr = _begin;
+                const utf::Char16* endPtr = _end;
+
+                while (ptr < endPtr)
+                {
+                    SizeType codeUnits = 0;
+                    const utf::Char32 ch = utf::Char16to32(ptr, SizeType(endPtr - ptr), codeUnits);
+
+                    if (ch == utf::Char32(-1) || codeUnits == 0)
+                    {
+                        break;
+                    }
+
+                    ptr += codeUnits;
+                    Append(static_cast<CharType>(ch));
+                }
+            }
+            else if constexpr (std::is_same_v<OtherCharType, utf::Char32>)
+            {
+                // Convert UTF-32 to Wide
+                for (const utf::Char32* ptr = _begin; ptr < _end; ++ptr)
+                {
+                    Append(static_cast<CharType>(*ptr));
+                }
+            }
+            else
+            {
+                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to Wide encoded string");
             }
         }
-        else if constexpr (std::is_same_v<OtherCharType, wchar_t>)
+        else if constexpr (isUtf32)
         {
-            const SizeType len = utf::ToUtf8(_begin, _end, nullptr);
-
-            if (len == 0)
+            if constexpr (std::is_same_v<OtherCharType, utf::Char8>)
             {
-                return;
+                const utf::Char8* ptr = reinterpret_cast<const utf::Char8*>(_begin);
+                const utf::Char8* endPtr = reinterpret_cast<const utf::Char8*>(_end);
+
+                while (ptr < endPtr)
+                {
+                    SizeType codepoints = 0;
+                    const utf::Char32 ch = utf::Char8to32(reinterpret_cast<const char*>(ptr), SizeType(endPtr - ptr), codepoints);
+
+                    if (ch == utf::Char32(-1) || codepoints == 0)
+                    {
+                        break;
+                    }
+
+                    ptr += codepoints;
+                    Append(static_cast<CharType>(ch));
+                }
             }
-
-            Array<utf::Char8> buffer;
-            buffer.Resize(len + 1);
-            utf::ToUtf8(_begin, _end, buffer.Data());
-
-            for (SizeType i = 0; i < buffer.Size(); i++)
+            else if constexpr (std::is_same_v<OtherCharType, utf::Char16>)
             {
-                Append(CharType(buffer[i]));
+                // Convert UTF-16 to UTF-32 using Char16to32
+                const utf::Char16* ptr = _begin;
+                const utf::Char16* endPtr = _end;
+
+                while (ptr < endPtr)
+                {
+                    SizeType codeUnits = 0;
+                    const utf::Char32 ch = utf::Char16to32(ptr, SizeType(endPtr - ptr), codeUnits);
+
+                    if (ch == utf::Char32(-1) || codeUnits == 0)
+                    {
+                        break;
+                    }
+
+                    ptr += codeUnits;
+                    Append(static_cast<CharType>(ch));
+                }
+            }
+            else if constexpr (std::is_same_v<OtherCharType, wchar_t>)
+            {
+                // Convert wchar_t to UTF-32
+                for (const wchar_t* ptr = _begin; ptr < _end; ++ptr)
+                {
+                    Append(static_cast<CharType>(*ptr));
+                }
+            }
+            else
+            {
+                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to UTF-32 encoded string");
+            }
+        }
+        else if constexpr (isUtf16)
+        {
+            if constexpr (std::is_same_v<OtherCharType, utf::Char8>)
+            {
+                // Convert UTF-8 to UTF-16 with proper surrogate pair handling
+                const utf::Char8* ptr = reinterpret_cast<const utf::Char8*>(_begin);
+                const utf::Char8* endPtr = reinterpret_cast<const utf::Char8*>(_end);
+
+                while (ptr < endPtr)
+                {
+                    SizeType codepoints = 0;
+                    const utf::Char32 ch = utf::Char8to32(reinterpret_cast<const char*>(ptr), SizeType(endPtr - ptr), codepoints);
+
+                    if (ch == utf::Char32(-1) || codepoints == 0)
+                    {
+                        break;
+                    }
+
+                    ptr += codepoints;
+
+                    if (ch <= 0xFFFF)
+                    {
+                        // single UTF-16 code unit
+                        Append(static_cast<CharType>(ch));
+                    }
+                    else if (ch <= 0x10FFFF)
+                    {
+                        // surrogate pair
+                        const utf::Char32 adjusted = ch - 0x10000;
+                        Append(static_cast<CharType>((adjusted >> 10) + 0xD800));   // High surrogate
+                        Append(static_cast<CharType>((adjusted & 0x3FF) + 0xDC00)); // Low surrogate
+                    }
+                }
+            }
+            else if constexpr (std::is_same_v<OtherCharType, utf::Char32>)
+            {
+                // Convert UTF-32 to UTF-16 with surrogate pair handling
+                for (const utf::Char32* ptr = _begin; ptr < _end; ++ptr)
+                {
+                    const utf::Char32 ch = *ptr;
+
+                    if (ch <= 0xFFFF)
+                    {
+                        // BMP character, single UTF-16 code unit
+                        Append(static_cast<CharType>(ch));
+                    }
+                    else if (ch <= 0x10FFFF)
+                    {
+                        // Supplementary character, needs surrogate pair
+                        const utf::Char32 adjusted = ch - 0x10000;
+                        Append(static_cast<CharType>((adjusted >> 10) + 0xD800));   // High surrogate
+                        Append(static_cast<CharType>((adjusted & 0x3FF) + 0xDC00)); // Low surrogate
+                    }
+                }
+            }
+            else if constexpr (std::is_same_v<OtherCharType, wchar_t>)
+            {
+                // Convert wchar_t to UTF-16
+                for (const wchar_t* ptr = _begin; ptr < _end; ++ptr)
+                {
+                    Append(static_cast<CharType>(*ptr));
+                }
+            }
+            else
+            {
+                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to UTF-16 encoded string");
             }
         }
         else
         {
-            static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type");
+            static_assert(ResolutionFailureV<CharType>, "Invalid string type for append");
         }
     }
 
-    template <class OtherCharType, typename = std::enable_if_t<isUtf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, Char32> || std::is_same_v<OtherCharType, Char16> || std::is_same_v<OtherCharType, wchar_t>)>>
+    /// append single character
+    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
     HYP_FORCE_INLINE void Append(OtherCharType ch)
     {
         SizeType codepoints = 0;
@@ -496,7 +709,7 @@ public:
         String workingString;
         workingString.Reserve(size);
 
-        if (!isUtf8 || m_length == size)
+        if constexpr (isAnsi)
         {
             for (SizeType i = 0; i < size; i++)
             {
@@ -517,11 +730,43 @@ public:
             for (SizeType i = 0; i < size;)
             {
                 SizeType codepoints = 0;
+                utf::Char32 char32 = 0;
 
-                const utf::Char32 char32 = utf::Char8to32(
-                    data + i,
-                    MathUtil::Min(sizeof(utf::Char32), size - i),
-                    codepoints);
+                if constexpr (isUtf8)
+                {
+                    char32 = utf::Char8to32(
+                        data + i,
+                        MathUtil::Min(sizeof(utf::Char32), size - i),
+                        codepoints);
+                }
+                else if constexpr (isAnsi)
+                {
+                    char32 = static_cast<utf::Char32>(data[i]);
+                    codepoints = 1;
+                }
+                else if constexpr (isUtf32)
+                {
+                    char32 = reinterpret_cast<const utf::Char32*>(data + i)[0];
+                    codepoints = 1;
+                }
+                else if constexpr (isUtf16)
+                {
+                    char32 = utf::Char16to32(
+                        reinterpret_cast<const utf::Char16*>(data + i),
+                        MathUtil::Min(sizeof(utf::Char32) / sizeof(utf::Char16), size - i),
+                        codepoints);
+                }
+                else if constexpr (isWide)
+                {
+                    char32 = utf::WideTo32(
+                        reinterpret_cast<const wchar_t*>(data + i),
+                        MathUtil::Min(sizeof(utf::Char32) / sizeof(wchar_t), size - i),
+                        codepoints);
+                }
+                else
+                {
+                    static_assert(ResolutionFailureV<CharType>, "Invalid string type for Split");
+                }
 
                 i += codepoints;
 
@@ -772,7 +1017,7 @@ public:
         return out;
     }
 
-    HYP_NODISCARD String<UTF8> ToUTF8() const
+    HYP_NODISCARD String<UTF8> ToUtf8() const
     {
         if constexpr (isUtf8)
         {
@@ -833,6 +1078,88 @@ public:
         else
         {
             return String<UTF8>::empty;
+        }
+    }
+
+    /*! \brief Converts the string to ANSI encoding.
+     * Characters that cannot be represented in ANSI will be replaced with \p fallbackCharacter.
+     *  If \p fallbackCharacter is not 0, the character will be used as a replacement for characters that cannot be represented in ANSI.
+     *  Otherwise, the character will be skipped in the resulting string.
+     */
+    HYP_NODISCARD String<ANSI> ToAnsi(char fallbackCharacter = '?') const
+    {
+        if constexpr (isAnsi)
+        {
+            return *this;
+        }
+        else
+        {
+            const utilities::StringView<TStringType> view(*this);
+
+            String<ANSI> result;
+            result.Reserve(view.Length());
+
+            for (auto it = view.Begin(); it != view.End(); ++it)
+            {
+                const WidestCharType ch = *it;
+
+                if (ch <= 0xFF)
+                {
+                    result.Append(static_cast<typename String<ANSI>::CharType>(ch));
+                }
+                else if (fallbackCharacter != 0)
+                {
+                    result.Append(static_cast<typename String<ANSI>::CharType>(fallbackCharacter));
+                }
+            }
+
+            return result;
+        }
+    }
+
+    /*! \brief Converts the string to ANSI encoding.
+     * Characters that cannot be represented in ANSI will be replaced using the provided \p fallbackMap.
+     *  If a character is not found in the \p fallbackMap, and \p fallbackCharacter is not 0, the character will be used as a replacement.
+     *  Otherwise, the character will be skipped in the resulting string.
+     */
+    template <class FallbackMapType>
+    HYP_NODISCARD String<ANSI> ToAnsi(const FallbackMapType& fallbackMap, char fallbackCharacter = '?') const
+    {
+        if constexpr (isAnsi)
+        {
+            return *this;
+        }
+        else
+        {
+            const utilities::StringView<TStringType> view(*this);
+
+            String<ANSI> result;
+            result.Reserve(view.Length());
+
+            for (auto it = view.Begin(); it != view.End(); ++it)
+            {
+                const WidestCharType ch = *it;
+
+                if (ch <= 0xFF)
+                {
+                    result.Append(static_cast<typename String<ANSI>::CharType>(ch));
+                }
+                else
+                {
+                    auto fallbackIt = fallbackMap.Find(ch);
+
+                    if (fallbackIt != fallbackMap.End())
+                    {
+                        result.Append(static_cast<typename String<ANSI>::CharType>(fallbackIt->second));
+                    }
+                    else if (fallbackCharacter != 0)
+                    {
+                        result.Append(static_cast<typename String<ANSI>::CharType>(fallbackCharacter));
+                    }
+                }
+            }
+
+            return result;
         }
     }
 
@@ -1549,37 +1876,39 @@ String<TStringType> String<TStringType>::Escape() const
             break;
         }
 
+        CharType charBuffer[3] = { 0 };
+
         switch (ch)
         {
         case '\n':
-            result.Append("\\n");
+            result.Append(detail::ConvertChars("\\n", charBuffer));
             break;
         case '\r':
-            result.Append("\\r");
+            result.Append(detail::ConvertChars("\\r", charBuffer));
             break;
         case '\t':
-            result.Append("\\t");
+            result.Append(detail::ConvertChars("\\t", charBuffer));
             break;
         case '\v':
-            result.Append("\\v");
+            result.Append(detail::ConvertChars("\\v", charBuffer));
             break;
         case '\b':
-            result.Append("\\b");
+            result.Append(detail::ConvertChars("\\b", charBuffer));
             break;
         case '\f':
-            result.Append("\\f");
+            result.Append(detail::ConvertChars("\\f", charBuffer));
             break;
         case '\a':
-            result.Append("\\a");
+            result.Append(detail::ConvertChars("\\a", charBuffer));
             break;
         case '\\':
-            result.Append("\\\\");
+            result.Append(detail::ConvertChars("\\\\", charBuffer));
             break;
         case '\"':
-            result.Append("\\\"");
+            result.Append(detail::ConvertChars("\\\"", charBuffer));
             break;
         case '\'':
-            result.Append("\\\'");
+            result.Append(detail::ConvertChars("\\\'", charBuffer));
             break;
         default:
             result.Append(ch);
@@ -1724,7 +2053,7 @@ constexpr bool operator<(const utilities::StringView<TStringType>& lhs, const St
 }
 
 template <int TStringType>
-constexpr bool operator==(const String<TStringType>& lhs, const utilities::StringView<TStringType>& rhs)
+inline constexpr bool operator==(const String<TStringType>& lhs, const utilities::StringView<TStringType>& rhs)
 {
     if (lhs.Size() != rhs.Size())
     {
@@ -1736,11 +2065,11 @@ constexpr bool operator==(const String<TStringType>& lhs, const utilities::Strin
         return true;
     }
 
-    return Memory::AreStaticStringsEqual(lhs.Data(), rhs.Data(), lhs.Size());
+    return Memory::StrEqual(lhs.Data(), rhs.Data(), lhs.Size());
 }
 
 template <int TStringType>
-constexpr bool operator==(const utilities::StringView<TStringType>& lhs, const String<TStringType>& rhs)
+inline constexpr bool operator==(const utilities::StringView<TStringType>& lhs, const String<TStringType>& rhs)
 {
     if (lhs.Size() != rhs.Size())
     {
@@ -1752,7 +2081,7 @@ constexpr bool operator==(const utilities::StringView<TStringType>& lhs, const S
         return true;
     }
 
-    return Memory::AreStaticStringsEqual(lhs.Data(), rhs.Data(), lhs.Size());
+    return Memory::StrEqual(lhs.Data(), rhs.Data(), lhs.Size());
 }
 
 } // namespace containers

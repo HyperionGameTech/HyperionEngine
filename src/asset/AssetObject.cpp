@@ -482,11 +482,11 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 {
     HYP_SCOPE;
 
-    json::JSONObject manifestJson;
+    Json::JSObject manifestJson;
 
     ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, { .skipTransientProperties = true, .writeClassNames = true });
 
-    stream.WriteString(json::JSONValue(std::move(manifestJson)).ToString(true));
+    stream.WriteString(Json::Value(std::move(manifestJson)).ToString(true).ToUtf8());
 
     return {};
 }
@@ -508,7 +508,7 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Data stream given, but it is not open");
     }
 
-    json::ParseResult parseResult = Json::Parse(manifestStream);
+    Json::ParseResult parseResult = Json::Parse(manifestStream);
 
     manifestStream.Close(); // not needed anymore
 
@@ -522,15 +522,15 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Asset manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
     }
 
-    json::JSONObject jsonObject = std::move(parseResult.value.AsObject());
-    json::JSONValue classNameValue = jsonObject["$Class"];
+    Json::JSObject jsonObject = std::move(parseResult.value.AsObject());
+    Json::Value classNameValue = jsonObject["$Class"];
 
     if (!classNameValue.IsString())
     {
         return HYP_MAKE_ERROR(Error, "Manifest JSON must contain a '$Class' string");
     }
 
-    const Class* cls = GetClass(classNameValue.AsString());
+    const Class* cls = GetClass(classNameValue.AsString().ToUtf8());
 
     if (!cls)
     {

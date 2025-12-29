@@ -284,7 +284,7 @@ void AssetManager::RegisterDefaultLoaders()
     Register<FBXModelLoader, Node>("fbx");
     Register<GLTFModelLoader, Node>("gltf", "glb");
     // Register<PLYModelLoader, PLYModel>("ply");
-    Register<JSONLoader, JSONValue>("json");
+    Register<JSONLoader, Value>("json");
     // freetype font loader
     Register<FontFaceLoader, RC<FontFace>>(
         "ttf", "otf", "ttc", "dfont");

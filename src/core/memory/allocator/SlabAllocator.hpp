@@ -31,6 +31,8 @@ template <class AllocatorType>
 class TSlabAllocator
 {
 public:
+    static constexpr uint32 maxAlign = ~0u;
+
     template <class T>
     struct Allocation : DynamicAllocationBase<T>
     {

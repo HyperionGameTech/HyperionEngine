@@ -35,26 +35,32 @@ public:
         return std::strcmp(lhs, rhs);
     }
 
-    static constexpr bool AreStaticStringsEqual(const char* lhs, const char* rhs, SizeType length, SizeType index)
+    template <class T>
+    static constexpr bool StrEqual(const T* lhs, const T* rhs, SizeType length, SizeType index = 0)
     {
         if (std::is_constant_evaluated())
         {
             return *lhs == *rhs
-                && ((*lhs == '\0' || (!length || index >= length)) || AreStaticStringsEqual(lhs + 1, rhs + 1, length, index + 1));
+                && ((*lhs == '\0' || (!length || index >= length)) || StrEqual(lhs + 1, rhs + 1, length, index + 1));
         }
 
-        return StrCmp(lhs, rhs, length) == 0;
-    }
-
-    static constexpr bool AreStaticStringsEqual(const char* lhs, const char* rhs, SizeType length = 0)
-    {
-        if (std::is_constant_evaluated())
+        if constexpr (sizeof(T) == sizeof(char))
         {
-            return *lhs == *rhs
-                && ((*lhs == '\0' || !length) || AreStaticStringsEqual(lhs + 1, rhs + 1, length, 1));
+            return StrCmp((const char*)lhs, (const char*)rhs, length) == 0;
         }
+        else
+        {
+            // Fallback for non 8-bit char types
+            for (SizeType i = 0; i < length || length == 0; ++i)
+            {
+                if (lhs[i] != rhs[i] || lhs[i] == T('\0'))
+                {
+                    return false;
+                }
+            }
 
-        return StrCmp(lhs, rhs, length) == 0;
+            return true;
+        }
     }
 
     HYP_FORCE_INLINE static char* StrCpy(char* dest, const char* src, SizeType length = 0)

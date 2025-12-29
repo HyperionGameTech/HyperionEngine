@@ -371,10 +371,10 @@ static Optional<UIObjectSize> ParseUIObjectSize(const String& str)
     return {};
 }
 
-static json::ParseResult ParseJSON(FBOMLoadContext& context, const String& str, FBOMData& outData)
+static Json::ParseResult ParseJSON(FBOMLoadContext& context, const String& str, FBOMData& outData)
 {
     // Read string as JSON
-    json::ParseResult parseResult = Json::Parse(str);
+    Json::ParseResult parseResult = Json::Parse(str);
 
     if (!parseResult.ok)
     {
@@ -661,7 +661,7 @@ public:
                 auto HandleFoundMember = [uiObject](const IHypMember& member, const String& str) -> bool
                 {
                     BoxedValue boxed;
-                    json::ParseResult jsonParseResult = Json::Parse(str);
+                    Json::ParseResult jsonParseResult = Json::Parse(str);
 
                     if (jsonParseResult.ok)
                     {

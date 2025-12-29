@@ -141,11 +141,11 @@ public:
         }
     }
 
-    void Push(Array<json::JSONValue>&& values)
+    void Push(Array<Json::Value>&& values)
     {
         const ThreadId currentThreadId = CurrentThreadId();
 
-        json::JSONArray* jsonValuesArray = nullptr;
+        Json::JSArray* jsonValuesArray = nullptr;
 
         { // critical section - may invalidate iterators
             Mutex::Guard guard(m_valuesMutex);
@@ -154,7 +154,7 @@ public:
 
             if (it == m_perThreadValues.End())
             {
-                it = m_perThreadValues.Insert(currentThreadId, MakeUnique<json::JSONArray>()).first;
+                it = m_perThreadValues.Insert(currentThreadId, MakeUnique<Json::JSArray>()).first;
             }
 
             jsonValuesArray = it->second.Get();
@@ -177,10 +177,10 @@ public:
 
         m_traceId = Uuid();
 
-        json::JSONObject object;
+        Json::JSObject object;
         object["trace_id"] = m_traceId.ToString();
 
-        Task<HTTPResponse> startRequest = HTTPRequest(m_params.endpointUrl + "/start", json::JSONValue(std::move(object)), HTTPMethod::POST)
+        Task<HTTPResponse> startRequest = HTTPRequest(m_params.endpointUrl + "/start", Json::Value(std::move(object)), HTTPMethod::POST)
                                               .Send();
 
         HYP_LOG(Profile, Info, "Waiting for profiler connection request to finish");
@@ -210,17 +210,17 @@ public:
 
         HYP_LOG(Profile, Info, "Submitting profiler results to trace server...");
 
-        json::JSONObject object;
+        Json::JSObject object;
 
         { // critical section
             Mutex::Guard guard(m_valuesMutex);
 
-            json::JSONArray groupsArray;
+            Json::JSArray groupsArray;
 
-            for (KeyValuePair<ThreadId, UniquePtr<json::JSONArray>>& it : m_perThreadValues)
+            for (KeyValuePair<ThreadId, UniquePtr<Json::JSArray>>& it : m_perThreadValues)
             {
-                json::JSONObject groupObject;
-                groupObject["name"] = json::JSONString(it.first.GetName().LookupString());
+                Json::JSObject groupObject;
+                groupObject["name"] = Json::JSString(it.first.GetName().LookupString());
                 groupObject["values"] = std::move(*it.second); // move it so it clears current values
                 groupsArray.PushBack(std::move(groupObject));
             }
@@ -229,7 +229,7 @@ public:
         }
 
         // Send request with all queued data
-        HTTPRequest request(m_params.endpointUrl + "/results", json::JSONValue(std::move(object)), HTTPMethod::POST);
+        HTTPRequest request(m_params.endpointUrl + "/results", Json::Value(std::move(object)), HTTPMethod::POST);
         m_requests.PushBack(request.Send());
     }
 
@@ -239,7 +239,7 @@ private:
     Uuid m_traceId;
     ProfilerConnectionThread m_thread;
 
-    FlatMap<ThreadId, UniquePtr<json::JSONArray>> m_perThreadValues;
+    FlatMap<ThreadId, UniquePtr<Json::JSArray>> m_perThreadValues;
     mutable Mutex m_valuesMutex;
 
     Array<Task<HTTPResponse>> m_requests;
@@ -314,15 +314,15 @@ struct ProfileScopeEntry
         measuredTimeUs = PerformanceClock::TimeSince(startTimestampUs);
     }
 
-    json::JSONValue ToJSON(ProfileScopeEntry* parentScope = nullptr) const
+    Json::Value ToJSON(ProfileScopeEntry* parentScope = nullptr) const
     {
-        json::JSONObject object;
-        object["label"] = json::JSONString(label);
-        object["location"] = json::JSONString(location);
-        object["start_timestamp_ms"] = json::JSONNumber(startTimestampUs / 1000);
-        object["measured_time_us"] = json::JSONNumber(measuredTimeUs);
+        Json::JSObject object;
+        object["label"] = Json::JSString(label);
+        object["location"] = Json::JSString(location);
+        object["start_timestamp_ms"] = Json::JSNumber(startTimestampUs / 1000);
+        object["measured_time_us"] = Json::JSNumber(measuredTimeUs);
 
-        json::JSONArray childrenArray;
+        Json::JSArray childrenArray;
 
         for (const ProfileScopeEntry& child : children)
         {
@@ -331,7 +331,7 @@ struct ProfileScopeEntry
 
         object["children"] = std::move(childrenArray);
 
-        return json::JSONValue(std::move(object));
+        return Json::Value(std::move(object));
     }
 };
 
@@ -344,20 +344,20 @@ struct ProfileScopeEntryQueue
     Time startTime;
     Array<ProfileScopeEntry> entries;
 
-    json::JSONValue ToJSON() const
+    Json::Value ToJSON() const
     {
-        json::JSONArray array;
+        Json::JSArray array;
 
         for (const ProfileScopeEntry& entry : entries)
         {
             array.PushBack(entry.ToJSON());
         }
 
-        json::JSONObject object;
+        Json::JSObject object;
         object["start_time"] = uint64(startTime);
         object["entries"] = std::move(array);
 
-        return json::JSONValue(std::move(object));
+        return Json::Value(std::move(object));
     }
 };
 
@@ -446,7 +446,7 @@ private:
     ThreadId m_threadId;
     ProfileScopeEntry m_rootEntry;
     NotNullPtr<ProfileScopeEntry> m_head;
-    json::JSONArray m_queue;
+    Json::JSArray m_queue;
 };
 
 #pragma endregion ProfileScopeStack
