@@ -508,7 +508,7 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Data stream given, but it is not open");
     }
 
-    json::ParseResult parseResult = json::JSON::Parse(manifestStream);
+    json::ParseResult parseResult = Json::Parse(manifestStream);
 
     manifestStream.Close(); // not needed anymore
 

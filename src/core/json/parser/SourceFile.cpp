@@ -6,7 +6,7 @@
 
 #include <cstring>
 
-namespace Hyperion::json {
+namespace Hyperion::Json {
 
 SourceFile::SourceFile()
     : m_filepath("??"),
@@ -70,4 +70,4 @@ void SourceFile::ReadIntoBuffer(const ubyte* data, SizeType size)
     }
 }
 
-} // namespace Hyperion::json
+} // namespace Hyperion::Json

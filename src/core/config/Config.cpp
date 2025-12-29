@@ -141,7 +141,7 @@ Result ConfigurationTable::Read(json::JSONValue& outValue) const
         return HYP_MAKE_ERROR(Error, "Failed to open configuration file at {}", configPath);
     }
 
-    json::ParseResult parseResult = json::JSON::Parse(String(reader.ReadBytes().ToByteView()));
+    json::ParseResult parseResult = Json::Parse(String(reader.ReadBytes().ToByteView()));
 
     if (!parseResult.ok)
     {
@@ -250,7 +250,7 @@ const json::JSONValue& ConfigurationTable::GetSubobject() const
 
         if (!subobject->IsObject())
         {
-            subobject = &json::JSON::EmptyObject();
+            subobject = &Json::EmptyObject();
         }
     }
 

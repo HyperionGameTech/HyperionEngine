@@ -15,15 +15,15 @@
 #include <core/reflection/BoxedValue.hpp>
 
 namespace Hyperion {
-namespace json {
+namespace Json {
 
-static const JSONValue s_undefined = json::JSONUndefined();
-static const JSONValue s_null = json::JSONNull();
-static const JSONValue s_emptyObject = json::JSONObject();
-static const JSONValue s_emptyArray = json::JSONArray();
-static const JSONValue s_emptyString = json::JSONString();
-static const JSONValue s_true = json::JSONBool(true);
-static const JSONValue s_false = json::JSONBool(false);
+static const JSONValue s_undefined = Json::JSONUndefined();
+static const JSONValue s_null = Json::JSONNull();
+static const JSONValue s_emptyObject = Json::JSONObject();
+static const JSONValue s_emptyArray = Json::JSONArray();
+static const JSONValue s_emptyString = Json::JSONString();
+static const JSONValue s_true = Json::JSONBool(true);
+static const JSONValue s_false = Json::JSONBool(false);
 
 #pragma region Helpers
 
@@ -682,7 +682,7 @@ public:
 
     JSONValue Parse()
     {
-        json::JSONValue value = ParseValue();
+        Json::JSONValue value = ParseValue();
 
         // Should not have any tokens left
         if (m_tokenStream->HasNext())
@@ -1193,42 +1193,42 @@ HashCode JSONValue::GetHashCode() const
 
 #pragma region JSON
 
-const JSONValue& JSON::Undefined()
+const JSONValue& Undefined()
 {
     return s_undefined;
 }
 
-const JSONValue& JSON::Null()
+const JSONValue& Null()
 {
     return s_null;
 }
 
-const JSONValue& JSON::EmptyObject()
+const JSONValue& EmptyObject()
 {
     return s_emptyObject;
 }
 
-const JSONValue& JSON::EmptyArray()
+const JSONValue& EmptyArray()
 {
     return s_emptyArray;
 }
 
-const JSONValue& JSON::EmptyString()
+const JSONValue& EmptyString()
 {
     return s_emptyString;
 }
 
-const JSONValue& JSON::True()
+const JSONValue& True()
 {
     return s_true;
 }
 
-const JSONValue& JSON::False()
+const JSONValue& False()
 {
     return s_false;
 }
 
-ParseResult JSON::Parse(BufferedReader& reader)
+ParseResult Parse(BufferedReader& reader)
 {
     SourceFile sourceFile("<input>", reader.Max());
     sourceFile.ReadIntoBuffer(reader.ReadBytes());
@@ -1236,7 +1236,7 @@ ParseResult JSON::Parse(BufferedReader& reader)
     return Parse(sourceFile);
 }
 
-ParseResult JSON::Parse(const String& jsonString)
+ParseResult Parse(const String& jsonString)
 {
     SourceFile sourceFile("<input>", jsonString.Size());
 
@@ -1246,7 +1246,7 @@ ParseResult JSON::Parse(const String& jsonString)
     return Parse(sourceFile);
 }
 
-ParseResult JSON::Parse(const SourceFile& sourceFile)
+ParseResult Parse(const SourceFile& sourceFile)
 {
     // use the lexer and parser on this file buffer
     TokenStream tokenStream(TokenStreamInfo { "<input>" });
@@ -1293,5 +1293,5 @@ ParseResult JSON::Parse(const SourceFile& sourceFile)
 
 #pragma endregion JSON
 
-} // namespace json
+} // namespace Json
 } // namespace Hyperion

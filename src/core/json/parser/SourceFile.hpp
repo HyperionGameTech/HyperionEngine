@@ -6,7 +6,7 @@
 #include <core/containers/String.hpp>
 #include <core/memory/ByteBuffer.hpp>
 
-namespace Hyperion::json {
+namespace Hyperion::Json {
 
 class SourceFile
 {
@@ -51,4 +51,4 @@ private:
     SizeType m_position;
 };
 
-} // namespace Hyperion::json
+} // namespace Hyperion::Json

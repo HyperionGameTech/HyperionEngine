@@ -114,7 +114,7 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
 {
     const CommandLineArgumentType type = definition.type;
 
-    json::ParseResult parseResult = json::JSON::Parse(str);
+    json::ParseResult parseResult = Json::Parse(str);
     json::JSONValue value = std::move(parseResult.value);
 
     if (!parseResult.ok)

@@ -4,7 +4,7 @@
 
 #include <core/json/parser/ErrorList.hpp>
 
-namespace Hyperion::json {
+namespace Hyperion::Json {
 
 class CompilationUnit
 {
@@ -27,4 +27,4 @@ private:
     ErrorList m_errorList;
 };
 
-} // namespace Hyperion::json
+} // namespace Hyperion::Json
