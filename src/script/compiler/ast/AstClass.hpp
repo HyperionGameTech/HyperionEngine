@@ -85,6 +85,11 @@ public:
         return m_flags[CLASS_FLAG_IS_ENUM];
     }
 
+    bool IsStruct() const
+    {
+        return m_flags[CLASS_FLAG_IS_STRUCT];
+    }
+
     bool IsProxyClass() const
     {
         return m_flags[CLASS_FLAG_IS_PROXY];

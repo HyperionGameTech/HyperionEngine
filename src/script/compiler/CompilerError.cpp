@@ -99,6 +99,7 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_static_member_not_found, "'%' is not a static member of %" },
     { Msg_cannot_instantiate_non_object, "Cannot use `new` with non-object type '%'" },
     { Msg_invalid_base_class, "'%' is not suitable to be used as a base class" },
+    { Msg_struct_cannot_have_base, "Structs may not have a parent class" },
     { Msg_classes_may_only_be_defined_in_global_scope, "Class '%' defined in a local scope; classes may only be defined in the global scope" },
     { Msg_bitwise_operands_must_be_int, "Bitwise operands must both be integer types, got '%' and '%'" },
     { Msg_bitwise_operand_must_be_int, "Bitwise operand must be an integer type, got '%'" },

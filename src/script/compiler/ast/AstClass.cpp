@@ -141,7 +141,21 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
             m_baseType,
             {});
     }
-    else
+    else if (IsStruct())
+    {
+        if (m_baseType != nullptr)
+        {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_struct_cannot_have_base,
+                m_location));
+        }
+
+        newType = SymbolType::Struct(
+            m_name,
+            {}, {});
+    }
+    else // Class
     {
         if (m_baseType != nullptr)
         {
@@ -770,9 +784,12 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         {
             instrType->flags = (ClassFlags)((uint8)instrType->flags | (uint8)ClassFlags::ENUM_TYPE);
         }
+        else if (IsStruct())
+        {
+            instrType->flags = (ClassFlags)((uint8)instrType->flags | (uint8)ClassFlags::STRUCT_TYPE);
+        }
         else
         {
-            /// \todo Struct types
             instrType->flags = (ClassFlags)((uint8)instrType->flags | (uint8)ClassFlags::CLASS_TYPE);
         }
 

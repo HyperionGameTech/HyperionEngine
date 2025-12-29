@@ -92,8 +92,9 @@ enum SymbolTypeClass : uint8
     TYPE_INVALID = uint8(-1),
 
     TYPE_BUILTIN = 0,
-    TYPE_USER_DEFINED,
+    TYPE_CLASS,
     TYPE_ENUM,
+    TYPE_STRUCT,
     TYPE_ALIAS,
     TYPE_GENERIC_INSTANCE,
     TYPE_GENERIC_PARAMETER,
@@ -108,10 +109,12 @@ static inline constexpr const char* SymbolTypeClassToString(SymbolTypeClass type
         return "<invalid>";
     case TYPE_BUILTIN:
         return "<builtin>";
-    case TYPE_USER_DEFINED:
+    case TYPE_CLASS:
         return "<class>";
     case TYPE_ENUM:
         return "<enum>";
+    case TYPE_STRUCT:
+        return "<struct>";
     case TYPE_ALIAS:
         return "<alias>";
     case TYPE_GENERIC_INSTANCE:
@@ -353,6 +356,11 @@ public:
         const String& name,
         const SymbolType* underlyingType,
         Array<SymbolTypeMember>&& enumMembers);
+
+    static HYP_NODISCARD SymbolType* Struct(
+        const String& name,
+        Array<SymbolTypeMember>&& members,
+        Array<SymbolTypeMember>&& staticMembers);
 
     static HYP_NODISCARD SymbolType* Object(
         const String& name,
@@ -649,6 +657,9 @@ public:
 
     /*! \brief Is this an enum type? */
     bool IsEnumType() const;
+
+    /*! \brief Is the type a struct */
+    bool IsStructType() const;
 
     HYP_FORCE_INLINE bool IsProxyClass() const
     {
