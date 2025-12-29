@@ -160,7 +160,7 @@ Hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInD
         if (entry.is_regular_file())
         {
 #ifdef HYP_WINDOWS
-            files.PushBack(WideString(entry.path().c_str()).ToUTF8());
+            files.PushBack(WideString(entry.path().c_str()).ToUtf8());
 #else
             files.PushBack(entry.path().c_str());
 #endif
@@ -179,7 +179,7 @@ Hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetSubdirector
         if (entry.is_directory())
         {
 #ifdef HYP_WINDOWS
-            files.PushBack(WideString(entry.path().c_str()).ToUTF8());
+            files.PushBack(WideString(entry.path().c_str()).ToUtf8());
 #else
             files.PushBack(entry.path().c_str());
 #endif

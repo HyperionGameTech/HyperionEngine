@@ -22,7 +22,7 @@ public:
     MessageQueue& operator=(MessageQueue&& other) = delete;
     ~MessageQueue() = default;
 
-    void Push(json::JSONValue&& message)
+    void Push(Json::Value&& message)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -30,13 +30,13 @@ public:
         m_size.Increment(1, MemoryOrder::RELEASE);
     }
 
-    json::JSONValue Pop()
+    Json::Value Pop()
     {
         HYP_CORE_ASSERT(!Empty());
 
         Mutex::Guard guard(m_mutex);
 
-        json::JSONValue last = m_messages.Pop();
+        Json::Value last = m_messages.Pop();
         m_size.Decrement(1, MemoryOrder::RELEASE);
 
         return last;
@@ -54,7 +54,7 @@ public:
 
 private:
     Mutex m_mutex;
-    Queue<json::JSONValue> m_messages;
+    Queue<Json::Value> m_messages;
     AtomicVar<uint32> m_size;
 };
 

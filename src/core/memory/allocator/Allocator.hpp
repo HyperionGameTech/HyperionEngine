@@ -217,6 +217,8 @@ struct Allocator
 
 struct DynamicAllocator : Allocator<DynamicAllocator>
 {
+    static constexpr uint32 maxAlign = ~0u;
+
     template <class T>
     struct Allocation : DynamicAllocationBase<T>
     {
@@ -241,6 +243,8 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
 template <SizeType Count, class DynamicAllocatorType = DynamicAllocator>
 struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
 {
+    static constexpr uint32 maxAlign = ~0u;
+
     template <class T>
     struct Allocation : AllocationBase<T>
     {
@@ -451,6 +455,8 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
 template <SizeType Count>
 struct FixedAllocator : Allocator<FixedAllocator<Count>>
 {
+    static constexpr uint32 maxAlign = ~0u;
+
     template <class T>
     struct Allocation : AllocationBase<T>
     {
@@ -630,6 +636,8 @@ template <class AllocatorType, AllocatorType** GlobalInstance = nullptr>
 struct AllocatorInstance : Allocator<AllocatorInstance<AllocatorType, GlobalInstance>>
 {
     static AllocatorType** s_globalInstance;
+
+    static constexpr uint32 maxAlign = AllocatorType::maxAlign;
 
     template <class T>
     struct Allocation : DynamicAllocationBase<T>

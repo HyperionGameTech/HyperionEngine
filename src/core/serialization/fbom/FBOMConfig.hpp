@@ -9,7 +9,7 @@
 namespace Hyperion {
 
 namespace Json {
-class JSONValue;
+class Value;
 } // namespace Json
 
 namespace serialization {
@@ -26,8 +26,8 @@ struct FBOMWriterConfig : public FBOMConfig<FBOMWriterConfig>
     bool enableStaticData : 1 = true;
     bool compressStaticData : 1 = true;
 
-    void SaveToJSON(json::JSONValue& outJson) const;
-    bool LoadFromJSON(const json::JSONValue& json);
+    void SaveToJSON(Json::Value& outJson) const;
+    bool LoadFromJSON(const Json::Value& json);
 };
 
 struct FBOMReaderConfig : public FBOMConfig<FBOMReaderConfig>
@@ -35,8 +35,8 @@ struct FBOMReaderConfig : public FBOMConfig<FBOMReaderConfig>
     String basePath;
     bool continueOnExternalLoadError : 1 = false;
 
-    void SaveToJSON(json::JSONValue& outJson) const;
-    bool LoadFromJSON(const json::JSONValue& json);
+    void SaveToJSON(Json::Value& outJson) const;
+    bool LoadFromJSON(const Json::Value& json);
 };
 
 } // namespace serialization

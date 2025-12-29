@@ -1196,7 +1196,7 @@ void TypeInfoImpl<containers::String<TStringType>, TBoxed>::operator()(TypeInfo&
         virtual String GetValue(const TBoxed& instance) const override
         {
             StringType& string = instance.template Get<StringType>();
-            return string.ToUTF8();
+            return string.ToUtf8();
         }
 
         virtual void SetValue(const TBoxed& instance, const UTF8StringView& str) const override

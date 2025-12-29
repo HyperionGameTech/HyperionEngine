@@ -211,14 +211,7 @@ struct HashCode
         return GetHashCode(static_cast<std::underlying_type_t<DecayedType>>(value));
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_same_v<T, char>>>
-    static inline HashCode GetHashCode(T* ptr)
-    {
-        return GetHashCode(reinterpret_cast<UIntPtr>(ptr));
-    }
-
-    template <class T, typename = std::enable_if_t<!std::is_same_v<T, char>>>
-    static inline HashCode GetHashCode(const T* ptr)
+    static inline HashCode GetHashCode(const void* ptr)
     {
         return GetHashCode(reinterpret_cast<UIntPtr>(ptr));
     }
@@ -235,6 +228,54 @@ struct HashCode
     }
 
     static constexpr inline HashCode GetHashCode(const char* _begin, const char* _end)
+    {
+        return HashCode(FNV1::DoHashString(_begin, _end));
+    }
+
+    template <SizeType Size>
+    static constexpr inline HashCode GetHashCode(const char16_t (&str)[Size])
+    {
+        return HashCode(FNV1::DoHashString<char16_t, Size>(str));
+    }
+
+    static constexpr inline HashCode GetHashCode(const char16_t* str)
+    {
+        return HashCode(FNV1::DoHashString(str));
+    }
+
+    static constexpr inline HashCode GetHashCode(const char16_t* _begin, const char16_t* _end)
+    {
+        return HashCode(FNV1::DoHashString(_begin, _end));
+    }
+
+    template <SizeType Size>
+    static constexpr inline HashCode GetHashCode(const char32_t (&str)[Size])
+    {
+        return HashCode(FNV1::DoHashString<char32_t, Size>(str));
+    }
+
+    static constexpr inline HashCode GetHashCode(const char32_t* str)
+    {
+        return HashCode(FNV1::DoHashString(str));
+    }
+
+    static constexpr inline HashCode GetHashCode(const char32_t* _begin, const char32_t* _end)
+    {
+        return HashCode(FNV1::DoHashString(_begin, _end));
+    }
+
+    template <SizeType Size>
+    static constexpr inline HashCode GetHashCode(const wchar_t (&bytes)[Size])
+    {
+        return HashCode(FNV1::DoHashString<wchar_t, Size>(bytes));
+    }
+
+    static constexpr inline HashCode GetHashCode(const wchar_t* str)
+    {
+        return HashCode(FNV1::DoHashString(str));
+    }
+
+    static constexpr inline HashCode GetHashCode(const wchar_t* _begin, const wchar_t* _end)
     {
         return HashCode(FNV1::DoHashString(_begin, _end));
     }
