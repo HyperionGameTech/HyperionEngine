@@ -12,9 +12,7 @@ link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
-set(RENDERER_LIBRARIES
-    hyperion-core
-)
+set(RENDERER_LIBRARIES "")
 
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
@@ -135,8 +133,10 @@ if(TARGET glslang_build)
     add_dependencies(${BUILD_NAME} glslang_build)
 endif()
 
-target_link_libraries(${BUILD_NAME} PRIVATE ${RENDERER_LIBRARIES})
-add_dependencies(${BUILD_NAME} hyperion-core)
+add_dependencies(${BUILD_NAME} hyperion-core hyperion-asset)
+
+target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core ${RENDERER_LIBRARIES})
+target_link_libraries(${BUILD_NAME} PUBLIC hyperion-asset)
 
 # add definitions that should be visible to the main project as well
 if(HYP_SDL)

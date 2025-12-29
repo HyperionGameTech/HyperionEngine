@@ -84,7 +84,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <asset/ScriptAsset.hpp>
+#include <scripting/asset/ScriptAsset.hpp>
 
 #include <HyperionEngine.hpp>
 

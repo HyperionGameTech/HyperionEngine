@@ -166,7 +166,7 @@ DynamicLibrary* DynamicLibraryCache::LoadLibrary(PlatformStringView path)
 
     if (it != m_impl->libraries.End())
     {
-        return &(*it);
+        return it->second.Get();
     }
 
     UniquePtr<DynamicLibrary> library = MakeUnique<DynamicLibrary>(PlatformString(path));

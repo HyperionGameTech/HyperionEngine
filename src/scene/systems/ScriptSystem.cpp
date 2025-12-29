@@ -9,7 +9,7 @@
 
 #include <scene/util/EntityScripting.hpp>
 
-#include <asset/ScriptAsset.hpp>
+#include <scripting/asset/ScriptAsset.hpp>
 
 #include <scripting/ScriptObjectResource.hpp>
 

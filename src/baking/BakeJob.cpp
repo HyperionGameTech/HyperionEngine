@@ -356,6 +356,11 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
     for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *m_params.renderers)
     {
         AssertDebug(lightmapRenderer != nullptr);
+        
+        if (!lightmapRenderer)
+        {
+            return 0;
+        }
 
         if (!lightmapRenderer->CanRender())
         {

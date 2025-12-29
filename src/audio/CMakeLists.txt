@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0091 NEW)
 
-set(BUILD_NAME hyperion-asset)
+set(BUILD_NAME hyperion-audio)
 
 project(${BUILD_NAME} CXX C)
 
@@ -12,24 +12,38 @@ link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
+set(hyperion-audio_LIBRARIES "")
+
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
+find_package(OpenAL)
+
+if(${OpenAL_FOUND})
+    message(STATUS "OpenAL found")
+
+    add_definitions(-DHYP_OPENAL=1)
+
+    set(hyperion-audio_LIBRARIES ${OPENAL_LIBRARY})
+endif()
+
 include_directories(
+    ${OPENAL_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/thirdparty
     ${CMAKE_SOURCE_DIR}/generated
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/asset
+    ${CMAKE_SOURCE_DIR}/src/audio
 )
+
 
 # Normalize sources/headers to absolute paths under the root
 set(CURRENT_SOURCES "")
-foreach(filepath ${hyperion-asset_SOURCES})
+foreach(filepath ${hyperion-audio_SOURCES})
     list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
 set(CURRENT_HEADERS "")
-foreach(filepath ${hyperion-asset_HEADERS})
+foreach(filepath ${hyperion-audio_HEADERS})
     list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
@@ -41,5 +55,4 @@ if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
 endif()
 
 add_dependencies(${BUILD_NAME} hyperion-core)
-
-target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)
+target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core ${hyperion-audio_LIBRARIES})

@@ -67,11 +67,11 @@ static inline void ValidateDynamicOffset(
         const auto firstValueIt = element->values.Begin();
         if (firstValueIt != element->values.End())
         {
-            const VulkanGpuBufferRef& VulkanbufferRef = ObjCast<GpuBuffer>(firstValueIt->second);
+            const VulkanGpuBufferRef& buffer = ObjCast<GpuBuffer>(firstValueIt->second);
 
-            if (VulkanbufferRef != nullptr)
+            if (buffer != nullptr)
             {
-                const SizeType bufferSize = VulkanbufferRef->Size();
+                const SizeType bufferSize = buffer->Size();
                 const SizeType elementSize = layoutElement->size != ~0u ? layoutElement->size : bufferSize;
 
                 AssertDebug(offset + elementSize <= bufferSize,

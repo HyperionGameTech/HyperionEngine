@@ -38,7 +38,7 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetBatch.hpp>
-#include <asset/TextureAsset.hpp>
+#include <rendering/asset/TextureAsset.hpp>
 
 #include <ui/UISubsystem.hpp>
 #include <ui/UIObject.hpp>

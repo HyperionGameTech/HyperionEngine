@@ -26,7 +26,7 @@
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
-#include <asset/TextureAsset.hpp>
+#include <rendering/asset/TextureAsset.hpp>
 
 #include <core/io/ByteWriter.hpp>
 

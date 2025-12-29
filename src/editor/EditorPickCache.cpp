@@ -10,7 +10,7 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/Mesh.hpp>
 
-#include <asset/MeshAsset.hpp>
+#include <rendering/asset/MeshAsset.hpp>
 
 #include <util/GameCounter.hpp>
 
