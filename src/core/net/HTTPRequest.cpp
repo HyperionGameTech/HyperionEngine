@@ -81,7 +81,7 @@ Optional<json::JSONValue> HTTPResponse::ToJSON() const
         return {};
     }
 
-    const json::ParseResult parseResult = json::JSON::Parse(String(m_body.ToByteView()));
+    const json::ParseResult parseResult = Json::Parse(String(m_body.ToByteView()));
 
     if (!parseResult.ok)
     {

@@ -20,14 +20,14 @@ struct TypeId;
 using utilities::TypeId;
 using utilities::TypeInfo;
 
-namespace json {
+namespace Json {
 
 class JSONValue;
 
 using JSONString = String;
 class JSONObject;
 
-} // namespace json
+} // namespace Json
 
 struct ToJSONOptions
 {

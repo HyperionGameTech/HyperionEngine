@@ -4,7 +4,7 @@
 
 #include <cstring>
 
-namespace Hyperion::json {
+namespace Hyperion::Json {
 
 const Token Token::empty = Token(TK_EMPTY, "", SourceLocation::eof);
 
@@ -78,4 +78,4 @@ bool Token::IsContinuationToken() const
     return m_tokenClass == TK_COMMA || m_tokenClass == TK_COLON || m_tokenClass == TK_DOT || m_tokenClass == TK_OPEN_PARENTH || m_tokenClass == TK_OPEN_BRACKET || m_tokenClass == TK_OPEN_BRACE;
 }
 
-} // namespace Hyperion::json
+} // namespace Hyperion::Json

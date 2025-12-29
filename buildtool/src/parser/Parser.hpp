@@ -12,9 +12,9 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/Result.hpp>
 
-namespace Hyperion::json {
+namespace Hyperion::Json {
 class JSONValue;
-} // namespace Hyperion::json
+} // namespace Hyperion::Json
 
 namespace Hyperion::CodeGen {
 

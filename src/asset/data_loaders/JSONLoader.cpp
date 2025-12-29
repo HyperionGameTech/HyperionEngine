@@ -26,7 +26,7 @@ AssetLoadResult JSONLoader::LoadAsset(LoaderState& state) const
 
     const String jsonString(byteBuffer.ToByteView());
 
-    const auto jsonParseResult = JSON::Parse(jsonString);
+    const auto jsonParseResult = Json::Parse(jsonString);
 
     if (!jsonParseResult.ok)
     {

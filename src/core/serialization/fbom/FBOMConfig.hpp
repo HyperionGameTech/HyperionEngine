@@ -8,9 +8,9 @@
 
 namespace Hyperion {
 
-namespace json {
+namespace Json {
 class JSONValue;
-} // namespace json
+} // namespace Json
 
 namespace serialization {
 
