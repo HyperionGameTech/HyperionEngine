@@ -2150,7 +2150,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}'", manifestPath);
             }
 
-            json::ParseResult parseResult = json::JSON::Parse(manifestStream);
+            json::ParseResult parseResult = Json::Parse(manifestStream);
 
             manifestStream.Close();
 

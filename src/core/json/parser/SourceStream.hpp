@@ -5,7 +5,7 @@
 #include <core/json/parser/SourceFile.hpp>
 #include <util/UTF8.hpp>
 
-namespace Hyperion::json {
+namespace Hyperion::Json {
 
 class SourceStream
 {
@@ -39,4 +39,4 @@ private:
     SizeType m_position;
 };
 
-} // namespace Hyperion::json
+} // namespace Hyperion::Json

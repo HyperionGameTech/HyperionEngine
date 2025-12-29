@@ -15,7 +15,7 @@
 
 namespace Hyperion {
 
-using namespace json;
+using namespace Json;
 
 AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
 {
@@ -31,7 +31,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
 
     const String jsonString(byteBuffer.ToByteView());
 
-    const auto jsonParseResult = JSON::Parse(jsonString);
+    const auto jsonParseResult = Json::Parse(jsonString);
 
     if (!jsonParseResult.ok)
     {

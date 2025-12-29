@@ -100,7 +100,7 @@ public:
         const String& description = String::empty,
         EnumFlags<CommandLineArgumentFlags> flags = CommandLineArgumentFlags::NONE,
         CommandLineArgumentType type = CommandLineArgumentType::STRING,
-        const CommandLineArgumentValue& defaultValue = json::JSON::Undefined());
+        const CommandLineArgumentValue& defaultValue = Json::Undefined());
 
     // Add an enum argument
     CommandLineArgumentDefinitions& Add(
@@ -109,7 +109,7 @@ public:
         const String& description = String::empty,
         EnumFlags<CommandLineArgumentFlags> flags = CommandLineArgumentFlags::NONE,
         const Optional<Array<String>>& enumValues = {},
-        const CommandLineArgumentValue& defaultValue = json::JSON::Undefined());
+        const CommandLineArgumentValue& defaultValue = Json::Undefined());
 
     CommandLineArgumentDefinition* Find(UTF8StringView key) const;
 

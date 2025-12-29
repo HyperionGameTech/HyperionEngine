@@ -17,7 +17,7 @@ namespace Hyperion {
 
 class BufferedReader;
 
-namespace json {
+namespace Json {
 
 class SourceFile;
 
@@ -828,21 +828,17 @@ struct ParseResult
     JSONValue value;
 };
 
-class HYP_API JSON
-{
-public:
-    static const JSONValue& Undefined();
-    static const JSONValue& Null();
-    static const JSONValue& EmptyObject();
-    static const JSONValue& EmptyArray();
-    static const JSONValue& EmptyString();
-    static const JSONValue& True();
-    static const JSONValue& False();
+HYP_API const JSONValue& Undefined();
+HYP_API const JSONValue& Null();
+HYP_API const JSONValue& EmptyObject();
+HYP_API const JSONValue& EmptyArray();
+HYP_API const JSONValue& EmptyString();
+HYP_API const JSONValue& True();
+HYP_API const JSONValue& False();
 
-    static ParseResult Parse(const String& jsonString);
-    static ParseResult Parse(BufferedReader& reader);
-    static ParseResult Parse(const SourceFile& sourceFile);
-};
+HYP_API ParseResult Parse(const String& jsonString);
+HYP_API ParseResult Parse(BufferedReader& reader);
+HYP_API ParseResult Parse(const SourceFile& sourceFile);
 
-} // namespace json
+} // namespace Json
 } // namespace Hyperion
