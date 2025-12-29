@@ -521,7 +521,7 @@ public:
             }
             else
             {
-                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to Wide encoded string");
+                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to Wide string");
             }
         }
         else if constexpr (isUtf32)
@@ -547,7 +547,6 @@ public:
             }
             else if constexpr (std::is_same_v<OtherCharType, utf::Char16>)
             {
-                // Convert UTF-16 to UTF-32 using Char16to32
                 const utf::Char16* ptr = _begin;
                 const utf::Char16* endPtr = _end;
 
@@ -567,10 +566,23 @@ public:
             }
             else if constexpr (std::is_same_v<OtherCharType, wchar_t>)
             {
-                // Convert wchar_t to UTF-32
-                for (const wchar_t* ptr = _begin; ptr < _end; ++ptr)
+                // For Win32 (UTF-16) this must combine surrogate pairs
+                
+                const wchar_t* ptr = _begin;
+                const wchar_t* endPtr = _end;
+
+                while (ptr < endPtr)
                 {
-                    Append(static_cast<CharType>(*ptr));
+                    SizeType codeUnits = 0;
+                    const utf::Char32 ch = utf::WideTo32(ptr, SizeType(endPtr - ptr), codeUnits);
+
+                    if (ch == utf::Char32(-1) || codeUnits == 0)
+                    {
+                        break;
+                    }
+
+                    ptr += codeUnits;
+                    Append(static_cast<CharType>(ch));
                 }
             }
             else
@@ -582,7 +594,6 @@ public:
         {
             if constexpr (std::is_same_v<OtherCharType, utf::Char8>)
             {
-                // Convert UTF-8 to UTF-16 with proper surrogate pair handling
                 const utf::Char8* ptr = reinterpret_cast<const utf::Char8*>(_begin);
                 const utf::Char8* endPtr = reinterpret_cast<const utf::Char8*>(_end);
 
@@ -614,19 +625,18 @@ public:
             }
             else if constexpr (std::is_same_v<OtherCharType, utf::Char32>)
             {
-                // Convert UTF-32 to UTF-16 with surrogate pair handling
                 for (const utf::Char32* ptr = _begin; ptr < _end; ++ptr)
                 {
                     const utf::Char32 ch = *ptr;
 
                     if (ch <= 0xFFFF)
                     {
-                        // BMP character, single UTF-16 code unit
+                        // BMP char
                         Append(static_cast<CharType>(ch));
                     }
                     else if (ch <= 0x10FFFF)
                     {
-                        // Supplementary character, needs surrogate pair
+                        // surrogate pair
                         const utf::Char32 adjusted = ch - 0x10000;
                         Append(static_cast<CharType>((adjusted >> 10) + 0xD800));   // High surrogate
                         Append(static_cast<CharType>((adjusted & 0x3FF) + 0xDC00)); // Low surrogate
@@ -636,10 +646,36 @@ public:
             else if constexpr (std::is_same_v<OtherCharType, wchar_t>)
             {
                 // Convert wchar_t to UTF-16
+#ifdef HYP_WINDOWS
+                static_assert(sizeof(OtherCharType) == sizeof(CharType));
+                
+                // Win32: Can just treat as UTF-16
                 for (const wchar_t* ptr = _begin; ptr < _end; ++ptr)
                 {
                     Append(static_cast<CharType>(*ptr));
                 }
+#else
+                static_assert(sizeof(OtherCharType) == sizeof(utf::Char32));
+                
+                // Treat as UTF-32 on other (Unix) platforms
+                for (const wchar_t* ptr = _begin; ptr < _end; ++ptr)
+                {
+                    const wchar_t ch = *ptr;
+
+                    if (ch <= 0xFFFF)
+                    {
+                        // BMP char
+                        Append(static_cast<CharType>(ch));
+                    }
+                    else if (ch <= 0x10FFFF)
+                    {
+                        // surrogate pair
+                        const utf::Char32 adjusted = ch - 0x10000;
+                        Append(static_cast<CharType>((adjusted >> 10) + 0xD800));   // High surrogate
+                        Append(static_cast<CharType>((adjusted & 0x3FF) + 0xDC00)); // Low surrogate
+                    }
+                }
+#endif
             }
             else
             {
