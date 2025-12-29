@@ -6,7 +6,7 @@
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
-#include <asset/ScriptAsset.hpp>
+#include <scripting/asset/ScriptAsset.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMLoadContext.hpp>

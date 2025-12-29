@@ -1332,7 +1332,6 @@ void AssetPackage::MarkDirty()
     if (recursionDepth++ > MaxRecursionDepth)
     {
         HYP_LOG(Assets, Error, "Max recursion depth reached in AssetPackage::MarkDirty for package '{}'", m_name);
-        HYP_BREAKPOINT_DEBUG_MODE;
 
         return;
     }

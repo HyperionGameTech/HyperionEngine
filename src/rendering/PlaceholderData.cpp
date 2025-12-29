@@ -10,7 +10,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
-#include <asset/TextureAsset.hpp>
+#include <rendering/asset/TextureAsset.hpp>
 
 #include <core/math/Vector2.hpp>
 

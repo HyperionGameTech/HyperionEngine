@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <core/memory/ByteBuffer.hpp>
 #include <core/memory/Memory.hpp>
 
 #include <core/memory/allocator/Allocator.hpp>
@@ -47,7 +46,7 @@ public:
     /*! \brief Returns the total capacity of the arena in bytes. */
     HYP_FORCE_INLINE SizeType GetCapacity() const
     {
-        return m_buffer.Size();
+        return m_size;
     }
 
     /*! \brief Returns the current offset (number of bytes allocated). */
@@ -59,7 +58,7 @@ public:
     /*! \brief Returns the number of bytes remaining in the arena. */
     HYP_FORCE_INLINE SizeType GetRemaining() const
     {
-        return m_buffer.Size() - m_offset;
+        return m_size - m_offset;
     }
 
     /*! \brief Resets the arena, allowing all memory to be re-allocated. */
@@ -81,28 +80,44 @@ public:
     }
 
 private:
-    TByteBuffer<AllocatorType> m_buffer;
+    AllocatorType* m_pAllocator;
+    typename AllocatorType::template Allocation<ubyte> m_allocation;
+    SizeType m_size;
     SizeType m_offset;
 };
 
 template <class AllocatorType>
 TArena<AllocatorType>::TArena(SizeType size)
-    : m_offset(0)
+    : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
+      m_size(size),
+      m_offset(0)
 {
-    HYP_CORE_ASSERT(size > 0, "Arena size must be greater than 0");
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+    HYP_CORE_ASSERT(m_size > 0, "Arena size must be greater than 0");
 
-    m_buffer.SetSize(size);
+    m_allocation.SetToInitialState();
+
+    if (m_size != 0)
+    {
+        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ alignof(ubyte));
+    }
 }
 
 template <class AllocatorType>
 TArena<AllocatorType>::TArena(AllocatorType* pAllocator, SizeType size)
-    : m_buffer(pAllocator),
+    : m_pAllocator(pAllocator),
+      m_size(size),
       m_offset(0)
 {
-    HYP_CORE_ASSERT(pAllocator != nullptr);
-    HYP_CORE_ASSERT(size > 0, "Arena size must be greater than 0");
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+    HYP_CORE_ASSERT(m_size > 0, "Arena size must be greater than 0");
 
-    m_buffer.SetSize(size);
+    m_allocation.SetToInitialState();
+
+    if (m_size != 0)
+    {
+        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ alignof(ubyte));
+    }
 }
 
 template <class AllocatorType>
@@ -111,21 +126,22 @@ void* TArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
     HYP_CORE_ASSERT(alignment != 0 && ((alignment & (alignment - 1)) == 0),
         "Arena requires power-of-two, non-zero alignment");
 
-    ubyte* base = reinterpret_cast<ubyte*>(m_buffer.Data());
+    ubyte* base = m_allocation.GetBuffer();
 
-    const UIntPtr baseAddr = reinterpret_cast<UIntPtr>(base);
-    const UIntPtr current = baseAddr + static_cast<UIntPtr>(m_offset);
-    const UIntPtr aligned = ByteUtil::AlignAs(current, static_cast<UIntPtr>(alignment));
-    const SizeType alignedOffset = SizeType(aligned - baseAddr);
+    UIntPtr currentAddress = reinterpret_cast<UIntPtr>(base + m_offset);
+    UIntPtr alignedAddress = ByteUtil::AlignAs(currentAddress, alignment);
+    SizeType padding = alignedAddress - currentAddress;
+    SizeType totalSize = size + padding;
 
-    if (size > m_buffer.Size() - alignedOffset)
+    if (m_offset + totalSize > m_size)
     {
+        // Out of memory
         return nullptr;
     }
 
-    void* ptr = base + alignedOffset;
-    m_offset = alignedOffset + size;
-    return ptr;
+    m_offset += totalSize;
+
+    return reinterpret_cast<void*>(alignedAddress);
 }
 
 using Arena = TArena<DynamicAllocator>;

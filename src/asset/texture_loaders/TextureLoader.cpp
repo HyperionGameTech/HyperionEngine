@@ -5,7 +5,7 @@
 #include <asset/texture_loaders/TextureLoader.hpp>
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
-#include <asset/TextureAsset.hpp>
+#include <rendering/asset/TextureAsset.hpp>
 
 #include <core/utilities/StringUtil.hpp>
 

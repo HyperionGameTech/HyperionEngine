@@ -5,6 +5,8 @@
 #include <audio/AudioSource.hpp>
 #include <audio/AudioManager.hpp>
 
+#include <engine/EngineGlobals.hpp>
+
 #include <AudioSource.generated.inl>
 
 namespace Hyperion {
@@ -88,7 +90,7 @@ AudioSource::~AudioSource()
 
 void AudioSource::Init()
 {
-    if (AudioManager::GetInstance().IsInitialized())
+    if (g_audioManager->IsReady())
     {
         auto alFormat = AL_FORMAT_MONO8;
 
@@ -118,14 +120,14 @@ void AudioSource::Init()
 
         // drop reference
         m_data = ByteBuffer();
-
+        
         SetReady(true);
     }
 }
 
 AudioSourceState AudioSource::GetState() const
 {
-    if (!AudioManager::GetInstance().IsInitialized())
+    if (!g_audioManager->IsReady())
     {
         return AudioSourceState::UNDEFINED;
     }
@@ -149,7 +151,7 @@ AudioSourceState AudioSource::GetState() const
 
 void AudioSource::SetPosition(const Vec3f& vec)
 {
-    if (AudioManager::GetInstance().IsInitialized())
+    if (g_audioManager->IsReady())
     {
         alSource3f(m_sourceId, AL_POSITION, vec.x, vec.y, vec.z);
     }
@@ -157,7 +159,7 @@ void AudioSource::SetPosition(const Vec3f& vec)
 
 void AudioSource::SetVelocity(const Vec3f& vec)
 {
-    if (AudioManager::GetInstance().IsInitialized())
+    if (g_audioManager->IsReady())
     {
         alSource3f(m_sourceId, AL_VELOCITY, vec.x, vec.y, vec.z);
     }
@@ -165,7 +167,7 @@ void AudioSource::SetVelocity(const Vec3f& vec)
 
 void AudioSource::SetPitch(float pitch)
 {
-    if (AudioManager::GetInstance().IsInitialized())
+    if (g_audioManager->IsReady())
     {
         alSourcef(m_sourceId, AL_PITCH, pitch);
     }
@@ -173,7 +175,7 @@ void AudioSource::SetPitch(float pitch)
 
 void AudioSource::SetGain(float gain)
 {
-    if (AudioManager::GetInstance().IsInitialized())
+    if (g_audioManager->IsReady())
     {
         alSourcef(m_sourceId, AL_GAIN, gain);
     }
@@ -181,7 +183,7 @@ void AudioSource::SetGain(float gain)
 
 void AudioSource::SetLoop(bool loop)
 {
-    if (AudioManager::GetInstance().IsInitialized())
+    if (g_audioManager->IsReady())
     {
         alSourcei(m_sourceId, AL_LOOPING, loop);
     }
@@ -189,7 +191,7 @@ void AudioSource::SetLoop(bool loop)
 
 void AudioSource::Play()
 {
-    if (AudioManager::GetInstance().IsInitialized())
+    if (g_audioManager->IsReady())
     {
         alSourcePlay(m_sourceId);
     }
@@ -197,7 +199,7 @@ void AudioSource::Play()
 
 void AudioSource::Pause()
 {
-    if (AudioManager::GetInstance().IsInitialized())
+    if (g_audioManager->IsReady())
     {
         alSourcePause(m_sourceId);
     }
@@ -205,7 +207,7 @@ void AudioSource::Pause()
 
 void AudioSource::Stop()
 {
-    if (AudioManager::GetInstance().IsInitialized())
+    if (g_audioManager->IsReady())
     {
         alSourceStop(m_sourceId);
     }
@@ -213,7 +215,7 @@ void AudioSource::Stop()
 
 void AudioSource::FindSampleLength()
 {
-    if (!AudioManager::GetInstance().IsInitialized())
+    if (!g_audioManager->IsReady())
     {
         return;
     }
