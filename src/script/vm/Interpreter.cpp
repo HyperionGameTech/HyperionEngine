@@ -3505,33 +3505,58 @@ SCRIPT_INLINE static void HandleInstruction(
 Script_Interpreter::Script_Interpreter()
     : m_unhandledException(nullptr)
 {
-    m_gc = new Script_GC();
+    m_gc = (Script_GC*)ScriptAlloc(sizeof(Script_GC), alignof(Script_GC));
+    new (m_gc) Script_GC;
 }
 
 Script_Interpreter::~Script_Interpreter()
 {
-    delete m_unhandledException;
-    delete m_gc;
+    if (m_gc)
+    {
+        m_gc->~Script_GC();
+        ScriptFree(m_gc);
+    }
+
+    if (m_unhandledException)
+    {
+        m_unhandledException->~Script_Exception();
+        ScriptFree(m_unhandledException);
+    }
 }
 
 void Script_Interpreter::ThrowException(Script_Instance* instance, const Script_Exception& exception)
 {
     ++instance->thread.m_exceptionState.m_exceptionDepth;
 
-    if (instance->thread.m_exceptionState.m_tryCounter == 0)
+    // go to catch
+    if (HandleException(instance))
     {
-        // exception cannot be handled, no try block found
-        if (instance->thread.m_id == 0)
-        {
-            DebugLog(LogType::Error, "unhandled exception in main thread: %s", exception.ToString());
-        }
-        else
-        {
-            DebugLog(LogType::Error, "unhandled exception in thread %d: %s", instance->thread.m_id, exception.ToString());
-        }
-
-        m_unhandledException = new Script_Exception(exception);
+        return;
     }
+
+    // Move bytestream to end so loops that check if EOF is reached stop.
+    instance->stream.Seek(instance->stream.Size());
+
+    // exception cannot be handled, no try block found
+    if (instance->thread.m_id == 0)
+    {
+        DebugLog(LogType::Error, "unhandled exception in main thread: %s", exception.ToString());
+    }
+    else
+    {
+        DebugLog(LogType::Error, "unhandled exception in thread %d: %s", instance->thread.m_id, exception.ToString());
+    }
+
+    if (!m_unhandledException)
+    {
+        m_unhandledException = (Script_Exception*)ScriptAlloc(sizeof(Script_Exception), alignof(Script_Exception));
+    }
+    else
+    {
+        m_unhandledException->~Script_Exception();
+    }
+
+    new (m_unhandledException) Script_Exception(exception);
 }
 
 void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, uint8 nargs)
@@ -3678,20 +3703,7 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, BoxedValue&& value
 
     Invoke(instance, std::move(value), nargs);
 
-    if (handler.instance->thread.GetExceptionState().HasExceptionOccurred())
-    {
-        if (!HandleException(instance))
-        {
-            instance->thread.m_exceptionState.m_exceptionDepth = 0;
-
-            Assert(instance->thread.GetStack().GetStackPointer() >= stackSizeBefore);
-            instance->thread.GetStack().Pop(instance->thread.GetStack().GetStackPointer() - stackSizeBefore);
-
-            return;
-        }
-    }
-
-    if (vmData.type == Script_VMData::FUNCTION)
+    if (vmData.type == Script_VMData::FUNCTION && !handler.instance->thread.GetExceptionState().HasExceptionOccurred())
     { // don't do this for native function calls
         ubyte code;
 
@@ -3701,19 +3713,6 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, BoxedValue&& value
 
             HandleInstruction(instance, &handler, code);
 
-            if (handler.instance->thread.GetExceptionState().HasExceptionOccurred())
-            {
-                if (!HandleException(instance))
-                {
-                    instance->thread.m_exceptionState.m_exceptionDepth = 0;
-
-                    Assert(instance->thread.GetStack().GetStackPointer() >= stackSizeBefore);
-                    instance->thread.GetStack().Pop(instance->thread.GetStack().GetStackPointer() - stackSizeBefore);
-
-                    break;
-                }
-            }
-
             if (code == RET)
             {
                 if (instance->thread.m_funcDepth == originalFunctionDepth)
@@ -3722,6 +3721,15 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, BoxedValue&& value
                 }
             }
         }
+    }
+
+    // Unhandled exception - we need to reset the stack to what it was before.
+    if (handler.instance->thread.GetExceptionState().HasExceptionOccurred())
+    {
+        instance->thread.m_exceptionState.m_exceptionDepth = 0;
+
+        Assert(instance->thread.GetStack().GetStackPointer() >= stackSizeBefore);
+        instance->thread.GetStack().Pop(instance->thread.GetStack().GetStackPointer() - stackSizeBefore);
     }
 
     bs->SetPosition(positionBefore);
@@ -3781,7 +3789,7 @@ bool Script_Interpreter::HandleException(Script_Instance* instance)
         }
 
         // top should be exception data
-        Assert(topVmData && topVmData->type != Script_VMData::TRY_CATCH_INFO);
+        Assert(topVmData && topVmData->type == Script_VMData::TRY_CATCH_INFO);
 
         // jump to the catch block
         instance->stream.Seek((uint32)topVmData->tryCatchInfo.catchAddress);
