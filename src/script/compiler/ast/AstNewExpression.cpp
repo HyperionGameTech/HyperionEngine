@@ -64,7 +64,7 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (!m_instanceType->IsObject())
+    if (!m_instanceType->IsObject() && !m_instanceType->IsStructType())
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
