@@ -2,30 +2,30 @@
 
 #pragma once
 
-#include <AL/al.h>
-#include <AL/alc.h>
+#include <core/reflection/ObjectBase.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
 #include <core/math/Vector3.hpp>
 
+#include <AL/al.h>
+#include <AL/alc.h>
+
 namespace Hyperion {
-class AudioManager
+
+HYP_CLASS()
+class HYP_API AudioManager : public ObjectBase
 {
+    HYP_OBJECT_BODY(AudioManager);
+
 public:
-    static AudioManager& GetInstance();
+    static const Handle<AudioManager>& GetInstance();
 
     AudioManager();
-    ~AudioManager();
+    ~AudioManager() override;
 
-    bool Initialize();
-    void Shutdown();
-
-    bool IsInitialized() const
-    {
-        return m_isInitialized;
-    }
+    void Init() override;
 
     Array<String> ListDevices() const;
 
@@ -43,10 +43,6 @@ public:
     void SetListenerOrientation(const Vec3f& forward, const Vec3f& up);
 
 private:
-    static AudioManager* s_instance;
-
-    bool m_isInitialized;
-
     ALCdevice* m_device;
     ALCcontext* m_context;
 };

@@ -11,6 +11,7 @@ namespace Hyperion {
 class AppContextBase;
 class EngineDriver;
 class AssetManager;
+class AudioManager;
 class SafeDeleter;
 class ShaderManager;
 class MaterialCache;
@@ -38,6 +39,7 @@ class VulkanRenderBackend;
 
 extern Handle<EngineDriver> g_engineDriver;
 extern Handle<AssetManager> g_assetManager;
+extern Handle<AudioManager> g_audioManager;
 extern Handle<AppContextBase> g_appContext;
 extern Handle<StreamingManager> g_streamingManager;
 extern Handle<EngineStats> g_engineStats;

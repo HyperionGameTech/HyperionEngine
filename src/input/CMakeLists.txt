@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0091 NEW)
 
-set(BUILD_NAME hyperion-asset)
+set(BUILD_NAME hyperion-input)
 
 project(${BUILD_NAME} CXX C)
 
@@ -19,17 +19,17 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/generated
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/asset
+    ${CMAKE_SOURCE_DIR}/src/input
 )
 
 # Normalize sources/headers to absolute paths under the root
 set(CURRENT_SOURCES "")
-foreach(filepath ${hyperion-asset_SOURCES})
+foreach(filepath ${hyperion-input_SOURCES})
     list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
 set(CURRENT_HEADERS "")
-foreach(filepath ${hyperion-asset_HEADERS})
+foreach(filepath ${hyperion-input_HEADERS})
     list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 

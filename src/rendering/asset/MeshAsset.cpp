@@ -1,8 +1,8 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <AssetPch.hpp>
+#include <RenderingPch.hpp>
 
-#include <asset/MeshAsset.hpp>
+#include <rendering/asset/MeshAsset.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
 

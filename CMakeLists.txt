@@ -210,14 +210,7 @@ endif()
 # endif()
 
 find_package(Threads REQUIRED)
-find_package(OpenAL)
 find_package(Bullet)
-
-if(${OpenAL_FOUND})
-    message(STATUS "OpenAL found")
-
-    add_definitions(-DHYP_OPENAL=1)
-endif()
 
 # PCHs
 set(HYP_PCH
@@ -772,7 +765,6 @@ endif()
 include_directories(
     ${HYP_GENERATED_DIR}
     ${COMMON_INCLUDE_DIRS}
-    ${OPENAL_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/thirdparty
 )
@@ -818,7 +810,6 @@ endif()
 set(COMMON_LIBRARIES
     ${COMMON_LIBRARIES}
     ${CMAKE_THREADS_LIBS_INIT}
-    ${OPENAL_LIBRARY}
 )
 
 if(NOT DEFINED WIN32)

@@ -4,7 +4,7 @@
 
 #include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
-#include <asset/SkeletonAsset.hpp>
+#include <scene/asset/SkeletonAsset.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 

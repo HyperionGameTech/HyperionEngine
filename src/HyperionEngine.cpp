@@ -52,6 +52,8 @@
 #include <engine/threads/RenderThread.hpp>
 #include <engine/threads/VisThread.hpp>
 
+#include <audio/AudioManager.hpp>
+
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 #endif
@@ -118,6 +120,7 @@ extern void InitClassDecls();
 
 Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
+Handle<AudioManager> g_audioManager;
 Handle<AppContextBase> g_appContext;
 Handle<StreamingManager> g_streamingManager;
 Handle<EngineStats> g_engineStats;
@@ -331,7 +334,6 @@ extern "C"
 #endif
 
         ConsoleCommandManager::GetInstance().Initialize();
-        AudioManager::GetInstance().Initialize();
         TaskSystem::GetInstance().Start();
 
         g_engineDriver = CreateObject<EngineDriver>();
@@ -345,6 +347,9 @@ extern "C"
 
         g_assetManager = CreateObject<AssetManager>();
         InitObject(g_assetManager);
+
+        g_audioManager = CreateObject<AudioManager>();
+        InitObject(g_audioManager);
 
 #ifdef HYP_EDITOR
         g_editorState = CreateObject<EditorState>();
@@ -438,7 +443,6 @@ extern "C"
 
         ComponentInterfaceRegistry::GetInstance().Shutdown();
         ConsoleCommandManager::GetInstance().Shutdown();
-        AudioManager::GetInstance().Shutdown();
 
         if (TaskSystem::GetInstance().IsRunning())
         {
@@ -453,6 +457,7 @@ extern "C"
         g_streamingManager.Reset();
 
         g_assetManager.Reset();
+        g_audioManager.Reset();
         g_engineStats.Reset();
 
 #ifdef HYP_EDITOR

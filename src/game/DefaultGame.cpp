@@ -29,7 +29,7 @@
 
 #include <script/HypScript.hpp>
 
-#include <asset/ScriptAsset.hpp>
+#include <scripting/asset/ScriptAsset.hpp>
 
 #include <asset/AssetObject.hpp>
 #include <asset/AssetRegistry.hpp>

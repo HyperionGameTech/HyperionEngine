@@ -44,7 +44,7 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
 
-    if (!AudioManager::GetInstance().IsInitialized())
+    if (!g_audioManager->IsReady())
     {
         return;
     }
@@ -65,8 +65,8 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
         {
             if (Camera* camera = scene->GetPrimaryCamera())
             {
-                AudioManager::GetInstance().SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
-                AudioManager::GetInstance().SetListenerPosition(camera->GetTranslation());
+                g_audioManager->SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
+                g_audioManager->SetListenerPosition(camera->GetTranslation());
             }
         }
 
