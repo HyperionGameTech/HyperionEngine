@@ -27,7 +27,7 @@ struct JSONSubscriptWrapper;
 class Value;
 class JSObject;
 
-using JSString = UTF16String;
+using JSString = String;
 using JSNumber = double;
 using JSBoolean = bool;
 using JSArray = Array<Value, DynamicAllocator>;
