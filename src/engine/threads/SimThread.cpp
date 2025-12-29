@@ -27,8 +27,12 @@
 
 #include <rendering/RenderInterface.hpp>
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 #include <editor/EditorState.hpp>
+#endif
+
+#if HYP_SCRIPT
+#include <script/HypScript.hpp>
 #endif
 
 namespace Hyperion {
@@ -173,6 +177,10 @@ void SimThread::Update()
 
 void SimThread::operator()()
 {
+#if HYP_SCRIPT
+    HypScript::GetInstance().Initialize();
+#endif
+
     // create fallback world
     Handle<World> defaultWorld = CreateObject<World>(NAME("DefaultWorld"), WorldFlags::NONE);
     InitObject(defaultWorld);
