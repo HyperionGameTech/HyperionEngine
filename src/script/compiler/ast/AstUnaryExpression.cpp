@@ -116,11 +116,13 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
     const SymbolType* type = m_expr->GetExprType();
     Assert(type != nullptr);
 
+    const SymbolType* unaliasedType = type->GetUnaliased();
+
     if (m_op->GetType() & BITWISE)
     {
         // no bitwise operators on floats allowed.
         visitor->AddErrorIfFalse(
-            type->IsAnyType() || type->IsIntegral() || type->IsEnumType(),
+            unaliasedType->IsAnyType() || unaliasedType->IsIntegral() || unaliasedType->IsEnumType(),
             CompilerError(
                 LEVEL_ERROR,
                 Msg_bitwise_operand_must_be_int,
@@ -130,7 +132,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
     else if (m_op->GetType() & ARITHMETIC)
     {
         visitor->AddErrorIfFalse(
-            type->IsAnyType() || type->IsNumber(),
+            unaliasedType->IsAnyType() || unaliasedType->IsNumber(),
             CompilerError(
                 LEVEL_ERROR,
                 Msg_invalid_operator_for_type,
@@ -157,7 +159,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
         // For now just ensure it's a boolean or any
         visitor->AddErrorIfFalse(
-            type->IsAnyType() || type->IsBoolean(),
+            unaliasedType->IsAnyType() || unaliasedType->IsBoolean(),
             CompilerError(
                 LEVEL_ERROR,
                 Msg_invalid_operator_for_type,
