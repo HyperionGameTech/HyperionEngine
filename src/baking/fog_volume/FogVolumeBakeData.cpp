@@ -13,33 +13,29 @@ namespace Hyperion {
 
 namespace Baking {
 
-static struct FogVolumeNoiseCombinator
-{
-    NoiseCombinator noiseCombinator;
-
-    FogVolumeNoiseCombinator()
-    {
-        noiseCombinator
-            // Base Density
-            .Use<SimplexNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 0.4f, 0.0f, Vec3f(15.0f))
-            // Structure (Mid-Frequency)
-            .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.3f, 0.0f, Vec3f(60.0f))
-            // Grain (High-Frequency)
-            .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.2f, 0.0f, Vec3f(250.0f))
-            // Eraser (Subtractive Worley)
-            .Use<WorleyNoiseGenerator>(3, NoiseCombinator::Mode::SUBTRACTIVE, 0.2f, 0.0f, Vec3f(300.0f));
-    }
-} s_initializer;
-
 static void GenerateNoiseBitmap(typename BakeData<FogVolume>::NoiseBitmap& noiseBitmap)
 {
+    class FogVolumeNoiseCombinator : public NoiseCombinator
+    {
+    public:
+        FogVolumeNoiseCombinator()
+        {
+            Use<SimplexNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 0.2f, 0.0f, Vec3f(20.0f));
+            Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.3f, 0.0f, Vec3f(60.0f));
+            Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.4f, 0.0f, Vec3f(150.0f));
+            Use<WorleyNoiseGenerator>(3, NoiseCombinator::Mode::SUBTRACTIVE, 0.3f, 0.0f, Vec3f(300.0f));
+        }
+    };
+
+    FogVolumeNoiseCombinator noiseCombinator;
+
     for (uint32 z = 0; z < noiseBitmap.GetDepth(); z++)
     {
         for (uint32 y = 0; y < noiseBitmap.GetHeight(); y++)
         {
             for (uint32 x = 0; x < noiseBitmap.GetWidth(); x++)
             {
-                const float noiseValue = s_initializer.noiseCombinator.GetNoise(
+                const float noiseValue = noiseCombinator.GetNoise(
                     Vec3f(
                         float(x) / float(noiseBitmap.GetWidth()),
                         float(y) / float(noiseBitmap.GetHeight()),

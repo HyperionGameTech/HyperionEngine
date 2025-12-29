@@ -46,6 +46,11 @@ public:
         return false;
     }
 
+    virtual const TypeInfo& GetInnerType() const
+    {
+        return TypeOf<FogVolume>();
+    }
+
 protected:
     virtual BakeDataBase& GetBakeData() override
     {

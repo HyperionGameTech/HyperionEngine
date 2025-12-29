@@ -5,9 +5,8 @@
 #include <baking/Baker.hpp>
 #include <baking/BakeJob.hpp>
 #include <baking/BakeData.hpp>
+#include <baking/BakerThreadPool.hpp>
 
-#include <baking/lightmaps/LightmapAccelerationStructure.hpp>
-#include <baking/lightmaps/LightmapPathTraceCpu.hpp>
 #include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
 #include <rendering/RenderInterface.hpp>
@@ -91,23 +90,6 @@ static inline double GetEstimatedGPUMemUsageForJob(const LightmapperConfig& conf
     return usage;
 }
 
-#pragma region LightmapperConfig
-
-void LightmapperConfig::PostLoadCallback()
-{
-    if (traceMode == LightmapTraceMode::GPU_PATH_TRACING)
-    {
-        if (!g_renderBackend->GetRenderConfig().raytracing)
-        {
-            traceMode = LightmapTraceMode::CPU_PATH_TRACING;
-
-            HYP_LOG(Lightmap, Warning, "GPU path tracing is not supported on this device. Falling back to CPU path tracing.");
-        }
-    }
-}
-
-#pragma endregion LightmapperConfig
-
 #pragma region BakerBase
 
 BakerBase::BakerBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb)
@@ -173,8 +155,6 @@ bool BakerBase::IsComplete() const
 
 void BakerBase::Initialize()
 {
-    HYP_LOG(Lightmap, Info, "Initializing lightmapper: {}", m_config.ToString());
-
     if (PerformsRayTracing())
     {
         Handle<Camera> camera = CreateObject<Camera>();
@@ -216,17 +196,13 @@ void BakerBase::Initialize()
 
     if (PerformsRayTracing())
     {
-        /// If cpu path tracing, set up thread pool and stuff
-        if (m_config.traceMode == LightmapTraceMode::CPU_PATH_TRACING)
-        {
-            BuildResourceCache();
-            BuildAccelerationStructures();
-
-            m_threadPool = new LightmapThreadPool();
-            m_threadPool->Start();
-        }
-
         CreateLightmapRenderers();
+    }
+
+    if (NumThreads() > 0)
+    {
+        m_threadPool = new BakerThreadPool(GetInnerType(), NumThreads());
+        m_threadPool->Start();
     }
 }
 
@@ -251,15 +227,14 @@ UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadi
         return nullptr;
     }
 
-    switch (m_config.traceMode)
+    if (!g_renderBackend->GetRenderConfig().raytracing)
     {
-    case LightmapTraceMode::GPU_PATH_TRACING:
-        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType, maxTexelsPerFrame);
-    case LightmapTraceMode::CPU_PATH_TRACING:
-        return MakeUnique<LightmapRenderer_CpuPathTracing>(this, m_accelerationStructure.Get(), m_threadPool, m_scene, shadingType);
-    default:
-        HYP_UNREACHABLE();
+        HYP_LOG(Lightmap, Error, "GPU path tracing is not supported on this device. Falling back to CPU path tracing.");
+
+        return nullptr;
     }
+
+    return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType, maxTexelsPerFrame);
 }
 
 void BakerBase::CreateLightmapRenderers()
@@ -313,116 +288,6 @@ void BakerBase::CreateLightmapRenderers()
         }
 
         lightmapRenderer->Create();
-    }
-}
-
-void BakerBase::BuildAccelerationStructures()
-{
-    Assert(m_accelerationStructure == nullptr);
-    m_accelerationStructure = MakeUnique<LightmapTopLevelAccelerationStructure>();
-
-    if (m_bakeEntities.Empty())
-    {
-        return;
-    }
-
-    for (BakeEntity& bakeEntity : m_bakeEntities)
-    {
-        const Handle<MeshAsset>& meshAsset = bakeEntity.mesh->GetAsset();
-
-        if (!meshAsset)
-        {
-            HYP_LOG(Lightmap, Error, "Mesh asset is invalid for entity {} in lightmapper", bakeEntity.entity.Id());
-            continue;
-        }
-
-        ResourceHandle resourceHandle(*meshAsset->GetResource());
-
-        const MeshData& meshData = *meshAsset->GetMeshData();
-
-        BVHNode bvhNode;
-
-        if (!meshData.BuildBVH(bvhNode, /* maxDepth */ 3))
-        {
-            HYP_LOG(Lightmap, Error, "Failed to build BVH for mesh on entity {} in lightmapper", bakeEntity.entity.Id());
-
-            continue;
-        }
-
-        Array<Vertex> vertices = meshData.vertexData;
-
-        Array<uint32> indices;
-        indices.Resize(meshData.indexData.Size() / sizeof(uint32));
-        Memory::MemCpy(indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
-
-        m_accelerationStructure->Add(
-            &bakeEntity,
-            std::move(bvhNode),
-            std::move(vertices),
-            std::move(indices));
-    }
-}
-
-/// Build cache to keep scene meshes, textures etc. in memory while we perform CPU path tracing
-void BakerBase::BuildResourceCache()
-{
-    HYP_NAMED_SCOPE("Building lightmapper resource cache");
-
-    HYP_LOG(Lightmap, Info, "Building lightmapper resource cache");
-
-    Mutex mtx;
-
-    TaskBatch taskBatch;
-
-    auto callback = [&](BakeEntity& bakeEntity, uint32, uint32) -> void
-    {
-        Array<CachedResource> localResources;
-
-        if (bakeEntity.mesh.IsValid())
-        {
-            Assert(bakeEntity.mesh->GetAsset().IsValid());
-
-            localResources.EmplaceBack(bakeEntity.mesh->GetAsset(), *bakeEntity.mesh->GetAsset()->GetResource());
-        }
-
-        if (bakeEntity.material.IsValid())
-        {
-            for (const Handle<Texture>& texture : bakeEntity.material->GetTextures())
-            {
-                if (texture.IsValid())
-                {
-                    Assert(texture->GetAsset().IsValid());
-
-                    localResources.EmplaceBack(texture->GetAsset(), *texture->GetAsset()->GetResource());
-                }
-            }
-        }
-
-        if (localResources.Any())
-        {
-            Mutex::Guard guard(mtx);
-
-            for (CachedResource& cachedResource : localResources)
-            {
-                m_resourceCache.Set(std::move(cachedResource));
-            }
-        }
-    };
-
-    TaskSystem::GetInstance().ParallelForEach_Batch(
-        taskBatch,
-        uint32(m_bakeEntities.Size() + 255) / 256,
-        m_bakeEntities, callback);
-
-    TaskSystem::GetInstance().EnqueueBatch(&taskBatch);
-
-    while (!taskBatch.IsCompleted())
-    {
-        ThreadSleep(1000);
-
-        Mutex::Guard guard(mtx);
-
-        HYP_LOG(Lightmap, Debug, "Waiting for lightmapper resource cache to finish building... ({} resources discovered)", m_resourceCache.Size());
     }
 }
 
@@ -574,7 +439,7 @@ void BakerBase::Update(float delta)
 
     Mutex::Guard guard(m_queueMutex);
 
-    if (m_config.traceMode == LightmapTraceMode::GPU_PATH_TRACING)
+    if (PerformsRayTracing())
     {
         // tally up estimated gpu mem usage
         for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
@@ -622,11 +487,11 @@ void BakerBase::Update(float delta)
         if (!job->IsRunning() && !job->IsCompleted())
         {
             if (numRunningJobs < MaxConcurrentJobs
-                && (m_config.traceMode != LightmapTraceMode::GPU_PATH_TRACING || currentGpuMemUsageMB + gpuMemUsagePerJobMB <= IdealGpuMemUsageMB))
+                && (!PerformsRayTracing() || currentGpuMemUsageMB + gpuMemUsagePerJobMB <= IdealGpuMemUsageMB))
             {
                 job->Start();
 
-                if (m_config.traceMode == LightmapTraceMode::GPU_PATH_TRACING)
+                if (PerformsRayTracing())
                 {
                     currentGpuMemUsageMB += gpuMemUsagePerJobMB;
                 }

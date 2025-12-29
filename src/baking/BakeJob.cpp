@@ -4,7 +4,7 @@
 
 #include <baking/BakeJob.hpp>
 #include <baking/Baker.hpp>
-#include <baking/lightmaps/LightmapPathTraceCpu.hpp>
+
 #include <baking/lightmaps/LightmapPathTraceGpu.hpp>
 
 #include <rendering/RenderInterface.hpp>

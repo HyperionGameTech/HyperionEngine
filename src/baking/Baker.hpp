@@ -34,7 +34,7 @@ class TaskBatch;
 using threading::TaskBatch;
 
 struct LightmapHitsBuffer;
-class LightmapThreadPool;
+
 class LightmapVolume;
 struct LightmapElement;
 
@@ -50,19 +50,9 @@ namespace Baking {
 class BakerBase;
 class BakeDataBase;
 class BakeJobBase;
+class BakerThreadPool;
 struct BakeJobParams;
 struct BakeEntity;
-
-class LightmapTopLevelAccelerationStructure;
-
-HYP_ENUM()
-enum class LightmapTraceMode : int
-{
-    GPU_PATH_TRACING = 0,
-    CPU_PATH_TRACING,
-
-    MAX
-};
 
 HYP_ENUM()
 enum class LightmapShadingType : int
@@ -77,9 +67,6 @@ HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Lightmapper")
 struct LightmapperConfig : public ConfigBase<LightmapperConfig>
 {
     HYP_STRUCT_BODY(LightmapperConfig);
-
-    HYP_FIELD()
-    LightmapTraceMode traceMode = LightmapTraceMode::GPU_PATH_TRACING;
 
     HYP_FIELD()
     bool radiance = true;
@@ -98,18 +85,9 @@ struct LightmapperConfig : public ConfigBase<LightmapperConfig>
 
     virtual ~LightmapperConfig() override = default;
 
-    HYP_API void PostLoadCallback();
-
     bool Validate()
     {
         bool valid = true;
-
-        if (uint32(traceMode) >= uint32(LightmapTraceMode::MAX))
-        {
-            AddError(HYP_MAKE_ERROR(Error, "Invalid trace mode"));
-
-            valid = false;
-        }
 
         if (!radiance && !irradiance)
         {
@@ -311,8 +289,15 @@ public:
         return true;
     }
 
+    virtual uint32 NumThreads() const
+    {
+        return 0; // no thread pool by default
+    }
+
     virtual uint32 NumTexelSamples() const;
     virtual uint32 MaxTexelsPerFrame() const;
+
+    virtual const TypeInfo& GetInnerType() const = 0;
 
     bool IsComplete() const;
 
@@ -349,11 +334,6 @@ protected:
 
     void CreateLightmapRenderers();
 
-    /// ===== CPU tracing only =====
-    void BuildResourceCache();
-    void BuildAccelerationStructures();
-    /// ============================
-
     LightmapperConfig m_config;
 
     ObjectBase* m_source;
@@ -366,11 +346,7 @@ protected:
     Array<BakeEntity, DynamicAllocator> m_bakeEntities;
     HashMap<Handle<Entity>, BakeEntity*> m_bakeEntitiesByEntity;
 
-    /// ===== CPU tracing only =====
-    UniquePtr<LightmapTopLevelAccelerationStructure> m_accelerationStructure;
-    ResourceCache m_resourceCache;
-    LightmapThreadPool* m_threadPool;
-    /// ============================
+    BakerThreadPool* m_threadPool;
 
     Array<UniquePtr<ILightmapRenderer>> m_lightmapRenderers;
 

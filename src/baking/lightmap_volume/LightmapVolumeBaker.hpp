@@ -38,6 +38,11 @@ public:
             | (1u << int(LightmapShadingType::RADIANCE));
     }
 
+    virtual const TypeInfo& GetInnerType() const
+    {
+        return TypeOf<LightmapVolume>();
+    }
+
 protected:
     virtual BakeDataBase& GetBakeData() override
     {

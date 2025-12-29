@@ -36,6 +36,11 @@ public:
         return 1u << int(LightmapShadingType::FULL);
     }
 
+    virtual const TypeInfo& GetInnerType() const
+    {
+        return TypeOf<ReflectionProbe>();
+    }
+
 protected:
     virtual BakeDataBase& GetBakeData() override
     {
