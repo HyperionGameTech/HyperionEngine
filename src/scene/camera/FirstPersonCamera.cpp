@@ -10,11 +10,11 @@
 
 namespace Hyperion {
 
-static const float mouseSensitivity = 75.0f;
-static const float mouseBlending = 0.35f;
-static const float movementSpeed = 5.0f;
-static const float movementSpeed2 = movementSpeed * 2.0f;
-static const float movementBlending = 0.01f;
+static constexpr float mouseSensitivity = 7000.0f;
+static constexpr float mouseBlending = 0.35f;
+static constexpr float movementSpeed = 5.0f;
+static constexpr float movementSpeed2 = movementSpeed * 2.0f;
+static constexpr float movementBlending = 0.01f;
 
 #pragma region FirstPersonCameraInputHandler
 

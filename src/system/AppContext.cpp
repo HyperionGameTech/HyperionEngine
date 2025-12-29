@@ -1181,8 +1181,6 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
     switch (msg)
     {
     case WM_SIZE: // fallthrough
-    // case WM_SIZING: // fallthrough
-    case WM_EXITSIZEMOVE:
     {
         int width = LOWORD(lParam);
         int height = HIWORD(lParam);
