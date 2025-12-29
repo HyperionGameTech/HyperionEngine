@@ -72,9 +72,9 @@ namespace Hyperion {
 namespace Baking {
 
 static constexpr uint32 TileSize = 32;
-static constexpr uint32 IdealTexelsPerFrame = 1000000;
-static constexpr double IdealGpuMemUsageMB = 1024 * 3;
-static constexpr uint32 MaxConcurrentJobs = ~0u;
+static constexpr uint32 IdealTexelsPerFrame = 200000;
+static constexpr double IdealGpuMemUsageMB = 1024 * 2;
+static constexpr uint32 MaxConcurrentJobs = 32;
 
 // for LightmapVolume gpu trace job
 static inline double GetEstimatedGPUMemUsageForJob(const LightmapperConfig& config)

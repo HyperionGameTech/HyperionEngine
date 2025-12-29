@@ -3,22 +3,24 @@
 #pragma once
 
 #include <rendering/RenderResult.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <core/debug/Debug.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Threads.hpp>
 #include <core/threading/Semaphore.hpp>
-#include <core/containers/LinkedList.hpp>
-#include <core/memory/UniquePtr.hpp>
-#include <core/utilities/StringView.hpp>
-#include <core/Util.hpp>
 
+#include <core/containers/LinkedList.hpp>
+
+#include <core/memory/UniquePtr.hpp>
+
+#include <core/utilities/StringView.hpp>
+
+#include <core/Util.hpp>
 #include <core/Types.hpp>
 
 #include <type_traits>
-#include <mutex>
-#include <condition_variable>
 
 namespace Hyperion {
 
@@ -153,7 +155,7 @@ struct RenderScheduler
 
     void Commit(RenderCommand* command);
     // FlushResult Flush();
-    void AcceptAll(Array<RenderCommand*>& outContainer);
+    void AcceptAll(Array<RenderCommand*, RenderAllocator>& outContainer);
 };
 
 struct RenderCommandHolder
@@ -185,9 +187,7 @@ public:
         // last item must always have renderCommandListPtr be nullptr
         FixedArray<RenderCommandHolder, maxRenderCommandTypes> holders;
         AtomicVar<uint32> renderCommandTypeIndex;
-
-        std::mutex mtx;
-
+        Mutex mtx;
         RenderScheduler scheduler;
     };
 
@@ -221,7 +221,7 @@ public:
         uint32 bufferIndex = CurrentBufferIndex();
         Buffer& buffer = s_buffers[bufferIndex];
 
-        std::unique_lock lock(buffer.mtx);
+        Mutex::Guard guard(buffer.mtx);
 
         buffer.scheduler.m_numEnqueued.Increment(1, MemoryOrder::RELEASE);
 
@@ -264,7 +264,7 @@ public:
     */
     static HYP_API void PushCustomRenderCommand(CustomRenderCommand* command);
 
-    static RendererResult Flush();
+    static void Flush();
     static void Wait();
 
 private:
