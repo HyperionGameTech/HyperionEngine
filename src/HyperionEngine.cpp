@@ -431,11 +431,6 @@ extern "C"
         delete g_streamingArena;
         g_streamingArena = nullptr;
 
-#if HYP_SCRIPT
-        delete g_scriptArena;
-        g_scriptArena = nullptr;
-#endif
-
         delete g_scenePool;
         g_scenePool = nullptr;
 

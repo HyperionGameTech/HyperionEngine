@@ -17,7 +17,6 @@
 
 namespace Hyperion {
 
-extern const char* GetTypeString(const BoxedValue& data);
 extern String ValueToString(const BoxedValue& data, int currDepth = 0);
 
 static const String g_nullString = "null";
@@ -500,11 +499,6 @@ int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
     return (lhsVmData->nativeFunc == rhsVmData->nativeFunc)
         ? CF_EQUAL
         : CF_NONE;
-}
-
-const char* GetTypeString(const BoxedValue& data)
-{
-    return GetTypeString(data);
 }
 
 String ToString(const BoxedValue& data)

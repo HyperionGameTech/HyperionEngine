@@ -321,7 +321,7 @@ FBOMResult ObjectMarshal::Deserialize(FBOMLoadContext& context, const FBOMObject
 
     return Deserialize_Internal(context, in, cls, out);
 }
-HYP_DISABLE_OPTIMIZATION;
+
 FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const Class* cls, BoxedValue& target) const
 {
     Assert(cls != nullptr);
@@ -416,6 +416,5 @@ FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const F
 
     return { FBOMResult::FBOM_OK };
 }
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace Hyperion::serialization

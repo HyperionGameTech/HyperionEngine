@@ -27,8 +27,45 @@ HYP_BEGIN_STRUCT(ScriptArray, -1, 0, {})
         }),
     Method(NAME("PopBack"), +[](ScriptArray& array) -> BoxedValue
         {
-            Assert(!array.Empty());
+            if (array.Empty())
+            {
+                return BoxedValue();
+            }
+
             return array.PopBack();
+        }),
+    Method(NAME("PushFront"), +[](ScriptArray& array, const BoxedValue& arg) -> AnyRef
+        {
+            return AnyRef(array.PushFront(arg));
+        }),
+    Method(NAME("PopFront"), +[](ScriptArray& array) -> BoxedValue
+        {
+            if (array.Empty())
+            {
+                return BoxedValue();
+            }
+
+            return array.PopFront();
+        }),
+    Method(NAME("Add"), +[](ScriptArray& array, const BoxedValue& arg) -> AnyRef
+        {
+            return AnyRef(array.Add(arg));
+        }),
+    Method(NAME("Remove"), +[](ScriptArray& array, const BoxedValue& arg) -> bool
+        {
+            auto it = std::find_if(array.begin(), array.end(), [&arg](const BoxedValue& other)
+                {
+                    return arg.value == other.value;
+                });
+
+            if (it == array.end())
+            {
+                return false;
+            }
+
+            array.Erase(it);
+
+            return true;
         }),
     Method(NAME("Clear"), &ScriptArray::Clear),
     Method(NAME("Resize"), &ScriptArray::Resize),
@@ -36,12 +73,20 @@ HYP_BEGIN_STRUCT(ScriptArray, -1, 0, {})
     Method(NAME("Empty"), &ScriptArray::Empty),
     Method(NAME("Front"), +[](ScriptArray& array) -> AnyRef
         {
-            Assert(!array.Empty());
+            if (array.Empty())
+            {
+                return AnyRef::Empty();
+            }
+
             return AnyRef(array.Front());
         }),
     Method(NAME("Back"), +[](ScriptArray& array) -> AnyRef
         {
-            Assert(!array.Empty());
+            if (array.Empty())
+            {
+                return AnyRef::Empty();
+            }
+
             return AnyRef(array.Back());
         })
 HYP_END_STRUCT
