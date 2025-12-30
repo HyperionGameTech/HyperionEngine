@@ -92,6 +92,9 @@ enum class GCIndex : uint32;
 
 static constexpr GCIndex INVALID_GC_INDEX = GCIndex(0);
 static constexpr GCIndex GARBAGE_GC_INDEX = GCIndex(~0u);
+
+// max 31 bits for index - this is the highest valid index
+static constexpr GCIndex MAX_GC_INDEX = GCIndex((1u << 31) - 1);
 #endif
 
 /*! \brief A type-safe union that can store multiple different types of run-time data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
@@ -173,19 +176,19 @@ struct BoxedValue
 
     VariantType value;
 
+#ifdef HYP_SCRIPT
     union
     {
-#ifdef HYP_SCRIPT
         // HypScript only - object metadata
-        struct alignas(8)
+        struct
         {
-            GCIndex scriptGcIndex;  // index into the pool of tracked objects
+            GCIndex gcIndex : 31;   // index into the pool of tracked objects
             uint8 isStaticInit : 1; // static data pool / stack data - will be 1 if init
         };
-#endif
-
-        uint64 num;
     } extData;
+#else
+    char extData[1]; // preserved for backwards compatibility
+#endif
 
     BoxedValue()
     {
@@ -256,8 +259,8 @@ struct BoxedValue
     {
 #ifdef HYP_DEBUG_MODE
 #ifdef HYP_SCRIPT
-        HYP_CORE_ASSERT(extData.scriptGcIndex == INVALID_GC_INDEX, "BoxedValue being destroyed while still registered with the GC (index = %u)", uint32(extData.scriptGcIndex));
-        extData.scriptGcIndex = GARBAGE_GC_INDEX;
+        HYP_CORE_ASSERT(extData.gcIndex == INVALID_GC_INDEX, "BoxedValue being destroyed while still registered with the GC (index = %u)", uint32(extData.gcIndex));
+        extData.gcIndex = GARBAGE_GC_INDEX;
 #endif
 #endif
     }

@@ -57,7 +57,7 @@ static inline const Script_VMData* GetVMData(const BoxedValue& data)
 
 bool IsGarbage(const BoxedValue& data)
 {
-    return data.extData.scriptGcIndex == GARBAGE_GC_INDEX;
+    return data.extData.gcIndex == GARBAGE_GC_INDEX;
 }
 
 bool IsFunction(const BoxedValue& data)
@@ -140,17 +140,17 @@ void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef)
 {
     BoxedValue* ref;
 
-    AssertDebug(other.extData.scriptGcIndex == INVALID_GC_INDEX);
+    AssertDebug(other.extData.gcIndex == INVALID_GC_INDEX);
 
     if (assignRef && (ref = Deref(data)) != nullptr)
     {
-        GCIndex prevGCIndex = ref->extData.scriptGcIndex;
-        ref->extData.scriptGcIndex = INVALID_GC_INDEX;
+        GCIndex prevGCIndex = ref->extData.gcIndex;
+        ref->extData.gcIndex = INVALID_GC_INDEX;
 
         ref->~BoxedValue();
         new (ref) BoxedValue(std::move(other));
 
-        ref->extData.scriptGcIndex = prevGCIndex;
+        ref->extData.gcIndex = prevGCIndex;
     }
     else
     {
