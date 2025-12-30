@@ -71,6 +71,7 @@ HYP_BEGIN_STRUCT(ScriptArray, -1, 0, {})
     Method(NAME("Resize"), &ScriptArray::Resize),
     Method(NAME("Reserve"), &ScriptArray::Reserve),
     Method(NAME("Empty"), &ScriptArray::Empty),
+    Method(NAME("Any"), &ScriptArray::Any),
     Method(NAME("Front"), +[](ScriptArray& array) -> AnyRef
         {
             if (array.Empty())

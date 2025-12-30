@@ -127,12 +127,12 @@ static const HashMap<TypeId, const char*> s_builtinTypeNames = {
 
 static inline Script_VMData* GetVMData(BoxedValue& data)
 {
-    return reinterpret_cast<Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
+    return reinterpret_cast<Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet());
 }
 
 static inline const Script_VMData* GetVMData(const BoxedValue& data)
 {
-    return reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
+    return reinterpret_cast<const Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet());
 }
 
 template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<BoxedValue, NormalizedType<T>>>>
@@ -148,13 +148,13 @@ BoxedValue MakeValue(BoxedValue&& data)
 
 BoxedValue MakeValue(const Script_VMData& data)
 {
-    static_assert(sizeof(Script_VMData) <= sizeof(HypData_UserData128), "Script_VMData must fit inside HypData_UserData128");
-    static_assert(alignof(Script_VMData) <= alignof(HypData_UserData128), "Script_VMData must have alignment less than or equal to HypData_UserData128");
+    static_assert(sizeof(Script_VMData) <= sizeof(BoxedValue::InlineData), "Script_VMData must fit inside BoxedValue::InlineData");
+    static_assert(alignof(Script_VMData) <= alignof(BoxedValue::InlineData), "Script_VMData must have alignment less than or equal to BoxedValue::InlineData");
 
-    HypData_UserData128 ud;
-    Memory::MemCpy(&ud, &data, sizeof(Script_VMData));
+    BoxedValue::InlineData resultData {};
+    Memory::MemCpy(&resultData, &data, sizeof(Script_VMData));
 
-    return BoxedValue(ud);
+    return BoxedValue(resultData);
 }
 
 BoxedValue MakeValue(const Number& number)
@@ -491,7 +491,7 @@ String ValueToString(const BoxedValue& data, int currDepth)
     }
 
     // internal data
-    if (const Script_VMData* vmData = reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet()))
+    if (const Script_VMData* vmData = reinterpret_cast<const Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet()))
     {
         constexpr SizeType bufSize = 256;
         char buf[bufSize] = { 0 };

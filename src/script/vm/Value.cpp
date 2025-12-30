@@ -47,12 +47,12 @@ static const ValueStorage<BoxedValue> s_uninitializedValue = MakeGarbageValue();
 
 static inline Script_VMData* GetVMData(BoxedValue& data)
 {
-    return reinterpret_cast<Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
+    return reinterpret_cast<Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet());
 }
 
 static inline const Script_VMData* GetVMData(const BoxedValue& data)
 {
-    return reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
+    return reinterpret_cast<const Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet());
 }
 
 bool IsGarbage(const BoxedValue& data)
