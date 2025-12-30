@@ -54,8 +54,8 @@ struct OctantId
 
     explicit OctantId(uint8 childIndex, OctantId parentId)
         : indexBits(!parentId.IsInvalid()
-                  ? parentId.indexBits | (uint64(childIndex) << (uint64(parentId.GetDepth() + uint8(1)) * 3ull))
-                  : childIndex),
+                ? parentId.indexBits | (uint64(childIndex) << (uint64(parentId.GetDepth() + uint8(1)) * 3ull))
+                : childIndex),
           depth(parentId.GetDepth() + uint8(1))
     {
     }
@@ -326,6 +326,6 @@ protected:
     bool m_isDivided : 1;
 };
 
-#include <util/octree/Octree.inl>
+#include <util/octree/Octree.inc>
 
 } // namespace Hyperion

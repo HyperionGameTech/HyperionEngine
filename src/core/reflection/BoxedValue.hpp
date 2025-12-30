@@ -7,7 +7,7 @@
 #include <core/reflection/ObjId.hpp>
 #include <core/reflection/Handle.hpp>
 #include <core/reflection/ObjectFwd.hpp>
-#include <core/reflection/HypDataArray.hpp>
+#include <core/reflection/GenericArrayWrapper.hpp>
 #include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/containers/Array.hpp>
@@ -166,9 +166,11 @@ struct BoxedValue
     union
     {
 #ifdef HYP_SCRIPT
+        // HypScript only - object metadata
         struct alignas(8)
         {
-            GCIndex scriptGcIndex; // HypScript only - index into the pool of tracked objects
+            GCIndex scriptGcIndex;  // index into the pool of tracked objects
+            uint8 isStaticInit : 1; // static data pool / stack data - will be 1 if init
         };
 #endif
 
@@ -3829,7 +3831,7 @@ struct HypDataHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !Im
 };
 #endif
 
-#include <core/reflection/HypDataArray.inl>
+#include <core/reflection/GenericArrayWrapper.inc>
 
 #pragma region HypData_Is implementation
 
