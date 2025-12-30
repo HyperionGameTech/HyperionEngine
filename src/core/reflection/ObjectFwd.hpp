@@ -33,7 +33,7 @@ enum class ClassAllocationMethod : uint8;
 class ObjectContainerBase;
 class ObjectBase;
 struct ObjectHeader;
-class IHypMember;
+class IMember;
 class Field;
 class Method;
 class StaticField;

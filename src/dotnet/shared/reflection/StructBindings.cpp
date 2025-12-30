@@ -40,7 +40,7 @@ extern "C"
             size,
             Span<const ClassAttribute>(),
             ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,
-            Span<HypMember>(),
+            Span<MemberVariant>(),
             copyFunction,
             destructFunction);
     }

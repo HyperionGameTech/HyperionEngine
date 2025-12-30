@@ -14,7 +14,7 @@ struct EnumRegistration;
 class Enum : protected Class
 {
 public:
-    Enum(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+    Enum(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members)
         : Class(typeId, name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
     }
@@ -51,14 +51,14 @@ public:
     template <class U>
     friend struct EnumRegistration;
 
-    static EnumInstance& GetInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+    static EnumInstance& GetInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members)
     {
         static EnumInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
 
         return s_instance;
     }
 
-    EnumInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+    EnumInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members)
         : Enum(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
         m_size = sizeof(T);
@@ -118,7 +118,7 @@ protected:
 
 #pragma region Utility functions
 
-HYP_API extern BoxedValue GetEnumMemberValue(const IHypMember& enumMember);
+HYP_API extern BoxedValue GetEnumMemberValue(const IMember& enumMember);
 
 /*! \brief Iterate over the members of an enum Class.
  *  \tparam EnumType The enum type to iterate over. The enum must have a Class associated with it, otherwise this function will do nothing.

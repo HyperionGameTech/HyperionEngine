@@ -54,13 +54,13 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
-#define UI_OBJECT_CREATE_FUNCTION(name)                                                                            \
-    {                                                                                                              \
-        String(HYP_STR(name)).ToUpper(),                                                                           \
-        [](UIObject* parent, Name name, Vec2i position, UIObjectSize size) -> Pair<Handle<UIObject>, const Class*> \
-        {                                                                                                          \
-            return { parent->CreateUIObject<UI##name>(name, position, size), UI##name::StaticClass() };            \
-        }                                                                                                          \
+#define UI_OBJECT_CREATE_FUNCTION(name)                                                                                \
+    {                                                                                                                  \
+        String(HYP_STR(name)).ToUpper(),                                                                               \
+            [](UIObject* parent, Name name, Vec2i position, UIObjectSize size) -> Pair<Handle<UIObject>, const Class*> \
+        {                                                                                                              \
+            return { parent->CreateUIObject<UI##name>(name, position, size), UI##name::StaticClass() };                \
+        }                                                                                                              \
     }
 
 static const FlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const Class*>(UIObject*, Name, Vec2i, UIObjectSize)>> s_nodeCreateFunctions {
@@ -87,13 +87,13 @@ static const FlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const Cla
 
 #undef UI_OBJECT_CREATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                               \
-    {                                                                       \
-        String(HYP_STR(name)).ToUpper(),                                    \
-        [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult>* \
-        {                                                                   \
-            return &uiObject->name;                                         \
-        }                                                                   \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                   \
+    {                                                                           \
+        String(HYP_STR(name)).ToUpper(),                                        \
+            [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult>* \
+        {                                                                       \
+            return &uiObject->name;                                             \
+        }                                                                       \
     }
 
 static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult>*(UIObject*)>> s_getDelegateFunctions {
@@ -104,13 +104,13 @@ static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandle
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                          \
-    {                                                                                  \
-        String(HYP_STR(name)).ToUpper(),                                               \
-        [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, UIObject*>* \
-        {                                                                              \
-            return &uiObject->name;                                                    \
-        }                                                                              \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                              \
+    {                                                                                      \
+        String(HYP_STR(name)).ToUpper(),                                                   \
+            [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, UIObject*>* \
+        {                                                                                  \
+            return &uiObject->name;                                                        \
+        }                                                                                  \
     }
 
 static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, UIObject*>*(UIObject*)>> s_getDelegateFunctionsChildren {
@@ -120,13 +120,13 @@ static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandle
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                                  \
-    {                                                                                          \
-        String(HYP_STR(name)).ToUpper(),                                                       \
-        [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* \
-        {                                                                                      \
-            return &uiObject->name;                                                            \
-        }                                                                                      \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                                      \
+    {                                                                                              \
+        String(HYP_STR(name)).ToUpper(),                                                           \
+            [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* \
+        {                                                                                          \
+            return &uiObject->name;                                                                \
+        }                                                                                          \
     }
 
 static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>*(UIObject*)>> s_getDelegateFunctionsMouse {
@@ -145,13 +145,13 @@ static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandle
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                                     \
-    {                                                                                             \
-        String(HYP_STR(name)).ToUpper(),                                                          \
-        [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>* \
-        {                                                                                         \
-            return &uiObject->name;                                                               \
-        }                                                                                         \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                                         \
+    {                                                                                                 \
+        String(HYP_STR(name)).ToUpper(),                                                              \
+            [](UIObject* uiObject) -> ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>* \
+        {                                                                                             \
+            return &uiObject->name;                                                                   \
+        }                                                                                             \
     }
 
 static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>*(UIObject*)>> s_getDelegateFunctionsKeyboard {
@@ -577,9 +577,9 @@ public:
                 if (attributeNameUpper.StartsWith("ON"))
                 {
                     // Find a ScriptableDelegate field with the name, bind C# function
-                    ClassMemberList memberList = cls->GetMembers(HypMemberType::TYPE_FIELD);
+                    ClassMemberList memberList = cls->GetMembers(MemberType::Field);
 
-                    auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&attributeNameUpper](const IHypMember& member)
+                    auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&attributeNameUpper](const IMember& member)
                         {
                             const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrScriptableDelegate);
 
@@ -658,7 +658,7 @@ public:
                 const String attributeNameLower = attribute.first.ToLower();
 
                 // Check Class attributes
-                auto HandleFoundMember = [uiObject](const IHypMember& member, const String& str) -> bool
+                auto HandleFoundMember = [uiObject](const IMember& member, const String& str) -> bool
                 {
                     BoxedValue boxed;
                     Json::ParseResult jsonParseResult = Json::Parse(str);
@@ -686,14 +686,14 @@ public:
 
                     switch (member.GetMemberType())
                     {
-                    case HypMemberType::TYPE_FIELD:
+                    case MemberType::Field:
                     {
                         const Field* field = static_cast<const Field*>(&member);
                         field->Set(targetValue, boxed);
 
                         return true;
                     }
-                    case HypMemberType::TYPE_PROPERTY:
+                    case MemberType::Property:
                     {
                         const Property* property = static_cast<const Property*>(&member);
 
@@ -716,7 +716,7 @@ public:
                 };
 
                 { // find XMLAttribute member
-                    ClassMemberList memberList = cls->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
+                    ClassMemberList memberList = cls->GetMembers(MemberType::Property | MemberType::Field);
 
                     auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&HandleFoundMember, &attributeNameLower](const auto& it)
                         {
@@ -741,7 +741,7 @@ public:
 
                 // Find property with name matching, without xmlattribute attribute
                 { // find XMLAttribute member
-                    ClassMemberList memberList = cls->GetMembers(HypMemberType::TYPE_PROPERTY);
+                    ClassMemberList memberList = cls->GetMembers(MemberType::Property);
 
                     auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&HandleFoundMember, &attributeNameLower](const auto& it)
                         {

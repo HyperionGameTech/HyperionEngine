@@ -11,14 +11,12 @@ A `Object` is an object that leverages Hyperion's object system, enabling featur
 
 > Note: The ID of a Object is not persistent across runs, meaning it is only valid for the lifetime of the application.
 
-### HypClass
-A `HypClass` is a class that is registered with the engine's reflection system. It allows the engine to introspect the class and registered its registered methods and fields.
+### `Class` (RTTI)
+A `Class` is an abstraction representing a type in the engine that derives from `ObjectBase`. It contains metadata about the type, such as its name, size, fields, methods, and inheritance hierarchy. `Class` is used for reflection, serialization, scripting, etc.
 
-All HypClasses must derive from `ObjectBase`. To register a class, you need to define it with the `HYP_CLASS()` macro at the top of the class definition. Additionally, the body of the class should include a `HYP_OBJECT_BODY(TheTypeName)` macro invocation to define the class's metadata. To register individual fields and methods, you can use the `HYP_FIELD()` and `HYP_METHOD()` macros respectively.
+All types with a `Class` object must derive from `ObjectBase`. To register a class, you need to define it with the `HYP_CLASS()` macro at the top of the class definition. Additionally, the body of the class should include a `HYP_OBJECT_BODY(TheTypeName)` macro invocation to define the class's metadata. To register individual fields and methods, you can use the `HYP_FIELD()` and `HYP_METHOD()` macros respectively.
 
-> Note: After creating a new `HypClass`, you must run the build tool to generate the necessary reflection data. This is done by running the `RunHypBuildTool` script (or just reconfiguring CMake), which will parse the class definitions and generate the required metadata.
-
-Subclasses of `ObjectBase` must place a `HYP_CLASS()` macro invocation at the top of the class definition, as well as a `HYP_OBJECT_BODY(TheTypeName)` macro invocation to define the class's metadata.
+> Note: After adding a new type that should have a `Class` generated, you must run the build tool to generate the necessary reflection data. This is done by running the `RunHypBuildTool` script (or just reconfiguring CMake), which will parse the class definitions and generate the required metadata.
 
 ### Handle
 A [`Handle`](../src/core/reflection/Handle.hpp) is a strong reference to a `Object`. Handles are used for resources like textures, meshes, and other assets that need to be released once they are no longer needed. Also see `WeakHandle` to use a weak reference to a `Object` rather than a strong reference.
@@ -37,22 +35,22 @@ A [`Node`](../src/scene/Node.hpp) is a basic building block of the scene graph t
 
 Nodes can be used to organize entities in a scene, allowing for transformations (translation, rotation, scaling) to be applied hierarchically.
 
-Nodes can also have an `Entity` attached to them allowing for the entity to inherit the node's transform. This allows for easy manipulation of entities in the scene graph without having to manage their transforms separately.
-
 ### Entity
-An [`Entity`](../src/scene/Entity.hpp) is an object in a `Scene` that can have various components attached to it and can be subclassed to provide additional functionality. Entities are used to represent objects in the game world (which may or may not be visible). They can be anything from a 3D model, a light source, a camera, etc. Entities can be added to a `Scene` by attaching them to a node in the scene's hierarchy. Each `Entity` can have multiple components, which define its behavior and properties.
+An [`Entity`](../src/scene/Entity.hpp) is a special type of `Node` that can have various components attached to it to define its behavior and properties, such as rendering, physics, scripting, etc. Entities can be processed by systems in parallel, depending on the composition of components they have.
 
 ### Component
 A `Component` is a modular piece of functionality that can be attached to an `Entity`. Components can be used to define the behavior and properties of an entity. For example, a `TransformComponent` can be used to define the position, rotation, and scale of an entity, while a `MeshComponent` can be used to define the mesh, material and skeletal data that will be associated with a given `Entity`.
 
 ### System
-A [`System`](../src/scene/System.hpp) is a class that provides functionality to the engine and can be added to a `Scene`. Systems can process entities in a scene in parallel from each other as long as the components they operate on would not conflict with each other allowing for efficient processing of entities.
+A [`System`](../src/scene/System.hpp) can process entities in a scene in parallel during simulation, based on the components they have attached. Systems are responsible for updating the state of entities and performing various operations, such as physics simulation, AI, audio, etc.
 
 ### View
-A [`View`](../src/scene/View.hpp) can be thought of a slice of a `Scene` that is rendered from a specific camera's perspective. A `View` is used to collect entities and other objects that are visible from the camera's point of view. It contains the camera, the scene(s) to render, and any additional settings for rendering. Views are the bridge between the scene and the rendering system, allowing for multiple cameras to render different parts of the scene simultaneously. For example, you can have a main `View` for the game's main camera and a separate `View` for shadows.
+A [`View`](../src/scene/View.hpp) can be thought of a slice of a `Scene` that is rendered from a specific camera's perspective. A `View` is used to collect entities and other objects that are visible from the camera's point of view. It contains the camera, the scene(s) to render, and any additional settings for rendering.
+
+Views are the bridge between the scene and the rendering system, allowing for multiple cameras to render different parts of the scene simultaneously. For example, you can have a main `View` for the game's main camera and a separate `View` for shadows.
 
 ### Camera
-A [`Camera`](../src/scene/camera/Camera.hpp) is a subclass of `Entity` that provides a viewpoint for rendering the scene. It will also have a `CameraController` attached to it which handles user input and camera movement.
+A [`Camera`](../src/scene/camera/Camera.hpp) is a subclass of `Entity` that provides a viewpoint for rendering the scene. They can have one or many `CameraController`s attached to which process user input and provide camera functionality.
 
 ### Light
 A [`Light`](../src/scene/Light.hpp) is a subclass of `Entity` that defines a light source in the scene. Just like other types of entities, a `Light` can also be attached to a `Node` in the scene hierarchy, allowing it to inherit transformations from its parent node. Lights can have different types (e.g., directional, point, spot) and properties (e.g., color, intensity) that affect how they illuminate the scene.

@@ -155,11 +155,11 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
 
         if (definition)
         {
-            if (definition->type == ClassDefinitionType::CLASS)
+            if (definition->type == ClassDefinitionType::Class)
             {
                 return CSharpTypeMapping { typeNameString, HYP_FORMAT("ReadObject<{}>", definition->name) };
             }
-            else if (definition->type == ClassDefinitionType::STRUCT)
+            else if (definition->type == ClassDefinitionType::Struct)
             {
                 return CSharpTypeMapping { typeNameString, HYP_FORMAT("ReadStruct<{}>", definition->name) };
             }

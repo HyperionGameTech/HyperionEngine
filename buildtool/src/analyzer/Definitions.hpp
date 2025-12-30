@@ -12,7 +12,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/StringView.hpp>
 
-#include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/Member.hpp>
 #include <core/reflection/ClassAttribute.hpp>
 
 #include <core/Defines.hpp>
@@ -27,17 +27,16 @@ class Module;
 
 enum class ClassDefinitionType : int
 {
-    NONE = 0,
-    CLASS,
-    STRUCT,
-    ENUM,
-
-    MAX
+    None = 0,
+    Class,
+    Struct,
+    Enum,
+    Max
 };
 
-struct HypMemberDefinition
+struct MemberDef
 {
-    HypMemberType type;
+    MemberType type;
     String name;
     String friendlyName;
     Array<Pair<String, ClassAttributeValue>> attributes;
@@ -88,19 +87,19 @@ struct ClassDefinition
     uint32 numDescendants = 0;
     Array<Pair<String, ClassAttributeValue>> attributes;
     Array<String> baseClassNames;
-    Array<HypMemberDefinition> members;
+    Array<MemberDef> members;
     Array<String> namespaceParts;
     String source;
     Module* declModule = nullptr;
 
     // cached C++ parsing metadata, used for building forward declarations
-    bool isCXXClass : 1;     //<! original type is class
-    bool isCXXStruct : 1;    //<! original type is struct
-    bool isCXXEnum : 1;      //<! original type is enum
-    bool isCXXEnumClass : 1; //<! original type is enum class
+    bool isCXXClass : 1;     //!< original type is class
+    bool isCXXStruct : 1;    //!< original type is struct
+    bool isCXXEnum : 1;      //!< original type is enum
+    bool isCXXEnumClass : 1; //!< original type is enum class
 
     ClassDefinition()
-        : type(ClassDefinitionType::NONE),
+        : type(ClassDefinitionType::None),
           isCXXClass(false),
           isCXXStruct(false),
           isCXXEnum(false),
@@ -140,7 +139,7 @@ struct ClassDefinition
 
     HYP_FORCE_INLINE bool HasScriptableMethods() const
     {
-        for (const HypMemberDefinition& member : members)
+        for (const MemberDef& member : members)
         {
             if (member.HasAttribute("scriptable"))
             {

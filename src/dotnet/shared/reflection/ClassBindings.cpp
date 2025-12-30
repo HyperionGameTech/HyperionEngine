@@ -277,7 +277,7 @@ extern "C"
         Assert(parentClass != nullptr);
 
 #ifdef HYP_DOTNET
-        return new DynamicClassInstance(*typeId, CreateNameFromDynamicString(name), parentClass, nullptr, Span<const ClassAttribute>(), ClassFlags::CLASS_TYPE, Span<HypMember>());
+        return new DynamicClassInstance(*typeId, CreateNameFromDynamicString(name), parentClass, nullptr, Span<const ClassAttribute>(), ClassFlags::CLASS_TYPE, Span<MemberVariant>());
 #else
         return nullptr;
 #endif

@@ -61,7 +61,7 @@ protected:
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
                                                                                                                                                 \
-        m_registration = new ::Hyperion::StructRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+        m_registration = new ::Hyperion::StructRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<MemberVariant> { {
 
 #define HYP_END_STRUCT } } }; }
 
@@ -75,7 +75,7 @@ protected:
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
                                                                                                                                                 \
-        m_registration = new ::Hyperion::ClassRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+        m_registration = new ::Hyperion::ClassRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<MemberVariant> { {
 
 #define HYP_END_CLASS } } }; }
 
@@ -89,7 +89,7 @@ protected:
     {                                                                                                                                           \
         using Type = cls;                                                                                                                       \
                                                                                                                                                 \
-        m_registration = new ::Hyperion::EnumRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+        m_registration = new ::Hyperion::EnumRegistration<cls> { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const ClassAttribute> { { __VA_ARGS__ } }, Span<MemberVariant> { {
 
 #define HYP_END_ENUM } } }; }
 

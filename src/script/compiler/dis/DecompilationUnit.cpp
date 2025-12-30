@@ -11,7 +11,7 @@
 #include <core/io/BufferedByteReader.hpp>
 
 #include <core/reflection/ClassAttribute.hpp>
-#include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/Member.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/Types.hpp>
@@ -1049,16 +1049,16 @@ void DecompilationUnit::DecodeNext(
 
                 switch (memberType)
                 {
-                case (uint8)HypMemberType::TYPE_STATIC_FIELD:
+                case (uint8)MemberType::StaticField:
                     memberTypeStr = "static_field";
                     break;
-                case (uint8)HypMemberType::TYPE_PROPERTY:
+                case (uint8)MemberType::Property:
                     memberTypeStr = "property";
                     break;
-                case (uint8)HypMemberType::TYPE_FIELD:
+                case (uint8)MemberType::Field:
                     memberTypeStr = "field";
                     break;
-                case (uint8)HypMemberType::TYPE_METHOD:
+                case (uint8)MemberType::Method:
                     memberTypeStr = "method";
                     break;
                 default:
@@ -1166,9 +1166,9 @@ void DecompilationUnit::DecodeNext(
                 bs.Read(&memberTypeIdValue);
 
                 // Read member-type-specific data
-                switch ((HypMemberType)memberType)
+                switch ((MemberType)memberType)
                 {
-                case HypMemberType::TYPE_STATIC_FIELD:
+                case MemberType::StaticField:
                 {
                     uint32 valueSize;
                     bs.Read(&valueSize);
@@ -1179,7 +1179,7 @@ void DecompilationUnit::DecodeNext(
                     }
                     break;
                 }
-                case HypMemberType::TYPE_FIELD:
+                case MemberType::Field:
                 {
                     TypeId::ValueType targetTypeIdValue;
                     bs.Read(&targetTypeIdValue);
@@ -1197,7 +1197,7 @@ void DecompilationUnit::DecodeNext(
                     }
                     break;
                 }
-                case HypMemberType::TYPE_METHOD:
+                case MemberType::Method:
                 {
                     TypeId::ValueType targetTypeIdValue;
                     bs.Read(&targetTypeIdValue);
@@ -1215,7 +1215,7 @@ void DecompilationUnit::DecodeNext(
                     }
                     break;
                 }
-                case HypMemberType::TYPE_PROPERTY:
+                case MemberType::Property:
                 {
                     if (os != nullptr)
                     {
