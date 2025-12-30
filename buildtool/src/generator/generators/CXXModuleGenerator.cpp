@@ -27,15 +27,15 @@ HYP_DECLARE_LOG_CHANNEL(BuildTool);
 static constexpr bool AddIncludesForDependencies = true;
 
 static const HashMap<ClassDefinitionType, String> s_startMacroNames = {
-    { ClassDefinitionType::CLASS, "HYP_BEGIN_CLASS" },
-    { ClassDefinitionType::STRUCT, "HYP_BEGIN_STRUCT" },
-    { ClassDefinitionType::ENUM, "HYP_BEGIN_ENUM" }
+    { ClassDefinitionType::Class, "HYP_BEGIN_CLASS" },
+    { ClassDefinitionType::Struct, "HYP_BEGIN_STRUCT" },
+    { ClassDefinitionType::Enum, "HYP_BEGIN_ENUM" }
 };
 
 static const HashMap<ClassDefinitionType, String> s_endMacroNames = {
-    { ClassDefinitionType::CLASS, "HYP_END_CLASS" },
-    { ClassDefinitionType::STRUCT, "HYP_END_STRUCT" },
-    { ClassDefinitionType::ENUM, "HYP_END_ENUM" }
+    { ClassDefinitionType::Class, "HYP_END_CLASS" },
+    { ClassDefinitionType::Struct, "HYP_END_STRUCT" },
+    { ClassDefinitionType::Enum, "HYP_END_ENUM" }
 };
 
 FilePath CXXModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
@@ -493,7 +493,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
         for (SizeType i = 0; i < cls.members.Size(); ++i)
         {
-            const HypMemberDefinition& member = cls.members[i];
+            const MemberDef& member = cls.members[i];
 
             String attributesString;
 
@@ -517,7 +517,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                 attributesString += " } }";
             }
 
-            if (member.type == HypMemberType::TYPE_FIELD)
+            if (member.type == MemberType::Field)
             {
                 if (member.cxxType->isStatic)
                 {
@@ -540,7 +540,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
                 writer.WriteString(")");
             }
-            else if (member.type == HypMemberType::TYPE_METHOD)
+            else if (member.type == MemberType::Method)
             {
                 writer.WriteString(HYP_FORMAT("    Method(NAME(HYP_STR({})), &{}::{}", member.name, cls.name, member.name));
 
@@ -551,7 +551,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
                 writer.WriteString(")");
             }
-            else if (member.type == HypMemberType::TYPE_PROPERTY)
+            else if (member.type == MemberType::Property)
             {
                 String propertyArgsString;
 
@@ -570,7 +570,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
                 writer.WriteString(HYP_FORMAT("    Property(NAME(HYP_STR({})){})", member.name, propertyArgsString.Any() ? ", " + propertyArgsString : ""));
             }
-            else if (member.type == HypMemberType::TYPE_STATIC_FIELD)
+            else if (member.type == MemberType::StaticField)
             {
                 writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), {}::{})", member.friendlyName, cls.name, member.name));
             }
@@ -591,9 +591,9 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         {
             writer.WriteString(HYP_FORMAT("#pragma region {} Scriptable Methods\n\n", cls.name));
 
-            for (const HypMemberDefinition& member : cls.members)
+            for (const MemberDef& member : cls.members)
             {
-                if (member.type == HypMemberType::TYPE_METHOD && member.HasAttribute("Scriptable"))
+                if (member.type == MemberType::Method && member.HasAttribute("Scriptable"))
                 {
                     if (!member.cxxType)
                     {
@@ -846,9 +846,9 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
         for (SizeType i = 0; i < cls.members.Size(); ++i)
         {
-            const HypMemberDefinition& member = cls.members[i];
+            const MemberDef& member = cls.members[i];
 
-            // if (member.type == HypMemberType::TYPE_METHOD && member.HasAttribute("Scriptable")) {
+            // if (member.type == MemberType::Method && member.HasAttribute("Scriptable")) {
             //     continue;
             // }
 
@@ -874,7 +874,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                 attributesString += " } }";
             }
 
-            if (member.type == HypMemberType::TYPE_FIELD)
+            if (member.type == MemberType::Field)
             {
                 if (member.cxxType->isStatic)
                 {
@@ -897,7 +897,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
                 writer.WriteString(")");
             }
-            else if (member.type == HypMemberType::TYPE_METHOD)
+            else if (member.type == MemberType::Method)
             {
                 writer.WriteString(HYP_FORMAT("    Method(NAME(HYP_STR({})), &{}::{}", member.name, cls.name, member.name));
 
@@ -908,7 +908,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
                 writer.WriteString(")");
             }
-            else if (member.type == HypMemberType::TYPE_PROPERTY)
+            else if (member.type == MemberType::Property)
             {
                 String propertyArgsString;
 
@@ -927,7 +927,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
                 writer.WriteString(HYP_FORMAT("    Property(NAME(HYP_STR({})){})", member.name, propertyArgsString.Any() ? ", " + propertyArgsString : ""));
             }
-            else if (member.type == HypMemberType::TYPE_STATIC_FIELD)
+            else if (member.type == MemberType::StaticField)
             {
                 writer.WriteString(HYP_FORMAT("    StaticField(NAME(HYP_STR({})), {}::{})", member.friendlyName, cls.name, member.name));
             }
@@ -948,9 +948,9 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         {
             writer.WriteString(HYP_FORMAT("#pragma region {} Scriptable Methods\n\n", cls.name));
 
-            for (const HypMemberDefinition& member : cls.members)
+            for (const MemberDef& member : cls.members)
             {
-                if (member.type == HypMemberType::TYPE_METHOD && member.HasAttribute("Scriptable"))
+                if (member.type == MemberType::Method && member.HasAttribute("Scriptable"))
                 {
                     if (!member.cxxType)
                     {

@@ -533,7 +533,7 @@ bool ObjectToJSON(
             }
         }
 
-        for (const IHypMember& member : cls->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY, /* deep */ false))
+        for (const IMember& member : cls->GetMembers(MemberType::Field | MemberType::Property, /* deep */ false))
         {
             if (opts.skipTransientProperties)
             {
@@ -543,7 +543,7 @@ bool ObjectToJSON(
                 }
             }
 
-            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute(Attributes::g_attrProperty).IsValid())
+            if (member.GetMemberType() != MemberType::Property && member.GetAttribute(Attributes::g_attrProperty).IsValid())
             {
                 //  skip fields that are marked as properties otherwise they will be serialized twice
                 continue;
@@ -569,7 +569,7 @@ bool ObjectToJSON(
 
             switch (member.GetMemberType())
             {
-            case HypMemberType::TYPE_PROPERTY:
+            case MemberType::Property:
             {
                 const Property* property = static_cast<const Property*>(&member);
 
@@ -616,7 +616,7 @@ bool ObjectToJSON(
 
                 break;
             }
-            case HypMemberType::TYPE_FIELD:
+            case MemberType::Field:
             {
                 const Field* field = static_cast<const Field*>(&member);
 
@@ -665,7 +665,7 @@ bool ObjectToJSON(
 
                 break;
             }
-            case HypMemberType::TYPE_STATIC_FIELD:
+            case MemberType::StaticField:
             {
                 const StaticField* staticField = static_cast<const StaticField*>(&member);
 
@@ -737,11 +737,11 @@ bool ObjectToJSON(
 
 bool JSONToObject(const Json::JSObject& jsonObject, const Class* targetClass, BoxedValue& target)
 {
-    auto resolveMember = [&target](const IHypMember& member, const Json::Value& value) -> bool
+    auto resolveMember = [&target](const IMember& member, const Json::Value& value) -> bool
     {
         switch (member.GetMemberType())
         {
-        case HypMemberType::TYPE_PROPERTY:
+        case MemberType::Property:
         {
             const Property& property = static_cast<const Property&>(member);
             const TypeInfo& typeInfo = property.GetTypeInfo();
@@ -766,7 +766,7 @@ bool JSONToObject(const Json::JSObject& jsonObject, const Class* targetClass, Bo
 
             return true;
         }
-        case HypMemberType::TYPE_FIELD:
+        case MemberType::Field:
         {
             const Field& field = static_cast<const Field&>(member);
             const TypeInfo& typeInfo = field.GetTypeInfo();
@@ -809,10 +809,10 @@ bool JSONToObject(const Json::JSObject& jsonObject, const Class* targetClass, Bo
 #endif
 
         // members with LoadOrder attribute get binned and put here first
-        SortedArray<KeyValuePair<int, const IHypMember*>> sortedMembers;
+        SortedArray<KeyValuePair<int, const IMember*>> sortedMembers;
 
         // reoslve jsonpath members first
-        for (const IHypMember& member : instanceClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY))
+        for (const IMember& member : instanceClass->GetMembers(MemberType::Field | MemberType::Property))
         {
             if (const ClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
             {
@@ -848,7 +848,7 @@ bool JSONToObject(const Json::JSObject& jsonObject, const Class* targetClass, Bo
             sortedMembers.Insert({ 0, &member });
         }
 
-        for (const KeyValuePair<int, const IHypMember*>& pair : sortedMembers)
+        for (const KeyValuePair<int, const IMember*>& pair : sortedMembers)
         {
             if (!resolveMember(*pair.second, *jsonObjectValue.Get(pair.second->GetAttribute(Attributes::g_attrJsonPath).GetString()).value))
             {
@@ -862,7 +862,7 @@ bool JSONToObject(const Json::JSObject& jsonObject, const Class* targetClass, Bo
         // resolve data from json object to members by name
         for (const auto& [key, value] : jsonObject)
         {
-            const IHypMember* member = instanceClass->GetMember(key.ToUtf8(), HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
+            const IMember* member = instanceClass->GetMember(key.ToUtf8(), MemberType::Property | MemberType::Field);
 
             if (!member)
             {
@@ -870,7 +870,7 @@ bool JSONToObject(const Json::JSObject& jsonObject, const Class* targetClass, Bo
                 continue;
             }
 
-            if (member->GetMemberType() != HypMemberType::TYPE_PROPERTY && member->GetAttribute(Attributes::g_attrProperty).IsValid())
+            if (member->GetMemberType() != MemberType::Property && member->GetAttribute(Attributes::g_attrProperty).IsValid())
             {
                 //  skip fields that are marked as properties
                 continue;
@@ -899,7 +899,7 @@ bool JSONToObject(const Json::JSObject& jsonObject, const Class* targetClass, Bo
             sortedMembers.Insert({ 0, member });
         }
 
-        for (const KeyValuePair<int, const IHypMember*>& pair : sortedMembers)
+        for (const KeyValuePair<int, const IMember*>& pair : sortedMembers)
         {
             if (!resolveMember(*pair.second, *jsonObjectValue.Get(*pair.second->GetName()).value))
             {

@@ -130,7 +130,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
 
         for (SizeType i = 0; i < cls.members.Size(); ++i)
         {
-            const HypMemberDefinition& member = cls.members[i];
+            const MemberDef& member = cls.members[i];
 
             if (noScriptBindingsPredicate(member))
             {
@@ -144,7 +144,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                 managedName = attr.GetString();
             }
 
-            if (member.type == HypMemberType::TYPE_METHOD)
+            if (member.type == MemberType::Method)
             {
                 if (!member.cxxType->isFunction)
                 {
@@ -201,12 +201,12 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
 
                 if (functionType->returnType->IsVoid())
                 {
-                    if (cls.type == ClassDefinitionType::STRUCT)
+                    if (cls.type == ClassDefinitionType::Struct)
                     {
                         writer.WriteString(HYP_FORMAT("            ObjectBase.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{});\n",
                             cls.name, uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                     }
-                    else if (cls.type == ClassDefinitionType::CLASS)
+                    else if (cls.type == ClassDefinitionType::Class)
                     {
                         writer.WriteString(HYP_FORMAT("            obj.GetMethod(new Name({})).InvokeNative(obj{});\n",
                             uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
@@ -218,7 +218,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                 }
                 else
                 {
-                    if (cls.type == ClassDefinitionType::STRUCT)
+                    if (cls.type == ClassDefinitionType::Struct)
                     {
                         writer.WriteString(HYP_FORMAT("            using (BoxedValueInternal resultData = ObjectBase.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{}))\n",
                             cls.name, uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
@@ -235,7 +235,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
 
                         writer.WriteString("            }\n");
                     }
-                    else if (cls.type == ClassDefinitionType::CLASS)
+                    else if (cls.type == ClassDefinitionType::Class)
                     {
                         writer.WriteString(HYP_FORMAT("            using (BoxedValueInternal resultData = obj.GetMethod(new Name({})).InvokeNative(obj{}))\n",
                             uint64(CreateStringHashFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
@@ -266,7 +266,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
             }
 
             // Generate code to get a ScriptableDelegate C# object corresponding to the C++ object
-            if (member.type == HypMemberType::TYPE_FIELD && member.cxxType->IsScriptableDelegate())
+            if (member.type == MemberType::Field && member.cxxType->IsScriptableDelegate())
             {
                 writer.WriteString(HYP_FORMAT("        public static ScriptableDelegate Get{}Delegate(this {} obj)\n", managedName, cls.name));
                 writer.WriteString("        {\n");

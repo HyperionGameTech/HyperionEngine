@@ -29,7 +29,7 @@ struct AnalyzerState
 };
 
 const String& ClassDefinitionTypeToString(ClassDefinitionType type);
-const String& HypMemberTypeToString(HypMemberType type);
+const String& MemberTypeToString(MemberType type);
 
 class Analyzer
 {

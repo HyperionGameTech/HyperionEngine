@@ -25,7 +25,7 @@
 namespace Hyperion {
 
 class Node;
-class IHypMember;
+class IMember;
 class Property;
 
 struct NodeWatcher

@@ -4,7 +4,7 @@
 
 #include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ClassAttribute.hpp>
-#include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/Member.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -155,7 +155,7 @@ struct MethodHelper<FunctionType, std::enable_if_t<!FunctionTraits<FunctionType>
         return (target.*_mem_fn)(std::forward<InnerArgTypes>(args)...);                          \
     }
 
-class Method final : public IHypMember
+class Method final : public IMember
 {
 public:
     Method(Span<const ClassAttribute> attributes = {})
@@ -426,9 +426,9 @@ public:
 
     virtual ~Method() override = default;
 
-    virtual HypMemberType GetMemberType() const override
+    virtual MemberType GetMemberType() const override
     {
-        return HypMemberType::TYPE_METHOD;
+        return MemberType::Method;
     }
 
     virtual Name GetName() const override

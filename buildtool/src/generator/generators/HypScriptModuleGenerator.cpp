@@ -21,11 +21,11 @@ namespace CodeGen {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
-static const String s_typeDescriptors[int(ClassDefinitionType::MAX)] = {
-    "<none>", // ClassDefinitionType::NONE
-    "class",  // ClassDefinitionType::CLASS
-    "struct", // ClassDefinitionType::STRUCT
-    "enum"    // ClassDefinitionType::ENUM
+static const String s_typeDescriptors[int(ClassDefinitionType::Max)] = {
+    "<none>", // ClassDefinitionType::None
+    "class",  // ClassDefinitionType::Class
+    "struct", // ClassDefinitionType::Struct
+    "enum"    // ClassDefinitionType::Enum
 };
 
 FilePath HypScriptModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
@@ -153,7 +153,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
             continue;
         }
 
-        if (cls->type == ClassDefinitionType::CLASS || cls->type == ClassDefinitionType::STRUCT)
+        if (cls->type == ClassDefinitionType::Class || cls->type == ClassDefinitionType::Struct)
         {
             HashSet<const ClassDefinition*> baseClassDefinitions;
 
@@ -194,7 +194,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
             for (SizeType i = 0; i < cls->members.Size(); ++i)
             {
-                const HypMemberDefinition& member = cls->members[i];
+                const MemberDef& member = cls->members[i];
 
                 if (const ClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
                 {
@@ -209,7 +209,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     managedName = attr.GetString();
                 }
 
-                if (member.type == HypMemberType::TYPE_METHOD)
+                if (member.type == MemberType::Method)
                 {
                     if (!member.cxxType->isFunction)
                     {
@@ -269,7 +269,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     continue;
                 }
 
-                if (member.type == HypMemberType::TYPE_FIELD)
+                if (member.type == MemberType::Field)
                 {
                     HypScriptTypeMapping fieldTypeMapping;
 
@@ -297,7 +297,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                 /* @TODO: Delegates */
             }
         }
-        else if (cls->type == ClassDefinitionType::ENUM)
+        else if (cls->type == ClassDefinitionType::Enum)
         {
             if (cls->baseClassNames.Any()) // underlying type
             {
@@ -306,11 +306,11 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     return HYP_MAKE_ERROR(Error, "Enum types may only have one underlying type");
                 }
 
-                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(ClassDefinitionType::ENUM)], cls->name, cls->baseClassNames[0]) + " {");
+                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(ClassDefinitionType::Enum)], cls->name, cls->baseClassNames[0]) + " {");
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(ClassDefinitionType::ENUM)], cls->name) + " {");
+                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(ClassDefinitionType::Enum)], cls->name) + " {");
             }
 
             HYP_DEFER({ writer.WriteString("\n}\n"); });
@@ -319,7 +319,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
             for (SizeType i = 0; i < cls->members.Size(); ++i)
             {
-                const HypMemberDefinition& member = cls->members[i];
+                const MemberDef& member = cls->members[i];
 
                 if (const ClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
                 {
@@ -334,7 +334,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     managedName = attr.GetString();
                 }
 
-                if (member.type != HypMemberType::TYPE_STATIC_FIELD)
+                if (member.type != MemberType::StaticField)
                 {
                     return HYP_MAKE_ERROR(Error, "Only static members allowed in enum types");
                 }

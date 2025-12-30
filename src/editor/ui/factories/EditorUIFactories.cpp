@@ -156,7 +156,7 @@ public:
 
         HashMap<String, Property*> propertiesByName;
 
-        for (auto it = cls->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != cls->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
+        for (auto it = cls->GetMembers(MemberType::Property).Begin(); it != cls->GetMembers(MemberType::Property).End(); ++it)
         {
             if (Property* property = static_cast<Property*>(&*it))
             {

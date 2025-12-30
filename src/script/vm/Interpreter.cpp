@@ -8,7 +8,7 @@
 
 #include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypMember.hpp>
+#include <core/reflection/MemberVariant.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Method.hpp>
@@ -985,7 +985,7 @@ public:
 
         if (cls != nullptr)
         {
-            IHypMember* member = cls->GetMember(StringHash(NameID(hash)));
+            IMember* member = cls->GetMember(StringHash(NameID(hash)));
             result = MakeValue(member != nullptr);
 
             return;
@@ -1061,7 +1061,7 @@ public:
             return;
         }
 
-        IHypMember* member = cls->GetMember(StringHash(NameID(hash)));
+        IMember* member = cls->GetMember(StringHash(NameID(hash)));
         if (!member)
         {
             vm->ThrowException(instance, Script_Exception::MemberNotFoundException(&src, hash));
@@ -1069,19 +1069,19 @@ public:
             return;
         }
 
-        if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
+        if (member->GetMemberType() == MemberType::Field)
         {
             Field* field = static_cast<Field*>(member);
 
             instance->thread.m_regs[dstReg] = MakeValue(field->Get(src));
         }
-        else if (member->GetMemberType() == HypMemberType::TYPE_STATIC_FIELD)
+        else if (member->GetMemberType() == MemberType::StaticField)
         {
             StaticField* staticField = static_cast<StaticField*>(member);
 
             instance->thread.m_regs[dstReg] = MakeValue(staticField->Get());
         }
-        else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
+        else if (member->GetMemberType() == MemberType::Method)
         {
             Method* method = static_cast<Method*>(member);
 
@@ -1113,7 +1113,7 @@ public:
     SCRIPT_INLINE void OpPush(RegisterIndex reg)
     {
         // Move value from register to top of stack.
-        
+
         // @NOTE - NO Deref() call here. If we loaded a reference into a register, we want to store the REFERENCE, not the value
         BoxedValue& srcValue = instance->thread.m_regs[reg];
         instance->thread.m_stack.Push(ShallowCopy(srcValue, vm->GetGC()));
@@ -1295,7 +1295,7 @@ public:
         uint8 flags;
         bs->Read(&flags);
 
-        Array<HypMember, ScriptAllocator> members;
+        Array<MemberVariant, ScriptAllocator> members;
         bool hitEnd = false;
 
         // Read members until we hit END_CLASS
@@ -1310,8 +1310,8 @@ public:
                 break;
             }
 
-            HypMemberType memberType = HypMemberType(nextByte);
-            static_assert(sizeof(HypMemberType) == 1, "HypMemberType must be 1 byte");
+            MemberType memberType = MemberType(nextByte);
+            static_assert(sizeof(MemberType) == 1, "MemberType must be 1 byte");
 
             // Read member count
             uint16 memberCount;
@@ -1404,7 +1404,7 @@ public:
 
                 switch (memberType)
                 {
-                case HypMemberType::TYPE_STATIC_FIELD:
+                case MemberType::StaticField:
                 {
                     // static field
 
@@ -1412,7 +1412,7 @@ public:
                     bs->Read(&size);
 
                     // Create constant
-                    members.PushBack(HypMember(StaticField(
+                    members.PushBack(MemberVariant(StaticField(
                         CreateNameFromDynamicString(memberNameStr),
                         &TypeInfo::ForType<BoxedValue>(), // TypeId(memberTypeIdValue),
                         size,
@@ -1420,7 +1420,7 @@ public:
 
                     break;
                 }
-                case HypMemberType::TYPE_FIELD:
+                case MemberType::Field:
                 {
                     // field writes target typeid, offset, size
                     TypeId::ValueType targetTypeIdValue;
@@ -1433,7 +1433,7 @@ public:
                     bs->Read(&size);
 
                     // Create field
-                    members.PushBack(HypMember(Field(
+                    members.PushBack(MemberVariant(Field(
                         CreateNameFromDynamicString(memberNameStr),
                         &TypeInfo::ForType<BoxedValue>(), // TypeId(memberTypeIdValue),
                         &TypeInfo::ForType<ObjectBase>(), // TypeId(targetTypeIdValue),
@@ -1443,7 +1443,7 @@ public:
 
                     break;
                 }
-                case HypMemberType::TYPE_METHOD:
+                case MemberType::Method:
                 {
                     TypeId::ValueType targetTypeIdValue;
                     bs->Read(&targetTypeIdValue);
@@ -1489,7 +1489,7 @@ public:
                         method.GetParameters().PushBack(MethodParameter { &TypeInfo::ForType<BoxedValue>() });
                     }
 
-                    members.PushBack(HypMember(std::move(method)));
+                    members.PushBack(MemberVariant(std::move(method)));
 
                     break;
                 }

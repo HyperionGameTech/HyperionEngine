@@ -40,13 +40,13 @@ struct LoadAssetsFromReferencesContext
 
 static void CollectAssetReferenceMembers(
     const Class* cls,
-    Array<Pair<const IHypMember*, const IHypMember*>>& outMembers)
+    Array<Pair<const IMember*, const IMember*>>& outMembers)
 {
     HashSet<Name> usedMemberNames;
 
-    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
+    for (IMember& member : cls->GetMembers(MemberType::Property | MemberType::Field))
     {
-        if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute(Attributes::g_attrProperty).IsValid())
+        if (member.GetMemberType() != MemberType::Property && member.GetAttribute(Attributes::g_attrProperty).IsValid())
         {
             // skip fields with synthetic properties
             continue;
@@ -61,12 +61,12 @@ static void CollectAssetReferenceMembers(
                 continue;
             }
 
-            const IHypMember* pTargetMember = nullptr;
+            const IMember* pTargetMember = nullptr;
 
             if (const ClassAttributeValue& targetAttr = member.GetAttribute(s_nameResolveAsset))
             {
                 // Get the target member
-                pTargetMember = cls->GetMember(*targetAttr.GetString(), HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
+                pTargetMember = cls->GetMember(*targetAttr.GetString(), MemberType::Property | MemberType::Field);
 
                 if (!pTargetMember)
                 {
@@ -210,11 +210,11 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 
     HashSet<Name> serializedMembers;
 
-    HashSet<const IHypMember*> assetReferenceTargetMembersMap;
-    HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;
+    HashSet<const IMember*> assetReferenceTargetMembersMap;
+    HashMap<const IMember*, const IMember*> assetReferenceMembersMap;
 
     { // collect asset reference members
-        Array<Pair<const IHypMember*, const IHypMember*>> assetReferenceMembers;
+        Array<Pair<const IMember*, const IMember*>> assetReferenceMembers;
         CollectAssetReferenceMembers(cls, assetReferenceMembers);
 
         for (const auto& pair : assetReferenceMembers)
@@ -236,14 +236,14 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
         GlobalContextScope contextScope { SaveAssetsAsReferencesContext {} };
 #endif
 
-        for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
+        for (IMember& member : cls->GetMembers(MemberType::Property | MemberType::Field))
         {
             if (member.IsDelegate())
             {
                 continue;
             }
 
-            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute(Attributes::g_attrProperty).IsValid())
+            if (member.GetMemberType() != MemberType::Property && member.GetAttribute(Attributes::g_attrProperty).IsValid())
             {
                 // skip fields with synthetic properties (we'll serialize the property instead)
                 continue;
@@ -327,11 +327,11 @@ FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const F
     Assert(cls != nullptr);
     Assert(target.IsValid());
 
-    HashSet<const IHypMember*> assetReferenceTargetMembersMap;
-    HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;
+    HashSet<const IMember*> assetReferenceTargetMembersMap;
+    HashMap<const IMember*, const IMember*> assetReferenceMembersMap;
 
     { // collect asset reference members
-        Array<Pair<const IHypMember*, const IHypMember*>> assetReferenceMembers;
+        Array<Pair<const IMember*, const IMember*>> assetReferenceMembers;
         CollectAssetReferenceMembers(cls, assetReferenceMembers);
 
         for (const auto& pair : assetReferenceMembers)
@@ -354,7 +354,7 @@ FBOMResult ObjectMarshal::Deserialize_Internal(FBOMLoadContext& context, const F
 
         for (const KeyValuePair<ANSIString, FBOMData>& it : in.GetProperties())
         {
-            if (const IHypMember* pMember = cls->GetMember(it.first, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
+            if (const IMember* pMember = cls->GetMember(it.first, MemberType::Property | MemberType::Field))
             {
                 if (pMember->IsDelegate())
                 {

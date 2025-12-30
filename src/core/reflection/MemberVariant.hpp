@@ -8,7 +8,7 @@
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/StaticField.hpp>
-#include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/Member.hpp>
 
 #include <core/reflection/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -16,45 +16,45 @@
 
 namespace Hyperion {
 
-struct HypMember
+struct MemberVariant
 {
-    IHypMember* internal;
+    IMember* internal;
 
-    HypMember()
+    MemberVariant()
         : internal(nullptr)
     {
     }
 
-    HypMember(Property&& property)
+    MemberVariant(Property&& property)
         : internal(new Property(std::move(property)))
     {
     }
 
-    HypMember(Method&& method)
+    MemberVariant(Method&& method)
         : internal(new Method(std::move(method)))
     {
     }
 
-    HypMember(Field&& field)
+    MemberVariant(Field&& field)
         : internal(new Field(std::move(field)))
     {
     }
 
-    HypMember(StaticField&& field)
+    MemberVariant(StaticField&& field)
         : internal(new StaticField(std::move(field)))
     {
     }
 
-    HypMember(const HypMember& other) = delete;
-    HypMember& operator=(const HypMember& other) = delete;
+    MemberVariant(const MemberVariant& other) = delete;
+    MemberVariant& operator=(const MemberVariant& other) = delete;
 
-    HypMember(HypMember&& other) noexcept
+    MemberVariant(MemberVariant&& other) noexcept
         : internal(other.internal)
     {
         other.internal = nullptr;
     }
 
-    HypMember& operator=(HypMember&& other) noexcept
+    MemberVariant& operator=(MemberVariant&& other) noexcept
     {
         if (this != &other)
         {
@@ -67,7 +67,7 @@ struct HypMember
         return *this;
     }
 
-    ~HypMember()
+    ~MemberVariant()
     {
         if (internal != nullptr)
         {

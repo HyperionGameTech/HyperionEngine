@@ -58,7 +58,7 @@ DynamicStructInstance::DynamicStructInstance(
     uint32 size,
     Span<const ClassAttribute> attributes,
     EnumFlags<ClassFlags> flags,
-    Span<HypMember> members,
+    Span<MemberVariant> members,
     DynamicStructInstance_CopyFunction copyFunction,
     DynamicStructInstance_DestructFunction destructFunction)
     : Struct(typeId, name, -1, 0, Name::Invalid(), attributes, flags, members),
