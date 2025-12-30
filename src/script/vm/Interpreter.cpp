@@ -76,20 +76,22 @@ static const Name s_nameToString = NAME("ToString");
 static const String s_nullString = "null";
 static const String s_boolStrings[2] = { "false", "true" };
 
-static const TypeId s_typeIdI8 = TypeId::ForType<int8>();
-static const TypeId s_typeIdI16 = TypeId::ForType<int16>();
-static const TypeId s_typeIdI32 = TypeId::ForType<int32>();
-static const TypeId s_typeIdI64 = TypeId::ForType<int64>();
-static const TypeId s_typeIdU8 = TypeId::ForType<uint8>();
-static const TypeId s_typeIdU16 = TypeId::ForType<uint16>();
-static const TypeId s_typeIdU32 = TypeId::ForType<uint32>();
-static const TypeId s_typeIdU64 = TypeId::ForType<uint64>();
-static const TypeId s_typeIdF32 = TypeId::ForType<float32>();
-static const TypeId s_typeIdF64 = TypeId::ForType<float64>();
-static const TypeId s_typeIdBool = TypeId::ForType<bool>();
-static const TypeId s_typeIdString = TypeId::ForType<Script_String>();
+static constexpr TypeId s_typeIdI8 { CONSTEXPR_TYPE_ID(int8) };
+static constexpr TypeId s_typeIdI16 { CONSTEXPR_TYPE_ID(int16) };
+static constexpr TypeId s_typeIdI32 { CONSTEXPR_TYPE_ID(int32) };
+static constexpr TypeId s_typeIdI64 { CONSTEXPR_TYPE_ID(int64) };
+static constexpr TypeId s_typeIdU8 { CONSTEXPR_TYPE_ID(uint8) };
+static constexpr TypeId s_typeIdU16 { CONSTEXPR_TYPE_ID(uint16) };
+static constexpr TypeId s_typeIdU32 { CONSTEXPR_TYPE_ID(uint32) };
+static constexpr TypeId s_typeIdU64 { CONSTEXPR_TYPE_ID(uint64) };
+static constexpr TypeId s_typeIdF32 { CONSTEXPR_TYPE_ID(float32) };
+static constexpr TypeId s_typeIdF64 { CONSTEXPR_TYPE_ID(float64) };
+static constexpr TypeId s_typeIdBool { CONSTEXPR_TYPE_ID(bool) };
+static constexpr TypeId s_typeIdString { CONSTEXPR_TYPE_ID(Script_String) };
+static constexpr TypeId s_typeIdArray { CONSTEXPR_TYPE_ID(ScriptArray) };
 
 // clang-format off
+
 static const HashMap<TypeId, String (*)(const void*)> s_builtinToStringFunctions = {
     { s_typeIdI8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int8*>(p)); } },
     { s_typeIdI16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int16*>(p)); } },
@@ -104,6 +106,23 @@ static const HashMap<TypeId, String (*)(const void*)> s_builtinToStringFunctions
     { s_typeIdBool, [](const void* p) -> String { return s_boolStrings[*reinterpret_cast<const bool*>(p) ? 1 : 0]; } },
     { s_typeIdString, [](const void* p) -> String { return *reinterpret_cast<const Script_String*>(p); } }
 };
+
+static const HashMap<TypeId, const char*> s_builtinTypeNames = {
+    { s_typeIdI8, "int8" },
+    { s_typeIdI16, "int16" },
+    { s_typeIdI32, "int32" },
+    { s_typeIdI64, "int64" },
+    { s_typeIdU8, "uint8" },
+    { s_typeIdU16, "uint16" },
+    { s_typeIdU32, "uint32" },
+    { s_typeIdU64, "uint64" },
+    { s_typeIdF32, "float" },
+    { s_typeIdF64, "double" },
+    { s_typeIdBool, "bool" },
+    { s_typeIdString, "string" },
+    { s_typeIdArray, "array" },
+};
+
 // clang-format on
 
 static inline Script_VMData* GetVMData(BoxedValue& data)
@@ -226,8 +245,6 @@ BoxedValue MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
         return MakeRef(pValue);
     }
 
-    const TypeId originalTypeId = pValue->GetTypeId();
-
     gc->MoveToTrackedMemory(*pValue);
 
     return *pValue;
@@ -273,24 +290,8 @@ static const char s_unknownTypeString[] = "<Unknown type>";
 
 static const char* GetTypeString(const TypeInfo& typeInfo)
 {
-    static const HashMap<TypeId, const char*> s_typeIdStringTable = {
-        { TypeIdOf<int8>(), "int8" },
-        { TypeIdOf<int16>(), "int16" },
-        { TypeIdOf<int32>(), "int32" },
-        { TypeIdOf<int64>(), "int64" },
-        { TypeIdOf<uint8>(), "uint8" },
-        { TypeIdOf<uint16>(), "uint16" },
-        { TypeIdOf<uint32>(), "uint32" },
-        { TypeIdOf<uint64>(), "uint64" },
-        { TypeIdOf<float32>(), "float" },
-        { TypeIdOf<float64>(), "double" },
-        { TypeIdOf<bool>(), "bool" },
-        { TypeIdOf<Script_String>(), "string" },
-        { TypeIdOf<ScriptArray>(), "array" },
-    };
-
-    auto it = s_typeIdStringTable.Find(typeInfo.id);
-    if (it != s_typeIdStringTable.End())
+    auto it = s_builtinTypeNames.Find(typeInfo.id);
+    if (it != s_builtinTypeNames.End())
     {
         return it->second;
     }

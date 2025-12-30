@@ -177,7 +177,7 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::GenericParameter("SelfType") },
+                        { "self", SymbolType::Placeholder("SelfType") },
                         { "index", BuiltinTypes::s_uint64Type } } }) },
         SymbolTypeMember {
             "operator[]=",
@@ -186,7 +186,7 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::GenericParameter("SelfType") },
+                        { "self", SymbolType::Placeholder("SelfType") },
                         { "index", BuiltinTypes::s_uint64Type },
                         { "value", SymbolType::GenericParameter("T") } } }) },
         SymbolTypeMember {
@@ -196,7 +196,7 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::GenericParameter("SelfType") },
+                        { "self", SymbolType::Placeholder("SelfType") },
                         { "value", SymbolType::GenericParameter("T") } } }) },
         SymbolTypeMember {
             "PopBack",
@@ -205,7 +205,42 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::GenericParameter("SelfType") } } }) },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+        SymbolTypeMember {
+            "PushFront",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") },
+                        { "value", SymbolType::GenericParameter("T") } } }) },
+        SymbolTypeMember {
+            "PopFront",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+        SymbolTypeMember {
+            "Add",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") },
+                        { "value", SymbolType::GenericParameter("T") } } }) },
+        SymbolTypeMember {
+            "Remove",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_boolType },
+                        { "self", SymbolType::Placeholder("SelfType") },
+                        { "value", SymbolType::GenericParameter("T") } } }) },
         SymbolTypeMember {
             "Clear",
             SymbolType::GenericInstance(
@@ -213,7 +248,7 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", BuiltinTypes::s_voidType },
-                        { "self", SymbolType::GenericParameter("SelfType") } } }) },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) },
         SymbolTypeMember {
             "Resize",
             SymbolType::GenericInstance(
@@ -221,7 +256,7 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", BuiltinTypes::s_voidType },
-                        { "self", SymbolType::GenericParameter("SelfType") },
+                        { "self", SymbolType::Placeholder("SelfType") },
                         { "newSize", BuiltinTypes::s_uint64Type } } }) },
         SymbolTypeMember {
             "Size",
@@ -230,7 +265,7 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", BuiltinTypes::s_uint64Type },
-                        { "self", SymbolType::GenericParameter("SelfType") } } }) } },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) } },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 

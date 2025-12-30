@@ -4,7 +4,7 @@
 
 namespace Hyperion {
 
-extern BoxedValue ScriptApi_MakeValue(const Script_VMData& data);
+extern BoxedValue MakeValue(const Script_VMData& data);
 
 Script_GC::Script_GC()
     : m_allocator(sizeof(BoxedValue), alignof(BoxedValue))
@@ -33,7 +33,7 @@ void Script_GC::MoveToTrackedMemory(BoxedValue& inOutRefValue)
     newRefVmData.type = Script_VMData::VALUE_REF;
     newRefVmData.valueRef = ptr;
 
-    inOutRefValue = ScriptApi_MakeValue(newRefVmData);
+    inOutRefValue = MakeValue(newRefVmData);
 }
 
 } // namespace Hyperion

@@ -442,7 +442,6 @@ bool SymbolType::TypeEqual(const SymbolType& other) const
         outIncompatibilities->PushBack({ type, details }); \
     }
 
-HYP_DISABLE_OPTIMIZATION;
 bool SymbolType::TypeCompatible(
     const SymbolType& right,
     bool strictNumbers,
@@ -786,7 +785,6 @@ bool SymbolType::TypeCompatible(
 
     return false;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 const SymbolType* SymbolType::FindMember(UTF8StringView name) const
 {
@@ -1198,6 +1196,20 @@ void SymbolType::Register(CompilationUnit* compilationUnit) const
 
 String SymbolType::ToString(bool includeParameterNames) const
 {
+    static constexpr int recursionDepthLimit = 10;
+
+    static thread_local int s_recursionDepth = 0;
+    ++s_recursionDepth;
+
+    HYP_DEFER({
+        --s_recursionDepth;
+    });
+
+    if (s_recursionDepth == recursionDepthLimit)
+    {
+        return "<Recursion Limit Reached>";
+    }
+
     String res = m_name;
 
     if (const SymbolType* aliasee = m_aliasInfo.m_aliasee)
