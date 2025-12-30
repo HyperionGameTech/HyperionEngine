@@ -177,7 +177,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            newType = SymbolType::Object(
+            newType = SymbolType::Class(
                 m_name,
                 BuiltinTypes::s_objectType,
                 {}, {});

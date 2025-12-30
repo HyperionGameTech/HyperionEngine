@@ -43,10 +43,10 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
     RC<AstArgument> selfArg(new AstArgument(
         selfTarget,
-        false,
-        false,
-        false,
-        false,
+        /* isSplat */ false,
+        /* isNamed */ false,
+        /* isPassByRef */ false,
+        /* isPassConst */ false,
         "self",
         selfTarget->GetLocation()));
 

@@ -147,6 +147,12 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
     // Generate classes in sorted order
     for (const ClassDefinition* cls : sortedClasses)
     {
+        if (cls->name == "ObjectBase")
+        {
+            // Skip emitting ObjectBase class, as it is builtin to the language ("object" is the name in script)
+            continue;
+        }
+
         if (cls->type == ClassDefinitionType::CLASS || cls->type == ClassDefinitionType::STRUCT)
         {
             HashSet<const ClassDefinition*> baseClassDefinitions;
@@ -155,6 +161,12 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
             {
                 for (const String& baseClassName : cls->baseClassNames)
                 {
+                    if (baseClassName == "ObjectBase")
+                    {
+                        // skip ObjectBase class in base class definitions (it is implied)
+                        continue;
+                    }
+
                     const ClassDefinition* baseClassDefinition = analyzer.FindClassDefinition(baseClassName);
 
                     if (baseClassDefinition)

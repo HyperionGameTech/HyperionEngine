@@ -868,14 +868,15 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
 
         for (HypMemberDefinition& definition : members)
         {
+            definition.friendlyName = definition.name;
+
             switch (definition.type)
             {
-            case HypMemberType::TYPE_STATIC_FIELD:
-            case HypMemberType::TYPE_FIELD: // fallthrough
+            case HypMemberType::TYPE_STATIC_FIELD: // fallthrough
+            case HypMemberType::TYPE_FIELD:        // fallthrough
+            case HypMemberType::TYPE_PROPERTY:
             {
-
-                // friendly names:
-#if defined(HYP_BUILD_TOOL_FRIENDLY_NAMES) && HYP_BUILD_TOOL_FRIENDLY_NAMES
+#if HYP_BUILD_TOOL_FRIENDLY_NAMES
                 bool preserveCase = true;
 
                 if (classDefinition.type == ClassDefinitionType::ENUM)
@@ -896,26 +897,24 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                     nameWithoutPrefix = nameWithoutPrefix.Substr(2);
                 }
 
-                if (definition.type == HypMemberType::TYPE_STATIC_FIELD)
-                {
-                    definition.friendlyName = StringUtil::ToSnakeCase(nameWithoutPrefix).ToUpper();
-                }
-                else
+                // Convert properties, static fields / enum members to PascalCase
+                if (definition.type == HypMemberType::TYPE_STATIC_FIELD
+                    || definition.type == HypMemberType::TYPE_PROPERTY)
                 {
                     definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
                 }
-#else
-                for (HypMemberDefinition& definition : members)
+                else
                 {
-                    definition.friendlyName = definition.name;
+                    // normal fields should stay the same (camelCase) but without prefix:
+                    definition.friendlyName = nameWithoutPrefix;
                 }
 #endif
 
                 break;
             }
+                // Methods need no change
             case HypMemberType::TYPE_METHOD: // fallthrough
             default:
-                definition.friendlyName = definition.name;
                 break;
             }
         }
