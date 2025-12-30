@@ -34,15 +34,15 @@ static constexpr int typePromoTable[10][10] = {
 
 #define MATCH_TYPES(leftType, rightType) ((NumericType)typePromoTable[(leftType)][(rightType)])
 
-extern BoxedValue ScriptApi_MakeValue(const Script_VMData& data);
-extern BoxedValue ScriptApi_MakeValue(const Number& number);
-extern BoxedValue ScriptApi_MakeValue(BoxedValue&& data);
-extern BoxedValue ScriptApi_MakeRef(BoxedValue* refValue);
-extern BoxedValue ScriptApi_MakeTrackedRef(BoxedValue* refValue, Script_GC* gc);
-extern BoxedValue ScriptApi_ShallowCopy(BoxedValue& value, Script_GC* gc);
-extern bool ScriptApi_ShouldValuePassByRef(const BoxedValue& value);
-extern const char* ScriptApi_GetTypeString(const BoxedValue& data);
-extern String ScriptApi_ValueToString(const BoxedValue& data, int currDepth = 0);
+extern BoxedValue MakeValue(const Script_VMData& data);
+extern BoxedValue MakeValue(const Number& number);
+extern BoxedValue MakeValue(BoxedValue&& data);
+extern BoxedValue MakeRef(BoxedValue* refValue);
+extern BoxedValue MakeTrackedRef(BoxedValue* refValue, Script_GC* gc);
+extern BoxedValue ShallowCopy(BoxedValue& value, Script_GC* gc);
+extern bool ShouldValuePassByRef(const BoxedValue& value);
+extern const char* GetTypeString(const BoxedValue& data);
+extern String ValueToString(const BoxedValue& data, int currDepth = 0);
 
 class Script_GC;
 

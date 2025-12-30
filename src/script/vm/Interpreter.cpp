@@ -52,8 +52,6 @@
 
 namespace Hyperion {
 
-extern const char* LookupTypeName(const TypeId& typeId);
-
 extern Pool* g_scriptPool;
 using ScriptAllocator = AllocatorInstance<Pool, &g_scriptPool>;
 
@@ -119,17 +117,17 @@ static inline const Script_VMData* GetVMData(const BoxedValue& data)
 }
 
 template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<BoxedValue, NormalizedType<T>>>>
-static inline BoxedValue ScriptApi_MakeValue(T&& data)
+static inline BoxedValue MakeValue(T&& data)
 {
     return BoxedValue(std::forward<T>(data));
 }
 
-BoxedValue ScriptApi_MakeValue(BoxedValue&& data)
+BoxedValue MakeValue(BoxedValue&& data)
 {
     return BoxedValue(std::move(data));
 }
 
-BoxedValue ScriptApi_MakeValue(const Script_VMData& data)
+BoxedValue MakeValue(const Script_VMData& data)
 {
     static_assert(sizeof(Script_VMData) <= sizeof(HypData_UserData128), "Script_VMData must fit inside HypData_UserData128");
     static_assert(alignof(Script_VMData) <= alignof(HypData_UserData128), "Script_VMData must have alignment less than or equal to HypData_UserData128");
@@ -140,7 +138,7 @@ BoxedValue ScriptApi_MakeValue(const Script_VMData& data)
     return BoxedValue(ud);
 }
 
-BoxedValue ScriptApi_MakeValue(const Number& number)
+BoxedValue MakeValue(const Number& number)
 {
     ValueStorage<BoxedValue> resultStorage;
     BoxedValue* ptr = resultStorage.GetPointer();
@@ -203,7 +201,7 @@ BoxedValue ScriptApi_MakeValue(const Number& number)
 }
 
 /*! \brief Use for loading into registers - does not promote to tracked memory so the lifetime of `refValue` must be managed by the caller */
-BoxedValue ScriptApi_MakeRef(BoxedValue* pValue)
+BoxedValue MakeRef(BoxedValue* pValue)
 {
     Assert(pValue != nullptr);
 
@@ -214,10 +212,10 @@ BoxedValue ScriptApi_MakeRef(BoxedValue* pValue)
     Assert(vmData.valueRef != nullptr);
     Assert(!IsGarbage(*vmData.valueRef), "Creating a reference to garbage value");
 
-    return ScriptApi_MakeValue(vmData);
+    return MakeValue(vmData);
 }
 
-BoxedValue ScriptApi_MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
+BoxedValue MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
 {
     Assert(gc != nullptr);
     Assert(pValue != nullptr);
@@ -225,7 +223,7 @@ BoxedValue ScriptApi_MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
     if (pValue->extData.scriptGcIndex != INVALID_GC_INDEX)
     {
         // already in tracked memory, make a reference to this value
-        return ScriptApi_MakeRef(pValue);
+        return MakeRef(pValue);
     }
 
     const TypeId originalTypeId = pValue->GetTypeId();
@@ -238,7 +236,7 @@ BoxedValue ScriptApi_MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
 #define PASS_AS_REF(value) ((value).Is<Any>())
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
-BoxedValue ScriptApi_ShallowCopy(BoxedValue& refValue, Script_GC* gc)
+BoxedValue ShallowCopy(BoxedValue& refValue, Script_GC* gc)
 {
     if (IsRef(refValue))
     {
@@ -248,7 +246,7 @@ BoxedValue ScriptApi_ShallowCopy(BoxedValue& refValue, Script_GC* gc)
     if (refValue.extData.scriptGcIndex != INVALID_GC_INDEX)
     {
         // in tracked memory, make a reference to it
-        return ScriptApi_MakeRef(&refValue);
+        return MakeRef(&refValue);
     }
 
     BoxedValue newHypData;
@@ -261,7 +259,7 @@ BoxedValue ScriptApi_ShallowCopy(BoxedValue& refValue, Script_GC* gc)
     return newHypData;
 }
 
-bool ScriptApi_ShouldValuePassByRef(const BoxedValue& value)
+bool ShouldValuePassByRef(const BoxedValue& value)
 {
     if (!value.IsValid())
     {
@@ -300,7 +298,7 @@ static const char* GetTypeString(const TypeInfo& typeInfo)
     return typeInfo.name.LookupString();
 }
 
-const char* ScriptApi_GetTypeString(const BoxedValue& data)
+const char* GetTypeString(const BoxedValue& data)
 {
     if (!data.IsValid())
     {
@@ -310,7 +308,7 @@ const char* ScriptApi_GetTypeString(const BoxedValue& data)
     return GetTypeString(*data.GetTypeInfo());
 }
 
-bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, int maxDepth, int currDepth)
+bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDepth, int currDepth)
 {
     if (currDepth >= maxDepth && maxDepth >= 0)
     {
@@ -353,7 +351,7 @@ bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, i
                 BoxedValue element;
                 if (pArray->GetElementAt(i, element))
                 {
-                    outString += ScriptApi_ValueToString(element, currDepth + 1);
+                    outString += ValueToString(element, currDepth + 1);
                 }
                 else
                 {
@@ -386,9 +384,9 @@ bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, i
             {
                 outString += Script_String(", ");
             }
-            outString += ScriptApi_ValueToString(*kv.first.key.GetHypData(), currDepth + 1);
+            outString += ValueToString(*kv.first.key.GetHypData(), currDepth + 1);
             outString += " => ";
-            outString += ScriptApi_ValueToString(*kv.second.GetHypData(), currDepth + 1);
+            outString += ValueToString(*kv.second.GetHypData(), currDepth + 1);
             i++;
         }
 
@@ -419,7 +417,7 @@ bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, i
             }
 
             // not a string, try again recursively
-            if (ScriptApi_StringifyData(result, outString, maxDepth, currDepth + 1))
+            if (StringifyData(result, outString, maxDepth, currDepth + 1))
             {
                 return true;
             }
@@ -481,12 +479,12 @@ bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, i
     return false;
 }
 
-String ScriptApi_ValueToString(const BoxedValue& data, int currDepth)
+String ValueToString(const BoxedValue& data, int currDepth)
 {
-    static constexpr int MaxDepth = 3;
+    static constexpr int maxDepth = 3;
 
     Script_String result("<error>");
-    if (ScriptApi_StringifyData(data, result, MaxDepth, currDepth))
+    if (StringifyData(data, result, maxDepth, currDepth))
     {
         return result;
     }
@@ -519,7 +517,7 @@ String ScriptApi_ValueToString(const BoxedValue& data, int currDepth)
         }
     }
 
-    return Script_String(HYP_FORMAT("<{} @ {}>", LookupTypeName(data.GetTypeId()), data.ToRef().GetPointer()));
+    return Script_String(HYP_FORMAT("<{} @ {}>", GetTypeString(data), data.ToRef().GetPointer()));
 }
 
 #pragma endregion ScriptApi
@@ -607,32 +605,32 @@ public:
 
     SCRIPT_INLINE void OpLoadI32(RegisterIndex reg, int32 i32)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(i32);
+        instance->thread.m_regs[reg] = MakeValue(i32);
     }
 
     SCRIPT_INLINE void OpLoadI64(RegisterIndex reg, int64 i64)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(i64);
+        instance->thread.m_regs[reg] = MakeValue(i64);
     }
 
     SCRIPT_INLINE void OpLoadU32(RegisterIndex reg, uint32 u32)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(u32);
+        instance->thread.m_regs[reg] = MakeValue(u32);
     }
 
     SCRIPT_INLINE void OpLoadU64(RegisterIndex reg, uint64 u64)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(u64);
+        instance->thread.m_regs[reg] = MakeValue(u64);
     }
 
     SCRIPT_INLINE void OpLoadF32(RegisterIndex reg, float32 f32)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(f32);
+        instance->thread.m_regs[reg] = MakeValue(f32);
     }
 
     SCRIPT_INLINE void OpLoadF64(RegisterIndex reg, float64 f64)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(f64);
+        instance->thread.m_regs[reg] = MakeValue(f64);
     }
 
     SCRIPT_INLINE void OpLoadOffset(RegisterIndex reg, uint16 offset)
@@ -649,8 +647,8 @@ public:
         // read value from stack at (sp - offset)
         // into the the register
         instance->thread.m_regs[reg] = PASS_AS_REF(srcValue)
-            ? ScriptApi_MakeRef(&srcValue)
-            : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+            ? MakeRef(&srcValue)
+            : ShallowCopy(srcValue, vm->GetGC());
     }
 
     SCRIPT_INLINE void OpLoadIndex(RegisterIndex reg, uint16 index)
@@ -667,8 +665,8 @@ public:
 
         // read value from stack at the index into the the register
         instance->thread.m_regs[reg] = PASS_AS_REF(srcValue)
-            ? ScriptApi_MakeRef(&srcValue)
-            : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+            ? MakeRef(&srcValue)
+            : ShallowCopy(srcValue, vm->GetGC());
     }
 
     SCRIPT_INLINE void OpLoadStatic(RegisterIndex reg, uint16 index)
@@ -678,13 +676,13 @@ public:
         BoxedValue& srcValue = vm->m_staticMemory[index];
 
         instance->thread.m_regs[reg] = PASS_AS_REF(srcValue)
-            ? ScriptApi_MakeRef(&srcValue)
-            : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+            ? MakeRef(&srcValue)
+            : ShallowCopy(srcValue, vm->GetGC());
     }
 
     SCRIPT_INLINE void OpLoadConstantString(RegisterIndex reg, uint32 len, const char* str)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(str != nullptr ? Script_String(str, str + len) : Script_String());
+        instance->thread.m_regs[reg] = MakeValue(str != nullptr ? Script_String(str, str + len) : Script_String());
     }
 
     SCRIPT_INLINE void OpLoadAddr(RegisterIndex reg, Script_FunctionAddress addr)
@@ -693,7 +691,7 @@ public:
         vmData.type = Script_VMData::ADDRESS;
         vmData.addr = addr;
 
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(vmData);
+        instance->thread.m_regs[reg] = MakeValue(vmData);
     }
 
     SCRIPT_INLINE void OpLoadFunc(RegisterIndex reg, Script_FunctionAddress addr, uint8 nargs, uint8 flags)
@@ -704,7 +702,7 @@ public:
         vmData.func.m_nargs = nargs;
         vmData.func.m_flags = flags;
 
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(vmData);
+        instance->thread.m_regs[reg] = MakeValue(vmData);
     }
 
     SCRIPT_INLINE void OpLoadArrayIdx(RegisterIndex dstReg, RegisterIndex srcReg, RegisterIndex indexReg)
@@ -745,8 +743,8 @@ public:
                 BoxedValue& srcValue = (*array)[key.i];
 
                 instance->thread.m_regs[dstReg] = PASS_AS_REF(srcValue)
-                    ? ScriptApi_MakeRef(&srcValue)
-                    : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+                    ? MakeRef(&srcValue)
+                    : ShallowCopy(srcValue, vm->GetGC());
             }
             else if (key.flags & Number::FLAG_UNSIGNED)
             {
@@ -760,8 +758,8 @@ public:
                 BoxedValue& srcValue = (*array)[key.u];
 
                 instance->thread.m_regs[dstReg] = PASS_AS_REF(srcValue)
-                    ? ScriptApi_MakeRef(&srcValue)
-                    : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+                    ? MakeRef(&srcValue)
+                    : ShallowCopy(srcValue, vm->GetGC());
             }
 
             return;
@@ -774,7 +772,7 @@ public:
     SCRIPT_INLINE void OpLoadOffsetRef(RegisterIndex reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
-        BoxedValue newRef = ScriptApi_MakeTrackedRef(Deref(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset]), vm->GetGC());
+        BoxedValue newRef = MakeTrackedRef(Deref(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset]), vm->GetGC());
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
@@ -788,20 +786,20 @@ public:
             index,
             stackMemory.GetStackPointer());
 
-        BoxedValue newRef = ScriptApi_MakeTrackedRef(Deref(stackMemory[index]), vm->GetGC());
+        BoxedValue newRef = MakeTrackedRef(Deref(stackMemory[index]), vm->GetGC());
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
     SCRIPT_INLINE void OpLoadRef(RegisterIndex dstReg, RegisterIndex srcReg)
     {
-        BoxedValue newRef = ScriptApi_MakeTrackedRef(Deref(instance->thread.m_regs[srcReg]), vm->GetGC());
+        BoxedValue newRef = MakeTrackedRef(Deref(instance->thread.m_regs[srcReg]), vm->GetGC());
         instance->thread.m_regs[dstReg] = std::move(newRef);
     }
 
     SCRIPT_INLINE void OpLoadDeref(RegisterIndex dstReg, RegisterIndex srcReg)
     {
         BoxedValue& src = *Deref(instance->thread.m_regs[srcReg]); // double deref to get the actual value
-        instance->thread.m_regs[dstReg] = ScriptApi_ShallowCopy(*Deref(src), vm->GetGC());
+        instance->thread.m_regs[dstReg] = ShallowCopy(*Deref(src), vm->GetGC());
     }
 
     SCRIPT_INLINE void OpLoadNull(RegisterIndex reg)
@@ -811,12 +809,12 @@ public:
 
     SCRIPT_INLINE void OpLoadTrue(RegisterIndex reg)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(true);
+        instance->thread.m_regs[reg] = MakeValue(true);
     }
 
     SCRIPT_INLINE void OpLoadFalse(RegisterIndex reg)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(false);
+        instance->thread.m_regs[reg] = MakeValue(false);
     }
 
     SCRIPT_INLINE void OpLoadClass(RegisterIndex reg, uint64 nameHash)
@@ -830,7 +828,7 @@ public:
             return;
         }
 
-        BoxedValue classValue = ScriptApi_MakeValue(BoxedValue(ClassRef(cls)));
+        BoxedValue classValue = MakeValue(BoxedValue(ClassRef(cls)));
 
         instance->thread.m_regs[reg] = std::move(classValue);
     }
@@ -838,13 +836,13 @@ public:
     SCRIPT_INLINE void OpMovOffset(uint16 offset, RegisterIndex reg)
     {
         // copy value from register to stack value at (sp - offset)
-        AssignValue(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset], ScriptApi_ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()), true);
+        AssignValue(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset], ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()), true);
     }
 
     SCRIPT_INLINE void OpMovIndex(uint16 index, RegisterIndex reg)
     {
         // copy value from register to stack value at index
-        AssignValue(instance->thread.m_stack[index], ScriptApi_ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()), true);
+        AssignValue(instance->thread.m_stack[index], ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()), true);
     }
 
     SCRIPT_INLINE void OpMovStatic(uint16 index, RegisterIndex reg)
@@ -887,8 +885,8 @@ public:
         BoxedValue& dstValue = array[index];
 
         dstValue = PASS_AS_REF(srcValue)
-            ? ScriptApi_MakeRef(&srcValue)
-            : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+            ? MakeRef(&srcValue)
+            : ShallowCopy(srcValue, vm->GetGC());
     }
 
     SCRIPT_INLINE void OpMovArrayIdxReg(RegisterIndex dstReg, RegisterIndex indexReg, RegisterIndex srcReg)
@@ -941,8 +939,8 @@ public:
             BoxedValue& dstValue = array[indexValue];
 
             dstValue = PASS_AS_REF(srcValue)
-                ? ScriptApi_MakeRef(&srcValue)
-                : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+                ? MakeRef(&srcValue)
+                : ShallowCopy(srcValue, vm->GetGC());
         }
         else
         { // unsigned
@@ -959,8 +957,8 @@ public:
             BoxedValue& dstValue = array[indexValue];
 
             dstValue = PASS_AS_REF(srcValue)
-                ? ScriptApi_MakeRef(&srcValue)
-                : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+                ? MakeRef(&srcValue)
+                : ShallowCopy(srcValue, vm->GetGC());
         }
     }
 
@@ -976,7 +974,7 @@ public:
 
         const Class* cls = nullptr;
 
-        if (const Handle<ObjectBase>& object = ScriptApi_GetObject(src))
+        if (const Handle<ObjectBase>& object = GetObject(src))
         {
             cls = object.ptr->InstanceClass();
         }
@@ -988,12 +986,12 @@ public:
         if (cls != nullptr)
         {
             IHypMember* member = cls->GetMember(StringHash(NameID(hash)));
-            result = ScriptApi_MakeValue(member != nullptr);
+            result = MakeValue(member != nullptr);
 
             return;
         }
 
-        result = ScriptApi_MakeValue(false);
+        result = MakeValue(false);
     }
 
     SCRIPT_INLINE void OpSetField(RegisterIndex dstReg, uint64 hash, RegisterIndex srcReg)
@@ -1002,7 +1000,7 @@ public:
 
         const Class* cls = nullptr;
 
-        if (const Handle<ObjectBase>& object = ScriptApi_GetObject(*pValue))
+        if (const Handle<ObjectBase>& object = GetObject(*pValue))
         {
             cls = object.ptr->InstanceClass();
         }
@@ -1036,7 +1034,7 @@ public:
 
         const Class* cls = nullptr;
 
-        if (const Handle<ObjectBase>& object = ScriptApi_GetObject(src))
+        if (const Handle<ObjectBase>& object = GetObject(src))
         {
             // instance member access
             cls = object.ptr->InstanceClass();
@@ -1075,13 +1073,13 @@ public:
         {
             Field* field = static_cast<Field*>(member);
 
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(field->Get(src));
+            instance->thread.m_regs[dstReg] = MakeValue(field->Get(src));
         }
         else if (member->GetMemberType() == HypMemberType::TYPE_STATIC_FIELD)
         {
             StaticField* staticField = static_cast<StaticField*>(member);
 
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(staticField->Get());
+            instance->thread.m_regs[dstReg] = MakeValue(staticField->Get());
         }
         else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
         {
@@ -1104,7 +1102,7 @@ public:
                 vmData.nativeFunc = method;
             }
 
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(vmData);
+            instance->thread.m_regs[dstReg] = MakeValue(vmData);
         }
         else
         {
@@ -1115,7 +1113,7 @@ public:
     SCRIPT_INLINE void OpPush(RegisterIndex reg)
     {
         // Move value from register to top of stack
-        instance->thread.m_stack.Push(ScriptApi_ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()));
+        instance->thread.m_stack.Push(ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()));
     }
 
     SCRIPT_INLINE void OpPop()
@@ -1135,7 +1133,7 @@ public:
 
         ScriptArray& array = dst.Get<ScriptArray>();
 
-        array.PushBack(ScriptApi_ShallowCopy(*Deref(instance->thread.m_regs[srcReg]), vm->GetGC()));
+        array.PushBack(ShallowCopy(*Deref(instance->thread.m_regs[srcReg]), vm->GetGC()));
     }
 
     SCRIPT_INLINE void OpAddSp(uint16 n)
@@ -1223,7 +1221,7 @@ public:
         vmData.tryCatchInfo.catchAddress = addr;
 
         // store the info
-        instance->thread.m_stack.Push(ScriptApi_MakeValue(vmData));
+        instance->thread.m_stack.Push(MakeValue(vmData));
     }
 
     SCRIPT_INLINE void OpEndTry()
@@ -1263,13 +1261,13 @@ public:
             return;
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(std::move(boxed));
+        instance->thread.m_regs[dst] = MakeValue(std::move(boxed));
     }
 
     SCRIPT_INLINE void OpNewArray(RegisterIndex dst, uint32 size)
     {
         // assign register value to the allocated object
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(ScriptArray(size));
+        instance->thread.m_regs[dst] = MakeValue(ScriptArray(size));
     }
 
     SCRIPT_INLINE void OpBeginClass(RegisterIndex reg)
@@ -1528,10 +1526,10 @@ public:
 
         ClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
 
-        BoxedValue classValue = ScriptApi_MakeValue(ClassRef(newClass));
+        BoxedValue classValue = MakeValue(ClassRef(newClass));
 
         // promote the class object to tracked gc memory so it doesn't instantly get destroyed
-        instance->thread.m_regs[reg] = ScriptApi_MakeTrackedRef(&classValue, vm->GetGC());
+        instance->thread.m_regs[reg] = MakeTrackedRef(&classValue, vm->GetGC());
     }
 
     SCRIPT_INLINE void OpCmp(RegisterIndex lhsReg, RegisterIndex rhsReg)
@@ -1647,7 +1645,7 @@ public:
             HYP_NUMERIC_OPERATION(a, b, +);
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1674,7 +1672,7 @@ public:
             HYP_NUMERIC_OPERATION(a, b, -);
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1701,7 +1699,7 @@ public:
             HYP_NUMERIC_OPERATION(a, b, *);
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1741,7 +1739,7 @@ public:
             HYP_NUMERIC_OPERATION(a, b, /);
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1812,7 +1810,7 @@ public:
             }
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1839,7 +1837,7 @@ public:
             HYP_NUMERIC_OPERATION_BITWISE(a, b, &);
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1866,7 +1864,7 @@ public:
             HYP_NUMERIC_OPERATION_BITWISE(a, b, |);
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1893,7 +1891,7 @@ public:
             HYP_NUMERIC_OPERATION_BITWISE(a, b, ^);
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1919,7 +1917,7 @@ public:
             HYP_NUMERIC_OPERATION_BITWISE(a, b, <<);
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1945,7 +1943,7 @@ public:
             HYP_NUMERIC_OPERATION_BITWISE(a, b, >>);
 
             // set the destination register to be the result
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
+            instance->thread.m_regs[dstReg] = MakeValue(result);
         }
         else
         {
@@ -1973,7 +1971,7 @@ public:
         Number result { numericType };
         result.u = ~num.u; // flip the bits, signedness doesn't matter for bitwise NOT
 
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[reg] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpThrow(RegisterIndex reg)
@@ -1991,8 +1989,8 @@ public:
         BoxedValue& srcValue = *Deref(instance->thread.m_regs[reg]);
 
         BoxedValue newValue = PASS_AS_REF(srcValue)
-            ? ScriptApi_MakeTrackedRef(&srcValue, vm->GetGC())
-            : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+            ? MakeTrackedRef(&srcValue, vm->GetGC())
+            : ShallowCopy(srcValue, vm->GetGC());
 
         if (!instance->exportedSymbols.Store(hash, std::move(newValue)).second)
         {
@@ -2049,7 +2047,7 @@ public:
             result.f = -num.f;
         }
 
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[reg] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastU8(RegisterIndex dst, RegisterIndex src)
@@ -2082,7 +2080,7 @@ public:
             result.u = static_cast<uint8>(num.f);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastU16(RegisterIndex dst, RegisterIndex src)
@@ -2115,7 +2113,7 @@ public:
             result.u = static_cast<uint16>(num.f);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastU32(RegisterIndex dst, RegisterIndex src)
@@ -2147,7 +2145,7 @@ public:
             result.u = static_cast<uint32>(num.f);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastU64(RegisterIndex dst, RegisterIndex src)
@@ -2179,7 +2177,7 @@ public:
             result.u = static_cast<uint64>(num.f);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastI8(RegisterIndex dst, RegisterIndex src)
@@ -2210,7 +2208,7 @@ public:
             result.i = static_cast<int8>(num.f);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastI16(RegisterIndex dst, RegisterIndex src)
@@ -2241,7 +2239,7 @@ public:
             result.i = static_cast<int16>(num.f);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastI32(RegisterIndex dst, RegisterIndex src)
@@ -2272,7 +2270,7 @@ public:
             result.i = static_cast<int32>(num.f);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastI64(RegisterIndex dst, RegisterIndex src)
@@ -2303,7 +2301,7 @@ public:
             result.i = static_cast<int64>(num.f);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastF32(RegisterIndex dst, RegisterIndex src)
@@ -2335,7 +2333,7 @@ public:
             result.f = static_cast<float>(num.f);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastF64(RegisterIndex dst, RegisterIndex src)
@@ -2367,7 +2365,7 @@ public:
             result.f = num.f;
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastBool(RegisterIndex dst, RegisterIndex src)
@@ -2397,7 +2395,7 @@ public:
             result = (ptrValue != nullptr);
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[dst] = MakeValue(result);
     }
 
     SCRIPT_INLINE void OpCastString(RegisterIndex dst, RegisterIndex src)
@@ -2414,7 +2412,7 @@ public:
             return;
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_ShallowCopy(value, vm->GetGC());
+        instance->thread.m_regs[dst] = ShallowCopy(value, vm->GetGC());
     }
 
     SCRIPT_INLINE void OpCastDynamic(RegisterIndex dst, RegisterIndex src)
@@ -2430,7 +2428,7 @@ public:
 
         const Class* cls = nullptr;
 
-        if (const Handle<ObjectBase>& object = ScriptApi_GetObject(value))
+        if (const Handle<ObjectBase>& object = GetObject(value))
         {
             cls = object.ptr->InstanceClass();
         }
@@ -2446,7 +2444,7 @@ public:
             return;
         }
 
-        instance->thread.m_regs[dst] = ScriptApi_ShallowCopy(value, vm->GetGC());
+        instance->thread.m_regs[dst] = ShallowCopy(value, vm->GetGC());
     }
 };
 
@@ -3425,7 +3423,7 @@ SCRIPT_INLINE static void HandleInstruction(
             break;
         }
 
-        handler->instance->thread.m_regs[reg] = ScriptApi_MakeValue(std::move(result));
+        handler->instance->thread.m_regs[reg] = MakeValue(std::move(result));
 
         break;
     } // BINDATA
@@ -3565,7 +3563,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
             BoxedValue resultHypData = vmData->nativeFunc->Invoke(Span<BoxedValue*>(argsBoxed, nargs));
 
             // set register 0 to the result
-            instance->thread.GetRegisters()[0] = ScriptApi_MakeValue(std::move(resultHypData));
+            instance->thread.GetRegisters()[0] = MakeValue(std::move(resultHypData));
 
             // re-enable auto gc
             //            enableAutoGc = ENABLE_GC;
@@ -3618,11 +3616,11 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
                 }
 
                 // push the array to the stack
-                instance->thread.GetStack().Push(ScriptApi_MakeValue(std::move(arr)));
+                instance->thread.GetStack().Push(MakeValue(std::move(arr)));
             }
 
             // push the address
-            instance->thread.GetStack().Push(ScriptApi_MakeValue(previousAddr));
+            instance->thread.GetStack().Push(MakeValue(previousAddr));
 
             // seek to the new address
             instance->stream.Seek((uint32)vmData->func.m_addr);

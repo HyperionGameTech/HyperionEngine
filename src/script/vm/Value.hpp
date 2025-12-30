@@ -211,7 +211,7 @@ extern bool GetBoolean(const BoxedValue& data, bool* out);
 
 extern bool GetString(const BoxedValue& data, const Script_String** out);
 
-extern const Handle<ObjectBase>& ScriptApi_GetObject(const BoxedValue& data);
+extern const Handle<ObjectBase>& GetObject(const BoxedValue& data);
 
 extern int CompareAsPointers(const BoxedValue& lhs, const BoxedValue& rhs);
 extern int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs);

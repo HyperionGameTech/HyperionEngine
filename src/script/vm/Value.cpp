@@ -17,12 +17,8 @@
 
 namespace Hyperion {
 
-HYP_API extern const char* LookupTypeName(const TypeId& typeId);
-
-namespace ScriptApi {
-
-extern const char* ScriptApi_GetTypeString(const BoxedValue& data);
-extern String ScriptApi_ValueToString(const BoxedValue& data, int currDepth = 0);
+extern const char* GetTypeString(const BoxedValue& data);
+extern String ValueToString(const BoxedValue& data, int currDepth = 0);
 
 static const String g_nullString = "null";
 static const String g_referenceString = "<reference>";
@@ -446,7 +442,7 @@ bool GetString(const BoxedValue& data, const Script_String** out)
     return true;
 }
 
-const Handle<ObjectBase>& ScriptApi_GetObject(const BoxedValue& data)
+const Handle<ObjectBase>& GetObject(const BoxedValue& data)
 {
     if (!data.Is<Handle<ObjectBase>>())
     {
@@ -508,7 +504,7 @@ int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
 
 const char* GetTypeString(const BoxedValue& data)
 {
-    return ScriptApi_GetTypeString(data);
+    return GetTypeString(data);
 }
 
 String ToString(const BoxedValue& data)
@@ -528,8 +524,7 @@ String ToString(const BoxedValue& data)
         return Script_String(g_nullString);
     }
 
-    return ScriptApi_ValueToString(data);
+    return ValueToString(data);
 }
 
-} // namespace ScriptApi
 } // namespace Hyperion
