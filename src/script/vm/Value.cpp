@@ -19,6 +19,8 @@ namespace Hyperion {
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
+namespace ScriptApi {
+
 extern const char* ScriptApi_GetTypeString(const BoxedValue& data);
 extern String ScriptApi_ValueToString(const BoxedValue& data, int currDepth = 0);
 
@@ -58,12 +60,12 @@ static inline const Script_VMData* GetVMData(const BoxedValue& data)
     return reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
-HYP_API bool IsGarbage(const BoxedValue& data)
+bool IsGarbage(const BoxedValue& data)
 {
     return data.extData.scriptGcIndex == GARBAGE_GC_INDEX;
 }
 
-HYP_API bool IsFunction(const BoxedValue& data)
+bool IsFunction(const BoxedValue& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -75,7 +77,7 @@ HYP_API bool IsFunction(const BoxedValue& data)
     return vmData->type == Script_VMData::FUNCTION || vmData->type == Script_VMData::NATIVE_FUNCTION;
 }
 
-HYP_API bool IsNativeFunction(const BoxedValue& data)
+bool IsNativeFunction(const BoxedValue& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -87,7 +89,7 @@ HYP_API bool IsNativeFunction(const BoxedValue& data)
     return vmData->type == Script_VMData::NATIVE_FUNCTION;
 }
 
-HYP_API bool IsRef(const BoxedValue& data)
+bool IsRef(const BoxedValue& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -99,7 +101,7 @@ HYP_API bool IsRef(const BoxedValue& data)
     return vmData->type == Script_VMData::VALUE_REF;
 }
 
-HYP_API BoxedValue* GetRef(const BoxedValue& data)
+BoxedValue* GetRef(const BoxedValue& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -111,7 +113,7 @@ HYP_API BoxedValue* GetRef(const BoxedValue& data)
     return vmData->valueRef;
 }
 
-HYP_API BoxedValue* Deref(BoxedValue& data)
+BoxedValue* Deref(BoxedValue& data)
 {
     BoxedValue* deref = GetRef(data);
 
@@ -139,7 +141,7 @@ const BoxedValue* Deref(const BoxedValue& data)
     return &data;
 }
 
-HYP_API void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef)
+void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef)
 {
     BoxedValue* ref;
 
@@ -147,13 +149,13 @@ HYP_API void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef)
 
     if (assignRef && (ref = Deref(data)) != nullptr)
     {
-        GCIndex prevGcIndex = ref->extData.scriptGcIndex;
+        GCIndex prevGCIndex = ref->extData.scriptGcIndex;
         ref->extData.scriptGcIndex = INVALID_GC_INDEX;
 
         ref->~BoxedValue();
         new (ref) BoxedValue(std::move(other));
 
-        ref->extData.scriptGcIndex = prevGcIndex;
+        ref->extData.scriptGcIndex = prevGCIndex;
     }
     else
     {
@@ -163,7 +165,7 @@ HYP_API void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef)
     }
 }
 
-HYP_API bool GetUnsigned(const BoxedValue& data, uint64* out)
+bool GetUnsigned(const BoxedValue& data, uint64* out)
 {
     if (!data.Is<uint64>(/* strict */ false))
     {
@@ -175,7 +177,7 @@ HYP_API bool GetUnsigned(const BoxedValue& data, uint64* out)
     return true;
 }
 
-HYP_API bool GetInteger(const BoxedValue& data, int64* out)
+bool GetInteger(const BoxedValue& data, int64* out)
 {
     if (!data.Is<int64>(/* strict */ false))
     {
@@ -187,7 +189,7 @@ HYP_API bool GetInteger(const BoxedValue& data, int64* out)
     return true;
 }
 
-HYP_API bool GetSignedOrUnsigned(const BoxedValue& data, Number* out)
+bool GetSignedOrUnsigned(const BoxedValue& data, Number* out)
 {
     const TypeId typeId = data.GetTypeId();
 
@@ -250,7 +252,7 @@ HYP_API bool GetSignedOrUnsigned(const BoxedValue& data, Number* out)
     return false;
 }
 
-HYP_API bool GetFloatingPoint(const BoxedValue& data, double* out)
+bool GetFloatingPoint(const BoxedValue& data, double* out)
 {
     if (!data.Is<double>(/* strict */ true) && !data.Is<float>(/* strict */ true))
     {
@@ -262,7 +264,7 @@ HYP_API bool GetFloatingPoint(const BoxedValue& data, double* out)
     return true;
 }
 
-HYP_API bool GetNumber(const BoxedValue& data, double* out)
+bool GetNumber(const BoxedValue& data, double* out)
 {
     Number number;
     if (!GetNumber(data, &number))
@@ -294,7 +296,7 @@ HYP_API bool GetNumber(const BoxedValue& data, double* out)
     return false;
 }
 
-HYP_API bool GetNumber(const BoxedValue& data, Number* out)
+bool GetNumber(const BoxedValue& data, Number* out)
 {
     const TypeId typeId = data.GetTypeId();
 
@@ -371,7 +373,7 @@ HYP_API bool GetNumber(const BoxedValue& data, Number* out)
     return false;
 }
 
-HYP_API NumericType GetNumericType(const BoxedValue& data)
+NumericType GetNumericType(const BoxedValue& data)
 {
     const TypeId typeId = data.GetTypeId();
 
@@ -419,7 +421,7 @@ HYP_API NumericType GetNumericType(const BoxedValue& data)
     return NT_INVALID;
 }
 
-HYP_API bool GetBoolean(const BoxedValue& data, bool* out)
+bool GetBoolean(const BoxedValue& data, bool* out)
 {
     if (!data.Is<bool>())
     {
@@ -430,7 +432,7 @@ HYP_API bool GetBoolean(const BoxedValue& data, bool* out)
     return true;
 }
 
-HYP_API bool GetString(const BoxedValue& data, const Script_String** out)
+bool GetString(const BoxedValue& data, const Script_String** out)
 {
     AssertDebug(out != nullptr);
 
@@ -444,7 +446,7 @@ HYP_API bool GetString(const BoxedValue& data, const Script_String** out)
     return true;
 }
 
-HYP_API const Handle<ObjectBase>& ScriptApi_GetObject(const BoxedValue& data)
+const Handle<ObjectBase>& ScriptApi_GetObject(const BoxedValue& data)
 {
     if (!data.Is<Handle<ObjectBase>>())
     {
@@ -454,7 +456,7 @@ HYP_API const Handle<ObjectBase>& ScriptApi_GetObject(const BoxedValue& data)
     return data.Get<Handle<ObjectBase>>();
 }
 
-HYP_API int CompareAsPointers(const BoxedValue& lhs, const BoxedValue& rhs)
+int CompareAsPointers(const BoxedValue& lhs, const BoxedValue& rhs)
 {
     void* a = lhs.ToRef().GetPointer();
     void* b = rhs.ToRef().GetPointer();
@@ -474,7 +476,7 @@ HYP_API int CompareAsPointers(const BoxedValue& lhs, const BoxedValue& rhs)
     }
 }
 
-HYP_API int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
+int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
 {
     const Script_VMData* lhsVmData = GetVMData(lhs);
     const Script_VMData* rhsVmData = GetVMData(rhs);
@@ -489,7 +491,7 @@ HYP_API int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
         : CF_NONE;
 }
 
-HYP_API int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
+int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
 {
     const Script_VMData* lhsVmData = GetVMData(lhs);
     const Script_VMData* rhsVmData = GetVMData(rhs);
@@ -504,12 +506,12 @@ HYP_API int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rh
         : CF_NONE;
 }
 
-HYP_API const char* GetTypeString(const BoxedValue& data)
+const char* GetTypeString(const BoxedValue& data)
 {
     return ScriptApi_GetTypeString(data);
 }
 
-HYP_API String ToString(const BoxedValue& data)
+String ToString(const BoxedValue& data)
 {
     if (IsRef(data))
     {
@@ -529,4 +531,5 @@ HYP_API String ToString(const BoxedValue& data)
     return ScriptApi_ValueToString(data);
 }
 
+} // namespace ScriptApi
 } // namespace Hyperion

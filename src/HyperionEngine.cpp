@@ -4,6 +4,15 @@
 
 #include <HyperionEngine.hpp>
 
+#include <engine/EngineDriver.hpp>
+#include <engine/EngineStats.hpp>
+#include <engine/Game.hpp>
+
+#include <engine/threads/MainThread.hpp>
+#include <engine/threads/SimThread.hpp>
+#include <engine/threads/RenderThread.hpp>
+#include <engine/threads/VisThread.hpp>
+
 #include <asset/Assets.hpp>
 
 #include <core/Core.hpp>
@@ -40,27 +49,15 @@
 
 #include <audio/AudioManager.hpp>
 
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineMemory.hpp>
-#include <engine/EngineStats.hpp>
-#include <engine/Game.hpp>
-
-#include <engine/threads/MainThread.hpp>
-#include <engine/threads/SimThread.hpp>
-#include <engine/threads/RenderThread.hpp>
-#include <engine/threads/VisThread.hpp>
-
-#include <audio/AudioManager.hpp>
-
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 #endif
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 #include <editor/EditorState.hpp>
 #endif
 
-#ifdef HYP_DOTNET
+#if HYP_DOTNET
 #include <dotnet/DotNETHost.hpp>
 #endif
 
@@ -73,48 +70,19 @@ HYP_DECLARE_LOG_CHANNEL(Engine);
 
 #pragma region Memory Pools
 
-static constexpr SizeType ObjectPoolBlockSize = 64 * 1024 * 1024;
-static constexpr SizeType RenderPoolBlockSize = 64 * 1024 * 1024;
-static constexpr SizeType FramePoolBlockSize = 1 * 1024 * 1024;
-static constexpr SizeType ScenePoolBlockSize = 8 * 1024 * 1024;
-static constexpr SizeType TaskPoolBlockSize = 4 * 1024 * 1024;
-static constexpr SizeType ResourcePoolBlockSize = 8 * 1024 * 1024;
-static constexpr SizeType AssetPoolBlockSize = 16 * 1024 * 1024;
-static constexpr SizeType StreamingPoolBlockSize = 16 * 1024 * 1024;
-static constexpr SizeType ScriptPoolBlockSize = 16 * 1024 * 1024;
-
-static constexpr SizeType SceneArenaSize = 1 * 1024 * 1024;
-static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024;
-
-HYP_EXPORT Pool* g_objectPool;
-HYP_EXPORT Pool* g_renderPool;
-HYP_EXPORT Pool* g_framePools[RingBufferDepth];
-HYP_EXPORT Pool* g_scenePool;
-HYP_EXPORT Pool* g_taskPool;
-HYP_EXPORT Pool* g_resourcePool;
-HYP_EXPORT Pool* g_assetPool;
-HYP_EXPORT Pool* g_streamingPool;
-HYP_EXPORT Pool* g_scriptPool;
-
-HYP_EXPORT TArena<RenderAllocator>* g_renderArena;
-HYP_EXPORT TArena<SceneAllocator>* g_sceneArena;
-HYP_EXPORT TArena<StreamingAllocator>* g_streamingArena;
-
-Pool* const* g_enginePools[EPN_MAX] = {
-    &g_objectPool, // EPN_CORE
-    &g_renderPool, // EPN_RENDER
-    &g_scenePool   // EPN_SCENE
-};
+#define HYP_ENGINE_MEMORY_IMPLEMENTATION 1
+#include <engine/EngineMemory.inc>
+#undef HYP_ENGINE_MEMORY_IMPLEMENTATION
 
 HYP_EXPORT Pool* GetCurrentFramePool()
 {
     return g_framePools[RenderApi::GetRingIndex()];
 }
 
+#pragma endregion Memory Pools
+
 // defined in ClassDecls.cpp
 extern void InitClassDecls();
-
-#pragma endregion Memory Pools
 
 Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
@@ -140,7 +108,7 @@ VisThread* g_visThreadInstance;
 
 Handle<Game> g_gameInstance; // active game instance, read/write only from the main thread
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 VulkanRenderBackend* g_renderBackend;
 #endif
 
@@ -190,7 +158,7 @@ struct DirectoryInitializer
 // Directory for data to be imported into editor builds
 HYP_EXPORT const FilePath& GetResourceDirectory()
 {
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
     static DirectoryInitializer<HYP_STATIC_STRING("res"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
     return s_resourceDirectory.path;
 #else
@@ -217,7 +185,7 @@ HYP_EXPORT const FilePath& GetTempDirectory()
     return s_resourceDirectory.path;
 }
 
-#ifdef HYP_DOTNET
+#if HYP_DOTNET
 static InitFromManagedCallback s_initFromManagedCallback = nullptr;
 #endif
 
@@ -261,27 +229,6 @@ static void InitThreads()
     g_visThreadInstance = new VisThread();
 }
 
-static void InitMemoryPools()
-{
-    g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
-    g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
-
-    for (uint32 i = 0; i < RingBufferDepth; i++)
-    {
-        g_framePools[i] = new Pool(FramePoolBlockSize, PF_NONE);
-    }
-
-    g_scenePool = new Pool(ScenePoolBlockSize, PF_THREAD_SAFE);
-    g_taskPool = new Pool(TaskPoolBlockSize, PF_THREAD_SAFE);
-    g_resourcePool = new Pool(ResourcePoolBlockSize, PF_THREAD_SAFE);
-    g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE);
-    g_streamingPool = new Pool(StreamingPoolBlockSize, PF_THREAD_SAFE);
-    g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_simThread);
-
-    g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
-    g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
-}
-
 static void InitLogger()
 {
     g_logger = CreateObject<Logger>();
@@ -323,7 +270,7 @@ extern "C"
 
         const bool isEditor = CoreApi::GetCommandLineArguments()["Editor"].ToBool();
 
-#ifdef HYP_DOTNET
+#if HYP_DOTNET
         // dont initialize hostfxr if running from editor,
         // leads to type identity issues with managed types
         // due to multiple runtimes being loaded.
@@ -348,7 +295,7 @@ extern "C"
         g_audioManager = CreateObject<AudioManager>();
         InitObject(g_audioManager);
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
         g_editorState = CreateObject<EditorState>();
         InitObject(g_editorState);
 #endif
@@ -367,11 +314,11 @@ extern "C"
 
         const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
         g_appContext = CreateObject<Win32AppContext>("Hyperion", cliArgs);
-#elif defined(HYP_MACOS)
+#elif HYP_MACOS
         g_appContext = CreateObject<CocoaAppContext>("Hyperion", cliArgs);
-#elif defined(HYP_SDL)
+#elif HYP_SDL
         g_appContext = CreateObject<SDLAppContext>("Hyperion", cliArgs);
 #else
         HYP_FAIL("AppContext not implemented for this platform");
@@ -434,7 +381,7 @@ extern "C"
 
         RenderApi::Shutdown();
 
-#ifdef HYP_DOTNET
+#if HYP_DOTNET
         DotNETHost::GetInstance().Shutdown();
 #endif
 
@@ -457,7 +404,7 @@ extern "C"
         g_audioManager.Reset();
         g_engineStats.Reset();
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
         g_editorState.Reset();
 #endif
 
@@ -483,6 +430,11 @@ extern "C"
 
         delete g_streamingArena;
         g_streamingArena = nullptr;
+
+#if HYP_SCRIPT
+        delete g_scriptArena;
+        g_scriptArena = nullptr;
+#endif
 
         delete g_scenePool;
         g_scenePool = nullptr;
@@ -529,7 +481,7 @@ extern "C"
         delete g_visThreadInstance;
         g_visThreadInstance = nullptr;
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
         Win32_CleanupWindowClasses();
 #endif
     }
@@ -575,7 +527,7 @@ extern "C"
         return pWindow->GetHWND();
     }
 
-#ifdef HYP_MACOS
+#if HYP_MACOS
     HYP_EXPORT void* Hyp_GetNSView(ApplicationWindow* pWindow)
     {
         if (!pWindow)
@@ -666,7 +618,7 @@ extern "C"
         s_initFromManagedCallback = callback;
     }
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
     using LogCallback = void (*)(
         const char* channel,
         int level,

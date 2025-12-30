@@ -52,13 +52,12 @@
 
 namespace Hyperion {
 
-using ScriptArray = Array<BoxedValue, DynamicAllocator>;
-
 extern const char* LookupTypeName(const TypeId& typeId);
 
-using RegisterIndex = uint8;
+extern Pool* g_scriptPool;
+using ScriptAllocator = AllocatorInstance<Pool, &g_scriptPool>;
 
-HYP_API extern Pool* g_scriptPool;
+using ScriptArray = Array<BoxedValue, ScriptAllocator>;
 
 static inline void* ScriptAlloc(SizeType size, SizeType alignment = 1)
 {
@@ -69,6 +68,8 @@ static inline void ScriptFree(void* ptr)
 {
     g_scriptPool->Free(ptr);
 }
+
+using RegisterIndex = uint8;
 
 #pragma region ScriptApi
 
@@ -120,7 +121,7 @@ static inline const Script_VMData* GetVMData(const BoxedValue& data)
 template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<BoxedValue, NormalizedType<T>>>>
 static inline BoxedValue ScriptApi_MakeValue(T&& data)
 {
-    return BoxedValue(BoxedValue(std::forward<T>(data)));
+    return BoxedValue(std::forward<T>(data));
 }
 
 BoxedValue ScriptApi_MakeValue(BoxedValue&& data)
@@ -272,115 +273,42 @@ bool ScriptApi_ShouldValuePassByRef(const BoxedValue& value)
 
 static const char s_unknownTypeString[] = "<Unknown type>";
 
-const char* ScriptApi_GetTypeString(TypeId typeId)
+static const char* GetTypeString(const TypeInfo& typeInfo)
 {
-    if (typeId == TypeId::ForType<int8>())
+    static const HashMap<TypeId, const char*> s_typeIdStringTable = {
+        { TypeIdOf<int8>(), "int8" },
+        { TypeIdOf<int16>(), "int16" },
+        { TypeIdOf<int32>(), "int32" },
+        { TypeIdOf<int64>(), "int64" },
+        { TypeIdOf<uint8>(), "uint8" },
+        { TypeIdOf<uint16>(), "uint16" },
+        { TypeIdOf<uint32>(), "uint32" },
+        { TypeIdOf<uint64>(), "uint64" },
+        { TypeIdOf<float32>(), "float" },
+        { TypeIdOf<float64>(), "double" },
+        { TypeIdOf<bool>(), "bool" },
+        { TypeIdOf<Script_String>(), "string" },
+        { TypeIdOf<ScriptArray>(), "array" },
+    };
+
+    auto it = s_typeIdStringTable.Find(typeInfo.id);
+    if (it != s_typeIdStringTable.End())
     {
-        return "int8";
-    }
-    else if (typeId == TypeId::ForType<int16>())
-    {
-        return "int16";
-    }
-    else if (typeId == TypeId::ForType<int32>())
-    {
-        return "int32";
-    }
-    else if (typeId == TypeId::ForType<int64>())
-    {
-        return "int64";
-    }
-    else if (typeId == TypeId::ForType<uint8>())
-    {
-        return "uint8";
-    }
-    else if (typeId == TypeId::ForType<uint16>())
-    {
-        return "uint16";
-    }
-    else if (typeId == TypeId::ForType<uint32>())
-    {
-        return "uint32";
-    }
-    else if (typeId == TypeId::ForType<uint64>())
-    {
-        return "uint64";
-    }
-    else if (typeId == TypeId::ForType<float32>())
-    {
-        return "float";
-    }
-    else if (typeId == TypeId::ForType<float64>())
-    {
-        return "double";
-    }
-    else if (typeId == TypeId::ForType<bool>())
-    {
-        return "bool";
-    }
-    else if (typeId == TypeId::ForType<Script_String>())
-    {
-        return "string";
-    }
-    else if (typeId == TypeId::ForType<ScriptArray>())
-    {
-        return "array";
+        return it->second;
     }
 
-    const char* typeName = LookupTypeName(typeId);
-
-    if (typeName != nullptr)
-    {
-        return typeName;
-    }
-
-    return s_unknownTypeString;
+    return typeInfo.name.LookupString();
 }
 
 const char* ScriptApi_GetTypeString(const BoxedValue& data)
 {
     if (!data.IsValid())
     {
-        return "<Uninitialized data>";
+        return "<Uninitialized Data>";
     }
 
-#if 0
-    if (const Script_VMData* vmData = reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet()))
-    {
-        switch (vmData->type)
-        {
-        case Script_VMData::FUNCTION: // fallthrough
-        case Script_VMData::NATIVE_FUNCTION:
-            return "Function";
-        case Script_VMData::ADDRESS:
-            return "<Function address>";
-        case Script_VMData::FUNCTION_CALL:
-            return "<Stack frame>";
-        case Script_VMData::TRY_CATCH_INFO:
-            return "<Try catch info>";
-        case Script_VMData::USER_DATA:
-            return "UserData";
-        case Script_VMData::VALUE_REF:
-            return "Reference";
-        default:
-            HYP_UNREACHABLE();
-        }
-    }
-#endif
-
-    const TypeId typeId = data.GetTypeId();
-
-    const char* typeIdString = ScriptApi_GetTypeString(typeId);
-
-    if (typeIdString && typeIdString != s_unknownTypeString)
-    {
-        return typeIdString;
-    }
-
-    return s_unknownTypeString;
+    return GetTypeString(*data.GetTypeInfo());
 }
-
-bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, int maxDepth, int currDepth);
 
 bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, int maxDepth, int currDepth)
 {
@@ -518,7 +446,7 @@ bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, i
         {
             const SizeType newBufSize = SizeType(n) + 1;
 
-            char* newBuf = static_cast<char*>(Memory::Allocate(newBufSize));
+            char* newBuf = (char*)ScriptAlloc(newBufSize);
             Assert(newBuf != nullptr);
 
             n = std::snprintf(
@@ -528,9 +456,9 @@ bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, i
                 cls->GetName().LookupString(),
                 data.ToRef().GetPointer());
 
-            if (n < 0 || static_cast<SizeType>(n) >= newBufSize)
+            if (n < 0 || SizeType(n) >= newBufSize)
             {
-                Memory::Free(newBuf);
+                ScriptFree(newBuf);
 
                 outString = Script_String("<Error formatting object>");
 
@@ -538,7 +466,7 @@ bool ScriptApi_StringifyData(const BoxedValue& data, Script_String& outString, i
             }
 
             Script_String result(newBuf);
-            Memory::Free(newBuf);
+            ScriptFree(newBuf);
 
             outString = result;
 
@@ -609,34 +537,49 @@ Script_RegisterMemory::Script_RegisterMemory()
 const uint16 Script_StaticMemory::staticSize = 2048;
 
 Script_StaticMemory::Script_StaticMemory()
-    : m_data(new BoxedValue[staticSize])
+    : m_data((BoxedValue*)ScriptAlloc(staticSize * sizeof(BoxedValue), alignof(BoxedValue)))
 {
+    Memory::MemSet(m_data, 0, staticSize * sizeof(BoxedValue));
 }
 
 Script_StaticMemory::~Script_StaticMemory()
 {
-    delete[] m_data;
+    for (uint32 i = 0; i < staticSize; i++)
+    {
+        if (m_data[i].extData.isStaticInit)
+        {
+            m_data[i].~BoxedValue();
+        }
+    }
+
+    ScriptFree(m_data);
 }
 
 #pragma endregion Script_StaticMemory
 
 #pragma region Script_StackMemory
 
+// 64 KiB stack size
+static constexpr SizeType stackSize = ((64 * 1024) + (sizeof(BoxedValue) - 1)) / sizeof(BoxedValue);
+
 Script_StackMemory::Script_StackMemory()
-    : m_sp(0)
+    : m_data((BoxedValue*)ScriptAlloc(stackSize * sizeof(BoxedValue), alignof(BoxedValue))),
+      m_sp(0)
 {
+    Memory::MemSet(m_data, 0, stackSize * sizeof(BoxedValue));
 }
 
 Script_StackMemory::~Script_StackMemory()
 {
     Purge();
+    ScriptFree(m_data);
 }
 
 void Script_StackMemory::Purge()
 {
     for (SizeType i = m_sp; i > 0; i--)
     {
-        m_data[i - 1].Destruct();
+        m_data[i - 1].~BoxedValue();
     }
 
     m_sp = 0;
@@ -908,7 +851,17 @@ public:
     {
         Assert(index < vm->m_staticMemory.staticSize);
 
-        vm->m_staticMemory[index] = std::move(instance->thread.m_regs[reg]);
+        BoxedValue& dst = vm->m_staticMemory[index];
+
+        if (dst.extData.isStaticInit)
+        {
+            dst = std::move(instance->thread.m_regs[reg]);
+
+            return;
+        }
+
+        new (&dst) BoxedValue(std::move(instance->thread.m_regs[reg]));
+        dst.extData.isStaticInit = 1;
     }
 
     SCRIPT_INLINE void OpMovArrayIdx(RegisterIndex dstReg, uint32 index, RegisterIndex srcReg)
@@ -1093,7 +1046,7 @@ public:
             // static member access on class reference
             cls = *classRef;
         }
-        // temp special case for arrays
+        // special case for arrays: treat all native arrays wrapped via GenericArrayWrapper as the ScriptArray class.
         else if (GenericArrayWrapper* array = src.TryGet<GenericArrayWrapper>().TryGet())
         {
             cls = GetClass(TypeId::ForType<ScriptArray>());
@@ -1342,7 +1295,7 @@ public:
         uint8 flags;
         bs->Read(&flags);
 
-        Array<HypMember> members;
+        Array<HypMember, ScriptAllocator> members;
         bool hitEnd = false;
 
         // Read members until we hit END_CLASS
@@ -1379,7 +1332,7 @@ public:
                 uint16 numAttrs;
                 bs->Read(&numAttrs);
 
-                Array<ClassAttribute> attrs;
+                Array<ClassAttribute, ScriptAllocator> attrs;
                 attrs.Reserve(numAttrs);
 
                 // Skip attributes for now - read and discard them
@@ -1410,13 +1363,13 @@ public:
                         uint32 strLen;
                         bs->Read(&strLen);
 
-                        Array<char> strData;
-                        strData.Resize(strLen + 1);
+                        char* strData = (char*)ScriptAlloc(strLen + 1);
                         strData[strLen] = '\0';
+                        bs->Read(strData, strLen);
 
-                        bs->Read(strData.Data(), strLen);
+                        attr.value = ClassAttributeValue(String(strData, strData + strLen));
 
-                        attr.value = ClassAttributeValue(String(strData.Begin(), strData.End()));
+                        ScriptFree(strData);
 
                         break;
                     }
@@ -2497,6 +2450,8 @@ public:
     }
 };
 
+/// \todo : Make all instructions that have args emit aligned up to 1 word (or at least 32 bits)
+
 SCRIPT_INLINE static void HandleInstruction(
     Script_Instance* instance,
     InstructionHandler* handler,
@@ -2521,56 +2476,63 @@ SCRIPT_INLINE static void HandleInstruction(
         switch (srcType)
         {
         case LSRC_IMMEDIATE:
+        {
             switch (dataType)
             {
             case DTYPE_I32:
             {
-                int32_t value;
+                int32 value;
                 bs->Read(&value);
-                handler->OpLoadI32(reg, value);
-            }
-            break;
 
+                handler->OpLoadI32(reg, value);
+
+                break;
+            }
             case DTYPE_I64:
             {
-                int64_t value;
+                int64 value;
                 bs->Read(&value);
-                handler->OpLoadI64(reg, value);
-            }
-            break;
 
+                handler->OpLoadI64(reg, value);
+
+                break;
+            }
             case DTYPE_U32:
             {
                 uint32 value;
                 bs->Read(&value);
-                handler->OpLoadU32(reg, value);
-            }
-            break;
 
+                handler->OpLoadU32(reg, value);
+
+                break;
+            }
             case DTYPE_U64:
             {
                 uint64 value;
                 bs->Read(&value);
-                handler->OpLoadU64(reg, value);
-            }
-            break;
 
+                handler->OpLoadU64(reg, value);
+
+                break;
+            }
             case DTYPE_F32:
             {
                 float32 value;
                 bs->Read(&value);
-                handler->OpLoadF32(reg, value);
-            }
-            break;
 
+                handler->OpLoadF32(reg, value);
+
+                break;
+            }
             case DTYPE_F64:
             {
                 float64 value;
                 bs->Read(&value);
-                handler->OpLoadF64(reg, value);
-            }
-            break;
 
+                handler->OpLoadF64(reg, value);
+
+                break;
+            }
             case DTYPE_BOOL:
             {
                 uint8 value;
@@ -2579,16 +2541,18 @@ SCRIPT_INLINE static void HandleInstruction(
                     handler->OpLoadTrue(reg);
                 else
                     handler->OpLoadFalse(reg);
+
+                break;
             }
-            break;
 
             case DTYPE_OBJECT:
                 // Load null for immediate object
                 handler->OpLoadNull(reg);
                 break;
             }
-            break;
 
+            break;
+        } // LSRC_IMMEDIATE
         case LSRC_OFFSET:
         {
             uint16 offset;
@@ -2598,9 +2562,9 @@ SCRIPT_INLINE static void HandleInstruction(
                 handler->OpLoadOffsetRef(reg, offset);
             else
                 handler->OpLoadOffset(reg, offset);
-        }
-        break;
 
+            break;
+        } // LSRC_OFFSET
         case LSRC_INDEX:
         {
             uint16 index;
@@ -2610,37 +2574,42 @@ SCRIPT_INLINE static void HandleInstruction(
                 handler->OpLoadIndexRef(reg, index);
             else
                 handler->OpLoadIndex(reg, index);
-        }
-        break;
 
+            break;
+        } // LSRC_INDEX
         case LSRC_STATIC:
         {
             uint16 index;
             bs->Read(&index);
-            handler->OpLoadStatic(reg, index);
-        }
-        break;
 
+            handler->OpLoadStatic(reg, index);
+
+            break;
+        } // LSRC_STATIC
         case LSRC_ARRAYIDX:
         {
             RegisterIndex arrayReg;
             bs->Read(&arrayReg);
+
             RegisterIndex indexReg;
             bs->Read(&indexReg);
-            handler->OpLoadArrayIdx(reg, arrayReg, indexReg);
-        }
-        break;
 
+            handler->OpLoadArrayIdx(reg, arrayReg, indexReg);
+
+            break;
+        } // LSRC_ARRAYIDX
         case LSRC_MEMBER:
         {
             RegisterIndex objReg;
             bs->Read(&objReg);
+
             uint64 hash;
             bs->Read(&hash);
-            handler->OpGetMember(reg, objReg, hash);
-        }
-        break;
 
+            handler->OpGetMember(reg, objReg, hash);
+
+            break;
+        } // LSRC_MEMBER
         case LSRC_REGISTER:
         {
             RegisterIndex srcReg;
@@ -2650,22 +2619,22 @@ SCRIPT_INLINE static void HandleInstruction(
                 handler->OpLoadRef(reg, srcReg);
             else
                 handler->OpLoadDeref(reg, srcReg);
-        }
-        break;
 
+            break;
+        } // LSRC_REGISTER
         case LSRC_ADDRESS:
         {
             Script_FunctionAddress addr;
             bs->Read(&addr);
 
             handler->OpLoadAddr(reg, addr);
-        }
-        break;
+
+            break;
+        } // LSRC_ADDRESS
         }
 
         break;
     }
-
     case MOV_UNIFIED:
     {
         uint8 subcmd;
@@ -2774,8 +2743,7 @@ SCRIPT_INLINE static void HandleInstruction(
         }
 
         break;
-    }
-
+    } // MOV_UNIFIED
     case CAST_UNIFIED:
     {
         uint8 subcmd;
@@ -2783,6 +2751,7 @@ SCRIPT_INLINE static void HandleInstruction(
 
         RegisterIndex dstReg;
         bs->Read(&dstReg);
+
         RegisterIndex srcReg;
         bs->Read(&srcReg);
 
@@ -2834,24 +2803,24 @@ SCRIPT_INLINE static void HandleInstruction(
         }
 
         break;
-    }
+    } // CAST_UNIFIED
     case LOAD_OFFSET:
     {
         RegisterIndex reg;
         bs->Read(&reg);
+
         uint16 offset;
         bs->Read(&offset);
 
-        handler->OpLoadOffset(
-            reg,
-            offset);
+        handler->OpLoadOffset(reg, offset);
 
         break;
-    }
+    } // LOAD_OFFSET
     case LOAD_STRING:
     {
         RegisterIndex reg;
         bs->Read(&reg);
+
         // get string length
         uint32 len;
         bs->Read(&len);
@@ -2861,15 +2830,12 @@ SCRIPT_INLINE static void HandleInstruction(
         str[len] = '\0';
         bs->Read(str, len);
 
-        handler->OpLoadConstantString(
-            reg,
-            len,
-            str);
+        handler->OpLoadConstantString(reg, len, str);
 
         ScriptFree(str);
 
         break;
-    }
+    } // LOAD_STRING
     case LOAD_ARRAYIDX:
     {
         RegisterIndex dstReg;
@@ -2881,13 +2847,10 @@ SCRIPT_INLINE static void HandleInstruction(
         RegisterIndex indexReg;
         bs->Read(&indexReg);
 
-        handler->OpLoadArrayIdx(
-            dstReg,
-            srcReg,
-            indexReg);
+        handler->OpLoadArrayIdx(dstReg, srcReg, indexReg);
 
         break;
-    }
+    } // LOAD_ARRAYIDX
     case LOAD_OFFSET_REF:
     {
         RegisterIndex reg;
@@ -2899,7 +2862,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpLoadOffsetRef(reg, offset);
 
         break;
-    }
+    } // LOAD_OFFSET_REF
     case LOAD_FUNC:
     {
         RegisterIndex reg;
@@ -2917,7 +2880,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpLoadFunc(reg, addr, nargs, flags);
 
         break;
-    }
+    } // LOAD_FUNC
     case LOAD_CLASS:
     {
         RegisterIndex reg;
@@ -2929,7 +2892,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpLoadClass(reg, nameHash);
 
         break;
-    }
+    } // LOAD_CLASS
     case REF:
     {
         RegisterIndex dstReg;
@@ -2941,7 +2904,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpLoadRef(dstReg, srcReg);
 
         break;
-    }
+    } // REF
     case DEREF:
     {
         RegisterIndex dstReg;
@@ -2953,7 +2916,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpLoadDeref(dstReg, srcReg);
 
         break;
-    }
+    } // DEREF
     case MOV_OFFSET:
     {
         uint16 offset;
@@ -2965,7 +2928,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpMovOffset(offset, reg);
 
         break;
-    }
+    } // MOV_OFFSET
     case MOV_INDEX:
     {
         uint16 index;
@@ -2976,7 +2939,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpMovIndex(index, reg);
 
         break;
-    }
+    } // MOV_INDEX
     case MOV_STATIC:
     {
         uint16 index;
@@ -2988,7 +2951,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpMovStatic(index, reg);
 
         break;
-    }
+    } // MOV_STATIC
     case MOV_ARRAYIDX:
     {
         RegisterIndex dst;
@@ -3003,7 +2966,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpMovArrayIdx(dst, index, src);
 
         break;
-    }
+    } // MOV_ARRAYIDX
     case MOV_ARRAYIDX_REG:
     {
         RegisterIndex dst;
@@ -3018,7 +2981,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpMovArrayIdxReg(dst, indexReg, src);
 
         break;
-    }
+    } // MOV_ARRAYIDX_REG
     case MOV:
     {
         RegisterIndex dst;
@@ -3030,7 +2993,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpMov(dst, src);
 
         break;
-    }
+    } // MOV
     case CHECK_HAS_MEMBER:
     {
         RegisterIndex dst;
@@ -3045,7 +3008,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpCheckHasMember(dst, src, hash);
 
         break;
-    }
+    } // CHECK_HAS_MEMBER
     case PUSH:
     {
         RegisterIndex reg;
@@ -3054,13 +3017,13 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpPush(reg);
 
         break;
-    }
+    } // PUSH
     case POP:
     {
         handler->OpPop();
 
         break;
-    }
+    } // POP
     case PUSH_ARRAY:
     {
         RegisterIndex dst;
@@ -3072,7 +3035,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpPushArray(dst, src);
 
         break;
-    }
+    } // PUSH_ARRAY
     case ADD_SP:
     {
         uint16 val;
@@ -3081,7 +3044,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpAddSp(val);
 
         break;
-    }
+    } // ADD_SP
     case SUB_SP:
     {
         uint16 val;
@@ -3090,7 +3053,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpSubSp(val);
 
         break;
-    }
+    } // SUB_SP
     case JMP:
     {
         Script_FunctionAddress addr;
@@ -3099,7 +3062,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpJmp(addr);
 
         break;
-    }
+    } // JMP
     case JE:
     {
         Script_FunctionAddress addr;
@@ -3108,7 +3071,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpJe(addr);
 
         break;
-    }
+    } // JE
     case JNE:
     {
         Script_FunctionAddress addr;
@@ -3117,7 +3080,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpJne(addr);
 
         break;
-    }
+    } // JNE
     case JG:
     {
         Script_FunctionAddress addr;
@@ -3126,7 +3089,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpJg(addr);
 
         break;
-    }
+    } // JG
     case JGE:
     {
         Script_FunctionAddress addr;
@@ -3135,7 +3098,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpJge(addr);
 
         break;
-    }
+    } // JGE
     case CALL:
     {
         RegisterIndex reg;
@@ -3147,13 +3110,13 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpCall(reg, nargs);
 
         break;
-    }
+    } // CALL
     case RET:
     {
         handler->OpRet();
 
         break;
-    }
+    } // RET
     case BEGIN_TRY:
     {
         Script_FunctionAddress catchAddress;
@@ -3162,13 +3125,13 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpBeginTry(catchAddress);
 
         break;
-    }
+    } // BEGIN_TRY
     case END_TRY:
     {
         handler->OpEndTry();
 
         break;
-    }
+    } // END_TRY
     case NEW:
     {
         RegisterIndex dst;
@@ -3180,7 +3143,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpNew(dst, src);
 
         break;
-    }
+    } // NEW
     case NEW_ARRAY:
     {
         RegisterIndex dst;
@@ -3192,7 +3155,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpNewArray(dst, size);
 
         break;
-    }
+    } // NEW_ARRAY
     case CMP:
     {
         RegisterIndex lhsReg;
@@ -3204,7 +3167,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpCmp(lhsReg, rhsReg);
 
         break;
-    }
+    } // CMP
     case BEGIN_CLASS:
     {
         RegisterIndex reg;
@@ -3213,7 +3176,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpBeginClass(reg);
 
         break;
-    }
+    } // BEGIN_CLASS
     case CMPZ:
     {
         RegisterIndex reg;
@@ -3222,7 +3185,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpCmpZ(reg);
 
         break;
-    }
+    } // CMPZ
     case ADD:
     {
         RegisterIndex lhsReg;
@@ -3237,7 +3200,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpAdd(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // ADD
     case SUB:
     {
         RegisterIndex lhsReg;
@@ -3252,7 +3215,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpSub(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // SUB
     case MUL:
     {
         RegisterIndex lhsReg;
@@ -3267,7 +3230,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpMul(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // MUL
     case DIV:
     {
         RegisterIndex lhsReg;
@@ -3282,7 +3245,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpDiv(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // DIV
     case MOD:
     {
         RegisterIndex lhsReg;
@@ -3297,7 +3260,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpMod(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // MOD
     case AND:
     {
         RegisterIndex lhsReg;
@@ -3312,7 +3275,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpAnd(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // AND
     case OR:
     {
         RegisterIndex lhsReg;
@@ -3327,7 +3290,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpOr(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // OR
     case XOR:
     {
         RegisterIndex lhsReg;
@@ -3342,7 +3305,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpXor(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // XOR
     case SHL:
     {
         RegisterIndex lhsReg;
@@ -3357,7 +3320,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpShl(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // SHL
     case SHR:
     {
         RegisterIndex lhsReg;
@@ -3372,7 +3335,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpShr(lhsReg, rhsReg, dstReg);
 
         break;
-    }
+    } // SHR
     case NEG:
     {
         RegisterIndex reg;
@@ -3381,7 +3344,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpNeg(reg);
 
         break;
-    }
+    } // NEG
     case NOT:
     {
         RegisterIndex reg;
@@ -3390,7 +3353,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpNot(reg);
 
         break;
-    }
+    } // NOT
     case THROW:
     {
         RegisterIndex reg;
@@ -3399,7 +3362,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpThrow(reg);
 
         break;
-    }
+    } // THROW
     case TRACEMAP:
     {
         uint32 len;
@@ -3435,7 +3398,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->vm->m_tracemap.Set(stringmap, linemap);
 
         break;
-    }
+    } // TRACEMAP
     case BINDATA:
     {
         RegisterIndex reg;
@@ -3465,7 +3428,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->instance->thread.m_regs[reg] = ScriptApi_MakeValue(std::move(result));
 
         break;
-    }
+    } // BINDATA
     case REM:
     {
         uint32 len;
@@ -3474,7 +3437,7 @@ SCRIPT_INLINE static void HandleInstruction(
         bs->Skip(len);
 
         break;
-    }
+    } // REM
     case EXPORT:
     {
         RegisterIndex reg;
@@ -3485,7 +3448,7 @@ SCRIPT_INLINE static void HandleInstruction(
         handler->OpExportSymbol(reg, hash);
 
         break;
-    }
+    } // EXPORT
     default:
     {
         int64 lastPos = int64(bs->Position()) - sizeof(ubyte);

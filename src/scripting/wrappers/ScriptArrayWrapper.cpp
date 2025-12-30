@@ -11,7 +11,10 @@
 
 namespace Hyperion {
 
-using ScriptArray = Array<BoxedValue, DynamicAllocator>;
+extern Pool* g_scriptPool;
+
+using ScriptAllocator = AllocatorInstance<Pool, &g_scriptPool>;
+using ScriptArray = Array<BoxedValue, ScriptAllocator>;
 
 HYP_API const Class* g_clsScriptArray = nullptr;
 
