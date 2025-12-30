@@ -31,25 +31,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
         }
     };
 
-    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue& out) -> bool
+    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index) -> AnyRef
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
-            return false;
+            return AnyRef();
         }
 
-        if constexpr (IsBoxedValueV<T>)
-        {
-            out = arr[index];
-        }
-        else
-        {
-            out = BoxedValue(arr[index]);
-        }
-
-        return true;
+        return AnyRef(&arr[index]);
     };
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
@@ -122,25 +113,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
         }
     };
 
-    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue& out) -> bool
+    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index) -> AnyRef
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
-            return false;
+            return AnyRef();
         }
-
-        if constexpr (IsBoxedValueV<T>)
-        {
-            out = arr[index];
-        }
-        else
-        {
-            out = BoxedValue(arr[index]);
-        }
-
-        return true;
+        
+        return AnyRef(&arr[index]);
     };
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
@@ -213,25 +195,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
         }
     };
 
-    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue& out) -> bool
+    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index) -> AnyRef
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
-            return false;
+            return AnyRef();
         }
-
-        if constexpr (IsBoxedValueV<T>)
-        {
-            out = arr[index];
-        }
-        else
-        {
-            out = BoxedValue(arr[index]);
-        }
-
-        return true;
+        
+        return AnyRef(&arr[index]);
     };
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
@@ -288,18 +261,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr)
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
     elementTypeInfo = &TypeOf<T>();
 
-    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue& out) -> bool
+    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index) -> AnyRef
     {
         auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
-            return false;
+            return AnyRef();
         }
-
-        out = BoxedValue(arr[index]);
-
-        return true;
+        
+        return AnyRef(&arr[index]);
     };
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
@@ -350,18 +321,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
     elementTypeInfo = &TypeOf<T>();
 
-    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue& out) -> bool
+    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index) -> AnyRef
     {
         auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
-            return false;
+            return AnyRef();
         }
-
-        out = BoxedValue(arr[index]);
-
-        return true;
+        
+        return AnyRef(&arr[index]);
     };
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
@@ -412,18 +381,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
     elementTypeInfo = &TypeOf<T>();
 
-    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue& out) -> bool
+    functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index) -> AnyRef
     {
         auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
 
         if (index >= arr.Size())
         {
-            return false;
+            return AnyRef();
         }
-
-        out = BoxedValue(arr[index]);
-
-        return true;
+        
+        return AnyRef(&arr[index]);
     };
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool

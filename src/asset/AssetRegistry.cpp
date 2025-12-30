@@ -2689,14 +2689,14 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             for (SizeType i = 0; i < size; ++i)
             {
-                BoxedValue element;
-                if (!array.GetElementAt(i, element))
+                AnyRef elementRef = array.GetElementAt(i);
+                if (!elementRef.HasValue())
                 {
                     HYP_LOG(Assets, Warning, "Failed to get element at index {} of array of type {}", i, LookupTypeName(current.GetTypeId()));
                     continue;
                 }
 
-                iterate(parentPackage, element);
+                iterate(parentPackage, BoxedValue(elementRef));
             }
 
             return;

@@ -926,7 +926,16 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, GenericArrayWrap
                 return false;
             }
 
-            return array.GetElementAt(index, outValue);
+            AnyRef elementRef = array.GetElementAt(index);
+
+            if (!elementRef.HasValue())
+            {
+                return false;
+            }
+
+            outValue = TBoxed(elementRef);
+
+            return true;
         }
 
         virtual bool SetElementAt(const TBoxed& instance, SizeType index, TBoxed&& value) const override
