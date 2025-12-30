@@ -60,8 +60,8 @@ class Any final : public AnyBase
         constexpr SizeType align = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
         constexpr SizeType headerSize = sizeof(Block);
         constexpr SizeType objAlign = alignof(T);
-        const SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        const SizeType totalSize = objOffset + sizeof(T);
+        constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        constexpr SizeType totalSize = objOffset + sizeof(T);
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
@@ -245,8 +245,33 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE bool operator==(const Any& other) const = delete;
-    HYP_FORCE_INLINE bool operator!=(const Any& other) const = delete;
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return HasValue();
+    }
+
+    HYP_FORCE_INLINE bool operator !() const
+    {
+        return !HasValue();
+    }
+
+    /*! \brief Returns true if the Any has a value. */
+    HYP_FORCE_INLINE bool HasValue() const
+    {
+        return m_block != nullptr;
+    }
+
+    /*! \important Equals comparison for Any type just compares references, does not check if values are equal */
+    HYP_FORCE_INLINE bool operator==(const Any& other) const
+    {
+        return GetPointer() == other.GetPointer();
+    }
+
+    /*! \important Equals comparison for Any type just compares references, does not check if values are equal */
+    HYP_FORCE_INLINE bool operator!=(const Any& other) const
+    {
+        return GetPointer() != other.GetPointer();
+    }
 
     /*! \brief Get a raw pointer to the held object. */
     HYP_FORCE_INLINE void* GetPointer()
@@ -260,18 +285,16 @@ public:
         return HasValue() ? reinterpret_cast<const Block*>(m_block)->objectPtr : nullptr;
     }
 
-    /*! \brief Returns true if the Any has a value. */
-    HYP_FORCE_INLINE bool HasValue() const
-    {
-        return m_block != nullptr;
-    }
-
-    /*! \brief Returns the TypeId of the held object. */
-    TypeId GetTypeId() const;
-
+    /*! \returns The TypeInfo for the internally held object. */
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
         return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeInfo : &TypeInfo_Void();
+    }
+
+    /*! \returns The TypeId of the held object; If no object is held, TypeId::Void() will be returned. */
+    HYP_FORCE_INLINE TypeId GetTypeId() const
+    {
+        return TypeInfo_GetId(*GetTypeInfo());
     }
 
     /*! \brief Returns true if the held object is of type T.
@@ -298,8 +321,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE T& Get() const
     {
-        const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-        HYP_CORE_ASSERT(GetTypeId() == requestedTypeId, "Held type not equal to requested type!");
+        HYP_CORE_ASSERT(Is<T>(), "Held type not equal to requested type!");
 
         return *static_cast<NormalizedType<T>*>(reinterpret_cast<Block*>(m_block)->objectPtr);
     }
@@ -308,9 +330,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE T* TryGet() const
     {
-        const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-
-        if (GetTypeId() == requestedTypeId)
+        if (Is<T>())
         {
             return static_cast<NormalizedType<T>*>(reinterpret_cast<Block*>(m_block)->objectPtr);
         }
@@ -355,8 +375,8 @@ public:
         constexpr SizeType align = (alignof(Block) > alignof(U) ? alignof(Block) : alignof(U));
         constexpr SizeType headerSize = sizeof(Block);
         constexpr SizeType objAlign = alignof(U);
-        const SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        const SizeType totalSize = objOffset + sizeof(U);
+        constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        constexpr SizeType totalSize = objOffset + sizeof(U);
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
@@ -415,11 +435,6 @@ public:
         }
 
         m_block = nullptr;
-    }
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return HasValue();
     }
 
     /*! \brief Returns the held object as a reference to type T */
