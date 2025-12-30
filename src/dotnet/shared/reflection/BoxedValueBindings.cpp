@@ -208,15 +208,23 @@ extern "C"
         {
             GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
 
-            AnyRef ref = arrayWrapper.GetElementAt(SizeType(index));
-
-            if (!ref.HasValue())
+            if (!arrayWrapper.CanGetElementByIndex())
             {
                 return false;
             }
 
-            // construct it
-            new (pOutArrayElem) BoxedValue(ref);
+            if (index >= arrayWrapper.Size())
+            {
+                return false;
+            }
+
+            BoxedValue tmp;
+            if (!arrayWrapper.GetElementAt(SizeType(index), tmp))
+            {
+                return false;
+            }
+
+            new (pOutArrayElem) BoxedValue(std::move(tmp));
 
             return true;
         }

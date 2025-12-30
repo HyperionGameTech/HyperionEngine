@@ -334,24 +334,36 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
         return true;
     }
 
-    if (GenericArrayWrapper* pArray = data.TryGet<GenericArrayWrapper>().TryGet())
+    if (GenericArrayWrapper* arrayWrapper = data.TryGet<GenericArrayWrapper>().TryGet())
     {
-        if (pArray->CanGetElementByIndex())
+        const bool isScriptArray = arrayWrapper->typeInfo->id == s_typeIdArray;
+        const SizeType arraySize = arrayWrapper->Size();
+
+        if (arrayWrapper->CanGetElementByIndex())
         {
             outString = "[";
 
-            for (SizeType i = 0; i < pArray->Size(); i++)
+            for (SizeType i = 0; i < arraySize; i++)
             {
                 if (i > 0)
                 {
                     outString += Script_String(", ");
                 }
 
-                AnyRef elementRef = pArray->GetElementAt(i);
+                AnyRef elementRef = arrayWrapper->GetElementAt(i);
 
                 if (elementRef.HasValue())
                 {
-                    outString += ValueToString(BoxedValue(elementRef), currDepth + 1);
+                    // get the existing reference for ScriptArray instances
+                    if (isScriptArray)
+                    {
+                        outString += ValueToString(elementRef.Get<BoxedValue>(), currDepth + 1);
+                    }
+                    // Otherwise, box up the reference and get the string from that
+                    else
+                    {
+                        outString += ValueToString(BoxedValue(elementRef), currDepth + 1);
+                    }
                 }
                 else
                 {
@@ -363,7 +375,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
         }
         else
         {
-            outString = Script_String("Array" + HYP_FORMAT(" (size = {})", pArray->Size()));
+            outString = Script_String("Array" + HYP_FORMAT(" (size = {})", arraySize));
         }
 
         return true;
@@ -725,36 +737,35 @@ public:
                 if (key.i < 0)
                 {
                     // wrap around (python style)
-                    key.u = SizeType(array->Size() - SizeType(-key.i));
-                    if (key.u >= array->Size())
-                    {
-                        vm->ThrowException(instance, Script_Exception::OutOfBoundsException(key.u, array->Size()));
-
-                        return;
-                    }
+                    key.u = array->Size() - uint64(-key.i);
                 }
-
-                if (SizeType(key.i) >= array->Size())
+                else
                 {
-                    vm->ThrowException(instance, Script_Exception::OutOfBoundsException(SizeType(key.i), array->Size()));
-                    return;
+                    key.u = uint64(key.i);
                 }
-
-                AnyRef elementRef = array->GetElementAt(key.i);
-
-                instance->thread.m_regs[dstReg] = BoxedValue(elementRef);
             }
-            else if (key.flags & Number::FLAG_UNSIGNED)
+
+            if (key.u >= array->Size())
             {
-                if (key.u >= array->Size())
-                {
-                    vm->ThrowException(instance, Script_Exception::OutOfBoundsException(key.u, array->Size()));
+                vm->ThrowException(instance, Script_Exception::OutOfBoundsException(key.u, array->Size()));
 
-                    return;
-                }
+                return;
+            }
 
-                AnyRef elementRef = array->GetElementAt(key.u);
+            AnyRef elementRef = array->GetElementAt(key.i);
 
+            // For ScriptArray we want to get the BoxedValue and work off that rather than
+            // double boxing it.
+            if (array->typeInfo->id == s_typeIdArray)
+            {
+                BoxedValue& srcValue = elementRef.Get<BoxedValue>();
+
+                instance->thread.m_regs[dstReg] = PASS_AS_REF(srcValue)
+                    ? MakeRef(&srcValue)
+                    : ShallowCopy(srcValue, vm->GetGC());
+            }
+            else
+            {
                 instance->thread.m_regs[dstReg] = BoxedValue(elementRef);
             }
 
@@ -1116,16 +1127,15 @@ public:
     SCRIPT_INLINE void OpPushArray(RegisterIndex dstReg, RegisterIndex srcReg)
     {
         BoxedValue& dst = *Deref(instance->thread.m_regs[dstReg]);
+        GenericArrayWrapper* arrayWrapper = dst.TryGet<GenericArrayWrapper>().TryGet();
 
-        if (!dst.Is<ScriptArray>())
+        if (!arrayWrapper)
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("PUSH_ARRAY", GetTypeString(dst)));
             return;
         }
 
-        ScriptArray& array = dst.Get<ScriptArray>();
-
-        array.PushBack(ShallowCopy(*Deref(instance->thread.m_regs[srcReg]), vm->GetGC()));
+        arrayWrapper->PushBack(ShallowCopy(*Deref(instance->thread.m_regs[srcReg]), vm->GetGC()));
     }
 
     SCRIPT_INLINE void OpAddSp(uint16 n)

@@ -1084,6 +1084,121 @@ void RenderCollector::ExecuteDrawCalls(
     }
 }
 
+// Called at start of frame on render thread
+void RenderCollector::BuildDrawCalls(uint32 bucketBits)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    if (!batchAllocator)
+    {
+        batchAllocator = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
+    }
+
+    static const bool s_uniquePerMaterial = g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial;
+
+    if (bucketBits == 0)
+    {
+        bucketBits = AllBucketsMask;
+    }
+
+    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
+    Array<IteratorType> iterators;
+
+    FOR_EACH_BIT(bucketBits, bitIndex)
+    {
+        AssertDebug(bitIndex < mappingsByBucket.Size());
+
+        auto& mappings = mappingsByBucket[bitIndex];
+
+        if (mappings.Empty())
+        {
+            continue;
+        }
+
+        for (auto& it : mappings)
+        {
+            iterators.PushBack(&it);
+        }
+    }
+
+    if (iterators.Empty())
+    {
+        return;
+    }
+
+    // std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
+    //     {
+    //         return int(lhs->first.GetLayerIndex()) < int(rhs->first.GetLayerIndex());
+    //     });
+
+    for (IteratorType it : iterators)
+    {
+        const RenderableAttributeSet& attributes = it->first;
+
+        DrawCallCollectionMapping& mapping = it->second;
+        AssertDebug(mapping.IsValid());
+
+        DrawCallCollection previousDrawState = std::move(mapping.drawCallCollection);
+
+        DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
+        drawCallCollection.batchAllocator = batchAllocator;
+        drawCallCollection.renderGroup = mapping.renderGroup;
+
+        for (RenderProxyMesh* meshProxy : mapping.meshProxies)
+        {
+            AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
+            AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
+
+            if (meshProxy->instanceData.numInstances == 0)
+            {
+                continue;
+            }
+
+            DrawCallID drawCallId;
+
+            if (s_uniquePerMaterial)
+            {
+                drawCallId = DrawCallID(meshProxy->mesh->Id(), meshProxy->material->Id());
+            }
+            else
+            {
+                drawCallId = DrawCallID(meshProxy->mesh->Id());
+            }
+
+            if (!meshProxy->instanceData.enableAutoInstancing && meshProxy->instanceData.numInstances == 1)
+            {
+                drawCallCollection.PushRenderProxy(drawCallId, *meshProxy); // NOLINT(bugprone-use-after-move)
+
+                continue;
+            }
+
+            EntityInstanceBatch* batch = nullptr;
+
+            if (previousDrawState.IsValid())
+            {
+                // take a batch for reuse if a draw call was using one
+                if ((batch = previousDrawState.RecycleDrawBatch(drawCallId)) != nullptr)
+                {
+                    const uint32 batchIndex = batch->batchIndex;
+                    AssertDebug(batchIndex != ~0u);
+
+                    // Reset it
+                    *batch = EntityInstanceBatch { batchIndex };
+                }
+            }
+
+            drawCallCollection.PushRenderProxyInstanced(batch, drawCallId, *meshProxy);
+        }
+
+        if (previousDrawState.IsValid())
+        {
+            // Any draw calls that were not reused from the previous state, clear them out and release batch indices.
+            previousDrawState.ResetDrawCalls();
+        }
+    }
+}
+
 void RenderCollector::RemoveEmptyRenderGroups()
 {
     HYP_SCOPE;
@@ -1287,121 +1402,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             mapping.meshProxies.Set(idx, const_cast<RenderProxyMesh*>(meshProxy));
             previousAttributes.Set(idx, attributes);
-        }
-    }
-}
-
-// Called at start of frame on render thread
-void RenderCollector::BuildDrawCalls(uint32 bucketBits)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    if (!batchAllocator)
-    {
-        batchAllocator = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
-    }
-
-    static const bool s_uniquePerMaterial = g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial;
-
-    if (bucketBits == 0)
-    {
-        bucketBits = AllBucketsMask;
-    }
-
-    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
-    Array<IteratorType> iterators;
-
-    FOR_EACH_BIT(bucketBits, bitIndex)
-    {
-        AssertDebug(bitIndex < mappingsByBucket.Size());
-
-        auto& mappings = mappingsByBucket[bitIndex];
-
-        if (mappings.Empty())
-        {
-            continue;
-        }
-
-        for (auto& it : mappings)
-        {
-            iterators.PushBack(&it);
-        }
-    }
-
-    if (iterators.Empty())
-    {
-        return;
-    }
-
-    // std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
-    //     {
-    //         return int(lhs->first.GetLayerIndex()) < int(rhs->first.GetLayerIndex());
-    //     });
-
-    for (IteratorType it : iterators)
-    {
-        const RenderableAttributeSet& attributes = it->first;
-
-        DrawCallCollectionMapping& mapping = it->second;
-        AssertDebug(mapping.IsValid());
-
-        DrawCallCollection previousDrawState = std::move(mapping.drawCallCollection);
-
-        DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
-        drawCallCollection.batchAllocator = batchAllocator;
-        drawCallCollection.renderGroup = mapping.renderGroup;
-
-        for (RenderProxyMesh* meshProxy : mapping.meshProxies)
-        {
-            AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
-            AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
-
-            if (meshProxy->instanceData.numInstances == 0)
-            {
-                continue;
-            }
-
-            DrawCallID drawCallId;
-
-            if (s_uniquePerMaterial)
-            {
-                drawCallId = DrawCallID(meshProxy->mesh->Id(), meshProxy->material->Id());
-            }
-            else
-            {
-                drawCallId = DrawCallID(meshProxy->mesh->Id());
-            }
-
-            if (!meshProxy->instanceData.enableAutoInstancing && meshProxy->instanceData.numInstances == 1)
-            {
-                drawCallCollection.PushRenderProxy(drawCallId, *meshProxy); // NOLINT(bugprone-use-after-move)
-
-                continue;
-            }
-
-            EntityInstanceBatch* batch = nullptr;
-
-            if (previousDrawState.IsValid())
-            {
-                // take a batch for reuse if a draw call was using one
-                if ((batch = previousDrawState.RecycleDrawBatch(drawCallId)) != nullptr)
-                {
-                    const uint32 batchIndex = batch->batchIndex;
-                    AssertDebug(batchIndex != ~0u);
-
-                    // Reset it
-                    *batch = EntityInstanceBatch { batchIndex };
-                }
-            }
-
-            drawCallCollection.PushRenderProxyInstanced(batch, drawCallId, *meshProxy);
-        }
-
-        if (previousDrawState.IsValid())
-        {
-            // Any draw calls that were not reused from the previous state, clear them out and release batch indices.
-            previousDrawState.ResetDrawCalls();
         }
     }
 }

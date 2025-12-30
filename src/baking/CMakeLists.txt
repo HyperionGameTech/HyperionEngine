@@ -33,8 +33,29 @@ foreach(filepath ${hyperion-baking_HEADERS})
     list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
+# if submodules/xatlas exists, add xatlas.cpp to sources and xatlas.h to headers
+if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/xatlas.cpp" AND EXISTS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/xatlas.h")
+    add_definitions(-DHYP_XATLAS=1)
+
+    file(GLOB XATLAS_SOURCES "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/*.cpp")
+    file(GLOB XATLAS_HEADERS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/*.h")
+
+    if(XATLAS_SOURCES)
+        message(STATUS "Xatlas found, adding to sources")
+    endif()
+
+    if(XATLAS_HEADERS)
+        message(STATUS "Xatlas found, adding to headers")
+    endif()
+
+    set(CURRENT_SOURCES ${CURRENT_SOURCES} ${XATLAS_SOURCES})
+    set(CURRENT_HEADERS ${CURRENT_HEADERS} ${XATLAS_HEADERS})
+
+    include_directories("${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas")
+endif()
+
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${hyperion-baking_SOURCES} ${hyperion-baking_HEADERS})
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
     target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")

@@ -740,28 +740,6 @@ endif()
 # set to empty list
 set(COMMON_INCLUDE_DIRS "")
 
-# if submodules/xatlas exists, add xatlas.cpp to sources and xatlas.h to headers
-if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/xatlas.cpp" AND EXISTS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/xatlas.h")
-    add_definitions(-DHYP_XATLAS=1)
-
-    file(GLOB XATLAS_SOURCES "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/*.cpp")
-    file(GLOB XATLAS_HEADERS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/*.h")
-
-    if(XATLAS_SOURCES)
-        message(STATUS "Xatlas found, adding to sources")
-    endif()
-
-    if(XATLAS_HEADERS)
-        message(STATUS "Xatlas found, adding to headers")
-    endif()
-
-    set(SOURCES ${SOURCES} ${XATLAS_SOURCES})
-    set(HEADERS ${HEADERS} ${XATLAS_HEADERS})
-
-    # add headers to COMMON_INCLUDE_DIRS
-    set(COMMON_INCLUDE_DIRS ${COMMON_INCLUDE_DIRS} "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas")
-endif()
-
 include_directories(
     ${HYP_GENERATED_DIR}
     ${COMMON_INCLUDE_DIRS}

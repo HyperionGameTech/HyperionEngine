@@ -43,6 +43,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
         return AnyRef(&arr[index]);
     };
 
+    functionTable.getElementAt2 = [](GenericArrayWrapper& array, SizeType index, BoxedValue& outValue) -> bool
+    {
+        auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+        
+        outValue = BoxedValue(arr[index]);
+
+        return true;
+    };
+
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
@@ -123,6 +137,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
         }
         
         return AnyRef(&arr[index]);
+    };
+
+    functionTable.getElementAt2 = [](GenericArrayWrapper& array, SizeType index, BoxedValue& outValue) -> bool
+    {
+        auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+        
+        outValue = BoxedValue(arr[index]);
+
+        return true;
     };
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
@@ -207,6 +235,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
         return AnyRef(&arr[index]);
     };
 
+    functionTable.getElementAt2 = [](GenericArrayWrapper& array, SizeType index, BoxedValue& outValue) -> bool
+    {
+        auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+        
+        outValue = BoxedValue(arr[index]);
+
+        return true;
+    };
+
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
@@ -273,6 +315,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr)
         return AnyRef(&arr[index]);
     };
 
+    functionTable.getElementAt2 = [](GenericArrayWrapper& array, SizeType index, BoxedValue& outValue) -> bool
+    {
+        auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+        
+        outValue = BoxedValue(arr[index]);
+
+        return true;
+    };
+
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
     {
         auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
@@ -333,6 +389,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr
         return AnyRef(&arr[index]);
     };
 
+    functionTable.getElementAt2 = [](GenericArrayWrapper& array, SizeType index, BoxedValue& outValue) -> bool
+    {
+        auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+        
+        outValue = BoxedValue(arr[index]);
+
+        return true;
+    };
+
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool
     {
         auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
@@ -391,6 +461,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
         }
         
         return AnyRef(&arr[index]);
+    };
+
+    functionTable.getElementAt2 = [](GenericArrayWrapper& array, SizeType index, BoxedValue& outValue) -> bool
+    {
+        auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+        
+        outValue = BoxedValue(arr[index]);
+
+        return true;
     };
 
     functionTable.setElementAt = [](GenericArrayWrapper& array, SizeType index, BoxedValue&& value) -> bool

@@ -104,16 +104,17 @@ struct DrawCallID
     }
 };
 
-/*! \brief Struct of Arrays layout for non-instanced draw calls for better cache performance */
 struct DrawCallStorage
 {
-    Array<DrawCallID, RenderAllocator> ids;
-    Array<Mesh*, RenderAllocator> meshes;
-    Array<Material*, RenderAllocator> materials;
-    Array<Skeleton*, RenderAllocator> skeletons;
-    Array<uint32, RenderAllocator> drawCommandIndices;
-    Array<uint32, RenderAllocator> numIndices;
-    Array<ObjId<Entity>, RenderAllocator> entityIds;
+    using AllocatorType = RenderAllocator;
+
+    Array<DrawCallID, AllocatorType> ids;
+    Array<Mesh*, AllocatorType> meshes;
+    Array<Material*, AllocatorType> materials;
+    Array<Skeleton*, AllocatorType> skeletons;
+    Array<uint32, AllocatorType> drawCommandIndices;
+    Array<uint32, AllocatorType> numIndices;
+    Array<ObjId<Entity>, AllocatorType> entityIds;
 
     HYP_FORCE_INLINE SizeType Size() const
     {
@@ -160,15 +161,17 @@ struct DrawCallStorage
 /*! \brief Struct of Arrays layout for instanced draw calls for better cache performance */
 struct InstancedDrawCallStorage
 {
-    Array<DrawCallID, RenderAllocator> ids;
-    Array<Mesh*, RenderAllocator> meshes;
-    Array<Material*, RenderAllocator> materials;
-    Array<Skeleton*, RenderAllocator> skeletons;
-    Array<uint32, RenderAllocator> drawCommandIndices;
-    Array<uint32, RenderAllocator> numIndices;
-    Array<EntityInstanceBatch*, RenderAllocator> batches;
-    Array<uint32, RenderAllocator> counts;
-    Array<FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>, RenderAllocator> entityIds;
+    using AllocatorType = RenderAllocator; // Non temp allocator since we recycle the batches from the previous frame.
+
+    Array<DrawCallID, AllocatorType> ids;
+    Array<Mesh*, AllocatorType> meshes;
+    Array<Material*, AllocatorType> materials;
+    Array<Skeleton*, AllocatorType> skeletons;
+    Array<uint32, AllocatorType> drawCommandIndices;
+    Array<uint32, AllocatorType> numIndices;
+    Array<EntityInstanceBatch*, AllocatorType> batches;
+    Array<uint32, AllocatorType> counts;
+    Array<FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>, AllocatorType> entityIds;
 
     HYP_FORCE_INLINE SizeType Size() const
     {

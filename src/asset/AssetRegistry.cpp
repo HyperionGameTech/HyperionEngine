@@ -2675,7 +2675,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
         shouldFollowAssetPaths = false;
 
-        if (current.Is<GenericArrayWrapper>()) // array needs special handling: iterate over elements (if possible)
+        if (current.IsArray()) // array needs special handling: iterate over elements (if possible)
         {
             GenericArrayWrapper& array = current.Get<GenericArrayWrapper>();
 
@@ -2689,14 +2689,14 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             for (SizeType i = 0; i < size; ++i)
             {
-                AnyRef elementRef = array.GetElementAt(i);
-                if (!elementRef.HasValue())
+                BoxedValue boxed;
+                if (!array.GetElementAt(i, boxed))
                 {
                     HYP_LOG(Assets, Warning, "Failed to get element at index {} of array of type {}", i, LookupTypeName(current.GetTypeId()));
                     continue;
                 }
 
-                iterate(parentPackage, BoxedValue(elementRef));
+                iterate(parentPackage, boxed);
             }
 
             return;
@@ -2716,7 +2716,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                 {
                     for (const auto& [typeId, componentId] : *componentIds)
                     {
-                        const auto componentRef = entityManager->TryGetComponent(typeId, &entity);
+                        const AnyRef componentRef = entityManager->TryGetComponent(typeId, &entity);
                         if (!componentRef.HasValue())
                         {
                             continue;

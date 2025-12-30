@@ -71,10 +71,20 @@ namespace Hyperion {
 
 namespace Baking {
 
+// Changing tile size will change the number of jobs that get enqueued.
+// Smaller tile size = more jobs required to complete the bake
 static constexpr uint32 TileSize = 32;
+
+// Too many concurrent jobs will cause excessive memory usage and thrashing
+static constexpr uint32 MaxConcurrentJobs = 8;
+
+// Not per frame per se, but during Update() we check if we can spin up more jobs,
+// this will add a hard cap on number of texels beind process simultaneously (translates to rays
+// traced, for lightmap jobs)
 static constexpr uint32 IdealTexelsPerFrame = 200000;
+
+// Pretty self explanatory - but this is an estimate (See the below function, GetEstimatedGPUMemUsagePerJob)
 static constexpr double IdealGpuMemUsageMB = 1024 * 2;
-static constexpr uint32 MaxConcurrentJobs = 32;
 
 // for LightmapVolume gpu trace job
 static inline double GetEstimatedGPUMemUsageForJob(const LightmapperConfig& config)

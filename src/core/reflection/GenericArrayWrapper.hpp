@@ -61,6 +61,7 @@ struct GenericArrayWrapper
 
         AnyRef (*pushBack)(GenericArrayWrapper& array, BoxedValue&& value);
         AnyRef (*getElementAt)(GenericArrayWrapper& array, SizeType index);
+        bool (*getElementAt2)(GenericArrayWrapper& array, SizeType index, BoxedValue& outValue);
         bool (*setElementAt)(GenericArrayWrapper& array, SizeType index, BoxedValue&& value);
         SizeType (*size)(const GenericArrayWrapper& array);
         bool (*resize)(GenericArrayWrapper& array, SizeType newSize);
@@ -283,9 +284,11 @@ struct GenericArrayWrapper
 
     HYP_FORCE_INLINE bool CanGetElementByIndex() const
     {
-        return functionTable.getElementAt != nullptr;
+        return functionTable.getElementAt != nullptr
+            && functionTable.getElementAt2 != nullptr;
     }
 
+    /*! \brief Get a reference to element at \p index */
     HYP_FORCE_INLINE AnyRef GetElementAt(SizeType index)
     {
         if (!IsValid() || !CanGetElementByIndex() || index >= Size())
@@ -294,6 +297,19 @@ struct GenericArrayWrapper
         }
 
         return functionTable.getElementAt(*this, index);
+    }
+
+    /*! \brief Get the element at \p index by value and store it in \p outValue
+     *   \returns True on success, false otherwise. If false was returned, \p outValue has
+     *   not been modified. */
+    HYP_FORCE_INLINE bool GetElementAt(SizeType index, BoxedValue& outValue)
+    {
+        if (!IsValid() || !CanGetElementByIndex() || index >= Size())
+        {
+            return false;
+        }
+
+        return functionTable.getElementAt2(*this, index, outValue);
     }
 
     HYP_FORCE_INLINE bool SetElementAt(SizeType index, BoxedValue&& value)

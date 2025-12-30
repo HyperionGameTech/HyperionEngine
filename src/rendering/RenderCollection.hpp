@@ -166,6 +166,8 @@ public:
         uint32 bucketBits,
         bool commit = true);
 
+    void BuildDrawCalls(uint32 bucketBits);
+
     void RemoveEmptyRenderGroups();
 
     /*! \brief Counts the number of render groups in the list. */
@@ -173,8 +175,6 @@ public:
 
     /*! \brief Builds RenderGroups for proxies, based on renderable attributes */
     void BuildRenderGroups(View* view, RenderProxyList& renderProxyList);
-
-    void BuildDrawCalls(uint32 bucketBits);
 };
 
 } // namespace Hyperion
