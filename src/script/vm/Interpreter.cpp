@@ -239,7 +239,7 @@ BoxedValue MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
     Assert(gc != nullptr);
     Assert(pValue != nullptr);
 
-    if (pValue->extData.scriptGcIndex != INVALID_GC_INDEX)
+    if (pValue->extData.gcIndex != INVALID_GC_INDEX)
     {
         // already in tracked memory, make a reference to this value
         return MakeRef(pValue);
@@ -260,7 +260,7 @@ BoxedValue ShallowCopy(BoxedValue& refValue, Script_GC* gc)
         return refValue; // already a reference, return as-is
     }
 
-    if (refValue.extData.scriptGcIndex != INVALID_GC_INDEX)
+    if (refValue.extData.gcIndex != INVALID_GC_INDEX)
     {
         // in tracked memory, make a reference to it
         return MakeRef(&refValue);

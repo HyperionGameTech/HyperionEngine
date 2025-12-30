@@ -19,14 +19,17 @@ Script_GC::~Script_GC()
 
 void Script_GC::MoveToTrackedMemory(BoxedValue& inOutRefValue)
 {
-    Assert(inOutRefValue.extData.scriptGcIndex == INVALID_GC_INDEX);
-    Assert(!IsRef(inOutRefValue));
+    AssertDebug(inOutRefValue.extData.gcIndex == INVALID_GC_INDEX);
+    AssertDebug(!IsRef(inOutRefValue));
 
     BoxedValue* ptr = (BoxedValue*)m_allocator.Allocate();
+    AssertDebug(ptr != nullptr, "Failed to allocate memory for tracked BoxedValue");
+
     uint32 gcIndex = m_idGenerator.Next(); // starts at 1
+    AssertDebug(gcIndex <= uint32(MAX_GC_INDEX), "Exceeded maximum number of tracked GC objects!");
 
     new (ptr) BoxedValue(std::move(inOutRefValue));
-    ptr->extData.scriptGcIndex = GCIndex(gcIndex);
+    ptr->extData.gcIndex = GCIndex(gcIndex);
 
     // set `inOutRefValue` to be a reference to the tracked value
     Script_VMData newRefVmData;
