@@ -26,10 +26,11 @@
 
 namespace Hyperion {
 
-static constexpr const char* StringClassName = "String";
-static constexpr const char* NameClassName = "Name";
+// Class names to use for overrides for built in types.
+static const String s_stringClassName = "String";
+static const String s_nameClassName = "Name";
 
-static String GetClassNameForType(const SymbolType* type)
+static const String& GetClassNameForType(const SymbolType* type)
 {
     if (!type)
     {
@@ -39,12 +40,12 @@ static String GetClassNameForType(const SymbolType* type)
     // Handle builtin types
     if (type->IsString())
     {
-        return StringClassName;
+        return s_stringClassName;
     }
 
     if (type->IsName())
     {
-        return NameClassName;
+        return s_nameClassName;
     }
 
     return type->GetName();
@@ -255,7 +256,7 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
 
         const uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        const String className = GetClassNameForType(m_targetType);
+        const String& className = GetClassNameForType(m_targetType);
 
         chunk->Append(BytecodeUtil::Make<LoadClass>(rp, StringHash(className)));
     }

@@ -85,15 +85,6 @@ extern HYP_API HypDataSerializeFunction GetHypDataSerializeFunction(TypeId typeI
 extern HYP_API void RegisterHypDataSerializeFunction(TypeId typeId, HypDataSerializeFunction func);
 extern HYP_API void SetHypDataFromReference(BoxedValue& boxed, AnyRef ref);
 
-/*! \brief A struct that can hold 128 bits (16 bytes) of user data.
- *  Useful for storing small amounts of data directly in BoxedValue without heap allocation.
- *  \note This is primarily for internal use and should be used with care to avoid alignment issues.
- */
-struct alignas(std::max_align_t) HypData_UserData128
-{
-    uint64 data[2];
-};
-
 struct GenericArrayWrapper;
 
 #ifdef HYP_SCRIPT
@@ -109,6 +100,25 @@ static constexpr GCIndex GARBAGE_GC_INDEX = GCIndex(~0u);
  */
 struct BoxedValue
 {
+    /*! \brief A struct that can hold up to 16 bytes of user data.
+     *  Useful for storing small amounts of data directly in BoxedValue without heap allocation.
+     *  \note This is primarily for internal use and should be used with care to avoid alignment issues.
+     */
+    struct alignas(std::max_align_t) InlineData
+    {
+        uint64 data[2];
+
+        HYP_FORCE_INLINE bool operator==(const InlineData& other) const
+        {
+            return Memory::MemCmp(this, &other, sizeof(InlineData)) == 0;
+        }
+
+        HYP_FORCE_INLINE bool operator!=(const InlineData& other) const
+        {
+            return !operator==(other);
+        }
+    };
+
     using VariantType = Variant<
         int8,
         int16,
@@ -131,7 +141,7 @@ struct BoxedValue
         RC<void>,
         AnyRef,
         Any,
-        HypData_UserData128>;
+        InlineData>;
 
     template <class T>
     static constexpr bool canStoreDirectly =
@@ -159,7 +169,7 @@ struct BoxedValue
         /*! Pointers are stored as AnyRef which holds TypeId for conversion */
         || std::is_same_v<T, AnyRef> || std::is_pointer_v<T>
 
-        || std::is_same_v<T, Any> || std::is_same_v<T, HypData_UserData128>;
+        || std::is_same_v<T, Any> || std::is_same_v<T, InlineData>;
 
     VariantType value;
 
@@ -1707,38 +1717,38 @@ struct HypDataHelper<GenericArrayWrapper> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<HypData_UserData128>
+struct HypDataHelperDecl<BoxedValue::InlineData>
 {
 };
 
 template <>
-struct HypDataHelper<HypData_UserData128>
+struct HypDataHelper<BoxedValue::InlineData>
 {
-    using StorageType = HypData_UserData128;
+    using StorageType = BoxedValue::InlineData;
     using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const HypData_UserData128& value) const
+    HYP_FORCE_INLINE bool Is(const BoxedValue::InlineData& value) const
     {
         // should never be hit
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_FORCE_INLINE HypData_UserData128& Get(HypData_UserData128& value) const
+    HYP_FORCE_INLINE BoxedValue::InlineData& Get(BoxedValue::InlineData& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE const HypData_UserData128& Get(const HypData_UserData128& value) const
+    HYP_FORCE_INLINE const BoxedValue::InlineData& Get(const BoxedValue::InlineData& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const HypData_UserData128& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const BoxedValue::InlineData& value) const
     {
         boxed.Set_Internal(value);
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(const HypData_UserData128& value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    HYP_FORCE_INLINE static FBOMResult Serialize(const BoxedValue::InlineData& value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         return { FBOMResult::FBOM_ERR, "Cannot serialize user data!" };
     }

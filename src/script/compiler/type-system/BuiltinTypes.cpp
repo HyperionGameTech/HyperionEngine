@@ -259,6 +259,47 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                         { "self", SymbolType::Placeholder("SelfType") },
                         { "newSize", BuiltinTypes::s_uint64Type } } }) },
         SymbolTypeMember {
+            "Reserve",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_voidType },
+                        { "self", SymbolType::Placeholder("SelfType") },
+                        { "capacity", BuiltinTypes::s_uint64Type } } }) },
+        SymbolTypeMember {
+            "Empty",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_boolType },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+        SymbolTypeMember {
+            "Any",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_boolType },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+        SymbolTypeMember {
+            "Front",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+        SymbolTypeMember {
+            "Back",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+        SymbolTypeMember {
             "Size",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
