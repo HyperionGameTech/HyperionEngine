@@ -271,25 +271,29 @@ void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
         return;
     }
 
+    GpuBuffer* instanceBuffer = m_instanceBuffers[frameIndex];
+    GpuBuffer* indirectBuffer = m_indirectBuffers[frameIndex];
+    GpuBuffer* stagingBuffer = m_stagingBuffers[frameIndex];
+
     // fill instances buffer with data of the meshes
     {
-        Assert(m_stagingBuffers[frameIndex].IsValid());
-        Assert(m_stagingBuffers[frameIndex]->Size() >= m_drawCommandsBuffer.Size());
+        Assert(stagingBuffer != nullptr);
+        Assert(stagingBuffer->Size() >= m_drawCommandsBuffer.Size());
 
-        m_stagingBuffers[frameIndex]->Copy(m_drawCommandsBuffer.Size(), m_drawCommandsBuffer.Data());
+        stagingBuffer->Copy(m_drawCommandsBuffer.Size(), m_drawCommandsBuffer.Data());
 
-        frame->renderQueue << InsertBarrier(m_stagingBuffers[frameIndex], RS_COPY_SRC);
-        frame->renderQueue << InsertBarrier(m_indirectBuffers[frameIndex], RS_COPY_DST);
+        frame->renderQueue << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+        frame->renderQueue << InsertBarrier(indirectBuffer, RS_COPY_DST);
 
-        frame->renderQueue << CopyBuffer(m_stagingBuffers[frameIndex], m_indirectBuffers[frameIndex], m_stagingBuffers[frameIndex]->Size());
+        frame->renderQueue << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
 
-        frame->renderQueue << InsertBarrier(m_indirectBuffers[frameIndex], RS_INDIRECT_ARG);
+        frame->renderQueue << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
     }
 
-    Assert(m_instanceBuffers[frameIndex]->Size() >= m_objectInstances.Size() * sizeof(ObjectInstance));
+    Assert(instanceBuffer->Size() >= m_objectInstances.Size() * sizeof(ObjectInstance));
 
     // update data for object instances (cpu - gpu)
-    m_instanceBuffers[frameIndex]->Copy(m_objectInstances.Size() * sizeof(ObjectInstance), m_objectInstances.Data());
+    instanceBuffer->Copy(m_objectInstances.Size() * sizeof(ObjectInstance), m_objectInstances.Data());
 
     m_dirtyBits &= ~(1u << frameIndex);
 }

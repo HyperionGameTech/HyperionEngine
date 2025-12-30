@@ -495,7 +495,6 @@ namespace Hyperion
 
             if (HypData_IsArray(ref this))
             {
-                BoxedValueInternal* pArray;
                 int arraySize;
 
                 if (!HypData_GetArraySize(ref this, out arraySize))
