@@ -9,10 +9,5 @@
 namespace Hyperion {
 namespace memory {
 
-TypeId Any::GetTypeId() const
-{
-    return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeInfo->id : TypeId::Void();
-}
-
 } // namespace memory
 } // namespace Hyperion
