@@ -2121,7 +2121,6 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
         });
 }
 
-HYP_DISABLE_OPTIMIZATION;
 Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
     const FilePath& manifestPath,
     bool loadSubpackages)

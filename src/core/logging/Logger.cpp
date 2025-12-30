@@ -790,7 +790,7 @@ void Logger::LogScript(const LogChannel& channel, const LogCategory& category, c
 
     UTF8StringView sv[2] = { UTF8StringView(message), NewlineChunk };
 
-    LogMessage lm;
+    LogMessage lm {};
     lm.level = category.GetLevel();
     lm.timestamp = uint64(Time::Now());
     lm.chunks = sv;
@@ -818,15 +818,16 @@ void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumb
     static const LogChannel& s_channel = g_logChannel_Temp;
     static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Category.GetLevel()>());
 
-    const LogMessage logMessage {
-        Category.GetLevel(),
-        Time::Now().ToMilliseconds(),
-        Span<StringView<StringType::UTF8>> {
-            { s_prefix, str, "\n" } },
-        fileName, lineNumber
-    };
+    FixedArray<UTF8StringView, 3> views { s_prefix, str, "\n" };
 
-    logger.Log(s_channel, logMessage);
+    LogMessage lm {};
+    lm.level = Category.GetLevel();
+    lm.timestamp = uint64(Time::Now());
+    lm.chunks = views.ToSpan();
+    lm.fileName = fileName;
+    lm.lineNumber = lineNumber;
+
+    logger.Log(s_channel, lm);
 }
 
 } // namespace logging

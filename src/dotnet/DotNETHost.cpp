@@ -108,8 +108,6 @@ public:
         return GetDotNetPath() / "runtimeconfig.json";
     }
 
-    HYP_DISABLE_OPTIMIZATION;
-
     virtual void Initialize(const FilePath& basePath, bool initFromManaged = false, InitFromManagedCallback initFromManagedCb = nullptr) override
     {
         m_basePath = basePath;

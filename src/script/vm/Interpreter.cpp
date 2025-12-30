@@ -76,19 +76,19 @@ static const Name s_nameToString = NAME("ToString");
 static const String s_nullString = "null";
 static const String s_boolStrings[2] = { "false", "true" };
 
-static consteval TypeId s_typeIdI8 = CONSTEXPR_TYPE_ID(int8);
-static consteval TypeId s_typeIdI16 = CONSTEXPR_TYPE_ID(int16);
-static consteval TypeId s_typeIdI32 = CONSTEXPR_TYPE_ID(int32);
-static consteval TypeId s_typeIdI64 = CONSTEXPR_TYPE_ID(int64);
-static consteval TypeId s_typeIdU8 = CONSTEXPR_TYPE_ID(uint8);
-static consteval TypeId s_typeIdU16 = CONSTEXPR_TYPE_ID(uint16);
-static consteval TypeId s_typeIdU32 = CONSTEXPR_TYPE_ID(uint32);
-static consteval TypeId s_typeIdU64 = CONSTEXPR_TYPE_ID(uint64);
-static consteval TypeId s_typeIdF32 = CONSTEXPR_TYPE_ID(float32);
-static consteval TypeId s_typeIdF64 = CONSTEXPR_TYPE_ID(float64);
-static consteval TypeId s_typeIdBool = CONSTEXPR_TYPE_ID(bool);
-static consteval TypeId s_typeIdString = CONSTEXPR_TYPE_ID(Script_String);
-static consteval TypeId s_typeIdArray = CONSTEXPR_TYPE_ID(Script_Array);
+static constexpr TypeId s_typeIdI8 { CONSTEXPR_TYPE_ID(int8) };
+static constexpr TypeId s_typeIdI16 { CONSTEXPR_TYPE_ID(int16) };
+static constexpr TypeId s_typeIdI32 { CONSTEXPR_TYPE_ID(int32) };
+static constexpr TypeId s_typeIdI64 { CONSTEXPR_TYPE_ID(int64) };
+static constexpr TypeId s_typeIdU8 { CONSTEXPR_TYPE_ID(uint8) };
+static constexpr TypeId s_typeIdU16 { CONSTEXPR_TYPE_ID(uint16) };
+static constexpr TypeId s_typeIdU32 { CONSTEXPR_TYPE_ID(uint32) };
+static constexpr TypeId s_typeIdU64 { CONSTEXPR_TYPE_ID(uint64) };
+static constexpr TypeId s_typeIdF32 { CONSTEXPR_TYPE_ID(float32) };
+static constexpr TypeId s_typeIdF64 { CONSTEXPR_TYPE_ID(float64) };
+static constexpr TypeId s_typeIdBool { CONSTEXPR_TYPE_ID(bool) };
+static constexpr TypeId s_typeIdString { CONSTEXPR_TYPE_ID(Script_String) };
+static constexpr TypeId s_typeIdArray { CONSTEXPR_TYPE_ID(ScriptArray) };
 
 // clang-format off
 
