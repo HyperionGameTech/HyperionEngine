@@ -2750,14 +2750,14 @@ void AssetRegistry::RegisterAssetsRecursively(
             return;
         }
 
-        for (const IHypMember& member : cls->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD, /* deep */ true))
+        for (const IMember& member : cls->GetMembers(MemberType::Property | MemberType::Field, /* deep */ true))
         {
             if (member.IsDelegate())
             {
                 continue;
             }
 
-            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute(Attributes::g_attrProperty).IsValid())
+            if (member.GetMemberType() != MemberType::Property && member.GetAttribute(Attributes::g_attrProperty).IsValid())
             {
                 // skip non-property members if they have the 'property' attribute (synthetic property)
                 continue;
@@ -2772,13 +2772,13 @@ void AssetRegistry::RegisterAssetsRecursively(
             BoxedValue memberData;
             switch (member.GetMemberType())
             {
-            case HypMemberType::TYPE_PROPERTY:
+            case MemberType::Property:
             {
                 const Property* property = static_cast<const Property*>(&member);
                 memberData = property->Get(*boxed);
                 break;
             }
-            case HypMemberType::TYPE_FIELD:
+            case MemberType::Field:
             {
                 const Field* field = static_cast<const Field*>(&member);
                 memberData = field->Get(*boxed);

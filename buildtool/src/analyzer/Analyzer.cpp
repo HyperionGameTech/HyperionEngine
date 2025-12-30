@@ -34,26 +34,26 @@ HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
 using namespace Json;
 
-static const HashMap<String, ClassDefinitionType> g_classDefinitionTypes = {
-    { "HYP_CLASS", ClassDefinitionType::CLASS },
-    { "HYP_STRUCT", ClassDefinitionType::STRUCT },
-    { "HYP_ENUM", ClassDefinitionType::ENUM }
+static const HashMap<String, ClassDefinitionType> s_classDefinitionTypes = {
+    { "HYP_CLASS", ClassDefinitionType::Class },
+    { "HYP_STRUCT", ClassDefinitionType::Struct },
+    { "HYP_ENUM", ClassDefinitionType::Enum }
 };
 
-static const HashMap<String, HypMemberType> g_hypMemberDefinitionTypes = {
-    { "HYP_FIELD", HypMemberType::TYPE_FIELD },
-    { "HYP_METHOD", HypMemberType::TYPE_METHOD },
-    { "HYP_PROPERTY", HypMemberType::TYPE_PROPERTY }
+static const HashMap<String, MemberType> s_memberDefinitionTypes = {
+    { "HYP_FIELD", MemberType::Field },
+    { "HYP_METHOD", MemberType::Method },
+    { "HYP_PROPERTY", MemberType::Property }
 };
 
 const String& ClassDefinitionTypeToString(ClassDefinitionType type)
 {
-    auto it = g_classDefinitionTypes.FindIf([type](const Pair<String, ClassDefinitionType>& pair)
+    auto it = s_classDefinitionTypes.FindIf([type](const Pair<String, ClassDefinitionType>& pair)
         {
             return pair.second == type;
         });
 
-    if (it != g_classDefinitionTypes.End())
+    if (it != s_classDefinitionTypes.End())
     {
         return it->first;
     }
@@ -156,14 +156,14 @@ static void ParseInnerContent(const String& content, String& outResult)
     }
 }
 
-const String& HypMemberTypeToString(HypMemberType type)
+const String& MemberTypeToString(MemberType type)
 {
-    auto it = g_hypMemberDefinitionTypes.FindIf([type](const Pair<String, HypMemberType>& pair)
+    auto it = s_memberDefinitionTypes.FindIf([type](const Pair<String, MemberType>& pair)
         {
             return pair.second == type;
         });
 
-    if (it != g_hypMemberDefinitionTypes.End())
+    if (it != s_memberDefinitionTypes.End())
     {
         return it->first;
     }
@@ -442,7 +442,7 @@ static TResult<Pair<E, Array<Pair<String, ClassAttributeValue>>>> ParseHypMacro(
         }
     }
 
-    return Pair<E, Array<Pair<String, ClassAttributeValue>>> { E::NONE, {} };
+    return Pair<E, Array<Pair<String, ClassAttributeValue>>> { E::None, {} };
 }
 
 static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyzer& analyzer, Module& mod)
@@ -475,14 +475,14 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
         SizeType macroStartIndex;
         SizeType macroEndIndex;
 
-        auto parseMacroResult = ParseHypMacro(g_classDefinitionTypes, lines[i], macroStartIndex, macroEndIndex, true);
+        auto parseMacroResult = ParseHypMacro(s_classDefinitionTypes, lines[i], macroStartIndex, macroEndIndex, true);
 
         if (parseMacroResult.HasError())
         {
             return AnalyzerError(parseMacroResult.GetError(), mod.GetPath());
         }
 
-        if (parseMacroResult.GetValue().first == ClassDefinitionType::NONE)
+        if (parseMacroResult.GetValue().first == ClassDefinitionType::None)
         {
             // no match; continue
             continue;
@@ -534,7 +534,7 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
             "ClassDefinition must be a class, struct, enum, or enum class. Got source:\n\t{}", classDefinition.source);
 
         // Validate that HYP_CLASS has HYP_OBJECT_BODY and HYP_STRUCT has HYP_STRUCT_BODY
-        if (classDefinition.type == ClassDefinitionType::CLASS)
+        if (classDefinition.type == ClassDefinitionType::Class)
         {
             if (!classDefinition.isCXXEnum && !classDefinition.isCXXEnumClass)
             {
@@ -544,7 +544,7 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
                 }
             }
         }
-        else if (classDefinition.type == ClassDefinitionType::STRUCT)
+        else if (classDefinition.type == ClassDefinitionType::Struct)
         {
             if (!classDefinition.isCXXEnum && !classDefinition.isCXXEnumClass)
             {
@@ -562,7 +562,7 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
 }
 
 // Add attributes to allow the runtime to access metadata on the member
-static void AddMetadata(ASTMemberDecl* decl, HypMemberDefinition& result)
+static void AddMetadata(ASTMemberDecl* decl, MemberDef& result)
 {
     if (!decl)
     {
@@ -635,9 +635,9 @@ static TResult<void, AnalyzerError> CreateParser(const Analyzer& analyzer, const
     return checkErrors();
 }
 
-static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildClassMembers(const Analyzer& analyzer, const Module& mod, const ClassDefinition& classDefinition)
+static TResult<Array<MemberDef>, AnalyzerError> BuildClassMembers(const Analyzer& analyzer, const Module& mod, const ClassDefinition& classDefinition)
 {
-    Array<HypMemberDefinition> results;
+    Array<MemberDef> results;
 
     Array<String> lines = classDefinition.source.Split('\n');
 
@@ -648,23 +648,23 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildClassMembers(cons
         SizeType macroStartIndex;
         SizeType macroEndIndex;
 
-        auto parseMacroResult = ParseHypMacro(g_hypMemberDefinitionTypes, line, macroStartIndex, macroEndIndex, false);
+        auto parseMacroResult = ParseHypMacro(s_memberDefinitionTypes, line, macroStartIndex, macroEndIndex, false);
 
         if (parseMacroResult.HasError())
         {
             return AnalyzerError(parseMacroResult.GetError(), mod.GetPath());
         }
 
-        if (parseMacroResult.GetValue().first == HypMemberType::NONE)
+        if (parseMacroResult.GetValue().first == MemberType::None)
         {
             continue;
         }
 
-        HypMemberDefinition& result = results.EmplaceBack();
+        MemberDef& result = results.EmplaceBack();
         result.type = parseMacroResult.GetValue().first;
         result.attributes = parseMacroResult.GetValue().second;
 
-        if (result.type == HypMemberType::TYPE_PROPERTY)
+        if (result.type == MemberType::Property)
         {
             if (result.attributes.Empty() || result.attributes[0].first.Empty())
             {
@@ -704,9 +704,9 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildClassMembers(cons
     return results;
 }
 
-static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildEnumMembers(const Analyzer& analyzer, const Module& mod, const ClassDefinition& classDefinition)
+static TResult<Array<MemberDef>, AnalyzerError> BuildEnumMembers(const Analyzer& analyzer, const Module& mod, const ClassDefinition& classDefinition)
 {
-    Array<HypMemberDefinition> results;
+    Array<MemberDef> results;
 
     String innerContent;
     ParseInnerContent(classDefinition.source, innerContent);
@@ -739,8 +739,8 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildEnumMembers(const
 
             do
             {
-                HypMemberDefinition hypMemberDefinition;
-                hypMemberDefinition.type = HypMemberType::TYPE_STATIC_FIELD;
+                MemberDef memberDef;
+                memberDef.type = MemberType::StaticField;
 
                 memberDecl = parser.ParseEnumMemberDecl(nullptr);
 
@@ -749,17 +749,17 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildEnumMembers(const
                     return HYP_MAKE_ERROR(AnalyzerError, "Failed to parse enum member declaration", mod.GetPath());
                 }
 
-                hypMemberDefinition.name = memberDecl->name;
-                hypMemberDefinition.cxxType = memberDecl->type;
-                hypMemberDefinition.cxxDecl = memberDecl;
+                memberDef.name = memberDecl->name;
+                memberDef.cxxType = memberDecl->type;
+                memberDef.cxxDecl = memberDecl;
 
-                if (hypMemberDefinition.name.Empty())
+                if (memberDef.name.Empty())
                 {
                     return HYP_MAKE_ERROR(AnalyzerError, "Enum member must have a name for element at index {}", mod.GetPath(), 0, member_index);
                 }
 
                 // Add the member to the results
-                results.PushBack(std::move(hypMemberDefinition));
+                results.PushBack(std::move(memberDef));
 
                 ++member_index;
             }
@@ -784,7 +784,7 @@ Analyzer::Analyzer()
 
     // reserve 'ObjectBase' class
     ClassDefinition& classDefinition = m_builtinClasses.Emplace("ObjectBase", ClassDefinition { }).first->second;
-    classDefinition.type = ClassDefinitionType::CLASS;
+    classDefinition.type = ClassDefinitionType::Class;
     classDefinition.name = "ObjectBase";
     classDefinition.staticIndex = 0;
     classDefinition.isCXXClass = true;
@@ -840,16 +840,16 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
 
     for (ClassDefinition& classDefinition : res.GetValue())
     {
-        TResult<Array<HypMemberDefinition>, AnalyzerError> res = Array<HypMemberDefinition> {};
+        TResult<Array<MemberDef>, AnalyzerError> res = Array<MemberDef> {};
 
         switch (classDefinition.type)
         {
-        case ClassDefinitionType::CLASS:
-        case ClassDefinitionType::STRUCT: // fallthrough
+        case ClassDefinitionType::Class:
+        case ClassDefinitionType::Struct: // fallthrough
             res = BuildClassMembers(*this, mod, classDefinition);
 
             break;
-        case ClassDefinitionType::ENUM:
+        case ClassDefinitionType::Enum:
             res = BuildEnumMembers(*this, mod, classDefinition);
 
             break;
@@ -864,27 +864,29 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
             return res.GetError();
         }
 
-        Array<HypMemberDefinition> members = std::move(res.GetValue());
+        Array<MemberDef> members = std::move(res.GetValue());
 
-        for (HypMemberDefinition& definition : members)
+        for (MemberDef& definition : members)
         {
             definition.friendlyName = definition.name;
 
             switch (definition.type)
             {
-            case HypMemberType::TYPE_STATIC_FIELD: // fallthrough
-            case HypMemberType::TYPE_FIELD:        // fallthrough
-            case HypMemberType::TYPE_PROPERTY:
+            case MemberType::StaticField: // fallthrough
+            case MemberType::Field:       // fallthrough
+            case MemberType::Property:
             {
 #if HYP_BUILD_TOOL_FRIENDLY_NAMES
                 bool preserveCase = true;
 
-                if (classDefinition.type == ClassDefinitionType::ENUM)
+                if (classDefinition.type == ClassDefinitionType::Enum)
                 {
-                    // ensure ALL_CAPS enum members get converted to PascalCase. don't preserve their casing.
-                    preserveCase = false;
+                    break; // don't change enum member names
                 }
-                else if (definition.cxxType->isStatic && (definition.cxxType->isConst || definition.cxxType->isConstexpr))
+
+                if (definition.cxxType != nullptr
+                    && definition.cxxType->isStatic
+                    && (definition.cxxType->isConst || definition.cxxType->isConstexpr))
                 {
                     // static const / constexpr members could be in ALL_CAPS case, although we generally don't use that style
                     preserveCase = false;
@@ -897,23 +899,13 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                     nameWithoutPrefix = nameWithoutPrefix.Substr(2);
                 }
 
-                // Convert properties, static fields / enum members to PascalCase
-                if (definition.type == HypMemberType::TYPE_STATIC_FIELD
-                    || definition.type == HypMemberType::TYPE_PROPERTY)
-                {
-                    definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
-                }
-                else
-                {
-                    // normal fields should stay the same (camelCase) but without prefix:
-                    definition.friendlyName = nameWithoutPrefix;
-                }
+                definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
 #endif
 
                 break;
             }
                 // Methods need no change
-            case HypMemberType::TYPE_METHOD: // fallthrough
+            case MemberType::Method: // fallthrough
             default:
                 break;
             }

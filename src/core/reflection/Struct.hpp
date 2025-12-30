@@ -22,7 +22,7 @@ class FBOMLoadContext;
 class Struct : public Class
 {
 public:
-    Struct(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+    Struct(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members)
         : Class(typeId, name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
     }
@@ -72,7 +72,7 @@ public:
         Name parentName,
         Span<const ClassAttribute> attributes,
         EnumFlags<ClassFlags> flags,
-        Span<HypMember> members)
+        Span<MemberVariant> members)
     {
         static StructInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
 
@@ -86,7 +86,7 @@ public:
         Name parentName,
         Span<const ClassAttribute> attributes,
         EnumFlags<ClassFlags> flags,
-        Span<HypMember> members)
+        Span<MemberVariant> members)
         : Struct(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
         m_size = sizeof(T);
@@ -295,7 +295,7 @@ public:
         uint32 size,
         Span<const ClassAttribute> attributes,
         EnumFlags<ClassFlags> flags,
-        Span<HypMember> members,
+        Span<MemberVariant> members,
         DynamicStructInstance_CopyFunction copyFunction,
         DynamicStructInstance_DestructFunction destructFunction);
 

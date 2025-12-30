@@ -3,9 +3,9 @@
 
 namespace Hyperion {
 
-HYP_API BoxedValue GetEnumMemberValue(const IHypMember& enumMember)
+HYP_API BoxedValue GetEnumMemberValue(const IMember& enumMember)
 {
-    AssertDebug(enumMember.GetMemberType() == HypMemberType::TYPE_STATIC_FIELD);
+    AssertDebug(enumMember.GetMemberType() == MemberType::StaticField);
 
     return static_cast<const StaticField&>(enumMember).Get();
 }

@@ -31,7 +31,7 @@ class ManagedObject;
 
 class Class;
 class ClassAttribute;
-struct HypMember;
+struct MemberVariant;
 
 template <class T>
 struct ClassDefinition;

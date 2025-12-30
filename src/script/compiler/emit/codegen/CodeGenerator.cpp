@@ -311,7 +311,7 @@ void CodeGenerator::Visit(ClassTable* node)
     Assert(flags != 0);
 
     // begin members. write member type (uint8) and count (uint16)
-    auto writeMembers = [&](const auto& members, HypMemberType memberType)
+    auto writeMembers = [&](const auto& members, MemberType memberType)
     {
         if (members.Any())
         {
@@ -385,7 +385,7 @@ void CodeGenerator::Visit(ClassTable* node)
                 m_ibs.Put(reinterpret_cast<ubyte*>(&typeIdValue), sizeof(typeIdValue));
 
                 // field writes target type id, offset, size
-                if (memberType == HypMemberType::TYPE_FIELD)
+                if (memberType == MemberType::Field)
                 {
                     const ClassTable::FieldInfo& fieldInfo = static_cast<const ClassTable::FieldInfo&>(member);
 
@@ -398,7 +398,7 @@ void CodeGenerator::Visit(ClassTable* node)
                     uint32 size = fieldInfo.size;
                     m_ibs.Put(reinterpret_cast<ubyte*>(&size), sizeof(size));
                 }
-                else if (memberType == HypMemberType::TYPE_METHOD)
+                else if (memberType == MemberType::Method)
                 {
                     const ClassTable::MethodInfo& methodInfo = static_cast<const ClassTable::MethodInfo&>(member);
 
@@ -412,7 +412,7 @@ void CodeGenerator::Visit(ClassTable* node)
                     Assert(methodInfo.stackOffset != UINT16_MAX, "Method stack offset not set");
                     m_ibs.Put(reinterpret_cast<const ubyte*>(&methodInfo.stackOffset), sizeof(methodInfo.stackOffset));
                 }
-                else if (memberType == HypMemberType::TYPE_STATIC_FIELD)
+                else if (memberType == MemberType::StaticField)
                 {
                     const ClassTable::StaticFieldInfo& staticFieldInfo = static_cast<const ClassTable::StaticFieldInfo&>(member);
 
@@ -427,9 +427,9 @@ void CodeGenerator::Visit(ClassTable* node)
         }
     };
 
-    writeMembers(node->staticFields, HypMemberType::TYPE_STATIC_FIELD);
-    writeMembers(node->fields, HypMemberType::TYPE_FIELD);
-    writeMembers(node->methods, HypMemberType::TYPE_METHOD);
+    writeMembers(node->staticFields, MemberType::StaticField);
+    writeMembers(node->fields, MemberType::Field);
+    writeMembers(node->methods, MemberType::Method);
 
     m_ibs.Put(Instructions::END_CLASS);
 }

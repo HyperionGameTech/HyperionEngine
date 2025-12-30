@@ -23,7 +23,7 @@
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Method.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/Member.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
 #include <core/io/BufferedByteReader.hpp>
@@ -319,14 +319,14 @@ bool HypScript::GetMember(Script_Instance* instance, const BoxedValue& targetVal
     const Class* cls = object.ptr->InstanceClass();
     Assert(cls != nullptr);
 
-    IHypMember* member = cls->GetMember(StringHash(memberName));
+    IMember* member = cls->GetMember(StringHash(memberName));
 
     if (!member)
     {
         return false;
     }
 
-    if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
+    if (member->GetMemberType() == MemberType::Field)
     {
         Field* field = static_cast<Field*>(member);
 
@@ -335,7 +335,7 @@ bool HypScript::GetMember(Script_Instance* instance, const BoxedValue& targetVal
         return true;
     }
 
-    if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
+    if (member->GetMemberType() == MemberType::Method)
     {
         Method* method = static_cast<Method*>(member);
 

@@ -2,7 +2,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Enum.hpp>
-#include <core/reflection/HypMember.hpp>
+#include <core/reflection/MemberVariant.hpp>
 #include <core/reflection/Object.hpp>
 #include <core/reflection/StaticField.hpp>
 #include <core/reflection/ClassRegistry.hpp>
@@ -550,7 +550,7 @@ const char* LookupTypeName(const TypeId& typeId)
 
 #pragma region ClassMemberIterator
 
-ClassMemberIterator::ClassMemberIterator(const Class* cls, EnumFlags<HypMemberType> memberTypes, Phase phase, bool deep)
+ClassMemberIterator::ClassMemberIterator(const Class* cls, EnumFlags<MemberType> memberTypes, Phase phase, bool deep)
     : m_memberTypes(memberTypes),
       m_phase(phase),
       m_deep(deep),
@@ -590,7 +590,7 @@ void ClassMemberIterator::Advance()
     switch (m_phase)
     {
     case Phase::ITERATE_STATIC_FIELDS:
-        if ((m_memberTypes & HypMemberType::TYPE_STATIC_FIELD) && m_currentIndex < m_target->GetStaticFields().Size())
+        if ((m_memberTypes & MemberType::StaticField) && m_currentIndex < m_target->GetStaticFields().Size())
         {
             m_currentValue = m_target->GetStaticFields()[m_currentIndex++];
         }
@@ -605,7 +605,7 @@ void ClassMemberIterator::Advance()
 
         break;
     case Phase::ITERATE_PROPERTIES:
-        if ((m_memberTypes & HypMemberType::TYPE_PROPERTY) && m_currentIndex < m_target->GetProperties().Size())
+        if ((m_memberTypes & MemberType::Property) && m_currentIndex < m_target->GetProperties().Size())
         {
             m_currentValue = m_target->GetProperties()[m_currentIndex++];
         }
@@ -620,7 +620,7 @@ void ClassMemberIterator::Advance()
 
         break;
     case Phase::ITERATE_METHODS:
-        if ((m_memberTypes & HypMemberType::TYPE_METHOD) && m_currentIndex < m_target->GetMethods().Size())
+        if ((m_memberTypes & MemberType::Method) && m_currentIndex < m_target->GetMethods().Size())
         {
             m_currentValue = m_target->GetMethods()[m_currentIndex++];
         }
@@ -635,7 +635,7 @@ void ClassMemberIterator::Advance()
 
         break;
     case Phase::ITERATE_FIELDS:
-        if ((m_memberTypes & HypMemberType::TYPE_FIELD) && m_currentIndex < m_target->GetFields().Size())
+        if ((m_memberTypes & MemberType::Field) && m_currentIndex < m_target->GetFields().Size())
         {
             m_currentValue = m_target->GetFields()[m_currentIndex++];
         }
@@ -658,7 +658,7 @@ void ClassMemberIterator::Advance()
 
 #pragma region Class
 
-Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members)
     : m_typeId(typeId),
       m_typeInfo(nullptr),
       m_name(name),
@@ -707,13 +707,13 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
     }
 
     // initialize properties containers
-    for (HypMember& member : members)
+    for (MemberVariant& member : members)
     {
         Assert(member.internal != nullptr);
 
         switch (member.internal->GetMemberType())
         {
-        case HypMemberType::TYPE_PROPERTY:
+        case MemberType::Property:
         {
             Property* property = static_cast<Property*>(member.internal);
             member.internal = nullptr;
@@ -727,7 +727,7 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
 
             break;
         }
-        case HypMemberType::TYPE_METHOD:
+        case MemberType::Method:
         {
             Method* method = static_cast<Method*>(member.internal);
             member.internal = nullptr;
@@ -739,7 +739,7 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
 
             break;
         }
-        case HypMemberType::TYPE_FIELD:
+        case MemberType::Field:
         {
             Field* field = static_cast<Field*>(member.internal);
             member.internal = nullptr;
@@ -751,7 +751,7 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
 
             break;
         }
-        case HypMemberType::TYPE_STATIC_FIELD:
+        case MemberType::StaticField:
         {
             StaticField* staticField = static_cast<StaticField*>(member.internal);
             member.internal = nullptr;
@@ -889,9 +889,9 @@ void Class::Initialize()
     }
 
     // Build properties from `Property=` attributes on methods and fields
-    Array<Pair<String, Array<IHypMember*>>> propertiesToBuild;
+    Array<Pair<String, Array<IMember*>>> propertiesToBuild;
 
-    for (IHypMember& member : GetMembers(/* includeProperties */ false, /* deep */ false))
+    for (IMember& member : GetMembers(/* includeProperties */ false, /* deep */ false))
     {
         if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrProperty))
         {
@@ -904,34 +904,34 @@ void Class::Initialize()
 
             if (propertiesToBuildIt == propertiesToBuild.End())
             {
-                propertiesToBuildIt = &propertiesToBuild.EmplaceBack(attrString, Array<IHypMember*> {});
+                propertiesToBuildIt = &propertiesToBuild.EmplaceBack(attrString, Array<IMember*> {});
             }
 
             propertiesToBuildIt->second.PushBack(&member);
         }
     }
 
-    for (const Pair<String, Array<IHypMember*>>& it : propertiesToBuild)
+    for (const Pair<String, Array<IMember*>>& it : propertiesToBuild)
     {
         if (it.second.Empty())
         {
             continue;
         }
 
-        const auto findFieldIt = it.second.FindIf([](IHypMember* member)
+        const auto findFieldIt = it.second.FindIf([](IMember* member)
             {
-                return member->GetMemberType() == HypMemberType::TYPE_FIELD;
+                return member->GetMemberType() == MemberType::Field;
             });
 
-        const auto findGetterIt = it.second.FindIf([](IHypMember* member)
+        const auto findGetterIt = it.second.FindIf([](IMember* member)
             {
-                return member->GetMemberType() == HypMemberType::TYPE_METHOD
+                return member->GetMemberType() == MemberType::Method
                     && static_cast<Method*>(member)->GetParameters().Size() == 1;
             });
 
-        const auto findSetterIt = it.second.FindIf([](IHypMember* member)
+        const auto findSetterIt = it.second.FindIf([](IMember* member)
             {
-                return member->GetMemberType() == HypMemberType::TYPE_METHOD
+                return member->GetMemberType() == MemberType::Method
                     && static_cast<Method*>(member)->GetParameters().Size() == 2;
             });
 
@@ -983,9 +983,9 @@ bool Class::CanSerialize() const
     return false;
 }
 
-IHypMember* Class::GetMember(StringHash name, EnumFlags<HypMemberType> memberTypes, bool deep) const
+IMember* Class::GetMember(StringHash name, EnumFlags<MemberType> memberTypes, bool deep) const
 {
-    if (memberTypes & HypMemberType::TYPE_PROPERTY)
+    if (memberTypes & MemberType::Property)
     {
         if (Property* property = GetProperty(name, /* deep */ false))
         {
@@ -993,7 +993,7 @@ IHypMember* Class::GetMember(StringHash name, EnumFlags<HypMemberType> memberTyp
         }
     }
 
-    if (memberTypes & HypMemberType::TYPE_FIELD)
+    if (memberTypes & MemberType::Field)
     {
         if (Field* field = GetField(name, /* deep */ false))
         {
@@ -1001,7 +1001,7 @@ IHypMember* Class::GetMember(StringHash name, EnumFlags<HypMemberType> memberTyp
         }
     }
 
-    if (memberTypes & HypMemberType::TYPE_METHOD)
+    if (memberTypes & MemberType::Method)
     {
         if (Method* method = GetMethod(name, /* deep */ false))
         {
@@ -1009,7 +1009,7 @@ IHypMember* Class::GetMember(StringHash name, EnumFlags<HypMemberType> memberTyp
         }
     }
 
-    if (memberTypes & HypMemberType::TYPE_STATIC_FIELD)
+    if (memberTypes & MemberType::StaticField)
     {
         if (StaticField* staticField = GetStaticField(name, /* deep */ false))
         {
@@ -1334,7 +1334,7 @@ bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& out
 #pragma region DynamicClassInstance
 
 #ifdef HYP_DOTNET
-DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* pManagedClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* pManagedClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members)
     : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | ClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
@@ -1365,7 +1365,7 @@ DynamicClassInstance::DynamicClassInstance(
     const Class* parentClass,
     Span<const ClassAttribute> attributes,
     EnumFlags<ClassFlags> flags,
-    Span<HypMember> members)
+    Span<MemberVariant> members)
     : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | ClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
@@ -1589,7 +1589,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
         ObjectBase* target = reinterpret_cast<ObjectBase*>(out.ToRef().GetPointer());
         Assert(target != nullptr);
-        
+
         // override instance class
         target->GetObjectHeader_Internal()->cls = this;
 

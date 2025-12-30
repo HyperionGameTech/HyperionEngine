@@ -35,41 +35,43 @@ class FBOMLoadContext;
 using serialization::FBOMData;
 using serialization::FBOMLoadContext;
 
-enum class HypMemberType : uint8
+enum class MemberType : uint8
 {
-    NONE = 0x0,
-    TYPE_FIELD = 0x1,
-    TYPE_METHOD = 0x2,
-    TYPE_PROPERTY = 0x4,
-    TYPE_STATIC_FIELD = 0x8,
-    ALL = TYPE_FIELD | TYPE_METHOD | TYPE_PROPERTY | TYPE_STATIC_FIELD
+    None = 0x0,
+
+    Field = 0x1,
+    Method = 0x2,
+    Property = 0x4,
+    StaticField = 0x8,
+
+    All = Field | Method | Property | StaticField
 };
 
-HYP_MAKE_ENUM_FLAGS(HypMemberType)
+HYP_MAKE_ENUM_FLAGS(MemberType)
 
-enum class HypMemberFlags : uint32
+enum class MemberFlags : uint32
 {
-    NONE = 0x0,
-    DELEGATE = 0x1
+    None = 0x0,
+    DelegateField = 0x1
 };
 
-HYP_MAKE_ENUM_FLAGS(HypMemberFlags);
+HYP_MAKE_ENUM_FLAGS(MemberFlags);
 
-class IHypMember
+class IMember
 {
     friend class Class;
 
 protected:
-    IHypMember()
+    IMember()
         : m_ownerClass(nullptr),
-          m_flags(HypMemberFlags::NONE)
+          m_flags(MemberFlags::None)
     {
     }
 
 public:
-    virtual ~IHypMember() = default;
+    virtual ~IMember() = default;
 
-    virtual HypMemberType GetMemberType() const = 0;
+    virtual MemberType GetMemberType() const = 0;
 
     virtual Name GetName() const = 0;
 
@@ -91,14 +93,14 @@ public:
         return m_ownerClass;
     }
 
-    HYP_FORCE_INLINE EnumFlags<HypMemberFlags> GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<MemberFlags> GetFlags() const
     {
         return m_flags;
     }
 
     HYP_FORCE_INLINE bool IsDelegate() const
     {
-        return m_flags[HypMemberFlags::DELEGATE];
+        return m_flags[MemberFlags::DelegateField];
     }
 
     virtual bool CanSerialize() const = 0;
@@ -113,7 +115,7 @@ public:
 
 protected:
     const Class* m_ownerClass;
-    EnumFlags<HypMemberFlags> m_flags;
+    EnumFlags<MemberFlags> m_flags;
 };
 
 } // namespace Hyperion

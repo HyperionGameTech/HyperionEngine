@@ -5,7 +5,7 @@
 #include <core/reflection/ObjectFwd.hpp>
 #include <core/reflection/ObjectEnums.hpp>
 #include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/Member.hpp>
 #include <core/reflection/ClassAttribute.hpp>
 
 #include <core/containers/HashMap.hpp>
@@ -28,7 +28,7 @@ struct ObjectReference;
 class IResource;
 class ObjectContainerBase;
 
-struct HypMember;
+struct MemberVariant;
 class Property;
 class Method;
 class Field;
@@ -123,7 +123,7 @@ class ClassMemberIterator
 
     friend class ClassMemberList;
 
-    static Phase NextPhase(EnumFlags<HypMemberType> allowedTypes, Phase current)
+    static Phase NextPhase(EnumFlags<MemberType> allowedTypes, Phase current)
     {
         const auto getNext = [](Phase phase) -> Phase
         {
@@ -140,13 +140,13 @@ class ClassMemberIterator
             switch (nextPhase)
             {
             case Phase::ITERATE_STATIC_FIELDS:
-                return allowedTypes & HypMemberType::TYPE_STATIC_FIELD;
+                return allowedTypes & MemberType::StaticField;
             case Phase::ITERATE_PROPERTIES:
-                return allowedTypes & HypMemberType::TYPE_PROPERTY;
+                return allowedTypes & MemberType::Property;
             case Phase::ITERATE_METHODS:
-                return allowedTypes & HypMemberType::TYPE_METHOD;
+                return allowedTypes & MemberType::Method;
             case Phase::ITERATE_FIELDS:
-                return allowedTypes & HypMemberType::TYPE_FIELD;
+                return allowedTypes & MemberType::Field;
             default:
                 return true;
             }
@@ -162,7 +162,7 @@ class ClassMemberIterator
         return nextPhase;
     }
 
-    HYP_API ClassMemberIterator(const Class* cls, EnumFlags<HypMemberType> memberTypes, Phase phase, bool deep = true);
+    HYP_API ClassMemberIterator(const Class* cls, EnumFlags<MemberType> memberTypes, Phase phase, bool deep = true);
 
 public:
     ClassMemberIterator(const ClassMemberIterator& other) = default;
@@ -188,22 +188,22 @@ public:
         return result;
     }
 
-    HYP_FORCE_INLINE IHypMember& operator*()
+    HYP_FORCE_INLINE IMember& operator*()
     {
         return *m_currentValue;
     }
 
-    HYP_FORCE_INLINE const IHypMember& operator*() const
+    HYP_FORCE_INLINE const IMember& operator*() const
     {
         return *m_currentValue;
     }
 
-    HYP_FORCE_INLINE IHypMember* operator->()
+    HYP_FORCE_INLINE IMember* operator->()
     {
         return m_currentValue;
     }
 
-    HYP_FORCE_INLINE const IHypMember* operator->() const
+    HYP_FORCE_INLINE const IMember* operator->() const
     {
         return m_currentValue;
     }
@@ -211,13 +211,13 @@ public:
 private:
     HYP_API void Advance();
 
-    EnumFlags<HypMemberType> m_memberTypes;
+    EnumFlags<MemberType> m_memberTypes;
     Phase m_phase;
     const Class* m_target;
     bool m_deep;
 
     SizeType m_currentIndex;
-    mutable IHypMember* m_currentValue;
+    mutable IMember* m_currentValue;
 };
 
 class ClassMemberList
@@ -226,7 +226,7 @@ public:
     using Iterator = ClassMemberIterator;
     using ConstIterator = ClassMemberIterator;
 
-    ClassMemberList(const Class* cls, EnumFlags<HypMemberType> memberTypes, bool deep = true)
+    ClassMemberList(const Class* cls, EnumFlags<MemberType> memberTypes, bool deep = true)
         : m_class(cls),
           m_memberTypes(memberTypes),
           m_deep(deep)
@@ -245,7 +245,7 @@ public:
 
 private:
     const Class* m_class;
-    EnumFlags<HypMemberType> m_memberTypes;
+    EnumFlags<MemberType> m_memberTypes;
     bool m_deep;
 };
 
@@ -341,7 +341,7 @@ public:
         Name parentName,
         Span<const ClassAttribute> attributes,
         EnumFlags<ClassFlags> flags,
-        Span<HypMember> members);
+        Span<MemberVariant> members);
 
     Class(const Class& other) = delete;
     Class& operator=(const Class& other) = delete;
@@ -525,7 +525,7 @@ public:
         return defaultValue;
     }
 
-    HYP_FORCE_INLINE ClassMemberList GetMembers(EnumFlags<HypMemberType> memberTypes, bool deep = true) const
+    HYP_FORCE_INLINE ClassMemberList GetMembers(EnumFlags<MemberType> memberTypes, bool deep = true) const
     {
         return {
             this,
@@ -538,15 +538,15 @@ public:
     {
         return {
             this,
-            HypMemberType::TYPE_METHOD
-                | HypMemberType::TYPE_FIELD
-                | HypMemberType::TYPE_STATIC_FIELD
-                | (includeProperties ? HypMemberType::TYPE_PROPERTY : HypMemberType::NONE),
+            MemberType::Method
+                | MemberType::Field
+                | MemberType::StaticField
+                | (includeProperties ? MemberType::Property : MemberType::None),
             deep
         };
     }
 
-    IHypMember* GetMember(StringHash name, EnumFlags<HypMemberType> memberTypes = HypMemberType::ALL, bool deep = true) const;
+    IMember* GetMember(StringHash name, EnumFlags<MemberType> memberTypes = MemberType::All, bool deep = true) const;
 
     Property* GetProperty(StringHash name, bool deep = true) const;
 
@@ -717,7 +717,7 @@ public:
         Name parentName,
         Span<const ClassAttribute> attributes,
         EnumFlags<ClassFlags> flags,
-        Span<HypMember> members)
+        Span<MemberVariant> members)
     {
         static ClassInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
 
@@ -731,7 +731,7 @@ public:
         Name parentName,
         Span<const ClassAttribute> attributes,
         EnumFlags<ClassFlags> flags,
-        Span<HypMember> members)
+        Span<MemberVariant> members)
         : Class(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
         m_size = sizeof(T);
@@ -920,11 +920,11 @@ class DynamicClassInstance final : public Class
 {
 public:
 #ifdef HYP_DOTNET
-    DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* pManagedClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members);
+    DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* pManagedClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members);
 #endif
 
 #ifdef HYP_SCRIPT
-    DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members);
+    DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members);
 #endif
 
     virtual ~DynamicClassInstance() override;

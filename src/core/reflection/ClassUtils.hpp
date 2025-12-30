@@ -5,7 +5,7 @@
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Struct.hpp>
 #include <core/reflection/Enum.hpp>
-#include <core/reflection/HypMember.hpp>
+#include <core/reflection/MemberVariant.hpp>
 #include <core/reflection/TypeInfo.hpp>
 #include <core/reflection/ObjectMacros.hpp>
 
@@ -34,8 +34,8 @@ public:
         | (IsPodTypeV<T> ? ClassFlags::POD_TYPE : ClassFlags::NONE)
         | (std::is_abstract_v<T> ? ClassFlags::ABSTRACT : ClassFlags::NONE);
 
-    ClassRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<HypMember> members)
-        : ClassRegistrationBase(TypeId::ForType<T>(), &ClassInstance<T>::GetInstance(name, staticIndex, numDescendants, parentName, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
+    ClassRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
+        : ClassRegistrationBase(TypeId::ForType<T>(), &ClassInstance<T>::GetInstance(name, staticIndex, numDescendants, parentName, attributes, flags, Span<MemberVariant>(members.Begin(), members.End())))
     {
 #ifndef HYP_BUILDTOOL
         *pGlobal = m_class;
@@ -51,8 +51,8 @@ public:
         | (IsPodTypeV<T> ? ClassFlags::POD_TYPE : ClassFlags::NONE)
         | (std::is_abstract_v<T> ? ClassFlags::ABSTRACT : ClassFlags::NONE);
 
-    StructRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<HypMember> members)
-        : ClassRegistrationBase(TypeId::ForType<T>(), &StructInstance<T>::GetInstance(name, staticIndex, numDescendants, parentName, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
+    StructRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
+        : ClassRegistrationBase(TypeId::ForType<T>(), &StructInstance<T>::GetInstance(name, staticIndex, numDescendants, parentName, attributes, flags, Span<MemberVariant>(members.Begin(), members.End())))
     {
 #ifndef HYP_BUILDTOOL
         *pGlobal = m_class;
@@ -66,8 +66,8 @@ class EnumRegistration final : public ClassRegistrationBase
 public:
     static constexpr EnumFlags<ClassFlags> flags = ClassFlags::ENUM_TYPE;
 
-    EnumRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Span<const ClassAttribute> attributes, Span<HypMember> members)
-        : ClassRegistrationBase(TypeId::ForType<T>(), &EnumInstance<T>::GetInstance(name, staticIndex, numDescendants, Name::Invalid(), attributes, flags, Span<HypMember>(members.Begin(), members.End())))
+    EnumRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
+        : ClassRegistrationBase(TypeId::ForType<T>(), &EnumInstance<T>::GetInstance(name, staticIndex, numDescendants, Name::Invalid(), attributes, flags, Span<MemberVariant>(members.Begin(), members.End())))
     {
 #ifndef HYP_BUILDTOOL
         *pGlobal = m_class;

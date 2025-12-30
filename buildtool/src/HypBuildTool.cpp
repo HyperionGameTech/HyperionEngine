@@ -394,7 +394,7 @@ private:
 
                     for (auto& it : mod->GetClasses())
                     {
-                        for (HypMemberDefinition& definition : it.second.members)
+                        for (MemberDef& definition : it.second.members)
                         {
                             addDependenciesRecur(it.second, definition.cxxType.Get());
                         }
@@ -1770,17 +1770,17 @@ private:
                 HYP_LOG(BuildTool, Info, "Class: {} -> {}", cls.first, cls.second.staticIndex);
 
                 // Log out all members
-                for (const HypMemberDefinition& hypMember : cls.second.members)
+                for (const MemberDef& memberDef : cls.second.members)
                 {
-                    if (!hypMember.cxxType)
+                    if (!memberDef.cxxType)
                     {
                         continue;
                     }
 
                     Json::Value json;
-                    hypMember.cxxType->ToJSON(json);
+                    memberDef.cxxType->ToJSON(json);
 
-                    HYP_LOG(BuildTool, Info, "\tMember: {}\t{}", hypMember.name, json.ToString(true));
+                    HYP_LOG(BuildTool, Info, "\tMember: {}\t{}", memberDef.name, json.ToString(true));
                 }
             }
         }

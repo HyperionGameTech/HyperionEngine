@@ -4,7 +4,7 @@
 
 #include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ClassAttribute.hpp>
-#include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/Member.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
@@ -29,7 +29,7 @@ namespace Hyperion {
 
 class Class;
 
-class StaticField : public IHypMember
+class StaticField : public IMember
 {
 public:
     StaticField(Name name, const TypeInfo* typeInfo, uint32 size, Span<const ClassAttribute> attributes = {})
@@ -97,9 +97,9 @@ public:
 
     virtual ~StaticField() override = default;
 
-    virtual HypMemberType GetMemberType() const override
+    virtual MemberType GetMemberType() const override
     {
-        return HypMemberType::TYPE_STATIC_FIELD;
+        return MemberType::StaticField;
     }
 
     virtual Name GetName() const override

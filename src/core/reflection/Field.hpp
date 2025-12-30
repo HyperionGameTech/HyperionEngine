@@ -4,7 +4,7 @@
 
 #include <core/reflection/BoxedValue.hpp>
 #include <core/reflection/ClassAttribute.hpp>
-#include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/Member.hpp>
 #include <core/reflection/TypeId.hpp>
 #include <core/reflection/TypeInfoFwd.hpp>
 
@@ -31,7 +31,7 @@ namespace Hyperion {
 
 class Class;
 
-class Field final : public IHypMember
+class Field final : public IMember
 {
 public:
     Field(const Span<const ClassAttribute>& attributes = {})
@@ -104,7 +104,7 @@ public:
     {
         if constexpr (IsDelegateV<NormalizedType<FieldType>>)
         {
-            m_flags |= HypMemberFlags::DELEGATE;
+            m_flags |= MemberFlags::DelegateField;
         }
 
         m_getProc = [member](const BoxedValue& targetData) -> BoxedValue
@@ -263,9 +263,9 @@ public:
 
     virtual ~Field() override = default;
 
-    virtual HypMemberType GetMemberType() const override
+    virtual MemberType GetMemberType() const override
     {
-        return HypMemberType::TYPE_FIELD;
+        return MemberType::Field;
     }
 
     virtual Name GetName() const override
