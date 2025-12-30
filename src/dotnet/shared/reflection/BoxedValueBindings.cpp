@@ -7,7 +7,7 @@
 
 #include <core/Name.hpp>
 
-#include <core/reflection/HypDataArray.hpp>
+#include <core/reflection/GenericArrayWrapper.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -207,7 +207,7 @@ extern "C"
         if (pBoxed->IsArray())
         {
             GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
-            
+
             // construct it
             new (pOutArrayElem) BoxedValue;
 

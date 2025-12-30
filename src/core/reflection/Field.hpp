@@ -94,7 +94,7 @@ public:
     }
 
     template <class ThisType, class FieldType>
-    Field(Name name, FieldType ThisType::* member, uint32 offset, const Span<const ClassAttribute>& attributes = {})
+    Field(Name name, FieldType ThisType::*member, uint32 offset, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<FieldType>()),
           m_targetTypeInfo(&TypeOf<ThisType>()),
@@ -112,7 +112,7 @@ public:
             decltype(auto) target = targetData.Get<ThisType>();
 
 #if 0
-            // Use HypDataArray wrapper type for containers so we can iterate over them generically.
+            // Use GenericArrayWrapper wrapper type for containers so we can iterate over them generically.
             // Skip doing this for strings though, as they are also containers but should be treated as a single value.
             if constexpr (std::is_base_of_v<IContainer, NormalizedType<FieldType>> && !IsStringV<NormalizedType<FieldType>>)
             {

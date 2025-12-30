@@ -18,7 +18,7 @@
 namespace Hyperion {
 
 /*! \brief Table for type promotion for binops. */
-static constexpr int g_typePromoLut[10][10] = {
+static constexpr int typePromoTable[10][10] = {
     // NT_U8=0, NT_I8=1, NT_U16=2, NT_I16=3, NT_U32=4, NT_I32=5, NT_U64=6, NT_I64=7, NT_F32=8, NT_F64=9
     /*U8*/ { 5, 5, 5, 5, 4, 5, 6, 7, 8, 9 },
     /*I8*/ { 5, 5, 5, 5, 4, 5, 6, 7, 8, 9 },
@@ -32,17 +32,17 @@ static constexpr int g_typePromoLut[10][10] = {
     /*F64*/ { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9 }
 };
 
-#define MATCH_TYPES(leftType, rightType) ((NumericType)g_typePromoLut[(leftType)][(rightType)])
+#define MATCH_TYPES(leftType, rightType) ((NumericType)typePromoTable[(leftType)][(rightType)])
 
-extern BoxedValue ScriptApi_MakeValue(const Script_VMData& data);
-extern BoxedValue ScriptApi_MakeValue(const Number& number);
-extern BoxedValue ScriptApi_MakeValue(BoxedValue&& data);
-extern BoxedValue ScriptApi_MakeRef(BoxedValue* refValue);
-extern BoxedValue ScriptApi_MakeTrackedRef(BoxedValue* refValue, Script_GC* gc);
-extern BoxedValue ScriptApi_ShallowCopy(BoxedValue& value, Script_GC* gc);
-extern bool ScriptApi_ShouldValuePassByRef(const BoxedValue& value);
-extern const char* ScriptApi_GetTypeString(const BoxedValue& data);
-extern String ScriptApi_ValueToString(const BoxedValue& data, int currDepth = 0);
+extern BoxedValue MakeValue(const Script_VMData& data);
+extern BoxedValue MakeValue(const Number& number);
+extern BoxedValue MakeValue(BoxedValue&& data);
+extern BoxedValue MakeRef(BoxedValue* refValue);
+extern BoxedValue MakeTrackedRef(BoxedValue* refValue, Script_GC* gc);
+extern BoxedValue ShallowCopy(BoxedValue& value, Script_GC* gc);
+extern bool ShouldValuePassByRef(const BoxedValue& value);
+extern const char* GetTypeString(const BoxedValue& data);
+extern String ValueToString(const BoxedValue& data, int currDepth = 0);
 
 class Script_GC;
 
@@ -92,8 +92,6 @@ private:
 class Script_StackMemory
 {
 public:
-    static constexpr SizeType STACK_SIZE = 20000;
-
     friend std::ostream& operator<<(std::ostream& os, const Script_StackMemory& stack);
 
 public:
@@ -109,11 +107,12 @@ public:
 
     HYP_FORCE_INLINE BoxedValue* GetData()
     {
-        return reinterpret_cast<BoxedValue*>(m_data.Data());
+        return m_data;
     }
+
     HYP_FORCE_INLINE const BoxedValue* GetData() const
     {
-        return reinterpret_cast<const BoxedValue*>(m_data.Data());
+        return m_data;
     }
 
     HYP_FORCE_INLINE SizeType GetStackPointer() const
@@ -123,62 +122,50 @@ public:
 
     HYP_FORCE_INLINE BoxedValue& operator[](SizeType index)
     {
-        AssertDebug(index < STACK_SIZE, "out of bounds");
-        AssertDebug(index < m_sp, "reading uninitialized stack memory");
-
-        return m_data[index].Get();
+        return m_data[index];
     }
 
     HYP_FORCE_INLINE const BoxedValue& operator[](SizeType index) const
     {
-        Assert(index < STACK_SIZE, "out of bounds");
-        Assert(index < m_sp, "reading uninitialized stack memory");
-
-        return m_data[index].Get();
+        return m_data[index];
     }
 
     // return the top value from the stack
     HYP_FORCE_INLINE BoxedValue& Top()
     {
-        Assert(m_sp > 0, "read from empty stack");
-        return m_data[m_sp - 1].Get();
+        return m_data[m_sp - 1];
     }
 
     // return the top value from the stack
     HYP_FORCE_INLINE const BoxedValue& Top() const
     {
-        Assert(m_sp > 0, "read from empty stack");
-        return m_data[m_sp - 1].Get();
+        return m_data[m_sp - 1];
     }
 
     // push a value to the stack
     HYP_FORCE_INLINE void Push(BoxedValue&& value)
     {
-        Assert(m_sp < STACK_SIZE, "stack overflow");
         new (&m_data[m_sp++]) BoxedValue(std::move(value));
     }
 
     // pop top value from the stack
     HYP_FORCE_INLINE void Pop()
     {
-        Assert(m_sp > 0, "pop from empty stack");
         m_sp--;
 
-        m_data[m_sp].Destruct();
+        m_data[m_sp].~BoxedValue();
     }
 
     // pop top n value(s) from the stack
     HYP_FORCE_INLINE void Pop(SizeType count)
     {
-        Assert(m_sp >= count, "pop from empty stack");
-
         for (SizeType i = 0; i < count; i++)
         {
-            m_data[--m_sp].Destruct();
+            m_data[--m_sp].~BoxedValue();
         }
     }
 
-    HeapArray<ValueStorage<BoxedValue>, STACK_SIZE> m_data;
+    BoxedValue* m_data;
     SizeType m_sp;
 };
 

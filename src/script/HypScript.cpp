@@ -283,7 +283,7 @@ BoxedValue HypScript::CallFunctionArgV(Script_Instance* instance, const BoxedVal
     vmData.type = Script_VMData::VALUE_REF;
     vmData.valueRef = const_cast<BoxedValue*>(&value);
 
-    m_impl->vm->InvokeNow(instance, ScriptApi_MakeValue(vmData), numArgs);
+    m_impl->vm->InvokeNow(instance, MakeValue(vmData), numArgs);
 
     if (numArgs != 0)
     {
@@ -297,7 +297,7 @@ void HypScript::ReadLastReturnValue(Script_Instance* instance, BoxedValue& outVa
 {
     Assert(instance != nullptr);
 
-    outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_impl->vm->GetGC());
+    outValue = ShallowCopy(instance->thread.m_regs[0], m_impl->vm->GetGC());
 }
 
 bool HypScript::GetMember(Script_Instance* instance, const BoxedValue& targetValue, const char* memberName, BoxedValue& outValue)
@@ -309,7 +309,7 @@ bool HypScript::GetMember(Script_Instance* instance, const BoxedValue& targetVal
         return false;
     }
 
-    const Handle<ObjectBase>& object = ScriptApi_GetObject(targetValue);
+    const Handle<ObjectBase>& object = GetObject(targetValue);
 
     if (!object)
     {
@@ -330,7 +330,7 @@ bool HypScript::GetMember(Script_Instance* instance, const BoxedValue& targetVal
     {
         Field* field = static_cast<Field*>(member);
 
-        outValue = ScriptApi_MakeValue(field->Get(targetValue));
+        outValue = MakeValue(field->Get(targetValue));
 
         return true;
     }
@@ -356,7 +356,7 @@ bool HypScript::GetMember(Script_Instance* instance, const BoxedValue& targetVal
             vmData.nativeFunc = method;
         }
 
-        outValue = ScriptApi_MakeValue(vmData);
+        outValue = MakeValue(vmData);
 
         return true;
     }
@@ -371,7 +371,7 @@ bool HypScript::SetField(BoxedValue& targetValue, const char* memberName, BoxedV
         return false;
     }
 
-    const Handle<ObjectBase>& object = ScriptApi_GetObject(targetValue);
+    const Handle<ObjectBase>& object = GetObject(targetValue);
 
     if (!object)
     {
@@ -426,9 +426,9 @@ bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, Bo
     Assert(value != nullptr);
     value = Deref(*value);
 
-    if (getReference || ScriptApi_ShouldValuePassByRef(*value))
+    if (getReference || ShouldValuePassByRef(*value))
     {
-        outValue = ScriptApi_MakeRef(value);
+        outValue = MakeRef(value);
 
         return true;
     }
