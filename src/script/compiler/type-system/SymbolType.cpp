@@ -1170,12 +1170,14 @@ SymbolType* SymbolType::Struct(
     return symbolType;
 }
 
-SymbolType* SymbolType::Object(
+SymbolType* SymbolType::Class(
     const String& name,
     const SymbolType* baseType,
     Array<SymbolTypeMember>&& members,
     Array<SymbolTypeMember>&& staticMembers)
 {
+    AssertDebug(baseType != nullptr);
+
     SymbolType* symbolType = new SymbolType(
         name,
         TYPE_CLASS,
@@ -1183,6 +1185,8 @@ SymbolType* SymbolType::Object(
         nullptr,
         std::move(members),
         std::move(staticMembers));
+
+    AssertDebug(symbolType->HasBase(*BuiltinTypes::s_objectType));
 
     return symbolType;
 }

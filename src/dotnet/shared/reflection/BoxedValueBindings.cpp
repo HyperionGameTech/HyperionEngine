@@ -208,10 +208,17 @@ extern "C"
         {
             GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
 
-            // construct it
-            new (pOutArrayElem) BoxedValue;
+            AnyRef ref = arrayWrapper.GetElementAt(SizeType(index));
 
-            return arrayWrapper.GetElementAt(SizeType(index), *pOutArrayElem);
+            if (!ref.HasValue())
+            {
+                return false;
+            }
+
+            // construct it
+            new (pOutArrayElem) BoxedValue(ref);
+
+            return true;
         }
 
         return false;

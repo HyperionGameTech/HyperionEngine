@@ -34,7 +34,7 @@
 
 // Enable to disable optimizations in script operations.
 // Makes it easier to debug scripts, but slower.
-#define HYP_SCRIPT_NOOPT 0
+#define HYP_SCRIPT_NOOPT 1
 
 #ifndef HYP_DEBUG_MODE
 #ifdef HYP_SCRIPT_NOOPT
@@ -42,7 +42,7 @@
 #endif
 #endif
 
-#if defined(HYP_SCRIPT_NOOPT) && HYP_SCRIPT_NOOPT
+#if HYP_SCRIPT_NOOPT
 #define SCRIPT_INLINE
 #else
 #define SCRIPT_INLINE HYP_FORCE_INLINE
@@ -166,7 +166,7 @@ BoxedValue MakeValue(const Number& number)
     {
         if (number.flags & Number::FLAG_32_BIT)
         {
-            new (ptr) BoxedValue(static_cast<float>(number.f));
+            new (ptr) BoxedValue(float32(number.f));
         }
         else // if (number.flags & Number::FLAG_64_BIT)
         {
@@ -177,15 +177,15 @@ BoxedValue MakeValue(const Number& number)
     {
         if (number.flags & Number::FLAG_8_BIT)
         {
-            new (ptr) BoxedValue(static_cast<int8>(number.i));
+            new (ptr) BoxedValue(int8(number.i));
         }
         else if (number.flags & Number::FLAG_16_BIT)
         {
-            new (ptr) BoxedValue(static_cast<int16>(number.i));
+            new (ptr) BoxedValue(int16(number.i));
         }
         else if (number.flags & Number::FLAG_32_BIT)
         {
-            new (ptr) BoxedValue(static_cast<int32>(number.i));
+            new (ptr) BoxedValue(int32(number.i));
         }
         else // if (number.flags & Number::FLAG_64_BIT)
         {
@@ -196,15 +196,15 @@ BoxedValue MakeValue(const Number& number)
     {
         if (number.flags & Number::FLAG_8_BIT)
         {
-            new (ptr) BoxedValue(static_cast<uint8>(number.u));
+            new (ptr) BoxedValue(uint8(number.u));
         }
         else if (number.flags & Number::FLAG_16_BIT)
         {
-            new (ptr) BoxedValue(static_cast<uint16>(number.u));
+            new (ptr) BoxedValue(uint16(number.u));
         }
         else if (number.flags & Number::FLAG_32_BIT)
         {
-            new (ptr) BoxedValue(static_cast<uint32>(number.u));
+            new (ptr) BoxedValue(uint32(number.u));
         }
         else // if (number.flags & Number::FLAG_64_BIT)
         {
@@ -266,14 +266,14 @@ BoxedValue ShallowCopy(BoxedValue& refValue, Script_GC* gc)
         return MakeRef(&refValue);
     }
 
-    BoxedValue newHypData;
+    BoxedValue newValue;
 
-    Visit(refValue.value, [&newHypData](const auto& val)
+    Visit(refValue.value, [&newValue](const auto& val)
         {
-            newHypData.value.Set<NormalizedType<decltype(val)>>(val);
+            newValue.value.Set<NormalizedType<decltype(val)>>(val);
         });
 
-    return newHypData;
+    return newValue;
 }
 
 bool ShouldValuePassByRef(const BoxedValue& value)
@@ -285,8 +285,6 @@ bool ShouldValuePassByRef(const BoxedValue& value)
 
     return PASS_AS_REF(value);
 }
-
-static const char s_unknownTypeString[] = "<Unknown type>";
 
 static const char* GetTypeString(const TypeInfo& typeInfo)
 {
@@ -349,10 +347,11 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
                     outString += Script_String(", ");
                 }
 
-                BoxedValue element;
-                if (pArray->GetElementAt(i, element))
+                AnyRef elementRef = pArray->GetElementAt(i);
+
+                if (elementRef.HasValue())
                 {
-                    outString += ValueToString(element, currDepth + 1);
+                    outString += ValueToString(BoxedValue(elementRef), currDepth + 1);
                 }
                 else
                 {
@@ -719,7 +718,7 @@ public:
             return;
         }
 
-        if (ScriptArray* array = src.TryGet<ScriptArray>().TryGet())
+        if (GenericArrayWrapper* array = src.TryGet<GenericArrayWrapper>().TryGet())
         {
             if (key.flags & Number::FLAG_SIGNED)
             {
@@ -741,11 +740,9 @@ public:
                     return;
                 }
 
-                BoxedValue& srcValue = (*array)[key.i];
+                AnyRef elementRef = array->GetElementAt(key.i);
 
-                instance->thread.m_regs[dstReg] = PASS_AS_REF(srcValue)
-                    ? MakeRef(&srcValue)
-                    : ShallowCopy(srcValue, vm->GetGC());
+                instance->thread.m_regs[dstReg] = BoxedValue(elementRef);
             }
             else if (key.flags & Number::FLAG_UNSIGNED)
             {
@@ -756,11 +753,9 @@ public:
                     return;
                 }
 
-                BoxedValue& srcValue = (*array)[key.u];
+                AnyRef elementRef = array->GetElementAt(key.u);
 
-                instance->thread.m_regs[dstReg] = PASS_AS_REF(srcValue)
-                    ? MakeRef(&srcValue)
-                    : ShallowCopy(srcValue, vm->GetGC());
+                instance->thread.m_regs[dstReg] = BoxedValue(elementRef);
             }
 
             return;
@@ -867,13 +862,13 @@ public:
     {
         BoxedValue& src = *Deref(instance->thread.m_regs[dstReg]);
 
-        if (!src.Is<ScriptArray>())
+        if (!src.Is<GenericArrayWrapper>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", GetTypeString(src)));
             return;
         }
 
-        ScriptArray& array = src.Get<ScriptArray>();
+        GenericArrayWrapper& array = src.Get<GenericArrayWrapper>();
 
         if (index >= array.Size())
         {
@@ -883,24 +878,28 @@ public:
         }
 
         BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
-        BoxedValue& dstValue = array[index];
 
-        dstValue = PASS_AS_REF(srcValue)
-            ? MakeRef(&srcValue)
-            : ShallowCopy(srcValue, vm->GetGC());
+        if (PASS_AS_REF(srcValue))
+        {
+            array.SetElementAt(index, MakeRef(&srcValue));
+        }
+        else
+        {
+            array.SetElementAt(index, ShallowCopy(srcValue, vm->GetGC()));
+        }
     }
 
     SCRIPT_INLINE void OpMovArrayIdxReg(RegisterIndex dstReg, RegisterIndex indexReg, RegisterIndex srcReg)
     {
         BoxedValue& src = *Deref(instance->thread.m_regs[dstReg]);
 
-        if (!src.Is<ScriptArray>())
+        if (!src.Is<GenericArrayWrapper>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", GetTypeString(src)));
             return;
         }
 
-        ScriptArray& array = src.Get<ScriptArray>();
+        GenericArrayWrapper& array = src.Get<GenericArrayWrapper>();
 
         Number index;
         BoxedValue& indexRegisterValue = instance->thread.m_regs[indexReg];
@@ -912,54 +911,43 @@ public:
             return;
         }
 
+        uint64 indexValue;
+
         if (index.flags & Number::FLAG_SIGNED)
         {
-            int64 indexValue = index.i;
+            int64 indexValueSigned = index.i;
 
-            if (indexValue < 0)
+            if (indexValueSigned < 0)
             {
                 // wrap around (python style)
-                SizeType uIndexValue = SizeType(array.Size() - SizeType(-indexValue));
-
-                if (uIndexValue >= array.Size())
-                {
-                    vm->ThrowException(instance, Script_Exception::OutOfBoundsException(uIndexValue, array.Size()));
-
-                    return;
-                }
+                indexValue = array.Size() - uint64(-indexValueSigned);
             }
-
-            if (SizeType(indexValue) >= array.Size())
+            else
             {
-                vm->ThrowException(instance, Script_Exception::OutOfBoundsException(SizeType(indexValue), array.Size()));
-
-                return;
+                indexValue = uint64(indexValueSigned);
             }
-
-            BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
-            BoxedValue& dstValue = array[indexValue];
-
-            dstValue = PASS_AS_REF(srcValue)
-                ? MakeRef(&srcValue)
-                : ShallowCopy(srcValue, vm->GetGC());
         }
         else
         { // unsigned
-            const uint64 indexValue = index.u;
+            indexValue = index.u;
+        }
 
-            if (SizeType(indexValue) >= array.Size())
-            {
-                vm->ThrowException(instance, Script_Exception::OutOfBoundsException(indexValue, array.Size()));
+        if (indexValue >= array.Size())
+        {
+            vm->ThrowException(instance, Script_Exception::OutOfBoundsException(indexValue, array.Size()));
 
-                return;
-            }
+            return;
+        }
 
-            BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
-            BoxedValue& dstValue = array[indexValue];
+        BoxedValue& srcValue = *Deref(instance->thread.m_regs[srcReg]);
 
-            dstValue = PASS_AS_REF(srcValue)
-                ? MakeRef(&srcValue)
-                : ShallowCopy(srcValue, vm->GetGC());
+        if (PASS_AS_REF(srcValue))
+        {
+            array.SetElementAt(indexValue, MakeRef(&srcValue));
+        }
+        else
+        {
+            array.SetElementAt(indexValue, ShallowCopy(srcValue, vm->GetGC()));
         }
     }
 
@@ -1045,7 +1033,7 @@ public:
             // static member access on class reference
             cls = *classRef;
         }
-        // special case for arrays: treat all native arrays wrapped via GenericArrayWrapper as the ScriptArray class.
+        // special case for arrays (TEMP HAX!)
         else if (GenericArrayWrapper* array = src.TryGet<GenericArrayWrapper>().TryGet())
         {
             cls = GetClass(TypeId::ForType<ScriptArray>());
@@ -1113,8 +1101,11 @@ public:
 
     SCRIPT_INLINE void OpPush(RegisterIndex reg)
     {
-        // Move value from register to top of stack
-        instance->thread.m_stack.Push(ShallowCopy(*Deref(instance->thread.m_regs[reg]), vm->GetGC()));
+        // Move value from register to top of stack.
+        
+        // @NOTE - NO Deref() call here. If we loaded a reference into a register, we want to store the REFERENCE, not the value
+        BoxedValue& srcValue = instance->thread.m_regs[reg];
+        instance->thread.m_stack.Push(ShallowCopy(srcValue, vm->GetGC()));
     }
 
     SCRIPT_INLINE void OpPop()
@@ -3561,10 +3552,10 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
                 }
             }
 
-            BoxedValue resultHypData = vmData->nativeFunc->Invoke(Span<BoxedValue*>(argsBoxed, nargs));
+            BoxedValue result = vmData->nativeFunc->Invoke(Span<BoxedValue*>(argsBoxed, nargs));
 
             // set register 0 to the result
-            instance->thread.GetRegisters()[0] = MakeValue(std::move(resultHypData));
+            instance->thread.GetRegisters()[0] = MakeValue(std::move(result));
 
             // re-enable auto gc
             //            enableAutoGc = ENABLE_GC;

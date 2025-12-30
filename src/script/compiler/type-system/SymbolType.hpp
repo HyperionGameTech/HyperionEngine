@@ -362,7 +362,7 @@ public:
         Array<SymbolTypeMember>&& members,
         Array<SymbolTypeMember>&& staticMembers);
 
-    static HYP_NODISCARD SymbolType* Object(
+    static HYP_NODISCARD SymbolType* Class(
         const String& name,
         const SymbolType* baseType,
         Array<SymbolTypeMember>&& members,

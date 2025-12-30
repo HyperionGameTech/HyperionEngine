@@ -60,7 +60,7 @@ struct GenericArrayWrapper
         SerializeFunction serializeFunction;
 
         AnyRef (*pushBack)(GenericArrayWrapper& array, BoxedValue&& value);
-        bool (*getElementAt)(GenericArrayWrapper& array, SizeType index, BoxedValue& out);
+        AnyRef (*getElementAt)(GenericArrayWrapper& array, SizeType index);
         bool (*setElementAt)(GenericArrayWrapper& array, SizeType index, BoxedValue&& value);
         SizeType (*size)(const GenericArrayWrapper& array);
         bool (*resize)(GenericArrayWrapper& array, SizeType newSize);
@@ -286,14 +286,14 @@ struct GenericArrayWrapper
         return functionTable.getElementAt != nullptr;
     }
 
-    HYP_FORCE_INLINE bool GetElementAt(SizeType index, BoxedValue& out)
+    HYP_FORCE_INLINE AnyRef GetElementAt(SizeType index)
     {
         if (!IsValid() || !CanGetElementByIndex() || index >= Size())
         {
-            return false;
+            return AnyRef();
         }
 
-        return functionTable.getElementAt(*this, index, out);
+        return functionTable.getElementAt(*this, index);
     }
 
     HYP_FORCE_INLINE bool SetElementAt(SizeType index, BoxedValue&& value)
