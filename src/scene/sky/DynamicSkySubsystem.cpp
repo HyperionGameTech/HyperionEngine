@@ -118,6 +118,7 @@ void DynamicSkySubsystem::Init()
         materialAttributes.flags = MAF_DEPTH_TEST;
 
         m_visScene = CreateObject<Scene>(NAME("SkyVisScene"), SceneFlags::FOREGROUND);
+        m_visScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
         m_visScene->GetRoot()->AddChild(m_skyboxEntity);
 
         m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
