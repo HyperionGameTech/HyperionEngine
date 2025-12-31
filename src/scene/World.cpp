@@ -894,6 +894,14 @@ void World::AddView(const Handle<View>& view)
         return;
     }
 
+    const bool hasView = m_views.Contains(view);
+    AssertDebug(!hasView, "World {} already contains view {}", GetName(), view->Id());
+
+    if (hasView)
+    {
+        return;
+    }
+
     m_views.PushBack(view);
 
     if (IsReady())
@@ -964,10 +972,9 @@ void World::RemoveView(View* view)
         }
     }
 
-    auto it = m_views.FindIf([view](const Handle<View>& other)
-        {
-            return other.Get() == view;
-        });
+    auto it = m_views.Find(view);
+
+    AssertDebug(it != m_views.End());
 
     if (it != m_views.End())
     {

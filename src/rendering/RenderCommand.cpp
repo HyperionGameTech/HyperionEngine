@@ -29,7 +29,8 @@ void RenderScheduler::Commit(RenderCommand* command)
 
 void RenderScheduler::AcceptAll(Array<RenderCommand*, RenderAllocator>& outContainer)
 {
-    outContainer = std::move(m_commands);
+    outContainer.Concat(std::move(m_commands));
+    m_commands.Clear();
 }
 
 #pragma endregion RenderScheduler
