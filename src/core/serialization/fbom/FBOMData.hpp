@@ -365,7 +365,8 @@ public:
 #pragma region ByteBuffer
     HYP_FORCE_INLINE bool IsByteBuffer() const
     {
-        return m_type.IsOrExtends(FBOMByteBuffer());
+        static const ANSIString s_nameBuf = "buf";
+        return m_type.name == s_nameBuf;
     }
 
     HYP_FORCE_INLINE FBOMResult ReadByteBuffer(ByteBuffer& byteBuffer) const

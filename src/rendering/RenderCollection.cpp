@@ -1147,7 +1147,10 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
         for (RenderProxyMesh* meshProxy : mapping.meshProxies)
         {
-            AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
+            AssertDebug(meshProxy->mesh != nullptr
+                        && meshProxy->mesh->GetVertexBuffer() != nullptr
+                        && meshProxy->mesh->GetIndexBuffer() != nullptr);
+
             AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
 
             if (meshProxy->instanceData.numInstances == 0)

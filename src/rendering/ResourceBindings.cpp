@@ -62,9 +62,19 @@ void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
 {
     AssertDebug(mesh != nullptr);
 
-    if (next != ~0u && prev == ~0u && !mesh->gpuUploadFence.IsSignaled())
+    if (next != ~0u)
     {
-        mesh->UploadGpuData();
+        if ((mesh->GetFlags() & MF_VIEW_INDEPENDENT) || !mesh->gpuUploadFence.IsSignaled())
+        {
+            mesh->UploadGpuData();
+        }
+    }
+    else if (prev != ~0u)
+    {
+        if (mesh->gpuUploadFence.IsSignaled() && !(mesh->GetFlags() & MF_VIEW_INDEPENDENT))
+        {
+            mesh->ReleaseGpuData();
+        }
     }
 }
 
