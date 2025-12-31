@@ -96,7 +96,7 @@ private:
     Handle<World> m_world;
     Handle<Scene> m_scene;
 
-    Array<Task<void>*> m_tasks;
+    Array<Task<void>> m_tasks;
 };
 
 HYP_ENUM()

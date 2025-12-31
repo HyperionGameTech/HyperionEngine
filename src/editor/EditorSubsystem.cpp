@@ -173,7 +173,7 @@ void GenerateLightmapsEditorTask::Process()
 
     for (const Handle<ObjectBase>& source : m_sources)
     {
-        Task<void>* task = nullptr;
+        Task<void> task;
 
         if (source->IsA(LightmapVolume::StaticClass()))
         {
@@ -188,9 +188,9 @@ void GenerateLightmapsEditorTask::Process()
             task = lightmapperSubsystem->EnqueueBake(ObjCast<FogVolume>(source));
         }
 
-        if (task != nullptr)
+        if (task.IsValid())
         {
-            m_tasks.PushBack(task);
+            m_tasks.PushBack(std::move(task));
         }
     }
 }
@@ -199,12 +199,9 @@ void GenerateLightmapsEditorTask::Cancel()
 {
     if (m_tasks.Any())
     {
-        for (Task<void>* task : m_tasks)
+        for (Task<void>& task : m_tasks)
         {
-            if (task != nullptr)
-            {
-                task->Cancel();
-            }
+            task.Cancel();
         }
     }
 }
@@ -221,9 +218,9 @@ void GenerateLightmapsEditorTask::Tick(float delta)
 
     for (auto it = m_tasks.Begin(); it != m_tasks.End();)
     {
-        Task<void>* task = *it;
+        Task<void>& task = *it;
 
-        if (task == nullptr || task->IsCompleted())
+        if (task.IsCompleted())
         {
             // remove task upon completion
             it = m_tasks.Erase(it);
@@ -431,9 +428,9 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
     EditorGizmoBase::OnDragEnd(camera, mouseEvent);
 
     // Commit editor transaction
-    if (Handle<EditorProject> project = GetCurrentProject())
+    if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
     {
-        if (Handle<Node> focusedNode = m_focusedNode.Lock())
+        if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
             project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
                 NAME("Translate"),

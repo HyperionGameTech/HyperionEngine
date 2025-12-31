@@ -107,157 +107,154 @@ void Baker<LightmapVolume>::Build()
     BakerBase::DispatchJobs();
 }
 
-void Baker<LightmapVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
+void Baker<LightmapVolume>::OnCompleted_Internal()
 {
     HYP_SCOPE;
 
-    if (m_numJobs == 1)
-    {
-        AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
+    AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
-        if (!m_volume->BuildElementTextures(m_bakeData, m_lightmapElementId))
+    if (!m_volume->BuildElementTextures(m_bakeData, m_lightmapElementId))
+    {
+        HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", m_lightmapElementId);
+        return;
+    }
+
+    const LightmapElement* lightmapElement = m_volume->GetElement(m_lightmapElementId);
+    Assert(lightmapElement != nullptr);
+
+    HYP_LOG(Lightmap, Debug, "Lightmap baking complete! Building element with id {}, UV offset: {}, Scale: {}", m_lightmapElementId,
+        lightmapElement->offsetUv, lightmapElement->scale);
+
+    // Update meshes
+    for (SizeType bakeEntityIndex = 0; bakeEntityIndex < m_bakeEntities.Size(); bakeEntityIndex++)
+    {
+        BakeEntity& bakeEntity = m_bakeEntities[bakeEntityIndex];
+
+        auto updateMeshData = [&]()
         {
-            HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", m_lightmapElementId);
-            return;
+            const Handle<Mesh>& mesh = bakeEntity.mesh;
+            Assert(mesh.IsValid());
+
+            Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
+
+            const BakeMesh& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
+            Assert(bakeMesh.mesh == mesh);
+
+            MeshDesc newMeshDesc;
+            newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
+            newMeshDesc.numVertices = uint32(bakeMesh.vertices.Size());
+            newMeshDesc.numIndices = uint32(bakeMesh.indices.Size());
+
+            MeshData newMeshData;
+            newMeshData.vertexData = bakeMesh.vertices;
+            newMeshData.indexData = ByteBuffer(bakeMesh.indices.ToByteView());
+
+            for (SizeType i = 0; i < newMeshData.vertexData.Size(); i++)
+            {
+                Vec2f& lightmapUv = newMeshData.vertexData[i].texcoord1;
+                lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
+                lightmapUv *= lightmapElement->scale;
+                lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
+            }
+
+            mesh->SetMeshData(newMeshDesc, newMeshData);
+        };
+
+        updateMeshData();
+
+        bool isNewMaterial = false;
+
+        if (bakeEntity.material)
+        {
+            Handle<Material> clonedMaterial = bakeEntity.material->Clone();
+            SafeDelete(std::move(bakeEntity.material));
+
+            bakeEntity.material = clonedMaterial;
+        }
+        else
+        {
+            bakeEntity.material = CreateObject<Material>();
         }
 
-        const LightmapElement* lightmapElement = m_volume->GetElement(m_lightmapElementId);
-        Assert(lightmapElement != nullptr);
+        isNewMaterial = true;
 
-        HYP_LOG(Lightmap, Debug, "Lightmap baking complete! Building element with id {}, UV offset: {}, Scale: {}", m_lightmapElementId,
-            lightmapElement->offsetUv, lightmapElement->scale);
+        bakeEntity.material->SetBucket(RB_LIGHTMAP);
 
-        // Update meshes
-        for (SizeType bakeEntityIndex = 0; bakeEntityIndex < m_bakeEntities.Size(); bakeEntityIndex++)
+        bakeEntity.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
+        bakeEntity.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
+
+        auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
+                                        lightmapElementId = m_lightmapElementId,
+                                        volume = m_volume,
+                                        bakeEntity = bakeEntity,
+                                        newMaterial = (isNewMaterial ? bakeEntity.material : Handle<Material>::empty)]()
         {
-            BakeEntity& bakeEntity = m_bakeEntities[bakeEntityIndex];
+            Handle<EntityManager> entityManager = entityManagerWeak.Lock();
 
-            auto updateMeshData = [&]()
+            if (!entityManager)
             {
-                const Handle<Mesh>& mesh = bakeEntity.mesh;
-                Assert(mesh.IsValid());
-
-                Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
-
-                const BakeMesh& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
-                Assert(bakeMesh.mesh == mesh);
-
-                MeshDesc newMeshDesc;
-                newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
-                newMeshDesc.numVertices = uint32(bakeMesh.vertices.Size());
-                newMeshDesc.numIndices = uint32(bakeMesh.indices.Size());
-
-                MeshData newMeshData;
-                newMeshData.vertexData = bakeMesh.vertices;
-                newMeshData.indexData = ByteBuffer(bakeMesh.indices.ToByteView());
-
-                for (SizeType i = 0; i < newMeshData.vertexData.Size(); i++)
-                {
-                    Vec2f& lightmapUv = newMeshData.vertexData[i].texcoord1;
-                    lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
-                    lightmapUv *= lightmapElement->scale;
-                    lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
-                }
-
-                mesh->SetMeshData(newMeshDesc, newMeshData);
-            };
-
-            updateMeshData();
-
-            bool isNewMaterial = false;
-
-            if (bakeEntity.material)
-            {
-                Handle<Material> clonedMaterial = bakeEntity.material->Clone();
-                SafeDelete(std::move(bakeEntity.material));
-
-                bakeEntity.material = clonedMaterial;
-            }
-            else
-            {
-                bakeEntity.material = CreateObject<Material>();
+                return;
             }
 
-            isNewMaterial = true;
+            const Handle<Entity>& entity = bakeEntity.entity;
 
-            bakeEntity.material->SetBucket(RB_LIGHTMAP);
-
-            bakeEntity.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
-            bakeEntity.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
-
-            auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
-                                           lightmapElementId = m_lightmapElementId,
-                                           volume = m_volume,
-                                           bakeEntity = bakeEntity,
-                                           newMaterial = (isNewMaterial ? bakeEntity.material : Handle<Material>::empty)]()
+            if (entityManager->HasComponent<MeshComponent>(entity))
             {
-                Handle<EntityManager> entityManager = entityManagerWeak.Lock();
+                MeshComponent& meshComponent = entityManager->GetComponent<MeshComponent>(entity);
 
-                if (!entityManager)
+                if (newMaterial.IsValid())
                 {
-                    return;
-                }
-
-                const Handle<Entity>& entity = bakeEntity.entity;
-
-                if (entityManager->HasComponent<MeshComponent>(entity))
-                {
-                    MeshComponent& meshComponent = entityManager->GetComponent<MeshComponent>(entity);
-
-                    if (newMaterial.IsValid())
-                    {
-                        InitObject(newMaterial);
-
-                        SafeDelete(std::move(meshComponent.material));
-
-                        meshComponent.material = std::move(newMaterial);
-                    }
-                }
-                else
-                {
-                    Assert(newMaterial.IsValid());
                     InitObject(newMaterial);
 
-                    MeshComponent meshComponent {};
-                    meshComponent.mesh = bakeEntity.mesh;
-                    meshComponent.material = newMaterial;
+                    SafeDelete(std::move(meshComponent.material));
 
-                    entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
+                    meshComponent.material = std::move(newMaterial);
                 }
-
-                if (entityManager->HasComponent<LightmapElementComponent>(entity))
-                {
-                    LightmapElementComponent& lightmapElementComponent = entityManager->GetComponent<LightmapElementComponent>(entity);
-
-                    lightmapElementComponent.lightmapVolume = volume.ToWeak();
-                    lightmapElementComponent.lightmapElementId = lightmapElementId;
-                    lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
-                }
-                else
-                {
-                    LightmapElementComponent lightmapElementComponent;
-
-                    lightmapElementComponent.lightmapVolume = volume.ToWeak();
-                    lightmapElementComponent.lightmapElementId = lightmapElementId;
-                    lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
-
-                    entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
-                }
-
-                entity->SetNeedsRenderProxyUpdate();
-            };
-
-            if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
-            {
-                updateMeshComponent();
             }
             else
             {
-                ThreadBase* thread = GetThreadById(m_scene->GetEntityManager()->GetOwnerThreadId());
-                Assert(thread != nullptr);
+                Assert(newMaterial.IsValid());
+                InitObject(newMaterial);
 
-                thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
+                MeshComponent meshComponent {};
+                meshComponent.mesh = bakeEntity.mesh;
+                meshComponent.material = newMaterial;
+
+                entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
             }
+
+            if (entityManager->HasComponent<LightmapElementComponent>(entity))
+            {
+                LightmapElementComponent& lightmapElementComponent = entityManager->GetComponent<LightmapElementComponent>(entity);
+
+                lightmapElementComponent.lightmapVolume = volume.ToWeak();
+                lightmapElementComponent.lightmapElementId = lightmapElementId;
+                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
+            }
+            else
+            {
+                LightmapElementComponent lightmapElementComponent;
+
+                lightmapElementComponent.lightmapVolume = volume.ToWeak();
+                lightmapElementComponent.lightmapElementId = lightmapElementId;
+                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
+
+                entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
+            }
+
+            entity->SetNeedsRenderProxyUpdate();
+        };
+
+        if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
+        {
+            updateMeshComponent();
+        }
+        else
+        {
+            ThreadBase* thread = GetThreadById(m_scene->GetEntityManager()->GetOwnerThreadId());
+            Assert(thread != nullptr);
+
+            thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
         }
     }
 }

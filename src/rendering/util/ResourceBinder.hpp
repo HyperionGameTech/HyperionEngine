@@ -251,9 +251,15 @@ class ResourceBinder : public ResourceBinderBase
                 }
             }
 
-            for (Bitset::BitIndex i : newlyAdded)
+            for (Bitset::BitIndex bit : newlyAdded)
             {
-                const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
+                if (forceRebindBits.Test(bit))
+                {
+                    // Don't need to force rebind
+                    forceRebindBits.Set(bit, false);
+                }
+
+                const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(bit + 1) });
 
                 if (bindings.FindAs(id) != bindings.End())
                 {
@@ -261,8 +267,8 @@ class ResourceBinder : public ResourceBinderBase
                     continue;
                 }
 
-                const uint32 index = allocator->AllocateIndex();
-                if (index == ResourceBindingAllocatorBase::InvalidBinding)
+                const uint32 binding = allocator->AllocateIndex();
+                if (binding == ResourceBindingAllocatorBase::InvalidBinding)
                 {
                     HYP_LOG(Rendering, Warning, "ResourceBinder<{}>: Maximum size of {} reached, cannot bind more objects!",
                         TypeName<T>().Data(),
@@ -271,27 +277,21 @@ class ResourceBinder : public ResourceBinderBase
                     continue; // no more space to bind
                 }
 
-                auto insertResult = bindings.Insert(WeakHandle<T> { id }, index);
+                auto insertResult = bindings.Insert(WeakHandle<T> { id }, binding);
                 AssertDebug(insertResult.second, "Failed to insert binding for object with ID {}- it should not already exist!", id);
 
                 if (OnBindingChanged != nullptr)
                 {
-                    OnBindingChanged(insertResult.first->first.GetUnsafe(), ResourceBindingAllocatorBase::InvalidBinding, index);
+                    OnBindingChanged(insertResult.first->first.GetUnsafe(), ResourceBindingAllocatorBase::InvalidBinding, binding);
                 }
             }
 
             if (forceRebindBits.AnyBitsSet())
             {
                 // go through unchanged and compare versions to see if we need to unbind+rebind to same slot
-                for (Bitset::BitIndex i : forceRebindBits)
+                for (Bitset::BitIndex bit : forceRebindBits)
                 {
-                    // only consider "unchanged" bits - bits that were newly added have no need to rebind as they've just been bound.
-                    if (!unchanged.Test(i))
-                    {
-                        continue; // not bound; can't force a re-bind
-                    }
-
-                    const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
+                    const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(bit + 1) });
 
                     auto it = bindings.FindAs(id);
                     AssertDebug(it != bindings.End());

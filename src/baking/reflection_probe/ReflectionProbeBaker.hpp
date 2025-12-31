@@ -50,7 +50,7 @@ protected:
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override;
 
     virtual Result Build_Internal() override;
-    virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
+    virtual void OnCompleted_Internal() override;
 
     Handle<ReflectionProbe> m_envProbe;
     BakeData<ReflectionProbe> m_bakeData;

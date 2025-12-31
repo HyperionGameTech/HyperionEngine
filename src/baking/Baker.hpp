@@ -322,6 +322,10 @@ protected:
     {
     }
 
+    virtual void OnCompleted_Internal()
+    {
+    }
+
     virtual BakeDataBase& GetBakeData() = 0;
 
     HYP_FORCE_INLINE const BakeDataBase& GetBakeData() const
@@ -355,6 +359,7 @@ protected:
 protected:
     virtual void Build();
     void DispatchJobs();
+    void OnCompleted();
 
     BakeJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
 

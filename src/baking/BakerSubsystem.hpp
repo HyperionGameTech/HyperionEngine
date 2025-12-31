@@ -49,7 +49,7 @@ public:
      *   The returned Task can be used to track the completion state of the lightmap generation job.
      *   If a lightmap generation task is already in progress for the given volume, the existing task will be returned instead. */
     template <Baking::Bakeable T>
-    Task<void>* EnqueueBake(const Handle<T>& source);
+    Task<void> EnqueueBake(const Handle<T>& source);
 
 private:
     SubsystemUpdatePhase GetUpdatePhase_Internal() const override
@@ -58,12 +58,10 @@ private:
     }
 
     template <class T, class... Args>
-    Task<void>* EnqueueBake_Internal(const Handle<T>& source, Args&&... args);
+    Task<void> EnqueueBake_Internal(const Handle<T>& source, Args&&... args);
 
     // Map source to lightmapper instance
     HashMap<ObjectBase*, Handle<Baking::BakerBase>> m_bakers;
-    HashMap<ObjectBase*, Task<void>*> m_activeTasks;
-    LinkedList<Task<void>> m_tasks;
 };
 
 } // namespace Hyperion

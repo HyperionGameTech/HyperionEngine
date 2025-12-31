@@ -52,7 +52,7 @@ protected:
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override;
 
     virtual void Initialize_Internal() override;
-    virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
+    virtual void OnCompleted_Internal() override;
     virtual void Build() override;
 
     Handle<LightmapVolume> m_volume;

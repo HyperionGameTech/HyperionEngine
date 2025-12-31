@@ -33,20 +33,18 @@ Result Baker<ReflectionProbe>::Build_Internal()
 {
     Assert(m_envProbe != nullptr);
 
+    InitObject(m_envProbe);
     m_bakeData = BakeData<ReflectionProbe>(m_bakeEntities, m_envProbe.Get());
 
     return m_bakeData.Build();
 }
 
-void Baker<ReflectionProbe>::HandleCompletedJob_Internal(BakeJobBase* job)
+void Baker<ReflectionProbe>::OnCompleted_Internal()
 {
     HYP_SCOPE;
 
-    BakeJob<ReflectionProbe>* jobCasted = static_cast<BakeJob<ReflectionProbe>*>(job);
-
-    const BakeData<ReflectionProbe>& bakeData = jobCasted->GetBakeData();
-
-    if (!bakeData.IsBuilt())
+    AssertDebug(m_bakeData.IsBuilt());
+    if (!m_bakeData.IsBuilt())
     {
         HYP_LOG(Lightmap, Warning, "Lightmap data for EnvProbe {} is not built, skipping texture creation", m_envProbe->Id());
         return;
@@ -55,7 +53,7 @@ void Baker<ReflectionProbe>::HandleCompletedJob_Internal(BakeJobBase* job)
     const Vec2u dimensions = m_envProbe->GetDimensions();
 
     // Convert lightmap data to bitmaps (6 faces stacked vertically)
-    BakeData<ReflectionProbe>::BitmapType bitmap = bakeData.ToBitmap();
+    BakeData<ReflectionProbe>::BitmapType bitmap = m_bakeData.ToBitmap();
 
     TextureDesc textureDesc {
         TT_CUBEMAP,
@@ -73,7 +71,6 @@ void Baker<ReflectionProbe>::HandleCompletedJob_Internal(BakeJobBase* job)
     Texture::GenerateMipmaps(textureDesc, textureData);
 
     Handle<Texture> cubemap = CreateObject<Texture>(textureDesc, std::move(textureData));
-
     cubemap->SetName(NAME_FMT("EnvProbe_{}_Baked", m_envProbe->GetUUID()));
 
     if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", cubemap->GetAsset()).Await(); result.HasError())
