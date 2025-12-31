@@ -460,6 +460,8 @@ void LegacyEnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
     HYP_SCOPE;
     AssertReady();
 
+    return; // @TODO: Fix
+
     AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     m_aabb = aabb;
@@ -537,10 +539,10 @@ void LegacyEnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
 
                 // If probe is at the edge of the grid, it will be moved to the opposite edge.
                 // That means we need to re-render
-                if (!probe->GetAABB().ContainsPoint(newProbeAabb.GetCenter()))
-                {
-                    probe->SetAABB(newProbeAabb);
-                }
+                //if (!probe->GetAABB().ContainsPoint(newProbeAabb.GetCenter()))
+               // {
+               //     probe->SetAABB(newProbeAabb);
+                //}
 
                 updates[index] = scrolledClampedIndex;
             }

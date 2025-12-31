@@ -911,6 +911,7 @@ Name AssetPackage::GetUniqueSubpackageName_Internal(Name baseName) const
     return GetUniqueName(baseName, m_subpackages);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 Result AssetPackage::Save(const FilePath& outputDirectory)
 {
     HYP_SCOPE;

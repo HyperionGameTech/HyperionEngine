@@ -160,26 +160,17 @@ public:
     }
 
     HYP_METHOD()
-    const BoundingBox& GetAABB() const
-    {
-        return m_aabb;
-    }
-
-    HYP_METHOD()
-    void SetAABB(const BoundingBox& aabb);
-
-    HYP_METHOD()
     Vec3f GetOrigin() const
     {
         if (IsAmbientProbe())
         {
             // ambient probes use the min point of the aabb as the origin,
             // so it can blend between 7 other probes
-            return m_aabb.GetMin();
+            return GetWorldBounds().GetMin();
         }
         else
         {
-            return m_aabb.GetCenter();
+            return GetWorldBounds().GetCenter();
         }
     }
 
@@ -276,9 +267,6 @@ protected:
     virtual void Init() override;
 
     void CreateView();
-
-    HYP_FIELD(Property = "AABB")
-    BoundingBox m_aabb;
 
     HYP_FIELD(Property = "Dimensions")
     Vec2u m_dimensions;

@@ -1191,7 +1191,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 
             if (!probe->IsSkyProbe())
             {
-                const BoundingBox& probeAabb = probe->GetAABB();
+                const BoundingBox& probeAabb = probe->GetWorldBounds();
 
                 if (!probeAabb.IsValid() || !probeAabb.IsFinite())
                 {

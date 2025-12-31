@@ -19,7 +19,7 @@ namespace Hyperion {
 namespace Baking {
 
 Baker<ReflectionProbe>::Baker(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe)
-    : BakerBase(std::move(config), envProbe, MakeStrongRef(envProbe->GetScene()), envProbe->GetAABB()),
+    : BakerBase(std::move(config), envProbe, MakeStrongRef(envProbe->GetScene()), envProbe->GetWorldBounds()),
       m_envProbe(envProbe)
 {
 }

@@ -61,16 +61,18 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType)
 }
 
 EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec2u& dimensions)
-    : m_aabb(aabb),
-      m_dimensions(dimensions),
+    : m_dimensions(dimensions),
       m_envProbeType(envProbeType),
       m_envProbeFlags(DefaultEnvProbeFlags[envProbeType]),
       m_cameraNear(0.05f),
       m_cameraFar(aabb.GetRadius()),
+      m_needsUpdate(false),
       m_needsRenderCounter(0),
       m_camera(nullptr),
       m_view(nullptr)
 {
+    SetLocalBounds(aabb);
+
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = !(m_envProbeFlags & EPF_BAKED);
 }
@@ -137,13 +139,15 @@ void EnvProbe::Init()
 
     if (!IsBaked())
     {
+        const BoundingBox worldBounds = GetWorldBounds();
+
         Handle<Camera> camera = CreateObject<Camera>(
             90.0f,
             -int(m_dimensions.x), int(m_dimensions.y),
             m_cameraNear, m_cameraFar);
 
         camera->SetName(NAME("EnvProbeCamera"));
-        camera->SetViewMatrix(Mat4f::LookAt(m_aabb.GetCenter(), m_aabb.GetCenter() + Vec3f::UnitZ(), Vec3f::UnitY()));
+        camera->SetViewMatrix(Mat4f::LookAt(worldBounds.GetCenter(), worldBounds.GetCenter() + Vec3f::UnitZ(), Vec3f::UnitY()));
 
         InitObject(camera);
         AddChild(camera);
@@ -226,8 +230,7 @@ void EnvProbe::OnTransformUpdated()
 {
     Entity::OnTransformUpdated();
 
-    // set origin
-    // SetOrigin(transform.GetTranslation());
+    Invalidate();
 }
 
 void EnvProbe::CreateView()
@@ -308,44 +311,29 @@ void EnvProbe::CreateView()
     m_view = view;
 }
 
-void EnvProbe::SetAABB(const BoundingBox& aabb)
-{
-    HYP_SCOPE;
-
-    if (m_aabb != aabb)
-    {
-        m_aabb = aabb;
-
-        Invalidate();
-    }
-}
-
 void EnvProbe::SetOrigin(const Vec3f& origin)
 {
     HYP_SCOPE;
+
+    const Vec3f rel = origin - GetWorldTranslation();
+
+    BoundingBox localBounds = GetLocalBounds();
 
     if (IsAmbientProbe())
     {
         // ambient probes use the min point of the aabb as the origin,
         // so it can blend between 7 other probes
-        const Vec3f extent = m_aabb.GetExtent();
+        const Vec3f extent = localBounds.GetExtent();
 
-        m_aabb.SetMin(origin);
-        m_aabb.SetMax(origin + extent);
+        localBounds.SetMin(rel);
+        localBounds.SetMax(rel + extent);
     }
     else
     {
-        m_aabb.SetCenter(origin);
+        localBounds.SetCenter(rel);
     }
 
-    if (m_camera != nullptr)
-    {
-        m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
-    }
-
-    Invalidate();
-
-    SetNeedsRenderProxyUpdate();
+    SetLocalBounds(localBounds);
 }
 
 void EnvProbe::Update(float delta)
@@ -488,9 +476,11 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
         proxy->texture = m_texture;
     }
 
+    const BoundingBox worldBounds = GetWorldBounds();
+
     EnvProbeShaderData& bufferData = proxy->bufferData;
-    bufferData.aabbMin = Vec4f(m_aabb.min, 1.0f);
-    bufferData.aabbMax = Vec4f(m_aabb.max, 1.0f);
+    bufferData.aabbMin = Vec4f(worldBounds.min, 1.0f);
+    bufferData.aabbMax = Vec4f(worldBounds.max, 1.0f);
     bufferData.worldPosition = Vec4f(GetOrigin(), 1.0f);
     bufferData.cameraNear = m_cameraNear;
     bufferData.cameraFar = m_cameraFar;
@@ -498,7 +488,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     bufferData.visibilityBits = m_visibilityBits.ToUInt64();
     bufferData.flags = uint32(m_envProbeFlags);
 
-    const FixedArray<Mat4f, 6> viewMatrices = CreateCubemapMatrices(m_aabb, GetOrigin());
+    const FixedArray<Mat4f, 6> viewMatrices = CreateCubemapMatrices(worldBounds, GetOrigin());
 
     Memory::MemCpy(bufferData.faceViewMatrices, viewMatrices.Data(), sizeof(EnvProbeShaderData::faceViewMatrices));
     Memory::MemCpy(bufferData.shData, &m_shData, sizeof(EnvProbeSphericalHarmonics::values));

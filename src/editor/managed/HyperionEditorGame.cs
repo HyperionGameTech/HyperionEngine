@@ -58,19 +58,17 @@ namespace Hyperion.Editor
             StatOverlay statOverlay = new StatOverlay();
             _editorSubsystem.AddDebugOverlay(statOverlay);
 
-            project.World.WorldGrid.AddLayer(new TerrainWorldGridLayer());
+            //project.World.WorldGrid.AddLayer(new TerrainWorldGridLayer());
 
             // tmp debug
             AssetBatch ab = new AssetBatch();
             ab.Add("test_model", "models/sponza/sponza.obj");
-            ab.Add("monkey", "models/dragger/dragger_Body.mesh.xml");
+            ab.Add("monkey", "models/ogrexml/dragger_Body.mesh.xml");
             _assetBatchTask = ab.Load();
         }
 
         protected override void OnUpdate(float deltaTime)
         {
-            // Logger.Log(LogType.Debug, "HyperionEditorGame Update called with deltaTime: " + deltaTime);
-
             if (_assetBatchTask != null && _assetBatchTask.IsCompleted)
             {
                 AssetMap assetMap = _assetBatchTask.Result;
@@ -82,7 +80,7 @@ namespace Hyperion.Editor
                     Assert.Throw(monkeyAsset.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)monkeyAsset.Value);
-                    n.SetLocalScale(new Vec3f(0.25f));
+                    n.SetLocalScale(new Vec3f(0.5f));
                 }
 
                 var testModelAsset = assetMap["test_model"];
