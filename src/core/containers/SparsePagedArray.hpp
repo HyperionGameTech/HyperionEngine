@@ -29,9 +29,12 @@ protected:
     struct Page
     {
         ValueStorage<T, PageSize, alignof(T)> storage;
-        Bitset initializedBits;
+        TBitset<AllocatorType> initializedBits;
 
-        Page() = default;
+        explicit Page(AllocatorType* pAllocator)
+            : initializedBits(pAllocator)
+        {
+        }
 
         // No move/copy operations, Page is stored as a pointer so these are unnecessary and
         // would only introduce complexity.
@@ -374,21 +377,24 @@ public:
 
     HYP_FORCE_INLINE SparsePagedArray()
         : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_pages(m_pAllocator)
+          m_pages(m_pAllocator),
+          m_validPages(m_pAllocator)
     {
         HYP_CORE_ASSERT(m_pAllocator != nullptr);
     }
 
     explicit SparsePagedArray(AllocatorType* pAllocator)
         : m_pAllocator(pAllocator),
-          m_pages(m_pAllocator)
+          m_pages(m_pAllocator),
+          m_validPages(m_pAllocator)
     {
         HYP_CORE_ASSERT(m_pAllocator != nullptr);
     }
 
     SparsePagedArray(std::initializer_list<KeyValuePair<KeyType, T>> initializerList)
         : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_pages(m_pAllocator)
+          m_pages(m_pAllocator),
+          m_validPages(m_pAllocator)
     {
         HYP_CORE_ASSERT(m_pAllocator != nullptr);
 
@@ -400,8 +406,8 @@ public:
 
     SparsePagedArray(const SparsePagedArray& other)
         : m_pAllocator(other.m_pAllocator),
-          m_validPages(other.m_validPages),
-          m_pages(m_pAllocator)
+          m_pages(m_pAllocator),
+          m_validPages(other.m_validPages)
     {
         m_pages.ResizeZeroed(other.m_pages.Size());
 
@@ -410,7 +416,7 @@ public:
             HYP_CORE_ASSERT(bit < other.m_pages.Size());
 
             m_pages[bit] = (Page*)m_pAllocator->Allocate(sizeof(Page), alignof(Page));
-            new (m_pages[bit]) Page();
+            new (m_pages[bit]) Page(m_pAllocator);
 
             for (Bitset::BitIndex elem : other.m_pages[bit]->initializedBits)
             {
@@ -436,7 +442,6 @@ public:
             m_pages[bit] = nullptr;
         }
 
-        m_pAllocator = other.m_pAllocator;
         m_validPages = other.m_validPages;
 
         m_pages = Array<Page*, AllocatorType>(m_pAllocator, 0);
@@ -447,7 +452,7 @@ public:
             HYP_CORE_ASSERT(bit < other.m_pages.Size());
 
             m_pages[bit] = (Page*)m_pAllocator->Allocate(sizeof(Page), alignof(Page));
-            new (m_pages[bit]) Page();
+            new (m_pages[bit]) Page(m_pAllocator);
 
             for (Bitset::BitIndex elem : other.m_pages[bit]->initializedBits)
             {
@@ -482,7 +487,6 @@ public:
             m_pages[bit] = nullptr;
         }
 
-        m_pAllocator = other.m_pAllocator;
         m_pages = std::move(other.m_pages);
         m_validPages = std::move(other.m_validPages);
 
@@ -882,7 +886,7 @@ protected:
             }
 
             m_pages[pageIndex] = (Page*)m_pAllocator->Allocate(sizeof(Page), alignof(Page));
-            new (m_pages[pageIndex]) Page();
+            new (m_pages[pageIndex]) Page(m_pAllocator);
 
             m_validPages.Set(pageIndex, true);
         }
@@ -890,9 +894,9 @@ protected:
         return m_pages[pageIndex];
     }
 
-    AllocatorType* m_pAllocator;
+    AllocatorType* const m_pAllocator;
     Array<Page*, AllocatorType> m_pages;
-    Bitset m_validPages;
+    TBitset<AllocatorType> m_validPages;
 };
 
 } // namespace containers

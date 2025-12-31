@@ -85,7 +85,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::containers::Bitset">
+  <Type Name="Hyperion::containers::TBitset&lt;*&gt;">
     <Expand>
       <CustomListItems>
         <Variable Name="idx" InitialValue="0" />

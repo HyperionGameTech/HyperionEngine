@@ -1109,7 +1109,7 @@ public:
         {
             HYP_SCOPE;
 
-            Bitset changedBits = GetChanged();
+            const Bitset& changedBits = GetChanged();
 
             out.Reserve(out.Size() + changedBits.Count());
 
@@ -1129,7 +1129,7 @@ public:
         {
             HYP_SCOPE;
 
-            Bitset changedBits = GetChanged();
+            const Bitset& changedBits = GetChanged();
 
             out.Reserve(out.Size() + changedBits.Count());
 

@@ -727,7 +727,7 @@ protected:
 protected:
     SizeType m_startOffset;
 
-    AllocatorType* m_pAllocator;
+    AllocatorType* const m_pAllocator;
     Allocation<T, AllocatorType> m_allocation;
 };
 
@@ -813,7 +813,6 @@ auto Array<T, AllocatorType>::operator=(const Array& other) -> Array&
 
     m_size = other.m_size - other.m_startOffset;
     m_startOffset = 0;
-    m_pAllocator = other.m_pAllocator;
 
     m_allocation.Allocate(m_pAllocator, m_size);
     m_allocation.InitFromRangeCopy(other.Begin(), other.End());
@@ -832,9 +831,7 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
     m_allocation.DestructInRange(m_startOffset, m_size);
     m_allocation.Free(m_pAllocator);
 
-    m_pAllocator = other.m_pAllocator;
-
-    if (other.m_allocation.IsDynamic())
+    if (other.m_allocation.IsDynamic() && m_pAllocator == other.m_pAllocator)
     {
         m_size = other.m_size;
         m_startOffset = other.m_startOffset;
