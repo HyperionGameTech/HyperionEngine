@@ -168,9 +168,6 @@ public:
 
         m_allocation.Free(m_pAllocator);
 
-        m_pAllocator = other.m_pAllocator;
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         if (newSize != 0)
         {
             m_allocation.Allocate(m_pAllocator, newSize, /* alignment */ BufferAlignment);
@@ -227,6 +224,8 @@ public:
                 m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
                 m_allocation.InitFromRangeMove(other.Data(), other.Data() + m_size);
             }
+
+            other.m_allocation.Free(other.m_pAllocator);
         }
 
         other.m_size = 0;
@@ -244,10 +243,7 @@ public:
 
         m_allocation.Free(m_pAllocator);
 
-        m_pAllocator = other.m_pAllocator;
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
-        if (other.m_allocation.IsDynamic())
+        if (other.m_allocation.IsDynamic() && m_pAllocator == other.m_pAllocator)
         {
             m_allocation.TakeOwnership(other.Data(), other.Data() + newSize);
 
@@ -260,6 +256,8 @@ public:
                 m_allocation.Allocate(m_pAllocator, newSize, /* alignment */ BufferAlignment);
                 m_allocation.InitFromRangeMove(other.Data(), other.Data() + newSize);
             }
+
+            other.m_allocation.Free(other.m_pAllocator);
         }
 
         m_size = newSize;
@@ -584,7 +582,7 @@ public:
     }
 
 private:
-    AllocatorType* m_pAllocator;
+    AllocatorType* const m_pAllocator;
     Allocation<ubyte, AllocatorType> m_allocation;
     SizeType m_size;
 };

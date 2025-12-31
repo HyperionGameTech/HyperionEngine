@@ -414,7 +414,7 @@ LogChannel::LogChannel(Name name, LogChannel* parentChannel)
     : id(~0u),
       name(name),
       parentChannel(parentChannel),
-      maskBitset(0)
+      maskBitset()
 {
 }
 

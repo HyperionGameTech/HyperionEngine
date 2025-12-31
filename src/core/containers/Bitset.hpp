@@ -19,11 +19,12 @@ namespace containers {
  *  It supports operations such as setting, clearing, flipping bits, and iterating over set bits.
  *  The bitset can be resized dynamically, and it provides a range of bitwise operations.
  */
-class HYP_API Bitset
+
+template <class AllocatorType>
+class TBitset
 {
 public:
     using BlockType = uint32;
-
     using BitIndex = uint64;
 
     static constexpr uint32 NumPreallocatedBlocks = 2;
@@ -48,7 +49,7 @@ private:
     template <bool IsConst>
     struct IteratorBase
     {
-        std::conditional_t<IsConst, const Bitset*, Bitset*> ptr;
+        std::conditional_t<IsConst, const TBitset*, TBitset*> ptr;
         BitIndex bitIndex;
 
         HYP_FORCE_INLINE BitIndex operator*() const
@@ -80,6 +81,8 @@ private:
     };
 
 public:
+    using Blocks = Array<BlockType, AllocatorType>;
+
     struct ConstIterator : IteratorBase<true>
     {
     };
@@ -88,22 +91,24 @@ public:
     {
         HYP_FORCE_INLINE operator ConstIterator() const
         {
-            return { ptr, bitIndex };
+            return { this->ptr, this->bitIndex };
         }
     };
 
-    Bitset();
+    TBitset();
+
+    explicit TBitset(AllocatorType* pAllocator, uint64 value = 0);
 
     /*! \brief Constructs a bitset from a 64-bit unsigned integer. */
-    explicit Bitset(uint64 value);
+    explicit TBitset(uint64 value);
 
-    Bitset(const Bitset& other) = default;
-    Bitset& operator=(const Bitset& other) = default;
+    TBitset(const TBitset& other);
+    TBitset& operator=(const TBitset& other);
 
-    Bitset(Bitset&& other) noexcept;
-    Bitset& operator=(Bitset&& other) noexcept;
+    TBitset(TBitset&& other) noexcept;
+    TBitset& operator=(TBitset&& other) noexcept;
 
-    ~Bitset() = default;
+    ~TBitset() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -115,7 +120,8 @@ public:
         return !AnyBitsSet();
     }
 
-    HYP_FORCE_INLINE bool operator==(const Bitset& other) const
+    template <class OtherAllocatorType>
+    HYP_FORCE_INLINE bool operator==(const TBitset<OtherAllocatorType>& other) const
     {
         if (m_blocks.Size() == other.m_blocks.Size())
         {
@@ -125,7 +131,8 @@ public:
         return (*this | other).m_blocks.CompareBitwise(m_blocks.Size() > other.m_blocks.Size() ? other.m_blocks : m_blocks);
     }
 
-    HYP_FORCE_INLINE bool operator!=(const Bitset& other) const
+    template <class OtherAllocatorType>
+    HYP_FORCE_INLINE bool operator!=(const TBitset<OtherAllocatorType>& other) const
     {
         return !operator==(other);
     }
@@ -133,19 +140,28 @@ public:
     /*! \brief Returns a Bitset with all bits flipped.
         Note, that the number of bits in the returned bitset is the same as
         the number of bits in the original bitset. */
-    Bitset operator~() const;
+    TBitset operator~() const;
 
-    Bitset operator<<(uint32 pos) const;
-    Bitset& operator<<=(uint32 pos);
+    TBitset operator<<(uint32 pos) const;
+    TBitset& operator<<=(uint32 pos);
 
-    Bitset operator&(const Bitset& other) const;
-    Bitset& operator&=(const Bitset& other);
+    template <class OtherAllocatorType>
+    TBitset operator&(const TBitset<OtherAllocatorType>& other) const;
 
-    Bitset operator|(const Bitset& other) const;
-    Bitset& operator|=(const Bitset& other);
+    template <class OtherAllocatorType>
+    TBitset& operator&=(const TBitset<OtherAllocatorType>& other);
 
-    Bitset operator^(const Bitset& other) const;
-    Bitset& operator^=(const Bitset& other);
+    template <class OtherAllocatorType>
+    TBitset operator|(const TBitset<OtherAllocatorType>& other) const;
+
+    template <class OtherAllocatorType>
+    TBitset& operator|=(const TBitset<OtherAllocatorType>& other);
+
+    template <class OtherAllocatorType>
+    TBitset operator^(const TBitset<OtherAllocatorType>& other) const;
+
+    template <class OtherAllocatorType>
+    TBitset& operator^=(const TBitset<OtherAllocatorType>& other);
 
     HYP_FORCE_INLINE const ubyte* Data() const
     {
@@ -330,7 +346,7 @@ public:
 
     /*! \brief Resizes the bitset to the given number of bits.
         \param numBits The new number of bits in the bitset.*/
-    Bitset& SetNumBits(SizeType numBits);
+    TBitset& SetNumBits(SizeType numBits);
 
     /*! \brief Returns the number of ones in the bitset.
         \returns The number of ones in the bitset. */
@@ -506,27 +522,307 @@ private:
         }
     }
 
-    Array<BlockType, InlineAllocator<16>> m_blocks;
+    AllocatorType* const m_pAllocator;
+    Blocks m_blocks;
 };
+
+template <class AllocatorType>
+static inline Array<typename TBitset<AllocatorType>::BlockType, FixedAllocator<2>> CreateBlocks_Internal(uint64 value)
+{
+    return {
+        typename TBitset<AllocatorType>::BlockType(value & 0xFFFFFFFFu),
+        typename TBitset<AllocatorType>::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull)
+    };
+}
+
+template <class AllocatorType, uint64 InitialValue>
+static inline Span<const typename TBitset<AllocatorType>::BlockType> CreateBlocks_Static_Internal()
+{
+    static const typename TBitset<AllocatorType>::BlockType s_blocks[] = {
+        typename TBitset<AllocatorType>::BlockType(InitialValue & 0xFFFFFFFFu),
+        typename TBitset<AllocatorType>::BlockType((InitialValue & (0xFFFFFFFFull << 32ull)) >> 32ull)
+    };
+
+    return Span<const typename TBitset<AllocatorType>::BlockType>(&s_blocks[0], &s_blocks[0] + HYP_ARRAY_SIZE(s_blocks));
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>::TBitset()
+    : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
+      m_blocks(CreateBlocks_Static_Internal<AllocatorType, 0>())
+{
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>::TBitset(AllocatorType* pAllocator, uint64 value)
+    : m_pAllocator(pAllocator),
+      m_blocks(m_pAllocator)
+{
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
+    m_blocks = CreateBlocks_Internal<AllocatorType>(value);
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>::TBitset(uint64 value)
+    : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
+      m_blocks(m_pAllocator)
+{
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
+    m_blocks = CreateBlocks_Internal<AllocatorType>(value);
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>::TBitset(const TBitset& other)
+    : m_pAllocator(other.m_pAllocator),
+      m_blocks(other.m_blocks)
+{
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::operator=(const TBitset& other)
+{
+    m_blocks = other.m_blocks;
+
+    return *this;
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>::TBitset(TBitset&& other) noexcept
+    : m_pAllocator(other.m_pAllocator),
+      m_blocks(std::move(other.m_blocks))
+{
+    other.m_blocks = CreateBlocks_Static_Internal<AllocatorType, 0>();
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::operator=(TBitset&& other) noexcept
+{
+    m_blocks = std::move(other.m_blocks);
+    other.m_blocks = CreateBlocks_Static_Internal<AllocatorType, 0>();
+
+    return *this;
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType> TBitset<AllocatorType>::operator~() const
+{
+    TBitset result { m_pAllocator };
+    result.m_blocks.ResizeUninitialized(m_blocks.Size());
+
+    for (uint32 index = 0; index < result.m_blocks.Size(); index++)
+    {
+        result.m_blocks[index] = ~m_blocks[index];
+    }
+
+    result.RemoveLeadingZeros();
+
+    return result;
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType> TBitset<AllocatorType>::operator<<(uint32 pos) const
+{
+    TBitset result { m_pAllocator };
+
+    const SizeType totalBitSize = NumBits();
+
+    for (uint32 combinedBitIndex = 0; combinedBitIndex < totalBitSize; ++combinedBitIndex)
+    {
+        result.Set(combinedBitIndex + pos, Get(combinedBitIndex));
+    }
+
+    return result;
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::operator<<=(uint32 pos)
+{
+    return *this = (*this << pos);
+}
+
+template <class AllocatorType>
+template <class OtherAllocatorType>
+TBitset<AllocatorType> TBitset<AllocatorType>::operator&(const TBitset<OtherAllocatorType>& other) const
+{
+    TBitset result { m_pAllocator };
+    result.m_blocks.Resize(MathUtil::Min(m_blocks.Size(), other.m_blocks.Size()));
+
+    for (uint32 index = 0; index < result.m_blocks.Size(); index++)
+    {
+        result.m_blocks[index] = m_blocks[index] & other.m_blocks[index];
+    }
+
+    result.RemoveLeadingZeros();
+
+    return result;
+}
+
+template <class AllocatorType>
+template <class OtherAllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::operator&=(const TBitset<OtherAllocatorType>& other)
+{
+    m_blocks.Resize(MathUtil::Min(m_blocks.Size(), other.m_blocks.Size()));
+
+    for (uint32 index = 0; index < m_blocks.Size(); index++)
+    {
+        m_blocks[index] = m_blocks[index] & other.m_blocks[index];
+    }
+
+    RemoveLeadingZeros();
+
+    return *this;
+}
+
+template <class AllocatorType>
+template <class OtherAllocatorType>
+TBitset<AllocatorType> TBitset<AllocatorType>::operator|(const TBitset<OtherAllocatorType>& other) const
+{
+    TBitset result { m_pAllocator };
+    result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
+
+    for (uint32 index = 0; index < result.m_blocks.Size(); index++)
+    {
+        result.m_blocks[index] = (index < m_blocks.Size() ? m_blocks[index] : 0)
+            | (index < other.m_blocks.Size() ? other.m_blocks[index] : 0);
+    }
+
+    result.RemoveLeadingZeros();
+
+    return result;
+}
+
+template <class AllocatorType>
+template <class OtherAllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::operator|=(const TBitset<OtherAllocatorType>& other)
+{
+    m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
+
+    for (uint32 index = 0; index < m_blocks.Size(); index++)
+    {
+        m_blocks[index] = m_blocks[index] | (index < other.m_blocks.Size() ? other.m_blocks[index] : 0);
+    }
+
+    RemoveLeadingZeros();
+
+    return *this;
+}
+
+template <class AllocatorType>
+template <class OtherAllocatorType>
+TBitset<AllocatorType> TBitset<AllocatorType>::operator^(const TBitset<OtherAllocatorType>& other) const
+{
+    TBitset result { m_pAllocator };
+    result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
+
+    for (uint32 index = 0; index < result.m_blocks.Size(); index++)
+    {
+        result.m_blocks[index] = (index < m_blocks.Size() ? m_blocks[index] : 0)
+            ^ (index < other.m_blocks.Size() ? other.m_blocks[index] : 0);
+    }
+
+    result.RemoveLeadingZeros();
+
+    return result;
+}
+
+template <class AllocatorType>
+template <class OtherAllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::operator^=(const TBitset<OtherAllocatorType>& other)
+{
+    m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
+
+    for (uint32 index = 0; index < m_blocks.Size(); index++)
+    {
+        m_blocks[index] = m_blocks[index] ^ (index < other.m_blocks.Size() ? other.m_blocks[index] : 0);
+    }
+
+    RemoveLeadingZeros();
+
+    return *this;
+}
+
+template <class AllocatorType>
+void TBitset<AllocatorType>::Set(BitIndex index, bool value)
+{
+    const uint32 blockIndex = GetBlockIndex(index);
+
+    if (blockIndex >= m_blocks.Size())
+    {
+        if (!value)
+        {
+            return; // not point setting if it's already unset.
+        }
+
+        m_blocks.Resize(blockIndex + 1);
+    }
+
+    if (value)
+    {
+        m_blocks[blockIndex] |= GetBitMask(index);
+    }
+    else
+    {
+        m_blocks[blockIndex] &= ~GetBitMask(index);
+
+        // RemoveLeadingZeros();
+    }
+}
+
+template <class AllocatorType>
+void TBitset<AllocatorType>::Clear()
+{
+    m_blocks = CreateBlocks_Static_Internal<AllocatorType, 0>();
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::SetNumBits(SizeType numBits)
+{
+    const SizeType previousNumBlocks = m_blocks.Size();
+    SizeType newNumBlocks = (numBits + (NumBitsPerBlock - 1)) / NumBitsPerBlock;
+
+    if (newNumBlocks < NumPreallocatedBlocks)
+    {
+        newNumBlocks = NumPreallocatedBlocks;
+    }
+
+    if (newNumBlocks == m_blocks.Size())
+    {
+        // no need to resize if it would be the same
+        return *this;
+    }
+
+    m_blocks.Resize(newNumBlocks);
+
+    return *this;
+}
+
+using DynamicBitset = TBitset<InlineAllocator<8, DynamicAllocator>>;
+using Bitset = DynamicBitset;
 
 } // namespace containers
 
-using Bitset = containers::Bitset;
+using containers::TBitset;
+using containers::DynamicBitset;
+using containers::Bitset;
+
+#pragma region Bitset format helper
 
 namespace utilities {
 
-template <class StringType>
-struct Formatter<StringType, Bitset>
+template <class StringType, class AllocatorType>
+struct Formatter<StringType, TBitset<AllocatorType>>
 {
-    auto operator()(const Bitset& bitset) const
+    auto operator()(const TBitset<AllocatorType>& bitset) const
     {
         StringType result;
 
         for (uint32 blockIndex = bitset.NumBits() / bitset.NumBitsPerBlock; blockIndex != 0; --blockIndex)
         {
-            for (uint32 bitIndex = Bitset::NumBitsPerBlock; bitIndex != 0; --bitIndex)
+            for (uint32 bitIndex = TBitset<AllocatorType>::NumBitsPerBlock; bitIndex != 0; --bitIndex)
             {
-                const uint32 combinedBitIndex = ((blockIndex - 1) * Bitset::NumBitsPerBlock) + (bitIndex - 1);
+                const uint32 combinedBitIndex = ((blockIndex - 1) * TBitset<AllocatorType>::NumBitsPerBlock) + (bitIndex - 1);
 
                 result.Append(bitset.Get(combinedBitIndex) ? '1' : '0');
 
@@ -542,5 +838,7 @@ struct Formatter<StringType, Bitset>
 };
 
 } // namespace utilities
+
+#pragma endregion Bitset format helper
 
 } // namespace Hyperion

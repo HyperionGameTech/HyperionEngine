@@ -397,7 +397,7 @@ public:
     HYP_DEF_STL_BEGIN_END({ m_head }, { (Node*)nullptr })
 
 private:
-    AllocatorType* m_pAllocator;
+    AllocatorType* const m_pAllocator;
 
     Node* m_head;
     Node* m_tail;
@@ -453,10 +453,6 @@ LinkedList<T, AllocatorType>& LinkedList<T, AllocatorType>::operator=(const Link
 
     Clear();
 
-    m_pAllocator = other.m_pAllocator;
-
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
     for (const auto& value : other)
     {
         PushBack(value);
@@ -475,12 +471,9 @@ LinkedList<T, AllocatorType>& LinkedList<T, AllocatorType>::operator=(LinkedList
 
     Clear();
 
-    m_pAllocator = other.m_pAllocator;
     m_head = other.m_head;
     m_tail = other.m_tail;
     m_size = other.m_size;
-
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
 
     other.m_head = nullptr;
     other.m_tail = nullptr;
