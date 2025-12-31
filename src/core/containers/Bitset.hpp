@@ -527,7 +527,7 @@ private:
 };
 
 template <class AllocatorType>
-static inline Array<typename TBitset<AllocatorType>::BlockType, FixedAllocator<2>> CreateBlocks_Internal(uint64 value)
+static inline FixedArray<typename TBitset<AllocatorType>::BlockType, 2> CreateBlocks_Internal(uint64 value)
 {
     return {
         typename TBitset<AllocatorType>::BlockType(value & 0xFFFFFFFFu),
@@ -549,8 +549,11 @@ static inline Span<const typename TBitset<AllocatorType>::BlockType> CreateBlock
 template <class AllocatorType>
 TBitset<AllocatorType>::TBitset()
     : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-      m_blocks(CreateBlocks_Static_Internal<AllocatorType, 0>())
+      m_blocks(m_pAllocator)
 {
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
+    m_blocks = CreateBlocks_Static_Internal<AllocatorType, 0>();
 }
 
 template <class AllocatorType>

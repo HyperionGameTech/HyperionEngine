@@ -496,19 +496,18 @@ void EngineDriver::UpdateSim(float delta)
     TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);
     worldUpdateTaskBatch.AwaitCompletion();
 
-    static const auto s_removeNonUnique = []<class T>(Array<T, SceneAllocator>& elems)
+    static const auto s_removeNonUnique = []<class ArrayType>(ArrayType& elems)
     {
-        for (auto it = elems.Begin(); it != elems.End();)
+        for (SizeType idx = 0; idx < elems.Size();)
         {
-            const SizeType idx = elems.IndexOf(it);
-            if (idx != std::distance(elems.Begin(), it))
+            if (elems.Find(elems[idx]) != elems.begin() + idx)
             {
-                it = elems.Erase(it);
+                elems.Erase(elems.begin() + idx);
+
+                continue;
             }
-            else
-            {
-                ++it;
-            }
+
+            ++idx;
         }
     };
 

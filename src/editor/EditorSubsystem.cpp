@@ -3547,6 +3547,7 @@ void EditorSubsystem::SetActiveViewport(EditorViewport* viewport)
 void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
 {
     HYP_SCOPE;
+    AssertOnThread(g_simThread);
 
     AssertDebug(viewport != nullptr);
 
@@ -3582,19 +3583,20 @@ void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
     {
         impl(viewport);
     }
-    else
+    /*else
     {
         GetThreadById(g_simThread)->GetScheduler().Enqueue([impl, viewport]()
             {
                 impl(viewport);
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
-    }
+    }*/
 }
 
 void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
 {
     HYP_SCOPE;
+    AssertOnThread(g_simThread);
 
     AssertDebug(viewport != nullptr);
 
@@ -3639,14 +3641,14 @@ void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
     {
         impl(viewport);
     }
-    else
+    /*else
     {
         GetThreadById(g_simThread)->GetScheduler().Enqueue([impl, viewportWeak = MakeWeakRef(viewport)]()
             {
                 impl(viewportWeak.GetUnsafe());
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
-    }
+    }*/
 }
 
 #endif

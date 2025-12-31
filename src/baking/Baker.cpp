@@ -121,8 +121,6 @@ BakerBase::~BakerBase()
 
     if (m_view != nullptr)
     {
-        m_scene->GetWorld()->RemoveView(m_view);
-
         SafeDelete(std::move(m_view));
     }
 
