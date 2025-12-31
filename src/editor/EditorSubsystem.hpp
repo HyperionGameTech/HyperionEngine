@@ -379,6 +379,9 @@ public:
     void OpenProject(const Handle<EditorProject>& project);
 
     HYP_METHOD()
+    void CloseProject();
+
+    HYP_METHOD()
     void ShowImportContentDialog();
 
     HYP_METHOD()

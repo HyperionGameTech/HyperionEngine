@@ -49,6 +49,8 @@ static const Name s_nameTextureDefault = NAME("<unnamed texture>");
 
 #pragma region Render commands
 
+HYP_DISABLE_OPTIMIZATION;
+
 struct CreateTextureGpuImage : RenderCommand
 {
     Handle<TextureAsset> textureAsset;
@@ -223,9 +225,9 @@ struct CreateTextureGpuImage : RenderCommand
                             AssertDebug(mipBlockStart != 0);
                         }
 
-                        for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
+                        for (uint32 layerIndex = 0; layerIndex < numArrayLayers; layerIndex++)
                         {
-                            uint32 finalOffset = mipBlockStart + (layerIndex * mipSize);
+                            uint32 finalOffset = mipBlockStart + (mipSize * layerIndex);
 
                             AssertDebug(finalOffset + mipSize <= stagingBuffer->Size());
 

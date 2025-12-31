@@ -169,6 +169,7 @@ public:
     bool BuildBVH(int maxDepth = 3);
 
     void UploadGpuData();
+    void ReleaseGpuData();
 
     MeshGpuUploadFence gpuUploadFence;
 

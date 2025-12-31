@@ -324,7 +324,10 @@ void Mesh::UploadGpuData()
 
         virtual RendererResult operator()() override
         {
+            AssertDebug(vertexBuffer.IsValid() && indexBuffer.IsValid());
+
             Handle<Mesh> mesh = weakMesh.Lock();
+            AssertDebug(mesh.IsValid());
 
             if (!mesh.IsValid())
             {
@@ -356,12 +359,15 @@ void Mesh::UploadGpuData()
             SafeDelete(std::move(stagingBufferVertices));
             SafeDelete(std::move(stagingBufferIndices));
 
-            if (mesh->m_vertexBuffer != vertexBuffer || mesh->m_indexBuffer != indexBuffer)
+            if (mesh->m_vertexBuffer != vertexBuffer)
             {
                 SafeDelete(std::move(mesh->m_vertexBuffer));
-                SafeDelete(std::move(mesh->m_indexBuffer));
-
                 mesh->m_vertexBuffer = std::move(vertexBuffer);
+            }
+
+            if (mesh->m_indexBuffer != indexBuffer)
+            {
+                SafeDelete(std::move(mesh->m_indexBuffer));
                 mesh->m_indexBuffer = std::move(indexBuffer);
             }
 
@@ -372,6 +378,17 @@ void Mesh::UploadGpuData()
     };
 
     PUSH_RENDER_COMMAND(CopyMeshGpuData, WeakHandleFromThis(), std::move(vertices), std::move(indices), std::move(vertexBuffer), std::move(indexBuffer));
+}
+
+void Mesh::ReleaseGpuData()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    SafeDelete(std::move(m_vertexBuffer));
+    SafeDelete(std::move(m_indexBuffer));
+
+    gpuUploadFence.Reset();
 }
 
 Result Mesh::Rename(Name name)

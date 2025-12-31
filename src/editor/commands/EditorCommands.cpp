@@ -144,6 +144,8 @@ public:
                             return;
                         }
 
+                        subsystem->CloseProject();
+
                         TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
 
                         if (loadProjectResult.HasError())

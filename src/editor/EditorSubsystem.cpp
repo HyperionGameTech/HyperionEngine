@@ -3124,6 +3124,20 @@ void EditorSubsystem::NewProject()
     OpenProject(project);
 }
 
+void EditorSubsystem::CloseProject()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (m_currentProject)
+    {
+        OnProjectClosing(m_currentProject);
+
+        m_currentProject->SetEditorSubsystem(WeakHandle<EditorSubsystem>::Null());
+        m_currentProject->Close();
+    }
+}
+
 void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 {
     HYP_SCOPE;
@@ -3134,13 +3148,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
         return;
     }
 
-    if (m_currentProject)
-    {
-        OnProjectClosing(m_currentProject);
-
-        m_currentProject->SetEditorSubsystem(WeakHandle<EditorSubsystem>::Null());
-        m_currentProject->Close();
-    }
+    CloseProject();
 
     if (project)
     {
