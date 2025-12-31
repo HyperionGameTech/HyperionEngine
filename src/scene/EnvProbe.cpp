@@ -369,7 +369,7 @@ void EnvProbe::Update(float delta)
                 return;
             }
 
-            for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>())
+            for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ))
             {
                 Camera* camera = static_cast<Camera*>(entity);
 
@@ -471,10 +471,10 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     if (proxy->texture != m_texture)
     {
         // force texture to get rebound if we already have a texture but it has changed
-        proxy->forceRebind = proxy->forceRebind || proxy->texture != nullptr;
-
-        proxy->texture = m_texture;
+        proxy->forceRebind = true;
     }
+
+    proxy->texture = m_texture;
 
     const BoundingBox worldBounds = GetWorldBounds();
 
@@ -498,7 +498,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 
 void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
 {
-    if (!IsBaked())
+    if (m_texture == texture)
     {
         return;
     }
@@ -509,13 +509,9 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
     }
 
     m_texture = texture;
+    InitObject(m_texture);
 
-    if (IsInitCalled())
-    {
-        InitObject(m_texture);
-
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
 }
 
 #pragma endregion EnvProbe

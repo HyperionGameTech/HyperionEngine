@@ -449,6 +449,11 @@ void BakerBase::Update(float delta)
 
     Mutex::Guard guard(m_queueMutex);
 
+    if (m_queue.Empty())
+    {
+        return;
+    }
+
     if (PerformsRayTracing())
     {
         // tally up estimated gpu mem usage
@@ -482,6 +487,13 @@ void BakerBase::Update(float delta)
             it = m_queue.Erase(it);
 
             --numRunningJobs;
+
+            if (it == m_queue.End())
+            {
+                OnCompleted();
+
+                return;
+            }
 
             continue;
         }
@@ -539,8 +551,16 @@ void BakerBase::HandleCompletedJob(BakeJobBase* job)
 
     const int percentage = MathUtil::Floor(double(m_initialNumJobs - m_numJobs) / double(m_initialNumJobs) * 100.0);
 
-    HYP_LOG(Lightmap, Info, "Baking {} ... ({}%)",
-        m_source ? m_source->Id() : ObjIdBase(), percentage);
+    HYP_LOG(Lightmap, Info, "Baking {} ... ({}%)", m_source ? m_source->Id() : ObjIdBase(), percentage);
+}
+
+void BakerBase::OnCompleted()
+{
+    OnCompleted_Internal();
+
+    OnComplete();
+
+    HYP_LOG(Lightmap, Info, "Baking complete for {}", m_source ? m_source->Id() : ObjIdBase());
 }
 
 void BakerBase::AddJob(UniquePtr<BakeJobBase>&& job)

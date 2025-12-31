@@ -91,7 +91,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-                ->SetElement("EnvProbeTextures", prev, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
+                ->SetElement("EnvProbeTextures", prev, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
         }
     }
 
