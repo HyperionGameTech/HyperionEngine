@@ -97,7 +97,7 @@ namespace Hyperion
 
             Logger.Log(LogType.Debug, "Loading assembly: {0} (version: {1})", name.Name, name.Version);
 
-            string assemblyPath = resolver.ResolveAssemblyToPath(name);
+            string? assemblyPath = resolver.ResolveAssemblyToPath(name);
 
             if (assemblyPath != null)
             {

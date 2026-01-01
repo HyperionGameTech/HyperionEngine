@@ -49,7 +49,7 @@ namespace Hyperion
 
             if (frame == null)
             {
-                Logger_Log(defaultChannel.ptr, (uint)logLevel, string.Empty, 0, formattedMessage);
+                Logger_Log(defaultChannel.ptr, (uint)logLevel, string.Empty, 0, formattedMessage + '\n');
 
                 return;
             }
@@ -57,7 +57,7 @@ namespace Hyperion
             string? fileName = frame.GetFileName();
             uint line = (uint)frame.GetFileLineNumber();
 
-            Logger_Log(defaultChannel.ptr, (uint)logLevel, fileName ?? string.Empty, line, formattedMessage);
+            Logger_Log(defaultChannel.ptr, (uint)logLevel, fileName ?? string.Empty, line, formattedMessage + '\n');
         }
 
         public static void Log(LogChannel channel, LogType logLevel, string message, params object?[] args)

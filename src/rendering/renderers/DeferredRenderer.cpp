@@ -39,7 +39,6 @@
 #include <rendering/raytracing/DDGI.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
-
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <engine/DebugDrawer.hpp>
