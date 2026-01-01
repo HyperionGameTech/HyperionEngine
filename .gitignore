@@ -308,6 +308,4 @@ src/dotnet/runtime/gen/**/*
 
 res/projects/**/*
 
-submodules/**/*
-
 generated/**/*

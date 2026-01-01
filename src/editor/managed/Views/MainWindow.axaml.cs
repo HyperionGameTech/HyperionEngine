@@ -25,6 +25,8 @@ namespace Hyperion.Editor
                 throw new Exception("EditorViewportControl control not found in MainWindow.");
             }
 
+            evc.Focus();
+
             DataContext = new MainWindowViewModel();
 
             if (IsRenderingOnMainThread)
@@ -52,5 +54,13 @@ namespace Hyperion.Editor
             var topLevel = GetTopLevel(this);
             topLevel?.RequestAnimationFrame(OnFrame);
         }
+
+        // protected override void OnKeyDown(Avalonia.Input.KeyEventArgs e)
+        // {
+        //     base.OnKeyDown(e);
+
+        //     var vm = DataContext as MainWindowViewModel;
+        //     vm?.HandleKeyDown(e);
+        // }
     }
 }

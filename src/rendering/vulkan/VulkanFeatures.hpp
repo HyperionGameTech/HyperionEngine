@@ -44,6 +44,11 @@ public:
         return m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
     }
 
+    bool IsIntegratedGpu() const
+    {
+        return m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+    }
+
     const char* GetDeviceName() const
     {
         return m_properties.deviceName;
@@ -408,8 +413,6 @@ private:
     VkPhysicalDeviceProperties2 m_properties2;
 
     VkPhysicalDeviceMemoryProperties m_memoryProperties;
-
-    Array<UniquePtr<VkBaseOutStructure>> m_featuresChain;
 
     bool m_isRaytracingDisabled { false };
 };

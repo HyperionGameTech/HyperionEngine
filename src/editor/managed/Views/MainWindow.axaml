@@ -135,27 +135,27 @@
                     Orientation="Horizontal"
                     Spacing="6">
                     <RadioButton
-                        x:Name="TranslateGizmo"
+                        x:Name="TransformModeTranslate"
                         Classes="gizmo"
-                        Command="{Binding SelectTranslateGizmo}"
+                        Command="{Binding SelectTransformModeTranslate}"
                         Content="Translate"
                         GroupName="GizmoMode"
-                        IsChecked="True"
-                        ToolTip.Tip="Select translation mode" />
+                        IsChecked="False"
+                        ToolTip.Tip="Set the active transform mode to translate mode, allowing for objects to be positioned in the scene." />
                     <RadioButton
-                        x:Name="RotateGizmo"
+                        x:Name="TransformModeRotate"
                         Classes="gizmo"
-                        Command="{Binding SelectRotateGizmo}"
+                        Command="{Binding SelectTransformModeRotate}"
                         Content="Rotate"
                         GroupName="GizmoMode"
-                        ToolTip.Tip="Select rotation gizmo" />
+                        ToolTip.Tip="Set the active transform mode to rotate mode, allowing for objects to have their orientations adjusted." />
                     <RadioButton
-                        x:Name="ScaleGizmo"
+                        x:Name="TransformModeScale"
                         Classes="gizmo"
-                        Command="{Binding SelectScaleGizmo}"
+                        Command="{Binding SelectTransformModeScale}"
                         Content="Scale"
                         GroupName="GizmoMode"
-                        ToolTip.Tip="Select scale gizmo" />
+                        ToolTip.Tip="Set the active transform mode to scale mode, allowing for objects to be sized." />
                 </StackPanel>
 
                 <StackPanel

@@ -652,15 +652,15 @@ extern "C"
     {
         g_logCallback = callback;
 
-        if (g_logRedirectId == -1)
-        {
-            g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
-                Bitset(~0u), // All channels
-                nullptr,
-                HandleLogMessage,
-                HandleLogMessage // Use same handler for errors for now
-            );
-        }
+        //if (g_logRedirectId == -1)
+        //{
+        //    g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
+        //        Bitset(~0u), // All channels
+        //        nullptr,
+        //        HandleLogMessage,
+        //        HandleLogMessage // Use same handler for errors for now
+        //    );
+        //}
     }
 
     HYP_EXPORT void Editor_ExecuteConsoleCommand(const char* command)

@@ -1,6 +1,8 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Platform;
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Hyperion.Editor
@@ -18,6 +20,9 @@ namespace Hyperion.Editor
 
         public EditorViewportControl()
         {
+            Focusable = true;
+            IsHitTestVisible = true;
+
             Viewport = new EditorViewport();
         }
 
@@ -66,7 +71,7 @@ namespace Hyperion.Editor
             }
             else if (OperatingSystem.IsMacOS())
             {
-                CocoaApplicationWindow cocoaApplicationWindow = Window as CocoaApplicationWindow;
+                CocoaApplicationWindow? cocoaApplicationWindow = Window as CocoaApplicationWindow;
                 if (cocoaApplicationWindow == null)
                 {
                     throw new Exception("Failed to cast to CocoaApplicationWindow");
@@ -94,6 +99,8 @@ namespace Hyperion.Editor
 
             if (Window != null)
             {
+                Debug.Assert(AppContext != null);
+
                 if (AppContext.GetMainWindow() == Window)
                 {
                     AppContext.SetMainWindow(null);
@@ -121,6 +128,13 @@ namespace Hyperion.Editor
 
                 // Window.SetSize(new Vec2i(width, height));
             }
+        }
+
+        protected override void OnGotFocus(GotFocusEventArgs e)
+        {
+            base.OnGotFocus(e);
+
+            Logger.Log(LogType.Debug, "Viewport got focus");
         }
 
         void InitEditorViewport(EditorViewport viewport)

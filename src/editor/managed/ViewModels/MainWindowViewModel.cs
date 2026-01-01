@@ -43,9 +43,9 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
         public EditorCommand AddFogVolume => new EditorCommand("AddFogVolume");
 
-        public ICommand SelectTranslateGizmo { get; private set; }
-        public ICommand SelectRotateGizmo { get; private set; }
-        public ICommand SelectScaleGizmo { get; private set; }
+        public ICommand SelectTransformModeTranslate { get; private set; }
+        public ICommand SelectTransformModeRotate { get; private set; }
+        public ICommand SelectTransformModeScale { get; private set; }
         public bool CanSelectGizmo
         {
             get
@@ -174,9 +174,9 @@ namespace Hyperion.Editor.ViewModels
                 });
             });
 
-            SelectTranslateGizmo = new SetGizmoCommand(EditorManipulationMode.Translate);
-            SelectRotateGizmo = new SetGizmoCommand(EditorManipulationMode.Rotate);
-            SelectScaleGizmo = new SetGizmoCommand(EditorManipulationMode.Scale);
+            SelectTransformModeTranslate = new SetGizmoCommand(EditorManipulationMode.Translate);
+            SelectTransformModeRotate = new SetGizmoCommand(EditorManipulationMode.Rotate);
+            SelectTransformModeScale = new SetGizmoCommand(EditorManipulationMode.Scale);
 
             SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
             SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
@@ -297,9 +297,9 @@ namespace Hyperion.Editor.ViewModels
                             OnPropertyChanged(nameof(CanSetGameModePaused));
                             OnPropertyChanged(nameof(CanSetGameModeStopped));
 
-                            (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                            (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                            (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                            (SelectTransformModeTranslate as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                            (SelectTransformModeRotate as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                            (SelectTransformModeScale as SetGizmoCommand)?.RaiseCanExecuteChanged();
                             OnPropertyChanged(nameof(CanSelectGizmo));
                         });
                     });
@@ -311,9 +311,9 @@ namespace Hyperion.Editor.ViewModels
                 {
                     Dispatcher.UIThread.Post(() =>
                     {
-                        (SelectTranslateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                        (SelectRotateGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
-                        (SelectScaleGizmo as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                        (SelectTransformModeTranslate as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                        (SelectTransformModeRotate as SetGizmoCommand)?.RaiseCanExecuteChanged();
+                        (SelectTransformModeScale as SetGizmoCommand)?.RaiseCanExecuteChanged();
 
                         OnPropertyChanged(nameof(CanSelectGizmo));
                     });

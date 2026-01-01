@@ -948,12 +948,12 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
 
     DWORD style = WS_VISIBLE;
 
+    x = CW_USEDEFAULT;
+    y = CW_USEDEFAULT;
+
     if (!(windowOptions.flags & uint32(WindowFlags::HEADLESS)))
     {
         style |= WS_OVERLAPPEDWINDOW;
-
-        x = CW_USEDEFAULT;
-        y = CW_USEDEFAULT;
     }
 
     if (windowOptions.parentHwnd != nullptr)
@@ -1050,6 +1050,8 @@ static bool HandleWindowEvent(
     case WM_LBUTTONDOWN:
         event = Event(EventType::MOUSEBUTTON_DOWN, window, platformEvent);
         event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
+
+        SetFocus(window->GetHWND());
 
         return true;
     case WM_LBUTTONUP:
@@ -1149,6 +1151,8 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 
             return 0;
         }
+
+        return 0;
     }
 
     return DefWindowProcW(hWnd, msg, wParam, lParam);

@@ -39,25 +39,27 @@ public:
 
 template <class T>
 concept VulkanStruct = requires(T a) {
-    { a.sType } -> std::same_as<VkStructureType&>;
-    { a.pNext } -> std::same_as<const void*&>;
+    { a.sType } -> std::convertible_to<VkStructureType&>;
+    { a.pNext } -> std::convertible_to<const void*>;
 };
 
 namespace VulkanHelpers {
 
-/*! \brief Chains pNext of pStruct to pNext of pNextStruct.
- *  If pStruct already has a pNext, the new pNextStruct is appended to the end of the chain. */
+/*! \brief Attach \p next to the struct chain starting at \p inStruct, making it the new tail of the structure.. */
 template <VulkanStruct TBaseType, VulkanStruct TNextType>
-static inline void ChainNext(TBaseType& inStruct, TNextType* pNext)
+static inline void ChainNext(TBaseType& inStruct, TNextType* next)
 {
-    VkBaseOutStructure* pCurr = (VkBaseOutStructure*)&inStruct;
+    VkBaseOutStructure* current = (VkBaseOutStructure*)&inStruct;
+    HYP_GFX_ASSERT(current != (VkBaseOutStructure*)next);
 
-    while (pCurr->pNext != nullptr)
+    while (current->pNext != nullptr)
     {
-        pCurr = pCurr->pNext;
+        // check if we'd create circular dependency
+        HYP_GFX_ASSERT(current->pNext != (VkBaseOutStructure*)next);
+        current = current->pNext;
     }
 
-    pCurr->pNext = (VkBaseOutStructure*)pNext;
+    current->pNext = (VkBaseOutStructure*)next;
 }
 
 } // namespace VulkanHelpers

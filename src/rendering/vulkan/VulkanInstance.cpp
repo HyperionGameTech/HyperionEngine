@@ -53,27 +53,34 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
     VulkanFeatures::DeviceRequirementsResult deviceRequirementsResult(VulkanFeatures::DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR, "No device found");
 
     VulkanFeatures deviceFeatures;
-
-    /* Check for a discrete/dedicated GPU with geometry shaders */
+    
+    // select dedicated GPU
     for (VkPhysicalDevice device : devices)
     {
         deviceFeatures.SetPhysicalDevice(device);
 
-        if (deviceFeatures.IsDiscreteGpu())
+        if (!deviceFeatures.IsDiscreteGpu())
         {
-            if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
-            {
-                HYP_LOG(RenderingBackend, Info, "Select discrete device {}", deviceFeatures.GetDeviceName());
+            continue;
+        }
 
-                return device;
-            }
+        if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
+        {
+            HYP_LOG(RenderingBackend, Info, "Select discrete device {}", deviceFeatures.GetDeviceName());
+
+            return device;
         }
     }
 
-    /* No discrete gpu found, look for a device which satisfies requirements */
+    // select integrated GPU
     for (VkPhysicalDevice device : devices)
     {
         deviceFeatures.SetPhysicalDevice(device);
+
+        if (!deviceFeatures.IsIntegratedGpu())
+        {
+            continue;
+        }
 
         if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
         {
