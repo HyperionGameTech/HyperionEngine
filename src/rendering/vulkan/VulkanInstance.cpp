@@ -43,11 +43,6 @@ constexpr bool EnableVulkanSynchronizationValidation = true;
 constexpr bool EnableVulkanVerboseValidationLogging = true;
 #endif
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
-}
-
 static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 {
     if (!devices.Size())
@@ -378,7 +373,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     // Setup Vulkan extensions
     Array<const char*> extensionNames;
 
-    if (RendererResult result = GetRenderBackend()->GetVkExtensions(extensionNames); result.HasError())
+    if (RendererResult result = g_renderBackend->GetVkExtensions(extensionNames); result.HasError())
     {
         return result;
     }

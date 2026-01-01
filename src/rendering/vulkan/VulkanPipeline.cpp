@@ -14,11 +14,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 #pragma region VulkanPipelineBase
 
 VulkanPipelineBase::VulkanPipelineBase()
@@ -31,13 +26,13 @@ VulkanPipelineBase::~VulkanPipelineBase()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyPipeline(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 
     if (m_layout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(GetRenderBackend()->GetDevice()->GetDevice(), m_layout, nullptr);
+        vkDestroyPipelineLayout(g_renderBackend->GetDevice()->GetDevice(), m_layout, nullptr);
         m_layout = VK_NULL_HANDLE;
     }
 }
@@ -70,7 +65,7 @@ void VulkanPipelineBase::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(GetRenderBackend()->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

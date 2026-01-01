@@ -32,14 +32,7 @@ namespace memory {
 
 class HYP_API Pool
 {
-    template <class T, class T2>
-    friend struct DefaultAllocatorInstanceHelper;
-
-    /*! \brief This constructor should generally not be used, but exists so we don't have compiler errors for GetDefaultAllocatorInstance */
-    Pool()
-        : Pool(1024 * 1024) // default to 1 MB blocks
-    {
-    }
+    Pool() = delete;
 
 public:
     static constexpr uint32 maxAlign = 16;

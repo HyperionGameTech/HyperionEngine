@@ -24,17 +24,12 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 #pragma region Helpers
 
 static uint32 FindMemoryType(uint32 vkTypeFilter, VkMemoryPropertyFlags vkMemoryPropertyFlags)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(GetRenderBackend()->GetDevice()->GetPhysicalDevice(), &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(g_renderBackend->GetDevice()->GetPhysicalDevice(), &memProperties);
 
     for (uint32 i = 0; i < memProperties.memoryTypeCount; i++)
     {
@@ -150,7 +145,7 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
         case SMT_RAY_GEN:
         case SMT_RAY_INTERSECT:
         case SMT_RAY_MISS:
-            if (GetRenderBackend()->GetDevice()->GetFeatures().IsRaytracingSupported())
+            if (g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
             {
                 return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }
@@ -174,7 +169,7 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
             VkPipelineStageFlags bits = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                 | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-            if (GetRenderBackend()->GetDevice()->GetFeatures().IsRaytracingSupported())
+            if (g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
             {
                 bits |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }
@@ -345,7 +340,7 @@ VulkanGpuBuffer::~VulkanGpuBuffer()
         Unmap();
     }
 
-    vmaDestroyBuffer(GetRenderBackend()->GetDevice()->GetAllocator(), m_handle, m_vmaAllocation);
+    vmaDestroyBuffer(g_renderBackend->GetDevice()->GetAllocator(), m_handle, m_vmaAllocation);
 
     m_handle = VK_NULL_HANDLE;
     m_vmaAllocation = VK_NULL_HANDLE;
@@ -415,7 +410,7 @@ void VulkanGpuBuffer::Map() const
 
     HYP_GFX_ASSERT(IsCpuAccessible(), "Attempt to map a buffer that is not CPU accessible!");
 
-    vmaMapMemory(GetRenderBackend()->GetDevice()->GetAllocator(), m_vmaAllocation, &m_mapping);
+    vmaMapMemory(g_renderBackend->GetDevice()->GetAllocator(), m_vmaAllocation, &m_mapping);
 }
 
 void VulkanGpuBuffer::Unmap() const
@@ -425,7 +420,7 @@ void VulkanGpuBuffer::Unmap() const
         return;
     }
 
-    vmaUnmapMemory(GetRenderBackend()->GetDevice()->GetAllocator(), m_vmaAllocation);
+    vmaUnmapMemory(g_renderBackend->GetDevice()->GetAllocator(), m_vmaAllocation);
     m_mapping = nullptr;
 }
 
@@ -438,7 +433,7 @@ void VulkanGpuBuffer::Flush(SizeType offset, SizeType count)
 
     AssertDebug(offset + count <= Size());
 
-    VkResult result = vmaFlushAllocation(GetRenderBackend()->GetDevice()->GetAllocator(), m_vmaAllocation, offset, count);
+    VkResult result = vmaFlushAllocation(g_renderBackend->GetDevice()->GetAllocator(), m_vmaAllocation, offset, count);
     Assert(result == VK_SUCCESS);
 }
 
@@ -450,10 +445,10 @@ bool VulkanGpuBuffer::IsCreated() const
 bool VulkanGpuBuffer::IsCpuAccessible() const
 {
     VmaAllocationInfo info {};
-    vmaGetAllocationInfo(GetRenderBackend()->GetDevice()->GetAllocator(), m_vmaAllocation, &info);
+    vmaGetAllocationInfo(g_renderBackend->GetDevice()->GetAllocator(), m_vmaAllocation, &info);
 
     VkMemoryPropertyFlags flags = 0;
-    vmaGetMemoryTypeProperties(GetRenderBackend()->GetDevice()->GetAllocator(), info.memoryType, &flags);
+    vmaGetMemoryTypeProperties(g_renderBackend->GetDevice()->GetAllocator(), info.memoryType, &flags);
 
     return (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
 }
@@ -469,7 +464,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(SizeType size) const
 uint64 VulkanGpuBuffer::GetBufferDeviceAddress() const
 {
     HYP_GFX_ASSERT(
-        GetRenderBackend()->GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
+        g_renderBackend->GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
         "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!");
 
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
@@ -478,7 +473,7 @@ uint64 VulkanGpuBuffer::GetBufferDeviceAddress() const
     info.buffer = m_handle;
 
     return g_vulkanDynamicFunctions->vkGetBufferDeviceAddressKHR(
-        GetRenderBackend()->GetDevice()->GetDevice(),
+        g_renderBackend->GetDevice()->GetDevice(),
         &info);
 }
 
@@ -640,7 +635,7 @@ RendererResult VulkanGpuBuffer::Create()
     {
         VULKAN_CHECK_MSG(
             vmaCreateBufferWithAlignment(
-                GetRenderBackend()->GetDevice()->GetAllocator(),
+                g_renderBackend->GetDevice()->GetAllocator(),
                 &createInfo,
                 &allocInfo,
                 m_alignment,
@@ -653,7 +648,7 @@ RendererResult VulkanGpuBuffer::Create()
     {
         VULKAN_CHECK_MSG(
             vmaCreateBuffer(
-                GetRenderBackend()->GetDevice()->GetAllocator(),
+                g_renderBackend->GetDevice()->GetAllocator(),
                 &createInfo,
                 &allocInfo,
                 &m_handle,
@@ -723,7 +718,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
             {
                 VulkanBufferDeleter* bufferDeleter = reinterpret_cast<VulkanBufferDeleter*>(ptr);
 
-                vmaDestroyBuffer(GetRenderBackend()->GetDevice()->GetAllocator(), bufferDeleter->buffer, bufferDeleter->vmaAllocation);
+                vmaDestroyBuffer(g_renderBackend->GetDevice()->GetAllocator(), bufferDeleter->buffer, bufferDeleter->vmaAllocation);
             },
             &guard);
 
@@ -762,7 +757,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
 
 VkBufferCreateInfo VulkanGpuBuffer::GetBufferCreateInfo() const
 {
-    const QueueFamilyIndices& qfIndices = GetRenderBackend()->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qfIndices = g_renderBackend->GetDevice()->GetQueueFamilyIndices();
     const uint32 bufferFamilyIndices[] = { qfIndices.graphicsFamily.Get(), qfIndices.computeFamily.Get() };
 
     VkBufferCreateInfo vkBufferInfo { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -788,7 +783,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(
     const VmaAllocationCreateInfo& allocationCreateInfo,
     SizeType size) const
 {
-    const VulkanFeatures& features = GetRenderBackend()->GetDevice()->GetFeatures();
+    const VulkanFeatures& features = g_renderBackend->GetDevice()->GetFeatures();
 
     RendererResult result;
 
@@ -796,7 +791,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(
 
     VULKAN_PASS_ERRORS(
         vmaFindMemoryTypeIndexForBufferInfo(
-            GetRenderBackend()->GetDevice()->GetAllocator(),
+            g_renderBackend->GetDevice()->GetAllocator(),
             &bufferCreateInfo,
             &allocationCreateInfo,
             &memoryTypeIndex),
@@ -834,7 +829,7 @@ void VulkanGpuBuffer::SetDebugName(Name name)
 
     if (m_vmaAllocation != VK_NULL_HANDLE)
     {
-        vmaSetAllocationName(GetRenderBackend()->GetDevice()->GetAllocator(), m_vmaAllocation, strName);
+        vmaSetAllocationName(g_renderBackend->GetDevice()->GetAllocator(), m_vmaAllocation, strName);
     }
 
     VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
@@ -842,7 +837,7 @@ void VulkanGpuBuffer::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(GetRenderBackend()->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

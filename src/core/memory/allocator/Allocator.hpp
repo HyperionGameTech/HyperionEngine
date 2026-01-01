@@ -18,7 +18,11 @@ namespace memory {
 class Pool;
 
 template <class T>
-T* GetDefaultAllocatorInstance();
+concept HasDefaultAllocatorInstance = std::is_default_constructible_v<T>;
+
+template <HasDefaultAllocatorInstance AllocatorType>
+AllocatorType* GetDefaultAllocatorInstance();
+
 template <class T, class T2 = void>
 struct DefaultAllocatorInstanceHelper;
 
@@ -28,7 +32,7 @@ struct DefaultAllocatorInstanceHelper<T>
     T& operator()() const;
 };
 
-template <class AllocatorType>
+template <HasDefaultAllocatorInstance AllocatorType>
 struct GetAllocatorInstanceHelper
 {
     using Type = AllocatorType;
@@ -706,16 +710,16 @@ struct GetAllocatorInstanceHelper<AllocatorInstance<AllocatorType>>
     }
 };
 
-template <class AllocatorType>
+template <HasDefaultAllocatorInstance AllocatorType>
 static inline auto GetAllocatorInstance() -> typename GetAllocatorInstanceHelper<AllocatorType>::Type*
 {
     return GetAllocatorInstanceHelper<AllocatorType>::Get();
 }
 
-template <class T>
-T* GetDefaultAllocatorInstance()
+template <HasDefaultAllocatorInstance AllocatorType>
+AllocatorType* GetDefaultAllocatorInstance()
 {
-    return &DefaultAllocatorInstanceHelper<T> {}();
+    return &DefaultAllocatorInstanceHelper<AllocatorType> {}();
 }
 
 } // namespace memory
@@ -729,6 +733,7 @@ using memory::FixedAllocator;
 using memory::InlineAllocator;
 
 using memory::GetDefaultAllocatorInstance;
+using memory::HasDefaultAllocatorInstance;
 
 template <class T, class AllocatorType>
 using Allocation = typename AllocatorType::template Allocation<T>;

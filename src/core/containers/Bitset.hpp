@@ -95,12 +95,28 @@ public:
         }
     };
 
-    TBitset();
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
+    TBitset()
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
+          m_blocks(m_pAllocator)
+    {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
+        m_blocks = CreateBlocks_Static_Internal<AllocatorType, 0>();
+    }
 
     explicit TBitset(AllocatorType* pAllocator, uint64 value = 0);
 
     /*! \brief Constructs a bitset from a 64-bit unsigned integer. */
-    explicit TBitset(uint64 value);
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
+    explicit TBitset(uint64 value)
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
+          m_blocks(m_pAllocator)
+    {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
+        m_blocks = CreateBlocks_Internal<AllocatorType>(value);
+    }
 
     TBitset(const TBitset& other);
     TBitset& operator=(const TBitset& other);
@@ -547,33 +563,13 @@ static inline Span<const typename TBitset<AllocatorType>::BlockType> CreateBlock
 }
 
 template <class AllocatorType>
-TBitset<AllocatorType>::TBitset()
-    : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-      m_blocks(m_pAllocator)
-{
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
-    m_blocks = CreateBlocks_Static_Internal<AllocatorType, 0>();
-}
-
-template <class AllocatorType>
 TBitset<AllocatorType>::TBitset(AllocatorType* pAllocator, uint64 value)
     : m_pAllocator(pAllocator),
       m_blocks(m_pAllocator)
 {
     HYP_CORE_ASSERT(m_pAllocator != nullptr);
 
-    m_blocks = CreateBlocks_Internal<AllocatorType>(value);
-}
-
-template <class AllocatorType>
-TBitset<AllocatorType>::TBitset(uint64 value)
-    : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-      m_blocks(m_pAllocator)
-{
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
-    m_blocks = CreateBlocks_Internal<AllocatorType>(value);
+    m_blocks.Concat(CreateBlocks_Internal<AllocatorType>(value).ToSpan());
 }
 
 template <class AllocatorType>

@@ -26,11 +26,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 static VkTransformMatrixKHR ToVkTransform(const Mat4f& matrix)
 {
     VkTransformMatrixKHR transform;
@@ -85,7 +80,7 @@ RendererResult VulkanAccelerationGeometry::Create()
         return {};
     }
 
-    if (!GetRenderBackend()->GetDevice()->GetFeatures().IsRaytracingSupported())
+    if (!g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
     {
         return HYP_MAKE_ERROR(RendererError, "Device does not support raytracing");
     }
@@ -159,7 +154,7 @@ VulkanAccelerationStructureBase::~VulkanAccelerationStructureBase()
     if (m_accelerationStructure != VK_NULL_HANDLE)
     {
         g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
-            GetRenderBackend()->GetDevice()->GetDevice(),
+            g_renderBackend->GetDevice()->GetDevice(),
             m_accelerationStructure,
             VK_NULL_HANDLE);
 
@@ -183,7 +178,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         HYP_GFX_ASSERT(m_accelerationStructure == VK_NULL_HANDLE);
     }
 
-    if (!GetRenderBackend()->GetDevice()->GetFeatures().IsRaytracingSupported())
+    if (!g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
     {
         return HYP_MAKE_ERROR(RendererError, "Device does not support raytracing");
     }
@@ -204,13 +199,13 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     VkAccelerationStructureBuildSizesInfoKHR buildSizesInfo { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
     g_vulkanDynamicFunctions->vkGetAccelerationStructureBuildSizesKHR(
-        GetRenderBackend()->GetDevice()->GetDevice(),
+        g_renderBackend->GetDevice()->GetDevice(),
         VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
         &geometryInfo,
         primitiveCounts.Data(),
         &buildSizesInfo);
 
-    const SizeType scratchBufferAlignment = GetRenderBackend()->GetDevice()->GetFeatures().GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment;
+    const SizeType scratchBufferAlignment = g_renderBackend->GetDevice()->GetFeatures().GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment;
     SizeType accelerationStructureSize = MathUtil::NextMultiple(buildSizesInfo.accelerationStructureSize, 256ull);
     SizeType buildScratchSize = MathUtil::NextMultiple(buildSizesInfo.buildScratchSize, scratchBufferAlignment);
     SizeType updateScratchSize = MathUtil::NextMultiple(buildSizesInfo.updateScratchSize, scratchBufferAlignment);
@@ -221,7 +216,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     {
         HYP_GFX_ASSERT(!update);
 
-        m_buffer = GetRenderBackend()->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_BUFFER, accelerationStructureSize);
+        m_buffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_BUFFER, accelerationStructureSize);
         m_buffer->SetDebugName(NAME("ASBuffer"));
         HYP_GFX_CHECK(m_buffer->Create());
     }
@@ -235,20 +230,20 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         if (update)
         {
             // delete the current acceleration structure once the frame is done, rather than stalling the gpu here
-            GetRenderBackend()->GetCurrentFrame()->OnFrameEnd.Bind([oldAccelerationStructure = m_accelerationStructure](...)
+            g_renderBackend->GetCurrentFrame()->OnFrameEnd.Bind([oldAccelerationStructure = m_accelerationStructure](...)
                                                                  {
                                                                      g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
-                                                                         GetRenderBackend()->GetDevice()->GetDevice(),
+                                                                         g_renderBackend->GetDevice()->GetDevice(),
                                                                          oldAccelerationStructure,
                                                                          nullptr);
                                                                  })
                 .Detach();
 
-            // HYP_GFX_ASSERT(GetRenderBackend()->GetDevice()->Wait()); // To prevent deletion while in use
+            // HYP_GFX_ASSERT(g_renderBackend->GetDevice()->Wait()); // To prevent deletion while in use
 
             //// delete the current acceleration structure
             // g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
-            //     GetRenderBackend()->GetDevice()->GetDevice(),
+            //     g_renderBackend->GetDevice()->GetDevice(),
             //     m_accelerationStructure,
             //     nullptr
             //);
@@ -260,7 +255,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
             geometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 
             g_vulkanDynamicFunctions->vkGetAccelerationStructureBuildSizesKHR(
-                GetRenderBackend()->GetDevice()->GetDevice(),
+                g_renderBackend->GetDevice()->GetDevice(),
                 VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                 &geometryInfo,
                 primitiveCounts.Data(),
@@ -282,7 +277,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         createInfo.type = ToVkAccelerationStructureType(type);
 
         VULKAN_CHECK(g_vulkanDynamicFunctions->vkCreateAccelerationStructureKHR(
-            GetRenderBackend()->GetDevice()->GetDevice(),
+            g_renderBackend->GetDevice()->GetDevice(),
             &createInfo,
             VK_NULL_HANDLE,
             &m_accelerationStructure));
@@ -294,14 +289,14 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     addressInfo.accelerationStructure = m_accelerationStructure;
 
     m_deviceAddress = g_vulkanDynamicFunctions->vkGetAccelerationStructureDeviceAddressKHR(
-        GetRenderBackend()->GetDevice()->GetDevice(),
+        g_renderBackend->GetDevice()->GetDevice(),
         &addressInfo);
 
     const SizeType scratchSize = (update && !wasRebuilt) ? updateScratchSize : buildScratchSize;
 
     if (m_scratchBuffer == nullptr)
     {
-        m_scratchBuffer = GetRenderBackend()->MakeGpuBuffer(GpuBufferType::SCRATCH_BUFFER, scratchSize, scratchBufferAlignment);
+        m_scratchBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SCRATCH_BUFFER, scratchSize, scratchBufferAlignment);
         m_scratchBuffer->SetDebugName(NAME("ASScratchBuffer"));
 
         HYP_GFX_CHECK(m_scratchBuffer->Create());
@@ -341,7 +336,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     HYP_GFX_CHECK(fence->Reset());
 
     VulkanCommandBufferRef commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-    HYP_GFX_CHECK(commandBuffer->Create(GetRenderBackend()->GetDevice()->GetGraphicsQueue()->commandPools[0]));
+    HYP_GFX_CHECK(commandBuffer->Create(g_renderBackend->GetDevice()->GetGraphicsQueue()->commandPools[0]));
 
     HYP_GFX_CHECK(commandBuffer->Begin());
 
@@ -353,7 +348,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     HYP_GFX_CHECK(commandBuffer->End());
 
-    HYP_GFX_CHECK(commandBuffer->SubmitPrimary(GetRenderBackend()->GetDevice()->GetGraphicsQueue(), fence, nullptr, nullptr));
+    HYP_GFX_CHECK(commandBuffer->SubmitPrimary(g_renderBackend->GetDevice()->GetGraphicsQueue(), fence, nullptr, nullptr));
 
     SafeDelete(std::move(commandBuffer));
     SafeDelete(std::move(fence));
@@ -418,7 +413,7 @@ void VulkanAccelerationStructureBase::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_accelerationStructure;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(GetRenderBackend()->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
 
 #endif
 }
@@ -600,7 +595,7 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
 
     if (!m_instancesBuffer)
     {
-        m_instancesBuffer = GetRenderBackend()->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER, instancesBufferSize);
+        m_instancesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER, instancesBufferSize);
         m_instancesBuffer->SetDebugName(NAME("ASInstancesBuffer"));
         HYP_GFX_CHECK(m_instancesBuffer->Create());
 
@@ -674,7 +669,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
 
     if (!m_meshDescriptionsBuffer)
     {
-        m_meshDescriptionsBuffer = GetRenderBackend()->MakeGpuBuffer(GpuBufferType::SSBO, meshDescriptionsBufferSize);
+        m_meshDescriptionsBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, meshDescriptionsBufferSize);
         m_meshDescriptionsBuffer->SetRequireCpuAccessible(true);
         m_meshDescriptionsBuffer->SetDebugName(NAME("ASMeshDescriptionsBuffer"));
         HYP_GFX_CHECK(m_meshDescriptionsBuffer->Create());

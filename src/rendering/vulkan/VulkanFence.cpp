@@ -18,11 +18,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 VulkanFence::VulkanFence()
     : m_handle(VK_NULL_HANDLE),
       m_lastFrameResult(VK_SUCCESS)
@@ -33,7 +28,7 @@ VulkanFence::~VulkanFence()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyFence(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyFence(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 }
@@ -46,7 +41,7 @@ RendererResult VulkanFence::Create()
     VkFenceCreateInfo fenceCreateInfo { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
     fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    VULKAN_CHECK(vkCreateFence(GetRenderBackend()->GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &m_handle));
+    VULKAN_CHECK(vkCreateFence(g_renderBackend->GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &m_handle));
 
     HYPERION_RETURN_OK;
 }
@@ -59,7 +54,7 @@ RendererResult VulkanFence::Wait(bool timeoutLoop)
 
     do
     {
-        vkResult = vkWaitForFences(GetRenderBackend()->GetDevice()->GetDevice(), 1, &m_handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
+        vkResult = vkWaitForFences(g_renderBackend->GetDevice()->GetDevice(), 1, &m_handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
     }
     while (vkResult == VK_TIMEOUT && timeoutLoop);
 
@@ -72,7 +67,7 @@ RendererResult VulkanFence::Wait(bool timeoutLoop)
 
 RendererResult VulkanFence::Reset()
 {
-    VULKAN_CHECK(vkResetFences(GetRenderBackend()->GetDevice()->GetDevice(), 1, &m_handle));
+    VULKAN_CHECK(vkResetFences(g_renderBackend->GetDevice()->GetDevice(), 1, &m_handle));
 
     HYPERION_RETURN_OK;
 }

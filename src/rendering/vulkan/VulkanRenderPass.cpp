@@ -19,11 +19,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 extern VkImageLayout GetVkImageLayout(ResourceState state);
 
 VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode)
@@ -46,7 +41,7 @@ VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPass
 
 VulkanRenderPass::~VulkanRenderPass()
 {
-    vkDestroyRenderPass(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
+    vkDestroyRenderPass(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
     m_handle = VK_NULL_HANDLE;
 
     SafeDelete(std::move(m_renderPassAttachments));
@@ -289,7 +284,7 @@ RendererResult VulkanRenderPass::Create()
         renderPassInfo.pNext = &multiviewInfo;
     }
 
-    VULKAN_CHECK(vkCreateRenderPass(GetRenderBackend()->GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
+    VULKAN_CHECK(vkCreateRenderPass(g_renderBackend->GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
 
     HYPERION_RETURN_OK;
 }
@@ -323,7 +318,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         break;
     }
 
-    VulkanFrame* currentFrame = GetRenderBackend()->GetCurrentFrame();
+    VulkanFrame* currentFrame = g_renderBackend->GetCurrentFrame();
     if (currentFrame != nullptr)
     {
         currentFrame->AddRenderPass(this);

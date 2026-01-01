@@ -195,8 +195,17 @@ public:
     using Base = ContainerBase<LinkedList<T, AllocatorType>, SizeType>;
     using KeyType = typename Base::KeyType;
     using ValueType = T;
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
+    LinkedList()
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
+          m_head(nullptr),
+          m_tail(nullptr),
+          m_size(0)
+    {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+    }
 
-    LinkedList();
     LinkedList(const LinkedList& other);
     LinkedList(LinkedList&& other) noexcept;
     ~LinkedList();
@@ -403,16 +412,6 @@ private:
     Node* m_tail;
     SizeType m_size;
 };
-
-template <class T, class AllocatorType>
-LinkedList<T, AllocatorType>::LinkedList()
-    : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-      m_head(nullptr),
-      m_tail(nullptr),
-      m_size(0)
-{
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
-}
 
 template <class T, class AllocatorType>
 LinkedList<T, AllocatorType>::LinkedList(const LinkedList<T, AllocatorType>& other)

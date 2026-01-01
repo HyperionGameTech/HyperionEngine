@@ -19,11 +19,6 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBufferLevel type)
     : m_type(type),
       m_handle(VK_NULL_HANDLE),
@@ -38,7 +33,7 @@ VulkanCommandBuffer::~VulkanCommandBuffer()
     {
         HYP_GFX_ASSERT(m_commandPool != VK_NULL_HANDLE);
 
-        vkFreeCommandBuffers(GetRenderBackend()->GetDevice()->GetDevice(), m_commandPool, 1, &m_handle);
+        vkFreeCommandBuffers(g_renderBackend->GetDevice()->GetDevice(), m_commandPool, 1, &m_handle);
 
         m_handle = VK_NULL_HANDLE;
         m_commandPool = VK_NULL_HANDLE;
@@ -74,7 +69,7 @@ RendererResult VulkanCommandBuffer::Create()
     allocInfo.commandBufferCount = 1;
 
     VULKAN_CHECK_MSG(
-        vkAllocateCommandBuffers(GetRenderBackend()->GetDevice()->GetDevice(), &allocInfo, &m_handle),
+        vkAllocateCommandBuffers(g_renderBackend->GetDevice()->GetDevice(), &allocInfo, &m_handle),
         "Failed to allocate command buffer");
 
     return {};

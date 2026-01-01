@@ -374,7 +374,8 @@ public:
             return *this;
         }
     };
-
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     HYP_FORCE_INLINE SparsePagedArray()
         : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_pages(m_pAllocator),
@@ -390,7 +391,8 @@ public:
     {
         HYP_CORE_ASSERT(m_pAllocator != nullptr);
     }
-
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     SparsePagedArray(std::initializer_list<KeyValuePair<KeyType, T>> initializerList)
         : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_pages(m_pAllocator),

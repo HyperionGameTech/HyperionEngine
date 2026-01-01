@@ -75,7 +75,19 @@ public:
     using ConstIterator = const T*;
     using InsertResult = Pair<Iterator, bool>; // iterator, was inserted
 
-    Array();
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
+    Array()
+        : m_size(0),
+          m_startOffset(0),
+          m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>())
+    {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
+        m_allocation.SetToInitialState();
+    }
+
+    Array(const Array& other);
+    Array(Array&& other) noexcept;
 
     explicit Array(AllocatorType* pAllocator, SizeType size = 0)
         : m_size(0),
@@ -91,24 +103,27 @@ public:
             Resize(size);
         }
     }
-
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     explicit Array(SizeType size)
         : Array()
     {
         Resize(size);
     }
-
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(Span<T> span)
         : Array(span.Data(), span.Size())
     {
     }
-
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(Span<const T> span)
         : Array(span.Data(), span.Size())
     {
     }
-
-    template <SizeType Sz>
+    
+    template <SizeType Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(T const (&items)[Sz])
         : Array()
     {
@@ -121,8 +136,8 @@ public:
             Memory::Construct<T>(storagePtr++, items[i]);
         }
     }
-
-    template <SizeType Sz>
+    
+    template <SizeType Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(T (&&items)[Sz])
         : Array()
     {
@@ -135,14 +150,14 @@ public:
             Memory::Construct<T>(storagePtr++, std::move(items[i]));
         }
     }
-
-    template <SizeType Sz>
+    
+    template <SizeType Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(const FixedArray<T, Sz>& items)
         : Array(items.Begin(), items.End())
     {
     }
-
-    template <SizeType Sz>
+    
+    template <SizeType Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(FixedArray<T, Sz>&& items)
         : Array()
     {
@@ -155,7 +170,8 @@ public:
             Memory::Construct<T>(storagePtr++, std::move(items[i]));
         }
     }
-
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(T* ptr, SizeType size)
         : Array()
     {
@@ -172,6 +188,7 @@ public:
         }
     }
 
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(Iterator first, Iterator last)
         : Array()
     {
@@ -185,7 +202,8 @@ public:
             Memory::Construct<T>(storagePtr++, *it);
         }
     }
-
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(ConstIterator first, ConstIterator last)
         : Array()
     {
@@ -199,20 +217,20 @@ public:
             Memory::Construct<T>(storagePtr++, *it);
         }
     }
-
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(const T* ptr, SizeType size)
         : Array(ptr, ptr + size)
     {
     }
-
+    
+    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(std::initializer_list<T> initializerList)
         : Array(initializerList.begin(), initializerList.end())
     {
     }
 
-    Array(const Array& other);
-
-    template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType>>>
+    template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType> && HasDefaultAllocatorInstance<AllocatorType>>>
     Array(const Array<T, OtherAllocatorType>& other)
         : Array()
     {
@@ -222,8 +240,6 @@ public:
         m_allocation.InitFromRangeCopy(other.Begin(), other.End());
     }
 
-    Array(Array&& other) noexcept;
-
     template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType>>>
     Array(Array<T, OtherAllocatorType>&& other) noexcept = delete;
 
@@ -232,7 +248,7 @@ public:
     Array& operator=(const Array& other);
     Array& operator=(Array&& other) noexcept;
 
-    template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType>>>
+    template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType> && HasDefaultAllocatorInstance<AllocatorType>>>
     Array& operator=(const Array<T, OtherAllocatorType>& other)
     {
         m_allocation.DestructInRange(m_startOffset, m_size);
@@ -734,17 +750,6 @@ protected:
     AllocatorType* const m_pAllocator;
     Allocation<T, AllocatorType> m_allocation;
 };
-
-template <class T, class AllocatorType>
-Array<T, AllocatorType>::Array()
-    : m_size(0),
-      m_startOffset(0),
-      m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>())
-{
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
-    m_allocation.SetToInitialState();
-}
 
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array(const Array& other)

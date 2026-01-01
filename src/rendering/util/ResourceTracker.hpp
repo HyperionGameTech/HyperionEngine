@@ -287,6 +287,8 @@ public:
     explicit ResourceTracker(AllocatorType* pAllocator)
         : pAllocator(pAllocator),
           baseImpl(&TypeOf<typename IdType::ObjectType>(), pAllocator), // default impl for base class
+          subclassImpls(pAllocator),
+          emptyArray(pAllocator),
           cachedDiffNeedsUpdate(false)
     {
         // Setup the subclass implementations array, we initialize them as they get used
@@ -339,8 +341,6 @@ public:
 
     const ElementArrayType& GetElements(TypeId typeId) const
     {
-        static const ElementArrayType s_emptyArray {};
-
         if (typeId == TypeIdOf<typename IdType::ObjectType>())
         {
             return baseImpl.elements;
@@ -355,7 +355,7 @@ public:
             return subclassImpls[subclassIndex]->elements;
         }
 
-        return s_emptyArray;
+        return emptyArray;
     }
 
     template <class T>
@@ -1306,6 +1306,8 @@ public:
     // per-subtype implementations (only constructed and setup on first Bind() call with that type)
     Array<Pimpl<Impl>, AllocatorType> subclassImpls;
     Bitset subclassIndices;
+
+    ElementArrayType emptyArray; // fallback array when subclass impl not instantiated
 
     mutable ResourceTrackerDiff cachedDiff;
     mutable bool cachedDiffNeedsUpdate : 1 = true;

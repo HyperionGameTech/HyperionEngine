@@ -27,11 +27,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 template <>
 Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(const VulkanGraphicsPipeline& pipeline)
 {
@@ -46,7 +41,7 @@ Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(c
     for (const DescriptorSetDeclaration& setDecl : decl->elements)
     {
         VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-        Assert(GetRenderBackend()->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
+        Assert(g_renderBackend->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
 
         Assert(layout != VK_NULL_HANDLE);
 
@@ -368,7 +363,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    const uint32 maxSetLayouts = GetRenderBackend()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const uint32 maxSetLayouts = g_renderBackend->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
 
@@ -392,14 +387,14 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     const VkPushConstantRange pushConstantRanges[] = {
         { .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
             .offset = 0,
-            .size = uint32(GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
+            .size = uint32(g_renderBackend->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
     };
 
     layoutInfo.pushConstantRangeCount = uint32(std::size(pushConstantRanges));
     layoutInfo.pPushConstantRanges = pushConstantRanges;
 
     VULKAN_CHECK_MSG(
-        vkCreatePipelineLayout(GetRenderBackend()->GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
+        vkCreatePipelineLayout(g_renderBackend->GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
         "Failed to create graphics pipeline layout");
 
     /* Depth / stencil */
@@ -464,7 +459,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     };
 
     VULKAN_CHECK_MSG(
-        vkCreateGraphicsPipelines(GetRenderBackend()->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
+        vkCreateGraphicsPipelines(g_renderBackend->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
         "Failed to create graphics pipeline");
 
 #ifdef HYP_DEBUG_MODE

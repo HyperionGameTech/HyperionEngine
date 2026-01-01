@@ -17,11 +17,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 VulkanAsyncCompute::VulkanAsyncCompute()
     : m_isSupported(false),
       m_isFallback(false)
@@ -43,17 +38,17 @@ RendererResult VulkanAsyncCompute::Create()
 {
     HYP_SCOPE;
 
-    HYP_GFX_ASSERT(GetRenderBackend()->GetDevice()->GetQueueFamilyIndices().IsComplete());
+    HYP_GFX_ASSERT(g_renderBackend->GetDevice()->GetQueueFamilyIndices().IsComplete());
 
-    VulkanDeviceQueue* queue = GetRenderBackend()->GetDevice()->GetComputeQueue();
+    VulkanDeviceQueue* queue = g_renderBackend->GetDevice()->GetComputeQueue();
 
-    m_isSupported = GetRenderBackend()->GetDevice()->GetQueueFamilyIndices().computeFamily.HasValue();
+    m_isSupported = g_renderBackend->GetDevice()->GetQueueFamilyIndices().computeFamily.HasValue();
 
     if (!m_isSupported)
     {
         HYP_LOG(RenderingBackend, Warning, "Dedicated compute queue not supported, using graphics queue for compute operations");
 
-        queue = GetRenderBackend()->GetDevice()->GetGraphicsQueue();
+        queue = g_renderBackend->GetDevice()->GetGraphicsQueue();
     }
 
     for (const VulkanCommandBufferRef& commandBuffer : m_commandBuffers)
@@ -83,7 +78,7 @@ RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
     renderQueue.Execute(m_commandBuffers[frameIndex]);
     HYP_GFX_CHECK(m_commandBuffers[frameIndex]->End());
 
-    VulkanDeviceQueue* computeQueue = GetRenderBackend()->GetDevice()->GetComputeQueue();
+    VulkanDeviceQueue* computeQueue = g_renderBackend->GetDevice()->GetComputeQueue();
 
     return m_commandBuffers[frameIndex]->SubmitPrimary(computeQueue, m_fences[frameIndex], nullptr, nullptr);
 }

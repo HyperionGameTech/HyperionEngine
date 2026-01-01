@@ -20,11 +20,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 VulkanFrame::VulkanFrame()
     : FrameBase(0)
 {

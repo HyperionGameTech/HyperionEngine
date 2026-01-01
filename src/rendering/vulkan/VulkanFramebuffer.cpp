@@ -22,11 +22,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFramebuffer* framebuffer, Span<VulkanAttachmentDef*> attachmentDefs)
 {
     Assert(framebuffer != nullptr);
@@ -92,7 +87,7 @@ RendererResult VulkanAttachmentMap::Create()
         }
     }
 
-    VulkanFrame* frame = GetRenderBackend()->GetCurrentFrame();
+    VulkanFrame* frame = g_renderBackend->GetCurrentFrame();
 
     if (frame != nullptr)
     {
@@ -103,7 +98,7 @@ RendererResult VulkanAttachmentMap::Create()
         return {};
     }
 
-    UniquePtr<SingleTimeCommands> singleTimeCommands = GetRenderBackend()->GetSingleTimeCommands();
+    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
         {
@@ -180,7 +175,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
         attachmentDefs.PushBack(&def);
     }
 
-    VulkanFrame* frame = GetRenderBackend()->GetCurrentFrame();
+    VulkanFrame* frame = g_renderBackend->GetCurrentFrame();
 
     // frame may be nullptr if we are creating a swapchain
     if (frame != nullptr)
@@ -192,7 +187,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
         return {};
     }
 
-    UniquePtr<SingleTimeCommands> singleTimeCommands = GetRenderBackend()->GetSingleTimeCommands();
+    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
         {
@@ -225,7 +220,7 @@ VulkanFramebuffer::~VulkanFramebuffer()
 
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyFramebuffer(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyFramebuffer(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 
@@ -290,12 +285,12 @@ RendererResult VulkanFramebuffer::Create()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        VULKAN_CHECK(vkCreateFramebuffer(GetRenderBackend()->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
+        VULKAN_CHECK(vkCreateFramebuffer(g_renderBackend->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
     }
 
     if (shouldClearFramebuffer)
     {
-        VulkanFrame* frame = GetRenderBackend()->GetCurrentFrame();
+        VulkanFrame* frame = g_renderBackend->GetCurrentFrame();
 
         // clear in current frame
         if (frame != nullptr)
@@ -306,7 +301,7 @@ RendererResult VulkanFramebuffer::Create()
             return {};
         }
 
-        UniquePtr<SingleTimeCommands> singleTimeCommands = GetRenderBackend()->GetSingleTimeCommands();
+        UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
 
         singleTimeCommands->Push([this](RenderQueue& renderQueue) -> RendererResult
             {
@@ -344,7 +339,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
 
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyFramebuffer(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyFramebuffer(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 
@@ -371,7 +366,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
     framebufferCreateInfo.layers = numLayers;
 
     VULKAN_CHECK(vkCreateFramebuffer(
-        GetRenderBackend()->GetDevice()->GetDevice(),
+        g_renderBackend->GetDevice()->GetDevice(),
         &framebufferCreateInfo,
         nullptr,
         &m_handle));

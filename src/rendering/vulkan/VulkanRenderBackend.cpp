@@ -56,11 +56,6 @@ namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return static_cast<VulkanRenderBackend*>(g_renderBackend);
-}
-
 #ifdef HYP_WINDOWS
 void Win32_RegisterWindowClass(const WideString& className);
 void Win32_UnregisterWindowClass(const WideString& className);
@@ -336,7 +331,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool
 
     // only add acceleration structure descriptor type if raytracing is supported,
     // otherwise we'll get an error when creating the descriptor pool
-    if (GetRenderBackend()->GetDevice()->GetFeatures().IsRaytracingSupported())
+    if (g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
     {
         descriptorPoolSizes.PushBack({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 256 });
     }
@@ -353,7 +348,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool
     poolInfo.pPoolSizes = descriptorPoolSizes.Data();
 
     VULKAN_CHECK(vkCreateDescriptorPool(
-        GetRenderBackend()->GetDevice()->GetDevice(),
+        g_renderBackend->GetDevice()->GetDevice(),
         &poolInfo,
         nullptr,
         &descriptorPool));

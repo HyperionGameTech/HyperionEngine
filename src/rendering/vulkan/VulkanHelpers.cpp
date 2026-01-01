@@ -19,11 +19,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 VkIndexType ToVkIndexType(GpuElemType elemType)
 {
     switch (elemType)
@@ -239,7 +234,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     m_functions.Clear();
 
-    tempFrame = GetRenderBackend()->MakeFrame(0);
+    tempFrame = g_renderBackend->MakeFrame(0);
     HYP_GFX_CHECK(tempFrame->Create());
 
     renderQueue.Prepare(tempFrame);
@@ -247,7 +242,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
     tempFrame->UpdateUsedDescriptorSets();
 
     commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-    HYP_GFX_CHECK(commandBuffer->Create(GetRenderBackend()->GetDevice()->GetGraphicsQueue()->commandPools[0]));
+    HYP_GFX_CHECK(commandBuffer->Create(g_renderBackend->GetDevice()->GetGraphicsQueue()->commandPools[0]));
 
     HYP_GFX_CHECK(commandBuffer->Begin());
 
@@ -262,7 +257,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
     HYP_GFX_CHECK(fence->Reset());
 
     // Submit to the queue
-    VulkanDeviceQueue* queueGraphics = GetRenderBackend()->GetDevice()->GetGraphicsQueue();
+    VulkanDeviceQueue* queueGraphics = g_renderBackend->GetDevice()->GetGraphicsQueue();
 
     HYP_GFX_CHECK(commandBuffer->SubmitPrimary(queueGraphics, fence, nullptr, nullptr));
 

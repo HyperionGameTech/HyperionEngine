@@ -24,11 +24,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 #pragma region CreateShaderStage
 
 VulkanShader::VulkanShader()
@@ -58,7 +53,7 @@ VulkanShader::~VulkanShader()
 
     for (const VulkanShaderModule& shaderModule : m_shaderModules)
     {
-        vkDestroyShaderModule(GetRenderBackend()->GetDevice()->GetDevice(), shaderModule.handle, nullptr);
+        vkDestroyShaderModule(g_renderBackend->GetDevice()->GetDevice(), shaderModule.handle, nullptr);
     }
 
     m_shaderModules.Clear();
@@ -79,7 +74,7 @@ RendererResult VulkanShader::AttachSubShader(ShaderModuleType type, const Shader
 
     VkShaderModule shaderModule;
 
-    VULKAN_CHECK(vkCreateShaderModule(GetRenderBackend()->GetDevice()->GetDevice(), &createInfo, nullptr, &shaderModule));
+    VULKAN_CHECK(vkCreateShaderModule(g_renderBackend->GetDevice()->GetDevice(), &createInfo, nullptr, &shaderModule));
 
     m_shaderModules.EmplaceBack(type, shaderObject.srcName, m_entryPointName, spirv, shaderModule);
 
@@ -277,7 +272,7 @@ void VulkanShader::SetDebugName(Name name)
         objectNameInfo.objectHandle = (uint64)shaderModule.handle;
         objectNameInfo.pObjectName = moduleName.Data();
 
-        g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(GetRenderBackend()->GetDevice()->GetDevice(), &objectNameInfo);
+        g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
 

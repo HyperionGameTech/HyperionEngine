@@ -16,11 +16,6 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static inline VulkanRenderBackend* GetRenderBackend()
-{
-    return g_renderBackend;
-}
-
 VulkanSampler::VulkanSampler(TextureFilterMode minFilterMode, TextureFilterMode magFilterMode, TextureWrapMode wrapMode)
     : m_handle(VK_NULL_HANDLE)
 {
@@ -33,7 +28,7 @@ VulkanSampler::~VulkanSampler()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroySampler(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroySampler(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 }
@@ -91,7 +86,7 @@ RendererResult VulkanSampler::Create()
 
     if (m_minFilterMode == TFM_MINMAX_MIPMAP)
     {
-        if (!GetRenderBackend()->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats)
+        if (!g_renderBackend->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats)
         {
             return HYP_MAKE_ERROR(RendererError, "Device does not support min/max sampler formats");
         }
@@ -100,7 +95,7 @@ RendererResult VulkanSampler::Create()
         samplerInfo.pNext = &reductionInfo;
     }
 
-    if (vkCreateSampler(GetRenderBackend()->GetDevice()->GetDevice(), &samplerInfo, nullptr, &m_handle) != VK_SUCCESS)
+    if (vkCreateSampler(g_renderBackend->GetDevice()->GetDevice(), &samplerInfo, nullptr, &m_handle) != VK_SUCCESS)
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create sampler!");
     }
@@ -126,7 +121,7 @@ void VulkanSampler::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(GetRenderBackend()->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

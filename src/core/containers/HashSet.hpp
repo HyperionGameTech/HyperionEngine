@@ -458,6 +458,7 @@ struct NodeAllocator
 
         Allocator* m_pAllocator;
 
+        template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
         Impl()
             : m_pAllocator(GetDefaultAllocatorInstance<Allocator>())
         {
