@@ -24,6 +24,7 @@
 
 #include <system/OpenFileDialog.hpp>
 #include <system/SaveFileDialog.hpp>
+#include <system/SelectFolderDialog.hpp>
 
 namespace Hyperion {
 
@@ -179,6 +180,8 @@ DEFINE_EDITOR_COMMAND(OpenProject);
 
 #pragma region SaveProject
 
+class EditorCommandSaveProjectAs;
+
 class HYP_API EditorCommandSaveProject final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandSaveProject);
@@ -191,6 +194,14 @@ public:
         EditorProject* project = subsystem->GetCurrentProject();
         if (project != nullptr)
         {
+            if (!project->IsSaved())
+            {
+                Handle<EditorCommandSaveProjectAs> saveAs = CreateObject<EditorCommandSaveProjectAs>();
+                reinterpret_cast<EditorCommandBase&>(*saveAs).Execute(subsystem);
+
+                return;
+            }
+
             Result result = project->Save();
             if (!result)
             {
@@ -218,19 +229,27 @@ public:
         EditorProject* project = subsystem->GetCurrentProject();
         if (project != nullptr)
         {
-            const FilePath dir = GetResourceDirectory() / "Projects";
+            FilePath dir;
+
+            if (project->IsSaved())
+            {
+                dir = project->GetFilePath().BasePath();
+            }
+            else
+            {
+                dir = GetResourceDirectory() / "Projects" / *project->GetName();
+            }
+
             dir.MkDir();
 
-            ShowSaveFileDialog(
-                "Select where to save the project",
+            ShowSelectFolderDialog(
+                "Select project folder",
                 dir,
-                { "hypproj" },
-                /* allowDirectories */ true,
                 [weakSubsystem = MakeWeakRef(subsystem)](TResult<FilePath>&& result) mutable
                 {
                     if (result.HasError())
                     {
-                        HYP_LOG(Editor, Error, "Failed to select project file: {}", result.GetError().GetMessage());
+                        HYP_LOG(Editor, Error, "Failed to select project directory: {}", result.GetError().GetMessage());
                         return;
                     }
 

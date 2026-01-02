@@ -20,7 +20,6 @@ void ShowSaveFileDialog(
     UTF8StringView title,
     const FilePath& baseDir,
     Span<const ANSIStringView> extensions,
-    bool allowDirectories,
     Proc<void(TResult<FilePath>&& result)>&& callback);
 
 } // namespace Hyperion
