@@ -73,7 +73,7 @@ namespace Baking {
 
 // Changing tile size will change the number of jobs that get enqueued.
 // Smaller tile size = more jobs required to complete the bake
-static constexpr uint32 TileSize = 32;
+static constexpr uint32 TileSize = 128;
 
 // Too many concurrent jobs will cause excessive memory usage and thrashing
 static constexpr uint32 MaxConcurrentJobs = 8;
@@ -85,6 +85,8 @@ static constexpr uint32 IdealTexelsPerFrame = 200000;
 
 // Pretty self explanatory - but this is an estimate (See the below function, GetEstimatedGPUMemUsagePerJob)
 static constexpr double IdealGpuMemUsageMB = 1024 * 2;
+
+static constexpr double ProgressWindowSeconds = 30.0;
 
 // for LightmapVolume gpu trace job
 static inline double GetEstimatedGPUMemUsageForJob(const LightmapperConfig& config)
@@ -110,7 +112,8 @@ BakerBase::BakerBase(LightmapperConfig&& config, ObjectBase* source, const Handl
       m_threadPool(nullptr),
       m_numJobs(0),
       m_initialNumJobs(0),
-      m_updateTimer { 1.0 } // every second
+      m_updateTimer { 1.0 }, // every second
+      m_lastProgressPercent(0.0)
 {
     AssertDebug(m_source != nullptr);
 }
@@ -430,6 +433,10 @@ void BakerBase::DispatchJobs()
     }
 
     m_initialNumJobs = m_numJobs;
+
+    m_bakingClock.Start();
+    m_lastProgressPercent = 0.0;
+    m_progressSamples.Clear();
 }
 
 void BakerBase::Update(float delta)
@@ -486,7 +493,7 @@ void BakerBase::Update(float delta)
 
             --numRunningJobs;
 
-            if (it == m_queue.End())
+            if (m_queue.Empty())
             {
                 OnCompleted();
 
@@ -547,18 +554,100 @@ void BakerBase::HandleCompletedJob(BakeJobBase* job)
         lightmapRenderer->CleanJobData(job);
     }
 
-    const int percentage = MathUtil::Floor(double(m_initialNumJobs - m_numJobs) / double(m_initialNumJobs) * 100.0);
+    const double progressPercent = double(m_initialNumJobs - m_numJobs) / double(m_initialNumJobs) * 100.0;
+    const int percentage = MathUtil::Floor(progressPercent);
 
-    HYP_LOG(Lightmap, Info, "Baking {} ... ({}%)", m_source ? m_source->Id() : ObjIdBase(), percentage);
+    const double elapsedMs = m_bakingClock.ElapsedMs();
+    const double elapsedSeconds = elapsedMs / 1000.0;
+
+    // elapsed, percent
+    m_progressSamples.EmplaceBack(elapsedSeconds, progressPercent);
+
+    // Remove samples outside the window
+    const double windowStartTime = elapsedSeconds - ProgressWindowSeconds;
+    while (m_progressSamples.Size() > 1 && m_progressSamples.Front().first < windowStartTime)
+    {
+        m_progressSamples.PopFront();
+    }
+
+    String timeEstimateStr;
+    if (m_progressSamples.Size() >= 2)
+    {
+        // Calculate progress rate using windowed samples
+        const auto& oldestSample = m_progressSamples.Front();
+        const auto& newestSample = m_progressSamples.Back();
+
+        const double deltaTime = newestSample.first - oldestSample.first;
+        const double deltaProgress = newestSample.second - oldestSample.second;
+
+        if (deltaTime > 0.1 && deltaProgress > 0.001)
+        {
+            const double progressPerSecond = deltaProgress / deltaTime;
+            const double remainingProgress = 100.0 - progressPercent;
+            const double remainingSeconds = remainingProgress / progressPerSecond;
+
+            if (remainingSeconds >= 60.0)
+            {
+                const int remainingMinutes = int(remainingSeconds / 60.0);
+                const int remainingSecs = int(remainingSeconds) % 60;
+                timeEstimateStr = HYP_FORMAT("~{}m {}s", remainingMinutes, remainingSecs);
+            }
+            else
+            {
+                timeEstimateStr = HYP_FORMAT("~{}s", int(remainingSeconds));
+            }
+        }
+        else
+        {
+            timeEstimateStr = "calculating time";
+        }
+    }
+    else
+    {
+        timeEstimateStr = "calculating time";
+    }
+
+    String elapsedStr;
+    if (elapsedSeconds >= 60.0)
+    {
+        const int elapsedMinutes = int(elapsedSeconds / 60.0);
+        const int elapsedSecs = int(elapsedSeconds) % 60;
+        elapsedStr = HYP_FORMAT("{}m {}s", elapsedMinutes, elapsedSecs);
+    }
+    else
+    {
+        elapsedStr = HYP_FORMAT("{}s", int(elapsedSeconds));
+    }
+
+    HYP_LOG(Lightmap, Info, "Baking {} ... ({}%) - Elapsed: {}, {} remaining", m_source ? m_source->Id() : ObjIdBase(), percentage, elapsedStr, timeEstimateStr);
+
+    m_lastProgressPercent = progressPercent;
 }
 
 void BakerBase::OnCompleted()
 {
+    m_bakingClock.Stop();
+
     OnCompleted_Internal();
 
     OnComplete();
 
-    HYP_LOG(Lightmap, Info, "Baking complete for {}", m_source ? m_source->Id() : ObjIdBase());
+    const double totalElapsedMs = m_bakingClock.ElapsedMs();
+    const double totalElapsedSeconds = totalElapsedMs / 1000.0;
+
+    String totalElapsedStr;
+    if (totalElapsedSeconds >= 60.0)
+    {
+        const int totalMinutes = int(totalElapsedSeconds / 60.0);
+        const int totalSecs = int(totalElapsedSeconds) % 60;
+        totalElapsedStr = HYP_FORMAT("{}m {}s", totalMinutes, totalSecs);
+    }
+    else
+    {
+        totalElapsedStr = HYP_FORMAT("{}s", int(totalElapsedSeconds));
+    }
+
+    HYP_LOG(Lightmap, Info, "Baking complete for {} - Total time: {}", m_source ? m_source->Id() : ObjIdBase(), totalElapsedStr);
 }
 
 void BakerBase::AddJob(UniquePtr<BakeJobBase>&& job)

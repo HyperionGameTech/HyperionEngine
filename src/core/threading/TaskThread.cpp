@@ -87,12 +87,12 @@ void TaskThread::operator()()
 #ifdef HYP_ENABLE_LAG_SPIKE_DETECTION
             taskPerformanceClock.Stop();
 
-            if (taskPerformanceClock.Elapsed() / 1000.0 > TaskThreadSingleTaskLagSpikeThreshold)
+            if (taskPerformanceClock.ElapsedMs() > TaskThreadSingleTaskLagSpikeThreshold)
             {
                 HYP_LOG(Tasks, Warning, "Task thread {} lag spike detected in single task \"{}\": {}ms",
                     Id().GetName(),
                     scheduledTask.debugName.value ? scheduledTask.debugName.value : "<unnamed task>",
-                    taskPerformanceClock.Elapsed() / 1000.0);
+                    taskPerformanceClock.ElapsedMs());
             }
 #endif
         }

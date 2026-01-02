@@ -89,25 +89,30 @@ public:
     dotnet::ManagedObject* GetManagedObject() const;
     const RC<dotnet::ManagedClass> GetManagedClass() const;
 
-    ScriptObjectData_Native* GetScriptObjectData_Native() const
+    ScriptObjectData_Native* GetScriptObjectData_Native()
     {
-        return nativeData;
+        return nativeData.TryGet();
+    }
+
+    const ScriptObjectData_Native* GetScriptObjectData_Native() const
+    {
+        return nativeData.TryGet();
     }
 
     void SetScriptObjectData_Native(const ScriptObjectData_Native& data)
     {
-        if (!nativeData)
-        {
-            nativeData = new ScriptObjectData_Native();
-        }
-
-        *nativeData = data;
+        nativeData = data;
     }
 
 #ifdef HYP_DOTNET
-    ScriptObjectData_DotNet* GetScriptObjectData_DotNet() const
+    ScriptObjectData_DotNet* GetScriptObjectData_DotNet()
     {
-        return dotNetData;
+        return dotNetData.TryGet();
+    }
+
+    const ScriptObjectData_DotNet* GetScriptObjectData_DotNet() const
+    {
+        return dotNetData.TryGet();
     }
 
     void SetScriptObjectData_DotNet(const ScriptObjectData_DotNet& data)
@@ -122,19 +127,19 @@ public:
 #endif
 
 #ifdef HYP_SCRIPT
-    ScriptObjectData_HypScript* GetScriptObjectData_HypScript() const
+    ScriptObjectData_HypScript* GetScriptObjectData_HypScript()
     {
-        return hypScriptData;
+        return hypScriptData.TryGet();
+    }
+
+    const ScriptObjectData_HypScript* GetScriptObjectData_HypScript() const
+    {
+        return hypScriptData.TryGet();
     }
 
     void SetScriptObjectData_HypScript(const ScriptObjectData_HypScript& data)
     {
-        if (!hypScriptData)
-        {
-            hypScriptData = new ScriptObjectData_HypScript();
-        }
-
-        *hypScriptData = data;
+        hypScriptData = data;
     }
 #endif
 
@@ -144,17 +149,13 @@ protected:
 
     ObjectBase* m_ptr;
 
-    struct
-    {
-        ScriptObjectData_Native* nativeData = nullptr;
-
+    Optional<ScriptObjectData_Native> nativeData;
 #ifdef HYP_DOTNET
-        ScriptObjectData_DotNet* dotNetData = nullptr;
+    Optional<ScriptObjectData_DotNet> dotNetData;
 #endif
 #ifdef HYP_SCRIPT
-        ScriptObjectData_HypScript* hypScriptData = nullptr;
+    Optional<ScriptObjectData_HypScript> hypScriptData;
 #endif
-    };
 };
 
 } // namespace Hyperion

@@ -518,7 +518,7 @@ void World::EndUpdate()
     for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
     {
         const PerformanceClock& performanceClock = systemExecutionGroup.GetPerformanceClock();
-        const double elapsedTimeMs = performanceClock.Elapsed() / 1000.0;
+        const double elapsedTimeMs = performanceClock.ElapsedMs();
 
 #ifdef HYP_SYSTEMS_LAG_SPIKE_DETECTION
         if (elapsedTimeMs >= SystemExecutionGroupLagSpikeThreshold)
@@ -529,7 +529,7 @@ void World::EndUpdate()
 #ifdef HYP_SYSTEM_LOG_PERFORMANCE
         for (const auto& it : systemExecutionGroup.GetPerformanceClocks())
         {
-            HYP_LOG(Entity, Debug, "\tSystem {} performance: {}", it.first->GetName(), it.second.Elapsed() / 1000.0);
+            HYP_LOG(Entity, Debug, "\tSystem {} performance: {}", it.first->GetName(), it.second.ElapsedMs());
         }
 #endif
     }
@@ -974,16 +974,15 @@ void World::RemoveView(View* view)
 
     auto it = m_views.Find(view);
 
-    AssertDebug(it != m_views.End());
-
-    if (it != m_views.End())
+    if (it == m_views.End())
     {
-        Handle<View> strongView = std::move(*it);
-
-        m_views.Erase(it);
-
-        SafeDelete(std::move(strongView));
+        return;
     }
+
+    Handle<View> strongView = std::move(*it);
+    m_views.Erase(it);
+
+    SafeDelete(std::move(strongView));
 }
 
 Span<View* const> World::GetViews() const

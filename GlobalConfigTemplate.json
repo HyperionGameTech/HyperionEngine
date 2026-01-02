@@ -76,7 +76,7 @@
     "NumThreadsPerJob": 4,
     "Radiance": true,
     "IdealTrianglesPerJob": 16000,
-    "NumSamples": 32,
+    "NumSamples": 8,
     "Irradiance": true
   }
 }

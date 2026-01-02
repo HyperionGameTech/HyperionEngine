@@ -369,6 +369,10 @@ protected:
     Mutex m_queueMutex;
     uint32 m_numJobs;
     uint32 m_initialNumJobs;
+
+    PerformanceClock m_bakingClock;
+    double m_lastProgressPercent;
+    Array<Pair<double, double>> m_progressSamples;
 };
 
 template <class T>

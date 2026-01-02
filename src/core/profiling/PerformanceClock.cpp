@@ -12,6 +12,22 @@
 namespace Hyperion {
 namespace profiling {
 
+#ifdef HYP_WINDOWS
+static double GetPCFreq_Internal()
+{
+    LARGE_INTEGER li;
+    QueryPerformanceFrequency(&li);
+
+    return double(li.QuadPart) / 1000.0;
+}
+
+static double GetPCFreq()
+{
+    static double s_freq = GetPCFreq_Internal();
+    return s_freq;
+}
+#endif
+
 uint64 PerformanceClock::Now()
 {
 #ifdef HYP_UNIX
@@ -21,38 +37,53 @@ uint64 PerformanceClock::Now()
 
     return uint64(ts.tv_sec) * 1000000 + uint64(ts.tv_nsec) / 1000;
 #else
-    // @TODO
+    /*FILETIME ft;
+    GetSystemTimePreciseAsFileTime(&ft);
 
-    FILETIME ft;
-    GetSystemTimeAsFileTime(&ft);
+    return uint64(ft.dwHighDateTime) << 32 | ft.dwLowDateTime;*/
 
-    return uint64(ft.dwHighDateTime) << 32 | ft.dwLowDateTime;
+    LARGE_INTEGER li;
+    if (!QueryPerformanceCounter(&li))
+    {
+        return 0;
+    }
+
+    return li.QuadPart;
 #endif
 }
 
-uint64 PerformanceClock::TimeSince(uint64 microseconds)
+double PerformanceClock::TimeSince(uint64 timestamp)
 {
-    const uint64 us = microseconds;
     const uint64 now = Now();
 
-    return now - us;
+    return double(now - timestamp) / GetPCFreq();
+}
+
+double PerformanceClock::ToMilliseconds(uint64 timestamp)
+{
+    return double(timestamp) / GetPCFreq();
 }
 
 PerformanceClock::PerformanceClock()
-    : m_startTimeUs(0),
-      m_endTimeUs(0)
+    : m_startTime(0),
+      m_endTime(0)
 {
 }
 
 void PerformanceClock::Start()
 {
-    m_startTimeUs = Now();
-    m_endTimeUs = 0;
+    m_startTime = Now();
+    m_endTime = 0;
 }
 
 void PerformanceClock::Stop()
 {
-    m_endTimeUs = Now();
+    m_endTime = Now();
+}
+
+double PerformanceClock::ElapsedMs() const
+{
+    return double((m_endTime == 0 ? Now() : m_endTime) - m_startTime) / GetPCFreq();
 }
 
 } // namespace profiling

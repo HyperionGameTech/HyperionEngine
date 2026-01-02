@@ -26,6 +26,10 @@ namespace Hyperion {
 
 class ByteWriter;
 
+namespace detail {
+#include "R11G11B10F.inc"
+} // namespace detail
+
 template <class TComponent, uint32 TNumComponents, bool TIsSrgb = false>
 struct ConstPixelReference;
 
@@ -56,6 +60,18 @@ struct PixelReference
 
     HYP_FORCE_INLINE ComponentType GetComponentRaw(uint32 index) const
     {
+        if (index == 3 && NumComponents < 4)
+        {
+            if constexpr (std::is_same_v<ComponentType, ubyte>)
+            {
+                return ComponentType(255);
+            }
+            else
+            {
+                return ComponentType(1);
+            }
+        }
+
         if (index >= NumComponents || !byteOffset)
         {
             return 0.0f;
@@ -66,6 +82,11 @@ struct PixelReference
 
     HYP_FORCE_INLINE float GetComponentFloat(uint32 index) const
     {
+        if (index == 3 && NumComponents < 4)
+        {
+            return 1.0f; // ignore alpha
+        }
+
         if (index >= NumComponents || !byteOffset)
         {
             return 0.0f;
@@ -105,7 +126,7 @@ struct PixelReference
     }
 
     HYP_FORCE_INLINE void SetComponentFloat(uint32 index, float value)
-    {
+    {   
         if (index >= NumComponents || !byteOffset)
         {
             return;
@@ -550,6 +571,18 @@ struct ConstPixelReference
 
     HYP_FORCE_INLINE ComponentType GetComponentRaw(uint32 index) const
     {
+        if (index == 3 && NumComponents < 4)
+        {
+            if constexpr (std::is_same_v<ComponentType, ubyte>)
+            {
+                return ComponentType(255);
+            }
+            else
+            {
+                return ComponentType(1);
+            }
+        }
+
         if (index >= NumComponents || !byteOffset)
         {
             return 0.0f;
@@ -560,6 +593,11 @@ struct ConstPixelReference
 
     HYP_FORCE_INLINE float GetComponentFloat(uint32 index) const
     {
+        if (index == 3 && NumComponents < 4)
+        {
+            return 1.0f; // ignore alpha
+        }
+
         if (index >= NumComponents || !byteOffset)
         {
             return 0.0f;
@@ -773,6 +811,320 @@ struct ConstPixelReference
     {
         return GetRGBA();
     }*/
+};
+
+template <>
+struct PixelReference<detail::R11G11B10F, 1, false>
+{
+    static constexpr uint32 NumComponents = 3; // Logical components (R, G, B)
+    static constexpr bool IsSrgb = false;
+
+    using ComponentType = detail::R11G11B10F;
+
+    ubyte* byteOffset;
+
+    HYP_FORCE_INLINE PixelReference() = default;
+
+    HYP_FORCE_INLINE PixelReference(ubyte* byteOffset)
+        : byteOffset(byteOffset)
+    {
+    }
+
+    HYP_FORCE_INLINE PixelReference(const PixelReference& other) = default;
+    HYP_FORCE_INLINE PixelReference& operator=(const PixelReference& other) = default;
+
+    HYP_FORCE_INLINE PixelReference(PixelReference&& other) noexcept = default;
+    HYP_FORCE_INLINE PixelReference& operator=(PixelReference&& other) noexcept = default;
+
+    HYP_FORCE_INLINE ~PixelReference() = default;
+
+    HYP_FORCE_INLINE detail::R11G11B10F GetPackedValue() const
+    {
+        if (!byteOffset)
+        {
+            return detail::R11G11B10F(0u);
+        }
+
+        return detail::R11G11B10F(*reinterpret_cast<uint32*>(byteOffset));
+    }
+
+    HYP_FORCE_INLINE void SetPackedValue(detail::R11G11B10F value)
+    {
+        if (!byteOffset)
+        {
+            return;
+        }
+
+        *reinterpret_cast<uint32*>(byteOffset) = value.value;
+    }
+
+    HYP_FORCE_INLINE float GetComponentFloat(uint32 index) const
+    {
+        if (index == 3)
+        {
+            return 1.0f; // ignore alpha
+        }
+
+        if (index >= NumComponents || !byteOffset)
+        {
+            return 0.0f;
+        }
+
+        detail::R11G11B10F packed = GetPackedValue();
+        
+        switch (index)
+        {
+        case 0: return packed.GetR();
+        case 1: return packed.GetG();
+        case 2: return packed.GetB();
+        default: return 0.0f;
+        }
+    }
+
+    HYP_FORCE_INLINE void SetComponentFloat(uint32 index, float value)
+    {
+        if (index >= NumComponents || !byteOffset)
+        {
+            return;
+        }
+
+        detail::R11G11B10F packed = GetPackedValue();
+        
+        switch (index)
+        {
+        case 0: packed.SetR(value); break;
+        case 1: packed.SetG(value); break;
+        case 2: packed.SetB(value); break;
+        default: break;
+        }
+
+        SetPackedValue(packed);
+    }
+
+    HYP_FORCE_INLINE float GetR() const
+    {
+        return GetPackedValue().GetR();
+    }
+
+    HYP_FORCE_INLINE void SetR(float r)
+    {
+        detail::R11G11B10F packed = GetPackedValue();
+        packed.SetR(r);
+        SetPackedValue(packed);
+    }
+
+    HYP_FORCE_INLINE float GetG() const
+    {
+        return GetPackedValue().GetG();
+    }
+
+    HYP_FORCE_INLINE void SetG(float g)
+    {
+        detail::R11G11B10F packed = GetPackedValue();
+        packed.SetG(g);
+        SetPackedValue(packed);
+    }
+
+    HYP_FORCE_INLINE float GetB() const
+    {
+        return GetPackedValue().GetB();
+    }
+
+    HYP_FORCE_INLINE void SetB(float b)
+    {
+        detail::R11G11B10F packed = GetPackedValue();
+        packed.SetB(b);
+        SetPackedValue(packed);
+    }
+
+    HYP_FORCE_INLINE float GetA() const
+    {
+        return 1.0f; // just return 1 for alpha so that it behaves like other formats
+    }
+
+    HYP_FORCE_INLINE void SetA(float a)
+    {
+        // ignore
+    }
+
+    HYP_FORCE_INLINE Vec2f GetRG() const
+    {
+        detail::R11G11B10F packed = GetPackedValue();
+        return Vec2f(packed.GetR(), packed.GetG());
+    }
+
+    HYP_FORCE_INLINE void SetRG(const Vec2f& rg)
+    {
+        SetRG(rg.x, rg.y);
+    }
+
+    HYP_FORCE_INLINE void SetRG(float r, float g)
+    {
+        detail::R11G11B10F packed = GetPackedValue();
+        packed.SetR(r);
+        packed.SetG(g);
+        SetPackedValue(packed);
+    }
+
+    HYP_FORCE_INLINE Vec3f GetRGB() const
+    {
+        return GetPackedValue().GetRGB();
+    }
+
+    HYP_FORCE_INLINE void SetRGB(const Vec3f& rgb)
+    {
+        SetPackedValue(detail::R11G11B10F(rgb));
+    }
+
+    HYP_FORCE_INLINE void SetRGB(float r, float g, float b)
+    {
+        SetPackedValue(detail::R11G11B10F(r, g, b));
+    }
+
+    HYP_FORCE_INLINE Vec4f GetRGBA() const
+    {
+        Vec3f rgb = GetRGB();
+        return Vec4f(rgb.x, rgb.y, rgb.z, 1.0f);
+    }
+
+    HYP_FORCE_INLINE void SetRGBA(const Vec4f& rgba)
+    {
+        SetRGB(rgba.x, rgba.y, rgba.z);
+    }
+
+    HYP_FORCE_INLINE void SetRGBA(float r, float g, float b, float /* a */)
+    {
+        SetRGB(r, g, b);
+    }
+
+    HYP_FORCE_INLINE void SetScalar(float scalar)
+    {
+        SetRGB(scalar, scalar, scalar);
+    }
+};
+
+template <>
+struct ConstPixelReference<detail::R11G11B10F, 1, false>
+{
+    static constexpr uint32 NumComponents = 3;
+    static constexpr bool IsSrgb = false;
+
+    using ComponentType = detail::R11G11B10F;
+
+    const ubyte* byteOffset;
+
+    HYP_FORCE_INLINE ConstPixelReference()
+        : byteOffset(nullptr)
+    {
+    }
+
+    HYP_FORCE_INLINE ConstPixelReference(const ubyte* byteOffset)
+        : byteOffset(byteOffset)
+    {
+    }
+
+    HYP_FORCE_INLINE ConstPixelReference(const ConstPixelReference& other) = default;
+    HYP_FORCE_INLINE ConstPixelReference& operator=(const ConstPixelReference& other) = default;
+
+    HYP_FORCE_INLINE ConstPixelReference(ConstPixelReference&& other) noexcept = default;
+    HYP_FORCE_INLINE ConstPixelReference& operator=(ConstPixelReference&& other) noexcept = default;
+
+    HYP_FORCE_INLINE ConstPixelReference(const PixelReference<detail::R11G11B10F, 1, false>& other)
+        : byteOffset(other.byteOffset)
+    {
+    }
+
+    HYP_FORCE_INLINE ConstPixelReference& operator=(const PixelReference<detail::R11G11B10F, 1, false>& other)
+    {
+        byteOffset = other.byteOffset;
+        return *this;
+    }
+
+    HYP_FORCE_INLINE detail::R11G11B10F GetPackedValue() const
+    {
+        if (!byteOffset)
+        {
+            return detail::R11G11B10F(0u);
+        }
+
+        return detail::R11G11B10F(*reinterpret_cast<const uint32*>(byteOffset));
+    }
+
+    HYP_FORCE_INLINE float GetComponentFloat(uint32 index) const
+    {
+        if (index == 3)
+        {
+            return 1.0f; // ignore alpha
+        }
+
+        if (index >= NumComponents || !byteOffset)
+        {
+            return 0.0f;
+        }
+
+        detail::R11G11B10F packed = GetPackedValue();
+        
+        switch (index)
+        {
+        case 0: return packed.GetR();
+        case 1: return packed.GetG();
+        case 2: return packed.GetB();
+        default: return 0.0f;
+        }
+    }
+
+    HYP_FORCE_INLINE float GetR() const
+    {
+        return GetPackedValue().GetR();
+    }
+
+    HYP_FORCE_INLINE float GetG() const
+    {
+        return GetPackedValue().GetG();
+    }
+
+    HYP_FORCE_INLINE float GetB() const
+    {
+        return GetPackedValue().GetB();
+    }
+
+    HYP_FORCE_INLINE float GetA() const
+    {
+        return 1.0f; // just return 1 for alpha so that it behaves like other formats
+    }
+
+    HYP_FORCE_INLINE Vec2f GetRG() const
+    {
+        detail::R11G11B10F packed = GetPackedValue();
+        return Vec2f(packed.GetR(), packed.GetG());
+    }
+
+    HYP_FORCE_INLINE Vec3f GetRGB() const
+    {
+        return GetPackedValue().GetRGB();
+    }
+
+    HYP_FORCE_INLINE Vec4f GetRGBA() const
+    {
+        Vec3f rgb = GetRGB();
+        return Vec4f(rgb.x, rgb.y, rgb.z, 1.0f);
+    }
+};
+
+/*! \brief Specialization of TextureFormatHelper for TF_R11G11B10F packed floating point format.
+ *
+ * Note: NumComponents is set to 1 because the R11G11B10F format packs all three color channels
+ * into a single 32-bit value. The PixelReference specialization handles the 3-component access internally.
+ */
+template <>
+struct TextureFormatHelper<TF_R11G11B10F>
+{
+    static constexpr uint32 NumComponents = 1; // Treated as 1 packed element for byte size calculation
+    static constexpr uint32 BytesPerComponent = 4; // The entire pixel is 4 bytes (packed)
+    static constexpr bool IsSrgb = false;
+    static constexpr bool IsFloatType = true;
+
+    using ElementType = detail::R11G11B10F;
 };
 
 template <TextureFormat Format>
@@ -1467,6 +1819,8 @@ using Bitmap_RGB32F = Bitmap<TF_RGB32F>;
 using Bitmap_RG32F = Bitmap<TF_RG32F>;
 using Bitmap_R32F = Bitmap<TF_R32F>;
 
+using Bitmap_R11G11B10F = Bitmap<TF_R11G11B10F>;
+
 using Bitmap_RGBA8_SRGB = Bitmap<TF_RGBA8_SRGB>;
 
 // 3D
@@ -1492,5 +1846,7 @@ using Bitmap3D_RGBA32F = Bitmap3D<TF_RGBA32F>;
 using Bitmap3D_RGB32F = Bitmap3D<TF_RGB32F>;
 using Bitmap3D_RG32F = Bitmap3D<TF_RG32F>;
 using Bitmap3D_R32F = Bitmap3D<TF_R32F>;
+
+using Bitmap3D_R11G11B10F = Bitmap3D<TF_R11G11B10F>;
 
 } // namespace Hyperion

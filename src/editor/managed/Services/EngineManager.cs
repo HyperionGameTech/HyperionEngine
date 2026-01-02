@@ -356,14 +356,13 @@ namespace Hyperion.Editor
                         }
 
                         // check it is still not contained in the list
-                        EditorViewport? removedViewport = _registeredViewports.Find(v => v.Id == viewport.Id);
-                        if (removedViewport != null)
+                        if (_registeredViewports.Find(v => v.Id == viewport.Id) != null)
                         {
                             Logger.Log(LogType.Warn, $"EditorViewport {viewport.Id} is still registered (re-added?) - skipping removal from EditorSubsystem.");
                             return;
                         }
 
-                        editorSubsystem.RemoveViewport(removedViewport);
+                        editorSubsystem.RemoveViewport(viewport);
                     }
                     finally
                     {

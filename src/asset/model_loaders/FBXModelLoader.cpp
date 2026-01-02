@@ -332,14 +332,14 @@ static void DeleteFBXObjectsRecursively(FBXObject* object)
     s_fbxMemory->objectAllocator->Free(object);
 }
 
-static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty);
-static Result ReadFBXPropertyValue(ByteReader& reader, uint8 type, FBXPropertyValue& outValue);
-static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version);
-static Result ReadFBXNode(ByteReader& reader, FBXVersion version, FBXObject*& out);
+static Result ReadFBXProperty(BufferedByteReader& reader, FBXProperty& outProperty);
+static Result ReadFBXPropertyValue(BufferedByteReader& reader, uint8 type, FBXPropertyValue& outValue);
+static uint64 ReadFBXOffset(BufferedByteReader& reader, FBXVersion version);
+static Result ReadFBXNode(BufferedByteReader& reader, FBXVersion version, FBXObject*& out);
 static uint8 PrimitiveSize(uint8 primitiveType);
-static bool ReadMagic(ByteReader& reader);
+static bool ReadMagic(BufferedByteReader& reader);
 
-static bool ReadMagic(ByteReader& reader)
+static bool ReadMagic(BufferedByteReader& reader)
 {
     if (reader.Max() < sizeof(HeaderString) + sizeof(HeaderBytes))
     {
@@ -358,7 +358,7 @@ static bool ReadMagic(ByteReader& reader)
     uint8 bytes[sizeof(HeaderBytes)];
     reader.Read(bytes, sizeof(HeaderBytes));
 
-    if (std::memcmp(bytes, HeaderBytes, sizeof(HeaderBytes)) != 0)
+    if (Memory::MemCmp(bytes, HeaderBytes, sizeof(HeaderBytes)) != 0)
     {
         return false;
     }
@@ -366,7 +366,7 @@ static bool ReadMagic(ByteReader& reader)
     return true;
 }
 
-static Result ReadFBXPropertyValue(ByteReader& reader, uint8 type, FBXPropertyValue& outValue)
+static Result ReadFBXPropertyValue(BufferedByteReader& reader, uint8 type, FBXPropertyValue& outValue)
 {
     switch (type)
     {
@@ -376,8 +376,7 @@ static Result ReadFBXPropertyValue(ByteReader& reader, uint8 type, FBXPropertyVa
         uint32 length;
         reader.Read(&length);
 
-        ByteBuffer byteBuffer;
-        reader.Read(length, byteBuffer);
+        ByteBuffer byteBuffer = reader.ReadBytes(length);
 
         if (type == 'R')
         {
@@ -477,7 +476,7 @@ static uint8 PrimitiveSize(uint8 primitiveType)
     }
 }
 
-static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty)
+static Result ReadFBXProperty(BufferedByteReader& reader, FBXProperty& outProperty)
 {
     uint8 type;
     reader.Read(&type);
@@ -513,8 +512,7 @@ static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty)
                 return HYP_MAKE_ERROR(Error, "FBX array property compression requested, but Archive is not enabled");
             }
 
-            ByteBuffer compressedBuffer;
-            reader.Read(length, compressedBuffer);
+            ByteBuffer compressedBuffer = reader.ReadBytes(length);
 
             unsigned long compressedSize(length);
             unsigned long decompressedSize(PrimitiveSize(arrayHeldType) * numElements);
@@ -527,7 +525,8 @@ static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty)
                 return HYP_MAKE_ERROR(Error, "Failed to decompress FBX array property: {}", decompressResult.GetError().GetMessage());
             }
 
-            MemoryByteReader memoryReader(&decompressedBuffer);
+            MemoryBufferedReaderSource source(decompressedBuffer.ToByteView());
+            BufferedByteReader memoryReader(&source);
 
             for (uint32 index = 0; index < numElements; ++index)
             {
@@ -564,7 +563,7 @@ static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty)
     return {};
 }
 
-static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version)
+static uint64 ReadFBXOffset(BufferedByteReader& reader, FBXVersion version)
 {
     if (version >= 7500)
     {
@@ -582,7 +581,7 @@ static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version)
     }
 }
 
-static Result ReadFBXNode(ByteReader& reader, FBXVersion version, FBXObject*& out)
+static Result ReadFBXNode(BufferedByteReader& reader, FBXVersion version, FBXObject*& out)
 {
     out = (FBXObject*)s_fbxMemory->objectAllocator->Allocate();
     new (out) FBXObject();
@@ -594,8 +593,7 @@ static Result ReadFBXNode(ByteReader& reader, FBXVersion version, FBXObject*& ou
     uint8 nameLength;
     reader.Read(&nameLength);
 
-    ByteBuffer nameBuffer;
-    reader.Read(nameLength, nameBuffer);
+    ByteBuffer nameBuffer = reader.ReadBytes(nameLength);
 
     out->name = String(nameBuffer.ToByteView());
 
@@ -751,7 +749,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     const FilePath currentDir = FilePath::Current();
     const FilePath basePath = FilePath(path).BasePath();
 
-    FileByteReader reader(FilePath::Join(basePath, FilePath(path).Basename()));
+    FileBufferedReaderSource source(FilePath::Join(basePath, FilePath(path).Basename()));
+    BufferedByteReader reader(&source);
 
     if (reader.Eof())
     {

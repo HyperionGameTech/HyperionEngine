@@ -659,7 +659,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
         return;
     }
 
-    RenderQueue& renderQueue = currentFrame->preRenderQueue;
+    RenderQueue& renderQueue = currentFrame->postRenderQueue;
 
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
@@ -702,8 +702,6 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
                                   delete delegateHandle;
                               });
-
-    SafeDelete(std::move(stagingBuffer));
 }
 
 Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)

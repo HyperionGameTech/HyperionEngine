@@ -119,7 +119,8 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
             {
                 scriptObjectResource->SetScriptObjectData_HypScript(ScriptObjectData_HypScript {
                     .instance = nullptr,
-                    .obj = std::move(obj) });
+                    .obj = std::move(obj)
+                });
             }
 #endif
         }

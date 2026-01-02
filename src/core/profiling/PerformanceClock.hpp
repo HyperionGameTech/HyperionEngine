@@ -14,27 +14,20 @@ class HYP_API PerformanceClock
 public:
     static uint64 Now();
 
-    /*! Get time since the given timestamp in microseconds */
-    static uint64 TimeSince(uint64 microseconds);
+    /*! Get time since the given timestamp in Milliseconds */
+    static double TimeSince(uint64 timestamp);
+    static double ToMilliseconds(uint64 timestamp);
 
     PerformanceClock();
 
-    HYP_FORCE_INLINE uint64 Elapsed() const
-    {
-        return (m_endTimeUs == 0 ? Now() : m_endTimeUs) - m_startTimeUs;
-    }
-
-    HYP_FORCE_INLINE double ElapsedMs() const
-    {
-        return double(Elapsed()) / 1000.0;
-    }
+    double ElapsedMs() const;
 
     void Start();
     void Stop();
 
 private:
-    uint64 m_startTimeUs;
-    uint64 m_endTimeUs;
+    uint64 m_startTime;
+    uint64 m_endTime;
 };
 
 } // namespace profiling

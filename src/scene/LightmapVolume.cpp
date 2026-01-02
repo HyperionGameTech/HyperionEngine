@@ -170,71 +170,73 @@ struct LightmapVolumeAtlasBlit : RenderCommand
 
                         atlasTexture->EnqueueReadback([atlasTextureWeak = atlasTexture.ToWeak()](ByteBuffer&& byteBuffer)
                             {
-                                // update texture data on sim thread
-                                GetThreadById(g_simThread)->GetScheduler().Enqueue([atlasTextureWeak, byteBuffer = std::move(byteBuffer)]()
+                                Handle<Texture> atlasTexture = atlasTextureWeak.Lock();
+                                if (!atlasTexture)
+                                {
+                                    return;
+                                }
+                                
+                                Bitmap_R11G11B10F bm(atlasTexture->GetExtent().x, atlasTexture->GetExtent().y);
+                                bm.SetPixels(byteBuffer);
+
+                                FileByteWriter fbw(HYP_FORMAT("Temp/{}.bmp", atlasTexture->GetName()));
+                                bm.Write(&fbw);
+                                fbw.Close();
+
+                                Handle<AssetPackage> package;
+
+                                const Handle<TextureAsset>& prevTextureAsset = atlasTexture->GetAsset();
+
+                                if (prevTextureAsset)
+                                {
+                                    package = prevTextureAsset->GetPackage();
+
+                                    if (package)
                                     {
-                                        Handle<Texture> atlasTexture = atlasTextureWeak.Lock();
-                                        if (!atlasTexture)
+                                        if (Result removeAssetResult = package->RemoveAssetObject(prevTextureAsset).Await(); removeAssetResult.HasError())
                                         {
-                                            return;
+                                            HYP_LOG(Lightmap, Error, "Failed to remove previous texture asset {} from package {}: {}",
+                                                prevTextureAsset->GetName(),
+                                                package->BuildPackagePath(),
+                                                removeAssetResult.GetError().GetMessage());
                                         }
+                                    }
+                                }
 
-                                        Handle<AssetPackage> package;
+                                TextureDesc textureDesc = atlasTexture->GetTextureDesc();
+                                textureDesc.mipOffsets = { 0 };
 
-                                        const Handle<TextureAsset>& prevTextureAsset = atlasTexture->GetAsset();
+                                TextureData textureData { std::move(byteBuffer) };
 
-                                        if (prevTextureAsset)
-                                        {
-                                            package = prevTextureAsset->GetPackage();
+                                Handle<TextureAsset> newTextureAsset = CreateObject<TextureAsset>(
+                                    atlasTexture->GetName(),
+                                    textureDesc,
+                                    std::move(textureData));
 
-                                            if (package)
-                                            {
-                                                if (Result removeAssetResult = package->RemoveAssetObject(prevTextureAsset).Await(); removeAssetResult.HasError())
-                                                {
-                                                    HYP_LOG(Lightmap, Error, "Failed to remove previous texture asset {} from package {}: {}",
-                                                        prevTextureAsset->GetName(),
-                                                        package->BuildPackagePath(),
-                                                        removeAssetResult.GetError().GetMessage());
-                                                }
-                                            }
-                                        }
+                                InitObject(newTextureAsset);
 
-                                        TextureDesc textureDesc = atlasTexture->GetTextureDesc();
-                                        textureDesc.mipOffsets = { 0 };
+                                if (package)
+                                {
+                                    if (Result result = package->AddAssetObject(newTextureAsset).Await(); result.HasError())
+                                    {
+                                        HYP_LOG(Lightmap, Error, "Failed to add texture asset '{}' to package {}: {}",
+                                            newTextureAsset->GetName(),
+                                            package->BuildPackagePath(),
+                                            result.GetError().GetMessage());
 
-                                        TextureData textureData { std::move(byteBuffer) };
+                                        package.Reset();
+                                    }
+                                }
 
-                                        Handle<TextureAsset> newTextureAsset = CreateObject<TextureAsset>(
-                                            atlasTexture->GetName(),
-                                            textureDesc,
-                                            std::move(textureData));
+                                if (!package)
+                                {
+                                    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", newTextureAsset).Await(); result.HasError())
+                                    {
+                                        HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", newTextureAsset->GetName(), result.GetError().GetMessage());
+                                    }
+                                }
 
-                                        InitObject(newTextureAsset);
-
-                                        if (package)
-                                        {
-                                            if (Result result = package->AddAssetObject(newTextureAsset).Await(); result.HasError())
-                                            {
-                                                HYP_LOG(Lightmap, Error, "Failed to add texture asset '{}' to package {}: {}",
-                                                    newTextureAsset->GetName(),
-                                                    package->BuildPackagePath(),
-                                                    result.GetError().GetMessage());
-
-                                                package.Reset();
-                                            }
-                                        }
-
-                                        if (!package)
-                                        {
-                                            if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", newTextureAsset).Await(); result.HasError())
-                                            {
-                                                HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", newTextureAsset->GetName(), result.GetError().GetMessage());
-                                            }
-                                        }
-
-                                        atlasTexture->SetAsset(newTextureAsset);
-                                    },
-                                    TaskEnqueueFlags::FIRE_AND_FORGET);
+                                atlasTexture->SetAsset(newTextureAsset);
                             });
                     }
                 })

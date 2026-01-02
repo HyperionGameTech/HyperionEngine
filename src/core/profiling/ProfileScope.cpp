@@ -284,8 +284,8 @@ struct ProfileScopeEntry
 {
     const ANSIString label;
     const ANSIStringView location;
-    uint64 startTimestampUs;
-    uint64 measuredTimeUs;
+    uint64 startTimestamp;
+    double measuredTimeMs;
 
     ProfileScopeEntry* parent = nullptr;
     LinkedList<ProfileScopeEntry> children;
@@ -293,8 +293,8 @@ struct ProfileScopeEntry
     ProfileScopeEntry(ANSIStringView label, ANSIStringView location, ProfileScopeEntry* parent = nullptr)
         : label(label),
           location(location),
-          startTimestampUs(0),
-          measuredTimeUs(0),
+          startTimestamp(0),
+          measuredTimeMs(0),
           parent(parent)
     {
         StartMeasure();
@@ -305,13 +305,13 @@ struct ProfileScopeEntry
 
     HYP_FORCE_INLINE void StartMeasure()
     {
-        startTimestampUs = PerformanceClock::Now();
-        measuredTimeUs = 0;
+        startTimestamp = PerformanceClock::Now();
+        measuredTimeMs = 0;
     }
 
     HYP_FORCE_INLINE void SaveDiff()
     {
-        measuredTimeUs = PerformanceClock::TimeSince(startTimestampUs);
+        measuredTimeMs = PerformanceClock::TimeSince(startTimestamp);
     }
 
     Json::Value ToJSON(ProfileScopeEntry* parentScope = nullptr) const
@@ -319,8 +319,8 @@ struct ProfileScopeEntry
         Json::JSObject object;
         object["label"] = Json::JSString(label);
         object["location"] = Json::JSString(location);
-        object["start_timestamp_ms"] = Json::JSNumber(startTimestampUs / 1000);
-        object["measured_time_us"] = Json::JSNumber(measuredTimeUs);
+        object["start_timestamp_ms"] = Json::JSNumber(PerformanceClock::ToMilliseconds(startTimestamp));
+        object["measured_time_ms"] = Json::JSNumber(measuredTimeMs);
 
         Json::JSArray childrenArray;
 
@@ -374,7 +374,7 @@ static void DebugLogProfileScopeEntry(ProfileScopeEntry* entry, int depth = 0)
             putchar(int(' '));
         }
 
-        HYP_LOG(Profile, Debug, "Profile scope entry '{}': {} us\n", entry->label, entry->measuredTimeUs);
+        HYP_LOG(Profile, Debug, "Profile scope entry '{}': {} ms\n", entry->label, entry->measuredTimeMs);
     }
 
     for (ProfileScopeEntry& child : entry->children)

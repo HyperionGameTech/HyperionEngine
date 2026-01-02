@@ -130,13 +130,6 @@ namespace Hyperion.Editor
             }
         }
 
-        protected override void OnGotFocus(GotFocusEventArgs e)
-        {
-            base.OnGotFocus(e);
-
-            Logger.Log(LogType.Debug, "Viewport got focus");
-        }
-
         void InitEditorViewport(EditorViewport viewport)
         {
             EngineManager.RegisterViewport(viewport);

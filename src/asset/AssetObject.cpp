@@ -130,12 +130,6 @@ void AssetDataResourceBase::Destroy()
 
     HYP_LOG(Assets, Debug, "Unloading asset '{}'", assetObject->IsRegistered() ? *assetObject->GetPath().ToString() : *assetObject->GetName());
 
-    // temp debug
-    if (assetObject->GetName() == "Skybox_Mesh")
-    {
-        HYP_BREAKPOINT;
-    }
-
     if (!GetAssetRef().HasValue())
     {
         HYP_LOG(Assets, Warning, "Asset '{}' has no data to unload", assetObject->GetName());

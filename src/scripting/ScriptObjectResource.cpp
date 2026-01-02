@@ -26,7 +26,7 @@ ScriptObjectResource::ScriptObjectResource(const Handle<ObjectBase>& nativeObjec
 {
     if (!nativeData)
     {
-        nativeData = new ScriptObjectData_Native();
+        nativeData.Emplace(ScriptObjectData_Native());
     }
 
     ScriptObjectData_Native& data = *nativeData;
@@ -39,7 +39,7 @@ ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, con
 #ifdef HYP_DOTNET
     if (!dotNetData)
     {
-        dotNetData = new ScriptObjectData_DotNet();
+        dotNetData.Emplace(ScriptObjectData_DotNet());
     }
 
     ScriptObjectData_DotNet& data = *dotNetData;
@@ -61,7 +61,7 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObjec
 #ifdef HYP_DOTNET
     if (!dotNetData)
     {
-        dotNetData = new ScriptObjectData_DotNet();
+        dotNetData.Emplace(ScriptObjectData_DotNet());
     }
 
     ScriptObjectData_DotNet& data = *dotNetData;
@@ -78,7 +78,7 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::Man
 #ifdef HYP_DOTNET
     if (!dotNetData)
     {
-        dotNetData = new ScriptObjectData_DotNet();
+        dotNetData.Emplace(ScriptObjectData_DotNet());
     }
 
     ScriptObjectData_DotNet& data = *dotNetData;
@@ -106,10 +106,11 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::Man
 #ifdef HYP_SCRIPT
 
 ScriptObjectResource::ScriptObjectResource(Script_Instance* hypScriptInstance, BoxedValue&& hypScriptValue)
+    : m_ptr(nullptr)
 {
     if (!hypScriptData)
     {
-        hypScriptData = new ScriptObjectData_HypScript();
+        hypScriptData.Emplace(ScriptObjectData_HypScript());
     }
 
     ScriptObjectData_HypScript& data = *hypScriptData;
@@ -121,63 +122,27 @@ ScriptObjectResource::ScriptObjectResource(Script_Instance* hypScriptInstance, B
 
 ScriptObjectResource::~ScriptObjectResource()
 {
-#ifdef HYP_DOTNET
-    if (dotNetData)
-    {
-        if (dotNetData->objectPtr)
-        {
-            delete dotNetData->objectPtr;
-            dotNetData->objectPtr = nullptr;
-        }
-
-        dotNetData->managedClass = nullptr;
-
-        delete dotNetData;
-        dotNetData = nullptr;
-    }
-#endif
-
-#ifdef HYP_SCRIPT
-    if (hypScriptData)
-    {
-        if (hypScriptData->instance)
-        {
-            HypScript::GetInstance().DestroyScript(hypScriptData->instance);
-            hypScriptData->instance = nullptr;
-        }
-
-        hypScriptData->obj = BoxedValue();
-
-        delete hypScriptData;
-        hypScriptData = nullptr;
-    }
-#endif
-
-    if (nativeData)
-    {
-        delete nativeData;
-        nativeData = nullptr;
-    }
+    ScriptObjectResource::Destroy();
 }
 
 uint32 ScriptObjectResource::GetScriptLanguageMask() const
 {
     uint32 mask = 0;
 
-    if (nativeData != nullptr)
+    if (nativeData.HasValue())
     {
         mask |= (1 << uint32(ScriptLanguage::Native));
     }
 
 #ifdef HYP_DOTNET
-    if (dotNetData != nullptr)
+    if (dotNetData.HasValue())
     {
         mask |= (1 << uint32(ScriptLanguage::CSharp));
     }
 #endif
 
 #ifdef HYP_SCRIPT
-    if (hypScriptData != nullptr)
+    if (hypScriptData.HasValue())
     {
         mask |= (1 << uint32(ScriptLanguage::HypScript));
     }
@@ -185,11 +150,12 @@ uint32 ScriptObjectResource::GetScriptLanguageMask() const
 
     return mask;
 }
+
 dotnet::ManagedObject* ScriptObjectResource::GetManagedObject() const
 {
 #ifdef HYP_DOTNET
     // only valid to call on .NET script objects
-    if (dotNetData != nullptr)
+    if (dotNetData.HasValue())
     {
         return dotNetData->objectPtr;
     }
@@ -202,7 +168,7 @@ const RC<dotnet::ManagedClass> ScriptObjectResource::GetManagedClass() const
 {
 #ifdef HYP_DOTNET
     // only valid to call on .NET script objects
-    if (dotNetData != nullptr)
+    if (dotNetData.HasValue())
     {
         return dotNetData->managedClass;
     }
@@ -214,7 +180,7 @@ const RC<dotnet::ManagedClass> ScriptObjectResource::GetManagedClass() const
 void ScriptObjectResource::Initialize()
 {
 #ifdef HYP_DOTNET
-    if (dotNetData != nullptr)
+    if (dotNetData.HasValue())
     {
         if (!dotNetData->objectPtr)
         {
@@ -269,7 +235,7 @@ void ScriptObjectResource::Initialize()
 void ScriptObjectResource::Destroy()
 {
 #ifdef HYP_DOTNET
-    if (dotNetData)
+    if (dotNetData.HasValue())
     {
         if (dotNetData->objectPtr)
         {
@@ -282,13 +248,12 @@ void ScriptObjectResource::Destroy()
 
         dotNetData->managedClass = nullptr;
 
-        delete dotNetData;
-        dotNetData = nullptr;
+        dotNetData.Unset();
     }
 #endif
 
 #ifdef HYP_SCRIPT
-    if (hypScriptData)
+    if (hypScriptData.HasValue())
     {
         if (hypScriptData->instance)
         {
@@ -298,16 +263,11 @@ void ScriptObjectResource::Destroy()
 
         hypScriptData->obj = BoxedValue();
 
-        delete hypScriptData;
-        hypScriptData = nullptr;
+        hypScriptData.Unset();
     }
 #endif
 
-    if (nativeData)
-    {
-        delete nativeData;
-        nativeData = nullptr;
-    }
+    nativeData.Unset();
 }
 
 #pragma endregion ScriptObjectResource

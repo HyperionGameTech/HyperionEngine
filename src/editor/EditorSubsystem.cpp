@@ -1350,6 +1350,8 @@ EditorSubsystem::EditorSubsystem()
         .Bind([this](const Handle<EditorProject>& project)
             {
                 HYP_LOG(Editor, Info, "Opening project: {}", *project->GetName());
+                
+                g_editorState->GetPickCache().Clear();
 
                 InitObject(project);
                 InitializeGizmos();
@@ -1447,6 +1449,8 @@ EditorSubsystem::EditorSubsystem()
     OnProjectClosing
         .Bind([this](const Handle<EditorProject>& project)
             {
+                g_editorState->GetPickCache().Clear();
+
                 g_engineDriver->RemoveWorld(project->GetWorld());
 
                 // Shutdown to reinitialize gizmos after project is opened

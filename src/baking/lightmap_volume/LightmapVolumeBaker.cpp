@@ -130,7 +130,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
     {
         BakeEntity& bakeEntity = m_bakeEntities[bakeEntityIndex];
 
-        auto updateMeshData = [&]()
+        auto UpdateMeshData = [&]()
         {
             const Handle<Mesh>& mesh = bakeEntity.mesh;
             Assert(mesh.IsValid());
@@ -160,7 +160,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             mesh->SetMeshData(newMeshDesc, newMeshData);
         };
 
-        updateMeshData();
+        UpdateMeshData();
 
         bool isNewMaterial = false;
 
@@ -183,7 +183,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         bakeEntity.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
         bakeEntity.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
 
-        auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
+        auto UpdateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
                                         lightmapElementId = m_lightmapElementId,
                                         volume = m_volume,
                                         bakeEntity = bakeEntity,
@@ -247,14 +247,14 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
         if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
         {
-            updateMeshComponent();
+            UpdateMeshComponent();
         }
         else
         {
             ThreadBase* thread = GetThreadById(m_scene->GetEntityManager()->GetOwnerThreadId());
             Assert(thread != nullptr);
 
-            thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
+            thread->GetScheduler().Enqueue(std::move(UpdateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
         }
     }
 }
