@@ -1308,14 +1308,14 @@ bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& out
         return false;
     }
 
-    if (!target->GetScriptObjectResource())
+    ScriptObjectResource* sor = target->GetScriptObjectResource();
+
+    if (!sor)
     {
         return false;
     }
 
-    TResourceGuard<ScriptObjectResource> resGuard(*target->GetScriptObjectResource());
-
-    dotnet::ManagedObject* managedObject = resGuard->GetManagedObject();
+    dotnet::ManagedObject* managedObject = sor->GetManagedObject();
 
     if (!managedObject)
     {

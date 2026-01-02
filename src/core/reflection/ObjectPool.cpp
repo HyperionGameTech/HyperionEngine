@@ -114,12 +114,11 @@ ObjectContainerBase* ObjectPool::ContainerMap::TryGet(TypeId typeId)
     return it->second;
 }
 
-static Spinlock<MPMC>& GetLock()
+static AtomicFlag& GetAtomicFlag()
 {
-    static volatile int64 s_lockValue = 0;
-    static Spinlock<MPMC> s_lock { &s_lockValue };
+    static AtomicFlag s_flag;
 
-    return s_lock;
+    return s_flag;
 }
 
 static Pool* GetPool()
@@ -160,7 +159,7 @@ Pool* ObjectContainerBase::GetPool() const
     return GetPoolForClass(m_class);
 }
 
-void ObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard, int flags)
+void ObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, TLockGuard<AtomicFlag>& outGuard, int flags)
 {
     HYP_CORE_ASSERT(pool != nullptr);
 
@@ -168,11 +167,7 @@ void ObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard
     if (HYP_LIKELY(pool == g_objectPool || (pool->GetFlags() & PF_THREAD_SAFE)))
     {
 #endif
-        Spinlock<MPMC>& lock = GetLock();
-        lock.Lock();
-
-        outGuard.lock = &lock;
-        outGuard.flags = flags;
+        outGuard.Reset(GetAtomicFlag());
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
         return;

@@ -1,6 +1,5 @@
 #include <core/memory/pool/Pool.hpp>
 
-#include <core/threading/Spinlock.hpp>
 #include <core/threading/Threads.hpp>
 
 namespace Hyperion {
@@ -38,10 +37,9 @@ Pool::~Pool()
 
 HYP_NODISCARD void* Pool::Allocate(SizeType size, SizeType alignment)
 {
-    Spinlock<MPMC> lock(&m_lockState);
     if (m_flags & PF_THREAD_SAFE)
     {
-        lock.Lock();
+        m_atomicFlag.Acquire();
     }
     else if (m_ownerThreadId.IsValid())
     {
@@ -55,7 +53,7 @@ HYP_NODISCARD void* Pool::Allocate(SizeType size, SizeType alignment)
         {
             if (m_flags & PF_THREAD_SAFE)
             {
-                lock.Unlock();
+                m_atomicFlag.Release();
             }
 
             return p;
@@ -75,7 +73,7 @@ HYP_NODISCARD void* Pool::Allocate(SizeType size, SizeType alignment)
 
     if (m_flags & PF_THREAD_SAFE)
     {
-        lock.Unlock();
+        m_atomicFlag.Release();
     }
 
     return p;
@@ -88,10 +86,9 @@ void Pool::Free(void* ptr)
         return;
     }
 
-    Spinlock<MPMC> lock(&m_lockState);
     if (m_flags & PF_THREAD_SAFE)
     {
-        lock.Lock();
+        m_atomicFlag.Acquire();
     }
     else if (m_ownerThreadId.IsValid())
     {
@@ -108,7 +105,7 @@ void Pool::Free(void* ptr)
 
             if (m_flags & PF_THREAD_SAFE)
             {
-                lock.Unlock();
+                m_atomicFlag.Release();
             }
 
             return;
@@ -120,16 +117,15 @@ void Pool::Free(void* ptr)
 
     if (m_flags & PF_THREAD_SAFE)
     {
-        lock.Unlock();
+        m_atomicFlag.Release();
     }
 }
 
 void Pool::Reset()
 {
-    Spinlock<MPMC> lock(&m_lockState);
     if (m_flags & PF_THREAD_SAFE)
     {
-        lock.Lock();
+        m_atomicFlag.Acquire();
     }
     else if (m_ownerThreadId.IsValid())
     {
@@ -140,16 +136,15 @@ void Pool::Reset()
 
     if (m_flags & PF_THREAD_SAFE)
     {
-        lock.Unlock();
+        m_atomicFlag.Release();
     }
 }
 
 MemoryMetrics Pool::GetMemoryMetrics() const
 {
-    Spinlock<MPMC> lock(&m_lockState);
     if (m_flags & PF_THREAD_SAFE)
     {
-        lock.Lock();
+        m_atomicFlag.Acquire();
     }
 
     MemoryMetrics metrics;
@@ -165,7 +160,7 @@ MemoryMetrics Pool::GetMemoryMetrics() const
 
     if (m_flags & PF_THREAD_SAFE)
     {
-        lock.Unlock();
+        m_atomicFlag.Release();
     }
 
     return metrics;

@@ -704,7 +704,7 @@ struct TypeInfo
 
             new (pTypeInfo) TypeInfo(std::move(result));
 
-            guardStorage.GetPointer()->~Guard();
+            guardStorage.GetPointer()->~TLockGuard();
 
             return *pTypeInfo;
         }

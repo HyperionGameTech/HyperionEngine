@@ -7,10 +7,10 @@
 #include <core/containers/Array.hpp>
 
 #include <core/threading/Mutex.hpp>
+#include <core/threading/SharedMutex.hpp>
 #include <core/threading/Threads.hpp>
 #include <core/threading/Task.hpp>
 #include <core/threading/Scheduler.hpp>
-#include <core/threading/Spinlock.hpp>
 
 #include <core/utilities/ForEach.hpp>
 #include <core/utilities/DeferredScope.hpp>
@@ -721,8 +721,7 @@ public:
     friend class DelegateHandlerSet;
 
     Delegate()
-        : m_spinlock(0),
-          m_impl(nullptr)
+        : m_impl(nullptr)
     {
     }
 
@@ -730,8 +729,7 @@ public:
     Delegate& operator=(const Delegate& other) = delete;
 
     Delegate(Delegate&& other) noexcept
-        : m_spinlock(AtomicExchange(&other.m_spinlock, 0)),
-          m_impl(other.m_impl)
+        : m_impl(other.m_impl)
     {
         other.m_impl = nullptr;
     }
@@ -741,8 +739,7 @@ public:
     virtual ~Delegate() override
     {
         // Ensure that the delegate is not being used by any threads before deleting it
-        Spinlock<SPMC> spinlock(&m_spinlock);
-        spinlock.LockWriter();
+        TUniqueLock guard(m_mtx);
 
         if (m_impl != nullptr)
         {
@@ -764,9 +761,7 @@ public:
 
     virtual bool AnyBound() const override final
     {
-        Spinlock<SPMC> spinlock(&m_spinlock);
-        spinlock.LockReader();
-        HYP_DEFER({ spinlock.UnlockReader(); });
+        TSharedLock guard(m_mtx);
 
         if (m_impl == nullptr)
         {
@@ -784,19 +779,19 @@ public:
      *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     HYP_NODISCARD DelegateHandler Bind(Proc<ReturnType(Args...)>&& proc)
     {
-        Spinlock<SPMC> spinlock(&m_spinlock);
-        spinlock.LockReader();
-        HYP_DEFER({ spinlock.UnlockReader(); });
+        TSharedLock guard(m_mtx);
 
         if (m_impl == nullptr)
         {
-            spinlock.UnlockReader();
-            spinlock.LockWriter();
+            guard.Reset();
 
-            m_impl = new DelegateImpl<ReturnType, Args...>();
+            {
+                TUniqueLock guard2(m_mtx);
 
-            spinlock.UnlockWriter();
-            spinlock.LockReader();
+                m_impl = new DelegateImpl<ReturnType, Args...>();
+            }
+
+            guard.Reset(m_mtx);
         }
 
         return m_impl->Bind(std::move(proc));
@@ -811,19 +806,19 @@ public:
      *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     HYP_NODISCARD DelegateHandler BindThreaded(Proc<ReturnType(Args...)>&& proc, const ThreadId& callingThreadId)
     {
-        Spinlock<SPMC> spinlock(&m_spinlock);
-        spinlock.LockReader();
-        HYP_DEFER({ spinlock.UnlockReader(); });
+        TSharedLock guard(m_mtx);
 
         if (m_impl == nullptr)
         {
-            spinlock.UnlockReader();
-            spinlock.LockWriter();
+            guard.Reset();
 
-            m_impl = new DelegateImpl<ReturnType, Args...>();
+            {
+                TUniqueLock guard2(m_mtx);
 
-            spinlock.UnlockWriter();
-            spinlock.LockReader();
+                m_impl = new DelegateImpl<ReturnType, Args...>();
+            }
+
+            guard.Reset(m_mtx);
         }
 
         return m_impl->BindThreaded(std::move(proc), callingThreadId);
@@ -834,9 +829,7 @@ public:
      *  \return The number of handlers removed. */
     int RemoveAllDetached() override
     {
-        Spinlock<SPMC> spinlock(&m_spinlock);
-        spinlock.LockReader();
-        HYP_DEFER({ spinlock.UnlockReader(); });
+        TSharedLock guard(m_mtx);
 
         if (m_impl == nullptr)
         {
@@ -848,9 +841,7 @@ public:
 
     bool Remove(DelegateHandler&& handle) override
     {
-        Spinlock<SPMC> spinlock(&m_spinlock);
-        spinlock.LockReader();
-        HYP_DEFER({ spinlock.UnlockReader(); });
+        TSharedLock guard(m_mtx);
 
         if (m_impl == nullptr)
         {
@@ -867,9 +858,7 @@ public:
     template <class... ArgTypes>
     ReturnType Broadcast(ArgTypes&&... args)
     {
-        Spinlock<SPMC> spinlock(&m_spinlock);
-        spinlock.LockReader();
-        HYP_DEFER({ spinlock.UnlockReader(); });
+        TSharedLock guard(m_mtx);
 
         if (m_impl == nullptr)
         {
@@ -902,7 +891,7 @@ private:
     // keep implementation pointer to reduce static memory footprint as many delegates will not have any handlers bound
     DelegateImplType* m_impl;
     // spinlock to protect against multiple threads creating / reading from m_impl pointer
-    mutable volatile int64 m_spinlock;
+    SharedMutex m_mtx;
 };
 
 /*! \brief Stores a set of DelegateHandlers, intended to hold references to delegates and remove them upon destruction of the owner object. */
@@ -962,9 +951,7 @@ public:
         }
 
         // lock the delegate object for reading
-        Spinlock<SPMC> spinlock(&delegate->m_spinlock);
-        spinlock.LockReader();
-        HYP_DEFER({ spinlock.UnlockReader(); });
+        TSharedLock guard(delegate->m_mtx);
 
         Array<DelegateHandler> delegateHandlers;
 

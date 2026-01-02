@@ -9,6 +9,8 @@
 #include <Windows.h>
 #endif
 
+#include <core/threading/LockGuard.hpp>
+
 #include <core/debug/Debug.hpp>
 
 namespace Hyperion {
@@ -21,26 +23,7 @@ class Mutex
     friend class ConditionVariable;
 
 public:
-    struct Guard
-    {
-        Guard(Mutex& mutex)
-            : mutex(mutex)
-        {
-            mutex.Lock();
-        }
-
-        Guard(const Guard& other) = delete;
-        Guard& operator=(const Guard& other) = delete;
-        Guard(Guard&& other) noexcept = delete;
-        Guard& operator=(Guard&& other) noexcept = delete;
-
-        ~Guard()
-        {
-            mutex.Unlock();
-        }
-
-        Mutex& mutex;
-    };
+    using Guard = TLockGuard<Mutex>;
 
     Mutex()
     {

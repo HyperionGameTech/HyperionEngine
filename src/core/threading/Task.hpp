@@ -9,7 +9,7 @@
 #include <core/utilities/Span.hpp>
 
 #include <core/threading/AtomicVar.hpp>
-#include <core/threading/Spinlock.hpp>
+#include <core/threading/SharedMutex.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/threading/Semaphore.hpp>
 
@@ -195,8 +195,7 @@ public:
     TaskExecutorBase()
         : m_id(TaskID::Invalid()),
           m_initiatorThreadId(ThreadId::Invalid()),
-          m_assignedScheduler(nullptr),
-          m_promiseFulfillLockState(0)
+          m_assignedScheduler(nullptr)
     {
         // set notifier to initial value of 1 (one task)
         m_notifier.Produce(1);
@@ -208,8 +207,7 @@ public:
     TaskExecutorBase(TaskExecutorBase&& other) noexcept
         : m_id(other.m_id),
           m_initiatorThreadId(other.m_initiatorThreadId),
-          m_assignedScheduler(other.m_assignedScheduler),
-          m_promiseFulfillLockState(0)
+          m_assignedScheduler(other.m_assignedScheduler)
     {
         m_callbackChain = std::move(other.m_callbackChain);
 
@@ -282,8 +280,7 @@ protected:
     ThreadId m_initiatorThreadId;
     SchedulerBase* m_assignedScheduler;
     TaskCompleteNotifier m_notifier;
-
-    volatile int64 m_promiseFulfillLockState;
+    SharedMutex m_promiseFulfillFlag;
     TaskCallbackChain m_callbackChain;
 };
 
@@ -426,15 +423,15 @@ public:
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
 
-        Spinlock<SPMC> spinlock(&this->m_promiseFulfillLockState);
-        spinlock.LockWriter();
+        TUniqueLock guard(this->m_promiseFulfillFlag);
 
         Base::m_resultValue.Set(std::move(value));
 
         TaskCallbackChain callbackChain = std::move(Base::GetCallbackChain());
 
         Base::GetNotifier().Release(1);
-        spinlock.UnlockWriter();
+
+        guard.Reset();
 
         if (callbackChain)
         {
@@ -445,16 +442,16 @@ public:
     void Fulfill(const ReturnType& value)
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
-
-        Spinlock<SPMC> spinlock(&this->m_promiseFulfillLockState);
-        spinlock.LockWriter();
+     
+        TUniqueLock guard(this->m_promiseFulfillFlag);
 
         Base::m_resultValue.Set(value);
 
         TaskCallbackChain callbackChain = std::move(Base::GetCallbackChain());
 
         Base::GetNotifier().Release(1);
-        spinlock.UnlockWriter();
+
+        guard.Reset();
 
         if (callbackChain)
         {
@@ -505,13 +502,13 @@ public:
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
 
-        Spinlock<SPMC> spinlock(&this->m_promiseFulfillLockState);
-        spinlock.LockWriter();
+        TUniqueLock guard(this->m_promiseFulfillFlag);
 
         TaskCallbackChain callbackChain = std::move(Base::GetCallbackChain());
 
         Base::GetNotifier().Release(1);
-        spinlock.UnlockWriter(); // moved up here and used move because some of the callbacks may delete this
+
+        guard.Reset();
 
         if (callbackChain)
         {
@@ -809,8 +806,7 @@ protected:
             {
                 if (m_allowDeferredDeletion)
                 {
-                    Spinlock<SPMC> spinlock(&m_executor->m_promiseFulfillLockState);
-                    spinlock.LockReader();
+                    TSharedLock guard(m_executor->m_promiseFulfillFlag);
 
                     // check again in case it completed while we were waiting for the lock
                     if (!m_executor->IsCompleted())
@@ -826,8 +822,6 @@ protected:
                         // delete it now
                         delete m_executor;
                     }
-
-                    spinlock.UnlockReader();
                 }
                 else
                 {
@@ -966,8 +960,7 @@ protected:
             {
                 if (m_allowDeferredDeletion)
                 {
-                    Spinlock<SPMC> spinlock(&m_executor->m_promiseFulfillLockState);
-                    spinlock.LockReader();
+                    TSharedLock guard(m_executor->m_promiseFulfillFlag);
 
                     // check again in case it completed while we were waiting for the lock
                     if (!m_executor->IsCompleted())
@@ -983,8 +976,6 @@ protected:
                         // delete it now
                         delete m_executor;
                     }
-
-                    spinlock.UnlockReader();
 
                     // Task_DeferTaskDeletion(m_executor);
                 }

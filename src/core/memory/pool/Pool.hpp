@@ -5,6 +5,7 @@
 #include <core/containers/LinkedList.hpp>
 
 #include <core/threading/util/ThreadId.hpp>
+#include <core/threading/AtomicFlag.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
@@ -79,8 +80,7 @@ public:
     explicit Pool(SizeType blockSize, EnumFlags<PoolFlags> flags = PF_NONE, const ThreadId& ownerThreadId = ThreadId::Invalid())
         : m_blockSize(blockSize),
           m_flags(flags),
-          m_ownerThreadId(ownerThreadId),
-          m_lockState(0)
+          m_ownerThreadId(ownerThreadId)
     {
         HYP_CORE_ASSERT(m_blockSize > 0);
     }
@@ -126,8 +126,7 @@ protected:
     SizeType m_blockSize;
     EnumFlags<PoolFlags> m_flags;
     ThreadId m_ownerThreadId;
-
-    mutable volatile int64 m_lockState;
+    AtomicFlag m_atomicFlag;
 };
 
 template <class T>

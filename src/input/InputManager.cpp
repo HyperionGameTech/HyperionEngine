@@ -10,7 +10,6 @@
 #include <core/utilities/DeferredScope.hpp>
 
 #include <core/threading/Threads.hpp>
-#include <core/threading/Spinlock.hpp>
 
 #include <engine/EngineGlobals.hpp>
 

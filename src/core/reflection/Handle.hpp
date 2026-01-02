@@ -72,7 +72,7 @@ struct Handle final : HandleBase
             // We shouldn't have an Id for a type that doesn't have a container.
             HYP_CORE_ASSERT(container != nullptr);
 
-            ObjectContainerBase::LockGuard guard;
+            TLockGuard<AtomicFlag> guard;
 
             ObjectHeader* header = container->GetObjectHeader(id.ToIndex(), guard);
             HYP_CORE_ASSERT(header != nullptr);
@@ -411,7 +411,7 @@ struct WeakHandle final
             // We shouldn't have an Id for a type that doesn't have a container.
             HYP_CORE_ASSERT(container != nullptr);
 
-            ObjectContainerBase::LockGuard guard;
+            TLockGuard<AtomicFlag> guard;
 
             ObjectHeader* header = container->GetObjectHeader(id.ToIndex(), guard);
             HYP_CORE_ASSERT(header != nullptr);

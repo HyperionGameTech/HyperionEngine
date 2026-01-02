@@ -15,7 +15,7 @@
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>
-#include <core/threading/Spinlock.hpp>
+#include <core/threading/AtomicFlag.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -47,20 +47,6 @@ class ObjectContainerBase
     friend class ObjectPool;
 
 public:
-    struct LockGuard
-    {
-        Spinlock<MPMC>* lock = nullptr;
-        int flags = PF_NONE;
-
-        HYP_FORCE_INLINE ~LockGuard()
-        {
-            if (lock)
-            {
-                lock->Unlock();
-            }
-        }
-    };
-
     virtual ~ObjectContainerBase() = default;
 
     HYP_FORCE_INLINE const TypeId& GetObjectTypeId() const
@@ -73,7 +59,7 @@ public:
         return m_class;
     }
 
-    virtual ObjectHeader* GetObjectHeader(uint32 index, LockGuard& outGuard) = 0;
+    virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard) = 0;
 
     virtual void Release(ObjectHeader* header) = 0;
 
@@ -92,7 +78,7 @@ protected:
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
      */
     HYP_API Pool* GetPool() const;
-    HYP_API static void LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard, int flags);
+    HYP_API static void LockPoolOrThreadAssert(Pool* pool, TLockGuard<AtomicFlag>& outGuard, int flags);
 
     TypeId m_typeId;
     const Class* m_class;
@@ -277,7 +263,7 @@ public:
 
         Pool* pool = GetPool();
 
-        LockGuard guard;
+        TLockGuard<AtomicFlag> guard;
         LockPoolOrThreadAssert(pool, guard, PF_WRITER | PF_ALLOCATE);
 
         void* mem = pool->Allocate(totalSize, MaxObjectAlignment);
@@ -297,7 +283,7 @@ public:
         return header;
     }
 
-    virtual ObjectHeader* GetObjectHeader(uint32 index, LockGuard& outGuard) override
+    virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard) override
     {
         if (index == ~0u)
         {
@@ -321,7 +307,7 @@ public:
 
         Pool* pool = GetPool();
 
-        LockGuard guard;
+        TLockGuard<AtomicFlag> guard;
         LockPoolOrThreadAssert(pool, guard, PF_WRITER | PF_FREE);
 
         const uint32 index = header->index;

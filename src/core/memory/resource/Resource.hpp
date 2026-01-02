@@ -5,7 +5,6 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/DataRaceDetector.hpp>
-#include <core/threading/Spinlock.hpp>
 #include <core/threading/ConditionVariable.hpp>
 
 #include <core/functional/Proc.hpp>

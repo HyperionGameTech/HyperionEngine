@@ -13,7 +13,7 @@
 #include <core/memory/allocator/AllocatorFlags.hpp>
 
 #include <core/threading/util/ThreadId.hpp>
-#include <core/threading/Spinlock.hpp>
+#include <core/threading/AtomicFlag.hpp>
 #include <core/threading/Threads.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
@@ -62,8 +62,7 @@ public:
           m_slabs(),
           m_activeAllocations(0),
           m_flags(flags),
-          m_ownerThreadId(ownerThreadId),
-          m_lockState(0)
+          m_ownerThreadId(ownerThreadId)
     {
         HYP_CORE_ASSERT(m_blocksPerSlab != 0);
         HYP_CORE_ASSERT(IsPowerOfTwo(alignment));
@@ -90,10 +89,9 @@ public:
 
     void* Allocate()
     {
-        Spinlock<MPMC> lock(&m_lockState);
         if (m_flags & AF_THREAD_SAFE)
         {
-            lock.Lock();
+            m_atomicFlag.Acquire();
         }
         else if (m_ownerThreadId.IsValid())
         {
@@ -111,7 +109,7 @@ public:
 
                     if (m_flags & AF_THREAD_SAFE)
                     {
-                        lock.Unlock();
+                        m_atomicFlag.Release();
                     }
 
                     return p;
@@ -123,7 +121,7 @@ public:
         {
             if (m_flags & AF_THREAD_SAFE)
             {
-                lock.Unlock();
+                m_atomicFlag.Release();
             }
 
             return nullptr;
@@ -135,7 +133,7 @@ public:
         {
             if (m_flags & AF_THREAD_SAFE)
             {
-                lock.Unlock();
+                m_atomicFlag.Release();
             }
 
             return nullptr;
@@ -145,7 +143,7 @@ public:
 
         if (m_flags & AF_THREAD_SAFE)
         {
-            lock.Unlock();
+            m_atomicFlag.Release();
         }
 
         return p;
@@ -189,10 +187,9 @@ public:
             return;
         }
 
-        Spinlock<MPMC> lock(&m_lockState);
         if (m_flags & AF_THREAD_SAFE)
         {
-            lock.Lock();
+            m_atomicFlag.Acquire();
         }
         else if (m_ownerThreadId.IsValid())
         {
@@ -205,7 +202,7 @@ public:
         {
             if (m_flags & AF_THREAD_SAFE)
             {
-                lock.Unlock();
+                m_atomicFlag.Release();
             }
 
             return;
@@ -220,7 +217,7 @@ public:
         {
             if (m_flags & AF_THREAD_SAFE)
             {
-                lock.Unlock();
+                m_atomicFlag.Release();
             }
 
             return;
@@ -232,7 +229,7 @@ public:
         {
             if (m_flags & AF_THREAD_SAFE)
             {
-                lock.Unlock();
+                m_atomicFlag.Release();
             }
 
             return;
@@ -244,7 +241,7 @@ public:
         {
             if (m_flags & AF_THREAD_SAFE)
             {
-                lock.Unlock();
+                m_atomicFlag.Release();
             }
 
             return;
@@ -261,7 +258,7 @@ public:
                 {
                     if (m_flags & AF_THREAD_SAFE)
                     {
-                        lock.Unlock();
+                        m_atomicFlag.Release();
                     }
 
                     return; // double free detected in debug
@@ -282,16 +279,15 @@ public:
 
         if (m_flags & AF_THREAD_SAFE)
         {
-            lock.Unlock();
+            m_atomicFlag.Release();
         }
     }
 
     void Reset()
     {
-        Spinlock<MPMC> lock(&m_lockState);
         if (m_flags & AF_THREAD_SAFE)
         {
-            lock.Lock();
+            m_atomicFlag.Acquire();
         }
         else if (m_ownerThreadId.IsValid())
         {
@@ -313,16 +309,15 @@ public:
 
         if (m_flags & AF_THREAD_SAFE)
         {
-            lock.Unlock();
+            m_atomicFlag.Release();
         }
     }
 
     MemoryMetrics GetMemoryMetrics() const
     {
-        Spinlock<MPMC> lock(&m_lockState);
         if (m_flags & AF_THREAD_SAFE)
         {
-            lock.Lock();
+            m_atomicFlag.Acquire();
         }
 
         MemoryMetrics metrics;
@@ -341,7 +336,7 @@ public:
 
         if (m_flags & AF_THREAD_SAFE)
         {
-            lock.Unlock();
+            m_atomicFlag.Release();
         }
 
         return metrics;
@@ -458,7 +453,7 @@ private:
     uint64 m_activeAllocations;
     EnumFlags<AllocatorFlags> m_flags;
     ThreadId m_ownerThreadId;
-    mutable volatile int64 m_lockState;
+    AtomicFlag m_atomicFlag;
 };
 
 using SlabAllocator = TSlabAllocator<DynamicAllocator>;
