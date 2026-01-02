@@ -192,7 +192,6 @@ static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
         return TFB_RG;
     case TF_RGB8:
     case TF_RGB8_SRGB:
-    case TF_R11G11B10F:
     case TF_RGB16:
     case TF_RGB32:
     case TF_RGB16F:
@@ -200,6 +199,7 @@ static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
         return TFB_RGB;
     case TF_RGBA8:
     case TF_RGBA8_SRGB:
+    case TF_R11G11B10F: // treat R11G11B10F as RGBA so it is correctly calculated as 4 bytes per pixel.
     case TF_R10G10B10A2:
     case TF_RGBA16:
     case TF_RGBA32:
@@ -280,10 +280,11 @@ static inline constexpr uint32 BytesPerComponent(TextureFormat format)
     case TF_RGBA32:
     case TF_R32_:
     case TF_RG16_:
-    case TF_R11G11B10F:
     case TF_DEPTH_24:
     case TF_DEPTH_32F:
         return 4;
+    case TF_R11G11B10F:
+        return 1; // packed; treat as 1 component (1x4)
     case TF_R16F:
     case TF_RG16F:
     case TF_RGB16F:
@@ -374,8 +375,8 @@ static inline constexpr bool FormatSupportsBlending(TextureFormat fmt)
     case TF_BGR8_SRGB:
     case TF_RGBA8:
     case TF_RGBA8_SRGB:
-    case TF_R10G10B10A2:
     case TF_R11G11B10F:
+    case TF_R10G10B10A2:
     case TF_BGRA8:
     case TF_BGRA8_SRGB:
     case TF_R16F:

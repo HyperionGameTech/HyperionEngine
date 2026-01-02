@@ -1131,9 +1131,11 @@ template <TextureFormat Format>
 class Bitmap
 {
 public:
-    using PixelComponentType = typename TextureFormatHelper<Format>::ElementType;
-    static constexpr uint32 NumComponents = TextureFormatHelper<Format>::NumComponents;
-    static constexpr bool IsSrgb = TextureFormatHelper<Format>::IsSrgb;
+    using Helper = TextureFormatHelper<Format>;
+    using PixelComponentType = typename Helper::ElementType;
+
+    static constexpr uint32 NumComponents = Helper::NumComponents;
+    static constexpr bool IsSrgb = Helper::IsSrgb;
 
     using PixelReferenceType = PixelReference<PixelComponentType, NumComponents, IsSrgb>;
     using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, NumComponents, IsSrgb>;
