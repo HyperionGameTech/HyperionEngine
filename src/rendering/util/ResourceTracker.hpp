@@ -1213,13 +1213,13 @@ public:
 
             if (pExistingProxy)
             {
-                (*pExistingProxy) = proxy;
+                (*pExistingProxy) = std::move(proxy);
 
                 return pExistingProxy;
             }
             else
             {
-                return &*proxies.Set(idx, proxy);
+                return &*proxies.Set(idx, std::move(proxy));
             }
         }
 

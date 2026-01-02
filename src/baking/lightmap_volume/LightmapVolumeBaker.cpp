@@ -42,6 +42,8 @@ void Baker<LightmapVolume>::Initialize_Internal()
     // no-op
 }
 
+HYP_DISABLE_OPTIMIZATION;
+
 void Baker<LightmapVolume>::Build()
 {
     HYP_SCOPE;
@@ -65,7 +67,9 @@ void Baker<LightmapVolume>::Build()
             continue;
         }
 
-        if (meshComponent.material->GetBucket() != RB_OPAQUE && meshComponent.material->GetBucket() != RB_TRANSLUCENT)
+        if (meshComponent.material->GetBucket() != RB_OPAQUE
+            && meshComponent.material->GetBucket() != RB_LIGHTMAP
+            && meshComponent.material->GetBucket() != RB_TRANSLUCENT)
         {
             continue;
         }

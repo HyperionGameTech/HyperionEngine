@@ -470,11 +470,17 @@ Result AssetObject::Save(const FilePath& manifestPath)
         const FilePath binPath = manifestPath.StripExtension();
         Assert(!binPath.Empty() && binPath != manifestPath);
 
-        return resource->Save_Internal(binPath);
+        if (Result saveResourceResult = resource->Save_Internal(binPath); saveResourceResult.HasError())
+        {
+            return saveResourceResult.GetError();
+        }
     }
 
     HYP_LOG(Assets, Debug, "Saved asset manifest to '{}'", manifestPath);
     
+    // need to set manifest path after saving the resource, because if we need to load the data first in order
+    // to save it somewhere else, we'll need the previous manifest path to still exist otherwise we'll try to load
+    // something that doesn't exist.
     m_manifestPath = manifestPath;
 
     return {};

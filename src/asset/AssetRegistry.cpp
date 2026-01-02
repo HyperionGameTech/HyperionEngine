@@ -914,7 +914,7 @@ Name AssetPackage::GetUniqueSubpackageName_Internal(Name baseName) const
     return GetUniqueName(baseName, m_subpackages);
 }
 
-Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfDirty)
+Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDirty)
 {
     HYP_SCOPE;
     AssertReady();
@@ -928,10 +928,10 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfDirty)
 
     bool skipSavingThisPackage = false;
 
-    // If saveEvenIfDirty is false (default), check if we should save 
+    // If saveEvenIfNotDirty is false (default), check if we should save 
     //  - if it has been saved before, we need to check if is dirty
     //    and additionally check if any individual asset objects are dirty.
-    if (!saveEvenIfDirty && IsSaved_Internal())
+    if (!saveEvenIfNotDirty && IsSaved_Internal())
     {
         if (!IsDirty())
         {
@@ -1012,7 +1012,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfDirty)
         }
 
         // Path we have didn't exist on the file system, so treat it as a new save.
-        saveEvenIfDirty = true;
+        saveEvenIfNotDirty = true;
         skipSavingThisPackage = false;
     }
     else if (!packageDir.IsDirectory())
@@ -1024,7 +1024,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfDirty)
     // we need to save again. This will be used when performing "Save As", for example
     if (IsSaved_Internal() && m_packageDir != packageDir)
     {
-        saveEvenIfDirty = true;
+        saveEvenIfNotDirty = true;
         skipSavingThisPackage = false;
     }
         
@@ -1058,7 +1058,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfDirty)
             continue;
         }
 
-        Result result = subpackage->Save(m_packageDir / *subpackage->GetName(), saveEvenIfDirty);
+        Result result = subpackage->Save(m_packageDir / *subpackage->GetName(), saveEvenIfNotDirty);
 
         if (result.HasError())
         {

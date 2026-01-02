@@ -267,7 +267,7 @@ public:
     Name GetUniqueAssetName(Name baseName) const;
 
     HYP_METHOD()
-    Result Save(const FilePath& outputDirectory, bool saveEvenIfDirty = false);
+    Result Save(const FilePath& outputDirectory, bool saveEvenIfNotDirty = false);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Array<AssetPath>& GetDependencies() const

@@ -1296,9 +1296,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             auto it = prevMappings.Find(*cachedAttributes);
             Assert(it != prevMappings.End());
 
-            DrawCallCollectionMapping& prevMapping = it->second;
+            DrawCallCollectionMapping* prevMapping = &it->second;
 
-            RenderProxyMesh* meshProxy = prevMapping.meshProxies.Get(idx);
+            RenderProxyMesh* meshProxy = prevMapping->meshProxies.Get(idx);
             AssertDebug(meshProxy != nullptr);
 
             RenderableAttributeSet newAttributes;
@@ -1311,10 +1311,12 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
                 // not changed, skip
                 continue;
             }
+            
+            prevMapping->meshProxies.EraseAt(idx);
+            prevMapping = nullptr;
 
             // Add proxy to group
             DrawCallCollectionMapping& newMapping = mappingsByBucket[newAttributes.GetMaterialAttributes().bucket][newAttributes];
-            AssertDebug(&newMapping != &prevMapping);
 
             Handle<RenderGroup>& rg = newMapping.renderGroup;
 
@@ -1325,7 +1327,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
 
-            prevMapping.meshProxies.EraseAt(idx);
             newMapping.meshProxies.Set(idx, meshProxy);
 
             *cachedAttributes = newAttributes;
