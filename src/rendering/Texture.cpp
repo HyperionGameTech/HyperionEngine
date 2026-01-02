@@ -54,19 +54,19 @@ HYP_DISABLE_OPTIMIZATION;
 struct CreateTextureGpuImage : RenderCommand
 {
     Handle<TextureAsset> textureAsset;
-    ResourceHandle resourceHandle;
+    ResourceGuard resGuard;
     ResourceState initialState;
     GpuImageRef image;
     bool uploadTextureData;
 
     CreateTextureGpuImage(
         Handle<TextureAsset>&& textureAsset,
-        ResourceHandle&& resourceHandle,
+        ResourceGuard&& resGuard,
         ResourceState initialState,
         GpuImageRef image,
         bool uploadTextureData)
         : textureAsset(std::move(textureAsset)),
-          resourceHandle(std::move(resourceHandle)),
+          resGuard(std::move(resGuard)),
           initialState(initialState),
           image(std::move(image)),
           uploadTextureData(uploadTextureData)
@@ -276,7 +276,7 @@ struct CreateTextureGpuImage : RenderCommand
             renderQueue << InsertBarrier(image, initialState);
         }
 
-        resourceHandle.Reset();
+        resGuard.Reset();
 
         return {};
     }
@@ -347,14 +347,14 @@ void Texture::Init()
         m_gpuImage->SetDebugName(m_name);
     }
 
-    ResourceHandle resourceHandle;
+    ResourceGuard resGuard;
     bool uploadTextureData = false;
 
     Handle<TextureAsset> textureAsset = GetAsset();
 
     if (textureAsset)
     {
-        resourceHandle = ResourceHandle(*textureAsset->GetResource());
+        resGuard = ResourceGuard(*textureAsset->GetResource());
 
         const TextureData* textureData = textureAsset->GetTextureData();
         uploadTextureData = textureData && !textureData->imageData.Empty();
@@ -363,7 +363,7 @@ void Texture::Init()
     PUSH_RENDER_COMMAND(
         CreateTextureGpuImage,
         std::move(textureAsset),
-        std::move(resourceHandle),
+        std::move(resGuard),
         RS_SHADER_RESOURCE,
         m_gpuImage,
         uploadTextureData);
@@ -458,7 +458,7 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
 
         Handle<AssetPackage> package = prevAsset->GetPackage();
 
-        ResourceHandle resourceHandle(*prevAsset->GetResource());
+        ResourceGuard resGuard(*prevAsset->GetResource());
 
         // @NOTE: Don't use std::move with prev data, the texture may be in use elsewhere (e.g uploading in render command)
         TextureData newTextureData = *prevAsset->GetTextureData();
@@ -735,9 +735,9 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    ResourceHandle resourceHandle = ResourceHandle(*asset->GetResource());
+    ResourceGuard resGuard = ResourceGuard(*asset->GetResource());
 
-    if (!resourceHandle)
+    if (!resGuard)
     {
         HYP_LOG_ONCE(Texture, Warning, "Texture resource handle is not valid, cannot sample");
 

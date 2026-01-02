@@ -49,7 +49,7 @@ public:
     ~ConditionVariable() = default;
 #endif
 
-    void Wait(Mutex& mutex)
+    void Wait(Mutex& mutex) const
     {
 #ifdef HYP_DEBUG_MODE
         HYP_CORE_ASSERT(mutex.m_locked, "Mutex must be locked before waiting on condition variable");
@@ -68,7 +68,7 @@ public:
     }
 
     /*! \brief Wait with timeout in milliseconds. Returns true if notified, false if timeout occurred. */
-    bool WaitFor(Mutex& mutex, uint32 timeoutMs)
+    bool WaitFor(Mutex& mutex, uint32 timeoutMs) const
     {
 #ifdef HYP_DEBUG_MODE
         HYP_CORE_ASSERT(mutex.m_locked, "Mutex must be locked before waiting on condition variable");
@@ -104,7 +104,7 @@ public:
         return result;
     }
 
-    void NotifyOne()
+    void NotifyOne() const
     {
 #if defined(HYP_UNIX)
         pthread_cond_signal(&m_conditionVariable);
@@ -113,7 +113,7 @@ public:
 #endif
     }
 
-    void NotifyAll()
+    void NotifyAll() const
     {
 #if defined(HYP_UNIX)
         pthread_cond_broadcast(&m_conditionVariable);
@@ -124,9 +124,9 @@ public:
 
 private:
 #if defined(HYP_UNIX)
-    pthread_cond_t m_conditionVariable = PTHREAD_COND_INITIALIZER;
+    mutable pthread_cond_t m_conditionVariable = PTHREAD_COND_INITIALIZER;
 #elif defined(HYP_WINDOWS)
-    CONDITION_VARIABLE m_conditionVariable;
+    mutable CONDITION_VARIABLE m_conditionVariable;
 #endif
 };
 

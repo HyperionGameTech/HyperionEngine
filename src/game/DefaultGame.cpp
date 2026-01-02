@@ -134,7 +134,7 @@ void DefaultGame::OnLaunch_Impl()
     Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();
     Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
-    ResourceHandle resourceHandle(*scriptAsset->GetResource());
+    ResourceGuard resGuard(*scriptAsset->GetResource());
 
     ScriptData* scriptData = scriptAsset->GetScriptData();
     Assert(scriptData != nullptr);

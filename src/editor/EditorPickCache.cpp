@@ -158,9 +158,9 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         return;
     }
 
-    ResourceHandle resourceHandle(*mesh->GetAsset()->GetResource());
+    ResourceGuard resGuard(*mesh->GetAsset()->GetResource());
 
-    if (!resourceHandle)
+    if (!resGuard)
     {
         HYP_LOG(Editor, Error, "Failed to get resource handle for mesh asset {} (id: {}), cannot add to editor pick cache", mesh->GetName(), mesh->Id());
 

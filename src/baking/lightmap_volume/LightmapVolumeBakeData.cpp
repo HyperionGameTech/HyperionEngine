@@ -49,9 +49,9 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
             continue;
         }
 
-        ResourceHandle resourceHandle(*mesh->GetAsset()->GetResource());
+        ResourceGuard resGuard(*mesh->GetAsset()->GetResource());
 
-        if (!resourceHandle)
+        if (!resGuard)
         {
             return;
         }

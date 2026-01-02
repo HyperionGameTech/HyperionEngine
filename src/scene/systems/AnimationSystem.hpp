@@ -41,7 +41,7 @@ private:
         };
     }
 
-    HashMap<Skeleton*, ResourceHandle> m_resourceHandles;
+    HashMap<Skeleton*, ResourceGuard> m_resourceHandles;
 };
 
 } // namespace Hyperion

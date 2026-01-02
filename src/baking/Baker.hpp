@@ -185,56 +185,7 @@ HYP_CLASS(Abstract)
 class HYP_API BakerBase : public ObjectBase
 {
     HYP_OBJECT_BODY(BakerBase);
-
-protected:
-    struct CachedResource
-    {
-        Handle<AssetObject> assetObject;
-        ResourceHandle resourceHandle;
-
-        CachedResource() = default;
-
-        CachedResource(const Handle<AssetObject>& assetObject, const ResourceHandle& resourceHandle)
-            : assetObject(assetObject),
-              resourceHandle(resourceHandle)
-        {
-        }
-
-        CachedResource(const CachedResource& other) = delete;
-        CachedResource& operator=(const CachedResource& other) = delete;
-
-        CachedResource(CachedResource&& other) noexcept
-            : assetObject(std::move(other.assetObject)),
-              resourceHandle(std::move(other.resourceHandle))
-        {
-            other.resourceHandle.Reset();
-        }
-
-        CachedResource& operator=(CachedResource&& other) noexcept
-        {
-            if (this == &other)
-            {
-                return *this;
-            }
-
-            resourceHandle.Reset();
-
-            assetObject = std::move(other.assetObject);
-            resourceHandle = std::move(other.resourceHandle);
-
-            return *this;
-        }
-
-        ~CachedResource()
-        {
-            // destruct the ResourceHandle before assetobject is destructed,
-            // so it destructing the AssetObject doesn't try to wait for the resource's ref count to reach zero
-            resourceHandle.Reset();
-        }
-    };
-
-    using ResourceCache = HashSet<CachedResource, &CachedResource::assetObject, DynamicNodeAllocator>;
-
+    
 public:
     BakerBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb);
 

@@ -1036,7 +1036,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                         const Handle<MeshAsset>& meshAsset = meshComponent->mesh->GetAsset();
                         AssertDebug(meshAsset != nullptr);
 
-                        ResourceHandle resourceHandle(*meshAsset->GetResource());
+                        ResourceGuard resGuard(*meshAsset->GetResource());
                         const MeshData& meshData = *meshAsset->GetMeshData();
 
                         localBvhResults = meshComponent->mesh->GetBVH().TestRay(

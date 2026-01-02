@@ -23,6 +23,7 @@
 #include <engine/EngineGlobals.hpp>
 
 #include <system/OpenFileDialog.hpp>
+#include <system/SaveFileDialog.hpp>
 
 namespace Hyperion {
 
@@ -116,9 +117,12 @@ public:
     {
         HYP_SCOPE;
 
+        const FilePath dir = GetResourceDirectory() / "Projects";
+        dir.MkDir();
+
         ShowOpenFileDialog(
             "Select the project to open",
-            GetResourceDirectory(),
+            dir,
             { "hypproj" },
             /* allowMultiple */ false, /* allowDirectories */ true,
             [weakSubsystem = MakeWeakRef(subsystem)](TResult<Array<FilePath>>&& result) mutable
@@ -214,7 +218,53 @@ public:
         EditorProject* project = subsystem->GetCurrentProject();
         if (project != nullptr)
         {
-            // @TODO
+            const FilePath dir = GetResourceDirectory() / "Projects";
+            dir.MkDir();
+
+            ShowSaveFileDialog(
+                "Select where to save the project",
+                dir,
+                { "hypproj" },
+                /* allowDirectories */ true,
+                [weakSubsystem = MakeWeakRef(subsystem)](TResult<FilePath>&& result) mutable
+                {
+                    if (result.HasError())
+                    {
+                        HYP_LOG(Editor, Error, "Failed to select project file: {}", result.GetError().GetMessage());
+                        return;
+                    }
+
+                    FilePath selectedPath = result.GetValue();
+                    if (selectedPath.Empty())
+                    {
+                        HYP_LOG(Editor, Warning, "No save path selected.");
+                        return;
+                    }
+
+                    GetThreadById(g_simThread)->GetScheduler().Enqueue([weakSubsystem = std::move(weakSubsystem), selectedPath = std::move(selectedPath)]() mutable
+                        {
+                            Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
+                            if (!subsystem)
+                            {
+                                HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowSaveProjectDialog");
+                                return;
+                            }
+
+                            EditorProject* project = subsystem->GetCurrentProject();
+                            if (!project)
+                            {
+                                HYP_LOG(Editor, Error, "No current project in EditorSubsystem; cannot save project as.");
+                                return;
+                            }
+
+                            Result saveResult = project->SaveAs(selectedPath);
+                            if (!saveResult)
+                            {
+                                HYP_LOG(Editor, Error, "Failed to save project as '{}': {}", selectedPath, saveResult.GetError().GetMessage());
+                            }
+                        },
+                        TaskEnqueueFlags::FIRE_AND_FORGET);
+                });
         }
     }
 };

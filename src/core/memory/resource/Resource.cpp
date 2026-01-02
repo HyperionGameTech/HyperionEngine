@@ -43,7 +43,7 @@ IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeId typeId, UniquePtr<IRes
 
 ResourceBase::ResourceBase()
     : m_refCount(0),
-      m_initState(0)
+      m_isAlive(0)
 {
 }
 
@@ -55,88 +55,79 @@ ResourceBase::~ResourceBase()
 
 bool ResourceBase::IsInitialized() const
 {
-    return m_initState.GetValue();
+    return 0 < AtomicAdd(&m_isAlive, 0);
 }
 
 int ResourceBase::IncRef()
 {
     HYP_SCOPE;
 
-    int result = AtomicIncrement(&m_refCount);
+    Mutex::Guard guard(m_mutex);
 
-    if (result == 1)
+    if (++m_refCount == 1)
     {
-        Mutex::Guard guard(m_mutex);
 
-        m_initState.Produce(1, [&](bool)
-            {
-                HYP_NAMED_SCOPE("Initializing Resource - Initialization");
-                HYP_MT_CHECK_RW(m_dataRaceDetector);
+        if (AtomicAdd(&m_isAlive, 0) == 0)
+        {
+            HYP_NAMED_SCOPE("Initializing Resource - Initialization");
 
-                Initialize();
-            });
+            Initialize();
+
+            AtomicExchange(&m_isAlive, 1);
+
+            m_isAliveCV.NotifyAll();
+        }
+    }
+    else
+    {
+        // Ensure its alive if we're not the one initializing
+        while (AtomicAdd(&m_isAlive, 0) == 0)
+        {
+            m_isAliveCV.Wait(m_mutex);
+        }
     }
 
-    return result;
+    return m_refCount;
 }
 
 int ResourceBase::DecRef()
 {
     HYP_SCOPE;
 
-    int result = AtomicDecrement(&m_refCount);
+    Mutex::Guard guard(m_mutex);
 
-    if (result == 0)
+    if (--m_refCount == 0)
     {
-        Mutex::Guard guard(m_mutex);
-
-        if (!m_initState.GetValue())
+        int32 expected = 1;
+        if (AtomicCompareExchange(&m_isAlive, expected, 0))
         {
-            return result;
+            HYP_NAMED_SCOPE("Destroying Resource");
+
+            Destroy();
+
+            m_isAliveCV.NotifyAll();
         }
-
-        HYP_NAMED_SCOPE("Destroying Resource");
-        HYP_MT_CHECK_RW(m_dataRaceDetector);
-
-        Destroy();
-
-        m_initState.Release();
     }
 
-    if (HYP_UNLIKELY(result < 0))
+    if (HYP_UNLIKELY(m_refCount < 0))
     {
         HYP_LOG(Resource, Fatal, "Resource ref count is negative! This is a bug in the code that uses this resource, please report it.\n\t"
                                  "Resource ref count: {}, address: {}",
-            result, (void*)this);
+            m_refCount, (void*)this);
     }
 
-    return result;
+    return m_refCount;
 }
 
 void ResourceBase::WaitForFinalization() const
 {
     HYP_SCOPE;
 
-    m_initState.Acquire();
+    Mutex::Guard guard(m_mutex);
 
-    if (HYP_UNLIKELY(m_refCount != 0))
+    while (AtomicAdd(&m_isAlive, 0))
     {
-        PerformanceClock timer;
-        timer.Start();
-
-        do
-        {
-            ThreadSleep(0);
-        }
-        while (m_refCount != 0 && timer.ElapsedMs() < 30.0);
-
-        if (m_refCount != 0)
-        {
-            HYP_LOG(Resource, Fatal, "Resource could not be finalized; must be locked elsewhere! "
-                                     "This is a bug in the code that uses this resource, please report it.\n\t"
-                                     "Resource ref count: {}, address: {}",
-                m_refCount, (void*)this);
-        }
+        m_isAliveCV.Wait(m_mutex);
     }
 }
 
@@ -154,11 +145,6 @@ public:
     virtual bool IsNull() const override
     {
         return true;
-    }
-
-    virtual int NumRefs() const override
-    {
-        return 0;
     }
 
     virtual int IncRef() override
@@ -179,9 +165,8 @@ public:
 
 HYP_API IResource& GetNullResource()
 {
-    static NullResource nullResource;
-
-    return nullResource;
+    static NullResource s_nullResource;
+    return s_nullResource;
 }
 
 #pragma endregion NullResource

@@ -79,7 +79,7 @@ Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttrib
 {
     if (asset)
     {
-        ResourceHandle resourceHandle(*asset->GetResource());
+        ResourceGuard resGuard(*asset->GetResource());
 
         m_aabb = asset->GetMeshData()->CalculateAABB();
     }
@@ -212,7 +212,7 @@ void Mesh::UploadGpuData()
 
     gpuUploadFence.Reset();
 
-    ResourceHandle resourceHandle(*asset->GetResource());
+    ResourceGuard resGuard(*asset->GetResource());
     AssertDebug(asset->IsLoaded());
 
     if (!asset->IsLoaded())
@@ -484,7 +484,7 @@ bool Mesh::BuildBVH(int maxDepth)
         return false;
     }
 
-    ResourceHandle resourceHandle(*asset->GetResource());
+    ResourceGuard resGuard(*asset->GetResource());
     AssertDebug(asset->GetMeshData() != nullptr);
 
     if (!asset->GetMeshData())

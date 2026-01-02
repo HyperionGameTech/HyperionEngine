@@ -986,7 +986,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
         const Class* entityClass = Entity::StaticClass();
         if (IsA(entityClass))
         {
-            ResourceHandle resourceHandle;
+            ResourceGuard resGuard;
             MeshAsset* meshAsset = nullptr;
 
 #ifdef HYP_EDITOR
@@ -1018,7 +1018,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
                             if (meshAsset != nullptr)
                             {
-                                resourceHandle = ResourceHandle(*meshAsset->GetResource());
+                                resGuard = ResourceGuard(*meshAsset->GetResource());
                             }
                     }
                 }
@@ -1047,7 +1047,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                 else
 #endif
                 {
-                    AssertDebug(resourceHandle && meshAsset);
+                    AssertDebug(resGuard && meshAsset);
 
                     const MeshData& meshData = *meshAsset->GetMeshData();
 

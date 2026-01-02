@@ -133,7 +133,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     BoundingBox newAabb = m_aabb;
 
-    Array<Tuple<VoxelOctreeElement, MeshDesc, MeshData*, ResourceHandle>> meshDatas;
+    Array<Tuple<VoxelOctreeElement, MeshDesc, MeshData*, ResourceGuard>> meshDatas;
 
     for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : entityManager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
@@ -185,12 +185,12 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
             continue;
         }
 
-        ResourceHandle resourceHandle(*meshComponent.mesh->GetAsset()->GetResource());
+        ResourceGuard resGuard(*meshComponent.mesh->GetAsset()->GetResource());
         meshDatas.EmplaceBack(
             element,
             meshComponent.mesh->GetAsset()->GetMeshDesc(),
             meshComponent.mesh->GetAsset()->GetMeshData(),
-            resourceHandle);
+            resGuard);
     }
 
     if (!newAabb.IsValid() || !newAabb.IsFinite())

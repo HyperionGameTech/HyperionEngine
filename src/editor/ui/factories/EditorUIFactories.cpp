@@ -992,7 +992,7 @@ public:
                         return UIEventHandlerResult::ERR;
                     }
 
-                    ResourceHandle resourceHandle(*scriptAsset->GetResource());
+                    ResourceGuard resGuard(*scriptAsset->GetResource());
                     
                     ScriptData* scriptData = scriptAsset->GetScriptData();
                     Assert(scriptData != nullptr);

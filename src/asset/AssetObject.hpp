@@ -398,7 +398,7 @@ protected:
     IResourceMemoryPool* m_pool;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    ResourceHandle m_persistentResource;
+    ResourceGuard m_persistentResource;
 };
 
 } // namespace Hyperion

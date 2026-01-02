@@ -119,7 +119,7 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
         return nullptr;
     }
 
-    ResourceHandle resourceHandle(*asset->GetResource());
+    ResourceGuard resGuard(*asset->GetResource());
 
     Array<PackedVertex> packedVertices = asset->GetMeshData()->BuildPackedVertices();
     Array<uint32> packedIndices = asset->GetMeshData()->BuildPackedIndices();

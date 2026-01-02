@@ -260,7 +260,7 @@ void AssetObject::Init()
 
         if ((m_flags[AssetObjectFlags::PERSISTENT] || DebugDisableUnload) && !m_persistentResource)
         {
-            m_persistentResource = ResourceHandle(*m_resource);
+            m_persistentResource = ResourceGuard(*m_resource);
         }
     }
 
@@ -280,7 +280,7 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
     {
         if (!m_persistentResource && m_resource && !m_resource->IsNull())
         {
-            m_persistentResource = ResourceHandle(*m_resource);
+            m_persistentResource = ResourceGuard(*m_resource);
             Assert(m_persistentResource);
         }
 

@@ -98,7 +98,7 @@
                 <MenuItem Command="{Binding NewProject}" Header="_New Project..." />
                 <MenuItem Command="{Binding OpenProject}" Header="_Open Project..." />
                 <MenuItem Command="{Binding SaveProject}" Header="_Save Project" />
-                <MenuItem Header="Save Project _As..." />
+                <MenuItem Command="{Binding SaveProjectAs}" Header="Save Project _As..." />
                 <Separator />
                 <MenuItem Header="_Scene">
                     <MenuItem Header="_New Scene" />

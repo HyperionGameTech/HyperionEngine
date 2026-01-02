@@ -6,6 +6,7 @@
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/Spinlock.hpp>
+#include <core/threading/ConditionVariable.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -26,7 +27,6 @@ class IResourceMemoryPool;
 template <class T>
 class ResourceMemoryPool;
 
-// Represents the objects an engine object (e.g Material) uses while it is currently being rendered, streamed, or otherwise consuming resources.
 class IResource
 {
 public:
@@ -37,21 +37,15 @@ public:
     virtual int IncRef() = 0;
     virtual int DecRef() = 0;
 
-    virtual int NumRefs() const = 0;
-
     /*! \brief Waits for ref count to be 0 and all tasks to be completed.
-     *  If any ResourceHandle objects are still alive, this will block until they are destroyed.
-     *  \note Ensure the current thread does not hold any ResourceHandle objects when calling this function, or it will deadlock. */
+     *  If any ResourceGuard objects are still alive, this will block until they are destroyed.
+     *  \note Ensure the current thread does not hold any ResourceGuard objects when calling this function, or it will deadlock. */
     virtual void WaitForFinalization() const = 0;
 };
 
-/*! \brief Basic abstract implementation of IResource, using reference counting to manage the lifetime of the underlying resources. */
 class HYP_API ResourceBase : public IResource
 {
 protected:
-    using RefCounter = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
-    using InitState = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
-
     ResourceBase();
     ~ResourceBase();
 
@@ -60,11 +54,6 @@ public:
     ResourceBase& operator=(const ResourceBase& other) = delete;
     ResourceBase(ResourceBase&& other) noexcept = delete;
     ResourceBase& operator=(ResourceBase&& other) noexcept = delete;
-
-    virtual int NumRefs() const override
-    {
-        return m_refCount;
-    }
 
     virtual bool IsNull() const override final
     {
@@ -84,13 +73,12 @@ protected:
     virtual void Destroy() = 0;
 
 protected:
-    int32 m_refCount;
-    mutable Mutex m_mutex;
-
-    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
+    int m_refCount;
 
 private:
-    InitState m_initState;
+    ConditionVariable m_isAliveCV;
+    mutable Mutex m_mutex;
+    mutable volatile int32 m_isAlive;
 };
 
 class IResourceMemoryPool
@@ -179,16 +167,16 @@ HYP_FORCE_INLINE static void FreeResource(T* ptr)
 
 HYP_API IResource& GetNullResource();
 
-class ResourceHandle
+class ResourceGuard
 {
 public:
-    ResourceHandle()
+    ResourceGuard()
         : m_resource(&GetNullResource())
     {
     }
 
-    /*! \brief Construct a ResourceHandle using the given resource. The resource will have its ref count incremented if it is not null. */
-    ResourceHandle(IResource& resource)
+    /*! \brief Construct a ResourceGuard using the given resource. The resource will have its ref count incremented if it is not null. */
+    ResourceGuard(IResource& resource)
         : m_resource(&resource)
     {
         if (!resource.IsNull())
@@ -197,7 +185,7 @@ public:
         }
     }
 
-    ResourceHandle(const ResourceHandle& other)
+    ResourceGuard(const ResourceGuard& other)
         : m_resource(other.m_resource)
     {
         if (!m_resource->IsNull())
@@ -206,7 +194,7 @@ public:
         }
     }
 
-    ResourceHandle& operator=(const ResourceHandle& other)
+    ResourceGuard& operator=(const ResourceGuard& other)
     {
         if (this == &other || m_resource == other.m_resource)
         {
@@ -228,13 +216,13 @@ public:
         return *this;
     }
 
-    ResourceHandle(ResourceHandle&& other) noexcept
+    ResourceGuard(ResourceGuard&& other) noexcept
         : m_resource(other.m_resource)
     {
         other.m_resource = &GetNullResource();
     }
 
-    ResourceHandle& operator=(ResourceHandle&& other) noexcept
+    ResourceGuard& operator=(ResourceGuard&& other) noexcept
     {
         if (this == &other || m_resource == other.m_resource)
         {
@@ -252,7 +240,7 @@ public:
         return *this;
     }
 
-    ~ResourceHandle()
+    ~ResourceGuard()
     {
         if (!m_resource->IsNull())
         {
@@ -280,12 +268,12 @@ public:
         return m_resource->IsNull();
     }
 
-    HYP_FORCE_INLINE bool operator==(const ResourceHandle& other) const
+    HYP_FORCE_INLINE bool operator==(const ResourceGuard& other) const
     {
         return m_resource == other.m_resource;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const ResourceHandle& other) const
+    HYP_FORCE_INLINE bool operator!=(const ResourceGuard& other) const
     {
         return m_resource != other.m_resource;
     }
@@ -307,52 +295,52 @@ protected:
 };
 
 template <class ResourceType>
-class TResourceHandle : public ResourceHandle
+class TResourceGuard : public ResourceGuard
 {
 public:
-    TResourceHandle() = default;
+    TResourceGuard() = default;
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<ResourceHandle, NormalizedType<T>>>>
-    TResourceHandle(T& resource)
-        : ResourceHandle(static_cast<IResource&>(resource))
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<ResourceGuard, NormalizedType<T>>>>
+    TResourceGuard(T& resource)
+        : ResourceGuard(static_cast<IResource&>(resource))
     {
     }
 
-    TResourceHandle(const TResourceHandle& other)
-        : ResourceHandle(static_cast<const ResourceHandle&>(other))
+    TResourceGuard(const TResourceGuard& other)
+        : ResourceGuard(static_cast<const ResourceGuard&>(other))
     {
     }
 
-    TResourceHandle& operator=(const TResourceHandle& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        ResourceHandle::operator=(static_cast<const ResourceHandle&>(other));
-
-        return *this;
-    }
-
-    TResourceHandle(TResourceHandle&& other) noexcept
-        : ResourceHandle(static_cast<ResourceHandle&&>(std::move(other)))
-    {
-    }
-
-    TResourceHandle& operator=(TResourceHandle&& other) noexcept
+    TResourceGuard& operator=(const TResourceGuard& other)
     {
         if (this == &other)
         {
             return *this;
         }
 
-        ResourceHandle::operator=(static_cast<ResourceHandle&&>(std::move(other)));
+        ResourceGuard::operator=(static_cast<const ResourceGuard&>(other));
 
         return *this;
     }
 
-    ~TResourceHandle() = default;
+    TResourceGuard(TResourceGuard&& other) noexcept
+        : ResourceGuard(static_cast<ResourceGuard&&>(std::move(other)))
+    {
+    }
+
+    TResourceGuard& operator=(TResourceGuard&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        ResourceGuard::operator=(static_cast<ResourceGuard&&>(std::move(other)));
+
+        return *this;
+    }
+
+    ~TResourceGuard() = default;
 
     HYP_FORCE_INLINE ResourceType* Get() const
     {

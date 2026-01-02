@@ -13,7 +13,7 @@
 
 #include <core/io/ByteWriter.hpp>
 
-static const wchar_t* CommDlgErrorToString(DWORD err)
+const wchar_t* CommDlgErrorToString(DWORD err)
 {
     switch (err)
     {

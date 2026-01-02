@@ -135,7 +135,7 @@ ScriptSystem::ScriptSystem()
                             const Handle<ScriptAsset>& scriptAsset = scriptComponent.assetReference.Resolve();
                             Assert(scriptAsset != nullptr);
 
-                            ResourceHandle resourceHandle(*scriptAsset->GetResource());
+                            ResourceGuard resGuard(*scriptAsset->GetResource());
 
                             ScriptData* scriptData = scriptAsset->GetScriptData();
                             Assert(scriptData != nullptr);
@@ -152,7 +152,7 @@ ScriptSystem::ScriptSystem()
                                 scriptData->hotReloadVersion = script.hotReloadVersion;
                                 scriptData->lastModifiedTimestamp = script.lastModifiedTimestamp;
 
-                                resourceHandle.Reset();
+                                resGuard.Reset();
 
                                 EntityScripting::DeinitEntityScriptComponent(entity, scriptComponent);
 

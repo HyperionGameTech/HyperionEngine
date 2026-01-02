@@ -1313,9 +1313,9 @@ bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& out
         return false;
     }
 
-    TResourceHandle<ScriptObjectResource> resourceHandle(*target->GetScriptObjectResource());
+    TResourceGuard<ScriptObjectResource> resGuard(*target->GetScriptObjectResource());
 
-    dotnet::ManagedObject* managedObject = resourceHandle->GetManagedObject();
+    dotnet::ManagedObject* managedObject = resGuard->GetManagedObject();
 
     if (!managedObject)
     {
@@ -1488,9 +1488,9 @@ bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::Objec
         return false;
     }
 
-    TResourceHandle<ScriptObjectResource> resourceHandle(*target->GetScriptObjectResource());
+    TResourceGuard<ScriptObjectResource> resGuard(*target->GetScriptObjectResource());
 
-    dotnet::ManagedObject* managedObject = resourceHandle->GetManagedObject();
+    dotnet::ManagedObject* managedObject = resGuard->GetManagedObject();
 
     if (!managedObject || !managedObject->IsValid())
     {

@@ -251,11 +251,11 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
         return Handle<Mesh> {};
     }
 
-    ResourceHandle resourceHandle;
+    ResourceGuard resGuard;
 
     if (mesh->GetAsset()->IsRegistered())
     {
-        resourceHandle = ResourceHandle(*mesh->GetAsset()->GetResource());
+        resGuard = ResourceGuard(*mesh->GetAsset()->GetResource());
     }
 
     const Mat4f modelMatrix = transform.GetMatrix();
@@ -268,7 +268,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
 
     MeshData newMeshData = *meshData;
 
-    resourceHandle.Reset();
+    resGuard.Reset();
 
     for (Vertex& vertex : newMeshData.vertexData)
     {
@@ -295,9 +295,9 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
         ApplyTransform(b, bTransform)
     };
 
-    ResourceHandle resourceHandles[] = {
-        transformedMeshes[0]->GetAsset()->IsRegistered() ? ResourceHandle(*transformedMeshes[0]->GetAsset()->GetResource()) : ResourceHandle(),
-        transformedMeshes[1]->GetAsset()->IsRegistered() ? ResourceHandle(*transformedMeshes[1]->GetAsset()->GetResource()) : ResourceHandle()
+    ResourceGuard resourceHandles[] = {
+        transformedMeshes[0]->GetAsset()->IsRegistered() ? ResourceGuard(*transformedMeshes[0]->GetAsset()->GetResource()) : ResourceGuard(),
+        transformedMeshes[1]->GetAsset()->IsRegistered() ? ResourceGuard(*transformedMeshes[1]->GetAsset()->GetResource()) : ResourceGuard()
     };
 
     MeshDesc const* meshDescs[] = {
@@ -343,9 +343,9 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
         }
     }
 
-    for (ResourceHandle& resourceHandle : resourceHandles)
+    for (ResourceGuard& resGuard : resourceHandles)
     {
-        resourceHandle.Reset();
+        resGuard.Reset();
     }
 
     MeshDesc mergedMeshDesc;
