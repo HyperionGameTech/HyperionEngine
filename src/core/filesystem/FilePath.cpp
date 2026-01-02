@@ -27,7 +27,15 @@ namespace filesystem {
 
 bool FilePath::MkDir() const
 {
-    return Exists() || std::filesystem::create_directories(Data());
+    std::error_code ec;
+
+    if (Exists())
+        return true;
+
+    if (std::filesystem::create_directories(Data(), ec))
+        return true;
+
+    return false;
 }
 
 bool FilePath::CanWrite() const

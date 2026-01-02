@@ -39,30 +39,24 @@ public:
     {
         uint32 numSpins = 0;
 
-        union
+        int64 expected = 0;
+        while (!AtomicCompareExchange(&m_value, expected, 1))
         {
-            int64 state;
-            uint64 ustate;
-        };
-
-        state = AtomicBitOr(&m_value, 0x1);
-
-        while (ustate & (~0ull << 1))
-        {
-            for (int i = 0; i < 32; i++)
+            // volatile read
+            while (m_value != 0)
             {
-                HYP_WAIT_IDLE();
-            }
+                for (int i = 0; i < 32; i++)
+                {
+                    HYP_WAIT_IDLE();
+                }
 
-            if (numSpins++ >= MaxSpins)
-            {
-                // yield to other threads
-                ThreadSleep(0);
-                numSpins = 0;
+                if (numSpins++ >= MaxSpins)
+                {
+                    // yield to other threads
+                    ThreadSleep(0);
+                    numSpins = 0;
+                }
             }
-
-            // read and try again
-            state = AtomicBitOr(&m_value, 0);
         }
     }
 
@@ -81,23 +75,32 @@ public:
             uint64 ustate;
         };
 
-        state = AtomicAdd(&m_value, 2);
-
-        while (ustate & 0x1)
+        while (true)
         {
-            for (int i = 0; i < 32; i++)
+            state = AtomicAdd(&m_value, 2);
+
+            if ((state & 0x1) == 0)
             {
-                HYP_WAIT_IDLE();
+                // successfully acquired read lock
+                return;
             }
 
-            if (numSpins++ >= MaxSpins)
-            {
-                ThreadSleep(0);
-                numSpins = 0;
-            }
+            AtomicSub(&m_value, 2);
 
-            // read and try again
-            state = AtomicAdd(&m_value, 0);
+            // volatile read
+            while (m_value & 0x1)
+            {
+                for (int i = 0; i < 32; i++)
+                {
+                    HYP_WAIT_IDLE();
+                }
+
+                if (numSpins++ >= MaxSpins)
+                {
+                    ThreadSleep(0);
+                    numSpins = 0;
+                }
+            }
         }
     }
 

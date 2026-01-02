@@ -205,6 +205,7 @@ AssetPackage::AssetPackage()
 
 AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
     : m_flags(flags),
+      m_isLoading(false),
       m_isDirty(false)
 {
     if (name.IsValid())
@@ -239,9 +240,9 @@ void AssetPackage::Init()
     bool isPackageSavedInFilesystem = false;
 
     {
-        Mutex::Guard guard(m_mutex);
+        TUniqueLock guard(m_mutex);
 
-        isPackageSavedInFilesystem = !IsTransient() && m_packageDir.Length() != 0;
+        isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
 
         assetObjects.Reserve(m_assetObjects.Size());
         subpackages.Reserve(m_subpackages.Size());
@@ -334,7 +335,7 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
     AssetObjectSet previousAssetObjects;
 
     { // store so we can call OnAssetObjectRemoved outside of the lock
-        Mutex::Guard guard(m_mutex);
+        TUniqueLock guard(m_mutex);
 
         previousAssetObjects = std::move(m_assetObjects);
     }
@@ -362,9 +363,9 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
     bool isPackageSavedInFilesystem = false;
 
     {
-        Mutex::Guard guard(m_mutex);
+        TUniqueLock guard(m_mutex);
 
-        isPackageSavedInFilesystem = !IsTransient() && m_packageDir.Length() != 0;
+        isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
 
         m_assetObjects = assetObjects;
 
@@ -395,7 +396,8 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
         }
     }
 
-    MarkDirty();
+    if (!IsLoading())
+        MarkDirty();
 
     for (const Handle<AssetObject>& assetObject : newAssetObjects)
     {
@@ -489,9 +491,9 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
         bool doSaveAsset = false;
 
         {
-            Mutex::Guard guard(m_mutex);
+            TUniqueLock guard(m_mutex);
 
-            isPackageSavedInFilesystem = !IsTransient() && m_packageDir.Length() != 0;
+            isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
 
             // if no name is provided for the asset, generate one
             if (!assetObject->GetName().IsValid())
@@ -530,9 +532,10 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
             m_assetObjects.Insert({ assetObject });
         }
 
-        MarkDirty();
-
         InitObject(assetObject);
+
+        if (!IsLoading())
+            MarkDirty();
 
         HYP_LOG(Assets, Debug, "Added {} '{}' to package '{}'",
             assetObject->InstanceClass()->GetName(),
@@ -586,7 +589,7 @@ Task<Result> AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObj
     auto impl = [this, assetObject = MakeStrongRef(assetObject)]() -> Result
     {
         {
-            Mutex::Guard guard(m_mutex);
+            TUniqueLock guard(m_mutex);
 
             auto it = m_assetObjects.Find(assetObject->GetName());
 
@@ -649,7 +652,7 @@ Handle<AssetObject> AssetPackage::GetAssetObject(StringHash assetName) const
         return {};
     }
 
-    Mutex::Guard guard(m_mutex);
+    TSharedLock guard(m_mutex);
 
     auto it = m_assetObjects.FindAs(assetName);
 
@@ -855,12 +858,12 @@ void AssetPackage::Rename(Name name)
     name = SanitizeName(name);
     Name friendlyName = CreateFriendlyName(name);
 
-    Mutex::Guard guard(m_mutex);
+    TSharedLock guard(m_mutex);
 
     // make sure we have a unique asset name within parent package
     if (Handle<AssetPackage> parentPackage = m_parentPackage.Lock(); parentPackage.IsValid())
     {
-        Mutex::Guard guard2(parentPackage->m_mutex);
+        TSharedLock guard2(parentPackage->m_mutex);
         name = GetUniqueName(name, parentPackage->m_subpackages);
     }
 
@@ -879,7 +882,7 @@ bool AssetPackage::HasAssetWithName(Name assetName) const
         return false;
     }
 
-    Mutex::Guard guard(m_mutex);
+    TSharedLock guard(m_mutex);
     return m_assetObjects.Contains(assetName);
 }
 
@@ -892,7 +895,7 @@ Name AssetPackage::GetUniqueAssetName(Name baseName) const
         return Name::Invalid();
     }
 
-    Mutex::Guard guard(m_mutex);
+    TSharedLock guard(m_mutex);
 
     return GetUniqueAssetName_Internal(baseName);
 }
@@ -911,15 +914,38 @@ Name AssetPackage::GetUniqueSubpackageName_Internal(Name baseName) const
     return GetUniqueName(baseName, m_subpackages);
 }
 
-HYP_DISABLE_OPTIMIZATION;
-Result AssetPackage::Save(const FilePath& outputDirectory)
+Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfDirty)
 {
     HYP_SCOPE;
     AssertReady();
 
+    TUniqueLock guard(m_mutex);
+
     if (IsTransient())
     {
         return HYP_MAKE_ERROR(Error, "Cannot save transient AssetPackage '{}'", m_name);
+    }
+
+    bool skipSavingThisPackage = false;
+
+    // If saveEvenIfDirty is false (default), check if we should save 
+    //  - if it has been saved before, we need to check if is dirty
+    //    and additionally check if any individual asset objects are dirty.
+    if (!saveEvenIfDirty && IsSaved_Internal())
+    {
+        if (!IsDirty())
+        {
+            if (HasDirtyAssetObjects())
+            {
+                MarkDirty();
+            }
+        }
+
+        if (!IsDirty())
+        {
+            // Already saved and not marked dirty; return ok
+            skipSavingThisPackage = true;
+        }
     }
 
     Handle<AssetRegistry> registry = m_registry.Lock();
@@ -928,8 +954,6 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
     {
         return HYP_MAKE_ERROR(Error, "AssetPackage '{}' does not have a valid AssetRegistry", m_name);
     }
-
-    Mutex::Guard guard(m_mutex);
 
     FilePath packageDir;
 
@@ -944,7 +968,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
     if (packageParts.Any() && outputParts.Any())
     {
         // Check if the last part of outputDirectory matches any part of packagePath
-        const String& lastOutputPart = outputParts[outputParts.Size() - 1];
+        const String& lastOutputPart = outputParts.Back();
 
         for (SizeType i = 0; i < packageParts.Size(); ++i)
         {
@@ -986,30 +1010,47 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
         {
             return HYP_MAKE_ERROR(Error, "Failed to create package directory '{}'", outputDirectory);
         }
+
+        // Path we have didn't exist on the file system, so treat it as a new save.
+        saveEvenIfDirty = true;
+        skipSavingThisPackage = false;
     }
     else if (!packageDir.IsDirectory())
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' already exists and is not a directory", outputDirectory);
     }
 
-    const FilePath manifestPath = packageDir / "PackageManifest.json";
-
-    FileByteWriter manifestWriter { manifestPath };
-
-    if (!manifestWriter.IsOpen())
+    // If package dir is different than what the package is saved with,
+    // we need to save again. This will be used when performing "Save As", for example
+    if (IsSaved_Internal() && m_packageDir != packageDir)
     {
-        return HYP_MAKE_ERROR(Error, "Failed to open manifest file for package '{}', errno: {}", m_name, std::strerror(errno));
+        saveEvenIfDirty = true;
+        skipSavingThisPackage = false;
+    }
+        
+    if (!skipSavingThisPackage)
+    {
+        const FilePath manifestPath = packageDir / "PackageManifest.json";
+
+        FileByteWriter manifestWriter { manifestPath };
+
+        if (!manifestWriter.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open manifest file for package '{}', errno: {}", m_name, std::strerror(errno));
+        }
+
+        if (Result saveManifestResult = SaveManifest(manifestWriter); saveManifestResult.HasError())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to save manifest for package '{}': {}", m_name, saveManifestResult.GetError().GetMessage());
+        }
+
+        manifestWriter.Close();
+
+        m_packageDir = packageDir;
     }
 
-    if (Result saveManifestResult = SaveManifest(manifestWriter); saveManifestResult.HasError())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to save manifest for package '{}': {}", m_name, saveManifestResult.GetError().GetMessage());
-    }
-
-    manifestWriter.Close();
-
-    m_packageDir = packageDir;
-
+    // even if skipSaving is true, we need to iterate over subpackages as
+    // they may have individual asset objects that are dirty
     for (const Handle<AssetPackage>& subpackage : m_subpackages)
     {
         if (subpackage->IsTransient())
@@ -1017,7 +1058,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
             continue;
         }
 
-        Result result = subpackage->Save(packageDir / *subpackage->GetName());
+        Result result = subpackage->Save(m_packageDir / *subpackage->GetName(), saveEvenIfDirty);
 
         if (result.HasError())
         {
@@ -1025,7 +1066,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
         }
     }
 
-    if (!IsTransient() && m_packageDir.Length() != 0)
+    if (!skipSavingThisPackage && !IsTransient() && IsSaved_Internal())
     {
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
@@ -1035,9 +1076,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
                 continue;
             }
 
-            assetObject->m_manifestPath = packageDir / *assetObject->GetName() + ".json";
-
-            if (Result saveAssetResult = assetObject->Save(); saveAssetResult.HasError())
+            if (Result saveAssetResult = assetObject->Save(m_packageDir / *assetObject->GetName() + ".json"); saveAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
                 continue;
@@ -1046,6 +1085,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
             assetObject->SetIsTransientByProxy(false);
         }
 
+        // unset dirty state
         m_isDirty.Set(false, MemoryOrder::RELEASE);
     }
 
@@ -1067,20 +1107,26 @@ Result AssetPackage::SaveManifest(ByteWriter& stream) const
     return {};
 }
 
+bool AssetPackage::HasDirtyAssetObjects() const
+{
+    // assume mtx is locked
+
+    return m_assetObjects.FindIf([](AssetObject* obj) { return obj->IsDirty(); }) != m_assetObjects.End();
+}
+
 void AssetPackage::AddDependency(const AssetPath& dependency)
 {
     HYP_SCOPE;
 
     {
-        Mutex::Guard guard(m_mutex);
-
-        if (!dependency.chain || dependency.chain[0] == Name::Invalid() || dependency == AssetPath(BuildPackagePath()))
+        if (!dependency.chain || !dependency.chain[0].IsValid() || dependency == AssetPath(BuildPackagePath()))
         {
             return;
         }
 
         // Check for circular dependency
         Handle<AssetRegistry> registry = m_registry.Lock();
+
         if (registry.IsValid())
         {
             Handle<AssetPackage> dependencyPackage = registry->GetPackageFromPath(dependency.ToString(), /* createIfNotExist */ false);
@@ -1106,6 +1152,8 @@ void AssetPackage::AddDependency(const AssetPath& dependency)
             }
         }
 
+        TUniqueLock guard(m_mutex);
+
         if (!m_dependencies.Contains(dependency))
         {
             m_dependencies.PushBack(dependency);
@@ -1114,7 +1162,8 @@ void AssetPackage::AddDependency(const AssetPath& dependency)
         }
     }
 
-    MarkDirty();
+    if (!IsLoading())
+        MarkDirty();
 }
 
 Array<String> AssetPackage::GetRelativeDependencies() const
@@ -1137,7 +1186,7 @@ void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
     HYP_SCOPE;
 
     {
-        Mutex::Guard guard(m_mutex);
+        TUniqueLock guard(m_mutex);
 
         m_dependencies.Clear();
 
@@ -1181,7 +1230,8 @@ void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
         }
     }
 
-    MarkDirty();
+    if (!IsLoading())
+        MarkDirty();
 }
 
 void AssetPackage::Prune(bool* outShouldDestroy)
@@ -1194,7 +1244,7 @@ void AssetPackage::Prune(bool* outShouldDestroy)
         Array<Handle<AssetObject>> objectsToDelete;
 
         {
-            Mutex::Guard guard(m_mutex);
+            TUniqueLock guard(m_mutex);
 
             for (auto it = m_assetObjects.Begin(); it != m_assetObjects.End();)
             {
@@ -1246,8 +1296,7 @@ void AssetPackage::Prune(bool* outShouldDestroy)
         Array<Handle<AssetPackage>> subpackagesToPrune;
 
         {
-
-            Mutex::Guard guard(m_mutex);
+            TSharedLock guard(m_mutex);
 
             for (const Handle<AssetPackage>& subpackage : m_subpackages)
             {
@@ -1266,7 +1315,7 @@ void AssetPackage::Prune(bool* outShouldDestroy)
         }
 
         {
-            Mutex::Guard guard(m_mutex);
+            TUniqueLock guard(m_mutex);
 
             for (auto it = m_subpackages.Begin(); it != m_subpackages.End();)
             {
@@ -1278,7 +1327,7 @@ void AssetPackage::Prune(bool* outShouldDestroy)
                     continue;
                 }
 
-                Mutex::Guard guard2(subpackage->m_mutex);
+                TUniqueLock guard2(subpackage->m_mutex);
                 if (subpackage->m_assetObjects.Empty() && subpackage->m_subpackages.Empty())
                 {
                     subpackagesToDelete.PushBack(subpackage);
@@ -1316,7 +1365,7 @@ void AssetPackage::Prune(bool* outShouldDestroy)
 
     if (outShouldDestroy != nullptr)
     {
-        Mutex::Guard guard(m_mutex);
+        TSharedLock guard(m_mutex);
         *outShouldDestroy = m_assetObjects.Empty() && m_subpackages.Empty();
     }
 }
@@ -1337,19 +1386,16 @@ void AssetPackage::MarkDirty()
         return;
     }
 
-    m_isDirty.Set(true, MemoryOrder::RELEASE);
-
-    m_mutex.Lock();
-
-    if (Handle<AssetPackage> parentPackage = m_parentPackage.Lock(); parentPackage.IsValid())
+    if (!m_isDirty.Exchange(true, MemoryOrder::ACQUIRE_RELEASE))
     {
-        m_mutex.Unlock();
+        TSharedLock guard(m_mutex);
 
-        parentPackage->MarkDirty();
-    }
-    else
-    {
-        m_mutex.Unlock();
+        if (Handle<AssetPackage> parentPackage = m_parentPackage.Lock(); parentPackage.IsValid())
+        {
+            guard.Reset();
+
+            parentPackage->MarkDirty();
+        }
     }
 }
 
@@ -1438,7 +1484,7 @@ void AssetRegistry::PruneTransientPackages()
     }
 
     { // collect tasks
-        Mutex::Guard guard(m_mutex);
+        TSharedLock guard(m_mutex);
         for (const Handle<AssetPackage>& package : m_packages)
         {
             if (!package || !package->IsTransient())
@@ -1646,7 +1692,7 @@ void AssetRegistry::SetRootPath(const String& rootPath)
 {
     HYP_SCOPE;
 
-    Mutex::Guard guard(m_mutex);
+    TUniqueLock guard(m_mutex);
 
     m_rootPath = rootPath;
 }
@@ -1680,7 +1726,7 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
     };
 
     {
-        Mutex::Guard guard(m_mutex);
+        TUniqueLock guard(m_mutex);
 
         for (const Handle<AssetPackage>& package : packages)
         {
@@ -1855,7 +1901,7 @@ Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool
             if (newParentPackage != nullptr)
             {
                 {
-                    Mutex::Guard guard(newParentPackage->m_mutex);
+                    TUniqueLock guard(newParentPackage->m_mutex);
 
                     package->m_parentPackage = newParentPackage;
                     package->m_flags |= newParentPackage->m_flags;
@@ -1868,7 +1914,7 @@ Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool
             }
             else // top-level package
             {
-                Mutex::Guard guard(m_mutex);
+                TUniqueLock guard(m_mutex);
 
                 m_packages.Insert(package);
             }
@@ -1912,16 +1958,18 @@ void AssetRegistry::RemovePackage(AssetPackage* package)
             bool removed = false;
 
             {
-                Mutex::Guard guard(m_mutex);
+                TSharedLock guard(package->m_mutex);
 
                 if (package->m_parentPackage.IsValid())
                 {
                     Handle<AssetPackage> parentPackage = package->m_parentPackage.Lock();
 
+                    guard.Reset();
+
                     if (parentPackage.IsValid())
                     {
                         {
-                            Mutex::Guard guard2(parentPackage->m_mutex);
+                            TUniqueLock guard2(parentPackage->m_mutex);
 
                             auto it = parentPackage->m_subpackages.Find(package->GetName());
                             Assert(it != parentPackage->m_subpackages.End());
@@ -1937,6 +1985,8 @@ void AssetRegistry::RemovePackage(AssetPackage* package)
                 }
                 else
                 {
+                    TUniqueLock guard2(m_mutex);
+
                     auto it = m_packages.Find(package->GetName());
                     Assert(it != m_packages.End());
 
@@ -1978,7 +2028,7 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
     if (!parentPackage)
     {
         {
-            Mutex::Guard guard(m_mutex);
+            TUniqueLock guard(m_mutex);
 
             auto packageIt = m_packages.Find(subpackageName);
 
@@ -2010,7 +2060,7 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
     Optional<FilePath> saveOutputDir; // unset if no save needed
 
     {
-        Mutex::Guard guard(parentPackage->m_mutex);
+        TUniqueLock guard(parentPackage->m_mutex);
 
         auto packageIt = parentPackage->m_subpackages.Find(subpackageName);
 
@@ -2022,7 +2072,7 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
             pkg->m_flags |= parentPackage->m_flags;
 
             // If parent package exists on disk, save this package:
-            if (!parentPackage->IsTransient() && parentPackage->m_packageDir.Length() != 0)
+            if (!parentPackage->IsTransient() && parentPackage->IsSaved_Internal())
             {
                 saveOutputDir = parentPackage->m_packageDir;
             }
@@ -2081,7 +2131,6 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
                     continue;
                 }
 
-                // @NOTE: executes inline
                 TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(manifestPath, /* loadSubpackages */ false).Await();
 
                 if (subpackageResult.HasError())
@@ -2217,7 +2266,15 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
             outPackage->m_registry = WeakHandleFromThis();
             outPackage->m_packageDir = dir;
             outPackage->m_parentPackage = parentPackage;
-            outPackage->m_flags |= (parentPackage ? parentPackage->m_flags : EnumFlags<AssetPackageFlags>(APF_NONE));
+            outPackage->m_flags |= (parentPackage ? parentPackage->m_flags : 0);
+            outPackage->m_isLoading = true;
+
+            HYP_DEFER({
+                if (outPackage)
+                {
+                    outPackage->m_isLoading = false;
+                }
+            });
 
             {
                 BoxedValue packageData = BoxedValue(outPackage);
@@ -2402,22 +2459,17 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
             if (parentPackage != nullptr)
             {
                 // add subpackage
+                TUniqueLock guard(parentPackage->m_mutex);
 
-                {
-                    Mutex::Guard guard(parentPackage->m_mutex);
+                InitObject(outPackage);
 
-                    InitObject(outPackage);
-
-                    parentPackage->m_subpackages.Insert(outPackage);
-                    parentPackage->OnSubpackageAdded(outPackage);
-                }
-
-                parentPackage->MarkDirty();
+                parentPackage->m_subpackages.Insert(outPackage);
+                parentPackage->OnSubpackageAdded(outPackage);
             }
             else // top-level package
             {
                 {
-                    Mutex::Guard guard(m_mutex);
+                    TUniqueLock guard(m_mutex);
 
                     m_packages.Insert(outPackage);
                 }

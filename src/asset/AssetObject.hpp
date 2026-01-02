@@ -241,6 +241,15 @@ public:
     HYP_METHOD()
     virtual Result Rename(Name name);
 
+    HYP_METHOD()
+    bool IsDirty() const
+    {
+        return m_isDirty;
+    }
+
+    HYP_METHOD()
+    void MarkDirty();
+
     HYP_METHOD(Property = "FriendlyName")
     Name GetFriendlyName() const
     {
@@ -336,7 +345,7 @@ public:
     bool IsLoaded() const;
 
     HYP_METHOD()
-    Result Save();
+    Result Save(const FilePath& manifestPath);
 
     /*! \brief Opens a read stream for the binary data of this asset.
      *  \param stream The stream to open.
@@ -399,6 +408,9 @@ protected:
 
     HYP_FIELD(NoScriptBindings, Transient)
     ResourceGuard m_persistentResource;
+
+    HYP_FIELD(Transient)
+    bool m_isDirty;
 };
 
 } // namespace Hyperion

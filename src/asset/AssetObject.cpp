@@ -223,7 +223,8 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 AssetObject::AssetObject()
     : m_resource(&GetNullResource()),
       m_flags(AssetObjectFlags::NONE),
-      m_pool(nullptr)
+      m_pool(nullptr),
+      m_isDirty(false)
 {
 }
 
@@ -231,7 +232,8 @@ AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
       m_resource(&GetNullResource()),
       m_flags(AssetObjectFlags::NONE),
-      m_pool(nullptr)
+      m_pool(nullptr),
+      m_isDirty(false)
 {
 }
 
@@ -265,6 +267,21 @@ void AssetObject::Init()
     }
 
     SetReady(true);
+}
+
+void AssetObject::MarkDirty()
+{
+    if (m_isDirty)
+    {
+        return;
+    }
+
+    m_isDirty = true;
+
+    if (Handle<AssetPackage> package = m_package.Lock(); package.IsValid())
+    {
+        package->MarkDirty();
+    }
 }
 
 void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
@@ -395,38 +412,43 @@ bool AssetObject::IsLoaded() const
     return static_cast<AssetDataResourceBase*>(m_resource)->IsInitialized();
 }
 
-Result AssetObject::Save()
+Result AssetObject::Save(const FilePath& manifestPath)
 {
     HYP_SCOPE;
 
     // save our manifest first
-    if (m_manifestPath.Empty())
+    if (manifestPath.Empty())
     {
         return HYP_MAKE_ERROR(Error, "Asset manifest path is empty, cannot save");
     }
 
-    AssertDebug(m_manifestPath.GetExtension() == "json", "Asset manifest path must have .json extension");
+    if (manifestPath.GetExtension() != "json")
+    {
+        return HYP_MAKE_ERROR(Error, "Asset manifest path must have .json extension");
+    }
 
-    const FilePath dir = m_manifestPath.BasePath();
+    const FilePath dir = manifestPath.BasePath();
 
     if (!dir.Exists() || !dir.IsDirectory())
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
 
-    FileByteWriter manifestWriter { m_manifestPath };
-
-    if (!manifestWriter.IsOpen())
     {
-        return HYP_MAKE_ERROR(Error, "Failed to open manifest file for asset '{}', errno: {}", m_name, std::strerror(errno));
-    }
+        FileByteWriter manifestWriter { manifestPath };
 
-    if (Result saveManifestResult = SaveManifest(manifestWriter); saveManifestResult.HasError())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to save manifest for asset '{}': {}", m_name, saveManifestResult.GetError().GetMessage());
-    }
+        if (!manifestWriter.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open manifest file for asset '{}', errno: {}", m_name, std::strerror(errno));
+        }
 
-    manifestWriter.Close();
+        if (Result saveManifestResult = SaveManifest(manifestWriter); saveManifestResult.HasError())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to save manifest for asset '{}': {}", m_name, saveManifestResult.GetError().GetMessage());
+        }
+
+        manifestWriter.Close();
+    }
 
     const bool doSaveResource = m_resource != nullptr && !m_resource->IsNull();
 
@@ -439,35 +461,21 @@ Result AssetObject::Save()
 
         Mutex::Guard guard(resource->m_mutex);
 
+        if (!resource->IsDataLoaded())
+        {
+            return HYP_MAKE_ERROR(Error, "Asset with manifest at path {} has no data, cannot save!", manifestPath);
+        }
+
         // get bin path from manifest path by removing .json extension
-        const FilePath binPath = m_manifestPath.StripExtension();
-        Assert(!binPath.Empty() && binPath != m_manifestPath);
+        const FilePath binPath = manifestPath.StripExtension();
+        Assert(!binPath.Empty() && binPath != manifestPath);
 
         return resource->Save_Internal(binPath);
     }
 
-#if 0 // just use manifest if no resource
-    FBOMWriter writer { FBOMWriterConfig {} };
-
-    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetTypeId());
-    Assert(marshal != nullptr);
-
-    FBOMObject object;
-    if (FBOMResult err = marshal->Serialize(ConstAnyRef(this), object))
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to serialize asset: {}", err.message);
-    }
-
-    writer.Append(std::move(object));
-
-    FileByteWriter byteWriter { m_filepath };
-    if (FBOMResult err = writer.Emit(&byteWriter))
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to write asset to disk: {}", err.message);
-    }
-#endif
-
-    HYP_LOG(Assets, Debug, "Saved asset manifest to '{}'", m_manifestPath);
+    HYP_LOG(Assets, Debug, "Saved asset manifest to '{}'", manifestPath);
+    
+    m_manifestPath = manifestPath;
 
     return {};
 }
@@ -602,7 +610,10 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
     }
 
     // get bin path from manifest path by removing .json extension
-    AssertDebug(m_manifestPath.GetExtension() == "json", "Asset manifest path must have .json extension");
+    if (m_manifestPath.GetExtension() != "json")
+    {
+        return HYP_MAKE_ERROR(Error, "Asset manifest path must have .json extension");
+    }
 
     const FilePath binPath = m_manifestPath.StripExtension();
 

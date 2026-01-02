@@ -20,6 +20,7 @@
 #include <core/functional/ScriptableDelegate.hpp>
 
 #include <core/threading/Semaphore.hpp>
+#include <core/threading/SharedMutex.hpp>
 #include <core/threading/SchedulerFwd.hpp>
 
 #include <core/memory/resource/Resource.hpp>
@@ -57,8 +58,9 @@ HYP_ENUM()
 enum AssetPackageFlags : uint32
 {
     APF_NONE = 0x0,
-    APF_TRANSIENT = 0x1,
-    APF_HIDDEN = 0x2
+    APF_TRANSIENT = 0x1, //!< Not saved to disk
+    APF_HIDDEN = 0x2, //!< Hide in content browser
+    APF_LOADING = 0x4 //!< currently in loading state
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
@@ -175,6 +177,12 @@ public:
         return m_flags[APF_HIDDEN];
     }
 
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool IsLoading() const
+    {
+        return m_isLoading;
+    }
+
     HYP_FORCE_INLINE const WeakHandle<AssetRegistry>& GetRegistry() const
     {
         return m_registry;
@@ -206,7 +214,7 @@ public:
         AssetPackageSet set;
 
         {
-            Mutex::Guard guard(m_mutex);
+            TUniqueLock guard(m_mutex);
             set = m_subpackages;
         }
 
@@ -226,7 +234,7 @@ public:
         AssetObjectSet set;
 
         {
-            Mutex::Guard guard(m_mutex);
+            TUniqueLock guard(m_mutex);
             set = m_assetObjects;
         }
 
@@ -259,7 +267,7 @@ public:
     Name GetUniqueAssetName(Name baseName) const;
 
     HYP_METHOD()
-    Result Save(const FilePath& outputDirectory);
+    Result Save(const FilePath& outputDirectory, bool saveEvenIfDirty = false);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Array<AssetPath>& GetDependencies() const
@@ -294,6 +302,13 @@ public:
         return m_isDirty.Get(MemoryOrder::ACQUIRE);
     }
 
+    HYP_METHOD(Property = "IsSaved", Transient)
+    HYP_FORCE_INLINE bool IsSaved() const
+    {
+        TSharedLock guard(m_mutex);
+        return IsSaved_Internal();
+    }
+
     HYP_METHOD()
     void MarkDirty();
 
@@ -312,7 +327,16 @@ public:
 private:
     void Init() override;
 
+    HYP_FORCE_INLINE bool IsSaved_Internal() const
+    {
+        return m_packageDir.Length() != 0;
+    }
+
     Result SaveManifest(ByteWriter& stream) const;
+
+    /*! \brief Check for dirty asset objects and returns true if any are.
+     *   Used before saving, to check if we should call MarkDirty() */
+    bool HasDirtyAssetObjects() const;
 
     Name GetUniqueAssetName_Internal(Name baseName) const;
     Name GetUniqueSubpackageName_Internal(Name baseName) const;
@@ -332,13 +356,16 @@ private:
     HYP_FIELD(Transient)
     Array<AssetPath> m_dependencies;
 
+    HYP_FIELD(Transient)
+    bool m_isLoading;
+
     WeakHandle<AssetRegistry> m_registry;
     WeakHandle<AssetPackage> m_parentPackage;
     AssetPackageSet m_subpackages;
     AssetObjectSet m_assetObjects;
     FilePath m_packageDir;
 
-    mutable Mutex m_mutex;
+    SharedMutex m_mutex;
     mutable AtomicVar<bool> m_isDirty;
 };
 
@@ -370,7 +397,7 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE String GetRootPath() const
     {
-        Mutex::Guard guard(m_mutex);
+        TSharedLock guard(m_mutex);
         return m_rootPath;
     }
 
@@ -465,7 +492,7 @@ private:
     String m_rootPath;
 
     AssetPackageSet m_packages;
-    mutable Mutex m_mutex;
+    SharedMutex m_mutex;
 
     // timer for when we should prune transient packages
     LockstepGameCounter m_pruneTimer;
