@@ -11,7 +11,7 @@
 
 namespace Hyperion {
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS(NoScriptBindings, Serialize=false)
 class VisibilityStateUpdaterSystem : public SystemBase
 {
     HYP_OBJECT_BODY(VisibilityStateUpdaterSystem);

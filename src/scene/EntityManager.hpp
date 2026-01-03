@@ -845,8 +845,8 @@ private:
         ((HasTag<EntityTag(Indices + 1)>(entity) ? (void)(outMask |= (1u << uint32(Indices))) : void()), ...);
     }
 
-    void NotifySystemOfExistingEntities(const Handle<SystemBase>& system);
-    void NotifySystemOfAllEntitiesRemoved(const Handle<SystemBase>& system);
+    void NotifySystemOfExistingEntities(SystemBase* system);
+    void NotifySystemOfAllEntitiesRemoved(SystemBase* system);
     void NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const ComponentMap& componentIds);
     void NotifySystemsOfEntityRemoved(Entity* entity, const ComponentMap& componentIds);
 

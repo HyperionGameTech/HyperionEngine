@@ -28,11 +28,14 @@ using threading::TaskBatch;
 class HYP_API SystemExecutionGroup
 {
 public:
-    SystemExecutionGroup(bool requiresSimThread = false, bool allowUpdate = true);
+    explicit SystemExecutionGroup(bool requiresSimThread = false, bool allowUpdate = true);
+
     SystemExecutionGroup(const SystemExecutionGroup&) = delete;
     SystemExecutionGroup& operator=(const SystemExecutionGroup&) = delete;
+
     SystemExecutionGroup(SystemExecutionGroup&&) noexcept = default;
     SystemExecutionGroup& operator=(SystemExecutionGroup&&) noexcept = default;
+
     ~SystemExecutionGroup();
 
     HYP_FORCE_INLINE bool RequiresSimThread() const
@@ -45,12 +48,12 @@ public:
         return m_allowUpdate;
     }
 
-    HYP_FORCE_INLINE TypeMap<Handle<SystemBase>>& GetSystems()
+    HYP_FORCE_INLINE TypeMap<SystemBase*>& GetSystems()
     {
         return m_systems;
     }
 
-    HYP_FORCE_INLINE const TypeMap<Handle<SystemBase>>& GetSystems() const
+    HYP_FORCE_INLINE const TypeMap<SystemBase*>& GetSystems() const
     {
         return m_systems;
     }
@@ -89,23 +92,23 @@ public:
     template <class SystemType>
     HYP_FORCE_INLINE bool HasSystem() const
     {
-        static const TypeId typeId = TypeId::ForType<SystemType>();
+        static const TypeId s_typeId = TypeId::ForType<SystemType>();
 
-        return m_systems.Find(typeId) != m_systems.End();
+        return m_systems.Find(s_typeId) != m_systems.End();
     }
 
     /*! \brief Adds a System to the SystemExecutionGroup.
      *
      *  \param[in] system The System to add.
      */
-    SystemBase* AddSystem(const Handle<SystemBase>& system);
+    SystemBase* AddSystem(SystemBase* system);
 
     template <class SystemType>
     SystemType* GetSystem() const
     {
-        static const TypeId typeId = TypeId::ForType<SystemType>();
+        static const TypeId s_typeId = TypeId::ForType<SystemType>();
 
-        const auto it = m_systems.Find(typeId);
+        const auto it = m_systems.Find(s_typeId);
 
         if (it == m_systems.End() || !it->second.IsValid())
         {
@@ -124,9 +127,9 @@ public:
     template <class SystemType>
     bool RemoveSystem()
     {
-        static const TypeId typeId = TypeId::ForType<SystemType>();
+        static const TypeId s_typeId = TypeId::ForType<SystemType>();
 
-        return m_systems.Erase(typeId);
+        return m_systems.Erase(s_typeId);
     }
 
     /*! \brief Start processing all Systems in the SystemExecutionGroup.
@@ -142,7 +145,7 @@ private:
     bool m_requiresSimThread;
     bool m_allowUpdate;
 
-    TypeMap<Handle<SystemBase>> m_systems;
+    TypeMap<SystemBase*> m_systems;
     UniquePtr<TaskBatch> m_taskBatch;
 
 #ifdef HYP_DEBUG_MODE

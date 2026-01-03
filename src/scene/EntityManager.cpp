@@ -131,13 +131,13 @@ EntityManager::~EntityManager()
 {
 }
 
-void EntityManager::NotifySystemOfExistingEntities(const Handle<SystemBase>& system)
+void EntityManager::NotifySystemOfExistingEntities(SystemBase* system)
 {
     HYP_SCOPE;
 
     Assert(m_world != nullptr, "EntityManager must be associated with a World before initializing systems.");
 
-    Assert(system.IsValid());
+    Assert(system != nullptr);
 
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
@@ -155,7 +155,7 @@ void EntityManager::NotifySystemOfExistingEntities(const Handle<SystemBase>& sys
                 { // critical section
                     Mutex::Guard guard(m_systemEntityMapMutex);
 
-                    auto systemEntityIt = m_systemEntityMap.Find(system.Get());
+                    auto systemEntityIt = m_systemEntityMap.Find(system);
 
                     // Check if the system already has this entity initialized
                     if (systemEntityIt != m_systemEntityMap.End() && (systemEntityIt->second.FindAs(entity) != systemEntityIt->second.End()))
@@ -163,7 +163,7 @@ void EntityManager::NotifySystemOfExistingEntities(const Handle<SystemBase>& sys
                         continue;
                     }
 
-                    m_systemEntityMap[system.Get()].Insert(entity);
+                    m_systemEntityMap[system].Insert(entity);
                 }
 
                 system->OnEntityAdded(entity);
@@ -172,13 +172,13 @@ void EntityManager::NotifySystemOfExistingEntities(const Handle<SystemBase>& sys
     }
 }
 
-void EntityManager::NotifySystemOfAllEntitiesRemoved(const Handle<SystemBase>& system)
+void EntityManager::NotifySystemOfAllEntitiesRemoved(SystemBase* system)
 {
     HYP_SCOPE;
 
     Assert(m_world != nullptr, "EntityManager must be associated with a World before shutting down systems.");
 
-    Assert(system.IsValid());
+    Assert(system != nullptr);
 
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
@@ -191,12 +191,12 @@ void EntityManager::NotifySystemOfAllEntitiesRemoved(const Handle<SystemBase>& s
 
             const ComponentMap& componentIds = entityData.components;
 
-            if (system->ActsOnComponents(componentIds.Keys(), true) && IsEntityInitializedForSystem(system.Get(), entity))
+            if (system->ActsOnComponents(componentIds.Keys(), true) && IsEntityInitializedForSystem(system, entity))
             {
                 { // critical section
                     Mutex::Guard guard(m_systemEntityMapMutex);
 
-                    auto systemEntityIt = m_systemEntityMap.Find(system.Get());
+                    auto systemEntityIt = m_systemEntityMap.Find(system);
 
                     // Check if the system already has this entity initialized
                     if (systemEntityIt != m_systemEntityMap.End() && systemEntityIt->second.Contains(entity))
@@ -219,20 +219,20 @@ void EntityManager::Init()
 {
     AssertOnThread(m_ownerThreadId);
 
-    Array<Handle<SystemBase>> systems;
+    Array<SystemBase*> systems;
 
     for (SystemExecutionGroup* group : m_systemExecutionGroups)
     {
         for (auto& systemIt : group->GetSystems())
         {
-            const Handle<SystemBase>& system = systemIt.second;
-            Assert(system.IsValid());
+            SystemBase* system = systemIt.second;
+            Assert(system != nullptr);
 
             systems.PushBack(system);
         }
     }
 
-    for (const Handle<SystemBase>& system : systems)
+    for (SystemBase* system : systems)
     {
         // Must be called before InitObject() is called on Systems to ensure the system is initialized if
         // other systems end up adding/removing components that trigger OnEntityAdded() or OnEntityRemoved() calls.
@@ -241,7 +241,7 @@ void EntityManager::Init()
 
     if (m_world != nullptr)
     {
-        for (const Handle<SystemBase>& system : systems)
+        for (SystemBase* system : systems)
         {
             // Initialize the system
             NotifySystemOfExistingEntities(system);
@@ -314,20 +314,20 @@ void EntityManager::Shutdown()
 
         if (m_world != nullptr)
         {
-            Array<Handle<SystemBase>> systems;
+            Array<SystemBase*> systems;
 
             for (SystemExecutionGroup* group : m_systemExecutionGroups)
             {
                 for (auto& systemIt : group->GetSystems())
                 {
-                    const Handle<SystemBase>& system = systemIt.second;
-                    Assert(system.IsValid());
+                    SystemBase*& system = systemIt.second;
+                    Assert(system != nullptr);
 
                     systems.PushBack(system);
                 }
             }
 
-            for (const Handle<SystemBase>& system : systems)
+            for (SystemBase* system : systems)
             {
                 // Shutdown the system
                 NotifySystemOfAllEntitiesRemoved(system);
@@ -350,14 +350,14 @@ void EntityManager::SetWorld(World* world)
     }
 
     // If EntityManager is initialized we need to notify all of our systems that the world has changed.
-    Array<Handle<SystemBase>> systems;
+    Array<SystemBase*> systems;
 
     for (SystemExecutionGroup* group : m_systemExecutionGroups)
     {
         for (auto& systemIt : group->GetSystems())
         {
-            const Handle<SystemBase>& system = systemIt.second;
-            Assert(system.IsValid());
+            SystemBase* system = systemIt.second;
+            Assert(system != nullptr);
 
             systems.PushBack(system);
         }
@@ -377,7 +377,7 @@ void EntityManager::SetWorld(World* world)
             }
         }
 
-        for (const Handle<SystemBase>& system : systems)
+        for (SystemBase* system : systems)
         {
             NotifySystemOfAllEntitiesRemoved(system);
         }
@@ -399,15 +399,15 @@ void EntityManager::SetWorld(World* world)
         {
             for (auto& systemIt : group->GetSystems())
             {
-                const Handle<SystemBase>& system = systemIt.second;
-                Assert(system.IsValid());
+                SystemBase* system = systemIt.second;
+                Assert(system != nullptr);
 
                 systems.PushBack(system);
             }
         }
 
         // notify systems of entity added for the new world
-        for (const Handle<SystemBase>& system : systems)
+        for (SystemBase* system : systems)
         {
             NotifySystemOfExistingEntities(system);
         }
@@ -1260,7 +1260,7 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
                 { // critical section
                     Mutex::Guard guard(m_systemEntityMapMutex);
 
-                    auto systemEntityIt = m_systemEntityMap.Find(systemIt.second.Get());
+                    auto systemEntityIt = m_systemEntityMap.Find(systemIt.second);
 
                     // Check if the system already has this entity initialized
                     if (systemEntityIt != m_systemEntityMap.End() && (systemEntityIt->second.Find(entity.Get()) != systemEntityIt->second.End()))
@@ -1268,7 +1268,7 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
                         continue;
                     }
 
-                    m_systemEntityMap[systemIt.second.Get()].Insert(entity);
+                    m_systemEntityMap[systemIt.second].Insert(entity);
                 }
 
                 systemIt.second->OnEntityAdded(entity);
@@ -1302,7 +1302,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const Component
                 { // critical section
                     Mutex::Guard guard(m_systemEntityMapMutex);
 
-                    auto systemEntityIt = m_systemEntityMap.Find(systemIt.second.Get());
+                    auto systemEntityIt = m_systemEntityMap.Find(systemIt.second);
 
                     if (systemEntityIt == m_systemEntityMap.End())
                     {

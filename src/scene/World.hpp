@@ -199,19 +199,37 @@ public:
     SystemBase* AddSystem(const Handle<SystemBase>& system);
 
     template <class SystemType>
-    HYP_FORCE_INLINE SystemType* GetSystem() const
+    SystemType* GetSystem() const
     {
-        static const TypeId typeId = TypeId::ForType<SystemType>();
+        static const TypeId s_typeId = TypeId::ForType<SystemType>();
 
-        for (const SystemExecutionGroup& group : m_systemExecutionGroups)
-        {
-            if (group.HasSystem<SystemType>())
+        auto it = m_systems.FindIf([](const Handle<SystemBase>& system)
             {
-                return group.GetSystem<SystemType>();
-            }
+                return system->Id().GetTypeId() == s_typeId;
+            });
+
+        if (it != m_systems.End())
+        {
+            return *it;
+        }
+
+        it = m_systems.FindIf([](const Handle<SystemBase>& system)
+            {
+                return Hyperion::IsA(Hyperion::GetClass<SystemBase>(), system->InstanceClass());
+            });
+
+        if (it != m_systems.End())
+        {
+            return *it;
         }
 
         return nullptr;
+    }
+
+    template <class SystemType>
+    HYP_FORCE_INLINE bool HasSystem() const
+    {
+        return GetSystem<SystemBase>() != nullptr;
     }
 
     HYP_FORCE_INLINE Array<SystemExecutionGroup>& GetSystemExecutionGroups()
@@ -252,6 +270,8 @@ public:
 private:
     void Init() override;
 
+    bool AddSystemToExecutionGroup(SystemBase* system);
+
     Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);
 
     /// Serialization ///
@@ -281,6 +301,9 @@ private:
 
     HYP_FIELD(Property = "Scenes", Transient)
     Array<Handle<Scene>> m_scenes;
+
+    HYP_FIELD(Property = "Systems")
+    Array<Handle<SystemBase>> m_systems;
 
     Array<SystemExecutionGroup> m_systemExecutionGroups;
     SystemExecutionGroup* m_rootSynchronousExecutionGroup;
