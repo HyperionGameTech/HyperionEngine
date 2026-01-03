@@ -31,7 +31,7 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 
-#include <scene/sky/DynamicSkySubsystem.hpp>
+#include <scene/sky/DynamicSkySystem.hpp>
 
 #include <scene/LightmapVolume.hpp>
 
@@ -3120,7 +3120,7 @@ void EditorSubsystem::NewProject()
 
     defaultScene->GetRoot()->AddChild(sun);
 
-    project->GetWorld()->AddSubsystem<DynamicSkySubsystem>();
+    project->GetWorld()->AddSystemT<DynamicSkySystem>();
 
     OpenProject(project);
 }

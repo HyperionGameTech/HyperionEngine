@@ -13,7 +13,7 @@
 #include <scene/EntityManager.hpp>
 #include <scene/ComponentInterface.hpp>
 
-#include <scene/sky/DynamicSkySubsystem.hpp>
+#include <scene/sky/DynamicSkySystem.hpp>
 
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
@@ -120,7 +120,7 @@ void DefaultGame::OnLaunch_Impl()
     sunNode->AddChild(sunEntity);
 
     // sky
-    GetWorld()->AddSubsystem<DynamicSkySubsystem>();
+    GetWorld()->AddSystemT<DynamicSkySystem>();
 
     // Fps controller
 

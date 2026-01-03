@@ -201,6 +201,14 @@ public:
     {
     }
 
+    virtual void OnAddedToWorld(World* world)
+    {
+    }
+
+    virtual void OnRemovedFromWorld(World* world)
+    {
+    }
+
     virtual void Shutdown()
     {
     }

@@ -128,7 +128,21 @@ World::~World()
 
             scene->SetWorld(nullptr);
         }
+        
+        for (const Handle<SystemBase>& system : m_systems)
+        {
+            system->OnRemovedFromWorld(this);
+            system->m_world = nullptr;
+        }
     }
+
+    m_systems.Clear();
+
+    for (SystemExecutionGroup* executionGroup : m_systemExecutionGroups)
+    {
+        PoolDelete(*g_scenePool, executionGroup);
+    }
+    m_systemExecutionGroups.Clear();
 
     m_raytracingView = nullptr;
 
@@ -253,13 +267,15 @@ void World::Init()
 
         system->InitComponentInfos_Internal();
 
-        const bool wasAdded = AddSystemToExecutionGroup(system);
+        const bool wasAddedToExecutionGroup = AddSystemToExecutionGroup(system);
 
         system->m_world = this;
 
         InitObject(system);
+        
+        system->OnAddedToWorld(this);
 
-        if (wasAdded)
+        if (wasAddedToExecutionGroup)
         {
             for (const Handle<Scene>& scene : m_scenes)
             {
@@ -468,7 +484,7 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
     // Prepare task dependencies
     for (SizeType index = 0; index < m_systemExecutionGroups.Size(); index++)
     {
-        SystemExecutionGroup& systemExecutionGroup = m_systemExecutionGroups[index];
+        SystemExecutionGroup& systemExecutionGroup = *m_systemExecutionGroups[index];
 
         if (!systemExecutionGroup.AllowUpdate())
         {
@@ -537,14 +553,14 @@ void World::EndUpdate()
 {
     HYP_SCOPE;
 
-    for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
+    for (SystemExecutionGroup* systemExecutionGroup : m_systemExecutionGroups)
     {
-        if (!systemExecutionGroup.AllowUpdate() || systemExecutionGroup.RequiresSimThread())
+        if (!systemExecutionGroup->AllowUpdate() || systemExecutionGroup->RequiresSimThread())
         {
             continue;
         }
 
-        systemExecutionGroup.FinishProcessing();
+        systemExecutionGroup->FinishProcessing();
     }
 
     if (m_rootSynchronousExecutionGroup != nullptr)
@@ -708,54 +724,6 @@ bool World::TryAddSubsystem(const Handle<Subsystem>& subsystem)
     if (!result || result.Get() != subsystem.Get())
     {
         return false;
-    }
-
-    return true;
-}
-
-
-bool World::RemoveSystem(SystemBase* system)
-{
-    HYP_SCOPE;
-
-    if (!system)
-    {
-        return false;
-    }
-
-    auto it = m_systems.Find(system);
-
-    if (it == m_systems.End())
-    {
-        return false;
-    }
-
-    Handle<SystemBase> systemStrong = MakeStrongRef(system);
-
-    m_systems.Erase(it);
-
-    if (IsInitCalled())
-    {
-        SystemExecutionGroup* executionGroup = nullptr;
-        for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
-        {
-            if (systemExecutionGroup.HasSystem(system))
-            {
-                executionGroup = &systemExecutionGroup;
-                break;
-            }
-        }
-
-        if (executionGroup != nullptr)
-        {
-            for (const Handle<Scene>& scene : m_scenes)
-            {
-                scene->GetEntityManager()->NotifySystemOfAllEntitiesRemoved(system);
-            }
-
-            const bool wasRemoved = executionGroup->RemoveSystem(system);
-            AssertDebug(wasRemoved);
-        }
     }
 
     return true;
@@ -1370,13 +1338,15 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
     {
         system->InitComponentInfos_Internal();
 
-        const bool wasAdded = AddSystemToExecutionGroup(system);
+        const bool wasAddedToExecutionGroup = AddSystemToExecutionGroup(system);
 
         system->m_world = this;
 
         InitObject(system);
+        
+        system->OnAddedToWorld(this);
 
-        if (wasAdded)
+        if (wasAddedToExecutionGroup)
         {
             for (const Handle<Scene>& scene : m_scenes)
             {
@@ -1391,6 +1361,58 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
     return system;
 }
 
+bool World::RemoveSystem(SystemBase* system)
+{
+    HYP_SCOPE;
+
+    if (!system)
+    {
+        return false;
+    }
+
+    auto it = m_systems.Find(system);
+
+    if (it == m_systems.End())
+    {
+        return false;
+    }
+
+    AssertDebug(system->m_world == this);
+
+    Handle<SystemBase> systemStrong = MakeStrongRef(system);
+
+    m_systems.Erase(it);
+
+    if (IsInitCalled())
+    {
+        SystemExecutionGroup* executionGroup = nullptr;
+        for (SystemExecutionGroup* systemExecutionGroup : m_systemExecutionGroups)
+        {
+            if (systemExecutionGroup->HasSystem(system))
+            {
+                executionGroup = systemExecutionGroup;
+                break;
+            }
+        }
+
+        if (executionGroup != nullptr)
+        {
+            for (const Handle<Scene>& scene : m_scenes)
+            {
+                scene->GetEntityManager()->NotifySystemOfAllEntitiesRemoved(system);
+            }
+
+            const bool wasRemoved = executionGroup->RemoveSystem(system);
+            AssertDebug(wasRemoved);
+        }
+    }
+    
+    systemStrong->OnRemovedFromWorld(this);
+    systemStrong->m_world = nullptr;
+
+    return true;
+}
+
 bool World::AddSystemToExecutionGroup(SystemBase* system)
 {
     Assert(system != nullptr);
@@ -1399,11 +1421,11 @@ bool World::AddSystemToExecutionGroup(SystemBase* system)
 
     if (system->AllowParallelExecution())
     {
-        for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
+        for (SystemExecutionGroup* systemExecutionGroup : m_systemExecutionGroups)
         {
-            if (systemExecutionGroup.IsValidForSystem(system))
+            if (systemExecutionGroup->IsValidForSystem(system))
             {
-                if (systemExecutionGroup.AddSystem(system))
+                if (systemExecutionGroup->AddSystem(system))
                 {
                     wasAdded = true;
 
@@ -1415,9 +1437,10 @@ bool World::AddSystemToExecutionGroup(SystemBase* system)
 
     if (!wasAdded)
     {
-        SystemExecutionGroup& systemExecutionGroup = m_systemExecutionGroups.EmplaceBack(system->RequiresSimThread(), system->AllowUpdate());
+        SystemExecutionGroup*& systemExecutionGroup = m_systemExecutionGroups.EmplaceBack();
+        systemExecutionGroup = PoolNew<SystemExecutionGroup>(*g_scenePool, system->RequiresSimThread(), system->AllowUpdate());
 
-        if (systemExecutionGroup.AddSystem(system))
+        if (systemExecutionGroup->AddSystem(system))
         {
             wasAdded = true;
         }
