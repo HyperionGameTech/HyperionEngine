@@ -443,7 +443,8 @@ public:
 
     Task<TResult<Handle<AssetPackage>>> LoadPackageFromManifest(
         const FilePath& manifestPath,
-        bool loadSubpackages);
+        bool loadSubpackages,
+        bool forceLoad);
 
     HYP_METHOD()
     Name GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const;

@@ -60,11 +60,11 @@ namespace Hyperion.Editor
 
             //project.World.WorldGrid.AddLayer(new TerrainWorldGridLayer());
 
-            // tmp debug
-            AssetBatch ab = new AssetBatch();
-            ab.Add("test_model", "models/sponza/sponza.obj");
-            ab.Add("monkey", "models/ogrexml/dragger_Body.mesh.xml");
-            _assetBatchTask = ab.Load();
+            //// tmp debug
+            //AssetBatch ab = new AssetBatch();
+            //ab.Add("test_model", "models/sponza/sponza.obj");
+            //ab.Add("monkey", "models/ogrexml/dragger_Body.mesh.xml");
+            //_assetBatchTask = ab.Load();
         }
 
         protected override void OnUpdate(float deltaTime)

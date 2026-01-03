@@ -349,7 +349,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     const FilePath packageDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
     const FilePath packageManifestPath = packageDir / "PackageManifest.json";
 
-    TResult<Handle<AssetPackage>> loadPackageResult = registry->LoadPackageFromManifest(packageManifestPath, /* loadSubpackages */ true).Await();
+    TResult<Handle<AssetPackage>> loadPackageResult = registry->LoadPackageFromManifest(packageManifestPath, /* loadSubpackages */ true, /* forceLoad */ true).Await();
 
     if (loadPackageResult.HasError())
     {
