@@ -227,7 +227,7 @@ void EngineDriver::EnqueueWorldRender(World* world)
 
     const uint32 slot = RenderApi::GetRingIndex();
 
-    auto& worldsToRender = m_worldsToRenderPerFrame[slot];
+    auto& worldsToRender = g_renderInterface->renderWorlds[slot];
 
     if (!worldsToRender.Contains(world))
     {
@@ -448,7 +448,7 @@ void EngineDriver::UpdateSim(float delta)
     const uint32 slot = RenderApi::GetRingIndex();
     const uint32 frameCounter = RenderApi::GetFrameCounter();
 
-    m_worldsToRenderPerFrame[slot].Clear();
+    g_renderInterface->renderWorlds[slot].Clear();
 
     Array<Scene*, SceneAllocator> scenes;
     Array<View*, SceneAllocator> views;

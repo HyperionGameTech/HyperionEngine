@@ -145,8 +145,6 @@ private:
     World* m_currentWorld;         // Sim thread only
     Handle<World> m_defaultWorld;
 
-    Array<World*> m_worldsToRenderPerFrame[RingBufferDepth];
-
     EngineDelegates m_delegates;
 
     TaskBatch* m_viewCollectionBatch;

@@ -117,7 +117,7 @@ void RenderThread::Update()
         swapchain = mainWindow->GetSwapchain();
     }
 
-    Array<World*>& worldsToRender = g_engineDriver->m_worldsToRenderPerFrame[RenderApi::GetRingIndex()];
+    Array<World*>& worldsToRender = g_renderInterface->renderWorlds[RenderApi::GetRingIndex()];
 
     if (worldsToRender.Any())
     {

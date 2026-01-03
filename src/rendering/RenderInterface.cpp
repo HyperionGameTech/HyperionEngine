@@ -570,7 +570,7 @@ struct ViewFrameData
 
 struct FrameData
 {
-    HashMap<View*, ViewFrameData*, NodeAllocator<RenderAllocator>> viewFrameData;
+    HashMap<View*, ViewFrameData*> viewFrameData;
 
     WorldShaderData worldBufferData {};
 };
@@ -587,6 +587,7 @@ static ViewData* GetViewData(View* view)
     AssertDebug(view != nullptr);
 
     auto viewDataIt = s_viewData.Find(view);
+
     if (viewDataIt == s_viewData.End())
     {
         HYP_LOG(Rendering, Debug, "Allocating new ViewData for View {}\t(Camera : {})", view->Id(),
@@ -967,6 +968,7 @@ RenderProxyList& GetProducerProxyList(View* view)
     AssertOnThread(g_simThread);
 
     ViewFrameData* vd = GetViewFrameData(view, s_frameIndex[PRODUCER]);
+    Assert(vd != nullptr);
 
     return *vd->rplShared;
 }
@@ -1139,6 +1141,7 @@ void EndFrameSim()
     s_fullSemaphore.release();
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void BeginFrameRender()
 {
     HYP_SCOPE;
@@ -1157,50 +1160,76 @@ void BeginFrameRender()
 
     RenderCommands::Flush();
 
-    Array<View*, RenderTempAllocator> visitedViews;
+    Array<View*, RenderAllocator> activeViews;
 
-    for (World* world : g_renderInterface->renderWorlds)
+    // collect views for worlds enqueued to be rendered
+    for (World* world : g_renderInterface->renderWorlds[slot])
     {
         for (View* view : world->GetViews())
         {
-            if (visitedViews.Contains(view))
+            if (activeViews.Contains(view))
             {
                 continue;
             }
 
-            visitedViews.PushBack(view);
+            activeViews.PushBack(view);
 
+            // ensure ViewFrameData exists
             ViewFrameData& vfd = *GetViewFrameData(view, slot);
-
-            if (!vfd.viewData)
-            {
-                vfd.viewData = GetViewData(vfd.view);
-                vfd.viewData->AddRef();
-            }
-
             AssertDebug(vfd.rplShared != nullptr);
-
-            bool readLockAcquired = false;
-            vfd.rplShared->BeginRead(&readLockAcquired);
-
-            if (!readLockAcquired)
-            {
-                HYP_LOG(Rendering, Warning, "Read lock for RenderProxyList could not be acquired, may result in invalid resource bindings or stale pointers!!!");
-
-                continue;
-            }
-
-    #ifdef HYP_DEBUG_MODE
-            vfd.rplShared->debugIsSynced = true;
-    #endif
-
-            AssertDebug(vfd.rplShared->debugIsDestroyed == false, "RenderProxyList for view {} has been destroyed!", vfd.view->Id());
-
-            // copy dependencies from shared to ViewData
-            CopyDependencies(vfd.viewData->rplRender, *vfd.rplShared);
-
-            vfd.rplShared->EndRead();
         }
+    }
+
+    // create ViewDatas
+    for (auto& it : s_frameData[slot].viewFrameData)
+    {
+        View* view = it.first;
+        ViewFrameData* vfd = it.second;
+        AssertDebug(vfd != nullptr);
+
+        HYP_LOG_TEMP("ACTIVE VIEWDATA FOR VIEW {}", view->Id());
+        HYP_LOG_TEMP("  ViewFrameData at {}", (void*)vfd);
+        for (Scene* s : view->GetScenes())
+        {
+            HYP_LOG_TEMP("    Has Scene {} (name: {}, world: {})", s->Id(), *s->GetName(), s->GetWorld() ? *s->GetWorld()->GetName() : "null");
+        }
+
+        if (vfd->viewData != nullptr)
+        {
+            continue;
+        }
+
+        vfd->viewData = GetViewData(view);
+        AssertDebug(vfd->viewData != nullptr);
+
+        vfd->viewData->AddRef();
+    }
+
+    for (View* view : activeViews)
+    {
+        ViewFrameData& vfd = *GetViewFrameData(view, slot);
+        AssertDebug(vfd.viewData != nullptr);
+
+        bool readLockAcquired = false;
+        vfd.rplShared->BeginRead(&readLockAcquired);
+
+        if (!readLockAcquired)
+        {
+            HYP_LOG(Rendering, Warning, "Read lock for RenderProxyList could not be acquired, may result in invalid resource bindings or stale pointers!!!");
+
+            continue;
+        }
+
+#ifdef HYP_DEBUG_MODE
+        vfd.rplShared->debugIsSynced = true;
+#endif
+
+        AssertDebug(vfd.rplShared->debugIsDestroyed == false, "RenderProxyList for view {} has been destroyed!", vfd.view->Id());
+
+        // copy dependencies from shared to ViewData
+        CopyDependencies(vfd.viewData->rplRender, *vfd.rplShared);
+
+        vfd.rplShared->EndRead();
     }
 
     {
@@ -1299,7 +1328,7 @@ void BeginFrameRender()
     }
 
     // Build draw call lists
-    for (View* view : visitedViews)
+    for (View* view : activeViews)
     {
         ViewFrameData& vfd = *GetViewFrameData(view, slot);
         AssertDebug(vfd.rplShared != nullptr);
@@ -1336,43 +1365,44 @@ void EndFrameRender()
     for (auto it = frameData.viewFrameData.Begin(); it != frameData.viewFrameData.End();)
     {
         ViewFrameData& vfd = *it->second;
-        AssertDebug(vfd.viewData != nullptr);
-
-        ViewData& vd = *vfd.viewData;
-
-        View* view = vd.view;
-        AssertDebug(view != nullptr);
-
-        vd.renderCollector.RemoveEmptyRenderGroups();
-
-        // Clear out data for views that haven't been written to for a while
-        if (++vd.framesSinceUsed >= MaxFramesBeforeDiscard)
+        if (vfd.viewData != nullptr)
         {
-            // Decrement ref count on the ViewData,
-            // if we hit zero there are no more ViewFrameData holding refs to the ViewData so we delete it
-            AssertDebug(vd.numRefs > 0);
+            ViewData& vd = *vfd.viewData;
 
-            if (vd.ReleaseRef() == 0)
+            View* view = vd.view;
+            AssertDebug(view != nullptr);
+
+            vd.renderCollector.RemoveEmptyRenderGroups();
+
+            // Clear out data for views that haven't been written to for a while
+            if (++vd.framesSinceUsed >= MaxFramesBeforeDiscard)
             {
-                HYP_LOG(Rendering, Debug, "Discarding ViewData for view {}", view->Id());
+                // Decrement ref count on the ViewData,
+                // if we hit zero there are no more ViewFrameData holding refs to the ViewData so we delete it
+                AssertDebug(vd.numRefs > 0);
 
-                auto viewDataIt = s_viewData.Find(view);
-                AssertDebug(viewDataIt != s_viewData.End() && viewDataIt->second == &vd);
+                if (vd.ReleaseRef() == 0)
+                {
+                    HYP_LOG(Rendering, Debug, "Discarding ViewData for view {}", view->Id());
 
-                s_viewData.Erase(viewDataIt);
+                    auto viewDataIt = s_viewData.Find(view);
+                    AssertDebug(viewDataIt != s_viewData.End() && viewDataIt->second == &vd);
 
-                PoolDelete(*g_renderPool, &vd);
-            }
+                    s_viewData.Erase(viewDataIt);
+
+                    PoolDelete(*g_renderPool, &vd);
+                }
 
 #ifdef HYP_DEBUG_MODE
-            vfd.rplShared->debugIsSynced = false;
+                vfd.rplShared->debugIsSynced = false;
 #endif
 
-            PoolDelete(*g_framePools[slot], &vfd);
+                PoolDelete(*g_framePools[slot], &vfd);
 
-            it = frameData.viewFrameData.Erase(it);
+                it = frameData.viewFrameData.Erase(it);
 
-            continue;
+                continue;
+            }
         }
 
         ++it;
@@ -1443,6 +1473,8 @@ void EndFrameRender()
 
     s_freeSemaphore.release();
 }
+
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace RenderApi
 
