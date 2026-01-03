@@ -713,6 +713,54 @@ bool World::TryAddSubsystem(const Handle<Subsystem>& subsystem)
     return true;
 }
 
+
+bool World::RemoveSystem(SystemBase* system)
+{
+    HYP_SCOPE;
+
+    if (!system)
+    {
+        return false;
+    }
+
+    auto it = m_systems.Find(system);
+
+    if (it == m_systems.End())
+    {
+        return false;
+    }
+
+    Handle<SystemBase> systemStrong = MakeStrongRef(system);
+
+    m_systems.Erase(it);
+
+    if (IsInitCalled())
+    {
+        SystemExecutionGroup* executionGroup = nullptr;
+        for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
+        {
+            if (systemExecutionGroup.HasSystem(system))
+            {
+                executionGroup = &systemExecutionGroup;
+                break;
+            }
+        }
+
+        if (executionGroup != nullptr)
+        {
+            for (const Handle<Scene>& scene : m_scenes)
+            {
+                scene->GetEntityManager()->NotifySystemOfAllEntitiesRemoved(system);
+            }
+
+            const bool wasRemoved = executionGroup->RemoveSystem(system);
+            AssertDebug(wasRemoved);
+        }
+    }
+
+    return true;
+}
+
 Subsystem* World::GetSubsystem(TypeId typeId) const
 {
     HYP_SCOPE;
@@ -1253,6 +1301,49 @@ Array<WGLayerDesc, DynamicAllocator> World::SerializeStreamingLayers() const
     }
 
     return m_worldGrid->GetStreamingLayerDescs();
+}
+
+void World::DeserializeSystems(const Array<Handle<SystemBase>>& systems)
+{
+    // remove existing
+    for (SizeType systemIdx = 0; systemIdx < m_systems.Size();)
+    {
+        SystemBase* system = m_systems[systemIdx];
+
+        if (!RemoveSystem(system))
+        {
+            ++systemIdx;
+
+            continue;
+        }
+    }
+
+    AssertDebug(m_systems.Empty());
+
+    for (const Handle<SystemBase>& system : systems)
+    {
+        if (!system)
+            continue;
+
+        AddSystem(system);
+    }
+}
+
+Array<Handle<SystemBase>> World::SerializeSystems() const
+{
+    Array<Handle<SystemBase>> systemsToSerialize;
+    systemsToSerialize.Reserve(m_systems.Size());
+
+    for (const Handle<SystemBase>& system : m_systems)
+    {
+        // Skip systems with `Serialize` attr as false
+        if (!system->InstanceClass()->GetAttribute(Attributes::g_attrSerialize).GetBool(true))
+            continue;
+
+        systemsToSerialize.PushBack(system);
+    }
+
+    return systemsToSerialize;
 }
 
 SystemBase* World::AddSystem(const Handle<SystemBase>& system)

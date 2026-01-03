@@ -249,7 +249,8 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
                 continue;
             }
 
-            if (!member.GetAttribute(Attributes::g_attrSerialize).GetBool(true) || member.GetAttribute(Attributes::g_attrTransient).GetBool(false))
+            if (!member.GetAttribute(Attributes::g_attrSerialize).GetBool(true)
+                || member.GetAttribute(Attributes::g_attrTransient).GetBool(false))
             {
                 continue;
             }
